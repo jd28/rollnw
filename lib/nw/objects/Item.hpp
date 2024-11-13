@@ -66,7 +66,7 @@ struct Item : public ObjectBase {
 
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
-    std::array<uint8_t, 19> model_parts;
+    std::array<uint16_t, 19> model_parts;
 
     bool instantiated_ = false;
 };

@@ -336,37 +336,83 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
     // Guess model type from what's in the archive.
     if (archive.has_field("ArmorPart_Belt")) {
         obj->model_type = ItemModelType::armor;
-        archive.get_to("ArmorPart_Belt", obj->model_parts[ItemModelParts::armor_belt]);
-        archive.get_to("ArmorPart_LBicep", obj->model_parts[ItemModelParts::armor_lbicep]);
-        archive.get_to("ArmorPart_LFArm", obj->model_parts[ItemModelParts::armor_lfarm]);
-        archive.get_to("ArmorPart_LFoot", obj->model_parts[ItemModelParts::armor_lfoot]);
-        archive.get_to("ArmorPart_LHand", obj->model_parts[ItemModelParts::armor_lhand]);
-        archive.get_to("ArmorPart_LShin", obj->model_parts[ItemModelParts::armor_lshin]);
-        archive.get_to("ArmorPart_LShoul", obj->model_parts[ItemModelParts::armor_lshoul]);
-        archive.get_to("ArmorPart_LThigh", obj->model_parts[ItemModelParts::armor_lthigh]);
-        archive.get_to("ArmorPart_Neck", obj->model_parts[ItemModelParts::armor_neck]);
-        archive.get_to("ArmorPart_Pelvis", obj->model_parts[ItemModelParts::armor_pelvis]);
-        archive.get_to("ArmorPart_RBicep", obj->model_parts[ItemModelParts::armor_rbicep]);
-        archive.get_to("ArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm]);
-        archive.get_to("ArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot]);
-        archive.get_to("ArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand]);
-        archive.get_to("ArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe], false);
-        archive.get_to("ArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin]);
-        archive.get_to("ArmorPart_RShoul", obj->model_parts[ItemModelParts::armor_rshoul]);
-        archive.get_to("ArmorPart_RThigh", obj->model_parts[ItemModelParts::armor_rthigh]);
-        archive.get_to("ArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
+        if (!archive.get_to("xArmorPart_Belt", obj->model_parts[ItemModelParts::armor_belt], false)) {
+            archive.get_to("ArmorPart_Belt", obj->model_parts[ItemModelParts::armor_belt]);
+        }
+        if (!archive.get_to("xArmorPart_LBice", obj->model_parts[ItemModelParts::armor_lbicep], false)) {
+            archive.get_to("ArmorPart_LBicep", obj->model_parts[ItemModelParts::armor_lbicep]);
+        }
+        if (!archive.get_to("xArmorPart_LFArm", obj->model_parts[ItemModelParts::armor_lfarm], false)) {
+            archive.get_to("ArmorPart_LFArm", obj->model_parts[ItemModelParts::armor_lfarm]);
+        }
+        if (!archive.get_to("xArmorPart_LFoot", obj->model_parts[ItemModelParts::armor_lfoot], false)) {
+            archive.get_to("ArmorPart_LFoot", obj->model_parts[ItemModelParts::armor_lfoot]);
+        }
+        if (!archive.get_to("xArmorPart_LHand", obj->model_parts[ItemModelParts::armor_lhand], false)) {
+            archive.get_to("ArmorPart_LHand", obj->model_parts[ItemModelParts::armor_lhand]);
+        }
+        if (!archive.get_to("xArmorPart_LShin", obj->model_parts[ItemModelParts::armor_lshin], false)) {
+            archive.get_to("ArmorPart_LShin", obj->model_parts[ItemModelParts::armor_lshin]);
+        }
+        if (!archive.get_to("xArmorPart_LShou", obj->model_parts[ItemModelParts::armor_lshoul], false)) {
+            archive.get_to("ArmorPart_LShoul", obj->model_parts[ItemModelParts::armor_lshoul]);
+        }
+        if (!archive.get_to("xArmorPart_LThig", obj->model_parts[ItemModelParts::armor_lthigh], false)) {
+            archive.get_to("ArmorPart_LThigh", obj->model_parts[ItemModelParts::armor_lthigh]);
+        }
+        if (!archive.get_to("xArmorPart_Neck", obj->model_parts[ItemModelParts::armor_neck], false)) {
+            archive.get_to("ArmorPart_Neck", obj->model_parts[ItemModelParts::armor_neck]);
+        }
+        if (!archive.get_to("xArmorPart_Pelvi", obj->model_parts[ItemModelParts::armor_pelvis], false)) {
+            archive.get_to("ArmorPart_Pelvis", obj->model_parts[ItemModelParts::armor_pelvis]);
+        }
+        if (!archive.get_to("xArmorPart_RBice", obj->model_parts[ItemModelParts::armor_rbicep], false)) {
+            archive.get_to("ArmorPart_RBicep", obj->model_parts[ItemModelParts::armor_rbicep]);
+        }
+        if (!archive.get_to("xArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm], false)) {
+            archive.get_to("ArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm]);
+        }
+        if (!archive.get_to("xArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot], false)) {
+            archive.get_to("ArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot]);
+        }
+        if (!archive.get_to("xArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand], false)) {
+            archive.get_to("ArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand]);
+        }
+        if (!archive.get_to("xArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe], false)) {
+            archive.get_to("ArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe], false);
+        }
+        if (!archive.get_to("xArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin], false)) {
+            archive.get_to("ArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin]);
+        }
+        if (!archive.get_to("xArmorPart_RShou", obj->model_parts[ItemModelParts::armor_rshoul], false)) {
+            archive.get_to("ArmorPart_RShoul", obj->model_parts[ItemModelParts::armor_rshoul]);
+        }
+        if (!archive.get_to("xArmorPart_RThig", obj->model_parts[ItemModelParts::armor_rthigh], false)) {
+            archive.get_to("ArmorPart_RThigh", obj->model_parts[ItemModelParts::armor_rthigh]);
+        }
+        if (!archive.get_to("xArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso], false)) {
+            archive.get_to("ArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
+        }
     } else if (archive.has_field("ModelPart2")) {
         obj->model_type = ItemModelType::composite;
-        archive.get_to("ModelPart1", obj->model_parts[ItemModelParts::model1]);
-        archive.get_to("ModelPart2", obj->model_parts[ItemModelParts::model2]);
-        archive.get_to("ModelPart3", obj->model_parts[ItemModelParts::model3]);
+        if (!archive.get_to("xModelPart1", obj->model_parts[ItemModelParts::model1], false)) {
+            archive.get_to("ModelPart1", obj->model_parts[ItemModelParts::model1]);
+        }
+        if (!archive.get_to("xModelPart2", obj->model_parts[ItemModelParts::model2], false)) {
+            archive.get_to("ModelPart2", obj->model_parts[ItemModelParts::model2]);
+        }
+        if (!archive.get_to("xModelPart3", obj->model_parts[ItemModelParts::model3], false)) {
+            archive.get_to("ModelPart3", obj->model_parts[ItemModelParts::model3]);
+        }
     } else {
         if (archive.has_field("Cloth1Color")) {
             obj->model_type = ItemModelType::layered;
         } else {
             obj->model_type = ItemModelType::simple;
         }
-        archive.get_to("ModelPart1", obj->model_parts[ItemModelParts::model1]);
+        if (!archive.get_to("xModelPart1", obj->model_parts[ItemModelParts::model1], false)) {
+            archive.get_to("ModelPart1", obj->model_parts[ItemModelParts::model1]);
+        }
     }
 
     if (obj->model_type == ItemModelType::layered
@@ -431,31 +477,54 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
         .add_field("Stolen", obj->stolen);
 
     if (obj->model_type == ItemModelType::armor) {
-        archive.add_field("ArmorPart_Belt", obj->model_parts[ItemModelParts::armor_belt])
-            .add_field("ArmorPart_LBicep", obj->model_parts[ItemModelParts::armor_lbicep])
-            .add_field("ArmorPart_LFArm", obj->model_parts[ItemModelParts::armor_lfarm])
-            .add_field("ArmorPart_LFoot", obj->model_parts[ItemModelParts::armor_lfoot])
-            .add_field("ArmorPart_LHand", obj->model_parts[ItemModelParts::armor_lhand])
-            .add_field("ArmorPart_LShin", obj->model_parts[ItemModelParts::armor_lshin])
-            .add_field("ArmorPart_LShoul", obj->model_parts[ItemModelParts::armor_lshoul])
-            .add_field("ArmorPart_LThigh", obj->model_parts[ItemModelParts::armor_lthigh])
-            .add_field("ArmorPart_Neck", obj->model_parts[ItemModelParts::armor_neck])
-            .add_field("ArmorPart_Pelvis", obj->model_parts[ItemModelParts::armor_pelvis])
-            .add_field("ArmorPart_RBicep", obj->model_parts[ItemModelParts::armor_rbicep])
-            .add_field("ArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm])
-            .add_field("ArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot])
-            .add_field("ArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand])
-            .add_field("ArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe])
-            .add_field("ArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin])
-            .add_field("ArmorPart_RShoul", obj->model_parts[ItemModelParts::armor_rshoul])
-            .add_field("ArmorPart_RThigh", obj->model_parts[ItemModelParts::armor_rthigh])
-            .add_field("ArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
+        archive.add_field("ArmorPart_Belt", uint8_t(obj->model_parts[ItemModelParts::armor_belt]))
+            .add_field("ArmorPart_LBicep", uint8_t(obj->model_parts[ItemModelParts::armor_lbicep]))
+            .add_field("ArmorPart_LFArm", uint8_t(obj->model_parts[ItemModelParts::armor_lfarm]))
+            .add_field("ArmorPart_LFoot", uint8_t(obj->model_parts[ItemModelParts::armor_lfoot]))
+            .add_field("ArmorPart_LHand", uint8_t(obj->model_parts[ItemModelParts::armor_lhand]))
+            .add_field("ArmorPart_LShin", uint8_t(obj->model_parts[ItemModelParts::armor_lshin]))
+            .add_field("ArmorPart_LShoul", uint8_t(obj->model_parts[ItemModelParts::armor_lshoul]))
+            .add_field("ArmorPart_LThigh", uint8_t(obj->model_parts[ItemModelParts::armor_lthigh]))
+            .add_field("ArmorPart_Neck", uint8_t(obj->model_parts[ItemModelParts::armor_neck]))
+            .add_field("ArmorPart_Pelvis", uint8_t(obj->model_parts[ItemModelParts::armor_pelvis]))
+            .add_field("ArmorPart_RBicep", uint8_t(obj->model_parts[ItemModelParts::armor_rbicep]))
+            .add_field("ArmorPart_RFArm", uint8_t(obj->model_parts[ItemModelParts::armor_rfarm]))
+            .add_field("ArmorPart_RFoot", uint8_t(obj->model_parts[ItemModelParts::armor_rfoot]))
+            .add_field("ArmorPart_RHand", uint8_t(obj->model_parts[ItemModelParts::armor_rhand]))
+            .add_field("ArmorPart_Robe", uint8_t(obj->model_parts[ItemModelParts::armor_robe]))
+            .add_field("ArmorPart_RShin", uint8_t(obj->model_parts[ItemModelParts::armor_rshin]))
+            .add_field("ArmorPart_RShoul", uint8_t(obj->model_parts[ItemModelParts::armor_rshoul]))
+            .add_field("ArmorPart_RThigh", uint8_t(obj->model_parts[ItemModelParts::armor_rthigh]))
+            .add_field("ArmorPart_Torso", uint8_t(obj->model_parts[ItemModelParts::armor_torso]))
+            .add_field("xArmorPart_Belt", obj->model_parts[ItemModelParts::armor_belt])
+            .add_field("xArmorPart_LBice", obj->model_parts[ItemModelParts::armor_lbicep])
+            .add_field("xArmorPart_LFArm", obj->model_parts[ItemModelParts::armor_lfarm])
+            .add_field("xArmorPart_LFoot", obj->model_parts[ItemModelParts::armor_lfoot])
+            .add_field("xArmorPart_LHand", obj->model_parts[ItemModelParts::armor_lhand])
+            .add_field("xArmorPart_LShin", obj->model_parts[ItemModelParts::armor_lshin])
+            .add_field("xArmorPart_LShou", obj->model_parts[ItemModelParts::armor_lshoul])
+            .add_field("xArmorPart_LThig", obj->model_parts[ItemModelParts::armor_lthigh])
+            .add_field("xArmorPart_Neck", obj->model_parts[ItemModelParts::armor_neck])
+            .add_field("xArmorPart_Pelvi", obj->model_parts[ItemModelParts::armor_pelvis])
+            .add_field("xArmorPart_RBice", obj->model_parts[ItemModelParts::armor_rbicep])
+            .add_field("xArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm])
+            .add_field("xArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot])
+            .add_field("xArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand])
+            .add_field("xArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe])
+            .add_field("xArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin])
+            .add_field("xArmorPart_RShou", obj->model_parts[ItemModelParts::armor_rshoul])
+            .add_field("xArmorPart_RThig", obj->model_parts[ItemModelParts::armor_rthigh])
+            .add_field("xArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
     } else if (obj->model_type == ItemModelType::composite) {
-        archive.add_field("ModelPart1", obj->model_parts[ItemModelParts::model1]);
-        archive.add_field("ModelPart2", obj->model_parts[ItemModelParts::model2]);
-        archive.add_field("ModelPart3", obj->model_parts[ItemModelParts::model3]);
+        archive.add_field("ModelPart1", uint8_t(obj->model_parts[ItemModelParts::model1]));
+        archive.add_field("ModelPart2", uint8_t(obj->model_parts[ItemModelParts::model2]));
+        archive.add_field("ModelPart3", uint8_t(obj->model_parts[ItemModelParts::model3]));
+        archive.add_field("xModelPart1", obj->model_parts[ItemModelParts::model1]);
+        archive.add_field("xModelPart2", obj->model_parts[ItemModelParts::model2]);
+        archive.add_field("xModelPart3", obj->model_parts[ItemModelParts::model3]);
     } else {
-        archive.add_field("ModelPart1", obj->model_parts[ItemModelParts::model1]);
+        archive.add_field("ModelPart1", uint8_t(obj->model_parts[ItemModelParts::model1]));
+        archive.add_field("xModelPart1", obj->model_parts[ItemModelParts::model1]);
     }
 
     if (obj->model_type == ItemModelType::layered
