@@ -384,7 +384,9 @@ bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile p
         obj->race = Race::make(temp);
     }
 
-    archive.get_to("StartingPackage", obj->starting_package, false);
+    if (!archive.get_to("xStartingPackage", obj->starting_package, false)) {
+        archive.get_to("StartingPackage", obj->starting_package, false);
+    }
 
     if (profile == SerializationProfile::instance) {
         VisualTransform vt;
@@ -460,7 +462,8 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
         .add_field("PerceptionRange", obj->perception_range)
         .add_field("Plot", obj->plot)
         .add_field("Race", uint8_t(*obj->race))
-        .add_field("StartingPackage", obj->starting_package);
+        .add_field("StartingPackage", uint8_t(obj->starting_package))
+        .add_field("xStartingPackage", obj->starting_package);
 
     if (profile == SerializationProfile::instance) {
         // Don't add default constructed visual transforms (unlike the game).

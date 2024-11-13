@@ -86,6 +86,7 @@ struct Creature : public ObjectBase {
     uint32_t decay_time;
     Race race = Race::invalid();
     int32_t walkrate = 0;
+    uint32_t starting_package = 0;
 
     uint16_t faction_id = 0;
     int16_t hp = 0;
@@ -111,7 +112,6 @@ struct Creature : public ObjectBase {
     uint8_t pc = 0;
     uint8_t perception_range = 0;
     bool plot = false;
-    uint8_t starting_package = 0;
 
     bool instantiated_ = false;
 };
