@@ -5,25 +5,25 @@
 namespace nw {
 
 struct BodyParts {
-    uint8_t belt = 0;
-    uint8_t bicep_left = 0;
-    uint8_t bicep_right = 0;
-    uint8_t foot_left = 0;
-    uint8_t foot_right = 0;
-    uint8_t forearm_left = 0;
-    uint8_t forearm_right = 0;
-    uint8_t hand_left = 0;
-    uint8_t hand_right = 0;
-    uint8_t head = 0;
-    uint8_t neck = 0;
-    uint8_t pelvis = 0;
-    uint8_t shin_left = 0;
-    uint8_t shin_right = 0;
-    uint8_t shoulder_left = 0;
-    uint8_t shoulder_right = 0;
-    uint8_t thigh_left = 0;
-    uint8_t thigh_right = 0;
-    uint8_t torso = 0;
+    uint16_t belt = 0;
+    uint16_t bicep_left = 0;
+    uint16_t bicep_right = 0;
+    uint16_t foot_left = 0;
+    uint16_t foot_right = 0;
+    uint16_t forearm_left = 0;
+    uint16_t forearm_right = 0;
+    uint16_t hand_left = 0;
+    uint16_t hand_right = 0;
+    uint16_t head = 0;
+    uint16_t neck = 0;
+    uint16_t pelvis = 0;
+    uint16_t shin_left = 0;
+    uint16_t shin_right = 0;
+    uint16_t shoulder_left = 0;
+    uint16_t shoulder_right = 0;
+    uint16_t thigh_left = 0;
+    uint16_t thigh_right = 0;
+    uint16_t torso = 0;
 };
 
 struct CreatureAppearance {

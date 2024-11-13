@@ -102,24 +102,60 @@ bool deserialize(CreatureAppearance& self, const GffStruct& archive)
     archive.get_to("PortraitId", self.portrait_id);
     archive.get_to("Appearance_Head", self.body_parts.head, false); // Only in dynamic models
 
-    archive.get_to("ArmorPart_RFoot", self.body_parts.foot_right, false);
-    archive.get_to("BodyPart_Belt", self.body_parts.belt, false);
-    archive.get_to("BodyPart_LBicep", self.body_parts.bicep_left, false);
-    archive.get_to("BodyPart_LFArm", self.body_parts.forearm_left, false);
-    archive.get_to("BodyPart_LFoot", self.body_parts.foot_left, false);
-    archive.get_to("BodyPart_LHand", self.body_parts.hand_left, false);
-    archive.get_to("BodyPart_LShin", self.body_parts.shin_left, false);
-    archive.get_to("BodyPart_LShoul", self.body_parts.shoulder_left, false);
-    archive.get_to("BodyPart_LThigh", self.body_parts.thigh_left, false);
-    archive.get_to("BodyPart_Neck", self.body_parts.neck, false);
-    archive.get_to("BodyPart_Pelvis", self.body_parts.pelvis, false);
-    archive.get_to("BodyPart_RBicep", self.body_parts.bicep_right, false);
-    archive.get_to("BodyPart_RFArm", self.body_parts.forearm_right, false);
-    archive.get_to("BodyPart_RHand", self.body_parts.hand_right, false);
-    archive.get_to("BodyPart_RShin", self.body_parts.shin_right, false);
-    archive.get_to("BodyPart_RShoul", self.body_parts.shoulder_right, false);
-    archive.get_to("BodyPart_RThigh", self.body_parts.thigh_right, false);
-    archive.get_to("BodyPart_Torso", self.body_parts.torso, false);
+    if (!archive.get_to("xArmorPart_RFoot", self.body_parts.foot_right, false)) {
+        archive.get_to("ArmorPart_RFoot", self.body_parts.foot_right, false);
+    }
+    if (!archive.get_to("xBodyPart_Belt", self.body_parts.belt, false)) {
+        archive.get_to("BodyPart_Belt", self.body_parts.belt, false);
+    }
+    if (!archive.get_to("xBodyPart_LBicep", self.body_parts.bicep_left, false)) {
+        archive.get_to("BodyPart_LBicep", self.body_parts.bicep_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LFArm", self.body_parts.forearm_left, false)) {
+        archive.get_to("BodyPart_LFArm", self.body_parts.forearm_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LFoot", self.body_parts.foot_left, false)) {
+        archive.get_to("BodyPart_LFoot", self.body_parts.foot_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LHand", self.body_parts.hand_left, false)) {
+        archive.get_to("BodyPart_LHand", self.body_parts.hand_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LShin", self.body_parts.shin_left, false)) {
+        archive.get_to("BodyPart_LShin", self.body_parts.shin_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LShoul", self.body_parts.shoulder_left, false)) {
+        archive.get_to("BodyPart_LShoul", self.body_parts.shoulder_left, false);
+    }
+    if (!archive.get_to("xBodyPart_LThigh", self.body_parts.thigh_left, false)) {
+        archive.get_to("BodyPart_LThigh", self.body_parts.thigh_left, false);
+    }
+    if (!archive.get_to("xBodyPart_Neck", self.body_parts.neck, false)) {
+        archive.get_to("BodyPart_Neck", self.body_parts.neck, false);
+    }
+    if (!archive.get_to("xBodyPart_Pelvis", self.body_parts.pelvis, false)) {
+        archive.get_to("BodyPart_Pelvis", self.body_parts.pelvis, false);
+    }
+    if (!archive.get_to("xBodyPart_RBicep", self.body_parts.bicep_right, false)) {
+        archive.get_to("BodyPart_RBicep", self.body_parts.bicep_right, false);
+    }
+    if (!archive.get_to("xBodyPart_RFArm", self.body_parts.forearm_right, false)) {
+        archive.get_to("BodyPart_RFArm", self.body_parts.forearm_right, false);
+    }
+    if (!archive.get_to("xBodyPart_RHand", self.body_parts.hand_right, false)) {
+        archive.get_to("BodyPart_RHand", self.body_parts.hand_right, false);
+    }
+    if (!archive.get_to("xBodyPart_RShin", self.body_parts.shin_right, false)) {
+        archive.get_to("BodyPart_RShin", self.body_parts.shin_right, false);
+    }
+    if (!archive.get_to("xBodyPart_RShoul", self.body_parts.shoulder_right, false)) {
+        archive.get_to("BodyPart_RShoul", self.body_parts.shoulder_right, false);
+    }
+    if (!archive.get_to("xBodyPart_RThigh", self.body_parts.thigh_right, false)) {
+        archive.get_to("BodyPart_RThigh", self.body_parts.thigh_right, false);
+    }
+    if (!archive.get_to("xBodyPart_Torso", self.body_parts.torso, false)) {
+        archive.get_to("BodyPart_Torso", self.body_parts.torso, false);
+    }
 
     archive.get_to("Color_Hair", self.hair, false);
     archive.get_to("Color_Skin", self.skin, false);
@@ -136,25 +172,44 @@ bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
         .add_field("Wings_New", self.wings)
         .add_field("Appearance_Type", self.id)
         .add_field("PortraitId", self.portrait_id)
-        .add_field("Appearance_Head", self.body_parts.head)
-        .add_field("BodyPart_Belt", self.body_parts.belt)
-        .add_field("BodyPart_LBicep", self.body_parts.bicep_left)
-        .add_field("BodyPart_LFArm", self.body_parts.forearm_left)
-        .add_field("BodyPart_LFoot", self.body_parts.foot_left)
-        .add_field("BodyPart_LHand", self.body_parts.hand_left)
-        .add_field("BodyPart_LShin", self.body_parts.shin_left)
-        .add_field("BodyPart_LShoul", self.body_parts.shoulder_left)
-        .add_field("BodyPart_LThigh", self.body_parts.thigh_left)
-        .add_field("BodyPart_Neck", self.body_parts.neck)
-        .add_field("BodyPart_Pelvis", self.body_parts.pelvis)
-        .add_field("BodyPart_RBicep", self.body_parts.bicep_right)
-        .add_field("BodyPart_RFArm", self.body_parts.forearm_right)
-        .add_field("ArmorPart_RFoot", self.body_parts.foot_right)
-        .add_field("BodyPart_RHand", self.body_parts.hand_right)
-        .add_field("BodyPart_RShin", self.body_parts.shin_right)
-        .add_field("BodyPart_RShoul", self.body_parts.shoulder_right)
-        .add_field("BodyPart_RThigh", self.body_parts.thigh_right)
-        .add_field("BodyPart_Torso", self.body_parts.torso)
+        .add_field("Appearance_Head", uint8_t(self.body_parts.head))
+        .add_field("BodyPart_Belt", uint8_t(self.body_parts.belt))
+        .add_field("BodyPart_LBicep", uint8_t(self.body_parts.bicep_left))
+        .add_field("BodyPart_LFArm", uint8_t(self.body_parts.forearm_left))
+        .add_field("BodyPart_LFoot", uint8_t(self.body_parts.foot_left))
+        .add_field("BodyPart_LHand", uint8_t(self.body_parts.hand_left))
+        .add_field("BodyPart_LShin", uint8_t(self.body_parts.shin_left))
+        .add_field("BodyPart_LShoul", uint8_t(self.body_parts.shoulder_left))
+        .add_field("BodyPart_LThigh", uint8_t(self.body_parts.thigh_left))
+        .add_field("BodyPart_Neck", uint8_t(self.body_parts.neck))
+        .add_field("BodyPart_Pelvis", uint8_t(self.body_parts.pelvis))
+        .add_field("BodyPart_RBicep", uint8_t(self.body_parts.bicep_right))
+        .add_field("BodyPart_RFArm", uint8_t(self.body_parts.forearm_right))
+        .add_field("ArmorPart_RFoot", uint8_t(self.body_parts.foot_right))
+        .add_field("BodyPart_RHand", uint8_t(self.body_parts.hand_right))
+        .add_field("BodyPart_RShin", uint8_t(self.body_parts.shin_right))
+        .add_field("BodyPart_RShoul", uint8_t(self.body_parts.shoulder_right))
+        .add_field("BodyPart_RThigh", uint8_t(self.body_parts.thigh_right))
+        .add_field("BodyPart_Torso", uint8_t(self.body_parts.torso))
+        .add_field("xAppearance_Head", self.body_parts.head)
+        .add_field("xBodyPart_Belt", self.body_parts.belt)
+        .add_field("xBodyPart_LBicep", self.body_parts.bicep_left)
+        .add_field("xBodyPart_LFArm", self.body_parts.forearm_left)
+        .add_field("xBodyPart_LFoot", self.body_parts.foot_left)
+        .add_field("xBodyPart_LHand", self.body_parts.hand_left)
+        .add_field("xBodyPart_LShin", self.body_parts.shin_left)
+        .add_field("xBodyPart_LShoul", self.body_parts.shoulder_left)
+        .add_field("xBodyPart_LThigh", self.body_parts.thigh_left)
+        .add_field("xBodyPart_Neck", self.body_parts.neck)
+        .add_field("xBodyPart_Pelvis", self.body_parts.pelvis)
+        .add_field("xBodyPart_RBicep", self.body_parts.bicep_right)
+        .add_field("xBodyPart_RFArm", self.body_parts.forearm_right)
+        .add_field("xArmorPart_RFoot", self.body_parts.foot_right)
+        .add_field("xBodyPart_RHand", self.body_parts.hand_right)
+        .add_field("xBodyPart_RShin", self.body_parts.shin_right)
+        .add_field("xBodyPart_RShoul", self.body_parts.shoulder_right)
+        .add_field("xBodyPart_RThigh", self.body_parts.thigh_right)
+        .add_field("xBodyPart_Torso", self.body_parts.torso)
         .add_field("Color_Hair", self.hair)
         .add_field("Color_Skin", self.skin)
         .add_field("Color_Tattoo1", self.tattoo1)
