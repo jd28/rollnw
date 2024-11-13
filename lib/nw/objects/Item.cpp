@@ -196,6 +196,9 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
             ref[i].at("cost_value").get_to(ip.cost_value);
             ref[i].at("param_table").get_to(ip.param_table);
             ref[i].at("param_value").get_to(ip.param_value);
+            if (ref[i].find("tag") != ref[i].end()) {
+                ref[i].at("tag").get_to(ip.tag);
+            }
             obj->properties.push_back(ip);
         }
 
@@ -269,6 +272,7 @@ bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProf
             {"cost_value", p.cost_value},
             {"param_table", p.param_table},
             {"param_value", p.param_value},
+            {"tag", p.tag},
         });
     }
 
@@ -310,6 +314,7 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
             || !list[i].get_to("Param1Value", ip.param_value)) {
             LOG_F(WARNING, "item invalid property at index {}", i);
         } else {
+            list[i].get_to("CustomTag", ip.tag, false);
             obj->properties.push_back(ip);
         }
     }
@@ -473,7 +478,8 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
             .add_field("CostValue", ip.cost_value)
             .add_field("Param1", ip.param_table)
             .add_field("Param1Value", ip.param_value)
-            .add_field("ChanceAppear", chance);
+            .add_field("ChanceAppear", chance)
+            .add_field("CustomTag", ip.tag);
     }
 
     if (profile == SerializationProfile::instance) {

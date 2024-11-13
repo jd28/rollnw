@@ -73,6 +73,7 @@ struct ItemProperty {
     uint16_t cost_value = std::numeric_limits<uint16_t>::max();
     uint8_t param_table = std::numeric_limits<uint8_t>::max();
     uint8_t param_value = std::numeric_limits<uint8_t>::max();
+    std::string tag;
 };
 
 struct ItemPropertyDefinition {
