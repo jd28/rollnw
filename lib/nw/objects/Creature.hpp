@@ -48,10 +48,13 @@ struct Creature : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::creature;
     static constexpr ResourceType::type restype = ResourceType::utc;
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }

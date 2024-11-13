@@ -15,10 +15,13 @@ struct Waypoint : public ObjectBase {
     Waypoint();
     Waypoint(nw::MemoryResource* allocator);
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Waypoint* as_waypoint() override { return this; }
     virtual const Waypoint* as_waypoint() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
 

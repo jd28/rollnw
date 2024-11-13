@@ -30,10 +30,13 @@ struct Trigger : public ObjectBase {
     Trigger();
     Trigger(nw::MemoryResource* allocator);
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Trigger* as_trigger() override { return this; }
     virtual const Trigger* as_trigger() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;

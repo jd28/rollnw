@@ -85,10 +85,13 @@ struct Area : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::area;
     static constexpr ResourceType::type restype = ResourceType::caf;
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Area* as_area() override { return this; }
     virtual const Area* as_area() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual void clear() override;
     virtual bool instantiate() override;
 

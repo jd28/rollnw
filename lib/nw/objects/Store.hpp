@@ -37,10 +37,13 @@ struct Store : public ObjectBase {
     Store();
     Store(nw::MemoryResource* allocator);
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     Store* as_store() override { return this; }
     const Store* as_store() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual void clear() override;
     virtual bool instantiate() override;
 

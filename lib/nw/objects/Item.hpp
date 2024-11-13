@@ -22,10 +22,13 @@ struct Item : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::item;
     static constexpr ResourceType::type restype = ResourceType::uti;
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }

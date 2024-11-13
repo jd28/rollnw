@@ -45,10 +45,13 @@ struct Encounter : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::encounter;
     static constexpr ResourceType::type restype = ResourceType::ute;
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Encounter* as_encounter() override { return this; }
     virtual const Encounter* as_encounter() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
 

@@ -13,8 +13,10 @@ struct Player : public Creature {
     Player(nw::MemoryResource* allocator);
 
     // ObjectBase Overrides
+    // LCOV_EXCL_START
     virtual Player* as_player() override { return this; }
     virtual const Player* as_player() const override { return this; }
+    // LCOV_EXCL_STOP
     virtual InternedString tag() const override { return common.tag; }
 
     static bool deserialize(Player* obj, const nlohmann::json& archive);

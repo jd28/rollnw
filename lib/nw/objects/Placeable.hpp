@@ -71,10 +71,13 @@ struct Placeable : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::placeable;
     static constexpr ResourceType::type restype = ResourceType::utp;
 
+    // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
+    // LCOV_EXCL_STOP
+
     virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
