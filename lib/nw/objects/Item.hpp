@@ -3,8 +3,6 @@
 #include "../rules/items.hpp"
 #include "Common.hpp"
 #include "Inventory.hpp"
-#include "LocalData.hpp"
-#include "Location.hpp"
 #include "ObjectBase.hpp"
 
 #include <array>
@@ -45,6 +43,9 @@ struct Item : public ObjectBase {
     /// Converts model colors to Plt colors
     PltColors model_to_plt_colors() const noexcept;
 
+    /// Converts model colors to Plt colors
+    PltColors part_to_plt_colors(ItemModelParts::type part) const noexcept;
+
     Common common;
     Inventory inventory;
 
@@ -70,6 +71,7 @@ struct Item : public ObjectBase {
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint16_t, 19> model_parts;
+    std::array<std::array<uint8_t, 6>, 19> part_colors;
 
     bool instantiated_ = false;
 };

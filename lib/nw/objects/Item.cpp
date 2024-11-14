@@ -23,12 +23,19 @@ Item::Item(nw::MemoryResource* allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
     inventory.owner = this;
+    for (auto& part_color : part_colors) {
+        part_color.fill(255);
+    }
 }
 
 void Item::clear()
 {
     inventory.destroy();
     instantiated_ = false;
+
+    for (auto& part_color : part_colors) {
+        part_color.fill(255);
+    }
 }
 
 bool Item::instantiate()
@@ -150,6 +157,30 @@ PltColors Item::model_to_plt_colors() const noexcept
     return result;
 }
 
+PltColors Item::part_to_plt_colors(ItemModelParts::type part) const noexcept
+{
+    PltColors result = model_to_plt_colors();
+    if (part_colors[part][ItemColors::cloth1] != 255) {
+        result.data[plt_layer_cloth1] = part_colors[part][ItemColors::cloth1];
+    }
+    if (part_colors[part][ItemColors::cloth2] != 255) {
+        result.data[plt_layer_cloth2] = part_colors[part][ItemColors::cloth2];
+    }
+    if (part_colors[part][ItemColors::leather1] != 255) {
+        result.data[plt_layer_leather1] = part_colors[part][ItemColors::leather1];
+    }
+    if (part_colors[part][ItemColors::leather2] != 255) {
+        result.data[plt_layer_leather2] = part_colors[part][ItemColors::leather2];
+    }
+    if (part_colors[part][ItemColors::metal1] != 255) {
+        result.data[plt_layer_metal1] = part_colors[part][ItemColors::metal1];
+    }
+    if (part_colors[part][ItemColors::metal2] != 255) {
+        result.data[plt_layer_metal2] = part_colors[part][ItemColors::metal2];
+    }
+    return result;
+}
+
 String Item::get_name_from_file(const std::filesystem::path& path)
 {
     String result;
@@ -217,6 +248,13 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
         archive.at("model_colors").get_to(obj->model_colors);
         archive.at("model_parts").get_to(obj->model_parts);
 
+        const auto& pc = archive.at("part_colors");
+        for (size_t i = 0; i < pc.size(); ++i) {
+            size_t part;
+            pc[i].at("part").get_to(part);
+            pc[i].at("colors").get_to(obj->part_colors[part]);
+        }
+
         if (profile == SerializationProfile::instance) {
             auto it = archive.find("visual_transform");
             if (it != std::end(archive)) {
@@ -235,9 +273,7 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
 
 bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile)
 {
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
+    CHECK_F(!!obj, "[item] unable to serialize null object");
 
     archive["$type"] = "UTI";
     archive["$version"] = json_archive_version;
@@ -262,6 +298,23 @@ bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProf
     archive["model_type"] = obj->model_type;
     archive["model_colors"] = obj->model_colors;
     archive["model_parts"] = obj->model_parts;
+
+    auto& pc = archive["part_colors"] = nlohmann::json::array();
+    for (size_t i = 0; i < 19; ++i) {
+        bool add = false;
+        for (size_t j = 0; j < 6; ++j) {
+            if (obj->part_colors[i][j] != 255) {
+                add = true;
+                break;
+            }
+        }
+        if (add) {
+            pc.push_back({
+                {"part", i},
+                {"colors", obj->part_colors[i]},
+            });
+        }
+    }
 
     auto& ref = archive["properties"] = nlohmann::json::array();
     for (const auto& p : obj->properties) {
