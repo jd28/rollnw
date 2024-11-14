@@ -119,6 +119,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     resman().load_module(path, "");
 
     Module* mod = objects().make_module();
+    if (!mod) { return nullptr; }
     if (mod->haks.size()) {
         nw::kernel::resman().load_module_haks(mod->haks);
     }
