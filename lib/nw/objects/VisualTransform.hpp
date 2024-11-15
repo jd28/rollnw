@@ -10,7 +10,7 @@ struct GffBuilderStruct;
 struct VisualTransformValue {
     int lerp_type = 0;
     int timer_type = 0;
-    float value_to = 1.0f;
+    float value_to = 0.0f;
 
     bool operator==(const VisualTransformValue&) const noexcept = default;
     auto operator<=>(const VisualTransformValue&) const noexcept = default;

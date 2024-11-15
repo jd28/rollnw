@@ -486,11 +486,10 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
     }
 
     if (profile == SerializationProfile::instance) {
-        VisualTransform vt;
         auto field = archive["VisTransformList"];
         if (field.valid()) {
             obj->visual_transform().reserve(field.size());
-            for (size_t i; i < field.size(); ++i) {
+            for (size_t i = 0; i < field.size(); ++i) {
                 VisualTransform vt;
                 deserialize(field[i], vt);
                 obj->add_visual_transform(vt);
@@ -498,6 +497,7 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
         } else {
             auto st = archive.get<GffStruct>("VisualTransform", false);
             if (st) {
+                VisualTransform vt;
                 deserialize(*st, vt);
                 obj->add_visual_transform(vt);
             }

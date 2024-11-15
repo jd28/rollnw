@@ -35,6 +35,7 @@ struct ObjectBase {
     EffectArray& effects();
     Vector<VisualTransform>& visual_transform() noexcept { return visual_transform_; }
     const Vector<VisualTransform>& visual_transform() const noexcept { return visual_transform_; }
+    void add_visual_transform(VisualTransform value);
 
     void add_visual_transform(VisualTransform value)
     {
