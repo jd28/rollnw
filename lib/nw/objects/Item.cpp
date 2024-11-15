@@ -446,6 +446,12 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
         if (!archive.get_to("xArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso], false)) {
             archive.get_to("ArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
         }
+        for (size_t i = 0; i < 19; ++i) {
+            for (size_t j = 0; j < 6; ++j) {
+                auto field_name = fmt::format("APart_{}_Col_{}", i, j);
+                archive.get_to(field_name, obj->part_colors[i][j], false);
+            }
+        }
     } else if (archive.has_field("ModelPart2")) {
         obj->model_type = ItemModelType::composite;
         if (!archive.get_to("xModelPart1", obj->model_parts[ItemModelParts::model1], false)) {
@@ -568,6 +574,14 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
             .add_field("xArmorPart_RShou", obj->model_parts[ItemModelParts::armor_rshoul])
             .add_field("xArmorPart_RThig", obj->model_parts[ItemModelParts::armor_rthigh])
             .add_field("xArmorPart_Torso", obj->model_parts[ItemModelParts::armor_torso]);
+
+        for (size_t i = 0; i < 19; ++i) {
+            for (size_t j = 0; j < 6; ++j) {
+                if (obj->part_colors[i][j] == 255) { continue; }
+                auto field_name = fmt::format("APart_{}_Col_{}", i, j);
+                archive.add_field(field_name, obj->part_colors[i][j]);
+            }
+        }
     } else if (obj->model_type == ItemModelType::composite) {
         archive.add_field("ModelPart1", uint8_t(obj->model_parts[ItemModelParts::model1]));
         archive.add_field("ModelPart2", uint8_t(obj->model_parts[ItemModelParts::model2]));
