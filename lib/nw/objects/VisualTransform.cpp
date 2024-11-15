@@ -48,6 +48,7 @@ void from_json(const nlohmann::json& archive, VisualTransform& value)
     archive.at("transform_x").get_to(value.transform_x);
     archive.at("transform_y").get_to(value.transform_y);
     archive.at("transform_z").get_to(value.transform_z);
+    archive.at("scope").get_to(value.scope);
 }
 
 void to_json(nlohmann::json& archive, const VisualTransform& value)
@@ -62,6 +63,7 @@ void to_json(nlohmann::json& archive, const VisualTransform& value)
     archive["transform_x"] = value.transform_x;
     archive["transform_y"] = value.transform_y;
     archive["transform_z"] = value.transform_z;
+    archive["scope"] = value.scope;
 }
 
 bool deserialize(const GffStruct gff, VisualTransform& self)
@@ -86,6 +88,7 @@ bool deserialize(const GffStruct gff, VisualTransform& self)
     if (!st || !deserialize(*st, self.transform_y)) { return false; }
     st = gff["TranslateZ"].get<GffStruct>();
     if (!st || !deserialize(*st, self.transform_z)) { return false; }
+    gff.get_to("Scope", self.scope);
     return true;
 }
 
@@ -102,6 +105,7 @@ bool serialize(GffBuilderStruct& archive, const VisualTransform& self)
     serialize(archive.add_struct("TranslateX", 0), self.transform_x);
     serialize(archive.add_struct("TranslateY", 0), self.transform_y);
     serialize(archive.add_struct("TranslateZ", 0), self.transform_z);
+    archive.add_field("Scope", self.scope);
     return true;
 }
 
