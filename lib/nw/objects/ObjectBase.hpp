@@ -37,16 +37,6 @@ struct ObjectBase {
     const Vector<VisualTransform>& visual_transform() const noexcept { return visual_transform_; }
     void add_visual_transform(VisualTransform value);
 
-    void add_visual_transform(VisualTransform value)
-    {
-        // The game is using a std::map, I think. I have no clue why.. yet.
-        if (value == VisualTransform{}
-            || std::find(visual_transform_.begin(), visual_transform_.end(), value) != visual_transform_.end()) {
-            return;
-        }
-        visual_transform_.push_back(value);
-    }
-
     virtual void clear();
     virtual bool instantiate() = 0;
     virtual InternedString tag() const;
