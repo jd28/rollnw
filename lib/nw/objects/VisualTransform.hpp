@@ -33,6 +33,7 @@ struct VisualTransform {
     VisualTransformValue transform_x;
     VisualTransformValue transform_y;
     VisualTransformValue transform_z;
+    int scope = 0;
 
     bool operator==(const VisualTransform&) const noexcept = default;
     auto operator<=>(const VisualTransform&) const noexcept = default;

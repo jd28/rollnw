@@ -33,8 +33,18 @@ struct ObjectBase {
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
     EffectArray& effects();
-    VisualTransform visual_transform() const noexcept { return visual_transform_; }
-    void set_visual_transform(VisualTransform value) { visual_transform_ = value; }
+    Vector<VisualTransform>& visual_transform() noexcept { return visual_transform_; }
+    const Vector<VisualTransform>& visual_transform() const noexcept { return visual_transform_; }
+
+    void add_visual_transform(VisualTransform value)
+    {
+        // The game is using a std::map, I think. I have no clue why.. yet.
+        if (value == VisualTransform{}
+            || std::find(visual_transform_.begin(), visual_transform_.end(), value) != visual_transform_.end()) {
+            return;
+        }
+        visual_transform_.push_back(value);
+    }
 
     virtual void clear();
     virtual bool instantiate() = 0;
@@ -72,7 +82,7 @@ private:
     nw::MemoryResource* allocator_;
     ObjectHandle handle_;
     EffectArray effects_;
-    VisualTransform visual_transform_;
+    Vector<VisualTransform> visual_transform_;
 };
 
 } // namespace nw

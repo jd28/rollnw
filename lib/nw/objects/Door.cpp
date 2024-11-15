@@ -133,11 +133,9 @@ bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationPr
         archive.at("plot").get_to(obj->plot);
 
         if (profile == SerializationProfile::instance) {
-            auto it = archive.find("visual_transform");
+            auto it = archive.find("visual_transforms");
             if (it != std::end(archive)) {
-                VisualTransform vt;
-                archive.at("visual_transform").get_to(vt);
-                obj->set_visual_transform(vt);
+                archive.at("visual_transforms").get_to(obj->visual_transform());
             }
         }
     } catch (const nlohmann::json::exception& e) {
@@ -186,9 +184,12 @@ bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProf
     archive["plot"] = obj->plot;
 
     if (profile == SerializationProfile::instance) {
-        // Don't add default constructed visual transforms
-        if (obj->visual_transform() != VisualTransform{}) {
-            archive["visual_transform"] = obj->visual_transform();
+        archive["visual_transforms"] = nlohmann::json::array();
+        for (const auto& vt : obj->visual_transform()) {
+            // Don't add default constructed visual transforms
+            if (vt != VisualTransform{}) {
+                archive["visual_transforms"].push_back(vt);
+            }
         }
     }
 
@@ -284,10 +285,20 @@ bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profi
 
     if (profile == SerializationProfile::instance) {
         VisualTransform vt;
-        auto st = archive.get<GffStruct>("VisualTransform", false);
-        if (st) {
-            deserialize(*st, vt);
-            obj->set_visual_transform(vt);
+        auto field = archive["VisTransformList"];
+        if (field.valid()) {
+            obj->visual_transform().reserve(field.size());
+            for (size_t i; i < field.size(); ++i) {
+                VisualTransform vt;
+                deserialize(field[i], vt);
+                obj->add_visual_transform(vt);
+            }
+        } else {
+            auto st = archive.get<GffStruct>("VisualTransform", false);
+            if (st) {
+                deserialize(*st, vt);
+                obj->add_visual_transform(vt);
+            }
         }
     }
 
@@ -348,9 +359,12 @@ bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile 
 
     if (profile == SerializationProfile::instance) {
         // Don't add default constructed visual transforms (unlike the game).
-        if (obj->visual_transform() != VisualTransform{}) {
-            auto& st = archive.add_struct("VisualTransform", 6);
-            serialize(st, obj->visual_transform());
+        auto& vts = archive.add_list("VisTransformList");
+        for (const auto& vt : obj->visual_transform()) {
+            if (vt != VisualTransform{}) {
+                auto& st = vts.push_back(6);
+                serialize(st, vt);
+            }
         }
     }
 

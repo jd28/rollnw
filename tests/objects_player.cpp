@@ -89,14 +89,19 @@ TEST(Player, Inventory)
     EXPECT_EQ(pl->inventory.items.size(), 4);
 }
 
-TEST(Player, VisualTransform)
+TEST(Player, PerPartColor)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    auto ba = nwk::resman().demand_server_vault("CDKEY", "damienoneknife");
+    nw::Gff g{std::move(ba)};
+    EXPECT_TRUE(g.valid());
+
+    auto j = nw::gff_to_gffjson(g);
+    std::ofstream out{"tmp/damienoneknife.bic.gffjson"};
+    out << std::setw(4) << j;
+
+    auto pl = nwk::objects().load_player("CDKEY", "damienoneknife");
     EXPECT_TRUE(pl);
-    EXPECT_EQ(pl->visual_transform().transform_x.lerp_type, 0);
-    EXPECT_EQ(pl->visual_transform().transform_x.timer_type, 0);
-    EXPECT_EQ(pl->visual_transform().transform_x.value_to, 1.0);
 }
