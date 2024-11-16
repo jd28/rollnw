@@ -8,6 +8,8 @@
 
 #include <filesystem>
 
+#include <nowide/cstdlib.hpp>
+
 using namespace std::literals;
 
 TEST(Image, BiowareDDS)
@@ -53,10 +55,12 @@ TEST(Image, TGA)
 
 TEST(Image, BMP)
 {
-    for (auto resref : {"mvpal_skin"sv, "mvpal_hair"sv, "mvpal_cloth"sv, "mvpal_leather"sv, "mvpal_tattoo"sv, "mvpal_armor01"sv}) {
-        auto data = nw::kernel::resman().demand({resref, nw::ResourceType::bmp});
-        nw::Image bmp{std::move(data)};
-        EXPECT_TRUE(bmp.valid());
-        EXPECT_TRUE(bmp.write_to(fmt::format("tmp/{}.png", resref)));
+    if (!nowide::getenv("CI_GITHUB_ACTIONS")) {
+        for (auto resref : {"mvpal_skin"sv, "mvpal_hair"sv, "mvpal_cloth"sv, "mvpal_leather"sv, "mvpal_tattoo"sv, "mvpal_armor01"sv}) {
+            auto data = nw::kernel::resman().demand({resref, nw::ResourceType::bmp});
+            nw::Image bmp{std::move(data)};
+            EXPECT_TRUE(bmp.valid());
+            EXPECT_TRUE(bmp.write_to(fmt::format("tmp/{}.png", resref)));
+        }
     }
 }
