@@ -3,9 +3,12 @@
 #include <gtest/gtest.h>
 
 #include <nw/formats/Image.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
 
 #include <filesystem>
+
+using namespace std::literals;
 
 TEST(Image, BiowareDDS)
 {
@@ -46,4 +49,14 @@ TEST(Image, TGA)
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.dds"));
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.png"));
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.tga"));
+}
+
+TEST(Image, BMP)
+{
+    for (auto resref : {"mvpal_skin"sv, "mvpal_hair"sv, "mvpal_cloth"sv, "mvpal_leather"sv, "mvpal_tattoo"sv, "mvpal_armor01"sv}) {
+        auto data = nw::kernel::resman().demand({resref, nw::ResourceType::bmp});
+        nw::Image bmp{std::move(data)};
+        EXPECT_TRUE(bmp.valid());
+        EXPECT_TRUE(bmp.write_to(fmt::format("tmp/{}.png", resref)));
+    }
 }
