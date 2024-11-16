@@ -60,6 +60,17 @@ TEST(Player, GffJsonSerialize)
     out << std::setw(4) << j;
 }
 
+TEST(Player, Colors)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+    EXPECT_EQ(pl->appearance.colors[nw::CreatureColors::hair], 20);
+    EXPECT_EQ(pl->appearance.colors[nw::CreatureColors::skin], 2);
+}
+
 TEST(Player, Inventory)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

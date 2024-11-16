@@ -207,28 +207,28 @@ class GameVersion(enum.Enum):
 # Components ##################################################################
 ###############################################################################
 
+class CreatureColors(enum.Enum):
+    hair = auto()
+    skin = auto()
+    tatoo1 = auto()
+    tatoo2 = auto()
+
 
 class CreatureAppearance:
     """Class containing creature's appearance
     """
     #: body_parts
     body_parts: "BodyParts"
-    #: hair
-    hair: int
+    #: Creature Body Part Colors
+    colors: List[int]
     #: Index into ``appearance.2da``
     id: int
     #: phenotype
     phenotype: int
     #: Index into ``portraits.2da``
     portrait_id: int
-    #: skin
-    skin: int
     #: tail
     tail: int
-    #: tattoo1
-    tattoo1: int
-    #: tattoo2
-    tattoo2: int
     #: wings
     wings: int
 

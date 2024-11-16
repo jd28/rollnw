@@ -4,6 +4,15 @@
 
 namespace nw {
 
+struct CreatureColors {
+    enum type : uint8_t {
+        hair = 0,
+        skin = 1,
+        tatoo1 = 2,
+        tatoo2 = 3,
+    };
+};
+
 struct BodyParts {
     uint16_t belt = 0;
     uint16_t bicep_left = 0;
@@ -38,10 +47,7 @@ struct CreatureAppearance {
     uint16_t portrait_id;
 
     BodyParts body_parts;
-    uint8_t hair = 0;
-    uint8_t skin = 0;
-    uint8_t tattoo1 = 0;
-    uint8_t tattoo2 = 0;
+    std::array<uint8_t, 4> colors;
 };
 
 bool deserialize(CreatureAppearance& self, const GffStruct& archive);

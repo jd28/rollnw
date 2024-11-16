@@ -15,10 +15,10 @@ bool CreatureAppearance::from_json(const nlohmann::json& archive)
         archive.at("wings").get_to(wings);
         archive.at("id").get_to(id);
         archive.at("portrait_id").get_to(portrait_id);
-        archive.at("hair").get_to(hair);
-        archive.at("skin").get_to(skin);
-        archive.at("tattoo1").get_to(tattoo1);
-        archive.at("tattoo2").get_to(tattoo2);
+        archive.at("hair").get_to(colors[CreatureColors::hair]);
+        archive.at("skin").get_to(colors[CreatureColors::skin]);
+        archive.at("tattoo1").get_to(colors[CreatureColors::tatoo1]);
+        archive.at("tattoo2").get_to(colors[CreatureColors::tatoo2]);
 
         const auto& bp = archive.at("body_parts");
         bp.at("belt").get_to(body_parts.belt);
@@ -56,10 +56,10 @@ nlohmann::json CreatureAppearance::to_json() const
     j["wings"] = wings;
     j["id"] = id;
     j["portrait_id"] = portrait_id;
-    j["hair"] = hair;
-    j["skin"] = skin;
-    j["tattoo1"] = tattoo1;
-    j["tattoo2"] = tattoo2;
+    j["hair"] = colors[CreatureColors::hair];
+    j["skin"] = colors[CreatureColors::skin];
+    j["tattoo1"] = colors[CreatureColors::tatoo1];
+    j["tattoo2"] = colors[CreatureColors::tatoo2];
     j["body_parts"] = {
         {"head", body_parts.head},
         {"belt", body_parts.belt},
@@ -157,10 +157,10 @@ bool deserialize(CreatureAppearance& self, const GffStruct& archive)
         archive.get_to("BodyPart_Torso", self.body_parts.torso, false);
     }
 
-    archive.get_to("Color_Hair", self.hair, false);
-    archive.get_to("Color_Skin", self.skin, false);
-    archive.get_to("Color_Tattoo1", self.tattoo1, false);
-    archive.get_to("Color_Tattoo2", self.tattoo2, false);
+    archive.get_to("Color_Hair", self.colors[CreatureColors::hair], false);
+    archive.get_to("Color_Skin", self.colors[CreatureColors::skin], false);
+    archive.get_to("Color_Tattoo1", self.colors[CreatureColors::tatoo1], false);
+    archive.get_to("Color_Tattoo2", self.colors[CreatureColors::tatoo2], false);
     archive.get_to("Phenotype", self.phenotype);
 
     return true;
@@ -210,10 +210,10 @@ bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
         .add_field("xBodyPart_RShoul", self.body_parts.shoulder_right)
         .add_field("xBodyPart_RThigh", self.body_parts.thigh_right)
         .add_field("xBodyPart_Torso", self.body_parts.torso)
-        .add_field("Color_Hair", self.hair)
-        .add_field("Color_Skin", self.skin)
-        .add_field("Color_Tattoo1", self.tattoo1)
-        .add_field("Color_Tattoo2", self.tattoo2)
+        .add_field("Color_Hair", self.colors[CreatureColors::hair])
+        .add_field("Color_Skin", self.colors[CreatureColors::skin])
+        .add_field("Color_Tattoo1", self.colors[CreatureColors::tatoo1])
+        .add_field("Color_Tattoo2", self.colors[CreatureColors::tatoo2])
         .add_field("Phenotype", self.phenotype);
 
     return true;

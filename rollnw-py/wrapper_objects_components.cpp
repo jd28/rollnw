@@ -23,6 +23,12 @@ namespace py = pybind11;
 
 void init_component_appearance(py::module& m)
 {
+    py::enum_<nw::CreatureColors::type>(m, "CreatureColors")
+        .value("hair", nw::CreatureColors::hair)
+        .value("skin", nw::CreatureColors::skin)
+        .value("tatoo1", nw::CreatureColors::tatoo1)
+        .value("tatoo2", nw::CreatureColors::tatoo2);
+
     py::class_<nw::BodyParts>(m, "BodyParts")
         .def(py::init<>())
         .def_readwrite("belt", &nw::BodyParts::belt)
@@ -52,10 +58,7 @@ void init_component_appearance(py::module& m)
         .def_readwrite("id", &nw::CreatureAppearance::id)
         .def_readwrite("portrait_id", &nw::CreatureAppearance::portrait_id)
         .def_readwrite("body_parts", &nw::CreatureAppearance::body_parts)
-        .def_readwrite("hair", &nw::CreatureAppearance::hair)
-        .def_readwrite("skin", &nw::CreatureAppearance::skin)
-        .def_readwrite("tattoo1", &nw::CreatureAppearance::tattoo1)
-        .def_readwrite("tattoo2", &nw::CreatureAppearance::tattoo2);
+        .def_readwrite("colors", &nw::CreatureAppearance::colors);
 }
 
 void init_component_combatinfo(py::module& m)
