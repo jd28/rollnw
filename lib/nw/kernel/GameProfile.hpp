@@ -7,7 +7,7 @@ struct GameProfile {
     virtual ~GameProfile() = default;
 
     /// Load any custom services that the game profile might need. Default: No-op
-    void load_custom_services() { }
+    virtual void load_custom_services() { }
 
     /// Loads game specific rules
     virtual bool load_rules() const = 0;
