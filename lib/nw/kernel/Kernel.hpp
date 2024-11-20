@@ -91,6 +91,7 @@ private:
     std::array<ServiceEntry, 32> services_;
     size_t services_count_ = 0;
     GameProfile* profile_ = nullptr;
+    bool user_profile_ = false;
     GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;

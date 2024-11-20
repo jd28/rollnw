@@ -69,7 +69,7 @@ void Services::shutdown()
     if (!serices_started_) { return; }
     services_ = std::array<ServiceEntry, 32>{};
     kernel_scope_.reset();
-    profile_ = nullptr;
+    if (!user_profile_) { profile_ = nullptr; }
     services_count_ = 0;
     serices_started_ = false;
 }
@@ -158,6 +158,7 @@ void set_game_profile(GameProfile* profile)
 {
     CHECK_F(!services().serices_started_, "[kernel] attempting set game profile after services have been started.");
     services().profile_ = profile;
+    services().user_profile_ = true;
 }
 
 void unload_module()
