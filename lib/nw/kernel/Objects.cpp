@@ -198,7 +198,7 @@ Module* ObjectSystem::make_module()
 
     if (!data.bytes.size()) {
         LOG_F(ERROR, "Unable to load module.ifo from resman");
-        delete obj;
+        destroy(obj->handle());
         return nullptr;
     }
 
@@ -207,7 +207,7 @@ Module* ObjectSystem::make_module()
         if (in.valid()) {
             deserialize(obj, in.toplevel());
         } else {
-            delete obj;
+            destroy(obj->handle());
             return nullptr;
         }
     } else {
@@ -217,7 +217,7 @@ Module* ObjectSystem::make_module()
             Module::deserialize(obj, j);
         } catch (std::exception& e) {
             LOG_F(ERROR, "[kernel] failed to load module from json: {}", e.what());
-            delete obj;
+            destroy(obj->handle());
             return nullptr;
         }
     }
