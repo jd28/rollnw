@@ -36,6 +36,8 @@ struct BodyParts {
 };
 
 struct CreatureAppearance {
+    CreatureAppearance();
+
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -44,7 +46,7 @@ struct CreatureAppearance {
     uint32_t wings = 0;
 
     uint16_t id = 0;
-    uint16_t portrait_id;
+    uint16_t portrait_id = 0;
 
     BodyParts body_parts;
     std::array<uint8_t, 4> colors;

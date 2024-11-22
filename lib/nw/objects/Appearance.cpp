@@ -7,6 +7,11 @@
 
 namespace nw {
 
+CreatureAppearance::CreatureAppearance()
+{
+    colors.fill(0);
+}
+
 bool CreatureAppearance::from_json(const nlohmann::json& archive)
 {
     try {
