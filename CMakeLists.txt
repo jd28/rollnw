@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(rollNW VERSION 0.42.0 LANGUAGES CXX C)
+project(rollNW VERSION 0.43.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 include(cmake/Sanitizers.cmake)
