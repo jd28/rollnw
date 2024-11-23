@@ -154,14 +154,14 @@ bool GffStruct::get_to(StringView label, T& out, bool warn_missing) const
     auto val = (*this)[label];
     if (!val.valid()) {
         if (warn_missing) {
-            LOG_F(ERROR, "gff missing field '{}'", label);
+            LOG_F(WARNING, "gff missing field '{}'", label);
         }
         return false;
     }
     T temp;
     if (!val.get_to(temp)) {
         if (warn_missing) {
-            LOG_F(ERROR, "gff unable to read field '{}' value", label);
+            LOG_F(WARNING, "gff unable to read field '{}' value", label);
         }
         return false;
     }
