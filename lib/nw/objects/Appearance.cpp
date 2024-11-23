@@ -19,6 +19,12 @@ bool CreatureAppearance::from_json(const nlohmann::json& archive)
         archive.at("tail").get_to(tail);
         archive.at("wings").get_to(wings);
         archive.at("id").get_to(id);
+
+        auto it = archive.find("portrait");
+        if (it != archive.end()) {
+            it->get_to(portrait);
+        }
+
         archive.at("portrait_id").get_to(portrait_id);
         archive.at("hair").get_to(colors[CreatureColors::hair]);
         archive.at("skin").get_to(colors[CreatureColors::skin]);
@@ -60,6 +66,11 @@ nlohmann::json CreatureAppearance::to_json() const
     j["tail"] = tail;
     j["wings"] = wings;
     j["id"] = id;
+
+    if (portrait.length() > 0) {
+        j["portrait"] = portrait;
+    }
+
     j["portrait_id"] = portrait_id;
     j["hair"] = colors[CreatureColors::hair];
     j["skin"] = colors[CreatureColors::skin];
@@ -104,7 +115,8 @@ bool deserialize(CreatureAppearance& self, const GffStruct& archive)
     }
 
     archive.get_to("Appearance_Type", self.id);
-    archive.get_to("PortraitId", self.portrait_id);
+    archive.get_to("Portrait", self.portrait, false);
+    archive.get_to("PortraitId", self.portrait_id, self.portrait.length() == 0);
     archive.get_to("Appearance_Head", self.body_parts.head, false); // Only in dynamic models
 
     if (!archive.get_to("xArmorPart_RFoot", self.body_parts.foot_right, false)) {
@@ -220,6 +232,10 @@ bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
         .add_field("Color_Tattoo1", self.colors[CreatureColors::tatoo1])
         .add_field("Color_Tattoo2", self.colors[CreatureColors::tatoo2])
         .add_field("Phenotype", self.phenotype);
+
+    if (self.portrait.length() > 0) {
+        archive.add_field("Portrait", self.portrait);
+    }
 
     return true;
 }

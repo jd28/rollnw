@@ -46,6 +46,7 @@ struct CreatureAppearance {
     uint32_t wings = 0;
 
     uint16_t id = 0;
+    Resref portrait;
     uint16_t portrait_id = 0;
 
     BodyParts body_parts;

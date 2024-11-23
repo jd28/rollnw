@@ -116,3 +116,14 @@ TEST(Player, PerPartColor)
     auto pl = nwk::objects().load_player("CDKEY", "damienoneknife");
     EXPECT_TRUE(pl);
 }
+
+TEST(Player, Portrait)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+
+    EXPECT_EQ(pl->appearance.portrait.view(), "po_dw_m_02_");
+}
