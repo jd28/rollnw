@@ -127,3 +127,31 @@ TEST(Player, Portrait)
 
     EXPECT_EQ(pl->appearance.portrait.view(), "po_dw_m_02_");
 }
+
+TEST(Player, GffSerialization)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+    auto oa = nw::serialize(pl);
+    oa.write_to("tmp/daeris1.bic");
+}
+
+TEST(Player, JsonSerialization)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+    auto oa = nw::serialize(pl);
+    oa.write_to("tmp/daeris1.bic");
+
+    nlohmann::json j;
+    nw::Player::serialize(pl, j);
+
+    std::ofstream f{"tmp/daeris1.bic.json"};
+    f << std::setw(4) << j;
+}

@@ -37,6 +37,13 @@ nlohmann::json to_json_helper(const T* self, nw::SerializationProfile profile)
     return result;
 }
 
+nlohmann::json to_json_helper_player(const nw::Player* self)
+{
+    nlohmann::json result;
+    nw::Player::serialize(self, result);
+    return result;
+}
+
 template <typename T>
 T* create_object_from_json_helper(const nlohmann::json& j)
 {
@@ -638,6 +645,8 @@ void init_objects_player(py::module& nw)
     py::class_<nw::Player, nw::Creature>(nw, "Player")
         .def_readonly_static("json_archive_version", &nw::Player::json_archive_version)
         .def_readonly_static("object_type", &nw::Player::object_type)
+
+        .def("to_dict", &to_json_helper_player)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Player>)
         .def_static("from_file", &create_object_from_file_helper<nw::Player>);
