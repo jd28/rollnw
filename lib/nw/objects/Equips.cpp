@@ -67,7 +67,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
                 if (profile == SerializationProfile::blueprint) {
                     equips[i] = archive.at(lookup).get<Resref>();
                 } else {
-                    auto item = kernel::objects().load<Item>(archive.at(lookup));
+                    auto item = kernel::objects().load_instance<Item>(archive.at(lookup));
                     equips[i] = item;
                 }
             }
@@ -121,7 +121,7 @@ bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile pr
             st.get_to("EquippedRes", r);
             self.equips[idx] = r;
         } else {
-            auto item = kernel::objects().load<Item>(st);
+            auto item = kernel::objects().load_instance<Item>(st);
             self.equips[idx] = item;
         }
     }

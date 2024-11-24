@@ -63,28 +63,12 @@ T* create_object_from_file_helper(const std::filesystem::path& path)
     if (!fs::exists(path)) {
         throw std::runtime_error(fmt::format("{} does not exist", path));
     }
-    auto ext = nw::path_to_string(p.extension());
-    if (nw::string::icmp(ext, ".json")) {
-        std::ifstream f(p);
-        nlohmann::json data = nlohmann::json::parse(f);
-        auto obj = new T;
-        if constexpr (!std::is_same_v<T, nw::Player>) {
-            T::deserialize(obj, data, nw::SerializationProfile::blueprint);
-        } else {
-            T::deserialize(obj, data);
-        }
-        return obj;
-    } else if (nw::ResourceType::from_extension(ext) == T::restype) {
-        nw::Gff data{p};
-        auto obj = new T;
-        if constexpr (!std::is_same_v<T, nw::Player>) {
-            deserialize(obj, data.toplevel(), nw::SerializationProfile::blueprint);
-        } else {
-            deserialize(obj, data.toplevel());
-        }
-        return obj;
+
+    auto obj = nw::kernel::objects().load<T>(path);
+    if (!obj) {
+        throw std::runtime_error(fmt::format("failed to load object from file: '{}'", path));
     }
-    throw std::runtime_error(fmt::format("unknown file extension: {}", ext));
+    return obj;
 }
 
 void init_object_components(py::module& nw);

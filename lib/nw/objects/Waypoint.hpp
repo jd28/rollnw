@@ -11,6 +11,7 @@ struct Waypoint : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::waypoint;
     static constexpr ResourceType::type restype = ResourceType::utw;
+    static constexpr StringView serial_id{"UTW"};
 
     Waypoint();
     Waypoint(nw::MemoryResource* allocator);

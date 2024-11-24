@@ -33,6 +33,7 @@ struct Store : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::store;
     static constexpr ResourceType::type restype = ResourceType::utm;
+    static constexpr StringView serial_id{"UTM"};
 
     Store();
     Store(nw::MemoryResource* allocator);

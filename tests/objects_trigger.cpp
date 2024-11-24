@@ -49,6 +49,9 @@ TEST(Trigger, JsonRoundTrip)
 
     auto name = nw::Trigger::get_name_from_file(fs::path("tmp/pl_spray_sewage.utt.json"));
     EXPECT_EQ(name, "pl_spray_sewage");
+
+    auto ent3 = nw::kernel::objects().load<nw::Trigger>(fs::path("tmp/pl_spray_sewage.utt.json"));
+    EXPECT_TRUE(ent3);
 }
 
 TEST(Trigger, GffRoundTrip)

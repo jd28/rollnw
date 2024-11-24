@@ -8,6 +8,7 @@ struct Player : public Creature {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::player;
     static constexpr ResourceType::type restype = ResourceType::bic;
+    static constexpr StringView serial_id{"BIC"};
 
     Player();
     Player(nw::MemoryResource* allocator);

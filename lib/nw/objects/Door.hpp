@@ -41,6 +41,7 @@ struct Door : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
     static constexpr ResourceType::type restype = ResourceType::utd;
+    static constexpr StringView serial_id{"UTD"};
 
     // ObjectBase overrides
     virtual Common* as_common() override { return &common; }

@@ -226,19 +226,19 @@ bool Area::deserialize(Area* obj, const nlohmann::json& are,
     obj->scripts.from_json(are.at("scripts"));
     obj->weather.from_json(are.at("weather"));
 
-#define OBJECT_LIST_FROM_JSON(holder, type)                     \
-    do {                                                        \
-        auto& arr = git.at(#holder);                            \
-        size_t sz = arr.size();                                 \
-        obj->holder.reserve(sz);                                \
-        for (size_t i = 0; i < sz; ++i) {                       \
-            auto ob = nw::kernel::objects().load<type>(arr[i]); \
-            if (ob) {                                           \
-                obj->holder.push_back(ob);                      \
-            } else {                                            \
-                LOG_F(WARNING, "Something dreadfully wrong.");  \
-            }                                                   \
-        }                                                       \
+#define OBJECT_LIST_FROM_JSON(holder, type)                              \
+    do {                                                                 \
+        auto& arr = git.at(#holder);                                     \
+        size_t sz = arr.size();                                          \
+        obj->holder.reserve(sz);                                         \
+        for (size_t i = 0; i < sz; ++i) {                                \
+            auto ob = nw::kernel::objects().load_instance<type>(arr[i]); \
+            if (ob) {                                                    \
+                obj->holder.push_back(ob);                               \
+            } else {                                                     \
+                LOG_F(WARNING, "Something dreadfully wrong.");           \
+            }                                                            \
+        }                                                                \
     } while (0)
 
     try {
@@ -409,19 +409,19 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     deserialize(obj->scripts, are);
     deserialize(obj->weather, are);
 
-#define GIT_LIST(name, holder, type)                           \
-    do {                                                       \
-        auto st = git[name];                                   \
-        auto sz = st.size();                                   \
-        holder.reserve(sz);                                    \
-        for (size_t i = 0; i < sz; ++i) {                      \
-            auto o = nw::kernel::objects().load<type>(st[i]);  \
-            if (o) {                                           \
-                holder.push_back(o);                           \
-            } else {                                           \
-                LOG_F(WARNING, "Something dreadfully wrong."); \
-            }                                                  \
-        }                                                      \
+#define GIT_LIST(name, holder, type)                                   \
+    do {                                                               \
+        auto st = git[name];                                           \
+        auto sz = st.size();                                           \
+        holder.reserve(sz);                                            \
+        for (size_t i = 0; i < sz; ++i) {                              \
+            auto o = nw::kernel::objects().load_instance<type>(st[i]); \
+            if (o) {                                                   \
+                holder.push_back(o);                                   \
+            } else {                                                   \
+                LOG_F(WARNING, "Something dreadfully wrong.");         \
+            }                                                          \
+        }                                                              \
     } while (0)
 
     GIT_LIST("Creature List", obj->creatures, Creature);

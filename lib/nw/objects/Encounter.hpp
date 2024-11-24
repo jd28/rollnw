@@ -44,6 +44,7 @@ struct Encounter : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::encounter;
     static constexpr ResourceType::type restype = ResourceType::ute;
+    static constexpr StringView serial_id{"UTE"};
 
     // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }

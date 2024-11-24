@@ -10,6 +10,7 @@ struct Sound : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::sound;
     static constexpr ResourceType::type restype = ResourceType::uts;
+    static constexpr StringView serial_id{"UTS"};
 
     Sound();
     Sound(nw::MemoryResource* allocator);

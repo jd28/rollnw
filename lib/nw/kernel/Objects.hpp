@@ -64,9 +64,9 @@ struct ObjectSystem : public Service {
     ObjectBase* alloc(ObjectType object_type);
 
     /// Loads an object from file system
+    /// @note Player objects (BIC) loaded from the file system will be loaded as instances, all others as blueprints.
     template <typename T>
-    T* load(const std::filesystem::path& archive,
-        SerializationProfile profile = SerializationProfile::blueprint);
+    T* load(const std::filesystem::path& archive);
 
     /// Loads an object from resource system
     template <typename T>
@@ -74,11 +74,11 @@ struct ObjectSystem : public Service {
 
     /// Loads an object from gff isntance
     template <typename T>
-    T* load(const GffStruct& archive);
+    T* load_instance(const GffStruct& archive);
 
     /// Loads an object from json isntance
     template <typename T>
-    T* load(const nlohmann::json& archive);
+    T* load_instance(const nlohmann::json& archive);
 
     /// Loads an object from resource system
     Player* load_player(StringView cdkey, StringView resref);
@@ -144,6 +144,8 @@ inline ObjectType serial_id_to_obj_type(StringView id)
         return ObjectType::trigger;
     } else if (string::icmp("UTW", id)) {
         return ObjectType::waypoint;
+    } else if (string::icmp("BIC", id)) {
+        return ObjectType::player;
     }
 
     return ObjectType::invalid;
@@ -183,54 +185,63 @@ T* ObjectSystem::make()
 }
 
 template <typename T>
-T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile profile)
+T* ObjectSystem::load(const std::filesystem::path& archive)
 {
     if (!std::filesystem::exists(archive)) {
         LOG_F(ERROR, "file '{}' does not exist", archive);
         return nullptr;
     }
+
     T* obj = make<T>();
     ObjectType type;
-    ResourceType::type restype = ResourceType::from_extension(path_to_string(archive.extension()));
+    auto data = ResourceData::from_file(archive);
+    bool good = false;
 
-    if (restype == ResourceType::json) {
+    if (string::startswith(data.bytes.string_view(), T::serial_id)) {
+        Gff in{std::move(data)};
+        if (in.valid()) {
+            type = serial_id_to_obj_type(in.type());
+            if (type == T::object_type) {
+                if constexpr (!std::is_same_v<T, nw::Player>) {
+                    if (deserialize(obj, in.toplevel(), SerializationProfile::blueprint)) {
+                        good = true;
+                    }
+                } else {
+                    if (deserialize(obj, in.toplevel())) {
+                        good = true;
+                    }
+                }
+            } else {
+                LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, in.type());
+            }
+        }
+    } else {
         try {
-            std::ifstream f{archive, std::ifstream::binary};
-            nlohmann::json j = nlohmann::json::parse(f);
+            nlohmann::json j = nlohmann::json::parse(data.bytes.string_view());
             String serial_id = j.at("$type").get<String>();
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
                 if constexpr (std::is_same_v<T, nw::Player>) {
-                    T::deserialize(obj, j);
+                    if (T::deserialize(obj, j)) {
+                        good = true;
+                    }
                 } else {
-                    T::deserialize(obj, j, profile);
+                    if (T::deserialize(obj, j, SerializationProfile::blueprint)) {
+                        good = true;
+                    }
                 }
+            } else {
+                LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, serial_id);
             }
         } catch (std::exception& e) {
             LOG_F(ERROR, "Failed to parse json file '{}' because {}", archive, e.what());
         }
-    } else if (restype == ResourceType::bic) {
-        if constexpr (std::is_same_v<T, nw::Player>) {
-            Gff in{ResourceData::from_file(archive)};
-            if (in.valid()) {
-                type = serial_id_to_obj_type(in.type());
-                if (type == T::object_type) {
-                    deserialize(obj, in.toplevel());
-                }
-            }
-        }
-    } else if (ResourceType::check_category(ResourceType::gff_archive, restype)) {
-        if constexpr (!std::is_same_v<T, nw::Player>) {
-            Gff in{ResourceData::from_file(archive)};
-            if (in.valid()) {
-                type = serial_id_to_obj_type(in.type());
-                if (type == T::object_type) {
-                    deserialize(obj, in.toplevel(), profile);
-                }
-            }
-        }
-    } else {
-        LOG_F(ERROR, "Unable to load unknown file type: '{}'", archive);
+    }
+
+    if (!good) {
+        destroy(obj->handle());
+        LOG_F(ERROR, "failed to open file: '{}'", archive);
+        return nullptr;
     }
 
     if (auto tag = obj->tag()) {
@@ -272,7 +283,7 @@ T* ObjectSystem::load(StringView resref)
 }
 
 template <typename T>
-T* ObjectSystem::load(const GffStruct& archive)
+T* ObjectSystem::load_instance(const GffStruct& archive)
 {
     auto ob = make<T>();
     if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
@@ -287,7 +298,7 @@ T* ObjectSystem::load(const GffStruct& archive)
 }
 
 template <typename T>
-T* ObjectSystem::load(const nlohmann::json& archive)
+T* ObjectSystem::load_instance(const nlohmann::json& archive)
 {
     auto ob = make<T>();
     if (ob && T::deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {

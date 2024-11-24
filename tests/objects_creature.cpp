@@ -829,6 +829,20 @@ TEST(Creature, JsonSerialization)
 
     std::ofstream f{"tmp/pl_agent_001.utc.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    auto ent2 = nw::kernel::objects().load<nw::Creature>(fs::path("tmp/pl_agent_001.utc.json"));
+    EXPECT_TRUE(ent2);
+    EXPECT_EQ(ent2->stats.get_ability_score(nwn1::ability_dexterity), 13);
+    EXPECT_EQ(ent2->scripts.on_attacked, "mon_ai_5attacked");
+    EXPECT_EQ(ent2->appearance.id, 6);
+    EXPECT_EQ(ent2->appearance.body_parts.shin_left, 1);
+    EXPECT_EQ(ent2->soundset, 171);
+    EXPECT_TRUE(nwn1::get_equipped_item(ent2, nw::EquipIndex::chest));
+    EXPECT_EQ(ent2->combat_info.ac_natural_bonus, 0);
+    EXPECT_EQ(ent2->combat_info.special_abilities.size(), 1);
+    EXPECT_EQ(ent2->combat_info.special_abilities[0].spell, 120);
+    EXPECT_EQ(ent2->alignment_flags(), nw::align_neutral_good);
 }
 
 TEST(Creature, JsonRoundTrip)

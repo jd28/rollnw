@@ -19,6 +19,7 @@ struct Item : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;
     static constexpr ResourceType::type restype = ResourceType::uti;
+    static constexpr StringView serial_id{"UTI"};
 
     // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }

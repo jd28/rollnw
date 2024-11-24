@@ -70,6 +70,7 @@ struct Placeable : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::placeable;
     static constexpr ResourceType::type restype = ResourceType::utp;
+    static constexpr StringView serial_id{"UTP"};
 
     // LCOV_EXCL_START
     virtual Common* as_common() override { return &common; }

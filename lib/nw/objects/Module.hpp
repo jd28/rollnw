@@ -51,6 +51,7 @@ struct Module : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
     static constexpr ResourceType::type restype = ResourceType::ifo;
+    static constexpr StringView serial_id{"IFO"};
 
     // LCOV_EXCL_START
     virtual Module* as_module() override { return this; }
