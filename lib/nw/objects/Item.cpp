@@ -23,6 +23,9 @@ Item::Item(nw::MemoryResource* allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
     inventory.owner = this;
+
+    model_colors.fill(0);
+    model_parts.fill(0);
     for (auto& part_color : part_colors) {
         part_color.fill(255);
     }
@@ -32,7 +35,10 @@ void Item::clear()
 {
     inventory.destroy();
     instantiated_ = false;
+    inventory.owner = nullptr;
 
+    model_colors.fill(0);
+    model_parts.fill(0);
     for (auto& part_color : part_colors) {
         part_color.fill(255);
     }
