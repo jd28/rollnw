@@ -52,7 +52,7 @@ BENCHMARK(BM_parse_feat_2da);
 static void BM_load_creature_gff(benchmark::State& state)
 {
     for (auto _ : state) {
-        nw::Gff gff{nw::ResourceData::from_file(fs::path("test_data/user/development/drorry.utc"))};
+        nw::Gff gff{nw::ResourceData::from_file("test_data/user/development/drorry.utc")};
         benchmark::DoNotOptimize(gff);
     }
 }
@@ -61,7 +61,7 @@ BENCHMARK(BM_load_creature_gff);
 static void BM_creature_from_gff(benchmark::State& state)
 {
     for (auto _ : state) {
-        auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+        auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
         benchmark::DoNotOptimize(ent);
     }
 }
@@ -71,7 +71,7 @@ static void BM_creature_from_json(benchmark::State& state)
 {
     nlohmann::json j;
     for (auto _ : state) {
-        auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc.json"));
+        auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc.json");
         benchmark::DoNotOptimize(ent);
     }
 }
@@ -79,7 +79,7 @@ BENCHMARK(BM_creature_from_json);
 
 static void BM_creature_to_json_instance(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         nlohmann::json j;
         benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::instance));
@@ -89,7 +89,7 @@ BENCHMARK(BM_creature_to_json_instance);
 
 static void BM_creature_to_json_blueprint(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         nlohmann::json j;
         benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::blueprint));
@@ -99,7 +99,7 @@ BENCHMARK(BM_creature_to_json_blueprint);
 
 static void BM_creature_to_gff_blueprint(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = serialize(ent, nw::SerializationProfile::blueprint);
         benchmark::DoNotOptimize(out);
@@ -109,7 +109,7 @@ BENCHMARK(BM_creature_to_gff_blueprint);
 
 static void BM_creature_to_gff_instance(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = serialize(ent, nw::SerializationProfile::instance);
         benchmark::DoNotOptimize(out);
@@ -119,7 +119,7 @@ BENCHMARK(BM_creature_to_gff_instance);
 
 static void BM_creature_modifier_simple(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
@@ -133,7 +133,7 @@ static void BM_creature_modifier_simple(benchmark::State& state)
 
 static void BM_creature_modifier_complex(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
@@ -147,7 +147,7 @@ static void BM_creature_modifier_complex(benchmark::State& state)
 
 static void BM_creature_get_skill_rank(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
     ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
     for (auto _ : state) {
@@ -158,7 +158,7 @@ static void BM_creature_get_skill_rank(benchmark::State& state)
 
 static void BM_creature_ability_score(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
     ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
     for (auto _ : state) {
@@ -169,8 +169,8 @@ static void BM_creature_ability_score(benchmark::State& state)
 
 static void BM_creature_armor_class(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = nwn1::calculate_ac_versus(obj, vs, false);
         benchmark::DoNotOptimize(out);
@@ -179,8 +179,8 @@ static void BM_creature_armor_class(benchmark::State& state)
 
 static void BM_creature_attack(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -189,8 +189,8 @@ static void BM_creature_attack(benchmark::State& state)
 
 static void BM_creature_attack_2(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
-    auto vs = nwk::objects().load<nw::Creature>("nw_drggreen003"sv);
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/rangerdexranged.utc");
+    auto vs = nwk::objects().load<nw::Creature>(nw::Resref("nw_drggreen003"));
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -199,8 +199,8 @@ static void BM_creature_attack_2(benchmark::State& state)
 
 static void BM_creature_attack_3(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/dexweapfin.utc"));
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -209,8 +209,8 @@ static void BM_creature_attack_3(benchmark::State& state)
 
 static void BM_creature_attack_bonus(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         auto out = nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, vs);
         benchmark::DoNotOptimize(out);
@@ -219,8 +219,8 @@ static void BM_creature_attack_bonus(benchmark::State& state)
 
 static void BM_creature_attack_roll(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     auto eff = nwn1::effect_concealment(20);
     nw::apply_effect(vs, eff);
     for (auto _ : state) {
@@ -274,7 +274,7 @@ static void BM_model_parse(benchmark::State& state)
 
 static void BM_rules_master_feat(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         int out = nw::kernel::sum_master_feats<int>(
             obj, nwn1::base_item_scimitar,
@@ -285,7 +285,7 @@ static void BM_rules_master_feat(benchmark::State& state)
 
 static void BM_rules_modifier(benchmark::State& state)
 {
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         int modifier = 0;
         nw::kernel::resolve_modifier(obj, nwn1::mod_type_attack_bonus, nwn1::attack_type_onhand, nullptr,
@@ -297,7 +297,7 @@ static void BM_rules_modifier(benchmark::State& state)
 static void BM_load_module(benchmark::State& state)
 {
     for (auto _ : state) {
-        auto m = nwk::load_module(fs::path("test_data/user/modules/DockerDemo.mod"));
+        auto m = nwk::load_module("test_data/user/modules/DockerDemo.mod");
         nwk::unload_module();
         benchmark::DoNotOptimize(m);
     }

@@ -16,7 +16,7 @@ TEST(Requirement, Basic)
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     nw::Requirement req{{
@@ -47,7 +47,7 @@ TEST(Requirement, Feat)
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     auto feats = nw::get_all_available_feats(ent);

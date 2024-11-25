@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 
 TEST(Door, JsonSerialize)
 {
-    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
     auto name = nw::Door::get_name_from_file(fs::path("test_data/user/development/door_ttr_002.utd"));
     EXPECT_EQ(name, "Door");
 
@@ -37,7 +37,7 @@ TEST(Door, JsonSerialize)
 
 TEST(Door, GffDeserialize)
 {
-    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
 
     EXPECT_EQ(door->common.resref, "door_ttr_002");
     EXPECT_EQ(door->appearance, 0u);
@@ -50,7 +50,7 @@ TEST(Door, GffRoundTrip)
     nw::Gff g("test_data/user/development/door_ttr_002.utd");
     EXPECT_TRUE(g.valid());
 
-    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
 
     nw::GffBuilder oa = serialize(door, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");

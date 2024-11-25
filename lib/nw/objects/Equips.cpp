@@ -31,7 +31,7 @@ bool Equips::instantiate()
     int i = 0;
     for (auto& e : equips) {
         if (e.is<Resref>() && e.as<Resref>().length()) {
-            auto temp = nw::kernel::objects().load<Item>(e.as<Resref>().view());
+            auto temp = nw::kernel::objects().load<Item>(e.as<Resref>());
             if (temp) {
                 e = temp;
                 for (const auto& ip : temp->properties) {

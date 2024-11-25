@@ -33,7 +33,7 @@ TEST(Creature, GffDeserialize)
     auto name = nw::Creature::get_name_from_file(fs::path("test_data/user/development/nw_chicken.utc"));
     EXPECT_EQ(name, "Chicken");
 
-    auto obj1 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj1);
     EXPECT_TRUE(nwk::objects().valid(obj1->handle()));
 
@@ -44,7 +44,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj1->gender, 1);
     EXPECT_EQ(obj1->alignment_flags(), nw::align_true_neutral);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj2);
 
     EXPECT_EQ(obj2->common.resref, "pl_agent_001");
@@ -65,7 +65,7 @@ TEST(Creature, FeatsAddRemove)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->stats.feats().size(), 37);
@@ -83,7 +83,7 @@ TEST(Creature, FeatSearch)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     EXPECT_TRUE(nw::knows_feat(ent, nwn1::feat_epic_toughness_2));
@@ -108,7 +108,7 @@ TEST(Creature, Ability)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(obj->instantiate());
 
@@ -143,7 +143,7 @@ TEST(Creature, Ability)
     EXPECT_EQ(nwn1::get_ability_score(obj, nwn1::ability_strength, false), 44);
 
     // Class stat gain
-    auto obj2 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/sorcrdd.utc"));
+    auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
     EXPECT_TRUE(obj2);
     EXPECT_TRUE(obj2->instantiate());
 
@@ -159,7 +159,7 @@ TEST(Creature, Skills)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
 
     EXPECT_EQ(nwn1::get_skill_rank(obj, nwn1::skill_discipline, nullptr, true), 40);
@@ -182,7 +182,7 @@ TEST(Creature, ArmorClass)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
     EXPECT_FALSE(obj->hasted);
     EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 13);
@@ -228,7 +228,7 @@ TEST(Creature, ArmorClass)
     EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 27);
     EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 23);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     LOG_F(INFO, "size: {}", obj2->combat_info.size_ac_modifier);
     EXPECT_TRUE(obj2);
     EXPECT_EQ(nwn1::calculate_ac_versus(obj2, nullptr, false), 11);
@@ -241,11 +241,11 @@ TEST(Creature, Attack)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
 
     for (size_t i = 0; i < 100; ++i) {
@@ -259,7 +259,7 @@ TEST(Creature, Attack)
         }
     }
 
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj3);
 
     for (size_t i = 0; i < 100; ++i) {
@@ -273,7 +273,7 @@ TEST(Creature, Attack)
         }
     }
 
-    auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
+    auto obj4 = nwk::objects().load_file<nw::Creature>("test_data/user/development/rangerdexranged.utc");
     EXPECT_TRUE(obj4);
 
     auto vs4 = nwk::objects().load<nw::Creature>("nw_drggreen003"sv);
@@ -295,7 +295,7 @@ TEST(Creature, BaseAttackBonus)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
 
     EXPECT_EQ(27, nwn1::base_attack_bonus(obj));
@@ -320,10 +320,10 @@ TEST(Creature, AttackBonus)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
-    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(vs);
 
     int test = 0;
@@ -379,7 +379,7 @@ TEST(Creature, AttackBonus)
     EXPECT_EQ(34, nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     // Zen Archery
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/lentiane.utc");
     EXPECT_TRUE(obj2);
 
     EXPECT_TRUE(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand));
@@ -392,7 +392,7 @@ TEST(Creature, AttackBonus)
     EXPECT_EQ(36, nwn1::resolve_attack_bonus(obj2, nwn1::attack_type_onhand));
 
     // Dex Archery
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/rangerdexranged.utc");
     EXPECT_TRUE(obj3);
 
     auto vs1 = nwk::objects().load<nw::Creature>("nw_drggreen003"sv);
@@ -420,7 +420,7 @@ TEST(Creature, AttackBonus)
     EXPECT_EQ(52, nwn1::resolve_attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
 
     // Dex Weapon Finesse
-    auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/dexweapfin.utc"));
+    auto obj4 = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
     EXPECT_TRUE(obj4);
 
     EXPECT_TRUE(obj4->stats.has_feat(nwn1::feat_weapon_finesse));
@@ -453,10 +453,10 @@ TEST(Creature, AttackRoll)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
-    auto target = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(target);
 
     EXPECT_EQ(nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, target), 45);
@@ -490,12 +490,12 @@ TEST(Creature, AttackType)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
     obj->combat_info.attacks_onhand = 4;
     EXPECT_EQ(nwn1::resolve_attack_type(obj), nwn1::attack_type_onhand);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     obj2->combat_info.attacks_onhand = 1;
     EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
@@ -506,7 +506,7 @@ TEST(Creature, Concealment)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
     obj->stats.add_feat(nwn1::feat_epic_self_concealment_30);
     auto [c1, o1] = nwn1::resolve_concealment(obj, obj);
@@ -538,13 +538,13 @@ TEST(Creature, CriticalHitMultiplier)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
     int multiplier = nwn1::resolve_critical_multiplier(obj, nwn1::attack_type_onhand);
     EXPECT_EQ(multiplier, 3);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(multiplier2, 2);
@@ -555,13 +555,13 @@ TEST(Creature, CriticalHitThreat)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
     int threat = nwn1::resolve_critical_threat(obj, nwn1::attack_type_onhand);
     EXPECT_EQ(threat, 11);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     int threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(threat2, 1);
@@ -575,7 +575,7 @@ TEST(Creature, DamageBase)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(obj->stats.add_feat(nwn1::feat_weapon_specialization_unarmed));
     auto dice1 = nwn1::resolve_unarmed_damage(obj);
@@ -583,7 +583,7 @@ TEST(Creature, DamageBase)
     EXPECT_EQ(dice1.sides, 20);
     EXPECT_EQ(dice1.bonus, 4);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj2);
     EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_epic_weapon_specialization_scimitar));
     auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand);
@@ -593,7 +593,7 @@ TEST(Creature, DamageBase)
     EXPECT_EQ(dice2.sides, 6);
     EXPECT_EQ(dice2.bonus, 8);
 
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj3);
     auto dice3 = nwn1::resolve_unarmed_damage(obj3);
     EXPECT_EQ(dice3.dice, 1);
@@ -605,13 +605,13 @@ TEST(Creature, DamageWeaponFlags)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj1 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj1);
     auto weapon1 = nwn1::get_equipped_item(obj1, nw::EquipIndex::righthand);
     EXPECT_TRUE(weapon1);
     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon1).test(nwn1::damage_type_slashing));
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj2);
     auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::arms);
     EXPECT_TRUE(weapon2);
@@ -623,7 +623,7 @@ TEST(Creature, DamageImmunity)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
 
     auto eff = nwn1::effect_damage_immunity(nwn1::damage_type_bludgeoning, 10);
@@ -635,7 +635,7 @@ TEST(Creature, DamageImmunity)
     EXPECT_EQ(nwn1::resolve_damage_immunity(obj, nwn1::damage_type_bludgeoning), 7);
 
     // Fake RDD.
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     obj2->levels.entries[0].id = nwn1::class_type_dragon_disciple;
     obj2->levels.entries[0].level = 20;
@@ -647,7 +647,7 @@ TEST(Creature, DamageReduction)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
 
     auto eff = nwn1::effect_damage_reduction(30, 2);
@@ -664,14 +664,14 @@ TEST(Creature, DamageReduction)
     EXPECT_EQ(nwn1::resolve_damage_reduction(obj, 4).first, 0);
 
     // Fake DD.
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     obj2->levels.entries[0].id = nwn1::class_type_dwarven_defender;
     obj2->levels.entries[0].level = 20;
     EXPECT_EQ(nwn1::resolve_damage_reduction(obj2, 1).first, 12);
 
     // Fake Barb.
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj3);
     obj3->levels.entries[0].id = nwn1::class_type_barbarian;
     obj3->levels.entries[0].level = 20;
@@ -686,7 +686,7 @@ TEST(Creature, DamageResistance)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
 
     auto eff = nwn1::effect_damage_resistance(nwn1::damage_type_acid, 10);
@@ -694,7 +694,7 @@ TEST(Creature, DamageResistance)
     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_acid).first, 10);
     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_fire).first, 0);
 
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj3);
     obj3->stats.add_feat(nwn1::feat_epic_energy_resistance_sonic_3);
     EXPECT_EQ(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first, 30);
@@ -705,7 +705,7 @@ TEST(Creature, Hitpoints)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
 
     EXPECT_EQ(nwn1::get_current_hitpoints(obj), 4);
@@ -727,7 +727,7 @@ TEST(Creature, IterationPenalty)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
     EXPECT_EQ(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand), 0);
@@ -745,7 +745,7 @@ TEST(Creature, SavingThrows)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
     EXPECT_EQ(nwn1::saving_throw(obj, nwn1::saving_throw_fort), 20);
     EXPECT_EQ(nwn1::saving_throw(obj, nwn1::saving_throw_reflex), 21);
@@ -771,12 +771,12 @@ TEST(Creature, TargetState)
     state = nwn1::resolve_target_state(nullptr, nullptr);
     EXPECT_EQ(state, nw::TargetState::none);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
     state = nwn1::resolve_target_state(obj, nullptr);
     EXPECT_EQ(state, nw::TargetState::none);
 
-    auto target = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(target);
 
     state = nwn1::resolve_target_state(obj, target);
@@ -797,15 +797,15 @@ TEST(Creature, WeaponPower)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj, nwn1::get_equipped_item(obj, nw::EquipIndex::righthand)), 2);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj2, nullptr), 0);
 
-    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj3);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj3, nwn1::get_equipped_item(obj3, nw::EquipIndex::arms)), 5);
 
@@ -821,7 +821,7 @@ TEST(Creature, JsonSerialization)
     auto name = nw::Creature::get_name_from_file(fs::path("test_data/user/development/pl_agent_001.utc.json"));
     EXPECT_EQ(name, "Agent");
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -831,7 +831,7 @@ TEST(Creature, JsonSerialization)
     f << std::setw(4) << j;
     f.close();
 
-    auto ent2 = nw::kernel::objects().load<nw::Creature>(fs::path("tmp/pl_agent_001.utc.json"));
+    auto ent2 = nw::kernel::objects().load_file<nw::Creature>("tmp/pl_agent_001.utc.json");
     EXPECT_TRUE(ent2);
     EXPECT_EQ(ent2->stats.get_ability_score(nwn1::ability_dexterity), 13);
     EXPECT_EQ(ent2->scripts.on_attacked, "mon_ai_5attacked");
@@ -850,7 +850,7 @@ TEST(Creature, JsonRoundTrip)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -871,7 +871,7 @@ TEST(Creature, GffRoundTrip)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     nw::Gff g("test_data/user/development/pl_agent_001.utc");
@@ -905,11 +905,11 @@ TEST(Creature, Equips)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/test_creature.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(obj->instantiate());
 
-    auto item = nwk::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto item = nwk::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(item);
 
     EXPECT_TRUE(nwn1::equip_item(obj, item, nw::EquipIndex::chest));
@@ -938,7 +938,7 @@ TEST(Creature, EffectsApplyRemove)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/test_creature.utc");
     EXPECT_TRUE(obj);
 
     auto eff = nwn1::effect_haste();
@@ -956,12 +956,12 @@ TEST(Creature, Casting)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>("x2_mephdrow012"sv);
+    auto obj = nwk::objects().load<nw::Creature>(nw::Resref("x2_mephdrow012"));
     EXPECT_TRUE(obj);
     EXPECT_EQ(nwn1::get_caster_level(obj, nwn1::class_type_sorcerer), 25);
     EXPECT_EQ(nwn1::get_caster_level(obj, nwn1::class_type_assassin), 0);
 
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/wizard_pm.utc"));
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
     EXPECT_TRUE(obj2);
     EXPECT_EQ(obj2->levels.level_by_class(nwn1::class_type_wizard), 15);
     EXPECT_EQ(obj2->levels.level_by_class(nwn1::class_type_palemaster), 6);

@@ -35,7 +35,7 @@ TEST(Item, GffDeserializeArmor)
     auto name = nw::Item::get_name_from_file(fs::path("test_data/user/development/cloth028.uti"));
     EXPECT_EQ(name, "Adept's Tunic");
 
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(ent);
     auto light = nw::kernel::objects().load<nw::Item>("nw_maarcl004"sv);
     EXPECT_TRUE(light);
@@ -62,7 +62,7 @@ TEST(Item, LocalVariables)
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(ent);
     EXPECT_GT(ent->common.locals.size(), 0);
     EXPECT_EQ(ent->common.locals.get_float("test1"), 1.5f);
@@ -94,7 +94,7 @@ TEST(Item, LocalVariables)
 
 TEST(Item, GffDeserializeLayered)
 {
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/wduersc004.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/wduersc004.uti");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "wduersc004");
@@ -104,7 +104,7 @@ TEST(Item, GffDeserializeLayered)
 
 TEST(Item, GffDeserializeSimple)
 {
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/pl_aleu_shuriken.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/pl_aleu_shuriken.uti");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "pl_aleu_shuriken");
@@ -114,7 +114,7 @@ TEST(Item, GffDeserializeSimple)
 
 TEST(Item, JsonSerialize)
 {
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -130,7 +130,7 @@ TEST(Item, JsonSerialize)
 
 TEST(Item, JsonRoundTrip)
 {
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -147,7 +147,7 @@ TEST(Item, JsonRoundTrip)
 
 TEST(Item, GffRoundTrip)
 {
-    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(ent);
 
     nw::Gff g("test_data/user/development/cloth028.uti");

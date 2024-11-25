@@ -1,0 +1,291 @@
+{
+    "$type": "UTC",
+    "$version": 1,
+    "appearance": {
+        "body_parts": {
+            "belt": 0,
+            "bicep_left": 1,
+            "bicep_right": 1,
+            "foot_left": 1,
+            "foot_right": 1,
+            "forearm_left": 1,
+            "forearm_right": 1,
+            "hand_left": 1,
+            "hand_right": 1,
+            "head": 1,
+            "neck": 1,
+            "pelvis": 1,
+            "shin_left": 1,
+            "shin_right": 1,
+            "shoulder_left": 0,
+            "shoulder_right": 0,
+            "thigh_left": 1,
+            "thigh_right": 1,
+            "torso": 1
+        },
+        "hair": 1,
+        "id": 3,
+        "phenotype": 0,
+        "portrait_id": 61,
+        "skin": 1,
+        "tail": 0,
+        "tattoo1": 1,
+        "tattoo2": 1,
+        "wings": 0
+    },
+    "bodybag": 0,
+    "chunk_death": 1,
+    "combat_info": {
+        "ac_natural": 0,
+        "special_abilities": []
+    },
+    "common": {
+        "comment": "",
+        "locals": {},
+        "object_type": 5,
+        "palette_id": 0,
+        "resref": "drorry",
+        "tag": "Drorry"
+    },
+    "conversation": "",
+    "cr": 20.0,
+    "cr_adjust": 0,
+    "decay_time": 5000,
+    "deity": "",
+    "description": {
+        "strings": [],
+        "strref": 4294967295
+    },
+    "disarmable": 1,
+    "equipment": {
+        "boots": "nw_it_mboots005",
+        "chest": "nw_aarcl002",
+        "righthand": "nw_wswmsc007"
+    },
+    "faction_id": 1,
+    "gender": 0,
+    "good_evil": 50,
+    "hp": 59,
+    "hp_current": 59,
+    "hp_max": 173,
+    "immortal": 0,
+    "interruptable": 1,
+    "inventory": [
+        {
+            "item": "nw_it_torch001",
+            "position": [
+                0,
+                0
+            ]
+        },
+        {
+            "item": "nw_it_mpotion001",
+            "position": [
+                1,
+                0
+            ]
+        },
+        {
+            "item": "nw_it_mpotion001",
+            "position": [
+                2,
+                0
+            ]
+        },
+        {
+            "item": "nw_it_mpotion001",
+            "position": [
+                3,
+                0
+            ]
+        },
+        {
+            "item": "nw_wswss001",
+            "position": [
+                4,
+                0
+            ]
+        }
+    ],
+    "lawful_chaotic": 50,
+    "levels": [
+        {
+            "class": 4,
+            "level": 10,
+            "spellbook": {
+                "known": [
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
+                ],
+                "memorized": [
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
+                ]
+            }
+        },
+        {
+            "class": 33,
+            "level": 28,
+            "spellbook": {
+                "known": [
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
+                ],
+                "memorized": [
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
+                ]
+            }
+        }
+    ],
+    "lootable": 0,
+    "name_first": {
+        "strings": [
+            {
+                "lang": 0,
+                "string": "Drorry"
+            }
+        ],
+        "strref": 4294967295
+    },
+    "name_last": {
+        "strings": [
+            {
+                "lang": 0,
+                "string": "Tildspeas"
+            }
+        ],
+        "strref": 4294967295
+    },
+    "pc": 0,
+    "perception_range": 11,
+    "plot": false,
+    "race": 3,
+    "scripts": {
+        "on_attacked": "x2_def_attacked",
+        "on_blocked": "x2_def_onblocked",
+        "on_conversation": "x2_def_onconv",
+        "on_damaged": "x2_def_ondamage",
+        "on_death": "x2_def_ondeath",
+        "on_disturbed": "x2_def_ondisturb",
+        "on_endround": "x2_def_endcombat",
+        "on_heartbeat": "x2_def_heartbeat",
+        "on_perceived": "x2_def_percept",
+        "on_rested": "x2_def_rested",
+        "on_spawn": "x2_def_spawn",
+        "on_spell_cast_at": "x2_def_spellcast",
+        "on_user_defined": "x2_def_userdef"
+    },
+    "soundset": 0,
+    "starting_package": 4,
+    "stats": {
+        "abilities": [
+            18,
+            13,
+            16,
+            10,
+            10,
+            9
+        ],
+        "feats": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            10,
+            23,
+            26,
+            28,
+            32,
+            45,
+            46,
+            67,
+            68,
+            105,
+            106,
+            144,
+            237,
+            247,
+            248,
+            249,
+            250,
+            375,
+            391,
+            511,
+            635,
+            725,
+            927,
+            1089
+        ],
+        "save_bonus": {
+            "fort": 0,
+            "reflex": 0,
+            "will": 0
+        },
+        "skills": [
+            0,
+            1,
+            0,
+            10,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            10,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    "subrace": "",
+    "walkrate": 4
+}

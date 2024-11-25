@@ -7,9 +7,6 @@
 #include <nw/objects/Creature.hpp>
 #include <nwn1/Profile.hpp>
 
-#include <filesystem>
-
-namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 TEST(EffectSystem, Pool)
@@ -30,7 +27,7 @@ TEST(EffectSystem, ApplyRemoveEffect)
 
     auto eff = nwk::effects().create(nwn1::effect_type_haste);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(nw::apply_effect(obj, eff));
     EXPECT_TRUE(obj->hasted);

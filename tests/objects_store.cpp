@@ -17,7 +17,7 @@ TEST(Store, JsonSerialize)
     auto name = nw::Store::get_name_from_file(fs::path("test_data/user/development/storethief002.utm"));
     EXPECT_EQ(name, "Blackmarket Store");
 
-    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -49,7 +49,7 @@ TEST(Store, JsonDeserialize)
 
 TEST(Store, JsonRoundTrip)
 {
-    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -67,7 +67,7 @@ TEST(Store, JsonRoundTrip)
 
 TEST(Store, GffDeserialize)
 {
-    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "storethief002");
@@ -111,7 +111,7 @@ TEST(Store, GffRoundTrip)
 
 TEST(Store, Inventory)
 {
-    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
     EXPECT_EQ(ent->inventory.weapons.pages(), 1);
     EXPECT_TRUE(ent->inventory.weapons.add_page());

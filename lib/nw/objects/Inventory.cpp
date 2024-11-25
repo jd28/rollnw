@@ -47,7 +47,7 @@ bool Inventory::instantiate()
 {
     for (auto& it : items) {
         if (it.item.is<Resref>()) {
-            auto temp = kernel::objects().load<Item>(it.item.as<Resref>().view());
+            auto temp = kernel::objects().load<Item>(it.item.as<Resref>());
             if (temp) {
                 it.item = temp;
             } else {

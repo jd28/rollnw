@@ -9,12 +9,11 @@
 #include <nwn1/Profile.hpp>
 #include <nwn1/rules.hpp>
 
-namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 TEST(Rules, Modifiers)
 {
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
@@ -54,7 +53,7 @@ TEST(KernelRules, Modifier)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
@@ -91,7 +90,7 @@ TEST(KernelRules, Modifier2)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
     ent->stats.add_feat(nwn1::feat_epic_toughness_1);
     ent->stats.add_feat(nwn1::feat_epic_toughness_2);
@@ -114,7 +113,7 @@ TEST(KernelRules, Modifier3)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
     ent->stats.add_feat(nwn1::feat_resist_energy_acid);
 

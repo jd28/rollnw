@@ -57,7 +57,7 @@ TEST(KernelRules, MasterFeats)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
 
     int result = nw::kernel::sum_master_feats<int>(

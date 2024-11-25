@@ -17,7 +17,7 @@ TEST(Sound, JsonRoundTrip)
     auto name = nw::Sound::get_name_from_file(fs::path("test_data/user/development/blue_bell.uts"));
     EXPECT_EQ(name, "Blue Bell Rings");
 
-    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
+    auto ent = nw::kernel::objects().load_file<nw::Sound>("test_data/user/development/blue_bell.uts");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -41,7 +41,7 @@ TEST(Sound, JsonRoundTrip)
 
 TEST(Sound, GffDeserialize)
 {
-    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
+    auto ent = nw::kernel::objects().load_file<nw::Sound>("test_data/user/development/blue_bell.uts");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "blue_bell");

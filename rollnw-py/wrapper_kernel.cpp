@@ -90,7 +90,7 @@ T* load_object_helper(nw::kernel::ObjectSystem& self, std::string_view resref)
 template <typename T>
 T* load_object_helper_fs(nw::kernel::ObjectSystem& self, const fs::path& path, nw::SerializationProfile profile)
 {
-    return self.load<T>(path, profile);
+    return self.load_file<T>(path, profile);
 }
 
 void init_kernel_objects(py::module& kernel)

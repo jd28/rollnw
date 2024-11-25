@@ -17,7 +17,7 @@ TEST(Encounter, GffDeserialize)
     auto name = nw::Encounter::get_name_from_file(fs::path("test_data/user/development/boundelementallo.ute"));
     EXPECT_EQ(name, "Bound Elemental Lord");
 
-    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    auto enc = nw::kernel::objects().load_file<nw::Encounter>("test_data/user/development/boundelementallo.ute");
     EXPECT_TRUE(enc);
 
     EXPECT_EQ(enc->common.resref, "boundelementallo");
@@ -29,7 +29,7 @@ TEST(Encounter, GffDeserialize)
 
 TEST(Encounter, JsonSerialize)
 {
-    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    auto enc = nw::kernel::objects().load_file<nw::Encounter>("test_data/user/development/boundelementallo.ute");
     EXPECT_TRUE(enc);
 
     nlohmann::json j;
@@ -45,7 +45,7 @@ TEST(Encounter, JsonSerialize)
 
 TEST(Encounter, JsonRoundTrip)
 {
-    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    auto enc = nw::kernel::objects().load_file<nw::Encounter>("test_data/user/development/boundelementallo.ute");
     EXPECT_TRUE(enc);
 
     nlohmann::json j;

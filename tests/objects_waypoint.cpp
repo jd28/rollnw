@@ -16,7 +16,7 @@ TEST(Waypoint, JsonRoundTrip)
     auto name = nw::Waypoint::get_name_from_file(fs::path("test_data/user/development/wp_behexit001.utw"));
     EXPECT_EQ(name, "Beholder AI Exit");
 
-    auto ent = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
+    auto ent = nw::kernel::objects().load_file<nw::Waypoint>("test_data/user/development/wp_behexit001.utw");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -41,7 +41,7 @@ TEST(Waypoint, JsonRoundTrip)
 
 TEST(Waypoint, GffDeserialize)
 {
-    auto obj = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
+    auto obj = nw::kernel::objects().load_file<nw::Waypoint>("test_data/user/development/wp_behexit001.utw");
     EXPECT_TRUE(obj);
 }
 

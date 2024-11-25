@@ -17,7 +17,7 @@ TEST(Trigger, GffDeserialize)
     auto name = nw::Trigger::get_name_from_file(fs::path("test_data/user/development/pl_spray_sewage.utt"));
     EXPECT_EQ(name, "pl_spray_sewage");
 
-    auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
+    auto ent = nw::kernel::objects().load_file<nw::Trigger>("test_data/user/development/pl_spray_sewage.utt");
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "pl_spray_sewage");
@@ -28,7 +28,7 @@ TEST(Trigger, GffDeserialize)
 
 TEST(Trigger, JsonRoundTrip)
 {
-    auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
+    auto ent = nw::kernel::objects().load_file<nw::Trigger>("test_data/user/development/pl_spray_sewage.utt");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
@@ -50,7 +50,7 @@ TEST(Trigger, JsonRoundTrip)
     auto name = nw::Trigger::get_name_from_file(fs::path("tmp/pl_spray_sewage.utt.json"));
     EXPECT_EQ(name, "pl_spray_sewage");
 
-    auto ent3 = nw::kernel::objects().load<nw::Trigger>(fs::path("tmp/pl_spray_sewage.utt.json"));
+    auto ent3 = nw::kernel::objects().load_file<nw::Trigger>("tmp/pl_spray_sewage.utt.json");
     EXPECT_TRUE(ent3);
 }
 

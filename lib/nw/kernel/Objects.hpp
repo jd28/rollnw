@@ -66,11 +66,11 @@ struct ObjectSystem : public Service {
     /// Loads an object from file system
     /// @note Player objects (BIC) loaded from the file system will be loaded as instances, all others as blueprints.
     template <typename T>
-    T* load(const std::filesystem::path& archive);
+    T* load_file(const std::filesystem::path& archive);
 
     /// Loads an object from resource system
     template <typename T>
-    T* load(StringView resref);
+    T* load(Resref resref);
 
     /// Loads an object from gff isntance
     template <typename T>
@@ -185,7 +185,7 @@ T* ObjectSystem::make()
 }
 
 template <typename T>
-T* ObjectSystem::load(const std::filesystem::path& archive)
+T* ObjectSystem::load_file(const std::filesystem::path& archive)
 {
     if (!std::filesystem::exists(archive)) {
         LOG_F(ERROR, "file '{}' does not exist", archive);
@@ -258,15 +258,42 @@ T* ObjectSystem::load(const std::filesystem::path& archive)
 }
 
 template <typename T>
-T* ObjectSystem::load(StringView resref)
+T* ObjectSystem::load(Resref resref)
 {
     T* obj = make<T>();
+    ObjectType type;
+    bool good = false;
+
     ResourceData data = resman().demand({resref, T::restype});
-    if (data.bytes.size()) {
+    if (data.bytes.size() == 0) { return nullptr; }
+
+    if (string::startswith(data.bytes.string_view(), T::serial_id)) {
         Gff in{std::move(data)};
         if (in.valid()) {
-            deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
+            if (deserialize(obj, in.toplevel(), SerializationProfile::blueprint)) {
+                good = true;
+            }
         }
+    } else {
+        try {
+            nlohmann::json j = nlohmann::json::parse(data.bytes.string_view());
+            String serial_id = j.at("$type").get<String>();
+            type = serial_id_to_obj_type(serial_id);
+            if (type == T::object_type) {
+                if (T::deserialize(obj, j, SerializationProfile::blueprint)) {
+                    good = true;
+                }
+            } else {
+                LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, serial_id);
+            }
+        } catch (std::exception& e) {
+            LOG_F(ERROR, "Failed to parse json file '{}' because {}", resref.view(), e.what());
+        }
+    }
+
+    if (!good) {
+        destroy(obj->handle());
+        return nullptr;
     }
 
     if (auto tag = obj->tag()) {

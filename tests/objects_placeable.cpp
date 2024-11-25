@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 TEST(Placeable, GffDeserialize)
 {
-    auto ent = nw::kernel::objects().load<nw::Placeable>(fs::path("test_data/user/development/arrowcorpse001.utp"));
+    auto ent = nw::kernel::objects().load_file<nw::Placeable>("test_data/user/development/arrowcorpse001.utp");
     EXPECT_TRUE(ent);
 
     auto name = nw::Placeable::get_name_from_file(fs::path("test_data/user/development/arrowcorpse001.utp"));
@@ -29,7 +29,7 @@ TEST(Placeable, GffDeserialize)
 
 TEST(Placeable, JsonRoundTrip)
 {
-    auto ent = nw::kernel::objects().load<nw::Placeable>(fs::path("test_data/user/development/arrowcorpse001.utp"));
+    auto ent = nw::kernel::objects().load_file<nw::Placeable>("test_data/user/development/arrowcorpse001.utp");
     EXPECT_TRUE(ent);
 
     nlohmann::json j;

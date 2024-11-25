@@ -22,7 +22,7 @@ TEST(ObjectSystem, LoadCreature)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>("nw_chicken"sv);
+    auto ent = nwk::objects().load<nw::Creature>("nw_chicken");
 
     EXPECT_TRUE(ent);
     EXPECT_EQ(ent->common.resref, "nw_chicken");
@@ -38,7 +38,7 @@ TEST(ObjectSystem, LoadCreature)
     nwk::objects().destroy(handle);
     EXPECT_FALSE(nwk::objects().valid(handle));
 
-    auto ent3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/scratch/pl_agent_001.utc.json"));
+    auto ent3 = nwk::objects().load_file<nw::Creature>(fs::path("test_data/user/scratch/pl_agent_001.utc.json"));
 
     EXPECT_TRUE(ent3);
     EXPECT_EQ(ent3->common.resref, "pl_agent_001");
@@ -55,6 +55,9 @@ TEST(ObjectSystem, LoadCreature)
     auto handle2 = ent3->handle();
 
     EXPECT_EQ(handle.id, handle2.id);
+
+    auto ent4 = nwk::objects().load<nw::Creature>("drorry2");
+    EXPECT_TRUE(ent4);
 }
 
 TEST(ObjectSystem, ObjectByTag)
@@ -64,7 +67,7 @@ TEST(ObjectSystem, ObjectByTag)
 
     std::vector<nw::Creature*> chickens;
     for (size_t i = 0; i < 10; ++i) {
-        chickens.push_back(nwk::objects().load<nw::Creature>("nw_chicken"sv));
+        chickens.push_back(nwk::objects().load<nw::Creature>("nw_chicken"));
     }
 
     EXPECT_EQ(chickens[0]->tag().view(), "NW_CHICKEN");
@@ -90,6 +93,6 @@ TEST(ObjectSystem, LoadPlayer)
     auto pl2 = nwk::objects().load_player("WRONG", "testmonkpc");
     EXPECT_FALSE(pl2);
 
-    auto pl3 = nwk::objects().load<nw::Player>(fs::path("test_data/user/servervault/CDKEY/testmonkpc.bic"));
+    auto pl3 = nwk::objects().load_file<nw::Player>(fs::path("test_data/user/servervault/CDKEY/testmonkpc.bic"));
     EXPECT_TRUE(pl3);
 }

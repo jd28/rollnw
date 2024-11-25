@@ -64,7 +64,7 @@ T* create_object_from_file_helper(const std::filesystem::path& path)
         throw std::runtime_error(fmt::format("{} does not exist", path));
     }
 
-    auto obj = nw::kernel::objects().load<T>(path);
+    auto obj = nw::kernel::objects().load_file<T>(path);
     if (!obj) {
         throw std::runtime_error(fmt::format("failed to load object from file: '{}'", path));
     }

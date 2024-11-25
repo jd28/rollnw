@@ -6,7 +6,6 @@
 #include <nw/rules/system.hpp>
 #include <nwn1/Profile.hpp>
 
-namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 TEST(Qualifier, Basic)
@@ -14,7 +13,7 @@ TEST(Qualifier, Basic)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     auto qual1 = nw::qualifier_ability(nwn1::ability_strength, 0, 20); // less than 20 str.
@@ -32,7 +31,7 @@ TEST(Qualifier, Race)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     auto qual1 = nw::qualifier_race(nwn1::racial_type_human);
@@ -47,7 +46,7 @@ TEST(Qualifier, Level)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     auto qual1 = nw::qualifier_level(0, 1);
@@ -62,10 +61,10 @@ TEST(Qualifier, Alignment)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto ent2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto ent2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(ent2);
 
     auto qual1 = nw::qualifier_alignment(nw::AlignmentAxis::good_evil,
@@ -122,7 +121,7 @@ TEST(Qualifier, ClassLevel)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
     auto qual1 = nw::qualifier_class_level(nwn1::class_type_fighter, 30, 40);
