@@ -174,7 +174,8 @@ void init_component_inventory(py::module& m)
             }
             return pylist;
         })
-        .def("remove_item", &nw::Inventory::remove_item);
+        .def("remove_item", &nw::Inventory::remove_item)
+        .def("size", &nw::Inventory::size);
 }
 
 void init_component_levelhistory(py::module& m)

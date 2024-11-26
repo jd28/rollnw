@@ -43,7 +43,7 @@ TEST(Store, JsonDeserialize)
     EXPECT_EQ(ent->common.resref, "storethief002");
     EXPECT_TRUE(ent->blackmarket);
     EXPECT_EQ(ent->blackmarket_markdown, 25);
-    EXPECT_GT(ent->inventory.weapons.items.size(), 0);
+    EXPECT_GT(ent->inventory.weapons.size(), 0);
     EXPECT_EQ(ent->inventory.weapons.items[0].item.as<nw::Resref>(), "nw_wswdg001");
 }
 
@@ -73,7 +73,7 @@ TEST(Store, GffDeserialize)
     EXPECT_EQ(ent->common.resref, "storethief002");
     EXPECT_TRUE(ent->blackmarket);
     EXPECT_EQ(ent->blackmarket_markdown, 25);
-    EXPECT_TRUE(ent->inventory.weapons.items.size() > 0);
+    EXPECT_TRUE(ent->inventory.weapons.size() > 0);
     EXPECT_EQ(ent->inventory.weapons.items[0].item.as<nw::Item*>()->common.resref, "nw_wswdg001");
 }
 

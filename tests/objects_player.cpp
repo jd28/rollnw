@@ -79,7 +79,7 @@ TEST(Player, Inventory)
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
 
-    EXPECT_EQ(pl->inventory.items.size(), 4);
+    EXPECT_EQ(pl->inventory.size(), 4);
     auto slot1 = pl->inventory.find_slot(1, 1);
     auto [x1, y1] = pl->inventory.slot_to_xy(slot1);
     EXPECT_EQ(x1, 1);
@@ -93,11 +93,11 @@ TEST(Player, Inventory)
     auto it = pl->inventory.items[0].item.as<nw::Item*>();
     EXPECT_TRUE(pl->inventory.remove_item(it));
     EXPECT_FALSE(pl->inventory.has_item(it));
-    EXPECT_EQ(pl->inventory.items.size(), 3);
+    EXPECT_EQ(pl->inventory.size(), 3);
     EXPECT_TRUE(pl->inventory.can_add_item(it));
     EXPECT_TRUE(pl->inventory.add_item(it));
     EXPECT_TRUE(pl->inventory.has_item(it));
-    EXPECT_EQ(pl->inventory.items.size(), 4);
+    EXPECT_EQ(pl->inventory.size(), 4);
 }
 
 TEST(Player, PerPartColor)

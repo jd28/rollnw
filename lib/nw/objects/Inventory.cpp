@@ -227,6 +227,11 @@ void Inventory::set_growable(bool value)
     growable_ = value;
 }
 
+size_t Inventory::size() const noexcept
+{
+    return items.size();
+}
+
 std::pair<uint16_t, uint16_t> Inventory::slot_to_xy(InventorySlot slot) const noexcept
 {
     uint16_t x = static_cast<uint16_t>(slot.col);

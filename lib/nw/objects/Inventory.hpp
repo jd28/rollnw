@@ -84,6 +84,9 @@ struct Inventory {
     /// Sets the inventory to allow adding pages dynamically (for stores)
     void set_growable(bool value);
 
+    /// Gets number of items in the inventory
+    size_t size() const noexcept;
+
     /// Converts coordinates from our page, row, col to bioware x,y cooardinates
     std::pair<uint16_t, uint16_t> slot_to_xy(InventorySlot slot) const noexcept;
 

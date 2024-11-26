@@ -452,6 +452,10 @@ class Inventory:
         """Removes an item from an inventory."""
         pass
 
+    def size(self) -> int:
+        """Gets number of items in the inventory"""
+        pass
+
 
 class ClassEntry:
     """Class level data
