@@ -155,6 +155,7 @@ void init_component_inventory(py::module& m)
         .def_readwrite("item", &nw::InventoryItem::item);
 
     py::class_<nw::Inventory>(m, "Inventory")
+        .def("__len__", &nw::Inventory::size)
         .def("instantiate", &nw::Inventory::instantiate)
 
         .def("add_item", &nw::Inventory::add_item, py::keep_alive<1, 2>())

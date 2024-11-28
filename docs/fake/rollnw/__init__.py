@@ -425,6 +425,10 @@ class Inventory:
     items: List[InventoryItem]
     owner: "ObjectBase"
 
+    def __len__(self) -> int:
+        """Gets number of items in inventory"""
+        pass
+
     def instantiate(self):
         """Instantiates inventory by loading contained items from the resource manager"""
         pass
