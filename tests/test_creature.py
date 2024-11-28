@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture
 def json_file():
-    with open("tests/test_data/user/development/pl_agent_001.utc.json") as f:
+    with open("tests/test_data/user/development/drorry.utc.json") as f:
         return json.load(f)
 
 
@@ -18,7 +18,7 @@ def test_creature_default_construct():
 
 def test_creature_dict_construct(json_file):
     cre = rollnw.Creature.from_dict(json_file)
-    assert cre.stats.get_ability_score(0) == 40
+    assert cre.stats.get_ability_score(0) == 18
 
 
 def test_creature_gff_construct():
@@ -28,30 +28,29 @@ def test_creature_gff_construct():
 
 def test_creature_json_construct():
     cre = Creature.from_file(
-        "tests/test_data/user/development/pl_agent_001.utc.json")
-    assert cre.stats.get_ability_score(0) == 40
+        "tests/test_data/user/development/drorry2.utc")
+    assert cre.stats.get_ability_score(0) == 18
 
 
 def test_creature_stats():
-    cre = Creature.from_file(
-        "tests/test_data/user/development/pl_agent_001.utc")
+    cre = Creature.from_file("tests/test_data/user/development/drorry.utc")
 
     # Abilities
-    assert cre.stats.get_ability_score(0) == 40
+    assert cre.stats.get_ability_score(0) == 18
     assert cre.stats.set_ability_score(0, 41)
     assert cre.stats.get_ability_score(0) == 41
 
     # Feats
-    assert cre.stats.has_feat(41)
-    assert not cre.stats.add_feat(41)
+    assert cre.stats.has_feat(105)
+    assert not cre.stats.add_feat(105)
     assert cre.stats.add_feat(1)
     assert cre.stats.has_feat(1)
 
     # Saves
-    assert cre.stats.save_bonus.fort == 9
+    assert cre.stats.save_bonus.fort == 0
 
     # Skills
-    assert cre.stats.get_skill_rank(4) == 11
+    assert cre.stats.get_skill_rank(4) == 1
     assert cre.stats.set_skill_rank(4, 12)
     assert cre.stats.get_skill_rank(4) == 12
 
@@ -66,21 +65,22 @@ def test_creature_scripts():
 
 def test_creature_inventory():
     cre = Creature.from_file(
-        "tests/test_data/user/development/pl_agent_001.utc")
+        "tests/test_data/user/development/drorry.utc")
     assert cre.inventory.owner == cre
-    assert len(cre.inventory.items) == 0
+    assert len(cre.inventory) == 5
 
 
 def test_creature_equips():
     cre = Creature.from_file(
-        "tests/test_data/user/development/pl_agent_001.utc")
-    assert cre.equipment.equips[EquipIndex.head] == ""
-    assert cre.equipment.equips[EquipIndex.chest] == "dk_agent_thread2"
+        "tests/test_data/user/development/drorry.utc")
+    assert rollnw.nwn1.get_equipped_item(cre, EquipIndex.head) is None
+    assert rollnw.nwn1.get_equipped_item(
+        cre, EquipIndex.chest).common.resref == "nw_aarcl002"
 
 
 def test_creature_level_stats():
     cre = Creature.from_file(
-        "tests/test_data/user/development/pl_agent_001.utc")
+        "tests/test_data/user/development/drorry.utc")
 
     assert cre.levels.entries[0].id == 4
     assert cre.levels.entries[0].level == 10
@@ -98,7 +98,7 @@ def test_objects_kernel_service():
     mod = rollnw.kernel.load_module(
         "tests/test_data/user/modules/DockerDemo.mod")
 
-    cre = rollnw.kernel.objects().creature('nw_chicken.utc')
+    cre = rollnw.kernel.objects().creature('nw_chicken')
     assert cre
     cre2 = rollnw.kernel.objects().get(cre.handle())
     assert cre == cre2
