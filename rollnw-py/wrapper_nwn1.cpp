@@ -88,7 +88,7 @@ void init_nwn1(py::module& m)
     // ============================================================================
     m.def("can_equip_item", &nwn1::can_equip_item);
     m.def("equip_item", &nwn1::equip_item);
-    m.def("get_equipped_item", &nwn1::get_equipped_item);
+    m.def("get_equipped_item", &nwn1::get_equipped_item, py::return_value_policy::reference);
     m.def("is_ranged_weapon", &nwn1::is_ranged_weapon);
     m.def("is_shield", &nwn1::is_shield);
     m.def("unequip_item", &nwn1::unequip_item);
