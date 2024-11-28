@@ -240,7 +240,7 @@ void init_objects_creature(py::module& nw)
         .def(py::init<>())
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Creature>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Creature>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Creature>, py::return_value_policy::reference_internal)
 
         .def("to_dict", &to_json_helper<nw::Creature>)
         .def("handle", &nw::Creature::handle)
@@ -325,7 +325,7 @@ void init_objects_door(py::module& nw)
         .def_readonly_static("object_type", &nw::Door::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Door>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Door>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Door>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Door::common)
         .def_readwrite("conversation", &nw::Door::conversation)
@@ -379,7 +379,7 @@ void init_objects_encounter(py::module& nw)
         .def_readonly_static("object_type", &nw::Encounter::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Encounter>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Encounter>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Encounter>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Encounter::common)
         .def_readwrite("creatures", &nw::Encounter::creatures)
@@ -461,7 +461,7 @@ void init_objects_item(py::module& nw)
         .def_readonly_static("object_type", &nw::Item::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Item>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Item>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Item>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Item::common)
 
@@ -595,7 +595,7 @@ void init_objects_placeable(py::module& nw)
         .def_readonly_static("object_type", &nw::Placeable::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Placeable>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Placeable>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Placeable>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Placeable::common)
         .def_readwrite("conversation", &nw::Placeable::conversation)
@@ -633,7 +633,7 @@ void init_objects_player(py::module& nw)
         .def("to_dict", &to_json_helper_player)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Player>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Player>);
+        .def_static("from_file", &create_object_from_file_helper<nw::Player>, py::return_value_policy::reference_internal);
 }
 
 void init_objects_sound(py::module& nw)
@@ -647,7 +647,7 @@ void init_objects_sound(py::module& nw)
         .def_readonly_static("object_type", &nw::Sound::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Sound>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Sound>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Sound>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Sound::common)
         .def_readwrite("sounds", &nw::Sound::sounds)
@@ -689,7 +689,7 @@ void init_objects_store(py::module& nw)
         .def_readonly_static("object_type", &nw::Store::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Store>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Store>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Store>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Store::common)
 
@@ -736,7 +736,7 @@ void init_object_trigger(pybind11::module& nw)
         .def_readonly_static("object_type", &nw::Trigger::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Trigger>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Trigger>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Trigger>, py::return_value_policy::reference_internal)
 
         .def_readwrite("common", &nw::Trigger::common)
         .def_readwrite("geometry", &nw::Trigger::geometry)
@@ -764,7 +764,7 @@ void init_object_waypoint(pybind11::module& nw)
         .def_readonly_static("object_type", &nw::Waypoint::object_type)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Waypoint>)
-        .def_static("from_file", &create_object_from_file_helper<nw::Waypoint>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Waypoint>, py::return_value_policy::reference_internal)
 
         .def("to_dict", &to_json_helper<nw::Waypoint>)
 
