@@ -45,6 +45,7 @@ AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
     tda.get_to("LABEL", label);
     tda.get_to("STRING_REF", string_ref);
     tda.get_to("RACE", model);
+    tda.get_to("SIZECATEGORY", size);
 }
 
 // -- PhenotypeInfo -----------------------------------------------------------

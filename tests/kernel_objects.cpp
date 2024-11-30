@@ -28,7 +28,7 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_EQ(ent->common.resref, "nw_chicken");
     EXPECT_EQ(ent->stats.get_ability_score(nwn1::ability_dexterity), 7);
     EXPECT_EQ(ent->scripts.on_attacked, "nw_c2_default5");
-    EXPECT_EQ(ent->appearance.id, 31);
+    EXPECT_EQ(*ent->appearance.id, 31);
     EXPECT_EQ(ent->gender, 1);
 
     auto ent2 = nwk::objects().get<nw::Creature>(ent->handle());
@@ -44,7 +44,7 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_EQ(ent3->common.resref, "pl_agent_001");
     EXPECT_EQ(ent3->stats.get_ability_score(nwn1::ability_dexterity), 13);
     EXPECT_EQ(ent3->scripts.on_attacked, "mon_ai_5attacked");
-    EXPECT_EQ(ent3->appearance.id, 6);
+    EXPECT_EQ(*ent3->appearance.id, 6);
     EXPECT_EQ(ent3->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(ent3->soundset, 171);
     EXPECT_TRUE(nwn1::get_equipped_item(ent3, nw::EquipIndex::chest));

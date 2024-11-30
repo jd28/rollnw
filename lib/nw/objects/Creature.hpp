@@ -68,6 +68,9 @@ struct Creature : public ObjectBase {
     /// Gets alignment flags
     AlignmentFlags alignment_flags() const noexcept;
 
+    /// Update creatures appearance
+    void update_appearance(Appearance id);
+
     Common common;
     CreatureAppearance appearance;
     CombatInfo combat_info;

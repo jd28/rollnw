@@ -114,7 +114,10 @@ bool deserialize(CreatureAppearance& self, const GffStruct& archive)
         self.wings = old;
     }
 
-    archive.get_to("Appearance_Type", self.id);
+    uint16_t temp;
+    if (archive.get_to("Appearance_Type", temp)) {
+        self.id = Appearance::make(temp);
+    }
     archive.get_to("Portrait", self.portrait, false);
     archive.get_to("PortraitId", self.portrait_id, self.portrait.length() == 0);
     archive.get_to("Appearance_Head", self.body_parts.head, false); // Only in dynamic models
@@ -187,7 +190,7 @@ bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
 {
     archive.add_field("Tail_New", self.tail)
         .add_field("Wings_New", self.wings)
-        .add_field("Appearance_Type", self.id)
+        .add_field("Appearance_Type", uint16_t(*self.id))
         .add_field("PortraitId", self.portrait_id)
         .add_field("Appearance_Head", uint8_t(self.body_parts.head))
         .add_field("BodyPart_Belt", uint8_t(self.body_parts.belt))

@@ -119,16 +119,8 @@ void Creature::clear()
 bool Creature::instantiate()
 {
     if (instantiated_) return true;
-    auto tda = kernel::twodas().get("appearance");
-    if (tda) {
-        if (tda->get_to(appearance.id, "SIZECATEGORY", size)) {
-            auto cresize = kernel::twodas().get("creaturesize");
-            if (cresize) {
-                cresize->get_to(size, "ACATTACKMOD", combat_info.size_ab_modifier);
-                cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
-            }
-        }
-    }
+    update_appearance(appearance.id);
+
     nw::kernel::objects().run_instantiate_callback(this);
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;
@@ -204,6 +196,19 @@ AlignmentFlags Creature::alignment_flags() const noexcept
     }
 
     return result;
+}
+
+void Creature::update_appearance(Appearance id)
+{
+    auto app = kernel::rules().appearances.get(id);
+    if (!app) { return; }
+
+    size = app->size;
+    auto cresize = kernel::twodas().get("creaturesize");
+    if (cresize) {
+        cresize->get_to(size, "ACATTACKMOD", combat_info.size_ab_modifier);
+        cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
+    }
 }
 
 bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)

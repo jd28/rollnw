@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../rules/attributes.hpp"
 #include "../serialization/Serialization.hpp"
 
 namespace nw {
@@ -45,7 +46,7 @@ struct CreatureAppearance {
     uint32_t tail = 0;
     uint32_t wings = 0;
 
-    uint16_t id = 0;
+    Appearance id = Appearance::invalid();
     Resref portrait;
     uint16_t portrait_id = 0;
 

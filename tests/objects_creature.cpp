@@ -40,7 +40,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj1->common.resref, "nw_chicken");
     EXPECT_EQ(obj1->stats.get_ability_score(nwn1::ability_dexterity), 7);
     EXPECT_EQ(obj1->scripts.on_attacked, "nw_c2_default5");
-    EXPECT_EQ(obj1->appearance.id, 31);
+    EXPECT_EQ(*obj1->appearance.id, 31);
     EXPECT_EQ(obj1->gender, 1);
     EXPECT_EQ(obj1->alignment_flags(), nw::align_true_neutral);
 
@@ -50,7 +50,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj2->common.resref, "pl_agent_001");
     EXPECT_EQ(obj2->stats.get_ability_score(nwn1::ability_dexterity), 13);
     EXPECT_EQ(obj2->scripts.on_attacked, "mon_ai_5attacked");
-    EXPECT_EQ(obj2->appearance.id, 6);
+    EXPECT_EQ(*obj2->appearance.id, 6);
     EXPECT_EQ(obj2->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(obj2->soundset, 171);
     EXPECT_TRUE(nwn1::get_equipped_item(obj2, nw::EquipIndex::chest));
@@ -343,6 +343,11 @@ TEST(Creature, AttackBonus)
     EXPECT_EQ(nwn1::get_ability_score(obj, nwn1::ability_strength), 16);
     EXPECT_EQ(nwn1::get_ability_modifier(obj, nwn1::ability_strength), 3);
     EXPECT_EQ(obj->combat_info.size_ab_modifier, 1);
+    obj->update_appearance(nwn1::appearance_type_human);
+    EXPECT_EQ(obj->combat_info.size_ab_modifier, 0);
+    obj->update_appearance(nwn1::appearance_type_halfling);
+    EXPECT_EQ(obj->combat_info.size_ab_modifier, 1);
+
     EXPECT_EQ(29, nwn1::base_attack_bonus(obj));
     EXPECT_EQ(45, nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
@@ -425,11 +430,14 @@ TEST(Creature, AttackBonus)
 
     EXPECT_TRUE(obj4->stats.has_feat(nwn1::feat_weapon_finesse));
     EXPECT_EQ(obj4->combat_info.combat_mode, nw::CombatMode::invalid());
-    EXPECT_TRUE(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand));
-    EXPECT_EQ(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand)->baseitem, nwn1::base_item_dagger);
+    auto item4 = nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand);
+    EXPECT_TRUE(item4);
+    EXPECT_EQ(item4->baseitem, nwn1::base_item_dagger);
     EXPECT_EQ(nwn1::get_ability_modifier(obj4, nwn1::ability_strength), 1);
     EXPECT_EQ(nwn1::get_ability_modifier(obj4, nwn1::ability_dexterity), 11);
     EXPECT_EQ(25, nwn1::base_attack_bonus(obj4));
+    EXPECT_EQ(obj4->combat_info.size_ab_modifier, 1);
+    EXPECT_TRUE(nwn1::weapon_is_finessable(obj4, item4));
     EXPECT_EQ(40, nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_onhand));
 
     // Dual Wield
@@ -835,7 +843,7 @@ TEST(Creature, JsonSerialization)
     EXPECT_TRUE(ent2);
     EXPECT_EQ(ent2->stats.get_ability_score(nwn1::ability_dexterity), 13);
     EXPECT_EQ(ent2->scripts.on_attacked, "mon_ai_5attacked");
-    EXPECT_EQ(ent2->appearance.id, 6);
+    EXPECT_EQ(*ent2->appearance.id, 6);
     EXPECT_EQ(ent2->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(ent2->soundset, 171);
     EXPECT_TRUE(nwn1::get_equipped_item(ent2, nw::EquipIndex::chest));
