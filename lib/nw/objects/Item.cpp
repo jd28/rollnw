@@ -144,7 +144,7 @@ Image Item::get_icon_by_part(ItemModelParts::type part, bool female) const
             }
             result = Image(std::move(rdata));
         } else {
-            result = Image(plt, model_to_plt_colors());
+            result = Image(plt, part_to_plt_colors(part));
         }
     }
 
