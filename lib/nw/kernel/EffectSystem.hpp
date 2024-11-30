@@ -22,6 +22,7 @@ struct EffectLimits {
     std::pair<int, int> ability{-12, 12};
     std::pair<int, int> armor_class{-20, 20};
     std::pair<int, int> attack{-20, 20};
+    std::pair<int, int> saves{-20, 20};
     std::pair<int, int> skill{-50, 50};
 };
 

@@ -1455,7 +1455,8 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
         ++it;
     }
 
-    return result + std::clamp(inc - dec, -20, 20);
+    auto [smin, smax] = nw::kernel::effects().limits.saves;
+    return result + std::clamp(inc - dec, smin, smax);
 }
 
 bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
