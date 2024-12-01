@@ -70,12 +70,11 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 
 - [Bioware](https://bioware.com), [Beamdog](https://beamdog.com) - The game itself
 - [abseil](https://abseil.io/) - Foundational
-- [Catch2](https://github.com/catchorg/Catch2) - Testing
+- [GoogleTest](https://github.com/google/googletest) - Testing
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
-- [toml++](https://github.com/marzer/tomlplusplus/) - For settings.tml
 - [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
 - [doxygen](https://doxygen.nl/), [sphinx](https://www.sphinx-doc.org/en/master/), [breathe](https://breathe.readthedocs.io/en/latest/) - documentation
