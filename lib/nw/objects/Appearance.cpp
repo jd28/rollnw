@@ -181,7 +181,11 @@ bool deserialize(CreatureAppearance& self, const GffStruct& archive)
     archive.get_to("Color_Skin", self.colors[CreatureColors::skin], false);
     archive.get_to("Color_Tattoo1", self.colors[CreatureColors::tatoo1], false);
     archive.get_to("Color_Tattoo2", self.colors[CreatureColors::tatoo2], false);
-    archive.get_to("Phenotype", self.phenotype);
+
+    int32_t temp_i32;
+    if (archive.get_to("Phenotype", temp_i32)) {
+        self.phenotype = Phenotype::make(temp_i32);
+    }
 
     return true;
 }
@@ -234,7 +238,7 @@ bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
         .add_field("Color_Skin", self.colors[CreatureColors::skin])
         .add_field("Color_Tattoo1", self.colors[CreatureColors::tatoo1])
         .add_field("Color_Tattoo2", self.colors[CreatureColors::tatoo2])
-        .add_field("Phenotype", self.phenotype);
+        .add_field("Phenotype", *self.phenotype);
 
     if (self.portrait.length() > 0) {
         archive.add_field("Portrait", self.portrait);

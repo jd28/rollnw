@@ -42,7 +42,7 @@ struct CreatureAppearance {
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
-    int32_t phenotype = 0;
+    Phenotype phenotype = Phenotype::invalid();
     uint32_t tail = 0;
     uint32_t wings = 0;
 
