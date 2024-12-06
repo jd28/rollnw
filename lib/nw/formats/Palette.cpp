@@ -60,7 +60,7 @@ bool Palette::is_skeleton() const noexcept
     return resource_type != nw::ResourceType::invalid;
 }
 
-PaletteTreeNode* Palette::read_child(Palette* parent, const GffStruct st)
+PaletteTreeNode* read_child(Palette* parent, const GffStruct st)
 {
     PaletteTreeNode* node = parent->add_node("");
 

@@ -72,7 +72,6 @@ struct Palette {
 
     // Private
     bool load(const GffStruct gff);
-    PaletteTreeNode* read_child(Palette* parent, const GffStruct st);
 
     uint8_t next_id_ = 0;
     bool is_valid_ = false;
