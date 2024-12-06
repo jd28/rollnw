@@ -21,19 +21,19 @@ TEST(Palette, LoadCreature)
     EXPECT_TRUE(c.root.children.size() > 0);
     auto node = c.root.children[0];
 
-    EXPECT_EQ(node.type, nw::PaletteNodeType::branch);
-    EXPECT_TRUE(node.strref != std::numeric_limits<uint32_t>::max());
-    EXPECT_TRUE(node.children.size() > 0);
+    EXPECT_EQ(node->type, nw::PaletteNodeType::branch);
+    EXPECT_TRUE(node->strref != std::numeric_limits<uint32_t>::max());
+    EXPECT_TRUE(node->children.size() > 0);
 
-    auto catnode = node.children[0];
-    EXPECT_EQ(catnode.type, nw::PaletteNodeType::category);
-    EXPECT_TRUE(catnode.children.size() > 0);
+    auto catnode = node->children[0];
+    EXPECT_EQ(catnode->type, nw::PaletteNodeType::category);
+    EXPECT_TRUE(catnode->children.size() > 0);
 
-    auto bluenode = catnode.children[0];
-    EXPECT_EQ(bluenode.type, nw::PaletteNodeType::blueprint);
-    EXPECT_EQ(bluenode.resref, "nw_battdevour");
-    EXPECT_TRUE(bluenode.cr >= 11.0f);
-    EXPECT_EQ(bluenode.faction, "Hostile");
+    auto bluenode = catnode->children[0];
+    EXPECT_EQ(bluenode->type, nw::PaletteNodeType::blueprint);
+    EXPECT_EQ(bluenode->resref, "nw_battdevour");
+    EXPECT_TRUE(bluenode->cr >= 11.0f);
+    EXPECT_EQ(bluenode->faction, "Hostile");
 
     nw::Gff g2{"test_data/user/scratch/creaturepal.itp"};
     nw::Palette p2{g2};

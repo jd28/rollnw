@@ -1,5 +1,6 @@
 #include "Palette.hpp"
 
+#include "../kernel/Memory.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 
@@ -7,14 +8,91 @@
 
 namespace nw {
 
+PaletteTreeNode::PaletteTreeNode(nw::MemoryResource*)
+{
+}
+
+void PaletteTreeNode::clear()
+{
+    id = std::numeric_limits<uint8_t>::max();
+    name.clear();
+    strref = std::numeric_limits<uint32_t>::max();
+    display = 0;
+    resref = "";
+    cr = 0.0;
+    faction.clear();
+
+    for (auto& it : children) {
+        parent->node_pool_.free(it);
+    }
+
+    children.clear();
+}
+
+Palette::Palette()
+    : root{nw::kernel::global_allocator()}
+    , node_pool_(256, nw::kernel::global_allocator())
+{
+}
+
 Palette::Palette(const Gff& archive)
+    : Palette()
 {
     is_valid_ = load(archive.toplevel());
+}
+
+Palette::~Palette()
+{
+    for (auto& it : root.children) {
+        node_pool_.free(it);
+    }
+}
+
+PaletteTreeNode* Palette::add_node(std::string_view name, uint32_t strref)
+{
+    auto result = node_pool_.allocate();
+    result->parent = this;
+    return result;
 }
 
 bool Palette::is_skeleton() const noexcept
 {
     return resource_type != nw::ResourceType::invalid;
+}
+
+PaletteTreeNode* Palette::read_child(Palette* parent, const GffStruct st)
+{
+    PaletteTreeNode* node = parent->add_node("");
+
+    st.get_to("STRREF", node->strref, false);
+    // Only try DELETE_ME if there is no name.
+    st.get_to("NAME", node->name, false) || st.get_to("DELETE_ME", node->name, false);
+
+    if (st.has_field("RESREF")) {
+        node->type = PaletteNodeType::blueprint;
+    } else if (st.has_field("ID")) {
+        node->type = PaletteNodeType::category;
+    } else {
+        node->type = PaletteNodeType::branch;
+    }
+
+    st.get_to("ID", node->id, false);
+    st.get_to("TYPE", node->display, false);
+
+    // Assume this isn't a skeleton
+    if (node->type == PaletteNodeType::blueprint) {
+        st.get_to("RESREF", node->resref, false);
+        st.get_to("CR", node->cr, false);
+        st.get_to("FACTION", node->faction, false);
+    } else {
+        size_t list_size = st["LIST"].size();
+        node->children.reserve(list_size);
+        for (size_t i = 0; i < list_size; ++i) {
+            node->children.push_back(read_child(parent, st["LIST"][i]));
+        }
+    }
+
+    return node;
 }
 
 bool Palette::load(const GffStruct gff)
@@ -45,68 +123,33 @@ bool Palette::load(const GffStruct gff)
     return true;
 }
 
-PaletteTreeNode Palette::read_child(Palette* parent, const GffStruct st)
-{
-    PaletteTreeNode node;
-
-    st.get_to("STRREF", node.strref, false);
-    // Only try DELETE_ME if there is no name.
-    st.get_to("NAME", node.name, false) || st.get_to("DELETE_ME", node.name, false);
-
-    if (st.has_field("RESREF")) {
-        node.type = PaletteNodeType::blueprint;
-    } else if (st.has_field("ID")) {
-        node.type = PaletteNodeType::category;
-    } else {
-        node.type = PaletteNodeType::branch;
-    }
-
-    st.get_to("ID", node.id, false);
-    st.get_to("TYPE", node.display, false);
-
-    // Assume this isn't a skeleton
-    if (node.type == PaletteNodeType::blueprint) {
-        st.get_to("RESREF", node.resref, false);
-        st.get_to("CR", node.cr, false);
-        st.get_to("FACTION", node.faction, false);
-    } else {
-        size_t list_size = st["LIST"].size();
-        node.children.reserve(list_size);
-        for (size_t i = 0; i < list_size; ++i) {
-            node.children.push_back(read_child(parent, st["LIST"][i]));
-        }
-    }
-
-    return node;
-}
-
-PaletteTreeNode read_node(Palette& self, const nlohmann::json& archive)
+PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
 {
     LOG_F(INFO, "Reading node");
-    PaletteTreeNode node;
+    PaletteTreeNode* node = self.add_node("");
 
-    node.name = archive.at("name").get<std::string>();
-    node.strref = archive.at("strref").get<uint32_t>();
+    node->name = archive.at("name").get<std::string>();
+    node->strref = archive.at("strref").get<uint32_t>();
 
     if (archive.find("id") != std::end(archive)) {
-        node.type = PaletteNodeType::category;
-        node.id = archive.at("id").get<int>();
-        node.display = archive.at("display").get<int>();
+        node->type = PaletteNodeType::category;
+        node->id = archive.at("id").get<int>();
+        node->display = archive.at("display").get<int>();
     } else if (archive.find("resref") != std::end(archive)) {
-        node.type = PaletteNodeType::blueprint;
-        node.resref = Resref(archive.at("resref").get<std::string>());
+        node->type = PaletteNodeType::blueprint;
+        node->resref = Resref(archive.at("resref").get<std::string>());
 
         if (self.resource_type == ResourceType::utc) {
-            node.cr = archive.at("cr").get<float>();
-            node.faction = archive.at("faction").get<int>();
+            node->cr = archive.at("cr").get<float>();
+            node->faction = archive.at("faction").get<int>();
         }
     } else {
-        node.type = PaletteNodeType::branch;
+        node->type = PaletteNodeType::branch;
     }
 
     if (archive.find("|children") != std::end(archive)) {
         for (const auto& it : archive.at("|children")) {
-            node.children.push_back(read_node(self, it));
+            node->children.push_back(read_node(self, it));
         }
     } else {
         LOG_F(INFO, "no children");
@@ -163,7 +206,7 @@ nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNod
         // [NOTE] '|' is not a type, it's much easier to read if chidren come last.
         auto& arr = res["|children"] = nlohmann::json::array();
         for (const auto& c : node.children) {
-            arr.push_back(process_node(restype, c, is_skeleton));
+            arr.push_back(process_node(restype, *c, is_skeleton));
         }
     }
     return res;
@@ -187,7 +230,7 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
 
     auto& arr = j["root"] = nlohmann::json::array();
     for (const auto& c : root.children) {
-        arr.push_back(process_node(restype, c, is_skeleton()));
+        arr.push_back(process_node(restype, *c, is_skeleton()));
     }
 
     return j;

@@ -3,6 +3,7 @@
 #include "../resources/ResourceType.hpp"
 #include "../resources/Resref.hpp"
 #include "../serialization/Serialization.hpp"
+#include "../util/memory.hpp"
 
 namespace nw {
 
@@ -15,7 +16,10 @@ enum struct PaletteNodeType {
 };
 
 struct PaletteTreeNode {
-    PaletteTreeNode() = default;
+    explicit PaletteTreeNode(nw::MemoryResource* allocator);
+
+    PaletteTreeNode* add_node(std::string_view name, uint32_t strref = 0xFFFFFFFF);
+    void clear();
 
     PaletteNodeType type;
     uint8_t id = std::numeric_limits<uint8_t>::max();
@@ -45,16 +49,17 @@ struct PaletteTreeNode {
     String faction;
 
     Palette* parent = nullptr;
-    Vector<PaletteTreeNode> children;
+    Vector<PaletteTreeNode*> children;
 };
 
 struct Palette {
-    Palette() = default;
+    Palette();
     explicit Palette(const Gff& gff);
-    ~Palette() = default;
+    ~Palette();
 
     static constexpr int json_archive_version = 1;
 
+    PaletteTreeNode* add_node(std::string_view name, uint32_t strref = 0xFFFFFFFF);
     bool is_skeleton() const noexcept;
     bool valid() const noexcept { return is_valid_; }
 
@@ -65,12 +70,14 @@ struct Palette {
     ResourceType::type resource_type = nw::ResourceType::invalid; // Only in skeletons
     Resref tileset;                                               // Only if restype is ResourceType::set
 
-private:
+    // Private
     bool load(const GffStruct gff);
-    PaletteTreeNode read_child(Palette* parent, const GffStruct st);
+    PaletteTreeNode* read_child(Palette* parent, const GffStruct st);
 
     uint8_t next_id_ = 0;
     bool is_valid_ = false;
+
+    ObjectPool<PaletteTreeNode> node_pool_;
 };
 
 } // namespace nw
