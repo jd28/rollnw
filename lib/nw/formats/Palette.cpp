@@ -12,6 +12,11 @@ Palette::Palette(const Gff& archive)
     is_valid_ = load(archive.toplevel());
 }
 
+bool Palette::is_skeleton() const noexcept
+{
+    return resource_type != nw::ResourceType::invalid;
+}
+
 bool Palette::load(const GffStruct gff)
 {
     size_t list_size = gff["MAIN"].size();
@@ -23,7 +28,6 @@ bool Palette::load(const GffStruct gff)
     // Skeleton Palettes
     uint16_t temp;
     if (gff.get_to("RESTYPE", temp, false)) {
-        is_skeleton = true;
         resource_type = static_cast<ResourceType::type>(temp);
         gff.get_to("NEXT_USEABLE_ID", next_id_, false);
 
@@ -58,10 +62,6 @@ PaletteTreeNode Palette::read_child(Palette* parent, const GffStruct st)
     }
 
     st.get_to("ID", node.id, false);
-    if (node.id != 0xFF) {
-        parent->max_id_ = std::max(node.id, parent->max_id_);
-    }
-
     st.get_to("TYPE", node.display, false);
 
     // Assume this isn't a skeleton
@@ -80,31 +80,90 @@ PaletteTreeNode Palette::read_child(Palette* parent, const GffStruct st)
     return node;
 }
 
-nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNode& node)
+PaletteTreeNode read_node(Palette& self, const nlohmann::json& archive)
+{
+    LOG_F(INFO, "Reading node");
+    PaletteTreeNode node;
+
+    node.name = archive.at("name").get<std::string>();
+    node.strref = archive.at("strref").get<uint32_t>();
+
+    if (archive.find("id") != std::end(archive)) {
+        node.type = PaletteNodeType::category;
+        node.id = archive.at("id").get<int>();
+        node.display = archive.at("display").get<int>();
+    } else if (archive.find("resref") != std::end(archive)) {
+        node.type = PaletteNodeType::blueprint;
+        node.resref = Resref(archive.at("resref").get<std::string>());
+
+        if (self.resource_type == ResourceType::utc) {
+            node.cr = archive.at("cr").get<float>();
+            node.faction = archive.at("faction").get<int>();
+        }
+    } else {
+        node.type = PaletteNodeType::branch;
+    }
+
+    if (archive.find("|children") != std::end(archive)) {
+        for (const auto& it : archive.at("|children")) {
+            node.children.push_back(read_node(self, it));
+        }
+    } else {
+        LOG_F(INFO, "no children");
+    }
+
+    return node;
+}
+
+void Palette::from_json(const nlohmann::json& archive)
+{
+    try {
+        nlohmann::json j;
+
+        auto it = archive.find("resource_type");
+        if (it != archive.end()) {
+            resource_type = ResourceType::from_extension(it->get<std::string>());
+            next_id_ = archive.at("next_available_id").get<int>();
+            if (resource_type == ResourceType::set) {
+                tileset = Resref(archive.at("tileset").get<std::string>());
+            }
+        }
+
+        for (const auto& it : archive.at("root")) {
+            root.children.push_back(read_node(*this, it));
+        }
+        is_valid_ = true;
+    } catch (nlohmann::json::exception&) {
+        is_valid_ = false;
+    }
+}
+
+nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNode& node, bool is_skeleton)
 {
     nlohmann::json res;
 
-    res["type"] = node.type;
     if (node.type == PaletteNodeType::category) {
         res["id"] = node.id;
-    }
-    if (node.display) {
         res["display"] = node.display;
     }
+
     res["name"] = node.name;
     res["strref"] = node.strref;
-    res["resref"] = node.resref;
 
-    if (restype == ResourceType::utc) {
-        res["cr"] = node.cr;
-        res["faction"] = node.faction;
+    if (node.type == PaletteNodeType::blueprint) {
+        res["resref"] = node.resref;
+
+        if (restype == ResourceType::utc) {
+            res["cr"] = node.cr;
+            res["faction"] = node.faction;
+        }
     }
 
-    if (node.type != PaletteNodeType::blueprint) {
-        // Easier to read if chidren come last.
+    if (node.type != PaletteNodeType::blueprint && !node.children.empty()) {
+        // [NOTE] '|' is not a type, it's much easier to read if chidren come last.
         auto& arr = res["|children"] = nlohmann::json::array();
         for (const auto& c : node.children) {
-            arr.push_back(process_node(restype, c));
+            arr.push_back(process_node(restype, c, is_skeleton));
         }
     }
     return res;
@@ -117,14 +176,18 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
     // This is in distinction to GFF, for some weird reason the toolset deletes resource type
     // out of skeletons when building palettes.  While it's true that one will always know the
     // resource type of an ITP, it still seems silly to delete it.
-    j["resource_type"] = ResourceType::to_string(restype);
-    if (is_skeleton && restype == ResourceType::set) {
-        j["tileset"] = tileset;
+
+    if (is_skeleton()) {
+        j["resource_type"] = ResourceType::to_string(restype);
+        j["next_available_id"] = next_id_;
+        if (restype == ResourceType::set) {
+            j["tileset"] = tileset;
+        }
     }
-    j["is_skeleton"] = is_skeleton;
+
     auto& arr = j["root"] = nlohmann::json::array();
     for (const auto& c : root.children) {
-        arr.push_back(process_node(restype, c));
+        arr.push_back(process_node(restype, c, is_skeleton()));
     }
 
     return j;

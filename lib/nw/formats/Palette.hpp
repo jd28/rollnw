@@ -4,9 +4,9 @@
 #include "../resources/Resref.hpp"
 #include "../serialization/Serialization.hpp"
 
-#include <string>
-
 namespace nw {
+
+struct Palette;
 
 enum struct PaletteNodeType {
     branch,   // Can only contain other branches and categories.
@@ -44,31 +44,31 @@ struct PaletteTreeNode {
     float cr = 0.0;
     String faction;
 
+    Palette* parent = nullptr;
     Vector<PaletteTreeNode> children;
 };
 
 struct Palette {
+    Palette() = default;
     explicit Palette(const Gff& gff);
     ~Palette() = default;
 
     static constexpr int json_archive_version = 1;
 
-    uint8_t max_id() const noexcept { return max_id_; }
-    void set_max_id(uint8_t id) noexcept { max_id_ = std::max(id, max_id_); }
+    bool is_skeleton() const noexcept;
     bool valid() const noexcept { return is_valid_; }
 
+    void from_json(const nlohmann::json& archive);
     nlohmann::json to_json(nw::ResourceType::type restype) const;
 
     PaletteTreeNode root;
-    ResourceType::type resource_type; // Only in skeletons
-    Resref tileset;                   // Only if restype is ResourceType::set
-    bool is_skeleton = false;
+    ResourceType::type resource_type = nw::ResourceType::invalid; // Only in skeletons
+    Resref tileset;                                               // Only if restype is ResourceType::set
 
 private:
     bool load(const GffStruct gff);
     PaletteTreeNode read_child(Palette* parent, const GffStruct st);
 
-    uint8_t max_id_ = 0;
     uint8_t next_id_ = 0;
     bool is_valid_ = false;
 };

@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <nw/formats/Palette.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
@@ -10,6 +11,8 @@
 #include <nlohmann/json.hpp>
 
 #include <fstream>
+
+using namespace std::literals;
 
 TEST(Palette, LoadCreature)
 {
@@ -48,16 +51,22 @@ TEST(Palette, LoadTileset)
 
 TEST(Palette, JsonConversion)
 {
-    nw::Gff g{"test_data/user/scratch/tde01palstd.itp"};
-    nw::Palette c{g};
-    EXPECT_TRUE(c.valid());
-    auto j = c.to_json(nw::ResourceType::set);
-    std::ofstream f{"tmp/tde01palstd.itp.json"};
-    f << std::setw(4) << j;
+    auto data = nw::kernel::resman().demand({"creaturepal"sv, nw::ResourceType::itp});
+    nw::Gff g{std::move(data)};
+    nw::Palette pal1{g};
+    EXPECT_TRUE(pal1.valid());
+    auto j1 = pal1.to_json(nw::ResourceType::utc);
+    std::ofstream f{"tmp/creaturepal.itp.json"};
+    f << std::setw(4) << j1;
+
+    nw::Palette pal2;
+    pal2.from_json(j1);
+    auto j2 = pal2.to_json(nw::ResourceType::utc);
+    EXPECT_EQ(j1, j2);
 
     nw::Gff g2{"test_data/user/scratch/creaturepalstd.itp"};
-    nw::Palette c2{g2};
-    auto j2 = c2.to_json(nw::ResourceType::utc);
+    nw::Palette pal3{g2};
+    auto j3 = pal3.to_json(nw::ResourceType::utc);
     std::ofstream f2{"tmp/creaturepalstd.itp.json"};
-    f2 << std::setw(4) << j2;
+    f2 << std::setw(4) << j3;
 }
