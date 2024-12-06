@@ -160,7 +160,9 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PaletteTreeNode</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNodeE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEv"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::PaletteTreeNode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEPN2nw14MemoryResourceE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::PaletteTreeNode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode8add_nodeENSt11string_viewE8uint32_t"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::add_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode5clearEv"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode4typeE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode2idE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode7displayE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::display</span></code></a></li>
@@ -169,6 +171,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode6resrefE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::resref</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode2crE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::cr</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode7factionE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::faction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode6parentE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::parent</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNode8childrenE"><code class="docutils literal notranslate"><span class="pre">PaletteTreeNode::children</span></code></a></li>
 </ul>
 </li>
@@ -389,8 +392,18 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEv">
-<span id="_CPPv3N2nw15PaletteTreeNode15PaletteTreeNodeEv"></span><span id="_CPPv2N2nw15PaletteTreeNode15PaletteTreeNodeEv"></span><span id="nw::PaletteTreeNode::PaletteTreeNode"></span><span class="target" id="structnw_1_1_palette_tree_node_1a5736dfe3629d7a111ba5ca8d25f4f2de"></span><span class="sig-name descname"><span class="n"><span class="pre">PaletteTreeNode</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEPN2nw14MemoryResourceE">
+<span id="_CPPv3N2nw15PaletteTreeNode15PaletteTreeNodeEPN2nw14MemoryResourceE"></span><span id="_CPPv2N2nw15PaletteTreeNode15PaletteTreeNodeEPN2nw14MemoryResourceE"></span><span id="nw::PaletteTreeNode::PaletteTreeNode__nw::MemoryResourceP"></span><span class="target" id="structnw_1_1_palette_tree_node_1a5142a863cceae6ac6c888f624dd01d4f"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PaletteTreeNode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode15PaletteTreeNodeEPN2nw14MemoryResourceE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode8add_nodeENSt11string_viewE8uint32_t">
+<span id="_CPPv3N2nw15PaletteTreeNode8add_nodeENSt11string_viewE8uint32_t"></span><span id="_CPPv2N2nw15PaletteTreeNode8add_nodeENSt11string_viewE8uint32_t"></span><span id="nw::PaletteTreeNode::add_node__std::string_view.uint32_t"></span><span class="target" id="structnw_1_1_palette_tree_node_1a812f981c6100979e7dcbd8fd8df7f849"></span><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">add_node</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">strref</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode8add_nodeENSt11string_viewE8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode5clearEv">
+<span id="_CPPv3N2nw15PaletteTreeNode5clearEv"></span><span id="_CPPv2N2nw15PaletteTreeNode5clearEv"></span><span id="nw::PaletteTreeNode::clear"></span><span class="target" id="structnw_1_1_palette_tree_node_1a7cdc008e25e0528cf40d4aa52d78824b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -437,8 +450,13 @@
 <dd></dd></dl>
 
 <dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode6parentE">
+<span id="_CPPv3N2nw15PaletteTreeNode6parentE"></span><span id="_CPPv2N2nw15PaletteTreeNode6parentE"></span><span id="nw::PaletteTreeNode::parent__PaletteP"></span><span class="target" id="structnw_1_1_palette_tree_node_1a3941995f82e8541370a858035ae4f415"></span><a class="reference internal" href="nw__Palette.html#_CPPv4N2nw7PaletteE" title="nw::Palette"><span class="n"><span class="pre">Palette</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">parent</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode6parentE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw15PaletteTreeNode8childrenE">
-<span id="_CPPv3N2nw15PaletteTreeNode8childrenE"></span><span id="_CPPv2N2nw15PaletteTreeNode8childrenE"></span><span id="nw::PaletteTreeNode::children__Vector:PaletteTreeNode:"></span><span class="target" id="structnw_1_1_palette_tree_node_1aa218c289a76543c9ba99ef6937b61f10"></span><span class="n"><span class="pre">Vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">children</span></span></span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode8childrenE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw15PaletteTreeNode8childrenE"></span><span id="_CPPv2N2nw15PaletteTreeNode8childrenE"></span><span id="nw::PaletteTreeNode::children__Vector:PaletteTreeNodeP:"></span><span class="target" id="structnw_1_1_palette_tree_node_1a7212b4cdce17ec1282353f1a30d7c4cf"></span><span class="n"><span class="pre">Vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">children</span></span></span><a class="headerlink" href="#_CPPv4N2nw15PaletteTreeNode8childrenE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

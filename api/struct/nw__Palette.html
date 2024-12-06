@@ -159,16 +159,21 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Palette</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw7PaletteE"><code class="docutils literal notranslate"><span class="pre">Palette</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7PaletteEv"><code class="docutils literal notranslate"><span class="pre">Palette::Palette()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7PaletteERK3Gff"><code class="docutils literal notranslate"><span class="pre">Palette::Palette()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7PaletteD0Ev"><code class="docutils literal notranslate"><span class="pre">Palette::~Palette()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette6max_idEv"><code class="docutils literal notranslate"><span class="pre">Palette::max_id()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette10set_max_idE7uint8_t"><code class="docutils literal notranslate"><span class="pre">Palette::set_max_id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"><code class="docutils literal notranslate"><span class="pre">Palette::add_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette11is_skeletonEv"><code class="docutils literal notranslate"><span class="pre">Palette::is_skeleton()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette5validEv"><code class="docutils literal notranslate"><span class="pre">Palette::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Palette::from_json()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Palette::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette4loadEK9GffStruct"><code class="docutils literal notranslate"><span class="pre">Palette::load()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette4rootE"><code class="docutils literal notranslate"><span class="pre">Palette::root</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette13resource_typeE"><code class="docutils literal notranslate"><span class="pre">Palette::resource_type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7tilesetE"><code class="docutils literal notranslate"><span class="pre">Palette::tileset</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette11is_skeletonE"><code class="docutils literal notranslate"><span class="pre">Palette::is_skeleton</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette8next_id_E"><code class="docutils literal notranslate"><span class="pre">Palette::next_id_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9is_valid_E"><code class="docutils literal notranslate"><span class="pre">Palette::is_valid_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette10node_pool_E"><code class="docutils literal notranslate"><span class="pre">Palette::node_pool_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette20json_archive_versionE"><code class="docutils literal notranslate"><span class="pre">Palette::json_archive_version</span></code></a></li>
 </ul>
 </li>
@@ -390,23 +395,28 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette7PaletteEv">
+<span id="_CPPv3N2nw7Palette7PaletteEv"></span><span id="_CPPv2N2nw7Palette7PaletteEv"></span><span id="nw::Palette::Palette"></span><span class="target" id="structnw_1_1_palette_1a923e103804e530d13e1ba7bb7d0262da"></span><span class="sig-name descname"><span class="n"><span class="pre">Palette</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette7PaletteEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette7PaletteERK3Gff">
 <span id="_CPPv3N2nw7Palette7PaletteERK3Gff"></span><span id="_CPPv2N2nw7Palette7PaletteERK3Gff"></span><span id="nw::Palette::Palette__GffCR"></span><span class="target" id="structnw_1_1_palette_1a2f8e9a46d426f83a3a3f5b3d10f40974"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Palette</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Gff.html#_CPPv4N2nw3GffE" title="nw::Gff"><span class="n"><span class="pre">Gff</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">gff</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette7PaletteERK3Gff" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7PaletteD0Ev">
-<span id="_CPPv3N2nw7PaletteD0Ev"></span><span id="_CPPv2N2nw7PaletteD0Ev"></span><span id="nw::Palette::~Palette"></span><span class="target" id="structnw_1_1_palette_1a1b33e84bcc86b64ad5ecf14cdbb3f60d"></span><span class="sig-name descname"><span class="n"><span class="pre">~Palette</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw7PaletteD0Ev" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7PaletteD0Ev"></span><span id="_CPPv2N2nw7PaletteD0Ev"></span><span id="nw::Palette::~Palette"></span><span class="target" id="structnw_1_1_palette_1a136a6d854b47dc27e9a897e5b875ab5f"></span><span class="sig-name descname"><span class="n"><span class="pre">~Palette</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7PaletteD0Ev" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette6max_idEv">
-<span id="_CPPv3NK2nw7Palette6max_idEv"></span><span id="_CPPv2NK2nw7Palette6max_idEv"></span><span id="nw::Palette::max_idC"></span><span class="target" id="structnw_1_1_palette_1ab24bcb0cf1952147af3e6142b6ca7831"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7Palette6max_idEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t">
+<span id="_CPPv3N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"></span><span id="_CPPv2N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"></span><span id="nw::Palette::add_node__std::string_view.uint32_t"></span><span class="target" id="structnw_1_1_palette_1ab389593905bd568d56e50a0639a45d1e"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">add_node</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">strref</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette10set_max_idE7uint8_t">
-<span id="_CPPv3N2nw7Palette10set_max_idE7uint8_t"></span><span id="_CPPv2N2nw7Palette10set_max_idE7uint8_t"></span><span id="nw::Palette::set_max_id__uint8_t"></span><span class="target" id="structnw_1_1_palette_1a47d067fedd82e9ea63cab8da588abf97"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_max_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette10set_max_idE7uint8_t" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette11is_skeletonEv">
+<span id="_CPPv3NK2nw7Palette11is_skeletonEv"></span><span id="_CPPv2NK2nw7Palette11is_skeletonEv"></span><span id="nw::Palette::is_skeletonC"></span><span class="target" id="structnw_1_1_palette_1a7c80ada650f46e0f8d2c065c3be7046c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_skeleton</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7Palette11is_skeletonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -415,8 +425,18 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette9from_jsonERKN8nlohmann4jsonE">
+<span id="_CPPv3N2nw7Palette9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw7Palette9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Palette::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_palette_1a99f987e1b0bcc3325f17b2f89928ef1a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE">
 <span id="_CPPv3NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"></span><span id="_CPPv2NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"></span><span id="nw::Palette::to_json__nw::ResourceType::typeC"></span><span class="target" id="structnw_1_1_palette_1acab1dcce463c248ab3183358f64f5ef3"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">restype</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette4loadEK9GffStruct">
+<span id="_CPPv3N2nw7Palette4loadEK9GffStruct"></span><span id="_CPPv2N2nw7Palette4loadEK9GffStruct"></span><span id="nw::Palette::load__GffStructC"></span><span class="target" id="structnw_1_1_palette_1ad9cac1cf40dfe9c48602b5c9f9a4c72b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__GffStruct.html#_CPPv4N2nw9GffStructE" title="nw::GffStruct"><span class="n"><span class="pre">GffStruct</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gff</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette4loadEK9GffStruct" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -429,7 +449,7 @@
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette13resource_typeE">
-<span id="_CPPv3N2nw7Palette13resource_typeE"></span><span id="_CPPv2N2nw7Palette13resource_typeE"></span><span id="nw::Palette::resource_type__ResourceType::type"></span><span class="target" id="structnw_1_1_palette_1ab461ac514708b1f73b17060af5db7202"></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resource_type</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette13resource_typeE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Palette13resource_typeE"></span><span id="_CPPv2N2nw7Palette13resource_typeE"></span><span id="nw::Palette::resource_type__ResourceType::type"></span><span class="target" id="structnw_1_1_palette_1ab461ac514708b1f73b17060af5db7202"></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resource_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4type7invalidE" title="nw::ResourceType::invalid"><span class="n"><span class="pre">invalid</span></span></a><a class="headerlink" href="#_CPPv4N2nw7Palette13resource_typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -438,8 +458,18 @@
 <dd></dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette11is_skeletonE">
-<span id="_CPPv3N2nw7Palette11is_skeletonE"></span><span id="_CPPv2N2nw7Palette11is_skeletonE"></span><span id="nw::Palette::is_skeleton__b"></span><span class="target" id="structnw_1_1_palette_1a97aa8c298e8ca9c5586b3fd432a2cb31"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_skeleton</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette11is_skeletonE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette8next_id_E">
+<span id="_CPPv3N2nw7Palette8next_id_E"></span><span id="_CPPv2N2nw7Palette8next_id_E"></span><span id="nw::Palette::next_id___uint8_t"></span><span class="target" id="structnw_1_1_palette_1a8ffba757696b789bd682bc6701b4b8fb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next_id_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette8next_id_E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette9is_valid_E">
+<span id="_CPPv3N2nw7Palette9is_valid_E"></span><span id="_CPPv2N2nw7Palette9is_valid_E"></span><span id="nw::Palette::is_valid___b"></span><span class="target" id="structnw_1_1_palette_1aba9ee06a393c49bb6cf0654dabf2c512"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette9is_valid_E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette10node_pool_E">
+<span id="_CPPv3N2nw7Palette10node_pool_E"></span><span id="_CPPv2N2nw7Palette10node_pool_E"></span><span id="nw::Palette::node_pool___ObjectPool:PaletteTreeNode:"></span><span class="target" id="structnw_1_1_palette_1a6732b179d18a2c24894f25e57dc52491"></span><span class="n"><span class="pre">ObjectPool</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_pool_</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette10node_pool_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
