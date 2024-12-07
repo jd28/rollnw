@@ -30,8 +30,7 @@ void PaletteTreeNode::clear()
 }
 
 Palette::Palette()
-    : root{nw::kernel::global_allocator()}
-    , node_pool_(256, nw::kernel::global_allocator())
+    : node_pool_(256, nw::kernel::global_allocator())
 {
 }
 
@@ -43,7 +42,7 @@ Palette::Palette(const Gff& archive)
 
 Palette::~Palette()
 {
-    for (auto& it : root.children) {
+    for (auto& it : children) {
         node_pool_.free(it);
     }
 }
@@ -76,15 +75,17 @@ PaletteTreeNode* read_child(Palette* parent, const GffStruct st)
         node->type = PaletteNodeType::branch;
     }
 
-    st.get_to("ID", node->id, false);
-    st.get_to("TYPE", node->display, false);
-
     // Assume this isn't a skeleton
     if (node->type == PaletteNodeType::blueprint) {
         st.get_to("RESREF", node->resref, false);
         st.get_to("CR", node->cr, false);
         st.get_to("FACTION", node->faction, false);
     } else {
+        if (node->type == PaletteNodeType::category) {
+            st.get_to("ID", node->id);
+            st.get_to("TYPE", node->display, false);
+            parent->node_map_.insert({node->id, node});
+        }
         size_t list_size = st["LIST"].size();
         node->children.reserve(list_size);
         for (size_t i = 0; i < list_size; ++i) {
@@ -115,9 +116,9 @@ bool Palette::load(const GffStruct gff)
         }
     }
 
-    root.children.reserve(list_size);
+    children.reserve(list_size);
     for (size_t i = 0; i < list_size; ++i) {
-        root.children.push_back(read_child(this, gff["MAIN"][i]));
+        children.push_back(read_child(this, gff["MAIN"][i]));
     }
 
     return true;
@@ -125,8 +126,7 @@ bool Palette::load(const GffStruct gff)
 
 PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
 {
-    LOG_F(INFO, "Reading node");
-    PaletteTreeNode* node = self.add_node("");
+    PaletteTreeNode* node = self.make_node();
 
     node->name = archive.at("name").get<std::string>();
     node->strref = archive.at("strref").get<uint32_t>();
@@ -135,6 +135,7 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
         node->type = PaletteNodeType::category;
         node->id = archive.at("id").get<int>();
         node->display = archive.at("display").get<int>();
+        self.node_map_.insert({node->id, node});
     } else if (archive.find("resref") != std::end(archive)) {
         node->type = PaletteNodeType::blueprint;
         node->resref = Resref(archive.at("resref").get<std::string>());
@@ -151,8 +152,6 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
         for (const auto& it : archive.at("|children")) {
             node->children.push_back(read_node(self, it));
         }
-    } else {
-        LOG_F(INFO, "no children");
     }
 
     return node;
@@ -173,7 +172,7 @@ void Palette::from_json(const nlohmann::json& archive)
         }
 
         for (const auto& it : archive.at("root")) {
-            root.children.push_back(read_node(*this, it));
+            children.push_back(read_node(*this, it));
         }
         is_valid_ = true;
     } catch (nlohmann::json::exception&) {
@@ -216,9 +215,8 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
 {
     nlohmann::json j;
 
-    // This is in distinction to GFF, for some weird reason the toolset deletes resource type
-    // out of skeletons when building palettes.  While it's true that one will always know the
-    // resource type of an ITP, it still seems silly to delete it.
+    j["$type"] = serial_id;
+    j["$version"] = json_archive_version;
 
     if (is_skeleton()) {
         j["resource_type"] = ResourceType::to_string(restype);
@@ -229,7 +227,7 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
     }
 
     auto& arr = j["root"] = nlohmann::json::array();
-    for (const auto& c : root.children) {
+    for (const auto& c : children) {
         arr.push_back(process_node(restype, *c, is_skeleton()));
     }
 

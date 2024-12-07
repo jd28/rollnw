@@ -18,8 +18,8 @@ TEST(Palette, LoadCreature)
 {
     nw::Gff g{"test_data/user/scratch/creaturepalstd.itp"};
     nw::Palette c{g};
-    EXPECT_TRUE(c.root.children.size() > 0);
-    auto node = c.root.children[0];
+    EXPECT_TRUE(c.children.size() > 0);
+    auto node = c.children[0];
 
     EXPECT_EQ(node->type, nw::PaletteNodeType::branch);
     EXPECT_TRUE(node->strref != std::numeric_limits<uint32_t>::max());
@@ -46,7 +46,7 @@ TEST(Palette, LoadTileset)
     nw::Gff g{"test_data/user/scratch/tde01palstd.itp"};
     nw::Palette c{g};
     EXPECT_TRUE(c.valid());
-    EXPECT_TRUE(c.root.children.size() > 0);
+    EXPECT_TRUE(c.children.size() > 0);
 }
 
 TEST(Palette, JsonConversion)

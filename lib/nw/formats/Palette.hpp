@@ -5,6 +5,8 @@
 #include "../serialization/Serialization.hpp"
 #include "../util/memory.hpp"
 
+#include <absl/container/flat_hash_map.h>
+
 namespace nw {
 
 struct Palette;
@@ -66,7 +68,7 @@ struct Palette {
     void from_json(const nlohmann::json& archive);
     nlohmann::json to_json(nw::ResourceType::type restype) const;
 
-    PaletteTreeNode root;
+    Vector<PaletteTreeNode*> children;
     ResourceType::type resource_type = nw::ResourceType::invalid; // Only in skeletons
     Resref tileset;                                               // Only if restype is ResourceType::set
 
@@ -77,6 +79,7 @@ struct Palette {
     bool is_valid_ = false;
 
     ObjectPool<PaletteTreeNode> node_pool_;
+    absl::flat_hash_map<uint8_t, PaletteTreeNode*> node_map_;
 };
 
 } // namespace nw
