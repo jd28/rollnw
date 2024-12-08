@@ -162,19 +162,24 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7PaletteEv"><code class="docutils literal notranslate"><span class="pre">Palette::Palette()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7PaletteERK3Gff"><code class="docutils literal notranslate"><span class="pre">Palette::Palette()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7PaletteD0Ev"><code class="docutils literal notranslate"><span class="pre">Palette::~Palette()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"><code class="docutils literal notranslate"><span class="pre">Palette::add_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette10add_branchE6String8uint32_t"><code class="docutils literal notranslate"><span class="pre">Palette::add_branch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette12add_categoryE6String8uint32_ti"><code class="docutils literal notranslate"><span class="pre">Palette::add_category()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9make_nodeEv"><code class="docutils literal notranslate"><span class="pre">Palette::make_node()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette11is_skeletonEv"><code class="docutils literal notranslate"><span class="pre">Palette::is_skeleton()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette5validEv"><code class="docutils literal notranslate"><span class="pre">Palette::valid()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Palette::from_json()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Palette::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Palette7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Palette::to_json()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette4loadEK9GffStruct"><code class="docutils literal notranslate"><span class="pre">Palette::load()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette4rootE"><code class="docutils literal notranslate"><span class="pre">Palette::root</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette8childrenE"><code class="docutils literal notranslate"><span class="pre">Palette::children</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette13resource_typeE"><code class="docutils literal notranslate"><span class="pre">Palette::resource_type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7tilesetE"><code class="docutils literal notranslate"><span class="pre">Palette::tileset</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette8next_id_E"><code class="docutils literal notranslate"><span class="pre">Palette::next_id_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9is_valid_E"><code class="docutils literal notranslate"><span class="pre">Palette::is_valid_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette10node_pool_E"><code class="docutils literal notranslate"><span class="pre">Palette::node_pool_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9node_map_E"><code class="docutils literal notranslate"><span class="pre">Palette::node_map_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette20json_archive_versionE"><code class="docutils literal notranslate"><span class="pre">Palette::json_archive_version</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette7restypeE"><code class="docutils literal notranslate"><span class="pre">Palette::restype</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Palette9serial_idE"><code class="docutils literal notranslate"><span class="pre">Palette::serial_id</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -410,9 +415,22 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t">
-<span id="_CPPv3N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"></span><span id="_CPPv2N2nw7Palette8add_nodeENSt11string_viewE8uint32_t"></span><span id="nw::Palette::add_node__std::string_view.uint32_t"></span><span class="target" id="structnw_1_1_palette_1ab389593905bd568d56e50a0639a45d1e"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">add_node</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">strref</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette8add_nodeENSt11string_viewE8uint32_t" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette10add_branchE6String8uint32_t">
+<span id="_CPPv3N2nw7Palette10add_branchE6String8uint32_t"></span><span id="_CPPv2N2nw7Palette10add_branchE6String8uint32_t"></span><span id="nw::Palette::add_branch__String.uint32_t"></span><span class="target" id="structnw_1_1_palette_1ac63aabbc1557e8267b00c891d09638fc"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">add_branch</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">strref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette10add_branchE6String8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Add branch node to root. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette12add_categoryE6String8uint32_ti">
+<span id="_CPPv3N2nw7Palette12add_categoryE6String8uint32_ti"></span><span id="_CPPv2N2nw7Palette12add_categoryE6String8uint32_ti"></span><span id="nw::Palette::add_category__String.uint32_t.i"></span><span class="target" id="structnw_1_1_palette_1a15bfd6e7e6cff9f27da4afd86ffc0bd5"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">add_category</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">strref</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette12add_categoryE6String8uint32_ti" title="Link to this definition"></a><br /></dt>
+<dd><p>Add category to root. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette9make_nodeEv">
+<span id="_CPPv3N2nw7Palette9make_nodeEv"></span><span id="_CPPv2N2nw7Palette9make_nodeEv"></span><span id="nw::Palette::make_node"></span><span class="target" id="structnw_1_1_palette_1a32aab483bcc77542af61c0c8cf3a0008"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">make_node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Palette9make_nodeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Makes a node and adds it to root. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette11is_skeletonEv">
@@ -430,8 +448,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE">
-<span id="_CPPv3NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"></span><span id="_CPPv2NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE"></span><span id="nw::Palette::to_json__nw::ResourceType::typeC"></span><span class="target" id="structnw_1_1_palette_1acab1dcce463c248ab3183358f64f5ef3"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">restype</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Palette7to_jsonEN2nw12ResourceType4typeE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw7Palette7to_jsonEv">
+<span id="_CPPv3NK2nw7Palette7to_jsonEv"></span><span id="_CPPv2NK2nw7Palette7to_jsonEv"></span><span id="nw::Palette::to_jsonC"></span><span class="target" id="structnw_1_1_palette_1ac30c8eb42e0c755b9285ea192368fc4c"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Palette7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -443,8 +461,8 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette4rootE">
-<span id="_CPPv3N2nw7Palette4rootE"></span><span id="_CPPv2N2nw7Palette4rootE"></span><span id="nw::Palette::root__PaletteTreeNode"></span><span class="target" id="structnw_1_1_palette_1a56061e812442509d838c0677f195b8e8"></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">root</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette4rootE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette8childrenE">
+<span id="_CPPv3N2nw7Palette8childrenE"></span><span id="_CPPv2N2nw7Palette8childrenE"></span><span id="nw::Palette::children__Vector:PaletteTreeNodeP:"></span><span class="target" id="structnw_1_1_palette_1ab05a07aca9a3d160414cde0639e70270"></span><span class="n"><span class="pre">Vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">children</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette8childrenE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -472,12 +490,27 @@
 <span id="_CPPv3N2nw7Palette10node_pool_E"></span><span id="_CPPv2N2nw7Palette10node_pool_E"></span><span id="nw::Palette::node_pool___ObjectPool:PaletteTreeNode:"></span><span class="target" id="structnw_1_1_palette_1a6732b179d18a2c24894f25e57dc52491"></span><span class="n"><span class="pre">ObjectPool</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_pool_</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette10node_pool_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette9node_map_E">
+<span id="_CPPv3N2nw7Palette9node_map_E"></span><span id="_CPPv2N2nw7Palette9node_map_E"></span><span id="nw::Palette::node_map___absl::flat_hash_map:uint8_t.PaletteTreeNodeP:"></span><span class="target" id="structnw_1_1_palette_1a9b8fb1f4fb1491945b15c1547e5693ee"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__PaletteTreeNode.html#_CPPv4N2nw15PaletteTreeNodeE" title="nw::PaletteTreeNode"><span class="n"><span class="pre">PaletteTreeNode</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_map_</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Palette9node_map_E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette20json_archive_versionE">
 <span id="_CPPv3N2nw7Palette20json_archive_versionE"></span><span id="_CPPv2N2nw7Palette20json_archive_versionE"></span><span id="nw::Palette::json_archive_version__i"></span><span class="target" id="structnw_1_1_palette_1a7708a23510f801bfadb5dd5748415108"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">json_archive_version</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette20json_archive_versionE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette7restypeE">
+<span id="_CPPv3N2nw7Palette7restypeE"></span><span id="_CPPv2N2nw7Palette7restypeE"></span><span id="nw::Palette::restype__ResourceType::type"></span><span class="target" id="structnw_1_1_palette_1a4cea06dfed32c807cf2b0fc37f40e32a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">restype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3utcE" title="nw::ResourceType::utc"><span class="n"><span class="pre">utc</span></span></a><a class="headerlink" href="#_CPPv4N2nw7Palette7restypeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Palette9serial_idE">
+<span id="_CPPv3N2nw7Palette9serial_idE"></span><span id="_CPPv2N2nw7Palette9serial_idE"></span><span id="nw::Palette::serial_id__StringView"></span><span class="target" id="structnw_1_1_palette_1abdf814d238b61d943836e662e03a00e8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serial_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="s"><span class="pre">&quot;ITP&quot;</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw7Palette9serial_idE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
