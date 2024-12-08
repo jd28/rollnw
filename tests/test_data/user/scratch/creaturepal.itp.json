@@ -1,0 +1,384 @@
+{
+    "$type": "ITP",
+    "$version": 1,
+    "next_available_id": 51,
+    "resource_type": "utc",
+    "root": [
+        {
+            "name": "ASSIGN TO NEW CATEGORY",
+            "strref": 6733
+        },
+        {
+            "display": 1,
+            "id": 254,
+            "name": "Familiars",
+            "strref": 6686
+        },
+        {
+            "name": "Special",
+            "strref": 6687,
+            "|children": [
+                {
+                    "display": 0,
+                    "id": 0,
+                    "name": "Custom 1",
+                    "strref": 6688
+                },
+                {
+                    "display": 0,
+                    "id": 1,
+                    "name": "Custom 2",
+                    "strref": 6689
+                },
+                {
+                    "display": 0,
+                    "id": 2,
+                    "name": "Custom 3",
+                    "strref": 6690
+                },
+                {
+                    "display": 0,
+                    "id": 3,
+                    "name": "Custom 4",
+                    "strref": 6691
+                },
+                {
+                    "display": 0,
+                    "id": 4,
+                    "name": "Custom 5",
+                    "strref": 6692
+                }
+            ]
+        },
+        {
+            "name": "Monsters",
+            "strref": 6693,
+            "|children": [
+                {
+                    "name": "Animals",
+                    "strref": 6694,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 5,
+                            "name": "Bear",
+                            "strref": 6695
+                        },
+                        {
+                            "display": 0,
+                            "id": 6,
+                            "name": "Birds",
+                            "strref": 6696
+                        },
+                        {
+                            "display": 0,
+                            "id": 7,
+                            "name": "Canine",
+                            "strref": 6697
+                        },
+                        {
+                            "display": 0,
+                            "id": 8,
+                            "name": "Feline",
+                            "strref": 6698
+                        },
+                        {
+                            "display": 0,
+                            "id": 9,
+                            "name": "Other",
+                            "strref": 201
+                        }
+                    ]
+                },
+                {
+                    "name": "Insects",
+                    "strref": 6700,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 10,
+                            "name": "Beetles",
+                            "strref": 6701
+                        },
+                        {
+                            "display": 0,
+                            "id": 11,
+                            "name": "Spiders",
+                            "strref": 6702
+                        }
+                    ]
+                },
+                {
+                    "display": 0,
+                    "id": 13,
+                    "name": "Miscelaneous",
+                    "strref": 1592
+                },
+                {
+                    "name": "Humanoid",
+                    "strref": 6705,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 14,
+                            "name": "Bugbears",
+                            "strref": 6706
+                        },
+                        {
+                            "display": 0,
+                            "id": 15,
+                            "name": "Fey",
+                            "strref": 6707
+                        },
+                        {
+                            "display": 0,
+                            "id": 16,
+                            "name": "Goblin",
+                            "strref": 6708
+                        },
+                        {
+                            "display": 0,
+                            "id": 17,
+                            "name": "Lizardfolk",
+                            "strref": 6709
+                        },
+                        {
+                            "display": 0,
+                            "id": 18,
+                            "name": "Minotaur",
+                            "strref": 6710
+                        },
+                        {
+                            "display": 0,
+                            "id": 19,
+                            "name": "Orc",
+                            "strref": 537
+                        },
+                        {
+                            "display": 0,
+                            "id": 50,
+                            "name": "Other",
+                            "strref": 201
+                        }
+                    ]
+                },
+                {
+                    "display": 0,
+                    "id": 20,
+                    "name": "Constructs",
+                    "strref": 6712
+                },
+                {
+                    "display": 0,
+                    "id": 21,
+                    "name": "Dragons",
+                    "strref": 6713
+                },
+                {
+                    "display": 0,
+                    "id": 22,
+                    "name": "Elementals",
+                    "strref": 6714
+                },
+                {
+                    "name": "Planar",
+                    "strref": 6715,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 23,
+                            "name": "Celestial",
+                            "strref": 6716
+                        },
+                        {
+                            "display": 0,
+                            "id": 24,
+                            "name": "Fiendish",
+                            "strref": 6717
+                        },
+                        {
+                            "display": 0,
+                            "id": 25,
+                            "name": "Imps",
+                            "strref": 6718
+                        },
+                        {
+                            "display": 0,
+                            "id": 26,
+                            "name": "Slaad",
+                            "strref": 6719
+                        },
+                        {
+                            "display": 0,
+                            "id": 47,
+                            "name": "Other",
+                            "strref": 6699
+                        }
+                    ]
+                },
+                {
+                    "name": "Undead",
+                    "strref": 547,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 27,
+                            "name": "Ghoul",
+                            "strref": 2058
+                        },
+                        {
+                            "display": 0,
+                            "id": 28,
+                            "name": "Mummy",
+                            "strref": 6722
+                        },
+                        {
+                            "display": 0,
+                            "id": 29,
+                            "name": "Other",
+                            "strref": 201
+                        },
+                        {
+                            "display": 0,
+                            "id": 30,
+                            "name": "Shadow",
+                            "strref": 2116
+                        },
+                        {
+                            "display": 0,
+                            "id": 31,
+                            "name": "Skeleton",
+                            "strref": 6723
+                        },
+                        {
+                            "display": 0,
+                            "id": 32,
+                            "name": "Wraith",
+                            "strref": 2155
+                        },
+                        {
+                            "display": 0,
+                            "id": 33,
+                            "name": "Zombie",
+                            "strref": 6725
+                        }
+                    ]
+                },
+                {
+                    "name": "Giant",
+                    "strref": 541,
+                    "|children": [
+                        {
+                            "display": 0,
+                            "id": 34,
+                            "name": "Common",
+                            "strref": 6727
+                        },
+                        {
+                            "display": 0,
+                            "id": 35,
+                            "name": "Noble",
+                            "strref": 6728
+                        },
+                        {
+                            "display": 0,
+                            "id": 36,
+                            "name": "Ogres",
+                            "strref": 6729
+                        },
+                        {
+                            "display": 0,
+                            "id": 37,
+                            "name": "Trolls",
+                            "strref": 6730
+                        }
+                    ]
+                },
+                {
+                    "display": 0,
+                    "id": 12,
+                    "name": "Shapechangers",
+                    "strref": 6703
+                },
+                {
+                    "display": 0,
+                    "id": 48,
+                    "name": "Aberrations",
+                    "strref": 63235
+                },
+                {
+                    "display": 0,
+                    "id": 49,
+                    "name": "Magical Beasts",
+                    "strref": 63246
+                }
+            ]
+        },
+        {
+            "name": "NPCs",
+            "strref": 6731,
+            "|children": [
+                {
+                    "display": 0,
+                    "id": 38,
+                    "name": "Dwarves",
+                    "strref": 23
+                },
+                {
+                    "display": 0,
+                    "id": 39,
+                    "name": "Elves",
+                    "strref": 25
+                },
+                {
+                    "display": 0,
+                    "id": 40,
+                    "name": "Gnomes",
+                    "strref": 27
+                },
+                {
+                    "display": 0,
+                    "id": 41,
+                    "name": "Halflings",
+                    "strref": 29
+                },
+                {
+                    "display": 0,
+                    "id": 42,
+                    "name": "Half-Elves",
+                    "strref": 31
+                },
+                {
+                    "display": 0,
+                    "id": 43,
+                    "name": "Half-Orcs",
+                    "strref": 33
+                },
+                {
+                    "display": 0,
+                    "id": 44,
+                    "name": "Humans",
+                    "strref": 35
+                },
+                {
+                    "display": 0,
+                    "id": 45,
+                    "name": "Other",
+                    "strref": 201
+                }
+            ]
+        },
+        {
+            "display": 0,
+            "id": 46,
+            "name": "Tutorial",
+            "strref": 6732
+        },
+        {
+            "display": 1,
+            "id": 253,
+            "name": "Summoned Monsters",
+            "strref": 6799
+        }
+    ]
+}

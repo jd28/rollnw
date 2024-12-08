@@ -1254,6 +1254,46 @@ class ObjectType:
     def value(self) -> int: ...
 
 
+class PaletteNodeType:
+    branch = ClassVar[PaletteNodeType]
+    category = ClassVar[PaletteNodeType]
+    blueprint = ClassVar[PaletteNodeType]
+
+
+class PaletteTreeNode:
+    """A node in a palette"""
+
+    def clear(self) -> None: ...
+    def remove_node(self, node: "PaletteTreeNode") -> None: ...
+
+    type: PaletteNodeType
+    id: int
+    display: int
+
+    name: str
+    strref: int
+
+    resref: str
+    cr: float
+    faction: str
+    children: List["PaletteTreeNode"]
+
+
+class Palette:
+    resource_type: "ResourceType"
+    children: List[PaletteTreeNode]
+    tileset: str
+
+    def is_skeleton(self) -> bool: ...
+    def valid(self) -> bool: ...
+
+    @staticmethod
+    def from_dict(value: dict) -> Palette: ...
+
+    @staticmethod
+    def from_file(path: str) -> Palette: ...
+
+
 class Path:
     def __init__(self, arg0: str) -> None: ...
 

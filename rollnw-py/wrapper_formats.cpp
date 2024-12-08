@@ -3,6 +3,7 @@
 #include <nw/formats/Dialog.hpp>
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Ini.hpp>
+#include <nw/formats/Palette.hpp>
 #include <nw/formats/Plt.hpp>
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/formats/TwoDA.hpp>
@@ -15,6 +16,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11_json/pybind11_json.hpp>
 
 #include <string>
 #include <variant>
@@ -197,6 +199,70 @@ void init_formats_image(py::module& nw)
         .def("write_to", &nw::Image::write_to);
 }
 
+void init_formats_palette(py::module& nw)
+{
+    py::enum_<nw::PaletteNodeType>(nw, "PaletteNodeType")
+        .value("branch", nw::PaletteNodeType::branch)
+        .value("category", nw::PaletteNodeType::category)
+        .value("blueprint", nw::PaletteNodeType::blueprint)
+
+        ;
+
+    py::class_<nw::PaletteTreeNode>(nw, "PaletteTreeNode")
+        .def("clear", &nw::PaletteTreeNode::clear)
+
+        .def_readwrite("type", &nw::PaletteTreeNode::type)
+        .def_readonly("id", &nw::PaletteTreeNode::id)
+        .def_readonly("display", &nw::PaletteTreeNode::display)
+        .def_readonly("name", &nw::PaletteTreeNode::name)
+        .def_readonly("name", &nw::PaletteTreeNode::name)
+        .def_readonly("strref", &nw::PaletteTreeNode::strref)
+        .def_readonly("resref", &nw::PaletteTreeNode::resref)
+        .def_readonly("cr", &nw::PaletteTreeNode::cr)
+        .def_readonly("faction", &nw::PaletteTreeNode::faction)
+        .def_readonly("children", &nw::PaletteTreeNode::children)
+
+        ;
+
+    py::class_<nw::Palette>(nw, "Palette")
+        .def("is_skeleton", &nw::Palette::is_skeleton)
+        .def("to_dict", &nw::Palette::to_json)
+        .def("valid", &nw::Palette::valid)
+
+        .def_readonly("resource_type", &nw::Palette::resource_type)
+        .def_readonly("tileset", &nw::Palette::tileset)
+        .def_readonly("children", &nw::Palette::children)
+
+        .def_static("from_dict", [](const nlohmann::json& json) -> nw::Palette* {
+            auto result = new nw::Palette;
+            result->from_json(json);
+            return result;
+        })
+
+        .def_static("from_file", [](const std::string& path) -> nw::Palette* {
+            auto p = nw::expand_path(path);
+            if (!std::filesystem::exists(path)) {
+                throw std::runtime_error(fmt::format("file '{}' does not exist", path));
+            }
+            auto rdata = nw::ResourceData::from_file(p);
+            if (rdata.bytes.size() == 0) {
+                throw std::runtime_error(fmt::format("failed to read file '{}'", path));
+            }
+
+            if (nw::string::startswith(rdata.bytes.string_view(), nw::Palette::serial_id)) {
+                nw::Gff gff{std::move(rdata)};
+                return new nw::Palette(gff);
+            } else {
+                auto archive = nlohmann::json::parse(rdata.bytes.string_view());
+                auto result = new nw::Palette;
+                result->from_json(archive);
+                return result;
+            }
+        })
+
+        ;
+}
+
 void init_formats_plt(py::module& nw)
 {
     py::enum_<nw::PltLayer>(nw, "PltLayer")
@@ -361,6 +427,7 @@ void init_formats(py::module& nw)
     init_formats_dialog(nw);
     init_formats_image(nw);
     init_formats_ini(nw);
+    init_formats_palette(nw);
     init_formats_plt(nw);
     init_formats_twoda(nw);
 }

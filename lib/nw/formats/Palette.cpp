@@ -12,6 +12,51 @@ PaletteTreeNode::PaletteTreeNode(nw::MemoryResource*)
 {
 }
 
+PaletteTreeNode* PaletteTreeNode::add_blueprint(String name, Resref resref, uint32_t strref)
+{
+    if (type != PaletteNodeType::category) {
+        throw std::runtime_error(fmt::format("attempting to add a blueprint node '{}' to non-category node", name));
+    }
+
+    auto node = parent->make_node();
+    node->type = PaletteNodeType::blueprint;
+    node->name = std::move(name);
+    node->strref = strref;
+    node->resref = resref;
+    children.push_back(node);
+    return node;
+}
+
+PaletteTreeNode* PaletteTreeNode::add_branch(String name, uint32_t strref)
+{
+    if (type != PaletteNodeType::branch) {
+        throw std::runtime_error(fmt::format("attempting to add a branch '{}' to non-branch node", name));
+    }
+
+    auto node = parent->make_node();
+    node->type = PaletteNodeType::branch;
+    node->name = std::move(name);
+    node->strref = strref;
+    children.push_back(node);
+    return node;
+}
+
+PaletteTreeNode* PaletteTreeNode::add_category(String name, uint32_t strref, int id)
+{
+    if (type != PaletteNodeType::branch) {
+        throw std::runtime_error(fmt::format("attempting to add a category node '{}' to non-branch node", name));
+    }
+
+    auto node = parent->make_node();
+    node->type = PaletteNodeType::category;
+    node->name = std::move(name);
+    node->strref = strref;
+    node->id = id < 0 ? parent->next_id_++ : id;
+    children.push_back(node);
+    parent->node_map_.insert({node->id, node});
+    return node;
+}
+
 void PaletteTreeNode::clear()
 {
     id = std::numeric_limits<uint8_t>::max();
@@ -47,7 +92,29 @@ Palette::~Palette()
     }
 }
 
-PaletteTreeNode* Palette::add_node(std::string_view name, uint32_t strref)
+PaletteTreeNode* Palette::add_branch(String name, uint32_t strref)
+{
+    auto node = make_node();
+    node->type = PaletteNodeType::branch;
+    node->name = std::move(name);
+    node->strref = strref;
+    children.push_back(node);
+    return node;
+}
+
+PaletteTreeNode* Palette::add_category(String name, uint32_t strref, int id)
+{
+    auto node = make_node();
+    node->type = PaletteNodeType::category;
+    node->name = std::move(name);
+    node->strref = strref;
+    node->id = id < 0 ? next_id_++ : id;
+    children.push_back(node);
+    node_map_.insert({node->id, node});
+    return node;
+}
+
+PaletteTreeNode* Palette::make_node()
 {
     auto result = node_pool_.allocate();
     result->parent = this;
@@ -61,7 +128,7 @@ bool Palette::is_skeleton() const noexcept
 
 PaletteTreeNode* read_child(Palette* parent, const GffStruct st)
 {
-    PaletteTreeNode* node = parent->add_node("");
+    PaletteTreeNode* node = parent->make_node();
 
     st.get_to("STRREF", node->strref, false);
     // Only try DELETE_ME if there is no name.

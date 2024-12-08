@@ -20,7 +20,16 @@ enum struct PaletteNodeType {
 struct PaletteTreeNode {
     explicit PaletteTreeNode(nw::MemoryResource* allocator);
 
-    PaletteTreeNode* add_node(std::string_view name, uint32_t strref = 0xFFFFFFFF);
+    /// Add blueprint node to root
+    PaletteTreeNode* add_blueprint(String name, Resref resref, uint32_t strref);
+
+    /// Add branch node to root
+    PaletteTreeNode* add_branch(String name, uint32_t strref);
+
+    /// Add category to root
+    PaletteTreeNode* add_category(String name, uint32_t strref, int id = -1);
+
+    ///  Clears node returning it to default constructed state
     void clear();
 
     PaletteNodeType type;
@@ -60,8 +69,18 @@ struct Palette {
     ~Palette();
 
     static constexpr int json_archive_version = 1;
+    static constexpr ResourceType::type restype = ResourceType::utc;
+    static constexpr StringView serial_id{"ITP"};
 
-    PaletteTreeNode* add_node(std::string_view name, uint32_t strref = 0xFFFFFFFF);
+    /// Add branch node to root
+    PaletteTreeNode* add_branch(String name, uint32_t strref);
+
+    /// Add category to root
+    PaletteTreeNode* add_category(String name, uint32_t strref, int id = -1);
+
+    /// Makes a node and adds it to root
+    PaletteTreeNode* make_node();
+
     bool is_skeleton() const noexcept;
     bool valid() const noexcept { return is_valid_; }
 

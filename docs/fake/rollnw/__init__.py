@@ -924,6 +924,88 @@ class Ini:
         pass
 
 
+class PaletteNodeType(enum.IntEnum):
+    branch = auto()
+    category = auto()
+    blueprint = auto()
+
+
+class PaletteTreeNode:
+    """A node in a palette"""
+
+    def clear(self) -> None:
+        """Clears node returning it to default constructed state"""
+
+    type: PaletteNodeType
+    id: int
+
+    #: Very rarely used, controls the visibility of category nodes.
+    #: 0 - Display only if not empty.
+    #: 1 - Never display (in Toolset)
+    #: 2 - Display in a custom blueprint palette, when creating a blueprint,
+    #: and assigning a palette category
+    display: int
+
+    name: str
+    strref: int
+
+    #: Extra data dependent on palette resource type,
+    #: the game appears to handle this with inheritance, but no thanks.
+    #: Note that in the case of Tilesets, the node ID of the category,
+    #: determines what the resref is referring to.  There are a couple
+    #: special tileset nodes that will not have a resref at all: Eraser
+    #: and Raise/Lower
+    resref: str
+
+    #: Only if restype == ResourceType:: utc
+    cr: float
+    faction: str
+
+    children: List["PaletteTreeNode"]
+
+
+class Palette:
+    """Abstracts NWNW Palettes (ITP)"""
+
+    #: Resource type of the palette, note this is only set in skeletons
+    resource_type: "ResourceType"
+
+    children: List[PaletteTreeNode]
+
+    #: Tileset resref if restype is set
+    tileset: str
+
+    def add_branch(self, name: str,  strref: int) -> "PaletteTreeNode":
+        """Add branch node to root"""
+        pass
+
+    def add_category(self, name: str,  strref: int) -> "PaletteTreeNode":
+        """Add category to root"""
+        pass
+
+    def is_skeleton(self) -> bool:
+        """Determines if palette is skeleton"""
+
+    def to_dict(self) -> dict:
+        """Converts palette to python dict, same layout as json"""
+
+    def valid(self) -> bool:
+        """Determines if palette was loaded properly"""
+        pass
+
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs palette from python dict.
+        """
+        pass
+
+    @staticmethod
+    def from_file(path: str):
+        """Constructs palette from file.  The file can be JSON or Gff.
+        """
+        pass
+
+
 class PltLayer(enum.IntEnum):
     """Plt layers"""
     plt_layer_skin = 0
