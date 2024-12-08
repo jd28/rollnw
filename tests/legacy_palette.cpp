@@ -55,18 +55,18 @@ TEST(Palette, JsonConversion)
     nw::Gff g{std::move(data)};
     nw::Palette pal1{g};
     EXPECT_TRUE(pal1.valid());
-    auto j1 = pal1.to_json(nw::ResourceType::utc);
+    auto j1 = pal1.to_json();
     std::ofstream f{"tmp/creaturepal.itp.json"};
     f << std::setw(4) << j1;
 
     nw::Palette pal2;
     pal2.from_json(j1);
-    auto j2 = pal2.to_json(nw::ResourceType::utc);
+    auto j2 = pal2.to_json();
     EXPECT_EQ(j1, j2);
 
     nw::Gff g2{"test_data/user/scratch/creaturepalstd.itp"};
     nw::Palette pal3{g2};
-    auto j3 = pal3.to_json(nw::ResourceType::utc);
+    auto j3 = pal3.to_json();
     std::ofstream f2{"tmp/creaturepalstd.itp.json"};
     f2 << std::setw(4) << j3;
 }
