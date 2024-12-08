@@ -82,7 +82,7 @@ Palette::Palette()
 Palette::Palette(const Gff& archive)
     : Palette()
 {
-    is_valid_ = load(archive.toplevel());
+    is_valid_ = deserialize(*this, archive.toplevel());
 }
 
 Palette::~Palette()
@@ -126,71 +126,6 @@ bool Palette::is_skeleton() const noexcept
     return resource_type != nw::ResourceType::invalid;
 }
 
-PaletteTreeNode* read_child(Palette* parent, const GffStruct st)
-{
-    PaletteTreeNode* node = parent->make_node();
-
-    st.get_to("STRREF", node->strref, false);
-    // Only try DELETE_ME if there is no name.
-    st.get_to("NAME", node->name, false) || st.get_to("DELETE_ME", node->name, false);
-
-    if (st.has_field("RESREF")) {
-        node->type = PaletteNodeType::blueprint;
-    } else if (st.has_field("ID")) {
-        node->type = PaletteNodeType::category;
-    } else {
-        node->type = PaletteNodeType::branch;
-    }
-
-    // Assume this isn't a skeleton
-    if (node->type == PaletteNodeType::blueprint) {
-        st.get_to("RESREF", node->resref, false);
-        st.get_to("CR", node->cr, false);
-        st.get_to("FACTION", node->faction, false);
-    } else {
-        if (node->type == PaletteNodeType::category) {
-            st.get_to("ID", node->id);
-            st.get_to("TYPE", node->display, false);
-            parent->node_map_.insert({node->id, node});
-        }
-        size_t list_size = st["LIST"].size();
-        node->children.reserve(list_size);
-        for (size_t i = 0; i < list_size; ++i) {
-            node->children.push_back(read_child(parent, st["LIST"][i]));
-        }
-    }
-
-    return node;
-}
-
-bool Palette::load(const GffStruct gff)
-{
-    size_t list_size = gff["MAIN"].size();
-    if (list_size == 0) {
-        LOG_F(ERROR, "No main palette list!");
-        return false;
-    }
-
-    // Skeleton Palettes
-    uint16_t temp;
-    if (gff.get_to("RESTYPE", temp, false)) {
-        resource_type = static_cast<ResourceType::type>(temp);
-        gff.get_to("NEXT_USEABLE_ID", next_id_, false);
-
-        if (resource_type == ResourceType::set && !gff.get_to("TILESETRESREF", tileset)) {
-            LOG_F(ERROR, "palette no tileset resref specified");
-            return false;
-        }
-    }
-
-    children.reserve(list_size);
-    for (size_t i = 0; i < list_size; ++i) {
-        children.push_back(read_child(this, gff["MAIN"][i]));
-    }
-
-    return true;
-}
-
 PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
 {
     PaletteTreeNode* node = self.make_node();
@@ -201,7 +136,12 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
     if (archive.find("id") != std::end(archive)) {
         node->type = PaletteNodeType::category;
         node->id = archive.at("id").get<int>();
-        node->display = archive.at("display").get<int>();
+
+        auto it = archive.find("display");
+        if (it != archive.end()) {
+            node->display = archive["display"].get<int>();
+        }
+
         self.node_map_.insert({node->id, node});
     } else if (archive.find("resref") != std::end(archive)) {
         node->type = PaletteNodeType::blueprint;
@@ -213,6 +153,11 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
         }
     } else {
         node->type = PaletteNodeType::branch;
+
+        auto it = archive.find("display");
+        if (it != archive.end()) {
+            node->display = archive["display"].get<int>();
+        }
     }
 
     if (archive.find("|children") != std::end(archive)) {
@@ -253,6 +198,9 @@ nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNod
 
     if (node.type == PaletteNodeType::category) {
         res["id"] = node.id;
+    }
+
+    if (node.display) {
         res["display"] = node.display;
     }
 
@@ -299,6 +247,131 @@ nlohmann::json Palette::to_json() const
     }
 
     return j;
+}
+
+// == Palette - Serialization - Gff ===========================================
+// ============================================================================
+
+PaletteTreeNode* read_child(Palette& parent, const GffStruct st)
+{
+    PaletteTreeNode* node = parent.make_node();
+
+    st.get_to("STRREF", node->strref, false);
+    // Only try DELETE_ME if there is no name.
+    st.get_to("NAME", node->name, false) || st.get_to("DELETE_ME", node->name, false);
+
+    if (st.has_field("RESREF")) {
+        node->type = PaletteNodeType::blueprint;
+    } else if (st.has_field("ID")) {
+        node->type = PaletteNodeType::category;
+    } else {
+        node->type = PaletteNodeType::branch;
+    }
+
+    // Assume this isn't a skeleton
+    if (node->type == PaletteNodeType::blueprint) {
+        st.get_to("RESREF", node->resref, false);
+        st.get_to("CR", node->cr, false);
+        st.get_to("FACTION", node->faction, false);
+    } else {
+        st.get_to("TYPE", node->display, false);
+        if (node->type == PaletteNodeType::category) {
+            st.get_to("ID", node->id);
+            parent.node_map_.insert({node->id, node});
+        }
+        size_t list_size = st["LIST"].size();
+        node->children.reserve(list_size);
+        for (size_t i = 0; i < list_size; ++i) {
+            node->children.push_back(read_child(parent, st["LIST"][i]));
+        }
+    }
+
+    return node;
+}
+
+bool deserialize(Palette& obj, const GffStruct& archive)
+{
+    size_t list_size = archive["MAIN"].size();
+    if (list_size == 0) {
+        LOG_F(ERROR, "No main palette list!");
+        return false;
+    }
+
+    // Skeleton Palettes
+    uint16_t temp;
+    if (archive.get_to("RESTYPE", temp, false)) {
+        obj.resource_type = static_cast<ResourceType::type>(temp);
+        archive.get_to("NEXT_USEABLE_ID", obj.next_id_, false);
+
+        if (obj.resource_type == ResourceType::set && !archive.get_to("TILESETRESREF", obj.tileset)) {
+            LOG_F(ERROR, "palette no tileset resref specified");
+            return false;
+        }
+    }
+
+    obj.children.reserve(list_size);
+    for (size_t i = 0; i < list_size; ++i) {
+        obj.children.push_back(read_child(obj, archive["MAIN"][i]));
+    }
+
+    return true;
+}
+
+inline void add_node(const Palette& obj, const PaletteTreeNode* node, GffBuilderStruct& str)
+{
+
+    str.add_field("STRREF", node->strref);
+    str.add_field("DELETE_ME", node->name); // This should provide more compatibility over "NAME"
+
+    if (node->type == PaletteNodeType::blueprint) {
+        str.add_field("RESREF", node->resref);
+
+        if (node->cr != 0.0f) {
+            str.add_field("CR", node->cr);
+        }
+
+        if (!node->faction.empty()) {
+            str.add_field("FACTION", node->faction);
+        }
+    } else {
+        if (node->type == PaletteNodeType::category) {
+            str.add_field("ID", node->id);
+        }
+
+        if (node->display) {
+            str.add_field("TYPE", node->display);
+        }
+
+        if (node->children.size()) {
+            auto& list = str.add_list("LIST");
+            for (auto it : node->children) {
+                add_node(obj, it, list.push_back(1));
+            }
+        }
+    }
+}
+
+GffBuilder serialize(const Palette& obj)
+{
+    GffBuilder result{Palette::serial_id};
+    auto& top = result.top;
+
+    if (obj.resource_type != ResourceType::invalid) {
+        top.add_field("RESTYPE", static_cast<uint16_t>(obj.resource_type));
+        top.add_field("NEXT_USEABLE_ID", obj.next_id_);
+
+        if (obj.resource_type == ResourceType::set) {
+            top.add_field("TILESETRESREF", obj.tileset);
+        }
+    }
+
+    auto& main = top.add_list("MAIN");
+    for (auto node : obj.children) {
+        add_node(obj, node, main.push_back(1));
+    }
+
+    result.build();
+    return result;
 }
 
 } // namespace nw

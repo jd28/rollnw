@@ -92,13 +92,17 @@ struct Palette {
     Resref tileset;                                               // Only if restype is ResourceType::set
 
     // Private
-    bool load(const GffStruct gff);
-
     uint8_t next_id_ = 0;
     bool is_valid_ = false;
 
     ObjectPool<PaletteTreeNode> node_pool_;
     absl::flat_hash_map<uint8_t, PaletteTreeNode*> node_map_;
 };
+
+// == Palette - Serialization - Gff ===========================================
+// ============================================================================
+
+bool deserialize(Palette& obj, const GffStruct& archive);
+GffBuilder serialize(const Palette& obj);
 
 } // namespace nw

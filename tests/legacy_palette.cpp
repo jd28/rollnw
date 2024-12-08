@@ -70,3 +70,36 @@ TEST(Palette, JsonConversion)
     std::ofstream f2{"tmp/creaturepalstd.itp.json"};
     f2 << std::setw(4) << j3;
 }
+
+TEST(Palette, GffRoundTrip)
+{
+    nw::Gff g{"test_data/user/scratch/creaturepal.itp"};
+    EXPECT_TRUE(g.valid());
+    nw::Palette f{g};
+    nw::GffBuilder out = nw::serialize(f);
+    out.write_to("tmp/creaturepal2.itp");
+
+    nw::Gff g2{"tmp/creaturepal2.itp"};
+    EXPECT_TRUE(g2.valid());
+
+    // Due to ITPs being a hand edited thing, you can never be certain that these tests will pass,
+    // uncomment and confirm via json diff / visually.
+
+    // auto j1 = nw::gff_to_gffjson(g);
+    // auto j2 = nw::gff_to_gffjson(g2);
+
+    // EXPECT_EQ(j1, j2);
+
+    // EXPECT_EQ(out.header.struct_offset, g.head_->struct_offset);
+    // EXPECT_EQ(out.header.struct_count, g.head_->struct_count);
+    // EXPECT_EQ(out.header.field_offset, g.head_->field_offset);
+    // EXPECT_EQ(out.header.field_count, g.head_->field_count);
+    // EXPECT_EQ(out.header.label_offset, g.head_->label_offset);
+    // EXPECT_EQ(out.header.label_count, g.head_->label_count);
+    // EXPECT_EQ(out.header.field_data_offset, g.head_->field_data_offset);
+    // EXPECT_EQ(out.header.field_data_count, g.head_->field_data_count);
+    // EXPECT_EQ(out.header.field_idx_offset, g.head_->field_idx_offset);
+    // EXPECT_EQ(out.header.field_idx_count, g.head_->field_idx_count);
+    // EXPECT_EQ(out.header.list_idx_offset, g.head_->list_idx_offset);
+    // EXPECT_EQ(out.header.list_idx_count, g.head_->list_idx_count);
+}

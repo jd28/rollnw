@@ -1,7 +1,7 @@
 {
     "$type": "ITP",
     "$version": 1,
-    "next_available_id": 51,
+    "next_available_id": 3,
     "resource_type": "utc",
     "root": [
         {
