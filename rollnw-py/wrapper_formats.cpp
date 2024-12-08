@@ -233,11 +233,26 @@ void init_formats_palette(py::module& nw)
         .def_readonly("tileset", &nw::Palette::tileset)
         .def_readonly("children", &nw::Palette::children)
 
+        .def("save", [](const nw::Palette& self, const std::string& path, const std::string& format) {
+            std::filesystem::path out{path};
+            if (nw::string::icmp(format, "gff")) {
+                nw::GffBuilder oa = nw::serialize(self);
+                oa.write_to(out);
+            } else if (nw::string::icmp(format, "json")) {
+                nlohmann::json j = self.to_json();
+                std::filesystem::path temp_path = std::filesystem::temp_directory_path() / out.filename();
+                std::ofstream f{temp_path};
+                f << std::setw(4) << j;
+                f.close();
+                nw::move_file_safely(temp_path, out);
+            } else {
+                throw std::runtime_error(fmt::format("[palette] unknown format: {}", format));
+            } }, py::arg("path"), py::arg("format") = "json")
+
         .def_static("from_dict", [](const nlohmann::json& json) -> nw::Palette* {
             auto result = new nw::Palette;
             result->from_json(json);
-            return result;
-        })
+            return result; })
 
         .def_static("from_file", [](const std::string& path) -> nw::Palette* {
             auto p = nw::expand_path(path);
@@ -257,8 +272,7 @@ void init_formats_palette(py::module& nw)
                 auto result = new nw::Palette;
                 result->from_json(archive);
                 return result;
-            }
-        })
+            } })
 
         ;
 }

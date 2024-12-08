@@ -975,16 +975,12 @@ class Palette:
     #: Tileset resref if restype is set
     tileset: str
 
-    def add_branch(self, name: str,  strref: int) -> "PaletteTreeNode":
-        """Add branch node to root"""
-        pass
-
-    def add_category(self, name: str,  strref: int) -> "PaletteTreeNode":
-        """Add category to root"""
-        pass
-
     def is_skeleton(self) -> bool:
         """Determines if palette is skeleton"""
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves palette to path in 'gff' or 'json' format"""
+        pass
 
     def to_dict(self) -> dict:
         """Converts palette to python dict, same layout as json"""
