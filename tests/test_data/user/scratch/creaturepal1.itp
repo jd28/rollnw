@@ -1,0 +1,32 @@
+{
+    "$type": "ITP",
+    "$version": 1,
+    "next_available_id": 51,
+    "resource_type": "utc",
+    "root": [
+        {
+            "name": "The Office",
+            "strref": 1,
+            "|children": [
+                {
+                    "display": 0,
+                    "id": 0,
+                    "name": "Bears",
+                    "strref": 2
+                },
+                {
+                    "display": 0,
+                    "id": 1,
+                    "name": "Beets",
+                    "strref": 3
+                },
+                {
+                    "display": 0,
+                    "id": 2,
+                    "name": "Battlestar Galactica",
+                    "strref": 4
+                }
+            ]
+        }
+    ]
+}
