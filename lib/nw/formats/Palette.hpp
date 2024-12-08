@@ -85,7 +85,7 @@ struct Palette {
     bool valid() const noexcept { return is_valid_; }
 
     void from_json(const nlohmann::json& archive);
-    nlohmann::json to_json(nw::ResourceType::type restype) const;
+    nlohmann::json to_json() const;
 
     Vector<PaletteTreeNode*> children;
     ResourceType::type resource_type = nw::ResourceType::invalid; // Only in skeletons

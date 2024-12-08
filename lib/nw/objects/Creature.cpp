@@ -281,7 +281,7 @@ bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive["$type"] = "UTC";
+    archive["$type"] = Creature::serial_id;
     archive["$version"] = json_archive_version;
 
     archive["appearance"] = obj->appearance.to_json();
@@ -497,7 +497,7 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
 
 GffBuilder serialize(const Creature* obj, SerializationProfile profile)
 {
-    GffBuilder out{"UTC"};
+    GffBuilder out{Creature::serial_id};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

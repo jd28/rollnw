@@ -278,7 +278,7 @@ nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNod
     return res;
 }
 
-nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
+nlohmann::json Palette::to_json() const
 {
     nlohmann::json j;
 
@@ -286,16 +286,16 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
     j["$version"] = json_archive_version;
 
     if (is_skeleton()) {
-        j["resource_type"] = ResourceType::to_string(restype);
+        j["resource_type"] = ResourceType::to_string(resource_type);
         j["next_available_id"] = next_id_;
-        if (restype == ResourceType::set) {
+        if (resource_type == ResourceType::set) {
             j["tileset"] = tileset;
         }
     }
 
     auto& arr = j["root"] = nlohmann::json::array();
     for (const auto& c : children) {
-        arr.push_back(process_node(restype, *c, is_skeleton()));
+        arr.push_back(process_node(resource_type, *c, is_skeleton()));
     }
 
     return j;
