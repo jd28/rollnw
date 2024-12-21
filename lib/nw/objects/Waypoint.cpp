@@ -45,49 +45,6 @@ String Waypoint::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    if (archive.at("$type").get<String>() != "UTW") {
-        LOG_F(ERROR, "waypoint: invalid json type");
-        return false;
-    }
-
-    obj->common.from_json(archive.at("common"), profile, ObjectType::waypoint);
-
-    archive.at("appearance").get_to(obj->appearance);
-    archive.at("description").get_to(obj->description);
-    archive.at("has_map_note").get_to(obj->has_map_note);
-    archive.at("linked_to").get_to(obj->linked_to);
-    archive.at("map_note_enabled").get_to(obj->map_note_enabled);
-    archive.at("map_note").get_to(obj->map_note);
-
-    return true;
-}
-
-void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
-    SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTW";
-    archive["$version"] = Waypoint::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
-    archive["description"] = obj->description;
-    archive["linked_to"] = obj->linked_to;
-    archive["map_note"] = obj->map_note;
-
-    archive["appearance"] = obj->appearance;
-    archive["has_map_note"] = obj->has_map_note;
-    archive["map_note_enabled"] = obj->map_note_enabled;
-}
-
 // == Waypoint - Serialization - Gff ==========================================
 // ============================================================================
 
@@ -156,6 +113,52 @@ GffBuilder serialize(const Waypoint* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+// == Waypoint - Serialization - JSON =========================================
+// ============================================================================
+
+bool deserialize(Waypoint* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    if (archive.at("$type").get<String>() != "UTW") {
+        LOG_F(ERROR, "waypoint: invalid json type");
+        return false;
+    }
+
+    obj->common.from_json(archive.at("common"), profile, ObjectType::waypoint);
+
+    archive.at("appearance").get_to(obj->appearance);
+    archive.at("description").get_to(obj->description);
+    archive.at("has_map_note").get_to(obj->has_map_note);
+    archive.at("linked_to").get_to(obj->linked_to);
+    archive.at("map_note_enabled").get_to(obj->map_note_enabled);
+    archive.at("map_note").get_to(obj->map_note);
+
+    return true;
+}
+
+bool serialize(const Waypoint* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTW";
+    archive["$version"] = Waypoint::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
+    archive["description"] = obj->description;
+    archive["linked_to"] = obj->linked_to;
+    archive["map_note"] = obj->map_note;
+
+    archive["appearance"] = obj->appearance;
+    archive["has_map_note"] = obj->has_map_note;
+    archive["map_note_enabled"] = obj->map_note_enabled;
+    return true;
 }
 
 } // namespace nw

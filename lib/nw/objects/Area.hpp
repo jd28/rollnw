@@ -96,15 +96,6 @@ struct Area : public ObjectBase {
     virtual void clear() override;
     virtual bool instantiate() override;
 
-    /// Deserialize from JSON
-    /// @note Note only supports does 'caf' style input/output, i.e. ARE + GIT + GIC.
-    static bool deserialize(Area* obj, const nlohmann::json& caf);
-
-    static bool deserialize(Area* obj, const nlohmann::json& are,
-        const nlohmann::json& git, const nlohmann::json& gic);
-
-    /// Serialize to JSON
-    static void serialize(const Area* obj, nlohmann::json& archive);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -150,5 +141,12 @@ struct Area : public ObjectBase {
 bool deserialize(AreaScripts& self, const GffStruct& archive);
 bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic);
 bool deserialize(AreaTile& self, const GffStruct& archive);
+
+// == Area - Serialization - JSON =============================================
+// ============================================================================
+
+bool deserialize(Area* obj, const nlohmann::json& caf);
+bool deserialize(Area* obj, const nlohmann::json& are, const nlohmann::json& git, const nlohmann::json& gic);
+void serialize(const Area* obj, nlohmann::json& archive);
 
 } // namespace nw

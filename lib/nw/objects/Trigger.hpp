@@ -43,8 +43,6 @@ struct Trigger : public ObjectBase {
     virtual Versus versus_me() const override;
 
     // Serialization
-    static bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -72,5 +70,11 @@ struct Trigger : public ObjectBase {
 bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Trigger* obj, SerializationProfile profile);
 bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+// == Trigger - Serialization - JSON ==========================================
+// ============================================================================
+
+bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

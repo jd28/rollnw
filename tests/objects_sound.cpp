@@ -21,13 +21,13 @@ TEST(Sound, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Sound::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     nw::Sound ent2;
-    EXPECT_TRUE(nw::Sound::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::Sound::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 

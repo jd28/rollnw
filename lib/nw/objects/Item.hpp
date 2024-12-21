@@ -33,8 +33,6 @@ struct Item : public ObjectBase {
     virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
-    static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     /// Gets image by item model part.
@@ -83,5 +81,11 @@ struct Item : public ObjectBase {
 bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Item* obj, SerializationProfile profile);
 bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+// == Item - Serialization - JSON =============================================
+// ============================================================================
+
+bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

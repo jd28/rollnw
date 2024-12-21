@@ -56,8 +56,6 @@ struct Encounter : public ObjectBase {
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
 
-    static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     nw::MemoryResource* allocator_ = nullptr;
@@ -90,10 +88,10 @@ bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile 
 GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
 bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
 
-bool deserialize(EncounterScripts& self, const GffStruct& archive);
-bool serialize(const EncounterScripts& self, GffBuilderStruct& archive);
+// == Encounter - Serialization - JSON ========================================
+// ============================================================================
 
-bool deserialize(SpawnCreature& self, const GffStruct& archive);
-bool deserialize(SpawnPoint& self, const GffStruct& archive);
+bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

@@ -26,14 +26,6 @@ struct Waypoint : public ObjectBase {
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
 
-    /// Deserializes entity from JSON
-    static bool deserialize(Waypoint* obj, const nlohmann::json& archive,
-        SerializationProfile profile);
-
-    /// Deserializes entity to JSON
-    static void serialize(const Waypoint* obj, nlohmann::json& archive,
-        SerializationProfile profile);
-
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -70,5 +62,11 @@ GffBuilder serialize(const Waypoint* obj, SerializationProfile profile);
 
 /// Deserializes entity to GFF
 bool serialize(const Waypoint* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+// == Waypoint - Serialization - JSON =========================================
+// ============================================================================
+
+bool deserialize(Waypoint* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Waypoint* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

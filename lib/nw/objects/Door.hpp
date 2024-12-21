@@ -52,8 +52,6 @@ struct Door : public ObjectBase {
     virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
-    static bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -89,7 +87,11 @@ struct Door : public ObjectBase {
 bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Door* obj, SerializationProfile profile);
-bool deserialize(DoorScripts& self, const GffStruct& archive);
-bool serialize(const DoorScripts& self, GffBuilderStruct& archive);
+
+// == Door - Serialization - JSON =============================================
+// ============================================================================
+
+bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

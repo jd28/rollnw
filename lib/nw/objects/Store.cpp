@@ -94,72 +94,6 @@ String Store::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Store::deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_json(archive.at("common"), profile, ObjectType::store);
-
-    obj->inventory.armor.from_json(archive.at("armor"), profile);
-    obj->inventory.miscellaneous.from_json(archive.at("miscellaneous"), profile);
-    obj->inventory.potions.from_json(archive.at("potions"), profile);
-    obj->inventory.rings.from_json(archive.at("rings"), profile);
-    obj->inventory.weapons.from_json(archive.at("weapons"), profile);
-    archive.at("will_not_buy").get_to(obj->inventory.will_not_buy);
-    archive.at("will_only_buy").get_to(obj->inventory.will_only_buy);
-
-    archive.at("scripts").at("on_closed").get_to(obj->scripts.on_closed);
-    archive.at("scripts").at("on_opened").get_to(obj->scripts.on_opened);
-
-    archive.at("blackmarket_markdown").get_to(obj->blackmarket_markdown);
-    archive.at("identify_price").get_to(obj->identify_price);
-    archive.at("markdown").get_to(obj->markdown);
-    archive.at("markup").get_to(obj->markup);
-    archive.at("max_price").get_to(obj->max_price);
-    archive.at("gold").get_to(obj->gold);
-
-    archive.at("blackmarket").get_to(obj->blackmarket);
-
-    return true;
-}
-
-bool Store::serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTM";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::store);
-    archive["scripts"] = {
-        {"on_closed", obj->scripts.on_closed},
-        {"on_opened", obj->scripts.on_opened},
-    };
-
-    archive["blackmarket_markdown"] = obj->blackmarket_markdown;
-    archive["identify_price"] = obj->identify_price;
-    archive["markdown"] = obj->markdown;
-    archive["markup"] = obj->markup;
-    archive["max_price"] = obj->max_price;
-    archive["gold"] = obj->gold;
-
-    archive["blackmarket"] = obj->blackmarket;
-
-    archive["armor"] = obj->inventory.armor.to_json(profile);
-    archive["miscellaneous"] = obj->inventory.miscellaneous.to_json(profile);
-    archive["potions"] = obj->inventory.potions.to_json(profile);
-    archive["rings"] = obj->inventory.rings.to_json(profile);
-    archive["weapons"] = obj->inventory.weapons.to_json(profile);
-    archive["will_not_buy"] = obj->inventory.will_not_buy;
-    archive["will_only_buy"] = obj->inventory.will_only_buy;
-
-    return true;
-}
-
 // == Store - Serialization - Gff =============================================
 // ============================================================================
 
@@ -312,6 +246,75 @@ GffBuilder serialize(const Store* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+// == Store - Serialization - JSON ============================================
+// ============================================================================
+
+bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_json(archive.at("common"), profile, ObjectType::store);
+
+    obj->inventory.armor.from_json(archive.at("armor"), profile);
+    obj->inventory.miscellaneous.from_json(archive.at("miscellaneous"), profile);
+    obj->inventory.potions.from_json(archive.at("potions"), profile);
+    obj->inventory.rings.from_json(archive.at("rings"), profile);
+    obj->inventory.weapons.from_json(archive.at("weapons"), profile);
+    archive.at("will_not_buy").get_to(obj->inventory.will_not_buy);
+    archive.at("will_only_buy").get_to(obj->inventory.will_only_buy);
+
+    archive.at("scripts").at("on_closed").get_to(obj->scripts.on_closed);
+    archive.at("scripts").at("on_opened").get_to(obj->scripts.on_opened);
+
+    archive.at("blackmarket_markdown").get_to(obj->blackmarket_markdown);
+    archive.at("identify_price").get_to(obj->identify_price);
+    archive.at("markdown").get_to(obj->markdown);
+    archive.at("markup").get_to(obj->markup);
+    archive.at("max_price").get_to(obj->max_price);
+    archive.at("gold").get_to(obj->gold);
+
+    archive.at("blackmarket").get_to(obj->blackmarket);
+
+    return true;
+}
+
+bool serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = Store::serial_id;
+    archive["$version"] = Store::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::store);
+    archive["scripts"] = {
+        {"on_closed", obj->scripts.on_closed},
+        {"on_opened", obj->scripts.on_opened},
+    };
+
+    archive["blackmarket_markdown"] = obj->blackmarket_markdown;
+    archive["identify_price"] = obj->identify_price;
+    archive["markdown"] = obj->markdown;
+    archive["markup"] = obj->markup;
+    archive["max_price"] = obj->max_price;
+    archive["gold"] = obj->gold;
+
+    archive["blackmarket"] = obj->blackmarket;
+
+    archive["armor"] = obj->inventory.armor.to_json(profile);
+    archive["miscellaneous"] = obj->inventory.miscellaneous.to_json(profile);
+    archive["potions"] = obj->inventory.potions.to_json(profile);
+    archive["rings"] = obj->inventory.rings.to_json(profile);
+    archive["weapons"] = obj->inventory.weapons.to_json(profile);
+    archive["will_not_buy"] = obj->inventory.will_not_buy;
+    archive["will_only_buy"] = obj->inventory.will_only_buy;
+
+    return true;
 }
 
 } // namespace nw

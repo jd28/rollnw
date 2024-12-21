@@ -204,149 +204,6 @@ String Area::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Area::deserialize(Area* obj, const nlohmann::json& caf)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-    return Area::deserialize(obj, caf, caf, caf);
-}
-
-bool Area::deserialize(Area* obj, const nlohmann::json& are,
-    const nlohmann::json& git, const nlohmann::json& gic)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    // [TODO] Load this..
-    ROLLNW_UNUSED(gic);
-
-    obj->common.from_json(are.at("common"), SerializationProfile::any, ObjectType::area);
-    obj->scripts.from_json(are.at("scripts"));
-    obj->weather.from_json(are.at("weather"));
-
-#define OBJECT_LIST_FROM_JSON(holder, type)                              \
-    do {                                                                 \
-        auto& arr = git.at(#holder);                                     \
-        size_t sz = arr.size();                                          \
-        obj->holder.reserve(sz);                                         \
-        for (size_t i = 0; i < sz; ++i) {                                \
-            auto ob = nw::kernel::objects().load_instance<type>(arr[i]); \
-            if (ob) {                                                    \
-                obj->holder.push_back(ob);                               \
-            } else {                                                     \
-                LOG_F(WARNING, "Something dreadfully wrong.");           \
-            }                                                            \
-        }                                                                \
-    } while (0)
-
-    try {
-        OBJECT_LIST_FROM_JSON(creatures, Creature);
-        OBJECT_LIST_FROM_JSON(doors, Door);
-        OBJECT_LIST_FROM_JSON(encounters, Encounter);
-        OBJECT_LIST_FROM_JSON(items, Item);
-        OBJECT_LIST_FROM_JSON(placeables, Placeable);
-        OBJECT_LIST_FROM_JSON(sounds, Sound);
-        OBJECT_LIST_FROM_JSON(stores, Store);
-        OBJECT_LIST_FROM_JSON(triggers, Trigger);
-        OBJECT_LIST_FROM_JSON(waypoints, Waypoint);
-
-        are.at("comments").get_to(obj->comments);
-        are.at("name").get_to(obj->name);
-
-        auto& ts = are.at("tiles");
-        obj->tiles.resize(ts.size());
-        for (size_t i = 0; i < ts.size(); ++i) {
-            obj->tiles[i].from_json(ts[i]);
-        }
-        are.at("tileset").get_to(obj->tileset_resref);
-
-        are.at("creator_id").get_to(obj->creator_id);
-        are.at("flags").get_to(obj->flags);
-        are.at("height").get_to(obj->height);
-        are.at("id").get_to(obj->id);
-        are.at("listen_check_mod").get_to(obj->listen_check_mod);
-        are.at("spot_check_mod").get_to(obj->spot_check_mod);
-        are.at("version").get_to(obj->version);
-        are.at("width").get_to(obj->width);
-
-        are.at("loadscreen").get_to(obj->loadscreen);
-
-        are.at("no_rest").get_to(obj->no_rest);
-        are.at("pvp").get_to(obj->pvp);
-        are.at("shadow_opacity").get_to(obj->shadow_opacity);
-        are.at("skybox").get_to(obj->skybox);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "from_json exception: {}", e.what());
-        return false;
-    }
-    return true;
-
-#undef OBJECT_LIST_FROM_JSON
-}
-
-#define OBJECT_LIST_TO_JSON(name, type)                              \
-    do {                                                             \
-        auto& ref = archive[#name] = nlohmann::json::array();        \
-        for (const auto ob : obj->name) {                            \
-            nlohmann::json j2;                                       \
-            type::serialize(ob, j2, SerializationProfile::instance); \
-            ref.push_back(j2);                                       \
-        }                                                            \
-    } while (0)
-
-void Area::serialize(const Area* obj, nlohmann::json& archive)
-{
-    if (!obj) return;
-
-    archive["$type"] = "CAF";
-    archive["$version"] = Area::json_archive_version;
-
-    archive["common"] = obj->common.to_json(SerializationProfile::any, ObjectType::area);
-    archive["weather"] = obj->weather.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-
-    OBJECT_LIST_TO_JSON(creatures, Creature);
-    OBJECT_LIST_TO_JSON(doors, Door);
-    OBJECT_LIST_TO_JSON(encounters, Encounter);
-    OBJECT_LIST_TO_JSON(items, Item);
-    OBJECT_LIST_TO_JSON(placeables, Placeable);
-    OBJECT_LIST_TO_JSON(sounds, Sound);
-    OBJECT_LIST_TO_JSON(stores, Store);
-    OBJECT_LIST_TO_JSON(triggers, Trigger);
-    OBJECT_LIST_TO_JSON(waypoints, Waypoint);
-
-    archive["comments"] = obj->comments;
-    archive["name"] = obj->name;
-
-    auto& ts = archive["tiles"] = nlohmann::json::array();
-    for (const auto& tile : obj->tiles) {
-        ts.push_back(tile.to_json());
-    }
-
-    archive["tileset"] = obj->tileset_resref;
-
-    archive["creator_id"] = obj->creator_id;
-    archive["flags"] = obj->flags;
-    archive["height"] = obj->height;
-    archive["id"] = obj->id;
-    archive["listen_check_mod"] = obj->listen_check_mod;
-    archive["spot_check_mod"] = obj->spot_check_mod;
-    archive["version"] = obj->version;
-    archive["width"] = obj->width;
-
-    archive["loadscreen"] = obj->loadscreen;
-
-    archive["no_rest"] = obj->no_rest;
-    archive["pvp"] = obj->pvp;
-    archive["shadow_opacity"] = obj->shadow_opacity;
-    archive["skybox"] = obj->skybox;
-}
-
-#undef OBJECT_LIST_TO_JSON
-
 // == Area - Serialization - Gff ==============================================
 // ============================================================================
 
@@ -463,5 +320,151 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
 
     return true;
 }
+
+// == Area - Serialization - JSON =============================================
+// ============================================================================
+
+bool deserialize(Area* obj, const nlohmann::json& caf)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+    return deserialize(obj, caf, caf, caf);
+}
+
+bool deserialize(Area* obj, const nlohmann::json& are,
+    const nlohmann::json& git, const nlohmann::json& gic)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    // [TODO] Load this..
+    ROLLNW_UNUSED(gic);
+
+    obj->common.from_json(are.at("common"), SerializationProfile::any, ObjectType::area);
+    obj->scripts.from_json(are.at("scripts"));
+    obj->weather.from_json(are.at("weather"));
+
+#define OBJECT_LIST_FROM_JSON(holder, type)                              \
+    do {                                                                 \
+        auto& arr = git.at(#holder);                                     \
+        size_t sz = arr.size();                                          \
+        obj->holder.reserve(sz);                                         \
+        for (size_t i = 0; i < sz; ++i) {                                \
+            auto ob = nw::kernel::objects().load_instance<type>(arr[i]); \
+            if (ob) {                                                    \
+                obj->holder.push_back(ob);                               \
+            } else {                                                     \
+                LOG_F(WARNING, "Something dreadfully wrong.");           \
+            }                                                            \
+        }                                                                \
+    } while (0)
+
+    try {
+        OBJECT_LIST_FROM_JSON(creatures, Creature);
+        OBJECT_LIST_FROM_JSON(doors, Door);
+        OBJECT_LIST_FROM_JSON(encounters, Encounter);
+        OBJECT_LIST_FROM_JSON(items, Item);
+        OBJECT_LIST_FROM_JSON(placeables, Placeable);
+        OBJECT_LIST_FROM_JSON(sounds, Sound);
+        OBJECT_LIST_FROM_JSON(stores, Store);
+        OBJECT_LIST_FROM_JSON(triggers, Trigger);
+        OBJECT_LIST_FROM_JSON(waypoints, Waypoint);
+
+        are.at("comments").get_to(obj->comments);
+        are.at("name").get_to(obj->name);
+
+        auto& ts = are.at("tiles");
+        obj->tiles.resize(ts.size());
+        for (size_t i = 0; i < ts.size(); ++i) {
+            obj->tiles[i].from_json(ts[i]);
+        }
+        are.at("tileset").get_to(obj->tileset_resref);
+
+        are.at("creator_id").get_to(obj->creator_id);
+        are.at("flags").get_to(obj->flags);
+        are.at("height").get_to(obj->height);
+        are.at("id").get_to(obj->id);
+        are.at("listen_check_mod").get_to(obj->listen_check_mod);
+        are.at("spot_check_mod").get_to(obj->spot_check_mod);
+        are.at("version").get_to(obj->version);
+        are.at("width").get_to(obj->width);
+
+        are.at("loadscreen").get_to(obj->loadscreen);
+
+        are.at("no_rest").get_to(obj->no_rest);
+        are.at("pvp").get_to(obj->pvp);
+        are.at("shadow_opacity").get_to(obj->shadow_opacity);
+        are.at("skybox").get_to(obj->skybox);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
+        return false;
+    }
+    return true;
+
+#undef OBJECT_LIST_FROM_JSON
+}
+
+#define OBJECT_LIST_TO_JSON(name, type)                        \
+    do {                                                       \
+        auto& ref = archive[#name] = nlohmann::json::array();  \
+        for (const auto ob : obj->name) {                      \
+            nlohmann::json j2;                                 \
+            serialize(ob, j2, SerializationProfile::instance); \
+            ref.push_back(j2);                                 \
+        }                                                      \
+    } while (0)
+
+void serialize(const Area* obj, nlohmann::json& archive)
+{
+    if (!obj) return;
+
+    archive["$type"] = "CAF";
+    archive["$version"] = Area::json_archive_version;
+
+    archive["common"] = obj->common.to_json(SerializationProfile::any, ObjectType::area);
+    archive["weather"] = obj->weather.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+
+    OBJECT_LIST_TO_JSON(creatures, Creature);
+    OBJECT_LIST_TO_JSON(doors, Door);
+    OBJECT_LIST_TO_JSON(encounters, Encounter);
+    OBJECT_LIST_TO_JSON(items, Item);
+    OBJECT_LIST_TO_JSON(placeables, Placeable);
+    OBJECT_LIST_TO_JSON(sounds, Sound);
+    OBJECT_LIST_TO_JSON(stores, Store);
+    OBJECT_LIST_TO_JSON(triggers, Trigger);
+    OBJECT_LIST_TO_JSON(waypoints, Waypoint);
+
+    archive["comments"] = obj->comments;
+    archive["name"] = obj->name;
+
+    auto& ts = archive["tiles"] = nlohmann::json::array();
+    for (const auto& tile : obj->tiles) {
+        ts.push_back(tile.to_json());
+    }
+
+    archive["tileset"] = obj->tileset_resref;
+
+    archive["creator_id"] = obj->creator_id;
+    archive["flags"] = obj->flags;
+    archive["height"] = obj->height;
+    archive["id"] = obj->id;
+    archive["listen_check_mod"] = obj->listen_check_mod;
+    archive["spot_check_mod"] = obj->spot_check_mod;
+    archive["version"] = obj->version;
+    archive["width"] = obj->width;
+
+    archive["loadscreen"] = obj->loadscreen;
+
+    archive["no_rest"] = obj->no_rest;
+    archive["pvp"] = obj->pvp;
+    archive["shadow_opacity"] = obj->shadow_opacity;
+    archive["skybox"] = obj->skybox;
+}
+
+#undef OBJECT_LIST_TO_JSON
 
 } // namespace nw

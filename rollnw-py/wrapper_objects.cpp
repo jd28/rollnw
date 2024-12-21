@@ -15,6 +15,7 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/util/platform.hpp>
 #include <nw/util/string.hpp>
 #include <nw/util/templates.hpp>
@@ -33,14 +34,14 @@ template <typename T>
 nlohmann::json to_json_helper(const T* self, nw::SerializationProfile profile)
 {
     nlohmann::json result;
-    T::serialize(self, result, profile);
+    nw::serialize(self, result, profile);
     return result;
 }
 
 nlohmann::json to_json_helper_player(const nw::Player* self)
 {
     nlohmann::json result;
-    nw::Player::serialize(self, result);
+    nw::serialize(self, result);
     return result;
 }
 
@@ -49,9 +50,9 @@ T* create_object_from_json_helper(const nlohmann::json& j)
 {
     auto obj = nw::kernel::objects().make<T>();
     if constexpr (!std::is_same_v<T, nw::Player>) {
-        T::deserialize(obj, j, nw::SerializationProfile::blueprint);
+        nw::deserialize(obj, j, nw::SerializationProfile::blueprint);
     } else {
-        T::deserialize(obj, j);
+        nw::deserialize(obj, j);
     }
     return obj;
 }

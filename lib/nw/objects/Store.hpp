@@ -48,8 +48,6 @@ struct Store : public ObjectBase {
     virtual void clear() override;
     virtual bool instantiate() override;
 
-    static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -74,5 +72,11 @@ struct Store : public ObjectBase {
 bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Store* obj, SerializationProfile profile);
 bool serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+// == Store - Serialization - JSON ============================================
+// ============================================================================
+
+bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

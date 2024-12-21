@@ -61,8 +61,6 @@ struct Creature : public ObjectBase {
     virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;
 
-    static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     /// Gets alignment flags
@@ -129,5 +127,11 @@ struct Creature : public ObjectBase {
 bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Creature* obj, SerializationProfile profile);
 bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+// == Creature - Serialization - JSON =========================================
+// ============================================================================
+
+bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

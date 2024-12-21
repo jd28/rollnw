@@ -19,9 +19,6 @@ struct Player : public Creature {
     virtual const Player* as_player() const override { return this; }
     // LCOV_EXCL_STOP
     virtual InternedString tag() const override { return common.tag; }
-
-    static bool deserialize(Player* obj, const nlohmann::json& archive);
-    static bool serialize(const Player* obj, nlohmann::json& archive);
 };
 
 // == Player - Serialization - Gff ============================================
@@ -30,6 +27,11 @@ struct Player : public Creature {
 bool deserialize(Player* obj, const GffStruct& archive);
 GffBuilder serialize(const Player* obj);
 bool serialize(const Player* obj, GffBuilderStruct& archive);
+
+// == Player - Serialization - JSON ===========================================
+// ============================================================================
+
+bool deserialize(Player* obj, const nlohmann::json& archive);
 bool serialize(const Player* obj, nlohmann::json& archive);
 
 } // namespace nw

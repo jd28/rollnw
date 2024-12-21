@@ -33,7 +33,7 @@ TEST(Encounter, JsonSerialize)
     EXPECT_TRUE(enc);
 
     nlohmann::json j;
-    nw::Encounter::serialize(enc, j, nw::SerializationProfile::blueprint);
+    nw::serialize(enc, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/boundelementallo.ute.json"};
     f << std::setw(4) << j;
@@ -49,13 +49,13 @@ TEST(Encounter, JsonRoundTrip)
     EXPECT_TRUE(enc);
 
     nlohmann::json j;
-    nw::Encounter::serialize(enc, j, nw::SerializationProfile::blueprint);
+    nw::serialize(enc, j, nw::SerializationProfile::blueprint);
 
     nw::Encounter enc2;
-    EXPECT_TRUE(nw::Encounter::deserialize(&enc2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(&enc2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::Encounter::serialize(enc, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(enc, j2, nw::SerializationProfile::blueprint);
     EXPECT_EQ(j, j2);
 }
 

@@ -18,13 +18,13 @@ TEST(Door, JsonSerialize)
     EXPECT_EQ(name, "Door");
 
     nlohmann::json j;
-    EXPECT_TRUE(nw::Door::serialize(door, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::serialize(door, j, nw::SerializationProfile::blueprint));
 
     nw::Door door2;
-    EXPECT_TRUE(nw::Door::deserialize(&door2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(&door2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    EXPECT_TRUE(nw::Door::serialize(&door2, j2, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::serialize(&door2, j2, nw::SerializationProfile::blueprint));
     EXPECT_EQ(j, j2);
 
     std::ofstream f{"tmp/door_ttr_002.utd.json"};

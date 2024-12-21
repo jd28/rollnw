@@ -831,13 +831,7 @@ TEST(Creature, JsonSerialization)
 
     auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
-
-    nlohmann::json j;
-    nw::Creature::serialize(ent, j, nw::SerializationProfile::blueprint);
-
-    std::ofstream f{"tmp/pl_agent_001.utc.json"};
-    f << std::setw(4) << j;
-    f.close();
+    EXPECT_TRUE(ent->save("tmp/pl_agent_001.utc.json", "json"));
 
     auto ent2 = nw::kernel::objects().load_file<nw::Creature>("tmp/pl_agent_001.utc.json");
     EXPECT_TRUE(ent2);
@@ -862,14 +856,14 @@ TEST(Creature, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Creature::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     auto ent2 = nw::kernel::objects().make<nw::Creature>();
     EXPECT_TRUE(ent2);
-    nw::Creature::deserialize(ent2, j, nw::SerializationProfile::blueprint);
+    nw::deserialize(ent2, j, nw::SerializationProfile::blueprint);
 
     nlohmann::json j2;
-    nw::Creature::serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 }
@@ -883,8 +877,7 @@ TEST(Creature, GffRoundTrip)
     EXPECT_TRUE(ent);
 
     nw::Gff g("test_data/user/development/pl_agent_001.utc");
-    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/pl_agent_001_2.utc");
+    EXPECT_TRUE(ent->save("tmp/pl_agent_001_2.utc", "gff"));
 
     // Note: the below will typically always fail because the toolset,
     // doesn't sort feats when it writes out the gff.

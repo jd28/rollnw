@@ -135,103 +135,50 @@ String Placeable::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::placeable);
-        obj->inventory.from_json(archive.at("inventory"), profile);
-        obj->lock.from_json(archive.at("lock"));
-        obj->scripts.from_json(archive.at("scripts"));
-        obj->trap.from_json(archive.at("trap"));
-
-        archive.at("conversation").get_to(obj->conversation);
-        archive.at("description").get_to(obj->description);
-        archive.at("saves").get_to(obj->saves);
-
-        archive.at("appearance").get_to(obj->appearance);
-        archive.at("faction").get_to(obj->faction);
-
-        archive.at("hp").get_to(obj->hp);
-        archive.at("hp_current").get_to(obj->hp_current);
-        archive.at("portrait_id").get_to(obj->portrait_id);
-
-        archive.at("animation_state").get_to(obj->animation_state);
-        archive.at("bodybag").get_to(obj->bodybag);
-        archive.at("has_inventory").get_to(obj->has_inventory);
-        archive.at("hardness").get_to(obj->hardness);
-        archive.at("interruptable").get_to(obj->interruptable);
-        archive.at("plot").get_to(obj->plot);
-        archive.at("static").get_to(obj->static_);
-        archive.at("useable").get_to(obj->useable);
-
-        if (profile == SerializationProfile::instance) {
-            auto it = archive.find("visual_transforms");
-            if (it != std::end(archive)) {
-                archive.at("visual_transforms").get_to(obj->visual_transform());
-            }
-        }
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Placeable::from_json exception {}", e.what());
-        return false;
-    }
-
-    return true;
-}
-
-bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTP";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::placeable);
-    archive["inventory"] = obj->inventory.to_json(profile);
-    archive["lock"] = obj->lock.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    archive["description"] = obj->description;
-    archive["conversation"] = obj->conversation;
-    archive["saves"] = obj->saves;
-
-    archive["appearance"] = obj->appearance;
-    archive["faction"] = obj->faction;
-
-    archive["hp"] = obj->hp;
-    archive["hp_current"] = obj->hp_current;
-    archive["portrait_id"] = obj->portrait_id;
-
-    archive["animation_state"] = obj->animation_state;
-    archive["bodybag"] = obj->bodybag;
-    archive["has_inventory"] = obj->has_inventory;
-    archive["useable"] = obj->useable;
-    archive["static"] = obj->static_;
-    archive["hardness"] = obj->hardness;
-    archive["interruptable"] = obj->interruptable;
-    archive["plot"] = obj->plot;
-
-    if (profile == SerializationProfile::instance) {
-        archive["visual_transforms"] = nlohmann::json::array();
-        for (const auto& vt : obj->visual_transform()) {
-            // Don't add default constructed visual transforms
-            if (vt != VisualTransform{}) {
-                archive["visual_transforms"].push_back(vt);
-            }
-        }
-    }
-
-    return true;
-}
-
 // == Placeable - Serialization - Gff =========================================
 // ============================================================================
+
+bool deserialize(PlaceableScripts& self, const GffStruct& archive)
+{
+    archive.get_to("OnClick", self.on_click);
+    archive.get_to("OnClosed", self.on_closed);
+    archive.get_to("OnDamaged", self.on_damaged);
+    archive.get_to("OnDeath", self.on_death);
+    archive.get_to("OnDisarm", self.on_disarm);
+    archive.get_to("OnHeartbeat", self.on_heartbeat);
+    archive.get_to("OnInvDisturbed", self.on_inventory_disturbed);
+    archive.get_to("OnLock", self.on_lock);
+    archive.get_to("OnMeleeAttacked", self.on_melee_attacked);
+    archive.get_to("OnOpen", self.on_open);
+    archive.get_to("OnSpellCastAt", self.on_spell_cast_at);
+    archive.get_to("OnTrapTriggered", self.on_trap_triggered);
+    archive.get_to("OnUnlock", self.on_unlock);
+    archive.get_to("OnUsed", self.on_used);
+    archive.get_to("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
+
+bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("OnClick", self.on_click)
+        .add_field("OnClosed", self.on_closed)
+        .add_field("OnDamaged", self.on_damaged)
+        .add_field("OnDeath", self.on_death)
+        .add_field("OnDisarm", self.on_disarm)
+        .add_field("OnHeartbeat", self.on_heartbeat)
+        .add_field("OnInvDisturbed", self.on_inventory_disturbed)
+        .add_field("OnLock", self.on_lock)
+        .add_field("OnMeleeAttacked", self.on_melee_attacked)
+        .add_field("OnOpen", self.on_open)
+        .add_field("OnSpellCastAt", self.on_spell_cast_at)
+        .add_field("OnTrapTriggered", self.on_trap_triggered)
+        .add_field("OnUnlock", self.on_unlock)
+        .add_field("OnUsed", self.on_used)
+        .add_field("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
 
 bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
 {
@@ -379,44 +326,100 @@ GffBuilder serialize(const Placeable* obj, SerializationProfile profile)
     return out;
 }
 
-bool deserialize(PlaceableScripts& self, const GffStruct& archive)
+// == Placeable - Serialization - JSON ========================================
+// ============================================================================
+
+bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
-    archive.get_to("OnClick", self.on_click);
-    archive.get_to("OnClosed", self.on_closed);
-    archive.get_to("OnDamaged", self.on_damaged);
-    archive.get_to("OnDeath", self.on_death);
-    archive.get_to("OnDisarm", self.on_disarm);
-    archive.get_to("OnHeartbeat", self.on_heartbeat);
-    archive.get_to("OnInvDisturbed", self.on_inventory_disturbed);
-    archive.get_to("OnLock", self.on_lock);
-    archive.get_to("OnMeleeAttacked", self.on_melee_attacked);
-    archive.get_to("OnOpen", self.on_open);
-    archive.get_to("OnSpellCastAt", self.on_spell_cast_at);
-    archive.get_to("OnTrapTriggered", self.on_trap_triggered);
-    archive.get_to("OnUnlock", self.on_unlock);
-    archive.get_to("OnUsed", self.on_used);
-    archive.get_to("OnUserDefined", self.on_user_defined);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::placeable);
+        obj->inventory.from_json(archive.at("inventory"), profile);
+        obj->lock.from_json(archive.at("lock"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->trap.from_json(archive.at("trap"));
+
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("saves").get_to(obj->saves);
+
+        archive.at("appearance").get_to(obj->appearance);
+        archive.at("faction").get_to(obj->faction);
+
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("portrait_id").get_to(obj->portrait_id);
+
+        archive.at("animation_state").get_to(obj->animation_state);
+        archive.at("bodybag").get_to(obj->bodybag);
+        archive.at("has_inventory").get_to(obj->has_inventory);
+        archive.at("hardness").get_to(obj->hardness);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("plot").get_to(obj->plot);
+        archive.at("static").get_to(obj->static_);
+        archive.at("useable").get_to(obj->useable);
+
+        if (profile == SerializationProfile::instance) {
+            auto it = archive.find("visual_transforms");
+            if (it != std::end(archive)) {
+                archive.at("visual_transforms").get_to(obj->visual_transform());
+            }
+        }
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception {}", e.what());
+        return false;
+    }
 
     return true;
 }
 
-bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive)
+bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile)
 {
-    archive.add_field("OnClick", self.on_click)
-        .add_field("OnClosed", self.on_closed)
-        .add_field("OnDamaged", self.on_damaged)
-        .add_field("OnDeath", self.on_death)
-        .add_field("OnDisarm", self.on_disarm)
-        .add_field("OnHeartbeat", self.on_heartbeat)
-        .add_field("OnInvDisturbed", self.on_inventory_disturbed)
-        .add_field("OnLock", self.on_lock)
-        .add_field("OnMeleeAttacked", self.on_melee_attacked)
-        .add_field("OnOpen", self.on_open)
-        .add_field("OnSpellCastAt", self.on_spell_cast_at)
-        .add_field("OnTrapTriggered", self.on_trap_triggered)
-        .add_field("OnUnlock", self.on_unlock)
-        .add_field("OnUsed", self.on_used)
-        .add_field("OnUserDefined", self.on_user_defined);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = Placeable::serial_id;
+    archive["$version"] = Placeable::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::placeable);
+    archive["inventory"] = obj->inventory.to_json(profile);
+    archive["lock"] = obj->lock.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
+
+    archive["description"] = obj->description;
+    archive["conversation"] = obj->conversation;
+    archive["saves"] = obj->saves;
+
+    archive["appearance"] = obj->appearance;
+    archive["faction"] = obj->faction;
+
+    archive["hp"] = obj->hp;
+    archive["hp_current"] = obj->hp_current;
+    archive["portrait_id"] = obj->portrait_id;
+
+    archive["animation_state"] = obj->animation_state;
+    archive["bodybag"] = obj->bodybag;
+    archive["has_inventory"] = obj->has_inventory;
+    archive["useable"] = obj->useable;
+    archive["static"] = obj->static_;
+    archive["hardness"] = obj->hardness;
+    archive["interruptable"] = obj->interruptable;
+    archive["plot"] = obj->plot;
+
+    if (profile == SerializationProfile::instance) {
+        archive["visual_transforms"] = nlohmann::json::array();
+        for (const auto& vt : obj->visual_transform()) {
+            // Don't add default constructed visual transforms
+            if (vt != VisualTransform{}) {
+                archive["visual_transforms"].push_back(vt);
+            }
+        }
+    }
 
     return true;
 }

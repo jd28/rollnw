@@ -37,8 +37,36 @@ nlohmann::json EncounterScripts::to_json() const
         {"on_user_defined", on_user_defined}};
 }
 
+bool deserialize(EncounterScripts& self, const GffStruct& archive)
+{
+    return archive.get_to("OnEntered", self.on_entered)
+        && archive.get_to("OnExhausted", self.on_exhausted)
+        && archive.get_to("OnExit", self.on_exit)
+        && archive.get_to("OnHeartbeat", self.on_heartbeat)
+        && archive.get_to("OnUserDefined", self.on_user_defined);
+}
+
+bool serialize(const EncounterScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("OnEntered", self.on_entered)
+        .add_field("OnExhausted", self.on_exhausted)
+        .add_field("OnExit", self.on_exit)
+        .add_field("OnHeartbeat", self.on_heartbeat)
+        .add_field("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
+
 // == SpawnCreature ===========================================================
 // ============================================================================
+
+bool deserialize(SpawnCreature& self, const GffStruct& archive)
+{
+    return archive.get_to("Appearance", self.appearance)
+        && archive.get_to("CR", self.cr)
+        && archive.get_to("ResRef", self.resref)
+        && archive.get_to("SingleSpawn", self.single_spawn);
+}
 
 bool SpawnCreature::from_json(const nlohmann::json& archive)
 {
@@ -64,6 +92,16 @@ nlohmann::json SpawnCreature::to_json() const
 }
 
 // -- SpawnPoint ---------------------------------------------------------------
+
+bool deserialize(SpawnPoint& self, const GffStruct& archive)
+{
+    archive.get_to("Orientation", self.orientation);
+    archive.get_to("X", self.position.x);
+    archive.get_to("Y", self.position.y);
+    archive.get_to("Z", self.position.z);
+
+    return true;
+}
 
 bool SpawnPoint::from_json(const nlohmann::json& archive)
 {
@@ -117,98 +155,6 @@ String Encounter::get_name_from_file(const std::filesystem::path& path)
 
     result = nw::kernel::strings().get(l1);
     return result;
-}
-
-bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_json(archive.at("common"), profile, ObjectType::encounter);
-    obj->scripts.from_json(archive.at("scripts"));
-
-    auto& arr = archive.at("creatures");
-    obj->creatures.resize(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        obj->creatures[i].from_json(arr[i]);
-    }
-
-    if (profile == SerializationProfile::instance) {
-        const auto& g = archive.at("geometry");
-        for (const auto& geom : g) {
-            obj->geometry.emplace_back(geom[0].get<float>(), geom[1].get<float>(), geom[2].get<float>());
-        }
-
-        const auto& sp_list = archive.at("spawn_points");
-        obj->spawn_points.resize(sp_list.size());
-        for (size_t i = 0; i < sp_list.size(); ++i) {
-            obj->spawn_points[i].from_json(sp_list[i]);
-        }
-    }
-
-    archive.at("creatures_max").get_to(obj->creatures_max);
-    archive.at("creatures_recommended").get_to(obj->creatures_recommended);
-    archive.at("difficulty").get_to(obj->difficulty);
-    archive.at("difficulty_index").get_to(obj->difficulty_index);
-    archive.at("faction").get_to(obj->faction);
-    archive.at("reset_time").get_to(obj->reset_time);
-    archive.at("respawns").get_to(obj->respawns);
-    archive.at("spawn_option").get_to(obj->spawn_option);
-
-    archive.at("active").get_to(obj->active);
-    archive.at("player_only").get_to(obj->player_only);
-    archive.at("reset").get_to(obj->reset);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-    return true;
-}
-
-bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTE";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::encounter);
-    archive["scripts"] = obj->scripts.to_json();
-
-    auto& arr = archive["creatures"] = nlohmann::json::array();
-    for (const auto& c : obj->creatures) {
-        arr.push_back(c.to_json());
-    }
-
-    if (profile == SerializationProfile::instance) {
-        auto& g = archive["geometry"] = nlohmann::json::array();
-        for (const auto& geom : obj->geometry) {
-            g.push_back({geom.x, geom.y, geom.z});
-        }
-
-        auto& sp = archive["spawn_points"] = nlohmann::json::array();
-        for (const auto& spawn : obj->spawn_points) {
-            sp.push_back(spawn.to_json());
-        }
-    }
-
-    archive["creatures_max"] = obj->creatures_max;
-    archive["creatures_recommended"] = obj->creatures_recommended;
-    archive["difficulty"] = obj->difficulty;
-    archive["difficulty_index"] = obj->difficulty_index;
-    archive["faction"] = obj->faction;
-    archive["reset_time"] = obj->reset_time;
-    archive["respawns"] = obj->respawns;
-    archive["spawn_option"] = obj->spawn_option;
-
-    archive["active"] = obj->active;
-    archive["player_only"] = obj->player_only;
-    archive["reset"] = obj->reset;
-
-    return true;
 }
 
 // == Encounter - Serialization - Gff =========================================
@@ -351,40 +297,97 @@ GffBuilder serialize(const Encounter* obj, SerializationProfile profile)
     return out;
 }
 
-bool deserialize(EncounterScripts& self, const GffStruct& archive)
-{
-    return archive.get_to("OnEntered", self.on_entered)
-        && archive.get_to("OnExhausted", self.on_exhausted)
-        && archive.get_to("OnExit", self.on_exit)
-        && archive.get_to("OnHeartbeat", self.on_heartbeat)
-        && archive.get_to("OnUserDefined", self.on_user_defined);
-}
+// == Encounter - Serialization - JSON ========================================
+// ============================================================================
 
-bool serialize(const EncounterScripts& self, GffBuilderStruct& archive)
+bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
-    archive.add_field("OnEntered", self.on_entered)
-        .add_field("OnExhausted", self.on_exhausted)
-        .add_field("OnExit", self.on_exit)
-        .add_field("OnHeartbeat", self.on_heartbeat)
-        .add_field("OnUserDefined", self.on_user_defined);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
+    obj->common.from_json(archive.at("common"), profile, ObjectType::encounter);
+    obj->scripts.from_json(archive.at("scripts"));
+
+    auto& arr = archive.at("creatures");
+    obj->creatures.resize(arr.size());
+    for (size_t i = 0; i < arr.size(); ++i) {
+        obj->creatures[i].from_json(arr[i]);
+    }
+
+    if (profile == SerializationProfile::instance) {
+        const auto& g = archive.at("geometry");
+        for (const auto& geom : g) {
+            obj->geometry.emplace_back(geom[0].get<float>(), geom[1].get<float>(), geom[2].get<float>());
+        }
+
+        const auto& sp_list = archive.at("spawn_points");
+        obj->spawn_points.resize(sp_list.size());
+        for (size_t i = 0; i < sp_list.size(); ++i) {
+            obj->spawn_points[i].from_json(sp_list[i]);
+        }
+    }
+
+    archive.at("creatures_max").get_to(obj->creatures_max);
+    archive.at("creatures_recommended").get_to(obj->creatures_recommended);
+    archive.at("difficulty").get_to(obj->difficulty);
+    archive.at("difficulty_index").get_to(obj->difficulty_index);
+    archive.at("faction").get_to(obj->faction);
+    archive.at("reset_time").get_to(obj->reset_time);
+    archive.at("respawns").get_to(obj->respawns);
+    archive.at("spawn_option").get_to(obj->spawn_option);
+
+    archive.at("active").get_to(obj->active);
+    archive.at("player_only").get_to(obj->player_only);
+    archive.at("reset").get_to(obj->reset);
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return true;
 }
 
-bool deserialize(SpawnCreature& self, const GffStruct& archive)
+bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile)
 {
-    return archive.get_to("Appearance", self.appearance)
-        && archive.get_to("CR", self.cr)
-        && archive.get_to("ResRef", self.resref)
-        && archive.get_to("SingleSpawn", self.single_spawn);
-}
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
-bool deserialize(SpawnPoint& self, const GffStruct& archive)
-{
-    archive.get_to("Orientation", self.orientation);
-    archive.get_to("X", self.position.x);
-    archive.get_to("Y", self.position.y);
-    archive.get_to("Z", self.position.z);
+    archive["$type"] = Encounter::serial_id;
+    archive["$version"] = Encounter::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::encounter);
+    archive["scripts"] = obj->scripts.to_json();
+
+    auto& arr = archive["creatures"] = nlohmann::json::array();
+    for (const auto& c : obj->creatures) {
+        arr.push_back(c.to_json());
+    }
+
+    if (profile == SerializationProfile::instance) {
+        auto& g = archive["geometry"] = nlohmann::json::array();
+        for (const auto& geom : obj->geometry) {
+            g.push_back({geom.x, geom.y, geom.z});
+        }
+
+        auto& sp = archive["spawn_points"] = nlohmann::json::array();
+        for (const auto& spawn : obj->spawn_points) {
+            sp.push_back(spawn.to_json());
+        }
+    }
+
+    archive["creatures_max"] = obj->creatures_max;
+    archive["creatures_recommended"] = obj->creatures_recommended;
+    archive["difficulty"] = obj->difficulty;
+    archive["difficulty_index"] = obj->difficulty_index;
+    archive["faction"] = obj->faction;
+    archive["reset_time"] = obj->reset_time;
+    archive["respawns"] = obj->respawns;
+    archive["spawn_option"] = obj->spawn_option;
+
+    archive["active"] = obj->active;
+    archive["player_only"] = obj->player_only;
+    archive["reset"] = obj->reset;
 
     return true;
 }

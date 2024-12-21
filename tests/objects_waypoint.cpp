@@ -20,14 +20,14 @@ TEST(Waypoint, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Waypoint::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     auto ent2 = nw::kernel::objects().make<nw::Waypoint>();
     EXPECT_TRUE(ent2);
-    EXPECT_TRUE(nw::Waypoint::deserialize(ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::Waypoint::serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 

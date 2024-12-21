@@ -82,7 +82,7 @@ static void BM_creature_to_json_instance(benchmark::State& state)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         nlohmann::json j;
-        benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::instance));
+        benchmark::DoNotOptimize(nw::serialize(ent, j, nw::SerializationProfile::instance));
     }
 }
 BENCHMARK(BM_creature_to_json_instance);
@@ -92,7 +92,7 @@ static void BM_creature_to_json_blueprint(benchmark::State& state)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     for (auto _ : state) {
         nlohmann::json j;
-        benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::blueprint));
+        benchmark::DoNotOptimize(nw::serialize(ent, j, nw::SerializationProfile::blueprint));
     }
 }
 BENCHMARK(BM_creature_to_json_blueprint);

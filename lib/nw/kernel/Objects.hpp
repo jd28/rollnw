@@ -222,11 +222,11 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
                 if constexpr (std::is_same_v<T, nw::Player>) {
-                    if (T::deserialize(obj, j)) {
+                    if (deserialize(obj, j)) {
                         good = true;
                     }
                 } else {
-                    if (T::deserialize(obj, j, SerializationProfile::blueprint)) {
+                    if (deserialize(obj, j, SerializationProfile::blueprint)) {
                         good = true;
                     }
                 }
@@ -280,7 +280,7 @@ T* ObjectSystem::load(Resref resref)
             String serial_id = j.at("$type").get<String>();
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
-                if (T::deserialize(obj, j, SerializationProfile::blueprint)) {
+                if (deserialize(obj, j, SerializationProfile::blueprint)) {
                     good = true;
                 }
             } else {
@@ -328,7 +328,7 @@ template <typename T>
 T* ObjectSystem::load_instance(const nlohmann::json& archive)
 {
     auto ob = make<T>();
-    if (ob && T::deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
+    if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
         if (auto tag = ob->tag()) {
             object_tag_map_.insert({tag, ob->handle()});
         }

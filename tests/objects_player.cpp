@@ -150,7 +150,7 @@ TEST(Player, JsonSerialization)
     oa.write_to("tmp/daeris1.bic");
 
     nlohmann::json j;
-    nw::Player::serialize(pl, j);
+    nw::serialize(pl, j);
 
     std::ofstream f{"tmp/daeris1.bic.json"};
     f << std::setw(4) << j;

@@ -100,102 +100,6 @@ String Door::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::door);
-        obj->lock.from_json(archive.at("lock"));
-        obj->scripts.from_json(archive.at("scripts"));
-        obj->trap.from_json(archive.at("trap"));
-
-        archive.at("conversation").get_to(obj->conversation);
-        archive.at("description").get_to(obj->description);
-        archive.at("saves").get_to(obj->saves);
-
-        archive.at("appearance").get_to(obj->appearance);
-        archive.at("faction").get_to(obj->faction);
-        archive.at("generic_type").get_to(obj->generic_type);
-
-        archive.at("hp").get_to(obj->hp);
-        archive.at("hp_current").get_to(obj->hp_current);
-        archive.at("loadscreen").get_to(obj->loadscreen);
-        archive.at("portrait_id").get_to(obj->portrait_id);
-
-        archive.at("animation_state").get_to(obj->animation_state);
-        archive.at("hardness").get_to(obj->hardness);
-        archive.at("interruptable").get_to(obj->interruptable);
-        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
-        archive.at("linked_to").get_to(obj->linked_to);
-        archive.at("plot").get_to(obj->plot);
-
-        if (profile == SerializationProfile::instance) {
-            auto it = archive.find("visual_transforms");
-            if (it != std::end(archive)) {
-                archive.at("visual_transforms").get_to(obj->visual_transform());
-            }
-        }
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Door::to_json exception: {}", e.what());
-        return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-    return true;
-}
-
-bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTD";
-    archive["$version"] = Door::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::door);
-    archive["lock"] = obj->lock.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    archive["conversation"] = obj->conversation;
-    archive["description"] = obj->description;
-    archive["linked_to"] = obj->linked_to;
-    archive["saves"] = obj->saves;
-
-    archive["appearance"] = obj->appearance;
-    archive["faction"] = obj->faction;
-    archive["generic_type"] = obj->generic_type;
-
-    archive["hp"] = obj->hp;
-    archive["hp_current"] = obj->hp_current;
-    archive["loadscreen"] = obj->loadscreen;
-    archive["portrait_id"] = obj->portrait_id;
-
-    archive["animation_state"] = obj->animation_state;
-    archive["hardness"] = obj->hardness;
-    archive["interruptable"] = obj->interruptable;
-    archive["linked_to_flags"] = obj->linked_to_flags;
-    archive["plot"] = obj->plot;
-
-    if (profile == SerializationProfile::instance) {
-        archive["visual_transforms"] = nlohmann::json::array();
-        for (const auto& vt : obj->visual_transform()) {
-            // Don't add default constructed visual transforms
-            if (vt != VisualTransform{}) {
-                archive["visual_transforms"].push_back(vt);
-            }
-        }
-    }
-
-    return true;
-}
-
 // == Door - Serialization - Gff ==============================================
 // ============================================================================
 
@@ -380,6 +284,105 @@ GffBuilder serialize(const Door* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+// == Door - Serialization - JSON =============================================
+// ============================================================================
+
+bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::door);
+        obj->lock.from_json(archive.at("lock"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->trap.from_json(archive.at("trap"));
+
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("saves").get_to(obj->saves);
+
+        archive.at("appearance").get_to(obj->appearance);
+        archive.at("faction").get_to(obj->faction);
+        archive.at("generic_type").get_to(obj->generic_type);
+
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("loadscreen").get_to(obj->loadscreen);
+        archive.at("portrait_id").get_to(obj->portrait_id);
+
+        archive.at("animation_state").get_to(obj->animation_state);
+        archive.at("hardness").get_to(obj->hardness);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
+        archive.at("linked_to").get_to(obj->linked_to);
+        archive.at("plot").get_to(obj->plot);
+
+        if (profile == SerializationProfile::instance) {
+            auto it = archive.find("visual_transforms");
+            if (it != std::end(archive)) {
+                archive.at("visual_transforms").get_to(obj->visual_transform());
+            }
+        }
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "[door] conversion to json failed: {}", e.what());
+        return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+    return true;
+}
+
+bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = Door::serial_id;
+    archive["$version"] = Door::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::door);
+    archive["lock"] = obj->lock.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
+
+    archive["conversation"] = obj->conversation;
+    archive["description"] = obj->description;
+    archive["linked_to"] = obj->linked_to;
+    archive["saves"] = obj->saves;
+
+    archive["appearance"] = obj->appearance;
+    archive["faction"] = obj->faction;
+    archive["generic_type"] = obj->generic_type;
+
+    archive["hp"] = obj->hp;
+    archive["hp_current"] = obj->hp_current;
+    archive["loadscreen"] = obj->loadscreen;
+    archive["portrait_id"] = obj->portrait_id;
+
+    archive["animation_state"] = obj->animation_state;
+    archive["hardness"] = obj->hardness;
+    archive["interruptable"] = obj->interruptable;
+    archive["linked_to_flags"] = obj->linked_to_flags;
+    archive["plot"] = obj->plot;
+
+    if (profile == SerializationProfile::instance) {
+        archive["visual_transforms"] = nlohmann::json::array();
+        for (const auto& vt : obj->visual_transform()) {
+            // Don't add default constructed visual transforms
+            if (vt != VisualTransform{}) {
+                archive["visual_transforms"].push_back(vt);
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace nw

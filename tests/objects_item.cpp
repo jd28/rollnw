@@ -118,7 +118,7 @@ TEST(Item, JsonSerialize)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/cloth028.uti.json"};
     f << std::setw(4) << j;
@@ -134,13 +134,13 @@ TEST(Item, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     nw::Item ent2;
-    EXPECT_TRUE(nw::Item::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::Item::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 }

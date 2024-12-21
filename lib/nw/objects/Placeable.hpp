@@ -84,8 +84,6 @@ struct Placeable : public ObjectBase {
     virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
-    static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -124,7 +122,10 @@ bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile 
 GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
 bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
 
-bool deserialize(PlaceableScripts& self, const GffStruct& archive);
-bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive);
+// == Placeable - Serialization - JSON ========================================
+// ============================================================================
+
+bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

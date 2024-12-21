@@ -25,8 +25,6 @@ struct Sound : public ObjectBase {
     virtual bool instantiate() override { return true; }
     virtual InternedString tag() const override { return common.tag; }
 
-    static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static void serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
@@ -63,5 +61,11 @@ struct Sound : public ObjectBase {
 bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Sound* obj, SerializationProfile profile);
+
+// == Sound - Serialization - JSON ============================================
+// ============================================================================
+
+bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
+bool serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);
 
 } // namespace nw

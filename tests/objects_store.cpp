@@ -21,7 +21,7 @@ TEST(Store, JsonSerialize)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Store::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/storethief002.utm.json"};
     f << std::setw(4) << j;
@@ -38,7 +38,7 @@ TEST(Store, JsonDeserialize)
 
     std::ifstream f{"tmp/storethief002.utm.json"};
     auto j = nlohmann::json::parse(f);
-    nw::Store::deserialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::deserialize(ent, j, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(ent->common.resref, "storethief002");
     EXPECT_TRUE(ent->blackmarket);
@@ -53,14 +53,14 @@ TEST(Store, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Store::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     auto ent2 = nw::kernel::objects().make<nw::Store>();
-    nw::Store::deserialize(ent2, j, nw::SerializationProfile::blueprint);
+    nw::deserialize(ent2, j, nw::SerializationProfile::blueprint);
     EXPECT_TRUE(ent2);
 
     nlohmann::json j2;
-    nw::Store::serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 }

@@ -300,7 +300,7 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
                 if (SerializationProfile::blueprint == profile) {
                     payload["item"] = it.item.as<Item*>()->common.resref;
                 } else {
-                    Item::serialize(it.item.as<Item*>(), payload["item"], profile);
+                    serialize(it.item.as<Item*>(), payload["item"], profile);
                 }
             } else {
                 if (SerializationProfile::blueprint == profile) {

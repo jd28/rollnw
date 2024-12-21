@@ -32,14 +32,14 @@ TEST(Trigger, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Trigger::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     auto ent2 = nw::kernel::objects().make<nw::Trigger>();
     EXPECT_TRUE(ent2);
-    EXPECT_TRUE(nw::Trigger::deserialize(ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    EXPECT_TRUE(nw::Trigger::serialize(ent2, j2, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::serialize(ent2, j2, nw::SerializationProfile::blueprint));
 
     EXPECT_EQ(j, j2);
 

@@ -96,7 +96,7 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
             }
         } else {
             if (equips[i].is<Item*>() && equips[i].as<Item*>()) {
-                Item::serialize(equips[i].as<Item*>(), j[lookup], profile);
+                serialize(equips[i].as<Item*>(), j[lookup], profile);
             }
         }
     }

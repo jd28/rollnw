@@ -55,14 +55,14 @@ TEST(Area, JsonRoundtrip)
     deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
 
     nlohmann::json j;
-    nw::Area::serialize(ent, j);
+    nw::serialize(ent, j);
 
     auto ent2 = new nw::Area;
-    nw::Area::deserialize(ent2, j);
+    nw::deserialize(ent2, j);
     EXPECT_TRUE(ent2);
 
     nlohmann::json j2;
-    nw::Area::serialize(ent2, j2);
+    nw::serialize(ent2, j2);
 
     EXPECT_EQ(j, j2);
 }

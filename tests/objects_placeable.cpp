@@ -33,13 +33,13 @@ TEST(Placeable, JsonRoundTrip)
     EXPECT_TRUE(ent);
 
     nlohmann::json j;
-    nw::Placeable::serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     nw::Placeable ent2;
-    EXPECT_TRUE(nw::Placeable::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::Placeable::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 

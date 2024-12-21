@@ -18,20 +18,8 @@ Player::Player(nw::MemoryResource* allocator)
 {
 }
 
-bool Player::deserialize(Player* obj, const nlohmann::json& archive)
-{
-    obj->pc = true;
-    Creature::deserialize(obj, archive, SerializationProfile::instance);
-    archive.at("history").get_to(obj->history.entries);
-    return true;
-}
-
-bool Player::serialize(const Player* obj, nlohmann::json& archive)
-{
-    Creature::serialize(obj->as_creature(), archive, SerializationProfile::instance);
-    archive["history"] = obj->history.entries;
-    return true;
-}
+// == Player - Serialization - Gff ============================================
+// ============================================================================
 
 GffBuilder serialize(const Player* obj)
 {
@@ -50,16 +38,6 @@ bool serialize(const Player* obj, GffBuilderStruct& archive)
     return true;
 }
 
-bool serialize(const Player* obj, nlohmann::json& archive)
-{
-    Creature::serialize(obj, archive, SerializationProfile::instance);
-    archive["history"] = obj->history.entries;
-    return true;
-}
-
-// == Player - Serialization - Gff ============================================
-// ============================================================================
-
 bool deserialize(Player* obj, const GffStruct& archive)
 {
     obj->pc = true;
@@ -72,6 +50,24 @@ bool deserialize(Player* obj, const GffStruct& archive)
         deserialize(obj->history.entries[i], level_stats[i]);
     }
 
+    return true;
+}
+
+// == Player - Serialization - JSON ===========================================
+// ============================================================================
+
+bool deserialize(Player* obj, const nlohmann::json& archive)
+{
+    obj->pc = true;
+    deserialize(obj->as_creature(), archive, SerializationProfile::instance);
+    archive.at("history").get_to(obj->history.entries);
+    return true;
+}
+
+bool serialize(const Player* obj, nlohmann::json& archive)
+{
+    serialize(obj->as_creature(), archive, SerializationProfile::instance);
+    archive["history"] = obj->history.entries;
     return true;
 }
 

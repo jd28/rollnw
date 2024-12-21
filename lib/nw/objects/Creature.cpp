@@ -211,131 +211,6 @@ void Creature::update_appearance(Appearance id)
     }
 }
 
-bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::creature);
-        obj->appearance.from_json(archive.at("appearance"));
-        obj->combat_info.from_json(archive.at("combat_info"));
-        obj->equipment.from_json(archive.at("equipment"), profile);
-        obj->inventory.from_json(archive.at("inventory"), profile);
-        obj->levels.from_json(archive.at("levels"));
-        obj->scripts.from_json(archive.at("scripts"));
-        obj->stats.from_json(archive.at("stats"));
-
-        archive.at("conversation").get_to(obj->conversation);
-        archive.at("description").get_to(obj->description);
-        archive.at("name_first").get_to(obj->name_first);
-        archive.at("name_last").get_to(obj->name_last);
-        archive.at("subrace").get_to(obj->subrace);
-
-        archive.at("cr").get_to(obj->cr);
-        archive.at("cr_adjust").get_to(obj->cr_adjust);
-        archive.at("decay_time").get_to(obj->decay_time);
-        archive.at("walkrate").get_to(obj->walkrate);
-
-        archive.at("faction_id").get_to(obj->faction_id);
-        archive.at("hp").get_to(obj->hp);
-        archive.at("hp_current").get_to(obj->hp_current);
-        archive.at("hp_max").get_to(obj->hp_max);
-
-        archive.at("bodybag").get_to(obj->bodybag);
-        archive.at("chunk_death").get_to(obj->chunk_death);
-        archive.at("deity").get_to(obj->deity);
-        archive.at("disarmable").get_to(obj->disarmable);
-        archive.at("gender").get_to(obj->gender);
-        archive.at("good_evil").get_to(obj->good_evil);
-        archive.at("immortal").get_to(obj->immortal);
-        archive.at("interruptable").get_to(obj->interruptable);
-        archive.at("lawful_chaotic").get_to(obj->lawful_chaotic);
-        archive.at("lootable").get_to(obj->lootable);
-        archive.at("pc").get_to(obj->pc);
-        archive.at("perception_range").get_to(obj->perception_range);
-        archive.at("plot").get_to(obj->plot);
-        archive.at("race").get_to(obj->race);
-        archive.at("soundset").get_to(obj->soundset);
-        archive.at("starting_package").get_to(obj->starting_package);
-
-        if (profile == SerializationProfile::instance) {
-            auto it = archive.find("visual_transforms");
-            if (it != std::end(archive)) {
-                archive.at("visual_transforms").get_to(obj->visual_transform());
-            }
-        }
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "from_json exception: {}", e.what());
-        return false;
-    }
-
-    return true;
-}
-
-bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
-    SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = Creature::serial_id;
-    archive["$version"] = json_archive_version;
-
-    archive["appearance"] = obj->appearance.to_json();
-    archive["combat_info"] = obj->combat_info.to_json();
-    archive["common"] = obj->common.to_json(profile, ObjectType::creature);
-    archive["equipment"] = obj->equipment.to_json(profile);
-    archive["inventory"] = obj->inventory.to_json(profile);
-    archive["levels"] = obj->levels.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["stats"] = obj->stats.to_json();
-
-    archive["bodybag"] = obj->bodybag;
-    archive["chunk_death"] = obj->chunk_death;
-    archive["conversation"] = obj->conversation;
-    archive["cr_adjust"] = obj->cr_adjust;
-    archive["cr"] = obj->cr;
-    archive["decay_time"] = obj->decay_time;
-    archive["deity"] = obj->deity;
-    archive["description"] = obj->description;
-    archive["disarmable"] = obj->disarmable;
-    archive["faction_id"] = obj->faction_id;
-    archive["gender"] = obj->gender;
-    archive["good_evil"] = obj->good_evil;
-    archive["hp_current"] = obj->hp_current;
-    archive["hp_max"] = obj->hp_max;
-    archive["hp"] = obj->hp;
-    archive["immortal"] = obj->immortal;
-    archive["interruptable"] = obj->interruptable;
-    archive["lawful_chaotic"] = obj->lawful_chaotic;
-    archive["lootable"] = obj->lootable;
-    archive["name_first"] = obj->name_first;
-    archive["name_last"] = obj->name_last;
-    archive["pc"] = obj->pc;
-    archive["perception_range"] = obj->perception_range;
-    archive["plot"] = obj->plot;
-    archive["race"] = obj->race;
-    archive["soundset"] = obj->soundset;
-    archive["starting_package"] = obj->starting_package;
-    archive["subrace"] = obj->subrace;
-    archive["walkrate"] = obj->walkrate;
-
-    if (profile == SerializationProfile::instance) {
-        archive["visual_transforms"] = nlohmann::json::array();
-        for (const auto& vt : obj->visual_transform()) {
-            // Don't add default constructed visual transforms
-            if (vt != VisualTransform{}) {
-                archive["visual_transforms"].push_back(vt);
-            }
-        }
-    }
-
-    return true;
-}
-
 // == Creature - Serialization - Gff ==========================================
 // ============================================================================
 
@@ -504,6 +379,133 @@ GffBuilder serialize(const Creature* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+// == Creature - Serialization - JSON =========================================
+// ============================================================================
+
+bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::creature);
+        obj->appearance.from_json(archive.at("appearance"));
+        obj->combat_info.from_json(archive.at("combat_info"));
+        obj->equipment.from_json(archive.at("equipment"), profile);
+        obj->inventory.from_json(archive.at("inventory"), profile);
+        obj->levels.from_json(archive.at("levels"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->stats.from_json(archive.at("stats"));
+
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("name_first").get_to(obj->name_first);
+        archive.at("name_last").get_to(obj->name_last);
+        archive.at("subrace").get_to(obj->subrace);
+
+        archive.at("cr").get_to(obj->cr);
+        archive.at("cr_adjust").get_to(obj->cr_adjust);
+        archive.at("decay_time").get_to(obj->decay_time);
+        archive.at("walkrate").get_to(obj->walkrate);
+
+        archive.at("faction_id").get_to(obj->faction_id);
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("hp_max").get_to(obj->hp_max);
+
+        archive.at("bodybag").get_to(obj->bodybag);
+        archive.at("chunk_death").get_to(obj->chunk_death);
+        archive.at("deity").get_to(obj->deity);
+        archive.at("disarmable").get_to(obj->disarmable);
+        archive.at("gender").get_to(obj->gender);
+        archive.at("good_evil").get_to(obj->good_evil);
+        archive.at("immortal").get_to(obj->immortal);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("lawful_chaotic").get_to(obj->lawful_chaotic);
+        archive.at("lootable").get_to(obj->lootable);
+        archive.at("pc").get_to(obj->pc);
+        archive.at("perception_range").get_to(obj->perception_range);
+        archive.at("plot").get_to(obj->plot);
+        archive.at("race").get_to(obj->race);
+        archive.at("soundset").get_to(obj->soundset);
+        archive.at("starting_package").get_to(obj->starting_package);
+
+        if (profile == SerializationProfile::instance) {
+            auto it = archive.find("visual_transforms");
+            if (it != std::end(archive)) {
+                archive.at("visual_transforms").get_to(obj->visual_transform());
+            }
+        }
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
+        return false;
+    }
+
+    return true;
+}
+
+bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = Creature::serial_id;
+    archive["$version"] = Creature::json_archive_version;
+
+    archive["appearance"] = obj->appearance.to_json();
+    archive["combat_info"] = obj->combat_info.to_json();
+    archive["common"] = obj->common.to_json(profile, ObjectType::creature);
+    archive["equipment"] = obj->equipment.to_json(profile);
+    archive["inventory"] = obj->inventory.to_json(profile);
+    archive["levels"] = obj->levels.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["stats"] = obj->stats.to_json();
+
+    archive["bodybag"] = obj->bodybag;
+    archive["chunk_death"] = obj->chunk_death;
+    archive["conversation"] = obj->conversation;
+    archive["cr_adjust"] = obj->cr_adjust;
+    archive["cr"] = obj->cr;
+    archive["decay_time"] = obj->decay_time;
+    archive["deity"] = obj->deity;
+    archive["description"] = obj->description;
+    archive["disarmable"] = obj->disarmable;
+    archive["faction_id"] = obj->faction_id;
+    archive["gender"] = obj->gender;
+    archive["good_evil"] = obj->good_evil;
+    archive["hp_current"] = obj->hp_current;
+    archive["hp_max"] = obj->hp_max;
+    archive["hp"] = obj->hp;
+    archive["immortal"] = obj->immortal;
+    archive["interruptable"] = obj->interruptable;
+    archive["lawful_chaotic"] = obj->lawful_chaotic;
+    archive["lootable"] = obj->lootable;
+    archive["name_first"] = obj->name_first;
+    archive["name_last"] = obj->name_last;
+    archive["pc"] = obj->pc;
+    archive["perception_range"] = obj->perception_range;
+    archive["plot"] = obj->plot;
+    archive["race"] = obj->race;
+    archive["soundset"] = obj->soundset;
+    archive["starting_package"] = obj->starting_package;
+    archive["subrace"] = obj->subrace;
+    archive["walkrate"] = obj->walkrate;
+
+    if (profile == SerializationProfile::instance) {
+        archive["visual_transforms"] = nlohmann::json::array();
+        for (const auto& vt : obj->visual_transform()) {
+            // Don't add default constructed visual transforms
+            if (vt != VisualTransform{}) {
+                archive["visual_transforms"].push_back(vt);
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace nw

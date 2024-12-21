@@ -46,92 +46,8 @@ String Sound::get_name_from_file(const std::filesystem::path& path)
     return result;
 }
 
-bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::sound);
-        archive.at("sounds").get_to(obj->sounds);
-
-        archive.at("distance_min").get_to(obj->distance_min);
-        archive.at("distance_max").get_to(obj->distance_max);
-        archive.at("elevation").get_to(obj->elevation);
-
-        if (profile == SerializationProfile::instance) {
-            archive.at("generated_type").get_to(obj->generated_type);
-        }
-
-        archive.at("hours").get_to(obj->hours);
-        archive.at("interval").get_to(obj->interval);
-        archive.at("interval_variation").get_to(obj->interval_variation);
-        archive.at("pitch_variation").get_to(obj->pitch_variation);
-        archive.at("random_x").get_to(obj->random_x);
-        archive.at("random_y").get_to(obj->random_y);
-
-        archive.at("active").get_to(obj->active);
-        archive.at("continuous").get_to(obj->continuous);
-        archive.at("looping").get_to(obj->looping);
-        archive.at("positional").get_to(obj->positional);
-        archive.at("priority").get_to(obj->priority);
-        archive.at("random").get_to(obj->random);
-        archive.at("random_position").get_to(obj->random_position);
-        archive.at("times").get_to(obj->times);
-        archive.at("volume").get_to(obj->volume);
-        archive.at("volume_variation").get_to(obj->volume_variation);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Sound::from_json exception: {}", e.what());
-        return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
-    return true;
-}
-
-void Sound::serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTS";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::sound);
-    archive["sounds"] = obj->sounds;
-
-    archive["distance_min"] = obj->distance_min;
-    archive["distance_max"] = obj->distance_max;
-    archive["elevation"] = obj->elevation;
-
-    if (profile == SerializationProfile::instance) {
-        archive["generated_type"] = obj->generated_type;
-    }
-
-    archive["hours"] = obj->hours;
-    archive["interval"] = obj->interval;
-    archive["interval_variation"] = obj->interval_variation;
-    archive["pitch_variation"] = obj->pitch_variation;
-    archive["random_x"] = obj->random_x;
-    archive["random_y"] = obj->random_y;
-
-    archive["active"] = obj->active;
-    archive["continuous"] = obj->continuous;
-    archive["looping"] = obj->looping;
-    archive["positional"] = obj->positional;
-    archive["priority"] = obj->priority;
-    archive["random"] = obj->random;
-    archive["random_position"] = obj->random_position;
-    archive["times"] = obj->times;
-    archive["volume"] = obj->volume;
-    archive["volume_variation"] = obj->volume_variation;
-}
+// == Sound - Serialization - Gff =============================================
+// ============================================================================
 
 bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile)
 {
@@ -247,6 +163,98 @@ GffBuilder serialize(const Sound* obj, SerializationProfile profile)
     serialize(obj, result.top, profile);
     result.build();
     return result;
+}
+
+// == Sound - Serialization - JSON ============================================
+// ============================================================================
+
+bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::sound);
+        archive.at("sounds").get_to(obj->sounds);
+
+        archive.at("distance_min").get_to(obj->distance_min);
+        archive.at("distance_max").get_to(obj->distance_max);
+        archive.at("elevation").get_to(obj->elevation);
+
+        if (profile == SerializationProfile::instance) {
+            archive.at("generated_type").get_to(obj->generated_type);
+        }
+
+        archive.at("hours").get_to(obj->hours);
+        archive.at("interval").get_to(obj->interval);
+        archive.at("interval_variation").get_to(obj->interval_variation);
+        archive.at("pitch_variation").get_to(obj->pitch_variation);
+        archive.at("random_x").get_to(obj->random_x);
+        archive.at("random_y").get_to(obj->random_y);
+
+        archive.at("active").get_to(obj->active);
+        archive.at("continuous").get_to(obj->continuous);
+        archive.at("looping").get_to(obj->looping);
+        archive.at("positional").get_to(obj->positional);
+        archive.at("priority").get_to(obj->priority);
+        archive.at("random").get_to(obj->random);
+        archive.at("random_position").get_to(obj->random_position);
+        archive.at("times").get_to(obj->times);
+        archive.at("volume").get_to(obj->volume);
+        archive.at("volume_variation").get_to(obj->volume_variation);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
+        return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
+    return true;
+}
+
+bool serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = Sound::serial_id;
+    archive["$version"] = Sound::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::sound);
+    archive["sounds"] = obj->sounds;
+
+    archive["distance_min"] = obj->distance_min;
+    archive["distance_max"] = obj->distance_max;
+    archive["elevation"] = obj->elevation;
+
+    if (profile == SerializationProfile::instance) {
+        archive["generated_type"] = obj->generated_type;
+    }
+
+    archive["hours"] = obj->hours;
+    archive["interval"] = obj->interval;
+    archive["interval_variation"] = obj->interval_variation;
+    archive["pitch_variation"] = obj->pitch_variation;
+    archive["random_x"] = obj->random_x;
+    archive["random_y"] = obj->random_y;
+
+    archive["active"] = obj->active;
+    archive["continuous"] = obj->continuous;
+    archive["looping"] = obj->looping;
+    archive["positional"] = obj->positional;
+    archive["priority"] = obj->priority;
+    archive["random"] = obj->random;
+    archive["random_position"] = obj->random_position;
+    archive["times"] = obj->times;
+    archive["volume"] = obj->volume;
+    archive["volume_variation"] = obj->volume_variation;
+
+    return true;
 }
 
 } // namespace nw
