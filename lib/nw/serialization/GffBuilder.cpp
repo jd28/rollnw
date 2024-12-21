@@ -1,6 +1,7 @@
 #include "GffBuilder.hpp"
 
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/templates.hpp"
 
 #include <filesystem>
@@ -200,10 +201,7 @@ bool GffBuilder::write_to(const fs::path& filename) const
     ostream_write(out, list_indices.data(), list_indices.size() * 4);
     out.close();
 
-    fs::copy_file(temp, filename, fs::copy_options::overwrite_existing);
-    fs::remove(temp);
-
-    return true;
+    return move_file_safely(temp, filename);
 }
 
 } // namespace nw
