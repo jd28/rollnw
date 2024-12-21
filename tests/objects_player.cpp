@@ -135,8 +135,7 @@ TEST(Player, GffSerialization)
 
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
-    auto oa = nw::serialize(pl);
-    oa.write_to("tmp/daeris1.bic");
+    EXPECT_TRUE(pl->save("tmp/daeris1.bic", "gff"));
 }
 
 TEST(Player, JsonSerialization)
@@ -146,12 +145,6 @@ TEST(Player, JsonSerialization)
 
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
-    auto oa = nw::serialize(pl);
-    oa.write_to("tmp/daeris1.bic");
-
-    nlohmann::json j;
-    nw::serialize(pl, j);
-
-    std::ofstream f{"tmp/daeris1.bic.json"};
-    f << std::setw(4) << j;
+    EXPECT_TRUE(pl->save("tmp/daeris1.bic", "gff"));
+    EXPECT_TRUE(pl->save("tmp/daeris1.bic.json", "json"));
 }

@@ -19,6 +19,9 @@ struct Player : public Creature {
     virtual const Player* as_player() const override { return this; }
     // LCOV_EXCL_STOP
     virtual InternedString tag() const override { return common.tag; }
+
+    /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
+    bool save(const std::filesystem::path& path, std::string_view format = "json");
 };
 
 // == Player - Serialization - Gff ============================================

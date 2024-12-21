@@ -6,8 +6,11 @@
 #include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../util/platform.hpp"
 
 #include <nlohmann/json.hpp>
+
+namespace fs = std::filesystem;
 
 namespace nw {
 
@@ -183,6 +186,32 @@ PltColors Item::part_to_plt_colors(ItemModelParts::type part) const noexcept
     }
     if (part_colors[part][ItemColors::metal2] != 255) {
         result.data[plt_layer_metal2] = part_colors[part][ItemColors::metal2];
+    }
+    return result;
+}
+
+bool Item::save(const std::filesystem::path& path, std::string_view format)
+{
+    bool result = false;
+    if (format == "json") {
+        nlohmann::json out;
+        result = serialize(this, out, SerializationProfile::blueprint);
+        if (result) {
+            fs::path temp = fs::temp_directory_path() / path.filename();
+            std::ofstream of{temp};
+            of << std::setw(4) << out;
+            of.close();
+            result = move_file_safely(temp, path);
+        }
+    } else if (format == "gff") {
+        GffBuilder out{serial_id};
+        result = serialize(this, out.top, SerializationProfile::blueprint);
+        if (result) {
+            out.build();
+            result = out.write_to(path);
+        }
+    } else {
+        LOG_F(ERROR, "[objects] invalid format type: {}", format);
     }
     return result;
 }

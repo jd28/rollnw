@@ -249,6 +249,8 @@ void init_objects_creature(py::module& nw)
         .def_readonly_static("json_archive_version", &nw::Creature::json_archive_version)
         .def_readonly_static("object_type", &nw::Creature::object_type)
 
+        .def("save", &nw::Creature::save, py::arg("path"), py::arg("format") = "json")
+
         .def_readwrite("common", &nw::Creature::common)
         .def_readwrite("appearance", &nw::Creature::appearance)
         //.def_readwrite("combat_info", &nw::Creature::combat_info)
@@ -325,6 +327,8 @@ void init_objects_door(py::module& nw)
         .def_readonly_static("json_archive_version", &nw::Door::json_archive_version)
         .def_readonly_static("object_type", &nw::Door::object_type)
 
+        .def("save", &nw::Door::save, py::arg("path"), py::arg("format") = "json")
+
         .def_static("from_dict", &create_object_from_json_helper<nw::Door>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Door>, py::return_value_policy::reference)
 
@@ -381,6 +385,8 @@ void init_objects_encounter(py::module& nw)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Encounter>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Encounter>, py::return_value_policy::reference)
+
+        .def("save", &nw::Encounter::save, py::arg("path"), py::arg("format") = "json")
 
         .def_readwrite("common", &nw::Encounter::common)
         .def_readwrite("creatures", &nw::Encounter::creatures)
@@ -463,6 +469,8 @@ void init_objects_item(py::module& nw)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Item>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Item>, py::return_value_policy::reference)
+
+        .def("save", &nw::Item::save, py::arg("path"), py::arg("format") = "json")
 
         .def_readwrite("common", &nw::Item::common)
 
@@ -598,6 +606,8 @@ void init_objects_placeable(py::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Placeable>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Placeable>, py::return_value_policy::reference)
 
+        .def("save", &nw::Placeable::save, py::arg("path"), py::arg("format") = "json")
+
         .def_readwrite("common", &nw::Placeable::common)
         .def_readwrite("conversation", &nw::Placeable::conversation)
         .def_readwrite("description", &nw::Placeable::description)
@@ -633,6 +643,8 @@ void init_objects_player(py::module& nw)
 
         .def("to_dict", &to_json_helper_player)
 
+        .def("save", &nw::Player::save, py::arg("path"), py::arg("format") = "json")
+
         .def_static("from_dict", &create_object_from_json_helper<nw::Player>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Player>, py::return_value_policy::reference);
 }
@@ -649,6 +661,8 @@ void init_objects_sound(py::module& nw)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Sound>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Sound>, py::return_value_policy::reference)
+
+        .def("save", &nw::Sound::save, py::arg("path"), py::arg("format") = "json")
 
         .def_readwrite("common", &nw::Sound::common)
         .def_readwrite("sounds", &nw::Sound::sounds)
@@ -691,6 +705,8 @@ void init_objects_store(py::module& nw)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Store>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Store>, py::return_value_policy::reference)
+
+        .def("save", &nw::Store::save, py::arg("path"), py::arg("format") = "json")
 
         .def_readwrite("common", &nw::Store::common)
 
@@ -739,6 +755,8 @@ void init_object_trigger(pybind11::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Trigger>, py::return_value_policy::reference)
         .def_static("from_file", &create_object_from_file_helper<nw::Trigger>, py::return_value_policy::reference)
 
+        .def("save", &nw::Trigger::save, py::arg("path"), py::arg("format") = "json")
+
         .def_readwrite("common", &nw::Trigger::common)
         .def_readwrite("geometry", &nw::Trigger::geometry)
         .def_readwrite("linked_to", &nw::Trigger::linked_to)
@@ -768,6 +786,8 @@ void init_object_waypoint(pybind11::module& nw)
         .def_static("from_file", &create_object_from_file_helper<nw::Waypoint>, py::return_value_policy::reference)
 
         .def("to_dict", &to_json_helper<nw::Waypoint>)
+
+        .def("save", &nw::Waypoint::save, py::arg("path"), py::arg("format") = "json")
 
         .def_readwrite("common", &nw::Waypoint::common)
         .def_readwrite("description", &nw::Waypoint::description)

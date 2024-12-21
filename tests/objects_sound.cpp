@@ -31,10 +31,7 @@ TEST(Sound, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/blue_bell.uts.json"};
-    f << std::setw(4) << j;
-    f.close();
-
+    EXPECT_TRUE(ent->save("tmp/blue_bell.uts.json"));
     name = nw::Sound::get_name_from_file(fs::path("tmp/blue_bell.uts.json"));
     EXPECT_EQ(name, "Blue Bell Rings");
 }

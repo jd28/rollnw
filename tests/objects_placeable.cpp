@@ -43,10 +43,7 @@ TEST(Placeable, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/arrowcorpse001.utp.json"};
-    f << std::setw(4) << j;
-    f.close();
-
+    EXPECT_TRUE(ent->save("tmp/arrowcorpse001.utp.json"));
     auto name = nw::Placeable::get_name_from_file(fs::path("tmp/arrowcorpse001.utp.json"));
     EXPECT_EQ(name, "Arrow-filled corpse");
 }

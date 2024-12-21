@@ -45,6 +45,9 @@ struct Item : public ObjectBase {
     /// Converts model colors to Plt colors
     PltColors part_to_plt_colors(ItemModelParts::type part) const noexcept;
 
+    /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
+    bool save(const std::filesystem::path& path, std::string_view format = "json");
+
     Common common;
     Inventory inventory;
 

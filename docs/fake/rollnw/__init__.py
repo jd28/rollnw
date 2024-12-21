@@ -1322,6 +1322,10 @@ class Creature(ObjectBase):
         """
         pass
 
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1368,6 +1372,10 @@ class Door:
     saves: Saves
     scripts: DoorScripts
     trap: Trap
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict):
@@ -1427,6 +1435,10 @@ class Encounter:
     scripts: EncounterScripts
     spawn_option: int
     spawn_points: List[SpawnPoint]
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict):
@@ -1525,6 +1537,10 @@ class Item:
 
         Note: Python owns the lifetime of the resulting image. Merging icons is also the responsibility of the caller.
         """
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict):
@@ -1671,6 +1687,10 @@ class Placeable(ObjectBase):
     trap: Trap
     useable: bool
 
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1693,6 +1713,10 @@ class Player(Creature):
         This is very incomplete
     """
     pass
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
 
 class Sound(ObjectBase):
@@ -1723,6 +1747,10 @@ class Sound(ObjectBase):
     times: int
     volume: int
     volume_variation: int
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict):
@@ -1764,6 +1792,10 @@ class Store(ObjectBase):
     rings: Inventory
     scripts: StoreScripts
     weapons: Inventory
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict) -> 'Store':
@@ -1820,6 +1852,10 @@ class Trigger(ObjectBase):
     trap: Trap
     type: int
 
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
+
     @staticmethod
     def from_dict(value: dict) -> 'Trigger':
         """Constructs object from python dict.
@@ -1844,6 +1880,10 @@ class Waypoint(ObjectBase):
     linked_to: str
     map_note: LocString
     map_note_enabled: bool
+
+    def save(self, path: str, format: str = "json") -> None:
+        """Saves object to path in 'gff' or 'json' format"""
+        pass
 
     @staticmethod
     def from_dict(value: dict):

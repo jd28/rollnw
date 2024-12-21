@@ -19,14 +19,7 @@ TEST(Store, JsonSerialize)
 
     auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
-
-    nlohmann::json j;
-    nw::serialize(ent, j, nw::SerializationProfile::blueprint);
-
-    std::ofstream f{"tmp/storethief002.utm.json"};
-    f << std::setw(4) << j;
-    f.close();
-
+    EXPECT_TRUE(ent->save("tmp/storethief002.utm.json"));
     name = nw::Store::get_name_from_file(fs::path("tmp/storethief002.utm.json"));
     EXPECT_EQ(name, "Blackmarket Store");
 }

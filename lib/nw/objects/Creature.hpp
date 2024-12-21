@@ -66,6 +66,9 @@ struct Creature : public ObjectBase {
     /// Gets alignment flags
     AlignmentFlags alignment_flags() const noexcept;
 
+    /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
+    bool save(const std::filesystem::path& path, std::string_view format = "json");
+
     /// Update creatures appearance
     void update_appearance(Appearance id);
 

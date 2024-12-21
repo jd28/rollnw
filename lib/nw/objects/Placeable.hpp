@@ -83,6 +83,9 @@ struct Placeable : public ObjectBase {
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
 
+    /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
+    bool save(const std::filesystem::path& path, std::string_view format = "json");
+
     // Serialization
     static String get_name_from_file(const std::filesystem::path& path);
 
