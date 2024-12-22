@@ -53,13 +53,7 @@ struct SpellInfo {
     SpellMetaMagic metamagic = SpellMetaMagic::none;
     // TargetType
     // ImpactScript
-    // Bard
-    // Cleric
-    // Druid
-    // Paladin
-    // Ranger
-    // Wiz_Sorc
-    int innate_level = 0;
+    int innate_level = -1; // Class spells and levels are in Class Array
     // ConjTime
     // ConjAnim
     // ConjHeadVisual

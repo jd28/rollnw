@@ -196,6 +196,24 @@ const ClassRequirement* ClassArray::get_requirement(Class class_) const
     return nullptr;
 }
 
+int ClassArray::get_spell_level(Class class_, Spell spell) const
+{
+    auto cls = get(class_);
+    if (!cls || !cls->valid() || cls->spells.empty()) { return -1; }
+
+    ClassSpell needle{spell, 0};
+
+    auto it = std::lower_bound(cls->spells.begin(), cls->spells.end(), spell, [](const ClassSpell& lhs, Spell rhs) {
+        return lhs.spell < rhs;
+    });
+
+    if (it != std::end(cls->spells) && it->spell == spell) {
+        return it->level;
+    }
+
+    return -1;
+}
+
 int ClassArray::get_stat_gain(Class class_, Ability ability, size_t level) const
 {
     if (ability == nw::Ability::invalid()) { return 0; }

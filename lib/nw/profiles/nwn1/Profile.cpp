@@ -392,14 +392,29 @@ bool Profile::load_rules() const
     }
 
     // Classes
+    for (size_t i = 0; i < class_array.entries.size(); ++i) {
+        nw::ClassInfo& info = class_array.entries[i];
+        if (!info.valid() || info.spell_table_column.empty()) { continue; }
+
+        auto col = spells.column_index(info.spell_table_column);
+        if (col == nw::StaticTwoDA::npos) {
+            LOG_F(ERROR, "[rules] class spell table column '{}' does not exist in spells.2da", info.spell_table_column);
+            continue;
+        }
+
+        for (size_t j = 0; j < spells.rows(); ++j) {
+            int temp = 0;
+            if (spells.get_to(j, col, temp)) {
+                info.spells.push_back({nw::Spell::make(static_cast<int32_t>(j)), temp});
+            }
+        }
+    }
 
     // Feats
 
     for (size_t i = 0; i < feat_array.entries.size(); ++i) {
         nw::FeatInfo& info = feat_array.entries[i];
-        if (!info.valid()) {
-            continue;
-        }
+        if (!info.valid()) { continue; }
 
         if (feat.get_to(i, "MaxLevel", temp_int)) {
             info.requirements.add(nw::qualifier_level(0, temp_int));

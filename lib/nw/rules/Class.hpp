@@ -20,6 +20,11 @@ struct TwoDARowView;
 
 DECLARE_RULE_TYPE(Class);
 
+struct ClassSpell {
+    Spell spell;
+    int32_t level;
+};
+
 struct ClassStatGain {
     std::array<int, 6> ability;
     int natural_ac = 0;
@@ -85,6 +90,8 @@ struct ClassInfo {
     int level_min_caster = 0;
     int level_min_associate = 0;
     bool can_cast_spontaneously = false;
+
+    std::vector<ClassSpell> spells;
 };
 
 /// Class Singleton component
@@ -121,6 +128,9 @@ struct ClassArray {
 
     /// Gets class requirements
     const ClassRequirement* get_requirement(Class class_) const;
+
+    /// Get spell level, returns -1 if not a class spell
+    int get_spell_level(Class class_, Spell spell) const;
 
     /// Gets class ability gain
     int get_stat_gain(Class class_, Ability ability, size_t level) const;
