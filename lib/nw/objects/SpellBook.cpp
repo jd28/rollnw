@@ -118,6 +118,29 @@ SpellEntry SpellBook::get_memorized_spell(size_t level, size_t index) const
     return {};
 }
 
+int SpellBook::has_memorized_spell(Spell spell, SpellMetaMagic meta) const
+{
+    int result = 0;
+    for (auto& level : memorized_) {
+        for (auto& entry : level) {
+            if (entry.spell == spell && (meta == SpellMetaMagic::none || entry.meta == meta)) {
+                ++result;
+            }
+        }
+    }
+    return result;
+}
+
+bool SpellBook::knows_spell(Spell spell) const
+{
+    for (auto& level : known_) {
+        for (auto& entry : level) {
+            if (entry.spell == spell) { return true; }
+        }
+    }
+    return false;
+}
+
 void SpellBook::remove_known_spell(size_t level, SpellEntry entry)
 {
     if (level < known_.size()) {

@@ -32,6 +32,9 @@ struct LevelStats {
     /// Returns the position of the class, or ``npos``.
     size_t position(Class id) const noexcept;
 
+    /// Gets spellbook
+    const SpellBook* spells(Class id) const;
+
     std::array<ClassEntry, max_classes> entries;
 };
 

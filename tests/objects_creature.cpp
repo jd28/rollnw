@@ -977,3 +977,21 @@ TEST(Creature, Casting)
     EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_epic_spell_focus_evocation));
     EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 24);
 }
+
+TEST(Creature, SpellBook)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    EXPECT_TRUE(obj1);
+    auto spellbook1 = obj1->levels.spells(nwn1::class_type_wizard);
+    EXPECT_TRUE(spellbook1);
+    EXPECT_EQ(spellbook1->has_memorized_spell(nwn1::spell_light), 1);
+
+    auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
+    EXPECT_TRUE(obj2);
+    auto spellbook2 = obj2->levels.spells(nwn1::class_type_sorcerer);
+    EXPECT_TRUE(spellbook2);
+    EXPECT_TRUE(spellbook2->knows_spell(nwn1::spell_light));
+}

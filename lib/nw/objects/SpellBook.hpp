@@ -43,6 +43,12 @@ struct SpellBook {
     /// Gets a memorized spell entry
     SpellEntry get_memorized_spell(size_t level, size_t index) const;
 
+    /// Gets the number of times spell is memorized
+    int has_memorized_spell(Spell spell, SpellMetaMagic meta = SpellMetaMagic::none) const;
+
+    /// Determines if spell is known
+    bool knows_spell(Spell spell) const;
+
     /// Removes a known spell entry
     void remove_known_spell(size_t level, SpellEntry entry);
     /// Removes a memorized spell entry

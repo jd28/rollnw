@@ -80,6 +80,21 @@ size_t LevelStats::position(Class id) const noexcept
     return npos;
 }
 
+const SpellBook* LevelStats::spells(Class id) const
+{
+    if (id == nw::Class::invalid()) { return nullptr; }
+
+    for (size_t i = 0; i < max_classes; ++i) {
+        if (entries[i].id == id) {
+            return &entries[i].spells;
+        } else if (entries[i].id == nw::Class::invalid()) {
+            break;
+        }
+    }
+
+    return nullptr;
+}
+
 bool deserialize(LevelStats& self, const GffStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
