@@ -33,6 +33,9 @@ struct LevelStats {
     size_t position(Class id) const noexcept;
 
     /// Gets spellbook
+    SpellBook* spells(Class id);
+
+    /// Gets spellbook
     const SpellBook* spells(Class id) const;
 
     std::array<ClassEntry, max_classes> entries;

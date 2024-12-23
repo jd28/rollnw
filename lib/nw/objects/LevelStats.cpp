@@ -95,6 +95,11 @@ const SpellBook* LevelStats::spells(Class id) const
     return nullptr;
 }
 
+SpellBook* LevelStats::spells(Class id)
+{
+    return const_cast<SpellBook*>(static_cast<const LevelStats&>(*this).spells(id));
+}
+
 bool deserialize(LevelStats& self, const GffStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
