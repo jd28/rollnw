@@ -994,4 +994,16 @@ TEST(Creature, SpellBook)
     auto spellbook2 = obj2->levels.spells(nwn1::class_type_sorcerer);
     EXPECT_TRUE(spellbook2);
     EXPECT_TRUE(spellbook2->knows_spell(nwn1::spell_light));
+
+    auto obj3 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_1.utc");
+    EXPECT_TRUE(obj3);
+    auto spellbook3 = obj3->levels.spells(nwn1::class_type_bard);
+    EXPECT_TRUE(spellbook3);
+    EXPECT_TRUE(spellbook3->knows_spell(nwn1::spell_bulls_strength));
+
+    auto obj4 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
+    EXPECT_TRUE(obj4);
+    auto spellbook4 = obj4->levels.spells(nwn1::class_type_cleric);
+    EXPECT_TRUE(spellbook4);
+    EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 3);
 }

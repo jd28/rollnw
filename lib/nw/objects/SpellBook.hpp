@@ -40,13 +40,14 @@ struct SpellBook {
 
     /// Gets a known spell entry
     SpellEntry get_known_spell(size_t level, size_t index) const;
+
     /// Gets a memorized spell entry
     SpellEntry get_memorized_spell(size_t level, size_t index) const;
 
     /// Gets the number of times spell is memorized
     int has_memorized_spell(Spell spell, SpellMetaMagic meta = SpellMetaMagic::none) const;
 
-    /// Determines if spell is known
+    /// Determines if spell is known, note that NPC wizards do not 'know' any spells.
     bool knows_spell(Spell spell) const;
 
     /// Removes a known spell entry
