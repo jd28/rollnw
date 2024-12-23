@@ -39,8 +39,21 @@ SpellBook::SpellBook(nw::MemoryResource* allocator)
 bool SpellBook::from_json(const nlohmann::json& archive)
 {
     try {
-        archive.at("known").get_to(known_);
-        archive.at("memorized").get_to(memorized_);
+        auto it = archive.find("known");
+        if (it != archive.end()) {
+            for (auto& val : *it) {
+                auto level = val.at("level").get<size_t>();
+                val.at("spells").get_to(known_[level]);
+            }
+        }
+
+        it = archive.find("memorized");
+        if (it != archive.end()) {
+            for (auto& val : *it) {
+                auto level = val.at("level").get<size_t>();
+                val.at("spells").get_to(memorized_[level]);
+            }
+        }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "SpellBook: json exception: {}", e.what());
         return false;
@@ -51,8 +64,25 @@ bool SpellBook::from_json(const nlohmann::json& archive)
 nlohmann::json SpellBook::to_json() const
 {
     nlohmann::json j;
-    j["known"] = known_;
-    j["memorized"] = memorized_;
+
+    j["known"] = nlohmann::json::array();
+    for (size_t i = 0; i < 10; ++i) {
+        if (known_[i].empty()) { continue; }
+        j["known"].push_back({
+            {"level", i},
+            {"spells", known_[i]},
+        });
+    }
+
+    j["memorized"] = nlohmann::json::array();
+    for (size_t i = 0; i < 10; ++i) {
+        if (memorized_[i].empty()) { continue; }
+        j["memorized"].push_back({
+            {"level", i},
+            {"spells", memorized_[i]},
+        });
+    }
+
     return j;
 }
 
