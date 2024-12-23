@@ -17,9 +17,6 @@ struct SpellEntry {
     auto operator<=>(const SpellEntry&) const = default;
 };
 
-void from_json(const nlohmann::json& j, SpellEntry& spell);
-void to_json(nlohmann::json& j, const SpellEntry& spell);
-
 struct SpellBook {
     SpellBook();
     SpellBook(nw::MemoryResource* allocator);

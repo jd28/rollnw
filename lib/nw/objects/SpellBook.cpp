@@ -11,14 +11,14 @@
 
 namespace nw {
 
-void from_json(const nlohmann::json& j, SpellEntry& spell)
+inline void from_json(const nlohmann::json& j, SpellEntry& spell)
 {
     j.at("spell").get_to(spell.spell);
     j.at("metamagic").get_to(spell.meta);
     j.at("flags").get_to(spell.flags);
 }
 
-void to_json(nlohmann::json& j, const SpellEntry& spell)
+inline void to_json(nlohmann::json& j, const SpellEntry& spell)
 {
     j["spell"] = spell.spell;
     j["metamagic"] = spell.meta;
