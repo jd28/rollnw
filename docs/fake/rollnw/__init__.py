@@ -650,6 +650,10 @@ class SpellBook:
         """Adds a memorized spell at level"""
         pass
 
+    def clear_memorized_spell(self, level: int, spell: int) -> None:
+        """Clears memorized spell"""
+        pass
+
     def get_known_spell_count(self, level: int):
         """Gets the number of known at a given level"""
         pass
@@ -668,10 +672,6 @@ class SpellBook:
 
     def remove_known_spell(self, level: int, entry: SpellEntry):
         """Removes a known spell entry"""
-        pass
-
-    def remove_memorized_spell(self, level: int, entry: SpellEntry):
-        """Removes a memorized spell entry"""
         pass
 
 

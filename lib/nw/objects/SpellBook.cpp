@@ -115,11 +115,74 @@ bool SpellBook::add_memorized_spell(size_t level, SpellEntry entry)
         return true;
     }
     auto it = std::find(std::begin(memorized_[level]), std::end(memorized_[level]), entry);
-    if (it == std::end(memorized_[level])) {
-        memorized_[level].push_back(entry);
-        return true;
+size_t SpellBook::all_known_spell_count() const noexcept
+{
+    size_t result = 0;
+    for (const auto& it : known_) {
+        result += it.size();
     }
-    return false;
+    return result;
+}
+
+size_t SpellBook::all_memorized_spell_count() const noexcept
+{
+    size_t result = 0;
+    for (const auto& it : memorized_) {
+        result += it.size();
+    }
+    return result;
+}
+
+int SpellBook::available_slots(size_t level)
+{
+    int result = 0;
+    for (const auto& it : memorized_[level]) {
+        if (it == SpellEntry{}) { ++result; }
+    }
+    return result;
+}
+
+void SpellBook::clear_memorized_spell(size_t level, Spell spell)
+{
+    // Got to look in higher levels for metamagic usages
+    for (size_t i = level; i < memorized_.size(); ++i) {
+        for (auto& it : memorized_[i]) {
+            if (it.spell == spell) {
+                it = SpellEntry{};
+            }
+        }
+    }
+}
+
+void SpellBook::clear_memorized_spell_slot(size_t level, int slot)
+{
+    memorized_[level][slot] = SpellEntry{};
+}
+
+int SpellBook::find_memorized_slot(size_t level, Spell spell, SpellMetaMagic meta) const
+{
+    int i = 0;
+    for (const auto& it : memorized_[level]) {
+        if (it.spell == spell && it.meta == meta) {
+            return i;
+        }
+        ++i;
+    }
+
+    return -1;
+}
+
+int SpellBook::first_empty_slot(size_t level) const noexcept
+{
+    int i = 0;
+    for (const auto& it : memorized_[level]) {
+        if (it == SpellEntry{}) {
+            return i;
+        }
+        ++i;
+    }
+
+    return -1;
 }
 
 size_t SpellBook::get_known_spell_count(size_t level) const
@@ -185,12 +248,9 @@ void SpellBook::remove_known_spell(size_t level, Spell spell)
     }
 }
 
-void SpellBook::remove_memorized_spell(size_t level, SpellEntry entry)
+void SpellBook::set_available_slots(size_t level, size_t slots)
 {
-    if (level < memorized_.size()) {
-        memorized_[level].erase(std::remove(std::begin(memorized_[level]), std::end(memorized_[level]), entry),
-            std::end(memorized_[level]));
-    }
+    memorized_[level].resize(slots);
 }
 
 bool deserialize(SpellBook& self, const GffStruct& archive)

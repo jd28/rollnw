@@ -291,12 +291,12 @@ void init_component_spellbook(py::module& m)
     py::class_<nw::SpellBook>(m, "SpellBook")
         .def("add_known_spell", &nw::SpellBook::add_known_spell)
         .def("add_memorized_spell", &nw::SpellBook::add_memorized_spell)
+        .def("clear_memorized_spell", &nw::SpellBook::clear_memorized_spell)
         .def("get_known_spell_count", &nw::SpellBook::get_known_spell_count)
         .def("get_memorized_spell_count", &nw::SpellBook::get_memorized_spell_count)
         .def("get_known_spell", &nw::SpellBook::get_known_spell)
         .def("get_memorized_spell", &nw::SpellBook::get_memorized_spell)
-        .def("remove_known_spell", &nw::SpellBook::remove_known_spell)
-        .def("remove_memorized_spell", &nw::SpellBook::remove_memorized_spell);
+        .def("remove_known_spell", &nw::SpellBook::remove_known_spell);
 }
 
 void init_component_trap(py::module& m)
