@@ -31,6 +31,8 @@ SpellBook::SpellBook()
 }
 
 SpellBook::SpellBook(nw::MemoryResource* allocator)
+    : known_{10, allocator}
+    , memorized_{10, allocator}
 {
     known_.resize(10);
     memorized_.resize(10);
@@ -86,16 +88,12 @@ nlohmann::json SpellBook::to_json() const
     return j;
 }
 
-bool SpellBook::add_known_spell(size_t level, SpellEntry entry)
+bool SpellBook::add_known_spell(size_t level, Spell spell)
 {
-    if (level > known_.size()) {
-        known_.resize(level);
-        known_[level].push_back(entry);
-        return true;
-    }
-    auto it = std::find(std::begin(known_[level]), std::end(known_[level]), entry);
+    if (spell == Spell::invalid() || level >= known_.size()) { return false; }
+    auto it = std::find(std::begin(known_[level]), std::end(known_[level]), spell);
     if (it == std::end(known_[level])) {
-        known_[level].push_back(entry);
+        known_[level].push_back(spell);
         return true;
     }
     return false;
@@ -132,18 +130,18 @@ size_t SpellBook::get_memorized_spell_count(size_t level) const
     return 0;
 }
 
-SpellEntry SpellBook::get_known_spell(size_t level, size_t index) const
+Spell SpellBook::get_known_spell(size_t level, int slot) const
 {
-    if (level < known_.size() && index < known_[level].size()) {
-        return known_[level][index];
+    if (level < known_.size() && slot < known_[level].size()) {
+        return known_[level][slot];
     }
     return {};
 }
 
-SpellEntry SpellBook::get_memorized_spell(size_t level, size_t index) const
+SpellEntry SpellBook::get_memorized_spell(size_t level, int slot) const
 {
-    if (level < memorized_.size() && index < memorized_[level].size()) {
-        return memorized_[level][index];
+    if (level < memorized_.size() && slot < memorized_[level].size()) {
+        return memorized_[level][slot];
     }
     return {};
 }
@@ -165,17 +163,17 @@ bool SpellBook::knows_spell(Spell spell) const
 {
     for (auto& level : known_) {
         for (auto& entry : level) {
-            if (entry.spell == spell) { return true; }
+            if (entry == spell) { return true; }
         }
     }
     return false;
 }
 
-void SpellBook::remove_known_spell(size_t level, SpellEntry entry)
+void SpellBook::remove_known_spell(size_t level, Spell spell)
 {
     if (level < known_.size()) {
-        known_[level].erase(std::remove(std::begin(known_[level]), std::end(known_[level]), entry),
-            std::end(known_[level]));
+        auto it = std::remove(std::begin(known_[level]), std::end(known_[level]), spell);
+        known_[level].erase(it, std::end(known_[level]));
     }
 }
 
@@ -195,13 +193,14 @@ bool deserialize(SpellBook& self, const GffStruct& archive)
         if (kfield.valid()) {
             size_t sz = kfield.size();
             for (size_t j = 0; j < sz; ++j) {
-                SpellEntry s;
+                Spell s;
                 uint16_t temp;
                 if (kfield[j].get_to("Spell", temp)) {
-                    s.spell = Spell::make(temp);
+                    s = Spell::make(temp);
                 }
-                kfield[j].get_to("SpellFlags", s.flags, false);
-                kfield[j].get_to("SpellMetaMagic", s.meta, false);
+                // These fields are useless, I think.
+                // kfield[j].get_to("SpellFlags", s.flags, false);
+                // kfield[j].get_to("SpellMetaMagic", s.meta, false);
                 self.known_[i].push_back(s);
             }
         }
@@ -235,9 +234,9 @@ bool serialize(const SpellBook& self, GffBuilderStruct& archive)
         auto& klist = archive.add_list(k);
         for (const auto& sp : self.known_[i]) {
             klist.push_back(3)
-                .add_field("Spell", uint16_t(*sp.spell))
-                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
-                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
+                .add_field("Spell", uint16_t(*sp))
+                .add_field("SpellFlags", static_cast<uint8_t>(1))
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(0));
         }
     }
 
