@@ -109,12 +109,12 @@ bool SpellBook::add_known_spell(size_t level, Spell spell)
 
 bool SpellBook::add_memorized_spell(size_t level, SpellEntry entry)
 {
-    if (level > memorized_.size()) {
-        memorized_.resize(level);
-        memorized_[level].push_back(entry);
-        return true;
-    }
-    auto it = std::find(std::begin(memorized_[level]), std::end(memorized_[level]), entry);
+    int slot = first_empty_slot(level);
+    if (slot == -1) { return false; }
+    memorized_[level][slot] = entry;
+    return true;
+}
+
 size_t SpellBook::all_known_spell_count() const noexcept
 {
     size_t result = 0;
