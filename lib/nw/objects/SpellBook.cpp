@@ -79,9 +79,17 @@ nlohmann::json SpellBook::to_json() const
     j["memorized"] = nlohmann::json::array();
     for (size_t i = 0; i < 10; ++i) {
         if (memorized_[i].empty()) { continue; }
+
+        auto spells = nlohmann::json::array();
+        for (const auto& it : memorized_[i]) {
+            // Don't save any invalid slots
+            if (it.spell == Spell::invalid()) { continue; }
+            spells.push_back(it);
+        }
+
         j["memorized"].push_back({
             {"level", i},
-            {"spells", memorized_[i]},
+            {"spells", spells},
         });
     }
 
@@ -247,6 +255,7 @@ bool serialize(const SpellBook& self, GffBuilderStruct& archive)
         auto m = fmt::format("MemorizedList{}", i);
         auto& mlist = archive.add_list(m);
         for (const auto& sp : self.memorized_[i]) {
+            if (sp.spell == Spell::invalid()) { continue; } // Don't save any invalid slots
             mlist.push_back(3)
                 .add_field("Spell", uint16_t(*sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
