@@ -38,6 +38,9 @@ struct Rules : public Service {
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
 
+    /// Gets maximum spell levels
+    size_t maximum_spell_levels() const noexcept { return maximum_spell_levels_; }
+
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
@@ -75,6 +78,7 @@ private:
     std::array<CombatModeFuncs, 32> combat_modes_;
     std::array<SpecialAttackFuncs, 32> special_attacks_;
     AttackFuncs attack_functions_;
+    size_t maximum_spell_levels_ = 10;
 };
 
 inline Rules& rules()

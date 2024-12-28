@@ -35,7 +35,7 @@ struct SpellBook {
     size_t all_memorized_spell_count() const noexcept;
 
     /// Gets available slots
-    int available_slots(size_t level);
+    int available_slots(size_t level) const noexcept;
 
     /// Clears all memorized slots matching ``spell``, regardless of metamagic or flags
     void clear_memorized_spell(size_t level, Spell spell);

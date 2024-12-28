@@ -1,9 +1,9 @@
 #include "SpellBook.hpp"
 
+#include "../kernel/Rules.hpp"
 #include "../log.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
-#include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -31,11 +31,11 @@ SpellBook::SpellBook()
 }
 
 SpellBook::SpellBook(nw::MemoryResource* allocator)
-    : known_{10, allocator}
-    , memorized_{10, allocator}
+    : known_{nw::kernel::rules().maximum_spell_levels(), allocator}
+    , memorized_{nw::kernel::rules().maximum_spell_levels(), allocator}
 {
-    known_.resize(10);
-    memorized_.resize(10);
+    known_.resize(nw::kernel::rules().maximum_spell_levels());
+    memorized_.resize(nw::kernel::rules().maximum_spell_levels());
 }
 
 bool SpellBook::from_json(const nlohmann::json& archive)
@@ -68,7 +68,7 @@ nlohmann::json SpellBook::to_json() const
     nlohmann::json j;
 
     j["known"] = nlohmann::json::array();
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
         if (known_[i].empty()) { continue; }
         j["known"].push_back({
             {"level", i},
@@ -77,7 +77,7 @@ nlohmann::json SpellBook::to_json() const
     }
 
     j["memorized"] = nlohmann::json::array();
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
         if (memorized_[i].empty()) { continue; }
 
         auto spells = nlohmann::json::array();
@@ -133,7 +133,7 @@ size_t SpellBook::all_memorized_spell_count() const noexcept
     return result;
 }
 
-int SpellBook::available_slots(size_t level)
+int SpellBook::available_slots(size_t level) const noexcept
 {
     int result = 0;
     for (const auto& it : memorized_[level]) {
@@ -255,7 +255,7 @@ void SpellBook::set_available_slots(size_t level, size_t slots)
 
 bool deserialize(SpellBook& self, const GffStruct& archive)
 {
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
         auto k = fmt::format("KnownList{}", i);
         auto kfield = archive[k];
         if (kfield.valid()) {
@@ -294,7 +294,7 @@ bool deserialize(SpellBook& self, const GffStruct& archive)
 
 bool serialize(const SpellBook& self, GffBuilderStruct& archive)
 {
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
         if (self.known_[i].empty()) {
             continue;
         }
@@ -308,7 +308,7 @@ bool serialize(const SpellBook& self, GffBuilderStruct& archive)
         }
     }
 
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
         if (self.memorized_[i].empty()) {
             continue;
         }
