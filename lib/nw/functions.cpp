@@ -2,6 +2,7 @@
 
 #include "kernel/EffectSystem.hpp"
 #include "kernel/Rules.hpp"
+#include "kernel/Strings.hpp"
 #include "objects/Creature.hpp"
 #include "rules/feats.hpp"
 

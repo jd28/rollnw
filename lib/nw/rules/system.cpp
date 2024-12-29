@@ -1,6 +1,6 @@
 #include "system.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Strings.hpp"
 #include "Class.hpp"
 #include "feats.hpp"
 

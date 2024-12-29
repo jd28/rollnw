@@ -6,6 +6,9 @@
 
 namespace nw {
 
+struct GffStruct;
+struct GffBuilderStruct;
+
 struct LevelUp {
 
     bool epic = false;

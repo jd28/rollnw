@@ -1,6 +1,7 @@
 #include "Placeable.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
+#include "../kernel/Strings.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"

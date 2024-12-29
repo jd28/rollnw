@@ -3,6 +3,7 @@
 #include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
+#include "../kernel/Strings.hpp"
 
 #include "nlohmann/json.hpp"
 

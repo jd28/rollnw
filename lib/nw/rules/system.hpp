@@ -1,11 +1,8 @@
 #pragma once
 
 #include "../kernel/Memory.hpp"
-#include "../kernel/Strings.hpp"
-#include "../objects/ObjectBase.hpp"
 #include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"
-#include "Versus.hpp"
 #include "attributes.hpp"
 #include "damage.hpp"
 #include "rule_type.hpp"

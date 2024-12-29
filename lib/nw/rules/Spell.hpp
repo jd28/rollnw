@@ -3,6 +3,7 @@
 #include "../resources/Resource.hpp"
 #include "../util/enum_flags.hpp"
 #include "rule_type.hpp"
+#include "system.hpp"
 
 namespace nw {
 

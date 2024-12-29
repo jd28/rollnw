@@ -10,6 +10,7 @@
 #include "../../kernel/Objects.hpp"
 #include "../../kernel/Resources.hpp"
 #include "../../kernel/Rules.hpp"
+#include "../../kernel/Strings.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"

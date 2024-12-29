@@ -4,6 +4,7 @@
 #include "../objects/Saves.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"
+#include "Spell.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 

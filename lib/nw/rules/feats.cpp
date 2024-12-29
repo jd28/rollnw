@@ -1,8 +1,7 @@
 #include "feats.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
-#include "../kernel/Kernel.hpp"
-#include "../objects/CreatureStats.hpp"
+#include "../kernel/Strings.hpp"
 
 #include "nlohmann/json.hpp"
 

@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
+#include "Strings.hpp"
 
 using namespace std::literals;
 

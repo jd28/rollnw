@@ -1,6 +1,7 @@
 #include "Area.hpp"
 
 #include "../kernel/Objects.hpp"
+#include "../kernel/Strings.hpp"
 #include "../kernel/TilesetRegistry.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"

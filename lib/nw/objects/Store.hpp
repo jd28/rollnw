@@ -2,7 +2,6 @@
 
 #include "Common.hpp"
 #include "Inventory.hpp"
-#include "Item.hpp"
 #include "ObjectBase.hpp"
 
 namespace nw {
