@@ -7,6 +7,19 @@
 
 namespace nw {
 
+DEFINE_RULE_TYPE(MetaMagic);
+DEFINE_RULE_TYPE(MetaMagicFlag);
+
+MetaMagicInfo::MetaMagicInfo(const TwoDARowView& tda)
+{
+    tda.get_to("Name", name);
+    tda.get_to("LevelAdjustment", level_adjustment);
+    int temp;
+    if (tda.get_to("FeatRequired", temp)) {
+        requirements.add(qualifier_feat(Feat::make(temp)));
+    }
+}
+
 DEFINE_RULE_TYPE(SpellSchool);
 DEFINE_RULE_TYPE(Spell);
 
@@ -44,7 +57,7 @@ SpellInfo::SpellInfo(const TwoDARowView& tda)
             }
         }
         if (tda.get_to("MetaMagic", temp_int)) {
-            metamagic = static_cast<SpellMetaMagic>(temp_int);
+            metamagic = MetaMagicFlag::make(temp_int);
         }
 
         tda.get_to("Innate", innate_level);

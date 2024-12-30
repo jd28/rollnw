@@ -621,21 +621,11 @@ class SpellFlags(enum.Flag):
     unlimited = 0x04
 
 
-class SpellMetaMagic(enum.Flag):
-    none = 0x00
-    empower = 0x01
-    extend = 0x02
-    maximize = 0x04
-    quicken = 0x08
-    silent = 0x10
-    still = 0x20
-
-
 class SpellEntry:
     """An entry in a spellbook
     """
     spell: int
-    meta: SpellMetaMagic
+    meta: int
     flags: SpellFlags
 
 

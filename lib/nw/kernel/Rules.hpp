@@ -62,6 +62,7 @@ struct Rules : public Service {
     BaseItemArray baseitems;
     ClassArray classes;
     FeatArray feats;
+    MetaMagicArray metamagic;
     RaceArray races;
     SpellArray spells;
     SpellSchoolArray spellschools;

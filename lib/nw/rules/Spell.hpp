@@ -20,18 +20,24 @@ enum struct SpellFlags : uint8_t {
 
 DEFINE_ENUM_FLAGS(SpellFlags);
 
-enum struct SpellMetaMagic : uint8_t {
-    none = 0x00,
+DECLARE_RULE_TYPE(MetaMagic);
+DECLARE_RULE_TYPE(MetaMagicFlag);
 
-    empower = 0x01,
-    extend = 0x02,
-    maximize = 0x04,
-    quicken = 0x08,
-    silent = 0x10,
-    still = 0x20,
+constexpr MetaMagicFlag metamagic_none = MetaMagicFlag(0);
+constexpr MetaMagicFlag metamagic_any = MetaMagicFlag(0xFF);
 
-    any = 0xFF,
+struct MetaMagicInfo {
+    MetaMagicInfo() = default;
+    MetaMagicInfo(const TwoDARowView& tda);
+
+    uint32_t name = 0xFFFFFFFF;
+    int level_adjustment = 0;
+    Requirement requirements;
+
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
+
+using MetaMagicArray = RuleTypeArray<MetaMagic, MetaMagicInfo>;
 
 DECLARE_RULE_TYPE(SpellSchool);
 
@@ -59,7 +65,7 @@ struct SpellInfo {
     nw::SpellSchool school = nw::SpellSchool::invalid();
     // Range
     // VS
-    SpellMetaMagic metamagic = SpellMetaMagic::none;
+    MetaMagicFlag metamagic = metamagic_none;
     // TargetType
     // ImpactScript
     int innate_level = -1; // Class spells and levels are in Class Array

@@ -159,7 +159,7 @@ void SpellBook::clear_memorized_spell_slot(size_t level, int slot)
     memorized_[level][slot] = SpellEntry{};
 }
 
-int SpellBook::find_memorized_slot(size_t level, Spell spell, SpellMetaMagic meta) const
+int SpellBook::find_memorized_slot(size_t level, Spell spell, MetaMagicFlag meta) const
 {
     int i = 0;
     for (const auto& it : memorized_[level]) {
@@ -217,12 +217,12 @@ SpellEntry SpellBook::get_memorized_spell(size_t level, int slot) const
     return {};
 }
 
-int SpellBook::has_memorized_spell(Spell spell, SpellMetaMagic meta) const
+int SpellBook::has_memorized_spell(Spell spell, MetaMagicFlag meta) const
 {
     int result = 0;
     for (auto& level : memorized_) {
         for (auto& entry : level) {
-            if (entry.spell == spell && (meta == SpellMetaMagic::none || entry.meta == meta)) {
+            if (entry.spell == spell && (meta == metamagic_none || entry.meta == meta)) {
                 ++result;
             }
         }
@@ -279,12 +279,14 @@ bool deserialize(SpellBook& self, const GffStruct& archive)
             size_t sz = mfield.size();
             for (size_t j = 0; j < sz; ++j) {
                 SpellEntry s;
-                uint16_t temp;
-                if (mfield[j].get_to("Spell", temp)) {
-                    s.spell = Spell::make(temp);
+                uint16_t temp_u16;
+                uint8_t temp_u8;
+                if (mfield[j].get_to("Spell", temp_u16)) {
+                    s.spell = Spell::make(temp_u16);
                 }
                 mfield[j].get_to("SpellFlags", s.flags);
-                mfield[j].get_to("SpellMetaMagic", s.meta);
+                mfield[j].get_to("SpellMetaMagic", temp_u8);
+                s.meta = MetaMagicFlag::make(temp_u8);
                 self.memorized_[i].push_back(s);
             }
         }
@@ -319,7 +321,7 @@ bool serialize(const SpellBook& self, GffBuilderStruct& archive)
             mlist.push_back(3)
                 .add_field("Spell", uint16_t(*sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
-                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(*sp.meta));
         }
     }
 

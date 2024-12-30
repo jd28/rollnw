@@ -274,15 +274,6 @@ void init_component_spellbook(py::module& m)
         .value("spontaneous", nw::SpellFlags::spontaneous)
         .value("unlimited", nw::SpellFlags::unlimited);
 
-    py::enum_<nw::SpellMetaMagic>(m, "SpellMetaMagic")
-        .value("none", nw::SpellMetaMagic::none)
-        .value("empower", nw::SpellMetaMagic::empower)
-        .value("extend", nw::SpellMetaMagic::extend)
-        .value("maximize", nw::SpellMetaMagic::maximize)
-        .value("quicken", nw::SpellMetaMagic::quicken)
-        .value("silent", nw::SpellMetaMagic::silent)
-        .value("still", nw::SpellMetaMagic::still);
-
     py::class_<nw::SpellEntry>(m, "SpellEntry")
         .def_readwrite("spell", &nw::SpellEntry::spell)
         .def_readwrite("meta", &nw::SpellEntry::meta)

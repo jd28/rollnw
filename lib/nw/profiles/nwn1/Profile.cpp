@@ -75,6 +75,7 @@ bool Profile::load_rules() const
     nw::StaticTwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA metamagic{nw::kernel::resman().demand({"metamagic"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
@@ -333,6 +334,15 @@ bool Profile::load_rules() const
         }
     } else {
         throw std::runtime_error("rules: failed to load 'skills.2da'");
+    }
+
+    // MetaMagic
+    auto& metamagic_array = nw::kernel::rules().metamagic;
+    if (metamagic.is_valid()) {
+        metamagic_array.entries.reserve(metamagic.rows());
+        for (size_t i = 0; i < metamagic.rows(); ++i) {
+            metamagic_array.entries.emplace_back(metamagic.row(i));
+        }
     }
 
     // Spell Schools

@@ -7,7 +7,6 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <bitset>
-#include <compare>
 #include <type_traits>
 
 namespace nw {

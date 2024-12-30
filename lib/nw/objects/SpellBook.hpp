@@ -8,7 +8,7 @@ namespace nw {
 
 struct SpellEntry {
     Spell spell = Spell::invalid();
-    SpellMetaMagic meta = SpellMetaMagic::none;
+    MetaMagicFlag meta = metamagic_none;
     SpellFlags flags = SpellFlags::none;
 
     bool operator==(const SpellEntry&) const = default;
@@ -56,7 +56,7 @@ struct SpellBook {
     SpellEntry get_memorized_spell(size_t level, int slot) const;
 
     /// Gets the number of times spell is memorized
-    int has_memorized_spell(Spell spell, SpellMetaMagic meta = SpellMetaMagic::none) const;
+    int has_memorized_spell(Spell spell, MetaMagicFlag meta = metamagic_none) const;
 
     /// Determines if spell is known, note that NPC wizards do not 'know' any spells.
     bool knows_spell(Spell spell) const;
@@ -65,7 +65,7 @@ struct SpellBook {
     void remove_known_spell(size_t level, Spell spell);
 
     /// Finds a spell slot
-    int find_memorized_slot(size_t level, Spell spell, SpellMetaMagic meta = SpellMetaMagic::none) const;
+    int find_memorized_slot(size_t level, Spell spell, MetaMagicFlag meta = metamagic_none) const;
 
     /// Finds first empty slot, else -1
     int first_empty_slot(size_t level) const noexcept;
