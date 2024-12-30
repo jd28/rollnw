@@ -23,8 +23,8 @@ DEFINE_ENUM_FLAGS(SpellFlags);
 DECLARE_RULE_TYPE(MetaMagic);
 DECLARE_RULE_TYPE(MetaMagicFlag);
 
-constexpr MetaMagicFlag metamagic_none = MetaMagicFlag(0);
-constexpr MetaMagicFlag metamagic_any = MetaMagicFlag(0xFF);
+constexpr MetaMagicFlag metamagic_none = MetaMagicFlag::make(0);
+constexpr MetaMagicFlag metamagic_any = MetaMagicFlag::make(0xFF);
 
 struct MetaMagicInfo {
     MetaMagicInfo() = default;
