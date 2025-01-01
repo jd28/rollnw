@@ -16,7 +16,8 @@ MetaMagicInfo::MetaMagicInfo(const TwoDARowView& tda)
     tda.get_to("LevelAdjustment", level_adjustment);
     int temp;
     if (tda.get_to("FeatRequired", temp)) {
-        requirements.add(qualifier_feat(Feat::make(temp)));
+        feat = Feat::make(temp);
+        requirements.add(qualifier_feat(feat));
     }
 }
 
@@ -46,7 +47,7 @@ SpellInfo::SpellInfo(const TwoDARowView& tda)
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);
         if (tda.get_to("IconResRef", temp_string)) {
-            icon = {temp_string, nw::ResourceType::texture};
+            icon = Resref{temp_string};
         }
         if (tda.get_to("School", temp_string)) {
             for (size_t i = 0; i < spellschools.entries.size(); ++i) {

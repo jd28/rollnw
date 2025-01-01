@@ -2,6 +2,7 @@
 
 #include "../resources/Resource.hpp"
 #include "../util/enum_flags.hpp"
+#include "feats.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 
@@ -32,6 +33,7 @@ struct MetaMagicInfo {
 
     uint32_t name = 0xFFFFFFFF;
     int level_adjustment = 0;
+    Feat feat;
     Requirement requirements;
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
@@ -47,7 +49,7 @@ struct SpellSchoolInfo {
 
     String letter;
     uint32_t name = 0xFFFFFFFF;
-    nw::SpellSchool opposition = nw::SpellSchool::invalid();
+    SpellSchool opposition = SpellSchool::invalid();
     uint32_t description = 0xFFFFFFFF;
 };
 
@@ -61,8 +63,8 @@ struct SpellInfo {
     SpellInfo(const TwoDARowView& tda);
 
     uint32_t name = 0xFFFFFFFF;
-    Resource icon;
-    nw::SpellSchool school = nw::SpellSchool::invalid();
+    Resref icon;
+    SpellSchool school = SpellSchool::invalid();
     // Range
     // VS
     MetaMagicFlag metamagic = metamagic_none;
