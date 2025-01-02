@@ -2,17 +2,17 @@
 
 #include "constants.hpp"
 
-#include "../../functions.hpp"
-#include "../../kernel/EffectSystem.hpp"
-#include "../../kernel/EventSystem.hpp"
-#include "../../kernel/Rules.hpp"
-#include "../../kernel/Strings.hpp"
-#include "../../kernel/TwoDACache.hpp"
-#include "../../objects/Door.hpp"
-#include "../../objects/Placeable.hpp"
-#include "../../objects/Player.hpp"
-#include "../../rules/combat.hpp"
-#include "../../util/templates.hpp"
+#include "../functions.hpp"
+#include "../kernel/EffectSystem.hpp"
+#include "../kernel/EventSystem.hpp"
+#include "../kernel/Rules.hpp"
+#include "../kernel/Strings.hpp"
+#include "../kernel/TwoDACache.hpp"
+#include "../objects/Door.hpp"
+#include "../objects/Placeable.hpp"
+#include "../objects/Player.hpp"
+#include "../rules/combat.hpp"
+#include "../util/templates.hpp"
 
 namespace nwk = nw::kernel;
 

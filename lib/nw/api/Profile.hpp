@@ -1,9 +1,6 @@
 #pragma once
 
-#include "constants.hpp"
-#include "rules.hpp"
-
-#include "../../kernel/GameProfile.hpp"
+#include "../kernel/GameProfile.hpp"
 
 namespace nwn1 {
 

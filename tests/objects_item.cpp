@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <nw/api/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
-#include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
 

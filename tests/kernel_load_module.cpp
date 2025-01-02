@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <nw/api/Profile.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/serialization/gff_conversion.hpp>
-#include <nwn1/Profile.hpp>
 
 #include <nowide/cstdlib.hpp>
 

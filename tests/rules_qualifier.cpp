@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <nw/api/constants.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/rules/system.hpp>
-#include <nwn1/Profile.hpp>
 
 namespace nwk = nw::kernel;
 

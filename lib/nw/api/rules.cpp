@@ -4,9 +4,9 @@
 #include "effects.hpp"
 #include "functions.hpp"
 
-#include "../../functions.hpp"
-#include "../../kernel/Rules.hpp"
-#include "../../objects/Creature.hpp"
+#include "../functions.hpp"
+#include "../kernel/Rules.hpp"
+#include "../objects/Creature.hpp"
 
 namespace nwk = nw::kernel;
 

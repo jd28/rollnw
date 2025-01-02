@@ -1,7 +1,7 @@
+#include <nw/api/Profile.hpp>
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Resources.hpp>
-#include <nwn1/Profile.hpp>
 
 #include <nowide/cstdlib.hpp>
 

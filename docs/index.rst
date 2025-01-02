@@ -20,7 +20,7 @@ features
 
 - The beginnings of a novel `Rules System <https://rollnw.readthedocs.io/en/latest/structure/rules.html>`__ designed for
   easily adding, overriding, expanding, or removing any rule and reasonable performance
-- A `combat engine <https://github.com/jd28/rollnw/blob/main/profiles/nwn1/combat.cpp>`__ that's very
+- A `combat engine <https://github.com/jd28/rollnw/blob/main/api/combat.cpp>`__ that's very
   nearing being able to simulate melee battles.
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties.  They are still missing some new EE things.  Player Characters are read only, for now.
 - A recursive decent `NWScript Parser <https://rollnw.readthedocs.io/en/latest/structure/script.html>`__

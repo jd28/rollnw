@@ -11,7 +11,7 @@
 #include "TilesetRegistry.hpp"
 #include "TwoDACache.hpp"
 
-#include "../profiles/nwn1/Profile.hpp"
+#include "../api/Profile.hpp"
 
 namespace nw::kernel {
 

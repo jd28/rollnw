@@ -4,6 +4,12 @@ add_library(nw STATIC
     functions.cpp
     log.cpp
 
+    api/constants.cpp
+    api/effects.cpp
+    api/functions.cpp
+    api/Profile.cpp
+    api/rules.cpp
+
     formats/Dialog.cpp
     formats/Faction.cpp
     formats/Image.cpp
@@ -69,12 +75,6 @@ add_library(nw STATIC
     objects/SpellBook.cpp
     objects/Trap.cpp
     objects/VisualTransform.cpp
-
-    profiles/nwn1/constants.cpp
-    profiles/nwn1/effects.cpp
-    profiles/nwn1/functions.cpp
-    profiles/nwn1/Profile.cpp
-    profiles/nwn1/rules.cpp
 
     resources/Bif.cpp
     resources/Container.cpp

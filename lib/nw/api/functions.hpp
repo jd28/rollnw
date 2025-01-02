@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rules/attributes.hpp"
+#include "../rules/attributes.hpp"
 
 namespace nw {
 struct AttackData;

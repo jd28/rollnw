@@ -75,7 +75,6 @@ add_executable(rollnw_test
 
 target_include_directories(rollnw_test PRIVATE
     ../lib
-    ../lib/nw/profiles
 )
 
 target_link_libraries(rollnw_test PRIVATE

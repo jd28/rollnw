@@ -11,11 +11,11 @@
 #include <nw/script/Nss.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
-#include <nwn1/Profile.hpp>
 
-#include <nwn1/effects.hpp>
-#include <nwn1/functions.hpp>
-#include <nwn1/rules.hpp>
+#include <nw/api/Profile.hpp>
+#include <nw/api/effects.hpp>
+#include <nw/api/functions.hpp>
+#include <nw/api/rules.hpp>
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>

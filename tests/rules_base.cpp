@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <nw/api/constants.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/system.hpp>
-#include <nwn1/constants.hpp>
 
 TEST(Rules, Classes)
 {

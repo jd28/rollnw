@@ -6,7 +6,6 @@ add_executable(rollnw_test_all_2da
 
 target_include_directories(rollnw_test_all_2da PRIVATE
     ../../lib
-    ../../lib/nw/profiles
 )
 
 target_link_libraries(rollnw_test_all_2da PRIVATE

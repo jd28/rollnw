@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <nw/api/constants.hpp>
+#include <nw/api/effects.hpp>
+#include <nw/api/functions.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
@@ -9,11 +12,6 @@
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>
-#include <nwn1/Profile.hpp>
-
-#include <nwn1/constants.hpp>
-#include <nwn1/effects.hpp>
-#include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
 

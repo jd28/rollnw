@@ -6,7 +6,6 @@ add_executable(rollnw_test_all_scripts
 
 target_include_directories(rollnw_test_all_scripts PRIVATE
     ../../lib
-    ../../lib/nw/profiles
 )
 
 target_link_libraries(rollnw_test_all_scripts PRIVATE

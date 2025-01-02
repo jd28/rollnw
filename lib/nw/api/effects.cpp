@@ -3,13 +3,13 @@
 #include "constants.hpp"
 #include "functions.hpp"
 
-#include "../../kernel/EffectSystem.hpp"
-#include "../../kernel/Rules.hpp"
-#include "../../kernel/Strings.hpp"
-#include "../../objects/Creature.hpp"
-#include "../../rules/Effect.hpp"
-#include "../../rules/attributes.hpp"
-#include "../../rules/items.hpp"
+#include "../kernel/EffectSystem.hpp"
+#include "../kernel/Rules.hpp"
+#include "../kernel/Strings.hpp"
+#include "../objects/Creature.hpp"
+#include "../rules/Effect.hpp"
+#include "../rules/attributes.hpp"
+#include "../rules/items.hpp"
 
 #include <algorithm>
 #include <limits>

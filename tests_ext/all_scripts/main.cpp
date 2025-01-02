@@ -1,7 +1,6 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/script/Nss.hpp>
-#include <nwn1/Profile.hpp>
 
 #include <nowide/cstdlib.hpp>
 
