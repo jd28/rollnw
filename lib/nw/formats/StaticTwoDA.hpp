@@ -46,7 +46,7 @@ struct StaticTwoDA final {
 
     /// Gets an element
     template <typename T>
-    std::optional<T> get(size_t row, StringView col) const;
+    std::optional<T> get(size_t row, StringView col, bool warn_missing = true) const;
 
     /// Gets an element
     template <typename T>
@@ -54,7 +54,7 @@ struct StaticTwoDA final {
 
     /// Gets an element
     template <typename T>
-    bool get_to(size_t row, StringView col, T& out) const;
+    bool get_to(size_t row, StringView col, T& out, bool warn_missing = true) const;
 
     /// Gets entire row as
     TwoDARowView row(size_t row) const noexcept;
@@ -86,11 +86,11 @@ std::optional<T> StaticTwoDA::get(size_t row, size_t col) const
 }
 
 template <typename T>
-std::optional<T> StaticTwoDA::get(size_t row, StringView col) const
+std::optional<T> StaticTwoDA::get(size_t row, StringView col, bool warn_missing) const
 {
     size_t ci = column_index(col);
     if (ci == npos) {
-        LOG_F(WARNING, "unknown column: {}", col);
+        if (warn_missing) { LOG_F(WARNING, "unknown column: {}", col); }
         return std::optional<T>{};
     }
 
@@ -121,11 +121,11 @@ bool StaticTwoDA::get_to(size_t row, size_t col, T& out) const
 }
 
 template <typename T>
-bool StaticTwoDA::get_to(size_t row, StringView col, T& out) const
+bool StaticTwoDA::get_to(size_t row, StringView col, T& out, bool warn_missing) const
 {
     size_t ci = column_index(col);
     if (ci == npos) {
-        LOG_F(WARNING, "unknown column: {}", col);
+        if (warn_missing) { LOG_F(WARNING, "unknown column: {}", col); }
         return false;
     }
     return get_to<T>(row, ci, out);
