@@ -39,7 +39,7 @@ struct ClassRequirement {
 };
 
 struct ClassInfo {
-    ClassInfo() = default;
+    ClassInfo();
     ClassInfo(const TwoDARowView& tda);
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
@@ -92,7 +92,9 @@ struct ClassInfo {
     int level_min_associate = 0;
     bool can_cast_spontaneously = false;
 
-    std::vector<ClassSpell> spells;
+    Vector<ClassSpell> spells;
+    Vector<int> spells_gained;
+    Vector<int> spells_known;
 };
 
 /// Class Singleton component

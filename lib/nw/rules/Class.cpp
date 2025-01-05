@@ -4,6 +4,7 @@
 #include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/Strings.hpp"
+#include "../kernel/TwoDACache.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -11,7 +12,12 @@ namespace nw {
 
 DEFINE_RULE_TYPE(Class)
 
+ClassInfo::ClassInfo()
+{
+}
+
 ClassInfo::ClassInfo(const TwoDARowView& tda)
+    : ClassInfo()
 {
     auto class_array = &nw::kernel::rules().classes;
     String temp_string;
@@ -52,12 +58,6 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
             bonus_feats_table = {temp_string, nw::ResourceType::twoda};
         }
         tda.get_to("SkillPointBase", skill_point_base);
-        if (tda.get_to("SpellGainTable", temp_string)) {
-            spell_gain_table = {temp_string, nw::ResourceType::twoda};
-        }
-        if (tda.get_to("SpellKnownTable", temp_string)) {
-            spell_known_table = {temp_string, nw::ResourceType::twoda};
-        }
         tda.get_to("PlayerClass", player_class);
         tda.get_to("SpellCaster", spellcaster);
 
@@ -109,6 +109,49 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
                     caster_ability = nw::Ability::make(4);
                 } else if (string::icmp(temp_string, "CHA")) {
                     caster_ability = nw::Ability::make(5);
+                }
+            }
+
+            if (tda.get_to("SpellGainTable", temp_string)) {
+                spell_gain_table = {temp_string, nw::ResourceType::twoda};
+                auto spgn_2da = nw::kernel::twodas().get(temp_string);
+                if (spgn_2da && spgn_2da->is_valid()) {
+                    spells_gained.reserve(60 * nw::kernel::rules().maximum_spell_levels());
+                    for (size_t j = 0; j < spgn_2da->rows(); ++j) {
+                        int num_spell_levels = 0;
+                        spgn_2da->get_to(j, "NumSpellLevels", num_spell_levels);
+
+                        for (int i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
+                            auto lookup = fmt::format("SpellLevel{}", i);
+                            if (spgn_2da->get_to(j, lookup, temp_int, i < num_spell_levels)) {
+                                spells_gained.push_back(temp_int);
+                            } else {
+                                spells_gained.push_back(0);
+                            }
+                        }
+                    }
+                } else {
+                    LOG_F(ERROR, "[rules/classes] unable to locate '{}.2da'", temp_string);
+                }
+            }
+
+            if (tda.get_to("SpellKnownTable", temp_string)) {
+                spell_known_table = {temp_string, nw::ResourceType::twoda};
+                auto spkn_2da = nw::kernel::twodas().get(temp_string);
+                if (spkn_2da && spkn_2da->is_valid()) {
+                    spells_known.reserve(60 * nw::kernel::rules().maximum_spell_levels());
+                    for (size_t j = 0; j < spkn_2da->rows(); ++j) {
+                        for (int i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
+                            auto lookup = fmt::format("SpellLevel{}", i);
+                            if (spkn_2da->get_to(j, lookup, temp_int, false)) {
+                                spells_known.push_back(temp_int);
+                            } else {
+                                spells_known.push_back(0);
+                            }
+                        }
+                    }
+                } else {
+                    LOG_F(ERROR, "[rules/classes] unable to locate '{}.2da'", temp_string);
                 }
             }
 
