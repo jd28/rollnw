@@ -124,7 +124,6 @@ bool Creature::instantiate()
     if (instantiated_) return true;
     update_appearance(appearance.id);
 
-    nw::kernel::objects().run_instantiate_callback(this);
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;
     for (auto& equip : equipment.equips) {
@@ -134,6 +133,8 @@ bool Creature::instantiate()
         }
         ++i;
     }
+
+    nw::kernel::objects().run_instantiate_callback(this);
     return instantiated_;
 }
 
