@@ -49,11 +49,36 @@ int calculate_item_ac(const nw::Item* obj);
 // == Creature: Casting =======================================================
 // ===========================================================================
 
+/// Adds a known spell
+bool add_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell);
+
+/// Adds a memorized spell
+bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, nw::MetaMagicFlag meta = nw::metamagic_none);
+
+/// Computes available slots that are able to be prepared or castable
+int compute_total_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level);
+
+/// Gets the number of available slots at a particular spell level
+int get_available_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level);
+
+/// Gets available spell uses
+int get_available_spell_uses(const nw::Creature* obj, nw::Class class_, nw::Spell spell, int min_spell_level = 0,
+    nw::MetaMagicFlag meta = {});
+
 /// Gets creature's caster level for specified class
-int get_caster_level(nw::Creature* obj, nw::Class class_);
+int get_caster_level(const nw::Creature* obj, nw::Class class_);
+
+/// Determines if creature knows a spell
+bool get_knows_spell(const nw::Creature* obj, nw::Class class_, nw::Spell spell);
 
 /// Gets spell DC
-int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell);
+int get_spell_dc(const nw::Creature* obj, nw::Class class_, nw::Spell spell);
+
+/// Recomputes all available spell slots
+void recompute_all_availabe_spell_slots(nw::Creature* obj);
+
+/// Removes a known spell and any preparations thereof.
+void remove_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell);
 
 // == Creature: Classes =======================================================
 // ============================================================================

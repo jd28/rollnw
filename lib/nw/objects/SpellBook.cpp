@@ -230,12 +230,10 @@ int SpellBook::has_memorized_spell(Spell spell, MetaMagicFlag meta) const
     return result;
 }
 
-bool SpellBook::knows_spell(Spell spell) const
+bool SpellBook::knows_spell(Spell spell, int spell_level) const
 {
-    for (auto& level : known_) {
-        for (auto& entry : level) {
-            if (entry == spell) { return true; }
-        }
+    for (auto entry : known_[spell_level]) {
+        if (entry == spell) { return true; }
     }
     return false;
 }

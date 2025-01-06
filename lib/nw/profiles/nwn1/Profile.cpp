@@ -65,6 +65,7 @@ bool Profile::load_rules() const
         case nw::ObjectType::creature: {
             auto cre = obj->as_creature();
             cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
+            recompute_all_availabe_spell_slots(cre);
         }
         }
     });

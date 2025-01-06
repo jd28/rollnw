@@ -12,6 +12,7 @@
 #include "../../objects/Player.hpp"
 #include "../../rules/Class.hpp"
 #include "../../rules/combat.hpp"
+#include "../../util/macros.hpp"
 
 #include <bit>
 
@@ -177,20 +178,161 @@ int calculate_item_ac(const nw::Item* obj)
 // == Creature: Casting =======================================================
 // ===========================================================================
 
-int get_caster_level(nw::Creature* obj, nw::Class class_)
+bool add_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell)
 {
+    ENSURE_OR_RETURN_FALSE(obj, "[nwn1] add_known_spell called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_FALSE(cls, "[nwn1] add_known_spell called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_FALSE(cls->spellcaster, "[nwn1] add_known_spell called with non-spellcaster class '{}'", *class_);
+
+    int class_level = obj->levels.level_by_class(class_);
+
+    if (!obj || spell == nw::Spell::invalid() || class_level == 0) {
+        return false;
+    }
+
+    auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
+    if (spell_level == -1) { return false; }
+    auto sb = obj->levels.spells(class_);
+    if (!sb) { return false; }
+
+    if (!cls->memorizes_spells) {
+        int can_know = cls->spells_known[(class_level - 1) * nw::kernel::rules().maximum_spell_levels() + spell_level];
+        int do_know = sb->get_known_spell_count(spell_level);
+        if (do_know >= can_know) { return false; }
+    }
+
+    return sb->add_known_spell(spell_level, spell);
+}
+
+bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, nw::MetaMagicFlag meta)
+{
+    ENSURE_OR_RETURN_FALSE(obj, "[nwn1] add_memorized_spell called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_FALSE(cls, "[nwn1] add_memorized_spell called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_FALSE(cls->spellcaster, "[nwn1] add_memorized_spell called with non-spellcaster class '{}'", *class_);
+    ENSURE_OR_RETURN_FALSE(cls->memorizes_spells, "[nwn1] add_memorized_spell called with spellcaster class '{}' that does not memorize spells", *class_);
+
+    if (!obj) { return false; }
+    if (meta == nw::metamagic_any) { meta = nw::metamagic_none; }
+
+    auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
+
+    if (meta != nw::metamagic_none) {
+        // Note: in countr_zero actual '0' values are delt with in the line above.
+        auto meta_info = nw::kernel::rules().metamagic.get(nw::MetaMagic::make(std::countr_zero(meta.idx())));
+        spell_level += meta_info->level_adjustment;
+    }
+
+    auto sb = obj->levels.spells(class_);
+    if (!sb || sb->available_slots(spell_level)) { return false; }
+    sb->add_memorized_spell(spell_level, {spell, meta, nw::SpellFlags::readied});
+    return true;
+}
+
+int compute_total_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level)
+{
+    ENSURE_OR_RETURN_FALSE(obj, "[nwn1] compute_total_spell_slots called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_ZERO(cls, "[nwn1] compute_total_spell_slots called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_ZERO(cls->spellcaster, "[nwn1] compute_total_spell_slots called with non-spellcaster class '{}'", *class_);
+
+    auto cls_level = get_caster_level(obj, class_);
+
+    if (!obj || spell_level < 0 || spell_level >= nw::kernel::rules().maximum_spell_levels()
+        || cls_level <= 0) {
+        return 0;
+    }
+
+    auto sb = obj->levels.spells(class_);
+    ENSURE_OR_RETURN_ZERO(sb, "[nwn1] compute_total_spell_slots failed to find spellbook for class '{}'", *class_);
+
+    int result = 0;
+    result = cls->spells_gained[((cls_level - 1) * nw::kernel::rules().maximum_spell_levels()) + spell_level];
+    if (result > 0) {
+        if (spell_level <= get_ability_modifier(obj, cls->caster_ability)) {
+            ++result;
+        }
+
+        auto it = nw::find_first_effect_of(obj->effects().begin(), obj->effects().end(),
+            effect_type_bonus_spell_of_level, *class_);
+
+        while (it != obj->effects().end()) {
+            if (it->type == effect_type_bonus_spell_of_level && it->subtype == *class_
+                && it->effect->get_int(0) == spell_level) {
+                ++result;
+            } else {
+                break;
+            }
+            ++it;
+        }
+    }
+    return result;
+}
+
+int get_available_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level)
+{
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_available_spell_slots called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_ZERO(cls, "[nwn1] get_available_spell_slots called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_ZERO(cls->spellcaster, "[nwn1] get_available_spell_slots called with non-spellcaster class '{}'", *class_);
+
+    // For classes that don't memorize spells, we don't need to consult the spellbook.
+    if (!cls->memorizes_spells) {
+        return compute_total_spell_slots(obj, class_, spell_level);
+    }
+
+    auto sb = obj->levels.spells(class_);
+    if (!sb) { return 0; }
+    return sb->available_slots(spell_level);
+}
+
+int get_available_spell_uses(const nw::Creature* obj, nw::Class class_, nw::Spell spell, int min_spell_level, nw::MetaMagicFlag meta)
+{
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_available_spell_uses called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_ZERO(cls, "[nwn1] get_available_spell_uses called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_ZERO(cls->spellcaster, "[nwn1] get_available_spell_uses called with non-spellcaster class '{}'", *class_);
+
+    int result = 0;
+    auto sb = obj->levels.spells(class_);
+
+    if (!obj || !sb || spell == nw::Spell::invalid() || min_spell_level < 0) {
+        return result;
+    }
+
+    for (size_t i = min_spell_level; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
+        for (const auto& entry : sb->memorized_[i]) {
+            if (entry.spell == spell && (meta == nw::metamagic_any || entry.meta == meta)) {
+                ++result;
+            }
+        }
+    }
+
+    return result;
+}
+
+int get_caster_level(const nw::Creature* obj, nw::Class class_)
+{
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_caster_level called with invalid object");
+
     auto main_class_info = nw::kernel::rules().classes.get(class_);
-    if (!obj || !main_class_info || !main_class_info->spellcaster) { return 0; }
+    ENSURE_OR_RETURN_ZERO(main_class_info, "[nwn1] get_caster_level called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_ZERO(main_class_info->spellcaster, "[nwn1] get_caster_level called with non-spellcaster class '{}'", *class_);
 
     int result = obj->levels.level_by_class(class_);
     if (result == 0) { return 0; }
 
     for (const auto& cls : obj->levels.entries) {
-        if (cls.id == nw::Class::invalid()) { break; }
         if (cls.id == class_) { continue; }
 
         auto class_info = nw::kernel::rules().classes.get(cls.id);
-        if (!class_info) { continue; }
+        if (!class_info) { break; }
 
         if (main_class_info->arcane && class_info->arcane_spellgain_mod > 0) {
             result += cls.level / class_info->arcane_spellgain_mod;
@@ -202,7 +344,25 @@ int get_caster_level(nw::Creature* obj, nw::Class class_)
     return result;
 }
 
-int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell)
+bool get_knows_spell(const nw::Creature* obj, nw::Class class_, nw::Spell spell)
+{
+    ENSURE_OR_RETURN_FALSE(obj, "[nwn1] get_knows_spell called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_FALSE(cls, "[nwn1] get_knows_spell called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_FALSE(cls->spellcaster, "[nwn1] get_knows_spell called with non-spellcaster class '{}'", *class_);
+
+    auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
+
+    // If spellbook isn't restricted then caster knows all class spells.
+    if (!cls->spellbook_restricted) { return spell_level != -1; }
+
+    auto sb = obj->levels.spells(class_);
+    ENSURE_OR_RETURN_FALSE(sb, "[nwn1] get_knows_spell failed to find spellbook for class '{}'", *class_);
+    return sb->knows_spell(spell, spell_level);
+}
+
+int get_spell_dc(const nw::Creature* obj, nw::Class class_, nw::Spell spell)
 {
     auto class_info = nw::kernel::rules().classes.get(class_);
     auto spell_info = nw::kernel::rules().spells.get(spell);
@@ -217,6 +377,37 @@ int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell)
         mfeat_spell_focus, mfeat_spell_focus_greater, mfeat_spell_focus_epic);
 
     return result;
+}
+
+void recompute_all_availabe_spell_slots(nw::Creature* obj)
+{
+    for (auto& cls : obj->levels.entries) {
+        auto cls_info = nw::kernel::rules().classes.get(cls.id);
+        if (!cls_info) { break; }
+        if (!cls_info->spellcaster || !cls_info->memorizes_spells) { continue; }
+        for (int i = 0; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
+            cls.spells.set_available_slots(i, compute_total_spell_slots(obj, cls.id, i));
+        }
+    }
+}
+
+void remove_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell)
+{
+    ENSURE_OR_RETURN(obj, "[nwn1] remove_known_spell called with invalid object");
+
+    if (class_ == nw::Class::invalid() || spell == nw::Spell::invalid()) {
+        return;
+    }
+
+    auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
+    if (spell_level == -1) { return; }
+    auto sb = obj->levels.spells(class_);
+    if (!sb) { return; }
+    sb->remove_known_spell(spell_level, spell);
+    for (int i = spell_level; i < nw::kernel::rules().maximum_spell_levels(); ++i) {
+        // Metamagic
+        sb->clear_memorized_spell(i, spell);
+    }
 }
 
 // == Creature: Classes =======================================================

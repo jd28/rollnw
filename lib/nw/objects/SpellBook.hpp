@@ -62,7 +62,7 @@ struct SpellBook {
     int has_memorized_spell(Spell spell, MetaMagicFlag meta = metamagic_none) const;
 
     /// Determines if spell is known, note that NPC wizards do not 'know' any spells.
-    bool knows_spell(Spell spell) const;
+    bool knows_spell(Spell spell, int spell_level) const;
 
     /// Removes a known spell entry
     void remove_known_spell(size_t level, Spell spell);
