@@ -182,6 +182,7 @@ int get_caster_level(nw::Creature* obj, nw::Class class_)
     if (!obj || !main_class_info || !main_class_info->spellcaster) { return 0; }
 
     int result = obj->levels.level_by_class(class_);
+    if (result == 0) { return 0; }
 
     for (const auto& cls : obj->levels.entries) {
         if (cls.id == nw::Class::invalid()) { break; }
