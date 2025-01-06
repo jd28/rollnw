@@ -12,10 +12,10 @@
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 
-#include <nw/api/Profile.hpp>
-#include <nw/api/effects.hpp>
-#include <nw/api/functions.hpp>
-#include <nw/api/rules.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/profiles/nwn1/effects.hpp>
+#include <nw/profiles/nwn1/functions.hpp>
+#include <nw/profiles/nwn1/rules.hpp>
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>

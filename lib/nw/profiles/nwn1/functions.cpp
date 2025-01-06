@@ -2,23 +2,24 @@
 
 #include "constants.hpp"
 
-#include "../functions.hpp"
-#include "../kernel/EffectSystem.hpp"
-#include "../kernel/EventSystem.hpp"
-#include "../kernel/Rules.hpp"
-#include "../kernel/Strings.hpp"
-#include "../kernel/TwoDACache.hpp"
-#include "../objects/Door.hpp"
-#include "../objects/Placeable.hpp"
-#include "../objects/Player.hpp"
-#include "../rules/combat.hpp"
-#include "../util/templates.hpp"
+#include "../../functions.hpp"
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/EventSystem.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/TwoDACache.hpp"
+#include "../../objects/Door.hpp"
+#include "../../objects/Placeable.hpp"
+#include "../../objects/Player.hpp"
+#include "../../rules/Class.hpp"
+#include "../../rules/combat.hpp"
+
+#include <bit>
 
 namespace nwk = nw::kernel;
 
 namespace nwn1 {
 
-// == Abilities ===============================================================
+// == Creature: Abilities =====================================================
 // ============================================================================
 
 int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
@@ -74,7 +75,7 @@ int get_dex_modifier(const nw::Creature* obj)
     return base;
 }
 
-// == Armor Class =============================================================
+// == Creature: Armor Class ===================================================
 // ============================================================================
 int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus, bool is_touch_attack)
 {
@@ -173,8 +174,8 @@ int calculate_item_ac(const nw::Item* obj)
     return 0;
 }
 
-// == Casting =================================================================
-// ============================================================================
+// == Creature: Casting =======================================================
+// ===========================================================================
 
 int get_caster_level(nw::Creature* obj, nw::Class class_)
 {
@@ -218,7 +219,7 @@ int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell)
     return result;
 }
 
-// == Classes =================================================================
+// == Creature: Classes =======================================================
 // ============================================================================
 
 std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj)
@@ -233,7 +234,7 @@ std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj)
     return {true, level};
 }
 
-// == Combat ==================================================================
+// == Creature: Combat ========================================================
 // ============================================================================
 
 int base_attack_bonus(const nw::Creature* obj)

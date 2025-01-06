@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../rules/attributes.hpp"
+#include "../../rules/Spell.hpp"
+#include "../../rules/attributes.hpp"
 
 namespace nw {
 struct AttackData;
@@ -24,7 +25,7 @@ enum struct TargetState;
 
 namespace nwn1 {
 
-// == Abilities ===============================================================
+// == Creature: Abilities =====================================================
 // ============================================================================
 
 /// Gets creatures ability score
@@ -36,7 +37,7 @@ int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base
 /// Gets creatures dexterity modifier as modified by armor, etc.
 int get_dex_modifier(const nw::Creature* obj);
 
-// == Armor Class =============================================================
+// == Creature: Armor Class ===================================================
 // ============================================================================
 
 /// Calculate Armor Class versus another object
@@ -45,8 +46,8 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
 /// Calculates the armor class of a piece of armor
 int calculate_item_ac(const nw::Item* obj);
 
-// == Casting =================================================================
-// ============================================================================
+// == Creature: Casting =======================================================
+// ===========================================================================
 
 /// Gets creature's caster level for specified class
 int get_caster_level(nw::Creature* obj, nw::Class class_);
@@ -54,13 +55,13 @@ int get_caster_level(nw::Creature* obj, nw::Class class_);
 /// Gets spell DC
 int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell);
 
-// == Classes =================================================================
+// == Creature: Classes =======================================================
 // ============================================================================
 
 /// Determines if monk class abilities are usable and monk class level
 std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj);
 
-// == Combat ==================================================================
+// == Creature: Combat ========================================================
 // ============================================================================
 
 /// Calculates base attack bonus

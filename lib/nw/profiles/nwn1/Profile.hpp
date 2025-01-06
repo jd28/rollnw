@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../kernel/GameProfile.hpp"
+#include "../../kernel/GameProfile.hpp"
 
 namespace nwn1 {
 

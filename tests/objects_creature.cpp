@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
-#include <nw/api/constants.hpp>
-#include <nw/api/effects.hpp>
-#include <nw/api/functions.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
+#include <nw/profiles/nwn1/effects.hpp>
+#include <nw/profiles/nwn1/functions.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>

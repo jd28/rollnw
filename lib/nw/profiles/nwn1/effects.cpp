@@ -3,13 +3,13 @@
 #include "constants.hpp"
 #include "functions.hpp"
 
-#include "../kernel/EffectSystem.hpp"
-#include "../kernel/Rules.hpp"
-#include "../kernel/Strings.hpp"
-#include "../objects/Creature.hpp"
-#include "../rules/Effect.hpp"
-#include "../rules/attributes.hpp"
-#include "../rules/items.hpp"
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/Strings.hpp"
+#include "../../objects/Creature.hpp"
+#include "../../rules/Effect.hpp"
+#include "../../rules/attributes.hpp"
+#include "../../rules/items.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -116,6 +116,18 @@ nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
     eff->type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
     eff->subtype = *attack;
     eff->set_int(0, std::abs(modifier));
+    return eff;
+}
+
+nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level)
+{
+    if (spell_level < 0 || spell_level >= nw::kernel::rules().maximum_spell_levels()) {
+        return nullptr;
+    }
+
+    auto eff = nw::kernel::effects().create(effect_type_bonus_spell_of_level);
+    eff->subtype = *class_;
+    eff->set_int(0, spell_level);
     return eff;
 }
 
@@ -320,6 +332,24 @@ inline nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipI
     return nullptr;
 }
 
+nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level)
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_bonus_spell_slot_of_level_n);
+    result.subtype = uint16_t(*class_);
+    result.cost_value = spell_level;
+    return result;
+}
+
+inline nw::Effect* ip_gen_bonus_spell_slot(const nw::ItemProperty& ip, nw::EquipIndex equip, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    if (type == ip_bonus_spell_slot_of_level_n) {
+        return effect_bonus_spell_slot(nw::Class::make(ip.subtype), ip.cost_value);
+    }
+    return nullptr;
+}
+
 nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value)
 {
     nw::ItemProperty result;
@@ -500,6 +530,8 @@ void load_effects()
     ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
 
+    ADD_IS_CREATURE_EFFECT(effect_type_bonus_spell_of_level);
+
     ADD_IS_CREATURE_EFFECT(effect_type_concealment);
 
     ADD_IS_CREATURE_EFFECT(effect_type_damage_increase);
@@ -532,6 +564,7 @@ void load_itemprop_generators()
     nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
     nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
     nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_bonus_spell_slot_of_level_n, ip_gen_bonus_spell_slot);
     nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
     nw::kernel::effects().add(ip_damage_bonus, ip_gen_damage_bonus);
     nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);

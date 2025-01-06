@@ -29,6 +29,9 @@ nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier);
 /// Creates an attack modifier effect
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 
+/// Creates an bonus spell slot effect
+nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level);
+
 /// Creates concealment effect
 nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
 
@@ -74,6 +77,9 @@ nw::ItemProperty itemprop_armor_class_modifier(int value);
 
 /// Creates attack modifier item property
 nw::ItemProperty itemprop_attack_modifier(int value);
+
+/// Creates bonus spell slot property
+nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level);
 
 /// Creates damage bonus item property
 nw::ItemProperty itemprop_damage_bonus(int value);

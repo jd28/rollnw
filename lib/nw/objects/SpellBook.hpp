@@ -15,6 +15,9 @@ struct SpellEntry {
     auto operator<=>(const SpellEntry&) const = default;
 };
 
+/// Abstracts a characters Spell Book
+/// @note Spell slots are trimmed on instantiation, when deserializing whatever is in the GFF or
+/// JSON is taken as correct.
 struct SpellBook {
     SpellBook();
     SpellBook(nw::MemoryResource* allocator);

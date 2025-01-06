@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <nw/api/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/profiles/nwn1/functions.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
 

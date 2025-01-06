@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <nw/api/constants.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/rules/system.hpp>
 
 TEST(Rules, Classes)

@@ -6,9 +6,9 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Player.hpp>
 
-#include <nw/api/Profile.hpp>
-#include <nw/api/constants.hpp>
-#include <nw/api/functions.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
+#include <nw/profiles/nwn1/functions.hpp>
 
 #include <filesystem>
 

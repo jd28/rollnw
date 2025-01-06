@@ -5,8 +5,8 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 
-#include <nw/api/effects.hpp>
-#include <nw/api/functions.hpp>
+#include <nw/profiles/nwn1/effects.hpp>
+#include <nw/profiles/nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>

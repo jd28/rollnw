@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include <nw/api/Profile.hpp>
-#include <nw/api/constants.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
 
 namespace nwk = nw::kernel;
 
