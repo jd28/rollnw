@@ -4,7 +4,6 @@
 
 #include "../../functions.hpp"
 #include "../../kernel/EffectSystem.hpp"
-#include "../../kernel/EventSystem.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Door.hpp"
@@ -12,6 +11,7 @@
 #include "../../objects/Player.hpp"
 #include "../../rules/Class.hpp"
 #include "../../rules/combat.hpp"
+#include "../../scriptapi.hpp"
 #include "../../util/macros.hpp"
 
 #include <bit>
@@ -50,6 +50,47 @@ int get_current_hitpoints(const nw::ObjectBase* obj)
     }
 
     return result;
+}
+
+int get_max_hitpoints(const nw::ObjectBase* obj)
+{
+    if (!obj) { return 0; }
+
+    // Base hitpoints.. for a NPC, door, etc. whatever was set in the 'toolset'
+    // for a PC, whatever their level up rolls.. i.e. sum of LevelUp::hitpoints in level history.
+    int base = 0;
+    int con = 0;
+    int modifiers = 0;
+    int temp = 0;
+    switch (obj->handle().type) {
+    default:
+        break;
+    case nw::ObjectType::player: {
+        auto cre = obj->as_player();
+        for (const auto& lu : cre->history.entries) {
+            base += lu.hitpoints;
+        }
+        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
+        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
+        temp = cre->hp_temp;
+    } break;
+    case nw::ObjectType::creature: {
+        auto cre = obj->as_creature();
+        base = cre->hp;
+        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
+        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
+        temp = cre->hp_temp;
+    } break;
+    case nw::ObjectType::door: {
+        base = obj->as_door()->hp;
+    } break;
+    case nw::ObjectType::placeable: {
+        base = obj->as_placeable()->hp;
+    } break;
+    }
+
+    // Max hitpoints must be 1 or greater for valid objects
+    return std::max(1, base + con + modifiers + temp);
 }
 
 // ============================================================================
@@ -1408,48 +1449,6 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
     }
 
     return 5;
-}
-
-/// Gets objects maximum hit points.
-int get_max_hitpoints(const nw::ObjectBase* obj)
-{
-    if (!obj) { return 0; }
-
-    // Base hitpoints.. for a NPC, door, etc. whatever was set in the 'toolset'
-    // for a PC, whatever their level up rolls.. i.e. sum of LevelUp::hitpoints in level history.
-    int base = 0;
-    int con = 0;
-    int modifiers = 0;
-    int temp = 0;
-    switch (obj->handle().type) {
-    default:
-        break;
-    case nw::ObjectType::player: {
-        auto cre = obj->as_player();
-        for (const auto& lu : cre->history.entries) {
-            base += lu.hitpoints;
-        }
-        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
-        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
-        temp = cre->hp_temp;
-    } break;
-    case nw::ObjectType::creature: {
-        auto cre = obj->as_creature();
-        base = cre->hp;
-        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
-        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
-        temp = cre->hp_temp;
-    } break;
-    case nw::ObjectType::door: {
-        base = obj->as_door()->hp;
-    } break;
-    case nw::ObjectType::placeable: {
-        base = obj->as_placeable()->hp;
-    } break;
-    }
-
-    // Max hitpoints must be 1 or greater for valid objects
-    return std::max(1, base + con + modifiers + temp);
 }
 
 // == Items ===================================================================

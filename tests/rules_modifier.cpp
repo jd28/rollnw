@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
@@ -8,6 +7,7 @@
 #include <nw/profiles/nwn1/rules.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/rules/system.hpp>
+#include <nw/scriptapi.hpp>
 
 namespace nwk = nw::kernel;
 

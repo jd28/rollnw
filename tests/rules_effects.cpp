@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <nw/functions.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -11,6 +10,7 @@
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/feats.hpp>
+#include <nw/scriptapi.hpp>
 
 #include <nlohmann/json.hpp>
 

@@ -10,6 +10,7 @@
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
+#include <nw/scriptapi.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 
 #include <nlohmann/json.hpp>

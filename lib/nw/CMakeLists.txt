@@ -3,6 +3,7 @@ find_package(Threads)
 add_library(nw STATIC
     functions.cpp
     log.cpp
+    scriptapi.cpp
 
     formats/Dialog.cpp
     formats/Faction.cpp

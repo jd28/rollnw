@@ -1,6 +1,5 @@
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/formats/TwoDA.hpp>
-#include <nw/functions.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Resources.hpp>
@@ -9,6 +8,7 @@
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/script/Nss.hpp>
+#include <nw/scriptapi.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 
