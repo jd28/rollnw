@@ -160,7 +160,7 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
 
-// == Effects =================================================================
+// == Object: Effects =========================================================
 // ============================================================================
 
 /// Determines if object has effect type applied
@@ -169,7 +169,7 @@ bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type);
 /// Queues remove effect events by effect creator
 int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
-// == Hit Points ==============================================================
+// == Object: Hit Points ======================================================
 // ============================================================================
 
 /// Gets objects current hitpoints

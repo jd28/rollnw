@@ -2,8 +2,8 @@
 
 #include "constants.hpp"
 #include "effects.hpp"
-#include "functions.hpp"
 #include "rules.hpp"
+#include "scriptapi.hpp"
 
 #include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"

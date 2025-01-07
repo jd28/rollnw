@@ -14,8 +14,8 @@
 
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/effects.hpp>
-#include <nw/profiles/nwn1/functions.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>

@@ -1,7 +1,7 @@
 #include "effects.hpp"
 
 #include "constants.hpp"
-#include "functions.hpp"
+#include "scriptapi.hpp"
 
 #include "../../kernel/EffectSystem.hpp"
 #include "../../kernel/Rules.hpp"

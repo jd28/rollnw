@@ -2,7 +2,7 @@
 
 #include "constants.hpp"
 #include "effects.hpp"
-#include "functions.hpp"
+#include "scriptapi.hpp"
 
 #include "../../functions.hpp"
 #include "../../kernel/Rules.hpp"

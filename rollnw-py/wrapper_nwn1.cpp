@@ -6,7 +6,7 @@
 #include <nw/objects/Item.hpp>
 
 #include <nw/profiles/nwn1/effects.hpp>
-#include <nw/profiles/nwn1/functions.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>

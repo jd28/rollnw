@@ -11,7 +11,7 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/effects.hpp>
-#include <nw/profiles/nwn1/functions.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>

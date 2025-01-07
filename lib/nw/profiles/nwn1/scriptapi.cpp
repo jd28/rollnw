@@ -1,4 +1,4 @@
-#include "functions.hpp"
+#include "scriptapi.hpp"
 
 #include "constants.hpp"
 
@@ -381,6 +381,8 @@ int get_spell_dc(const nw::Creature* obj, nw::Class class_, nw::Spell spell)
 
 void recompute_all_availabe_spell_slots(nw::Creature* obj)
 {
+    ENSURE_OR_RETURN(obj, "[nwn1] recompute_all_availabe_spell_slots called with invalid object");
+
     for (auto& cls : obj->levels.entries) {
         auto cls_info = nw::kernel::rules().classes.get(cls.id);
         if (!cls_info) { break; }

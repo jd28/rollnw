@@ -8,7 +8,7 @@
 
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/functions.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
 
 #include <filesystem>
 
