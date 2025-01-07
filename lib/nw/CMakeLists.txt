@@ -71,7 +71,6 @@ add_library(nw STATIC
     objects/VisualTransform.cpp
 
     profiles/nwn1/constants.cpp
-    profiles/nwn1/effects.cpp
     profiles/nwn1/Profile.cpp
     profiles/nwn1/rules.cpp
     profiles/nwn1/scriptapi.cpp

@@ -1,7 +1,6 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
-#include "effects.hpp"
 #include "rules.hpp"
 #include "scriptapi.hpp"
 

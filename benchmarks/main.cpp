@@ -13,7 +13,6 @@
 #include <nw/serialization/GffBuilder.hpp>
 
 #include <nw/profiles/nwn1/Profile.hpp>
-#include <nw/profiles/nwn1/effects.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 

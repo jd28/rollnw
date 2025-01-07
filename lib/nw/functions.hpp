@@ -54,6 +54,9 @@ It find_first_effect_of(It begin, It end, nw::EffectType type, int subtype = -1)
 /// Determines if an effect type is applied to an object
 bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype = -1);
 
+/// Queues remove effect events by effect creator
+int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
+
 /// Removes an effect from an object
 bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy = true);
 

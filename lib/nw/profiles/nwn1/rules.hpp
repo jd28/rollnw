@@ -8,4 +8,7 @@ void load_modifiers();
 void load_qualifiers();
 void load_special_attacks();
 
+void load_effects();
+void load_itemprop_generators();
+
 } // namespace nwn1

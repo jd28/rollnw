@@ -1,6 +1,7 @@
 #include "functions.hpp"
 
 #include "kernel/EffectSystem.hpp"
+#include "kernel/EventSystem.hpp"
 #include "kernel/Rules.hpp"
 #include "kernel/Strings.hpp"
 #include "objects/Creature.hpp"
@@ -33,6 +34,19 @@ bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype)
         type, subtype);
 
     return it != std::end(obj->effects());
+}
+
+int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
+{
+    if (!obj) { return 0; }
+    int processed = 0;
+    for (const auto& handle : obj->effects()) {
+        if (handle.effect->creator == creator) {
+            nw::kernel::events().add(nw::kernel::EventType::remove_effect, obj, handle.effect);
+            ++processed;
+        }
+    }
+    return processed;
 }
 
 bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy)

@@ -2,28 +2,50 @@
 
 #include "../../rules/Spell.hpp"
 #include "../../rules/attributes.hpp"
+#include "constants.hpp"
 
 namespace nw {
-struct AttackData;
 enum struct AttackResult;
+enum struct EquipIndex : uint32_t;
+enum struct TargetState;
+struct AttackData;
 struct AttackType;
 struct BaseItem;
 struct Class;
 struct Creature;
 struct Damage;
-using DamageFlag = RuleFlag<Damage, 32>;
 struct DiceRoll;
 struct Effect;
 struct EffectType;
-enum struct EquipIndex : uint32_t;
 struct Item;
+struct ItemProperty;
 struct ObjectBase;
 struct ObjectHandle;
 struct Spell;
-enum struct TargetState;
+using DamageFlag = RuleFlag<Damage, 32>;
 } // namespace nw
 
 namespace nwn1 {
+
+// ============================================================================
+// == Object ==================================================================
+// ============================================================================
+
+// == Object: Effects =========================================================
+// ============================================================================
+
+// == Object: Hit Points ======================================================
+// ============================================================================
+
+/// Gets objects current hitpoints
+int get_current_hitpoints(const nw::ObjectBase* obj);
+
+/// Gets objects maximum hit points.
+int get_max_hitpoints(const nw::ObjectBase* obj);
+
+// ============================================================================
+// == Creature ================================================================
+// ============================================================================
 
 // == Creature: Abilities =====================================================
 // ============================================================================
@@ -160,24 +182,6 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
 
-// == Object: Effects =========================================================
-// ============================================================================
-
-/// Determines if object has effect type applied
-bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type);
-
-/// Queues remove effect events by effect creator
-int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
-
-// == Object: Hit Points ======================================================
-// ============================================================================
-
-/// Gets objects current hitpoints
-int get_current_hitpoints(const nw::ObjectBase* obj);
-
-/// Gets objects maximum hit points.
-int get_max_hitpoints(const nw::ObjectBase* obj);
-
 // == Items ===================================================================
 // ============================================================================
 
@@ -196,7 +200,7 @@ bool is_shield(nw::BaseItem baseitem);
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
 
-// == Saves ====================================================================
+// == Creature: Saves ==========================================================
 // =============================================================================
 
 int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
@@ -205,7 +209,7 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
 bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
     nw::SaveVersus type_vs = nw::SaveVersus::invalid(), const nw::ObjectBase* versus = nullptr);
 
-// == Skills ==================================================================
+// == Creature: Skills ========================================================
 // ============================================================================
 
 /// Determines creatures skill rank
@@ -258,5 +262,92 @@ nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
 /// Resolve weapon base damage
 /// @note Includes specialization and arcane archer bonuses
 nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
+
+// ============================================================================
+// == Effects =================================================================
+// ============================================================================
+
+/// Creates an ability modifier effect
+nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
+
+/// Creates an armor class modifier effect
+nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier);
+
+/// Creates an attack modifier effect
+nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
+
+/// Creates an bonus spell slot effect
+nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level);
+
+/// Creates concealment effect
+nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
+
+/// Creates an damage bonus effect
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCategory cat = nw::DamageCategory::none);
+
+/// Creates an damage immunity effect
+/// @note Negative values create a vulnerability
+nw::Effect* effect_damage_immunity(nw::Damage type, int value);
+
+/// Creates an damage penalty effect
+nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice);
+
+/// Creates an damage reduction effect
+nw::Effect* effect_damage_reduction(int value, int power, int max = 0);
+
+/// Creates an damage resistance effect
+nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max = 0);
+
+/// Creates a haste effect
+nw::Effect* effect_haste();
+
+/// Creates temporary hitpoints effect
+nw::Effect* effect_hitpoints_temporary(int amount);
+
+/// Creates miss chance effect
+nw::Effect* effect_miss_chance(int value, nw::MissChanceType type = miss_chance_type_normal);
+
+/// Creates an skill modifier effect
+nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs = nw::SaveVersus::invalid());
+
+/// Creates an skill modifier effect
+nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
+
+// ============================================================================
+// == Item Properties =========================================================
+// ============================================================================
+
+/// Creates ability modifier item property
+nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
+
+/// Creates armor modifier item property
+nw::ItemProperty itemprop_armor_class_modifier(int value);
+
+/// Creates attack modifier item property
+nw::ItemProperty itemprop_attack_modifier(int value);
+
+/// Creates bonus spell slot property
+nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level);
+
+/// Creates damage bonus item property
+nw::ItemProperty itemprop_damage_bonus(int value);
+
+/// Creates enhancement modifier item property
+nw::ItemProperty itemprop_enhancement_modifier(int value);
+
+/// Creates haste item property
+nw::ItemProperty itemprop_haste();
+
+/// Creates keen item property
+nw::ItemProperty itemprop_keen();
+
+/// Creates save modifier item property
+nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier);
+
+/// Creates save versus modifier item property
+nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier);
+
+/// Creates skill modifier item property
+nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 
 } // namespace nwn1

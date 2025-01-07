@@ -20,6 +20,42 @@ namespace nwk = nw::kernel;
 
 namespace nwn1 {
 
+// ============================================================================
+// == Object ==================================================================
+// ============================================================================
+
+// == Object: Effects =========================================================
+// ============================================================================
+
+// == Object: Hit Points ======================================================
+// ============================================================================
+
+int get_current_hitpoints(const nw::ObjectBase* obj)
+{
+    if (!obj) { return 0; }
+    int result = 0;
+
+    switch (obj->handle().type) {
+    default:
+        break;
+    case nw::ObjectType::creature: {
+        result = obj->as_creature()->hp_current;
+    } break;
+    case nw::ObjectType::door: {
+        result = obj->as_door()->hp_current;
+    } break;
+    case nw::ObjectType::placeable: {
+        result = obj->as_placeable()->hp_current;
+    } break;
+    }
+
+    return result;
+}
+
+// ============================================================================
+// == Creature ================================================================
+// ============================================================================
+
 // == Creature: Abilities =====================================================
 // ============================================================================
 
@@ -1374,56 +1410,6 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
     return 5;
 }
 
-// == Effects =================================================================
-// ============================================================================
-
-bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type)
-{
-    if (!obj) { return false; }
-    for (const auto& it : obj->effects()) {
-        if (it.type == type) { return true; }
-    }
-    return false;
-}
-
-int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
-{
-    if (!obj) { return 0; }
-    int processed = 0;
-    for (const auto& handle : obj->effects()) {
-        if (handle.effect->creator == creator) {
-            nw::kernel::events().add(nw::kernel::EventType::remove_effect, obj, handle.effect);
-            ++processed;
-        }
-    }
-    return processed;
-}
-
-// == Hit Points ==============================================================
-// ============================================================================
-
-int get_current_hitpoints(const nw::ObjectBase* obj)
-{
-    if (!obj) { return 0; }
-    int result = 0;
-
-    switch (obj->handle().type) {
-    default:
-        break;
-    case nw::ObjectType::creature: {
-        result = obj->as_creature()->hp_current;
-    } break;
-    case nw::ObjectType::door: {
-        result = obj->as_door()->hp_current;
-    } break;
-    case nw::ObjectType::placeable: {
-        result = obj->as_placeable()->hp_current;
-    } break;
-    }
-
-    return result;
-}
-
 /// Gets objects maximum hit points.
 int get_max_hitpoints(const nw::ObjectBase* obj)
 {
@@ -1928,4 +1914,287 @@ nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem it
 
     return result;
 }
+
+// ============================================================================
+// == Effects =================================================================
+// ============================================================================
+
+// == Effect Creation =========================================================
+// ============================================================================
+
+nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto type = modifier > 0 ? effect_type_ability_increase : effect_type_ability_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(type);
+    eff->subtype = *ability;
+    eff->set_int(0, std::abs(value));
+    return eff;
+}
+
+nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto efftype = modifier > 0 ? effect_type_ac_increase : effect_type_ac_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(efftype);
+    eff->subtype = *type;
+    eff->set_int(0, std::abs(value));
+    return eff;
+}
+
+nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_attack_increase);
+    eff->type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
+    eff->subtype = *attack;
+    eff->set_int(0, std::abs(modifier));
+    return eff;
+}
+
+nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level)
+{
+    if (spell_level < 0 || spell_level >= nw::kernel::rules().maximum_spell_levels()) {
+        return nullptr;
+    }
+
+    auto eff = nw::kernel::effects().create(effect_type_bonus_spell_of_level);
+    eff->subtype = *class_;
+    eff->set_int(0, spell_level);
+    return eff;
+}
+
+nw::Effect* effect_concealment(int value, nw::MissChanceType type)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_concealment);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    return eff;
+}
+
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCategory cat)
+{
+    if (!dice) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_increase);
+    eff->subtype = *type;
+    eff->set_int(0, dice.dice);
+    eff->set_int(1, dice.sides);
+    eff->set_int(2, dice.bonus);
+    eff->set_int(3, static_cast<int32_t>(cat));
+    return eff;
+}
+
+nw::Effect* effect_damage_immunity(nw::Damage type, int value)
+{
+    if (value == 0) { return nullptr; }
+    value = std::clamp(value, -100, 100);
+    auto eff = nw::kernel::effects().create(effect_type_damage_immunity_increase);
+    eff->type = value > 0 ? effect_type_damage_immunity_increase : effect_type_damage_immunity_decrease;
+    eff->subtype = *type;
+    eff->set_int(0, std::abs(value));
+    return eff;
+}
+
+nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice)
+{
+    if (!dice) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_decrease);
+    eff->subtype = *type;
+    eff->set_int(0, dice.dice);
+    eff->set_int(1, dice.sides);
+    eff->set_int(2, dice.bonus);
+    return eff;
+}
+
+nw::Effect* effect_damage_reduction(int value, int power, int max)
+{
+    if (value == 0 || power <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_reduction);
+    eff->set_int(0, value);
+    eff->set_int(1, power);
+    eff->set_int(2, max);
+    return eff;
+}
+
+nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_resistance);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    eff->set_int(1, max);
+    return eff;
+}
+
+nw::Effect* effect_haste()
+{
+    return nw::kernel::effects().create(effect_type_haste);
+}
+
+nw::Effect* effect_hitpoints_temporary(int amount)
+{
+    if (amount <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_temporary_hitpoints);
+    eff->set_int(0, amount);
+    return eff;
+}
+
+nw::Effect* effect_miss_chance(int value, nw::MissChanceType type)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_miss_chance);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    return eff;
+}
+
+nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs)
+{
+    if (modifier == 0) { return nullptr; }
+    auto type = modifier > 0 ? effect_type_saving_throw_increase : effect_type_saving_throw_decrease;
+    auto eff = nw::kernel::effects().create(type);
+    eff->subtype = *save;
+    eff->set_int(0, std::abs(modifier));
+    eff->set_int(1, *vs);
+    return eff;
+}
+
+nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto type = modifier > 0 ? effect_type_skill_increase : effect_type_skill_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(type);
+    eff->subtype = *skill;
+    eff->set_int(0, value);
+    return eff;
+}
+
+// ============================================================================
+// == Item Property ===========================================================
+// ============================================================================
+
+nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = uint16_t(modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score);
+    result.subtype = uint16_t(*ability);
+    result.cost_value = uint16_t(std::abs(modifier));
+    return result;
+}
+
+nw::ItemProperty itemprop_armor_class_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_ac_bonus : ip_decreased_ac;
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    result.cost_value = uint16_t(std::abs(value));
+    return result;
+}
+
+nw::ItemProperty itemprop_attack_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_attack_bonus : ip_attack_penalty;
+
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(std::abs(value));
+    return result;
+}
+
+nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level)
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_bonus_spell_slot_of_level_n);
+    result.subtype = uint16_t(*class_);
+    result.cost_value = spell_level;
+    return result;
+}
+
+nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value)
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_damage_bonus);
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    return result;
+}
+
+nw::ItemProperty itemprop_enhancement_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_enhancement_bonus : ip_enhancement_penalty;
+
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(std::abs(value));
+    return result;
+}
+
+nw::ItemProperty itemprop_haste()
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_haste);
+    return result;
+}
+
+nw::ItemProperty itemprop_keen()
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_keen);
+    return result;
+}
+
+nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws);
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint16_t(std::abs(modifier));
+    return result;
+}
+
+nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific);
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint16_t(std::abs(modifier));
+    return result;
+}
+
+nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = uint16_t(modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier);
+    result.subtype = uint16_t(*skill);
+    result.cost_value = uint16_t(std::abs(modifier));
+    return result;
+}
+
 } // namespace nwn1

@@ -1,10 +1,10 @@
 #include "rules.hpp"
 
 #include "constants.hpp"
-#include "effects.hpp"
 #include "scriptapi.hpp"
 
 #include "../../functions.hpp"
+#include "../../kernel/EffectSystem.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
 
@@ -1077,6 +1077,294 @@ void load_special_attacks()
 {
     nwk::rules().register_special_attack(special_attack_smite_evil, {smite_modifier, smite_use, {}});
     nwk::rules().register_special_attack(special_attack_smite_good, {smite_modifier, smite_use, {}});
+}
+
+// == Loaders =================================================================
+// ============================================================================
+
+// == Effect Apply/Remove =====================================================
+// ============================================================================
+
+inline bool effect_apply_is_creature(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj->as_creature();
+}
+
+inline bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj->as_creature();
+}
+
+inline bool effect_apply_is_valid(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj;
+}
+
+inline bool effect_remove_is_valid(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj;
+}
+
+inline bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
+{
+    if (auto cre = obj->as_creature()) {
+        if (!cre->hasted) { ++cre->combat_info.attacks_extra; }
+        ++cre->hasted;
+        return true;
+    }
+    return false;
+}
+
+inline bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
+{
+    if (auto cre = obj->as_creature()) {
+        if (cre->hasted) { --cre->hasted; }
+        if (!cre->hasted) { --cre->combat_info.attacks_extra; }
+        return true;
+    }
+    return false;
+}
+
+inline bool effect_hitpoints_temp_apply(nw::ObjectBase* obj, const nw::Effect* effect)
+{
+    if (!obj || !obj->as_creature()) { return false; }
+    auto cre = obj->as_creature();
+    cre->hp_current += int16_t(effect->get_int(0));
+    cre->hp_temp += int16_t(effect->get_int(0));
+    return true;
+}
+
+inline bool effect_hitpoints_temp_remove(nw::ObjectBase* obj, const nw::Effect* effect)
+{
+    if (!obj || !obj->as_creature()) { return false; }
+    auto cre = obj->as_creature();
+    if (effect->get_int(0) > 0) {
+        cre->hp_current -= int16_t(effect->get_int(0));
+        cre->hp_temp -= int16_t(effect->get_int(0));
+    }
+
+    // Death has to be considered here.. but not yet.
+
+    return true;
+}
+
+void load_effects()
+{
+    LOG_F(INFO, "[nwn1] Loading effect appliers");
+
+#define ADD_IS_CREATURE_EFFECT(type) \
+    nw::kernel::effects().add(type, effect_apply_is_creature, effect_remove_is_creature)
+
+#define ADD_IS_VALID_EFFECT(type) \
+    nw::kernel::effects().add(type, effect_apply_is_valid, effect_remove_is_valid)
+
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_ac_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_ac_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_bonus_spell_of_level);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_concealment);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_damage_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_damage_decrease);
+
+    ADD_IS_VALID_EFFECT(effect_type_damage_immunity_increase);
+    ADD_IS_VALID_EFFECT(effect_type_damage_immunity_decrease);
+    ADD_IS_VALID_EFFECT(effect_type_damage_reduction);
+    ADD_IS_VALID_EFFECT(effect_type_damage_resistance);
+
+    nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
+    nw::kernel::effects().add(effect_type_temporary_hitpoints,
+        effect_hitpoints_temp_apply, effect_hitpoints_temp_remove);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_saving_throw_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_saving_throw_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
+
+#undef ADD_IS_CREATURE_EFFECT
+#undef ADD_IS_VALID_EFFECT
+}
+
+// == Item Properties =========================================================
+// ============================================================================
+
+inline nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto abil = nw::Ability::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_ability_bonus || type == ip_decreased_ability_score) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_ability_modifier(abil, *value);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem baseitem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    auto base = nw::kernel::rules().baseitems.get(baseitem);
+    if (!base) { return nullptr; }
+    auto ac_type = base->ac_type;
+
+    if ((type == ip_ac_bonus || type == ip_decreased_ac) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_armor_class_modifier(ac_type, *value);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex equip, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_attack_bonus || type == ip_attack_penalty) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_bonus_spell_slot(const nw::ItemProperty& ip, nw::EquipIndex equip, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    if (type == ip_bonus_spell_slot_of_level_n) {
+        return effect_bonus_spell_slot(nw::Class::make(ip.subtype), ip.cost_value);
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_damage_bonus(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto dmgtype = nw::Damage::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_damage_bonus) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        auto dice = def->cost_table->get<int>(ip.cost_value, "NumDice");
+        auto sides = def->cost_table->get<int>(ip.cost_value, "Die");
+        if (dice && sides) {
+            if (*dice > 0) {
+                return effect_damage_bonus(dmgtype, {*dice, *sides, 0});
+            } else if (*dice == 0) {
+                return effect_damage_bonus(dmgtype, {0, 0, *sides});
+            }
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex equip, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_enhancement_bonus || type == ip_enhancement_penalty) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem)
+{
+    return effect_haste();
+}
+
+inline nw::Effect* ip_gen_save_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto save = nw::Save::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_saving_throw_bonus || type == ip_decreased_saving_throws) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_save_modifier(save, *value);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_save_vs_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto save = nw::SaveVersus::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_saving_throw_bonus_specific || type == ip_decreased_saving_throws_specific) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_save_modifier(nw::Save::invalid(), *value, save);
+        }
+    }
+    return nullptr;
+}
+
+inline nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto sk = nw::Skill::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_skill_bonus || type == ip_decreased_skill_modifier) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_skill_modifier(sk, *value);
+        }
+    }
+    return nullptr;
+}
+
+void load_itemprop_generators()
+{
+    LOG_F(INFO, "[nwn1] Loading item property generators");
+    nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_bonus_spell_slot_of_level_n, ip_gen_bonus_spell_slot);
+    nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_damage_bonus, ip_gen_damage_bonus);
+    nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
+    nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
+    nw::kernel::effects().add(ip_haste, ip_gen_haste);
+    nw::kernel::effects().add(ip_saving_throw_bonus, ip_gen_save_modifier);
+    nw::kernel::effects().add(ip_decreased_saving_throws, ip_gen_save_modifier);
+    nw::kernel::effects().add(ip_saving_throw_bonus_specific, ip_gen_save_vs_modifier);
+    nw::kernel::effects().add(ip_decreased_saving_throws_specific, ip_gen_save_vs_modifier);
+    nw::kernel::effects().add(ip_skill_bonus, ip_gen_skill_modifier);
+    nw::kernel::effects().add(ip_decreased_skill_modifier, ip_gen_skill_modifier);
 }
 
 } // namespace nwn1

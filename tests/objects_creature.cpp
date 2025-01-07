@@ -7,7 +7,6 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/effects.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
@@ -524,7 +523,7 @@ TEST(Creature, Concealment)
     EXPECT_TRUE(nw::apply_effect(obj, eff));
     EXPECT_TRUE(obj->effects().size() > 0);
     EXPECT_EQ(*obj->effects().begin()->type, *nwn1::effect_type_concealment);
-    EXPECT_TRUE(nwn1::has_effect_type_applied(obj, nwn1::effect_type_concealment));
+    EXPECT_TRUE(nw::has_effect_applied(obj, nwn1::effect_type_concealment));
     auto [c2, o2] = nwn1::resolve_concealment(obj, obj);
     EXPECT_EQ(c2, 30);
     EXPECT_FALSE(o2);
@@ -533,7 +532,7 @@ TEST(Creature, Concealment)
     EXPECT_TRUE(eff2);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_GT(obj->effects().size(), 1);
-    EXPECT_TRUE(nwn1::has_effect_type_applied(obj, nwn1::effect_type_miss_chance));
+    EXPECT_TRUE(nw::has_effect_applied(obj, nwn1::effect_type_miss_chance));
     auto [c3, o3] = nwn1::resolve_concealment(obj, obj);
     EXPECT_EQ(c3, 35);
     EXPECT_TRUE(o3);

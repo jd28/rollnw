@@ -7,7 +7,6 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/effects.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/attributes.hpp>
