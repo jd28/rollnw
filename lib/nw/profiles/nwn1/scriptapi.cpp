@@ -93,6 +93,144 @@ int get_max_hitpoints(const nw::ObjectBase* obj)
     return std::max(1, base + con + modifiers + temp);
 }
 
+// == Object: Saves ============================================================
+// =============================================================================
+
+int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs,
+    const nw::ObjectBase* versus)
+{
+    int result = 0;
+    if (!obj) { return 0; }
+    auto cre = obj->as_creature();
+
+    nw::Versus vs;
+    if (versus) { vs = versus->versus_me(); }
+
+    // Innate - [TODO] Clean all this up..
+    if (cre) {
+        switch (*type) {
+        default:
+            break;
+        case *saving_throw_fort:
+            result += cre->stats.save_bonus.fort;
+            break;
+        case *saving_throw_reflex:
+            result += cre->stats.save_bonus.reflex;
+            break;
+        case *saving_throw_will:
+            result += cre->stats.save_bonus.will;
+            break;
+        }
+    } else if (auto door = obj->as_door()) {
+        switch (*type) {
+        default:
+            break;
+        case *saving_throw_fort:
+            result += door->saves.fort;
+            break;
+        case *saving_throw_reflex:
+            result += door->saves.reflex;
+            break;
+        case *saving_throw_will:
+            result += door->saves.will;
+            break;
+        }
+    } else if (auto plc = obj->as_placeable()) {
+        switch (*type) {
+        default:
+            break;
+        case *saving_throw_fort:
+            result += plc->saves.fort;
+            break;
+        case *saving_throw_reflex:
+            result += plc->saves.reflex;
+            break;
+        case *saving_throw_will:
+            result += plc->saves.will;
+            break;
+        }
+    }
+
+    if (cre) {
+        // Ability
+        switch (*type) {
+        default:
+            break;
+        case *saving_throw_fort:
+            result += get_ability_modifier(cre, ability_constitution);
+            break;
+        case *saving_throw_reflex:
+            result += get_ability_modifier(cre, ability_dexterity);
+            break;
+        case *saving_throw_will:
+            result += get_ability_modifier(cre, ability_wisdom);
+            break;
+        }
+
+        // Class
+        auto& classes = nw::kernel::rules().classes;
+        for (size_t i = 0; i < nw::LevelStats::max_classes; ++i) {
+            auto id = cre->levels.entries[i].id;
+            int level = cre->levels.entries[i].level;
+
+            if (id == nw::Class::invalid()) { break; }
+            switch (*type) {
+            default:
+                break;
+            case *saving_throw_fort:
+                result += classes.get_class_save_bonus(id, level).fort;
+                break;
+            case *saving_throw_reflex:
+                result += classes.get_class_save_bonus(id, level).reflex;
+                break;
+            case *saving_throw_will:
+                result += classes.get_class_save_bonus(id, level).will;
+                break;
+            }
+        }
+    }
+
+    // Effects
+    auto begin = std::begin(obj->effects());
+    auto end = std::end(obj->effects());
+    int inc = 0, dec = 0;
+    auto it = nw::find_first_effect_of(begin, end, effect_type_saving_throw_increase);
+    while (it != end && (it->type == effect_type_saving_throw_increase || it->type == effect_type_saving_throw_decrease)) {
+        auto save_type = nw::Save::make(it->subtype);
+        if ((type == save_type || save_type == nw::Save::invalid())
+            && it->effect->versus().match(vs)
+            && it->effect->get_int(1) == *type_vs) {
+
+            if (it->type == effect_type_saving_throw_increase) {
+                inc += it->effect->get_int(0);
+            } else if (it->type == effect_type_saving_throw_decrease) {
+                dec += it->effect->get_int(0);
+            }
+        }
+        ++it;
+    }
+
+    auto [smin, smax] = nw::kernel::effects().limits.saves;
+    return result + std::clamp(inc - dec, smin, smax);
+}
+
+bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
+    nw::SaveVersus type_vs, const nw::ObjectBase* versus)
+{
+    static constexpr nw::DiceRoll d20{1, 20};
+    if (!obj) { return false; }
+
+    int roll = nw::roll_dice(d20);
+
+    if (roll == 1) { return false; }
+    if (roll == 20) { return true; }
+
+    dc = std::clamp(dc, 1, 255);
+    int save = saving_throw(obj, type, type_vs, versus);
+
+    return roll + save >= dc;
+}
+
 // ============================================================================
 // == Creature ================================================================
 // ============================================================================
@@ -1516,144 +1654,6 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
         }
     }
     return result;
-}
-
-// == Saving Throws ===========================================================
-// ============================================================================
-
-int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs,
-    const nw::ObjectBase* versus)
-{
-    int result = 0;
-    if (!obj) { return 0; }
-    auto cre = obj->as_creature();
-
-    nw::Versus vs;
-    if (versus) { vs = versus->versus_me(); }
-
-    // Innate - [TODO] Clean all this up..
-    if (cre) {
-        switch (*type) {
-        default:
-            break;
-        case *saving_throw_fort:
-            result += cre->stats.save_bonus.fort;
-            break;
-        case *saving_throw_reflex:
-            result += cre->stats.save_bonus.reflex;
-            break;
-        case *saving_throw_will:
-            result += cre->stats.save_bonus.will;
-            break;
-        }
-    } else if (auto door = obj->as_door()) {
-        switch (*type) {
-        default:
-            break;
-        case *saving_throw_fort:
-            result += door->saves.fort;
-            break;
-        case *saving_throw_reflex:
-            result += door->saves.reflex;
-            break;
-        case *saving_throw_will:
-            result += door->saves.will;
-            break;
-        }
-    } else if (auto plc = obj->as_placeable()) {
-        switch (*type) {
-        default:
-            break;
-        case *saving_throw_fort:
-            result += plc->saves.fort;
-            break;
-        case *saving_throw_reflex:
-            result += plc->saves.reflex;
-            break;
-        case *saving_throw_will:
-            result += plc->saves.will;
-            break;
-        }
-    }
-
-    if (cre) {
-        // Ability
-        switch (*type) {
-        default:
-            break;
-        case *saving_throw_fort:
-            result += get_ability_modifier(cre, ability_constitution);
-            break;
-        case *saving_throw_reflex:
-            result += get_ability_modifier(cre, ability_dexterity);
-            break;
-        case *saving_throw_will:
-            result += get_ability_modifier(cre, ability_wisdom);
-            break;
-        }
-
-        // Class
-        auto& classes = nw::kernel::rules().classes;
-        for (size_t i = 0; i < nw::LevelStats::max_classes; ++i) {
-            auto id = cre->levels.entries[i].id;
-            int level = cre->levels.entries[i].level;
-
-            if (id == nw::Class::invalid()) { break; }
-            switch (*type) {
-            default:
-                break;
-            case *saving_throw_fort:
-                result += classes.get_class_save_bonus(id, level).fort;
-                break;
-            case *saving_throw_reflex:
-                result += classes.get_class_save_bonus(id, level).reflex;
-                break;
-            case *saving_throw_will:
-                result += classes.get_class_save_bonus(id, level).will;
-                break;
-            }
-        }
-    }
-
-    // Effects
-    auto begin = std::begin(obj->effects());
-    auto end = std::end(obj->effects());
-    int inc = 0, dec = 0;
-    auto it = nw::find_first_effect_of(begin, end, effect_type_saving_throw_increase);
-    while (it != end && (it->type == effect_type_saving_throw_increase || it->type == effect_type_saving_throw_decrease)) {
-        auto save_type = nw::Save::make(it->subtype);
-        if ((type == save_type || save_type == nw::Save::invalid())
-            && it->effect->versus().match(vs)
-            && it->effect->get_int(1) == *type_vs) {
-
-            if (it->type == effect_type_saving_throw_increase) {
-                inc += it->effect->get_int(0);
-            } else if (it->type == effect_type_saving_throw_decrease) {
-                dec += it->effect->get_int(0);
-            }
-        }
-        ++it;
-    }
-
-    auto [smin, smax] = nw::kernel::effects().limits.saves;
-    return result + std::clamp(inc - dec, smin, smax);
-}
-
-bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
-    nw::SaveVersus type_vs, const nw::ObjectBase* versus)
-{
-    static constexpr nw::DiceRoll d20{1, 20};
-    if (!obj) { return false; }
-
-    int roll = nw::roll_dice(d20);
-
-    if (roll == 1) { return false; }
-    if (roll == 20) { return true; }
-
-    dc = std::clamp(dc, 1, 255);
-    int save = saving_throw(obj, type, type_vs, versus);
-
-    return roll + save >= dc;
 }
 
 // == Skills ==================================================================

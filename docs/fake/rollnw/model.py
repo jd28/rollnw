@@ -1,6 +1,6 @@
 import enum
 from enum import auto
-from typing import Tuple, List, ClassVar, Optional
+from typing import Tuple, List, ClassVar, Optional, Iterator
 
 from . import (
     IVector4,
@@ -397,15 +397,15 @@ class MdlModel(MdlGeometry):
     supermodel_name: str
     file_dependency: str
 
-    def animation_count(self):
+    def animation_count(self) -> int:
         """Gets the number of animations"""
         pass
 
-    def animations(self):
+    def animations(self) -> Iterator[MdlAnimation]:
         """Gets an iterator of animations"""
         pass
 
-    def get_animation(self, index: int):
+    def get_animation(self, index: int) -> MdlAnimation:
         """Gets an animation"""
         pass
 
@@ -416,11 +416,11 @@ class Mdl:
     #: The parsed model
     model: MdlModel
 
-    def valid(self):
+    def valid(self) -> bool:
         """Determines if file was successfully parsed"""
         pass
 
     @staticmethod
-    def from_file(path):
+    def from_file(path) -> 'Mdl':
         """Loads mdl file from file path"""
         pass

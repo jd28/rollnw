@@ -1,5 +1,5 @@
 import enum
-from enum import auto
+from enum import auto, IntFlag
 from typing import NewType, Tuple, List, ClassVar, Optional, ByteString, DefaultDict
 
 
@@ -1097,7 +1097,7 @@ class TwoDA:
         pass
 
     @staticmethod
-    def from_string(string: str) -> TwoDA:
+    def from_string(string: str) -> 'TwoDA':
         pass
 
 
@@ -2258,6 +2258,14 @@ class AttackResult(enum.IntEnum):
     miss_by_roll = auto()
 
 
+class DamageCategory(IntFlag):
+    """Represents categories of damage with bitwise support."""
+    none = 0
+    penalty = 1 << 0
+    critical = 1 << 1
+    unblockable = 1 << 2
+
+
 class DiceRoll:
     """Dice roll
     """
@@ -2299,39 +2307,39 @@ class Effect:
         """Clears the effect such that it's as if default constructed"""
         pass
 
-    def get_float(self, index):
+    def get_float(self, index: int) -> float:
         """Gets a floating point value"""
         pass
 
-    def get_int(self, index):
+    def get_int(self, index: int) -> int:
         """Gets an integer point value"""
         pass
 
-    def get_string(self, index):
+    def get_string(self, index: int) -> str:
         """Gets a string value"""
         pass
 
-    def handle(self):
+    def handle(self) -> EffectHandle:
         """Gets the effect's handle"""
         pass
 
-    def id(self):
+    def id(self) -> EffectID:
         """Gets the effect's ID"""
         pass
 
-    def set_float(self, index: int, value: float):
+    def set_float(self, index: int, value: float) -> None:
         """Sets a floating point value"""
         pass
 
-    def set_int(self, index: int, value: int):
+    def set_int(self, index: int, value: int) -> None:
         """Sets an integer point value"""
         pass
 
-    def set_string(self, index: int, value: str):
+    def set_string(self, index: int, value: str) -> None:
         """Sets a string value"""
         pass
 
-    def set_versus(self, vs):
+    def set_versus(self, vs) -> None:
         """Sets the versus value"""
         pass
 

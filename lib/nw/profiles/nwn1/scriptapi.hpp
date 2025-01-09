@@ -43,6 +43,17 @@ int get_current_hitpoints(const nw::ObjectBase* obj);
 /// Gets objects maximum hit points.
 int get_max_hitpoints(const nw::ObjectBase* obj);
 
+// == Object: Saves ============================================================
+// =============================================================================
+
+/// Determines saving throw
+int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
+    const nw::ObjectBase* versus = nullptr);
+
+/// Resolves saving throw
+bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
+    nw::SaveVersus type_vs = nw::SaveVersus::invalid(), const nw::ObjectBase* versus = nullptr);
+
 // ============================================================================
 // == Creature ================================================================
 // ============================================================================
@@ -69,7 +80,7 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
 int calculate_item_ac(const nw::Item* obj);
 
 // == Creature: Casting =======================================================
-// ===========================================================================
+// ============================================================================
 
 /// Adds a known spell
 bool add_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell);
@@ -182,7 +193,7 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
 
-// == Items ===================================================================
+// == Creature: Equips ========================================================
 // ============================================================================
 
 /// Determines if an item can be equipped
@@ -194,20 +205,8 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 /// Gets an equipped item
 nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
 
-/// Determines if item is a shield
-bool is_shield(nw::BaseItem baseitem);
-
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
-
-// == Creature: Saves ==========================================================
-// =============================================================================
-
-int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
-    const nw::ObjectBase* versus = nullptr);
-
-bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
-    nw::SaveVersus type_vs = nw::SaveVersus::invalid(), const nw::ObjectBase* versus = nullptr);
 
 // == Creature: Skills ========================================================
 // ============================================================================
@@ -216,6 +215,7 @@ bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
 int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
     nw::ObjectBase* versus = nullptr, bool base = false);
 
+/// Resolves skill check
 bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
     nw::ObjectBase* versus = nullptr);
 
@@ -249,6 +249,9 @@ bool is_ranged_weapon(const nw::Item* item);
 
 /// Determines if item is unarmed weapon
 bool is_unarmed_weapon(const nw::Item* item);
+
+/// Determines if item is a shield
+bool is_shield(nw::BaseItem baseitem);
 
 /// Determines if item requires two hands to wield
 bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item);

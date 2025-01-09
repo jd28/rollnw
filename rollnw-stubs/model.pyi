@@ -1,379 +1,291 @@
-from typing import Any, ClassVar, Iterator, List
+import enum
+from . import IVector4 as IVector4, Vector2 as Vector2, Vector3 as Vector3, Vector4 as Vector4
+from typing import ClassVar, Iterator
 
-import rollnw
+class MdlNodeFlags:
+    header: ClassVar[int]
+    light: ClassVar[int]
+    emitter: ClassVar[int]
+    camera: ClassVar[int]
+    reference: ClassVar[int]
+    mesh: ClassVar[int]
+    skin: ClassVar[int]
+    anim: ClassVar[int]
+    dangly: ClassVar[int]
+    aabb: ClassVar[int]
+    patch: ClassVar[int]
 
-class Mdl:
-    def __init__(self, *args, **kwargs) -> None: ...
-    def from_file(self, *args, **kwargs) -> Any: ...
-    def valid(self) -> bool: ...
-    @property
-    def model(self) -> MdlModel: ...
+class MdlNodeType:
+    aabb: ClassVar[int]
+    animmesh: ClassVar[int]
+    camera: ClassVar[int]
+    danglymesh: ClassVar[int]
+    dummy: ClassVar[int]
+    emitter: ClassVar[int]
+    light: ClassVar[int]
+    patch: ClassVar[int]
+    reference: ClassVar[int]
+    skin: ClassVar[int]
+    trimesh: ClassVar[int]
 
-class MdlAABBEntry:
-    bmax: rollnw.Vector3
-    bmin: rollnw.Vector3
-    leaf_face: int
-    plane: int
-    def __init__(self, *args, **kwargs) -> None: ...
+class ModelEmitterFlag:
+    affected_by_wind: ClassVar[int]
+    bounce: ClassVar[int]
+    inherit_local: ClassVar[int]
+    inherit_part: ClassVar[int]
+    inherit_vel: ClassVar[int]
+    inherit: ClassVar[int]
+    is_tinted: ClassVar[int]
+    p2p_sel: ClassVar[int]
+    p2p: ClassVar[int]
+    random: ClassVar[int]
+    splat: ClassVar[int]
 
-class MdlAABBNode(MdlTrimeshNode):
-    entries: List[MdlAABBEntry]
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlTriangleMode(enum.IntEnum):
+    triangle = ...
+    triangle_strip = ...
 
-class MdlAnimation(MdlGeometry):
-    anim_root: str
-    length: float
-    transition_time: float
-    def __init__(self, *args, **kwargs) -> None: ...
-    @property
-    def events(self) -> List[MdlAnimationEvent]: ...
+class MdlGeometryFlag(enum.IntEnum):
+    geometry = ...
+    model = ...
+    animation = ...
+    binary = ...
 
-class MdlAnimationEvent:
-    name: str
-    time: float
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlGeometryType(enum.IntEnum):
+    geometry = ...
+    model = ...
+    animation = ...
 
-class MdlAnimeshNode(MdlTrimeshNode):
-    animtverts: rollnw.Vec3Vector
-    animverts: rollnw.Vec3Vector
-    sampleperiod: float
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlCameraNode(MdlNode):
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlClassification:
-    __members__: ClassVar[dict] = ...  # read-only
-    __entries: ClassVar[dict] = ...
-    character: ClassVar[MdlClassification] = ...
-    door: ClassVar[MdlClassification] = ...
-    effect: ClassVar[MdlClassification] = ...
-    gui: ClassVar[MdlClassification] = ...
-    invalid: ClassVar[MdlClassification] = ...
-    item: ClassVar[MdlClassification] = ...
-    tile: ClassVar[MdlClassification] = ...
-    def __init__(self, value: int) -> None: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __getstate__(self) -> int: ...
-    def __hash__(self) -> int: ...
-    def __index__(self) -> int: ...
-    def __int__(self) -> int: ...
-    def __ne__(self, other: object) -> bool: ...
-    def __setstate__(self, state: int) -> None: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def value(self) -> int: ...
-
-class MdlControllerKey>:
-    columns: int
-    data_offset: int
-    is_key: bool
-    key_offset: int
-    name: InternedString
-    rows: int
-    type: int
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlClassification(enum.IntEnum):
+    invalid = ...
+    effect = ...
+    tile = ...
+    character = ...
+    door = ...
+    item = ...
+    gui = ...
 
 class MdlControllerType:
-    alpha: ClassVar[int] = ...  # read-only
-    alpha_end: ClassVar[int] = ...  # read-only
-    alpha_mid: ClassVar[int] = ...  # read-only
-    alpha_start: ClassVar[int] = ...  # read-only
-    birthrate: ClassVar[int] = ...  # read-only
-    blur_length: ClassVar[int] = ...  # read-only
-    bounce_co: ClassVar[int] = ...  # read-only
-    color: ClassVar[int] = ...  # read-only
-    color_end: ClassVar[int] = ...  # read-only
-    color_mid: ClassVar[int] = ...  # read-only
-    color_start: ClassVar[int] = ...  # read-only
-    combine_time: ClassVar[int] = ...  # read-only
-    detonate: ClassVar[int] = ...  # read-only
-    drag: ClassVar[int] = ...  # read-only
-    fps: ClassVar[int] = ...  # read-only
-    frame_end: ClassVar[int] = ...  # read-only
-    frame_start: ClassVar[int] = ...  # read-only
-    grav: ClassVar[int] = ...  # read-only
-    life_exp: ClassVar[int] = ...  # read-only
-    lightning_delay: ClassVar[int] = ...  # read-only
-    lightning_radius: ClassVar[int] = ...  # read-only
-    lightning_scale: ClassVar[int] = ...  # read-only
-    lightning_subdiv: ClassVar[int] = ...  # read-only
-    mass: ClassVar[int] = ...  # read-only
-    multiplier: ClassVar[int] = ...  # read-only
-    orientation: ClassVar[int] = ...  # read-only
-    p2p_bezier2: ClassVar[int] = ...  # read-only
-    p2p_bezier3: ClassVar[int] = ...  # read-only
-    particle_rot: ClassVar[int] = ...  # read-only
-    percent_end: ClassVar[int] = ...  # read-only
-    percent_mid: ClassVar[int] = ...  # read-only
-    percent_start: ClassVar[int] = ...  # read-only
-    position: ClassVar[int] = ...  # read-only
-    radius: ClassVar[int] = ...  # read-only
-    rand_vel: ClassVar[int] = ...  # read-only
-    scale: ClassVar[int] = ...  # read-only
-    self_illum_color: ClassVar[int] = ...  # read-only
-    shadow_radius: ClassVar[int] = ...  # read-only
-    size_end: ClassVar[int] = ...  # read-only
-    size_end_y: ClassVar[int] = ...  # read-only
-    size_mid: ClassVar[int] = ...  # read-only
-    size_mid_y: ClassVar[int] = ...  # read-only
-    size_start: ClassVar[int] = ...  # read-only
-    size_start_y: ClassVar[int] = ...  # read-only
-    spread: ClassVar[int] = ...  # read-only
-    threshold: ClassVar[int] = ...  # read-only
-    velocity: ClassVar[int] = ...  # read-only
-    vertical_displacement: ClassVar[int] = ...  # read-only
-    wirecolor: ClassVar[int] = ...  # read-only
-    xsize: ClassVar[int] = ...  # read-only
-    ysize: ClassVar[int] = ...  # read-only
-    def __init__(self, *args, **kwargs) -> None: ...
+    position: ClassVar[int]
+    orientation: ClassVar[int]
+    scale: ClassVar[int]
+    wirecolor: ClassVar[int]
+    color: ClassVar[int]
+    radius: ClassVar[int]
+    shadow_radius: ClassVar[int]
+    vertical_displacement: ClassVar[int]
+    multiplier: ClassVar[int]
+    alpha_end: ClassVar[int]
+    alpha_start: ClassVar[int]
+    birthrate: ClassVar[int]
+    bounce_co: ClassVar[int]
+    color_end: ClassVar[int]
+    color_start: ClassVar[int]
+    combine_time: ClassVar[int]
+    drag: ClassVar[int]
+    fps: ClassVar[int]
+    frame_end: ClassVar[int]
+    frame_start: ClassVar[int]
+    grav: ClassVar[int]
+    life_exp: ClassVar[int]
+    mass: ClassVar[int]
+    p2p_bezier2: ClassVar[int]
+    p2p_bezier3: ClassVar[int]
+    particle_rot: ClassVar[int]
+    rand_vel: ClassVar[int]
+    size_start: ClassVar[int]
+    size_end: ClassVar[int]
+    size_start_y: ClassVar[int]
+    size_end_y: ClassVar[int]
+    spread: ClassVar[int]
+    threshold: ClassVar[int]
+    velocity: ClassVar[int]
+    xsize: ClassVar[int]
+    ysize: ClassVar[int]
+    blur_length: ClassVar[int]
+    lightning_delay: ClassVar[int]
+    lightning_radius: ClassVar[int]
+    lightning_scale: ClassVar[int]
+    lightning_subdiv: ClassVar[int]
+    detonate: ClassVar[int]
+    alpha_mid: ClassVar[int]
+    color_mid: ClassVar[int]
+    percent_start: ClassVar[int]
+    percent_mid: ClassVar[int]
+    percent_end: ClassVar[int]
+    size_mid: ClassVar[int]
+    size_mid_y: ClassVar[int]
+    self_illum_color: ClassVar[int]
+    alpha: ClassVar[int]
 
-class MdlDanglymeshNode(MdlTrimeshNode):
-    constraints: rollnw.UInt32Vector
-    displacement: float
-    period: float
-    tightness: float
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlControllerKey:
+    name: str
+    type: int
+    rows: int
+    key_offset: int
+    time_offset: int
+    data_offset: int
+    columns: int
+    is_key: bool
 
-class MdlDummyNode(MdlNode):
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlFace:
+    vert_idx: list[int]
+    shader_group_idx: int
+    tvert_idx: list[int]
+    material_idx: int
 
-class MdlEmitterFlag:
-    affected_by_wind: ClassVar[int] = ...  # read-only
-    bounce: ClassVar[int] = ...  # read-only
-    inherit: ClassVar[int] = ...  # read-only
-    inherit_local: ClassVar[int] = ...  # read-only
-    inherit_part: ClassVar[int] = ...  # read-only
-    inherit_vel: ClassVar[int] = ...  # read-only
-    is_tinted: ClassVar[int] = ...  # read-only
-    p2p: ClassVar[int] = ...  # read-only
-    p2p_sel: ClassVar[int] = ...  # read-only
-    random: ClassVar[int] = ...  # read-only
-    splat: ClassVar[int] = ...  # read-only
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlNode:
+    name: str
+    type: int
+    inheritcolor: bool
+    parent: MdlNode
+    children: list['MdlNode']
+    def get_controller(self, type: int, is_key: bool) -> tuple[MdlControllerKey, list[float], list[float]]: ...
+
+class MdlDummyNode(MdlNode): ...
+class MdlCameraNode(MdlNode): ...
 
 class MdlEmitterNode(MdlNode):
     blastlength: float
     blastradius: float
     blend: str
-    blend_sel: int
     chunkname: str
     deadspace: float
-    flags: int
     loop: int
-    opacity: float
-    p2p_type: str
     render: str
-    render_sel: int
     renderorder: int
     spawntype: int
-    spawntype_sel: int
     texture: str
     twosidedtex: int
     update: str
-    update_sel: int
     xgrid: int
     ygrid: int
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlFace:
-    material_idx: int
-    shader_group_idx: int
-    tvert_idx: List[int[3]]
-    vert_idx: List[int[3]]
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlGeometry:
-    name: str
-    type: MdlGeometryType
-    def __init__(self, *args, **kwargs) -> None: ...
-    def nodes(self) -> Iterator: ...
-    def __getitem__(self, arg0: int) -> MdlNode: ...
-    def __len__(self) -> int: ...
-
-class MdlGeometryFlag:
-    __members__: ClassVar[dict] = ...  # read-only
-    __entries: ClassVar[dict] = ...
-    animation: ClassVar[MdlGeometryFlag] = ...
-    binary: ClassVar[MdlGeometryFlag] = ...
-    geometry: ClassVar[MdlGeometryFlag] = ...
-    model: ClassVar[MdlGeometryFlag] = ...
-    def __init__(self, value: int) -> None: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __getstate__(self) -> int: ...
-    def __hash__(self) -> int: ...
-    def __index__(self) -> int: ...
-    def __int__(self) -> int: ...
-    def __ne__(self, other: object) -> bool: ...
-    def __setstate__(self, state: int) -> None: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def value(self) -> int: ...
-
-class MdlGeometryType:
-    __members__: ClassVar[dict] = ...  # read-only
-    __entries: ClassVar[dict] = ...
-    animation: ClassVar[MdlGeometryType] = ...
-    geometry: ClassVar[MdlGeometryType] = ...
-    model: ClassVar[MdlGeometryType] = ...
-    def __init__(self, value: int) -> None: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __getstate__(self) -> int: ...
-    def __hash__(self) -> int: ...
-    def __index__(self) -> int: ...
-    def __int__(self) -> int: ...
-    def __ne__(self, other: object) -> bool: ...
-    def __setstate__(self, state: int) -> None: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def value(self) -> int: ...
+    flags: int
+    render_sel: int
+    blend_sel: int
+    update_sel: int
+    spawntype_sel: int
+    opacity: float
+    p2p_type: str
 
 class MdlLightNode(MdlNode):
-    affectdynamic: int
-    ambientonly: int
-    color: rollnw.Vector3
-    dynamic: bool
-    fadinglight: int
-    flarecolorshifts: rollnw.Vec3Vector
-    flarepositions: List[float]
+    lensflares: float
     flareradius: float
-    flaresizes: List[float]
-    generateflare: int
-    lightpriority: int
     multiplier: float
+    color: Vector3
+    flaresizes: list[float]
+    flarepositions: list[float]
+    flarecolorshifts: list[Vector3]
+    textures: list[str]
+    lightpriority: int
+    ambientonly: int
+    dynamic: bool
+    affectdynamic: int
     shadow: int
-    textures: rollnw.StringVector
-    def __init__(self, *args, **kwargs) -> None: ...
+    generateflare: int
+    fadinglight: int
 
-class MdlModel(MdlGeometry):
-    animationscale: float
-    bmax: rollnw.Vector3
-    bmin: rollnw.Vector3
-    classification: MdlClassification
-    file_dependency: str
-    ignorefog: bool
-    radius: float
-    supermodel_name: str
-    def __init__(self, *args, **kwargs) -> None: ...
-    def animation_count(self) -> int: ...
-    def animations(self) -> Iterator: ...
-    def get_animation(self, arg0: int) -> MdlAnimation: ...
-    @property
-    def supermodel(self) -> Any: ...
-
-class MdlNode:
-    def __init__(self, *args, **kwargs) -> None: ...
-    def get_controller(self, arg0: int, arg1: bool) -> tuple: ...
-    @property
-    def children(self) -> List[MdlNode]: ...
-    @property
-    def controller_data(self) -> List[float]: ...
-    @property
-    def controller_keys(self) -> Any: ...
-    @property
-    def inheritcolor(self) -> bool: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def parent(self) -> MdlNode: ...
-    @property
-    def type(self) -> int: ...
-
-class MdlNodeFlags:
-    aabb: ClassVar[int] = ...  # read-only
-    anim: ClassVar[int] = ...  # read-only
-    camera: ClassVar[int] = ...  # read-only
-    dangly: ClassVar[int] = ...  # read-only
-    emitter: ClassVar[int] = ...  # read-only
-    header: ClassVar[int] = ...  # read-only
-    light: ClassVar[int] = ...  # read-only
-    mesh: ClassVar[int] = ...  # read-only
-    patch: ClassVar[int] = ...  # read-only
-    reference: ClassVar[int] = ...  # read-only
-    skin: ClassVar[int] = ...  # read-only
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlNodeType:
-    aabb: ClassVar[int] = ...  # read-only
-    animmesh: ClassVar[int] = ...  # read-only
-    camera: ClassVar[int] = ...  # read-only
-    danglymesh: ClassVar[int] = ...  # read-only
-    dummy: ClassVar[int] = ...  # read-only
-    emitter: ClassVar[int] = ...  # read-only
-    light: ClassVar[int] = ...  # read-only
-    patch: ClassVar[int] = ...  # read-only
-    reference: ClassVar[int] = ...  # read-only
-    skin: ClassVar[int] = ...  # read-only
-    trimesh: ClassVar[int] = ...  # read-only
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlPatchNode(MdlNode):
-    def __init__(self, *args, **kwargs) -> None: ...
+class MdlPatchNode(MdlNode): ...
 
 class MdlReferenceNode(MdlNode):
-    reattachable: bool
     refmodel: str
-    def __init__(self, *args, **kwargs) -> None: ...
+    reattachable: bool
 
-class MdlSkinNode(MdlTrimeshNode):
-    weights: List[MdlSkinWeight]
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlSkinWeight:
-    bones: List[str[4]]
-    weights: List[float[4]]
-    def __init__(self, *args, **kwargs) -> None: ...
-
-class MdlTriangleMode:
-    __members__: ClassVar[dict] = ...  # read-only
-    __entries: ClassVar[dict] = ...
-    triangle: ClassVar[MdlTriangleMode] = ...
-    triangle_strip: ClassVar[MdlTriangleMode] = ...
-    def __init__(self, value: int) -> None: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __getstate__(self) -> int: ...
-    def __hash__(self) -> int: ...
-    def __index__(self) -> int: ...
-    def __int__(self) -> int: ...
-    def __ne__(self, other: object) -> bool: ...
-    def __setstate__(self, state: int) -> None: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def value(self) -> int: ...
+class Vertex:
+    position: Vector3
+    tex_coords: Vector2
+    normal: Vector3
+    tangent: Vector3
 
 class MdlTrimeshNode(MdlNode):
-    ambient: rollnw.Vector3
+    ambient: Vector3
     beaming: bool
+    bmin: Vector3
+    bmax: Vector3
     bitmap: str
-    bmax: rollnw.Vector3
-    bmin: rollnw.Vector3
-    center: rollnw.Vector3
-    colors: rollnw.Vec3Vector
-    diffuse: rollnw.Vector3
-    displtype: int
-    lightmapped: int
+    center: Vector3
+    diffuse: Vector3
     materialname: str
-    multimaterial: rollnw.StringVector
     render: bool
     renderhint: str
     rotatetexture: bool
     shadow: bool
     shininess: float
-    showdispl: bool
-    specular: rollnw.Vector3
-    textures: List[str[3]]
+    specular: Vector3
+    textures: list[str]
     tilefade: int
     transparencyhint: int
-    vertices: rollnw.VertexVector
-    def __init__(self, *args, **kwargs) -> None: ...
+    showdispl: bool
+    displtype: int
+    lightmapped: int
+    multimaterial: list[str]
+    vertices: list[Vertex]
+    indices: list[int]
 
-class Vertex:
-    normal: rollnw.Vector3
-    position: rollnw.Vector3
-    tangent: rollnw.Vector4
-    tex_coords: rollnw.Vector2
-    def __init__(self, *args, **kwargs) -> None: ...
+class SkinVertex:
+    position: Vector3
+    tex_coords: Vector2
+    normal: Vector3
+    tangent: Vector4
+    bones: IVector4
+    weights: Vector4
+
+class MdlSkinNode(MdlTrimeshNode):
+    vertices: list[SkinVertex]
+
+class MdlAnimeshNode(MdlTrimeshNode):
+    animtverts: list[Vector3]
+    animverts: list[Vector3]
+    sampleperiod: float
+
+class MdlDanglymeshNode(MdlTrimeshNode):
+    constraints: list[float]
+    displacement: float
+    period: float
+    tightness: float
+
+class MdlAABBEntry:
+    bmin: Vector3
+    bmax: Vector3
+    leaf_face: int
+    plane: int
+
+class MdlAABBNode(MdlTrimeshNode):
+    entries: list[MdlAABBEntry]
+
+class MdlGeometry:
+    name: str
+    type: int
+    def __getitem__(self, index) -> None: ...
+    def __iter__(self): ...
+    def __len__(self) -> int: ...
+
+class MdlAnimationEvent:
+    time: float
+    name: str
+
+class MdlAnimation(MdlGeometry):
+    length: float
+    transition_time: float
+    anim_root: str
+    events: list[MdlAnimationEvent]
+
+class MdlModel(MdlGeometry):
+    bmax: Vector3
+    bmin: Vector3
+    classification: int
+    ignorefog: bool
+    supermodel: Mdl | None
+    radius: float
+    animationscale: float
+    supermodel_name: str
+    file_dependency: str
+    def animation_count(self) -> int: ...
+    def animations(self) -> Iterator[MdlAnimation]: ...
+    def get_animation(self, index: int) -> MdlAnimation: ...
+
+class Mdl:
+    model: MdlModel
+    def valid(self) -> bool: ...
+    @staticmethod
+    def from_file(path) -> Mdl: ...

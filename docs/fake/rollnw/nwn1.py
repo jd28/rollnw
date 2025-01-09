@@ -2,6 +2,7 @@ from . import (
     Area,
     AttackData,
     Creature,
+    DamageCategory,
     DiceRoll,
     Door,
     Effect,
@@ -182,9 +183,44 @@ def itemprop_to_string(ip: "ItemProperty") -> str:
 # == PROFILE SCRIPT API =======================================================
 # =============================================================================
 
+# =============================================================================
+# == Object ===================================================================
+# =============================================================================
 
-# == Abilities ===============================================================
-# ============================================================================
+# == Object: Effects ==========================================================
+# =============================================================================
+
+# == Object: Hit Points =======================================================
+# =============================================================================
+
+
+def get_current_hitpoints(obj: ObjectBase) -> int:
+    """Gets objects current hitpoints"""
+
+
+def get_max_hitpoints(obj: ObjectBase) -> int:
+    """Gets objects maximum hit points."""
+    pass
+
+
+# == Object: Saves =============================================================
+# ==============================================================================
+
+def saving_throw(obj: ObjectBase, type: int, type_vs: int = -1,
+                 versus: ObjectBase = None) -> int:
+    """Determines saving throw"""
+
+
+def resolve_saving_throw(obj: ObjectBase, type: int,  dc: int, type_vs: int = -1, versus: ObjectBase = None) -> bool:
+    """Resolves saving throw"""
+    pass
+
+# =============================================================================
+# == Creature =================================================================
+# =============================================================================
+
+# == Creature: Abilities ======================================================
+# =============================================================================
 
 
 def get_ability_score(obj: Creature, ability,  base: bool = False) -> int:
@@ -201,8 +237,8 @@ def get_dex_modifier(obj: Creature) -> int:
     """Gets creatures dexterity modifier as modified by armor, etc."""
     pass
 
-# == Armor Class =============================================================
-# ============================================================================
+# == Creature: Armor Class ====================================================
+# =============================================================================
 
 
 def calculate_ac_versus(obj: ObjectBase, versus: Optional[ObjectBase] = None,
@@ -215,8 +251,33 @@ def calculate_item_ac(obj: Item) -> int:
     """Calculates the armor class of a piece of armor"""
     pass
 
-# == Casting =================================================================
-# ============================================================================
+# == Creature: Casting ========================================================
+# =============================================================================
+
+
+def add_known_spell(obj: Creature, class_: int, spell: int) -> bool:
+    """Adds a known spell"""
+    pass
+
+
+def add_memorized_spell(obj: Creature, class_: int, spell: int, meta: int = 0) -> bool:
+    """Adds a memorized spell"""
+    pass
+
+
+def compute_total_spell_slots(obj: Creature,  class_: int, spell_level: int) -> int:
+    """Computes available slots that are able to be prepared or castable"""
+    pass
+
+
+def get_available_spell_slots(obj: Creature,  class_: int, spell_level: int) -> int:
+    """Gets the number of available slots at a particular spell level"""
+    pass
+
+
+def get_available_spell_uses(obj: Creature, class_: int, spell: int,  min_spell_level: int = 0, meta: int = 0) -> int:
+    """Gets available spell uses"""
+    pass
 
 
 def get_caster_level(obj: Creature, class_: int) -> int:
@@ -225,21 +286,36 @@ def get_caster_level(obj: Creature, class_: int) -> int:
     return 0
 
 
+def get_knows_spell(obj: Creature, class_: int, spell: int) -> bool:
+    """Determines if creature knows a spell"""
+    pass
+
+
 def get_spell_dc(obj: Creature, class_: int, spell: int) -> int:
     """Gets spell DC
     """
     return 0
 
-# == Classes =================================================================
-# ============================================================================
+
+def recompute_all_availabe_spell_slots(obj: Creature) -> None:
+    """Recomputes all available spell slots"""
+    pass
+
+
+def remove_known_spell(obj: Creature, class_: int, spell: int) -> None:
+    """Removes a known spell and any preparations thereof."""
+    pass
+
+# == Creature: Classes ========================================================
+# =============================================================================
 
 
 def can_use_monk_abilities(obj: Creature) -> Tuple[bool, int]:
     """Determines if monk class abilities are usable and monk class level"""
     pass
 
-# == Combat ==================================================================
-# ============================================================================
+# == Creature: Combat =========================================================
+# =============================================================================
 
 
 def attacks_per_second(obj: Creature, type, versus: ObjectBase) -> float:
@@ -370,36 +446,125 @@ def weapon_iteration(obj: Creature, weapon: Item) -> int:
     """Calculates weapon iteration, e.g. 5 or 3 for monk weapons"""
     pass
 
-# == Effect Creation =========================================================
+# == Creature: Equips =========================================================
+# =============================================================================
+
+
+def can_equip_item(obj: Creature, item: Item, slot: int) -> bool:
+    """Determines if an item can be equipped"""
+    pass
+
+
+def equip_item(obj: Creature, item: Item, slot: int) -> bool:
+    """Equip an item"""
+    pass
+
+
+def get_equipped_item(obj: Creature, slot) -> Item:
+    """Gets an equipped item"""
+    pass
+
+
+def unequip_item(obj: Creature, slot: int) -> Item:
+    """Unequips an item"""
+    pass
+
+
+# == Creature: Skills ========================================================
 # ============================================================================
 
 
-def effect_ability_modifier(ability, modifier) -> Effect:
-    """Creates an ability modifier effect"""
+def get_skill_rank(obj: Creature, skill: int, versus: ObjectBase = None, base: bool = False):
+    """Determines creatures skill rank"""
     pass
 
 
-def effect_armor_class_modifier(type, modifier) -> Effect:
-    """Creates an armor class modifier effect"""
+def resolve_skill_check(obj: Creature, skill: int,  dc: int, versus: ObjectBase = None) -> bool:
+    """Resolves skill check"""
+    pass
+
+# =============================================================================
+# == Effects ==================================================================
+# =============================================================================
+
+
+def effect_ability_modifier(ability: int, modifier: int) -> Effect:
+    """Creates an ability modifier effect."""
     pass
 
 
-def effect_attack_modifier(attack, modifier) -> Effect:
-    """Creates an attack modifier effect"""
+def effect_armor_class_modifier(type: int, modifier: int) -> Effect:
+    """Creates an armor class modifier effect."""
+    pass
+
+
+def effect_attack_modifier(attack: int, modifier: int) -> Effect:
+    """Creates an attack modifier effect."""
+    pass
+
+
+def effect_bonus_spell_slot(class_: int, spell_level: int) -> Effect:
+    """Creates a bonus spell slot effect."""
+    pass
+
+
+def effect_concealment(value: int, type: int = nw.miss_chance_type_normal) -> Effect:
+    """Creates a concealment effect."""
+    pass
+
+
+def effect_damage_bonus(type: int, dice: DiceRoll, cat: DamageCategory = DamageCategory.none) -> Effect:
+    """Creates a damage bonus effect."""
+    pass
+
+
+def effect_damage_immunity(type: int, value: int) -> Effect:
+    """Creates a damage immunity effect. Negative values create a vulnerability."""
+    pass
+
+
+def effect_damage_penalty(type: int, dice: DiceRoll) -> Effect:
+    """Creates a damage penalty effect."""
+    pass
+
+
+def effect_damage_reduction(value: int, power: int, max: int = 0) -> Effect:
+    """Creates a damage reduction effect."""
+    pass
+
+
+def effect_damage_resistance(type: int, value: int, max: int = 0) -> Effect:
+    """Creates a damage resistance effect."""
     pass
 
 
 def effect_haste() -> Effect:
-    """Creates a haste effect"""
+    """Creates a haste effect."""
     pass
 
 
-def effect_skill_modifier(skill, modifier) -> Effect:
-    """Creates an skill modifier effect"""
+def effect_hitpoints_temporary(amount: int) -> Effect:
+    """Creates temporary hitpoints effect."""
     pass
 
-# == Item Property Creation ==================================================
-# ============================================================================
+
+def effect_miss_chance(value: int, type: int = 0) -> Effect:
+    """Creates a miss chance effect."""
+    pass
+
+
+def effect_save_modifier(save: int, modifier: int, vs: int = -1) -> Effect:
+    """Creates a save modifier effect."""
+    pass
+
+
+def effect_skill_modifier(skill: int, modifier: int) -> Effect:
+    """Creates a skill modifier effect."""
+    pass
+
+# =============================================================================
+# == Item Properties ==========================================================
+# =============================================================================
 
 
 def itemprop_ability_modifier(ability, modifier) -> ItemProperty:
@@ -417,7 +582,17 @@ def itemprop_attack_modifier(value) -> ItemProperty:
     pass
 
 
-def itemprop_enhancement_modifier(value) -> ItemProperty:
+def itemprop_bonus_spell_slot(class_: int, spell_level: int) -> ItemProperty:
+    """Creates bonus spell slot property"""
+    pass
+
+
+def itemprop_damage_bonus(value: int) -> ItemProperty:
+    """Creates damage bonus item property"""
+    pass
+
+
+def itemprop_enhancement_modifier(value: int) -> ItemProperty:
     """Creates enhancement modifier item property"""
     pass
 
@@ -427,55 +602,21 @@ def itemprop_haste() -> ItemProperty:
     pass
 
 
+def itemprop_keen() -> ItemProperty:
+    """Creates keen item property"""
+    pass
+
+
+def itemprop_save_modifier(type: int, modifier: int) -> ItemProperty:
+    """Creates save modifier item property"""
+    pass
+
+
+def itemprop_save_vs_modifier(type: int, modifier: int) -> ItemProperty:
+    """Creates save versus modifier item property"""
+    pass
+
+
 def itemprop_skill_modifier(skill,  modifier) -> ItemProperty:
     """Creates skill modifier item property"""
-    pass
-
-
-# == Effects =================================================================
-# ============================================================================
-
-def queue_remove_effect_by(obj: ObjectBase, creator: ObjectHandle):
-    """Queues remove effect events by effect creator"""
-    pass
-
-# == Items ===================================================================
-# ============================================================================
-
-
-def can_equip_item(obj: Creature, item: Item, slot: int):
-    """Determines if an item can be equipped"""
-    pass
-
-
-def equip_item(obj: Creature, item: Item, slot: int):
-    """Equip an item"""
-    pass
-
-
-def get_equipped_item(obj: Creature, slot):
-    """Gets an equipped item"""
-    pass
-
-
-def is_ranged_weapon(item: Item) -> bool:
-    """Determines if weapon is ranged"""
-    pass
-
-
-def is_shield(baseitem) -> bool:
-    """Determines if item is a shield"""
-    pass
-
-
-def unequip_item(obj: Creature, slot: int):
-    """Unequips an item"""
-    pass
-
-# == Skills ==================================================================
-# ============================================================================
-
-
-def get_skill_rank(obj: Creature, skill, versus=None, base=False):
-    """Determines creatures skill rank"""
     pass

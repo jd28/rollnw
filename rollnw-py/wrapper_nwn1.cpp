@@ -16,6 +16,25 @@ namespace py = pybind11;
 
 void init_nwn1(py::module& m)
 {
+
+    // ============================================================================
+    // == Object ==================================================================
+    // ============================================================================
+
+    // == Object: Effects =========================================================
+    // ============================================================================
+
+    // == Object: Hit Points ======================================================
+    // ============================================================================
+
+    m.def("get_current_hitpoints", &nwn1::get_current_hitpoints);
+    m.def("get_max_hitpoints", &nwn1::get_max_hitpoints);
+
+    // == Object: Saves ============================================================
+    // =============================================================================
+    m.def("saving_throw", &nwn1::saving_throw);
+    m.def("resolve_saving_throw", &nwn1::resolve_saving_throw);
+
     // == Abilities ===============================================================
     // ============================================================================
     m.def("get_ability_score", &nwn1::get_ability_score,
@@ -30,17 +49,25 @@ void init_nwn1(py::module& m)
         py::arg("obj"), py::arg("versus") = nullptr, py::arg("is_touch_attack") = false);
     m.def("calculate_item_ac", &nwn1::calculate_item_ac);
 
-    // == Casting =================================================================
+    // == Creature: Casting =======================================================
     // ============================================================================
 
+    m.def("add_known_spell", &nwn1::add_known_spell);
+    m.def("add_memorized_spell", &nwn1::add_memorized_spell);
+    m.def("compute_total_spell_slots", &nwn1::compute_total_spell_slots);
+    m.def("get_available_spell_slots", &nwn1::get_available_spell_slots);
+    m.def("get_available_spell_uses", &nwn1::get_available_spell_uses);
     m.def("get_caster_level", &nwn1::get_caster_level);
     m.def("get_spell_dc", &nwn1::get_spell_dc);
+    m.def("recompute_all_availabe_spell_slots", &nwn1::recompute_all_availabe_spell_slots);
+    m.def("remove_known_spell", &nwn1::remove_known_spell);
 
-    // == Classes =================================================================
+    // == Creature: Classes =======================================================
     // ============================================================================
+
     m.def("can_use_monk_abilities", &nwn1::can_use_monk_abilities);
 
-    // == Combat ==================================================================
+    // == Creature: Combat ========================================================
     // ============================================================================
 
     m.def("base_attack_bonus", &nwn1::base_attack_bonus);
@@ -72,36 +99,98 @@ void init_nwn1(py::module& m)
     m.def("weapon_is_finessable", &nwn1::weapon_is_finessable);
     m.def("weapon_iteration", &nwn1::weapon_iteration);
 
+    // == Creature: Equips ========================================================
+    // ============================================================================
+    m.def("can_equip_item", &nwn1::can_equip_item);
+    m.def("equip_item", &nwn1::equip_item);
+    m.def("get_equipped_item", &nwn1::get_equipped_item, py::return_value_policy::reference);
+    m.def("unequip_item", &nwn1::unequip_item);
+
+    // == Creature: Skills ========================================================
+    // ============================================================================
+    m.def("get_skill_rank", &nwn1::get_skill_rank);
+    m.def("resolve_skill_check", &nwn1::resolve_skill_check);
+
+    // == Items ===================================================================
+    // ============================================================================
+    m.def("is_ranged_weapon", &nwn1::is_ranged_weapon);
+    m.def("is_shield", &nwn1::is_shield);
+
     // == Effects =================================================================
     // ============================================================================
 
     // == Effect Creation =========================================================
     // ============================================================================
-    m.def("effect_ability_modifier", &nwn1::effect_ability_modifier);
-    m.def("effect_armor_class_modifier", &nwn1::effect_armor_class_modifier);
-    m.def("effect_attack_modifier", &nwn1::effect_attack_modifier);
-    m.def("effect_haste", &nwn1::effect_haste);
-    m.def("effect_skill_modifier", &nwn1::effect_skill_modifier);
+    m.def("effect_ability_modifier", &nwn1::effect_ability_modifier,
+        py::arg("ability"), py::arg("modifier"),
+        R"(Creates an ability modifier effect.)");
 
-    // == Items ===================================================================
-    // ============================================================================
-    m.def("can_equip_item", &nwn1::can_equip_item);
-    m.def("equip_item", &nwn1::equip_item);
-    m.def("get_equipped_item", &nwn1::get_equipped_item, py::return_value_policy::reference);
-    m.def("is_ranged_weapon", &nwn1::is_ranged_weapon);
-    m.def("is_shield", &nwn1::is_shield);
-    m.def("unequip_item", &nwn1::unequip_item);
+    m.def("effect_armor_class_modifier", &nwn1::effect_armor_class_modifier,
+        py::arg("type"), py::arg("modifier"),
+        R"(Creates an armor class modifier effect.)");
+
+    m.def("effect_attack_modifier", &nwn1::effect_attack_modifier,
+        py::arg("attack"), py::arg("modifier"),
+        R"(Creates an attack modifier effect.)");
+
+    m.def("effect_bonus_spell_slot", &nwn1::effect_bonus_spell_slot,
+        py::arg("class_"), py::arg("spell_level"),
+        R"(Creates a bonus spell slot effect.)");
+
+    m.def("effect_concealment", &nwn1::effect_concealment,
+        py::arg("value"), py::arg("type") = nwn1::miss_chance_type_normal,
+        R"(Creates a concealment effect.)");
+
+    m.def("effect_damage_bonus", &nwn1::effect_damage_bonus,
+        py::arg("type"), py::arg("dice"), py::arg("cat") = nw::DamageCategory::none,
+        R"(Creates a damage bonus effect.)");
+
+    m.def("effect_damage_immunity", &nwn1::effect_damage_immunity,
+        py::arg("type"), py::arg("value"),
+        R"(Creates a damage immunity effect. Negative values create a vulnerability.)");
+
+    m.def("effect_damage_penalty", &nwn1::effect_damage_penalty,
+        py::arg("type"), py::arg("dice"),
+        R"(Creates a damage penalty effect.)");
+
+    m.def("effect_damage_reduction", &nwn1::effect_damage_reduction,
+        py::arg("value"), py::arg("power"), py::arg("max") = 0,
+        R"(Creates a damage reduction effect.)");
+
+    m.def("effect_damage_resistance", &nwn1::effect_damage_resistance,
+        py::arg("type"), py::arg("value"), py::arg("max") = 0,
+        R"(Creates a damage resistance effect.)");
+
+    m.def("effect_haste", &nwn1::effect_haste,
+        R"(Creates a haste effect.)");
+
+    m.def("effect_hitpoints_temporary", &nwn1::effect_hitpoints_temporary,
+        py::arg("amount"),
+        R"(Creates temporary hitpoints effect.)");
+
+    m.def("effect_miss_chance", &nwn1::effect_miss_chance,
+        py::arg("value"), py::arg("type") = nwn1::miss_chance_type_normal,
+        R"(Creates a miss chance effect.)");
+
+    m.def("effect_save_modifier", &nwn1::effect_save_modifier,
+        py::arg("save"), py::arg("modifier"), py::arg("vs") = -1,
+        R"(Creates a save modifier effect.)");
+
+    m.def("effect_skill_modifier", &nwn1::effect_skill_modifier,
+        py::arg("skill"), py::arg("modifier"),
+        R"(Creates a skill modifier effect.)");
 
     // == Item Property Creation ==================================================
     // ============================================================================
     m.def("itemprop_ability_modifier", &nwn1::itemprop_ability_modifier);
     m.def("itemprop_armor_class_modifier", &nwn1::itemprop_armor_class_modifier);
     m.def("itemprop_attack_modifier", &nwn1::itemprop_attack_modifier);
+    m.def("itemprop_bonus_spell_slot", &nwn1::itemprop_bonus_spell_slot);
+    m.def("itemprop_damage_bonus", &nwn1::itemprop_damage_bonus);
     m.def("itemprop_enhancement_modifier", &nwn1::itemprop_enhancement_modifier);
     m.def("itemprop_haste", &nwn1::itemprop_haste);
+    m.def("itemprop_keen", &nwn1::itemprop_keen);
+    m.def("itemprop_save_modifier", &nwn1::itemprop_save_modifier);
+    m.def("itemprop_save_vs_modifier", &nwn1::itemprop_save_vs_modifier);
     m.def("itemprop_skill_modifier", &nwn1::itemprop_skill_modifier);
-
-    // == Skills ==================================================================
-    // ============================================================================
-    m.def("get_skill_rank", &nwn1::get_skill_rank);
 }

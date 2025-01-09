@@ -42,6 +42,13 @@ void init_rules(py::module& nw)
         .def_readwrite("threat_range", &nw::AttackData::threat_range)
         .def_readwrite("concealment", &nw::AttackData::concealment);
 
+    py::enum_<nw::DamageCategory>(nw, "DamageCategory", py::arithmetic())
+        .value("none", nw::DamageCategory::none, "No special damage category.")
+        .value("penalty", nw::DamageCategory::penalty, "Penalty damage.")
+        .value("critical", nw::DamageCategory::critical, "Critical damage.")
+        .value("unblockable", nw::DamageCategory::unblockable, "Unblockable damage.")
+        .export_values();
+
     py::class_<nw::DiceRoll>(nw, "DiceRoll")
         .def_readwrite("dice", &nw::DiceRoll::dice)
         .def_readwrite("sides", &nw::DiceRoll::sides)

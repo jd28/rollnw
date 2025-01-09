@@ -220,12 +220,12 @@ def load_module(path: str, instantiate: bool = True) -> Module:
     pass
 
 
-def effects():
+def effects() -> EffectSystem:
     """Gets effects service"""
     pass
 
 
-def objects():
+def objects() -> Objects:
     """Gets objects service"""
     pass
 
@@ -235,7 +235,7 @@ def resman() -> Resources:
     pass
 
 
-def rules():
+def rules() -> Rules:
     """Gets rules service"""
     pass
 
@@ -250,8 +250,13 @@ def start(options: Optional[ConfigOptions]):
     pass
 
 
-def strings():
+def strings() -> Strings:
     """Gets strings service"""
+    pass
+
+
+def twodas() -> TwoDACache:
+    """Gets TwoDA Cache service"""
     pass
 
 
