@@ -16,7 +16,172 @@ from . import (
     Waypoint,
 )
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
+
+# == CORE SCRIPT API ==========================================================
+# =============================================================================
+
+
+def apply_effect(obj: "ObjectBase", effect: "Effect") -> bool:
+    """
+    Applies an effect to an object.
+
+    Args:
+        obj: The object to which the effect is applied.
+        effect: The effect to apply.
+
+    Returns:
+        bool: True if the effect was successfully applied, False otherwise.
+    """
+    pass
+
+
+def has_effect_applied(obj: "ObjectBase", type: int, subtype: int = -1) -> bool:
+    """
+    Determines if an effect type is applied to an object.
+
+    Args:
+        obj: The object to check.
+        type: The type of the effect.
+        subtype: The subtype of the effect. Defaults to -1.
+
+    Returns:
+        bool: True if the effect type is applied, False otherwise.
+    """
+    pass
+
+
+def remove_effect(obj: "ObjectBase", effect: "Effect", destroy: bool = True) -> bool:
+    """
+    Removes an effect from an object.
+
+    Args:
+        obj: The object from which the effect is removed.
+        effect: The effect to remove.
+        destroy: Whether to destroy the effect after removal. Defaults to True.
+
+    Returns:
+        bool: True if the effect was successfully removed, False otherwise.
+    """
+    pass
+
+
+def remove_effects_by(obj: "ObjectBase", creator: "ObjectHandle") -> int:
+    """
+    Removes effects by creator.
+
+    Args:
+        obj: The object from which the effects are removed.
+        creator: The creator of the effects.
+
+    Returns:
+        int: The number of effects removed.
+    """
+    pass
+
+
+def count_feats_in_range(obj: "Creature", start: int, end: int) -> int:
+    """
+    Counts the number of known feats in the range [start, end].
+
+    Args:
+        obj: The creature to check.
+        start: The starting feat in the range.
+        end: The ending feat in the range.
+
+    Returns:
+        int: The number of known feats in the range.
+    """
+    pass
+
+
+def get_all_available_feats(obj: "Creature") -> List[int]:
+    """
+    Gets all feats for which requirements are met.
+
+    Args:
+        obj: The creature to check.
+
+    Returns:
+        list: A list of feats for which requirements are met.
+    """
+    pass
+
+
+def has_feat_successor(obj: "Creature", feat: int) -> Tuple[int, int]:
+    """
+    Gets the highest known successor feat.
+
+    Args:
+        obj: The creature to check.
+        feat: The feat to find a successor for.
+
+    Returns:
+        tuple: A pair of the highest successor feat and an ``int`` representing that the feat is the nth successor.
+        Returns ``(-1, 0)`` if no successor exists.
+    """
+    pass
+
+
+def highest_feat_in_range(obj: "Creature", start: int, end: int) -> int:
+    """
+    Gets the highest known feat in range [start, end].
+
+    Args:
+        obj: The creature to check.
+        start: The starting feat in the range.
+        end: The ending feat in the range.
+
+    Returns:
+        int: The highest known feat in the range.
+    """
+    pass
+
+
+def knows_feat(obj: "Creature", feat: int) -> bool:
+    """
+    Checks if an entity knows a given feat.
+
+    Args:
+        obj: The creature to check.
+        feat: The feat to check.
+
+    Returns:
+        bool: True if the creature knows the feat, False otherwise.
+    """
+    pass
+
+
+def item_has_property(item: "Item", type: int, subtype: int = -1) -> bool:
+    """
+    Determines if an item has a particular item property.
+
+    Args:
+        item: The item to check.
+        type: The type of the property.
+        subtype: The subtype of the property. Defaults to -1.
+
+    Returns:
+        bool: True if the item has the property, False otherwise.
+    """
+    pass
+
+
+def itemprop_to_string(ip: "ItemProperty") -> str:
+    """
+    Converts an item property to an in-game style string.
+
+    Args:
+        ip: The item property to convert.
+
+    Returns:
+        str: The in-game style string representation of the item property.
+    """
+    pass
+
+# == PROFILE SCRIPT API =======================================================
+# =============================================================================
+
 
 # == Abilities ===============================================================
 # ============================================================================

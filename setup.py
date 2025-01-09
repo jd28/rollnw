@@ -24,7 +24,7 @@ class CMakeBuild(build_ext):
         preset = "linux"
         debug = int(os.environ.get("DEBUG", 0)
                     ) if self.debug is None else self.debug
-        cfg = "Debug" if debug else "RelWithDebInfo"
+        cfg = "Debug" if debug else "Release"
 
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",

@@ -17,11 +17,11 @@ void init_resources(py::module& nw);
 void init_rules(py::module& nw);
 void init_serialization(py::module& nw);
 void init_util(py::module& nw);
-
 void init_kernel(py::module& kernel);
 void init_model(py::module& nw);
 void init_script(py::module& nw);
 
+void init_core_scriptapi(py::module& m);
 void init_nwn1(py::module& m);
 
 PYBIND11_MODULE(rollnw, nw)
@@ -45,6 +45,9 @@ PYBIND11_MODULE(rollnw, nw)
     init_script(script);
     py::module model = nw.def_submodule("model");
     init_model(model);
+
+    // Profiles - NWN1
     py::module nwn1 = nw.def_submodule("nwn1");
+    init_core_scriptapi(nwn1);
     init_nwn1(nwn1);
 }

@@ -1,5 +1,6 @@
 import rollnw
 from rollnw import Creature, EquipIndex
+from rollnw.nwn1 import *
 import json
 import pytest
 
@@ -41,7 +42,7 @@ def test_creature_stats():
     assert cre.stats.get_ability_score(0) == 41
 
     # Feats
-    assert cre.stats.has_feat(105)
+    assert knows_feat(cre, 105)
     assert not cre.stats.add_feat(105)
     assert cre.stats.add_feat(1)
     assert cre.stats.has_feat(1)

@@ -7,6 +7,7 @@ pybind11_add_module(rollnw NO_EXTRAS
     glm/glm_util.cpp
     glm/wrap_vmath.cpp
 
+    wrapper_core_scriptapi.cpp
     wrapper_formats.cpp
     wrapper_i18n.cpp
     wrapper_kernel.cpp
