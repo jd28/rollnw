@@ -333,7 +333,7 @@ nw::ItemProperty itemprop_attack_modifier(int value);
 nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level);
 
 /// Creates damage bonus item property
-nw::ItemProperty itemprop_damage_bonus(int value);
+nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value);
 
 /// Creates enhancement modifier item property
 nw::ItemProperty itemprop_enhancement_modifier(int value);

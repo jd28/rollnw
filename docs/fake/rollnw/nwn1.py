@@ -587,7 +587,7 @@ def itemprop_bonus_spell_slot(class_: int, spell_level: int) -> ItemProperty:
     pass
 
 
-def itemprop_damage_bonus(value: int) -> ItemProperty:
+def itemprop_damage_bonus(type: int, value: int) -> ItemProperty:
     """Creates damage bonus item property"""
     pass
 
