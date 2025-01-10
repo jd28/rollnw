@@ -18,11 +18,11 @@ def configureDoxyfile(input_dir, output_dir):
 
 project = "rollNW"
 extensions = [
-    "breathe",
+    'breathe',
     'sphinx_tabs.tabs',
-    "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
-    "enum_tools.autoenum",
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'enum_tools.autoenum',
 ]
 breathe_default_project = "rollNW"
 

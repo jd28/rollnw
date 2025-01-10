@@ -1,4 +1,4 @@
-from . import GameVersion, Module, Ini, Container, TwoDA, Resource
+from . import GameVersion, Module, Item, Container, TwoDA, Resource
 from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 from . import Effect, ResourceType, Image, ResourceData
 

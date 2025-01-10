@@ -508,7 +508,7 @@ def effect_bonus_spell_slot(class_: int, spell_level: int) -> Effect:
     pass
 
 
-def effect_concealment(value: int, type: int = nw.miss_chance_type_normal) -> Effect:
+def effect_concealment(value: int, type: int = 0) -> Effect:
     """Creates a concealment effect."""
     pass
 
