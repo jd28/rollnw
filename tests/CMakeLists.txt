@@ -68,6 +68,7 @@ add_executable(rollnw_test
     serial_gff.cpp
 
     util_containers.cpp
+    util_error_context.cpp
     util_memory.cpp
     util_string.cpp
     util_tokenizer.cpp
