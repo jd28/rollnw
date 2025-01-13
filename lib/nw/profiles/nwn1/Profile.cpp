@@ -558,6 +558,8 @@ bool Profile::load_resources()
             }
             nwk::resman().add_base_container(
                 nwk::config().install_path() / "data", "nwn_base");
+            nwk::resman().add_base_container(
+                nwk::config().install_path() / "data", "nwn_retail");
 
         } else {
             nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "xp2_tex_tpa");
