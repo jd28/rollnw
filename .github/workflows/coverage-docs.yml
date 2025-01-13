@@ -94,8 +94,8 @@ jobs:
 
       - name: Coverage
         run: |
-          lcov --directory . --capture --output-file coverage.info --ignore-errors mismatch
-          lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' '/Library/*' $(pwd)'/tests/*' $(pwd)'/external/*' --output-file coverage.info
+          lcov --rc geninfo_unexecuted_blocks=1 --directory . --capture --output-file coverage.info --ignore-errors mismatch,unexecuted
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/external/*' --output-file coverage.info
           lcov --list coverage.info
           bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${{ secrets.CODECOV_TOKEN }} || echo "Codecov did not collect coverage reports"
 
