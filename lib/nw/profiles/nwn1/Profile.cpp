@@ -512,13 +512,11 @@ bool Profile::load_resources()
 
     // Base
     if (include_user) {
-        nwk::resman().add_base_container(nwk::config().user_path(), "override",
-            nw::ResourceType::texture);
+        nwk::resman().add_base_container(nwk::config().user_path(), "override");
     }
 
     if (include_install) {
-        nwk::resman().add_base_container(nwk::config().install_path() / "data", "ovr",
-            nw::ResourceType::texture);
+        nwk::resman().add_base_container(nwk::config().install_path() / "data", "ovr");
     }
 
     if (include_user) {
