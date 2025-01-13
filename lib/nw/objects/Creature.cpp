@@ -7,6 +7,7 @@
 #include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../util/platform.hpp"
 
 #include <nlohmann/json.hpp>
 

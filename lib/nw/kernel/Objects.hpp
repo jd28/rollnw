@@ -16,7 +16,6 @@
 #include "../serialization/Serialization.hpp"
 #include "../util/ChunkVector.hpp"
 #include "../util/memory.hpp"
-#include "../util/platform.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
 
@@ -24,7 +23,6 @@
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
-#include <stack>
 
 namespace nw::kernel {
 

@@ -116,6 +116,7 @@ add_library(nw STATIC
     util/base64.cpp
     util/ByteArray.cpp
     util/compression.cpp
+    util/error_context.cpp
     util/game_install.cpp
     util/memory.cpp
     util/platform.cpp
