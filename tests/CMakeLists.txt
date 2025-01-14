@@ -69,6 +69,7 @@ add_executable(rollnw_test
 
     util_containers.cpp
     util_error_context.cpp
+    util_hndlptrmap.cpp
     util_memory.cpp
     util_string.cpp
     util_tokenizer.cpp
