@@ -224,9 +224,6 @@ ResourceData Resources::demand(Resource res) const
 
     if (result.bytes.size() == 0 && parent_) { result = parent_->demand(res); }
 
-    if (result.bytes.size() == 0) {
-        LOG_F(WARNING, "Failed to find '{}'", res.filename());
-    }
     return result;
 }
 

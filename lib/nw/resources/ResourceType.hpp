@@ -23,6 +23,7 @@ struct ResourceType {
         sound = 0xFFFF - 5,
         texture = 0xFFFF - 6,
         json = 0xFFFF - 7,
+        object = 0xFFFF - 8,
 
         bmp = 1,
         mve = 2,
@@ -432,6 +433,16 @@ struct ResourceType {
                 || type == ResourceType::mod
                 || type == ResourceType::nwm
                 || type == ResourceType::sav;
+        case ResourceType::object: // We leave out areas, modules, and players
+            return type == ResourceType::utc
+                || type == ResourceType::utd
+                || type == ResourceType::ute
+                || type == ResourceType::uti
+                || type == ResourceType::utm
+                || type == ResourceType::utp
+                || type == ResourceType::uts
+                || type == ResourceType::utt
+                || type == ResourceType::utw;
         case ResourceType::gff_archive:
             return type == ResourceType::are
                 || type == ResourceType::bic

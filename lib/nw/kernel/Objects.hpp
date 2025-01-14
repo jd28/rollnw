@@ -246,13 +246,17 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
 template <typename T>
 T* ObjectSystem::load(Resref resref)
 {
-    ERRARE("[kernel/objects] loading object of type {} from blueprint '{}'", resref.view(), int(T::object_type));
+    ERRARE("[kernel/objects] loading object of type {} from blueprint '{}'", int(T::object_type), resref.view());
     T* obj = make<T>();
     ObjectType type;
     bool good = false;
 
     ResourceData data = resman().demand({resref, T::restype});
-    if (data.bytes.size() == 0) { return nullptr; }
+    if (data.bytes.size() == 0) {
+        LOG_F(WARNING, "\n{}", get_error_context());
+        LOG_F(WARNING, "[kernel/objects] failed to load blueprint from resman");
+        return nullptr;
+    }
 
     if (string::startswith(data.bytes.string_view(), T::serial_id)) {
         ERRARE("[kernel/objects] deserializing object from GFF");

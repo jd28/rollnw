@@ -28,6 +28,7 @@ void Equips::destroy()
 
 bool Equips::instantiate()
 {
+    ERRARE("[objects] instantiating creature equipment");
     int i = 0;
     for (auto& e : equips) {
         if (e.is<Resref>() && e.as<Resref>().length()) {
@@ -48,9 +49,9 @@ bool Equips::instantiate()
                 }
 
             } else {
-                e = static_cast<nw::Item*>(nullptr);
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
                     e.as<Resref>());
+                e = static_cast<nw::Item*>(nullptr);
             }
         }
         ++i;
