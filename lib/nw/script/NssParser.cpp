@@ -4,7 +4,8 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 #include "SourceLocation.hpp"
-#include "xxhash.h"
+
+#include "xxhash/xxh3.h"
 
 namespace nw::script {
 

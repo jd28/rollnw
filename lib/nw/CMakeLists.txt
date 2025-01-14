@@ -104,7 +104,6 @@ add_library(nw STATIC
     script/Nss.cpp
     script/NssLexer.cpp
     script/NssParser.cpp
-    script/xxhash.c
 
     serialization/gff_common.cpp
     serialization/gff_conversion.cpp
