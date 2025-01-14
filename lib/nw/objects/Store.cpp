@@ -68,7 +68,7 @@ Store::Store(nw::MemoryResource* allocator)
     , common(allocator)
     , inventory(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::store, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::store});
     inventory.set_owner(this);
 }
 

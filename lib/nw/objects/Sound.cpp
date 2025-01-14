@@ -20,7 +20,7 @@ Sound::Sound(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::sound, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::sound});
 }
 
 bool Sound::save(const std::filesystem::path& path, std::string_view format)

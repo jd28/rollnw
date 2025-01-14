@@ -19,7 +19,7 @@ Waypoint::Waypoint()
 Waypoint::Waypoint(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::waypoint, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::waypoint});
 }
 
 bool Waypoint::save(const std::filesystem::path& path, std::string_view format)

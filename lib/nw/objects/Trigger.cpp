@@ -50,7 +50,7 @@ Trigger::Trigger()
 Trigger::Trigger(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::trigger, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::trigger});
 }
 
 Versus Trigger::versus_me() const

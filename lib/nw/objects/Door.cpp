@@ -73,7 +73,7 @@ Door::Door(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::door, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::door});
 }
 
 String Door::get_name_from_file(const std::filesystem::path& path)

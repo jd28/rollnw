@@ -52,10 +52,6 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_EQ(ent3->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(ent3->combat_info.special_abilities[0].spell, 120);
 
-    auto handle2 = ent3->handle();
-
-    EXPECT_EQ(handle.id, handle2.id);
-
     auto ent4 = nwk::objects().load<nw::Creature>("drorry2");
     EXPECT_TRUE(ent4);
 }

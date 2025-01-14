@@ -14,7 +14,8 @@
 #include "../objects/Waypoint.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/Serialization.hpp"
-#include "../util/ChunkVector.hpp"
+#include "../util/HndlPtrMap.hpp"
+#include "../util/error_context.hpp"
 #include "../util/memory.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
@@ -26,11 +27,11 @@
 
 namespace nw::kernel {
 
-using ObjectPayload = Variant<ObjectHandle, ObjectBase*>;
-
 struct ObjectSystemStats {
     size_t total_objects = 0;
     size_t free_list = 0;
+    size_t object_map_collisions = 0;
+    double object_map_collision_rate = 0.0;
 };
 
 /**
@@ -102,8 +103,7 @@ struct ObjectSystem : public Service {
     bool valid(ObjectHandle obj) const;
 
 private:
-    ChunkVector<ObjectID> free_list_;
-    ChunkVector<ObjectPayload> objects_;
+    HndlPtrMap<ObjectBase> object_map_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
 
     Module* module_;
@@ -120,6 +120,9 @@ private:
     ObjectPool<Waypoint> waypoints_;
 
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
+
+    uint64_t next_object_id_ = 0;
+    uint64_t next_player_id_ = 0xFFFFFFFF;
 };
 
 inline ObjectType serial_id_to_obj_type(StringView id)
@@ -152,9 +155,9 @@ inline ObjectType serial_id_to_obj_type(StringView id)
 template <typename T>
 T* ObjectSystem::get(ObjectHandle obj)
 {
-    if (!valid(obj) || T::object_type != obj.type) return nullptr;
-    auto idx = static_cast<size_t>(obj.id);
-    return static_cast<T*>(objects_[idx].as<ObjectBase*>());
+    if (!valid(obj) || T::object_type != obj.type) { return nullptr; }
+    auto idx = static_cast<uint32_t>(obj.id);
+    return static_cast<T*>(object_map_.get(idx));
 }
 
 template <typename T>
@@ -163,22 +166,15 @@ T* ObjectSystem::make()
     T* obj = static_cast<T*>(alloc(T::object_type));
     if (!obj) { return nullptr; }
 
-    if (free_list_.size()) {
-        auto oid = free_list_.back();
-        auto idx = static_cast<size_t>(oid);
-        free_list_.pop_back();
-        ObjectHandle oh = objects_[idx].as<ObjectHandle>();
-        oh.type = T::object_type;
-        obj->set_handle(oh);
-        objects_[idx] = obj;
+    ObjectHandle oh;
+    oh.type = T::object_type;
+    if constexpr (std::is_same_v<T, Player>) {
+        oh.id = static_cast<ObjectID>(next_player_id_--);
     } else {
-        ObjectHandle oh;
-        oh.id = static_cast<ObjectID>(objects_.size());
-        oh.version = 0;
-        oh.type = T::object_type;
-        obj->set_handle(oh);
-        objects_.push_back(obj);
+        oh.id = static_cast<ObjectID>(next_object_id_++);
     }
+    obj->set_handle(oh);
+    object_map_.insert(static_cast<uint32_t>(oh.id), obj);
     return obj;
 }
 
@@ -201,13 +197,9 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
             type = serial_id_to_obj_type(in.type());
             if (type == T::object_type) {
                 if constexpr (!std::is_same_v<T, nw::Player>) {
-                    if (deserialize(obj, in.toplevel(), SerializationProfile::blueprint)) {
-                        good = true;
-                    }
+                    good = deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
                 } else {
-                    if (deserialize(obj, in.toplevel())) {
-                        good = true;
-                    }
+                    good = deserialize(obj, in.toplevel());
                 }
             } else {
                 LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, in.type());
@@ -220,13 +212,9 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
                 if constexpr (std::is_same_v<T, nw::Player>) {
-                    if (deserialize(obj, j)) {
-                        good = true;
-                    }
+                    good = deserialize(obj, j);
                 } else {
-                    if (deserialize(obj, j, SerializationProfile::blueprint)) {
-                        good = true;
-                    }
+                    good = deserialize(obj, j, SerializationProfile::blueprint);
                 }
             } else {
                 LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, serial_id);
@@ -258,6 +246,7 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
 template <typename T>
 T* ObjectSystem::load(Resref resref)
 {
+    ERRARE("[kernel/objects] loading object of type {} from blueprint '{}'", resref.view(), int(T::object_type));
     T* obj = make<T>();
     ObjectType type;
     bool good = false;
@@ -266,25 +255,24 @@ T* ObjectSystem::load(Resref resref)
     if (data.bytes.size() == 0) { return nullptr; }
 
     if (string::startswith(data.bytes.string_view(), T::serial_id)) {
+        ERRARE("[kernel/objects] deserializing object from GFF");
         Gff in{std::move(data)};
         if (in.valid()) {
-            if (deserialize(obj, in.toplevel(), SerializationProfile::blueprint)) {
-                good = true;
-            }
+            good = deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
         }
     } else {
+        ERRARE("[kernel/objects] deserializing object from JSON");
         try {
             nlohmann::json j = nlohmann::json::parse(data.bytes.string_view());
             String serial_id = j.at("$type").get<String>();
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
-                if (deserialize(obj, j, SerializationProfile::blueprint)) {
-                    good = true;
-                }
+                good = deserialize(obj, j, SerializationProfile::blueprint);
             } else {
                 LOG_F(ERROR, "serial id mismatch: expected '{}' got '{}'", T::serial_id, serial_id);
             }
         } catch (std::exception& e) {
+            LOG_F(ERROR, "{}", get_error_context());
             LOG_F(ERROR, "Failed to parse json file '{}' because {}", resref.view(), e.what());
         }
     }

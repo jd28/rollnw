@@ -25,7 +25,7 @@ Item::Item(nw::MemoryResource* allocator)
     , common(allocator)
     , inventory(1, 6, 10, this, allocator) // [TODO] This needs to be dynamic based on container size??
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::item});
     inventory.owner = this;
 
     model_colors.fill(0);

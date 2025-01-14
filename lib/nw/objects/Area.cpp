@@ -150,7 +150,7 @@ Area::Area(MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::area, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::area});
 }
 
 void Area::clear()

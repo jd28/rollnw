@@ -1165,14 +1165,8 @@ class ObjectHandle:
     """
     #: index into object array
     id: int
-    #: object index version
-    version: int
     #: object type
     type: ObjectType
-
-    def valid(self):
-        """Determines if handle is valid"""
-        pass
 
 
 class AreaFlags(enum.Flag):

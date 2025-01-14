@@ -13,8 +13,7 @@ const std::type_index ObjectSystem::type_index{typeid(ObjectSystem)};
 
 ObjectSystem::ObjectSystem(MemoryResource* scope)
     : Service(scope)
-    , objects_{2048, allocator()}
-    , free_list_{512, allocator()}
+    , object_map_(2048, allocator())
     , areas_{128, allocator()}
     , creatures_{128, allocator()}
     , doors_{128, allocator()}
@@ -31,7 +30,10 @@ ObjectSystem::ObjectSystem(MemoryResource* scope)
 
 ObjectSystem::~ObjectSystem()
 {
-    allocator()->deallocate(module_, sizeof(Module), alignof(Module));
+    if (module_) {
+        module_->~Module();
+        allocator()->deallocate(module_, sizeof(Module), alignof(Module));
+    }
 }
 
 ObjectBase* ObjectSystem::alloc(ObjectType type)
@@ -83,15 +85,16 @@ ObjectBase* ObjectSystem::alloc(ObjectType type)
 void ObjectSystem::destroy(ObjectHandle obj)
 {
     if (valid(obj)) {
-        size_t idx = static_cast<size_t>(obj.id);
-        auto o = objects_[idx].as<ObjectBase*>();
-        auto new_handle = o->handle();
+        uint32_t idx = static_cast<uint32_t>(obj.id);
+        auto o = object_map_.get(idx);
+        auto handle = o->handle();
+        object_map_.remove(idx);
 
         // Delete from tag map
         if (auto tag = o->tag()) {
             auto it = object_tag_map_.find(tag);
             while (it != std::end(object_tag_map_)) {
-                if (it->second == new_handle) {
+                if (it->second == handle) {
                     object_tag_map_.erase(it);
                     break;
                 } else if (it->first != tag) {
@@ -101,14 +104,7 @@ void ObjectSystem::destroy(ObjectHandle obj)
             }
         }
 
-        // If version is at max don't add to free list.  Still clobber object.
-        if (new_handle.version < ObjectHandle::version_max) {
-            ++new_handle.version;
-            free_list_.push_back(new_handle.id);
-        }
-        objects_[idx] = new_handle;
-
-        switch (new_handle.type) {
+        switch (handle.type) {
         default:
             break;
         case ObjectType::area: {
@@ -150,9 +146,8 @@ void ObjectSystem::destroy(ObjectHandle obj)
 
 ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
 {
-    if (!valid(obj)) { return nullptr; }
-    auto idx = static_cast<size_t>(obj.id);
-    return objects_[idx].as<ObjectBase*>();
+    auto idx = static_cast<uint32_t>(obj.id);
+    return object_map_.get(idx);
 }
 
 ObjectBase* ObjectSystem::get_by_tag(StringView tag, int nth) const
@@ -241,16 +236,8 @@ void ObjectSystem::set_instantiate_callback(void (*callback)(ObjectBase*))
 
 bool ObjectSystem::valid(ObjectHandle handle) const
 {
-    auto idx = static_cast<size_t>(handle.id);
-    if (idx >= objects_.size() || objects_[idx].is<ObjectHandle>()) {
-        return false;
-    }
-
-    if (auto obj = objects_[idx].as<ObjectBase*>()) {
-        return obj->handle() == handle;
-    }
-
-    return false;
+    uint32_t idx = static_cast<uint32_t>(handle.id);
+    return !!object_map_.get(idx);
 }
 
 } // namespace nw::kernel

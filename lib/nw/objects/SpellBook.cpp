@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../util/error_context.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -57,6 +58,7 @@ bool SpellBook::from_json(const nlohmann::json& archive)
             }
         }
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "{}", get_error_context());
         LOG_F(ERROR, "SpellBook: json exception: {}", e.what());
         return false;
     }

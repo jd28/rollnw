@@ -132,7 +132,7 @@ Encounter::Encounter(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
 {
-    set_handle(ObjectHandle{object_invalid, ObjectType::encounter, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::encounter});
 }
 
 bool Encounter::save(const std::filesystem::path& path, std::string_view format)
