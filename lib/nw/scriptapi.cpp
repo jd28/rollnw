@@ -2,12 +2,45 @@
 
 #include "functions.hpp"
 #include "kernel/EffectSystem.hpp"
+#include "kernel/Objects.hpp"
 #include "kernel/Rules.hpp"
 #include "kernel/Strings.hpp"
 #include "objects/Creature.hpp"
 #include "objects/Item.hpp"
 
 namespace nw {
+
+ObjectBase* create_object(Resref resref, ObjectType type)
+{
+    ObjectBase* result = nullptr;
+
+    switch (type) {
+    default:
+        break;
+    case ObjectType::creature:
+        result = nw::kernel::objects().load<Creature>(resref);
+    case ObjectType::door:
+        result = nw::kernel::objects().load<Door>(resref);
+    case ObjectType::placeable:
+        result = nw::kernel::objects().load<Placeable>(resref);
+    case ObjectType::store:
+        result = nw::kernel::objects().load<Store>(resref);
+    case ObjectType::waypoint:
+        result = nw::kernel::objects().load<Waypoint>(resref);
+    }
+
+    return result;
+}
+
+bool is_valid_object(ObjectHandle obj)
+{
+    return nw::kernel::objects().valid(obj);
+}
+
+void destroy_object(ObjectBase* obj)
+{
+    nw::kernel::objects().destroy(obj->handle());
+}
 
 // ============================================================================
 // == Object: Effects =========================================================

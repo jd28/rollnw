@@ -4,6 +4,11 @@
 
 #include <stdint.h>
 
+/**
+ * @defgroup Python Functions with Python bindings
+ * @brief Functions that are accessible via Python bindings.
+ */
+
 namespace nw {
 
 struct Creature;
@@ -15,6 +20,29 @@ struct ItemProperty;
 struct ItemPropertyType;
 struct ObjectBase;
 struct ObjectHandle;
+enum struct ObjectType : uint8_t;
+struct Resref;
+
+// ============================================================================
+// == Object: Life Time =======================================================
+// ============================================================================
+
+/// Creates an object. Returns invalid object on failure.
+///
+/// @ingroup Python
+/// @since 0.46
+ObjectBase* create_object(Resref resref, ObjectType type);
+
+/// Determines if object is valid
+///
+/// @since 0.46
+bool is_valid_object(ObjectHandle obj);
+
+/// Destroys an object, if valid.
+///
+/// @ingroup Python
+/// @since 0.46
+void destroy_object(ObjectBase* obj);
 
 // ============================================================================
 // == Object: Effects =========================================================

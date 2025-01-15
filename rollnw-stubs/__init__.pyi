@@ -531,9 +531,7 @@ class ObjectType(enum.Enum):
 
 class ObjectHandle:
     id: int
-    version: int
     type: ObjectType
-    def valid(self) -> None: ...
 
 class AreaFlags(enum.Flag):
     none = 0

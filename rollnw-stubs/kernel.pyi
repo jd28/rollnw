@@ -1,4 +1,4 @@
-from . import Area as Area, Container as Container, Creature as Creature, Door as Door, Effect as Effect, Encounter as Encounter, GameVersion as GameVersion, Image as Image, Ini as Ini, Module as Module, ObjectBase as ObjectBase, ObjectHandle as ObjectHandle, Placeable as Placeable, Resource as Resource, ResourceData as ResourceData, ResourceType as ResourceType, Store as Store, Trigger as Trigger, TwoDA as TwoDA, Waypoint as Waypoint
+from . import Area as Area, Container as Container, Creature as Creature, Door as Door, Effect as Effect, Encounter as Encounter, GameVersion as GameVersion, Image as Image, Item as Item, Module as Module, ObjectBase as ObjectBase, ObjectHandle as ObjectHandle, Placeable as Placeable, Resource as Resource, ResourceData as ResourceData, ResourceType as ResourceType, Store as Store, Trigger as Trigger, TwoDA as TwoDA, Waypoint as Waypoint
 
 class ConfigOptions:
     include_install: bool

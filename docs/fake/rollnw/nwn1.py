@@ -11,6 +11,7 @@ from . import (
     ItemProperty,
     ObjectBase,
     ObjectHandle,
+    ObjectType,
     Placeable,
     Store,
     Trigger,
@@ -21,6 +22,26 @@ from typing import List, Optional, Tuple
 
 # == CORE SCRIPT API ==========================================================
 # =============================================================================
+
+
+def create_object(resref: str,  type: ObjectType) -> ObjectBase:
+    """
+    Creates an object. Returns invalid object on failure.
+
+    Since:
+        0.46
+    """
+    pass
+
+
+def destroy_object(obj: ObjectBase) -> None:
+    """
+    Destroys an object, if valid.
+
+    Since:
+        0.46
+    """
+    pass
 
 
 def apply_effect(obj: "ObjectBase", effect: "Effect") -> bool:

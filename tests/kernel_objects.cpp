@@ -38,7 +38,7 @@ TEST(ObjectSystem, LoadCreature)
     nwk::objects().destroy(handle);
     EXPECT_FALSE(nwk::objects().valid(handle));
 
-    auto ent3 = nwk::objects().load_file<nw::Creature>(fs::path("test_data/user/scratch/pl_agent_001.utc.json"));
+    auto ent3 = nwk::objects().load_file<nw::Creature>("test_data/user/scratch/pl_agent_001.utc.json");
 
     EXPECT_TRUE(ent3);
     EXPECT_EQ(ent3->common.resref, "pl_agent_001");
