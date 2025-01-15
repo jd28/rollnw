@@ -86,6 +86,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.can_use_monk_abilities"><code class="docutils literal notranslate"><span class="pre">can_use_monk_abilities()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.compute_total_spell_slots"><code class="docutils literal notranslate"><span class="pre">compute_total_spell_slots()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.count_feats_in_range"><code class="docutils literal notranslate"><span class="pre">count_feats_in_range()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.create_object"><code class="docutils literal notranslate"><span class="pre">create_object()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.destroy_object"><code class="docutils literal notranslate"><span class="pre">destroy_object()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.effect_ability_modifier"><code class="docutils literal notranslate"><span class="pre">effect_ability_modifier()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.effect_armor_class_modifier"><code class="docutils literal notranslate"><span class="pre">effect_armor_class_modifier()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.effect_attack_modifier"><code class="docutils literal notranslate"><span class="pre">effect_attack_modifier()</span></code></a></li>
@@ -306,6 +308,26 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.nwn1.create_object">
+<span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">create_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectType" title="rollnw.ObjectType"><span class="pre">ObjectType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></span><a class="headerlink" href="#rollnw.nwn1.create_object" title="Link to this definition"></a></dt>
+<dd><p>Creates an object. Returns invalid object on failure.</p>
+<dl class="simple">
+<dt>Since:</dt><dd><p>0.46</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.nwn1.destroy_object">
+<span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">destroy_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.nwn1.destroy_object" title="Link to this definition"></a></dt>
+<dd><p>Destroys an object, if valid.</p>
+<dl class="simple">
+<dt>Since:</dt><dd><p>0.46</p>
 </dd>
 </dl>
 </dd></dl>
