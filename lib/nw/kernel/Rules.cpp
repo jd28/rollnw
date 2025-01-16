@@ -15,6 +15,7 @@ Rules::Rules(MemoryResource* scope)
     , baseitems{allocator()}
     , classes{allocator()}
     , feats{allocator()}
+    , metamagic(allocator())
     , races{allocator()}
     , spells{allocator()}
     , spellschools{allocator()}
