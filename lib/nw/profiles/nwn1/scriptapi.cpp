@@ -442,7 +442,7 @@ bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, n
     }
 
     auto sb = obj->levels.spells(class_);
-    if (!sb || sb->available_slots(spell_level)) { return false; }
+    if (!sb || sb->available_slots(spell_level) == 0) { return false; }
     sb->add_memorized_spell(spell_level, {spell, meta, nw::SpellFlags::readied});
     return true;
 }
