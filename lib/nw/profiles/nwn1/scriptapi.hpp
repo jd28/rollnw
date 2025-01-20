@@ -267,6 +267,16 @@ nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
 nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
 
 // ============================================================================
+// == Spells ==================================================================
+// ============================================================================
+
+/// Converts metamagic index to flag
+nw::MetaMagicFlag metamagic_idx_to_flag(nw::MetaMagic idx);
+
+/// Converts metamagic flag to index
+nw::MetaMagic metamagic_flag_to_idx(nw::MetaMagicFlag flag);
+
+// ============================================================================
 // == Effects =================================================================
 // ============================================================================
 

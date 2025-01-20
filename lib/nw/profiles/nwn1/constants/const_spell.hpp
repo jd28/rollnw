@@ -4,6 +4,20 @@
 
 namespace nwn1 {
 
+constexpr nw::MetaMagic metamagic_idx_empower = nw::MetaMagic::make(2);
+constexpr nw::MetaMagic metamagic_idx_extend = nw::MetaMagic::make(3);
+constexpr nw::MetaMagic metamagic_idx_maximize = nw::MetaMagic::make(4);
+constexpr nw::MetaMagic metamagic_idx_quicken = nw::MetaMagic::make(1);
+constexpr nw::MetaMagic metamagic_idx_silent = nw::MetaMagic::make(5);
+constexpr nw::MetaMagic metamagic_idx_still = nw::MetaMagic::make(6);
+
+constexpr nw::MetaMagicFlag metamagic_empower = nw::MetaMagicFlag::make(1);
+constexpr nw::MetaMagicFlag metamagic_extend = nw::MetaMagicFlag::make(2);
+constexpr nw::MetaMagicFlag metamagic_maximize = nw::MetaMagicFlag::make(4);
+constexpr nw::MetaMagicFlag metamagic_quicken = nw::MetaMagicFlag::make(8);
+constexpr nw::MetaMagicFlag metamagic_silent = nw::MetaMagicFlag::make(16);
+constexpr nw::MetaMagicFlag metamagic_still = nw::MetaMagicFlag::make(32);
+
 constexpr nw::SpellSchool spell_school_general = nw::SpellSchool::make(0);
 constexpr nw::SpellSchool spell_school_abjuration = nw::SpellSchool::make(1);
 constexpr nw::SpellSchool spell_school_conjuration = nw::SpellSchool::make(2);

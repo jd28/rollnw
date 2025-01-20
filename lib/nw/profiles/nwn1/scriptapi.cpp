@@ -436,8 +436,7 @@ bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, n
     auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
 
     if (meta != nw::metamagic_none) {
-        // Note: in countr_zero actual '0' values are delt with in the line above.
-        auto meta_info = nw::kernel::rules().metamagic.get(nw::MetaMagic::make(std::countr_zero(meta.idx())));
+        auto meta_info = nw::kernel::rules().metamagic.get(metamagic_flag_to_idx(meta));
         spell_level += meta_info->level_adjustment;
     }
 
@@ -1912,6 +1911,50 @@ nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem it
     }
 
     return result;
+}
+
+// ============================================================================
+// == Spells ==================================================================
+// ============================================================================
+
+/// Converts metamagic index to flag
+nw::MetaMagicFlag metamagic_idx_to_flag(nw::MetaMagic idx)
+{
+    switch (*idx) {
+    case *metamagic_idx_empower:
+        return metamagic_empower;
+    case *metamagic_idx_extend:
+        return metamagic_extend;
+    case *metamagic_idx_maximize:
+        return metamagic_maximize;
+    case *metamagic_idx_quicken:
+        return metamagic_quicken;
+    case *metamagic_idx_silent:
+        return metamagic_silent;
+    case *metamagic_idx_still:
+        return metamagic_still;
+    }
+    return nw::metamagic_none;
+}
+
+/// Converts metamagic flag to index
+nw::MetaMagic metamagic_flag_to_idx(nw::MetaMagicFlag flag)
+{
+    switch (*flag) {
+    case *metamagic_empower:
+        return metamagic_idx_empower;
+    case *metamagic_extend:
+        return metamagic_idx_extend;
+    case *metamagic_maximize:
+        return metamagic_idx_maximize;
+    case *metamagic_quicken:
+        return metamagic_idx_quicken;
+    case *metamagic_silent:
+        return metamagic_idx_silent;
+    case *metamagic_still:
+        return metamagic_idx_still;
+    }
+    return nw::MetaMagic::invalid();
 }
 
 // ============================================================================
