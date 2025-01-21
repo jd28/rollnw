@@ -91,6 +91,12 @@ bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, n
 /// Computes available slots that are able to be prepared or castable
 int compute_total_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level);
 
+/// Computes total knownable spells at ``spell_level``
+///
+/// @ingroup Python
+/// @since 0.46
+int compute_total_spells_knowable(const nw::Creature* obj, nw::Class class_, int spell_level);
+
 /// Gets the number of available slots at a particular spell level
 int get_available_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level);
 

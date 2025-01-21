@@ -487,6 +487,18 @@ int compute_total_spell_slots(const nw::Creature* obj, nw::Class class_, int spe
     return result;
 }
 
+int compute_total_spells_knowable(const nw::Creature* obj, nw::Class class_, int spell_level)
+{
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] compute_total_spells_knowable called with invalid object");
+
+    auto cls = nw::kernel::rules().classes.get(class_);
+    ENSURE_OR_RETURN_ZERO(cls, "[nwn1] compute_total_spell_slots called with invalid class '{}'", *class_);
+    ENSURE_OR_RETURN_ZERO(cls->spellcaster, "[nwn1] compute_total_spell_slots called with non-spellcaster class '{}'", *class_);
+
+    auto cls_level = get_caster_level(obj, class_);
+    return cls->spells_known[((cls_level - 1) * nw::kernel::rules().maximum_spell_levels()) + spell_level];
+}
+
 int get_available_spell_slots(const nw::Creature* obj, nw::Class class_, int spell_level)
 {
     ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_available_spell_slots called with invalid object");

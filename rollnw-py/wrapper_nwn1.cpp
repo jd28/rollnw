@@ -55,6 +55,7 @@ void init_nwn1(py::module& m)
     m.def("add_known_spell", &nwn1::add_known_spell);
     m.def("add_memorized_spell", &nwn1::add_memorized_spell);
     m.def("compute_total_spell_slots", &nwn1::compute_total_spell_slots);
+    m.def("compute_total_spells_knowable", &nwn1::compute_total_spells_knowable);
     m.def("get_available_spell_slots", &nwn1::get_available_spell_slots);
     m.def("get_available_spell_uses", &nwn1::get_available_spell_uses);
     m.def("get_caster_level", &nwn1::get_caster_level);

@@ -291,6 +291,15 @@ def compute_total_spell_slots(obj: Creature,  class_: int, spell_level: int) -> 
     pass
 
 
+def compute_total_spells_knowable(obj: Creature,  class_: int, spell_level: int) -> int:
+    """
+    Computes total knownable spells at ``spell_level``
+
+    Since:
+        0.46
+    """
+
+
 def get_available_spell_slots(obj: Creature,  class_: int, spell_level: int) -> int:
     """Gets the number of available slots at a particular spell level"""
     pass

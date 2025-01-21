@@ -1007,41 +1007,44 @@ TEST(Creature, Casting)
     EXPECT_EQ(nwn1::get_available_spell_slots(obj2, nwn1::class_type_wizard, 9), 3);
 }
 
-// TEST(Creature, SpellBook)
-// {
-//     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-//     EXPECT_TRUE(mod);
+TEST(Creature, SpellBook)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
 
-//     auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
-//     EXPECT_TRUE(obj1);
-//     auto spellbook1 = obj1->levels.spells(nwn1::class_type_wizard);
-//     EXPECT_TRUE(spellbook1);
-//     EXPECT_EQ(spellbook1->has_memorized_spell(nwn1::spell_light), 1);
+    auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    EXPECT_TRUE(obj1);
+    auto spellbook1 = obj1->levels.spells(nwn1::class_type_wizard);
+    EXPECT_TRUE(spellbook1);
+    EXPECT_EQ(spellbook1->has_memorized_spell(nwn1::spell_light), 1);
 
-//     auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
-//     EXPECT_TRUE(obj2);
-//     auto spellbook2 = obj2->levels.spells(nwn1::class_type_sorcerer);
-//     EXPECT_TRUE(spellbook2);
-//     EXPECT_TRUE(spellbook2->knows_spell(nwn1::spell_light));
+    auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
+    EXPECT_TRUE(obj2);
+    EXPECT_TRUE(obj2->save("tmp/sorcrdd.utc.json"));
+    EXPECT_EQ(nwn1::get_caster_level(obj2, nwn1::class_type_sorcerer), 20);
+    auto spellbook2 = obj2->levels.spells(nwn1::class_type_sorcerer);
+    EXPECT_TRUE(spellbook2);
+    EXPECT_TRUE(nwn1::get_knows_spell(obj2, nwn1::class_type_sorcerer, nwn1::spell_light));
+    EXPECT_EQ(nwn1::compute_total_spell_slots(obj2, nwn1::class_type_sorcerer, 0), 7);
 
-//     auto obj3 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_1.utc");
-//     EXPECT_TRUE(obj3);
-//     EXPECT_TRUE(obj3->save("tmp/spell_test_1.utc.json"));
-//     auto spellbook3 = obj3->levels.spells(nwn1::class_type_bard);
-//     EXPECT_TRUE(spellbook3);
-//     EXPECT_TRUE(spellbook3->knows_spell(nwn1::spell_bulls_strength, 2));
-//     EXPECT_EQ(spellbook3->all_known_spell_count(), 1);
+    auto obj3 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_1.utc");
+    EXPECT_TRUE(obj3);
+    EXPECT_TRUE(obj3->save("tmp/spell_test_1.utc.json"));
+    auto spellbook3 = obj3->levels.spells(nwn1::class_type_bard);
+    EXPECT_TRUE(spellbook3);
+    EXPECT_TRUE(nwn1::get_knows_spell(obj3, nwn1::class_type_bard, nwn1::spell_bulls_strength));
+    EXPECT_EQ(spellbook3->all_known_spell_count(), 1);
 
-//     auto obj4 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
-//     EXPECT_TRUE(obj4);
-//     EXPECT_TRUE(obj4->save("tmp/spell_test_2.utc.json"));
-//     auto spellbook4 = obj4->levels.spells(nwn1::class_type_cleric);
-//     EXPECT_TRUE(spellbook4);
-//     EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 3);
-//     EXPECT_EQ(spellbook4->all_memorized_spell_count(), 66);
-//     EXPECT_EQ(spellbook4->find_memorized_slot(4, nwn1::spell_hammer_of_the_gods), 4);
-//     spellbook4->clear_memorized_spell_slot(4, 4);
-//     EXPECT_EQ(spellbook4->first_empty_slot(4), 4);
-//     EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 2);
-//     EXPECT_EQ(spellbook4->find_memorized_slot(4, nwn1::spell_hammer_of_the_gods), 5);
-// }
+    auto obj4 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
+    EXPECT_TRUE(obj4);
+    EXPECT_TRUE(obj4->save("tmp/spell_test_2.utc.json"));
+    auto spellbook4 = obj4->levels.spells(nwn1::class_type_cleric);
+    EXPECT_TRUE(spellbook4);
+    EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 3);
+    EXPECT_EQ(spellbook4->all_memorized_spell_count(), 66);
+    EXPECT_EQ(spellbook4->find_memorized_slot(4, nwn1::spell_hammer_of_the_gods), 4);
+    spellbook4->clear_memorized_spell_slot(4, 4);
+    EXPECT_EQ(spellbook4->first_empty_slot(4), 4);
+    EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 2);
+    EXPECT_EQ(spellbook4->find_memorized_slot(4, nwn1::spell_hammer_of_the_gods), 5);
+}
