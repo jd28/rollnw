@@ -1768,6 +1768,26 @@ bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability)
     return get_special_ability_uses(obj, ability) > 0;
 }
 
+int get_special_ability_level(const nw::Creature* obj, nw::Spell ability)
+{
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_special_ability_level called with invalid object");
+
+    auto spell_info = nw::kernel::rules().spells.get(ability);
+    ENSURE_OR_RETURN_ZERO(spell_info, "[nwn1] get_special_ability_level called with an invalid spell");
+
+    auto it = std::find_if(
+        std::begin(obj->combat_info.special_abilities),
+        std::end(obj->combat_info.special_abilities),
+        [ability](const auto& entry) {
+            return entry.spell == ability;
+        });
+    if (it != std::end(obj->combat_info.special_abilities)) {
+        return it->level;
+    }
+
+    return 0;
+}
+
 int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability)
 {
     ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_special_ability_uses called with invalid object");

@@ -544,6 +544,15 @@ def get_has_special_ability(obj: Creature, ability: int) -> bool:
     """
 
 
+def get_special_ability_level(obj: Creature, ability: int) -> int:
+    """
+    Determines the caster level of a special ability
+
+    Since:
+        0.46
+    """
+
+
 def get_special_ability_uses(obj: Creature, ability: int) -> int:
     """
     Determines how many uses a creature has of a special ability

@@ -1058,7 +1058,8 @@ TEST(Creature, SpecialAbilities)
     EXPECT_TRUE(obj1);
 
     EXPECT_FALSE(nwn1::get_has_special_ability(obj1, nwn1::spell_horrid_wilting));
-    nwn1::set_special_ability_uses(obj1, nwn1::spell_horrid_wilting, 3);
+    nwn1::set_special_ability_uses(obj1, nwn1::spell_horrid_wilting, 3, 10);
+    EXPECT_EQ(nwn1::get_special_ability_level(obj1, nwn1::spell_horrid_wilting), 10);
     EXPECT_EQ(nwn1::get_special_ability_uses(obj1, nwn1::spell_horrid_wilting), 3);
     nwn1::set_special_ability_uses(obj1, nwn1::spell_horrid_wilting, 1);
     EXPECT_EQ(nwn1::get_special_ability_uses(obj1, nwn1::spell_horrid_wilting), 1);

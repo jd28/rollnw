@@ -246,6 +246,12 @@ void clear_special_ability(nw::Creature* obj, nw::Spell ability);
 /// @since 0.46
 bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability);
 
+/// Determines caster level a special ability
+///
+/// @ingroup Python
+/// @since 0.46
+int get_special_ability_level(const nw::Creature* obj, nw::Spell ability);
+
 /// Determines how many uses a creature has of a special ability
 ///
 /// @ingroup Python
