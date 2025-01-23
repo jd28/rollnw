@@ -62,6 +62,7 @@ SpellInfo::SpellInfo(const TwoDARowView& tda)
         }
 
         tda.get_to("Innate", innate_level);
+        tda.get_to("UserType", user_type);
     }
 }
 

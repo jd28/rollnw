@@ -96,7 +96,7 @@ struct SpellInfo {
     // SubRadSpell1, SubRadSpell2, SubRadSpell3, SubRadSpell4, SubRadSpell5
     // Category
     // Master
-    // UserType
+    int user_type = 0;
     // SpellDesc
     // UseConcentration
     // SpontaneouslyCast
