@@ -1732,15 +1732,29 @@ bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::O
 
 void add_special_ability(nw::Creature* obj, nw::Spell ability, int level)
 {
+    ENSURE_OR_RETURN(obj, "[nwn1] add_special_ability called with invalid object");
+
+    auto spell_info = nw::kernel::rules().spells.get(ability);
+    ENSURE_OR_RETURN(spell_info, "[nwn1] add_special_ability called with an invalid spell");
+
+    if (spell_info->user_type == 1) {
+        level = std::max(1, level);
+    }
+
     nw::SpecialAbility abil;
     abil.spell = ability;
-    abil.level = std::max(level, 15);
+    abil.level = std::min(level, 15);
     abil.flags = nw::SpellFlags::readied;
     obj->combat_info.special_abilities.push_back(abil);
 }
 
 void clear_special_ability(nw::Creature* obj, nw::Spell ability)
 {
+    ENSURE_OR_RETURN(obj, "[nwn1] clear_special_ability called with invalid object");
+
+    auto spell_info = nw::kernel::rules().spells.get(ability);
+    ENSURE_OR_RETURN(spell_info, "[nwn1] clear_special_ability called with an invalid spell");
+
     obj->combat_info.special_abilities.erase(
         std::remove_if(std::begin(obj->combat_info.special_abilities),
             std::end(obj->combat_info.special_abilities), [ability](const auto& entry) {
@@ -1756,6 +1770,11 @@ bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability)
 
 int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability)
 {
+    ENSURE_OR_RETURN_ZERO(obj, "[nwn1] get_special_ability_uses called with invalid object");
+
+    auto spell_info = nw::kernel::rules().spells.get(ability);
+    ENSURE_OR_RETURN_ZERO(spell_info, "[nwn1] get_special_ability_uses called with an invalid spell");
+
     return std::count_if(std::begin(obj->combat_info.special_abilities),
         std::end(obj->combat_info.special_abilities),
         [ability](const auto& it) {
@@ -1765,6 +1784,11 @@ int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability)
 
 void remove_special_ability(nw::Creature* obj, nw::Spell ability)
 {
+    ENSURE_OR_RETURN(obj, "[nwn1] remove_special_ability called with invalid object");
+
+    auto spell_info = nw::kernel::rules().spells.get(ability);
+    ENSURE_OR_RETURN(spell_info, "[nwn1] remove_special_ability called with an invalid spell");
+
     auto it = std::find_if(
         std::begin(obj->combat_info.special_abilities),
         std::end(obj->combat_info.special_abilities),
