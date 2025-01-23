@@ -225,6 +225,51 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
 bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
     nw::ObjectBase* versus = nullptr);
 
+// == Creature: Special Abilities =============================================
+// ============================================================================
+
+/// Adds a special ability use
+///
+/// @ingroup Python
+/// @since 0.46
+void add_special_ability(nw::Creature* obj, nw::Spell ability, int level = 0);
+
+/// Clears all uses of a special ability
+///
+/// @ingroup Python
+/// @since 0.46
+void clear_special_ability(nw::Creature* obj, nw::Spell ability);
+
+/// Determines if a creature has a special ability
+///
+/// @ingroup Python
+/// @since 0.46
+bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability);
+
+/// Determines how many uses a creature has of a special ability
+///
+/// @ingroup Python
+/// @since 0.46
+int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability);
+
+/// Sets the caster level of a special ability, iff its a spell ability
+///
+/// @ingroup Python
+/// @since 0.46
+void set_special_ability_level(nw::Creature* obj, nw::Spell ability, int level);
+
+/// Sets the number of uses of a special ability
+///
+/// @ingroup Python
+/// @since 0.46
+void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, int level = 0);
+
+/// Removes a special ability use
+///
+/// @ingroup Python
+/// @since 0.46
+void remove_special_ability(nw::Creature* obj, nw::Spell ability);
+
 // == Weapons =================================================================
 // ============================================================================
 

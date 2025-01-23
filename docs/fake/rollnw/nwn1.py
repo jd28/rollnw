@@ -513,6 +513,72 @@ def resolve_skill_check(obj: Creature, skill: int,  dc: int, versus: ObjectBase 
     """Resolves skill check"""
     pass
 
+# == Creature: Special Abilities =============================================
+# ============================================================================
+
+
+def add_special_ability(obj: Creature, ability: int,  level: int = 0) -> None:
+    """
+    Adds a special ability use
+
+    Since:
+        0.46
+    """
+
+
+def clear_special_ability(obj: Creature, ability: int) -> None:
+    """
+    Clears all uses of a special ability
+
+    Since:
+        0.46
+    """
+
+
+def get_has_special_ability(obj: Creature, ability: int) -> bool:
+    """
+    Determines if a creature has a special ability
+
+    Since:
+        0.46
+    """
+
+
+def get_special_ability_uses(obj: Creature, ability: int) -> int:
+    """
+    Determines how many uses a creature has of a special ability
+
+    Since:
+        0.46
+    """
+
+
+def set_special_ability_level(obj: Creature, ability: int,  level: int) -> None:
+    """
+    Sets the caster level of a special ability, iff its a spell ability
+
+    Since:
+        0.46
+    """
+
+
+def set_special_ability_uses(obj: Creature, ability: int,  uses: int, level: int = 0) -> None:
+    """
+    Sets the number of uses of a special ability
+
+    Since:
+        0.46
+    """
+
+
+def remove_special_ability(obj: Creature, ability: int) -> None:
+    """
+    Removes a special ability use
+
+    Since:
+        0.46
+    """
+
 # =============================================================================
 # == Effects ==================================================================
 # =============================================================================

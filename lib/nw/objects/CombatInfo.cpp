@@ -54,7 +54,11 @@ bool deserialize(CombatInfo& self, const GffStruct& archive)
     self.special_abilities.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         SpecialAbility sa;
-        archive["SpecAbilityList"][i].get_to("Spell", sa.spell);
+        uint16_t temp_u16;
+
+        if (archive["SpecAbilityList"][i].get_to("Spell", temp_u16)) {
+            sa.spell = Spell::make(temp_u16);
+        }
         archive["SpecAbilityList"][i].get_to("SpellCasterLevel", sa.level);
         archive["SpecAbilityList"][i].get_to("SpellFlags", sa.flags);
         self.special_abilities.push_back(sa);
@@ -68,7 +72,7 @@ bool serialize(const CombatInfo& self, GffBuilderStruct& archive)
     auto& list = archive.add_list("SpecAbilityList");
     for (const auto& spec : self.special_abilities) {
         list.push_back(4)
-            .add_field("Spell", spec.spell)
+            .add_field("Spell", uint16_t(*spec.spell))
             .add_field("SpellCasterLevel", spec.level)
             .add_field("SpellFlags", spec.flags);
     }

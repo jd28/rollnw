@@ -50,7 +50,7 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_TRUE(nwn1::get_equipped_item(ent3, nw::EquipIndex::chest));
     EXPECT_EQ(ent3->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(ent3->combat_info.special_abilities.size(), 1);
-    EXPECT_EQ(ent3->combat_info.special_abilities[0].spell, 120);
+    EXPECT_EQ(ent3->combat_info.special_abilities[0].spell, nw::Spell::make(120));
 
     auto ent4 = nwk::objects().load<nw::Creature>("drorry2");
     EXPECT_TRUE(ent4);

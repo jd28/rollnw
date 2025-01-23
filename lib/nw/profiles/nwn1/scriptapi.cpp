@@ -1727,6 +1727,80 @@ bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::O
     return true;
 }
 
+// == Creature: Special Abilities =============================================
+// ============================================================================
+
+void add_special_ability(nw::Creature* obj, nw::Spell ability, int level)
+{
+    nw::SpecialAbility abil;
+    abil.spell = ability;
+    abil.level = std::max(level, 15);
+    abil.flags = nw::SpellFlags::readied;
+    obj->combat_info.special_abilities.push_back(abil);
+}
+
+void clear_special_ability(nw::Creature* obj, nw::Spell ability)
+{
+    obj->combat_info.special_abilities.erase(
+        std::remove_if(std::begin(obj->combat_info.special_abilities),
+            std::end(obj->combat_info.special_abilities), [ability](const auto& entry) {
+                return entry.spell == ability;
+            }),
+        std::end(obj->combat_info.special_abilities));
+}
+
+bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability)
+{
+    return get_special_ability_uses(obj, ability) > 0;
+}
+
+int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability)
+{
+    return std::count_if(std::begin(obj->combat_info.special_abilities),
+        std::end(obj->combat_info.special_abilities),
+        [ability](const auto& it) {
+            return it.spell == ability;
+        });
+}
+
+void remove_special_ability(nw::Creature* obj, nw::Spell ability)
+{
+    auto it = std::find_if(
+        std::begin(obj->combat_info.special_abilities),
+        std::end(obj->combat_info.special_abilities),
+        [ability](const auto& entry) {
+            return entry.spell == ability;
+        });
+    if (it != std::end(obj->combat_info.special_abilities)) {
+        obj->combat_info.special_abilities.erase(it);
+    }
+}
+
+void set_special_ability_level(nw::Creature* obj, nw::Spell ability, int level)
+{
+    for (auto& it : obj->combat_info.special_abilities) {
+        if (it.spell == ability) {
+            it.level = level;
+        }
+    }
+}
+
+void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, int level)
+{
+    auto current = get_special_ability_uses(obj, ability);
+
+    while (current < uses) {
+        add_special_ability(obj, ability, level);
+        ++current;
+    }
+
+    while (current > uses) {
+        remove_special_ability(obj, ability);
+        --current;
+    }
+    set_special_ability_level(obj, ability, level);
+}
+
 // == Weapons =================================================================
 // ============================================================================
 

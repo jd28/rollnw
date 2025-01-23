@@ -112,6 +112,16 @@ void init_nwn1(py::module& m)
     m.def("get_skill_rank", &nwn1::get_skill_rank);
     m.def("resolve_skill_check", &nwn1::resolve_skill_check);
 
+    // == Creature: Special Abilities =============================================
+    // ============================================================================
+    m.def("add_special_ability", &nwn1::add_special_ability, py::arg("obj"), py::arg("ability"), py::arg("level") = 0);
+    m.def("clear_special_ability", &nwn1::clear_special_ability, py::arg("obj"), py::arg("ability"));
+    m.def("get_has_special_ability", &nwn1::get_has_special_ability, py::arg("obj"), py::arg("ability"));
+    m.def("get_special_ability_uses", &nwn1::get_special_ability_uses, py::arg("obj"), py::arg("ability"));
+    m.def("set_special_ability_level", &nwn1::set_special_ability_level, py::arg("obj"), py::arg("ability"), py::arg("level"));
+    m.def("set_special_ability_uses", &nwn1::set_special_ability_uses, py::arg("obj"), py::arg("ability"), py::arg("uses"), py::arg("level") = 0);
+    m.def("remove_special_ability", &nwn1::remove_special_ability, py::arg("obj"), py::arg("ability"));
+
     // == Items ===================================================================
     // ============================================================================
     m.def("is_ranged_weapon", &nwn1::is_ranged_weapon);

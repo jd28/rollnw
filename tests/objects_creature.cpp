@@ -54,7 +54,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_TRUE(nwn1::get_equipped_item(obj2, nw::EquipIndex::chest));
     EXPECT_EQ(obj2->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(obj2->combat_info.special_abilities.size(), 1);
-    EXPECT_EQ(obj2->combat_info.special_abilities[0].spell, 120);
+    EXPECT_EQ(obj2->combat_info.special_abilities[0].spell, nw::Spell::make(120));
     EXPECT_EQ(obj2->alignment_flags(), nw::align_neutral_good);
 }
 
@@ -841,7 +841,7 @@ TEST(Creature, JsonSerialization)
     EXPECT_TRUE(nwn1::get_equipped_item(ent2, nw::EquipIndex::chest));
     EXPECT_EQ(ent2->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(ent2->combat_info.special_abilities.size(), 1);
-    EXPECT_EQ(ent2->combat_info.special_abilities[0].spell, 120);
+    EXPECT_EQ(ent2->combat_info.special_abilities[0].spell, nw::Spell::make(120));
     EXPECT_EQ(ent2->alignment_flags(), nw::align_neutral_good);
 }
 
@@ -1047,4 +1047,21 @@ TEST(Creature, SpellBook)
     EXPECT_EQ(spellbook4->first_empty_slot(4), 4);
     EXPECT_EQ(spellbook4->has_memorized_spell(nwn1::spell_hammer_of_the_gods), 2);
     EXPECT_EQ(spellbook4->find_memorized_slot(4, nwn1::spell_hammer_of_the_gods), 5);
+}
+
+TEST(Creature, SpecialAbilities)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    EXPECT_TRUE(obj1);
+
+    EXPECT_FALSE(nwn1::get_has_special_ability(obj1, nwn1::spell_horrid_wilting));
+    nwn1::set_special_ability_uses(obj1, nwn1::spell_horrid_wilting, 3);
+    EXPECT_EQ(nwn1::get_special_ability_uses(obj1, nwn1::spell_horrid_wilting), 3);
+    nwn1::set_special_ability_uses(obj1, nwn1::spell_horrid_wilting, 1);
+    EXPECT_EQ(nwn1::get_special_ability_uses(obj1, nwn1::spell_horrid_wilting), 1);
+    nwn1::remove_special_ability(obj1, nwn1::spell_horrid_wilting);
+    EXPECT_EQ(nwn1::get_special_ability_uses(obj1, nwn1::spell_horrid_wilting), 0);
 }

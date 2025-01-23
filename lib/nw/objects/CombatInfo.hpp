@@ -10,7 +10,7 @@ namespace nw {
 struct ObjectBase;
 
 struct SpecialAbility {
-    uint16_t spell;
+    nw::Spell spell;
     uint8_t level;
     SpellFlags flags = SpellFlags::none;
 };
