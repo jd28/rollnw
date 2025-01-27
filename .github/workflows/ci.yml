@@ -222,7 +222,7 @@ jobs:
           mkdir dist
           mv all/*/* dist/.
 
-      - uses: pypa/gh-action-pypi-publish@v1.12.3
+      - uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
