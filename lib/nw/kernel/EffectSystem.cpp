@@ -130,6 +130,9 @@ void EffectSystem::initialize(ServiceInitTime time)
     } else {
         LOG_F(ERROR, "Failed to load item property definitions");
     }
+
+    LOG_F(INFO, "  ... loading item property baseitem table");
+    itemprop_table_ = twodas().get("itemprops");
 }
 
 Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const
@@ -154,10 +157,20 @@ const ItemPropertyDefinition* EffectSystem::ip_definition(ItemPropertyType type)
     return &ip_definitions_[type.idx()];
 }
 
+const Vector<ItemPropertyDefinition>& EffectSystem::ip_definitions() const noexcept
+{
+    return ip_definitions_;
+}
+
 const StaticTwoDA* EffectSystem::ip_param_table(size_t table) const
 {
     if (table >= ip_param_table_.size()) { return nullptr; }
     return ip_param_table_[table];
+}
+
+const StaticTwoDA* EffectSystem::itemprops() const noexcept
+{
+    return itemprop_table_;
 }
 
 bool EffectSystem::remove(ObjectBase* obj, Effect* effect)

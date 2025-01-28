@@ -70,7 +70,9 @@ void init_kernel_effects(py::module& kernel)
         .def("destroy", &nw::kernel::EffectSystem::destroy)
         .def("ip_cost_table", &nw::kernel::EffectSystem::ip_cost_table)
         .def("ip_definition", &nw::kernel::EffectSystem::ip_definition)
+        .def("ip_definitions", &nw::kernel::EffectSystem::ip_definitions)
         .def("ip_param_table", &nw::kernel::EffectSystem::ip_param_table)
+        .def("itemprops", &nw::kernel::EffectSystem::itemprops)
         .def("remove", &nw::kernel::EffectSystem::remove)
         .def("stats", &nw::kernel::EffectSystem::stats);
 

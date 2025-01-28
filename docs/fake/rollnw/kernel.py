@@ -1,4 +1,4 @@
-from . import GameVersion, Module, Item, Container, TwoDA, Resource
+from . import GameVersion, Module, Item, Container, StaticTwoDA, Resource
 from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 from . import Effect, ResourceType, Image, ResourceData
 
@@ -80,7 +80,7 @@ class EffectSystem:
     def destroy(self, effect: Effect) -> None:
         """Destroys an effect"""
 
-    def ip_cost_table(self, table: int) -> TwoDA | None:
+    def ip_cost_table(self, table: int) -> StaticTwoDA | None:
         """Gets an item property cost table"""
         pass
 
@@ -88,8 +88,12 @@ class EffectSystem:
         """Gets an item property definition"""
         pass
 
-    def ip_param_table(self, table: int) -> TwoDA | None:
+    def ip_param_table(self, table: int) -> StaticTwoDA | None:
         """Gets an item property param table"""
+        pass
+
+    def itemprops(self) -> StaticTwoDA:
+        """Gets an item property baseitem table"""
         pass
 
     def remove(self, obj: ObjectBase, effect: Effect) -> bool:
@@ -196,7 +200,7 @@ class TwoDACache:
     """2da cache
     """
 
-    def get(self, name: str | Resource) -> TwoDA | None:
+    def get(self, name: str | Resource) -> StaticTwoDA | None:
         """Gets a cached twoda"""
         pass
 

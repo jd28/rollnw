@@ -64,8 +64,14 @@ struct EffectSystem : public Service {
     /// Gets an item property definition
     const ItemPropertyDefinition* ip_definition(ItemPropertyType type) const;
 
+    /// Gets all item property definitions
+    const Vector<ItemPropertyDefinition>& ip_definitions() const noexcept;
+
     /// Gets an item property param table
     const StaticTwoDA* ip_param_table(size_t table) const;
+
+    /// Gets the 'itemprops.2da' table;
+    const StaticTwoDA* itemprops() const noexcept;
 
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);
@@ -82,6 +88,7 @@ private:
     Vector<ItemPropertyDefinition> ip_definitions_;
     Vector<const StaticTwoDA*> ip_cost_table_;
     Vector<const StaticTwoDA*> ip_param_table_;
+    const StaticTwoDA* itemprop_table_;
 
     ObjectPool<Effect> pool_;
 };
