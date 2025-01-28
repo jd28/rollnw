@@ -137,7 +137,7 @@ struct BaseItemInfo {
     // InvSoundType
     // MaxProps
     // MinProps
-    // PropColumn
+    int item_property_column = -1;
     // StorePanel
     Requirement feat_requirement{{}, false};
     ArmorClass ac_type = ArmorClass::invalid();

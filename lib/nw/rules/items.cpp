@@ -58,12 +58,13 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // InvSoundType
     // MaxProps
     // MinProps
-    // PropColumn
+    tda.get_to("PropColumn", item_property_column);
     // StorePanel
 
     if (tda.get_to("AC_Enchant", temp_int)) {
         ac_type = nw::ArmorClass::make(temp_int);
     }
+
     // BaseAC
     // ArmorCheckPen
     // BaseItemStatRef
