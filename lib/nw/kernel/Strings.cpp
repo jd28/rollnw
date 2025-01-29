@@ -20,13 +20,15 @@ Strings::Strings(MemoryResource* memory)
 
 String Strings::get(uint32_t strref, bool feminine) const
 {
-    if (strref == 0xFFFFFFFF) { return {}; }
+    if (strref == 0xFFFFFFFF) { return ""; }
+    String result;
     if (Tlk::custom_flag & strref) {
         strref ^= Tlk::custom_flag;
-        return feminine ? customf_.get(strref) : custom_.get(strref);
+        result = feminine ? customf_.get(strref) : custom_.get(strref);
     } else {
-        return feminine ? dialogf_.get(strref) : dialog_.get(strref);
+        result = feminine ? dialogf_.get(strref) : dialog_.get(strref);
     }
+    return !result.empty() ? result : fmt::format("Bad Strref ({})", strref);
 }
 
 String Strings::get(const LocString& locstring, bool feminine) const
