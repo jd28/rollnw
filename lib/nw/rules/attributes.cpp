@@ -63,16 +63,13 @@ String AppearanceInfo::editor_name() const
 
 PhenotypeInfo::PhenotypeInfo(const TwoDARowView& tda)
 {
-    tda.get_to("Label", label);
     tda.get_to("Name", name);
     tda.get_to("DefaultPhenoType", fallback);
 }
 
 String PhenotypeInfo::editor_name() const
 {
-    auto string = nw::kernel::strings().get(name);
-    if (!string.empty()) { return string; }
-    return label;
+    return nw::kernel::strings().get(name);
 }
 
 // -- Race --------------------------------------------------------------------

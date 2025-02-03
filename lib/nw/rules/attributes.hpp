@@ -108,14 +108,13 @@ struct PhenotypeInfo {
     PhenotypeInfo() = default;
     PhenotypeInfo(const TwoDARowView& tda);
 
-    String label;
     uint32_t name = std::numeric_limits<uint32_t>::max();
     int fallback = 0;
 
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;
 
-    bool valid() const noexcept { return name != 0xFFFFFFFF || !label.empty(); }
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
 
 using PhenotypeArray = RuleTypeArray<Phenotype, PhenotypeInfo>;
