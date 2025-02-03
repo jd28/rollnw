@@ -51,9 +51,9 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     tda.get_to("CritThreat", crit_threat);
     tda.get_to("CritHitMult", crit_multiplier);
     // Category
-    // BaseCost
-    // Stacking
-    // ItemMultiplier
+    tda.get_to("BaseCost", base_cost);
+    tda.get_to("Stacking", stack_limit);
+    tda.get_to("ItemMultiplier", cost_multiplier);
     tda.get_to("Description", description);
     // InvSoundType
     // MaxProps

@@ -81,7 +81,9 @@ struct AppearanceInfo {
 
     String label;
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
-    String model;
+    String base_name;
+    String model_name;
+    String model_type;
     int size = 0;
 
     bool valid() const noexcept { return string_ref != 0xFFFFFFFF || !label.empty(); }

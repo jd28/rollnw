@@ -129,10 +129,9 @@ struct BaseItemInfo {
     nw::DiceRoll base_damage;
     int crit_threat = 0;
     int crit_multiplier = 0;
-    // Category
-    // BaseCost
-    // Stacking
-    // ItemMultiplier
+    int base_cost = 0;
+    int stack_limit = 0;
+    float cost_multiplier = 1.0f;
     uint32_t description = 0xFFFFFFFF;
     // InvSoundType
     // MaxProps
@@ -157,7 +156,9 @@ struct BaseItemInfo {
     // StorePanelSort
     // ILRStackSize
 
-    // Don't care about the weapon feats, these will be loaded in to the masterfeat system
+    // Unimplemented
+    // - Weapon Feats: these will be loaded in to the masterfeat system
+    // - Category: Unused by the game.
 
     bool is_monk_weapon = false;
     int finesse_size = 3;
