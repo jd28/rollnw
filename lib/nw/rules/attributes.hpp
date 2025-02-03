@@ -86,6 +86,9 @@ struct AppearanceInfo {
     String model_type;
     int size = 0;
 
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
+
     bool valid() const noexcept { return string_ref != 0xFFFFFFFF || !label.empty(); }
 };
 
@@ -105,10 +108,14 @@ struct PhenotypeInfo {
     PhenotypeInfo() = default;
     PhenotypeInfo(const TwoDARowView& tda);
 
-    uint32_t name_ref = std::numeric_limits<uint32_t>::max();
+    String label;
+    uint32_t name = std::numeric_limits<uint32_t>::max();
     int fallback = 0;
 
-    bool valid() const noexcept { return name_ref != 0xFFFFFFFF; }
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
+
+    bool valid() const noexcept { return name != 0xFFFFFFFF || !label.empty(); }
 };
 
 using PhenotypeArray = RuleTypeArray<Phenotype, PhenotypeInfo>;
@@ -146,6 +153,9 @@ struct RaceInfo {
     int feats_normal_level = 0;
     int feats_normal_amount = 0;
     int skillpoints_ability = 0;
+
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
@@ -187,6 +197,9 @@ struct SkillInfo {
     bool all_can_use = false;
     InternedString constant;
     bool hostile = false;
+
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };

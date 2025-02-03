@@ -164,6 +164,11 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
     }
 }
 
+String ClassInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
+}
+
 void ClassArray::clear()
 {
     attack_tables.clear();

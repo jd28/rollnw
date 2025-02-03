@@ -2,6 +2,7 @@
 
 #include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Rules.hpp"
+#include "../kernel/Strings.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -64,6 +65,11 @@ SpellInfo::SpellInfo(const TwoDARowView& tda)
         tda.get_to("Innate", innate_level);
         tda.get_to("UserType", user_type);
     }
+}
+
+String SpellInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
 }
 
 } // namespace nw

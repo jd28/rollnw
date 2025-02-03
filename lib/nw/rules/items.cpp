@@ -1,7 +1,7 @@
 #include "items.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Strings.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -83,6 +83,11 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 
     tda.get_to("IsMonkWeapon", is_monk_weapon);
     tda.get_to("WeaponFinesseMinimumCreatureSize", finesse_size);
+}
+
+String BaseItemInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
 }
 
 } // namespace nw

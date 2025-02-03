@@ -48,6 +48,11 @@ FeatInfo::FeatInfo(const TwoDARowView& tda)
     tda.get_to("ReqAction", requires_action);
 }
 
+String FeatInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
+}
+
 // -- Master Feats ------------------------------------------------------------
 // ----------------------------------------------------------------------------
 

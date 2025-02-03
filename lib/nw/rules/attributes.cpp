@@ -51,14 +51,28 @@ AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
     tda.get_to("MODELTYPE", model_type);
 }
 
+String AppearanceInfo::editor_name() const
+{
+    auto string = nw::kernel::strings().get(string_ref);
+    if (!string.empty()) { return string; }
+    return label;
+}
+
 // -- PhenotypeInfo -----------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 PhenotypeInfo::PhenotypeInfo(const TwoDARowView& tda)
 {
-    if (tda.get_to("Name", name_ref)) {
-        tda.get_to("DefaultPhenoType", fallback);
-    }
+    tda.get_to("Label", label);
+    tda.get_to("Name", name);
+    tda.get_to("DefaultPhenoType", fallback);
+}
+
+String PhenotypeInfo::editor_name() const
+{
+    auto string = nw::kernel::strings().get(name);
+    if (!string.empty()) { return string; }
+    return label;
 }
 
 // -- Race --------------------------------------------------------------------
@@ -104,6 +118,11 @@ RaceInfo::RaceInfo(const TwoDARowView& tda)
     }
 }
 
+String RaceInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
+}
+
 // -- Skill -------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
@@ -127,4 +146,8 @@ SkillInfo::SkillInfo(const TwoDARowView& tda)
     }
 }
 
+String SkillInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
+}
 } // namespace nw
