@@ -88,7 +88,11 @@ Image Item::get_icon_by_part(ItemModelParts::type part, bool female) const
     } else if (model_type == ItemModelType::layered && part == ItemModelParts::model1) {
         // In the layerd case, helmets, etc there is also only one part.
         if (baseitem == BaseItem::make(80)) { // Cloak
-            resref = fmt::format("i{}_m_{:03d}", bi->item_class.view(), model_parts[ItemModelParts::model1]);
+            auto cloakmodel = nw::kernel::twodas().get("cloakmodel");
+            int icon = 0;
+            if (cloakmodel->get_to(model_parts[ItemModelParts::model1], "ICON", icon)) {
+                resref = fmt::format("i{}_m_{:03d}", bi->item_class.view(), icon);
+            }
         } else { // helm
             resref = fmt::format("i{}_{:03d}", bi->item_class.view(), model_parts[ItemModelParts::model1]);
         }
