@@ -23,6 +23,13 @@ PlaceableInfo::PlaceableInfo(const TwoDARowView& tda)
     tda.get_to("Static", static_);
 }
 
+String PlaceableInfo::editor_name() const
+{
+    auto string = nw::kernel::strings().get(name);
+    if (!string.empty()) { return string; }
+    return label;
+}
+
 bool PlaceableScripts::from_json(const nlohmann::json& archive)
 {
     archive.at("on_click").get_to(on_click);
