@@ -1,6 +1,7 @@
 #include "Trap.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
+#include "../kernel/Strings.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 
@@ -18,6 +19,11 @@ TrapInfo::TrapInfo(const TwoDARowView& tda)
         script = nw::Resref{temp};
     }
     tda.get_to("TrapName", name);
+}
+
+String TrapInfo::editor_name() const
+{
+    return nw::kernel::strings().get(name);
 }
 
 bool Trap::from_json(const nlohmann::json& archive)

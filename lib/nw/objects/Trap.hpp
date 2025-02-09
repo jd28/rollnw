@@ -22,6 +22,9 @@ struct TrapInfo {
                                 // IconResRef
                                 // Constant
 
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
+
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
 
