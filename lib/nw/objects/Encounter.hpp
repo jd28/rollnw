@@ -27,6 +27,10 @@ struct SpawnCreature {
     float cr;
     Resref resref;
     bool single_spawn;
+
+    // Unserialized, transient properties.
+    String name;
+    InternedString tag;
 };
 
 struct SpawnPoint {
