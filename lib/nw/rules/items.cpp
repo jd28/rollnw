@@ -59,7 +59,7 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // MaxProps
     // MinProps
     tda.get_to("PropColumn", item_property_column);
-    // StorePanel
+    tda.get_to("StorePanel", store_panel);
 
     if (tda.get_to("AC_Enchant", temp_int)) {
         ac_type = nw::ArmorClass::make(temp_int);
@@ -78,7 +78,7 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // %AnimSlashL
     // %AnimSlashR
     // %AnimSlashS
-    // StorePanelSort
+    tda.get_to("StorePanelSort", store_panel_sort);
     // ILRStackSize
 
     tda.get_to("IsMonkWeapon", is_monk_weapon);

@@ -137,7 +137,7 @@ struct BaseItemInfo {
     // MaxProps
     // MinProps
     int item_property_column = -1;
-    // StorePanel
+    int store_panel = -1;
     Requirement feat_requirement{{}, false};
     ArmorClass ac_type = ArmorClass::invalid();
     // BaseAC
@@ -153,7 +153,7 @@ struct BaseItemInfo {
     // %AnimSlashL
     // %AnimSlashR
     // %AnimSlashS
-    // StorePanelSort
+    int store_panel_sort = 0;
     // ILRStackSize
 
     // Unimplemented
