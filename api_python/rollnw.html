@@ -106,6 +106,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.AreaFlags"><code class="docutils literal notranslate"><span class="pre">AreaFlags</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.AreaFlags.none"><code class="docutils literal notranslate"><span class="pre">AreaFlags.none</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.AreaFlags.interior"><code class="docutils literal notranslate"><span class="pre">AreaFlags.interior</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.AreaFlags.underground"><code class="docutils literal notranslate"><span class="pre">AreaFlags.underground</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.AreaFlags.natural"><code class="docutils literal notranslate"><span class="pre">AreaFlags.natural</span></code></a></li>
@@ -330,6 +331,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.DamageCategory"><code class="docutils literal notranslate"><span class="pre">DamageCategory</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.DamageCategory.none"><code class="docutils literal notranslate"><span class="pre">DamageCategory.none</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.DamageCategory.penalty"><code class="docutils literal notranslate"><span class="pre">DamageCategory.penalty</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.DamageCategory.critical"><code class="docutils literal notranslate"><span class="pre">DamageCategory.critical</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.DamageCategory.unblockable"><code class="docutils literal notranslate"><span class="pre">DamageCategory.unblockable</span></code></a></li>
@@ -1215,6 +1217,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.SpellFlags"><code class="docutils literal notranslate"><span class="pre">SpellFlags</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.SpellFlags.none"><code class="docutils literal notranslate"><span class="pre">SpellFlags.none</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.SpellFlags.readied"><code class="docutils literal notranslate"><span class="pre">SpellFlags.readied</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.SpellFlags.spontaneous"><code class="docutils literal notranslate"><span class="pre">SpellFlags.spontaneous</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.SpellFlags.unlimited"><code class="docutils literal notranslate"><span class="pre">SpellFlags.unlimited</span></code></a></li>
@@ -1556,7 +1559,13 @@
 <dl class="py class flag">
 <dt class="sig sig-object py" id="rollnw.AreaFlags">
 <em class="property"><span class="pre">flag</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">AreaFlags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.AreaFlags" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.AreaFlags.none">
+<span class="sig-name descname"><span class="pre">none</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;AreaFlags.none:</span> <span class="pre">0&gt;</span></em><a class="headerlink" href="#rollnw.AreaFlags.none" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.AreaFlags.interior">
 <span class="sig-name descname"><span class="pre">interior</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;AreaFlags.interior:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.AreaFlags.interior" title="Link to this definition"></a></dt>
@@ -2427,7 +2436,8 @@
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.CreatureColors">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">CreatureColors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.CreatureColors" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.CreatureColors.hair">
 <span class="sig-name descname"><span class="pre">hair</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;CreatureColors.hair:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.CreatureColors.hair" title="Link to this definition"></a></dt>
@@ -2580,6 +2590,11 @@
 </dl>
 <p>Valid values are as follows:</p>
 <dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.DamageCategory.none">
+<span class="sig-name descname"><span class="pre">none</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;DamageCategory.none:</span> <span class="pre">0&gt;</span></em><a class="headerlink" href="#rollnw.DamageCategory.none" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.DamageCategory.penalty">
 <span class="sig-name descname"><span class="pre">penalty</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;DamageCategory.penalty:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.DamageCategory.penalty" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -2694,7 +2709,8 @@ if <cite>is_link</cite> is true a new pointer will created with the node copied 
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.DialogAnimation">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">DialogAnimation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.DialogAnimation" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>An enumeration.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Member Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
 </dd>
@@ -2889,7 +2905,8 @@ if <cite>is_link</cite> is true a new pointer will created with the node copied 
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.DialogNodeType">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">DialogNodeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.DialogNodeType" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>An enumeration.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Member Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
 </dd>
@@ -3549,7 +3566,8 @@ if <cite>is_link</cite> is true a new pointer will created with the node copied 
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.EquipIndex">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">EquipIndex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.EquipIndex" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>An enumeration.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Member Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
 </dd>
@@ -4164,7 +4182,8 @@ be constructed.</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.ItemColors">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">ItemColors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.ItemColors" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.ItemColors.cloth1">
 <span class="sig-name descname"><span class="pre">cloth1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ItemColors.cloth1:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.ItemColors.cloth1" title="Link to this definition"></a></dt>
@@ -4200,7 +4219,8 @@ be constructed.</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.ItemModelParts">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">ItemModelParts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.ItemModelParts" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.ItemModelParts.model1">
 <span class="sig-name descname"><span class="pre">model1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ItemModelParts.model1:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.ItemModelParts.model1" title="Link to this definition"></a></dt>
@@ -4316,7 +4336,8 @@ be constructed.</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.ItemModelType">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">ItemModelType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.ItemModelType" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.ItemModelType.simple">
 <span class="sig-name descname"><span class="pre">simple</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ItemModelType.simple:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.ItemModelType.simple" title="Link to this definition"></a></dt>
@@ -4430,7 +4451,8 @@ be constructed.</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.LanguageID">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">LanguageID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LanguageID" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>An enumeration.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Member Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
 </dd>
@@ -5292,7 +5314,8 @@ be constructed.</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.PaletteNodeType">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">PaletteNodeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.PaletteNodeType" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>An enumeration.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Member Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
 </dd>
@@ -5526,7 +5549,8 @@ and Raise/Lower</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.PlaceableAnimationState">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">PlaceableAnimationState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.PlaceableAnimationState" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.PlaceableAnimationState.none">
 <span class="sig-name descname"><span class="pre">none</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;PlaceableAnimationState.none:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.PlaceableAnimationState.none" title="Link to this definition"></a></dt>
@@ -5883,7 +5907,8 @@ e.g. ‘nw_chicken.utc’</p>
 <dl class="py class enum">
 <dt class="sig sig-object py" id="rollnw.ResourceType">
 <em class="property"><span class="pre">enum</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">ResourceType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.ResourceType" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.ResourceType.invalid">
 <span class="sig-name descname"><span class="pre">invalid</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ResourceType.invalid:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.ResourceType.invalid" title="Link to this definition"></a></dt>
@@ -6682,7 +6707,13 @@ e.g. ‘nw_chicken.utc’</p>
 <dl class="py class flag">
 <dt class="sig sig-object py" id="rollnw.SpellFlags">
 <em class="property"><span class="pre">flag</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">SpellFlags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellFlags" title="Link to this definition"></a></dt>
-<dd><p>Valid values are as follows:</p>
+<dd><p>An enumeration.</p>
+<p>Valid values are as follows:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.SpellFlags.none">
+<span class="sig-name descname"><span class="pre">none</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;SpellFlags.none:</span> <span class="pre">0&gt;</span></em><a class="headerlink" href="#rollnw.SpellFlags.none" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.SpellFlags.readied">
 <span class="sig-name descname"><span class="pre">readied</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;SpellFlags.readied:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#rollnw.SpellFlags.readied" title="Link to this definition"></a></dt>
