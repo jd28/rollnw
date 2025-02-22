@@ -72,6 +72,7 @@ void init_nwn1(py::module& m)
     // ============================================================================
 
     m.def("base_attack_bonus", &nwn1::base_attack_bonus);
+    m.def("calculate_challenge_rating", &nwn1::calculate_challenge_rating);
     m.def("equip_index_to_attack_type", &nwn1::equip_index_to_attack_type);
     m.def("get_weapon_by_attack_type", &nwn1::get_weapon_by_attack_type);
     m.def("is_flanked", &nwn1::is_flanked);
@@ -99,7 +100,6 @@ void init_nwn1(py::module& m)
     m.def("resolve_weapon_power", &nwn1::resolve_weapon_power);
     m.def("weapon_is_finessable", &nwn1::weapon_is_finessable);
     m.def("weapon_iteration", &nwn1::weapon_iteration);
-    m.def("resolve_challenge_rating", &nwn1::resolve_challenge_rating);
 
     // == Creature: Equips ========================================================
     // ============================================================================

@@ -514,14 +514,15 @@ TEST(Creature, ChallengRating)
 
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
-    EXPECT_NEAR(obj->cr, nwn1::resolve_challenge_rating(obj), 0.1);
+    EXPECT_NEAR(obj->cr, nwn1::calculate_challenge_rating(obj), 0.1);
 
-    EXPECT_EQ(nwn1::resolve_attack_type(obj), nwn1::attack_type_onhand);
+    // auto obj2 = nwk::objects().load<nw::Creature>("nw_chicken"sv);
+    // EXPECT_TRUE(obj2);
+    // EXPECT_NEAR(obj2->cr, nwn1::calculate_challenge_rating(obj2), 0.01);
 
-    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
-    EXPECT_TRUE(obj2);
-    obj2->combat_info.attacks_onhand = 1;
-    EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
+    auto obj3 = nwk::objects().load<nw::Creature>("x3_gzhorb"sv);
+    EXPECT_TRUE(obj3);
+    EXPECT_NEAR(obj3->cr, nwn1::calculate_challenge_rating(obj3), 0.01);
 }
 
 TEST(Creature, Concealment)

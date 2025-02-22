@@ -234,3 +234,18 @@ TEST(Item, Icon)
 
 #endif
 }
+
+TEST(Item, Value)
+{
+    auto item1 = nw::kernel::objects().load<nw::Item>("x2_it_minoaxe"sv);
+    EXPECT_TRUE(item1);
+    EXPECT_EQ(nwn1::calculate_item_value(item1), 233320);
+
+    auto item2 = nw::kernel::objects().load<nw::Item>("nw_maarcl025"sv);
+    EXPECT_TRUE(item2);
+    EXPECT_EQ(nwn1::calculate_item_value(item2), 51152);
+
+    auto item3 = nw::kernel::objects().load<nw::Item>("nw_it_novel008"sv);
+    EXPECT_TRUE(item3);
+    EXPECT_EQ(nwn1::calculate_item_value(item3), 58575);
+}

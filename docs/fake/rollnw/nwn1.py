@@ -359,6 +359,15 @@ def base_attack_bonus(obj: Creature) -> int:
     pass
 
 
+def calculate_challenge_rating(obj: Creature) -> float:
+    """
+    Calculates a creatures challenge rating
+
+    Since:
+        0.46
+    """
+
+
 def equip_index_to_attack_type(equip):
     """Converts an equip index to an attack type"""
     pass
@@ -476,14 +485,6 @@ def weapon_iteration(obj: Creature, weapon: Item) -> int:
     """Calculates weapon iteration, e.g. 5 or 3 for monk weapons"""
     pass
 
-
-def resolve_challenge_rating(obj: Creature) -> float:
-    """
-    Calculates a creatures challenge rating
-
-    Since:
-        0.46
-    """
 
 # == Creature: Equips =========================================================
 # =============================================================================

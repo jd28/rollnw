@@ -131,6 +131,12 @@ std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj);
 /// Calculates base attack bonus
 int base_attack_bonus(const nw::Creature* obj);
 
+/// Calculates a creatures challenge rating
+/// @warning This is currently only an approximation of what the toolset calculates. It can be off by a bit
+/// @ingroup Python
+/// @since 0.46
+float calculate_challenge_rating(const nw::Creature* obj);
+
 /// Determine if creature is flanked by an attacker
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
@@ -198,11 +204,6 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
-
-/// Calculates a creatures challenge rating
-/// @ingroup Python
-/// @since 0.46
-float resolve_challenge_rating(nw::Creature* obj);
 
 // == Creature: Equips ========================================================
 // ============================================================================
@@ -287,7 +288,7 @@ void remove_special_ability(nw::Creature* obj, nw::Spell ability);
 /// Calculates the value of an item
 /// @ingroup Python
 /// @since 0.46
-float calculate_item_value(nw::Item* item);
+int calculate_item_value(const nw::Item* item);
 
 // == Weapons =================================================================
 // ============================================================================

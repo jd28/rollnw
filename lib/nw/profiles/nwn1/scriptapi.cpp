@@ -14,7 +14,7 @@
 #include "../../scriptapi.hpp"
 #include "../../util/macros.hpp"
 
-#include <bit>
+#include <cmath>
 
 namespace nwk = nw::kernel;
 
@@ -190,7 +190,7 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
         }
     }
 
-    if (base) { return result; }
+    if (base) { return std::max(0, result); }
 
     // Effects
     auto begin = std::begin(obj->effects());
@@ -213,7 +213,7 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
     }
 
     auto [smin, smax] = nw::kernel::effects().limits.saves;
-    return result + std::clamp(inc - dec, smin, smax);
+    return std::max(0, result + std::clamp(inc - dec, smin, smax));
 }
 
 bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
@@ -695,6 +695,168 @@ int base_attack_bonus(const nw::Creature* obj)
         }
     }
     return int(result + epic);
+}
+
+float calculate_challenge_rating(const nw::Creature* obj)
+{
+    int hd = obj->levels.level();
+    if (hd <= 0) { return 0.0f; }
+    float temp = 0;
+
+    // HD * 0.15
+    float base_cr = hd * 0.15f;
+    LOG_F(INFO, "base_cr: {}", base_cr);
+
+    // (Natural AC bonus) * 0.1
+    float natural_ac_cr = obj->combat_info.ac_natural_bonus * 0.1;
+    LOG_F(INFO, "natural_ac_cr: {}", natural_ac_cr);
+
+    // [ (Inventory Value) / (HD * 20000 + 100000) ] * 0.2 * HD
+    // Equipped non-creature items only
+    float inventory_value = 0.0f;
+    for (size_t i = 0; i < size_t(nw::EquipIndex::creature_left); ++i) {
+        if (obj->equipment.equips[i].is<nw::Item*>()) {
+            if (!obj->equipment.equips[i].as<nw::Item*>()) { continue; }
+            inventory_value += calculate_item_value(obj->equipment.equips[i].as<nw::Item*>());
+        }
+    }
+
+    float inventory_cr = (inventory_value / (hd * 20000 + 100000)) * 0.2 * hd;
+    LOG_F(INFO, "inventory_cr: {}", inventory_cr);
+
+    // [ (Total HP) / (Average HP) ] * 0.2 * HD * (Walk Rate) / (Standard Walk Rate)
+    float average_hitpoints = 0.0f;
+    float total_hitpoints = 0.0f;
+
+    auto walkrate_2da = nw::kernel::twodas().get("creaturespeed");
+    float walkrate, player_walkrate;
+
+    if (!walkrate_2da->get_to(obj->walkrate, "WALKRATE", walkrate)
+        || !walkrate_2da->get_to(0, "WALKRATE", player_walkrate)) {
+        return 0.0f;
+    }
+
+    for (const auto& cls : obj->levels.entries) {
+        if (cls.id == nw::Class::invalid()) { break; }
+        auto cls_info = nw::kernel::rules().classes.get(cls.id);
+        if (!cls_info || !cls_info->valid()) { break; }
+        average_hitpoints += cls.level * (float(cls_info->hitdie + 1) / 2);
+        total_hitpoints += cls.level * cls_info->hitdie;
+    }
+    LOG_F(INFO, "base: {}, walrate: {}, player walk rate: {}", obj->walkrate, walkrate, player_walkrate);
+    float hitpoint_cr = (float(obj->hp) / average_hitpoints) * 0.2 * hd * (walkrate / player_walkrate);
+    LOG_F(INFO, "hp: {}, average_hitpoints {},  hitpoint_cr: {}", obj->hp, average_hitpoints, hitpoint_cr);
+
+    // [ (Total of all Ability Scores) / (HD + 50) ] * 0.1 * HD
+    temp = 0; // Ability totals
+    for (auto abil : obj->stats.abilities_) {
+        temp += abil;
+    }
+    float ability_cr = (temp / (hd + 50)) * 0.1 * hd;
+    LOG_F(INFO, "ability_cr: {}", ability_cr);
+
+    // [ (Total Special Ability Levels) / { (HD * (HD + 1) ) + (HD * 5 ) } ] * 0.15 * HD
+    temp = 0; // Total Levels
+    for (const auto& specabil : obj->combat_info.special_abilities) {
+        auto sp = nw::kernel::rules().spells.get(specabil.spell);
+        if (!sp || !sp->valid()) { continue; }
+        temp += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+    }
+    float specabil_cr = (float(temp) / (hd * (hd + 1) + (hd * 5))) * 0.15 * hd;
+    LOG_F(INFO, "specabil_cr: {}", specabil_cr);
+
+    // [ (Total Spell Levels) / { (HD * (HD + 1) ) } ] * 0.15 * HD
+    float total_spell_levels = 0.0f;
+    for (const auto& cls : obj->levels.entries) {
+        for (const auto& spell_level : cls.spells.known_) {
+            for (const auto& spell : spell_level) {
+                auto sp = nw::kernel::rules().spells.get(spell);
+                if (!sp || !sp->valid()) { continue; }
+                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+            }
+        }
+        for (const auto& spell_level : cls.spells.memorized_) {
+            for (const auto& spell : spell_level) {
+                auto sp = nw::kernel::rules().spells.get(spell.spell);
+                if (!sp || !sp->valid()) { continue; }
+                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+            }
+        }
+    }
+    float spells_cr = (total_spell_levels / (hd * (hd + 1))) * 0.15 * hd;
+    LOG_F(INFO, "spells_cr: {}", spells_cr);
+
+    // [ ((Bonus Saves) + (Base Saves)) / (Base Saves) ] * 0.15 * HD
+    int bonus_saves = obj->stats.save_bonus.fort + obj->stats.save_bonus.reflex + obj->stats.save_bonus.will;
+    int base_saves = nwn1::saving_throw(obj, saving_throw_fort, nw::SaveVersus::invalid(), nullptr, true)
+        + nwn1::saving_throw(obj, saving_throw_reflex, nw::SaveVersus::invalid(), nullptr, true)
+        + nwn1::saving_throw(obj, saving_throw_will, nw::SaveVersus::invalid(), nullptr, true);
+    base_saves -= bonus_saves;
+    float saves_cr = 0.15 * hd;
+    if (base_saves > 0) {
+        saves_cr *= ((bonus_saves + base_saves) / float(base_saves));
+    }
+    LOG_F(INFO, "saves_cr: {}", saves_cr);
+
+    // [ (Total Feat CR Values) / (HD * 0.5 + 7) ] * 0.1 * HD
+    float total_feat_values = 0.0f;
+    for (auto feat : obj->stats.feats_) {
+        auto feat_info = nw::kernel::rules().feats.get(feat);
+        if (!feat_info || !feat_info->valid()) { continue; }
+        total_feat_values += feat_info->cr_value;
+    }
+    float feat_cr = (total_feat_values / (hd * 0.5 + 7)) * 0.1 * hd;
+    LOG_F(INFO, "feat_cr: {}", feat_cr);
+
+    float additive_cr = base_cr
+        + natural_ac_cr
+        + inventory_cr
+        + hitpoint_cr
+        + ability_cr
+        + specabil_cr
+        + spells_cr
+        + saves_cr
+        + feat_cr;
+
+    LOG_F(INFO, "additive_cr before race: {}", additive_cr);
+
+    auto race_info = nw::kernel::rules().races.get(obj->race);
+    if (!race_info || !race_info->valid()) { return 0.0f; }
+    additive_cr *= race_info->cr_modifier;
+
+    LOG_F(INFO, "additive_cr after race: {}", additive_cr);
+
+    if (additive_cr < 1.5) {
+        if (additive_cr > 0.75f) {
+            additive_cr -= 0.35;
+        } else {
+            additive_cr -= 0.25;
+        }
+    }
+
+    LOG_F(INFO, "additive_cr after adjustment: {}", additive_cr);
+
+    additive_cr += obj->cr_adjust;
+
+    if (additive_cr > 0.75) {
+        return round(additive_cr);
+    } else {
+        int denom = 1;
+        float min;
+        auto fractionalcr_2da = nw::kernel::twodas().get("fractionalcr");
+        ENSURE_OR_RETURN_ZERO(fractionalcr_2da, "[nwn1] calculate_challenge_rating unable to load fractionalcr.2da");
+
+        for (size_t i = 0; i < fractionalcr_2da->rows(); ++i) {
+            LOG_F(INFO, "additive cr: {}, row: {}", additive_cr, i);
+            if (fractionalcr_2da->get_to(i, "Min", min) && min < additive_cr) {
+                if (fractionalcr_2da->get_to(i, "Denominator", denom) && denom != 0) {
+                    return 1.0f / denom;
+                }
+            }
+        }
+    }
+
+    return 0.0f;
 }
 
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
@@ -1602,152 +1764,6 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
     return 5;
 }
 
-float resolve_challenge_rating(nw::Creature* obj)
-{
-    int hd = obj->levels.level();
-    if (hd <= 0) { return 0.0f; }
-    int temp = 0;
-
-    // HD * 0.15
-    float base_cr = hd * 0.15f;
-
-    // (Natural AC bonus) * 0.1
-    float natural_ac_cr = obj->combat_info.ac_natural_bonus * 0.1;
-
-    // [ (Inventory Value) / (HD * 20000 + 100000) ] * 0.2 * HD
-    float inventory_value = 0.0f;
-    for (const auto& equip : obj->equipment.equips) {
-        if (equip.is<nw::Item*>()) {
-            inventory_value += calculate_item_value(equip.as<nw::Item*>());
-        }
-    }
-    for (const auto& ii : obj->inventory.items) {
-        if (ii.item.is<nw::Item*>()) {
-            inventory_value += calculate_item_value(ii.item.as<nw::Item*>());
-        }
-    }
-    float inventory_cr = (inventory_value / (hd * 20000 + 100000)) * 0.2 * hd;
-
-    // [ (Total HP) / (Average HP) ] * 0.2 * HD * (Walk Rate) / (Standard Walk Rate)
-    float average_hitpoints = 0.0f;
-
-    auto walkrate_2da = nw::kernel::twodas().get("creaturespeed");
-    float walkrate, player_walkrate;
-
-    if (!walkrate_2da->get_to(obj->walkrate, "WALKRATE", walkrate)
-        || !walkrate_2da->get_to(0, "WALKRATE", player_walkrate)) {
-        return 0.0f;
-    }
-
-    int cls_count = 0;
-    for (const auto& cls : obj->levels.entries) {
-        if (cls.id == nw::Class::invalid()) { break; }
-        ++cls_count;
-    }
-
-    for (const auto& cls : obj->levels.entries) {
-        if (cls.id == nw::Class::invalid()) { break; }
-        auto cls_info = nw::kernel::rules().classes.get(cls.id);
-        if (!cls_info || !cls_info->valid()) { break; }
-        average_hitpoints += cls.level * (float(cls_info->hitdie + 1) / cls_count);
-    }
-    float hitpoint_cr = (float(obj->hp) / average_hitpoints) * 0.2 * hd * (walkrate / player_walkrate);
-
-    // [ (Total of all Ability Scores) / (HD + 50) ] * 0.1 * HD
-    temp = 0; // Ability totals
-    for (auto abil : obj->stats.abilities_) {
-        temp += abil;
-    }
-    float ability_cr = (float(temp) / (hd + 50)) * 0.1 * hd;
-
-    // [ (Total Special Ability Levels) / { (HD * (HD + 1) ) + (HD * 5 ) } ] * 0.15 * HD
-    temp = 0; // Total Levels
-    for (const auto& specabil : obj->combat_info.special_abilities) {
-        auto sp = nw::kernel::rules().spells.get(specabil.spell);
-        if (!sp || !sp->valid()) { continue; }
-        temp += sp->innate_level > 0 ? sp->innate_level : 0.5f;
-    }
-    float specabil_cr = (float(temp) / (hd * (hd + 1) + (hd * 5))) * 0.15 * hd;
-
-    // [ (Total Spell Levels) / { (HD * (HD + 1) ) } ] * 0.15 * HD
-    float total_spell_levels = 0.0f;
-    for (const auto& cls : obj->levels.entries) {
-        for (const auto& spell_level : cls.spells.known_) {
-            for (const auto& spell : spell_level) {
-                auto sp = nw::kernel::rules().spells.get(spell);
-                if (!sp || !sp->valid()) { continue; }
-                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
-            }
-        }
-        for (const auto& spell_level : cls.spells.memorized_) {
-            for (const auto& spell : spell_level) {
-                auto sp = nw::kernel::rules().spells.get(spell.spell);
-                if (!sp || !sp->valid()) { continue; }
-                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
-            }
-        }
-    }
-    float spells_cr = (total_spell_levels / (hd * (hd + 1))) * 0.15 * hd;
-
-    // [ ((Bonus Saves) + (Base Saves)) / (Base Saves) ] * 0.15 * HD
-    int bonus_saves = obj->stats.save_bonus.fort + obj->stats.save_bonus.reflex + obj->stats.save_bonus.will;
-    int base_saves = nwn1::saving_throw(obj, saving_throw_fort, nw::SaveVersus::invalid(), nullptr, true)
-        + nwn1::saving_throw(obj, saving_throw_reflex, nw::SaveVersus::invalid(), nullptr, true)
-        + nwn1::saving_throw(obj, saving_throw_will, nw::SaveVersus::invalid(), nullptr, true);
-    float saves_cr = ((bonus_saves + base_saves) / float(base_saves)) * 0.15 * hd;
-
-    // [ (Total Feat CR Values) / (HD * 0.5 + 7) ] * 0.1 * HD
-    float total_feat_values = 0.0f;
-    for (auto feat : obj->stats.feats_) {
-        auto feat_info = nw::kernel::rules().feats.get(feat);
-        if (!feat_info || !feat_info->valid()) { continue; }
-        total_feat_values += feat_info->cr_value;
-    }
-    float feat_cr = (total_feat_values / (hd * 0.5 + 7)) * 0.1 * hd;
-
-    float additive_cr = base_cr
-        + natural_ac_cr
-        + inventory_cr
-        + hitpoint_cr
-        + ability_cr
-        + specabil_cr
-        + spells_cr
-        + saves_cr
-        + feat_cr;
-
-    auto race_info = nw::kernel::rules().races.get(obj->race);
-    if (!race_info || !race_info->valid()) { return 0.0f; }
-    additive_cr *= race_info->cr_modifier;
-
-    if (additive_cr < 1.5) {
-        if (additive_cr > 0.75f) {
-            additive_cr -= 0.25;
-        } else {
-            additive_cr -= 0.35;
-        }
-    }
-
-    float rounded_cr = std::round(additive_cr) + obj->cr_adjust;
-    additive_cr += obj->cr_adjust;
-
-    if (additive_cr > 0.75) {
-        return rounded_cr;
-    } else {
-        int denom = 1;
-        float min;
-        auto fractionacr = nw::kernel::twodas().get("fractionacr.2da");
-        for (size_t i = 0; i < fractionacr->rows(); ++i) {
-            if (fractionacr->get_to(i, "Min", min) && min < additive_cr) {
-                if (fractionacr->get_to(i, "Denominator", denom) && denom != 0) {
-                    return 1.0f / denom;
-                }
-            }
-        }
-    }
-
-    return 0.0f;
-}
-
 // == Items ===================================================================
 // ============================================================================
 
@@ -1996,8 +2012,9 @@ void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, in
 // == Items ===================================================================
 // ============================================================================
 
-float calculate_item_value(nw::Item* item)
+int calculate_item_value(const nw::Item* item)
 {
+    ENSURE_OR_RETURN_ZERO(item, "[nwn1] calculate_item_value called with invalid object");
     float result = 0.0f;
     auto bi_info = nw::kernel::rules().baseitems.get(item->baseitem);
     if (!bi_info || !bi_info->valid()) { return result; }
@@ -2005,6 +2022,10 @@ float calculate_item_value(nw::Item* item)
     float base_value = 0.0f;
 
     if (item->baseitem == base_item_armor) {
+        auto armor_2da = nw::kernel::twodas().get("armor");
+        if (!armor_2da || !armor_2da->get_to(item->armor_id, "Cost", base_value)) {
+            return 0;
+        }
     } else {
         base_value = bi_info->base_cost;
     }
@@ -2016,15 +2037,17 @@ float calculate_item_value(nw::Item* item)
 
     for (const auto& ip : item->properties) {
         auto ipdef = nw::kernel::effects().ip_definition(nw::ItemPropertyType::make(ip.type));
-        if (!ipdef) { continue; }
-
         float property_value = ipdef->cost;
 
         float subtype_value = 0.0f;
         if (ipdef->subtype) {
             if (ip.subtype < ipdef->subtype->rows()) {
-                ipdef->subtype->get_to(ip.subtype, "Cost", subtype_value);
+                ipdef->subtype->get_to(ip.subtype, "Cost", subtype_value, false);
             }
+        }
+
+        if (property_value == 0.0f) {
+            property_value = subtype_value;
         }
 
         float cost_value = 0.0f;
@@ -2034,41 +2057,36 @@ float calculate_item_value(nw::Item* item)
             }
         }
 
+        if (cost_value != 0.0f) {
+            property_value *= cost_value;
+        }
+
         if (ip.type == *ip_cast_spell) {
-            spell_values.push_back((property_value + cost_value) * subtype_value);
+            spell_values.push_back(property_value);
         } else {
             if (property_value > 0.0f) {
                 positive += property_value;
             } else {
                 negative += property_value;
             }
-
-            if (subtype_value > 0.0f) {
-                positive += subtype_value;
-            } else {
-                negative += subtype_value;
-            }
-
-            if (cost_value > 0.0f) {
-                positive += cost_value;
-            } else {
-                negative += cost_value;
-            }
         }
     }
 
-    std::sort(std::begin(spell_values), std::end(spell_values), std::greater<float>{});
-    if (spell_values.size() > 2) {
-        spell_values[1] *= 0.75f;
-    }
-
-    for (size_t i = 2; i < spell_values.size(); ++i) {
-        spell_values[i] *= 0.5;
-    }
-
     float total_spell_value = 0.0f;
-    for (float value : spell_values) {
-        total_spell_value += value;
+    if (spell_values.size()) {
+        std::sort(std::begin(spell_values), std::end(spell_values), std::greater<float>{});
+
+        for (float value : spell_values) {
+            total_spell_value += value * 0.5;
+        }
+
+        if (spell_values.size() >= 1) {
+            total_spell_value += spell_values[0] * 0.5f;
+        }
+
+        if (spell_values.size() >= 2) {
+            total_spell_value += spell_values[1] * 0.25f;
+        }
     }
 
     // [BaseCost + 1000*(Multiplier^2 - NegMultiplier^2) + SpellCosts]*MaxStack*BaseMult + AdditionalCost
@@ -2077,7 +2095,7 @@ float calculate_item_value(nw::Item* item)
     result *= bi_info->stack_limit;
     result *= bi_info->cost_multiplier;
     result += item->additional_cost;
-    return result;
+    return int(std::round(result));
 }
 
 // == Weapons =================================================================
