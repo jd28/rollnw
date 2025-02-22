@@ -507,6 +507,23 @@ TEST(Creature, AttackType)
     EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
 }
 
+TEST(Creature, ChallengRating)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    EXPECT_TRUE(obj);
+    EXPECT_NEAR(obj->cr, nwn1::resolve_challenge_rating(obj), 0.1);
+
+    EXPECT_EQ(nwn1::resolve_attack_type(obj), nwn1::attack_type_onhand);
+
+    auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    EXPECT_TRUE(obj2);
+    obj2->combat_info.attacks_onhand = 1;
+    EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
+}
+
 TEST(Creature, Concealment)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

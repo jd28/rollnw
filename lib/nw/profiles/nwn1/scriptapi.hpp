@@ -48,7 +48,7 @@ int get_max_hitpoints(const nw::ObjectBase* obj);
 
 /// Determines saving throw
 int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
-    const nw::ObjectBase* versus = nullptr);
+    const nw::ObjectBase* versus = nullptr, bool base = false);
 
 /// Resolves saving throw
 bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
@@ -199,6 +199,11 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
 
+/// Calculates a creatures challenge rating
+/// @ingroup Python
+/// @since 0.46
+float resolve_challenge_rating(nw::Creature* obj);
+
 // == Creature: Equips ========================================================
 // ============================================================================
 
@@ -275,6 +280,14 @@ void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, in
 /// @ingroup Python
 /// @since 0.46
 void remove_special_ability(nw::Creature* obj, nw::Spell ability);
+
+// == Items ===================================================================
+// ============================================================================
+
+/// Calculates the value of an item
+/// @ingroup Python
+/// @since 0.46
+float calculate_item_value(nw::Item* item);
 
 // == Weapons =================================================================
 // ============================================================================

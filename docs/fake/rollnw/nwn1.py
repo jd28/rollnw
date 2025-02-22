@@ -476,6 +476,15 @@ def weapon_iteration(obj: Creature, weapon: Item) -> int:
     """Calculates weapon iteration, e.g. 5 or 3 for monk weapons"""
     pass
 
+
+def resolve_challenge_rating(obj: Creature) -> float:
+    """
+    Calculates a creatures challenge rating
+
+    Since:
+        0.46
+    """
+
 # == Creature: Equips =========================================================
 # =============================================================================
 
@@ -583,6 +592,19 @@ def set_special_ability_uses(obj: Creature, ability: int,  uses: int, level: int
 def remove_special_ability(obj: Creature, ability: int) -> None:
     """
     Removes a special ability use
+
+    Since:
+        0.46
+    """
+
+# =============================================================================
+# == Items ====================================================================
+# =============================================================================
+
+
+def calculate_item_value(item: Item) -> float:
+    """
+    Calculates the value of an item
 
     Since:
         0.46

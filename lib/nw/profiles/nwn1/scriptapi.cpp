@@ -97,7 +97,7 @@ int get_max_hitpoints(const nw::ObjectBase* obj)
 // =============================================================================
 
 int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs,
-    const nw::ObjectBase* versus)
+    const nw::ObjectBase* versus, bool base)
 {
     int result = 0;
     if (!obj) { return 0; }
@@ -189,6 +189,8 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
             }
         }
     }
+
+    if (base) { return result; }
 
     // Effects
     auto begin = std::begin(obj->effects());
@@ -1600,6 +1602,152 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
     return 5;
 }
 
+float resolve_challenge_rating(nw::Creature* obj)
+{
+    int hd = obj->levels.level();
+    if (hd <= 0) { return 0.0f; }
+    int temp = 0;
+
+    // HD * 0.15
+    float base_cr = hd * 0.15f;
+
+    // (Natural AC bonus) * 0.1
+    float natural_ac_cr = obj->combat_info.ac_natural_bonus * 0.1;
+
+    // [ (Inventory Value) / (HD * 20000 + 100000) ] * 0.2 * HD
+    float inventory_value = 0.0f;
+    for (const auto& equip : obj->equipment.equips) {
+        if (equip.is<nw::Item*>()) {
+            inventory_value += calculate_item_value(equip.as<nw::Item*>());
+        }
+    }
+    for (const auto& ii : obj->inventory.items) {
+        if (ii.item.is<nw::Item*>()) {
+            inventory_value += calculate_item_value(ii.item.as<nw::Item*>());
+        }
+    }
+    float inventory_cr = (inventory_value / (hd * 20000 + 100000)) * 0.2 * hd;
+
+    // [ (Total HP) / (Average HP) ] * 0.2 * HD * (Walk Rate) / (Standard Walk Rate)
+    float average_hitpoints = 0.0f;
+
+    auto walkrate_2da = nw::kernel::twodas().get("creaturespeed");
+    float walkrate, player_walkrate;
+
+    if (!walkrate_2da->get_to(obj->walkrate, "WALKRATE", walkrate)
+        || !walkrate_2da->get_to(0, "WALKRATE", player_walkrate)) {
+        return 0.0f;
+    }
+
+    int cls_count = 0;
+    for (const auto& cls : obj->levels.entries) {
+        if (cls.id == nw::Class::invalid()) { break; }
+        ++cls_count;
+    }
+
+    for (const auto& cls : obj->levels.entries) {
+        if (cls.id == nw::Class::invalid()) { break; }
+        auto cls_info = nw::kernel::rules().classes.get(cls.id);
+        if (!cls_info || !cls_info->valid()) { break; }
+        average_hitpoints += cls.level * (float(cls_info->hitdie + 1) / cls_count);
+    }
+    float hitpoint_cr = (float(obj->hp) / average_hitpoints) * 0.2 * hd * (walkrate / player_walkrate);
+
+    // [ (Total of all Ability Scores) / (HD + 50) ] * 0.1 * HD
+    temp = 0; // Ability totals
+    for (auto abil : obj->stats.abilities_) {
+        temp += abil;
+    }
+    float ability_cr = (float(temp) / (hd + 50)) * 0.1 * hd;
+
+    // [ (Total Special Ability Levels) / { (HD * (HD + 1) ) + (HD * 5 ) } ] * 0.15 * HD
+    temp = 0; // Total Levels
+    for (const auto& specabil : obj->combat_info.special_abilities) {
+        auto sp = nw::kernel::rules().spells.get(specabil.spell);
+        if (!sp || !sp->valid()) { continue; }
+        temp += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+    }
+    float specabil_cr = (float(temp) / (hd * (hd + 1) + (hd * 5))) * 0.15 * hd;
+
+    // [ (Total Spell Levels) / { (HD * (HD + 1) ) } ] * 0.15 * HD
+    float total_spell_levels = 0.0f;
+    for (const auto& cls : obj->levels.entries) {
+        for (const auto& spell_level : cls.spells.known_) {
+            for (const auto& spell : spell_level) {
+                auto sp = nw::kernel::rules().spells.get(spell);
+                if (!sp || !sp->valid()) { continue; }
+                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+            }
+        }
+        for (const auto& spell_level : cls.spells.memorized_) {
+            for (const auto& spell : spell_level) {
+                auto sp = nw::kernel::rules().spells.get(spell.spell);
+                if (!sp || !sp->valid()) { continue; }
+                total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
+            }
+        }
+    }
+    float spells_cr = (total_spell_levels / (hd * (hd + 1))) * 0.15 * hd;
+
+    // [ ((Bonus Saves) + (Base Saves)) / (Base Saves) ] * 0.15 * HD
+    int bonus_saves = obj->stats.save_bonus.fort + obj->stats.save_bonus.reflex + obj->stats.save_bonus.will;
+    int base_saves = nwn1::saving_throw(obj, saving_throw_fort, nw::SaveVersus::invalid(), nullptr, true)
+        + nwn1::saving_throw(obj, saving_throw_reflex, nw::SaveVersus::invalid(), nullptr, true)
+        + nwn1::saving_throw(obj, saving_throw_will, nw::SaveVersus::invalid(), nullptr, true);
+    float saves_cr = ((bonus_saves + base_saves) / float(base_saves)) * 0.15 * hd;
+
+    // [ (Total Feat CR Values) / (HD * 0.5 + 7) ] * 0.1 * HD
+    float total_feat_values = 0.0f;
+    for (auto feat : obj->stats.feats_) {
+        auto feat_info = nw::kernel::rules().feats.get(feat);
+        if (!feat_info || !feat_info->valid()) { continue; }
+        total_feat_values += feat_info->cr_value;
+    }
+    float feat_cr = (total_feat_values / (hd * 0.5 + 7)) * 0.1 * hd;
+
+    float additive_cr = base_cr
+        + natural_ac_cr
+        + inventory_cr
+        + hitpoint_cr
+        + ability_cr
+        + specabil_cr
+        + spells_cr
+        + saves_cr
+        + feat_cr;
+
+    auto race_info = nw::kernel::rules().races.get(obj->race);
+    if (!race_info || !race_info->valid()) { return 0.0f; }
+    additive_cr *= race_info->cr_modifier;
+
+    if (additive_cr < 1.5) {
+        if (additive_cr > 0.75f) {
+            additive_cr -= 0.25;
+        } else {
+            additive_cr -= 0.35;
+        }
+    }
+
+    float rounded_cr = std::round(additive_cr) + obj->cr_adjust;
+    additive_cr += obj->cr_adjust;
+
+    if (additive_cr > 0.75) {
+        return rounded_cr;
+    } else {
+        int denom = 1;
+        float min;
+        auto fractionacr = nw::kernel::twodas().get("fractionacr.2da");
+        for (size_t i = 0; i < fractionacr->rows(); ++i) {
+            if (fractionacr->get_to(i, "Min", min) && min < additive_cr) {
+                if (fractionacr->get_to(i, "Denominator", denom) && denom != 0) {
+                    return 1.0f / denom;
+                }
+            }
+        }
+    }
+
+    return 0.0f;
+}
+
 // == Items ===================================================================
 // ============================================================================
 
@@ -1843,6 +1991,93 @@ void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, in
         --current;
     }
     set_special_ability_level(obj, ability, level);
+}
+
+// == Items ===================================================================
+// ============================================================================
+
+float calculate_item_value(nw::Item* item)
+{
+    float result = 0.0f;
+    auto bi_info = nw::kernel::rules().baseitems.get(item->baseitem);
+    if (!bi_info || !bi_info->valid()) { return result; }
+
+    float base_value = 0.0f;
+
+    if (item->baseitem == base_item_armor) {
+    } else {
+        base_value = bi_info->base_cost;
+    }
+
+    float positive = 0.0f;
+    float negative = 0.0f;
+
+    std::vector<float> spell_values;
+
+    for (const auto& ip : item->properties) {
+        auto ipdef = nw::kernel::effects().ip_definition(nw::ItemPropertyType::make(ip.type));
+        if (!ipdef) { continue; }
+
+        float property_value = ipdef->cost;
+
+        float subtype_value = 0.0f;
+        if (ipdef->subtype) {
+            if (ip.subtype < ipdef->subtype->rows()) {
+                ipdef->subtype->get_to(ip.subtype, "Cost", subtype_value);
+            }
+        }
+
+        float cost_value = 0.0f;
+        if (ipdef->cost_table) {
+            if (ip.cost_value < ipdef->cost_table->rows()) {
+                ipdef->cost_table->get_to(ip.cost_value, "Cost", cost_value);
+            }
+        }
+
+        if (ip.type == *ip_cast_spell) {
+            spell_values.push_back((property_value + cost_value) * subtype_value);
+        } else {
+            if (property_value > 0.0f) {
+                positive += property_value;
+            } else {
+                negative += property_value;
+            }
+
+            if (subtype_value > 0.0f) {
+                positive += subtype_value;
+            } else {
+                negative += subtype_value;
+            }
+
+            if (cost_value > 0.0f) {
+                positive += cost_value;
+            } else {
+                negative += cost_value;
+            }
+        }
+    }
+
+    std::sort(std::begin(spell_values), std::end(spell_values), std::greater<float>{});
+    if (spell_values.size() > 2) {
+        spell_values[1] *= 0.75f;
+    }
+
+    for (size_t i = 2; i < spell_values.size(); ++i) {
+        spell_values[i] *= 0.5;
+    }
+
+    float total_spell_value = 0.0f;
+    for (float value : spell_values) {
+        total_spell_value += value;
+    }
+
+    // [BaseCost + 1000*(Multiplier^2 - NegMultiplier^2) + SpellCosts]*MaxStack*BaseMult + AdditionalCost
+    result = base_value;
+    result += 1000 * ((positive * positive) - (negative * negative)) + total_spell_value;
+    result *= bi_info->stack_limit;
+    result *= bi_info->cost_multiplier;
+    result += item->additional_cost;
+    return result;
 }
 
 // == Weapons =================================================================

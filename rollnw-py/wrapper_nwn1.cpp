@@ -99,6 +99,7 @@ void init_nwn1(py::module& m)
     m.def("resolve_weapon_power", &nwn1::resolve_weapon_power);
     m.def("weapon_is_finessable", &nwn1::weapon_is_finessable);
     m.def("weapon_iteration", &nwn1::weapon_iteration);
+    m.def("resolve_challenge_rating", &nwn1::resolve_challenge_rating);
 
     // == Creature: Equips ========================================================
     // ============================================================================
@@ -127,6 +128,7 @@ void init_nwn1(py::module& m)
     // ============================================================================
     m.def("is_ranged_weapon", &nwn1::is_ranged_weapon);
     m.def("is_shield", &nwn1::is_shield);
+    m.def("calculate_item_value", &nwn1::calculate_item_value);
 
     // == Effects =================================================================
     // ============================================================================
