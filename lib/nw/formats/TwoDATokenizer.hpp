@@ -56,7 +56,7 @@ struct TwoDATokenizer {
                 break;
             case ' ':
             case '\t':
-                while (buffer[pos] == ' ' || buffer[pos] == '\t') {
+                while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t')) {
                     ++pos;
                 }
                 break;

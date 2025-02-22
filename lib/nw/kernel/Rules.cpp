@@ -81,7 +81,7 @@ void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_lis
 
 void Rules::register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs)
 {
-    special_attacks_[type.idx()] = funcs;
+    special_attacks_[*type] = funcs;
 }
 
 void Rules::set_attack_functions(AttackFuncs cbs)
@@ -96,7 +96,7 @@ void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, cons
 
 SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
 {
-    return special_attacks_[type.idx()];
+    return special_attacks_[*type];
 }
 
 } // namespace nw::kernel

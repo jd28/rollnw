@@ -240,6 +240,10 @@ void Creature::update_appearance(Appearance id)
         cresize->get_to(size, "ACATTACKMOD", combat_info.size_ab_modifier);
         cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
     }
+
+    if (walkrate == 7) {
+        walkrate = app->walkrate;
+    }
 }
 
 // == Creature - Serialization - Gff ==========================================

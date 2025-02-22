@@ -85,6 +85,7 @@ struct AppearanceInfo {
     String model_name;
     String model_type;
     int size = 0;
+    int walkrate = 4;
 
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;

@@ -120,6 +120,7 @@ void EffectSystem::initialize(ServiceInitTime time)
                 if (auto param = ipdef->get<int>(i, "Param1ResRef")) {
                     def.param_table = ip_param_table_[size_t(*param)];
                 }
+                ipdef->get_to(i, "Cost", def.cost);
                 ipdef->get_to(i, "GameStrRef", def.game_string);
                 ipdef->get_to(i, "Description", def.description);
                 ++count;

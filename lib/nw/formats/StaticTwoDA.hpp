@@ -90,7 +90,7 @@ std::optional<T> StaticTwoDA::get(size_t row, StringView col, bool warn_missing)
 {
     size_t ci = column_index(col);
     if (ci == npos) {
-        if (warn_missing) { LOG_F(WARNING, "unknown column: {}", col); }
+        if (warn_missing) { LOG_F(WARNING, "'{}' unknown column: {}", data_.name.resref.view(), col); }
         return std::optional<T>{};
     }
 
@@ -125,7 +125,7 @@ bool StaticTwoDA::get_to(size_t row, StringView col, T& out, bool warn_missing) 
 {
     size_t ci = column_index(col);
     if (ci == npos) {
-        if (warn_missing) { LOG_F(WARNING, "unknown column: {}", col); }
+        if (warn_missing) { LOG_F(WARNING, "'{}' unknown column: {}", data_.name.resref.view(), col); }
         return false;
     }
     return get_to<T>(row, ci, out);

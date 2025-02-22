@@ -77,7 +77,7 @@ struct Rules : public Service {
 private:
     std::array<bool (*)(const Qualifier&, const ObjectBase*), 256> qualifiers_;
     std::array<CombatModeFuncs, 32> combat_modes_;
-    std::array<SpecialAttackFuncs, 32> special_attacks_;
+    absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
     AttackFuncs attack_functions_;
     size_t maximum_spell_levels_ = 10;
 };

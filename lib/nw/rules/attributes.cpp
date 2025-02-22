@@ -49,6 +49,28 @@ AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
     tda.get_to("SIZECATEGORY", size);
 
     tda.get_to("MODELTYPE", model_type);
+
+    std::string temp;
+    tda.get_to("MOVERATE", temp);
+    if (string::icmp(temp, "PLAYER")) {
+        walkrate = 0;
+    } else if (string::icmp(temp, "NOMOVE")) {
+        walkrate = 1;
+    } else if (string::icmp(temp, "VSLOW")) {
+        walkrate = 2;
+    } else if (string::icmp(temp, "SLOW")) {
+        walkrate = 3;
+    } else if (string::icmp(temp, "NORM")) {
+        walkrate = 4;
+    } else if (string::icmp(temp, "FAST")) {
+        walkrate = 5;
+    } else if (string::icmp(temp, "VFAST")) {
+        walkrate = 6;
+    } else if (string::icmp(temp, "DEFAULT")) {
+        walkrate = 7;
+    } else if (string::icmp(temp, "DFAST")) {
+        walkrate = 8;
+    }
 }
 
 String AppearanceInfo::editor_name() const
