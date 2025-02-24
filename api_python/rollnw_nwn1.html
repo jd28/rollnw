@@ -82,6 +82,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.attacks_per_second"><code class="docutils literal notranslate"><span class="pre">attacks_per_second()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.base_attack_bonus"><code class="docutils literal notranslate"><span class="pre">base_attack_bonus()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.calculate_ac_versus"><code class="docutils literal notranslate"><span class="pre">calculate_ac_versus()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.calculate_challenge_rating"><code class="docutils literal notranslate"><span class="pre">calculate_challenge_rating()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.calculate_item_ac"><code class="docutils literal notranslate"><span class="pre">calculate_item_ac()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.calculate_item_value"><code class="docutils literal notranslate"><span class="pre">calculate_item_value()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.can_equip_item"><code class="docutils literal notranslate"><span class="pre">can_equip_item()</span></code></a></li>
@@ -152,7 +153,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_attack"><code class="docutils literal notranslate"><span class="pre">resolve_attack()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_attack_bonus"><code class="docutils literal notranslate"><span class="pre">resolve_attack_bonus()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_attack_damage"><code class="docutils literal notranslate"><span class="pre">resolve_attack_damage()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_challenge_rating"><code class="docutils literal notranslate"><span class="pre">resolve_challenge_rating()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_concealment"><code class="docutils literal notranslate"><span class="pre">resolve_concealment()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_critical_multiplier"><code class="docutils literal notranslate"><span class="pre">resolve_critical_multiplier()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.nwn1.resolve_critical_threat"><code class="docutils literal notranslate"><span class="pre">resolve_critical_threat()</span></code></a></li>
@@ -286,6 +286,16 @@
 <dt class="sig sig-object py" id="rollnw.nwn1.calculate_ac_versus">
 <span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">calculate_ac_versus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">versus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_touch_attack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#rollnw.nwn1.calculate_ac_versus" title="Link to this definition"></a></dt>
 <dd><p>Calculate Armor Class versus another object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.nwn1.calculate_challenge_rating">
+<span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">calculate_challenge_rating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Creature" title="rollnw.Creature"><span class="pre">Creature</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#rollnw.nwn1.calculate_challenge_rating" title="Link to this definition"></a></dt>
+<dd><p>Calculates a creatures challenge rating</p>
+<dl class="simple">
+<dt>Since:</dt><dd><p>0.46</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -881,16 +891,6 @@ Returns <code class="docutils literal notranslate"><span class="pre">(-1,</span>
 <dt class="sig sig-object py" id="rollnw.nwn1.resolve_attack_damage">
 <span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">resolve_attack_damage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Creature" title="rollnw.Creature"><span class="pre">Creature</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">versus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.AttackData" title="rollnw.AttackData"><span class="pre">AttackData</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#rollnw.nwn1.resolve_attack_damage" title="Link to this definition"></a></dt>
 <dd><p>Resolves damage from an attack</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="rollnw.nwn1.resolve_challenge_rating">
-<span class="sig-prename descclassname"><span class="pre">rollnw.nwn1.</span></span><span class="sig-name descname"><span class="pre">resolve_challenge_rating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Creature" title="rollnw.Creature"><span class="pre">Creature</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#rollnw.nwn1.resolve_challenge_rating" title="Link to this definition"></a></dt>
-<dd><p>Calculates a creatures challenge rating</p>
-<dl class="simple">
-<dt>Since:</dt><dd><p>0.46</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
