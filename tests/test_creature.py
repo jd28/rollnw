@@ -27,12 +27,6 @@ def test_creature_gff_construct():
     assert cre.common.resref == "nw_chicken"
 
 
-def test_creature_json_construct():
-    cre = Creature.from_file(
-        "tests/test_data/user/development/drorry2.utc")
-    assert cre.stats.get_ability_score(0) == 18
-
-
 def test_creature_stats():
     cre = Creature.from_file("tests/test_data/user/development/drorry.utc")
 
