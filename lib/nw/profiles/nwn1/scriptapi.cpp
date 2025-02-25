@@ -739,7 +739,7 @@ float calculate_challenge_rating(const nw::Creature* obj)
     for (const auto& cls : obj->levels.entries) {
         if (cls.id == nw::Class::invalid()) { break; }
         auto cls_info = nw::kernel::rules().classes.get(cls.id);
-        if (!cls_info || !cls_info->valid()) { break; }
+        if (!cls_info) { break; }
         average_hitpoints += cls.level * (float(cls_info->hitdie + 1) / 2);
         total_hitpoints += cls.level * cls_info->hitdie;
     }
@@ -759,7 +759,7 @@ float calculate_challenge_rating(const nw::Creature* obj)
     temp = 0; // Total Levels
     for (const auto& specabil : obj->combat_info.special_abilities) {
         auto sp = nw::kernel::rules().spells.get(specabil.spell);
-        if (!sp || !sp->valid()) { continue; }
+        if (!sp) { continue; }
         temp += sp->innate_level > 0 ? sp->innate_level : 0.5f;
     }
     float specabil_cr = (float(temp) / (hd * (hd + 1) + (hd * 5))) * 0.15 * hd;
@@ -771,14 +771,14 @@ float calculate_challenge_rating(const nw::Creature* obj)
         for (const auto& spell_level : cls.spells.known_) {
             for (const auto& spell : spell_level) {
                 auto sp = nw::kernel::rules().spells.get(spell);
-                if (!sp || !sp->valid()) { continue; }
+                if (!sp) { continue; }
                 total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
             }
         }
         for (const auto& spell_level : cls.spells.memorized_) {
             for (const auto& spell : spell_level) {
                 auto sp = nw::kernel::rules().spells.get(spell.spell);
-                if (!sp || !sp->valid()) { continue; }
+                if (!sp) { continue; }
                 total_spell_levels += sp->innate_level > 0 ? sp->innate_level : 0.5f;
             }
         }
@@ -802,7 +802,7 @@ float calculate_challenge_rating(const nw::Creature* obj)
     float total_feat_values = 0.0f;
     for (auto feat : obj->stats.feats_) {
         auto feat_info = nw::kernel::rules().feats.get(feat);
-        if (!feat_info || !feat_info->valid()) { continue; }
+        if (!feat_info) { continue; }
         total_feat_values += feat_info->cr_value;
     }
     float feat_cr = (total_feat_values / (hd * 0.5 + 7)) * 0.1 * hd;
@@ -821,7 +821,7 @@ float calculate_challenge_rating(const nw::Creature* obj)
     LOG_F(INFO, "additive_cr before race: {}", additive_cr);
 
     auto race_info = nw::kernel::rules().races.get(obj->race);
-    if (!race_info || !race_info->valid()) { return 0.0f; }
+    if (!race_info) { return 0.0f; }
     additive_cr *= race_info->cr_modifier;
 
     LOG_F(INFO, "additive_cr after race: {}", additive_cr);
@@ -2017,7 +2017,7 @@ int calculate_item_value(const nw::Item* item)
     ENSURE_OR_RETURN_ZERO(item, "[nwn1] calculate_item_value called with invalid object");
     float result = 0.0f;
     auto bi_info = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi_info || !bi_info->valid()) { return result; }
+    if (!bi_info) { return result; }
 
     float base_value = 0.0f;
 
