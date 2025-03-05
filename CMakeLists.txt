@@ -64,7 +64,7 @@ include_directories(SYSTEM external/nowide/include)
 include_directories(SYSTEM external/xsimd-13.0.0/include)
 include_directories(SYSTEM external/xxhash-0.8.3)
 
-if(NOT ROLLNW_BUILD_PYTHON)
+if(NOT ROLLNW_BUILD_PYTHON AND NOT APPLE)
 include_directories(SYSTEM external/mimalloc-3.0.1/include)
 add_subdirectory(external/mimalloc-3.0.1 EXCLUDE_FROM_ALL SYSTEM)
 endif()
