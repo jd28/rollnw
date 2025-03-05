@@ -82,6 +82,10 @@
                 "MI_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
+                },
+                "MI_OPT_ARCH": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         },
