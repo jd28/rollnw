@@ -82,9 +82,7 @@
                 "MI_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
-                },
-                "MI_OSX_ZONE": "OFF",
-                "MI_ARCH": "default"
+                }
             }
         },
         {
@@ -327,7 +325,10 @@
             },
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "13",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64"
+                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
+                "CMAKE_C_FLAGS_INIT": "-march=native",
+                "CMAKE_CXX_FLAGS_INIT": "-march=native",
+                "MI_OSX_ZONE": "0"
             }
         },
         {
