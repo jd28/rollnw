@@ -134,7 +134,6 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
-    mimalloc-static
     minizip
     zlibstatic
     nowide::nowide
@@ -154,6 +153,13 @@ target_link_libraries(nw PUBLIC
     iconv
 )
 endif()
+
+if(NOT ROLLNW_BUILD_PYTHON)
+target_link_libraries(nw PUBLIC
+    mimalloc-static
+)
+endif()
+
 
 include(../../cmake/ProjectSettings.cmake)
 

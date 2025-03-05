@@ -3,7 +3,6 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 
-#include <mimalloc-new-delete.h>
 #include <nowide/cstdlib.hpp>
 
 #include <chrono>

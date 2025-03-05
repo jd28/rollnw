@@ -4,7 +4,6 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 
-#include <mimalloc-new-delete.h>
 #include <nowide/cstdlib.hpp>
 
 #include <chrono>

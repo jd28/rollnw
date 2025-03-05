@@ -9,7 +9,6 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/util/string.hpp>
 
-#include <mimalloc-new-delete.h>
 #include <nowide/cstdlib.hpp>
 
 int main(int argc, char* argv[])

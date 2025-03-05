@@ -17,7 +17,6 @@
 #include <nw/profiles/nwn1/scriptapi.hpp>
 
 #include <benchmark/benchmark.h>
-#include <mimalloc-new-delete.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
 
