@@ -326,9 +326,7 @@
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "13",
                 "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
-                "CMAKE_C_FLAGS_INIT": "-march=native",
-                "CMAKE_CXX_FLAGS_INIT": "-march=native",
-                "MI_OSX_ZONE": "0"
+                "MI_OSX_ZONE": "OFF"
             }
         },
         {
