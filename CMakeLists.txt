@@ -63,6 +63,7 @@ include_directories(SYSTEM external/immer)
 include_directories(SYSTEM external/nowide/include)
 include_directories(SYSTEM external/xsimd-13.0.0/include)
 include_directories(SYSTEM external/xxhash-0.8.3)
+include_directories(SYSTEM external/mimalloc-3.0.1/include)
 
 set(ABSL_USE_SYSTEM_INCLUDES ON)
 add_subdirectory(external/abseil-cpp-20240722.0)
@@ -70,8 +71,8 @@ add_subdirectory(external/fmt-10.2.1)
 add_subdirectory(external/fzy)
 add_subdirectory(external/immer)
 add_subdirectory(external/inih)
-
 add_subdirectory(external/libiconv)
+add_subdirectory(external/mimalloc-3.0.1)
 
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2)

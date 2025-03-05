@@ -2,6 +2,7 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/script/Nss.hpp>
 
+#include <mimalloc-new-delete.h>
 #include <nowide/cstdlib.hpp>
 
 #include <chrono>

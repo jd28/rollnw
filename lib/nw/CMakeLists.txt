@@ -134,6 +134,7 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
+    mimalloc-static
     minizip
     zlibstatic
     nowide::nowide

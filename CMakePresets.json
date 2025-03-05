@@ -70,6 +70,18 @@
                 "INSTALL_GTEST": {
                     "type": "BOOL",
                     "value": "OFF"
+                },
+                "MI_BUILD_SHARED": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "MI_BUILD_OBJECT": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "MI_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         },
