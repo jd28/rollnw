@@ -53,7 +53,7 @@ struct ErrorContext : public ErrorContextBase {
 
 std::string get_error_context();
 
-#define ERRARE(fmt, ...) \
-    auto ERRARE_UNIQUE_NAME { nw::ErrorContext(__FILE__, __LINE__, fmt, ##__VA_ARGS__) }
+#define ERRARE(...) \
+    auto ERRARE_UNIQUE_NAME { nw::ErrorContext(__FILE__, __LINE__, __VA_ARGS__) }
 
 } // namespace nw
