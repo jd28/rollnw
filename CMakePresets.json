@@ -82,7 +82,9 @@
                 "MI_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
-                }
+                },
+                "MI_OSX_ZONE": "OFF",
+                "MI_ARCH": "default"
             }
         },
         {
