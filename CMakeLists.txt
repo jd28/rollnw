@@ -70,7 +70,7 @@ add_subdirectory(external/mimalloc-3.0.1 EXCLUDE_FROM_ALL SYSTEM)
 endif()
 
 set(ABSL_USE_SYSTEM_INCLUDES ON)
-add_subdirectory(external/abseil-cpp-20240722.0 EXCLUDE_FROM_ALL SYSTEM)
+add_subdirectory(external/abseil-cpp-20250127.0 EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/fmt-10.2.1 EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/fzy EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/immer EXCLUDE_FROM_ALL SYSTEM)
