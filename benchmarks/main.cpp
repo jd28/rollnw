@@ -17,6 +17,7 @@
 #include <nw/profiles/nwn1/scriptapi.hpp>
 
 #include <benchmark/benchmark.h>
+#include <mimalloc-new-delete.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
 
@@ -301,7 +302,7 @@ static void BM_load_module(benchmark::State& state)
         benchmark::DoNotOptimize(m);
     }
 }
-BENCHMARK(BM_load_module);
+// BENCHMARK(BM_load_module);
 
 static void BM_start_service(benchmark::State& state)
 {
@@ -310,7 +311,7 @@ static void BM_start_service(benchmark::State& state)
         nwk::services().start();
     }
 }
-BENCHMARK(BM_start_service);
+// BENCHMARK(BM_start_service);
 BENCHMARK(BM_creature_modifier_simple);
 BENCHMARK(BM_creature_modifier_complex);
 BENCHMARK(BM_creature_get_skill_rank);
@@ -330,6 +331,32 @@ BENCHMARK(BM_script_resolve);
 
 BENCHMARK(BM_rules_master_feat);
 BENCHMARK(BM_rules_modifier);
+
+static void BM_kernel_object_lookup(benchmark::State& state)
+{
+    constexpr int num_objects = 10000;
+    std::vector<nw::ObjectHandle> handles;
+    handles.reserve(num_objects);
+    for (int i = 0; i < num_objects; ++i) {
+        auto obj = nwk::objects().load<nw::Creature>("nw_chicken"sv);
+        if (!obj) { continue; }
+        handles.push_back(obj->handle());
+    }
+
+    if (handles.empty()) {
+        state.SkipWithError("Failed to create any test objects");
+        return;
+    }
+
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<size_t> dist(0, handles.size() - 1);
+
+    for (auto _ : state) {
+        auto obj = nw::kernel::objects().get<nw::Creature>(handles[dist(rng)]);
+        benchmark::DoNotOptimize(obj);
+    }
+}
+BENCHMARK(BM_kernel_object_lookup);
 
 int main(int argc, char** argv)
 {
