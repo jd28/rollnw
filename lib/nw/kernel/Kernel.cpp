@@ -33,10 +33,14 @@ Services::Services()
 {
 }
 
-void Services::start()
+void Services::set_module_loading(bool value)
 {
-    if (serices_started_) { return; }
+    module_loading_ = value;
+}
 
+void Services::create()
+{
+    if (services_created_) { return; }
     if (!profile_) {
         if (config().version() == GameVersion::vEE
             || config().version() == GameVersion::v1_69) {
@@ -48,6 +52,13 @@ void Services::start()
 
     // Load all the default services.
     load_services();
+    services_created_ = true;
+}
+
+void Services::start()
+{
+    if (serices_started_) { return; }
+    create();
 
     if (!module_loading_) {
         for (auto& entry : services_) {
@@ -72,6 +83,9 @@ void Services::shutdown()
     if (!user_profile_) { profile_ = nullptr; }
     services_count_ = 0;
     serices_started_ = false;
+    services_created_ = false;
+    module_loaded_ = false;
+    module_loading_ = false;
 }
 
 void Services::load_services()
@@ -105,8 +119,8 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
-    services().module_loading_ = true;
     unload_module(); // Always unload, just in case.
+    services().module_loading_ = true;
 
     auto start = std::chrono::high_resolution_clock::now();
     services().start();

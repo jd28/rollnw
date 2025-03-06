@@ -39,7 +39,7 @@ enum struct ServiceInitTime {
 /// Abstract base class of all services
 struct Service {
     Service(MemoryResource* memory_);
-    virtual ~Service() {};
+    virtual ~Service() { };
 
     /// Gets the memory allocator for the servce
     MemoryResource* allocator() const noexcept;
@@ -60,6 +60,12 @@ struct ServiceEntry {
 
 struct Services {
     Services();
+
+    /// Sets that a module is loading.
+    void set_module_loading(bool value);
+
+    /// Creates services
+    void create();
 
     /// Initializes kernel services
     void start();
@@ -95,6 +101,7 @@ private:
     GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;
+    bool services_created_ = false;
     bool serices_started_ = false;
     bool module_loaded_ = false;
     bool module_loading_ = false;
