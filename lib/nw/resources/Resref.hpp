@@ -96,6 +96,12 @@ void from_json(const nlohmann::json& j, Resref& r);
 /// nlohmann::json specialization
 void to_json(nlohmann::json& j, const Resref& r);
 
+template <typename H>
+H AbslHashValue(H h, const Resref& res)
+{
+    return H::combine(std::move(h), res.view());
+}
+
 } // namespace nw
 
 template <>
