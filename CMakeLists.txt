@@ -28,6 +28,7 @@ if(MSVC)
         -D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS # fmt
         -DSTBI_WINDOWS_UTF8 # stbi_image
     )
+    add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 endif()
 
 # Code Coverage Configuration
