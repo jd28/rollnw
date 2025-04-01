@@ -55,6 +55,8 @@ jobs:
 
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
 
       - name: cache ccache
         uses: actions/cache@v4
