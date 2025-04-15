@@ -50,42 +50,6 @@
                 "LUAU_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
-                },
-                "BUILD_TESTING": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "FMT_INSTALL": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "SKIP_INSTALL_ALL": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
-                "BENCHMARK_ENABLE_INSTALL": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "INSTALL_GTEST": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "MI_BUILD_SHARED": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "MI_BUILD_OBJECT": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "MI_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "MI_OPT_ARCH": {
-                    "type": "BOOL",
-                    "value": "OFF"
                 }
             }
         },

@@ -82,8 +82,10 @@ jobs:
           # Prefix the list here with "+" to use these queries and those in the config file.
           # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-      - name: Install latest CMake.
-        uses: lukka/get-cmake@latest
+      # Install latest CMake.
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
 
       - name: cache ccache
         uses: actions/cache@v4

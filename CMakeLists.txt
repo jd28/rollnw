@@ -28,6 +28,7 @@ if(MSVC)
         -D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS # fmt
         -DSTBI_WINDOWS_UTF8 # stbi_image
     )
+    add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 endif()
 
 # Code Coverage Configuration
@@ -54,9 +55,14 @@ else()
     message(FATAL "Unsupported target platform")
 endif()
 
+# Ignore all this..
+set(BUILD_TESTING OFF)
+set(FMT_INSTALL OFF)
+set(SKIP_INSTALL_ALL OFF)
+
 set(ZLIB_BUILD_EXAMPLES OFF)
 set(ZLIB_ENABLE_TESTS OFF)
-add_subdirectory(external/zlib-1.3.1)
+add_subdirectory(external/zlib-1.3.1 EXCLUDE_FROM_ALL SYSTEM)
 
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/immer)
@@ -96,12 +102,13 @@ set(ZSTD_BUILD_STATIC ON)
 set(ZSTD_BUILD_SHARED OFF)
 set(ZSTD_BUILD_TESTS OFF)
 set(ZSTD_BUILD_CONTRIB OFF)
-add_subdirectory(external/zstd-1.5.6/build/cmake)
+add_subdirectory(external/zstd-1.5.6/build/cmake EXCLUDE_FROM_ALL SYSTEM)
 
 add_subdirectory(lib/nw)
 
 if (ROLLNW_BUILD_TESTS)
-add_subdirectory(external/googletest-1.14.0)
+set(INSTALL_GTEST OFF)
+add_subdirectory(external/googletest-1.14.0 EXCLUDE_FROM_ALL SYSTEM)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)
@@ -109,6 +116,7 @@ add_subdirectory(tests_ext)
 endif()
 
 if (ROLLNW_BUILD_BENCHMARKS)
+set(BENCHMARK_ENABLE_INSTALL OFF)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 set(BENCHMARK_ENABLE_TESTING OFF)
 add_subdirectory(external/benchmark-1.8.3)
