@@ -78,7 +78,7 @@ template <typename T>
 GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
 {
     GffBuilderField f{parent};
-    f.label_index = static_cast<uint32_t>(parent->add_label(name));
+    f.label_index = to_u32(parent->add_label(name));
 
     if constexpr (std::is_enum_v<T>) {
         return add_field(name, to_underlying(value));
@@ -111,12 +111,12 @@ GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
         int32_t temp = value;
         std::memcpy(&f.data_or_offset, &temp, 4);
     } else if constexpr (std::is_same_v<T, uint64_t>) {
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         f.type = SerializationType::id<uint64_t>();
         uint64_t temp = value;
         parent->data.append(&temp, 8);
     } else if constexpr (std::is_same_v<T, int64_t>) {
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         f.type = SerializationType::id<int64_t>();
         int64_t temp = value;
         parent->data.append(&temp, 8);
@@ -125,32 +125,32 @@ GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
         float temp = value;
         std::memcpy(&f.data_or_offset, &temp, 4);
     } else if constexpr (std::is_same_v<T, double>) {
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         f.type = SerializationType::id<double>();
         double temp = value;
         parent->data.append(&temp, 8);
     } else if constexpr (std::is_same_v<T, String>) {
         const String& temp = value;
         f.type = SerializationType::id<String>();
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         String s = string::desanitize_colors(temp);
         s = from_utf8_by_global_lang(s);
-        uint32_t size = static_cast<uint32_t>(s.size());
+        uint32_t size = to_u32(s.size());
         parent->data.append(&size, 4);
         parent->data.append(s.data(), size);
     } else if constexpr (std::is_same_v<T, Resref>) {
         const Resref& temp = value;
         f.type = SerializationType::id<Resref>();
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         uint8_t size = static_cast<uint8_t>(temp.length());
         parent->data.append(&size, 1);
         parent->data.append(temp.view().data(), size);
     } else if constexpr (std::is_same_v<T, LocString>) {
         const LocString& temp = value;
         f.type = SerializationType::id<LocString>();
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
+        f.data_or_offset = to_u32(parent->data.size());
         uint32_t total_size = 8;
-        uint32_t strref = temp.strref(), num_strings = static_cast<uint32_t>(temp.size());
+        uint32_t strref = temp.strref(), num_strings = to_u32(temp.size());
         size_t placeholder = parent->data.size(); // Won't know total size till the end.
         parent->data.append(&total_size, 4);
         parent->data.append(&strref, 4);
@@ -159,7 +159,7 @@ GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
             String s = string::desanitize_colors(str);
             auto base_lang = Language::to_base_id(lang);
             s = from_utf8_by_langid(s, base_lang.first);
-            uint32_t size = static_cast<uint32_t>(s.size());
+            uint32_t size = to_u32(s.size());
             total_size += 8 + size;
             parent->data.append(&lang, 4);
             parent->data.append(&size, 4);
@@ -169,8 +169,8 @@ GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
     } else if constexpr (std::is_same_v<T, ByteArray>) {
         const ByteArray& temp = value;
         f.type = SerializationType::id<ByteArray>();
-        f.data_or_offset = static_cast<uint32_t>(parent->data.size());
-        uint32_t size = static_cast<uint32_t>(temp.size());
+        f.data_or_offset = to_u32(parent->data.size());
+        uint32_t size = to_u32(temp.size());
         parent->data.append(&size, 4);
         parent->data.append(temp.data(), size);
     } else {

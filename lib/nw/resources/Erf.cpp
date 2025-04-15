@@ -162,16 +162,16 @@ bool Erf::save_as(const std::filesystem::path& path) const
     }
 
     // Set some easy stuff that requires no calculations
-    header.entry_count = static_cast<uint32_t>(elements_.size());
-    header.locstring_count = static_cast<uint32_t>(description.size());
+    header.entry_count = to_u32(elements_.size());
+    header.locstring_count = to_u32(description.size());
     header.desc_strref = description.strref();
 
     // Set build date
     auto now = std::chrono::system_clock::now();
     time_t tt = std::chrono::system_clock::to_time_t(now);
     tm local_tm = *localtime(&tt);
-    header.day_of_year = static_cast<uint32_t>(local_tm.tm_yday);
-    header.year = static_cast<uint32_t>(local_tm.tm_year + 1900);
+    header.day_of_year = to_u32(local_tm.tm_yday);
+    header.year = to_u32(local_tm.tm_year + 1900);
 
     // Construct byte array of LocStrings
     ByteArray locstrings;
@@ -179,26 +179,26 @@ bool Erf::save_as(const std::filesystem::path& path) const
         locstrings.append(&lang, 4);
         auto base_lang = Language::to_base_id(lang);
         String tmp = from_utf8_by_langid(str, base_lang.first);
-        uint32_t tmp_sz = static_cast<uint32_t>(tmp.size());
+        uint32_t tmp_sz = to_u32(tmp.size());
         locstrings.append(&tmp_sz, 4);
         locstrings.append(tmp.c_str(), tmp.size());
         if (type == ErfType::hak || type == ErfType::erf) {
             locstrings.push_back(0); // Null Terminated in HAK and ERF..
         }
     }
-    header.locstring_size = static_cast<uint32_t>(locstrings.size());
+    header.locstring_size = to_u32(locstrings.size());
 
     // Calculate up the offsets
     header.offset_locstring = sizeof(ErfHeader);
     header.offset_keys = header.offset_locstring + header.locstring_size;
 
     if (version == ErfVersion::v1_0) {
-        header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey<16>));
+        header.offset_res = header.offset_keys + to_u32(header.entry_count * sizeof(ErfKey<16>));
     } else if (version == ErfVersion::v1_1) {
-        header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey<32>));
+        header.offset_res = header.offset_keys + to_u32(header.entry_count * sizeof(ErfKey<32>));
     }
 
-    uint32_t data_offset = header.offset_res + static_cast<uint32_t>(header.entry_count * sizeof(ErfElementInfo));
+    uint32_t data_offset = header.offset_res + to_u32(header.entry_count * sizeof(ErfElementInfo));
 
     Vector<Resource> entries;
     Vector<ErfKey<16>> entry_keys16;
@@ -228,8 +228,8 @@ bool Erf::save_as(const std::filesystem::path& path) const
         } else if (version == ErfVersion::v1_1) {
             entry_keys32.push_back({e.resref.data(), id++, e.type, 0});
         }
-        entry_info.push_back({data_offset, static_cast<uint32_t>(rd.size)});
-        data_offset += static_cast<uint32_t>(rd.size);
+        entry_info.push_back({data_offset, to_u32(rd.size)});
+        data_offset += to_u32(rd.size);
     }
 
     fs::path temp_path = fs::temp_directory_path() / path.filename();

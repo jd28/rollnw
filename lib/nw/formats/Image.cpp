@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../util/platform.hpp"
 #include "../util/string.hpp"
+#include "../util/templates.hpp"
 #include "Plt.hpp"
 
 #include <nowide/convert.hpp>
@@ -170,9 +171,9 @@ bool Image::parse()
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
         } else {
-            width_ = static_cast<uint32_t>(width);
-            height_ = static_cast<uint32_t>(height);
-            channels_ = static_cast<uint32_t>(channels);
+            width_ = to_u32(width);
+            height_ = to_u32(height);
+            channels_ = to_u32(channels);
             result = true;
         }
     }
@@ -305,9 +306,9 @@ bool Image::parse_dxt()
         return false;
     }
 
-    width_ = static_cast<uint32_t>(width);
-    height_ = static_cast<uint32_t>(height);
-    channels_ = static_cast<uint32_t>(channels);
+    width_ = to_u32(width);
+    height_ = to_u32(height);
+    channels_ = to_u32(channels);
 
     return true;
 }

@@ -103,7 +103,7 @@ ResourceData NWSyncManifest::demand(Resource res) const
         if (sqlite3_step(data_stmt) == SQLITE_ROW) {
             result.name = res;
             result.bytes = decompress({reinterpret_cast<const uint8_t*>(sqlite3_column_blob(data_stmt, 0)),
-                                          static_cast<uint32_t>(sqlite3_column_bytes(data_stmt, 0))},
+                                          to_u32(sqlite3_column_bytes(data_stmt, 0))},
                 "NSYC");
             return result;
         }

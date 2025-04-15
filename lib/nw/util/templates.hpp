@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 #include <variant>
 
@@ -66,6 +67,20 @@ template <typename T, typename... Us>
 bool alt(const std::variant<Us...>& variant)
 {
     return std::holds_alternative<T>(variant);
+}
+
+template <typename T>
+constexpr int32_t to_i32(T value)
+{
+    static_assert(std::is_integral_v<T>, "value must be an integer type.");
+    return static_cast<int32_t>(value);
+}
+
+template <typename T>
+constexpr uint32_t to_u32(T value)
+{
+    static_assert(std::is_integral_v<T>, "value must be an integer type.");
+    return static_cast<uint32_t>(value);
 }
 
 } // namespace nw
