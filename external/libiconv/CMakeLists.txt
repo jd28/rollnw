@@ -1,7 +1,7 @@
 if(POLICY CMP0048)
     cmake_policy(SET CMP0048 NEW)
 endif()
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 PROJECT(libiconv VERSION 1.15.0)
 
 if (NOT MSVC) # Everything only for msvc
