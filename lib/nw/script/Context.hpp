@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../kernel/Resources.hpp"
-#include "../resources/Resource.hpp"
+#include "../resources/ResourceManager.hpp"
+#include "../resources/assets.hpp"
 #include "Token.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -32,7 +32,7 @@ struct Context {
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     Vector<IncludeStackEntry> include_stack_;
     Vector<IncludeStackEntry> preprocessed_;
-    kernel::Resources resman_;
+    ResourceManager resman_;
 
     /// Adds include path to internal resman
     void add_include_path(const std::filesystem::path& path);

@@ -12,13 +12,13 @@
 #include "../objects/Store.hpp"
 #include "../objects/Trigger.hpp"
 #include "../objects/Waypoint.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/Serialization.hpp"
 #include "../util/HndlPtrMap.hpp"
 #include "../util/error_context.hpp"
 #include "../util/memory.hpp"
 #include "Kernel.hpp"
-#include "Resources.hpp"
 
 #include <absl/container/btree_map.h>
 #include <nlohmann/json.hpp>

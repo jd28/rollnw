@@ -1,6 +1,6 @@
 #include "FactionSystem.hpp"
 
-#include "Resources.hpp"
+#include "../resources/ResourceManager.hpp"
 
 #include <limits>
 

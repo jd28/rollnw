@@ -1,10 +1,10 @@
 #include "Class.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
-#include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/Strings.hpp"
 #include "../kernel/TwoDACache.hpp"
+#include "../resources/ResourceManager.hpp"
 
 #include "nlohmann/json.hpp"
 

@@ -1,17 +1,16 @@
 #include "Kernel.hpp"
 
+#include "../profiles/nwn1/Profile.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
 #include "Objects.hpp"
-#include "Resources.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"
 #include "TilesetRegistry.hpp"
 #include "TwoDACache.hpp"
-
-#include "../profiles/nwn1/Profile.hpp"
 
 namespace nw::kernel {
 
@@ -58,6 +57,9 @@ void Services::create()
 void Services::start()
 {
     if (serices_started_) { return; }
+
+    LOG_F(INFO, "kernel: starting kernel services");
+
     create();
 
     if (!module_loading_) {
@@ -78,6 +80,8 @@ GameProfile* Services::profile() const
 void Services::shutdown()
 {
     if (!serices_started_) { return; }
+    LOG_F(INFO, "kernel: shutting down kernel services");
+
     services_ = std::array<ServiceEntry, 32>{};
     kernel_scope_.reset();
     if (!user_profile_) { profile_ = nullptr; }
@@ -92,7 +96,7 @@ void Services::load_services()
 {
     // The ordering here is important.  Pretty much everything depends on strings and resman
     add<Strings>();
-    add<Resources>();
+    add<ResourceManager>();
     add<TwoDACache>();
     add<EffectSystem>();
     add<Rules>();
@@ -111,6 +115,15 @@ Config& config()
     return s_config;
 }
 
+ResourceManager& resman()
+{
+    auto res = services().get_mut<ResourceManager>();
+    if (!res) {
+        throw std::runtime_error("kernel: unable to load resources service");
+    }
+    return *res;
+}
+
 Services& services()
 {
     static Services s_services;
@@ -119,7 +132,11 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
-    unload_module(); // Always unload, just in case.
+    if (services().serices_started_) {
+        services().shutdown();
+        services().module_loaded_ = false;
+    }
+
     services().module_loading_ = true;
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -130,7 +147,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
         s.service->initialize(ServiceInitTime::module_pre_load);
     }
 
-    resman().load_module(path, "");
+    resman().load_module(path);
 
     Module* mod = objects().make_module();
     if (!mod) { return nullptr; }
@@ -180,6 +197,7 @@ void unload_module()
     // Since everything is getting nuked, it's not necessary to call Module::destroy
     services().shutdown();
     services().module_loaded_ = false;
+    services().start();
 }
 
 } // namespace nw::kernel

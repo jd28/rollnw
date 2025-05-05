@@ -1,28 +1,28 @@
 #include "Container.hpp"
 
-#include "../log.hpp"
-#include "../util/platform.hpp"
+#include "StaticDirectory.hpp"
+#include "StaticErf.hpp"
+#include "StaticKey.hpp"
+#include "StaticZip.hpp"
 
 namespace nw {
 
-Container::Container()
-    : working_dir_{create_unique_tmp_path()}
+Container* resolve_container(const std::filesystem::path& p, const String& name)
 {
-}
-
-Container::~Container()
-{
-    std::filesystem::remove_all(working_dir_);
-}
-
-int Container::extract_by_glob(StringView glob, const std::filesystem::path& output) const
-{
-    return extract(string::glob_to_regex(glob), output);
-}
-
-const std::filesystem::path& Container::working_directory() const
-{
-    return working_dir_;
+    if (std::filesystem::is_directory(p / name)) {
+        return new StaticDirectory{p / name};
+    } else if (std::filesystem::exists(p / (name + ".hak"))) {
+        return new StaticErf{p / (name + ".hak")};
+    } else if (std::filesystem::exists(p / (name + ".erf"))) {
+        return new StaticErf{p / (name + ".erf")};
+    } else if (std::filesystem::exists(p / (name + ".mod"))) {
+        return new StaticErf{p / (name + ".mod")};
+    } else if (std::filesystem::exists(p / (name + ".zip"))) {
+        return new StaticZip{p / (name + ".zip")};
+    } else if (std::filesystem::exists(p / (name + ".key"))) {
+        return new StaticKey{p / (name + ".key")};
+    }
+    return nullptr;
 }
 
 } // namespace nw

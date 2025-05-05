@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../i18n/LocString.hpp"
-#include "../resources/ResourceType.hpp"
+#include "../resources/assets.hpp"
 #include "../serialization/Serialization.hpp"
 
 namespace nw {

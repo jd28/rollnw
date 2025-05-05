@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/Resource.hpp"
+#include "../resources/assets.hpp"
 #include "../rules/rule_type.hpp"
 #include "../serialization/Serialization.hpp"
 

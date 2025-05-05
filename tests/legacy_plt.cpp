@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <nw/formats/Plt.hpp>
-#include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
+#include <nw/resources/ResourceManager.hpp>
 
 #include <filesystem>
 

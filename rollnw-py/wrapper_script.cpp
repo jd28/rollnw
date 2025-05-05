@@ -1,7 +1,7 @@
 #include "casters.hpp"
 #include "opaque_types.hpp"
 
-#include <nw/kernel/Resources.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
 #include <nw/script/Token.hpp>

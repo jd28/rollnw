@@ -90,8 +90,8 @@ add_subdirectory(external/libiconv EXCLUDE_FROM_ALL SYSTEM)
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2 EXCLUDE_FROM_ALL SYSTEM)
 
-add_subdirectory(external/minizip EXCLUDE_FROM_ALL SYSTEM)
-include_directories(SYSTEM external/minizip/include)
+add_subdirectory(external/libzip-1.11.3 EXCLUDE_FROM_ALL SYSTEM)
+include_directories(SYSTEM external/libzip-1.11.3/lib)
 
 add_subdirectory(external/nowide EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/stb EXCLUDE_FROM_ALL SYSTEM)

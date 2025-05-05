@@ -17,7 +17,7 @@ def test_kernel_service():
     mod = rollnw.kernel.load_module(
         "tests/test_data/user/modules/DockerDemo.mod")
 
+    assert rollnw.kernel.resman().contains('nw_chicken.utc')
+
     data = rollnw.kernel.resman().demand('nw_chicken.utc')
-    data2 = rollnw.kernel.resman().demand(
-        rollnw.Resource('nw_chicken', rollnw.ResourceType.utc))
-    assert data.bytes == data2.bytes
+    assert len(data.bytes) > 0

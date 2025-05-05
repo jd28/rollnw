@@ -3,7 +3,7 @@
 #include "NssLexer.hpp"
 #include "NssParser.hpp"
 
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "Context.hpp"
 #include "Diagnostic.hpp"
 

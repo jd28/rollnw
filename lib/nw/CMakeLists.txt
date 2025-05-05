@@ -28,7 +28,6 @@ add_library(nw STATIC
     kernel/EventSystem.cpp
     kernel/Objects.cpp
     kernel/Memory.cpp
-    kernel/Resources.cpp
     kernel/Rules.cpp
     kernel/Strings.cpp
     kernel/TilesetRegistry.cpp
@@ -76,18 +75,14 @@ add_library(nw STATIC
     profiles/nwn1/rules.cpp
     profiles/nwn1/scriptapi.cpp
 
-    resources/Bif.cpp
+    resources/assets.cpp
     resources/Container.cpp
-    resources/Directory.cpp
-    resources/StaticDirectory.cpp
     resources/Erf.cpp
-    resources/Key.cpp
-    resources/NWSync.cpp
-    resources/Resref.cpp
-    resources/Resource.cpp
-    resources/ResourceData.cpp
-    resources/ResourceDescriptor.cpp
-    resources/Zip.cpp
+    resources/ResourceManager.cpp
+    resources/StaticDirectory.cpp
+    resources/StaticErf.cpp
+    resources/StaticKey.cpp
+    resources/StaticZip.cpp
 
     rules/attributes.cpp
     rules/Class.cpp
@@ -131,10 +126,12 @@ target_link_libraries(nw PUBLIC
     absl::base
     absl::flat_hash_map
     absl::hash
+    absl::hash_function_defaults
+    absl::raw_hash_set
     absl::span
     absl::utility
     absl::strings
-    minizip
+    zip
     zlibstatic
     nowide::nowide
     libzstd_static

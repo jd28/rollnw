@@ -5,7 +5,7 @@
 #include "../i18n/conversion.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../log.hpp"
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "../serialization/Serialization.hpp"
 #include "../serialization/gff_common.hpp"
 #include "../util/macros.hpp"
@@ -258,7 +258,7 @@ bool GffField::get_to(T& value) const
             CHECK_OFF(off < parent_->data_.bytes.size());
 
             if constexpr (std::is_same_v<T, Resref>) {
-                char buffer[Resref::max_size + 1] = {0};
+                char buffer[Resref::maximum_size + 1] = {0};
                 uint8_t size = 0;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 1));
                 off += 1;

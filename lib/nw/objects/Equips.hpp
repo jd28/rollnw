@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/Resref.hpp"
+#include "../resources/assets.hpp"
 #include "../serialization/Serialization.hpp"
 #include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"

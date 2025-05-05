@@ -12,6 +12,7 @@ namespace nw {
 // Forward decls
 struct GameProfile;
 struct Module;
+struct ResourceManager;
 
 namespace kernel {
 
@@ -148,6 +149,9 @@ T* Services::get_mut()
 
 /// Gets configuration options
 [[nodiscard]] Config& config();
+
+/// Gets Resource Manager
+[[nodiscard]] ResourceManager& resman();
 
 /// Gets services
 [[nodiscard]] Services& services();

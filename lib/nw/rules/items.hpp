@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/Resource.hpp"
+#include "../resources/assets.hpp"
 #include "../util/Variant.hpp"
 #include "Dice.hpp"
 #include "rule_type.hpp"

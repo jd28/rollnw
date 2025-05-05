@@ -2,11 +2,11 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
-#include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
 
 #include <nowide/cstdlib.hpp>

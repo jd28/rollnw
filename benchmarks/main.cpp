@@ -2,11 +2,11 @@
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Objects.hpp>
-#include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/scriptapi.hpp>
 #include <nw/serialization/Gff.hpp>
@@ -19,6 +19,8 @@
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
+
+#include <random>
 
 // Note the resources loaded here should be default NWN resources distributed in the game install
 // files.. for now.
@@ -270,6 +272,28 @@ static void BM_model_parse(benchmark::State& state)
         benchmark::DoNotOptimize(mdl);
     }
 }
+
+static void BM_resources_resman_contains(benchmark::State& state)
+{
+    std::vector<nw::Resource> resources;
+    resources.reserve(nw::kernel::resman().size());
+
+    auto cb = [&resources](nw::Resource res) {
+        resources.push_back(res);
+    };
+
+    nw::kernel::resman().visit(cb);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> dist(0, resources.size() - 1);
+
+    for (auto _ : state) {
+        auto out = nw::kernel::resman().contains(resources[dist(gen)]);
+        benchmark::DoNotOptimize(out);
+    }
+}
+BENCHMARK(BM_resources_resman_contains);
 
 static void BM_rules_master_feat(benchmark::State& state)
 {

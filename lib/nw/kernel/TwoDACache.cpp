@@ -1,6 +1,6 @@
 #include "TwoDACache.hpp"
 
-#include "Resources.hpp"
+#include "../resources/ResourceManager.hpp"
 
 namespace nw::kernel {
 

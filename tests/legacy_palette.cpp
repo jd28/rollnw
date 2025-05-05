@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <nw/formats/Palette.hpp>
-#include <nw/kernel/Resources.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>

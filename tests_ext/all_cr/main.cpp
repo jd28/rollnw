@@ -1,8 +1,8 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
-#include <nw/kernel/Resources.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/resources/ResourceManager.hpp>
 
 #include <nowide/cstdlib.hpp>
 
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
         auto cre = nw::kernel::objects().load<nw::Creature>(res.resref);
         auto game_cr = cre->cr;
         auto rollnw_cr = nwn1::calculate_challenge_rating(cre);
-        if (std::abs(game_cr - rollnw_cr) > 0.1) {
+        if (std::abs(game_cr - rollnw_cr) > 0.1f) {
             LOG_F(INFO, "Challenge Rating Mismatch: {} - {} != {}", res.filename(), game_cr, rollnw_cr);
             mismatch_amount += std::abs(game_cr - rollnw_cr);
             biggest_mismatch = std::max(biggest_mismatch, std::abs(game_cr - rollnw_cr));

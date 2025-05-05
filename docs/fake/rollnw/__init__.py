@@ -1886,149 +1886,6 @@ class Waypoint(ObjectBase):
 # Resources ###################################################################
 ###############################################################################
 
-class ResourceType(enum.Enum):
-    invalid = auto()
-
-    container = auto()
-    gff_archive = auto()
-    movie = auto()
-    player = auto()
-    sound = auto()
-    texture = auto()
-    json = auto()
-
-    bmp = auto()
-    mve = auto()
-    tga = auto()
-    wav = auto()
-    plt = auto()
-    ini = auto()
-    bmu = auto()
-    mpg = auto()
-    txt = auto()
-    plh = auto()
-    tex = auto()
-    mdl = auto()
-    thg = auto()
-    fnt = auto()
-    lua = auto()
-    slt = auto()
-    nss = auto()
-    ncs = auto()
-    mod = auto()
-    are = auto()
-    set = auto()
-    ifo = auto()
-    bic = auto()
-    wok = auto()
-    twoda = auto()
-    tlk = auto()
-    txi = auto()
-    git = auto()
-    bti = auto()
-    uti = auto()
-    btc = auto()
-    utc = auto()
-    dlg = auto()
-    itp = auto()
-    btt = auto()
-    utt = auto()
-    dds = auto()
-    bts = auto()
-    uts = auto()
-    ltr = auto()
-    gff = auto()
-    fac = auto()
-    bte = auto()
-    ute = auto()
-    btd = auto()
-    utd = auto()
-    btp = auto()
-    utp = auto()
-    dft = auto()
-    gic = auto()
-    gui = auto()
-    css = auto()
-    ccs = auto()
-    btm = auto()
-    utm = auto()
-    dwk = auto()
-    pwk = auto()
-    btg = auto()
-    utg = auto()
-    jrl = auto()
-    sav = auto()
-    utw = auto()
-    fourpc = auto()
-    ssf = auto()
-    hak = auto()
-    nwm = auto()
-    bik = auto()
-    ndb = auto()
-    ptm = auto()
-    ptt = auto()
-    bak = auto()
-    dat = auto()
-    shd = auto()
-    xbc = auto()
-    wbm = auto()
-    mtr = auto()
-    ktx = auto()
-    ttf = auto()
-    sql = auto()
-    tml = auto()
-    sq3 = auto()
-    lod = auto()
-    gif = auto()
-    png = auto()
-    jpg = auto()
-    caf = auto()
-    ids = auto()
-    erf = auto()
-    bif = auto()
-    key = auto()
-
-
-class Resource:
-    """Resource name
-
-    Args:
-        name (str): resref or filename
-        type (ResourceType | None): (Default None)
-
-    Notes:
-        If a resource type is not passed ``name`` is assumed to be a file name,
-        e.g. 'nw_chicken.utc'
-
-    Attributes:
-        resref (str)
-        type (ResourceType)
-    """
-
-    @staticmethod
-    def from_filename(filename: str) -> 'Resource':
-        """Creates resource from file name"""
-        pass
-
-    def filename(self) -> str:
-        """Returns resource as 'resref.ext'"""
-        pass
-
-    def valid(self) -> bool:
-        """Determines if is valid resource name"""
-        pass
-
-
-def resmatch(res: Resource, pattern: str) -> bool:
-    """Analog of fnmatch but for resource names
-
-    Args:
-        res (Resource): Resource name
-        pattern (str): glob pattern
-    """
-    pass
-
-
 class ResourceData:
     """Resource data
 
@@ -2038,80 +1895,7 @@ class ResourceData:
     """
 
 
-class ResourceDescriptor:
-    """Resource descriptor
-
-    Attributes:
-        name
-        size
-        mtime
-        parent
-    """
-    pass
-
-
-class Container:
-    """Base container interface
-    """
-
-    def all(self):
-        """Get all resources"""
-        pass
-
-    def contains(self, res: Resource | str) -> bool:
-        """Get if container contains resource"""
-        pass
-
-    def demand(self, res: Resource | str) -> bytes:
-        """Reads resource data, empty ByteArray if no match."""
-        pass
-
-    def extract_by_glob(self, glob: str, output: str) -> int:
-        """Extract elements from a container by glob pattern"""
-        pass
-
-    def extract(self, pattern, output) -> int:
-        """Extract elements from a container by regex"""
-        pass
-
-    def name(self) -> str:
-        """Equivalent to `basename path()`"""
-        pass
-
-    def path(self) -> str:
-        """Path to container, for basic containers, should be canonical"""
-        pass
-
-    def size(self) -> int:
-        """Gets the number of resources, if applicable, of the container"""
-        pass
-
-    def stat(self, res) -> ResourceDescriptor:
-        """Get some general data about a resource"""
-        pass
-
-    def valid(self) -> bool:
-        """Return true if loaded, false if not."""
-        pass
-
-    def working_directory(self) -> str:
-        """Get container working directory"""
-        pass
-    pass
-
-
-class Directory(Container):
-    """Implementation of a directory as a rollnw.Container
-
-    Args:
-        path (str): Directory to load
-    """
-
-    def __init__(self, path: str):
-        pass
-
-
-class Erf(Container):
+class Erf:
     """Implementation of Erf file format
 
     Args:
@@ -2125,12 +1909,20 @@ class Erf(Container):
         """Adds resources from path"""
         pass
 
+    def extract_by_glob(self, glob: str, output: str) -> int:
+        """Extract elements from a container by glob pattern"""
+        pass
+
+    def extract(self, pattern, output) -> int:
+        """Extract elements from a container by regex"""
+        pass
+
     def erase(self, resource):
         """Removes resource"""
         pass
 
-    def merge(self, container):
-        """Merges the contents of another rollnw.Container"""
+    def merge(self, container: "Erf"):
+        """Merges the contents of another rollnw.Erf"""
         pass
 
     def reload(self):
@@ -2158,59 +1950,10 @@ class Erf(Container):
         """
         pass
 
-
-class Key(Container):
-    """Implementation Key/Bif file format as a rollnw.Container
-
-    Args:
-        path (str): Path to key file
-    """
-
-    def __init__(self, path: str):
+    def working_directory(self) -> str:
+        """Get container working directory"""
         pass
 
-
-class NWSync:
-    """Implementation of NWSync file format
-
-    Args:
-        path (str): Path to NWSync repository
-    """
-
-    def __init__(self, path: str):
-        pass
-
-    def get(self, manifest):
-        """Gets a particular manifest as a container"""
-
-    def is_loaded(self):
-        """Gets if NWSync was successfully loaded"""
-        pass
-
-    def manifests(self):
-        """Get list of all manifests"""
-        pass
-
-    def shard_count(self):
-        """Get the number of shards"""
-        pass
-
-
-class NWSyncManifest(Container):
-    """Implementation of NWSync Manifest as a rollnw.Container
-    """
-    pass
-
-
-class Zip(Container):
-    """Implementation of Zip file format as a container
-
-    Args:
-        path (str): Path to zip file
-    """
-
-    def __init__(self, path: str):
-        pass
 
 # Rules #######################################################################
 ###############################################################################

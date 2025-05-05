@@ -1,8 +1,8 @@
 #include "ModelCache.hpp"
 
 #include "../log.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "Kernel.hpp"
-#include "Resources.hpp"
 
 namespace nw::kernel {
 

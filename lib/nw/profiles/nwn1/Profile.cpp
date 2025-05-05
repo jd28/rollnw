@@ -7,10 +7,10 @@
 #include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"
 #include "../../kernel/Objects.hpp"
-#include "../../kernel/Resources.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/Strings.hpp"
 #include "../../objects/Creature.hpp"
+#include "../../resources/ResourceManager.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
 
@@ -556,10 +556,12 @@ bool Profile::load_resources()
                 nwk::resman().add_base_container(
                     nwk::config().install_path() / "lang" / shortcode / "data", "nwn_base_loc");
             }
-            nwk::resman().add_base_container(
-                nwk::config().install_path() / "data", "nwn_base");
+
             nwk::resman().add_base_container(
                 nwk::config().install_path() / "data", "nwn_retail");
+
+            nwk::resman().add_base_container(
+                nwk::config().install_path() / "data", "nwn_base");
 
         } else {
             nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "xp2_tex_tpa");

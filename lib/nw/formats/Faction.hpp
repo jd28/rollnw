@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "../serialization/Serialization.hpp"
 
 #include <string>

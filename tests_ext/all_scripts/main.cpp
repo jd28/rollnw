@@ -1,5 +1,5 @@
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Resources.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/script/Nss.hpp>
 
 #include <nowide/cstdlib.hpp>

@@ -2,7 +2,7 @@
 
 #include "../kernel/Memory.hpp"
 #include "../objects/Saves.hpp"
-#include "../resources/Resource.hpp"
+#include "../resources/assets.hpp"
 #include "../util/InternedString.hpp"
 #include "Spell.hpp"
 #include "rule_type.hpp"

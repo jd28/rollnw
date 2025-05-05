@@ -14,8 +14,7 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
-#include <nw/resources/ResourceDescriptor.hpp>
-#include <nw/resources/Resref.hpp>
+#include <nw/resources/assets.hpp>
 #include <nw/script/Nss.hpp>
 
 #include <glm/vec3.hpp>
@@ -36,7 +35,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<nw::ClassEntry>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::InventoryItem>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Resref>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Resource>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::ResourceDescriptor>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::LevelUp>)
 PYBIND11_MAKE_OPAQUE(std::vector<int64_t>)
 PYBIND11_MAKE_OPAQUE(std::vector<int32_t>)

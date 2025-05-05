@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../i18n/LocString.hpp"
-#include "../resources/Resource.hpp"
+#include "../resources/assets.hpp"
 #include "../util/ByteArray.hpp"
 
 #include <cstdint>

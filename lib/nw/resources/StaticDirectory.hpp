@@ -8,29 +8,53 @@
 
 namespace nw {
 
+namespace detail {
+
+struct StaticDirectoryKey : public ContainerKey {
+    StaticDirectoryKey(Resource name_, String path_)
+        : name{name_}
+        , path{std::move(path_)}
+    {
+    }
+
+    Resource name;
+    String path;
+};
+
+} // namespace detail
+
 /// A static directory takes a view, optionally recursively, of a directory
 /// structure when created.
-struct StaticDirectory : public Container {
+struct StaticDirectory final : public Container {
     StaticDirectory() = default;
     explicit StaticDirectory(const std::filesystem::path& path);
     virtual ~StaticDirectory() = default;
 
-    virtual Vector<ResourceDescriptor> all() const override;
-    virtual bool contains(Resource res) const override;
-    virtual ResourceData demand(Resource res) const override;
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
-    virtual const String& name() const override { return name_; };
-    virtual const String& path() const override { return path_string_; };
-    virtual size_t size() const override;
-    virtual ResourceDescriptor stat(const Resource& res) const override;
-    virtual bool valid() const noexcept override { return is_valid_; }
-    virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
+    /// Reads resource data, empty ResourceData if no match.
+    ResourceData demand(const ContainerKey* key) const override;
 
+    /// Gets canonical path for a resource
     String get_canonical_path(nw::Resource res) const;
-    void walk_directory(const std::filesystem::path& path);
+
+    /// Gets the shortend name of the container, should be analog to `basename container`
+    const String& name() const override { return name_; }
+
+    /// Canonical path for the container
+    const String& path() const override { return path_string_; }
+
+    /// Gets the number of assets in the container
+    size_t size() const override;
+
+    /// Checks if container was successfully loaded
+    bool valid() const noexcept override { return is_valid_; }
+
+    /// Enumerates all assets in a container
+    void visit(std::function<void(Resource, const ContainerKey*)> visitor) const override;
 
 private:
-    absl::flat_hash_map<nw::Resource, String> resource_to_path_;
+    void walk_directory(const std::filesystem::path& path);
+
+    std::vector<detail::StaticDirectoryKey> elements_;
     std::filesystem::path path_;
     String path_string_;
     String name_;

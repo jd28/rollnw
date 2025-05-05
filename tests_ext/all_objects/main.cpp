@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
     nw::init_logger(argc, argv);
 
     nw::kernel::config().set_paths("", "test_data/user/");
-    nw::kernel::config().initialize({true, false, false});
+    nw::kernel::config().initialize({true, false});
     nw::kernel::services().start();
 
     std::string biggest_name;

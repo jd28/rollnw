@@ -3,7 +3,7 @@
 // Huge credit here to Torlack
 
 #include "../log.hpp"
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "../util/InternedString.hpp"
 #include "../util/string.hpp"
 

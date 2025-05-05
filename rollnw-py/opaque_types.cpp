@@ -24,7 +24,6 @@ void bind_opaque_types(py::module& m)
     py::bind_vector<std::vector<nw::LevelUp>>(m, "LevelUpVector");
     py::bind_vector<std::vector<nw::Resref>>(m, "ResrefVector");
     py::bind_vector<std::vector<nw::Resource>>(m, "ResourceVector");
-    py::bind_vector<std::vector<nw::ResourceDescriptor>>(m, "ResourceDescriptorVector");
     py::bind_vector<std::vector<nw::AreaTile>>(m, "AreaTileVector");
 
     py::bind_vector<std::vector<nw::Area*>>(m, "AreaVector");

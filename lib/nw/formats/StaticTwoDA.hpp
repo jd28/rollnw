@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../log.hpp"
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "../util/string.hpp"
 
 #include <filesystem>

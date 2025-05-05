@@ -1,6 +1,7 @@
 #pragma once
 
-#include <string_view>
+#include "../config.hpp"
+
 #include <tuple>
 
 namespace nw::script {

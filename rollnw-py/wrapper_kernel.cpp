@@ -31,7 +31,6 @@ void init_kernel_config(py::module& kernel)
     py::class_<nw::ConfigOptions>(kernel, "ConfigOptions")
         .def(py::init<>())
         .def_readwrite("include_install", &nw::ConfigOptions::include_install)
-        .def_readwrite("include_nwsync", &nw::ConfigOptions::include_nwsync)
         .def_readwrite("include_user", &nw::ConfigOptions::include_user);
 
     py::class_<nw::kernel::Config>(kernel, "Config")
@@ -131,21 +130,6 @@ void init_kernel_objects(py::module& kernel)
         py::return_value_policy::reference);
 }
 
-void init_kernel_resources(py::module& kernel)
-{
-    py::class_<nw::kernel::Resources, nw::Container>(kernel, "Resources")
-        .def("demand_any", &nw::kernel::Resources::demand_any)
-        .def("demand_in_order", &nw::kernel::Resources::demand_in_order)
-        .def("demand_server_vault", &nw::kernel::Resources::demand_server_vault)
-        .def("texture", &nw::kernel::Resources::texture);
-
-    kernel.def(
-        "resman", []() {
-            return &nw::kernel::resman();
-        },
-        py::return_value_policy::reference);
-}
-
 void init_kernel_rules(py::module& kernel)
 {
     py::class_<nw::kernel::Rules>(kernel, "Rules");
@@ -186,7 +170,6 @@ void init_kernel(py::module& kernel)
     init_kernel_config(kernel);
     init_kernel_effects(kernel);
     init_kernel_objects(kernel);
-    init_kernel_resources(kernel);
     init_kernel_rules(kernel);
     init_kernel_strings(kernel);
     init_kernel_twoda_cache(kernel);
@@ -202,4 +185,10 @@ void init_kernel(py::module& kernel)
             nw::kernel::config().initialize(config);
             nw::kernel::services().start();
         });
+
+    kernel.def(
+        "resman", []() {
+            return &nw::kernel::resman();
+        },
+        py::return_value_policy::reference);
 }

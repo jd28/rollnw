@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../formats/StaticTwoDA.hpp"
-#include "../resources/Resource.hpp"
+#include "../resources/assets.hpp"
 #include "Kernel.hpp"
 
 #include <absl/container/flat_hash_map.h>

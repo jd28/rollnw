@@ -1,54 +1,60 @@
 resources
 =========
 
-kernel service
---------------
+The resources module provides access to the file system and resources stored in NWN container files.
 
-The resource services provides access the file system and resources stored in NWN container files.
-The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
-add new container types is limited in utility due to `NWNX:EE <https://github.com/nwnxee/unified>`__'s
-lack of a ResMan plugin, even so the ability to load files from a Zip file is included.
+:cpp:struct:`nw::Resref`
+--------------------------
 
-**Example - Demanding a resource from resman**
+Unlike Neverwinter Nights 1 or 2 a resref is not a fixed character array. It's simply a wrapper around an interned string.
+The constraint on its length is 4096.
 
-.. tabs::
+This is not exposed to Python, in Python a resref maps directly to a ``str``, i.e. "nw_chicken".
 
-    .. code-tab:: python
+:cpp:struct:`nw::ResourceType`
+------------------------------
 
-        import rollnw
-        from rollnw.kernel import resman
+ResourceType has only one difference from NWN(:EE)'s implementation: it contains some categories, i.e. ``nw::ResourceType::texture``
+that aligns with the available image types.
 
-        rollnw.kernel.start()
-        assert resman().contains('nw_chicken.utc')
-        data = resman().demand('nw_chicken.utc')
-        data2 = resman().demand(rollnw.Resource('nw_chicken', rollnw.ResourceType.utc))
-        assert data == data2
+**Example - Checking a ResourceType category**
+
+.. code:: cpp
+
+    if(nw::ResourceType::check_category(nw::ResourceType::texture, some_res_type)) {
+        // Proceed with some image resource type agnostic function.
+    }
 
 
-    .. code-tab:: cpp
+:cpp:struct:`nw::Resource`
+--------------------------
 
-        nw::kernel::start();
-        // Assumes that NWN root directory was found.
-        if (nw::kernel::resman().contains({"nw_chicken"sv, nw::ResourceType::utc})) {
-            auto utc = nw::kernel::resman().demand({"nw_chicken"sv, nw::ResourceType::utc});
-            // Do something with this chicken.
-        }
+Resources are referred to by a :cpp:struct:`nw::Resource`, which is just a
+:cpp:struct:`nw::Resref` and :cpp:struct:`nw::ResourceType` pair.
+
+This is not exposed to Python, in Python one can referrer to an asset as a filename, i.e. "nw_chicken.utc".
 
 -------------------------------------------------------------------------------
 
-containers
-----------
+:cpp:struct:`nw::Container`
+---------------------------
 
-Directory
-~~~~~~~~~
+Containers in rollnw are designed around the performance of the resource manager and are not for direct use. Classes that inherit the ``nw::Container`` interface are expected to be thread-safe.
 
-**Status**: Read, Write (file format dependant)
+The built in containers ``nw::StaticDirectory``, ``nw::StaticErf``, ``nw::StaticKey``, and ``nw::StaticZip`` are all static and immutable and after construction proceed with the assumption that the underlying files **do not** change. They are not exposed to Python.
 
+Support for nwsync was removed since it is not applicable to module/persistant world development, nor do I see it as having any
+'future tense', i.e., a hypothetical NWN3 *would not* use nwsync.
 
-Erf
-~~~
+The ability to add new container types is limited in utility due to `NWNX:EE <https://github.com/nwnxee/unified>`__'s lack
+of a ResMan plugin.
 
-**Status**: Read
+-------------------------------------------------------------------------------
+
+:cpp:struct:`nw::Erf`
+---------------------
+
+A dynamic implementation of the Erf file format, which is also exposed to Python:
 
 **Example - Load an Erf and Print Contents**
 
@@ -75,17 +81,14 @@ Erf
             }
         }
 
-Key/Bif
-~~~~~~~
 
-**Status**: Read
 
-NWSync
-~~~~~~
+:cpp:struct:`nw::ResourceManager`
+---------------------------------
 
-**Status**: Read
+The global resource mananger is available by calling ``nw::kernel::resman()``.
 
-**Example - Loading and Reading From NWSync Manifest**
+**Example - Demanding a resource from resman**
 
 .. tabs::
 
@@ -93,36 +96,19 @@ NWSync
 
         import rollnw
 
-        nws = rollnw.NWSync("path/to/nwsync")
-        if nws.is_loaded():
-            # One of the curated modules
-            manifest = nws.get('9a84e512dd3971eb215d6f9b0816a2e3ae2fee54')
-            if manifest:
-                tga = manifest.demand('002metal.tga')
-                # Do something with this image..
+        rollnw.kernel.start()
+        assert rollnw.kernel.resman().contains('nw_chicken.utc')
+        data = rollnw.kernel.resman().demand('nw_chicken.utc')
+        assert len(data.bytes)
+
 
     .. code-tab:: cpp
 
-        #include <nw/resources/NWSync.hpp>
-        #include <nw/kernel/Kernel.hpp>
-
-        auto path = "path/to/nwsync"
-        auto n = nw::NWSync(path);
-        if(!n.is_loaded()) {
-            throw std::runtime_error("a fit");
+        nw::kernel::start();
+        // Assumes that NWN root directory was found.
+        if (nw::kernel::resman().contains({"nw_chicken"sv, nw::ResourceType::utc})) {
+            auto utc = nw::kernel::resman().demand({"nw_chicken"sv, nw::ResourceType::utc});
+            // Do something with this chicken.
         }
 
-        auto manifests = n.manifests();
-        if (manifests.size() > 0) {
-            auto manifest = n.get(manifests[0]);
-            auto resource = manifest->all();
-            if(resource.size() > 0) {
-                // Extract the first resource found
-                manifest->extract(std::regex(resource[0].name.filename()), "tmp/");
-            }
-        }
-
-Zip
-~~~
-
-**Status**: Read
+-------------------------------------------------------------------------------

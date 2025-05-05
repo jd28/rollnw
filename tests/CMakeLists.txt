@@ -21,7 +21,6 @@ add_executable(rollnw_test
     kernel_load_module.cpp
     kernel_models.cpp
     kernel_objects.cpp
-    kernel_resources.cpp
     kernel_rules.cpp
     kernel_strings.cpp
     kernel_tilesets.cpp
@@ -49,12 +48,6 @@ add_executable(rollnw_test
     objects_waypoint.cpp
 
     resources.cpp
-    resources_dir.cpp
-    resources_erf.cpp
-    resources_key.cpp
-    resources_nwsync.cpp
-    resources_resource.cpp
-    resources_zip.cpp
 
     rules_base.cpp
     rules_effects.cpp

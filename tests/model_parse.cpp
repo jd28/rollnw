@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
+#include <nw/resources/ResourceManager.hpp>
 
 #include <fstream>
 

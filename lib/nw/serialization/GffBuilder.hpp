@@ -142,6 +142,9 @@ GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
         const Resref& temp = value;
         f.type = SerializationType::id<Resref>();
         f.data_or_offset = to_u32(parent->data.size());
+        if (temp.length() > nw::kernel::config().max_resref_length()) {
+            throw std::runtime_error(fmt::format("[gffbuilder] invalid resref '{}'", temp.view()));
+        }
         uint8_t size = static_cast<uint8_t>(temp.length());
         parent->data.append(&size, 1);
         parent->data.append(temp.view().data(), size);

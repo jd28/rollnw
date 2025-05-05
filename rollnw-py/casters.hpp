@@ -2,7 +2,7 @@
 
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Placeable.hpp>
-#include <nw/resources/Resref.hpp>
+#include <nw/resources/assets.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Spell.hpp>
 #include <nw/rules/attributes.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/ResourceData.hpp"
+#include "../resources/assets.hpp"
 #include "../util/string.hpp"
 
 #include <absl/container/flat_hash_map.h>

@@ -1,10 +1,10 @@
 #include "Item.hpp"
 
 #include "../formats/Plt.hpp"
-#include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/Strings.hpp"
 #include "../kernel/TwoDACache.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"

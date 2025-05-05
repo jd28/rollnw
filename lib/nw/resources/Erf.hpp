@@ -3,45 +3,25 @@
 #include "../i18n/LocString.hpp"
 #include "../util/ByteArray.hpp"
 #include "Container.hpp"
+#include "ErfCommon.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
 #include <filesystem>
 #include <fstream>
-#include <memory>
-#include <string>
-#include <variant>
 
 namespace nw {
 
-/// @private
-struct ErfElementInfo {
-    uint32_t offset;
-    uint32_t size;
-};
+// == Erf =====================================================================
+// ============================================================================
 
-/// @private
-using ErfElement = std::variant<ErfElementInfo, std::filesystem::path>;
-
-enum struct ErfType {
-    erf,
-    hak,
-    mod,
-    sav
-};
-
-enum struct ErfVersion {
-    v1_0,
-    v1_1
-};
-
-struct Erf : public Container {
+struct Erf final {
 public:
     Erf() = default;
     explicit Erf(const std::filesystem::path& path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
-    virtual ~Erf() = default;
+    virtual ~Erf();
 
     /// Adds resources from array of bytes
     bool add(Resource res, const ByteArray& bytes);
@@ -52,8 +32,14 @@ public:
     /// Removes resource
     size_t erase(const Resource& res);
 
+    /// Extracts assets by regex
+    int extract(const std::regex& pattern, const std::filesystem::path& output) const;
+
     /// Merges the contents of another container
     bool merge(const Container* container);
+
+    /// Merges the contents of another container
+    bool merge(const Erf& container);
 
     /// Reloads Erf
     /// @note Erf::working_directory() will not change
@@ -68,16 +54,12 @@ public:
     /// be constructed.
     bool save_as(const std::filesystem::path& path) const;
 
-    virtual Vector<ResourceDescriptor> all() const override;
-    virtual bool contains(Resource res) const override;
-    virtual ResourceData demand(Resource res) const override;
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
-    virtual const String& name() const override { return name_; };
-    virtual const String& path() const override { return path_; };
-    virtual size_t size() const override;
-    virtual ResourceDescriptor stat(const Resource& res) const override;
-    virtual bool valid() const noexcept override { return is_loaded_; }
-    virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
+    ResourceData demand(Resource res) const;
+    const String& name() const { return name_; };
+    const String& path() const { return path_; };
+    size_t size() const;
+    bool valid() const noexcept { return is_loaded_; }
+    void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept;
 
     /// Erf type.
     ErfType type = ErfType::erf;
@@ -89,7 +71,11 @@ public:
     Erf& operator=(const Erf&) = delete;
     Erf& operator=(Erf&&) = default;
 
+    /// Get container working directory
+    const std::filesystem::path& working_directory() const;
+
 private:
+    std::filesystem::path working_dir_;
     String path_;
     String name_;
     mutable std::ifstream file_;

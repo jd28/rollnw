@@ -2,7 +2,6 @@
 
 #include "../log.hpp"
 #include "Kernel.hpp"
-#include "Resources.hpp"
 #include "Strings.hpp"
 
 using namespace std::literals;
@@ -190,7 +189,14 @@ Area* ObjectSystem::make_area(Resref area)
 Module* ObjectSystem::make_module()
 {
     Module* obj = make<Module>();
-    auto data = nw::kernel::resman().demand({"module"sv, ResourceType::ifo});
+    auto cont = nw::kernel::resman().module_container();
+    ResourceData data;
+    auto cb = [cont, &data](Resource uri, const ContainerKey* key) {
+        if (uri.type != ResourceType::ifo || data.bytes.size()) { return; }
+        data = cont->demand(key);
+    };
+
+    cont->visit(cb);
 
     if (!data.bytes.size()) {
         LOG_F(ERROR, "Unable to load module.ifo from resman");

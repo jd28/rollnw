@@ -1,7 +1,7 @@
 #include "Plt.hpp"
 
-#include "../kernel/Resources.hpp"
 #include "../log.hpp"
+#include "../resources/ResourceManager.hpp"
 
 #include <cstring>
 

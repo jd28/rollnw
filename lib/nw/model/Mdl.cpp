@@ -1,8 +1,8 @@
 #include "Mdl.hpp"
 
-#include "../kernel/Resources.hpp"
 #include "../kernel/Strings.hpp"
 #include "../log.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
 #include "MdlBinaryParser.hpp"

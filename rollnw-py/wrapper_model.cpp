@@ -1,8 +1,8 @@
 #include "casters.hpp"
 #include "opaque_types.hpp"
 
-#include <nw/kernel/Resources.hpp>
 #include <nw/model/Mdl.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/util/platform.hpp>
 
 #include <pybind11/pybind11.h>
@@ -327,8 +327,7 @@ void init_model(py::module& nw)
             }
             return py::iter(pylist);
         })
-        .def_property_readonly(
-            "supermodel", [](const nw::model::Model& self) { return self.supermodel.get(); }, py::return_value_policy::reference)
+        .def_property_readonly("supermodel", [](const nw::model::Model& self) { return self.supermodel.get(); }, py::return_value_policy::reference)
         .def_readwrite("bmin", &nw::model::Model::bmin)
         .def_readwrite("bmax", &nw::model::Model::bmax)
         .def_readwrite("radius", &nw::model::Model::radius)
@@ -342,11 +341,7 @@ void init_model(py::module& nw)
             return mdl;
         })
         .def("valid", &nw::model::Mdl::valid)
-        .def_property_readonly(
-            "model", [](const nw::model::Mdl& self) {
-                return &self.model;
-            },
-            py::return_value_policy::reference);
+        .def_property_readonly("model", [](const nw::model::Mdl& self) { return &self.model; }, py::return_value_policy::reference);
 
     nw.def("load", [](const std::string& resref) {
         auto p = nw::expand_path(resref);

@@ -3,10 +3,6 @@
 #include "../i18n/conversion.hpp"
 #include "../log.hpp"
 #include "../util/platform.hpp"
-#include "../util/string.hpp"
-#include "../util/templates.hpp"
-#include "Resource.hpp"
-
 #include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
@@ -17,7 +13,6 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
-#include <stdexcept>
 #include <tuple>
 
 namespace fs = std::filesystem;
@@ -50,6 +45,7 @@ struct ErfKey {
 };
 
 Erf::Erf(const std::filesystem::path& path)
+    : working_dir_{create_unique_tmp_path()}
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "file '{}' does not exist", path);
@@ -65,6 +61,11 @@ Erf::Erf(const std::filesystem::path& path)
 #endif
 
     is_loaded_ = load(path);
+}
+
+Erf::~Erf()
+{
+    std::filesystem::remove_all(working_dir_);
 }
 
 bool Erf::add(Resource res, const ByteArray& bytes)
@@ -109,15 +110,26 @@ size_t Erf::erase(const Resource& res)
 
 bool Erf::merge(const Container* container)
 {
-    if (!container) {
-        return false;
-    }
-    auto all = container->all();
+    if (!container) { return false; }
     bool result = true;
-    for (const auto& a : all) {
-        auto data = container->demand(a.name);
+
+    auto cb = [&](Resource uri, const ContainerKey* key) {
+        auto data = container->demand(key);
+        result &= add(uri, data.bytes);
+    };
+    container->visit(cb);
+    return result;
+}
+
+bool Erf::merge(const Erf& container)
+{
+    bool result = true;
+
+    auto cb = [&](Resource uri) {
+        auto data = container.demand(uri);
         result &= add(data.name, data.bytes);
-    }
+    };
+    container.visit(cb);
     return result;
 }
 
@@ -220,16 +232,38 @@ bool Erf::save_as(const std::filesystem::path& path) const
     std::sort(std::begin(entries), std::end(entries));
     uint32_t id = 0;
     for (const auto& e : entries) {
-        auto rd = stat(e);
+        auto it = elements_.find(e);
+        if (it == std::end(elements_)) {
+            throw std::runtime_error(fmt::format("[erf] unable to locate file '{}' for writing", e.filename()));
+        }
+
+        uint32_t size = 0;
+
+        if (std::holds_alternative<fs::path>(it->second)) {
+            size = fs::file_size(std::get<fs::path>(it->second));
+        } else {
+            size = std::get<ErfElementInfo>(it->second).size;
+        }
+
         if (version == ErfVersion::v1_0) {
+            if (e.resref.length() > 16) {
+                throw std::runtime_error(fmt::format("[erf] invalid resref '{}', must be less than 16 characters", e.resref.view()));
+            }
             std::array<char, 16> name;
-            memcpy(name.data(), e.resref.data().data(), 16);
+            name.fill(0);
+            memcpy(name.data(), e.resref.view().data(), e.resref.length());
             entry_keys16.push_back({name, id++, e.type, 0});
         } else if (version == ErfVersion::v1_1) {
-            entry_keys32.push_back({e.resref.data(), id++, e.type, 0});
+            if (e.resref.length() > 32) {
+                throw std::runtime_error(fmt::format("[erf] invalid resref '{}', must be less than 16 characters", e.resref.view()));
+            }
+            std::array<char, 32> name;
+            name.fill(0);
+            memcpy(name.data(), e.resref.view().data(), e.resref.length());
+            entry_keys32.push_back({name, id++, e.type, 0});
         }
-        entry_info.push_back({data_offset, to_u32(rd.size)});
-        data_offset += to_u32(rd.size);
+        entry_info.push_back({data_offset, size});
+        data_offset += size;
     }
 
     fs::path temp_path = fs::temp_directory_path() / path.filename();
@@ -256,21 +290,6 @@ bool Erf::save_as(const std::filesystem::path& path) const
     }
     f.close();
     return move_file_safely(temp_path, path);
-}
-
-Vector<ResourceDescriptor> Erf::all() const
-{
-    Vector<ResourceDescriptor> result;
-    result.reserve(elements_.size());
-    for (const auto& [k, v] : elements_) {
-        result.push_back(stat(k));
-    }
-    return result;
-}
-
-bool Erf::contains(Resource res) const
-{
-    return elements_.find(res) != std::end(elements_);
 }
 
 ResourceData Erf::demand(Resource res) const
@@ -318,24 +337,6 @@ size_t Erf::size() const
     return elements_.size();
 }
 
-ResourceDescriptor Erf::stat(const Resource& res) const
-{
-    ResourceDescriptor result;
-    auto it = elements_.find(res);
-    if (it != std::end(elements_)) {
-        result.name = res;
-        result.parent = this;
-        if (std::holds_alternative<fs::path>(it->second)) {
-            result.size = fs::file_size(std::get<fs::path>(it->second));
-            result.mtime = int64_t(fs::last_write_time(std::get<fs::path>(it->second)).time_since_epoch().count() / 1000);
-        } else {
-            result.size = std::get<ErfElementInfo>(it->second).size;
-            result.mtime = int64_t(fs::last_write_time(path_).time_since_epoch().count() / 1000);
-        }
-    }
-    return result;
-}
-
 void Erf::visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types) const noexcept
 {
     for (auto it : elements_) {
@@ -344,6 +345,11 @@ void Erf::visit(std::function<void(const Resource&)> callback, std::initializer_
         }
         callback(it.first);
     }
+}
+
+const std::filesystem::path& Erf::working_directory() const
+{
+    return working_dir_;
 }
 
 // ---- Private ---------------------------------------------------------------

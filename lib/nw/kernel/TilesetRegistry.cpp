@@ -1,7 +1,7 @@
 #include "TilesetRegistry.hpp"
 
 #include "../formats/Ini.hpp"
-#include "Resources.hpp"
+#include "../resources/ResourceManager.hpp"
 
 namespace nw::kernel {
 
@@ -26,7 +26,7 @@ void TilesetRegistry::initialize(ServiceInitTime time)
         load(res.resref.view());
     };
 
-    resman().visit(set_getter, {ResourceType::set});
+    resman().visit(set_getter);
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     metrics_.initialization_time = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
