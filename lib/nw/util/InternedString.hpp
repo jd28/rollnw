@@ -19,6 +19,7 @@ struct InternedString {
     bool operator==(const InternedString& rhs) const noexcept = default;
     auto operator<=>(const InternedString& rhs) const noexcept = default;
 
+    const String* ptr() const noexcept { return string_; }
     StringView view() const noexcept { return string_ ? *string_ : StringView{}; }
     operator bool() const noexcept { return !!string_; }
 
