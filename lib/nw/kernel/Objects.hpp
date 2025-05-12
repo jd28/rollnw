@@ -106,7 +106,7 @@ private:
     HndlPtrMap<ObjectBase> object_map_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
 
-    Module* module_;
+    Module* module_ = nullptr;
     ObjectPool<Area> areas_;
     ObjectPool<Creature> creatures_;
     ObjectPool<Door> doors_;

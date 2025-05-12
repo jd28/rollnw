@@ -301,7 +301,7 @@ static void BM_load_module(benchmark::State& state)
         benchmark::DoNotOptimize(m);
     }
 }
-// BENCHMARK(BM_load_module);
+BENCHMARK(BM_load_module);
 
 static void BM_start_service(benchmark::State& state)
 {
