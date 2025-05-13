@@ -13,17 +13,18 @@
 #include <nw/util/InternedString.hpp>
 #include <nw/util/macros.hpp>
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string_view.h>
 
-// pybind11 caster
-namespace pybind11::detail {
+// nanobind caster
+namespace nanobind::detail {
 
 template <>
 struct type_caster<nw::ByteArray> {
 public:
-    PYBIND11_TYPE_CASTER(nw::ByteArray, _("ByteArray"));
+    NB_TYPE_CASTER(nw::ByteArray, const_name("ByteArray"))
 
-    bool load(handle src, bool)
+    bool from_python(handle src, uint8_t, cleanup_list*)
     {
         PyObject* source = src.ptr();
         if (!PyBytes_Check(source)) { return false; }
@@ -32,10 +33,10 @@ public:
         return !PyErr_Occurred();
     }
 
-    static handle cast(const nw::ByteArray& src, return_value_policy /* policy */, handle /* parent */)
+    static handle from_cpp(const nw::ByteArray& src, rv_policy, cleanup_list*)
     {
         // This may or may not be a good idea...
-        object obj = pybind11::bytes(reinterpret_cast<const char*>(src.data()), src.size());
+        object obj = nanobind::bytes(reinterpret_cast<const char*>(src.data()), src.size());
         return obj.release();
     }
 };
@@ -43,60 +44,66 @@ public:
 template <>
 struct type_caster<nw::InternedString> {
 public:
-    PYBIND11_TYPE_CASTER(nw::InternedString, _("InternedString"));
+    NB_TYPE_CASTER(nw::InternedString, const_name("InternedString"))
 
-    bool load(handle src, bool)
+    bool from_python(handle src, uint8_t, cleanup_list*)
     {
-        PyObject* source = src.ptr();
-        if (!PyUnicode_Check(source)) { return false; }
-        value = nw::kernel::strings().intern(PyUnicode_AsUTF8(source));
-        return !PyErr_Occurred();
+        Py_ssize_t size;
+        const char* str = PyUnicode_AsUTF8AndSize(src.ptr(), &size);
+        if (!str) {
+            PyErr_Clear();
+            return false;
+        }
+        value = nw::kernel::strings().intern({str, static_cast<size_t>(size)});
+        return true;
     }
 
-    static handle cast(const nw::InternedString& src, return_value_policy /* policy */, handle /* parent */)
+    static handle from_cpp(const nw::InternedString& src, rv_policy, cleanup_list*)
     {
-        object obj = pybind11::str(src.view());
-        return obj.release();
+        return PyUnicode_FromStringAndSize(src.view().data(), src.view().size());
     }
 };
 
 template <>
 struct type_caster<nw::Resref> {
 public:
-    PYBIND11_TYPE_CASTER(nw::Resref, _("Resref"));
+    NB_TYPE_CASTER(nw::Resref, const_name("Resref"))
 
-    bool load(handle src, bool)
+    bool from_python(handle src, uint8_t, cleanup_list*)
     {
-        PyObject* source = src.ptr();
-        if (!PyUnicode_Check(source)) { return false; }
-        value = PyUnicode_AsUTF8(source);
-        return !PyErr_Occurred();
+        Py_ssize_t size;
+        const char* str = PyUnicode_AsUTF8AndSize(src.ptr(), &size);
+        if (!str) {
+            PyErr_Clear();
+            return false;
+        }
+        value = nw::Resref({str, static_cast<size_t>(size)});
+        return true;
     }
 
-    static handle cast(const nw::Resref& src, return_value_policy /* policy */, handle /* parent */)
+    static handle from_cpp(const nw::Resref& src, rv_policy, cleanup_list*)
     {
-        object obj = pybind11::str(src.string());
-        return obj.release();
+        return PyUnicode_FromStringAndSize(src.view().data(), src.view().size());
     }
 };
 
-#define DEFINE_RULE_TYPE_CASTER(name)                                                                  \
-    template <>                                                                                        \
-    struct type_caster<nw::name> {                                                                     \
-    public:                                                                                            \
-        PYBIND11_TYPE_CASTER(nw::name, _(ROLLNW_STRINGIFY(name)));                                     \
-        bool load(handle src, bool)                                                                    \
-        {                                                                                              \
-            PyObject* source = src.ptr();                                                              \
-            if (!PyLong_Check(source)) { return false; }                                               \
-            value = nw::name{int32_t(PyLong_AsLong(source))};                                          \
-            return !PyErr_Occurred();                                                                  \
-        }                                                                                              \
-        static handle cast(const nw::name& src, return_value_policy /* policy */, handle /* parent */) \
-        {                                                                                              \
-            object obj = pybind11::int_(*src);                                                         \
-            return obj.release();                                                                      \
-        }                                                                                              \
+#define DEFINE_RULE_TYPE_CASTER(name)                                         \
+    template <>                                                               \
+    struct type_caster<nw::name> {                                            \
+    public:                                                                   \
+        NB_TYPE_CASTER(nw::name, const_name(ROLLNW_STRINGIFY(name)))          \
+        bool from_python(handle src, uint8_t, cleanup_list*)                  \
+        {                                                                     \
+            PyObject* source = src.ptr();                                     \
+            if (!PyLong_Check(source)) { return false; }                      \
+            value = nw::name{int32_t(PyLong_AsLong(source))};                 \
+            return !PyErr_Occurred();                                         \
+        }                                                                     \
+        static handle from_cpp(const nw::name& src, rv_policy, cleanup_list*) \
+        {                                                                     \
+            object obj = nanobind::int_(*src);                                \
+            return obj.release();                                             \
+        }                                                                     \
     };
 
 DEFINE_RULE_TYPE_CASTER(Ability)

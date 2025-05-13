@@ -5,16 +5,15 @@
 #include <nw/rules/combat.hpp>
 
 #include <fmt/format.h>
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/filesystem.h>
 
 #include <string>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_rules(py::module& nw)
+void init_rules(py::module_& nw)
 {
     py::enum_<nw::AttackResult>(nw, "AttackResult")
         .value("hit_by_auto_success", nw::AttackResult::hit_by_auto_success)
@@ -26,23 +25,23 @@ void init_rules(py::module& nw)
         .value("miss_by_roll", nw::AttackResult::miss_by_roll);
 
     py::class_<nw::AttackData>(nw, "AttackData")
-        .def_readwrite("attacker", &nw::AttackData::attacker)
-        .def_readwrite("target", &nw::AttackData::target)
-        .def_readwrite("type", &nw::AttackData::type)
-        .def_readwrite("result", &nw::AttackData::result)
-        .def_readwrite("target_state", &nw::AttackData::target_state)
-        .def_readwrite("target_is_creature", &nw::AttackData::target_is_creature)
-        .def_readwrite("is_ranged_attack", &nw::AttackData::is_ranged_attack)
-        .def_readwrite("nth_attack", &nw::AttackData::nth_attack)
-        .def_readwrite("attack_roll", &nw::AttackData::attack_roll)
-        .def_readwrite("attack_bonus", &nw::AttackData::attack_bonus)
-        .def_readwrite("armor_class", &nw::AttackData::armor_class)
-        .def_readwrite("iteration_penalty", &nw::AttackData::iteration_penalty)
-        .def_readwrite("multiplier", &nw::AttackData::multiplier)
-        .def_readwrite("threat_range", &nw::AttackData::threat_range)
-        .def_readwrite("concealment", &nw::AttackData::concealment);
+        .def_rw("attacker", &nw::AttackData::attacker)
+        .def_rw("target", &nw::AttackData::target)
+        .def_rw("type", &nw::AttackData::type)
+        .def_rw("result", &nw::AttackData::result)
+        .def_rw("target_state", &nw::AttackData::target_state)
+        .def_rw("target_is_creature", &nw::AttackData::target_is_creature)
+        .def_rw("is_ranged_attack", &nw::AttackData::is_ranged_attack)
+        .def_rw("nth_attack", &nw::AttackData::nth_attack)
+        .def_rw("attack_roll", &nw::AttackData::attack_roll)
+        .def_rw("attack_bonus", &nw::AttackData::attack_bonus)
+        .def_rw("armor_class", &nw::AttackData::armor_class)
+        .def_rw("iteration_penalty", &nw::AttackData::iteration_penalty)
+        .def_rw("multiplier", &nw::AttackData::multiplier)
+        .def_rw("threat_range", &nw::AttackData::threat_range)
+        .def_rw("concealment", &nw::AttackData::concealment);
 
-    py::enum_<nw::DamageCategory>(nw, "DamageCategory", py::arithmetic())
+    py::enum_<nw::DamageCategory>(nw, "DamageCategory")
         .value("none", nw::DamageCategory::none, "No special damage category.")
         .value("penalty", nw::DamageCategory::penalty, "Penalty damage.")
         .value("critical", nw::DamageCategory::critical, "Critical damage.")
@@ -50,9 +49,9 @@ void init_rules(py::module& nw)
         .export_values();
 
     py::class_<nw::DiceRoll>(nw, "DiceRoll")
-        .def_readwrite("dice", &nw::DiceRoll::dice)
-        .def_readwrite("sides", &nw::DiceRoll::sides)
-        .def_readwrite("bonus", &nw::DiceRoll::bonus);
+        .def_rw("dice", &nw::DiceRoll::dice)
+        .def_rw("sides", &nw::DiceRoll::sides)
+        .def_rw("bonus", &nw::DiceRoll::bonus);
 
     py::enum_<nw::EffectCategory>(nw, "EffectCategory")
         .value("magical", nw::EffectCategory::magical)
@@ -62,16 +61,16 @@ void init_rules(py::module& nw)
         .value("innate", nw::EffectCategory::innate);
 
     py::class_<nw::EffectID>(nw, "EffectID")
-        .def_readonly("version", &nw::EffectID::version)
-        .def_readonly("index", &nw::EffectID::index);
+        .def_ro("version", &nw::EffectID::version)
+        .def_ro("index", &nw::EffectID::index);
 
     py::class_<nw::EffectHandle>(nw, "EffectHandle")
-        .def_readonly("type", &nw::EffectHandle::type)
-        .def_readonly("subtype", &nw::EffectHandle::subtype)
-        .def_readonly("creator", &nw::EffectHandle::creator)
-        .def_readonly("spell_id", &nw::EffectHandle::spell_id)
-        .def_readonly("category", &nw::EffectHandle::category)
-        .def_readonly("effect", &nw::EffectHandle::effect);
+        .def_ro("type", &nw::EffectHandle::type)
+        .def_ro("subtype", &nw::EffectHandle::subtype)
+        .def_ro("creator", &nw::EffectHandle::creator)
+        .def_ro("spell_id", &nw::EffectHandle::spell_id)
+        .def_ro("category", &nw::EffectHandle::category)
+        .def_ro("effect", &nw::EffectHandle::effect);
 
     py::class_<nw::Effect>(nw, "Effect")
         .def("clear", &nw::Effect::clear)
@@ -86,12 +85,12 @@ void init_rules(py::module& nw)
         .def("set_string", &nw::Effect::set_string)
         .def("set_versus", &nw::Effect::set_versus)
         .def("versus", &nw::Effect::versus)
-        .def_readwrite("type", &nw::Effect::type)
-        .def_readwrite("category", &nw::Effect::category)
-        .def_readwrite("subtype", &nw::Effect::subtype)
-        .def_readwrite("creator", &nw::Effect::creator)
-        .def_readwrite("spell_id", &nw::Effect::spell_id)
-        .def_readwrite("duration", &nw::Effect::duration)
-        .def_readwrite("expire_day", &nw::Effect::expire_day)
-        .def_readwrite("expire_time", &nw::Effect::expire_time);
+        .def_rw("type", &nw::Effect::type)
+        .def_rw("category", &nw::Effect::category)
+        .def_rw("subtype", &nw::Effect::subtype)
+        .def_rw("creator", &nw::Effect::creator)
+        .def_rw("spell_id", &nw::Effect::spell_id)
+        .def_rw("duration", &nw::Effect::duration)
+        .def_rw("expire_day", &nw::Effect::expire_day)
+        .def_rw("expire_time", &nw::Effect::expire_time);
 }

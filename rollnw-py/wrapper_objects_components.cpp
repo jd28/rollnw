@@ -16,12 +16,12 @@
 #include <nw/objects/SpellBook.hpp>
 #include <nw/objects/Trap.hpp>
 
-#include <pybind11/pybind11.h>
-#include <pybind11_json/pybind11_json.hpp>
+#include "json/json.hpp"
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_component_appearance(py::module& m)
+void init_component_appearance(py::module_& m)
 {
     py::enum_<nw::CreatureColors::type>(m, "CreatureColors")
         .value("hair", nw::CreatureColors::hair)
@@ -31,61 +31,61 @@ void init_component_appearance(py::module& m)
 
     py::class_<nw::BodyParts>(m, "BodyParts")
         .def(py::init<>())
-        .def_readwrite("belt", &nw::BodyParts::belt)
-        .def_readwrite("bicep_left", &nw::BodyParts::bicep_left)
-        .def_readwrite("bicep_right", &nw::BodyParts::bicep_right)
-        .def_readwrite("foot_left", &nw::BodyParts::foot_left)
-        .def_readwrite("foot_right", &nw::BodyParts::foot_right)
-        .def_readwrite("forearm_left", &nw::BodyParts::forearm_left)
-        .def_readwrite("forearm_right", &nw::BodyParts::forearm_right)
-        .def_readwrite("hand_left", &nw::BodyParts::hand_left)
-        .def_readwrite("hand_right", &nw::BodyParts::hand_right)
-        .def_readwrite("head", &nw::BodyParts::head)
-        .def_readwrite("neck", &nw::BodyParts::neck)
-        .def_readwrite("pelvis", &nw::BodyParts::pelvis)
-        .def_readwrite("shin_left", &nw::BodyParts::shin_left)
-        .def_readwrite("shin_right", &nw::BodyParts::shin_right)
-        .def_readwrite("shoulder_left", &nw::BodyParts::shoulder_left)
-        .def_readwrite("shoulder_right", &nw::BodyParts::shoulder_right)
-        .def_readwrite("thigh_left", &nw::BodyParts::thigh_left)
-        .def_readwrite("thigh_right", &nw::BodyParts::thigh_right);
+        .def_rw("belt", &nw::BodyParts::belt)
+        .def_rw("bicep_left", &nw::BodyParts::bicep_left)
+        .def_rw("bicep_right", &nw::BodyParts::bicep_right)
+        .def_rw("foot_left", &nw::BodyParts::foot_left)
+        .def_rw("foot_right", &nw::BodyParts::foot_right)
+        .def_rw("forearm_left", &nw::BodyParts::forearm_left)
+        .def_rw("forearm_right", &nw::BodyParts::forearm_right)
+        .def_rw("hand_left", &nw::BodyParts::hand_left)
+        .def_rw("hand_right", &nw::BodyParts::hand_right)
+        .def_rw("head", &nw::BodyParts::head)
+        .def_rw("neck", &nw::BodyParts::neck)
+        .def_rw("pelvis", &nw::BodyParts::pelvis)
+        .def_rw("shin_left", &nw::BodyParts::shin_left)
+        .def_rw("shin_right", &nw::BodyParts::shin_right)
+        .def_rw("shoulder_left", &nw::BodyParts::shoulder_left)
+        .def_rw("shoulder_right", &nw::BodyParts::shoulder_right)
+        .def_rw("thigh_left", &nw::BodyParts::thigh_left)
+        .def_rw("thigh_right", &nw::BodyParts::thigh_right);
 
     py::class_<nw::CreatureAppearance>(m, "Appearance")
         .def(py::init<>())
-        .def_readwrite("phenotype", &nw::CreatureAppearance::phenotype)
-        .def_readwrite("tail", &nw::CreatureAppearance::tail)
-        .def_readwrite("wings", &nw::CreatureAppearance::wings)
-        .def_readwrite("id", &nw::CreatureAppearance::id)
-        .def_readwrite("portrait_id", &nw::CreatureAppearance::portrait_id)
-        .def_readwrite("body_parts", &nw::CreatureAppearance::body_parts)
-        .def_readwrite("colors", &nw::CreatureAppearance::colors);
+        .def_rw("phenotype", &nw::CreatureAppearance::phenotype)
+        .def_rw("tail", &nw::CreatureAppearance::tail)
+        .def_rw("wings", &nw::CreatureAppearance::wings)
+        .def_rw("id", &nw::CreatureAppearance::id)
+        .def_rw("portrait_id", &nw::CreatureAppearance::portrait_id)
+        .def_rw("body_parts", &nw::CreatureAppearance::body_parts)
+        .def_rw("colors", &nw::CreatureAppearance::colors);
 }
 
-void init_component_combatinfo(py::module& m)
+void init_component_combatinfo(py::module_& m)
 {
     py::class_<nw::CombatInfo>(m, "CombatInfo")
-        .def_readwrite("ac_natural_bonus", &nw::CombatInfo::ac_natural_bonus)
-        .def_readwrite("ac_armor_base", &nw::CombatInfo::ac_armor_base)
-        .def_readwrite("ac_shield_base", &nw::CombatInfo::ac_shield_base)
-        .def_readwrite("combat_mode", &nw::CombatInfo::combat_mode)
-        .def_readwrite("target_state", &nw::CombatInfo::target_state)
-        .def_readwrite("size_ab_modifier", &nw::CombatInfo::size_ab_modifier)
-        .def_readwrite("size_ac_modifier", &nw::CombatInfo::size_ac_modifier);
+        .def_rw("ac_natural_bonus", &nw::CombatInfo::ac_natural_bonus)
+        .def_rw("ac_armor_base", &nw::CombatInfo::ac_armor_base)
+        .def_rw("ac_shield_base", &nw::CombatInfo::ac_shield_base)
+        .def_rw("combat_mode", &nw::CombatInfo::combat_mode)
+        .def_rw("target_state", &nw::CombatInfo::target_state)
+        .def_rw("size_ab_modifier", &nw::CombatInfo::size_ab_modifier)
+        .def_rw("size_ac_modifier", &nw::CombatInfo::size_ac_modifier);
 }
 
-void init_component_common(py::module& m)
+void init_component_common(py::module_& m)
 {
     py::class_<nw::Common>(m, "Common")
-        .def_readwrite("resref", &nw::Common::resref)
-        .def_readwrite("tag", &nw::Common::tag)
-        .def_readwrite("name", &nw::Common::name)
-        .def_readwrite("locals", &nw::Common::locals)
-        .def_readwrite("location", &nw::Common::location)
-        .def_readwrite("comment", &nw::Common::comment)
-        .def_readwrite("palette_id", &nw::Common::palette_id);
+        .def_rw("resref", &nw::Common::resref)
+        .def_rw("tag", &nw::Common::tag)
+        .def_rw("name", &nw::Common::name)
+        .def_rw("locals", &nw::Common::locals)
+        .def_rw("location", &nw::Common::location)
+        .def_rw("comment", &nw::Common::comment)
+        .def_rw("palette_id", &nw::Common::palette_id);
 }
 
-void init_component_creature_stats(py::module& m)
+void init_component_creature_stats(py::module_& m)
 {
     py::class_<nw::CreatureStats>(m, "CreatureStats")
         .def("add_feat", &nw::CreatureStats::add_feat)
@@ -95,10 +95,10 @@ void init_component_creature_stats(py::module& m)
         .def("remove_feat", &nw::CreatureStats::remove_feat)
         .def("set_ability_score", &nw::CreatureStats::set_ability_score)
         .def("set_skill_rank", &nw::CreatureStats::set_skill_rank)
-        .def_readonly("save_bonus", &nw::CreatureStats::save_bonus);
+        .def_ro("save_bonus", &nw::CreatureStats::save_bonus);
 }
 
-void init_component_equips(py::module& m)
+void init_component_equips(py::module_& m)
 {
     py::enum_<nw::EquipSlot>(m, "EquipSlot")
         .value("head", nw::EquipSlot::head)
@@ -142,17 +142,17 @@ void init_component_equips(py::module& m)
         .value("invalid", nw::EquipIndex::invalid);
 
     py::class_<nw::Equips>(m, "Equips")
-        .def_readonly("equips", &nw::Equips::equips)
+        .def_ro("equips", &nw::Equips::equips)
         .def("instantiate", &nw::Equips::instantiate);
 }
 
-void init_component_inventory(py::module& m)
+void init_component_inventory(py::module_& m)
 {
     py::class_<nw::InventoryItem>(m, "InventoryItem")
-        .def_readwrite("infinite", &nw::InventoryItem::infinite)
-        .def_readwrite("x", &nw::InventoryItem::pos_x)
-        .def_readwrite("y", &nw::InventoryItem::pos_y)
-        .def_readwrite("item", &nw::InventoryItem::item);
+        .def_rw("infinite", &nw::InventoryItem::infinite)
+        .def_rw("x", &nw::InventoryItem::pos_x)
+        .def_rw("y", &nw::InventoryItem::pos_y)
+        .def_rw("item", &nw::InventoryItem::item);
 
     py::class_<nw::Inventory>(m, "Inventory")
         .def("__len__", &nw::Inventory::size)
@@ -164,12 +164,12 @@ void init_component_inventory(py::module& m)
         .def("has_item", &nw::Inventory::has_item)
         .def("remove_item", &nw::Inventory::remove_item)
 
-        .def_readwrite("owner", &nw::Inventory::owner)
+        .def_rw("owner", &nw::Inventory::owner)
         .def("items", [](const nw::Inventory& self) {
             auto pylist = py::list();
             for (auto& item : self.items) {
                 if (item.item.is<nw::Item*>()) {
-                    auto pyobj = py::cast(item.item.as<nw::Item*>(), py::return_value_policy::reference);
+                    auto pyobj = py::cast(item.item.as<nw::Item*>(), py::rv_policy::reference);
                     pylist.append(pyobj);
                 }
             }
@@ -179,38 +179,38 @@ void init_component_inventory(py::module& m)
         .def("size", &nw::Inventory::size);
 }
 
-void init_component_levelhistory(py::module& m)
+void init_component_levelhistory(py::module_& m)
 {
     py::class_<nw::LevelUp>(m, "LevelUp")
-        .def_readwrite("class_", &nw::LevelUp::class_)
-        .def_readwrite("ability", &nw::LevelUp::ability)
-        .def_readwrite("epic", &nw::LevelUp::epic)
-        .def_readwrite("feats", &nw::LevelUp::feats)
-        .def_readwrite("hitpoints", &nw::LevelUp::hitpoints)
-        .def_readwrite("known_spells", &nw::LevelUp::known_spells)
-        .def_readwrite("skillpoints", &nw::LevelUp::skillpoints)
-        .def_readwrite("skills", &nw::LevelUp::skills);
+        .def_rw("class_", &nw::LevelUp::class_)
+        .def_rw("ability", &nw::LevelUp::ability)
+        .def_rw("epic", &nw::LevelUp::epic)
+        .def_rw("feats", &nw::LevelUp::feats)
+        .def_rw("hitpoints", &nw::LevelUp::hitpoints)
+        .def_rw("known_spells", &nw::LevelUp::known_spells)
+        .def_rw("skillpoints", &nw::LevelUp::skillpoints)
+        .def_rw("skills", &nw::LevelUp::skills);
 
     py::class_<nw::LevelHistory>(m, "LevelHistory")
-        .def_readwrite("entries", &nw::LevelHistory::entries);
+        .def_rw("entries", &nw::LevelHistory::entries);
 }
 
-void init_component_levelstats(py::module& m)
+void init_component_levelstats(py::module_& m)
 {
     py::class_<nw::ClassEntry>(m, "ClassEntry")
-        .def_readwrite("id", &nw::ClassEntry::id)
-        .def_readwrite("level", &nw::ClassEntry::level)
-        .def_readwrite("spells", &nw::ClassEntry::spells);
+        .def_rw("id", &nw::ClassEntry::id)
+        .def_rw("level", &nw::ClassEntry::level)
+        .def_rw("spells", &nw::ClassEntry::spells);
 
     py::class_<nw::LevelStats>(m, "LevelStats")
         .def("level", &nw::LevelStats::level)
         .def("level_by_class", &nw::LevelStats::level_by_class)
-        .def_readonly("entries", &nw::LevelStats::entries);
+        .def_ro("entries", &nw::LevelStats::entries);
 }
 
-void init_component_localdata(py::module& m)
+void init_component_localdata(py::module_& m)
 {
-    pybind11::class_<nw::LocalData>(m, "LocalData")
+    py::class_<nw::LocalData>(m, "LocalData")
         .def(py::init<>())
         .def("clear", &nw::LocalData::clear)
         .def("clear_all", &nw::LocalData::clear_all)
@@ -232,41 +232,41 @@ void init_component_localdata(py::module& m)
         .def("size", &nw::LocalData::size);
 }
 
-void init_component_location(py::module& m)
+void init_component_location(py::module_& m)
 {
-    pybind11::class_<nw::Location>(m, "Location")
+    py::class_<nw::Location>(m, "Location")
         .def(py::init<>())
-        .def_readwrite("area", &nw::Location::area)
-        .def_readwrite("position", &nw::Location::position)
-        .def_readwrite("orientation", &nw::Location::orientation);
+        .def_rw("area", &nw::Location::area)
+        .def_rw("position", &nw::Location::position)
+        .def_rw("orientation", &nw::Location::orientation);
 }
 
-void init_component_lock(py::module& m)
+void init_component_lock(py::module_& m)
 {
     py::class_<nw::Lock>(m, "Lock")
-        .def_readwrite("key_name", &nw::Lock::key_name)
-        .def_readwrite("key_required", &nw::Lock::key_required)
-        .def_readwrite("lockable", &nw::Lock::lockable)
-        .def_readwrite("locked", &nw::Lock::locked)
-        .def_readwrite("lock_dc", &nw::Lock::lock_dc)
-        .def_readwrite("unlock_dc", &nw::Lock::unlock_dc)
-        .def_readwrite("remove_key", &nw::Lock::remove_key);
+        .def_rw("key_name", &nw::Lock::key_name)
+        .def_rw("key_required", &nw::Lock::key_required)
+        .def_rw("lockable", &nw::Lock::lockable)
+        .def_rw("locked", &nw::Lock::locked)
+        .def_rw("lock_dc", &nw::Lock::lock_dc)
+        .def_rw("unlock_dc", &nw::Lock::unlock_dc)
+        .def_rw("remove_key", &nw::Lock::remove_key);
 }
 
-void init_component_saves(py::module& m)
+void init_component_saves(py::module_& m)
 {
     py::class_<nw::Saves>(m, "Saves")
-        .def_readwrite("fort", &nw::Saves::fort)
-        .def_readwrite("reflex", &nw::Saves::reflex)
-        .def_readwrite("will", &nw::Saves::will);
+        .def_rw("fort", &nw::Saves::fort)
+        .def_rw("reflex", &nw::Saves::reflex)
+        .def_rw("will", &nw::Saves::will);
 }
 
-void init_component_spellbook(py::module& m)
+void init_component_spellbook(py::module_& m)
 {
     py::class_<nw::SpecialAbility>(m, "SpecialAbility")
-        .def_readwrite("spell", &nw::SpecialAbility::spell)
-        .def_readwrite("level", &nw::SpecialAbility::level)
-        .def_readwrite("flags", &nw::SpecialAbility::flags);
+        .def_rw("spell", &nw::SpecialAbility::spell)
+        .def_rw("level", &nw::SpecialAbility::level)
+        .def_rw("flags", &nw::SpecialAbility::flags);
 
     py::enum_<nw::SpellFlags>(m, "SpellFlags")
         .value("none", nw::SpellFlags::none)
@@ -275,9 +275,9 @@ void init_component_spellbook(py::module& m)
         .value("unlimited", nw::SpellFlags::unlimited);
 
     py::class_<nw::SpellEntry>(m, "SpellEntry")
-        .def_readwrite("spell", &nw::SpellEntry::spell)
-        .def_readwrite("meta", &nw::SpellEntry::meta)
-        .def_readwrite("flags", &nw::SpellEntry::flags);
+        .def_rw("spell", &nw::SpellEntry::spell)
+        .def_rw("meta", &nw::SpellEntry::meta)
+        .def_rw("flags", &nw::SpellEntry::flags);
 
     py::class_<nw::SpellBook>(m, "SpellBook")
         .def("add_known_spell", &nw::SpellBook::add_known_spell)
@@ -290,20 +290,20 @@ void init_component_spellbook(py::module& m)
         .def("remove_known_spell", &nw::SpellBook::remove_known_spell);
 }
 
-void init_component_trap(py::module& m)
+void init_component_trap(py::module_& m)
 {
     py::class_<nw::Trap>(m, "Trap")
         .def(py::init<>())
-        .def_readwrite("is_trapped", &nw::Trap::is_trapped)
-        .def_readwrite("type", &nw::Trap::type)
-        .def_readwrite("detectable", &nw::Trap::detectable)
-        .def_readwrite("detect_dc", &nw::Trap::detect_dc)
-        .def_readwrite("disarmable", &nw::Trap::disarmable)
-        .def_readwrite("disarm_dc", &nw::Trap::disarm_dc)
-        .def_readwrite("one_shot", &nw::Trap::one_shot);
+        .def_rw("is_trapped", &nw::Trap::is_trapped)
+        .def_rw("type", &nw::Trap::type)
+        .def_rw("detectable", &nw::Trap::detectable)
+        .def_rw("detect_dc", &nw::Trap::detect_dc)
+        .def_rw("disarmable", &nw::Trap::disarmable)
+        .def_rw("disarm_dc", &nw::Trap::disarm_dc)
+        .def_rw("one_shot", &nw::Trap::one_shot);
 }
 
-void init_object_components(py::module& m)
+void init_object_components(py::module_& m)
 {
     init_component_appearance(m);
     init_component_combatinfo(m);

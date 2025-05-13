@@ -1,6 +1,6 @@
 find_package(Threads)
 
-pybind11_add_module(rollnw NO_EXTRAS
+nanobind_add_module(rollnw MODULE
     wrapper.cpp
     opaque_types.cpp
 
@@ -28,11 +28,9 @@ endif()
 
 target_link_libraries(rollnw PRIVATE
     nw
-    pybind11::module
 )
 
 target_include_directories(rollnw SYSTEM PRIVATE
     ../lib
-    ../external/pybind11_json/include
-    ../external/pybind11/include
+    ../external/nanobind/include
 )

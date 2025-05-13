@@ -18,45 +18,44 @@
 #include <nw/script/Nss.hpp>
 
 #include <glm/vec3.hpp>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
-#include <pybind11/stl_bind.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/filesystem.h>
+#include <nanobind/stl/vector.h>
 
 #include <memory>
 #include <string>
 #include <vector>
 
-PYBIND11_MAKE_OPAQUE(std::vector<glm::vec3>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::model::Vertex>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::model::SkinVertex>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::model::Node*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::ClassEntry>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::InventoryItem>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Resref>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Resource>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::LevelUp>)
-PYBIND11_MAKE_OPAQUE(std::vector<int64_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<int32_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<int16_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<int8_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<uint64_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<uint16_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<uint8_t>)
-PYBIND11_MAKE_OPAQUE(std::vector<std::string>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Area*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::AreaTile>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Creature*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Door*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Encounter*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Item*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Placeable*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Sound*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Store*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Trigger*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Waypoint*>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::script::Symbol>)
-PYBIND11_MAKE_OPAQUE(std::vector<nw::DialogPtr*>)
+NB_MAKE_OPAQUE(std::vector<glm::vec3>)
+NB_MAKE_OPAQUE(std::vector<nw::model::Vertex>)
+NB_MAKE_OPAQUE(std::vector<nw::model::SkinVertex>)
+NB_MAKE_OPAQUE(std::vector<nw::model::Node*>)
+NB_MAKE_OPAQUE(std::vector<nw::ClassEntry>)
+NB_MAKE_OPAQUE(std::vector<nw::InventoryItem>)
+NB_MAKE_OPAQUE(std::vector<nw::Resref>)
+NB_MAKE_OPAQUE(std::vector<nw::Resource>)
+NB_MAKE_OPAQUE(std::vector<nw::LevelUp>)
+NB_MAKE_OPAQUE(std::vector<int64_t>)
+NB_MAKE_OPAQUE(std::vector<int32_t>)
+NB_MAKE_OPAQUE(std::vector<int16_t>)
+NB_MAKE_OPAQUE(std::vector<int8_t>)
+NB_MAKE_OPAQUE(std::vector<uint64_t>)
+NB_MAKE_OPAQUE(std::vector<uint32_t>)
+NB_MAKE_OPAQUE(std::vector<uint16_t>)
+NB_MAKE_OPAQUE(std::vector<uint8_t>)
+NB_MAKE_OPAQUE(std::vector<std::string>)
+NB_MAKE_OPAQUE(std::vector<nw::Area*>)
+NB_MAKE_OPAQUE(std::vector<nw::AreaTile>)
+NB_MAKE_OPAQUE(std::vector<nw::Creature*>)
+NB_MAKE_OPAQUE(std::vector<nw::Door*>)
+NB_MAKE_OPAQUE(std::vector<nw::Encounter*>)
+NB_MAKE_OPAQUE(std::vector<nw::Item*>)
+NB_MAKE_OPAQUE(std::vector<nw::Placeable*>)
+NB_MAKE_OPAQUE(std::vector<nw::Sound*>)
+NB_MAKE_OPAQUE(std::vector<nw::Store*>)
+NB_MAKE_OPAQUE(std::vector<nw::Trigger*>)
+NB_MAKE_OPAQUE(std::vector<nw::Waypoint*>)
+NB_MAKE_OPAQUE(std::vector<nw::script::Symbol>)
+NB_MAKE_OPAQUE(std::vector<nw::DialogPtr*>)
 
-void bind_opaque_types(pybind11::module& m);
+void bind_opaque_types(nanobind::module_& m);

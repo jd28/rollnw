@@ -1,3 +1,4 @@
+#include "casters.hpp"
 #include "opaque_types.hpp"
 
 #include <nw/formats/Dialog.hpp>
@@ -11,19 +12,17 @@
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/util/platform.hpp>
 
+#include "json/json.hpp"
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/filesystem.h>
 #include <nlohmann/json.hpp>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
-#include <pybind11/stl_bind.h>
-#include <pybind11_json/pybind11_json.hpp>
 
 #include <string>
 #include <variant>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_formats_dialog(py::module& nw)
+void init_formats_dialog(py::module_& nw)
 {
     py::enum_<nw::DialogNodeType>(nw, "DialogNodeType")
         .value("entry", nw::DialogNodeType::entry)
@@ -51,26 +50,26 @@ void init_formats_dialog(py::module& nw)
         .value("none", nw::DialogAnimation::none);
 
     py::class_<nw::DialogPtr>(nw, "DialogPtr")
-        .def_readonly("parent", &nw::DialogPtr::parent, py::return_value_policy::reference_internal)
-        .def_readonly("type", &nw::DialogPtr::type)
-        .def_readonly("node", &nw::DialogPtr::node, py::return_value_policy::reference_internal)
-        .def_readwrite("script_appears", &nw::DialogPtr::script_appears)
-        .def_readonly("is_start", &nw::DialogPtr::is_start)
-        .def_readonly("is_link", &nw::DialogPtr::is_link)
-        .def_readwrite("comment", &nw::DialogPtr::comment)
+        .def_ro("parent", &nw::DialogPtr::parent, py::rv_policy::reference_internal)
+        .def_ro("type", &nw::DialogPtr::type)
+        .def_ro("node", &nw::DialogPtr::node, py::rv_policy::reference_internal)
+        .def_rw("script_appears", &nw::DialogPtr::script_appears)
+        .def_ro("is_start", &nw::DialogPtr::is_start)
+        .def_ro("is_link", &nw::DialogPtr::is_link)
+        .def_rw("comment", &nw::DialogPtr::comment)
         .def("add_ptr", &nw::DialogPtr::add_ptr,
             py::arg("ptr"),
             py::arg("is_link") = true,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("add_string", &nw::DialogPtr::add_string,
             py::arg("value"),
             py::arg("lang") = nw::LanguageID::english,
             py::arg("feminine") = false,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("add", &nw::DialogPtr::add,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("copy", &nw::DialogPtr::copy,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("get_condition_param", &nw::DialogPtr::get_condition_param)
         .def("remove_condition_param", [](nw::DialogPtr* ptr, const std::string& key) {
             ptr->remove_condition_param(key);
@@ -79,20 +78,20 @@ void init_formats_dialog(py::module& nw)
         .def("set_condition_param", &nw::DialogPtr::set_condition_param);
 
     py::class_<nw::DialogNode>(nw, "DialogNode")
-        .def_readonly("parent", &nw::DialogNode::parent, py::return_value_policy::reference_internal)
-        .def_readonly("type", &nw::DialogNode::type)
-        .def_readwrite("comment", &nw::DialogNode::comment)
-        .def_readwrite("quest", &nw::DialogNode::quest)
-        .def_readwrite("speaker", &nw::DialogNode::speaker)
-        .def_readwrite("quest_entry", &nw::DialogNode::quest_entry)
-        .def_readwrite("script_action", &nw::DialogNode::script_action)
-        .def_readwrite("sound", &nw::DialogNode::sound)
-        .def_readwrite("text", &nw::DialogNode::text)
-        .def_readwrite("animation", &nw::DialogNode::animation)
-        .def_readwrite("delay", &nw::DialogNode::delay)
-        .def_readwrite("pointers", &nw::DialogNode::pointers)
+        .def_ro("parent", &nw::DialogNode::parent, py::rv_policy::reference_internal)
+        .def_ro("type", &nw::DialogNode::type)
+        .def_rw("comment", &nw::DialogNode::comment)
+        .def_rw("quest", &nw::DialogNode::quest)
+        .def_rw("speaker", &nw::DialogNode::speaker)
+        .def_rw("quest_entry", &nw::DialogNode::quest_entry)
+        .def_rw("script_action", &nw::DialogNode::script_action)
+        .def_rw("sound", &nw::DialogNode::sound)
+        .def_rw("text", &nw::DialogNode::text)
+        .def_rw("animation", &nw::DialogNode::animation)
+        .def_rw("delay", &nw::DialogNode::delay)
+        .def_rw("pointers", &nw::DialogNode::pointers)
         .def("copy", &nw::DialogNode::copy,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("get_action_param", &nw::DialogNode::get_action_param)
         .def("remove_action_param", [](nw::DialogNode* ptr, const std::string& key) {
             ptr->remove_action_param(key);
@@ -101,19 +100,19 @@ void init_formats_dialog(py::module& nw)
 
     py::class_<nw::Dialog>(nw, "Dialog")
         .def(py::init<>())
-        .def_readonly_static("json_archive_version", &nw::Dialog::json_archive_version)
-        .def_readonly_static("restype", &nw::Dialog::restype)
+        .def_ro_static("json_archive_version", &nw::Dialog::json_archive_version)
+        .def_ro_static("restype", &nw::Dialog::restype)
         .def("add_ptr", &nw::Dialog::add_ptr,
             py::arg("ptr"),
             py::arg("is_link") = true,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("add_string", &nw::Dialog::add_string,
             py::arg("value"),
             py::arg("lang") = nw::LanguageID::english,
             py::arg("feminine") = false,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("add", &nw::Dialog::add,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("delete_ptr", &nw::Dialog::delete_ptr)
         .def("remove_ptr", &nw::Dialog::remove_ptr)
         .def("save", [](const nw::Dialog& self, const std::string& path) {
@@ -160,15 +159,15 @@ void init_formats_dialog(py::module& nw)
             }
             throw std::runtime_error(fmt::format("unknown file extension: {}", ext));
         })
-        .def_readwrite("script_abort", &nw::Dialog::script_abort)
-        .def_readwrite("script_end", &nw::Dialog::script_end)
-        .def_readwrite("delay_entry", &nw::Dialog::delay_entry)
-        .def_readwrite("delay_reply", &nw::Dialog::delay_reply)
-        .def_readwrite("word_count", &nw::Dialog::word_count)
-        .def_readwrite("prevent_zoom", &nw::Dialog::prevent_zoom);
+        .def_rw("script_abort", &nw::Dialog::script_abort)
+        .def_rw("script_end", &nw::Dialog::script_end)
+        .def_rw("delay_entry", &nw::Dialog::delay_entry)
+        .def_rw("delay_reply", &nw::Dialog::delay_reply)
+        .def_rw("word_count", &nw::Dialog::word_count)
+        .def_rw("prevent_zoom", &nw::Dialog::prevent_zoom);
 }
 
-void init_formats_ini(py::module& nw)
+void init_formats_ini(py::module_& nw)
 {
     py::class_<nw::Ini>(nw, "Ini")
         .def(py::init<const std::filesystem::path&>())
@@ -184,7 +183,7 @@ void init_formats_ini(py::module& nw)
         .def("valid", &nw::Ini::valid);
 }
 
-void init_formats_image(py::module& nw)
+void init_formats_image(py::module_& nw)
 {
     py::class_<nw::Image>(nw, "Image")
         .def(py::init<const std::filesystem::path&>())
@@ -199,7 +198,7 @@ void init_formats_image(py::module& nw)
         .def("write_to", &nw::Image::write_to);
 }
 
-void init_formats_palette(py::module& nw)
+void init_formats_palette(py::module_& nw)
 {
     py::enum_<nw::PaletteNodeType>(nw, "PaletteNodeType")
         .value("branch", nw::PaletteNodeType::branch)
@@ -211,16 +210,16 @@ void init_formats_palette(py::module& nw)
     py::class_<nw::PaletteTreeNode>(nw, "PaletteTreeNode")
         .def("clear", &nw::PaletteTreeNode::clear)
 
-        .def_readwrite("type", &nw::PaletteTreeNode::type)
-        .def_readonly("id", &nw::PaletteTreeNode::id)
-        .def_readonly("display", &nw::PaletteTreeNode::display)
-        .def_readonly("name", &nw::PaletteTreeNode::name)
-        .def_readonly("name", &nw::PaletteTreeNode::name)
-        .def_readonly("strref", &nw::PaletteTreeNode::strref)
-        .def_readonly("resref", &nw::PaletteTreeNode::resref)
-        .def_readonly("cr", &nw::PaletteTreeNode::cr)
-        .def_readonly("faction", &nw::PaletteTreeNode::faction)
-        .def_readonly("children", &nw::PaletteTreeNode::children)
+        .def_rw("type", &nw::PaletteTreeNode::type)
+        .def_ro("id", &nw::PaletteTreeNode::id)
+        .def_ro("display", &nw::PaletteTreeNode::display)
+        .def_ro("name", &nw::PaletteTreeNode::name)
+        .def_ro("name", &nw::PaletteTreeNode::name)
+        .def_ro("strref", &nw::PaletteTreeNode::strref)
+        .def_ro("resref", &nw::PaletteTreeNode::resref)
+        .def_ro("cr", &nw::PaletteTreeNode::cr)
+        .def_ro("faction", &nw::PaletteTreeNode::faction)
+        .def_ro("children", &nw::PaletteTreeNode::children)
 
         ;
 
@@ -229,9 +228,9 @@ void init_formats_palette(py::module& nw)
         .def("to_dict", &nw::Palette::to_json)
         .def("valid", &nw::Palette::valid)
 
-        .def_readonly("resource_type", &nw::Palette::resource_type)
-        .def_readonly("tileset", &nw::Palette::tileset)
-        .def_readonly("children", &nw::Palette::children)
+        .def_ro("resource_type", &nw::Palette::resource_type)
+        .def_ro("tileset", &nw::Palette::tileset)
+        .def_ro("children", &nw::Palette::children)
 
         .def("save", [](const nw::Palette& self, const std::string& path, const std::string& format) {
             std::filesystem::path out{path};
@@ -277,7 +276,7 @@ void init_formats_palette(py::module& nw)
         ;
 }
 
-void init_formats_plt(py::module& nw)
+void init_formats_plt(py::module_& nw)
 {
     py::enum_<nw::PltLayer>(nw, "PltLayer")
         .value("skin", nw::plt_layer_skin)
@@ -292,12 +291,12 @@ void init_formats_plt(py::module& nw)
         .value("tattoo2", nw::plt_layer_tattoo2);
 
     py::class_<nw::PltPixel>(nw, "PltPixel")
-        .def_readonly("color", &nw::PltPixel::color)
-        .def_readonly("layer", &nw::PltPixel::layer);
+        .def_ro("color", &nw::PltPixel::color)
+        .def_ro("layer", &nw::PltPixel::layer);
 
     py::class_<nw::PltColors>(nw, "PltColors")
         .def(py::init<>())
-        .def_readonly("colors", &nw::PltColors::data);
+        .def_ro("colors", &nw::PltColors::data);
 
     py::class_<nw::Plt>(nw, "Plt")
         .def(py::init<const std::filesystem::path&>())
@@ -309,7 +308,7 @@ void init_formats_plt(py::module& nw)
     nw.def("decode_plt_color", &nw::decode_plt_color);
 }
 
-void init_formats_twoda(py::module& nw)
+void init_formats_twoda(py::module_& nw)
 {
     py::class_<nw::TwoDARowView>(nw, "TwoDARowView")
         .def("__getitem__", [](const nw::TwoDARowView& self, size_t col) {
@@ -436,7 +435,7 @@ void init_formats_twoda(py::module& nw)
         });
 }
 
-void init_formats(py::module& nw)
+void init_formats(py::module_& nw)
 {
     init_formats_dialog(nw);
     init_formats_image(nw);

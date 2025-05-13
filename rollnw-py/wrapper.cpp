@@ -1,30 +1,28 @@
 #include "glm/wrap_vmath.h"
 #include "opaque_types.hpp"
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
-#include <pybind11/stl_bind.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/filesystem.h>
 
 #include <nw/util/platform.hpp>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_i18n(py::module& nw);
-void init_formats(py::module& nw);
-void init_objects(py::module& nw);
-void init_resources(py::module& nw);
-void init_rules(py::module& nw);
-void init_serialization(py::module& nw);
-void init_util(py::module& nw);
-void init_kernel(py::module& kernel);
-void init_model(py::module& nw);
-void init_script(py::module& nw);
+void init_i18n(py::module_& nw);
+void init_formats(py::module_& nw);
+void init_objects(py::module_& nw);
+void init_resources(py::module_& nw);
+void init_rules(py::module_& nw);
+void init_serialization(py::module_& nw);
+void init_util(py::module_& nw);
+void init_kernel(py::module_& kernel);
+void init_model(py::module_& nw);
+void init_script(py::module_& nw);
 
-void init_core_scriptapi(py::module& m);
-void init_nwn1(py::module& m);
+void init_core_scriptapi(py::module_& m);
+void init_nwn1(py::module_& m);
 
-PYBIND11_MODULE(rollnw, nw)
+NB_MODULE(rollnw, nw)
 {
     nw.doc() = "rollnw python wrapper";
 
@@ -39,15 +37,15 @@ PYBIND11_MODULE(rollnw, nw)
     init_util(nw);
     wrap_vmath(nw);
 
-    py::module kernel = nw.def_submodule("kernel");
+    py::module_ kernel = nw.def_submodule("kernel");
     init_kernel(kernel);
-    py::module script = nw.def_submodule("script");
+    py::module_ script = nw.def_submodule("script");
     init_script(script);
-    py::module model = nw.def_submodule("model");
+    py::module_ model = nw.def_submodule("model");
     init_model(model);
 
     // Profiles - NWN1
-    py::module nwn1 = nw.def_submodule("nwn1");
+    py::module_ nwn1 = nw.def_submodule("nwn1");
     init_core_scriptapi(nwn1);
     init_nwn1(nwn1);
 }

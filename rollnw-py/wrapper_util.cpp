@@ -1,11 +1,11 @@
 #include <nw/util/ByteArray.hpp>
 #include <nw/util/game_install.hpp>
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_util(pybind11::module& nw)
+void init_util(py::module_& nw)
 {
     py::enum_<nw::GameVersion>(nw, "GameVersion")
         .value("invalid", nw::GameVersion::invalid)
@@ -13,9 +13,9 @@ void init_util(pybind11::module& nw)
         .value("vEE", nw::GameVersion::vEE);
 
     py::class_<nw::InstallInfo>(nw, "InstallInfo")
-        .def_readwrite("install", &nw::InstallInfo::install)
-        .def_readwrite("user", &nw::InstallInfo::user)
-        .def_readwrite("version", &nw::InstallInfo::version);
+        .def_rw("install", &nw::InstallInfo::install)
+        .def_rw("user", &nw::InstallInfo::user)
+        .def_rw("version", &nw::InstallInfo::version);
 
     nw.def("probe_nwn_install", &nw::probe_nwn_install, py::arg("only") = nw::GameVersion::invalid);
 }

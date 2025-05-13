@@ -10,23 +10,22 @@
 #include <nw/util/string.hpp>
 
 #include <fmt/format.h>
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/filesystem.h>
 
 #include <string>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_resources_data(py::module& nw)
+void init_resources_data(py::module_& nw)
 {
     py::class_<nw::ResourceData>(nw, "ResourceData")
-        .def_readwrite("name", &nw::ResourceData::name)
-        .def_readwrite("bytes", &nw::ResourceData::bytes);
+        .def_rw("name", &nw::ResourceData::name)
+        .def_rw("bytes", &nw::ResourceData::bytes);
 }
 
-void init_resources_container(py::module& nw)
+void init_resources_container(py::module_& nw)
 {
     py::class_<nw::Container>(nw, "Container")
         .def("name", &nw::Container::name)
@@ -35,7 +34,7 @@ void init_resources_container(py::module& nw)
         .def("valid", &nw::Container::valid);
 }
 
-void init_resources_erf(py::module& nw)
+void init_resources_erf(py::module_& nw)
 {
     py::class_<nw::Erf>(nw, "Erf")
         .def(py::init<>())
@@ -48,7 +47,7 @@ void init_resources_erf(py::module& nw)
         .def("save", &nw::Erf::save)
         .def("save_as", &nw::Erf::save_as)
 
-        .def_readwrite("description", &nw::Erf::description)
+        .def_rw("description", &nw::Erf::description)
 
         .def("demand", [](const nw::Erf& self, std::string_view name) {
             return self.demand(nw::Resource::from_filename(name));
@@ -59,7 +58,7 @@ void init_resources_erf(py::module& nw)
         .def("valid", &nw::Erf::valid);
 }
 
-void init_resource_manager(py::module& kernel)
+void init_resource_manager(py::module_& kernel)
 {
     py::class_<nw::ResourceManager>(kernel, "ResourceManager")
         .def("demand", [](const nw::ResourceManager& self, std::string_view name) {
@@ -69,7 +68,7 @@ void init_resource_manager(py::module& kernel)
         .def("texture", &nw::ResourceManager::texture);
 }
 
-void init_resources(py::module& nw)
+void init_resources(py::module_& nw)
 {
     init_resources_data(nw);
     init_resources_container(nw);

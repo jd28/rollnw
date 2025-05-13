@@ -1,10 +1,10 @@
 #include <nw/serialization/Serialization.hpp>
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-void init_serialization(pybind11::module& m)
+void init_serialization(nanobind::module_& m)
 {
-    pybind11::enum_<nw::SerializationProfile>(m, "SerializationProfile")
+    nanobind::enum_<nw::SerializationProfile>(m, "SerializationProfile")
         .value("any", nw::SerializationProfile::any)
         .value("blueprint", nw::SerializationProfile::blueprint)
         .value("instance", nw::SerializationProfile::instance)

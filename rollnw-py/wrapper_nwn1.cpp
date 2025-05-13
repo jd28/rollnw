@@ -1,20 +1,20 @@
 #include "casters.hpp"
 #include "opaque_types.hpp"
-#include "pybind11_json/pybind11_json.hpp"
+#include "json/json.hpp"
 
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 
 #include <nw/profiles/nwn1/scriptapi.hpp>
 
+#include <nanobind/nanobind.h>
 #include <nlohmann/json.hpp>
-#include <pybind11/pybind11.h>
 
 #include <filesystem>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_nwn1(py::module& m)
+void init_nwn1(py::module_& m)
 {
 
     // ============================================================================
@@ -105,7 +105,7 @@ void init_nwn1(py::module& m)
     // ============================================================================
     m.def("can_equip_item", &nwn1::can_equip_item);
     m.def("equip_item", &nwn1::equip_item);
-    m.def("get_equipped_item", &nwn1::get_equipped_item, py::return_value_policy::reference);
+    m.def("get_equipped_item", &nwn1::get_equipped_item, py::rv_policy::reference);
     m.def("unequip_item", &nwn1::unequip_item);
 
     // == Creature: Skills ========================================================

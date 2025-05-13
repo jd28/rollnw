@@ -1,10 +1,11 @@
 #include "opaque_types.hpp"
 
+#include <nanobind/stl/bind_vector.h>
 #include <nw/objects/Item.hpp>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void bind_opaque_types(py::module& m)
+void bind_opaque_types(py::module_& m)
 {
     py::bind_vector<std::vector<int64_t>>(m, "Int64Vector");
     py::bind_vector<std::vector<int32_t>>(m, "Int32Vector");

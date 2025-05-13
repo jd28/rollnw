@@ -16,22 +16,20 @@
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
-#include <pybind11/stl_bind.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/filesystem.h>
 
 #include <filesystem>
 
-namespace py = pybind11;
+namespace py = nanobind;
 namespace fs = std::filesystem;
 
-void init_kernel_config(py::module& kernel)
+void init_kernel_config(py::module_& kernel)
 {
     py::class_<nw::ConfigOptions>(kernel, "ConfigOptions")
         .def(py::init<>())
-        .def_readwrite("include_install", &nw::ConfigOptions::include_install)
-        .def_readwrite("include_user", &nw::ConfigOptions::include_user);
+        .def_rw("include_install", &nw::ConfigOptions::include_install)
+        .def_rw("include_user", &nw::ConfigOptions::include_user);
 
     py::class_<nw::kernel::Config>(kernel, "Config")
         .def("initialize", [](const nw::ConfigOptions& options) {
@@ -48,14 +46,14 @@ void init_kernel_config(py::module& kernel)
         "config", []() {
             return &nw::kernel::config();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
-void init_kernel_effects(py::module& kernel)
+void init_kernel_effects(py::module_& kernel)
 {
     py::class_<nw::kernel::EffectSystemStats>(kernel, "EffectSystemStats")
-        .def_readonly("free_list_size", &nw::kernel::EffectSystemStats::free_list_size)
-        .def_readonly("pool_size", &nw::kernel::EffectSystemStats::pool_size);
+        .def_ro("free_list_size", &nw::kernel::EffectSystemStats::free_list_size)
+        .def_ro("pool_size", &nw::kernel::EffectSystemStats::pool_size);
 
     py::class_<nw::kernel::EffectSystem>(kernel, "EffectSystem")
         // Unexposed:
@@ -65,7 +63,7 @@ void init_kernel_effects(py::module& kernel)
         .def("add_effect", py::overload_cast<nw::EffectType, nw::kernel::EffectFunc, nw::kernel::EffectFunc>(&nw::kernel::EffectSystem::add))
         .def("add_itemprop", py::overload_cast<nw::ItemPropertyType, nw::kernel::ItemPropFunc>(&nw::kernel::EffectSystem::add))
         .def("apply", &nw::kernel::EffectSystem::apply)
-        .def("create", &nw::kernel::EffectSystem::create, py::return_value_policy::reference)
+        .def("create", &nw::kernel::EffectSystem::create, py::rv_policy::reference)
         .def("destroy", &nw::kernel::EffectSystem::destroy)
         .def("ip_cost_table", &nw::kernel::EffectSystem::ip_cost_table)
         .def("ip_definition", &nw::kernel::EffectSystem::ip_definition)
@@ -79,7 +77,7 @@ void init_kernel_effects(py::module& kernel)
         "effects", []() {
             return &nw::kernel::effects();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
 template <typename T>
@@ -94,78 +92,78 @@ T* load_object_helper_fs(nw::kernel::ObjectSystem& self, const fs::path& path, n
     return self.load_file<T>(path, profile);
 }
 
-void init_kernel_objects(py::module& kernel)
+void init_kernel_objects(py::module_& kernel)
 {
     py::class_<nw::kernel::ObjectSystem>(kernel, "Objects")
         .def("area", &nw::kernel::ObjectSystem::make_area,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("creature", &load_object_helper<nw::Creature>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("destroy", &nw::kernel::ObjectSystem::destroy)
         .def("door", &load_object_helper<nw::Door>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("encounter", &load_object_helper<nw::Encounter>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("get", &nw::kernel::ObjectSystem::get_object_base,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("get_by_tag", &nw::kernel::ObjectSystem::get_by_tag,
             py::arg("tag"), py::arg("nth") = 0,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("item", &load_object_helper<nw::Item>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("placeable", &load_object_helper<nw::Placeable>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("store", &load_object_helper<nw::Store>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("trigger", &load_object_helper<nw::Trigger>,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("valid", &nw::kernel::ObjectSystem::valid)
         .def("waypoint", &load_object_helper<nw::Waypoint>,
-            py::return_value_policy::reference_internal);
+            py::rv_policy::reference_internal);
 
     kernel.def(
         "objects", []() {
             return &nw::kernel::objects();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
-void init_kernel_rules(py::module& kernel)
+void init_kernel_rules(py::module_& kernel)
 {
     py::class_<nw::kernel::Rules>(kernel, "Rules");
     kernel.def(
         "rules", []() {
             return &nw::kernel::rules();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
-void init_kernel_strings(py::module& kernel)
+void init_kernel_strings(py::module_& kernel)
 {
     py::class_<nw::kernel::Strings>(kernel, "Strings");
     kernel.def(
         "strings", []() {
             return &nw::kernel::strings();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
-void init_kernel_twoda_cache(py::module& kernel)
+void init_kernel_twoda_cache(py::module_& kernel)
 {
     py::class_<nw::kernel::TwoDACache>(kernel, "TwoDACache")
         .def("get", py::overload_cast<std::string_view>(&nw::kernel::TwoDACache::get),
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("get", py::overload_cast<const nw::Resource&>(&nw::kernel::TwoDACache::get),
-            py::return_value_policy::reference_internal);
+            py::rv_policy::reference_internal);
 
     kernel.def(
         "twodas", []() {
             return &nw::kernel::twodas();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }
 
-void init_kernel(py::module& kernel)
+void init_kernel(py::module_& kernel)
 {
     init_kernel_config(kernel);
     init_kernel_effects(kernel);
@@ -174,7 +172,7 @@ void init_kernel(py::module& kernel)
     init_kernel_strings(kernel);
     init_kernel_twoda_cache(kernel);
 
-    kernel.def("load_module", [](const std::string& path, bool instantiate = true) { return nw::kernel::load_module(path, instantiate); }, py::arg("path"), py::arg("instantiate") = true, py::return_value_policy::reference_internal);
+    kernel.def("load_module", [](const std::string& path, bool instantiate = true) { return nw::kernel::load_module(path, instantiate); }, py::arg("path"), py::arg("instantiate") = true, py::rv_policy::reference_internal);
     kernel.def("unload_module", &nw::kernel::unload_module);
 
     kernel.def("start", []() {
@@ -190,5 +188,5 @@ void init_kernel(py::module& kernel)
         "resman", []() {
             return &nw::kernel::resman();
         },
-        py::return_value_policy::reference);
+        py::rv_policy::reference);
 }

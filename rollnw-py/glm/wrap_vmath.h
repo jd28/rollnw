@@ -1,5 +1,5 @@
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-void wrap_vmath(pybind11::module_& m);
+void wrap_vmath(nanobind::module_& m);

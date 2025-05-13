@@ -7,12 +7,11 @@
 #include "nw/rules/items.hpp"
 #include "nw/scriptapi.hpp"
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_core_scriptapi(py::module& m)
+void init_core_scriptapi(py::module_& m)
 {
     m.def("create_object", &nw::create_object);
     m.def("destroy_object", &nw::destroy_object);

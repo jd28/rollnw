@@ -1,18 +1,18 @@
-#include "pybind11_json/pybind11_json.hpp"
-
 #include <nw/i18n/Language.hpp>
 #include <nw/i18n/LocString.hpp>
 #include <nw/i18n/Tlk.hpp>
 
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/filesystem.h>
 #include <nlohmann/json.hpp>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl/filesystem.h>
+
+#include "json/json.hpp"
 
 #include <filesystem>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-void init_i18n_language(py::module& m)
+void init_i18n_language(py::module_& m)
 {
     py::enum_<nw::LanguageID>(m, "LanguageID")
         .value("english", nw::LanguageID::english)
@@ -35,7 +35,7 @@ void init_i18n_language(py::module& m)
         .def_static("to_string", &nw::Language::to_string, py::arg("language"), py::arg("long_name") = false);
 }
 
-void init_i18n_locstring(py::module& m)
+void init_i18n_locstring(py::module_& m)
 {
     py::class_<nw::LocString>(m, "LocString")
         .def(py::init<>())
@@ -63,7 +63,7 @@ void init_i18n_locstring(py::module& m)
         });
 }
 
-void init_i18n_tlk(py::module& m)
+void init_i18n_tlk(py::module_& m)
 {
     py::class_<nw::Tlk>(m, "Tlk")
         .def(py::init<std::filesystem::path>())
@@ -85,7 +85,7 @@ void init_i18n_tlk(py::module& m)
         .def("valid", &nw::Tlk::valid);
 }
 
-void init_i18n(py::module& m)
+void init_i18n(py::module_& m)
 {
     init_i18n_language(m);
     init_i18n_locstring(m);
