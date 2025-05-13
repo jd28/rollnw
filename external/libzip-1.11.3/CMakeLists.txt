@@ -19,11 +19,11 @@ option(ENABLE_MBEDTLS "Enable use of mbed TLS" OFF)
 option(ENABLE_OPENSSL "Enable use of OpenSSL" OFF)
 option(ENABLE_WINDOWS_CRYPTO "Enable use of Windows cryptography libraries" OFF)
 
-option(ENABLE_BZIP2 "Enable use of BZip2" ON)
-option(ENABLE_LZMA "Enable use of LZMA" ON)
+option(ENABLE_BZIP2 "Enable use of BZip2" OFF)
+option(ENABLE_LZMA "Enable use of LZMA" OFF)
 option(ENABLE_ZSTD "Enable use of Zstandard" OFF)
 
-option(ENABLE_FDOPEN "Enable zip_fdopen, which is not allowed in Microsoft CRT secure libraries" ON)
+option(ENABLE_FDOPEN "Enable zip_fdopen, which is not allowed in Microsoft CRT secure libraries" OFF)
 
 option(BUILD_TOOLS "Build tools in the src directory (zipcmp, zipmerge, ziptool)" OFF)
 option(BUILD_REGRESS "Build regression tests" OFF)
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) { unsigned long x = FICLONERANGE; }" HAVE_FICLO
 
 test_big_endian(WORDS_BIGENDIAN)
 
-find_package(ZLIB 1.1.2 REQUIRED)
+#find_package(ZLIB 1.1.2 REQUIRED)
 # so developers on systems where zlib is named differently (Windows, sometimes)
 # can override the name used in the pkg-config file
 if (NOT ZLIB_LINK_LIBRARY_NAME)

@@ -90,6 +90,8 @@ add_subdirectory(external/libiconv EXCLUDE_FROM_ALL SYSTEM)
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2 EXCLUDE_FROM_ALL SYSTEM)
 
+set(ZLIB_LINK_LIBRARY_NAME zlibstatic)
+add_library(ZLIB::ZLIB ALIAS zlibstatic)
 add_subdirectory(external/libzip-1.11.3 EXCLUDE_FROM_ALL SYSTEM)
 include_directories(SYSTEM external/libzip-1.11.3/lib)
 
