@@ -154,8 +154,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
@@ -171,7 +169,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceManager.html">nw::ResourceManager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
@@ -209,14 +207,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ZipElement</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10ZipElementE"><code class="docutils literal notranslate"><span class="pre">nw::ZipElement</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10ZipElement6resrefE"><code class="docutils literal notranslate"><span class="pre">resref</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10ZipElement4sizeE"><code class="docutils literal notranslate"><span class="pre">size</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
@@ -225,7 +216,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
@@ -375,24 +365,10 @@
              
   <section id="nw-zipelement">
 <h1>nw::ZipElement<a class="headerlink" href="#nw-zipelement" title="Link to this heading"></a></h1>
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10ZipElementE">
-<span id="_CPPv3N2nw10ZipElementE"></span><span id="_CPPv2N2nw10ZipElementE"></span><span id="nw::ZipElement"></span><span class="target" id="structnw_1_1_zip_element"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ZipElement</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZipElementE" title="Link to this definition"></a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10ZipElement6resrefE">
-<span id="_CPPv3N2nw10ZipElement6resrefE"></span><span id="_CPPv2N2nw10ZipElement6resrefE"></span><span id="nw::ZipElement::resref__Resource"></span><span class="target" id="structnw_1_1_zip_element_1a8852a67b0f8124ea976eec43b9d5457b"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZipElement6resrefE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10ZipElement4sizeE">
-<span id="_CPPv3N2nw10ZipElement4sizeE"></span><span id="_CPPv2N2nw10ZipElement4sizeE"></span><span id="nw::ZipElement::size__s"></span><span class="target" id="structnw_1_1_zip_element_1a8aed78212d7dd4f94b86e413dbdb53e0"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZipElement4sizeE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenstruct: Cannot find class “nw::ZipElement” in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml</p>
 </div>
-</dd></dl>
-
 </section>
 
 

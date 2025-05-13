@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="nw::Resref" href="nw__Resref.html" />
-    <link rel="prev" title="nw::ResourceDescriptor" href="nw__ResourceDescriptor.html" /> 
+    <link rel="prev" title="nw::ResourceManager" href="nw__ResourceManager.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -154,8 +154,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
@@ -171,7 +169,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceManager.html">nw::ResourceManager</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ResourceType</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE"><code class="docutils literal notranslate"><span class="pre">nw::ResourceType</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">type</span></code></a></li>
@@ -227,7 +225,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
@@ -386,7 +383,7 @@
 <dl class="cpp class enum">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4typeE">
 <span id="_CPPv3N2nw12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType4typeE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdd"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4typeE" title="Link to this definition"></a><br /></dt>
-<dd><p>Enumeration of <a class="reference internal" href="nw__Resource.html#structnw_1_1_resource"><span class="std std-ref">Resource</span></a> types. </p>
+<dd><p>Enumeration of resource types. </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type7invalidE">
@@ -896,7 +893,7 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType9to_stringEN12ResourceType4typeE">
-<span id="_CPPv3N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="nw::ResourceType::to_string__ResourceType::type"></span><span class="target" id="structnw_1_1_resource_type_1a3415bc9c3a5ad05c65ba48662f7a3ae7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw12ResourceType9to_stringEN12ResourceType4typeE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="nw::ResourceType::to_string__ResourceType::type"></span><span class="target" id="structnw_1_1_resource_type_1ae837d137f34f6a7a7b390e9087b3c52c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw12ResourceType9to_stringEN12ResourceType4typeE" title="Link to this definition"></a><br /></dt>
 <dd><p>Convert <a class="reference internal" href="#structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdd"><span class="std std-ref">ResourceType::type</span></a> to extension. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -923,7 +920,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nw__ResourceDescriptor.html" class="btn btn-neutral float-left" title="nw::ResourceDescriptor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__ResourceManager.html" class="btn btn-neutral float-left" title="nw::ResourceManager" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nw__Resref.html" class="btn btn-neutral float-right" title="nw::Resref" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

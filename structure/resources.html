@@ -58,15 +58,12 @@
 <li class="toctree-l1"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">resources</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#kernel-service">kernel service</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#containers">containers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#directory">Directory</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#erf">Erf</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#key-bif">Key/Bif</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#nwsync">NWSync</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#zip">Zip</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-resref"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resref</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-resourcetype"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::ResourceType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-resource"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resource</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-container"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Container</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-erf"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Erf</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nw-resourcemanager"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::ResourceManager</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
@@ -138,47 +135,47 @@
              
   <section id="resources">
 <h1>resources<a class="headerlink" href="#resources" title="Link to this heading"></a></h1>
-<section id="kernel-service">
-<h2>kernel service<a class="headerlink" href="#kernel-service" title="Link to this heading"></a></h2>
-<p>The resource services provides access the file system and resources stored in NWN container files.
-The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
-add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
-lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
-<p><strong>Example - Demanding a resource from resman</strong></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rollnw.kernel</span><span class="w"> </span><span class="kn">import</span> <span class="n">resman</span>
-
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-<span class="k">assert</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
-<span class="n">data2</span> <span class="o">=</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="n">rollnw</span><span class="o">.</span><span class="n">Resource</span><span class="p">(</span><span class="s1">&#39;nw_chicken&#39;</span><span class="p">,</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">ResourceType</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
-<span class="k">assert</span> <span class="n">data</span> <span class="o">==</span> <span class="n">data2</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">start</span><span class="p">();</span>
-<span class="c1">// Assumes that NWN root directory was found.</span>
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">contains</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">utc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">});</span>
-<span class="w">    </span><span class="c1">// Do something with this chicken.</span>
+<p>The resources module provides access to the file system and resources stored in NWN container files.</p>
+<section id="nw-resref">
+<h2><a class="reference internal" href="../api/struct/nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resref</span></code></a><a class="headerlink" href="#nw-resref" title="Link to this heading"></a></h2>
+<p>Unlike Neverwinter Nights 1 or 2 a resref is not a fixed character array. It’s simply a wrapper around an interned string.
+The constraint on its length is 4096.</p>
+<p>This is not exposed to Python, in Python a resref maps directly to a <code class="docutils literal notranslate"><span class="pre">str</span></code>, i.e. “nw_chicken”.</p>
+</section>
+<section id="nw-resourcetype">
+<h2><a class="reference internal" href="../api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::ResourceType</span></code></a><a class="headerlink" href="#nw-resourcetype" title="Link to this heading"></a></h2>
+<p>ResourceType has only one difference from NWN(:EE)’s implementation: it contains some categories, i.e. <code class="docutils literal notranslate"><span class="pre">nw::ResourceType::texture</span></code>
+that aligns with the available image types.</p>
+<p><strong>Example - Checking a ResourceType category</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">check_category</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">texture</span><span class="p">,</span><span class="w"> </span><span class="n">some_res_type</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Proceed with some image resource type agnostic function.</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-</div></div>
+</section>
+<section id="nw-resource">
+<h2><a class="reference internal" href="../api/struct/nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resource</span></code></a><a class="headerlink" href="#nw-resource" title="Link to this heading"></a></h2>
+<p>Resources are referred to by a <a class="reference internal" href="../api/struct/nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resource</span></code></a>, which is just a
+<a class="reference internal" href="../api/struct/nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Resref</span></code></a> and <a class="reference internal" href="../api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::ResourceType</span></code></a> pair.</p>
+<p>This is not exposed to Python, in Python one can referrer to an asset as a filename, i.e. “nw_chicken.utc”.</p>
 </section>
 <hr class="docutils" />
-<section id="containers">
-<h2>containers<a class="headerlink" href="#containers" title="Link to this heading"></a></h2>
-<section id="directory">
-<h3>Directory<a class="headerlink" href="#directory" title="Link to this heading"></a></h3>
-<p><strong>Status</strong>: Read, Write (file format dependant)</p>
+<section id="nw-container">
+<h2><a class="reference internal" href="../api/struct/nw__Container.html#_CPPv4N2nw9ContainerE" title="nw::Container"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Container</span></code></a><a class="headerlink" href="#nw-container" title="Link to this heading"></a></h2>
+<p>Containers in rollnw are designed around the performance of the resource manager and are not for direct use. Classes that inherit the <code class="docutils literal notranslate"><span class="pre">nw::Container</span></code> interface are expected to be thread-safe.</p>
+<p>The built in containers <code class="docutils literal notranslate"><span class="pre">nw::StaticDirectory</span></code>, <code class="docutils literal notranslate"><span class="pre">nw::StaticErf</span></code>, <code class="docutils literal notranslate"><span class="pre">nw::StaticKey</span></code>, and <code class="docutils literal notranslate"><span class="pre">nw::StaticZip</span></code> are all static and immutable and after construction proceed with the assumption that the underlying files <strong>do not</strong> change. They are not exposed to Python.</p>
+<p>Support for nwsync was removed since it is not applicable to module/persistant world development, nor do I see it as having any
+‘future tense’, i.e., a hypothetical NWN3 <em>would not</em> use nwsync.</p>
+<p>The ability to add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s lack
+of a ResMan plugin.</p>
 </section>
-<section id="erf">
-<h3>Erf<a class="headerlink" href="#erf" title="Link to this heading"></a></h3>
-<p><strong>Status</strong>: Read</p>
+<hr class="docutils" />
+<section id="nw-erf">
+<h2><a class="reference internal" href="../api/struct/nw__Erf.html#_CPPv4N2nw3ErfE" title="nw::Erf"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Erf</span></code></a><a class="headerlink" href="#nw-erf" title="Link to this heading"></a></h2>
+<p>A dynamic implementation of the Erf file format, which is also exposed to Python:</p>
 <p><strong>Example - Load an Erf and Print Contents</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
 
 <span class="n">erf</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">Erf</span><span class="p">(</span><span class="s2">&quot;tests/test_data/user/hak/hak_with_description.hak&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">erf</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">erf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
@@ -186,7 +183,7 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
     <span class="nb">print</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">filename</span><span class="p">(),</span> <span class="n">rd</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span>
 <span class="c1">// ...</span>
 <span class="n">Erf</span><span class="w"> </span><span class="n">e</span><span class="p">(</span><span class="s">&quot;MyModule.mod&quot;</span><span class="p">);</span>
 <span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">valid</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
@@ -199,52 +196,29 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 </div>
 </div></div>
 </section>
-<section id="key-bif">
-<h3>Key/Bif<a class="headerlink" href="#key-bif" title="Link to this heading"></a></h3>
-<p><strong>Status</strong>: Read</p>
-</section>
-<section id="nwsync">
-<h3>NWSync<a class="headerlink" href="#nwsync" title="Link to this heading"></a></h3>
-<p><strong>Status</strong>: Read</p>
-<p><strong>Example - Loading and Reading From NWSync Manifest</strong></p>
+<section id="nw-resourcemanager">
+<h2><a class="reference internal" href="../api/struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManagerE" title="nw::ResourceManager"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::ResourceManager</span></code></a><a class="headerlink" href="#nw-resourcemanager" title="Link to this heading"></a></h2>
+<p>The global resource mananger is available by calling <code class="docutils literal notranslate"><span class="pre">nw::kernel::resman()</span></code>.</p>
+<p><strong>Example - Demanding a resource from resman</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-2-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
 
-<span class="n">nws</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">NWSync</span><span class="p">(</span><span class="s2">&quot;path/to/nwsync&quot;</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">nws</span><span class="o">.</span><span class="n">is_loaded</span><span class="p">():</span>
-    <span class="c1"># One of the curated modules</span>
-    <span class="n">manifest</span> <span class="o">=</span> <span class="n">nws</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;9a84e512dd3971eb215d6f9b0816a2e3ae2fee54&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">manifest</span><span class="p">:</span>
-        <span class="n">tga</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="s1">&#39;002metal.tga&#39;</span><span class="p">)</span>
-        <span class="c1"># Do something with this image..</span>
+<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">bytes</span><span class="p">)</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;path/to/nwsync&quot;</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">NWSync</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
-<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">n</span><span class="p">.</span><span class="n">is_loaded</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;a fit&quot;</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">manifests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">manifests</span><span class="p">();</span>
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">manifests</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">manifest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">manifests</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">resource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">manifest</span><span class="o">-&gt;</span><span class="n">all</span><span class="p">();</span>
-<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">resource</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Extract the first resource found</span>
-<span class="w">        </span><span class="n">manifest</span><span class="o">-&gt;</span><span class="n">extract</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">regex</span><span class="p">(</span><span class="n">resource</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">name</span><span class="p">.</span><span class="n">filename</span><span class="p">()),</span><span class="w"> </span><span class="s">&quot;tmp/&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
+</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">start</span><span class="p">();</span>
+<span class="c1">// Assumes that NWN root directory was found.</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">contains</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">utc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// Do something with this chicken.</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </div></div>
-</section>
-<section id="zip">
-<h3>Zip<a class="headerlink" href="#zip" title="Link to this heading"></a></h3>
-<p><strong>Status</strong>: Read</p>
-</section>
+<hr class="docutils" />
 </section>
 </section>
 

@@ -130,6 +130,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14InternedString14InternedStringEPK6String"><code class="docutils literal notranslate"><span class="pre">InternedString()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw14InternedStringeqERK14InternedString"><code class="docutils literal notranslate"><span class="pre">operator==()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw14InternedStringssERK14InternedString"><code class="docutils literal notranslate"><span class="pre">operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw14InternedString3ptrEv"><code class="docutils literal notranslate"><span class="pre">ptr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw14InternedString4viewEv"><code class="docutils literal notranslate"><span class="pre">view()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw14InternedStringcvbEv"><code class="docutils literal notranslate"><span class="pre">operator</span> <span class="pre">bool()</span></code></a></li>
 </ul>
@@ -165,8 +166,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
@@ -182,7 +181,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceManager.html">nw::ResourceManager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
@@ -229,7 +228,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
@@ -402,6 +400,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw14InternedStringssERK14InternedString">
 <span id="_CPPv3NK2nw14InternedStringssERK14InternedString"></span><span id="_CPPv2NK2nw14InternedStringssERK14InternedString"></span><span class="target" id="structnw_1_1_interned_string_1a67aa1b46d67294e367f1039deadf6871"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw14InternedStringssERK14InternedString" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw14InternedString3ptrEv">
+<span id="_CPPv3NK2nw14InternedString3ptrEv"></span><span id="_CPPv2NK2nw14InternedString3ptrEv"></span><span id="nw::InternedString::ptrC"></span><span class="target" id="structnw_1_1_interned_string_1aad49decd1ec3459ba7248efa51bef185"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">ptr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw14InternedString3ptrEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

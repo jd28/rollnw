@@ -154,8 +154,6 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ModuleScripts.html">nw::ModuleScripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__NWSync.html">nw::NWSync</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
@@ -171,7 +169,7 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Reputation.html">nw::Reputation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Requirement.html">nw::Requirement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Resource.html">nw::Resource</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__ResourceManager.html">nw::ResourceManager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__RuleFlag.html">nw::RuleFlag</a></li>
@@ -218,7 +216,6 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Rules.html">nw::kernel::Rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Service.html">nw::kernel::Service</a></li>
@@ -594,18 +591,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__Bif.html">nw::Bif</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3BifE"><code class="docutils literal notranslate"><span class="pre">nw::Bif</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3Bif3BifEP3KeyNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Bif()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3Bif3BifERK3Bif"><code class="docutils literal notranslate"><span class="pre">Bif()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3Bif3BifERR3Bif"><code class="docutils literal notranslate"><span class="pre">Bif()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3BifaSERK3Bif"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4N2nw3BifaSERR3Bif"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Bif.html#_CPPv4NK2nw3Bif6demandE6size_t"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Bif.html">nw::Bif</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__BodyParts.html">nw::BodyParts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__BodyParts.html#_CPPv4N2nw9BodyPartsE"><code class="docutils literal notranslate"><span class="pre">nw::BodyParts</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__BodyParts.html#_CPPv4N2nw9BodyParts4beltE"><code class="docutils literal notranslate"><span class="pre">belt</span></code></a></li>
@@ -837,7 +823,6 @@
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ConfigOptions.html">nw::ConfigOptions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE"><code class="docutils literal notranslate"><span class="pre">nw::ConfigOptions</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions15include_installE"><code class="docutils literal notranslate"><span class="pre">include_install</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions14include_nwsyncE"><code class="docutils literal notranslate"><span class="pre">include_nwsync</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions12include_userE"><code class="docutils literal notranslate"><span class="pre">include_user</span></code></a></li>
 </ul>
 </li>
@@ -845,20 +830,13 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Container.html">nw::Container</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Container.html#_CPPv4N2nw9ContainerE"><code class="docutils literal notranslate"><span class="pre">nw::Container</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4N2nw9Container9ContainerEv"><code class="docutils literal notranslate"><span class="pre">Container()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4N2nw9ContainerD0Ev"><code class="docutils literal notranslate"><span class="pre">~Container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container6demandEPK12ContainerKey"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Container.html#_CPPv4NK2nw9Container5visitENSt8functionIFv8ResourcePK12ContainerKeyEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1125,27 +1103,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__Directory.html">nw::Directory</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4N2nw9DirectoryE"><code class="docutils literal notranslate"><span class="pre">nw::Directory</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4N2nw9Directory9DirectoryEv"><code class="docutils literal notranslate"><span class="pre">Directory()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4N2nw9Directory9DirectoryERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Directory()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4N2nw9DirectoryD0Ev"><code class="docutils literal notranslate"><span class="pre">~Directory()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Directory.html#_CPPv4NK2nw9Directory17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Directory.html">nw::Directory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Disease.html">nw::Disease</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Disease.html#_CPPv4N2nw7DiseaseE"><code class="docutils literal notranslate"><span class="pre">nw::Disease</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Disease.html#_CPPv4NK2nw7DiseaseeqERK7Disease"><code class="docutils literal notranslate"><span class="pre">operator==()</span></code></a></li>
@@ -1424,23 +1382,20 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf3addE8ResourceRK9ByteArray"><code class="docutils literal notranslate"><span class="pre">add()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf3addERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">add()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf5eraseERK8Resource"><code class="docutils literal notranslate"><span class="pre">erase()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf5mergeEPK9Container"><code class="docutils literal notranslate"><span class="pre">merge()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf5mergeERK3Erf"><code class="docutils literal notranslate"><span class="pre">merge()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf6reloadEv"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf4saveEv"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf7save_asERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">save_as()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3ErfaSERK3Erf"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3ErfaSERR3Erf"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4NK2nw3Erf17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf4typeE"><code class="docutils literal notranslate"><span class="pre">type</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Erf.html#_CPPv4N2nw3Erf7versionE"><code class="docutils literal notranslate"><span class="pre">version</span></code></a></li>
@@ -1702,6 +1657,7 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4N2nw14InternedString14InternedStringEPK6String"><code class="docutils literal notranslate"><span class="pre">InternedString()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4NK2nw14InternedStringeqERK14InternedString"><code class="docutils literal notranslate"><span class="pre">operator==()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4NK2nw14InternedStringssERK14InternedString"><code class="docutils literal notranslate"><span class="pre">operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4NK2nw14InternedString3ptrEv"><code class="docutils literal notranslate"><span class="pre">ptr()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4NK2nw14InternedString4viewEv"><code class="docutils literal notranslate"><span class="pre">view()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__InternedString.html#_CPPv4NK2nw14InternedStringcvbEv"><code class="docutils literal notranslate"><span class="pre">operator</span> <span class="pre">bool()</span></code></a></li>
 </ul>
@@ -1929,31 +1885,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__Key.html">nw::Key</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3KeyE"><code class="docutils literal notranslate"><span class="pre">nw::Key</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3Key3KeyENSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3Key3KeyERK3Key"><code class="docutils literal notranslate"><span class="pre">Key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3Key3KeyERR3Key"><code class="docutils literal notranslate"><span class="pre">Key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3KeyD0Ev"><code class="docutils literal notranslate"><span class="pre">~Key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key9is_loadedEv"><code class="docutils literal notranslate"><span class="pre">is_loaded()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3KeyaSERK3Key"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4N2nw3KeyaSERR3Key"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Key.html#_CPPv4NK2nw3Key17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Key.html">nw::Key</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Language.html">nw::Language</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Language.html#_CPPv4N2nw8LanguageE"><code class="docutils literal notranslate"><span class="pre">nw::Language</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Language.html#_CPPv4N2nw8Language8encodingE10LanguageID"><code class="docutils literal notranslate"><span class="pre">encoding()</span></code></a></li>
@@ -2301,45 +2233,6 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ModuleScripts.html#_CPPv4N2nw13ModuleScripts13on_spawnbtndnE"><code class="docutils literal notranslate"><span class="pre">on_spawnbtndn</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ModuleScripts.html#_CPPv4N2nw13ModuleScripts8on_startE"><code class="docutils literal notranslate"><span class="pre">on_start</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ModuleScripts.html#_CPPv4N2nw13ModuleScripts15on_user_definedE"><code class="docutils literal notranslate"><span class="pre">on_user_defined</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__NWSync.html">nw::NWSync</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSyncE"><code class="docutils literal notranslate"><span class="pre">nw::NWSync</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync6NWSyncEv"><code class="docutils literal notranslate"><span class="pre">NWSync()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">NWSync()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync6NWSyncERK6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync6NWSyncERR6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSyncD0Ev"><code class="docutils literal notranslate"><span class="pre">~NWSync()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync3getE10StringView"><code class="docutils literal notranslate"><span class="pre">get()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4NK2nw6NWSync9is_loadedEv"><code class="docutils literal notranslate"><span class="pre">is_loaded()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync9manifestsEv"><code class="docutils literal notranslate"><span class="pre">manifests()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4NK2nw6NWSync11shard_countEv"><code class="docutils literal notranslate"><span class="pre">shard_count()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync4metaEv"><code class="docutils literal notranslate"><span class="pre">meta()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSync6shardsEv"><code class="docutils literal notranslate"><span class="pre">shards()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSyncaSERK6NWSync"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSync.html#_CPPv4N2nw6NWSyncaSERR6NWSync"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__NWSyncManifest.html">nw::NWSyncManifest</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4N2nw14NWSyncManifestE"><code class="docutils literal notranslate"><span class="pre">nw::NWSyncManifest</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4N2nw14NWSyncManifest14NWSyncManifestEv"><code class="docutils literal notranslate"><span class="pre">NWSyncManifest()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4N2nw14NWSyncManifest14NWSyncManifestE6StringP6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSyncManifest()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__NWSyncManifest.html#_CPPv4NK2nw14NWSyncManifest17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -2710,13 +2603,33 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__ResourceDescriptor.html">nw::ResourceDescriptor</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptorE"><code class="docutils literal notranslate"><span class="pre">nw::ResourceDescriptor</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptorcvbEv"><code class="docutils literal notranslate"><span class="pre">operator</span> <span class="pre">bool()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptor4nameE"><code class="docutils literal notranslate"><span class="pre">name</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptor4sizeE"><code class="docutils literal notranslate"><span class="pre">size</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptor5mtimeE"><code class="docutils literal notranslate"><span class="pre">mtime</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceDescriptor.html#_CPPv4N2nw18ResourceDescriptor6parentE"><code class="docutils literal notranslate"><span class="pre">parent</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__ResourceManager.html">nw::ResourceManager</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManagerE"><code class="docutils literal notranslate"><span class="pre">nw::ResourceManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager12SearchVectorE"><code class="docutils literal notranslate"><span class="pre">SearchVector</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager15ResourceManagerEP14MemoryResourcePK15ResourceManager"><code class="docutils literal notranslate"><span class="pre">ResourceManager()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManagerD0Ev"><code class="docutils literal notranslate"><span class="pre">~ResourceManager()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager10initializeEN6kernel15ServiceInitTimeE"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager18add_base_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_base_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager20add_custom_containerEP9ContainerbN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_custom_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager22add_override_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_override_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager14build_registryEv"><code class="docutils literal notranslate"><span class="pre">build_registry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager15demand_in_orderE6ResrefNSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">demand_in_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager11load_moduleENSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">load_module()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager16load_module_haksERK6VectorI6StringE"><code class="docutils literal notranslate"><span class="pre">load_module_haks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager16module_containerEv"><code class="docutils literal notranslate"><span class="pre">module_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager13unload_moduleEv"><code class="docutils literal notranslate"><span class="pre">unload_module()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager19demand_server_vaultE10StringView10StringView"><code class="docutils literal notranslate"><span class="pre">demand_server_vault()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager15palette_textureE8PltLayer"><code class="docutils literal notranslate"><span class="pre">palette_texture()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager7metricsEv"><code class="docutils literal notranslate"><span class="pre">metrics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager7textureE6Resref"><code class="docutils literal notranslate"><span class="pre">texture()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager5visitENSt8functionIFv8ResourceEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4NK2nw15ResourceManager9allocatorEv"><code class="docutils literal notranslate"><span class="pre">allocator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__ResourceManager.html#_CPPv4N2nw15ResourceManager10type_indexE"><code class="docutils literal notranslate"><span class="pre">type_index</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -2834,8 +2747,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Resref.html">nw::Resref</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6ResrefE"><code class="docutils literal notranslate"><span class="pre">nw::Resref</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref7StorageE"><code class="docutils literal notranslate"><span class="pre">Storage</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref10value_typeE"><code class="docutils literal notranslate"><span class="pre">value_type</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref9size_typeE"><code class="docutils literal notranslate"><span class="pre">size_type</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref6ResrefEv"><code class="docutils literal notranslate"><span class="pre">Resref()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref6ResrefERK6Resref"><code class="docutils literal notranslate"><span class="pre">Resref()</span></code></a></li>
@@ -2843,12 +2754,11 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref6ResrefEPKc"><code class="docutils literal notranslate"><span class="pre">Resref()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref6ResrefE10StringView"><code class="docutils literal notranslate"><span class="pre">Resref()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6ResrefaSERK6Resref"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4NK2nw6Resref4dataEv"><code class="docutils literal notranslate"><span class="pre">data()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4NK2nw6Resref5emptyEv"><code class="docutils literal notranslate"><span class="pre">empty()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4NK2nw6Resref6lengthEv"><code class="docutils literal notranslate"><span class="pre">length()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4NK2nw6Resref6stringEv"><code class="docutils literal notranslate"><span class="pre">string()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4NK2nw6Resref4viewEv"><code class="docutils literal notranslate"><span class="pre">view()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref8max_sizeE"><code class="docutils literal notranslate"><span class="pre">max_size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Resref.html#_CPPv4N2nw6Resref12maximum_sizeE"><code class="docutils literal notranslate"><span class="pre">maximum_size</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -3564,34 +3474,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__Zip.html">nw::Zip</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4N2nw3ZipE"><code class="docutils literal notranslate"><span class="pre">nw::Zip</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4N2nw3Zip3ZipERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Zip()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4N2nw3ZipD0Ev"><code class="docutils literal notranslate"><span class="pre">~Zip()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Zip.html#_CPPv4NK2nw3Zip17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__ZipElement.html">nw::ZipElement</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__ZipElement.html#_CPPv4N2nw10ZipElementE"><code class="docutils literal notranslate"><span class="pre">nw::ZipElement</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ZipElement.html#_CPPv4N2nw10ZipElement6resrefE"><code class="docutils literal notranslate"><span class="pre">resref</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__ZipElement.html#_CPPv4N2nw10ZipElement4sizeE"><code class="docutils literal notranslate"><span class="pre">size</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ZlibHeader.html">nw::ZlibHeader</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ZlibHeader.html#_CPPv4N2nw10ZlibHeaderE"><code class="docutils literal notranslate"><span class="pre">nw::ZlibHeader</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__ZlibHeader.html#_CPPv4N2nw10ZlibHeader7versionE"><code class="docutils literal notranslate"><span class="pre">version</span></code></a></li>
@@ -3718,46 +3602,6 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html#_CPPv4NK2nw6kernel12ObjectSystem9allocatorEv"><code class="docutils literal notranslate"><span class="pre">allocator()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystem10type_indexE"><code class="docutils literal notranslate"><span class="pre">type_index</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__Resources.html">nw::kernel::Resources</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9ResourcesE"><code class="docutils literal notranslate"><span class="pre">nw::kernel::Resources</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources12SearchVectorE"><code class="docutils literal notranslate"><span class="pre">SearchVector</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources"><code class="docutils literal notranslate"><span class="pre">Resources()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9ResourcesD0Ev"><code class="docutils literal notranslate"><span class="pre">~Resources()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources18add_base_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_base_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources20add_custom_containerEP9ContainerbN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_custom_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources22add_override_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">add_override_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources16clear_containersEv"><code class="docutils literal notranslate"><span class="pre">clear_containers()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources11load_moduleENSt10filesystem4pathE10StringView"><code class="docutils literal notranslate"><span class="pre">load_module()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources16load_module_haksERK6VectorI6StringE"><code class="docutils literal notranslate"><span class="pre">load_module_haks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources16module_containerEv"><code class="docutils literal notranslate"><span class="pre">module_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources11module_haksEv"><code class="docutils literal notranslate"><span class="pre">module_haks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources13unload_moduleEv"><code class="docutils literal notranslate"><span class="pre">unload_module()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources19demand_server_vaultE10StringView10StringView"><code class="docutils literal notranslate"><span class="pre">demand_server_vault()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources10demand_anyE6ResrefNSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">demand_any()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources15demand_in_orderE6ResrefNSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">demand_in_order()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources21load_palette_texturesEv"><code class="docutils literal notranslate"><span class="pre">load_palette_textures()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources15palette_textureE8PltLayer"><code class="docutils literal notranslate"><span class="pre">palette_texture()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources7metricsEv"><code class="docutils literal notranslate"><span class="pre">metrics()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources7textureE6Resref"><code class="docutils literal notranslate"><span class="pre">texture()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources3allEv"><code class="docutils literal notranslate"><span class="pre">all()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources8containsE8Resource"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources6demandE8Resource"><code class="docutils literal notranslate"><span class="pre">demand()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources7extractERKNSt5regexERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources4nameEv"><code class="docutils literal notranslate"><span class="pre">name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources4pathEv"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources4sizeEv"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources4statERK8Resource"><code class="docutils literal notranslate"><span class="pre">stat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources5validEv"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">visit()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">extract_by_glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">working_directory()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4NK2nw6kernel9Resources9allocatorEv"><code class="docutils literal notranslate"><span class="pre">allocator()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources10type_indexE"><code class="docutils literal notranslate"><span class="pre">type_index</span></code></a></li>
 </ul>
 </li>
 </ul>
