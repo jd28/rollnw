@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     nw::kernel::resman().visit(callback);
 
     LOG_F(INFO, "processing all creatures {}, {} invalid, average mismatch: {}, biggent mismatch: {}",
-        count, invalid, mismatch_amount / invalid, biggest_mismatch);
+        count, invalid, mismatch_amount / static_cast<float>(invalid), biggest_mismatch);
 
     return 0;
 }
