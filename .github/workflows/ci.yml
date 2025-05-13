@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13, ubuntu-22.04, windows-2019]
+        os: [macos-14, ubuntu-22.04, windows-2019]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
@@ -52,7 +52,7 @@ jobs:
 
       # macOS Dependencies
       - name: macOS - install dependencies
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+        if: matrix.os == 'macos-14'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
           HOMEBREW_NO_AUTO_UPDATE: "ON"
@@ -148,7 +148,7 @@ jobs:
           cmake --preset ci-windows
 
       - name: macOS - configure
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+        if: matrix.os == 'macos-14'
         run: |
           cmake --preset ci-macos
 

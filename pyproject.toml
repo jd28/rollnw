@@ -12,11 +12,18 @@ profile = "black"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-environment = {MACOSX_DEPLOYMENT_TARGET = "15"}
 skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 manylinux-x86_64-image = "manylinux_2_28"
 # test-command = "pytest {package}/tests"
 # test-requires = "pytest"
+
+[tool.cibuildwheel.macos]
+archs = "universal2"
+
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "13.0"
+CMAKE_OSX_DEPLOYMENT_TARGET = "13.0"
+CMAKE_OSX_ARCHITECTURES = "arm64;x86_64"
 
 [tool.cibuildwheel.linux]
 before-all = [
