@@ -504,7 +504,7 @@ struct Resref {
     Resref(const Resref&) = default;
 
     template <size_t N>
-    Resref(std::array<char, N>& string) noexcept;
+    Resref(std::array<char, N> string) noexcept;
 
     Resref(const char* string) noexcept;
     Resref(StringView string) noexcept;
@@ -531,17 +531,20 @@ private:
 };
 
 template <size_t N>
-Resref::Resref(std::array<char, N>& string) noexcept
+Resref::Resref(std::array<char, N> string) noexcept
 {
-    static_assert(N < maximum_size, "[resref] invalid size");
-    std::transform(string.begin(), string.end(), string.begin(), [](char c) {
-        return static_cast<char>(::tolower(c));
-    });
+    static_assert(N <= maximum_size, "[resref] invalid size");
+    if (!string[0]) { return; }
 
     size_t null = 0;
-    while (string[null] && null < N) {
+    while (null < N && string[null]) {
         ++null;
     }
+
+    for (size_t i = 0; i < null; ++i) {
+        string[i] = static_cast<char>(::tolower(string[i]));
+    }
+
     data_ = nw::kernel::strings().intern(StringView{string.data(), null});
 }
 

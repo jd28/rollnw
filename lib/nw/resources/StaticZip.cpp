@@ -1,8 +1,9 @@
+#include "StaticZip.hpp"
+
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
 #include "../util/templates.hpp"
-#include "StaticZip.hpp"
 
 #include <nowide/convert.hpp>
 #include <nowide/fstream.hpp>
