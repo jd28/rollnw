@@ -130,26 +130,18 @@ add_subdirectory(docs)
 endif()
 
 if(ROLLNW_BUILD_PYTHON)
+if (NOT TARGET Python::Module OR NOT TARGET Python::Interpreter)
+  set(Python_FIND_FRAMEWORK LAST)
+  if (CMAKE_VERSION VERSION_LESS 3.18)
+    set(ROLLNW_PYTHON_DEV_MODULE Development)
+  else()
+    set(ROLLNW_PYTHON_DEV_MODULE Development.Module)
+  endif()
 
-find_package(Python COMPONENTS Interpreter Development QUIET)
-
-# If that didn't work, try with Python3
-if(NOT Python_FOUND)
-    find_package(Python3 COMPONENTS Interpreter Development QUIET)
-    if(Python3_FOUND)
-        # Map Python3 variables to Python variables for consistency
-        set(Python_FOUND ${Python3_FOUND})
-        set(Python_EXECUTABLE ${Python3_EXECUTABLE})
-        set(Python_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
-        set(Python_LIBRARIES ${Python3_LIBRARIES})
-    endif()
+  find_package(Python 3.10
+    REQUIRED COMPONENTS Interpreter ${ROLLNW_PYTHON_DEV_MODULE}
+    OPTIONAL_COMPONENTS Development.SABIModule)
 endif()
-
-# Final check if either method found Python
-if(NOT Python_FOUND AND NOT Python3_FOUND)
-    message(FATAL_ERROR "Neither Python nor Python3 found with required components")
-endif()
-
 include_directories(profiles/)
 add_subdirectory(external/nanobind)
 add_subdirectory(rollnw-py)
