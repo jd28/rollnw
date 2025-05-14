@@ -30,6 +30,11 @@ before-all = [
   "source {project}/utils/docker_prepare.sh",
   "rm {project}/build/CMakeCache.txt"
 ]
+environment = """
+  CCACHE_DIR=/wheelhouse/.ccache
+  CCACHE_COMPILERCHECK=content
+"""
+
 
 [tool.pytest.ini_options]
 norecursedirs = [
