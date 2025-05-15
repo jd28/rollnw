@@ -214,7 +214,11 @@ struct AstConstEvaluator : public BaseVisitor {
                 failed_ = true;
             }
         } else if (expr->op.type == NssTokenType::USR) {
-            failed_ = true;
+            if (lhs_var.is<int32_t>() && rhs_var.is<int32_t>()) {
+                result_.push(static_cast<int32_t>((static_cast<uint32_t>(lhs_var.as<int32_t>())) >> rhs_var.as<int32_t>()));
+            } else {
+                failed_ = true;
+            }
         } else {
             failed_ = true;
         }
@@ -280,7 +284,7 @@ struct AstConstEvaluator : public BaseVisitor {
 
     virtual void visit(LiteralVectorExpression* expr) override
     {
-        result_.push(expr->data);
+        if (expr) { result_.push(expr->data); }
     }
 
     virtual void visit(LogicalExpression* expr) override

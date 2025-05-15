@@ -2,9 +2,9 @@
 
 #include "../config.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <regex>
-#include <string>
 
 /// namespace for string related functions
 namespace nw::string {
