@@ -152,27 +152,3 @@ Credits
   api/enumlist
   api/functionlist
   api/typedeflist
-
-.. toctree::
-  :caption: gff schemas
-  :maxdepth: 1
-
-  gff_schema/are
-  gff_schema/bic
-  gff_schema/dlg
-  gff_schema/fac
-  gff_schema/gic
-  gff_schema/git
-  gff_schema/ifo
-  gff_schema/itp
-  gff_schema/jrl
-  gff_schema/utc
-  gff_schema/utd
-  gff_schema/ute
-  gff_schema/uti
-  gff_schema/utm
-  gff_schema/utp
-  gff_schema/uts
-  gff_schema/utt
-  gff_schema/utw
-  gff_schema/vartable
