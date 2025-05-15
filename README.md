@@ -3,7 +3,6 @@
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
 [![Documentation Status](https://readthedocs.org/projects/rollnw/badge/?version=latest)](https://rollnw.readthedocs.io/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/rollnw.svg)](https://badge.fury.io/py/rollnw)
 
 # rollNW
 
@@ -39,7 +38,6 @@ Examples:
 $ cmake --preset=linux-dev-python
 $ cmake --preset=macos-dev-debug
 $ cmake --preset=windows-dev-vs2019-debug
-$ cmake --preset=windows-dev-ninja-python
 $ cmake --preset=windows-dev
 ```
 
@@ -61,6 +59,10 @@ To run ctest:
 ```
 $ ctest --preset=default
 ```
+
+## Bindings
+
+* [Python](https://github.com/jd28/rollnw-py)
 
 ## History
 

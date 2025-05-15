@@ -59,16 +59,6 @@ jobs:
           HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
           HOMEBREW_NO_INSTALL_CLEANUP: "ON"
         run: |
-          rm /usr/local/bin/2to3
-          rm /usr/local/bin/2to3-3.11
-          rm /usr/local/bin/idle3
-          rm /usr/local/bin/idle3.11
-          rm /usr/local/bin/pydoc3
-          rm /usr/local/bin/pydoc3.11
-          rm /usr/local/bin/python3
-          rm /usr/local/bin/python3-config
-          rm /usr/local/bin/python3.11
-          rm /usr/local/bin/python3.11-config
           brew install --force --overwrite pkg-config automake ninja libtool zlib ccache
 
       # Linux dependencies
@@ -163,60 +153,6 @@ jobs:
           cmake --build --preset default
           ctest --preset default
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
-
-      - name: Download Cache from Docker (linux only)
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          env
-          ccache -s
-          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
-          rm -rf $HOST_CCACHE_DIR
-          mv ./wheelhouse/.ccache $HOST_CCACHE_DIR
-          ls -la $HOST_CCACHE_DIR
-          ccache -s
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact-${{matrix.os}}
-          path: ./wheelhouse/*.whl
-
       - name: ccache stats
         run: |
           ccache -s
-
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Build sdist
-        run: pipx run build --sdist
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SDist
-          path: dist/*.tar.gz
-
-  upload_pypi:
-    needs: [build, build_sdist]
-    runs-on: ubuntu-22.04
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: all
-
-      - name: Merge files
-        run: |
-          mkdir dist
-          mv all/*/* dist/.
-
-      - uses: pypa/gh-action-pypi-publish@v1.12.4
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}

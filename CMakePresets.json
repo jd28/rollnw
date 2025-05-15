@@ -28,15 +28,6 @@
             }
         },
         {
-            "name": "dev-python",
-            "cacheVariables": {
-                "ROLLNW_BUILD_PYTHON": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
             "name": "linux",
             "displayName": "Default Config",
             "description": "Default build using Ninja",
@@ -70,21 +61,6 @@
             ]
         },
         {
-            "name": "linux-dev-python",
-            "description": "Development build, including tests, benchmarks, and python bindings",
-            "inherits": [
-                "dev-python",
-                "linux-dev"
-            ]
-        },
-        {
-            "name": "linux-dev-python-debug",
-            "inherits": [
-                "linux-dev-debug",
-                "linux-dev-python"
-            ]
-        },
-        {
             "name": "ci-codeql",
             "inherits": "linux",
             "displayName": "ci-codeql",
@@ -107,24 +83,6 @@
             },
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
-            "name": "cibuildwheel-linux",
-            "inherits": "linux",
-            "generator": "Unix Makefiles",
-            "displayName": "cibuildwheel-linux",
-            "description": "linux build, no tests, python, unix makefiles",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -212,22 +170,6 @@
             ]
         },
         {
-            "name": "windows-ninja-dev-python",
-            "inherits": [
-                "dev-python",
-                "windows-ninja-dev"
-            ],
-            "generator": "Ninja"
-        },
-        {
-            "name": "windows-ninja-dev-python-debug",
-            "inherits": [
-                "dev-python",
-                "windows-ninja-dev"
-            ],
-            "generator": "Ninja"
-        },
-        {
             "name": "windows-vs2019-dev",
             "inherits": "windows-dev",
             "generator": "Visual Studio 16 2019"
@@ -240,20 +182,6 @@
             ]
         },
         {
-            "name": "windows-vs2019-dev-python",
-            "inherits": [
-                "dev-python",
-                "windows-vs2019-dev"
-            ]
-        },
-        {
-            "name": "windows-vs2019-dev-python-debug",
-            "inherits": [
-                "dev-python",
-                "windows-vs2019-dev"
-            ]
-        },
-        {
             "name": "ci-windows",
             "inherits": "windows",
             "generator": "Ninja",
@@ -262,21 +190,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
-            "name": "cibuildwheel-windows",
-            "inherits": "ci-windows",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -314,42 +227,11 @@
             ]
         },
         {
-            "name": "macos-dev-python",
-            "description": "Development build, including tests, benchmarks, and python bindings",
-            "inherits": [
-                "dev-python",
-                "macos-dev"
-            ]
-        },
-        {
-            "name": "macos-dev-python-debug",
-            "inherits": [
-                "macos-dev-debug",
-                "macos-dev-python"
-            ]
-        },
-        {
             "name": "ci-macos",
             "inherits": "macos",
             "displayName": "macOS CI configuration",
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
-            "name": "cibuildwheel-macos",
-            "inherits": "ci-macos",
-            "displayName": "macOS CI configuration",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
-                "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
