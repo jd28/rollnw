@@ -8,10 +8,13 @@ GlobalMemory* global_allocator()
     return &malloc_;
 }
 
+namespace {
+thread_local MemoryArena tls_arena_(MB(1));
+thread_local MemoryScope tls_scope_(&tls_arena_);
+}
+
 MemoryScope* tls_scratch()
 {
-    static thread_local MemoryArena tls_arena_(MB(1));
-    static thread_local MemoryScope tls_scope_(&tls_arena_);
     return &tls_scope_;
 }
 }

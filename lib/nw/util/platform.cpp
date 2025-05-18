@@ -59,11 +59,13 @@ fs::path home_path()
     return fs::path(home);
 }
 
+namespace {
+thread_local std::random_device dev;
+thread_local std::mt19937 prng(dev());
+}
+
 fs::path create_unique_tmp_path()
 {
-    static thread_local std::random_device dev;
-    static thread_local std::mt19937 prng(dev());
-
     auto tmp_dir = fs::temp_directory_path();
     uint64_t i = 0;
     std::uniform_int_distribution<uint64_t> rand(0);

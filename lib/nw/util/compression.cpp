@@ -36,10 +36,13 @@ struct ZstdHeader {
     uint32_t dictionary;
 };
 
+namespace {
+// Probably never will be multithreaded, but..
+thread_local std::unique_ptr<ZSTD_DCtx, void (*)(ZSTD_DCtx*)> dctx{ZSTD_createDCtx(), detail::zstd_dctx_deleter};
+}
+
 inline ByteArray zstd_decompress(std::span<const uint8_t> span, uint32_t uncompressed_size)
 {
-    // Probably never will be multithreaded, but..
-    static thread_local std::unique_ptr<ZSTD_DCtx, void (*)(ZSTD_DCtx*)> dctx{ZSTD_createDCtx(), detail::zstd_dctx_deleter};
 
     ByteArray result;
     std::size_t hdr_sz = sizeof(ZstdHeader);

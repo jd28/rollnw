@@ -5,7 +5,9 @@
 
 namespace nw {
 
-static thread_local std::mt19937 prng(std::random_device{}());
+namespace {
+thread_local std::mt19937 prng(std::random_device{}());
+}
 
 bool operator==(const DiceRoll& lhs, const DiceRoll& rhs)
 {

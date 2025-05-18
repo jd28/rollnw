@@ -132,10 +132,12 @@ bool BinaryParser::parse_model(uint32_t offset)
     return true;
 }
 
+namespace {
+thread_local detail::GeomCxt s_ctx;
+}
+
 bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 {
-    static thread_local detail::GeomCxt s_ctx;
-
     detail::MdlBinaryNodeHeader nodehead;
     memcpy(&nodehead, bytes_.data() + offset + 12, detail::MdlBinaryNodeHeader::s_sizeof);
 

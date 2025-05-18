@@ -530,9 +530,12 @@ bool TextParser::parse_controller(Node* node, StringView name, uint32_t type)
         }                                               \
     }
 
+namespace {
+thread_local GeomCxt geomctx;
+}
+
 bool TextParser::parse_node(Geometry* geometry)
 {
-    static thread_local GeomCxt geomctx;
     geomctx.clear();
 
     bool result = true;

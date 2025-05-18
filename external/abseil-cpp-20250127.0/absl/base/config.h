@@ -274,7 +274,6 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
 #define ABSL_HAVE_STD_IS_TRIVIALLY_COPYABLE 1
 #endif
 
-
 // ABSL_HAVE_THREAD_LOCAL
 //
 // DEPRECATED - `thread_local` is available on all supported platforms.
@@ -283,7 +282,7 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
 #ifdef ABSL_HAVE_THREAD_LOCAL
 #error ABSL_HAVE_THREAD_LOCAL cannot be directly set
 #else
-#define ABSL_HAVE_THREAD_LOCAL 1
+#define ABSL_HAVE_THREAD_LOCAL 0
 #endif
 
 // ABSL_HAVE_INTRINSIC_INT128
