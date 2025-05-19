@@ -128,21 +128,3 @@ endif()
 if(ROLLNW_BUILD_DOCS)
 add_subdirectory(docs)
 endif()
-
-if(ROLLNW_BUILD_PYTHON)
-if (NOT TARGET Python::Module OR NOT TARGET Python::Interpreter)
-  set(Python_FIND_FRAMEWORK LAST)
-  if (CMAKE_VERSION VERSION_LESS 3.18)
-    set(ROLLNW_PYTHON_DEV_MODULE Development)
-  else()
-    set(ROLLNW_PYTHON_DEV_MODULE Development.Module)
-  endif()
-
-  find_package(Python 3.10
-    REQUIRED COMPONENTS Interpreter ${ROLLNW_PYTHON_DEV_MODULE}
-    OPTIONAL_COMPONENTS Development.SABIModule)
-endif()
-include_directories(profiles/)
-add_subdirectory(external/nanobind)
-add_subdirectory(rollnw-py)
-endif()
