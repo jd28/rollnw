@@ -73,7 +73,7 @@ struct MemoryArena : MemoryResource {
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) {};
+    virtual void deallocate(void*, size_t, size_t) { };
 
     /// Gets the current point in the allocator
     MemoryMarker current();
@@ -131,7 +131,7 @@ struct MemoryScope : public MemoryResource {
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) override {};
+    virtual void deallocate(void*, size_t, size_t) override { };
 
     /// Allocates a non-trivial object and stores pointer to destructor that is run when scope exits.
     template <typename T, typename... Args>
@@ -222,9 +222,7 @@ struct ObjectPool {
 
     ~ObjectPool()
     {
-        for (size_t i = 0; i < chunks_.size(); ++i) {
-            allocator_->deallocate(chunks_[i], sizeof(T) * chunk_size_, alignof(T));
-        }
+        clear();
     }
 
     T* allocate()
@@ -233,6 +231,7 @@ struct ObjectPool {
 
         auto result = free_list_.back();
         free_list_.pop_back();
+        new (result) T(allocator_);
 
         return result;
     }
@@ -240,12 +239,15 @@ struct ObjectPool {
     void clear()
     {
         free_list_.clear();
+        for (size_t i = 0; i < chunks_.size(); ++i) {
+            allocator_->deallocate(chunks_[i], sizeof(T) * chunk_size_, alignof(T));
+        }
         chunks_.clear();
     }
 
     void free(T* object)
     {
-        object->clear();
+        object->~T();
         free_list_.push_back(object);
     }
 
@@ -254,9 +256,9 @@ struct ObjectPool {
         T* chunk = static_cast<T*>(allocator_->allocate(sizeof(T) * chunk_size_, alignof(T)));
         CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size_);
         for (size_t i = 0; i < chunk_size_; ++i) {
-            auto obj = new (&chunk[i]) T(allocator_);
-            free_list_.push_back(obj);
+            free_list_.push_back(&chunk[i]);
         }
+        chunks_.push_back(chunk);
     }
 
     size_t chunk_size_;
