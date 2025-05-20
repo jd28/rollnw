@@ -28,14 +28,6 @@ static Vector<std::filesystem::path> install_paths{
 #endif
 };
 
-#if defined(ROLLNW_OS_LINUX)
-static std::filesystem::path beamdog_settings = home_path() / ".config/Beamdog Client/settings.json";
-#elif defined(ROLLNW_OS_MACOS)
-static std::filesystem::path beamdog_settings = home_path() / "Library/Application Support/Beamdog Client/settings.json";
-#elif defined(ROLLNW_OS_WINDOWS)
-static std::filesystem::path beamdog_settings = home_path() / "Beamdog Client/settings.json";
-#endif
-
 static Vector<std::filesystem::path> user_paths{
 #if defined(ROLLNW_OS_MACOS) || defined(ROLLNW_OS_WINDOWS)
     documents_path() / "Neverwinter Nights"
@@ -43,17 +35,6 @@ static Vector<std::filesystem::path> user_paths{
     home_path() / ".local/share/Neverwinter Nights/",
 #endif
 };
-
-struct BeamdogInstall {
-    const char* appid;
-    const char* path;
-};
-
-static constexpr BeamdogInstall beamdog_versions[] = {
-    {"00840", "NWN EE Digital Deluxe Beta (Head Start)"},
-    {"00829", "NWN EE Beta (Head Start)"},
-    {"00839", "NWN EE Digital Deluxe"},
-    {"00785", "NWN EE"}};
 
 InstallInfo probe_nwn_install(GameVersion version)
 {
@@ -72,35 +53,20 @@ InstallInfo probe_nwn_install(GameVersion version)
     };
 
     if (auto p = nowide::getenv("NWN_ROOT")) {
-        fs::path pp{p};
-        probe_keys(pp);
+        if (p) {
+            fs::path pp{p};
+            if (!fs::exists(pp / "data/nwn_base.key") && !fs::exists(pp / "chitin.key")) {
+                LOG_F(ERROR, "$NWN_ROOT is set to a path that does not contain the right game files: '{}'", p);
+            } else {
+                probe_keys(pp);
+            }
+        }
     }
 
     if (!install_found) {
         for (const auto& p : install_paths) {
             probe_keys(p);
             if (install_found) { break; }
-        }
-    }
-
-    if (!install_found) {
-        if (fs::exists(beamdog_settings)) {
-            std::filesystem::path bd_root;
-            try {
-                std::ifstream i{beamdog_settings};
-                nlohmann::json j;
-                i >> j;
-                const auto& folders = j.at("folders");
-                folders[0].get_to(bd_root);
-                for (const auto bdv : beamdog_versions) {
-                    if (fs::exists(bd_root / bdv.appid)) {
-                        probe_keys(bd_root / bdv.appid);
-                        if (install_found) { break; }
-                    }
-                }
-            } catch (const std::exception& e) {
-                LOG_F(ERROR, "Failed parsing beamdog client settings ({}) - {}", beamdog_settings, e.what());
-            }
         }
     }
 
