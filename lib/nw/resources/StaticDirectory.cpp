@@ -57,13 +57,23 @@ void StaticDirectory::visit(std::function<void(Resource, const ContainerKey*)> v
     }
 }
 
-void StaticDirectory::walk_directory(const std::filesystem::path& path)
+void StaticDirectory::walk_directory(const std::filesystem::path& base_path)
 {
-    for (const auto& entry : fs::recursive_directory_iterator(path)) {
+    bool preserve_path = fs::exists(base_path / "package.json");
+    std::filesystem::path resref_root = preserve_path ? base_path.parent_path() : base_path;
+
+    for (const auto& entry : fs::recursive_directory_iterator(base_path)) {
         if (entry.is_regular_file()) {
-            auto res = Resource::from_path(entry.path());
-            if (!res.valid()) { continue; }
-            elements_.emplace_back(res, path_to_string(fs::canonical(entry.path())));
+            auto abs_path = fs::canonical(entry.path());
+            auto relative_path = fs::relative(abs_path, resref_root);
+
+            // Optional: skip package.json itself
+            if (relative_path.filename() == "package.json") continue;
+
+            auto res = Resource::from_path(relative_path, preserve_path);
+            if (!res.valid()) continue;
+
+            elements_.emplace_back(res, path_to_string(abs_path));
         }
     }
 

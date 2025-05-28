@@ -588,7 +588,7 @@ struct Resource {
     Resource(Resource&&) = default;
 
     static Resource from_filename(StringView);
-    static Resource from_path(const std::filesystem::path& path);
+    static Resource from_path(const std::filesystem::path& path, bool preserve_path = false);
 
     Resref resref;
     ResourceType::type type;

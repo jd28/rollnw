@@ -146,12 +146,31 @@ TEST(StaticDirectory, Construction)
     EXPECT_EQ(d.name(), "user");
     EXPECT_EQ(d.path(), std::filesystem::canonical(p));
 
-    // auto data = d.demand(resource_to_uri("feat"sv, ResourceType::twoda));
-    // EXPECT_TRUE(data.bytes.size());
-    // EXPECT_EQ(data.bytes.size(), std::filesystem::file_size("./test_data/user/development/feat.2da"));
+    nw::ResourceManager rm(nw::kernel::global_allocator());
+    ASSERT_TRUE(rm.add_custom_container(&d, false));
+    rm.build_registry();
+
+    auto data = rm.demand({"feat"sv, ResourceType::twoda});
+    EXPECT_TRUE(data.bytes.size());
+    EXPECT_EQ(data.bytes.size(), std::filesystem::file_size("./test_data/user/development/feat.2da"));
 
     EXPECT_FALSE(StaticDirectory{"./test_data/user/development/feat.2da"}.valid());
     EXPECT_FALSE(StaticDirectory{"./doesnotexist"}.valid());
+}
+
+TEST(StaticDirectory, WithPackageJson)
+{
+    std::filesystem::path p{"./test_data/user/hak/hak_with_package_json"};
+    StaticDirectory d(p);
+    ASSERT_TRUE(d.valid());
+    EXPECT_EQ(d.name(), "hak_with_package_json");
+    EXPECT_EQ(d.path(), std::filesystem::canonical(p));
+
+    nw::ResourceManager rm(nw::kernel::global_allocator());
+    ASSERT_TRUE(rm.add_custom_container(&d, false));
+    rm.build_registry();
+
+    EXPECT_TRUE(rm.contains({"hak_with_package_json/test/cloth028"sv, nw::ResourceType::uti}));
 }
 
 // == StaticErf ===============================================================

@@ -103,11 +103,21 @@ Resource Resource::from_filename(StringView filename)
     return {};
 }
 
-Resource Resource::from_path(const std::filesystem::path& path)
+Resource Resource::from_path(const std::filesystem::path& path, bool preserve_path)
 {
     String ext = path_to_string(path.extension());
-    String stem = path_to_string(path.stem());
-    return {stem, ResourceType::from_extension(ext)};
+
+    String resref;
+    if (preserve_path) {
+        std::filesystem::path without_ext = path;
+        without_ext.replace_extension();
+        resref = path_to_string(without_ext);
+        std::replace(resref.begin(), resref.end(), '\\', '/');
+    } else {
+        resref = path_to_string(path.stem());
+    }
+
+    return {resref, ResourceType::from_extension(ext)};
 }
 
 bool Resource::valid() const noexcept
