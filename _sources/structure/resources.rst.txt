@@ -49,6 +49,18 @@ Support for nwsync was removed since it is not applicable to module/persistant w
 The ability to add new container types is limited in utility due to `NWNX:EE <https://github.com/nwnxee/unified>`__'s lack
 of a ResMan plugin.
 
+There is experimental support for a ``package.json`` file (currently empty) that will serve to signal to containers that
+they are 'modern' containers. So, in the case of ``nw::StaticDirectory`` if ``package.json`` is present at the toplevel then
+path is preseved, i,e::
+
+    ├── hak_with_package_json
+    │   ├── package.json
+    │   └── test
+    │       └── cloth028.UTI
+
+one resulting resref in this container is ``hak_with_package_json/test/cloth028``. This is ultimately the future of parts of the system
+that needn't be compatible with NWN(:EE).
+
 -------------------------------------------------------------------------------
 
 :cpp:struct:`nw::Erf`

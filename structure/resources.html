@@ -138,6 +138,17 @@ that aligns with the available image types.</p>
 ‘future tense’, i.e., a hypothetical NWN3 <em>would not</em> use nwsync.</p>
 <p>The ability to add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s lack
 of a ResMan plugin.</p>
+<p>There is experimental support for a <code class="docutils literal notranslate"><span class="pre">package.json</span></code> file (currently empty) that will serve to signal to containers that
+they are ‘modern’ containers. So, in the case of <code class="docutils literal notranslate"><span class="pre">nw::StaticDirectory</span></code> if <code class="docutils literal notranslate"><span class="pre">package.json</span></code> is present at the toplevel then
+path is preseved, i,e:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── hak_with_package_json
+│   ├── package.json
+│   └── test
+│       └── cloth028.UTI
+</pre></div>
+</div>
+<p>one resulting resref in this container is <code class="docutils literal notranslate"><span class="pre">hak_with_package_json/test/cloth028</span></code>. This is ultimately the future of parts of the system
+that needn’t be compatible with NWN(:EE).</p>
 </section>
 <hr class="docutils" />
 <section id="nw-erf">
