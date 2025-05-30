@@ -43,7 +43,9 @@ struct ErfKey {
     int16_t unused;
 };
 
-StaticErf::StaticErf(const std::filesystem::path& path)
+StaticErf::StaticErf(const std::filesystem::path& path, nw::MemoryResource* allocator)
+    : Container(allocator)
+    , elements_{allocator}
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "file '{}' does not exist", path);

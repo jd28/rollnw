@@ -30,7 +30,7 @@ struct StaticZipKey : public ContainerKey {
 
 class StaticZip : public Container {
 public:
-    explicit StaticZip(const std::filesystem::path& path);
+    explicit StaticZip(const std::filesystem::path& path, nw::MemoryResource* allocator = nw::kernel::global_allocator());
     ~StaticZip() override;
 
     /// Reads resource data, empty ResourceData if no match.
@@ -58,7 +58,7 @@ private:
     String path_;
     bool is_loaded_ = false;
 
-    std::vector<detail::StaticZipKey> elements_;
+    PVector<detail::StaticZipKey> elements_;
 };
 
 } // namespace nw

@@ -30,8 +30,7 @@ struct ErfKey : public ContainerKey {
 
 struct StaticErf final : public Container {
 public:
-    StaticErf() = default;
-    explicit StaticErf(const std::filesystem::path& path);
+    explicit StaticErf(const std::filesystem::path& path, nw::MemoryResource* allocator = nw::kernel::global_allocator());
     StaticErf(const StaticErf&) = delete;
     StaticErf(StaticErf&& other) = default;
     virtual ~StaticErf() = default;
@@ -69,7 +68,7 @@ private:
     String name_;
     std::streamsize fsize_;
     bool is_loaded_ = false;
-    std::vector<detail::ErfKey> elements_;
+    PVector<detail::ErfKey> elements_;
 
     bool load(const std::filesystem::path& path);
     ResourceData read(const detail::ErfKey* element) const;

@@ -388,9 +388,12 @@ TEST(KernelResources, AddContainer)
 TEST(KernelResources, Extract)
 {
     auto rm = new nw::ResourceManager{nwk::global_allocator()};
-    EXPECT_TRUE(rm->add_custom_container(new nw::StaticErf("test_data/user/modules/DockerDemo.mod")));
-    EXPECT_TRUE(rm->add_custom_container(new nw::StaticZip("test_data/user/modules/module_as_zip.zip")));
-    EXPECT_FALSE(rm->add_custom_container(new nw::StaticZip("test_data/user/modules/module_as_zip.zip")));
+    nw::StaticErf se1("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(rm->add_custom_container(&se1, false));
+    nw::StaticZip sz1("test_data/user/modules/module_as_zip.zip");
+    EXPECT_TRUE(rm->add_custom_container(&sz1, false));
+    nw::StaticZip sz2("test_data/user/modules/module_as_zip.zip");
+    EXPECT_FALSE(rm->add_custom_container(&sz2, false));
     delete rm;
 }
 

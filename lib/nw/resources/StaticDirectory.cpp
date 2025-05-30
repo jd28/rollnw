@@ -15,7 +15,8 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
-StaticDirectory::StaticDirectory(const fs::path& path)
+StaticDirectory::StaticDirectory(const fs::path& path, nw::MemoryResource* allocator)
+    : Container(allocator)
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "'{}' does not exist", path);

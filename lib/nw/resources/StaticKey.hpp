@@ -26,7 +26,7 @@ struct BifElement {
 
 /// Bif is used only by ``nw::Key``, it has no independant use.
 struct Bif {
-    Bif(StaticKey* key, std::filesystem::path path);
+    Bif(StaticKey* key, std::filesystem::path path, nw::MemoryResource* allocator);
 
     // LCOV_EXCL_START
     Bif(const Bif&) = delete;
@@ -40,10 +40,10 @@ struct Bif {
 
     StaticKey* key_ = nullptr;
     std::filesystem::path path_;
-    mutable std::ifstream file_;
     std::streamsize fsize_;
-    Vector<BifElement> elements;
+    PVector<BifElement> elements;
     bool is_loaded_;
+    nw::MemoryResource* allocator_;
 
     bool load();
 };
@@ -69,7 +69,7 @@ struct StaticKeyKey : public ContainerKey {
 } // namespace detail
 
 struct StaticKey final : public Container {
-    explicit StaticKey(std::filesystem::path path);
+    explicit StaticKey(std::filesystem::path path, nw::MemoryResource* allocator = nw::kernel::global_allocator());
     StaticKey(const StaticKey&) = delete;
     StaticKey(StaticKey&&) = default;
     virtual ~StaticKey() = default;
@@ -103,8 +103,8 @@ private:
     String path_;
     String name_;
     std::streamsize fsize_;
-    Vector<detail::Bif> bifs_;
-    std::vector<detail::StaticKeyKey> elements_;
+    PVector<detail::Bif> bifs_;
+    PVector<detail::StaticKeyKey> elements_;
     bool is_loaded_ = false;
 
     bool load();

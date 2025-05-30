@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../config.hpp"
+#include "../kernel/Memory.hpp"
 #include "assets.hpp"
 
 #include <filesystem>
@@ -16,7 +17,11 @@ struct ContainerKey {
 
 /// Base class for all containers.
 struct Container {
+    Container(nw::MemoryResource* allocator);
     virtual ~Container() = default;
+
+    /// Gets allocator
+    nw::MemoryResource* allocator() const noexcept;
 
     /// Reads resource data, empty ResourceData if no match.
     virtual ResourceData demand(const ContainerKey* key) const = 0;
@@ -35,12 +40,33 @@ struct Container {
 
     /// Enumerates all assets in a container
     virtual void visit(std::function<void(Resource, const ContainerKey*)> visitor) const = 0;
+
+private:
+    nw::MemoryResource* allocator_;
 };
 
-using unique_container = std::unique_ptr<Container>;
+struct ContainerDeleter {
+    ContainerDeleter(nw::MemoryResource* allocator_)
+        : allocator{allocator_}
+    {
+    }
+
+    nw::MemoryResource* allocator = nullptr;
+
+    void operator()(Container* c) const
+    {
+        if (c && allocator) {
+            c->~Container();
+            allocator->deallocate(c);
+        }
+    }
+};
+
+using unique_container = std::unique_ptr<Container, ContainerDeleter>;
 
 /// Loads a container from the specified path and name by folder or by file type.
 /// @note The caller will be the owner of the returned container.
-Container* resolve_container(const std::filesystem::path& p, const String& name);
+Container* resolve_container(const std::filesystem::path& p, const String& name,
+    nw::MemoryResource* allocator);
 
 } // namespace nw

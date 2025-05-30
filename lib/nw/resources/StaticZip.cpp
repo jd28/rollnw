@@ -18,7 +18,9 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
-StaticZip::StaticZip(const fs::path& path)
+StaticZip::StaticZip(const fs::path& path, nw::MemoryResource* allocator)
+    : Container(allocator)
+    , elements_(allocator)
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "file '{}' does not exist", path);

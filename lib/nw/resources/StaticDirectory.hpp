@@ -26,8 +26,8 @@ struct StaticDirectoryKey : public ContainerKey {
 /// A static directory takes a view, optionally recursively, of a directory
 /// structure when created.
 struct StaticDirectory final : public Container {
-    StaticDirectory() = default;
-    explicit StaticDirectory(const std::filesystem::path& path);
+    explicit StaticDirectory(const std::filesystem::path& path,
+        nw::MemoryResource* allocator = nw::kernel::global_allocator());
     virtual ~StaticDirectory() = default;
 
     /// Reads resource data, empty ResourceData if no match.

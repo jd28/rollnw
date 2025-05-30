@@ -25,6 +25,10 @@ struct LocatorPayload {
         , restype(restype_)
     {
     }
+
+    LocatorPayload(LocatorPayload&&) = default;
+    LocatorPayload(const LocatorPayload&) = delete;
+
     LocatorVariant container;
     ResourceType::type restype = ResourceType::invalid;
 };

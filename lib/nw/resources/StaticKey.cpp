@@ -27,9 +27,11 @@ struct BifHeader {
     uint32_t var_table_offset;
 };
 
-Bif::Bif(StaticKey* key, fs::path path)
+Bif::Bif(StaticKey* key, fs::path path, nw::MemoryResource* allocator)
     : key_(key)
     , path_(std::move(path))
+    , elements(allocator)
+    , allocator_(allocator)
 {
     is_loaded_ = load();
 }
@@ -50,6 +52,8 @@ bool Bif::load()
     }
 
     if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_); }
+
+    std::ifstream file_;
     file_.open(path_, std::ios_base::binary);
     if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_); }
 
@@ -80,6 +84,7 @@ ByteArray Bif::demand(size_t index) const
         LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_,
             elements[index].offset + elements[index].size, fsize_);
     } else {
+        std::ifstream file_{path_, std::ios_base::binary};
         ba.resize(elements[index].size);
         file_.seekg(elements[index].offset, std::ios_base::beg);
         istream_read(file_, ba.data(), elements[index].size);
@@ -115,7 +120,10 @@ struct FileTable {
 
 namespace fs = std::filesystem;
 
-StaticKey::StaticKey(fs::path path)
+StaticKey::StaticKey(fs::path path, nw::MemoryResource* allocator)
+    : Container(allocator)
+    , bifs_(allocator)
+    , elements_(allocator)
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "file '{}' does not exist", path);
@@ -232,7 +240,7 @@ bool StaticKey::load()
         LOG_F(INFO, "[resources] key: added bif - {}", s);
         bif_names.push_back(s);
 
-        bifs_.emplace_back(this, bif_path / s);
+        bifs_.emplace_back(this, bif_path / s, allocator());
     }
 
     file.seekg(header.offset_key_table);

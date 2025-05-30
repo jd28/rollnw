@@ -30,9 +30,16 @@ inline Container* get_container(const LocatorVariant& var)
     }
 }
 
+inline unique_container make_unique_container(Container* c)
+{
+    ContainerDeleter del{c->allocator()};
+    return unique_container{c, del};
+}
+
 ResourceManager::ResourceManager(MemoryResource* scope, const ResourceManager* parent)
     : Service(scope)
     , parent_(parent)
+    , module_{nullptr, ContainerDeleter{allocator()}}
 {
 }
 
@@ -65,11 +72,14 @@ bool ResourceManager::load_module(std::filesystem::path path)
     LOG_F(INFO, "resman: loading module container: {}", path);
 
     if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
-        module_ = std::make_unique<StaticDirectory>(path);
+        auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
+        module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
     } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
-        module_ = std::make_unique<StaticErf>(path);
+        auto ptr = allocator()->allocate(sizeof(StaticErf), alignof(StaticErf));
+        module_ = make_unique_container(new (ptr) StaticErf(path, allocator()));
     } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
-        module_ = std::make_unique<StaticZip>(path);
+        auto ptr = allocator()->allocate(sizeof(StaticZip), alignof(StaticZip));
+        module_ = make_unique_container(new (ptr) StaticZip(path, allocator()));
     }
 
     if (!module_ || !module_->valid()) {
@@ -85,8 +95,8 @@ bool ResourceManager::load_module(std::filesystem::path path)
 void ResourceManager::load_module_haks(const Vector<String>& haks)
 {
     for (const auto& h : haks) {
-        if (auto c = resolve_container(kernel::config().user_path() / "hak", h)) {
-            module_haks_.emplace_back(c);
+        if (auto c = resolve_container(kernel::config().user_path() / "hak", h, allocator())) {
+            module_haks_.push_back(make_unique_container(c));
         }
     }
     update_container_search();
@@ -113,19 +123,19 @@ bool ResourceManager::add_base_container(const std::filesystem::path& path, cons
 {
     ENSURE_OR_RETURN_FALSE(!frozen_, "[resman] asset registry is already frozen: unable to add container '{}/{}'", path, name);
 
-    auto container = resolve_container(path, name);
+    auto container = resolve_container(path, name, allocator());
     ENSURE_OR_RETURN_FALSE(container && container->valid(), "[resman] attempting to add invalid base container '{}/{}'", path, name);
     ENSURE_OR_RETURN_FALSE(container->size() > 0, "[resman] attempting to add empty container '{}/{}'", path, name);
 
     for (auto& [cont, _] : search_) {
         auto c = get_container(cont);
         if (!c || c->path() == container->path()) {
-            delete container;
+            allocator()->deallocate(container);
             return false;
         }
     }
 
-    game_.push_back(LocatorPayload{unique_container{container}, restype});
+    game_.push_back(LocatorPayload{make_unique_container(container), restype});
     update_container_search();
 
     return true;
@@ -145,7 +155,7 @@ bool ResourceManager::add_custom_container(Container* container, bool take_owner
     }
 
     if (take_ownership) {
-        custom_.push_back(LocatorPayload{unique_container{container}, restype});
+        custom_.push_back(LocatorPayload{make_unique_container(container), restype});
     } else {
         custom_.push_back(LocatorPayload{container, restype});
     }
@@ -160,7 +170,7 @@ bool ResourceManager::add_override_container(const std::filesystem::path& path, 
 {
     ENSURE_OR_RETURN_FALSE(!frozen_, "[resman] asset registry is already frozen: unable to add container '{}/{}'", path, name);
 
-    auto container = resolve_container(path, name);
+    auto container = resolve_container(path, name, allocator());
     ENSURE_OR_RETURN_FALSE(container && container->valid(), "[resman] attempting to add invalid override container: '{}/{}'", path, name);
     ENSURE_OR_RETURN_FALSE(container->size() > 0, "[resman] attempting to add empty container '{}/{}'", path, name);
 
@@ -171,7 +181,7 @@ bool ResourceManager::add_override_container(const std::filesystem::path& path, 
         }
     }
 
-    override_.push_back(LocatorPayload{unique_container{container}, restype});
+    override_.push_back(LocatorPayload{make_unique_container(container), restype});
     update_container_search();
 
     return true;
