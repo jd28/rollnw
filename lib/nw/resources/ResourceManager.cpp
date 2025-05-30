@@ -94,12 +94,19 @@ bool ResourceManager::load_module(std::filesystem::path path)
 
 void ResourceManager::load_module_haks(const Vector<String>& haks)
 {
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     for (const auto& h : haks) {
         if (auto c = resolve_container(kernel::config().user_path() / "hak", h, allocator())) {
             module_haks_.push_back(make_unique_container(c));
         }
     }
     update_container_search();
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    LOG_F(INFO, "    ... loaded {} module haks ({}ms)", haks.size(),
+        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
 Container* ResourceManager::module_container() const

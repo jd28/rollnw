@@ -57,6 +57,9 @@ void EffectSystem::initialize(ServiceInitTime time)
         return;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+
+    LOG_F(INFO, "kernel: effect system initializing...");
     LOG_F(INFO, "  ... loading item property cost tables");
     auto costtable = twodas().get("iprp_costtable");
     if (costtable) {
@@ -134,6 +137,10 @@ void EffectSystem::initialize(ServiceInitTime time)
 
     LOG_F(INFO, "  ... loading item property baseitem table");
     itemprop_table_ = twodas().get("itemprops");
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    LOG_F(INFO, "kernel: effect system initialized. ({}ms)",
+        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
 Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const

@@ -35,8 +35,14 @@ void Rules::initialize(ServiceInitTime time)
         return;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     LOG_F(INFO, "kernel: rules system initializing...");
     services().profile()->load_rules();
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    LOG_F(INFO, "kernel: rules system initialized. ({}ms)",
+        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
 const AttackFuncs& Rules::attack_functions() const noexcept

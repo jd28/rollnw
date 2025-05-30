@@ -110,19 +110,23 @@ void Module::clear()
 
 bool Module::instantiate()
 {
-    if (instantiated_) return true;
-    LOG_F(INFO, "instantiating module");
+    if (instantiated_) { return true; }
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     auto& area_list = areas.as<Vector<Resref>>();
     Vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
-        LOG_F(INFO, "  loading area: {}", area);
         auto a = nw::kernel::objects().make_area(area);
         a->instantiate();
         area_objects.push_back(a);
     }
     areas = std::move(area_objects);
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    LOG_F(INFO, "kernel: instantiated module: {} areas in {}ms", area_count(),
+        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 
     instantiated_ = true;
     return true;
