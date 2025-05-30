@@ -17,7 +17,7 @@
 namespace nw {
 
 namespace detail {
-struct MemoryHeader {
+struct alignas(std::max_align_t) MemoryHeader {
     void* original_ptr;
     std::size_t size;
 };
@@ -40,7 +40,7 @@ void* GlobalMemory::allocate(size_t size, size_t alignment)
     return reinterpret_cast<void*>(aligned_address);
 }
 
-void GlobalMemory::deallocate(void* ptr, size_t, size_t)
+void GlobalMemory::deallocate(void* ptr)
 {
     if (!ptr) return;
     detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(ptr) - sizeof(detail::MemoryHeader));
@@ -284,7 +284,7 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     return reinterpret_cast<void*>(aligned_address);
 }
 
-void MemoryPool::deallocate(void* ptr, size_t, size_t)
+void MemoryPool::deallocate(void* ptr)
 {
     if (!ptr) return;
     detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(ptr) - sizeof(detail::MemoryHeader));

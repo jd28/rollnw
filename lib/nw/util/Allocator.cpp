@@ -14,9 +14,9 @@ void* MemoryResourceInternal::allocate(size_t bytes, size_t alignment)
     return resource_->allocate(bytes, alignment);
 }
 
-void MemoryResourceInternal::deallocate(void* p, size_t bytes, size_t alignment)
+void MemoryResourceInternal::deallocate(void* p, size_t, size_t)
 {
-    resource_->deallocate(p, bytes, alignment);
+    resource_->deallocate(p);
 }
 
 } // namespace detail

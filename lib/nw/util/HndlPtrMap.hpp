@@ -55,7 +55,7 @@ public:
 
     ~HndlPtrMap()
     {
-        allocator_->deallocate(entries_, capacity_ * sizeof(Entry));
+        allocator_->deallocate(entries_);
     }
 
     void reserve(size_t n)
@@ -199,7 +199,7 @@ private:
             }
         }
 
-        allocator_->deallocate(old_entries, old_capacity * sizeof(Entry));
+        allocator_->deallocate(old_entries);
     }
 };
 

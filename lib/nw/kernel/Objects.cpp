@@ -31,7 +31,7 @@ ObjectSystem::~ObjectSystem()
 {
     if (module_) {
         module_->~Module();
-        allocator()->deallocate(module_, sizeof(Module), alignof(Module));
+        allocator()->deallocate(module_);
     }
 }
 

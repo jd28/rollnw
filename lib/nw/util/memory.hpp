@@ -37,12 +37,12 @@ struct MemoryResource {
     virtual ~MemoryResource() = default;
 
     virtual void* allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) = 0;
-    virtual void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t)) = 0;
+    virtual void deallocate(void* p) = 0;
 };
 
 struct GlobalMemory : MemoryResource {
     virtual void* allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
-    virtual void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
+    virtual void deallocate(void* p) override;
 };
 
 struct MemoryBlock {
@@ -73,7 +73,7 @@ struct MemoryArena : MemoryResource {
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) { };
+    virtual void deallocate(void*) { };
 
     /// Gets the current point in the allocator
     MemoryMarker current();
@@ -131,7 +131,7 @@ struct MemoryScope : public MemoryResource {
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) override { };
+    virtual void deallocate(void*) override { };
 
     /// Allocates a non-trivial object and stores pointer to destructor that is run when scope exits.
     template <typename T, typename... Args>
@@ -198,7 +198,7 @@ struct MemoryPool : public MemoryResource {
     MemoryPool(size_t max_size, size_t count, MemoryResource* allocator = nullptr);
 
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
-    virtual void deallocate(void* ptr, size_t bytes = 0, size_t alignment = alignof(std::max_align_t)) override;
+    virtual void deallocate(void* ptr) override;
 
     // private:
     nw::MemoryResource* allocator_ = nullptr;
@@ -240,7 +240,7 @@ struct ObjectPool {
     {
         free_list_.clear();
         for (size_t i = 0; i < chunks_.size(); ++i) {
-            allocator_->deallocate(chunks_[i], sizeof(T) * chunk_size_, alignof(T));
+            allocator_->deallocate(chunks_[i]);
         }
         chunks_.clear();
     }
