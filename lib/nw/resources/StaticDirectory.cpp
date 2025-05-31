@@ -17,6 +17,7 @@ namespace nw {
 
 StaticDirectory::StaticDirectory(const fs::path& path, nw::MemoryResource* allocator)
     : Container(allocator)
+    , elements_(128, allocator)
 {
     if (!fs::exists(path)) {
         LOG_F(WARNING, "'{}' does not exist", path);

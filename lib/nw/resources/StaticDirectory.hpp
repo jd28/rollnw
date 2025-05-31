@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/ChunkVector.hpp"
 #include "Container.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -54,7 +55,7 @@ struct StaticDirectory final : public Container {
 private:
     void walk_directory(const std::filesystem::path& path);
 
-    std::vector<detail::StaticDirectoryKey> elements_;
+    ChunkVector<detail::StaticDirectoryKey, 10> elements_;
     std::filesystem::path path_;
     String path_string_;
     String name_;
