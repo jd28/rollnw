@@ -72,6 +72,9 @@ struct MemoryArena : MemoryResource {
     /// Allocate memory memory on the arena.
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
+    /// Currently allocated memory
+    size_t capacity() const noexcept { return capacity_; }
+
     /// No-op
     virtual void deallocate(void*) { };
 
@@ -83,6 +86,9 @@ struct MemoryArena : MemoryResource {
 
     /// Rewinds the allocator to a specific point in the allocator
     void rewind(MemoryMarker marker);
+
+    /// Currently used memory
+    size_t used() const noexcept { return used_; }
 
 private:
     void* base_ = nullptr;
@@ -232,6 +238,7 @@ struct ObjectPool {
         auto result = free_list_.back();
         free_list_.pop_back();
         new (result) T(allocator_);
+        ++allocated_;
 
         return result;
     }
@@ -249,6 +256,7 @@ struct ObjectPool {
     {
         object->~T();
         free_list_.push_back(object);
+        --allocated_;
     }
 
     void allocate_chunk()
@@ -261,6 +269,7 @@ struct ObjectPool {
         chunks_.push_back(chunk);
     }
 
+    size_t allocated_ = 0;
     size_t chunk_size_;
     nw::MemoryResource* allocator_;
     ChunkVector<T*> free_list_;

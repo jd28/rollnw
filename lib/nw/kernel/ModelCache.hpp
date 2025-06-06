@@ -23,6 +23,9 @@ struct ModelCache : public Service {
     model::Mdl* load(StringView resref);
     void release(StringView resref);
 
+    /// Log service stats, if the service wants.
+    nlohmann::json stats() const override;
+
     absl::flat_hash_map<String, ModelPayload> map_;
 };
 

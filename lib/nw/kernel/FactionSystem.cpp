@@ -2,6 +2,8 @@
 
 #include "../resources/ResourceManager.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <limits>
 
 using namespace std::literals;
@@ -84,6 +86,13 @@ uint32_t FactionSystem::reputation(uint32_t faction1, uint32_t faction2) const
     if (!factions_) { return 0; }
     auto rep = locate(faction1, faction2);
     return rep.reputation;
+}
+
+nlohmann::json FactionSystem::stats() const
+{
+    nlohmann::json j;
+    j["faction system"] = {};
+    return j;
 }
 
 } // nw::kernel

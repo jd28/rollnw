@@ -2,6 +2,8 @@
 
 #include "../resources/ResourceManager.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw::kernel {
 
 const std::type_index TwoDACache::type_index{typeid(TwoDACache)};
@@ -39,6 +41,14 @@ const StaticTwoDA* TwoDACache::get(const Resource& tda)
     }
 
     return nullptr;
+}
+
+nlohmann::json TwoDACache::stats() const
+{
+    nlohmann::json j;
+    j["twoda cache service"] = {
+        {"total_cached_twodas", cached_2das_.size()}};
+    return j;
 }
 
 } // namespace nw::kernel

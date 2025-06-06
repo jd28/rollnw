@@ -185,6 +185,22 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     return mod;
 }
 
+nlohmann::json stats()
+{
+    nlohmann::json j;
+    j["kernel_memory"] = {
+        {"kernel_memory_used", services().kernel_arena_.used()},
+        {"kernel_memory_allocated", services().kernel_arena_.capacity()},
+        {"kernel_services", nlohmann::json::array()},
+    };
+
+    for (auto& s : services().services_) {
+        if (!s.service) { break; }
+        j["kernel_services"].push_back(s.service->stats());
+    }
+    return j;
+}
+
 void set_game_profile(GameProfile* profile)
 {
     CHECK_F(!services().serices_started_, "[kernel] attempting set game profile after services have been started.");

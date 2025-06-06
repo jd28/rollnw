@@ -27,13 +27,6 @@
 
 namespace nw::kernel {
 
-struct ObjectSystemStats {
-    size_t total_objects = 0;
-    size_t free_list = 0;
-    size_t object_map_collisions = 0;
-    double object_map_collision_rate = 0.0;
-};
-
 /**
  * @brief The object system creates, serializes, and deserializes entities
  *
@@ -81,6 +74,9 @@ struct ObjectSystem : public Service {
 
     /// Loads an object from resource system
     Player* load_player(StringView cdkey, StringView resref);
+
+    /// Logs service metrics
+    nlohmann::json stats() const override;
 
     /// Creates a new object
     template <typename T>

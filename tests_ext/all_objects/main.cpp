@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
     nw::kernel::resman().visit(callback);
 
     LOG_F(INFO, "processing all default object blueprints: total: {}, invalid: {}", count, invalid);
-    LOG_F(INFO, "  avg processing time: {}, longest: {}, longest name: {}", sum / count, biggest, biggest_name);
+    LOG_F(INFO, "  avg processing time: {}us, longest: {}us, longest name: {}", sum / count, biggest, biggest_name);
 
     return invalid;
 }

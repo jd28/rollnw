@@ -3,6 +3,8 @@
 #include "../rules/Effect.hpp"
 #include "EffectSystem.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw::kernel {
 
 const std::type_index EventSystem::type_index{typeid(EventSystem)};
@@ -44,6 +46,13 @@ int EventSystem::process()
         ++processed;
     }
     return processed;
+}
+
+nlohmann::json EventSystem::stats() const
+{
+    nlohmann::json j;
+    j["events service"] = {};
+    return j;
 }
 
 } // namespace nw::kernel

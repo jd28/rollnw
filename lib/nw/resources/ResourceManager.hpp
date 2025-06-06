@@ -12,11 +12,6 @@ namespace nw {
 
 struct Module;
 
-struct ResroucesManagerStats {
-    /// Resman Initialization time in Milliseconds
-    int64_t initialization_time = 0;
-};
-
 using LocatorVariant = std::variant<Container*, unique_container>;
 
 struct LocatorPayload {
@@ -77,6 +72,9 @@ struct ResourceManager final : public kernel::Service {
     /// Loads module haks
     void load_module_haks(const Vector<String>& haks);
 
+    /// Logs service metrics
+    nlohmann::json stats() const override;
+
     /// Gets module container
     Container* module_container() const;
 
@@ -88,8 +86,6 @@ struct ResourceManager final : public kernel::Service {
 
     /// Gets cached palette texture
     Image* palette_texture(PltLayer layer);
-
-    const ResroucesManagerStats& metrics() const;
 
     /// Loads a texture from the resource manager
     /// @note This is a wrapper around ``demand_in_order`` with types dds, and tga passed.
@@ -109,7 +105,6 @@ private:
 
     const String name_{"resman"};
     const ResourceManager* parent_ = nullptr;
-    ResroucesManagerStats metrics_;
 
     SearchVector search_;
 

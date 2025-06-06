@@ -45,6 +45,10 @@ struct EventSystem : public Service {
 
     void add(EventType type, ObjectBase* object, void* data = nullptr);
     int process();
+
+    /// Log service stats, if the service wants.
+    virtual nlohmann::json stats() const override;
+
     storage<EventHandle> queue_;
 };
 

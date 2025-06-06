@@ -4,6 +4,8 @@
 #include "../resources/ResourceManager.hpp"
 #include "Kernel.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw::kernel {
 
 const std::type_index ModelCache::type_index{typeid(ModelCache)};
@@ -60,6 +62,13 @@ ModelCache& models()
         throw std::runtime_error("kernel: unable to load model cache service");
     }
     return *res;
+}
+
+nlohmann::json ModelCache::stats() const
+{
+    nlohmann::json j;
+    j["model cache"] = {};
+    return j;
 }
 
 } // namespace nw::kernel

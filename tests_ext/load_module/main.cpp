@@ -1,4 +1,5 @@
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Module.hpp>
 
@@ -11,6 +12,9 @@ int main(int argc, char* argv[])
 
     auto mod = nw::kernel::load_module(argv[1]);
     if (!mod) { return 1; }
+
+    auto j = nw::kernel::stats();
+    LOG_F(INFO, "\n{}", j.dump(2));
 
     return 0;
 }

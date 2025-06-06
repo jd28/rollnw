@@ -26,6 +26,8 @@ struct TilesetRegistry : public Service {
     Tileset* load(StringView resref);
     Tileset* get(StringView resref);
 
+    nlohmann::json stats() const override;
+
     absl::node_hash_map<String, Tileset> tileset_map_;
     TilesetRegistryMetrics metrics_;
 };

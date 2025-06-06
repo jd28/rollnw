@@ -2,6 +2,8 @@
 
 #include "TwoDACache.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <limits>
 
 namespace nw::kernel {
@@ -192,12 +194,13 @@ bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
     return false;
 }
 
-EffectSystemStats EffectSystem::stats() const noexcept
+nlohmann::json EffectSystem::stats() const
 {
-    EffectSystemStats result;
-    result.free_list_size = pool_.free_list_.size();
-    // [TODO] fix: result.pool_size =
-    return result;
+    nlohmann::json j;
+    j["effect system"] = {
+        {"total_effect_free_list", pool_.free_list_.size()},
+        {"total_effects_allocated", pool_.allocated_}};
+    return j;
 }
 
 } // namespace nw::kernel

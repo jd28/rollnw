@@ -26,11 +26,6 @@ struct EffectLimits {
     std::pair<int, int> skill{-50, 50};
 };
 
-struct EffectSystemStats {
-    size_t free_list_size = 0;
-    size_t pool_size = 0;
-};
-
 struct EffectSystem : public Service {
     const static std::type_index type_index;
 
@@ -77,7 +72,7 @@ struct EffectSystem : public Service {
     bool remove(ObjectBase* obj, Effect* effect);
 
     /// Gets stats regarding the effect system
-    EffectSystemStats stats() const noexcept;
+    nlohmann::json stats() const override;
 
     /// Effect related limits
     EffectLimits limits;

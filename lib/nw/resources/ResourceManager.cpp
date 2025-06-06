@@ -10,6 +10,8 @@
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <chrono>
 #include <filesystem>
 #include <memory>
@@ -54,8 +56,8 @@ void ResourceManager::initialize(kernel::ServiceInitTime time)
         load_palette_textures();
 
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
-        metrics_.initialization_time = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-        LOG_F(INFO, "kernel: resource system initialized ({}ms)", metrics_.initialization_time);
+        LOG_F(INFO, "kernel: resource system initialized ({}ms)",
+            std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
     }
 
     if (time == kernel::ServiceInitTime::kernel_start || time == kernel::ServiceInitTime::module_post_load) {
@@ -107,6 +109,14 @@ void ResourceManager::load_module_haks(const Vector<String>& haks)
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     LOG_F(INFO, "    ... loaded {} module haks ({}ms)", haks.size(),
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+}
+
+nlohmann::json ResourceManager::stats() const
+{
+    nlohmann::json j;
+    j["name"] = "resources service";
+    j["total_static_assets"] = registry_.size();
+    return j;
 }
 
 Container* ResourceManager::module_container() const

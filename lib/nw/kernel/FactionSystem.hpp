@@ -32,6 +32,9 @@ struct FactionSystem : public Service {
     /// Gets the reputation value between 2 factions
     uint32_t reputation(uint32_t faction1, uint32_t faction2) const;
 
+    /// Log service stats, if the service wants.
+    virtual nlohmann::json stats() const override;
+
 private:
     std::unique_ptr<Faction> factions_;
     absl::flat_hash_map<String, uint32_t> name_id_map_;

@@ -59,6 +59,9 @@ struct Rules : public Service {
     /// Gets special attack functions
     [[nodiscard]] SpecialAttackFuncs special_attack(SpecialAttack type);
 
+    /// Get service stats
+    nlohmann::json stats() const override;
+
     BaseItemArray baseitems;
     ClassArray classes;
     FeatArray feats;

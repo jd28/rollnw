@@ -4,6 +4,8 @@
 #include "GameProfile.hpp"
 #include "TwoDACache.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <cstddef>
 
 namespace nw::kernel {
@@ -103,6 +105,13 @@ void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, cons
 SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
 {
     return special_attacks_[*type];
+}
+
+nlohmann::json Rules::stats() const
+{
+    nlohmann::json j;
+    j["effect system"] = {};
+    return j;
 }
 
 } // namespace nw::kernel

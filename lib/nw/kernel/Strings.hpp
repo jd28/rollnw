@@ -63,6 +63,8 @@ struct Strings : public Service {
     /// Sets the language ID that is considered 'default'
     void set_global_language(LanguageID language) noexcept;
 
+    nlohmann::json stats() const override;
+
     /// Unloads a modules custom Tlk and feminine version if available
     void unload_custom_tlk();
 

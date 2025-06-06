@@ -28,6 +28,8 @@ struct TwoDACache : public Service {
     /// Gets a cached TwoDA
     const StaticTwoDA* get(const nw::Resource& tda);
 
+    nlohmann::json stats() const override;
+
 private:
     absl::flat_hash_map<Resource, std::unique_ptr<StaticTwoDA>> cached_2das_;
 };

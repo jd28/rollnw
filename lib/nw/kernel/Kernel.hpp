@@ -4,6 +4,8 @@
 #include "../util/memory.hpp"
 #include "Config.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <array>
 #include <typeindex>
 
@@ -50,6 +52,9 @@ struct Service {
     /// it's up to the service itself to filter/ignore what's not relevant to them.
     virtual void initialize(ServiceInitTime /*time*/){};
 
+    /// Log service stats, if the service wants.
+    virtual nlohmann::json stats() const = 0;
+
 private:
     MemoryResource* memory_ = nullptr;
 };
@@ -92,6 +97,7 @@ struct Services {
     friend GlobalMemory* global_allocator();
     friend void set_game_profile(GameProfile*);
     friend Module* load_module(const std::filesystem::path& path, bool instantiate);
+    friend nlohmann::json stats();
     friend void unload_module();
 
 private:
@@ -160,6 +166,9 @@ T* Services::get_mut()
 /// If instantiate is false, no areas are loaded and Service::initialize at ``module_post_instantiation``
 /// is not called.
 [[nodiscard]] Module* load_module(const std::filesystem::path& path, bool instantiate = true);
+
+/// Logs service stats
+nlohmann::json stats();
 
 /// Unloads currently active module
 void unload_module();

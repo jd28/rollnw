@@ -6,6 +6,8 @@
 #include "Config.hpp"
 #include "Kernel.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace fs = std::filesystem;
 
 namespace nw::kernel {
@@ -120,6 +122,15 @@ LanguageID Strings::global_language() const noexcept
 void Strings::set_global_language(LanguageID language) noexcept
 {
     global_lang_ = language;
+}
+
+nlohmann::json Strings::stats() const
+{
+    nlohmann::json j;
+    j["strings service"] = {
+        {"total_interned_strings", interned_.size()},
+    };
+    return j;
 }
 
 void Strings::unload_custom_tlk()

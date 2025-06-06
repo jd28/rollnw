@@ -176,6 +176,45 @@ nw::Player* ObjectSystem::load_player(StringView cdkey, StringView resref)
     return obj;
 }
 
+nlohmann::json ObjectSystem::stats() const
+{
+    nlohmann::json result;
+    auto& j = result["object system"] = {};
+
+    j["total_live_objects"] = object_map_.size();
+    j["total_tagged_objects"] = object_tag_map_.size();
+    j["total_object_map_collisions"] = object_map_.get_first_slot_collisions();
+
+    auto& pools = j["object_pools"] = nlohmann::json::array();
+
+#define ADD_OBJECT_POOL(name, pool_name)                                                 \
+    do {                                                                                 \
+        nlohmann::json pool;                                                             \
+        auto& p = pool[name] = {};                                                       \
+        p["total_active_objects"] = pool_name.allocated_;                                \
+        p["total_active_objects"] = pool_name.allocated_;                                \
+        p["total_allocated_objects"] = pool_name.chunks_.size() * pool_name.chunk_size_; \
+        p["total_free_list"] = pool_name.free_list_.size();                              \
+        pools.push_back(pool);                                                           \
+    } while (0)
+
+    ADD_OBJECT_POOL("areas_pool", areas_);
+    ADD_OBJECT_POOL("creatures_pool", creatures_);
+    ADD_OBJECT_POOL("doors_pool", doors_);
+    ADD_OBJECT_POOL("encounters_pool", encounters_);
+    ADD_OBJECT_POOL("items_pool", items_);
+    ADD_OBJECT_POOL("stores_pool", stores_);
+    ADD_OBJECT_POOL("placeables_pool", placeables_);
+    ADD_OBJECT_POOL("players_pool", players_);
+    ADD_OBJECT_POOL("sounds_pool", sounds_);
+    ADD_OBJECT_POOL("triggers_pool", triggers_);
+    ADD_OBJECT_POOL("waypoints_pool", waypoints_);
+
+#undef ADD_OBJECT_POOL
+
+    return result;
+}
+
 Area* ObjectSystem::make_area(Resref area)
 {
     Gff are{resman().demand({area, ResourceType::are})};

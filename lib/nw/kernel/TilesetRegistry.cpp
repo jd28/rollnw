@@ -3,6 +3,8 @@
 #include "../formats/Ini.hpp"
 #include "../resources/ResourceManager.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw::kernel {
 
 const std::type_index TilesetRegistry::type_index{typeid(TilesetRegistry)};
@@ -88,6 +90,14 @@ Tileset* TilesetRegistry::get(StringView resref)
     }
 
     return &it->second;
+}
+
+nlohmann::json TilesetRegistry::stats() const
+{
+    nlohmann::json j;
+    j["tileset service"] = {
+        {"total_registered", tileset_map_.size()}};
+    return j;
 }
 
 } // namespace nw::kernel
