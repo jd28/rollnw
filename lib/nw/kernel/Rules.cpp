@@ -110,7 +110,7 @@ SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
 nlohmann::json Rules::stats() const
 {
     nlohmann::json j;
-    j["effect system"] = {};
+    j["rule system"] = {};
     return j;
 }
 
