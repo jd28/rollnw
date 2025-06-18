@@ -233,6 +233,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services16global_allocatorEv"><code class="docutils literal notranslate"><span class="pre">global_allocator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services16set_game_profileEP11GameProfile"><code class="docutils literal notranslate"><span class="pre">set_game_profile</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathEb"><code class="docutils literal notranslate"><span class="pre">load_module</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services5statsEv"><code class="docutils literal notranslate"><span class="pre">stats</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services13unload_moduleEv"><code class="docutils literal notranslate"><span class="pre">unload_module</span></code></a></li>
 </ul>
 </li>
@@ -434,6 +435,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathEb">
 <span id="_CPPv3N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathEb"></span><span id="_CPPv2N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathEb"></span><span id="nw::kernel::Services::load_module__std::filesystem::pathCR.b"></span><span class="target" id="structnw_1_1kernel_1_1_services_1a97b00edecffaf20aca12d783af31c03d"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="nw__Module.html#_CPPv4N2nw6ModuleE" title="nw::Module"><span class="n"><span class="pre">Module</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">load_module</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instantiate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathEb" title="Link to this definition"></a><br /></dt>
 <dd><p>Loads a module If instantiate is false, no areas are loaded and <a class="reference internal" href="nw__kernel__ObjectSystem.html#structnw_1_1kernel_1_1_service_1af63dca0ca99424145c1b503438db7e5e"><span class="std std-ref">Service::initialize</span></a> at <code class="docutils literal notranslate"><span class="pre">module_post_instantiation</span></code> is not called. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel8Services5statsEv">
+<span id="_CPPv3N2nw6kernel8Services5statsEv"></span><span id="_CPPv2N2nw6kernel8Services5statsEv"></span><span id="nw::kernel::Services::stats"></span><span class="target" id="structnw_1_1kernel_1_1_services_1aa3edefb3795297029b4fc484404b4cc1"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel8Services5statsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Logs service stats. </p>
 </dd></dl>
 
 <dl class="cpp function">
