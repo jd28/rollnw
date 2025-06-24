@@ -1,10 +1,10 @@
 #include "Inventory.hpp"
 
-#include "../kernel/Objects.hpp"
 #include "../kernel/Rules.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "Item.hpp"
+#include "ObjectManager.hpp"
 
 #include <nlohmann/json.hpp>
 

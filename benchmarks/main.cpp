@@ -1,11 +1,11 @@
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/scriptapi.hpp>

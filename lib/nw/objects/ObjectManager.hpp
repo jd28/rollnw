@@ -1,44 +1,108 @@
 #pragma once
 
-#include "../objects/Area.hpp"
-#include "../objects/Creature.hpp"
-#include "../objects/Door.hpp"
-#include "../objects/Encounter.hpp"
-#include "../objects/Module.hpp"
-#include "../objects/ObjectBase.hpp"
-#include "../objects/Placeable.hpp"
-#include "../objects/Player.hpp"
-#include "../objects/Sound.hpp"
-#include "../objects/Store.hpp"
-#include "../objects/Trigger.hpp"
-#include "../objects/Waypoint.hpp"
+#include "../kernel/Kernel.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "../serialization/Gff.hpp"
-#include "../serialization/Serialization.hpp"
-#include "../util/HndlPtrMap.hpp"
 #include "../util/error_context.hpp"
 #include "../util/memory.hpp"
-#include "Kernel.hpp"
+#include "Area.hpp"
+#include "Creature.hpp"
+#include "Door.hpp"
+#include "Encounter.hpp"
+#include "Module.hpp"
+#include "ObjectBase.hpp"
+#include "ObjectHandle.hpp"
+#include "Placeable.hpp"
+#include "Player.hpp"
+#include "Sound.hpp"
+#include "Store.hpp"
+#include "Trigger.hpp"
+#include "Waypoint.hpp"
 
 #include <absl/container/btree_map.h>
 #include <nlohmann/json.hpp>
 
-#include <filesystem>
+#include <limits>
 
-namespace nw::kernel {
+namespace nw {
 
-/**
- * @brief The object system creates, serializes, and deserializes entities
- *
- */
-struct ObjectSystem : public Service {
+struct Area;
+struct Creature;
+struct Door;
+struct Encounter;
+struct Item;
+struct Module;
+struct ObjectBase;
+struct Placeable;
+struct Player;
+struct Sound;
+struct Store;
+struct Trigger;
+struct Waypoint;
+
+// == ObjectArray =============================================================
+// ============================================================================
+
+struct ObjectArrayPayload {
+    ObjectBase* obj = nullptr;
+    uint32_t version;
+    size_t next_free = std::numeric_limits<size_t>::max();
+};
+
+struct ObjectArrayInternal {
+    ObjectArrayInternal(size_t chunk, nw::MemoryResource* allocator)
+        : array(chunk, allocator)
+    {
+    }
+
+    ChunkVector<ObjectArrayPayload> array;
+    uint32_t free_list_head_ = std::numeric_limits<uint32_t>::max();
+};
+
+struct ObjectArray {
+
+    ObjectArray(nw::MemoryResource* allocator);
+
+    /// Allocate an object
+    ObjectBase* alloc(ObjectType type);
+
+    /// Destroy an object
+    bool destroy(ObjectHandle hndl);
+
+    /// Gets an object if valid
+    ObjectBase* get(ObjectHandle hndl) const;
+
+    /// Determines of object handle is valid
+    bool valid(ObjectHandle obj) const;
+
+private:
+    nw::MemoryResource* allocator_;
+    Module* module_ = nullptr;
+
+    ObjectArrayInternal object_array_;
+    ObjectArrayInternal player_array_;
+
+    ObjectPool<Area> areas_;
+    ObjectPool<Creature> creatures_;
+    ObjectPool<Door> doors_;
+    ObjectPool<Encounter> encounters_;
+    ObjectPool<Item> items_;
+    ObjectPool<Store> stores_;
+    ObjectPool<Placeable> placeables_;
+    ObjectPool<Player> players_;
+    ObjectPool<Sound> sounds_;
+    ObjectPool<Trigger> triggers_;
+    ObjectPool<Waypoint> waypoints_;
+};
+
+struct ObjectManager : public kernel::Service {
     const static std::type_index type_index;
-    ObjectSystem(MemoryResource* scope);
-    ObjectSystem(const ObjectSystem&) = delete;
-    ObjectSystem(ObjectSystem&&) = default;
-    ObjectSystem& operator=(ObjectSystem&) = delete;
-    ObjectSystem& operator=(ObjectSystem&&) = default;
-    ~ObjectSystem();
+    ObjectManager(MemoryResource* scope);
+    ObjectManager(const ObjectManager&) = delete;
+    ObjectManager(ObjectManager&&) = default;
+    ObjectManager& operator=(ObjectManager&) = delete;
+    ObjectManager& operator=(ObjectManager&&) = default;
+    ~ObjectManager();
 
     /// Destroys a single object
     void destroy(ObjectHandle obj);
@@ -52,8 +116,6 @@ struct ObjectSystem : public Service {
 
     /// Gets object by tag
     ObjectBase* get_by_tag(StringView tag, int nth = 0) const;
-
-    ObjectBase* alloc(ObjectType object_type);
 
     /// Loads an object from file system
     /// @note Player objects (BIC) loaded from the file system will be loaded as instances, all others as blueprints.
@@ -98,27 +160,9 @@ struct ObjectSystem : public Service {
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
 
-private:
-    HndlPtrMap<ObjectBase> object_map_;
+    ObjectArray objects_array_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
-
-    Module* module_ = nullptr;
-    ObjectPool<Area> areas_;
-    ObjectPool<Creature> creatures_;
-    ObjectPool<Door> doors_;
-    ObjectPool<Encounter> encounters_;
-    ObjectPool<Item> items_;
-    ObjectPool<Store> stores_;
-    ObjectPool<Placeable> placeables_;
-    ObjectPool<Player> players_;
-    ObjectPool<Sound> sounds_;
-    ObjectPool<Trigger> triggers_;
-    ObjectPool<Waypoint> waypoints_;
-
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
-
-    uint64_t next_object_id_ = 0;
-    uint64_t next_player_id_ = 0xFFFFFFFF;
 };
 
 inline ObjectType serial_id_to_obj_type(StringView id)
@@ -149,33 +193,20 @@ inline ObjectType serial_id_to_obj_type(StringView id)
 }
 
 template <typename T>
-T* ObjectSystem::get(ObjectHandle obj)
+T* ObjectManager::get(ObjectHandle hndl)
 {
-    if (!valid(obj) || T::object_type != obj.type) { return nullptr; }
-    auto idx = static_cast<uint32_t>(obj.id);
-    return static_cast<T*>(object_map_.get(idx));
+    return static_cast<T*>(objects_array_.get(hndl));
 }
 
 template <typename T>
-T* ObjectSystem::make()
+T* ObjectManager::make()
 {
-    T* obj = static_cast<T*>(alloc(T::object_type));
-    if (!obj) { return nullptr; }
-
-    ObjectHandle oh;
-    oh.type = T::object_type;
-    if constexpr (std::is_same_v<T, Player>) {
-        oh.id = static_cast<ObjectID>(next_player_id_--);
-    } else {
-        oh.id = static_cast<ObjectID>(next_object_id_++);
-    }
-    obj->set_handle(oh);
-    object_map_.insert(static_cast<uint32_t>(oh.id), obj);
+    T* obj = static_cast<T*>(objects_array_.alloc(T::object_type));
     return obj;
 }
 
 template <typename T>
-T* ObjectSystem::load_file(const std::filesystem::path& archive)
+T* ObjectManager::load_file(const std::filesystem::path& archive)
 {
     if (!std::filesystem::exists(archive)) {
         LOG_F(ERROR, "file '{}' does not exist", archive);
@@ -240,14 +271,14 @@ T* ObjectSystem::load_file(const std::filesystem::path& archive)
 }
 
 template <typename T>
-T* ObjectSystem::load(Resref resref)
+T* ObjectManager::load(Resref resref)
 {
     ERRARE("[kernel/objects] loading object of type {} from blueprint '{}'", int(T::object_type), resref.view());
     T* obj = make<T>();
     ObjectType type;
     bool good = false;
 
-    ResourceData data = resman().demand({resref, T::restype});
+    ResourceData data = kernel::resman().demand({resref, T::restype});
     if (data.bytes.size() == 0) {
         LOG_F(WARNING, "\n{}", get_error_context());
         LOG_F(WARNING, "[kernel/objects] failed to load blueprint from resman");
@@ -296,7 +327,7 @@ T* ObjectSystem::load(Resref resref)
 }
 
 template <typename T>
-T* ObjectSystem::load_instance(const GffStruct& archive)
+T* ObjectManager::load_instance(const GffStruct& archive)
 {
     auto ob = make<T>();
     if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
@@ -311,7 +342,7 @@ T* ObjectSystem::load_instance(const GffStruct& archive)
 }
 
 template <typename T>
-T* ObjectSystem::load_instance(const nlohmann::json& archive)
+T* ObjectManager::load_instance(const nlohmann::json& archive)
 {
     auto ob = make<T>();
     if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
@@ -325,13 +356,4 @@ T* ObjectSystem::load_instance(const nlohmann::json& archive)
     return nullptr;
 }
 
-inline ObjectSystem& objects()
-{
-    auto res = services().get_mut<ObjectSystem>();
-    if (!res) {
-        throw std::runtime_error("kernel: unable to load object service");
-    }
-    return *res;
-}
-
-} // namespace nw::kernel
+} // namespace nw

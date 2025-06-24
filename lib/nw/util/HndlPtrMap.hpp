@@ -22,35 +22,39 @@ private:
     Entry* entries_ = nullptr;
     size_t capacity_ = 0;
     size_t size_ = 0;
-    size_t first_slot_collisions_ = 0; // Track collisions in first attempted slot
+    size_t first_slot_collisions_ = 0;
     MemoryResource* allocator_ = nullptr;
 
     static constexpr size_t MAX_LOAD_NUM = 7;
     static constexpr size_t MAX_LOAD_DEN = 10;
     static constexpr uint64_t EMPTY_KEY = UINT64_MAX;
 
-    static size_t next_power_2(size_t n)
-    {
-        n--;
-        n |= n >> 1;
-        n |= n >> 2;
-        n |= n >> 4;
-        n |= n >> 8;
-        n |= n >> 16;
-        n |= n >> 32;
-        return n + 1;
-    }
-
     static size_t required_capacity(size_t n)
     {
-        return next_power_2((n * MAX_LOAD_DEN + MAX_LOAD_NUM - 1) / MAX_LOAD_NUM);
+        static constexpr size_t primes[] = {
+            17, 37, 79, 163, 331, 673, 1361, 2729, 5471, 10949,
+            21911, 43853, 87719, 175447, 350899, 701819, 1403641,
+            2807303, 5614657, 11229331, 22458671, 44917381, 89834777};
+
+        size_t required = (n * MAX_LOAD_DEN + MAX_LOAD_NUM - 1) / MAX_LOAD_NUM;
+
+        for (size_t prime : primes) {
+            if (prime >= required) return prime;
+        }
+
+        return required | 1;
+    }
+
+    static size_t next_prime_capacity(size_t current_capacity)
+    {
+        return required_capacity(current_capacity + 1);
     }
 
 public:
     explicit HndlPtrMap(size_t initial_capacity = 16, MemoryResource* scope = nw::kernel::global_allocator())
     {
         allocator_ = scope;
-        resize(next_power_2(initial_capacity));
+        resize(required_capacity(initial_capacity));
     }
 
     ~HndlPtrMap()
@@ -69,11 +73,11 @@ public:
         CHECK_F(key != EMPTY_KEY, "attempting to use empty key");
 
         if (size_ * MAX_LOAD_DEN >= capacity_ * MAX_LOAD_NUM) {
-            resize(capacity_ * 2);
+            resize(next_prime_capacity(capacity_)); // Fixed resize growth
         }
 
         uint64_t hash = XXH3_64bits(&key, sizeof(key));
-        size_t idx = hash & (capacity_ - 1);
+        size_t idx = hash % capacity_;
 
         if (entries_[idx].key == EMPTY_KEY || entries_[idx].key == key) {
             if (entries_[idx].key == EMPTY_KEY) {
@@ -86,9 +90,9 @@ public:
 
         first_slot_collisions_++;
 
-        size_t i = 0; // Quadratic probing index
+        size_t i = 1;
         while (true) {
-            size_t probe_idx = (idx + i + i * i) & (capacity_ - 1); // Quadratic probing
+            size_t probe_idx = (idx + i * i) % capacity_; // Fixed: consistent modulo
             if (entries_[probe_idx].key == EMPTY_KEY || entries_[probe_idx].key == key) {
                 if (entries_[probe_idx].key == EMPTY_KEY) {
                     size_++;
@@ -110,15 +114,15 @@ public:
         CHECK_F(key != EMPTY_KEY, "attempting to use empty key");
 
         uint64_t hash = XXH3_64bits(&key, sizeof(key));
-        size_t idx = hash & (capacity_ - 1);
+        size_t idx = hash % capacity_;
 
         if (entries_[idx].key == key) {
             return entries_[idx].value;
         }
 
-        size_t i = 0;
+        size_t i = 1;
         while (true) {
-            size_t probe_idx = (idx + i + i * i) & (capacity_ - 1);
+            size_t probe_idx = (idx + i * i) % capacity_; // Fixed: consistent modulo
             if (entries_[probe_idx].key == key) {
                 return entries_[probe_idx].value;
             }
@@ -138,7 +142,7 @@ public:
         CHECK_F(key != EMPTY_KEY, "attempting to use empty key");
 
         uint64_t hash = XXH3_64bits(&key, sizeof(key));
-        size_t idx = hash & (capacity_ - 1);
+        size_t idx = hash % capacity_;
 
         if (entries_[idx].key == key) {
             entries_[idx].key = EMPTY_KEY;
@@ -147,9 +151,9 @@ public:
             return true;
         }
 
-        size_t i = 0;
+        size_t i = 1;
         while (true) {
-            size_t probe_idx = (idx + i + i * i) & (capacity_ - 1);
+            size_t probe_idx = (idx + i * i) % capacity_; // Fixed: consistent modulo
             if (entries_[probe_idx].key == key) {
                 entries_[probe_idx].key = EMPTY_KEY;
                 entries_[probe_idx].value = nullptr;
@@ -168,13 +172,8 @@ public:
         return false;
     }
 
-    /// Get current number of elements
     size_t size() const noexcept { return size_; }
-
-    /// Get current capacity
     size_t capacity() const noexcept { return capacity_; }
-
-    /// Get number of first slot collisions
     size_t get_first_slot_collisions() const noexcept { return first_slot_collisions_; }
 
 private:

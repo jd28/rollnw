@@ -1,12 +1,12 @@
 #include "Kernel.hpp"
 
+#include "../objects/ObjectManager.hpp"
 #include "../profiles/nwn1/Profile.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
-#include "Objects.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"
 #include "TilesetRegistry.hpp"
@@ -100,7 +100,7 @@ void Services::load_services()
     add<TwoDACache>();
     add<EffectSystem>();
     add<Rules>();
-    add<ObjectSystem>();
+    add<ObjectManager>();
     add<EventSystem>();
     add<ModelCache>();
     add<TilesetRegistry>();
@@ -113,6 +113,15 @@ Config& config()
 {
     static Config s_config;
     return s_config;
+}
+
+ObjectManager& objects()
+{
+    auto res = services().get_mut<ObjectManager>();
+    if (!res) {
+        throw std::runtime_error("kernel: unable to load object service");
+    }
+    return *res;
 }
 
 ResourceManager& resman()

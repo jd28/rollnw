@@ -14,6 +14,7 @@ namespace nw {
 // Forward decls
 struct GameProfile;
 struct Module;
+struct ObjectManager;
 struct ResourceManager;
 
 namespace kernel {
@@ -155,6 +156,9 @@ T* Services::get_mut()
 
 /// Gets configuration options
 [[nodiscard]] Config& config();
+
+/// Gets object manager
+[[nodiscard]] ObjectManager& objects();
 
 /// Gets Resource Manager
 [[nodiscard]] ResourceManager& resman();

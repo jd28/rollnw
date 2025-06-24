@@ -10,7 +10,7 @@ namespace nw {
 // ============================================================================
 
 /// Opaque type.. for now.
-enum class ObjectID : uint32_t {};
+enum class ObjectID : uint32_t { };
 
 /// Invalid object ID
 static constexpr ObjectID object_invalid{static_cast<ObjectID>(0x7f000000)};
@@ -56,11 +56,13 @@ void to_json(nlohmann::json& j, ObjectType type);
 // ============================================================================
 
 /// Basic means of referring to an object
-/// @note In case of binding to languages with only doubles, actual data must
-/// be less than 2^53 - 1.
+/// @note Default constructed is "invalid"
 struct ObjectHandle {
-    ObjectID id = object_invalid;
-    ObjectType type = ObjectType::invalid;
+    ObjectID id : 32 = object_invalid;
+    ObjectType type : 8 = ObjectType::invalid;
+    uint32_t version : 24 = max_version;
+
+    static constexpr uint32_t max_version = (1u << 24) - 1;
 
     bool operator==(const ObjectHandle&) const = default;
     std::strong_ordering operator<=>(const ObjectHandle& other) const = default;

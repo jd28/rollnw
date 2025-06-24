@@ -1,6 +1,5 @@
 #include "Area.hpp"
 
-#include "../kernel/Objects.hpp"
 #include "../kernel/Strings.hpp"
 #include "../kernel/TilesetRegistry.hpp"
 #include "../serialization/Gff.hpp"
@@ -9,6 +8,7 @@
 #include "Door.hpp"
 #include "Encounter.hpp"
 #include "Item.hpp"
+#include "ObjectManager.hpp"
 #include "Placeable.hpp"
 #include "Sound.hpp"
 #include "Store.hpp"

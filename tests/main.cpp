@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>

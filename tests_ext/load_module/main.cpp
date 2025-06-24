@@ -1,7 +1,8 @@
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Module.hpp>
+
+#include <nlohmann/json.hpp>
 
 int main(int argc, char* argv[])
 {

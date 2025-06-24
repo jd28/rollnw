@@ -2,7 +2,6 @@
 
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>

@@ -1,13 +1,13 @@
 #include "Creature.hpp"
 
 #include "../functions.hpp"
-#include "../kernel/Objects.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/Strings.hpp"
 #include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"
+#include "ObjectManager.hpp"
 
 #include <nlohmann/json.hpp>
 

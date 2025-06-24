@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <nlohmann/json.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/objects/Door.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
 

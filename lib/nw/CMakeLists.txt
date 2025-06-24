@@ -26,7 +26,6 @@ add_library(nw STATIC
     kernel/FactionSystem.cpp
     kernel/ModelCache.cpp
     kernel/EventSystem.cpp
-    kernel/Objects.cpp
     kernel/Memory.cpp
     kernel/Rules.cpp
     kernel/Strings.cpp
@@ -46,6 +45,7 @@ add_library(nw STATIC
     objects/Module.cpp
     objects/ObjectBase.cpp
     objects/ObjectHandle.cpp
+    objects/ObjectManager.cpp
     objects/Placeable.cpp
     objects/Player.cpp
     objects/Sound.cpp

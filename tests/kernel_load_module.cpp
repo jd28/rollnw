@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/serialization/gff_conversion.hpp>
 

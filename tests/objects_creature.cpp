@@ -3,9 +3,9 @@
 #include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
-#include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>

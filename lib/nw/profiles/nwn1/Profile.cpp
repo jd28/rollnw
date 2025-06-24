@@ -6,10 +6,10 @@
 
 #include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"
-#include "../../kernel/Objects.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/Strings.hpp"
 #include "../../objects/Creature.hpp"
+#include "../../objects/ObjectManager.hpp"
 #include "../../resources/ResourceManager.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
