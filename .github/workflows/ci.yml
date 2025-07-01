@@ -29,24 +29,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04, windows-2019]
+        os: [macos-14, ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
     steps:
       - name: Get current date
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-2022'
         run: |
           echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Get current date
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-2022'
         run: |
           echo "DATE=$(Get-Date -Format yyyy-MM-dd)" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Windows dependencies
       - name: windows - install dependencies
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-2022'
         run: |
           choco upgrade ccache ninja
 
@@ -107,7 +107,7 @@ jobs:
 
       # build the normal libraries
       - name: windows - Visual Studio shell
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-2022'
         uses: egor-tensin/vs-shell@v2
         with:
           arch: x64
@@ -134,7 +134,7 @@ jobs:
           md $env:HOST_CCACHE_DIR -ea 0
 
       - name: windows - configure
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-2022'
         run: |
           cmake --preset ci-windows
 
