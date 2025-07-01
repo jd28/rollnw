@@ -70,9 +70,10 @@ struct ObjectHandle {
     {
         if (auto cmp = static_cast<uint32_t>(id) <=> static_cast<uint32_t>(other.id); cmp != 0) return cmp;
         if (auto cmp = static_cast<uint8_t>(type) <=> static_cast<uint8_t>(other.type); cmp != 0) return cmp;
-        return version <=> other.version;
+        return static_cast<uint32_t>(version) <=> static_cast<uint32_t>(other.version);
     }
 
     uint64_t to_ull() const noexcept;
 };
+
 } // namespace nw
