@@ -64,11 +64,15 @@ struct ObjectHandle {
 
     static constexpr uint32_t max_version = (1u << 24) - 1;
 
-    bool operator==(const ObjectHandle&) const = default;
-    std::strong_ordering operator<=>(const ObjectHandle& other) const = default;
+    bool operator==(const ObjectHandle& other) const = default;
 
-    /// Converst underlying data to unignsed 64 bit integer
+    std::strong_ordering operator<=>(const ObjectHandle& other) const
+    {
+        if (auto cmp = static_cast<uint32_t>(id) <=> static_cast<uint32_t>(other.id); cmp != 0) return cmp;
+        if (auto cmp = static_cast<uint8_t>(type) <=> static_cast<uint8_t>(other.type); cmp != 0) return cmp;
+        return version <=> other.version;
+    }
+
     uint64_t to_ull() const noexcept;
 };
-
 } // namespace nw
