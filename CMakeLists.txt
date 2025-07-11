@@ -9,6 +9,11 @@ option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 option(ROLLNW_BUILD_TESTS "Build tests" OFF)
 option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
+option(ROLLNW_BUILD_WITH_MIMALLOC "Build with mimalloc" OFF)
+
+if(ROLLNW_BUILD_PYTHON AND ROLLNW_BUILD_WITH_MIMALLOC)
+message(FATAL_ERROR "Python bindings cannot be built with mimalloc")
+endif()
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -70,7 +75,7 @@ include_directories(SYSTEM external/nowide/include)
 include_directories(SYSTEM external/xsimd-13.0.0/include)
 include_directories(SYSTEM external/xxhash-0.8.3)
 
-if(NOT ROLLNW_BUILD_PYTHON AND NOT APPLE)
+if(ROLLNW_BUILD_WITH_MIMALLOC AND NOT APPLE)
 set(MI_BUILD_SHARED OFF)
 set(MI_BUILD_OBJECT OFF)
 set(MI_BUILD_TESTS OFF)

@@ -151,7 +151,7 @@ target_link_libraries(nw PUBLIC
 )
 endif()
 
-if(NOT ROLLNW_BUILD_PYTHON AND NOT APPLE)
+if(ROLLNW_BUILD_WITH_MIMALLOC AND NOT APPLE)
 target_link_libraries(nw PUBLIC
     mimalloc-static
 )
