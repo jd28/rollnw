@@ -37,3 +37,11 @@
             return {};                           \
         }                                        \
     } while (0)
+
+#define ENSURE_OR_RETURN_VALUE(value, cond, fmt, ...) \
+    do {                                              \
+        if (!(cond)) {                                \
+            LOG_F(ERROR, fmt, ##__VA_ARGS__);         \
+            return (value);                           \
+        }                                             \
+    } while (0)

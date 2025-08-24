@@ -141,9 +141,8 @@ struct ClassArray {
     /// Gets class ability gain
     int get_stat_gain(Class class_, Ability ability, size_t level) const;
 
+    // private:
     std::set<Vector<int>> attack_tables;
-    Vector<int> stat_gain_tables;
-
     PVector<ClassInfo> entries;
     map_type constant_to_index;
 };

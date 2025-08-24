@@ -172,7 +172,6 @@ String ClassInfo::editor_name() const
 void ClassArray::clear()
 {
     attack_tables.clear();
-    stat_gain_tables.clear();
     entries.clear();
     constant_to_index.clear();
 }
