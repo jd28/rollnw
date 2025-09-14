@@ -26,8 +26,11 @@ struct FixedVector {
 
     ~FixedVector()
     {
-        clear();
-        allocator_.deallocate(buffer_, capacity_);
+        if (buffer_) {
+            clear();
+            allocator_.deallocate(buffer_, capacity_);
+            buffer_ = nullptr;
+        }
     }
 
     FixedVector(const FixedVector& other)
@@ -97,7 +100,9 @@ struct FixedVector {
     void clear()
     {
         for (size_t i = 0; i < size_; ++i) {
-            buffer_[i].~T();
+            if constexpr (!std::is_trivially_destructible_v<T>) {
+                buffer_[i].~T();
+            }
         }
         size_ = 0;
     }
