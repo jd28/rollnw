@@ -2,8 +2,8 @@
 
 #include "../util/FunctionPtr.hpp"
 #include "../util/enum_flags.hpp"
-#include "Effect.hpp"
 #include "damage.hpp"
+#include "effects.hpp"
 #include "rule_type.hpp"
 
 #include <absl/container/inlined_vector.h>

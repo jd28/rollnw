@@ -1,7 +1,6 @@
 #include "EventSystem.hpp"
 
-#include "../rules/Effect.hpp"
-#include "EffectSystem.hpp"
+#include "../rules/effects.hpp"
 
 #include <nlohmann/json.hpp>
 

@@ -14,6 +14,7 @@ namespace nw {
 // Forward decls
 struct GameProfile;
 struct Module;
+struct EffectSystem;
 struct ObjectManager;
 struct ResourceManager;
 
@@ -156,6 +157,9 @@ T* Services::get_mut()
 
 /// Gets configuration options
 [[nodiscard]] Config& config();
+
+/// Gets effect system
+EffectSystem& effects();
 
 /// Gets object manager
 [[nodiscard]] ObjectManager& objects();

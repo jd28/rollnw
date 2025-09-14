@@ -4,8 +4,8 @@
 #include "constants/const_spell.hpp"
 
 #include "../../rules/Class.hpp"
-#include "../../rules/Effect.hpp"
 #include "../../rules/combat.hpp"
+#include "../../rules/effects.hpp"
 #include "../../rules/items.hpp"
 
 namespace nwn1 {

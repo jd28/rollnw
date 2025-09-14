@@ -3,10 +3,11 @@
 #include "constants.hpp"
 #include "scriptapi.hpp"
 
+#include "../../formats/StaticTwoDA.hpp"
 #include "../../functions.hpp"
-#include "../../kernel/EffectSystem.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
+#include "../../rules/effects.hpp"
 #include "../../scriptapi.hpp"
 
 namespace nwk = nw::kernel;

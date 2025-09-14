@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -12,6 +11,7 @@
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/rules/combat.hpp>
+#include <nw/rules/effects.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>

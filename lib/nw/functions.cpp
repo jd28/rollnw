@@ -1,8 +1,8 @@
 #include "functions.hpp"
 
-#include "kernel/EffectSystem.hpp"
 #include "kernel/EventSystem.hpp"
 #include "objects/Creature.hpp"
+#include "rules/effects.hpp"
 #include "scriptapi.hpp"
 
 namespace nw {
@@ -20,7 +20,7 @@ int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
     if (!obj) { return 0; }
     int processed = 0;
     for (const auto& handle : obj->effects()) {
-        if (handle.effect->creator == creator) {
+        if (handle.effect->handle().creator == creator) {
             nw::kernel::events().add(nw::kernel::EventType::remove_effect, obj, handle.effect);
             ++processed;
         }
@@ -39,8 +39,8 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
     if (!remove) {
         for (const auto& ip : item->properties) {
             if (auto eff = nw::kernel::effects().generate(ip, index, item->baseitem)) {
-                eff->creator = item->handle();
-                eff->category = nw::EffectCategory::item;
+                eff->handle().creator = item->handle();
+                eff->handle().category = nw::EffectCategory::item;
                 if (!apply_effect(obj, eff)) {
                     nw::kernel::effects().destroy(eff);
                 }

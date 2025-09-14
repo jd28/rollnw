@@ -1,12 +1,13 @@
 #include "scriptapi.hpp"
 
+#include "formats/StaticTwoDA.hpp"
 #include "functions.hpp"
-#include "kernel/EffectSystem.hpp"
 #include "kernel/Rules.hpp"
 #include "kernel/Strings.hpp"
 #include "objects/Creature.hpp"
 #include "objects/Item.hpp"
 #include "objects/ObjectManager.hpp"
+#include "rules/effects.hpp"
 
 namespace nw {
 

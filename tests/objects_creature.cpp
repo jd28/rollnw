@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <nw/functions.hpp>
-#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
@@ -9,6 +8,7 @@
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>
+#include <nw/rules/effects.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/scriptapi.hpp>
 #include <nw/serialization/GffBuilder.hpp>

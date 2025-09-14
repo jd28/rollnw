@@ -1,7 +1,6 @@
 #pragma once
 
-#include "objects/EffectArray.hpp"
-#include "rules/Effect.hpp"
+#include "rules/effects.hpp"
 
 #include <cstdint>
 

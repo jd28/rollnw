@@ -3,7 +3,7 @@
 #include "../objects/ObjectManager.hpp"
 #include "../profiles/nwn1/Profile.hpp"
 #include "../resources/ResourceManager.hpp"
-#include "EffectSystem.hpp"
+#include "../rules/effects.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
@@ -113,6 +113,15 @@ Config& config()
 {
     static Config s_config;
     return s_config;
+}
+
+EffectSystem& effects()
+{
+    auto res = services().get_mut<EffectSystem>();
+    if (!res) {
+        throw std::runtime_error("kernel: unable to effects service");
+    }
+    return *res;
 }
 
 ObjectManager& objects()

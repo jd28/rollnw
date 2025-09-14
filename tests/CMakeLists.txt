@@ -16,7 +16,6 @@ add_executable(rollnw_test
     #formats_journal.cpp
     formats_twoda.cpp
 
-    kernel_effect_system.cpp
     kernel_factions.cpp
     kernel_load_module.cpp
     kernel_models.cpp

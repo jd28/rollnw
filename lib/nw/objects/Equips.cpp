@@ -1,6 +1,6 @@
 #include "Equips.hpp"
 
-#include "../kernel/EffectSystem.hpp"
+#include "../rules/effects.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "Creature.hpp"
@@ -38,8 +38,8 @@ bool Equips::instantiate()
                 for (const auto& ip : temp->properties) {
                     if (auto eff = nw::kernel::effects().generate(ip,
                             static_cast<EquipIndex>(i), temp->baseitem)) {
-                        eff->creator = temp->handle();
-                        eff->category = nw::EffectCategory::item;
+                        eff->handle().creator = temp->handle();
+                        eff->handle().category = nw::EffectCategory::item;
                         if (!nw::kernel::effects().apply(owner_, eff)) {
                             nw::kernel::effects().destroy(eff);
                         } else {

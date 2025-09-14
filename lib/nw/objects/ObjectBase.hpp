@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../rules/Versus.hpp"
-#include "EffectArray.hpp"
+#include "../rules/effects.hpp"
 #include "ObjectHandle.hpp"
 #include "VisualTransform.hpp"
 

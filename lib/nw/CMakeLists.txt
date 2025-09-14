@@ -22,7 +22,6 @@ add_library(nw STATIC
 
     kernel/Kernel.cpp
     kernel/Config.cpp
-    kernel/EffectSystem.cpp
     kernel/FactionSystem.cpp
     kernel/ModelCache.cpp
     kernel/EventSystem.cpp
@@ -57,7 +56,6 @@ add_library(nw STATIC
     objects/CombatInfo.cpp
     objects/Common.cpp
     objects/CreatureStats.cpp
-    objects/EffectArray.cpp
     objects/Equips.cpp
     objects/Inventory.cpp
     objects/LevelHistory.cpp
@@ -88,7 +86,7 @@ add_library(nw STATIC
     rules/Class.cpp
     rules/combat.cpp
     rules/Dice.cpp
-    rules/Effect.cpp
+    rules/effects.cpp
     rules/feats.cpp
     rules/items.cpp
     rules/Spell.cpp
