@@ -94,8 +94,8 @@
     "gender": 0,
     "good_evil": 100,
     "hp": 894,
-    "hp_current": 894,
-    "hp_max": 1014,
+    "hp_current": 1094,
+    "hp_max": 1094,
     "immortal": 0,
     "interruptable": 0,
     "inventory": [],
@@ -105,60 +105,16 @@
             "class": 4,
             "level": 10,
             "spellbook": {
-                "known": [
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    []
-                ],
-                "memorized": [
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    []
-                ]
+                "known": [],
+                "memorized": []
             }
         },
         {
             "class": 5,
             "level": 30,
             "spellbook": {
-                "known": [
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    []
-                ],
-                "memorized": [
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    []
-                ]
+                "known": [],
+                "memorized": []
             }
         }
     ],

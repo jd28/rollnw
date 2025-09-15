@@ -22,6 +22,13 @@ struct HandlePool {
         return get(insert());
     }
 
+    Impl* get(HandleType hndl) const
+    {
+        if (!valid(hndl)) { return nullptr; }
+        auto& payload = storage_[hndl.index];
+        return &payload.value;
+    }
+
     Impl* get(HandleType hndl)
     {
         if (!valid(hndl)) { return nullptr; }
@@ -49,7 +56,7 @@ struct HandlePool {
         impl = &storage_[idx].value;
 
         HandleType result;
-        result.generation = gen;
+        result.generation = gen & HandleType::max_generation;
         result.index = idx;
         impl->set_handle(result);
         return result;

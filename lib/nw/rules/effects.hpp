@@ -39,6 +39,7 @@ struct EffectHandle {
 
     // Pool Handle interface. DO NOT modify
     using size_type = uint32_t;
+    static constexpr uint32_t max_generation = std::numeric_limits<uint32_t>::max();
     size_type index = 0;
     size_type generation = 0;
 };
