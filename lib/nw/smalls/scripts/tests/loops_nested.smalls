@@ -1,0 +1,44 @@
+from core.test import { test, reset, summary };
+
+fn test_nested_break(): int {
+    var outer = 0;
+    var inner = 0;
+    for (outer < 3) {
+        outer = outer + 1;
+        inner = 0;
+        for (inner < 3) {
+            inner = inner + 1;
+            if (inner == 2) {
+                break;
+            }
+        }
+    }
+    return outer * 10 + inner;
+}
+
+fn test_nested_continue(): int {
+    var outer = 0;
+    var sum = 0;
+    for (var i = 0; i < 4; i = i + 1) {
+        if (i == 1) {
+            continue;
+        }
+        for (var j = 0; j < 3; j = j + 1) {
+            if (j == 2) {
+                continue;
+            }
+            sum = sum + (i * 10 + j);
+        }
+        outer = outer + 1;
+    }
+    return sum + outer;
+}
+
+fn main() {
+    reset();
+
+    test("nested_break", test_nested_break() == 32);
+    test("nested_continue", test_nested_continue() == 106);
+
+    summary();
+}

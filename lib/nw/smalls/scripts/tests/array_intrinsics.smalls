@@ -1,0 +1,23 @@
+from core.test import { test, reset, summary };
+import core.array as arr;
+
+fn main() {
+    reset();
+
+    var nums: array!(int) = { 1, 2 };
+    arr.push(nums, 3);
+
+    test("array_len", arr.len(nums) == 3);
+    test("array_get", arr.get(nums, 1) == 2);
+
+    arr.set(nums, 1, 5);
+    test("array_set", arr.get(nums, 1) == 5);
+
+    test("array_pop", arr.pop(nums) == 3);
+
+    arr.reserve(nums, 8);
+    arr.clear(nums);
+    test("array_clear", arr.len(nums) == 0);
+
+    summary();
+}

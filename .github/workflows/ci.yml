@@ -156,3 +156,253 @@ jobs:
       - name: ccache stats
         run: |
           ccache -s
+
+  linux-clang-tests:
+    runs-on: ubuntu-22.04
+    name: Linux Clang Tests
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: linux - install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang llvm ccache
+
+      - name: linux - cache ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ubuntu-22.04-clang-ccache-${{ env.DATE }}
+          restore-keys: |
+            ubuntu-22.04-clang-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: linux - cache nwn
+        id: cache-nwn
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/nwn/
+          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+
+      - name: linux - download nwn
+        if: steps.cache-nwn.outputs.cache-hit != 'true'
+        run: |
+          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
+          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+
+      - name: linux - run
+        run: |
+          ./scripts/ci/linux_clang_tests.sh
+
+      - name: ccache stats
+        run: |
+          ccache -s
+
+  linux-clang-asan-ubsan:
+    runs-on: ubuntu-22.04
+    name: Linux Clang ASan+UBSan
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: linux - install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang llvm ccache
+
+      - name: linux - cache ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ubuntu-22.04-clang-asan-ubsan-ccache-${{ env.DATE }}
+          restore-keys: |
+            ubuntu-22.04-clang-asan-ubsan-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: linux - cache nwn
+        id: cache-nwn
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/nwn/
+          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+
+      - name: linux - download nwn
+        if: steps.cache-nwn.outputs.cache-hit != 'true'
+        run: |
+          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
+          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+
+      - name: linux - run
+        env:
+          ASAN_OPTIONS: "abort_on_error=1:detect_leaks=0"
+        run: |
+          ./scripts/ci/linux_clang_asan_ubsan.sh
+
+      - name: ccache stats
+        run: |
+          ccache -s
+
+  linux-clang-fuzz-smoke:
+    runs-on: ubuntu-22.04
+    name: Linux Clang Fuzz Smoke (Placeholder)
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: linux - install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang llvm ccache
+
+      - name: linux - cache ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ubuntu-22.04-clang-fuzz-smoke-ccache-${{ env.DATE }}
+          restore-keys: |
+            ubuntu-22.04-clang-fuzz-smoke-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: fuzz smoke
+        run: |
+          ./scripts/ci/linux_clang_fuzz_smoke.sh
+
+      - name: upload fuzz artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          if-no-files-found: ignore
+          path: |
+            tmp/fuzz-artifacts/**
+
+      - name: ccache stats
+        run: |
+          ccache -s
+
+  linux-clang-benchmark-canary:
+    runs-on: ubuntu-22.04
+    name: Linux Clang Benchmark Canary (Non-blocking)
+    continue-on-error: true
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: linux - install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang llvm ccache
+
+      - name: linux - cache ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ubuntu-22.04-clang-bench-ccache-${{ env.DATE }}
+          restore-keys: |
+            ubuntu-22.04-clang-bench-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: linux - cache nwn
+        id: cache-nwn
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/nwn/
+          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+
+      - name: linux - download nwn
+        if: steps.cache-nwn.outputs.cache-hit != 'true'
+        run: |
+          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
+          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+
+      - name: benchmark canary
+        env:
+          NWN_ROOT: "${{ github.workspace }}/nwn/"
+        run: |
+          ./scripts/ci/ensure_nwn.sh
+          cmake --preset ci-linux-clang-bench
+          cmake --build --preset ci-linux-clang-bench --target rollnw_benchmark
+          mkdir -p tmp/bench
+          ./build-ci-linux-clang-bench/benchmarks/rollnw_benchmark \
+            --benchmark_filter='BM_smalls_.*' \
+            --benchmark_min_time=0.01s \
+            --benchmark_repetitions=1 \
+            --benchmark_out=tmp/bench/smalls.json \
+            --benchmark_out_format=json
+
+      - name: upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-smalls
+          if-no-files-found: warn
+          path: |
+            tmp/bench/smalls.json
+
+      - name: ccache stats
+        run: |
+          ccache -s

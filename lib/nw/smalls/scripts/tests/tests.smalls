@@ -1,0 +1,71 @@
+from core.test import { test, reset, summary };
+import core.array as arr;
+import core.bit as bit;
+import core.math as math;
+import core.map as m;
+import core.string as str;
+
+fn contains_str(a: array!(string), needle: string): bool {
+    for (var i = 0; i < arr.len(a); i = i + 1) {
+        if (arr.get(a, i) == needle) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn main() {
+    reset();
+
+    test("int_add", 1 + 1 == 2);
+    test("bool_logic", true);
+
+    test("bit_and", bit.and(6, 3) == 2);
+    test("bit_shl", bit.shl(1, 4) == 16);
+
+    var nums: array!(int) = { 1, 2 };
+    arr.push(nums, 3);
+    test("array_len", arr.len(nums) == 3);
+    test("array_get", arr.get(nums, 0) == 1);
+
+    var scores: map!(string, int) = { "a": 1 };
+    test("map_set_insert", m.set(scores, "b", 2));
+    test("map_len", m.len(scores) == 2);
+    test("map_get", m.get(scores, "b") == 2);
+    test("map_remove", m.remove(scores, "a"));
+
+    // map helpers
+    test("map_has_key_true", m.has_key(scores, "b"));
+    test("map_has_key_false", !m.has_key(scores, "missing"));
+    var ks = m.keys(scores);
+    var vs = m.values(scores);
+    test("map_keys_len", arr.len(ks) == 1);
+    test("map_values_len", arr.len(vs) == 1);
+    test("map_keys_contains", contains_str(ks, "b"));
+    test("map_values_contains", arr.get(vs, 0) == 2);
+
+    // array ops
+    var base: array!(int) = { 1, 2, 3, 4 };
+    var doubled = arr.map(base, fn(x: int): int { return x * 2; });
+    test("array_map", arr.len(doubled) == 4 && arr.get(doubled, 2) == 6);
+    var odds = arr.filter(base, fn(x: int): bool { return (x % 2) == 1; });
+    test("array_filter", arr.len(odds) == 2 && arr.get(odds, 0) == 1 && arr.get(odds, 1) == 3);
+    var sum = arr.reduce(base, 0, fn(acc: int, x: int): int { return acc + x; });
+    test("array_reduce", sum == 10);
+    var to_sort: array!(int) = { 3, 1, 2 };
+    arr.sort(to_sort, fn(a: int, b: int): bool { return a < b; });
+    test("array_sort", arr.get(to_sort, 0) == 1 && arr.get(to_sort, 1) == 2 && arr.get(to_sort, 2) == 3);
+
+    // string.format
+    test("string_format_basic", str.format("a {} b {}", { "x", "y" }) == "a x b y");
+    test("string_format_missing", str.format("a {} b {}", { "x" }) == "a x b {}");
+    test("string_format_escapes", str.format("{{{}}}", { "x" }) == "{x}");
+
+    // core.math
+    test("math_sqrt", math.sqrt(9.0) == 3.0);
+    test("math_abs", math.abs(-3.5) == 3.5);
+    test("math_sin0", math.abs(math.sin(0.0) - 0.0) < 0.0001);
+    test("math_cos0", math.abs(math.cos(0.0) - 1.0) < 0.0001);
+
+    summary();
+}

@@ -1,0 +1,8 @@
+import core.array as A;
+import core.map as Map;
+
+var xs: array!(int) = { 1, 2, 3, 4 };
+var n: int = A.len(xs);
+
+var m: map!(int, int) = { 1: 10, 2: 20 };
+var has_one: bool = Map.has(m, 1);

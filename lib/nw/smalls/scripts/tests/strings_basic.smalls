@@ -1,0 +1,12 @@
+from core.test import { test, reset, summary };
+
+fn main() {
+    reset();
+
+    var a = "hello";
+    var b = "world";
+    test("string_eq", a == "hello");
+    test("string_ne", a != b);
+
+    summary();
+}

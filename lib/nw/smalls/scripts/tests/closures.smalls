@@ -1,0 +1,79 @@
+from core.test import { test, reset, summary };
+
+fn make_adder(n: int): fn(int): int {
+    return fn(x: int): int { return x + n; };
+}
+
+fn test_basic_capture(): bool {
+    var add5 = make_adder(5);
+    return add5(3) == 8 && add5(0) == 5;
+}
+
+fn make_counter(): fn(): int {
+    var count = 0;
+    return fn(): int {
+        count = count + 1;
+        return count;
+    };
+}
+
+fn test_mutable_capture(): bool {
+    var c = make_counter();
+    return c() == 1 && c() == 2;
+}
+
+fn make_pair(): (fn(): int, fn()) {
+    var x = 0;
+    var get = fn() { return x; };
+    var inc = fn() { x = x + 1; };
+    return (get, inc);
+}
+
+fn test_shared_upvalue(): bool {
+    var get, inc = make_pair();
+    inc();
+    return get() == 1;
+}
+
+fn test_nested_capture(): bool {
+    var outer = fn(): fn(): int {
+        var x = 10;
+        var mid = fn(): fn(): int {
+            return fn(): int { return x + 5; };
+        };
+        return mid();
+    };
+
+    var f = outer();
+    return f() == 15;
+}
+
+fn test_closure_truthiness_unset(): bool {
+    var on_hit: fn(): int;
+    if (on_hit) {
+        return false;
+    }
+    return !on_hit;
+}
+
+fn test_closure_truthiness_set(): bool {
+    var on_hit: fn(): int;
+    on_hit = fn(): int { return 7; };
+    if (!on_hit) {
+        return false;
+    }
+    return on_hit() == 7;
+}
+
+fn main() {
+    reset();
+
+    test("closure_basic_capture", test_basic_capture());
+    test("closure_mutable_capture", test_mutable_capture());
+    test("closure_shared_upvalue", test_shared_upvalue());
+    test("closure_nested_capture", test_nested_capture());
+    test("closure_truthiness_unset", test_closure_truthiness_unset());
+    test("closure_truthiness_set", test_closure_truthiness_set());
+
+    summary();
+}

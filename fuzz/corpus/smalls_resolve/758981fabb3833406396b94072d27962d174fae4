@@ -1,0 +1,5 @@
+from core.types import { Rect };
+import core.math as M;
+
+var r: Rect = Rect { 1, 2, 3, 4 };
+var p: M.Point = M.Point { 0.5, 1.5 };

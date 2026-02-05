@@ -89,6 +89,7 @@ add_library(nw STATIC
     rules/effects.cpp
     rules/feats.cpp
     rules/items.cpp
+    rules/RuntimeObject.cpp
     rules/Spell.cpp
     rules/system.cpp
 
@@ -104,12 +105,40 @@ add_library(nw STATIC
     serialization/GffBuilder.cpp
     serialization/Serialization.cpp
 
+    smalls/Array.cpp
+    smalls/Ast.cpp
+    smalls/AstCompiler.cpp
+    smalls/AstResolver.cpp
+    smalls/Bytecode.cpp
+    smalls/BytecodeVerifier.cpp
+    smalls/Context.cpp
+    smalls/Diagnostic.cpp
+    smalls/GarbageCollector.cpp
+    smalls/Lexer.cpp
+    smalls/NameResolver.cpp
+    smalls/native/core_array.cpp
+    smalls/native/core_effects.cpp
+    smalls/native/core_map.cpp
+    smalls/native/core_math.cpp
+    smalls/native/core_prelude.cpp
+    smalls/native/core_string.cpp
+    smalls/native/core_test.cpp
+    smalls/Parser.cpp
+    smalls/runtime.cpp
+    smalls/ScriptHeap.cpp
+    smalls/Smalls.cpp
+    smalls/TypeResolver.cpp
+    smalls/types.cpp
+    smalls/Validator.cpp
+    smalls/VirtualMachine.cpp
+
     util/Allocator.cpp
     util/base64.cpp
     util/ByteArray.cpp
     util/compression.cpp
     util/error_context.cpp
     util/game_install.cpp
+    util/HandlePool.cpp
     util/memory.cpp
     util/platform.cpp
     util/string.cpp
@@ -139,6 +168,7 @@ target_link_libraries(nw PUBLIC
     stb_image
     fzy
     inih
+    offsetallocator
 
     coverage_config
 )

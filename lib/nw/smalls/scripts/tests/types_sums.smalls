@@ -1,0 +1,291 @@
+from core.test import { test, reset, summary };
+
+type Color = Red | Green | Blue;
+type Result = Ok(int) | Err(string);
+type Option = Some(int) | None;
+type OptionG!($T) = SomeG($T) | NoneG;
+
+[[value_type]]
+type OptVal = SomeVal(int) | NoneVal;
+
+type Paint {
+    color: Color;
+};
+
+type Envelope {
+    status: Result;
+};
+
+fn takes_color(c: Color): int { return 1; }
+fn takes_result(r: Result): int { return 2; }
+fn takes_option(o: Option): int { return 3; }
+fn takes_option_g(o: OptionG!(int)): int { return 5; }
+fn takes_optval(o: OptVal): int { return 4; }
+
+fn test_unit_variant_red(): bool {
+    var c: Color = Color.Red;
+    return takes_color(c) == 1;
+}
+
+fn test_unit_variant_green(): bool {
+    var c: Color = Color.Green;
+    return takes_color(c) == 1;
+}
+
+fn test_unit_variant_blue(): bool {
+    var c: Color = Color.Blue;
+    return takes_color(c) == 1;
+}
+
+fn test_payload_variant_ok(): bool {
+    var r: Result = Result.Ok(42);
+    return takes_result(r) == 2;
+}
+
+fn test_payload_variant_err(): bool {
+    var r: Result = Result.Err("failed");
+    return takes_result(r) == 2;
+}
+
+fn test_option_some(): bool {
+    var o: Option = Option.Some(123);
+    return takes_option(o) == 3;
+}
+
+fn test_option_none(): bool {
+    var o: Option = Option.None;
+    return takes_option(o) == 3;
+}
+
+fn test_generic_option_some(): bool {
+    var o: OptionG!(int) = OptionG.SomeG(123);
+    return takes_option_g(o) == 5;
+}
+
+fn test_generic_option_none(): bool {
+    var o: OptionG!(int) = OptionG.NoneG;
+    return takes_option_g(o) == 5;
+}
+
+fn test_generic_option_nested(): bool {
+    var o: OptionG!(OptionG!(int)) = OptionG.SomeG(OptionG.SomeG(7));
+    var result = 0;
+    switch (o) {
+        case OptionG.SomeG(inner): {
+            switch (inner) {
+                case OptionG.SomeG(x): { result = x; }
+                case OptionG.NoneG: { result = -1; }
+            }
+        }
+        case OptionG.NoneG: { result = -2; }
+    }
+    return result == 7;
+}
+
+fn test_sum_in_struct(): bool {
+    var p: Paint = Paint { color = Color.Green };
+    return takes_color(p.color) == 1;
+}
+
+fn test_result_in_struct(): bool {
+    var e: Envelope = Envelope { status = Result.Ok(100) };
+    return takes_result(e.status) == 2;
+}
+
+fn returns_color(): Color {
+    return Color.Blue;
+}
+
+fn returns_result(success: bool): Result {
+    if (success) {
+        return Result.Ok(999);
+    }
+    return Result.Err("error");
+}
+
+fn test_return_unit_variant(): bool {
+    var c = returns_color();
+    return takes_color(c) == 1;
+}
+
+fn test_return_payload_variant(): bool {
+    var r1 = returns_result(true);
+    var r2 = returns_result(false);
+    return takes_result(r1) == 2 && takes_result(r2) == 2;
+}
+
+fn test_multiple_sum_vars(): bool {
+    var c1: Color = Color.Red;
+    var c2: Color = Color.Green;
+    var c3: Color = Color.Blue;
+    return takes_color(c1) == 1 && takes_color(c2) == 1 && takes_color(c3) == 1;
+}
+
+fn test_reassign_sum(): bool {
+    var c: Color = Color.Red;
+    c = Color.Blue;
+    return takes_color(c) == 1;
+}
+
+fn test_reassign_result(): bool {
+    var r: Result = Result.Ok(1);
+    r = Result.Err("changed");
+    r = Result.Ok(2);
+    return takes_result(r) == 2;
+}
+
+fn test_match_unit_variant(): bool {
+    var c: Color = Color.Green;
+    var result = 0;
+    switch (c) {
+        case Color.Red: { result = 1; }
+        case Color.Green: { result = 2; }
+        case Color.Blue: { result = 3; }
+    }
+    return result == 2;
+}
+
+fn test_match_payload_extract(): bool {
+    var r: Result = Result.Ok(42);
+    var value = 0;
+    switch (r) {
+        case Result.Ok(x): { value = x; }
+        case Result.Err(msg): { value = -1; }
+    }
+    return value == 42;
+}
+
+fn test_match_err_payload(): bool {
+    var r: Result = Result.Err("error");
+    var is_err = false;
+    switch (r) {
+        case Result.Ok(x): { is_err = false; }
+        case Result.Err(msg): { is_err = true; }
+    }
+    return is_err;
+}
+
+fn test_match_option_some(): bool {
+    var o: Option = Option.Some(100);
+    var value = 0;
+    switch (o) {
+        case Some(x): { value = x; }
+        case None: { value = -1; }
+    }
+    return value == 100;
+}
+
+fn test_match_option_none(): bool {
+    var o: Option = Option.None;
+    var value = 0;
+    switch (o) {
+        case Some(x): { value = x; }
+        case None: { value = -1; }
+    }
+    return value == -1;
+}
+
+fn test_match_with_default(): bool {
+    var c: Color = Color.Blue;
+    var result = 0;
+    switch (c) {
+        case Color.Red: { result = 1; }
+        default: { result = 99; }
+    }
+    return result == 99;
+}
+
+fn test_match_all_colors(): bool {
+    var results = 0;
+    var colors = (Color.Red, Color.Green, Color.Blue);
+
+    var c1: Color = colors[0];
+    switch (c1) {
+        case Color.Red: { results = results + 1; }
+        case Color.Green: { results = results + 10; }
+        case Color.Blue: { results = results + 100; }
+    }
+
+    var c2: Color = colors[1];
+    switch (c2) {
+        case Red: { results = results + 1; }
+        case Green: { results = results + 10; }
+        case Blue: { results = results + 100; }
+    }
+
+    var c3: Color = colors[2];
+    switch (c3) {
+        case Color.Red: { results = results + 1; }
+        case Color.Green: { results = results + 10; }
+        case Color.Blue: { results = results + 100; }
+    }
+
+    return results == 111;
+}
+
+fn test_value_type_some(): bool {
+    var o: OptVal = OptVal.SomeVal(42);
+    return takes_optval(o) == 4;
+}
+
+fn test_value_type_none(): bool {
+    var o: OptVal = OptVal.NoneVal;
+    return takes_optval(o) == 4;
+}
+
+fn test_value_type_match(): bool {
+    var o: OptVal = OptVal.SomeVal(99);
+    var value = 0;
+    switch (o) {
+        case SomeVal(x): { value = x; }
+        case NoneVal: { value = -1; }
+    }
+    return value == 99;
+}
+
+fn test_value_type_reassign(): bool {
+    var o: OptVal = OptVal.SomeVal(1);
+    o = OptVal.NoneVal;
+    o = OptVal.SomeVal(2);
+    var value = 0;
+    switch (o) {
+        case SomeVal(x): { value = x; }
+        case NoneVal: { value = -1; }
+    }
+    return value == 2;
+}
+
+fn main() {
+    reset();
+
+    test("unit_variant_red", test_unit_variant_red());
+    test("unit_variant_green", test_unit_variant_green());
+    test("unit_variant_blue", test_unit_variant_blue());
+    test("payload_variant_ok", test_payload_variant_ok());
+    test("payload_variant_err", test_payload_variant_err());
+    test("option_some", test_option_some());
+    test("option_none", test_option_none());
+    test("generic_option_some", test_generic_option_some());
+    test("generic_option_none", test_generic_option_none());
+    test("generic_option_nested", test_generic_option_nested());
+    test("sum_in_struct", test_sum_in_struct());
+    test("result_in_struct", test_result_in_struct());
+    test("return_unit_variant", test_return_unit_variant());
+    test("return_payload_variant", test_return_payload_variant());
+    test("multiple_sum_vars", test_multiple_sum_vars());
+    test("reassign_sum", test_reassign_sum());
+    test("reassign_result", test_reassign_result());
+    test("match_unit_variant", test_match_unit_variant());
+    test("match_payload_extract", test_match_payload_extract());
+    test("match_err_payload", test_match_err_payload());
+    test("match_option_some", test_match_option_some());
+    test("match_option_none", test_match_option_none());
+    test("match_with_default", test_match_with_default());
+    test("match_all_colors", test_match_all_colors());
+    test("value_type_some", test_value_type_some());
+    test("value_type_none", test_value_type_none());
+    test("value_type_match", test_value_type_match());
+    test("value_type_reassign", test_value_type_reassign());
+
+    summary();
+}

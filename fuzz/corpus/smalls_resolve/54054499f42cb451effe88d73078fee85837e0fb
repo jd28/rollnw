@@ -1,0 +1,5 @@
+import core.math as M;
+from core.types import { Color, WHITE };
+
+var c: Color = WHITE;
+var d: float = M.dot(M.ZERO_VEC, M.Vector { 1.0, 0.0, 0.0 });

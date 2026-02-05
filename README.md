@@ -20,6 +20,7 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 - An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [arclight](https://github.com/jd28/arclight) project for some model viewing.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
+- Smalls is a statically-typed scripting language designed for NWN tooling. It replaces NWScript with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](lib/nw/smalls/docs/index.md) for a language spec.
 
 ## Goals
 

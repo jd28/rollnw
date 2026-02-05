@@ -1,0 +1,45 @@
+[[native]] fn sin(x: float): float;
+[[native]] fn cos(x: float): float;
+[[native]] fn sqrt(x: float): float;
+[[native]] fn abs(x: float): float;
+[[native]] fn log(x: float): float;
+[[native]] fn exp(x: float): float;
+[[native]] fn ceil(x: float): float;
+[[native]] fn floor(x: float): float;
+[[native]] fn round(x: float): float;
+[[native]] fn pow(base: float, exponent: float): float;
+[[native]] fn atan2(y: float, x: float): float;
+fn min(a: $T, b: $T): $T {
+    if (a < b) { return a; }
+    return b;
+}
+
+fn max(a: $T, b: $T): $T {
+    if (a > b) { return a; }
+    return b;
+}
+
+fn clamp(x: $T, lo: $T, hi: $T): $T {
+    if (x < lo) { return lo; }
+    if (x > hi) { return hi; }
+    return x;
+}
+
+const PI = 3.14159265358979;
+
+type Vector {
+    x: float;
+    y: float;
+    z: float;
+};
+
+type Point {
+    x: float;
+    y: float;
+};
+
+fn dot(a: Vector, b: Vector): float {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+const ZERO_VEC = Vector { 0.0, 0.0, 0.0 };

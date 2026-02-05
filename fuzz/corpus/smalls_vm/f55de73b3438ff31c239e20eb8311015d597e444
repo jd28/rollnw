@@ -1,0 +1,9 @@
+from core.types import { Color, WHITE, Rect };
+
+fn main() {
+    var c: Color = WHITE;
+    var r: Rect = Rect { 1, 2, 3, 4 };
+
+    assert(c.a == 255);
+    assert(r.width == 3);
+}

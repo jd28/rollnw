@@ -1,0 +1,5 @@
+[[native]]
+type Point {
+    x: float;
+    y: float;
+};

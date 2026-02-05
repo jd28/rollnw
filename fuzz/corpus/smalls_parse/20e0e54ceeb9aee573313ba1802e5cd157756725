@@ -1,0 +1,6 @@
+import core.math as M;
+
+fn main() {
+    var v: M.Vector = M.Vector { 1.0, 2.0, 3.0 };
+    var _d = M.dot(v, v);
+}

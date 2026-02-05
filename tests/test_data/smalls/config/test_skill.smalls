@@ -1,0 +1,5 @@
+Skill {
+    name = "Hide",
+    ability = 1,
+    armor_check = true,
+}

@@ -14,8 +14,9 @@ TEST(Dialog, GffDeserialize)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
-    EXPECT_TRUE(dlg.valid());
-    EXPECT_GT(dlg.starts.size(), 0);
+    ASSERT_TRUE(dlg.valid());
+    ASSERT_GT(dlg.starts.size(), 0);
+    ASSERT_NE(dlg.starts[0], nullptr);
     EXPECT_TRUE(dlg.starts[0]->is_start);
     EXPECT_EQ(dlg.starts[0]->node->text.get(nw::LanguageID::english),
         "Have you managed to get rid of the Bandit Leader?");
@@ -25,7 +26,10 @@ TEST(Dialog, PtrAddRemove)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
-    EXPECT_TRUE(dlg.valid());
+    ASSERT_TRUE(dlg.valid());
+    ASSERT_GT(dlg.starts.size(), 0);
+    ASSERT_NE(dlg.starts[0], nullptr);
+    ASSERT_NE(dlg.starts[0]->node, nullptr);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
 
     auto ptr1 = dlg.starts[0]->add_string("This is a test");
@@ -51,7 +55,7 @@ TEST(Dialog, StartsAddRemove)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
-    EXPECT_TRUE(dlg.valid());
+    ASSERT_TRUE(dlg.valid());
     EXPECT_EQ(dlg.starts.size(), 2);
 
     auto ptr1 = dlg.add();
@@ -255,11 +259,12 @@ TEST(Dialog, InternalNodeOps)
 TEST(Dialog, Copy)
 {
     nw::Gff g("test_data/user/development/alue_ranger.dlg");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
     nw::Dialog dlg{g.toplevel()};
 
-    EXPECT_TRUE(dlg.valid());
-    EXPECT_GT(dlg.starts.size(), 0);
+    ASSERT_TRUE(dlg.valid());
+    ASSERT_GT(dlg.starts.size(), 0);
+    ASSERT_NE(dlg.starts[0], nullptr);
     EXPECT_TRUE(dlg.starts[0]->is_start);
     EXPECT_EQ(dlg.starts[0]->node->text.get(nw::LanguageID::english),
         "Have you managed to get rid of the Bandit Leader?");
@@ -274,11 +279,13 @@ TEST(Dialog, Copy)
 TEST(Dialog, RemoveLinkedNode)
 {
     nw::Gff g("test_data/user/development/dlg_with_link.dlg");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
     nw::Dialog dlg{g.toplevel()};
 
-    EXPECT_TRUE(dlg.valid());
-    EXPECT_GT(dlg.starts.size(), 0);
+    ASSERT_TRUE(dlg.valid());
+    ASSERT_GT(dlg.starts.size(), 0);
+    ASSERT_NE(dlg.starts[0], nullptr);
+    ASSERT_NE(dlg.starts[0]->node, nullptr);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
     dlg.starts[0]->remove_ptr(dlg.starts[0]->node->pointers[0]);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 0);
@@ -287,14 +294,16 @@ TEST(Dialog, RemoveLinkedNode)
 TEST(Dialog, DeleteNode)
 {
     nw::Gff g("test_data/user/development/dlg_with_link.dlg");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
     nw::Dialog dlg{g.toplevel()};
 
     dlg.delete_node(nullptr);
     dlg.delete_ptr(nullptr);
 
-    EXPECT_TRUE(dlg.valid());
-    EXPECT_GT(dlg.starts.size(), 0);
+    ASSERT_TRUE(dlg.valid());
+    ASSERT_GT(dlg.starts.size(), 0);
+    ASSERT_NE(dlg.starts[0], nullptr);
+    ASSERT_NE(dlg.starts[0]->node, nullptr);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
     auto ptr1 = dlg.starts[0]->node->pointers[0];
     dlg.starts[0]->remove_ptr(ptr1);

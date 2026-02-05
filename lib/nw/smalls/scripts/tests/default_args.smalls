@@ -1,0 +1,21 @@
+from core.test import { reset, test, summary };
+
+fn greet(name: string, greeting: string = "Hello"): string {
+    return f"{greeting}, {name}!";
+}
+
+fn add(a: int, b: int = 10, c: int = 100): int {
+    return a + b + c;
+}
+
+fn main() {
+    reset();
+    test("default arg used", greet("World") == "Hello, World!");
+    test("default arg overridden", greet("World", "Hi") == "Hi, World!");
+
+    test("two defaults used", add(1) == 111);
+    test("one default used", add(1, 2) == 103);
+    test("no defaults used", add(1, 2, 3) == 6);
+
+    summary();
+}

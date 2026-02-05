@@ -1,0 +1,49 @@
+from core.test import { test, reset, summary };
+
+type Point { x, y: float; };
+
+[[operator(plus)]]
+fn add_points(a: Point, b: Point): Point {
+    return Point { a.x + b.x, a.y + b.y };
+}
+
+[[operator(eq)]]
+fn points_equal(a: Point, b: Point): bool {
+    return a.x == b.x && a.y == b.y;
+}
+
+[[operator(minus)]]
+fn negate_point(p: Point): Point {
+    return Point { -p.x, -p.y };
+}
+
+[[operator(str)]]
+fn point_to_str(p: Point): string {
+    return f"({p.x}, {p.y})";
+}
+
+fn main() {
+    reset();
+
+    var a = Point { 1.5, 2.5 };
+    var b = Point { 3.5, 4.5 };
+    var c = a + b;
+    test("add_x", c.x == 5.0);
+    test("add_y", c.y == 7.0);
+
+    test("eq_same", a == a);
+    test("eq_diff", !(a == b));
+    test("neq", a != b);
+
+    var d = -a;
+    test("neg_x", d.x == -1.5);
+    test("neg_y", d.y == -2.5);
+
+    var s = str(a);
+    test("str", s == "(1.5, 2.5)");
+
+    var msg = f"point: {a}";
+    test("fstr", msg == "point: (1.5, 2.5)");
+
+    summary();
+}

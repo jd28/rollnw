@@ -1,0 +1,22 @@
+from core.test import { test, reset, summary };
+import core.array as arr;
+import core.bit as bit;
+import core.map as m;
+
+fn main() {
+    reset();
+    test("int_add", 1 + 1 == 2);
+    test("bool_logic", true);
+    test("bit_and", bit.and(6, 3) == 2);
+    test("bit_shl", bit.shl(1, 4) == 16);
+    var nums: array!(int) = { 1, 2 };
+    arr.push(nums, 3);
+    test("array_len", arr.len(nums) == 3);
+    test("array_get", arr.get(nums, 0) == 1);
+    var scores: map!(string, int) = { "a": 1 };
+    test("map_set_insert", m.set(scores, "b", 2));
+    test("map_len", m.len(scores) == 2);
+    test("map_get", m.get(scores, "b") == 2);
+    test("map_remove", m.remove(scores, "a"));
+    summary();
+}

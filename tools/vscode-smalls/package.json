@@ -1,0 +1,35 @@
+{
+  "name": "vscode-smalls",
+  "displayName": "Smalls",
+  "description": "Smalls language support (syntax highlighting)",
+  "version": "0.0.1",
+  "publisher": "rollnw",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "smalls",
+        "aliases": [
+          "Smalls",
+          "smalls"
+        ],
+        "extensions": [
+          ".smalls"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "smalls",
+        "scopeName": "source.smalls",
+        "path": "./syntaxes/smalls.tmLanguage.json"
+      }
+    ]
+  }
+}

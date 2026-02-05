@@ -12,7 +12,7 @@ namespace fs = std::filesystem;
 namespace nw::script {
 
 Context::Context(Vector<String> include_paths, String command_script)
-    : arena(GB(1))
+    : arena(MB(128))
     , scope(&arena)
     , include_paths_{std::move(include_paths)}
     , dependencies_{}

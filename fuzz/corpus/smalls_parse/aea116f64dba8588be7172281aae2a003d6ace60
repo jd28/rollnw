@@ -1,0 +1,19 @@
+fn main() {
+    if (true) {
+        if (true) {
+            if (true) {
+                if (true) {
+                    if (true) {
+                        if (true) {
+                            if (true) {
+                                if (true) {
+                                    var x = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

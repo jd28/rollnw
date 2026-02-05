@@ -1,4 +1,5 @@
-function(enable_sanitizers project_name)
+function(_rollnw_compute_sanitizers out_var)
+  set(LIST_OF_SANITIZERS "")
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(SANITIZERS "")
@@ -38,22 +39,36 @@ function(enable_sanitizers project_name)
       endif()
     endif()
 
-    list(
-      JOIN
-      SANITIZERS
-      ","
-      LIST_OF_SANITIZERS)
-
+    list(JOIN SANITIZERS "," LIST_OF_SANITIZERS)
   endif()
 
-  if(LIST_OF_SANITIZERS)
-    if(NOT
-       "${LIST_OF_SANITIZERS}"
-       STREQUAL
-       "")
-      target_compile_options(${project_name} INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
-      target_link_options(${project_name} INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
-    endif()
+  set(${out_var} "${LIST_OF_SANITIZERS}" PARENT_SCOPE)
+endfunction()
+
+function(enable_global_sanitizers)
+  _rollnw_compute_sanitizers(LIST_OF_SANITIZERS)
+  if(NOT LIST_OF_SANITIZERS OR "${LIST_OF_SANITIZERS}" STREQUAL "")
+    return()
   endif()
 
+  # Must be called early (top-level) so external deps are instrumented too.
+  add_compile_options(-fsanitize=${LIST_OF_SANITIZERS})
+  add_link_options(-fsanitize=${LIST_OF_SANITIZERS})
+  set(ROLLNW_GLOBAL_SANITIZERS "${LIST_OF_SANITIZERS}" CACHE INTERNAL "")
+endfunction()
+
+function(enable_sanitizers project_name)
+  if(DEFINED ROLLNW_GLOBAL_SANITIZERS AND NOT "${ROLLNW_GLOBAL_SANITIZERS}" STREQUAL "")
+    return()
+  endif()
+
+  _rollnw_compute_sanitizers(LIST_OF_SANITIZERS)
+  if(NOT LIST_OF_SANITIZERS OR "${LIST_OF_SANITIZERS}" STREQUAL "")
+    return()
+  endif()
+
+  # Use PUBLIC so the target itself is instrumented and dependents link
+  # against the sanitizer runtime (static libs need this propagated).
+  target_compile_options(${project_name} PUBLIC -fsanitize=${LIST_OF_SANITIZERS})
+  target_link_options(${project_name} PUBLIC -fsanitize=${LIST_OF_SANITIZERS})
 endfunction()

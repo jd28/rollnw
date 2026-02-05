@@ -1,0 +1,51 @@
+from core.test import { test, reset, summary };
+
+type Point {
+    x: float;
+    y: float;
+};
+
+type Rectangle {
+    origin: Point;
+    width: float;
+    height: float;
+};
+
+fn test_struct_init(): bool {
+    const p: Point = { 1.0, 2.0 };
+    return p.x == 1.0 && p.y == 2.0;
+}
+
+fn test_struct_field_access(): bool {
+    const p: Point = { 3.0, 4.0 };
+    return p.x == 3.0;
+}
+
+fn test_struct_field_assign(): bool {
+    var p: Point = { 1.0, 2.0 };
+    p.x = 5.0;
+    return p.x == 5.0 && p.y == 2.0;
+}
+
+fn test_nested_struct(): bool {
+    const r: Rectangle = { { 0.0, 0.0 }, 10.0, 20.0 };
+    return r.origin.x == 0.0 && r.width == 10.0;
+}
+
+fn test_struct_as_param(p: Point): float {
+    return p.x + p.y;
+}
+
+fn main() {
+    reset();
+
+    test("struct_init", test_struct_init());
+    test("struct_field_access", test_struct_field_access());
+    test("struct_field_assign", test_struct_field_assign());
+    test("nested_struct", test_nested_struct());
+
+    const p: Point = { 3.0, 7.0 };
+    test("struct_as_param", test_struct_as_param(p) == 10.0);
+
+    summary();
+}

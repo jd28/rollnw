@@ -1,0 +1,13 @@
+import core.string as S;
+
+fn main() {
+    var x = 7;
+    var msg = f"Value in {{braces}}: {x}";
+    var out = S.replace(msg, "7", "007");
+    println(out);
+
+    switch (x) {
+        case 7: { assert(true); }
+        default: { assert(false); }
+    }
+}

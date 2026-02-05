@@ -4,6 +4,7 @@
 #include "../profiles/nwn1/Profile.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "../rules/effects.hpp"
+#include "../smalls/runtime.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
@@ -27,7 +28,7 @@ MemoryResource* Service::allocator() const noexcept
 }
 
 Services::Services()
-    : kernel_arena_(GB(16))
+    : kernel_arena_(GB(2))
     , kernel_scope_(&kernel_arena_)
 {
 }
@@ -97,6 +98,7 @@ void Services::load_services()
     // The ordering here is important.  Pretty much everything depends on strings and resman
     add<Strings>();
     add<ResourceManager>();
+    add<smalls::Runtime>();
     add<TwoDACache>();
     add<EffectSystem>();
     add<Rules>();
@@ -136,6 +138,15 @@ ObjectManager& objects()
 ResourceManager& resman()
 {
     auto res = services().get_mut<ResourceManager>();
+    if (!res) {
+        throw std::runtime_error("kernel: unable to load resources service");
+    }
+    return *res;
+}
+
+smalls::Runtime& runtime()
+{
+    auto res = services().get_mut<smalls::Runtime>();
     if (!res) {
         throw std::runtime_error("kernel: unable to load resources service");
     }

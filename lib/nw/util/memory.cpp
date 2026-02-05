@@ -3,16 +3,8 @@
 #include "../kernel/Memory.hpp"
 #include "../log.hpp"
 
-#ifdef ROLLNW_OS_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#else
-#include <sys/mman.h>
-#include <unistd.h>
-#endif
-
 #include <algorithm>
+#include <new>
 
 namespace nw {
 
@@ -51,84 +43,94 @@ void GlobalMemory::deallocate(void* ptr)
 // =============================================================================
 
 MemoryArena::MemoryArena(size_t capacity)
-    : capacity_(capacity)
+    : default_block_size_(capacity)
 {
-    allocate_memory();
+    allocate_block(capacity);
 }
 
 MemoryArena::~MemoryArena()
 {
-    deallocate_memory();
-    base_ = nullptr;
+    deallocate_blocks();
 }
 
 void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
 {
     CHECK_F((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
 
-    uintptr_t current = reinterpret_cast<uintptr_t>(base_) + used_;
+    auto& block = blocks_[current_block_];
+    uintptr_t current = reinterpret_cast<uintptr_t>(block.base) + block.used;
     uintptr_t aligned = (current + (alignment - 1)) & ~(alignment - 1);
     size_t padding = aligned - current;
-    int needed = padding + size;
+    size_t needed = padding + size;
 
-    if (needed + used_ > capacity_) {
-        return nullptr;
+    if (needed + block.used <= block.capacity) {
+        block.used += needed;
+        return reinterpret_cast<void*>(aligned);
     }
-    used_ += padding + size;
 
+    // Current block is full, allocate a new one
+    size_t new_capacity = std::max(default_block_size_, size + alignment);
+    allocate_block(new_capacity);
+
+    auto& new_block = blocks_[current_block_];
+    current = reinterpret_cast<uintptr_t>(new_block.base);
+    aligned = (current + (alignment - 1)) & ~(alignment - 1);
+    padding = aligned - current;
+    needed = padding + size;
+
+    new_block.used += needed;
     return reinterpret_cast<void*>(aligned);
+}
+
+size_t MemoryArena::capacity() const noexcept
+{
+    size_t total = 0;
+    for (const auto& block : blocks_) {
+        total += block.capacity;
+    }
+    return total;
 }
 
 MemoryMarker MemoryArena::current()
 {
-    return {used_};
+    return {current_block_, blocks_[current_block_].used};
 }
 
 void MemoryArena::reset()
 {
-    used_ = 0;
+    current_block_ = 0;
+    blocks_[0].used = 0;
 }
 
 void MemoryArena::rewind(MemoryMarker marker)
 {
-    CHECK_F(marker.position <= used_, "Memory marker mismatched");
-    used_ = marker.position;
+    current_block_ = marker.block_index;
+    blocks_[current_block_].used = marker.position;
 }
 
-void MemoryArena::allocate_memory()
+size_t MemoryArena::used() const noexcept
 {
-    bool check = false;
-#ifdef _WIN32
-    base_ = VirtualAlloc(nullptr, capacity_, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    check = base_ != nullptr;
-#else
-    base_ = mmap(nullptr, capacity_, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
-    check = base_ != MAP_FAILED;
-#endif
-    CHECK_F(!!check, "Unable to allocate block of size: {}", capacity_);
+    size_t total = 0;
+    for (const auto& block : blocks_) {
+        total += block.used;
+    }
+    return total;
 }
 
-void MemoryArena::deallocate_memory()
+void MemoryArena::allocate_block(size_t capacity)
 {
-#ifdef ROLLNW_OS_WINDOWS
-    if (base_) { VirtualFree(base_, 0, MEM_RELEASE); }
-#else
-    if (base_) { munmap(base_, capacity_); }
-#endif
-    base_ = nullptr;
+    void* base = malloc(capacity);
+    CHECK_F(!!base, "Unable to allocate block of size: {}", capacity);
+    current_block_ = blocks_.size();
+    blocks_.push_back({base, 0, capacity});
 }
 
-void MemoryArena::reserve_memory()
+void MemoryArena::deallocate_blocks()
 {
-    bool check = false;
-#ifdef _WIN32
-    base_ = VirtualAlloc(nullptr, capacity_, MEM_RESERVE, PAGE_NOACCESS);
-    check = !!base_;
-#else
-    base_ = mmap(nullptr, capacity_, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
-    check = base_ != MAP_FAILED;
-#endif
-    CHECK_F(!!check, "Unable to allocate block of size: {}", capacity_);
+    for (auto& block : blocks_) {
+        free(block.base);
+    }
+    blocks_.clear();
 }
 
 // == MemoryScope ==============================================================
@@ -173,7 +175,14 @@ MemoryScope::~MemoryScope()
 
 void* MemoryScope::allocate(size_t size, size_t alignment)
 {
-    return arena_->allocate(size, alignment);
+    if (!arena_) {
+        throw std::bad_alloc();
+    }
+    void* mem = arena_->allocate(size, alignment);
+    if (!mem) {
+        throw std::bad_alloc();
+    }
+    return mem;
 }
 
 void MemoryScope::reset()

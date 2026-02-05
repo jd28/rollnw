@@ -1,13 +1,15 @@
 # Build
 build/
 !external/**/build
-build-debug/
 build_debug/
 build-doc/
+build-*/
 vcpkg/
 vcpkg_installed/
 ccache/
 .ccache/
+tmp/
+crash-*
 
 # IDEs
 .vscode/*
@@ -37,3 +39,14 @@ rollnw.egg-info/
 
 # jupyter
 .ipynb_checkpoints
+
+# AI tools
+.claude/
+.cursor/
+.aider/
+conductor/
+.gemini
+
+# NWN
+nwn/
+nwnee*

@@ -34,8 +34,22 @@ struct StringVariant {
     {
     }
 
-    StringVariant(const StringVariant&) = default;
-    StringVariant(StringVariant&& other)
+    StringVariant(const StringVariant& other)
+        : str{other.str}
+        , view{other.str.size() ? StringView{str} : other.view}
+    {
+    }
+
+    StringVariant& operator=(const StringVariant& other)
+    {
+        if (this != &other) {
+            str = other.str;
+            view = other.str.size() ? StringView{str} : other.view;
+        }
+        return *this;
+    }
+
+    StringVariant(StringVariant&& other) noexcept
     {
         if (other.str.size()) {
             str = std::move(other.str);
@@ -44,14 +58,14 @@ struct StringVariant {
             view = other.view;
         }
     }
-    StringVariant& operator=(const StringVariant&) = default;
-    StringVariant& operator=(StringVariant&& other)
+    StringVariant& operator=(StringVariant&& other) noexcept
     {
         if (this != &other) {
             if (other.str.size()) {
                 str = std::move(other.str);
                 view = str;
             } else {
+                str.clear();
                 view = other.view;
             }
         }
@@ -71,7 +85,7 @@ struct TwoDA final {
     TwoDA() = default;
     TwoDA(const TwoDA&) = delete;
     TwoDA(TwoDA&&) = default;
-    virtual ~TwoDA() = default;
+    ~TwoDA() = default;
 
     TwoDA& operator=(const TwoDA&) = delete;
     TwoDA& operator=(TwoDA&&) = default;

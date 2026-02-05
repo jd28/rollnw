@@ -1,0 +1,4 @@
+Action {
+    name = "double",
+    execute = fn(x: int): int { return x * 2; },
+}

@@ -1,0 +1,16 @@
+type Color {
+    r: int;
+    g: int;
+    b: int;
+    a: int;
+};
+
+type Rect {
+    x: int;
+    y: int;
+    width: int;
+    height: int;
+};
+
+const WHITE = Color { 255, 255, 255, 255 };
+const BLACK = Color { 0, 0, 0, 255 };

@@ -1,0 +1,95 @@
+from core.test import { test, reset, summary };
+
+var counter = 0;
+var greeting = "hello";
+const PI = 3;
+
+fn get_counter(): int {
+    return counter;
+}
+
+fn increment(): int {
+    counter = counter + 1;
+    return counter;
+}
+
+fn add_to_counter(n: int): int {
+    counter = counter + n;
+    return counter;
+}
+
+fn get_greeting(): string {
+    return greeting;
+}
+
+fn set_greeting(s: string) {
+    greeting = s;
+}
+
+fn get_pi(): int {
+    return PI;
+}
+
+fn test_initial_value(): bool {
+    return get_counter() == 0;
+}
+
+fn test_increment(): bool {
+    counter = 0;
+    increment();
+    increment();
+    return get_counter() == 2;
+}
+
+fn test_add(): bool {
+    counter = 0;
+    add_to_counter(5);
+    return get_counter() == 5;
+}
+
+fn test_compound_assign(): bool {
+    counter = 10;
+    counter += 5;
+    return counter == 15;
+}
+
+fn test_direct_access(): bool {
+    counter = 42;
+    return counter == 42;
+}
+
+fn test_string_global(): bool {
+    set_greeting("world");
+    return get_greeting() == "world";
+}
+
+fn test_const_global(): bool {
+    return get_pi() == 3;
+}
+
+fn make_incrementer(): fn(): int {
+    return fn(): int {
+        counter = counter + 1;
+        return counter;
+    };
+}
+
+fn test_lambda_access(): bool {
+    counter = 0;
+    var inc = make_incrementer();
+    inc();
+    inc();
+    return counter == 2;
+}
+
+fn main() {
+    test("module global initial value", test_initial_value());
+    test("module global increment", test_increment());
+    test("module global add", test_add());
+    test("module global compound assign", test_compound_assign());
+    test("module global direct access", test_direct_access());
+    test("module global string", test_string_global());
+    test("module global const", test_const_global());
+    test("module global lambda access", test_lambda_access());
+    summary();
+}

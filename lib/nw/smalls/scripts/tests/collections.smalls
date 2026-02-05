@@ -1,0 +1,40 @@
+from core.test import { test, reset, summary };
+
+fn test_array_basic(): bool {
+    var a: array!(int) = { 10, 20, 30 };
+    return a[0] == 10 && a[1] == 20 && a[2] == 30;
+}
+
+fn test_array_set(): bool {
+    var a: array!(int) = { 1, 2, 3 };
+    a[1] = 99;
+    return a[0] == 1 && a[1] == 99 && a[2] == 3;
+}
+
+fn test_nested_array(): bool {
+    var a: array!(array!(int)) = { { 1, 2 }, { 3, 4 } };
+    return a[0][1] == 2 && a[1][0] == 3;
+}
+
+fn test_map_basic(): bool {
+    var m: map!(int, int) = { 1: 10, 2: 20 };
+    return m[1] == 10 && m[2] == 20;
+}
+
+fn test_map_set(): bool {
+    var m: map!(string, int) = { "a": 1, "b": 2 };
+    m["b"] = 5;
+    return m["a"] == 1 && m["b"] == 5;
+}
+
+fn main() {
+    reset();
+
+    test("array_basic", test_array_basic());
+    test("array_set", test_array_set());
+    test("nested_array", test_nested_array());
+    test("map_basic", test_map_basic());
+    test("map_set", test_map_set());
+
+    summary();
+}

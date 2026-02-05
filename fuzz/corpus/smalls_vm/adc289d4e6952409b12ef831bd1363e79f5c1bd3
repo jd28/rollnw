@@ -1,0 +1,24 @@
+import core.array as A;
+import core.map as Map;
+
+fn pair(n: int): (int, int) {
+    return n, n + 1;
+}
+
+fn main() {
+    var xs: array!(int) = { 1, 2, 3, 4 };
+    assert(A.len(xs) == 4);
+    A.set(xs, 0, 10);
+    var first = A.get(xs, 0);
+    assert(first == 10);
+
+    var m: map!(int, int) = { 1: 10, 2: 20 };
+    Map.set(m, 3, 30);
+    assert(Map.has(m, 3));
+
+    var a, b = pair(40);
+    switch (b) {
+        case 41: { }
+        default: { }
+    }
+}

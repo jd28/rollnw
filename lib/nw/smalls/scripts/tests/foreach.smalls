@@ -1,0 +1,141 @@
+from core.test import { test, reset, summary };
+
+fn test_array_sum(): bool {
+    var nums: array!(int) = {1, 2, 3, 4, 5};
+    var sum = 0;
+    for (var x in nums) {
+        sum = sum + x;
+    }
+    return sum == 15;
+}
+
+fn test_array_break(): bool {
+    var nums: array!(int) = {1, 2, 3, 4, 5};
+    var sum = 0;
+    for (var x in nums) {
+        if (x == 4) {
+            break;
+        }
+        sum = sum + x;
+    }
+    return sum == 6;
+}
+
+fn test_array_continue(): bool {
+    var nums: array!(int) = {1, 2, 3, 4, 5};
+    var sum = 0;
+    for (var x in nums) {
+        if (x == 3) {
+            continue;
+        }
+        sum = sum + x;
+    }
+    return sum == 12;
+}
+
+fn test_array_break_continue(): bool {
+    var nums: array!(int) = {1, 2, 3, 4, 5};
+    var sum = 0;
+    for (var x in nums) {
+        if (x == 3) {
+            continue;
+        }
+        if (x == 5) {
+            break;
+        }
+        sum = sum + x;
+    }
+    return sum == 7;
+}
+
+fn test_array_nested(): bool {
+    var outer: array!(int) = {1, 2};
+    var inner: array!(int) = {10, 20};
+    var sum = 0;
+    for (var i in outer) {
+        for (var j in inner) {
+            sum = sum + i * j;
+        }
+    }
+    return sum == 90;
+}
+
+fn test_array_strings(): bool {
+    var words: array!(string) = {"hello", "world"};
+    var count = 0;
+    for (var w in words) {
+        count = count + 1;
+    }
+    return count == 2;
+}
+
+fn test_map_iteration(): bool {
+    var scores: map!(string, int) = {"alice": 100, "bob": 85};
+    var total = 0;
+    for (var name, score in scores) {
+        total = total + score;
+    }
+    return total == 185;
+}
+
+fn test_map_break(): bool {
+    var m: map!(int, int) = {1: 10, 2: 20, 3: 30};
+    var sum = 0;
+    var count = 0;
+    for (var k, v in m) {
+        count = count + 1;
+        if (count == 2) {
+            break;
+        }
+        sum = sum + v;
+    }
+    return count == 2;
+}
+
+fn test_map_continue(): bool {
+    var m: map!(int, int) = {1: 10, 2: 20, 3: 30};
+    var count = 0;
+    for (var k, v in m) {
+        if (v == 20) {
+            continue;
+        }
+        count = count + 1;
+    }
+    return count == 2;
+}
+
+fn test_empty_array(): bool {
+    var nums: array!(int) = {};
+    var sum = 0;
+    for (var x in nums) {
+        sum = sum + x;
+    }
+    return sum == 0;
+}
+
+fn test_empty_map(): bool {
+    var m: map!(int, int) = {};
+    var count = 0;
+    for (var k, v in m) {
+        count = count + 1;
+    }
+    return count == 0;
+}
+
+fn main() {
+    reset();
+
+    test("array_sum", test_array_sum());
+    test("array_break", test_array_break());
+    test("array_continue", test_array_continue());
+    test("array_break_continue", test_array_break_continue());
+    test("array_nested", test_array_nested());
+    test("array_strings", test_array_strings());
+    test("map_iteration", test_map_iteration());
+    test("map_break", test_map_break());
+    test("map_continue", test_map_continue());
+    test("empty_array", test_empty_array());
+    test("empty_map", test_empty_map());
+
+    summary();
+}

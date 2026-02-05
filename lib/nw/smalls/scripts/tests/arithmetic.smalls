@@ -1,0 +1,24 @@
+from core.test import { test, reset, summary };
+
+fn main() {
+    reset();
+
+    test("int_add", 1 + 2 == 3);
+    test("int_sub", 5 - 3 == 2);
+    test("int_mul", 4 * 3 == 12);
+    test("int_div", 10 / 2 == 5);
+    test("int_mod", 10 % 3 == 1);
+    test("int_neg", -5 == 0 - 5);
+
+    test("float_add", 1.5 + 2.5 == 4.0);
+    test("float_sub", 5.0 - 2.5 == 2.5);
+    test("float_mul", 2.0 * 3.5 == 7.0);
+    test("float_div", 10.0 / 4.0 == 2.5);
+    test("float_neg", -3.5 == 0.0 - 3.5);
+
+    test("int_to_float_mul", 2 * 2.5 == 5.0);
+    test("cast_int_to_float", (3 as float) == 3.0);
+    test("cast_float_to_int", (3.9 as int) == 3);
+
+    summary();
+}

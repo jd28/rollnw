@@ -1,0 +1,5 @@
+[[native]] fn test(name: string, passed: bool);
+[[native]] fn reset();
+[[native]] fn summary();
+[[native]] fn failures(): int;
+[[native]] fn count(): int;

@@ -1,0 +1,63 @@
+[[intrinsic("string_len")]]
+fn len(s: string): int;
+
+[[intrinsic("string_substr")]]
+fn substr(s: string, start: int, length: int): string;
+
+[[intrinsic("string_char_at")]]
+fn char_at(s: string, idx: int): int;
+
+[[intrinsic("string_find")]]
+fn find(s: string, needle: string): int;
+
+[[intrinsic("string_contains")]]
+fn contains(s: string, needle: string): bool;
+
+[[intrinsic("string_starts_with")]]
+fn starts_with(s: string, prefix: string): bool;
+
+[[intrinsic("string_ends_with")]]
+fn ends_with(s: string, suffix: string): bool;
+
+[[intrinsic("string_to_upper")]]
+fn to_upper(s: string): string;
+
+[[intrinsic("string_to_lower")]]
+fn to_lower(s: string): string;
+
+[[intrinsic("string_trim")]]
+fn trim(s: string): string;
+
+[[intrinsic("string_replace")]]
+fn replace(s: string, old: string, new_str: string): string;
+
+[[intrinsic("string_split")]]
+fn split(s: string, delim: string): array!(string);
+
+[[intrinsic("string_join")]]
+fn join(parts: array!(string), delim: string): string;
+
+[[intrinsic("string_to_int")]]
+fn to_int(s: string): int;
+
+[[intrinsic("string_to_float")]]
+fn to_float(s: string): float;
+
+[[intrinsic("string_from_char_code")]]
+fn from_char_code(code: int): string;
+
+[[intrinsic("string_append")]]
+fn append(s: string, suffix: string): string;
+
+[[intrinsic("string_insert")]]
+fn insert(s: string, pos: int, value: string): string;
+
+[[intrinsic("string_reverse")]]
+fn reverse(s: string): string;
+
+[[native]] fn pad_left(s: string, width: int, pad_char: string = " "): string;
+[[native]] fn pad_right(s: string, width: int, pad_char: string = " "): string;
+[[native]] fn last_index_of(s: string, needle: string): int;
+[[native]] fn count(s: string, needle: string): int;
+[[native]] fn trim_start(s: string): string;
+[[native]] fn trim_end(s: string): string;

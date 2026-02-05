@@ -24,10 +24,12 @@ TEST(Rules, Effects)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    nw::Effect eff;
-    eff.set_string(2, "my string");
-    EXPECT_EQ(eff.get_string(2), "my string");
-    EXPECT_EQ(eff.get_int(3), 0);
+    auto eff = nwk::effects().create(nwn1::effect_type_haste);
+    ASSERT_NE(eff, nullptr);
+    eff->set_string(2, "my string");
+    EXPECT_EQ(eff->get_string(2), "my string");
+    EXPECT_EQ(eff->get_int(3), 0);
+    nwk::effects().destroy(eff);
 }
 
 TEST(Rules, ItemProperties)
@@ -85,21 +87,26 @@ TEST(EffectSystem, IPCostParamTables)
 
 TEST(EffectSystem, EffectPool)
 {
-    nw::HandlePool<nw::EffectHandle, nw::Effect> pool{1024};
+    nw::RuntimeObjectPool pool;
 
-    auto eff1 = pool.create();
+    auto h1 = pool.allocate_effect();
+    auto* eff1 = static_cast<nw::Effect*>(pool.get(h1));
     EXPECT_TRUE(!!eff1);
-    EXPECT_EQ(eff1->handle().generation, 1);
-    EXPECT_EQ(eff1->handle().index, 0);
+    EXPECT_EQ(h1.generation, 1);
+    EXPECT_EQ(h1.id, 0);
+    EXPECT_EQ(h1.type, nw::RuntimeObjectPool::TYPE_EFFECT);
 
-    auto eff2 = pool.create();
+    auto h2 = pool.allocate_effect();
+    auto* eff2 = static_cast<nw::Effect*>(pool.get(h2));
     EXPECT_TRUE(!!eff2);
-    EXPECT_EQ(eff2->handle().generation, 1);
-    EXPECT_EQ(eff2->handle().index, 1);
-    pool.destroy(eff2->handle());
+    EXPECT_EQ(h2.generation, 1);
+    EXPECT_EQ(h2.id, 1);
+    pool.destroy(h2);
 
-    auto eff3 = pool.create();
+    auto h3 = pool.allocate_effect();
+    auto* eff3 = static_cast<nw::Effect*>(pool.get(h3));
     EXPECT_TRUE(!!eff3);
-    EXPECT_EQ(eff3->handle().generation, 2);
-    EXPECT_EQ(eff3->handle().index, 1);
+    EXPECT_EQ(h3.generation, 2);
+    EXPECT_EQ(h3.id, 1);
+    EXPECT_EQ(h3.type, nw::RuntimeObjectPool::TYPE_EFFECT);
 }

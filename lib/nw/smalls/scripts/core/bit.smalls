@@ -1,0 +1,6 @@
+[[intrinsic("bit_and")]] fn and(a: int, b: int): int;
+[[intrinsic("bit_or")]] fn or(a: int, b: int): int;
+[[intrinsic("bit_xor")]] fn xor(a: int, b: int): int;
+[[intrinsic("bit_not")]] fn not(a: int): int;
+[[intrinsic("bit_shl")]] fn shl(a: int, b: int): int;
+[[intrinsic("bit_shr")]] fn shr(a: int, b: int): int;

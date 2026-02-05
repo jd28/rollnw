@@ -1,0 +1,33 @@
+from core.test import { reset, test, summary };
+
+fn main() {
+    reset();
+
+    var name = "Alice";
+    test("simple_fstring", f"Hello, {name}!" == "Hello, Alice!");
+
+    var count = 42;
+    test("int_interpolation", f"Count: {count}" == "Count: 42");
+
+    var pi = 3.14;
+    test("float_interpolation", f"Pi is {pi}" == "Pi is 3.14");
+
+    var flag = true;
+    test("bool_interpolation", f"Flag: {flag}" == "Flag: true");
+
+    var age = 30;
+    test("multiple_interpolations", f"{name} is {age} years old" == "Alice is 30 years old");
+
+    var a = 1;
+    var b = 2;
+    test("adjacent_interpolations", f"{a}{b}" == "12");
+
+    var x = "test";
+    test("empty_parts", f"{x}" == "test");
+
+    test("only_literal", f"just a string" == "just a string");
+
+    test("expression", f"sum is {1 + 2}" == "sum is 3");
+
+    summary();
+}

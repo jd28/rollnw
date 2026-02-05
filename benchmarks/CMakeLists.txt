@@ -1,5 +1,6 @@
 add_executable(rollnw_benchmark
     main.cpp
+    smalls.cpp
 )
 
 target_include_directories(rollnw_benchmark PRIVATE

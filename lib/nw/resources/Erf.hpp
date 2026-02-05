@@ -21,7 +21,7 @@ public:
     explicit Erf(const std::filesystem::path& path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
-    virtual ~Erf();
+    ~Erf();
 
     /// Adds resources from array of bytes
     bool add(Resource res, const ByteArray& bytes);

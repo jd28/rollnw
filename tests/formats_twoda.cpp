@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 TEST(StaticTwoDA, Parse)
 {
     nw::StaticTwoDA feat(fs::path("test_data/user/development/feat.2da"));
-    EXPECT_TRUE(feat.is_valid());
+    ASSERT_TRUE(feat.is_valid());
     EXPECT_EQ(feat.rows(), 1116);
     EXPECT_EQ(*feat.get<nw::StringView>(4, 0), "ArmProfMed");
     EXPECT_EQ(*feat.get<int32_t>(0, "FEAT"), 289);
@@ -26,7 +26,7 @@ TEST(StaticTwoDA, Parse)
 TEST(TwoDA, Parse)
 {
     nw::TwoDA feat(fs::path("test_data/user/development/feat.2da"));
-    EXPECT_TRUE(feat.is_valid());
+    ASSERT_TRUE(feat.is_valid());
     EXPECT_EQ(feat.rows(), 1116);
     EXPECT_EQ(*feat.get<nw::StringView>(4, 0), "ArmProfMed");
     EXPECT_EQ(*feat.get<int32_t>(0, "FEAT"), 289);
@@ -43,7 +43,7 @@ TEST(TwoDA, Parse)
     EXPECT_EQ(feat.column_index("Test"), 43);
 
     nw::TwoDA empty(fs::path("test_data/user/development/empty.2da"));
-    EXPECT_FALSE(empty.is_valid());
+    ASSERT_FALSE(empty.is_valid());
 
     std::ofstream out{"tmp/feat_reform.2da", std::ios_base::binary};
     out << feat;
@@ -52,7 +52,7 @@ TEST(TwoDA, Parse)
 TEST(TwoDA, AddColumn)
 {
     nw::TwoDA polymorph(fs::path("test_data/user/development/polymorph.2da"));
-    EXPECT_TRUE(polymorph.is_valid());
+    ASSERT_TRUE(polymorph.is_valid());
     EXPECT_TRUE(polymorph.add_column("FakeItemBitMask"));
     EXPECT_TRUE(polymorph.add_column("AnotherColumn"));
 

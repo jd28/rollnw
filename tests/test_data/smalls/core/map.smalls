@@ -1,0 +1,6 @@
+[[intrinsic("map_len")]] fn len(m: map!($K, $V)): int;
+[[intrinsic("map_get")]] fn get(m: map!($K, $V), key: $K): $V;
+[[intrinsic("map_set")]] fn set(m: map!($K, $V), key: $K, val: $V): bool;
+[[intrinsic("map_has")]] fn has(m: map!($K, $V), key: $K): bool;
+[[intrinsic("map_remove")]] fn remove(m: map!($K, $V), key: $K): bool;
+[[intrinsic("map_clear")]] fn clear(m: map!($K, $V));

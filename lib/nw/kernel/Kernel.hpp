@@ -18,6 +18,10 @@ struct EffectSystem;
 struct ObjectManager;
 struct ResourceManager;
 
+namespace smalls {
+struct Runtime;
+}
+
 namespace kernel {
 
 /// Guides services on load order.
@@ -166,6 +170,9 @@ EffectSystem& effects();
 
 /// Gets Resource Manager
 [[nodiscard]] ResourceManager& resman();
+
+/// Gets script runtime
+[[nodiscard]] smalls::Runtime& runtime();
 
 /// Gets services
 [[nodiscard]] Services& services();

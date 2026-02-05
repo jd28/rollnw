@@ -36,6 +36,9 @@ struct ResourceType {
         json = 0xFFFF - 7,
         object = 0xFFFF - 8,
 
+        // Custom - rollnw specific types
+        smalls = 0xFFFF - 100,
+
         bmp = 1,
         mve = 2,
         tga = 3,
@@ -231,6 +234,7 @@ struct ResourceType {
 
         // Custom types
         if (string::icmp(ext, "json")) return json;
+        if (string::icmp(ext, "smalls")) return smalls;
 
         return invalid;
     }
@@ -428,6 +432,8 @@ struct ResourceType {
             return "key";
         case json:
             return "json";
+        case smalls:
+            return "smalls";
         }
     }
 

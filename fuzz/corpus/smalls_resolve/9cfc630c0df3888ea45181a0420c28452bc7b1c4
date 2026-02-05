@@ -1,0 +1,3 @@
+from core.types import { WHITEE, Color };
+
+var c: Color;

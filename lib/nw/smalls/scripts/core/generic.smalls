@@ -1,0 +1,7 @@
+fn identity(x: $T): $T {
+    return x;
+}
+
+fn swap(a: $A, b: $B): ($B, $A) {
+    return (b, a);
+}

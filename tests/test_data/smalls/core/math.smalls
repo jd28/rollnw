@@ -1,0 +1,16 @@
+type Vector {
+    x: float;
+    y: float;
+    z: float;
+};
+
+type Point {
+    x: float;
+    y: float;
+};
+
+fn dot(a: Vector, b: Vector): float {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+const ZERO_VEC = Vector { 0.0, 0.0, 0.0 };

@@ -1,0 +1,66 @@
+from core.test import { test, reset, summary };
+
+fn make_pair(): (int, int) {
+    return 2, 5;
+}
+
+fn test_tuple_return(): bool {
+    var t = make_pair();
+    return t[0] == 2 && t[1] == 5;
+}
+
+fn test_tuple_literal(): bool {
+    var t = (3, 4, 5);
+    return t[0] == 3 && t[2] == 5;
+}
+
+fn test_tuple_singleton(): bool {
+    var t = (42,);
+    return t[0] == 42;
+}
+
+fn test_tuple_mixed(): bool {
+    var t = (1, 2.5, "hi");
+    return t[0] == 1 && t[1] == 2.5 && t[2] == "hi";
+}
+
+fn test_tuple_destructure_decl(): bool {
+    var a, b = make_pair();
+    return a == 2 && b == 5;
+}
+
+fn test_tuple_assign(): bool {
+    var a = 0;
+    var b = 0;
+    a, b = make_pair();
+    return a == 2 && b == 5;
+}
+
+fn test_tuple_nested(): bool {
+    var t = ((1, 2), (3, 4));
+    return t[0][1] == 2 && t[1][0] == 3;
+}
+
+fn tuple_indexing(): bool {
+    var t = (10, 20, 30);
+    var ok = t[0] == 10 && t[1] == 20 && t[2] == 30;
+
+    var nested = ((1, 2), (3, 4));
+    ok = ok && nested[0][1] == 2 && nested[1][0] == 3;
+    return ok;
+}
+
+fn main() {
+    reset();
+
+    test("tuple_return", test_tuple_return());
+    test("tuple_literal", test_tuple_literal());
+    test("tuple_singleton", test_tuple_singleton());
+    test("tuple_mixed", test_tuple_mixed());
+    test("tuple_destructure_decl", test_tuple_destructure_decl());
+    test("tuple_assign", test_tuple_assign());
+    test("tuple_nested", test_tuple_nested());
+    test("tuple_indexing", tuple_indexing());
+
+    summary();
+}

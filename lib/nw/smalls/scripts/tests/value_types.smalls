@@ -1,0 +1,55 @@
+from core.test import { test, reset, summary };
+
+[[value_type]]
+type Vec2 {
+    x: float;
+    y: float;
+};
+
+[[value_type]]
+type Named {
+    id: int;
+    name: string;
+};
+
+fn test_value_type_init(): bool {
+    var v: Vec2 = { 1.0, 2.0 };
+    return v.x == 1.0 && v.y == 2.0;
+}
+
+fn test_value_type_field_assign(): bool {
+    var v: Vec2 = { 1.0, 2.0 };
+    v.x = 5.0;
+    return v.x == 5.0 && v.y == 2.0;
+}
+
+fn test_value_type_copy(): bool {
+    var a: Vec2 = { 1.0, 2.0 };
+    var b = a;
+    b.x = 9.0;
+    return a.x == 1.0 && b.x == 9.0;
+}
+
+fn test_value_type_with_string(): bool {
+    var n: Named = { 42, "hello" };
+    return n.id == 42 && n.name == "hello";
+}
+
+fn test_value_type_string_copy(): bool {
+    var a: Named = { 1, "test" };
+    var b = a;
+    b.id = 2;
+    return a.id == 1 && b.id == 2 && a.name == "test" && b.name == "test";
+}
+
+fn main() {
+    reset();
+
+    test("value_type_init", test_value_type_init());
+    test("value_type_field_assign", test_value_type_field_assign());
+    test("value_type_copy", test_value_type_copy());
+    test("value_type_with_string", test_value_type_with_string());
+    test("value_type_string_copy", test_value_type_string_copy());
+
+    summary();
+}

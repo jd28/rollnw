@@ -1,0 +1,4 @@
+[[native]] type Effect;
+
+[[native]] fn create(): Effect;
+[[native]] fn apply(effect: Effect): void;

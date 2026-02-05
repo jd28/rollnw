@@ -183,7 +183,7 @@ String sanitize_colors(String str)
     for (size_t i = 1; i < str.length(); ++i) {
         if (str[i - 1] == '<' && str[i] == 'c') {
             if (i + 4 >= str.length() || str[i + 4] != '>') {
-                LOG_F(ERROR, "invalid color code: '{}'", str);
+                //    LOG_F(ERROR, "invalid color code: '{}'", str);
                 continue;
             }
 

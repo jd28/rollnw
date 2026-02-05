@@ -17,6 +17,10 @@
                 "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },
@@ -83,6 +87,96 @@
             },
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-linux-clang",
+            "inherits": "ci-linux",
+            "displayName": "ci-linux-clang",
+            "description": "CI Linux build using Clang (RelWithDebInfo)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-clang",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "RelWithDebInfo"
+                },
+                "CMAKE_C_COMPILER": {
+                    "type": "STRING",
+                    "value": "clang"
+                },
+                "CMAKE_CXX_COMPILER": {
+                    "type": "STRING",
+                    "value": "clang++"
+                }
+            }
+        },
+        {
+            "name": "ci-linux-clang-asan-ubsan",
+            "inherits": "ci-linux-clang",
+            "displayName": "ci-linux-clang-asan-ubsan",
+            "description": "CI Linux Clang build with ASan+UBSan (RelWithDebInfo)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-clang-asan-ubsan",
+            "cacheVariables": {
+                "ENABLE_SANITIZER_ADDRESS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-linux-clang-fuzz",
+            "inherits": "ci-linux-clang",
+            "displayName": "ci-linux-clang-fuzz",
+            "description": "CI Linux Clang build for fuzz targets (enabled in Week 2)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-clang-fuzz"
+            ,
+            "cacheVariables": {
+                "ROLLNW_BUILD_FUZZERS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-linux-clang-bench",
+            "inherits": "ci-linux-clang",
+            "displayName": "ci-linux-clang-bench",
+            "description": "CI Linux Clang build for benchmark canary (RelWithDebInfo)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-clang-bench",
+            "cacheVariables": {
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -246,12 +340,50 @@
         {
             "name": "debug",
             "configurePreset": "dev-debug"
+        },
+        {
+            "name": "ci-linux-clang",
+            "configurePreset": "ci-linux-clang"
+        },
+        {
+            "name": "ci-linux-clang-asan-ubsan",
+            "configurePreset": "ci-linux-clang-asan-ubsan"
+        },
+        {
+            "name": "ci-linux-clang-fuzz",
+            "configurePreset": "ci-linux-clang-fuzz"
+        },
+        {
+            "name": "ci-linux-clang-bench",
+            "configurePreset": "ci-linux-clang-bench"
         }
     ],
     "testPresets": [
         {
             "name": "default",
             "configurePreset": "linux",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "ci-linux-clang",
+            "configurePreset": "ci-linux-clang",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "ci-linux-clang-asan-ubsan",
+            "configurePreset": "ci-linux-clang-asan-ubsan",
             "output": {
                 "outputOnFailure": true
             },

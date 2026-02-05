@@ -4,12 +4,17 @@ set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 include(cmake/Sanitizers.cmake)
 
+# Apply sanitizer flags globally (including external deps) when enabled.
+enable_global_sanitizers()
+
 option(ROLLNW_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 option(ROLLNW_BUILD_TESTS "Build tests" OFF)
+option(ROLLNW_BUILD_FUZZERS "Build libFuzzer targets" OFF)
 option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 option(ROLLNW_BUILD_WITH_MIMALLOC "Build with mimalloc" OFF)
+option(ROLLNW_BUILD_TOOLS "Build CLI tools" OFF)
 
 if(ROLLNW_BUILD_PYTHON AND ROLLNW_BUILD_WITH_MIMALLOC)
 message(FATAL_ERROR "Python bindings cannot be built with mimalloc")
@@ -72,6 +77,7 @@ add_subdirectory(external/zlib-1.3.1 EXCLUDE_FROM_ALL SYSTEM)
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/immer)
 include_directories(SYSTEM external/nowide/include)
+include_directories(SYSTEM external/rang-3.2)
 include_directories(SYSTEM external/xsimd-13.0.0/include)
 include_directories(SYSTEM external/xxhash-0.8.3)
 
@@ -85,12 +91,22 @@ add_subdirectory(external/mimalloc-3.0.1 EXCLUDE_FROM_ALL SYSTEM)
 endif()
 
 set(ABSL_USE_SYSTEM_INCLUDES ON)
-add_subdirectory(external/abseil-cpp-20250127.0 EXCLUDE_FROM_ALL SYSTEM)
+add_subdirectory(external/abseil-cpp-20260107.0 EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/fmt-10.2.1 EXCLUDE_FROM_ALL SYSTEM)
+
+# Clang (especially newer releases) can be overly strict about fmt's consteval
+# format string path in this vendored version. Disable fmt's consteval use.
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+  if(TARGET fmt)
+    target_compile_definitions(fmt PRIVATE FMT_CONSTEVAL=)
+  endif()
+endif()
+
 add_subdirectory(external/fzy EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/immer EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/inih EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/libiconv EXCLUDE_FROM_ALL SYSTEM)
+add_subdirectory(external/OffsetAllocator EXCLUDE_FROM_ALL SYSTEM)
 
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2 EXCLUDE_FROM_ALL SYSTEM)
@@ -130,6 +146,14 @@ add_subdirectory(external/benchmark-1.8.3)
 add_subdirectory(benchmarks)
 endif()
 
+if (ROLLNW_BUILD_FUZZERS)
+add_subdirectory(fuzz)
+endif()
+
 if(ROLLNW_BUILD_DOCS)
 add_subdirectory(docs)
+endif()
+
+if(ROLLNW_BUILD_TOOLS AND PROJECT_IS_TOP_LEVEL)
+add_subdirectory(tools/smalls)
 endif()

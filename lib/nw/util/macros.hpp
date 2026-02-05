@@ -22,6 +22,14 @@
         }                                     \
     } while (0)
 
+#define ENSURE_OR_RETURN_NULLPTR(cond, fmt, ...) \
+    do {                                         \
+        if (!(cond)) {                           \
+            LOG_F(ERROR, fmt, ##__VA_ARGS__);    \
+            return 0;                            \
+        }                                        \
+    } while (0)
+
 #define ENSURE_OR_RETURN_FALSE(cond, fmt, ...) \
     do {                                       \
         if (!(cond)) {                         \

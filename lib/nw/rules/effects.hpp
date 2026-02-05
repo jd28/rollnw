@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../objects/ObjectHandle.hpp"
-#include "../util/FixedVector.hpp"
 #include "../util/FunctionPtr.hpp"
 #include "../util/HandlePool.hpp"
+#include "RuntimeObject.hpp"
 #include "Spell.hpp"
 #include "Versus.hpp"
 #include "items.hpp"
@@ -27,6 +27,8 @@ enum struct EffectCategory {
 };
 
 struct EffectHandle {
+    TypedHandle runtime_handle;
+
     EffectType type = EffectType::invalid();
     int subtype = -1;
     ObjectHandle creator;
@@ -37,16 +39,17 @@ struct EffectHandle {
     bool operator==(const EffectHandle&) const = default;
     auto operator<=>(const EffectHandle&) const = default;
 
-    // Pool Handle interface. DO NOT modify
-    using size_type = uint32_t;
-    static constexpr uint32_t max_generation = std::numeric_limits<uint32_t>::max();
-    size_type index = 0;
-    size_type generation = 0;
+    TypedHandle to_typed_handle() const { return runtime_handle; }
 };
 
-struct Effect {
-    Effect(nw::MemoryResource* allocator = nw::kernel::global_allocator());
-    Effect(EffectType type_, nw::MemoryResource* allocator = nw::kernel::global_allocator());
+struct Effect : RuntimeObject {
+    static constexpr uint16_t ints_count = 20;
+    static constexpr uint16_t floats_count = 6;
+    static constexpr uint16_t strings_count = 4;
+
+    Effect();
+    explicit Effect(EffectType type_);
+    virtual ~Effect();
 
     /// Clears the effect such that it's as if default constructed
     void reset();
@@ -60,6 +63,25 @@ struct Effect {
     /// Gets a string value
     StringView get_string(size_t index) const noexcept;
 
+    // Data accessors - data follows immediately after header
+    int* ints() { return reinterpret_cast<int*>(this + 1); }
+    const int* ints() const { return reinterpret_cast<const int*>(this + 1); }
+
+    float* floats() { return reinterpret_cast<float*>(ints() + ints_count); }
+    const float* floats() const { return reinterpret_cast<const float*>(ints() + ints_count); }
+
+    String* strings() { return reinterpret_cast<String*>(floats() + floats_count); }
+    const String* strings() const { return reinterpret_cast<const String*>(floats() + floats_count); }
+
+    /// Total size including header and inline data
+    static constexpr size_t total_size()
+    {
+        return sizeof(Effect)
+            + sizeof(int) * ints_count
+            + sizeof(float) * floats_count
+            + sizeof(String) * strings_count;
+    }
+
     /// Gets the effect's handle
     EffectHandle& handle() noexcept;
 
@@ -71,9 +93,6 @@ struct Effect {
 
     /// Sets an integer point value
     void set_int(size_t index, int value);
-
-    /// Sets the effect's handle
-    void set_handle(EffectHandle hndl);
 
     /// Sets a string value
     void set_string(size_t index, String value);
@@ -90,10 +109,6 @@ struct Effect {
 
 private:
     EffectHandle handle_;
-
-    FixedVector<int> integers_;
-    FixedVector<float> floats_;
-    FixedVector<String> strings_;
     Versus versus_;
 };
 
@@ -167,6 +182,10 @@ struct EffectSystem : public kernel::Service {
     /// Creates an effect
     Effect* create(EffectType type);
 
+    /// Gets an effect by typed handle
+    Effect* get(TypedHandle handle);
+    const Effect* get(TypedHandle handle) const;
+
     /// Destroys an effect
     void destroy(Effect* effect);
 
@@ -208,7 +227,7 @@ private:
     Vector<const StaticTwoDA*> ip_param_table_;
     const StaticTwoDA* itemprop_table_;
 
-    HandlePool<EffectHandle, Effect> pool_;
+    RuntimeObjectPool pool_;
 };
 
 } // namespace nw

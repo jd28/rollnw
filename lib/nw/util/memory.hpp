@@ -46,14 +46,13 @@ struct GlobalMemory : MemoryResource {
 };
 
 struct MemoryBlock {
-    uint8_t* block = nullptr;
-    size_t position = 0;
-    size_t size = 0;
-
-    auto operator<=>(const MemoryBlock&) const = default;
+    void* base = nullptr;
+    size_t used = 0;
+    size_t capacity = 0;
 };
 
 struct MemoryMarker {
+    size_t block_index = 0;
     size_t position = 0;
 
     auto operator<=>(const MemoryMarker&) const = default;
@@ -72,8 +71,8 @@ struct MemoryArena : MemoryResource {
     /// Allocate memory memory on the arena.
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
-    /// Currently allocated memory
-    size_t capacity() const noexcept { return capacity_; }
+    /// Total allocated capacity across all blocks
+    size_t capacity() const noexcept;
 
     /// No-op
     virtual void deallocate(void*) { };
@@ -87,17 +86,16 @@ struct MemoryArena : MemoryResource {
     /// Rewinds the allocator to a specific point in the allocator
     void rewind(MemoryMarker marker);
 
-    /// Currently used memory
-    size_t used() const noexcept { return used_; }
+    /// Total used memory across all blocks
+    size_t used() const noexcept;
 
 private:
-    void* base_ = nullptr;
-    size_t used_ = 0;
-    size_t capacity_ = 0;
+    std::vector<MemoryBlock> blocks_;
+    size_t current_block_ = 0;
+    size_t default_block_size_;
 
-    void allocate_memory();
-    void deallocate_memory();
-    void reserve_memory();
+    void allocate_block(size_t capacity);
+    void deallocate_blocks();
 };
 
 namespace detail {

@@ -1,0 +1,102 @@
+from core.test import { test, reset, summary };
+
+// Generic functions
+fn identity(x: $T): $T {
+    return x;
+}
+
+// Generic struct
+type Pair!($A, $B) {
+    first: $A;
+    second: $B;
+};
+
+fn max(a: $T, b: $T): $T {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+fn min(a: $T, b: $T): $T {
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
+
+fn swap(a: $A, b: $B): ($B, $A) {
+    return b, a;
+}
+
+fn first(a: $A, b: $B): $A {
+    return a;
+}
+
+fn second(a: $A, b: $B): $B {
+    return b;
+}
+
+fn main() {
+    reset();
+
+    // Identity function with different types
+    test("identity_int", identity(42) == 42);
+    test("identity_float", identity(3.14) == 3.14);
+    test("identity_bool_true", identity(true) == true);
+    test("identity_bool_false", identity(false) == false);
+    test("identity_string", identity("hello") == "hello");
+
+    // Max function
+    test("max_int_first", max(10, 5) == 10);
+    test("max_int_second", max(5, 10) == 10);
+    test("max_int_equal", max(7, 7) == 7);
+    test("max_float", max(3.14, 2.71) == 3.14);
+
+    // Min function
+    test("min_int_first", min(5, 10) == 5);
+    test("min_int_second", min(10, 5) == 5);
+    test("min_float", min(3.14, 2.71) == 2.71);
+
+    // Swap with different types
+    var a, b = swap(1, 2.5);
+    test("swap_int_float_a", a == 2.5);
+    test("swap_int_float_b", b == 1);
+
+    var c, d = swap("hello", 42);
+    test("swap_string_int_a", c == 42);
+    test("swap_string_int_b", d == "hello");
+
+    // First and second selectors
+    test("first_int_float", first(1, 2.5) == 1);
+    test("second_int_float", second(1, 2.5) == 2.5);
+    test("first_string_int", first("hello", 42) == "hello");
+    test("second_string_int", second("hello", 42) == 42);
+
+    // Nested generic calls
+    test("nested_identity", identity(identity(42)) == 42);
+    test("nested_max", max(max(1, 2), max(3, 4)) == 4);
+
+    // Generic in expressions
+    test("generic_in_expr", identity(10) + identity(20) == 30);
+    test("max_in_expr", max(5, 3) * 2 == 10);
+
+    // Generic struct types
+    var pair_int_str: Pair!(int, string) = { 42, "hello" };
+    test("pair_first", pair_int_str.first == 42);
+    test("pair_second", pair_int_str.second == "hello");
+
+    var pair_int_bool: Pair!(int, bool) = { 123, true };
+    test("pair_int_bool_first", pair_int_bool.first == 123);
+    test("pair_int_bool_second", pair_int_bool.second == true);
+
+    var pair_float_bool: Pair!(float, bool) = { 3.14, false };
+    test("pair_float_bool_first", pair_float_bool.first == 3.14);
+    test("pair_float_bool_second", pair_float_bool.second == false);
+
+    var pair_bool_int: Pair!(bool, int) = { true, 999 };
+    test("pair_bool_int_first", pair_bool_int.first == true);
+    test("pair_bool_int_second", pair_bool_int.second == 999);
+
+    summary();
+}

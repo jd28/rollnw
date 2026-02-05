@@ -1,0 +1,100 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Smalls",
+  "scopeName": "source.smalls",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#annotations"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.smalls",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.smalls",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "annotations": {
+      "patterns": [
+        {
+          "name": "meta.annotation.smalls",
+          "match": "\\[\\[[^\\]]+\\]\\]"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.smalls",
+          "begin": "(?:(?<=\\b)f)?\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.smalls",
+              "match": "\\\\(n|t|r|\\\\|\"|0)"
+            },
+            {
+              "name": "meta.interpolation.smalls",
+              "begin": "\\{",
+              "end": "\\}"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.smalls",
+          "match": "\\b\\d+(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.smalls",
+          "match": "\\b(?:fn|type|var|const|if|else|for|return|switch|case|default|break|continue|import|from|as|is)\\b"
+        },
+        {
+          "name": "constant.language.smalls",
+          "match": "\\b(?:true|false)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.builtin.smalls",
+          "match": "\\b(?:int|float|bool|string)\\b"
+        },
+        {
+          "name": "entity.name.type.generic.smalls",
+          "match": "\\b(?:array|map)!\\b"
+        }
+      ]
+    }
+  }
+}

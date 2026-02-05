@@ -1,0 +1,6 @@
+[[native]] fn print(message: string);
+[[native]] fn println(message: string);
+[[native]] fn assert(cond: bool);
+[[native]] fn error(message: string);
+[[native]] fn panic(message: string);
+[[native]] fn gc_collect();

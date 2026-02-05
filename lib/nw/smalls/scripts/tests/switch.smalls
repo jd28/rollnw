@@ -1,0 +1,56 @@
+from core.test import { test, reset, summary };
+
+fn classify(n: int): int {
+    switch (n) {
+        case 1: {
+            return 10;
+        }
+        case 2: {
+            return 20;
+        }
+        default: {
+            return 99;
+        }
+    }
+}
+
+fn fallthrough_test(n: int): int {
+    var out = 0;
+    switch (n) {
+        case 1: {
+            out = 1;
+        }
+        case 2: {
+            out = 2;
+        }
+        default: {
+            out = 3;
+        }
+    }
+    return out;
+}
+
+fn classify_word(word: string): int {
+    switch (word) {
+        case "one": { return 1; }
+        case "two": { return 2; }
+        default: { return 0; }
+    }
+}
+
+fn main() {
+    reset();
+
+    test("switch_case_1", classify(1) == 10);
+    test("switch_case_2", classify(2) == 20);
+    test("switch_default", classify(3) == 99);
+
+    test("switch_break_1", fallthrough_test(1) == 1);
+    test("switch_break_2", fallthrough_test(2) == 2);
+    test("switch_break_default", fallthrough_test(3) == 3);
+    test("switch_string_one", classify_word("one") == 1);
+    test("switch_string_two", classify_word("two") == 2);
+    test("switch_string_default", classify_word("zero") == 0);
+
+    summary();
+}

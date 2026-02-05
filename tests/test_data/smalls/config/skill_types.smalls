@@ -1,0 +1,6 @@
+[[native]]
+type Skill {
+    name: string;
+    ability: int;
+    armor_check: bool;
+};

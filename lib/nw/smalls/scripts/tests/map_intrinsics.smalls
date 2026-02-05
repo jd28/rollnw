@@ -1,0 +1,24 @@
+from core.test import { test, reset, summary };
+import core.map as m;
+
+fn main() {
+    reset();
+
+    var scores: map!(string, int) = { "a": 1, "b": 2 };
+    test("map_len", m.len(scores) == 2);
+
+    test("map_has", m.has(scores, "a"));
+    test("map_get", m.get(scores, "b") == 2);
+
+    test("map_set_insert", m.set(scores, "c", 3));
+    test("map_set_overwrite", !m.set(scores, "c", 4));
+    test("map_get_after_set", m.get(scores, "c") == 4);
+
+    test("map_remove", m.remove(scores, "b"));
+    test("map_remove_missing", !m.remove(scores, "missing"));
+
+    m.clear(scores);
+    test("map_clear", m.len(scores) == 0);
+
+    summary();
+}

@@ -4,21 +4,33 @@
 
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
+
 namespace nw {
 
 DEFINE_RULE_TYPE(EffectType);
 
-Effect::Effect(nw::MemoryResource* allocator)
-    : Effect(EffectType::invalid(), allocator)
+Effect::Effect()
+    : Effect(EffectType::invalid())
 {
 }
 
-Effect::Effect(EffectType type_, nw::MemoryResource* allocator)
-    : integers_(20, allocator)
-    , floats_(4, allocator)
-    , strings_(4, allocator)
+Effect::Effect(EffectType type_)
 {
+    std::fill(ints(), ints() + ints_count, 0);
+    std::fill(floats(), floats() + floats_count, 0.0f);
+    for (uint16_t i = 0; i < strings_count; ++i) {
+        new (strings() + i) String();
+    }
+
     handle_.type = type_;
+}
+
+Effect::~Effect()
+{
+    for (uint16_t i = 0; i < strings_count; ++i) {
+        strings()[i].~String();
+    }
 }
 
 void Effect::reset()
@@ -27,28 +39,33 @@ void Effect::reset()
     handle_.category = EffectCategory::magical;
     handle_.subtype = -1;
     handle_.creator = ObjectHandle{};
+    handle_.effect = nullptr;
+    handle_.runtime_handle = TypedHandle{};
     duration = 0.0f;
     expire_day = 0;
     expire_time = 0;
 
-    integers_.clear();
-    floats_.clear();
-    strings_.clear();
+    versus_ = Versus{};
+    std::fill(ints(), ints() + ints_count, 0);
+    std::fill(floats(), floats() + floats_count, 0.0f);
+    for (uint16_t i = 0; i < strings_count; ++i) {
+        strings()[i].clear();
+    }
 }
 
 float Effect::get_float(size_t index) const noexcept
 {
-    return index < floats_.size() ? floats_[index] : 0.0f;
+    return index < floats_count ? floats()[index] : 0.0f;
 }
 
 int Effect::get_int(size_t index) const noexcept
 {
-    return index < integers_.size() ? integers_[index] : 0;
+    return index < ints_count ? ints()[index] : 0;
 }
 
 StringView Effect::get_string(size_t index) const noexcept
 {
-    return index < strings_.size() ? strings_[index] : StringView{};
+    return index < strings_count ? strings()[index] : StringView{};
 }
 
 EffectHandle& Effect::handle() noexcept
@@ -63,33 +80,17 @@ const EffectHandle& Effect::handle() const noexcept
 
 void Effect::set_float(size_t index, float value)
 {
-    if (index >= floats_.size()) {
-        floats_.resize(index + 1);
-    }
-    floats_[index] = value;
+    if (index < floats_count) { floats()[index] = value; }
 }
 
 void Effect::set_int(size_t index, int value)
 {
-    if (index >= integers_.size()) {
-        integers_.resize(index + 1);
-    }
-    integers_[index] = value;
-}
-
-void Effect::set_handle(EffectHandle hndl)
-{
-    handle_.index = hndl.index;
-    handle_.generation = hndl.generation;
-    handle_.effect = this;
+    if (index < ints_count) { ints()[index] = value; }
 }
 
 void Effect::set_string(size_t index, String value)
 {
-    if (index >= strings_.size()) {
-        strings_.resize(index + 1);
-    }
-    strings_[index] = std::move(value);
+    if (index < strings_count) { strings()[index] = std::move(value); }
 }
 
 void Effect::set_versus(Versus vs) { versus_ = vs; }
@@ -115,7 +116,10 @@ bool EffectArray::add(Effect* effect)
     if (!effect) { return false; }
     auto needle = effect->handle();
 
-    auto it = std::lower_bound(std::begin(effects_), std::end(effects_), needle);
+    auto comp = [](const EffectHandle& lhs, const EffectHandle& rhs) {
+        return std::tie(lhs.type, lhs.subtype) < std::tie(rhs.type, rhs.subtype);
+    };
+    auto it = std::lower_bound(std::begin(effects_), std::end(effects_), needle, comp);
     effects_.insert(it, needle);
 
     return true;
@@ -155,7 +159,7 @@ const std::type_index EffectSystem::type_index{typeid(EffectSystem)};
 
 EffectSystem::EffectSystem(MemoryResource* allocator)
     : Service(allocator)
-    , pool_(1024, allocator)
+    , pool_()
 {
 }
 
@@ -184,16 +188,40 @@ bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
 
 Effect* EffectSystem::create(EffectType type)
 {
-    auto effect = pool_.create();
-    if (effect == nullptr) { return nullptr; }
+    TypedHandle handle = pool_.allocate_effect();
+    if (!handle.is_valid()) { return nullptr; }
+
+    auto* effect = static_cast<Effect*>(pool_.get(handle));
+    if (!effect) { return nullptr; }
+
+    effect->reset();
     effect->handle().type = type;
+    effect->handle().effect = effect;
+    effect->handle().runtime_handle = handle;
+
     return effect;
+}
+
+Effect* EffectSystem::get(TypedHandle handle)
+{
+    if (!handle.is_valid() || handle.type != RuntimeObjectPool::TYPE_EFFECT) {
+        return nullptr;
+    }
+    return static_cast<Effect*>(pool_.get(handle));
+}
+
+const Effect* EffectSystem::get(TypedHandle handle) const
+{
+    if (!handle.is_valid() || handle.type != RuntimeObjectPool::TYPE_EFFECT) {
+        return nullptr;
+    }
+    return static_cast<const Effect*>(pool_.get(handle));
 }
 
 void EffectSystem::destroy(Effect* effect)
 {
     if (!effect) { return; }
-    pool_.destroy(effect->handle());
+    pool_.destroy(effect->handle().to_typed_handle());
 }
 
 void EffectSystem::initialize(kernel::ServiceInitTime time)

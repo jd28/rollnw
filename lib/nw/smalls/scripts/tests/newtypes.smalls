@@ -1,0 +1,42 @@
+from core.test import { test, reset, summary };
+
+type HP(int);
+type Gold(int);
+
+fn add_hp(a: HP, b: HP): HP {
+    return HP((a as int) + (b as int));
+}
+
+fn take_hp(h: HP): bool {
+    return (h as int) == 10;
+}
+
+fn test_newtype_construct(): bool {
+    var hp: HP = HP(12);
+    var gold: Gold = Gold(7);
+    return (hp as int) == 12 && (gold as int) == 7;
+}
+
+fn test_newtype_functions(): bool {
+    var h1: HP = HP(10);
+    var h2: HP = HP(5);
+    var h3: HP = add_hp(h1, h2);
+    return take_hp(h1) && (h3 as int) == 15;
+}
+
+fn test_newtype_tuple(): bool {
+    var h: HP = HP(3);
+    var g: Gold = Gold(4);
+    var t = (h, g);
+    return (t[0] as int) == 3 && (t[1] as int) == 4;
+}
+
+fn main() {
+    reset();
+
+    test("newtype_construct", test_newtype_construct());
+    test("newtype_functions", test_newtype_functions());
+    test("newtype_tuple", test_newtype_tuple());
+
+    summary();
+}

@@ -1,0 +1,44 @@
+from core.test import { test, reset, summary };
+
+fn will_fail(): bool {
+    return (1 / 0) == 0;
+}
+
+fn main() {
+    reset();
+
+    test("eq_int", 5 == 5);
+    test("ne_int", 5 != 4);
+    test("lt_int", 3 < 5);
+    test("le_int", 5 <= 5);
+    test("gt_int", 7 > 5);
+    test("ge_int", 5 >= 5);
+
+    test("eq_float", 3.14 == 3.14);
+    test("ne_float", 3.14 != 2.71);
+    test("lt_float", 2.5 < 3.5);
+    test("le_float", 3.5 <= 3.5);
+    test("gt_float", 4.5 > 3.5);
+    test("ge_float", 3.5 >= 3.5);
+
+    test("eq_bool", true == true);
+    test("ne_bool", true != false);
+
+    test("and_tt", true && true);
+    test("and_tf", !(true && false));
+    test("and_ft", !(false && true));
+    test("and_ff", !(false && false));
+
+    test("or_tt", true || true);
+    test("or_tf", true || false);
+    test("or_ft", false || true);
+    test("or_ff", !(false || false));
+
+    test("not_true", !true == false);
+    test("not_false", !false == true);
+
+    test("and_short_circuit", !(false && will_fail()));
+    test("or_short_circuit", true || will_fail());
+
+    summary();
+}

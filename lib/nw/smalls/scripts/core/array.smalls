@@ -1,0 +1,21 @@
+[[intrinsic("array_push")]] fn push(a: array!($T), v: $T);
+[[intrinsic("array_pop")]] fn pop(a: array!($T)): $T;
+[[intrinsic("array_len")]] fn len(a: array!($T)): int;
+[[intrinsic("array_clear")]] fn clear(a: array!($T));
+[[intrinsic("array_reserve")]] fn reserve(a: array!($T), n: int);
+[[intrinsic("array_get")]] fn get(a: array!($T), idx: int): $T;
+[[intrinsic("array_set")]] fn set(a: array!($T), idx: int, v: $T);
+
+[[native]] fn map(a: array!($T), f: fn($T): $U): array!($U);
+
+[[native]] fn filter(a: array!($T), pred: fn($T): bool): array!($T);
+
+[[native]] fn reduce(a: array!($T), init: $A, step: fn($A, $T): $A): $A;
+
+[[native]] fn sort(a: array!($T), less: fn($T, $T): bool);
+
+[[native]] fn find(a: array!($T), pred: fn($T): bool): int;
+
+[[native]] fn reverse(a: array!($T));
+
+[[native]] fn slice(a: array!($T), start: int, end: int): array!($T);
