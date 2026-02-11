@@ -15,6 +15,17 @@
 using namespace std::literals;
 namespace fs = std::filesystem;
 
+namespace {
+struct CountingSmallsContext : nw::smalls::Context {
+    void lexical_diagnostic(nw::smalls::Script*, nw::StringView, bool, nw::smalls::SourceRange) override
+    {
+        ++lexical_calls;
+    }
+
+    int lexical_calls = 0;
+};
+} // namespace
+
 TEST_F(SmallsLexer, BasicLexing)
 {
     nw::smalls::Lexer lexer{"x /= y", nw::kernel::runtime().diagnostic_context()};
@@ -113,6 +124,11 @@ TEST_F(SmallsLexer, BasicLexing)
         nw::kernel::runtime().diagnostic_context()};
     EXPECT_EQ(int(lexer17.next().type), int(nw::smalls::TokenType::STRING_RAW_LITERAL));
 
+    nw::smalls::Lexer lexer17b{R"(r"abc")", nw::kernel::runtime().diagnostic_context()};
+    auto raw17b = lexer17b.next();
+    EXPECT_EQ(raw17b.type, nw::smalls::TokenType::STRING_RAW_LITERAL);
+    EXPECT_EQ(raw17b.loc.view(), "abc");
+
     nw::smalls::Lexer lexer18{R"(
             r"
                 This is a test of raw string lexer;
@@ -184,4 +200,20 @@ TEST_F(SmallsLexer, BasicLexing)
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::IMPORT));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::AS));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::IS));
+
+    nw::smalls::Lexer lexer34{"*/", nw::kernel::runtime().diagnostic_context()};
+    EXPECT_THROW(lexer34.next(), nw::smalls::lexical_error);
+
+    nw::smalls::Lexer lexer35{"/*\n*/x", nw::kernel::runtime().diagnostic_context()};
+    EXPECT_EQ(lexer35.next().type, nw::smalls::TokenType::COMMENT);
+    auto tok35 = lexer35.next();
+    EXPECT_EQ(tok35.type, nw::smalls::TokenType::IDENTIFIER);
+    EXPECT_EQ(tok35.loc.view(), "x");
+    EXPECT_EQ(tok35.loc.range.start.line, 2);
+    EXPECT_EQ(tok35.loc.range.start.column, 2);
+
+    CountingSmallsContext counting_ctx;
+    nw::smalls::Lexer lexer36{"&", &counting_ctx};
+    EXPECT_EQ(lexer36.next().type, nw::smalls::TokenType::END);
+    EXPECT_EQ(counting_ctx.lexical_calls, 1);
 }

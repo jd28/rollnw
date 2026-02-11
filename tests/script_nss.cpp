@@ -745,6 +745,11 @@ TEST(Nss, Lexer)
         ctx.get()};
     EXPECT_EQ(int(lexer17.next().type), int(script::NssTokenType::STRING_RAW_CONST));
 
+    script::NssLexer lexer17b{R"(r"abc")", ctx.get()};
+    auto raw17b = lexer17b.next();
+    EXPECT_EQ(raw17b.type, script::NssTokenType::STRING_RAW_CONST);
+    EXPECT_EQ(raw17b.loc.view(), "abc");
+
     script::NssLexer lexer18{R"(
             r"
                 This is a test of raw string lexer;
@@ -801,6 +806,17 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer30{R"(H"this is a test")", ctx.get()};
     EXPECT_EQ(int(lexer30.next().type), int(script::NssTokenType::STRING_HASH_LITERAL));
+
+    script::NssLexer lexer31{"*/", ctx.get()};
+    EXPECT_THROW(lexer31.next(), nw::script::lexical_error);
+
+    script::NssLexer lexer32{"/*\n*/x", ctx.get()};
+    EXPECT_EQ(lexer32.next().type, script::NssTokenType::COMMENT);
+    auto tok32 = lexer32.next();
+    EXPECT_EQ(tok32.type, script::NssTokenType::IDENTIFIER);
+    EXPECT_EQ(tok32.loc.view(), "x");
+    EXPECT_EQ(tok32.loc.range.start.line, 2);
+    EXPECT_EQ(tok32.loc.range.start.column, 2);
 }
 
 TEST(Nss, Includes)

@@ -41,6 +41,7 @@ NssLexer::NssLexer(StringView buffer, Context* ctx, Nss* parent)
     , buffer_{buffer}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
+    line_map.reserve(1 + (buffer_.size() / 32));
     line_map.push_back(0);
 }
 
@@ -61,83 +62,86 @@ char NssLexer::get(size_t pos) const
 
 inline NssTokenType check_keyword(const NssToken& tk)
 {
-    switch (tk.loc.view()[0]) {
+    auto sv = tk.loc.view();
+    if (sv.empty()) { return NssTokenType::IDENTIFIER; }
+
+    switch (sv[0]) {
     default:
         return NssTokenType::IDENTIFIER;
     // Macros
     case '_':
-        if (tk.loc.view() == "__FUNCTION__") {
+        if (sv == "__FUNCTION__") {
             return NssTokenType::_FUNCTION_;
-        } else if (tk.loc.view() == "__FILE__") {
+        } else if (sv == "__FILE__") {
             return NssTokenType::_FILE_;
-        } else if (tk.loc.view() == "__DATE__") {
+        } else if (sv == "__DATE__") {
             return NssTokenType::_DATE_;
-        } else if (tk.loc.view() == "__TIME__") {
+        } else if (sv == "__TIME__") {
             return NssTokenType::_TIME_;
-        } else if (tk.loc.view() == "__LINE__") {
+        } else if (sv == "__LINE__") {
             return NssTokenType::_LINE_;
         }
         break;
 
         // Keywords
     case 'a':
-        if (tk.loc.view() == "action") {
+        if (sv == "action") {
             return NssTokenType::ACTION;
         }
         break;
     case 'b':
-        if (tk.loc.view() == "break") {
+        if (sv == "break") {
             return NssTokenType::BREAK;
         }
         break;
     case 'c':
-        if (tk.loc.view() == "case") {
+        if (sv == "case") {
             return NssTokenType::CASE;
             // CASE
         } else if (kernel::config().version() == nw::GameVersion::vEE
-            && tk.loc.view() == "cassowary") {
+            && sv == "cassowary") {
             return NssTokenType::CASSOWARY;
-        } else if (tk.loc.view() == "const") {
+        } else if (sv == "const") {
             return NssTokenType::CONST_;
-        } else if (tk.loc.view() == "continue") {
+        } else if (sv == "continue") {
             return NssTokenType::CONTINUE;
         }
         break;
     case 'd':
-        if (tk.loc.view() == "default") {
+        if (sv == "default") {
             return NssTokenType::DEFAULT;
-        } else if (tk.loc.view() == "do") {
+        } else if (sv == "do") {
             return NssTokenType::DO;
         }
         break;
     case 'e':
-        if (tk.loc.view() == "effect") {
+        if (sv == "effect") {
             return NssTokenType::EFFECT;
-        } else if (tk.loc.view() == "else") {
+        } else if (sv == "else") {
             return NssTokenType::ELSE;
-        } else if (tk.loc.view() == "event") {
+        } else if (sv == "event") {
             return NssTokenType::EVENT;
         }
         break;
     case 'f':
-        if (tk.loc.view() == "float") {
+        if (sv == "float") {
             return NssTokenType::FLOAT;
-        } else if (tk.loc.view() == "for") {
+        } else if (sv == "for") {
             return NssTokenType::FOR;
         }
         break;
     case 'i':
-        if (tk.loc.view() == "if") {
+        if (sv == "if") {
             return NssTokenType::IF;
-        } else if (tk.loc.view() == "int") {
+        } else if (sv == "int") {
             return NssTokenType::INT;
-        } else if (tk.loc.view() == "itemproperty") {
+        } else if (sv == "itemproperty") {
             return NssTokenType::ITEMPROPERTY;
         }
         break;
     case 'j':
         if (kernel::config().version() == nw::GameVersion::vEE) {
-            if (tk.loc.view() == "json") {
+            if (sv == "json") {
                 return NssTokenType::JSON;
             }
         }
@@ -145,65 +149,65 @@ inline NssTokenType check_keyword(const NssToken& tk)
     case 'J':
         if (kernel::config().version() == nw::GameVersion::vEE) {
             for (auto json_const : {"JSON_FALSE", "JSON_TRUE", "JSON_OBJECT", "JSON_ARRAY", "JSON_STRING"}) {
-                if (tk.loc.view() == json_const) { return NssTokenType::JSON_CONST; }
+                if (sv == json_const) { return NssTokenType::JSON_CONST; }
             }
         }
         break;
     case 'l':
-        if (tk.loc.view() == "location") {
+        if (sv == "location") {
             return NssTokenType::LOCATION;
         }
         break;
     case 'L':
         if (kernel::config().version() == nw::GameVersion::vEE) {
-            if (tk.loc.view() == "LOCATION_INVALID") {
+            if (sv == "LOCATION_INVALID") {
                 return NssTokenType::LOCATION_INVALID;
             }
         }
         break;
     case 'o':
-        if (tk.loc.view() == "object") {
+        if (sv == "object") {
             return NssTokenType::OBJECT;
         }
         break;
     case 'O':
-        if (tk.loc.view() == "OBJECT_INVALID") {
+        if (sv == "OBJECT_INVALID") {
             return NssTokenType::OBJECT_INVALID_CONST;
-        } else if (tk.loc.view() == "OBJECT_SELF") {
+        } else if (sv == "OBJECT_SELF") {
             return NssTokenType::OBJECT_SELF_CONST;
         }
         break;
     case 'r':
-        if (tk.loc.view() == "return") {
+        if (sv == "return") {
             return NssTokenType::RETURN;
         }
         break;
     case 's':
-        if (tk.loc.view() == "string") {
+        if (sv == "string") {
             return NssTokenType::STRING;
-        } else if (tk.loc.view() == "struct") {
+        } else if (sv == "struct") {
             return NssTokenType::STRUCT;
-        } else if (tk.loc.view() == "switch") {
+        } else if (sv == "switch") {
             return NssTokenType::SWITCH;
         } else if (kernel::config().version() == nw::GameVersion::vEE
-            && tk.loc.view() == "sqlquery") {
+            && sv == "sqlquery") {
             return NssTokenType::SQLQUERY;
         }
         break;
     case 't':
-        if (tk.loc.view() == "talent") {
+        if (sv == "talent") {
             return NssTokenType::TALENT;
         }
         break;
     case 'v':
-        if (tk.loc.view() == "vector") {
+        if (sv == "vector") {
             return NssTokenType::VECTOR;
-        } else if (tk.loc.view() == "void") {
+        } else if (sv == "void") {
             return NssTokenType::VOID_;
         }
         break;
     case 'w':
-        if (tk.loc.view() == "while") {
+        if (sv == "while") {
             return NssTokenType::WHILE;
         }
         break;
@@ -416,8 +420,6 @@ NssToken NssLexer::next()
                 && get(pos_ + 1) == '"') {
 
                 bool matched = false;
-                size_t original_last_line = last_line_pos_;
-                size_t start_line = line_;
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
@@ -429,7 +431,7 @@ NssToken NssLexer::next()
                     } else if (pos_ != start && get(pos_) == '"') {
                         t = NssToken{
                             NssTokenType::STRING_HASH_LITERAL,
-                            {buffer_.data() + start, pos_ - 1 - start},
+                            {buffer_.data() + start, pos_ - start},
                             start_pos,
                             SourcePosition{line_, pos_ - last_line_pos_},
                         };
@@ -457,7 +459,6 @@ NssToken NssLexer::next()
                 && get(pos_ + 1) == '"') {
 
                 bool matched = false;
-                size_t start_line = line_;
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
@@ -476,7 +477,7 @@ NssToken NssLexer::next()
                     if (pos_ != start && get(pos_) == '"') {
                         t = NssToken{
                             NssTokenType::STRING_RAW_CONST,
-                            {buffer_.data() + start, pos_ - 1 - start},
+                            {buffer_.data() + start, pos_ - start},
                             start_pos,
                             SourcePosition{line_, pos_ - last_line_pos_},
                         };
@@ -669,8 +670,9 @@ NssToken NssLexer::next()
         case '*': // TIMES
             switch (get(pos_ + 1)) {
             case '/': { // Uh oh
+                const char* loc_start = start > 0 ? buffer_.data() + start - 1 : buffer_.data();
                 SourceLocation loc{
-                    buffer_.data() + start - 1,
+                    loc_start,
                     buffer_.data() + pos_ + 1,
                     {start_pos, SourcePosition{line_, pos_ + 1 - last_line_pos_}},
                 };
@@ -714,14 +716,12 @@ NssToken NssLexer::next()
             } break;
             case '*': { // Block Comment
                 bool matched = false;
-                size_t original_last_line = last_line_pos_;
-                size_t start_line = line_;
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
                     if (get(pos_) == '\n') {
                         ++line_;
-                        last_line_pos_ = pos_;
+                        last_line_pos_ = pos_ + 1;
                         line_map.push_back(last_line_pos_);
                     } else if (pos_ != start && get(pos_ - 1) == '*' && get(pos_) == '/') {
                         t = NssToken{
