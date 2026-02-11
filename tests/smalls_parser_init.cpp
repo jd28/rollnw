@@ -203,6 +203,11 @@ TEST_F(SmallsParser, BraceInitEmpty)
     auto* brace_init = dynamic_cast<nw::smalls::BraceInitLiteral*>(var_decl->init);
     ASSERT_NE(brace_init, nullptr);
     EXPECT_EQ(brace_init->items.size(), 0);
+
+    auto view = script.view_from_range(brace_init->range_);
+    ASSERT_FALSE(view.empty());
+    EXPECT_EQ(view.front(), '{');
+    EXPECT_EQ(view.back(), '}');
 }
 TEST_F(SmallsParser, BraceInitNested)
 {

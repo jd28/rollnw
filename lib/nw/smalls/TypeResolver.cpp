@@ -1942,6 +1942,21 @@ void TypeResolver::visit(StructDecl* decl)
     rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name());
 
     bool has_native = ctx.has_annotation(decl, "native");
+    bool has_propset = ctx.has_annotation(decl, "propset");
+
+    if (has_propset) {
+        if (decl->is_generic()) {
+            ctx.errorf(decl->range_, "[[propset]] struct '{}' cannot be generic", decl->identifier());
+        }
+
+        const Type* type = rt.get_type(decl->type_id_);
+        if (!type || type->type_kind != TK_struct) {
+            ctx.errorf(decl->range_, "[[propset]] '{}' failed to resolve to a struct type", decl->identifier());
+        } else if (type->contains_heap_refs) {
+            ctx.errorf(decl->range_, "[[propset]] struct '{}' cannot contain heap references in current phase", decl->identifier());
+        }
+    }
+
     if (has_native) {
         const Type* type = rt.get_type(decl->type_id_);
         if (type && type->type_kind == TK_struct && type->type_params[0].is<StructID>()) {

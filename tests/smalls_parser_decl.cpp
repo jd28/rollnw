@@ -169,6 +169,31 @@ TEST_F(SmallsParser, VarDeclError_MismatchedInitsMoreVars)
     EXPECT_GT(script.errors(), 0);
 }
 
+TEST_F(SmallsParser, MalformedStructMemberMakesForwardProgress)
+{
+    auto script = make_script(R"(
+        type Bad {
+            var x: int;
+            y: int;
+        };
+
+        fn ok() {}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+
+    bool found_ok = false;
+    for (auto* decl : script.ast().decls) {
+        auto* fn = dynamic_cast<nw::smalls::FunctionDefinition*>(decl);
+        if (fn && fn->identifier_.loc.view() == "ok") {
+            found_ok = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_ok);
+}
+
 TEST_F(SmallsParser, FunctionNoReturn)
 {
     auto script = make_script(R"(

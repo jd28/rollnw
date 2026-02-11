@@ -187,6 +187,47 @@ TEST_F(SmallsParser, UnaryNot)
     EXPECT_EQ(unary->op.type, nw::smalls::TokenType::NOT);
 }
 
+TEST_F(SmallsParser, UnaryDepthLimitTriggersOnNestedUnary)
+{
+    auto* ctx = nw::kernel::runtime().diagnostic_context();
+    ASSERT_NE(ctx, nullptr);
+
+    auto previous_limit = ctx->limits.max_parse_depth;
+    ctx->limits.max_parse_depth = 3;
+
+    auto script = make_script(R"(
+        fn test() {
+            var x = !!!!!1;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+
+    ctx->limits.max_parse_depth = previous_limit;
+}
+
+TEST_F(SmallsParser, FStringRejectsTrailingTokensInInterpolation)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var s = f"{1 2}";
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+
+    bool found_expected = false;
+    for (const auto& diag : script.diagnostics()) {
+        if (diag.message.find("Expected end of interpolation expression") != std::string::npos) {
+            found_expected = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_expected);
+}
+
 TEST_F(SmallsParser, AssignmentExpression)
 {
     auto script = make_script(R"(

@@ -1,5 +1,7 @@
 #include "Parser.hpp"
 
+#include <limits>
+
 #include "../log.hpp"
 #include "../util/string.hpp"
 #include "Smalls.hpp"
@@ -313,6 +315,7 @@ Expression* Parser::parse_expr_assign()
             TokenType::PLUSEQ,
             TokenType::TIMESEQ})) {
         auto equals = previous();
+        ParseDepthGuard depth_guard(*this);
         auto value = parse_expr_assign();
 
         if (dynamic_cast<PathExpression*>(expr) || dynamic_cast<IndexExpression*>(expr)) {
@@ -332,8 +335,10 @@ Expression* Parser::parse_expr_conditional()
 {
     auto expr = parse_expr_or();
     if (match({TokenType::QUESTION})) {
+        ParseDepthGuard tbranch_depth_guard(*this);
         auto tbranch = parse_expr_conditional();
         consume(TokenType::COLON, "Expected ':'.");
+        ParseDepthGuard fbranch_depth_guard(*this);
         auto fbranch = parse_expr_conditional();
         auto ce = ast_.create_node<ConditionalExpression>(expr, tbranch, fbranch);
         ce->range_.start = expr->range_.start;
@@ -428,6 +433,7 @@ Expression* Parser::parse_expr_unary()
             TokenType::MINUS,
             TokenType::PLUS})) {
         auto op = previous();
+        ParseDepthGuard depth_guard(*this);
         auto right = parse_expr_unary();
 
         // Constant fold unary expressions cause this will cause problems later
@@ -445,7 +451,12 @@ Expression* Parser::parse_expr_unary()
                 return fold(op, lit, right);
             } else if (op.type == TokenType::MINUS) {
                 if (lit->literal.type == TokenType::INTEGER_LITERAL) {
-                    lit->data = -lit->data.as<int32_t>();
+                    auto value = lit->data.as<int32_t>();
+                    if (value == std::numeric_limits<int32_t>::min()) {
+                        diagnostic("integer literal out of range after unary '-'", lit->literal);
+                    } else {
+                        lit->data = -value;
+                    }
                     return fold(op, lit, right);
                 } else if (lit->literal.type == TokenType::FLOAT_LITERAL) {
                     lit->data = -lit->data.as<float>();
@@ -877,7 +888,7 @@ TypeExpression* Parser::parse_type()
 
 BraceInitLiteral* Parser::parse_brace_init_literal()
 {
-    Token start;
+    Token start = previous();
     auto expr = ast_.create_node<BraceInitLiteral>(ctx_->arena);
 
     if (!check({TokenType::BRACE_CLOSE})) {
@@ -1666,11 +1677,19 @@ StructDecl* Parser::parse_decl_struct()
     auto decl = ast_.create_node<StructDecl>(ctx_->arena);
 
     while (!is_end() && !check({TokenType::BRACE_CLOSE})) {
+        size_t before = current_;
         try {
             auto member = parse_decl_struct_member();
             decl->decls.push_back(member);
         } catch (const parser_error&) {
             synchronize(true);
+        }
+
+        if (current_ == before) {
+            if (is_end() || check({TokenType::BRACE_CLOSE})) {
+                break;
+            }
+            advance();
         }
     }
     consume(TokenType::BRACE_CLOSE, "Expected '}'.");
@@ -2000,6 +2019,10 @@ FStringExpression* Parser::parse_fstring(Token fstring_token)
             Parser sub_parser(expr_str, &fstring_ctx, parent_);
             sub_parser.lex();
             auto sub_expr = sub_parser.parse_expr();
+            if (!sub_parser.is_end()) {
+                diagnostic("Expected end of interpolation expression", sub_parser.peek());
+                throw parser_error("Expected end of interpolation expression");
+            }
             expr->expressions.push_back(sub_expr);
 
             pos = expr_end + 1;
