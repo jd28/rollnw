@@ -10,6 +10,32 @@
 
 namespace nw::smalls {
 
+namespace {
+
+TypeID resolve_newtype_type_id(Runtime* runtime, const Export* exp)
+{
+    if (!runtime || !exp) {
+        return invalid_type_id;
+    }
+
+    if (exp->kind == Export::Kind::type) {
+        TypeID tid = exp->type_id;
+        if (tid == invalid_type_id && exp->decl) {
+            tid = exp->decl->type_id_;
+        }
+        if (tid != invalid_type_id) {
+            const Type* t = runtime->get_type(tid);
+            if (t && t->type_kind == TK_newtype) {
+                return tid;
+            }
+        }
+    }
+
+    return invalid_type_id;
+}
+
+} // namespace
+
 // == RegisterAllocator =======================================================
 
 uint8_t RegisterAllocator::allocate()
@@ -2107,7 +2133,16 @@ void AstCompiler::visit(PathExpression* expr)
         if (auto lhs_ident = dynamic_cast<IdentifierExpression*>(expr->parts.front())) {
             String lhs_name(lhs_ident->ident.loc.view());
             auto exp = expr->env_.find(lhs_name);
-            is_sum_decl = exp && exp->decl && dynamic_cast<const SumDecl*>(exp->decl);
+            if (exp && exp->kind == Export::Kind::type) {
+                TypeID tid = exp->type_id;
+                if (tid == invalid_type_id && exp->decl) {
+                    tid = exp->decl->type_id_;
+                }
+                if (tid != invalid_type_id) {
+                    const Type* lhs_type = runtime_->get_type(tid);
+                    is_sum_decl = lhs_type && lhs_type->type_kind == TK_sum;
+                }
+            }
         }
 
         if (is_sum_decl) {
@@ -2331,7 +2366,16 @@ void AstCompiler::visit(CallExpression* expr)
             if (auto lhs_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.front())) {
                 String lhs_name(lhs_ident->ident.loc.view());
                 auto exp = expr->env_.find(lhs_name);
-                is_sum_decl = exp && exp->decl && dynamic_cast<const SumDecl*>(exp->decl);
+                if (exp && exp->kind == Export::Kind::type) {
+                    TypeID tid = exp->type_id;
+                    if (tid == invalid_type_id && exp->decl) {
+                        tid = exp->decl->type_id_;
+                    }
+                    if (tid != invalid_type_id) {
+                        const Type* lhs_type = runtime_->get_type(tid);
+                        is_sum_decl = lhs_type && lhs_type->type_kind == TK_sum;
+                    }
+                }
             }
 
             if (is_sum_decl) {
@@ -2377,13 +2421,13 @@ void AstCompiler::visit(CallExpression* expr)
     }
 
     if (auto path_expr = dynamic_cast<PathExpression*>(expr->expr)) {
-        const NewtypeDecl* newtype_decl = nullptr;
+        TypeID newtype_type_id = invalid_type_id;
         if (path_expr->parts.size() == 1) {
             if (auto ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.front())) {
                 String name(ident->ident.loc.view());
                 auto exp = expr->env_.find(name);
-                if (exp && exp->decl) {
-                    newtype_decl = dynamic_cast<const NewtypeDecl*>(exp->decl);
+                if (exp) {
+                    newtype_type_id = resolve_newtype_type_id(runtime_, exp);
                 }
             }
         } else if (path_expr->parts.size() == 2) {
@@ -2392,12 +2436,20 @@ void AstCompiler::visit(CallExpression* expr)
             if (lhs_ident && rhs_ident) {
                 String lhs_name(lhs_ident->ident.loc.view());
                 auto exp = expr->env_.find(lhs_name);
-                if (exp && exp->decl) {
+                if (exp && exp->kind == Export::Kind::module_alias && !exp->provider_module.empty()) {
+                    auto* provider = runtime_->get_module(exp->provider_module);
+                    if (provider) {
+                        auto export_ptr = provider->exports().find(String(rhs_ident->ident.loc.view()));
+                        if (export_ptr) {
+                            newtype_type_id = resolve_newtype_type_id(runtime_, export_ptr);
+                        }
+                    }
+                } else if (exp && exp->decl) {
                     if (auto import_decl = dynamic_cast<const AliasedImportDecl*>(exp->decl)) {
                         if (import_decl->loaded_module) {
                             auto export_ptr = import_decl->loaded_module->exports().find(String(rhs_ident->ident.loc.view()));
-                            if (export_ptr && export_ptr->decl) {
-                                newtype_decl = dynamic_cast<const NewtypeDecl*>(export_ptr->decl);
+                            if (export_ptr) {
+                                newtype_type_id = resolve_newtype_type_id(runtime_, export_ptr);
                             }
                         }
                     }
@@ -2405,7 +2457,7 @@ void AstCompiler::visit(CallExpression* expr)
             }
         }
 
-        if (newtype_decl) {
+        if (newtype_type_id != invalid_type_id) {
             if (expr->args.size() != 1) {
                 fail("Newtype constructor expects 1 argument");
                 return;
@@ -2414,7 +2466,7 @@ void AstCompiler::visit(CallExpression* expr)
             expr->args[0]->accept(this);
             uint8_t src_reg = result_reg_;
 
-            TypeID target_tid = newtype_decl->type_id_;
+            TypeID target_tid = newtype_type_id;
             uint16_t type_idx = 0;
             auto it = std::find(module_->type_refs.begin(), module_->type_refs.end(), target_tid);
             if (it == module_->type_refs.end()) {
@@ -2490,7 +2542,21 @@ void AstCompiler::visit(CallExpression* expr)
     }
 
     const Type* callee_type = runtime_->get_type(expr->expr->type_id_);
-    if (is_local_function_value || (callee_type && callee_type->type_kind == TK_function)) {
+    bool is_direct_symbol_call = false;
+    if (auto path_expr = dynamic_cast<PathExpression*>(expr->expr)) {
+        if (!path_expr->parts.empty() && path_expr->parts.size() <= 2) {
+            bool all_identifiers = true;
+            for (auto* part : path_expr->parts) {
+                if (!dynamic_cast<IdentifierExpression*>(part)) {
+                    all_identifiers = false;
+                    break;
+                }
+            }
+            is_direct_symbol_call = all_identifiers;
+        }
+    }
+
+    if (is_local_function_value || (!is_direct_symbol_call && callee_type && callee_type->type_kind == TK_function)) {
         // Compile callee (closure value)
         expr->expr->accept(this);
         uint8_t closure_reg = result_reg_;
@@ -2522,9 +2588,18 @@ void AstCompiler::visit(CallExpression* expr)
 
     // 1. Identify function
     String func_name;
-    Script* provider_module = nullptr;
+    String abi_call_target;
+    Script* provider_module = expr->resolved_provider;
+    const Export* resolved_export = nullptr;
     if (auto ident = as_identifier(expr->expr)) {
         func_name = String(ident->ident.loc.view());
+        auto exp = expr->env_.find(func_name);
+        if (exp && exp->kind == Export::Kind::function) {
+            resolved_export = exp;
+        }
+        if (exp && exp->function_abi && !exp->function_abi->call_target.empty()) {
+            abi_call_target = exp->function_abi->call_target;
+        }
     } else if (auto path_expr = dynamic_cast<PathExpression*>(expr->expr)) {
         if (path_expr->parts.size() == 2) {
             auto lhs_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.front());
@@ -2535,16 +2610,26 @@ void AstCompiler::visit(CallExpression* expr)
             }
 
             func_name = String(rhs_ident->ident.loc.view());
-            for (auto* decl : script_->ast().decls) {
-                if (auto* import = dynamic_cast<AliasedImportDecl*>(decl)) {
-                    if (import->alias.loc.view() == lhs_ident->ident.loc.view()) {
-                        provider_module = import->loaded_module;
-                        break;
-                    }
+            if (!provider_module) {
+                auto lhs_exp = expr->env_.find(String(lhs_ident->ident.loc.view()));
+                if (lhs_exp && lhs_exp->kind == Export::Kind::module_alias
+                    && !lhs_exp->provider_module.empty()) {
+                    provider_module = runtime_->get_module(lhs_exp->provider_module);
                 }
             }
 
-            if (!provider_module) {
+            if (provider_module) {
+                auto export_ptr = provider_module->exports().find(func_name);
+                if (export_ptr && export_ptr->function_abi
+                    && !export_ptr->function_abi->call_target.empty()) {
+                    abi_call_target = export_ptr->function_abi->call_target;
+                }
+                if (export_ptr && export_ptr->kind == Export::Kind::function) {
+                    resolved_export = export_ptr;
+                }
+            }
+
+            if (!provider_module && abi_call_target.empty()) {
                 fail("Indirect calls not supported");
                 return;
             }
@@ -2555,6 +2640,26 @@ void AstCompiler::visit(CallExpression* expr)
     } else {
         fail("Indirect calls not supported");
         return;
+    }
+
+    if (provider_module && abi_call_target.empty()) {
+        auto export_ptr = provider_module->exports().find(func_name);
+        if (export_ptr && export_ptr->function_abi
+            && !export_ptr->function_abi->call_target.empty()) {
+            abi_call_target = export_ptr->function_abi->call_target;
+        }
+        if (export_ptr && export_ptr->kind == Export::Kind::function) {
+            resolved_export = export_ptr;
+        }
+    }
+
+    if (!provider_module && resolved_export && !resolved_export->provider_module.empty()
+        && resolved_export->provider_module != script_->name()) {
+        provider_module = runtime_->get_module(resolved_export->provider_module);
+    }
+    if (resolved_export && abi_call_target.empty() && resolved_export->function_abi
+        && !resolved_export->function_abi->call_target.empty()) {
+        abi_call_target = resolved_export->function_abi->call_target;
     }
 
     auto is_native_decl = [](const Declaration* decl) {
@@ -2570,7 +2675,7 @@ void AstCompiler::visit(CallExpression* expr)
     // Check if this is a call to a generic function
     if (!expr->inferred_type_args.empty()) {
         const FunctionDefinition* generic_def = expr->resolved_func;
-        if (!generic_def || !generic_def->is_generic()) {
+        if (generic_def && !generic_def->is_generic()) {
             fail(fmt::format("Generic call '{}' missing resolved generic definition", func_name));
             return;
         }
@@ -2578,6 +2683,23 @@ void AstCompiler::visit(CallExpression* expr)
         Script* defining_script = expr->resolved_provider;
         if (!defining_script) {
             defining_script = provider_module ? provider_module : script_;
+        }
+
+        std::unique_ptr<Script> materialized_template_holder;
+        const FunctionDefinition* call_signature_def = generic_def;
+        if (!call_signature_def) {
+            String materialize_error;
+            if (!runtime_->materialize_generic_function_definition(
+                    defining_script,
+                    func_name,
+                    materialized_template_holder,
+                    call_signature_def,
+                    &materialize_error)) {
+                fail(materialize_error.empty()
+                        ? fmt::format("Generic call '{}' missing resolved generic definition", func_name)
+                        : materialize_error);
+                return;
+            }
         }
 
         uint32_t inst_limit = ctx_ ? ctx_->limits.max_generic_function_instantiations : 0;
@@ -2589,12 +2711,22 @@ void AstCompiler::visit(CallExpression* expr)
 
         String inst_error;
         BytecodeModule* defining_module = (defining_script == script_) ? module_ : nullptr;
-        auto inst_opt = runtime_->ensure_generic_instantiation(
-            defining_script,
-            defining_module,
-            const_cast<FunctionDefinition*>(generic_def),
-            expr->inferred_type_args,
-            &inst_error);
+        std::optional<Runtime::GenericInstantiation> inst_opt;
+        if (generic_def) {
+            inst_opt = runtime_->ensure_generic_instantiation(
+                defining_script,
+                defining_module,
+                const_cast<FunctionDefinition*>(generic_def),
+                expr->inferred_type_args,
+                &inst_error);
+        } else {
+            inst_opt = runtime_->ensure_generic_instantiation_by_name(
+                defining_script,
+                defining_module,
+                func_name,
+                expr->inferred_type_args,
+                &inst_error);
+        }
 
         if (!inst_opt.has_value()) {
             fail(inst_error.empty() ? "Failed to instantiate generic function" : inst_error);
@@ -2602,8 +2734,8 @@ void AstCompiler::visit(CallExpression* expr)
         }
         Runtime::GenericInstantiation inst = *inst_opt;
 
-        const FunctionDefinition* func_def = generic_def;
-        size_t total_args = func_def->params.size();
+        const FunctionDefinition* func_def = call_signature_def;
+        size_t total_args = func_def ? func_def->params.size() : expr->args.size();
         uint8_t count = 1 + static_cast<uint8_t>(total_args);
         uint8_t base_reg = registers_.allocate_contiguous(count);
         uint8_t dest_reg = base_reg;
@@ -2617,13 +2749,15 @@ void AstCompiler::visit(CallExpression* expr)
             }
         }
 
-        for (size_t i = expr->args.size(); i < func_def->params.size(); ++i) {
-            if (func_def->params[i]->init) {
-                func_def->params[i]->init->accept(this);
-                uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
-                if (result_reg_ != target_reg) {
-                    emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
-                    registers_.free(result_reg_);
+        if (func_def) {
+            for (size_t i = expr->args.size(); i < func_def->params.size(); ++i) {
+                if (func_def->params[i]->init) {
+                    func_def->params[i]->init->accept(this);
+                    uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+                    if (result_reg_ != target_reg) {
+                        emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
+                        registers_.free(result_reg_);
+                    }
                 }
             }
         }
@@ -2658,73 +2792,81 @@ void AstCompiler::visit(CallExpression* expr)
     bool is_local = false;
     uint32_t func_idx = UINT32_MAX;
 
-    if (provider_module) {
-        String qualified_name = String(provider_module->name()) + "." + func_name;
+    String self_prefix = String(script_->name()) + ".";
+    bool abi_local_target = !abi_call_target.empty()
+        && abi_call_target.size() >= self_prefix.size()
+        && abi_call_target.compare(0, self_prefix.size(), self_prefix) == 0;
+
+    if (provider_module && provider_module != script_) {
+        String qualified_name = !abi_call_target.empty()
+            ? abi_call_target
+            : String(provider_module->name()) + "." + func_name;
         InternedString interned = nw::kernel::strings().intern(qualified_name);
         func_idx = module_->add_external_ref(interned);
     } else {
-        // First check if function is in current module
-        uint32_t local_idx = module_->get_function_index(func_name);
-        if (local_idx != UINT32_MAX) {
-            const CompiledFunction* func = module_->functions[local_idx];
-            if (func->source_ast && is_native_decl(func->source_ast)) {
-                // Local native declaration - add external ref
-                String qualified_name = String(script_->name()) + "." + func_name;
-                InternedString interned = nw::kernel::strings().intern(qualified_name);
-                func_idx = module_->add_external_ref(interned);
-            } else {
-                // Local script function
-                is_local = true;
-                func_idx = local_idx;
-            }
-        } else {
-            // Not in current module - search imports for the function
-            Script* import_module = nullptr;
+        if (!abi_call_target.empty() && !abi_local_target) {
+            InternedString interned = nw::kernel::strings().intern(abi_call_target);
+            func_idx = module_->add_external_ref(interned);
+        }
 
-            for (auto* decl : script_->ast().decls) {
-                if (auto* import = dynamic_cast<SelectiveImportDecl*>(decl)) {
-                    if (!import->loaded_module) continue;
-                    for (const auto& sym : import->imported_symbols) {
-                        if (sym.loc.view() == func_name) {
-                            import_module = import->loaded_module;
-                            break;
+        if (func_idx == UINT32_MAX) {
+            // First check if function is in current module
+            String local_lookup_name = func_name;
+            if (abi_local_target) {
+                local_lookup_name = abi_call_target.substr(self_prefix.size());
+            }
+            uint32_t local_idx = module_->get_function_index(local_lookup_name);
+            if (local_idx != UINT32_MAX) {
+                const CompiledFunction* func = module_->functions[local_idx];
+                if (func->source_ast && is_native_decl(func->source_ast)) {
+                    // Local native declaration - add external ref
+                    String qualified_name = !abi_call_target.empty() ? abi_call_target : String(script_->name()) + "." + local_lookup_name;
+                    InternedString interned = nw::kernel::strings().intern(qualified_name);
+                    func_idx = module_->add_external_ref(interned);
+                } else {
+                    // Local script function
+                    is_local = true;
+                    func_idx = local_idx;
+                }
+            } else {
+                if (!provider_module && resolved_export && !resolved_export->provider_module.empty()) {
+                    provider_module = runtime_->get_module(resolved_export->provider_module);
+                }
+
+                if (provider_module) {
+                    // Found in imports - add external ref with qualified name
+                    String qualified_name = !abi_call_target.empty()
+                        ? abi_call_target
+                        : String(provider_module->name()) + "." + func_name;
+                    InternedString interned = nw::kernel::strings().intern(qualified_name);
+                    func_idx = module_->add_external_ref(interned);
+                } else {
+                    // Not found in imports - check core prelude
+                    Script* prelude = runtime_->core_prelude();
+                    if (prelude && prelude != script_) {
+                        auto exp = prelude->exports().find(func_name);
+                        if (exp) {
+                            String qualified_name = String(prelude->name()) + "." + func_name;
+                            InternedString interned = nw::kernel::strings().intern(qualified_name);
+                            func_idx = module_->add_external_ref(interned);
                         }
                     }
-                    if (import_module) break;
-                }
-            }
 
-            if (import_module) {
-                // Found in imports - add external ref with qualified name
-                String qualified_name = String(import_module->name()) + "." + func_name;
-                InternedString interned = nw::kernel::strings().intern(qualified_name);
-                func_idx = module_->add_external_ref(interned);
-            } else {
-                // Not found in imports - check core prelude
-                Script* prelude = runtime_->core_prelude();
-                if (prelude && prelude != script_) {
-                    auto exp = prelude->exports().find(func_name);
-                    if (exp && exp->decl) {
-                        String qualified_name = String(prelude->name()) + "." + func_name;
-                        InternedString interned = nw::kernel::strings().intern(qualified_name);
-                        func_idx = module_->add_external_ref(interned);
-                    }
-                }
-
-                if (func_idx == UINT32_MAX) {
-                    // Not found in imports or prelude - try as unqualified native function name
-                    // First try unqualified, then qualified with current module
-                    InternedString interned = nw::kernel::strings().intern(func_name);
-                    if (runtime_->find_external_function(func_name) != UINT32_MAX) {
-                        func_idx = module_->add_external_ref(interned);
-                    } else {
-                        String qualified_name = String(script_->name()) + "." + func_name;
-                        interned = nw::kernel::strings().intern(qualified_name);
-                        if (runtime_->find_external_function(qualified_name) != UINT32_MAX) {
+                    if (func_idx == UINT32_MAX) {
+                        // Not found in imports or prelude - try as unqualified native function name
+                        // First try unqualified, then qualified with current module
+                        InternedString interned = nw::kernel::strings().intern(func_name);
+                        if (runtime_->find_external_function(func_name) != UINT32_MAX) {
                             func_idx = module_->add_external_ref(interned);
                         } else {
-                            fail(fmt::format("Unknown function: {}", func_name));
-                            return;
+                            String qualified_name = String(script_->name()) + "." + func_name;
+                            interned = nw::kernel::strings().intern(qualified_name);
+                            if (runtime_->find_external_function(qualified_name) != UINT32_MAX) {
+                                func_idx = module_->add_external_ref(interned);
+                            } else {
+                                fail(fmt::format("Unknown function: {}", func_name));
+                                return;
+                            }
                         }
                     }
                 }

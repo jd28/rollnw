@@ -4,6 +4,20 @@
 
 namespace nw::smalls {
 
+namespace {
+
+int16_t find_generic_param_index(StringView type_name, const Vector<String>& type_params)
+{
+    for (size_t i = 0; i < type_params.size(); ++i) {
+        if (type_params[i] == type_name) {
+            return static_cast<int16_t>(i);
+        }
+    }
+    return -1;
+}
+
+} // namespace
+
 // == Structs =================================================================
 // ============================================================================
 
@@ -96,6 +110,7 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
     void* mem = allocator_->allocate(sizeof(StructDef), alignof(StructDef));
     auto* def = new (mem) StructDef{};
     def->field_count = field_count;
+    def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
     uint32_t struct_alignment = 1;
 
@@ -125,6 +140,9 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
             field.name = nw::kernel::strings().intern(vd->identifier_.loc.view());
             field.type_id = vd->type_id_;
             field.offset = offset;
+            field.generic_param_index = vd->type
+                ? find_generic_param_index(vd->type->str(), decl->type_params)
+                : int16_t{-1};
 
             offset += field_size;
             idx++;
@@ -207,6 +225,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
     void* mem = allocator_->allocate(sizeof(StructDef), alignof(StructDef));
     auto* def = new (mem) StructDef{};
     def->field_count = field_count;
+    def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
     uint32_t struct_alignment = 1;
 
@@ -238,6 +257,9 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
             field.name = nw::kernel::strings().intern(vd->identifier_.loc.view());
             field.type_id = vd->type_id_;
             field.offset = offset;
+            field.generic_param_index = vd->type
+                ? find_generic_param_index(vd->type->str(), decl->type_params)
+                : int16_t{-1};
 
             offset += field_size;
             idx++;
@@ -447,6 +469,7 @@ void TypeTable::define(TypeID id, const SumDecl* decl, StringView module_path)
     void* mem = allocator_->allocate(sizeof(SumDef), alignof(SumDef));
     auto* def = new (mem) SumDef{};
     def->variant_count = variant_count;
+    def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
 
     void* variants_mem = allocator_->allocate(sizeof(VariantDef) * variant_count, alignof(VariantDef));
@@ -468,8 +491,14 @@ void TypeTable::define(TypeID id, const SumDecl* decl, StringView module_path)
         if (variant_decl->is_unit()) {
             variant.payload_type = invalid_type_id;
             variant.payload_offset = 0;
+            variant.generic_param_index = -1;
         } else {
             variant.payload_type = variant_decl->payload->type_id_;
+            auto* type_expr = dynamic_cast<TypeExpression*>(variant_decl->payload);
+            variant.generic_param_index = type_expr
+                ? find_generic_param_index(type_expr->str(), decl->type_params)
+                : int16_t{-1};
+
             const Type* payload_type = get(variant.payload_type);
 
             if (payload_type) {
@@ -528,6 +557,7 @@ TypeID TypeTable::add(const SumDecl* decl, StringView module_path)
     void* mem = allocator_->allocate(sizeof(SumDef), alignof(SumDef));
     auto* def = new (mem) SumDef{};
     def->variant_count = variant_count;
+    def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
 
     void* variants_mem = allocator_->allocate(sizeof(VariantDef) * variant_count, alignof(VariantDef));
@@ -549,8 +579,14 @@ TypeID TypeTable::add(const SumDecl* decl, StringView module_path)
         if (variant_decl->is_unit()) {
             variant.payload_type = invalid_type_id;
             variant.payload_offset = 0;
+            variant.generic_param_index = -1;
         } else {
             variant.payload_type = variant_decl->payload->type_id_;
+            auto* type_expr = dynamic_cast<TypeExpression*>(variant_decl->payload);
+            variant.generic_param_index = type_expr
+                ? find_generic_param_index(type_expr->str(), decl->type_params)
+                : int16_t{-1};
+
             const Type* payload_type = get(variant.payload_type);
 
             if (payload_type) {

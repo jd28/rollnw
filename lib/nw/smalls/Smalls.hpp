@@ -2,6 +2,7 @@
 
 #include "Lexer.hpp"
 #include "Parser.hpp"
+#include "types.hpp"
 
 #include "../resources/assets.hpp"
 #include "Context.hpp"
@@ -11,14 +12,61 @@
 #include <immer/map.hpp>
 
 #include <filesystem>
+#include <optional>
 #include <set>
 #include <string>
 
 namespace nw::smalls {
 
-/// Any exported symbol from a script
+struct NormalizedTypeExpr {
+    enum class Kind : uint8_t {
+        unknown,
+        concrete,
+        generic_param,
+        applied,
+    };
+
+    Kind kind = Kind::unknown;
+    TypeID concrete_type = invalid_type_id;
+    uint16_t generic_param_index = 0;
+    String applied_name;
+    Vector<NormalizedTypeExpr> applied_args;
+};
+
+struct FunctionExportAbi {
+    uint16_t min_arity = 0;
+    uint16_t max_arity = 0;
+    uint16_t generic_arity = 0;
+    Vector<NormalizedTypeExpr> param_types;
+    Vector<uint8_t> param_has_default;
+    NormalizedTypeExpr return_type;
+    String call_target;
+};
+
+/// Any exported symbol from a script.
+///
+/// Invariants:
+/// - `decl` is optional and may be null after AST compaction.
+/// - Runtime/compile paths should prefer metadata (`kind`, `type_id`, ABI fields)
+///   when `decl` is unavailable.
+/// - Tooling in `DebugLevel::full` may still rely on `decl` for rich symbol data.
 struct Export {
-    Declaration* decl = nullptr; ///< Any top-level declaration (variable, function, type, etc.)
+    enum class Kind : uint8_t {
+        unknown,
+        variable,
+        function,
+        type,
+        module_alias,
+    };
+
+    Declaration* decl = nullptr; ///< Optional declaration pointer while AST is retained.
+    Kind kind = Kind::unknown;
+    String provider_module;
+    TypeID type_id = invalid_type_id;
+    bool is_generic = false;
+    bool is_native = false;
+    bool has_defaults = false;
+    std::optional<FunctionExportAbi> function_abi;
 };
 
 enum struct SymbolKind {
@@ -83,6 +131,24 @@ struct Script {
     /// Gets parsed ast
     const Ast& ast() const;
 
+    /// Returns true if semantic tooling APIs are enabled.
+    bool semantic_tooling_enabled() const noexcept;
+
+    /// Discards source text retained by this script.
+    void discard_source();
+
+    /// Discards parsed AST and symbol table state.
+    void discard_ast();
+
+    /// Returns true if parsed AST can be discarded safely.
+    bool can_discard_ast() const;
+
+    /// Returns true if parsed AST has been discarded.
+    bool ast_discarded() const noexcept { return ast_discarded_; }
+
+    /// Returns true if script defines any generic declarations.
+    bool has_generic_templates() const;
+
     /// Generates a list of potential completions (excluding dependencies)
     void complete(const String& needle, CompletionContext& out, bool no_filter = false) const;
 
@@ -100,6 +166,9 @@ struct Script {
     /// Converts declaration to symbol
     /// @note Declaration must be in script
     Symbol declaration_to_symbol(const Declaration* decl) const;
+
+    /// Converts exported symbol metadata to symbol.
+    Symbol export_to_symbol(StringView name, const Export& exp) const;
 
     /// Returns all transitive dependencies in 'preprocessed' order,
     /// i.e. dependencies()[n] was include before dependencies()[n+1]
@@ -155,17 +224,22 @@ struct Script {
     size_t warnings() const noexcept { return warnings_; }
 
 private:
+    bool emit_tooling_disabled_diagnostic(StringView api_name) const;
+
     Context* ctx_ = nullptr;
     ResourceData data_;
     StringView text_;
     Ast ast_;
     immer::map<String, Export> symbol_table_;
+    Vector<String> dependency_paths_;
     Vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;
     bool parsed_ = false;
     bool includes_processed_ = false;
+    bool ast_discarded_ = false;
+    mutable bool tooling_disabled_diagnostic_emitted_ = false;
 };
 
 } // namespace nw::smalls

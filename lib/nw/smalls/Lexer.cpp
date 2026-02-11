@@ -7,7 +7,6 @@
 #include <xsimd/xsimd.hpp>
 
 #include <array>
-#include <cctype>
 #include <cstring>
 #include <string_view>
 

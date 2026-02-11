@@ -9,6 +9,27 @@ namespace nw::smalls {
 
 namespace {
 
+Export::Kind export_kind_for_decl(const Declaration* decl)
+{
+    if (!decl) {
+        return Export::Kind::unknown;
+    }
+    if (dynamic_cast<const FunctionDefinition*>(decl)) {
+        return Export::Kind::function;
+    }
+    if (dynamic_cast<const StructDecl*>(decl)
+        || dynamic_cast<const SumDecl*>(decl)
+        || dynamic_cast<const TypeAlias*>(decl)
+        || dynamic_cast<const NewtypeDecl*>(decl)
+        || dynamic_cast<const OpaqueTypeDecl*>(decl)) {
+        return Export::Kind::type;
+    }
+    if (dynamic_cast<const AliasedImportDecl*>(decl)) {
+        return Export::Kind::module_alias;
+    }
+    return Export::Kind::variable;
+}
+
 std::optional<StringView> extract_identifier(Expression* expr)
 {
     if (auto ident = as_identifier(expr)) {
@@ -290,6 +311,9 @@ void AstResolver::declare_global(StringView name, Declaration* decl)
     auto& env = env_stack_.back();
     Export exp;
     exp.decl = decl;
+    exp.kind = export_kind_for_decl(decl);
+    exp.provider_module = parent_ ? String(parent_->name()) : String{};
+    exp.type_id = decl ? decl->type_id_ : invalid_type_id;
     env_stack_.back() = env.set(s, exp);
 }
 
@@ -329,6 +353,9 @@ void AstResolver::declare_local(Token token, Declaration* decl)
     auto& env = env_stack_.back();
     Export exp;
     exp.decl = decl;
+    exp.kind = export_kind_for_decl(decl);
+    exp.provider_module = parent_ ? String(parent_->name()) : String{};
+    exp.type_id = decl ? decl->type_id_ : invalid_type_id;
     env_stack_.back() = env.set(s, exp);
 }
 
@@ -395,6 +422,19 @@ TypeID AstResolver::resolve_type(StringView type_name, SourceRange range)
     auto type_decl = resolve(type_name, range);
     if (type_decl) {
         return type_decl->type_id_;
+    }
+
+    if (!env_stack_.empty()) {
+        auto exp = env_stack_.back().find(String(type_name));
+        if (exp && exp->kind == Export::Kind::type) {
+            TypeID tid = exp->type_id;
+            if (tid == invalid_type_id && exp->decl) {
+                tid = exp->decl->type_id_;
+            }
+            if (tid != invalid_type_id) {
+                return tid;
+            }
+        }
     }
 
     return nw::kernel::runtime().type_id(type_name);
@@ -683,13 +723,13 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
             if (base_type->type_kind == TK_sum) {
                 auto sum_id = base_type->type_params[0].as<SumID>();
                 const SumDef* sum_def = rt.type_table_.get(sum_id);
-                if (sum_def && sum_def->decl && sum_def->decl->is_generic()) {
+                if (sum_def && sum_def->generic_param_count > 0) {
                     is_generic = true;
                 }
             } else if (base_type->type_kind == TK_struct) {
                 auto struct_id = base_type->type_params[0].as<StructID>();
                 const StructDef* struct_def = rt.type_table_.get(struct_id);
-                if (struct_def && struct_def->decl && struct_def->decl->is_generic()) {
+                if (struct_def && struct_def->generic_param_count > 0) {
                     is_generic = true;
                 }
             }
@@ -763,13 +803,23 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
     auto type_str = String(path[1]);
     auto export_ptr = aliased_import->loaded_module->exports().find(type_str);
 
-    if (!export_ptr || !export_ptr->decl) {
+    if (!export_ptr) {
         auto suggestions = format_suggestions(type_str, collect_module_exports(aliased_import->loaded_module));
         errorf(range, "type '{}' not found in module '{}'{}", type_str, aliased_import->module_path, suggestions);
         return invalid_type_id;
     }
 
-    TypeID result = export_ptr->decl->type_id_;
+    TypeID result = export_ptr->type_id;
+    if (result == invalid_type_id && export_ptr->decl) {
+        result = export_ptr->decl->type_id_;
+    }
+    if (result == invalid_type_id) {
+        errorf(range,
+            "type '{}' exists in module '{}' but semantic type metadata is unavailable in current debug level",
+            type_str,
+            aliased_import->module_path);
+        return invalid_type_id;
+    }
     type_name->type_id_ = result;
     if (result != invalid_type_id) {
         type_name->qualified_name = fmt::format("{}.{}", aliased_import->module_path, type_str);

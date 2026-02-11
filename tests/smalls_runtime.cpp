@@ -6,6 +6,7 @@
 #include <nw/smalls/types.hpp>
 
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include <string_view>
 
@@ -43,6 +44,162 @@ TEST_F(SmallsRuntime, RegisterInternalTypes)
 
     // Non-existent type should return nullptr
     EXPECT_FALSE(!!rt.type_table_.get("no_exist_type"));
+}
+
+TEST_F(SmallsRuntime, CapturesGenericFunctionTemplates)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.generic_templates", R"(
+        fn identity(x: $T): $T {
+            return x;
+        }
+
+        fn main(): int {
+            return identity(42);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    auto* module = rt.get_or_compile_module(script);
+    ASSERT_NE(module, nullptr);
+
+    auto stats = rt.stats();
+    ASSERT_TRUE(stats.contains("generic_function_template_count"));
+    EXPECT_GE(stats["generic_function_template_count"].get<size_t>(), 1u);
+}
+
+TEST_F(SmallsRuntime, GenericInstantiationWorksAfterSourceCompaction)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto config = rt.diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::none;
+    rt.set_diagnostic_config(config);
+
+    auto* provider = rt.load_module_from_source("test.generic_provider", R"(
+        fn id(x: $T): $T {
+            return x;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(provider), nullptr);
+    EXPECT_TRUE(provider->ast_discarded());
+    EXPECT_TRUE(provider->text().empty());
+
+    auto* consumer = rt.load_module_from_source("test.generic_consumer", R"(
+        from test.generic_provider import { id };
+
+        fn main(): int {
+            return id(42);
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+
+    auto exec_result = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(exec_result.ok());
+    EXPECT_EQ(exec_result.value.data.ival, 42);
+}
+
+TEST_F(SmallsRuntime, GenericTypeAndFunctionInstantiationFromModuleWithDebugNone)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto config = rt.diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::none;
+    rt.set_diagnostic_config(config);
+
+    auto* provider = rt.load_module_from_source("test.generic_types_provider", R"(
+        type Box!($T) {
+            value: $T;
+        };
+
+        fn id(x: $T): $T {
+            return x;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(provider), nullptr);
+    EXPECT_TRUE(provider->ast_discarded());
+    EXPECT_TRUE(provider->text().empty());
+
+    auto* consumer = rt.load_module_from_source("test.generic_types_consumer", R"(
+        from test.generic_types_provider import { Box, id };
+
+        fn main(): int {
+            var b: Box!(int) = { 41 };
+            return id(b.value) + 1;
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+
+    auto exec_result = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(exec_result.ok());
+    EXPECT_EQ(exec_result.value.data.ival, 42);
+}
+
+TEST_F(SmallsRuntime, SourceMapCompactsAstButKeepsSource)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto config = rt.diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::source_map;
+    rt.set_diagnostic_config(config);
+
+    auto* script = rt.load_module_from_source("test.empty_source_map", "\n\n");
+    ASSERT_NE(script, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(script), nullptr);
+
+    EXPECT_TRUE(script->ast_discarded());
+    EXPECT_FALSE(script->text().empty());
+}
+
+TEST_F(SmallsRuntime, SourceMapKeepsAstForExportingModuleImports)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto config = rt.diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::source_map;
+    rt.set_diagnostic_config(config);
+
+    auto* provider = rt.load_module_from_source("test.rehydrate_provider", R"(
+        fn id(x: int): int {
+            return x;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(provider), nullptr);
+    EXPECT_FALSE(provider->ast_discarded());
+    EXPECT_FALSE(provider->text().empty());
+
+    auto* consumer = rt.load_module_from_source("test.rehydrate_consumer", R"(
+        from test.rehydrate_provider import { id };
+
+        fn main(): int {
+            return id(9);
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+
+    auto exec_result = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(exec_result.ok());
+    EXPECT_EQ(exec_result.value.data.ival, 9);
+}
+
+TEST_F(SmallsRuntime, NoneCompactsAstAndSource)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto config = rt.diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::none;
+    rt.set_diagnostic_config(config);
+
+    auto* script = rt.load_module_from_source("test.empty_none", "\n\n");
+    ASSERT_NE(script, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(script), nullptr);
+
+    EXPECT_TRUE(script->ast_discarded());
+    EXPECT_TRUE(script->text().empty());
 }
 
 TEST_F(SmallsRuntime, TypeIdLookup)

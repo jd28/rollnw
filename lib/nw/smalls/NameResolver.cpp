@@ -59,6 +59,18 @@ void NameResolver::visit(AliasedImportDecl* decl)
 
     ctx.declare_global(decl->alias.loc.view(), decl);
     decl->type_id_ = nw::kernel::runtime().type_id("module");
+
+    auto alias_name = String(decl->alias.loc.view());
+    auto alias_export = ctx.env_stack_.back().find(alias_name);
+    if (alias_export) {
+        Export updated = *alias_export;
+        updated.kind = Export::Kind::module_alias;
+        if (decl->loaded_module) {
+            updated.provider_module = String(decl->loaded_module->name());
+        }
+        updated.type_id = decl->type_id_;
+        ctx.env_stack_.back() = ctx.env_stack_.back().set(alias_name, std::move(updated));
+    }
 }
 
 void NameResolver::visit(SelectiveImportDecl* decl)
@@ -79,20 +91,35 @@ void NameResolver::visit(SelectiveImportDecl* decl)
         auto symbol_name = String(symbol_token.loc.view());
         auto export_ptr = module_exports.find(symbol_name);
 
-        if (!export_ptr || !export_ptr->decl) {
+        if (!export_ptr) {
             auto suggestions = format_suggestions(symbol_name, ctx.collect_module_exports(decl->loaded_module));
             ctx.errorf(symbol_token.loc.range, "'{}' not found in module '{}'{}", symbol_name, decl->module_path, suggestions);
             continue;
         }
 
+        if (!export_ptr->decl) {
+            bool importable = (export_ptr->kind == Export::Kind::function && export_ptr->function_abi)
+                || (export_ptr->type_id != invalid_type_id);
+            if (!importable) {
+                ctx.errorf(symbol_token.loc.range,
+                    "'{}' exists in module '{}' but semantic declaration data is unavailable in current debug level",
+                    symbol_name,
+                    decl->module_path);
+                continue;
+            }
+        }
+
         auto git = ctx.global_decls_.find(symbol_name);
-        if (git != ctx.global_decls_.end()) {
+        auto existing_env = ctx.env_stack_.back().find(symbol_name);
+        if (git != ctx.global_decls_.end() || existing_env) {
             ctx.errorf(symbol_token.loc.range, "importing '{}' would redeclare existing symbol", symbol_name);
             continue;
         }
 
-        ctx.global_decls_.insert({symbol_name, export_ptr->decl});
-        ctx.record_decl_provider(export_ptr->decl, decl->loaded_module);
+        if (export_ptr->decl) {
+            ctx.global_decls_.insert({symbol_name, export_ptr->decl});
+            ctx.record_decl_provider(export_ptr->decl, decl->loaded_module);
+        }
         ctx.env_stack_.back() = ctx.env_stack_.back().set(symbol_name, *export_ptr);
     }
 }

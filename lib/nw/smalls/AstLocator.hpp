@@ -185,8 +185,8 @@ struct AstLocator : public BaseVisitor {
                     auto symbol_name = String(symbol_token.loc.view());
                     auto module_exports = decl->loaded_module->exports();
                     auto export_ptr = module_exports.find(symbol_name);
-                    if (export_ptr && export_ptr->decl) {
-                        result_ = decl->loaded_module->declaration_to_symbol(export_ptr->decl);
+                    if (export_ptr) {
+                        result_ = decl->loaded_module->export_to_symbol(symbol_token.loc.view(), *export_ptr);
                         found_ = true;
                         return;
                     }
@@ -307,8 +307,8 @@ struct AstLocator : public BaseVisitor {
                     if (import_decl->loaded_module) {
                         auto exports = import_decl->loaded_module->exports();
                         auto type_export = exports.find(symbol_);
-                        if (type_export && type_export->decl) {
-                            result_ = import_decl->loaded_module->declaration_to_symbol(type_export->decl);
+                        if (type_export) {
+                            result_ = import_decl->loaded_module->export_to_symbol(symbol_, *type_export);
                             result_.provider = import_decl->loaded_module;
                             found_ = true;
                             return;
@@ -325,8 +325,8 @@ struct AstLocator : public BaseVisitor {
                     if (alias_decl->alias.loc.view() == lhs_name && alias_decl->loaded_module) {
                         auto exports = alias_decl->loaded_module->exports();
                         auto type_export = exports.find(symbol_);
-                        if (type_export && type_export->decl) {
-                            result_ = alias_decl->loaded_module->declaration_to_symbol(type_export->decl);
+                        if (type_export) {
+                            result_ = alias_decl->loaded_module->export_to_symbol(symbol_, *type_export);
                             result_.provider = alias_decl->loaded_module;
                             found_ = true;
                             return;

@@ -16,6 +16,102 @@ namespace nw::smalls {
 
 namespace {
 
+bool match_normalized_type_expr(const NormalizedTypeExpr& expected, TypeID actual,
+    absl::flat_hash_map<uint16_t, TypeID>& generic_substitutions)
+{
+    Runtime& rt = nw::kernel::runtime();
+
+    switch (expected.kind) {
+    case NormalizedTypeExpr::Kind::unknown:
+        return true;
+    case NormalizedTypeExpr::Kind::concrete:
+        if (expected.concrete_type == invalid_type_id) {
+            return true;
+        }
+        return expected.concrete_type == actual;
+    case NormalizedTypeExpr::Kind::generic_param: {
+        auto it = generic_substitutions.find(expected.generic_param_index);
+        if (it == generic_substitutions.end()) {
+            generic_substitutions.insert({expected.generic_param_index, actual});
+            return true;
+        }
+        return it->second == actual;
+    }
+    case NormalizedTypeExpr::Kind::applied:
+        break;
+    }
+
+    if (expected.concrete_type == invalid_type_id) {
+        return false;
+    }
+
+    const Type* expected_base = rt.get_type(expected.concrete_type);
+    const Type* actual_type = rt.get_type(actual);
+    if (!expected_base || !actual_type) {
+        return false;
+    }
+    if (expected_base->type_kind != actual_type->type_kind) {
+        return false;
+    }
+
+    for (size_t i = 0; i < expected.applied_args.size(); ++i) {
+        if (i >= actual_type->type_params.size()) {
+            return false;
+        }
+        const auto& param = actual_type->type_params[i];
+        if (!param.is<TypeID>()) {
+            if (expected.applied_args[i].kind == NormalizedTypeExpr::Kind::unknown) {
+                continue;
+            }
+            return false;
+        }
+        if (!match_normalized_type_expr(expected.applied_args[i], param.as<TypeID>(), generic_substitutions)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+TypeID instantiate_normalized_type_expr(const NormalizedTypeExpr& expr, const absl::flat_hash_map<uint16_t, TypeID>& generic_substitutions)
+{
+    Runtime& rt = nw::kernel::runtime();
+    switch (expr.kind) {
+    case NormalizedTypeExpr::Kind::unknown:
+        return rt.any_type();
+    case NormalizedTypeExpr::Kind::concrete:
+        return expr.concrete_type != invalid_type_id ? expr.concrete_type : rt.any_type();
+    case NormalizedTypeExpr::Kind::generic_param: {
+        auto it = generic_substitutions.find(expr.generic_param_index);
+        if (it != generic_substitutions.end()) {
+            return it->second;
+        }
+        return rt.any_type();
+    }
+    case NormalizedTypeExpr::Kind::applied:
+        break;
+    }
+
+    if (expr.concrete_type == invalid_type_id) {
+        return rt.any_type();
+    }
+
+    Vector<TypeID> type_args;
+    type_args.reserve(expr.applied_args.size());
+    for (const auto& arg : expr.applied_args) {
+        type_args.push_back(instantiate_normalized_type_expr(arg, generic_substitutions));
+    }
+    if (type_args.empty()) {
+        return expr.concrete_type;
+    }
+
+    auto instantiated = rt.get_or_instantiate_type(expr.concrete_type, type_args);
+    if (instantiated != invalid_type_id) {
+        return instantiated;
+    }
+    return rt.any_type();
+}
+
 // Forward declarations
 struct TypeCompatibility;
 
@@ -168,6 +264,16 @@ TypeID build_return_type(Runtime& rt, const PVector<Expression*>& exprs)
     return rt.void_type();
 }
 
+const FieldDef* find_struct_field(const StructDef* struct_def, StringView name)
+{
+    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
+        if (struct_def->fields[i].name.view() == name) {
+            return &struct_def->fields[i];
+        }
+    }
+    return nullptr;
+}
+
 void resolve_brace_init_element_type(Runtime& rt, BraceInitLiteral* expr, const BraceInitItem& item, size_t idx)
 {
     const Type* type = rt.get_type(expr->type_id_);
@@ -179,12 +285,8 @@ void resolve_brace_init_element_type(Runtime& rt, BraceInitLiteral* expr, const 
         auto struct_id = type->type_params[0].as<StructID>();
         const StructDef* struct_def = rt.type_table_.get(struct_id);
         if (!struct_def) { return; }
-        StringView field_name = var_expr->ident.loc.view();
-        for (uint32_t i = 0; i < struct_def->field_count; ++i) {
-            if (struct_def->fields[i].name.view() == field_name) {
-                propagate_brace_init_type(item.value, struct_def->fields[i].type_id);
-                break;
-            }
+        if (auto* field = find_struct_field(struct_def, var_expr->ident.loc.view())) {
+            propagate_brace_init_type(item.value, field->type_id);
         }
     } else if (expr->init_type == BraceInitType::list && type->type_kind == TK_struct) {
         auto struct_id = type->type_params[0].as<StructID>();
@@ -743,6 +845,7 @@ struct CallResolver {
     void resolve(CallExpression* expr)
     {
         expr->env_ = resolver.ctx.env_stack_.back();
+        expr->inferred_type_args.clear();
 
         auto* path_expr = dynamic_cast<PathExpression*>(expr->expr);
         if (resolver.try_resolve_variant_call(expr, path_expr)) {
@@ -760,6 +863,55 @@ struct CallResolver {
         const Declaration* decl = nullptr;
         IdentifierExpression* ve = nullptr;
         String func_name;
+
+        auto apply_function_abi = [&](const Export& exp, Script* provider, SourceRange err_range) -> bool {
+            if (exp.kind != Export::Kind::function || !exp.function_abi) { return false; }
+
+            const auto& abi = *exp.function_abi;
+            if (expr->args.size() < abi.min_arity || expr->args.size() > abi.max_arity) {
+                resolver.ctx.errorf(expr->range_,
+                    "no matching function call '{}' expected {}..{} parameters",
+                    func_name,
+                    abi.min_arity,
+                    abi.max_arity);
+                return true;
+            }
+
+            for (auto* arg : expr->args) {
+                if (arg) {
+                    arg->accept(&resolver);
+                }
+            }
+
+            absl::flat_hash_map<uint16_t, TypeID> generic_substitutions;
+            for (size_t i = 0; i < expr->args.size() && i < abi.param_types.size(); ++i) {
+                auto actual_type = expr->args[i] ? expr->args[i]->type_id_ : rt.any_type();
+                if (!match_normalized_type_expr(abi.param_types[i], actual_type, generic_substitutions)) {
+                    resolver.ctx.errorf(expr->args[i] ? expr->args[i]->range_ : err_range,
+                        "argument type mismatch for '{}'", func_name);
+                    return true;
+                }
+            }
+
+            if (exp.is_generic) {
+                expr->inferred_type_args.clear();
+                expr->inferred_type_args.reserve(abi.generic_arity);
+                for (uint16_t i = 0; i < abi.generic_arity; ++i) {
+                    auto it = generic_substitutions.find(i);
+                    if (it == generic_substitutions.end()) {
+                        resolver.ctx.errorf(err_range,
+                            "generic inference failed for '{}'",
+                            func_name);
+                        return true;
+                    }
+                    expr->inferred_type_args.push_back(it->second);
+                }
+            }
+
+            expr->type_id_ = instantiate_normalized_type_expr(abi.return_type, generic_substitutions);
+            expr->resolved_provider = provider;
+            return true;
+        };
 
         if (path_expr->parts.size() == 1) {
             ve = dynamic_cast<IdentifierExpression*>(path_expr->parts.front());
@@ -784,24 +936,69 @@ struct CallResolver {
 
             auto* lhs_decl = resolver.ctx.resolve(lhs_ident->ident.loc.view(), lhs_ident->ident.loc.range);
             auto* alias_decl = dynamic_cast<const AliasedImportDecl*>(lhs_decl);
-            if (!alias_decl || !alias_decl->loaded_module) {
+            Script* alias_module = alias_decl ? alias_decl->loaded_module : nullptr;
+            StringView alias_module_path = alias_decl ? alias_decl->module_path : StringView{};
+
+            if (!alias_module) {
+                auto lhs_exp = resolver.ctx.env_stack_.back().find(String(lhs_ident->ident.loc.view()));
+                if (lhs_exp && lhs_exp->kind == Export::Kind::module_alias && !lhs_exp->provider_module.empty()) {
+                    alias_module = nw::kernel::runtime().get_module(lhs_exp->provider_module);
+                    alias_module_path = lhs_exp->provider_module;
+                }
+            }
+
+            if (!alias_module) {
                 resolver.ctx.errorf(lhs_ident->range_, "'{}' is not an imported module alias", lhs_ident->ident.loc.view());
                 return;
             }
 
             func_name = String(rhs_ident->ident.loc.view());
-            auto export_ptr = alias_decl->loaded_module->exports().find(func_name);
-            if (!export_ptr || !export_ptr->decl) {
-                resolver.ctx.errorf(rhs_ident->range_, "'{}' not found in module '{}'", func_name, alias_decl->module_path);
+            auto export_ptr = alias_module->exports().find(func_name);
+            if (!export_ptr) {
+                resolver.ctx.errorf(rhs_ident->range_, "'{}' not found in module '{}'", func_name, alias_module_path);
                 return;
             }
 
-            resolver.ctx.record_decl_provider(export_ptr->decl, alias_decl->loaded_module);
+            if (!export_ptr->decl) {
+                if (apply_function_abi(*export_ptr, alias_module, rhs_ident->range_)) {
+                    return;
+                }
+                resolver.ctx.errorf(rhs_ident->range_,
+                    "'{}' exists in module '{}' but semantic declaration data is unavailable in current debug level",
+                    func_name,
+                    alias_module_path);
+                return;
+            }
+
+            // Keep declaration-backed flow for generic/intrinsic/newtype-aware paths.
+            // Non-generic metadata-only calls return through apply_function_abi above.
+            resolver.ctx.record_decl_provider(export_ptr->decl, alias_module);
             decl = export_ptr->decl;
             ve = rhs_ident;
         } else {
             resolver.ctx.error(expr->expr->range_, "call target must be identifier");
             return;
+        }
+
+        if (!decl && ve) {
+            auto exp = expr->env_.find(func_name);
+            if (exp) {
+                Script* provider = nullptr;
+                if (!exp->provider_module.empty()) {
+                    provider = nw::kernel::runtime().get_module(exp->provider_module);
+                }
+                if (apply_function_abi(*exp, provider, expr->range_)) {
+                    return;
+                }
+            }
+
+            if (exp && exp->kind == Export::Kind::function && !exp->decl
+                && expr->inferred_type_args.empty()) {
+                resolver.ctx.errorf(expr->range_,
+                    "'{}' exists but semantic declaration data is unavailable for generic instantiation in current debug level",
+                    func_name);
+                return;
+            }
         }
 
         if (auto* newtype_decl = dynamic_cast<const NewtypeDecl*>(decl)) {
@@ -960,20 +1157,11 @@ void validate_brace_init(AstResolver& ctx, BraceInitLiteral* expr)
         const StructDef* struct_def = rt.type_table_.get(struct_id);
         if (!struct_def) { return; }
 
-        auto find_field = [struct_def](StringView name) -> const FieldDef* {
-            for (uint32_t i = 0; i < struct_def->field_count; ++i) {
-                if (struct_def->fields[i].name.view() == name) {
-                    return &struct_def->fields[i];
-                }
-            }
-            return nullptr;
-        };
-
         if (expr->init_type == BraceInitType::field) {
             for (const auto& item : expr->items) {
                 if (auto var_expr = dynamic_cast<IdentifierExpression*>(item.key)) {
                     StringView field_name = var_expr->ident.loc.view();
-                    if (!find_field(field_name)) {
+                    if (!find_struct_field(struct_def, field_name)) {
                         ctx.errorf(var_expr->ident.loc.range, "'{}' has no field named '{}'", type_name, field_name);
                     }
                 }
@@ -1502,38 +1690,34 @@ static void resolve_function_signature(TypeResolver& resolver, FunctionDefinitio
         }
 
         auto func_name = String(decl->identifier_.loc.view());
-        const FunctionMetadata* native_func = nullptr;
-        for (const auto& func : native_module->functions) {
-            if (func.name == func_name) {
-                native_func = &func;
-                break;
-            }
-        }
+        auto func_it = std::find_if(native_module->functions.begin(), native_module->functions.end(),
+            [&](const FunctionMetadata& f) { return f.name == func_name; });
 
-        if (!native_func) {
+        if (func_it == native_module->functions.end()) {
             ctx.errorf(decl->range_, "Native function '{}' is not registered in C++ module '{}'",
                 func_name, ctx.parent_->name());
             return;
         }
 
-        if (!rt.native_types_compatible(native_func->return_type, decl->type_id_)) {
+        const auto& native_func = *func_it;
+        if (!rt.native_types_compatible(native_func.return_type, decl->type_id_)) {
             ctx.errorf(decl->range_, "Native function '{}' return type mismatch: script has '{}', C++ has '{}'",
                 func_name,
                 decl->type_id_,
-                native_func->return_type);
+                native_func.return_type);
         }
 
-        if (native_func->params.size() != decl->params.size()) {
+        if (native_func.params.size() != decl->params.size()) {
             ctx.errorf(decl->range_, "Native function '{}' parameter count mismatch: script has {}, C++ has {}",
                 func_name,
                 decl->params.size(),
-                native_func->params.size());
+                native_func.params.size());
             return;
         }
 
         for (size_t i = 0; i < decl->params.size(); ++i) {
             TypeID script_type = decl->params[i]->type_id_;
-            TypeID cpp_type = native_func->params[i].type_id;
+            TypeID cpp_type = native_func.params[i].type_id;
             if (!rt.native_types_compatible(cpp_type, script_type)) {
                 ctx.errorf(decl->range_, "Native function '{}' parameter {} type mismatch: script has '{}', C++ has '{}'",
                     func_name,
@@ -1649,9 +1833,7 @@ static void resolve_operator_alias(TypeResolver& resolver, FunctionDefinition* f
         if (op_name == "eq" && func->params.size() == 2) {
             rt.register_operator_alias_info(right_type, op_name);
         }
-    }
 
-    if (op_name == "eq" || op_name == "hash" || op_name == "lt") {
         auto& summary = ctx.operator_alias_summary_[left_type];
         if (op_name == "eq") {
             summary.has_eq = true;
@@ -1756,11 +1938,11 @@ void TypeResolver::visit(StructDecl* decl)
 
     ctx.struct_decl_stack_ = prev_struct;
 
-    nw::kernel::runtime().type_table_.define(decl->type_id_, decl, ctx.parent_->name());
+    auto& rt = nw::kernel::runtime();
+    rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name());
 
     bool has_native = ctx.has_annotation(decl, "native");
     if (has_native) {
-        auto& rt = nw::kernel::runtime();
         const Type* type = rt.get_type(decl->type_id_);
         if (type && type->type_kind == TK_struct && type->type_params[0].is<StructID>()) {
             auto struct_id = type->type_params[0].as<StructID>();
@@ -1845,15 +2027,17 @@ void TypeResolver::visit(VarDecl* decl)
 void TypeResolver::visit(TypeAlias* decl)
 {
     decl->env_ = ctx.env_stack_.back();
-    TypeID aliased = nw::kernel::runtime().type_id(decl->aliased_type->str());
-    nw::kernel::runtime().type_table_.define(decl->type_id_, decl, ctx.parent_->name(), aliased);
+    auto& rt = nw::kernel::runtime();
+    TypeID aliased = rt.type_id(decl->aliased_type->str());
+    rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name(), aliased);
 }
 
 void TypeResolver::visit(NewtypeDecl* decl)
 {
     decl->env_ = ctx.env_stack_.back();
-    TypeID wrapped = nw::kernel::runtime().type_id(decl->wrapped_type->str());
-    nw::kernel::runtime().type_table_.define(decl->type_id_, decl, ctx.parent_->name(), wrapped);
+    auto& rt = nw::kernel::runtime();
+    TypeID wrapped = rt.type_id(decl->wrapped_type->str());
+    rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name(), wrapped);
 }
 
 void TypeResolver::visit(OpaqueTypeDecl* decl)
@@ -1875,15 +2059,8 @@ void TypeResolver::visit(OpaqueTypeDecl* decl)
     }
 
     auto type_name = String(decl->identifier());
-    bool found = false;
-    for (const auto& registered_type : native_module->opaque_types) {
-        if (registered_type == type_name) {
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
+    auto it = std::find(native_module->opaque_types.begin(), native_module->opaque_types.end(), type_name);
+    if (it == native_module->opaque_types.end()) {
         ctx.errorf(decl->range_, "Native type '{}' is not registered in C++ module '{}'",
             type_name, ctx.parent_->name());
     }
@@ -2137,12 +2314,9 @@ void TypeResolver::visit(PathExpression* expr)
         auto struct_id = type->type_params[0].as<StructID>();
         const StructDef* struct_def = rt.type_table_.get(struct_id);
         if (!struct_def) { return false; }
-        StringView field_name = ident->ident.loc.view();
-        for (uint32_t i = 0; i < struct_def->field_count; ++i) {
-            if (struct_def->fields[i].name.view() == field_name) {
-                ident->type_id_ = struct_def->fields[i].type_id;
-                return true;
-            }
+        if (auto* field = find_struct_field(struct_def, ident->ident.loc.view())) {
+            ident->type_id_ = field->type_id;
+            return true;
         }
         return false;
     };
@@ -2176,11 +2350,19 @@ void TypeResolver::visit(PathExpression* expr)
                     auto exports = import_decl->loaded_module->exports();
                     auto rhs_name = String(ident->ident.loc.view());
                     auto export_ptr = exports.find(rhs_name);
-                    if (export_ptr && export_ptr->decl) {
+                    if (export_ptr && export_ptr->type_id != invalid_type_id) {
                         ident->env_ = ctx.env_stack_.back();
-                        ident->type_id_ = export_ptr->decl->type_id_;
-                        current_type = export_ptr->decl->type_id_;
+                        ident->type_id_ = export_ptr->type_id;
+                        current_type = export_ptr->type_id;
                         continue;
+                    }
+                    if (export_ptr) {
+                        ctx.errorf(part->range_,
+                            "'{}' exists in module '{}' but semantic declaration data is unavailable in current debug level",
+                            rhs_name,
+                            import_decl->module_path);
+                        expr->type_id_ = invalid_type_id;
+                        return;
                     }
                     ctx.errorf(part->range_, "'{}' not found in module '{}'", rhs_name, import_decl->module_path);
                     expr->type_id_ = invalid_type_id;
@@ -2273,18 +2455,13 @@ void TypeResolver::visit(TupleLiteral* expr)
 {
     expr->env_ = ctx.env_stack_.back();
     Vector<TypeID> types;
+    expr->is_const_ = true;
     for (auto* e : expr->elements) {
         e->accept(this);
         types.push_back(e->type_id_);
+        expr->is_const_ &= e->is_const_;
     }
     expr->type_id_ = nw::kernel::runtime().register_tuple_type(types);
-    expr->is_const_ = true;
-    for (auto* e : expr->elements) {
-        if (!e->is_const_) {
-            expr->is_const_ = false;
-            break;
-        }
-    }
 }
 
 void TypeResolver::visit(IndexExpression* expr)
@@ -2393,16 +2570,12 @@ void TypeResolver::visit(LiteralExpression* expr)
 void TypeResolver::visit(FStringExpression* expr)
 {
     expr->env_ = ctx.env_stack_.back();
-    for (auto* s : expr->expressions)
-        s->accept(this);
-    expr->type_id_ = nw::kernel::runtime().string_type();
     expr->is_const_ = true;
     for (auto* s : expr->expressions) {
-        if (!s->is_const_) {
-            expr->is_const_ = false;
-            break;
-        }
+        s->accept(this);
+        expr->is_const_ &= s->is_const_;
     }
+    expr->type_id_ = nw::kernel::runtime().string_type();
 }
 
 void TypeResolver::visit(LogicalExpression* expr)
@@ -2621,14 +2794,7 @@ static bool resolve_sumtype_switch(TypeResolver& resolver, SwitchStatement* stmt
             continue;
         }
 
-        const VariantDef* variant_def = nullptr;
-        for (uint32_t i = 0; i < sum_def->variant_count; ++i) {
-            if (sum_def->variants[i].name.view() == variant_name) {
-                variant_def = &sum_def->variants[i];
-                break;
-            }
-        }
-
+        const VariantDef* variant_def = sum_def->find_variant(variant_name);
         if (!variant_def) {
             ctx.errorf(label->expr->range_, "'{}' is not a variant of sum type", variant_name);
             continue;
@@ -2838,8 +3004,10 @@ void TypeResolver::visit(JumpStatement* stmt)
     }
 
     TypeContext tc(ctx);
+    bool propagate_return_type = stmt->exprs.size() == 1
+        && ctx.func_def_stack_ && ctx.func_def_stack_->type_id_ != invalid_type_id;
     for (auto* e : stmt->exprs) {
-        if (stmt->exprs.size() == 1 && ctx.func_def_stack_ && ctx.func_def_stack_->type_id_ != invalid_type_id) {
+        if (propagate_return_type) {
             tc.accept(e, ctx.func_def_stack_->type_id_);
         } else if (e) {
             e->accept(this);

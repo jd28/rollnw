@@ -545,6 +545,20 @@ struct Runtime : public nw::kernel::Service {
         const Vector<TypeID>& type_args,
         String* error_out = nullptr);
 
+    std::optional<GenericInstantiation> ensure_generic_instantiation_by_name(
+        Script* defining_script,
+        BytecodeModule* defining_module,
+        StringView generic_name,
+        const Vector<TypeID>& type_args,
+        String* error_out = nullptr);
+
+    bool materialize_generic_function_definition(
+        Script* defining_script,
+        StringView function_name,
+        std::unique_ptr<Script>& template_holder,
+        const FunctionDefinition*& out_function,
+        String* error_out = nullptr);
+
     // -- Generic Type Instantiation -------------------------------------------
 
     /// Gets or creates an instantiated version of a generic type (sum type or struct)
@@ -1007,6 +1021,16 @@ struct Runtime : public nw::kernel::Service {
 private:
     friend struct ModuleBuilder;
 
+    enum class CompilerStateRetention : uint8_t {
+        full,
+        source_map,
+        bytecode_only,
+    };
+
+    CompilerStateRetention compiler_state_retention() const noexcept;
+    void maybe_compact_script_state(Script* script);
+    static String normalize_module_name(StringView path);
+
     // Helper to register all primitive type operators
     void register_primitive_operators();
 
@@ -1040,6 +1064,34 @@ private:
         }
     };
     absl::flat_hash_map<InstantiationKey, GenericInstantiation> instantiation_cache_;
+
+    struct GenericFunctionTemplateKey {
+        String module;
+        String function;
+
+        bool operator==(const GenericFunctionTemplateKey& other) const = default;
+
+        template <typename H>
+        friend H AbslHashValue(H h, const GenericFunctionTemplateKey& k)
+        {
+            return H::combine(std::move(h), k.module, k.function);
+        }
+    };
+
+    struct GenericFunctionTemplate {
+        uint32_t type_param_count = 0;
+    };
+
+    void register_generic_function_templates(Script* script);
+    const GenericFunctionTemplate* find_generic_function_template(StringView module, StringView function) const;
+    FunctionDefinition* materialize_generic_function_template(
+        Script* defining_script,
+        StringView function_name,
+        std::unique_ptr<Script>& template_holder,
+        String* error_out);
+
+    absl::flat_hash_map<GenericFunctionTemplateKey, GenericFunctionTemplate> generic_function_templates_;
+    absl::flat_hash_map<String, String> generic_template_module_sources_;
 
     // Generic type instantiation cache
     struct TypeInstantiationKey {

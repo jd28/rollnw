@@ -42,6 +42,7 @@ struct FieldDef {
     InternedString name;
     TypeID type_id;
     uint32_t offset;
+    int16_t generic_param_index = -1;
 
     bool operator==(const FieldDef& rhs) const noexcept = default;
 };
@@ -53,6 +54,7 @@ struct StructDef {
     uint32_t size;        // Total size in bytes
     uint32_t alignment;   // Alignment requirement in bytes
     uint32_t field_count; // Number of fields in the struct
+    uint32_t generic_param_count = 0;
     FieldDef* fields;
     const StructDecl* decl = nullptr;
 
@@ -76,6 +78,7 @@ struct VariantDef {
     uint32_t tag_value;      // Discriminant value (0, 1, 2, ...)
     TypeID payload_type;     // Payload type (invalid_type_id for unit variants)
     uint32_t payload_offset; // Byte offset of payload within union
+    int16_t generic_param_index = -1;
 
     bool operator==(const VariantDef& rhs) const noexcept = default;
 };
@@ -85,11 +88,12 @@ struct SumDef {
     uint32_t size;          // Total size (tag + padding + union)
     uint32_t alignment;     // Alignment requirement
     uint32_t variant_count; // Number of variants
-    VariantDef* variants;   // Array of variant definitions
-    uint32_t tag_offset;    // Offset of tag (always 0)
-    uint32_t union_offset;  // Offset of union data (after tag + padding)
-    uint32_t union_size;    // Size of union (max payload size)
-    const SumDecl* decl;    // Back-pointer to AST declaration (for nominal typing)
+    uint32_t generic_param_count = 0;
+    VariantDef* variants;  // Array of variant definitions
+    uint32_t tag_offset;   // Offset of tag (always 0)
+    uint32_t union_offset; // Offset of union data (after tag + padding)
+    uint32_t union_size;   // Size of union (max payload size)
+    const SumDecl* decl;   // Back-pointer to AST declaration (for nominal typing)
 
     const VariantDef* find_variant(StringView name) const noexcept
     {
@@ -116,9 +120,9 @@ struct SumDef {
 
 // Internal function type definition (for closures and function references)
 struct FunctionDef {
-    uint32_t param_count;    // Number of parameters
-    TypeID* param_types;     // Array of parameter type IDs
-    TypeID return_type;      // Return type (invalid_type_id for void)
+    uint32_t param_count; // Number of parameters
+    TypeID* param_types;  // Array of parameter type IDs
+    TypeID return_type;   // Return type (invalid_type_id for void)
 };
 
 struct FunctionDefHash {

@@ -311,7 +311,202 @@ void Runtime::register_internal_types()
 
 nlohmann::json Runtime::stats() const
 {
-    return {};
+    auto retention_to_string = [](CompilerStateRetention retention) -> const char* {
+        switch (retention) {
+        case CompilerStateRetention::full:
+            return "full";
+        case CompilerStateRetention::source_map:
+            return "source_map";
+        case CompilerStateRetention::bytecode_only:
+            return "none";
+        }
+        return "unknown";
+    };
+
+    size_t module_functions = 0;
+    size_t module_globals = 0;
+    size_t ast_discarded_count = 0;
+    size_t export_count = 0;
+    size_t export_with_decl_count = 0;
+    size_t export_with_function_abi_count = 0;
+    for (const auto& [_, module] : bytecode_cache_) {
+        module_functions += module->functions.size();
+        module_globals += module->global_count;
+    }
+    for (const auto& [_, script] : modules_) {
+        if (!script) {
+            continue;
+        }
+        if (script->ast_discarded()) {
+            ++ast_discarded_count;
+        }
+        for (const auto& [_, exp] : script->exports()) {
+            ++export_count;
+            if (exp.decl) {
+                ++export_with_decl_count;
+            }
+            if (exp.function_abi.has_value()) {
+                ++export_with_function_abi_count;
+            }
+        }
+    }
+
+    return {
+        {"compiler_state_retention", retention_to_string(compiler_state_retention())},
+        {"module_count", modules_.size()},
+        {"ast_discarded_module_count", ast_discarded_count},
+        {"compiled_module_count", bytecode_cache_.size()},
+        {"compiled_function_count", module_functions},
+        {"global_slot_count", module_globals},
+        {"export_count", export_count},
+        {"export_with_decl_count", export_with_decl_count},
+        {"export_with_function_abi_count", export_with_function_abi_count},
+        {"generic_function_template_count", generic_function_templates_.size()},
+        {"instantiated_generic_function_count", instantiation_cache_.size()},
+        {"instantiated_generic_type_count", type_instantiation_cache_.size()},
+        {"source_map_cache_entries", line_offsets_.size()},
+        {"compiler_arena_used_bytes", arena_.used()},
+        {"compiler_arena_capacity_bytes", arena_.capacity()},
+    };
+}
+
+Runtime::CompilerStateRetention Runtime::compiler_state_retention() const noexcept
+{
+    switch (diagnostic_config_.debug_level) {
+    case DebugLevel::full:
+        return CompilerStateRetention::full;
+    case DebugLevel::source_map:
+        return CompilerStateRetention::source_map;
+    case DebugLevel::none:
+        return CompilerStateRetention::bytecode_only;
+    }
+    return CompilerStateRetention::source_map;
+}
+
+void Runtime::maybe_compact_script_state(Script* script)
+{
+    if (!script || !script->can_discard_ast()) {
+        return;
+    }
+
+    auto retention = compiler_state_retention();
+    bool should_discard_ast = retention == CompilerStateRetention::bytecode_only
+        || (retention == CompilerStateRetention::source_map && script->export_count() == 0);
+
+    if (should_discard_ast) {
+        script->discard_ast();
+    }
+
+    // Source text must remain alive for any retained AST/decl token views.
+    // Only drop source when AST has been compacted.
+    if (retention == CompilerStateRetention::bytecode_only && script->ast_discarded()) {
+        script->discard_source();
+        line_offsets_.erase(String(script->name()));
+    }
+}
+
+void Runtime::register_generic_function_templates(Script* script)
+{
+    if (!script) {
+        return;
+    }
+
+    auto module = String(script->name());
+    String module_source(script->text());
+    if (module_source.empty()) {
+        return;
+    }
+
+    bool has_generic_function = false;
+
+    for (auto* node : script->ast().decls) {
+        auto* fn = dynamic_cast<FunctionDefinition*>(node);
+        if (!fn || !fn->is_generic()) {
+            continue;
+        }
+        has_generic_function = true;
+
+        Runtime::GenericFunctionTemplateKey key{module, fn->identifier()};
+        generic_function_templates_[key] = Runtime::GenericFunctionTemplate{
+            .type_param_count = static_cast<uint32_t>(fn->type_params.size()),
+        };
+    }
+
+    if (has_generic_function) {
+        generic_template_module_sources_[module] = std::move(module_source);
+    } else {
+        generic_template_module_sources_.erase(module);
+    }
+}
+
+const Runtime::GenericFunctionTemplate* Runtime::find_generic_function_template(StringView module, StringView function) const
+{
+    Runtime::GenericFunctionTemplateKey key{String(module), String(function)};
+    auto it = generic_function_templates_.find(key);
+    if (it == generic_function_templates_.end()) {
+        return nullptr;
+    }
+    return &it->second;
+}
+
+FunctionDefinition* Runtime::materialize_generic_function_template(
+    Script* defining_script,
+    StringView function_name,
+    std::unique_ptr<Script>& template_holder,
+    String* error_out)
+{
+    if (!defining_script) {
+        if (error_out) {
+            *error_out = "invalid generic template lookup: null defining script";
+        }
+        return nullptr;
+    }
+
+    auto* tpl = find_generic_function_template(defining_script->name(), function_name);
+    if (!tpl) {
+        return nullptr;
+    }
+
+    auto source_it = generic_template_module_sources_.find(String(defining_script->name()));
+    if (source_it == generic_template_module_sources_.end()) {
+        if (error_out) {
+            *error_out = fmt::format(
+                "Missing stored source for generic template module '{}'",
+                defining_script->name());
+        }
+        return nullptr;
+    }
+
+    String temp_module(defining_script->name());
+    template_holder = std::make_unique<Script>(temp_module, source_it->second, defining_script->ctx());
+    template_holder->resolve();
+    if (template_holder->errors() > 0) {
+        if (error_out) {
+            *error_out = fmt::format(
+                "Failed to resolve stored generic template '{}.{}'",
+                defining_script->name(),
+                function_name);
+        }
+        return nullptr;
+    }
+
+    for (auto* node : template_holder->ast().decls) {
+        auto* fn = dynamic_cast<FunctionDefinition*>(node);
+        if (!fn) {
+            continue;
+        }
+        if (fn->identifier() == function_name && fn->is_generic()) {
+            return fn;
+        }
+    }
+
+    if (error_out) {
+        *error_out = fmt::format(
+            "Stored generic template '{}.{}' missing function declaration",
+            defining_script->name(),
+            function_name);
+    }
+    return nullptr;
 }
 
 // -- Type System -------------------------------------------------------------
@@ -1535,6 +1730,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
     // Ensure script is parsed and resolved
     // Note: resolve() calls parse() if needed
     script->resolve();
+    register_generic_function_templates(script);
 
     // Ensure imported modules are compiled first so their exported functions are
     // registered as external functions and can be resolved by this module.
@@ -1601,6 +1797,8 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
     if (module->global_count > 0) {
         vm_->execute(module, "__init", {}, default_gas_limit);
     }
+
+    maybe_compact_script_state(script);
 
     return module;
 }
@@ -1800,12 +1998,7 @@ void Runtime::register_primitive_operators()
 
 // -- Module System -----------------------------------------------------------
 
-ModuleBuilder Runtime::module(StringView path)
-{
-    return ModuleBuilder(this, path);
-}
-
-Script* Runtime::load_module(StringView path)
+String Runtime::normalize_module_name(StringView path)
 {
     String path_str(path);
     for (char& c : path_str) {
@@ -1813,6 +2006,17 @@ Script* Runtime::load_module(StringView path)
             c = '.';
         }
     }
+    return path_str;
+}
+
+ModuleBuilder Runtime::module(StringView path)
+{
+    return ModuleBuilder(this, path);
+}
+
+Script* Runtime::load_module(StringView path)
+{
+    String path_str = normalize_module_name(path);
 
     auto it = modules_.find(path_str);
     if (it != modules_.end()) {
@@ -1873,7 +2077,7 @@ Script* Runtime::load_module(StringView path)
 
 Script* Runtime::load_module_from_source(StringView path, StringView source)
 {
-    String path_str(path);
+    String path_str = normalize_module_name(path);
 
     // Check if already loaded
     auto it = modules_.find(path_str);
@@ -1898,11 +2102,11 @@ Script* Runtime::load_module_from_source(StringView path, StringView source)
     // Add to loading stack
     loading_stack_.push_back(path_str);
 
-    LOG_F(INFO, "[runtime] Loading module from source: {}", path);
+    LOG_F(INFO, "[runtime] Loading module from source: {}", path_str);
 
     // Create and parse script from source using runtime allocator
     void* mem = allocator()->allocate(sizeof(Script), alignof(Script));
-    auto* script = new (mem) Script(path, source, diagnostic_context_);
+    auto* script = new (mem) Script(path_str, source, diagnostic_context_);
     script->parse();
     script->resolve();
 
@@ -1916,7 +2120,7 @@ Script* Runtime::load_module_from_source(StringView path, StringView source)
 
 Script* Runtime::get_module(StringView path)
 {
-    String path_str(path);
+    String path_str = normalize_module_name(path);
     auto it = modules_.find(path_str);
     if (it != modules_.end()) {
         return it->second;
@@ -4202,23 +4406,41 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
     const Vector<TypeID>& type_args,
     String* error_out)
 {
-    if (!defining_script || !generic_func) {
+    if (!defining_script) {
         if (error_out) {
-            *error_out = "invalid generic instantiation: null defining script or function";
+            *error_out = "invalid generic instantiation: null defining script";
         }
         return std::nullopt;
     }
 
-    if (type_args.size() != generic_func->type_params.size()) {
+    std::unique_ptr<Script> template_holder;
+    Script* resolution_script = defining_script;
+    FunctionDefinition* resolved_generic_func = generic_func;
+    String generic_name = generic_func ? generic_func->identifier() : String{};
+    if (!resolved_generic_func) {
+        if (auto* materialized = materialize_generic_function_template(defining_script, generic_name, template_holder, nullptr)) {
+            resolved_generic_func = materialized;
+            resolution_script = template_holder.get();
+        }
+    }
+
+    if (!resolved_generic_func) {
         if (error_out) {
-            *error_out = fmt::format("Type argument count mismatch for generic function '{}'", generic_func->identifier());
+            *error_out = "invalid generic instantiation: null generic function";
+        }
+        return std::nullopt;
+    }
+
+    if (type_args.size() != resolved_generic_func->type_params.size()) {
+        if (error_out) {
+            *error_out = fmt::format("Type argument count mismatch for generic function '{}'", resolved_generic_func->identifier());
         }
         return std::nullopt;
     }
 
     String mangled_name;
     mangled_name.reserve(128);
-    absl::StrAppend(&mangled_name, generic_func->identifier(), "!(");
+    absl::StrAppend(&mangled_name, resolved_generic_func->identifier(), "!(");
     for (size_t i = 0; i < type_args.size(); ++i) {
         if (i > 0) {
             absl::StrAppend(&mangled_name, ",");
@@ -4246,7 +4468,7 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
     }
 
     if (runtime_managed) {
-        InstantiationKey key{String(defining_script->name()), generic_func->identifier(), type_args};
+        InstantiationKey key{String(defining_script->name()), resolved_generic_func->identifier(), type_args};
         auto it = instantiation_cache_.find(key);
         if (it != instantiation_cache_.end()) {
             return it->second;
@@ -4254,7 +4476,7 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
     }
 
     // Native generic declarations: require a specialization registered under the mangled name.
-    for (const auto& ann : generic_func->annotations_) {
+    for (const auto& ann : resolved_generic_func->annotations_) {
         if (ann.name.loc.view() == "native") {
             if (find_external_function(qualified_name) == UINT32_MAX) {
                 if (error_out) {
@@ -4270,7 +4492,7 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
             rec.func_idx = UINT32_MAX;
             rec.is_native = true;
             if (runtime_managed) {
-                InstantiationKey key{String(defining_script->name()), generic_func->identifier(), type_args};
+                InstantiationKey key{String(defining_script->name()), resolved_generic_func->identifier(), type_args};
                 instantiation_cache_[key] = rec;
             }
             return rec;
@@ -4293,26 +4515,26 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
         rec.func_idx = existing_idx;
         rec.is_native = false;
         if (runtime_managed) {
-            InstantiationKey key{String(defining_script->name()), generic_func->identifier(), type_args};
+            InstantiationKey key{String(defining_script->name()), resolved_generic_func->identifier(), type_args};
             instantiation_cache_[key] = rec;
         }
         return rec;
     }
 
-    GenericAstRestoreScope restore_scope(generic_func);
+    GenericAstRestoreScope restore_scope(resolved_generic_func);
 
     absl::flat_hash_map<String, TypeID> substitutions;
-    substitutions.reserve(generic_func->type_params.size());
-    for (size_t i = 0; i < generic_func->type_params.size(); ++i) {
-        substitutions[generic_func->type_params[i]] = type_args[i];
+    substitutions.reserve(resolved_generic_func->type_params.size());
+    for (size_t i = 0; i < resolved_generic_func->type_params.size(); ++i) {
+        substitutions[resolved_generic_func->type_params[i]] = type_args[i];
     }
 
     // Resolve the generic function under concrete substitutions.
-    AstResolver resolver(defining_script, defining_script->ctx());
+    AstResolver resolver(resolution_script, resolution_script->ctx());
     resolver.env_stack_.clear();
-    resolver.env_stack_.push_back(defining_script->exports());
+    resolver.env_stack_.push_back(resolution_script->exports());
     resolver.global_decls_.clear();
-    for (const auto& [name, exp] : defining_script->exports()) {
+    for (const auto& [name, exp] : resolution_script->exports()) {
         if (exp.decl) {
             resolver.global_decls_[name] = exp.decl;
         }
@@ -4320,12 +4542,12 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
 
     // Record providers for local decls and selective imports so generic calls can
     // be instantiated across module boundaries.
-    for (auto* node : defining_script->ast().decls) {
+    for (auto* node : resolution_script->ast().decls) {
         if (!node) {
             continue;
         }
         if (auto* decl = dynamic_cast<Declaration*>(node)) {
-            resolver.record_decl_provider(decl, defining_script);
+            resolver.record_decl_provider(decl, resolution_script);
         }
 
         if (auto* import_decl = dynamic_cast<SelectiveImportDecl*>(node)) {
@@ -4347,15 +4569,15 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
 
     TypeResolver type_resolver{resolver};
     resolver.set_active_visitor(&type_resolver);
-    type_resolver.visit(generic_func);
+    type_resolver.visit(resolved_generic_func);
     resolver.set_active_visitor(nullptr);
 
-    if (generic_func->block) {
+    if (resolved_generic_func->block) {
         Validator validator{resolver};
-        validator.visit(generic_func);
+        validator.visit(resolved_generic_func);
     }
 
-    if (defining_script->errors() > 0) {
+    if (resolution_script->errors() > 0) {
         if (error_out) {
             *error_out = fmt::format("Generic instantiation '{}' produced errors", qualified_name);
         }
@@ -4363,16 +4585,16 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
     }
 
     auto* compiled = new CompiledFunction(mangled_name);
-    compiled->param_count = static_cast<uint8_t>(generic_func->params.size());
+    compiled->param_count = static_cast<uint8_t>(resolved_generic_func->params.size());
     compiled->register_count = compiled->param_count;
-    compiled->return_type = generic_func->type_id_;
-    compiled->source_ast = generic_func;
+    compiled->return_type = resolved_generic_func->type_id_;
+    compiled->source_ast = (resolution_script == defining_script) ? resolved_generic_func : nullptr;
 
     uint32_t func_idx = static_cast<uint32_t>(module->functions.size());
     module->add_function(compiled);
 
-    AstCompiler compiler(defining_script, module, this, diagnostic_context_);
-    if (!compiler.compile_instantiated(compiled, generic_func)) {
+    AstCompiler compiler(resolution_script, module, this, diagnostic_context_);
+    if (!compiler.compile_instantiated(compiled, resolved_generic_func)) {
         if (error_out) {
             *error_out = fmt::format("Failed to compile instantiated function '{}': {}", qualified_name, compiler.error_message_);
         }
@@ -4401,10 +4623,64 @@ std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiati
     rec.func_idx = func_idx;
     rec.is_native = false;
     if (runtime_managed) {
-        InstantiationKey key{String(defining_script->name()), generic_func->identifier(), type_args};
+        InstantiationKey key{String(defining_script->name()), resolved_generic_func->identifier(), type_args};
         instantiation_cache_[key] = rec;
     }
     return rec;
+}
+
+std::optional<Runtime::GenericInstantiation> Runtime::ensure_generic_instantiation_by_name(
+    Script* defining_script,
+    BytecodeModule* defining_module,
+    StringView generic_name,
+    const Vector<TypeID>& type_args,
+    String* error_out)
+{
+    if (!defining_script) {
+        if (error_out) {
+            *error_out = "invalid generic instantiation: null defining script";
+        }
+        return std::nullopt;
+    }
+
+    std::unique_ptr<Script> template_holder;
+    String materialize_error;
+    auto* generic_func = materialize_generic_function_template(
+        defining_script,
+        generic_name,
+        template_holder,
+        error_out ? error_out : &materialize_error);
+
+    if (!generic_func) {
+        return std::nullopt;
+    }
+
+    return ensure_generic_instantiation(
+        defining_script,
+        defining_module,
+        generic_func,
+        type_args,
+        error_out);
+}
+
+bool Runtime::materialize_generic_function_definition(
+    Script* defining_script,
+    StringView function_name,
+    std::unique_ptr<Script>& template_holder,
+    const FunctionDefinition*& out_function,
+    String* error_out)
+{
+    out_function = nullptr;
+    auto* fn = materialize_generic_function_template(
+        defining_script,
+        function_name,
+        template_holder,
+        error_out);
+    if (!fn) {
+        return false;
+    }
+    out_function = fn;
+    return true;
 }
 
 TypeID Runtime::get_or_instantiate_type(TypeID generic_type_id, const Vector<TypeID>& type_args)
@@ -4430,15 +4706,8 @@ TypeID Runtime::get_or_instantiate_type(TypeID generic_type_id, const Vector<Typ
     if (generic_type->type_kind == TK_sum) {
         auto id = generic_type->type_params[0].as<SumID>();
         const SumDef* generic_def = type_table_.get(id);
-        ENSURE_OR_RETURN_VALUE(invalid_type_id, generic_def && generic_def->decl, "invalid sum id {}", id.value);
-
-        const SumDecl* decl = generic_def->decl;
-        ENSURE_OR_RETURN_VALUE(invalid_type_id, type_args.size() == decl->type_params.size(), "Type argument count mismatch for generic type '{}'", name);
-
-        absl::flat_hash_map<String, TypeID> substitutions;
-        for (size_t i = 0; i < decl->type_params.size(); ++i) {
-            substitutions[decl->type_params[i]] = type_args[i];
-        }
+        ENSURE_OR_RETURN_VALUE(invalid_type_id, generic_def, "invalid sum id {}", id.value);
+        ENSURE_OR_RETURN_VALUE(invalid_type_id, type_args.size() == generic_def->generic_param_count, "Type argument count mismatch for generic type '{}'", name);
 
         uint32_t variant_count = generic_def->variant_count;
         void* mem = allocator()->allocate(sizeof(SumDef), alignof(SumDef));
@@ -4464,21 +4733,17 @@ TypeID Runtime::get_or_instantiate_type(TypeID generic_type_id, const Vector<Typ
             if (src_variant.payload_type == invalid_type_id) {
                 dst_variant.payload_type = invalid_type_id;
                 dst_variant.payload_offset = 0;
+                dst_variant.generic_param_index = -1;
             } else {
                 TypeID payload_type = src_variant.payload_type;
 
-                if (payload_type == any_type()) {
-                    const VariantDecl* variant_decl = decl->variants[i];
-                    if (auto* type_expr = dynamic_cast<TypeExpression*>(variant_decl->payload)) {
-                        auto payload_name = type_expr->str();
-                        auto sub_it = substitutions.find(payload_name);
-                        if (sub_it != substitutions.end()) {
-                            payload_type = sub_it->second;
-                        }
-                    }
+                if (src_variant.generic_param_index >= 0
+                    && static_cast<size_t>(src_variant.generic_param_index) < type_args.size()) {
+                    payload_type = type_args[src_variant.generic_param_index];
                 }
 
                 dst_variant.payload_type = payload_type;
+                dst_variant.generic_param_index = src_variant.generic_param_index;
                 const Type* payload_type_obj = get_type(payload_type);
                 if (payload_type_obj) {
                     uint32_t payload_size = payload_type_obj->size;
@@ -4516,15 +4781,8 @@ TypeID Runtime::get_or_instantiate_type(TypeID generic_type_id, const Vector<Typ
     } else if (generic_type->type_kind == TK_struct) {
         auto id = generic_type->type_params[0].as<StructID>();
         const StructDef* generic_def = type_table_.get(id);
-        ENSURE_OR_RETURN_VALUE(invalid_type_id, generic_def && generic_def->decl, "invalid struct id {}", id.value);
-
-        const StructDecl* decl = generic_def->decl;
-        ENSURE_OR_RETURN_VALUE(invalid_type_id, type_args.size() == decl->type_params.size(), "type argument count mismatch for generic type '{}'", name);
-
-        absl::flat_hash_map<String, TypeID> substitutions;
-        for (size_t i = 0; i < decl->type_params.size(); ++i) {
-            substitutions[decl->type_params[i]] = type_args[i];
-        }
+        ENSURE_OR_RETURN_VALUE(invalid_type_id, generic_def, "invalid struct id {}", id.value);
+        ENSURE_OR_RETURN_VALUE(invalid_type_id, type_args.size() == generic_def->generic_param_count, "type argument count mismatch for generic type '{}'", name);
 
         uint32_t field_count = generic_def->field_count;
         void* mem = allocator()->allocate(sizeof(StructDef), alignof(StructDef));
@@ -4544,33 +4802,12 @@ TypeID Runtime::get_or_instantiate_type(TypeID generic_type_id, const Vector<Typ
                 auto& dst_field = new_def->fields[i];
 
                 dst_field.name = src_field.name;
+                dst_field.generic_param_index = src_field.generic_param_index;
 
                 TypeID field_type = src_field.type_id;
-                if (field_type == any_type()) {
-                    size_t idx = 0;
-                    for (auto* d : decl->decls) {
-                        if (auto* vdl = dynamic_cast<const DeclList*>(d)) {
-                            for (auto* vd : vdl->decls) {
-                                if (idx == i && vd->type) {
-                                    auto field_type_name = vd->type->str();
-                                    auto sub_it = substitutions.find(field_type_name);
-                                    if (sub_it != substitutions.end()) {
-                                        field_type = sub_it->second;
-                                    }
-                                }
-                                idx++;
-                            }
-                        } else if (auto* vd = dynamic_cast<const VarDecl*>(d)) {
-                            if (idx == i && vd->type) {
-                                auto field_type_name = vd->type->str();
-                                auto sub_it = substitutions.find(field_type_name);
-                                if (sub_it != substitutions.end()) {
-                                    field_type = sub_it->second;
-                                }
-                            }
-                            idx++;
-                        }
-                    }
+                if (src_field.generic_param_index >= 0
+                    && static_cast<size_t>(src_field.generic_param_index) < type_args.size()) {
+                    field_type = type_args[src_field.generic_param_index];
                 }
 
                 dst_field.type_id = field_type;

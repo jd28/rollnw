@@ -31,6 +31,9 @@ protected:
     void SetUp() override
     {
         nw::kernel::services().start();
+        auto config = nw::kernel::runtime().diagnostic_config();
+        config.debug_level = nw::smalls::DebugLevel::full;
+        nw::kernel::runtime().set_diagnostic_config(config);
     }
 
     void TearDown() override

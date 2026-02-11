@@ -31,6 +31,26 @@ TEST_F(SmallsLSP, LocateLocalVariable)
     EXPECT_EQ(symbol.kind, nw::smalls::SymbolKind::variable);
 }
 
+TEST_F(SmallsLSP, SemanticToolingRequiresFullDebugLevel)
+{
+    auto config = nw::kernel::runtime().diagnostic_config();
+    config.debug_level = nw::smalls::DebugLevel::source_map;
+    nw::kernel::runtime().set_diagnostic_config(config);
+
+    auto script = make_script(R"(fn test() {
+    var my_var: int = 42;
+    var result = my_var + 10;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_NO_THROW(script.resolve());
+
+    auto symbol = script.locate_symbol("my_var", 3, 18);
+    EXPECT_EQ(symbol.decl, nullptr);
+    EXPECT_FALSE(script.diagnostics().empty());
+    EXPECT_NE(script.diagnostics().back().message.find("semantic tooling requires DebugLevel::full"), std::string::npos);
+}
+
 TEST_F(SmallsLSP, LocateFunctionDefinition)
 {
     auto script = make_script(R"(fn helper(): int {
