@@ -181,7 +181,7 @@ const std::type_index Runtime::type_index{typeid(Runtime)};
 Runtime::Runtime(MemoryResource* scope)
     : Service(scope)
     , type_table_(scope)
-    , arena_(GB(1))
+    , arena_(MB(256))
     , scope_(&arena_)
     , resman_{nw::kernel::global_allocator(), &kernel::resman()}
     , gc_{std::make_unique<GarbageCollector>(&heap_, this)}
