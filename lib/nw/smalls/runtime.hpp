@@ -1439,6 +1439,8 @@ TypeID cpp_to_typeid(Runtime* rt)
         return rt->void_type();
     } else if constexpr (std::is_same_v<Bare, TypedHandle>) {
         return invalid_type_id; // script is source of truth for handle types
+    } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
+        return rt->object_type();
     } else if constexpr (std::is_same_v<Bare, IArray*> || (std::is_pointer_v<Bare> && std::is_base_of_v<IArray, std::remove_pointer_t<Bare>>)) {
         return rt->any_array_type(); // Wildcard: matches any array<T>
     } else if constexpr (std::is_same_v<Bare, Value>) {
@@ -1471,6 +1473,11 @@ T value_cast(Runtime* rt, const Value& v)
             return Bare{};
         }
         return *handle;
+    } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
+        if (!rt || v.type_id != rt->object_type()) {
+            return Bare{};
+        }
+        return v.data.oval;
     } else {
         return Bare{};
     }
@@ -1497,6 +1504,11 @@ Value make_value(Runtime* rt, const T& val)
             return Value::make_heap(ptr, type_id);
         }
         return Value{};
+    } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
+        if (!rt) { return Value{}; }
+        Value out = Value::make_object(val);
+        out.type_id = rt->object_type();
+        return out;
     } else {
         return Value{};
     }

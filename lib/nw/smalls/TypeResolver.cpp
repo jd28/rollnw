@@ -2680,8 +2680,14 @@ void TypeResolver::visit(IdentifierExpression* expr)
             }
         }
     } else {
-        auto suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
-        ctx.errorf(expr->range_, "unable to resolve identifier '{}'{}", expr->ident.loc.view(), suggestions);
+        auto exp = expr->env_.find(String(expr->ident.loc.view()));
+        if (exp && exp->type_id != invalid_type_id) {
+            expr->type_id_ = exp->type_id;
+            expr->is_const_ = exp->is_const;
+        } else {
+            auto suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
+            ctx.errorf(expr->range_, "unable to resolve identifier '{}'{}", expr->ident.loc.view(), suggestions);
+        }
     }
 
     for (auto* param : expr->type_params) {

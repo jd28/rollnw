@@ -1,5 +1,6 @@
 #include "Smalls.hpp"
 
+#include "AstConstEvaluator.hpp"
 #include "AstHinter.hpp"
 #include "AstLocator.hpp"
 #include "AstResolver.hpp"
@@ -43,6 +44,75 @@ bool has_native_annotation(const Declaration* decl)
         if (ann.name.loc.view() == "native") { return true; }
     }
     return false;
+}
+
+TypeID unwrap_newtype_base_type(Runtime& rt, TypeID type_id)
+{
+    const Type* type = rt.get_type(type_id);
+    while (type && type->type_kind == TK_newtype
+        && !type->type_params.empty() && type->type_params[0].is<TypeID>()) {
+        type_id = type->type_params[0].as<TypeID>();
+        type = rt.get_type(type_id);
+    }
+    return type_id;
+}
+
+bool try_assign_export_primitive(Runtime& rt, const Value& value, TypeID declared_type, ExportConstValue& out)
+{
+    TypeID source_type = value.type_id;
+    if (declared_type != invalid_type_id) {
+        source_type = declared_type;
+    }
+
+    const TypeID base_type = unwrap_newtype_base_type(rt, source_type);
+    if (base_type == rt.int_type()) {
+        out.value = value.data.ival;
+        return true;
+    }
+    if (base_type == rt.float_type()) {
+        out.value = value.data.fval;
+        return true;
+    }
+    if (base_type == rt.bool_type()) {
+        out.value = value.data.bval;
+        return true;
+    }
+    if (base_type == rt.string_type()) {
+        out.value = String(rt.get_string_view(value.data.hptr));
+        return true;
+    }
+
+    return false;
+}
+
+ExportConstValue build_const_export_value(Script* script, const VarDecl* decl)
+{
+    ExportConstValue out;
+    if (!script || !decl || !decl->init) {
+        return out;
+    }
+
+    auto& rt = nw::kernel::runtime();
+
+    AstConstEvaluator eval(script, decl->init);
+    if (!eval.failed_ && !eval.result_.empty()) {
+        if (try_assign_export_primitive(rt, eval.result_.back(), decl->type_id_, out)) {
+            return out;
+        }
+    }
+
+    // Fallback for newtype constructor constants like Ability(0), even when
+    // full call const-eval metadata is unavailable.
+    const Type* declared_info = rt.get_type(decl->type_id_);
+    auto* call = dynamic_cast<const CallExpression*>(decl->init);
+    if (declared_info && declared_info->type_kind == TK_newtype && call && call->args.size() == 1) {
+        AstConstEvaluator arg_eval(script, call->args[0]);
+        if (!arg_eval.failed_ && !arg_eval.result_.empty()) {
+            try_assign_export_primitive(rt, arg_eval.result_.back(), decl->type_id_, out);
+        }
+    }
+
+    return out;
 }
 
 std::optional<size_t> generic_param_index(const Vector<String>& params, StringView name)
@@ -568,6 +638,11 @@ void Script::resolve()
             if (updated.decl) {
                 updated.type_id = updated.decl->type_id_;
                 updated.is_native = has_native_annotation(updated.decl);
+                updated.is_const = updated.decl->is_const_;
+
+                if (auto* var = dynamic_cast<const VarDecl*>(updated.decl)) {
+                    updated.const_value = build_const_export_value(this, var);
+                }
             }
 
             if (auto* fn = dynamic_cast<const FunctionDefinition*>(updated.decl)) {

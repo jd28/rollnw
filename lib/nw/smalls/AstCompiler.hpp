@@ -11,6 +11,8 @@ namespace nw::smalls {
 // Forward Decls
 struct Script;
 struct Context;
+struct Export;
+struct ExportConstValue;
 
 // == Register Allocator ======================================================
 // ============================================================================
@@ -158,6 +160,11 @@ struct AstCompiler : public BaseVisitor {
     // Constant folding helper: if expr is a compile-time constant, emit a
     // single load instruction and set result_reg_.  Returns true on success.
     bool try_emit_const(Expression* expr);
+    bool try_emit_export_const(const ExportConstValue& exported);
+    bool try_emit_imported_const_from_provider(StringView name, const Export& imported);
+    bool try_materialize_export_const(Script* provider, const Export& exp, ExportConstValue& out) const;
+    bool try_value_to_export_const(const Value& value, TypeID type_id, ExportConstValue& out) const;
+    TypeID unwrap_newtype_base_type(TypeID type_id) const;
 
     // Emits CALLEXT for a script-defined operator function
     // Returns the result register in out_result

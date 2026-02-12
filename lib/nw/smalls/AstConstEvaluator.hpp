@@ -87,6 +87,58 @@ struct AstConstEvaluator : public BaseVisitor {
         return val;
     }
 
+    TypeID resolve_newtype_constructor_type(CallExpression* expr) const
+    {
+        if (!expr || !expr->expr || expr->args.size() != 1) {
+            return invalid_type_id;
+        }
+
+        auto* callee = as_identifier(expr->expr);
+        if (!callee) {
+            return invalid_type_id;
+        }
+
+        auto exp = expr->env_.find(String(callee->ident.loc.view()));
+        if (!exp || exp->kind != Export::Kind::type) {
+            return invalid_type_id;
+        }
+
+        if (exp->type_id != invalid_type_id) {
+            return exp->type_id;
+        }
+
+        return exp->decl ? exp->decl->type_id_ : invalid_type_id;
+    }
+
+    bool try_eval_newtype_constructor(CallExpression* expr)
+    {
+        TypeID target_type = resolve_newtype_constructor_type(expr);
+        if (target_type == invalid_type_id) {
+            return false;
+        }
+
+        const Type* target_info = nw::kernel::runtime().get_type(target_type);
+        if (!target_info || target_info->type_kind != TK_newtype
+            || target_info->type_params.empty() || !target_info->type_params[0].is<TypeID>()) {
+            return false;
+        }
+
+        expr->args[0]->accept(this);
+        if (failed_ || result_.empty()) {
+            return false;
+        }
+
+        Value arg = pop();
+        const TypeID base_type = target_info->type_params[0].as<TypeID>();
+        if (arg.type_id != base_type) {
+            return false;
+        }
+
+        arg.type_id = target_type;
+        push(arg);
+        return true;
+    }
+
     // Resolve symbol to original decl
     void resolve(IdentifierExpression* var)
     {
@@ -342,9 +394,11 @@ struct AstConstEvaluator : public BaseVisitor {
         }
     }
 
-    virtual void visit(CallExpression*) override
+    virtual void visit(CallExpression* expr) override
     {
-        // No Op
+        if (!try_eval_newtype_constructor(expr)) {
+            failed_ = true;
+        }
     }
 
     virtual void visit(CastExpression* expr) override

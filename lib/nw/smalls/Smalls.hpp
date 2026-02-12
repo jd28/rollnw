@@ -15,6 +15,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <variant>
 
 namespace nw::smalls {
 
@@ -43,6 +44,11 @@ struct FunctionExportAbi {
     String call_target;
 };
 
+struct ExportConstValue {
+    using Storage = std::variant<std::monostate, int32_t, float, bool, String>;
+    Storage value;
+};
+
 /// Any exported symbol from a script.
 ///
 /// Invariants:
@@ -65,7 +71,9 @@ struct Export {
     TypeID type_id = invalid_type_id;
     bool is_generic = false;
     bool is_native = false;
+    bool is_const = false;
     bool has_defaults = false;
+    ExportConstValue const_value;
     std::optional<FunctionExportAbi> function_abi;
 };
 

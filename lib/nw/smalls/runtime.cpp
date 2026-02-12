@@ -3655,6 +3655,31 @@ bool Runtime::native_types_compatible(TypeID cpp_type, TypeID script_type) const
         return true;
     }
 
+    const Type* cpp_info = get_type(cpp_type);
+    const Type* script_info = get_type(script_type);
+
+    auto unwrap_newtype = [&](const Type* type, TypeID type_id) {
+        while (type && type->type_kind == TK_newtype && !type->type_params.empty() && type->type_params[0].is<TypeID>()) {
+            type_id = type->type_params[0].as<TypeID>();
+            type = get_type(type_id);
+        }
+        return type_id;
+    };
+
+    bool cpp_is_newtype = cpp_info && cpp_info->type_kind == TK_newtype;
+    bool script_is_newtype = script_info && script_info->type_kind == TK_newtype;
+
+    // Allow C++ base type <-> script newtype compatibility for native interfaces.
+    // This keeps script-side strong typing while avoiding custom C++ wrapper types
+    // for each rule newtype.
+    if (cpp_is_newtype != script_is_newtype) {
+        TypeID cpp_base = unwrap_newtype(cpp_info, cpp_type);
+        TypeID script_base = unwrap_newtype(script_info, script_type);
+        if (cpp_base == script_base) {
+            return true;
+        }
+    }
+
     // Wildcard for handle types (invalid_type_id from C++ accepts any handle type)
     if (cpp_type == invalid_type_id && is_handle_type(script_type)) {
         return true;

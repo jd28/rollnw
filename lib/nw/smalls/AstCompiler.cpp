@@ -176,6 +176,139 @@ bool AstCompiler::try_emit_const(Expression* expr)
     return true;
 }
 
+TypeID AstCompiler::unwrap_newtype_base_type(TypeID type_id) const
+{
+    const Type* type = runtime_->get_type(type_id);
+    while (type && type->type_kind == TK_newtype
+        && !type->type_params.empty() && type->type_params[0].is<TypeID>()) {
+        type_id = type->type_params[0].as<TypeID>();
+        type = runtime_->get_type(type_id);
+    }
+    return type_id;
+}
+
+bool AstCompiler::try_value_to_export_const(const Value& value, TypeID type_id, ExportConstValue& out) const
+{
+    TypeID base_type = unwrap_newtype_base_type(type_id);
+
+    if (base_type == runtime_->int_type()) {
+        out.value = value.data.ival;
+        return true;
+    }
+    if (base_type == runtime_->float_type()) {
+        out.value = value.data.fval;
+        return true;
+    }
+    if (base_type == runtime_->bool_type()) {
+        out.value = value.data.bval;
+        return true;
+    }
+    if (base_type == runtime_->string_type()) {
+        out.value = String(runtime_->get_string_view(value.data.hptr));
+        return true;
+    }
+
+    return false;
+}
+
+bool AstCompiler::try_materialize_export_const(Script* provider, const Export& exp, ExportConstValue& out) const
+{
+    auto* var_decl = dynamic_cast<const VarDecl*>(exp.decl);
+    if (!provider || !var_decl || !var_decl->init) {
+        return false;
+    }
+
+    AstConstEvaluator eval(provider, var_decl->init);
+    if (eval.failed_ || eval.result_.empty()) {
+        return false;
+    }
+
+    const Value value = eval.result_.back();
+    return try_value_to_export_const(value, value.type_id, out);
+}
+
+bool AstCompiler::try_emit_export_const(const ExportConstValue& exported)
+{
+    uint8_t result = registers_.allocate();
+
+    if (const auto* v = std::get_if<int32_t>(&exported.value)) {
+        if (*v >= -32768 && *v <= 32767) {
+            emit_asbx(Opcode::LOADI, result, static_cast<int16_t>(*v));
+        } else {
+            uint32_t k_idx = add_constant_int(*v);
+            if (k_idx > 65535) {
+                registers_.free(result);
+                fail("Constant pool overflow");
+                return false;
+            }
+            emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
+        }
+        result_reg_ = result;
+        return true;
+    }
+
+    if (const auto* v = std::get_if<float>(&exported.value)) {
+        uint32_t k_idx = add_constant_float(*v);
+        if (k_idx > 65535) {
+            registers_.free(result);
+            fail("Constant pool overflow");
+            return false;
+        }
+        emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
+        result_reg_ = result;
+        return true;
+    }
+
+    if (const auto* v = std::get_if<bool>(&exported.value)) {
+        emit_abc(Opcode::LOADB, result, *v ? 1 : 0, 0);
+        result_reg_ = result;
+        return true;
+    }
+
+    if (const auto* v = std::get_if<String>(&exported.value)) {
+        uint32_t k_idx = add_constant_string(*v);
+        if (k_idx > 65535) {
+            registers_.free(result);
+            fail("Constant pool overflow");
+            return false;
+        }
+        emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
+        result_reg_ = result;
+        return true;
+    }
+
+    registers_.free(result);
+    return false;
+}
+
+bool AstCompiler::try_emit_imported_const_from_provider(StringView name, const Export& imported)
+{
+    if (imported.provider_module.empty()) {
+        return false;
+    }
+
+    Script* provider = runtime_->get_module(imported.provider_module);
+    if (!provider) {
+        return false;
+    }
+
+    auto provider_export = provider->exports().find(String(name));
+    if (!provider_export) {
+        return false;
+    }
+
+    if (try_emit_export_const(provider_export->const_value)) {
+        return true;
+    }
+
+    ExportConstValue materialized;
+    if (!try_materialize_export_const(provider, *provider_export, materialized)) {
+        return false;
+    }
+
+    return try_emit_export_const(materialized);
+}
+
 bool AstCompiler::compile()
 {
     if (!script_ || !module_ || !runtime_) {
@@ -2105,6 +2238,22 @@ void AstCompiler::visit(IdentifierExpression* expr)
         emit_abc(Opcode::GETUPVAL, result, upval_idx, 0);
         result_reg_ = result;
         return;
+    }
+
+    if (auto imported = expr->env_.find(var_name)) {
+        if (imported->kind == Export::Kind::variable) {
+            if (try_emit_export_const(imported->const_value)) {
+                return;
+            }
+
+            if (imported->is_const) {
+                if (try_emit_imported_const_from_provider(var_name, *imported)) {
+                    return;
+                }
+                fail(fmt::format("Unable to materialize imported const: {}", var_name));
+                return;
+            }
+        }
     }
 
     uint8_t var_reg = get_local_register(var_name);
