@@ -1,0 +1,8 @@
+from core.constants import { Ability, EquipIndex };
+
+[[native]] fn get_ability_score(obj: object, ability: Ability, base: bool = false): int;
+[[native]] fn get_ability_modifier(obj: object, ability: Ability, base: bool = false): int;
+[[native]] fn can_equip_item(creature: object, item: object, slot: EquipIndex): bool;
+[[native]] fn equip_item(creature: object, item: object, slot: EquipIndex): bool;
+[[native]] fn get_equipped_item(creature: object, slot: EquipIndex): object;
+[[native]] fn unequip_item(creature: object, slot: EquipIndex): object;

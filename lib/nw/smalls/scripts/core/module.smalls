@@ -1,0 +1,7 @@
+[[native]] fn is_valid(obj: object): bool;
+[[native]] fn is_module(obj: object): bool;
+[[native]] fn as_module(obj: object): object;
+[[native]] fn get_area_count(obj: object): int;
+[[native]] fn get_hak_count(obj: object): int;
+[[native]] fn is_save_game(obj: object): bool;
+[[native]] fn type_id(): int;

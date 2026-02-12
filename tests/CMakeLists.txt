@@ -85,6 +85,7 @@ add_executable(rollnw_test
     smalls_lsp.cpp
     smalls_runtime.cpp
     smalls_const_eval.cpp
+    smalls_engine_integration.cpp
     smalls_modules.cpp
     smalls_virtual_machine.cpp
     smalls_config.cpp

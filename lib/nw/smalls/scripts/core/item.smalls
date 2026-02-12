@@ -1,0 +1,2 @@
+[[native]] fn property_count(item: object): int;
+[[native]] fn clear_properties(item: object): void;

@@ -212,6 +212,19 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_map(*this);
         register_core_math(*this);
         register_core_effects(*this);
+        register_core_object(*this);
+        register_core_item(*this);
+        register_core_creature(*this);
+        register_core_area(*this);
+        register_core_door(*this);
+        register_core_encounter(*this);
+        register_core_module(*this);
+        register_core_placeable(*this);
+        register_core_player(*this);
+        register_core_sound(*this);
+        register_core_store(*this);
+        register_core_trigger(*this);
+        register_core_waypoint(*this);
     }
 }
 
@@ -3610,6 +3623,15 @@ bool Runtime::set_handle_ownership(TypedHandle h, OwnershipMode mode)
 
     it->second.mode = mode;
     return true;
+}
+
+std::optional<OwnershipMode> Runtime::handle_ownership(TypedHandle h) const
+{
+    auto it = global_handle_registry_.find(h);
+    if (it == global_handle_registry_.end()) {
+        return std::nullopt;
+    }
+    return it->second.mode;
 }
 
 bool Runtime::is_handle_type(TypeID tid) const

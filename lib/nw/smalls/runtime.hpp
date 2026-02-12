@@ -680,6 +680,11 @@ struct Runtime : public nw::kernel::Service {
     /// @return true if updated, false if handle not registered
     bool set_handle_ownership(TypedHandle h, OwnershipMode mode);
 
+    /// Gets ownership for a registered handle.
+    /// @param h Typed handle
+    /// @return Ownership mode if registered, std::nullopt otherwise
+    std::optional<OwnershipMode> handle_ownership(TypedHandle h) const;
+
     /// Checks if a TypeID corresponds to a registered handle type
     /// @param tid TypeID to check
     /// @return true if tid is a handle type

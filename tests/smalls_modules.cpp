@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -64,6 +65,10 @@ TEST_F(SmallsModules, LoadCoreEffectsModule)
     EXPECT_NE(create_it, nullptr);
     auto apply_it = effects_module->exports().find("apply");
     EXPECT_NE(apply_it, nullptr);
+    auto is_valid_it = effects_module->exports().find("is_valid");
+    EXPECT_NE(is_valid_it, nullptr);
+    auto destroy_it = effects_module->exports().find("destroy");
+    EXPECT_NE(destroy_it, nullptr);
 
     std::string_view source = R"(
         import core.effects as E;
@@ -78,6 +83,180 @@ TEST_F(SmallsModules, LoadCoreEffectsModule)
 
     auto exec_result = rt.execute_script(script, "main");
     EXPECT_TRUE(exec_result.ok());
+}
+
+TEST_F(SmallsModules, CoreEffectsConstructorsUseNewtypes)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        from core.constants import { Ability };
+        import core.effects as E;
+
+        fn main(): int {
+            var eff = E.ability_modifier(Ability(0), 2);
+            if (!E.is_valid(eff)) {
+                return 0;
+            }
+
+            E.apply(eff);
+            E.destroy(eff);
+            if (!E.is_valid(eff)) {
+                return 0;
+            }
+
+            var haste = E.haste();
+            if (E.is_valid(haste)) {
+                return 1;
+            }
+            return 0;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.core_effects_newtypes", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsModules, CoreEffectsRejectRawIntWhenNewtypeRequired)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        import core.effects as E;
+
+        fn main() {
+            var eff = E.ability_modifier(0, 2);
+            E.apply(eff);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.core_effects_newtype_reject", source);
+    ASSERT_NE(script, nullptr);
+    EXPECT_GT(script->errors(), 0);
+}
+
+TEST_F(SmallsModules, CoreEffectsUseExpandedConstants)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* constants_module = rt.load_module("core.constants");
+    ASSERT_NE(constants_module, nullptr);
+
+    EXPECT_NE(constants_module->exports().find("attack_type_unarmed"), nullptr);
+    EXPECT_NE(constants_module->exports().find("class_type_barbarian"), nullptr);
+    EXPECT_NE(constants_module->exports().find("damage_category_critical"), nullptr);
+    EXPECT_NE(constants_module->exports().find("damage_type_sonic"), nullptr);
+    EXPECT_NE(constants_module->exports().find("saving_throw_fort"), nullptr);
+    EXPECT_NE(constants_module->exports().find("saving_throw_vs_poison"), nullptr);
+    EXPECT_NE(constants_module->exports().find("skill_ride"), nullptr);
+    EXPECT_NE(constants_module->exports().find("equip_index_righthand"), nullptr);
+}
+
+TEST_F(SmallsModules, LoadCoreCreatureModule)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* creature_module = rt.load_module("core.creature");
+    ASSERT_NE(creature_module, nullptr);
+
+    EXPECT_NE(creature_module->exports().find("get_ability_score"), nullptr);
+    EXPECT_NE(creature_module->exports().find("get_ability_modifier"), nullptr);
+    EXPECT_NE(creature_module->exports().find("can_equip_item"), nullptr);
+    EXPECT_NE(creature_module->exports().find("equip_item"), nullptr);
+    EXPECT_NE(creature_module->exports().find("get_equipped_item"), nullptr);
+    EXPECT_NE(creature_module->exports().find("unequip_item"), nullptr);
+}
+
+TEST_F(SmallsModules, LoadCoreItemModule)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* item_module = rt.load_module("core.item");
+    ASSERT_NE(item_module, nullptr);
+
+    EXPECT_NE(item_module->exports().find("property_count"), nullptr);
+    EXPECT_NE(item_module->exports().find("clear_properties"), nullptr);
+}
+
+TEST_F(SmallsModules, LoadObjectTypeStubModules)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::array<std::string_view, 10> modules = {
+        "core.area",
+        "core.door",
+        "core.encounter",
+        "core.module",
+        "core.placeable",
+        "core.player",
+        "core.sound",
+        "core.store",
+        "core.trigger",
+        "core.waypoint",
+    };
+
+    for (auto module : modules) {
+        auto* loaded = rt.load_module(module);
+        ASSERT_NE(loaded, nullptr) << module;
+        EXPECT_NE(loaded->exports().find("is_valid"), nullptr) << module;
+        EXPECT_NE(loaded->exports().find("type_id"), nullptr) << module;
+
+        if (module == "core.area") {
+            EXPECT_NE(loaded->exports().find("is_area"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_area"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_width"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_height"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_size"), nullptr);
+        } else if (module == "core.door") {
+            EXPECT_NE(loaded->exports().find("is_door"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_door"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_open"), nullptr);
+        } else if (module == "core.encounter") {
+            EXPECT_NE(loaded->exports().find("is_encounter"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_encounter"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_active"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_spawn_point_count"), nullptr);
+        } else if (module == "core.module") {
+            EXPECT_NE(loaded->exports().find("is_module"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_module"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_area_count"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_save_game"), nullptr);
+        } else if (module == "core.placeable") {
+            EXPECT_NE(loaded->exports().find("is_placeable"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_placeable"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
+            EXPECT_NE(loaded->exports().find("has_inventory"), nullptr);
+        } else if (module == "core.player") {
+            EXPECT_NE(loaded->exports().find("is_player"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_player"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_pc"), nullptr);
+        } else if (module == "core.sound") {
+            EXPECT_NE(loaded->exports().find("is_sound"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_sound"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_sound_count"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_active"), nullptr);
+        } else if (module == "core.store") {
+            EXPECT_NE(loaded->exports().find("is_store"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_store"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_gold"), nullptr);
+            EXPECT_NE(loaded->exports().find("is_blackmarket"), nullptr);
+        } else if (module == "core.trigger") {
+            EXPECT_NE(loaded->exports().find("is_trigger"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_trigger"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_geometry_point_count"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_trigger_type"), nullptr);
+        } else if (module == "core.waypoint") {
+            EXPECT_NE(loaded->exports().find("is_waypoint"), nullptr);
+            EXPECT_NE(loaded->exports().find("as_waypoint"), nullptr);
+            EXPECT_NE(loaded->exports().find("get_appearance"), nullptr);
+            EXPECT_NE(loaded->exports().find("has_map_note"), nullptr);
+        }
+    }
 }
 
 TEST_F(SmallsModules, SelectiveImportFromFilesystemModule)

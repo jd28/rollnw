@@ -1,0 +1,7 @@
+[[native]] fn is_valid(obj: object): bool;
+[[native]] fn is_door(obj: object): bool;
+[[native]] fn as_door(obj: object): object;
+[[native]] fn get_hp(obj: object): int;
+[[native]] fn get_hp_current(obj: object): int;
+[[native]] fn is_open(obj: object): bool;
+[[native]] fn type_id(): int;

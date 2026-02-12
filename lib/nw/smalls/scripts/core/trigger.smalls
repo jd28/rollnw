@@ -1,0 +1,7 @@
+[[native]] fn is_valid(obj: object): bool;
+[[native]] fn is_trigger(obj: object): bool;
+[[native]] fn as_trigger(obj: object): object;
+[[native]] fn get_geometry_point_count(obj: object): int;
+[[native]] fn get_trigger_type(obj: object): int;
+[[native]] fn get_highlight_height(obj: object): float;
+[[native]] fn type_id(): int;

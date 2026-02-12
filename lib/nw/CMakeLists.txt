@@ -117,12 +117,25 @@ add_library(nw STATIC
     smalls/Lexer.cpp
     smalls/NameResolver.cpp
     smalls/native/core_array.cpp
+    smalls/native/core_area.cpp
+    smalls/native/core_creature.cpp
+    smalls/native/core_door.cpp
+    smalls/native/core_encounter.cpp
     smalls/native/core_effects.cpp
+    smalls/native/core_item.cpp
     smalls/native/core_map.cpp
     smalls/native/core_math.cpp
+    smalls/native/core_module.cpp
+    smalls/native/core_object.cpp
+    smalls/native/core_placeable.cpp
+    smalls/native/core_player.cpp
     smalls/native/core_prelude.cpp
+    smalls/native/core_sound.cpp
+    smalls/native/core_store.cpp
     smalls/native/core_string.cpp
     smalls/native/core_test.cpp
+    smalls/native/core_trigger.cpp
+    smalls/native/core_waypoint.cpp
     smalls/Parser.cpp
     smalls/runtime.cpp
     smalls/ScriptHeap.cpp

@@ -1,0 +1,11 @@
+[[native]] fn is_valid(obj: object): bool;
+[[native]] fn is_area(obj: object): bool;
+[[native]] fn as_area(obj: object): object;
+[[native]] fn get_width(obj: object): int;
+[[native]] fn get_height(obj: object): int;
+[[native]] fn get_tile_count(obj: object): int;
+[[native]] fn type_id(): int;
+
+fn get_size(obj: object): (int, int) {
+    return (get_width(obj), get_height(obj));
+}
