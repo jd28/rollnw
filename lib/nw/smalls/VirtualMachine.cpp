@@ -1427,6 +1427,19 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 val = Value::make_float(static_cast<float>(val.data.ival));
             } else if (target_tid == rt.int_type() && val.type_id == rt.float_type()) {
                 val = Value::make_int(static_cast<int32_t>(val.data.fval));
+            } else if (rt.is_object_like_type(target_tid) && rt.is_object_like_type(val.type_id)) {
+                bool valid_object_cast = false;
+                if (target_tid == rt.object_type()) {
+                    valid_object_cast = true;
+                } else if (auto expected_tag = rt.object_subtype_tag(target_tid)) {
+                    valid_object_cast = val.data.oval.type == *expected_tag;
+                }
+
+                if (valid_object_cast) {
+                    val.type_id = target_tid;
+                } else {
+                    fail(fmt::format("Invalid cast from {} to {}", rt.type_name(val.type_id), rt.type_name(target_tid)));
+                }
             } else {
                 const Type* source_type = rt.get_type(val.type_id);
                 const Type* target_type = rt.get_type(target_tid);
@@ -1464,7 +1477,17 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { break; }
             Value val = reg(reg_idx);
 
-            bool result = (val.type_id == target_tid);
+            bool result = false;
+            auto& rt = nw::kernel::runtime();
+            if (rt.is_object_like_type(target_tid) && rt.is_object_like_type(val.type_id)) {
+                if (target_tid == rt.object_type()) {
+                    result = true;
+                } else if (auto expected_tag = rt.object_subtype_tag(target_tid)) {
+                    result = val.data.oval.type == *expected_tag;
+                }
+            } else {
+                result = (val.type_id == target_tid);
+            }
             reg(reg_idx) = Value::make_bool(result);
             break;
         }

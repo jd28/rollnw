@@ -51,9 +51,12 @@ struct ControlScope {
 
     // For Sum Type Pattern Matching
     bool is_sum_switch = false;
+    bool is_object_switch = false;
     uint8_t sum_target_reg = 0;
+    uint8_t object_target_reg = 0;
     TypeID sum_type_id{};
-    Vector<std::pair<LabelStatement*, uint32_t>> pattern_cases; // LabelStatement and PC
+    Vector<std::pair<LabelStatement*, uint32_t>> pattern_cases;        // LabelStatement and PC
+    Vector<std::pair<LabelStatement*, uint32_t>> object_pattern_cases; // LabelStatement and PC
 };
 
 // == Variable Mapping ========================================================

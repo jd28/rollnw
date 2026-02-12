@@ -1,7 +1,7 @@
 [[native]] fn is_valid(obj: object): bool;
 [[native]] fn is_encounter(obj: object): bool;
-[[native]] fn as_encounter(obj: object): object;
-[[native]] fn is_active(obj: object): bool;
-[[native]] fn get_spawn_point_count(obj: object): int;
-[[native]] fn get_creatures_max(obj: object): int;
+[[native]] fn as_encounter(obj: object): Encounter;
+[[native]] fn is_active(obj: Encounter): bool;
+[[native]] fn get_spawn_point_count(obj: Encounter): int;
+[[native]] fn get_creatures_max(obj: Encounter): int;
 [[native]] fn type_id(): int;

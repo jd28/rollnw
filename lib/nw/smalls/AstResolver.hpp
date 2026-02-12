@@ -90,6 +90,8 @@ struct AstResolver {
     size_t find_declaration_scope(const String& name) const;
     void set_active_visitor(BaseVisitor* visitor) { active_visitor_ = visitor; }
     void sync_operator_alias_summaries();
+    void refine_local_type(StringView name, TypeID type_id);
+    TypeID refined_local_type(StringView name) const;
 
     Script* parent_ = nullptr;
     Context* ctx_ = nullptr;
@@ -130,6 +132,7 @@ struct AstResolver {
     };
     Vector<MapKeyCheck> map_key_checks_;
     Vector<TypeID> expected_type_stack_;
+    Vector<absl::flat_hash_map<String, TypeID>> type_refinements_;
 
     uint32_t type_instantiation_count_ = 0;
 

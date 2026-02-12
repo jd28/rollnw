@@ -203,6 +203,47 @@ std::optional<StringView> extract_identifier(Expression* expr)
     return std::nullopt;
 }
 
+bool collect_object_refinements_for_true_branch(Expression* expr, absl::flat_hash_map<String, TypeID>& out)
+{
+    if (!expr) {
+        return false;
+    }
+
+    if (auto* grouped = dynamic_cast<GroupingExpression*>(expr)) {
+        return collect_object_refinements_for_true_branch(grouped->expr, out);
+    }
+
+    if (auto* logical = dynamic_cast<LogicalExpression*>(expr)) {
+        if (logical->op.type != TokenType::ANDAND) {
+            return false;
+        }
+        bool lhs = collect_object_refinements_for_true_branch(logical->lhs, out);
+        bool rhs = collect_object_refinements_for_true_branch(logical->rhs, out);
+        return lhs || rhs;
+    }
+
+    auto* cast = dynamic_cast<CastExpression*>(expr);
+    if (!cast || cast->op.type != TokenType::IS || !cast->target_type) {
+        return false;
+    }
+
+    auto* ident = as_identifier(cast->expr);
+    if (!ident) {
+        return false;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    TypeID source_type = cast->expr ? cast->expr->type_id_ : invalid_type_id;
+    TypeID target_type = cast->target_type->type_id_;
+
+    if (!rt.is_object_like_type(source_type) || !rt.is_object_subtype(target_type)) {
+        return false;
+    }
+
+    out[String(ident->ident.loc.view())] = target_type;
+    return true;
+}
+
 IdentifierExpression* extract_tail_identifier(Expression* expr)
 {
     if (auto ident = as_identifier(expr)) {
@@ -2264,6 +2305,8 @@ void TypeResolver::visit(CastExpression* expr)
         valid_cast = true;
     } else if (source_type == rt.bool_type() && target_type == rt.int_type()) {
         valid_cast = true;
+    } else if (rt.is_object_like_type(source_type) && rt.is_object_like_type(target_type)) {
+        valid_cast = true;
     } else if (target_info->type_kind == TK_newtype) {
         TypeID wrapped = target_info->type_params[0].as<TypeID>();
         if (source_type == wrapped) {
@@ -2628,10 +2671,16 @@ void TypeResolver::visit(UnaryExpression* expr)
 void TypeResolver::visit(IdentifierExpression* expr)
 {
     expr->env_ = ctx.env_stack_.back();
+    auto& rt = nw::kernel::runtime();
     auto* decl = ctx.resolve(expr->ident.loc.view(), expr->ident.loc.range);
     if (decl) {
         expr->type_id_ = decl->type_id_;
         expr->is_const_ = decl->is_const_;
+
+        TypeID refined = ctx.refined_local_type(expr->ident.loc.view());
+        if (refined != invalid_type_id && rt.is_type_convertible(expr->type_id_, refined)) {
+            expr->type_id_ = refined;
+        }
 
         if (ctx.current_lambda_ && ctx.function_stack_.size() > 1) {
             String name(expr->ident.loc.view());
@@ -2684,6 +2733,11 @@ void TypeResolver::visit(IdentifierExpression* expr)
         if (exp && exp->type_id != invalid_type_id) {
             expr->type_id_ = exp->type_id;
             expr->is_const_ = exp->is_const;
+
+            TypeID refined = ctx.refined_local_type(expr->ident.loc.view());
+            if (refined != invalid_type_id && rt.is_type_convertible(expr->type_id_, refined)) {
+                expr->type_id_ = refined;
+            }
         } else {
             auto suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
             ctx.errorf(expr->range_, "unable to resolve identifier '{}'{}", expr->ident.loc.view(), suggestions);
@@ -2872,6 +2926,72 @@ static bool resolve_sumtype_switch(TypeResolver& resolver, SwitchStatement* stmt
     return true;
 }
 
+static bool resolve_object_switch(TypeResolver& resolver, SwitchStatement* stmt)
+{
+    auto& ctx = resolver.ctx;
+
+    if (!stmt || !stmt->target || !stmt->block) { return false; }
+
+    auto& rt = nw::kernel::runtime();
+    if (!rt.is_object_like_type(stmt->target->type_id_)) {
+        return false;
+    }
+
+    ctx.begin_scope();
+
+    for (auto* node : stmt->block->nodes) {
+        auto* label = dynamic_cast<LabelStatement*>(node);
+        if (!label) {
+            continue;
+        }
+
+        if (label->type.type == TokenType::DEFAULT) {
+            continue;
+        }
+
+        if (!label->is_pattern_match) {
+            ctx.error(label->type.loc.range,
+                "switch on object type requires pattern matching (use 'case Creature:' or 'case Creature(binding):')");
+            continue;
+        }
+
+        auto* ident_expr = extract_tail_identifier(label->expr);
+        if (!ident_expr) {
+            ctx.error(label->expr ? label->expr->range_ : label->type.loc.range,
+                "object switch case must be an object subtype name");
+            continue;
+        }
+
+        TypeID case_type = ctx.resolve_type(ident_expr->ident.loc.view(), ident_expr->ident.loc.range);
+        if (case_type == invalid_type_id || !rt.is_object_subtype(case_type)) {
+            ctx.errorf(label->expr->range_, "'{}' is not an object subtype", ident_expr->ident.loc.view());
+            continue;
+        }
+        label->expr->type_id_ = case_type;
+
+        if (label->bindings.size() > 1) {
+            ctx.errorf(label->type.loc.range,
+                "object subtype case '{}' expects 0 or 1 binding, but {} provided",
+                ident_expr->ident.loc.view(), label->bindings.size());
+        } else if (label->bindings.size() == 1) {
+            label->bindings[0]->type_id_ = case_type;
+            ctx.declare_local(label->bindings[0]->identifier_, label->bindings[0]);
+        }
+
+        if (label->guard) {
+            label->guard->accept(&resolver);
+            if (label->guard->type_id_ != rt.bool_type()) {
+                ctx.error(label->guard->range_, "pattern guard must be a boolean expression");
+            }
+        }
+    }
+
+    stmt->block->accept(&resolver);
+    ctx.end_scope();
+
+    return true;
+}
+
 void TypeResolver::visit(BlockStatement* stmt)
 {
     stmt->env_ = ctx.env_stack_.back();
@@ -2950,7 +3070,13 @@ void TypeResolver::visit(IfStatement* stmt)
     stmt->env_ = ctx.env_stack_.back();
     stmt->expr->accept(this);
 
+    absl::flat_hash_map<String, TypeID> true_refinements;
+    collect_object_refinements_for_true_branch(stmt->expr, true_refinements);
+
     ctx.begin_scope();
+    for (const auto& [name, type_id] : true_refinements) {
+        ctx.refine_local_type(name, type_id);
+    }
     stmt->if_branch->accept(this);
     ctx.end_scope();
 
@@ -3102,11 +3228,13 @@ void TypeResolver::visit(SwitchStatement* stmt)
     auto& rt = nw::kernel::runtime();
     if (is_expression_sumtype(stmt->target)) {
         resolve_sumtype_switch(*this, stmt);
+    } else if (rt.is_object_like_type(stmt->target->type_id_)) {
+        resolve_object_switch(*this, stmt);
     } else if (stmt->target->type_id_ == rt.int_type()
         || stmt->target->type_id_ == rt.string_type()) {
         resolve_basic_switch(*this, stmt);
     } else {
-        ctx.errorf(stmt->target->range_, "switch quantity must be an integer, string, or sum type");
+        ctx.errorf(stmt->target->range_, "switch quantity must be an integer, string, sum type, or object");
     }
 
     --ctx.switch_stack_;

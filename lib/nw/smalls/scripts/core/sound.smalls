@@ -1,7 +1,7 @@
 [[native]] fn is_valid(obj: object): bool;
 [[native]] fn is_sound(obj: object): bool;
-[[native]] fn as_sound(obj: object): object;
-[[native]] fn get_sound_count(obj: object): int;
-[[native]] fn is_active(obj: object): bool;
-[[native]] fn is_looping(obj: object): bool;
+[[native]] fn as_sound(obj: object): Sound;
+[[native]] fn get_sound_count(obj: Sound): int;
+[[native]] fn is_active(obj: Sound): bool;
+[[native]] fn is_looping(obj: Sound): bool;
 [[native]] fn type_id(): int;

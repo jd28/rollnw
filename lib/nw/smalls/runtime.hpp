@@ -331,6 +331,12 @@ struct Runtime : public nw::kernel::Service {
     TypeID any_array_type() const { return any_array_id_; }
     TypeID any_map_type() const { return any_map_id_; }
 
+    TypeID register_object_subtype(StringView name, nw::ObjectType tag);
+    bool is_object_subtype(TypeID type) const;
+    bool is_object_like_type(TypeID type) const;
+    std::optional<nw::ObjectType> object_subtype_tag(TypeID type) const;
+    TypeID object_subtype_for_tag(nw::ObjectType tag) const;
+
     /// Registers a type in the runtime type table
     /// @param name Fully-qualified type name (e.g., "core.creature.attack.AttackResult")
     /// @param type The type definition
@@ -1148,6 +1154,8 @@ private:
     TypeID object_id_{};
     TypeID any_array_id_{};
     TypeID any_map_id_{};
+    absl::flat_hash_map<TypeID, nw::ObjectType> object_subtype_tags_;
+    absl::flat_hash_map<nw::ObjectType, TypeID> object_tag_types_;
 
     // Operator registries
     // Key: (operator, lhs_type, rhs_type) -> overload
@@ -1479,7 +1487,7 @@ T value_cast(Runtime* rt, const Value& v)
         }
         return *handle;
     } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
-        if (!rt || v.type_id != rt->object_type()) {
+        if (!rt || !rt->is_object_like_type(v.type_id)) {
             return Bare{};
         }
         return v.data.oval;
@@ -1512,7 +1520,8 @@ Value make_value(Runtime* rt, const T& val)
     } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
         if (!rt) { return Value{}; }
         Value out = Value::make_object(val);
-        out.type_id = rt->object_type();
+        TypeID mapped = rt->object_subtype_for_tag(val.type);
+        out.type_id = mapped != invalid_type_id ? mapped : rt->object_type();
         return out;
     } else {
         return Value{};

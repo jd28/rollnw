@@ -89,7 +89,7 @@ Value Value::make_stack(uint32_t offset, TypeID tid)
 size_t ValueHash::operator()(const Value& v) const noexcept
 {
     auto& rt = nw::kernel::runtime();
-    if (v.type_id == rt.object_type()) {
+    if (rt.is_object_like_type(v.type_id)) {
         return absl::HashOf(v.data.oval.to_ull());
     }
     if (rt.is_handle_type(v.type_id) && v.storage == ValueStorage::heap && v.data.hptr.value != 0) {
@@ -130,7 +130,7 @@ bool ValueEq::operator()(const Value& a, const Value& b) const noexcept
     }
 
     auto& rt = nw::kernel::runtime();
-    if (a.type_id == rt.object_type()) {
+    if (rt.is_object_like_type(a.type_id)) {
         return a.data.oval == b.data.oval;
     }
     if (rt.is_handle_type(a.type_id)) {
@@ -300,6 +300,19 @@ void Runtime::register_internal_types()
         .size = sizeof(ObjectHandle),
         .alignment = alignof(ObjectHandle),
     });
+
+    register_object_subtype("Module", ObjectType::module);
+    register_object_subtype("Area", ObjectType::area);
+    register_object_subtype("Creature", ObjectType::creature);
+    register_object_subtype("Item", ObjectType::item);
+    register_object_subtype("Trigger", ObjectType::trigger);
+    register_object_subtype("Placeable", ObjectType::placeable);
+    register_object_subtype("Door", ObjectType::door);
+    register_object_subtype("Waypoint", ObjectType::waypoint);
+    register_object_subtype("Encounter", ObjectType::encounter);
+    register_object_subtype("Store", ObjectType::store);
+    register_object_subtype("Sound", ObjectType::sound);
+    register_object_subtype("Player", ObjectType::player);
 
     // Wildcard types for generic native functions
     any_array_id_ = type_table_.add({
@@ -1123,7 +1136,7 @@ TypeID Runtime::type_check_binary_op(Token op, TypeID lhs, TypeID rhs) const
     case TokenType::GTEQ:
         if ((op.type == TokenType::EQEQ || op.type == TokenType::NOTEQ)
             && lhs == rhs
-            && (lhs == object_id_ || is_handle_type(lhs))) {
+            && (is_object_like_type(lhs) || is_handle_type(lhs))) {
             return bool_id_;
         }
         if ((lhs == int_id_ || lhs == float_id_ || lhs == bool_id_)
@@ -1212,9 +1225,55 @@ TypeID Runtime::type_check_binary_op(Token op, TypeID lhs, TypeID rhs) const
 
 bool Runtime::is_type_convertible(TypeID lhs, TypeID rhs) const
 {
+    if (lhs == object_id_ && is_object_subtype(rhs)) {
+        return true;
+    }
+
     return lhs == rhs
         || (lhs == float_id_ && rhs == int_id_)
         || lhs == any_id_;
+}
+
+TypeID Runtime::register_object_subtype(StringView name, nw::ObjectType tag)
+{
+    TypeID type = type_table_.add({
+        .name = nw::kernel::strings().intern(name),
+        .type_kind = TK_opaque,
+        .size = sizeof(ObjectHandle),
+        .alignment = alignof(ObjectHandle),
+    });
+
+    object_subtype_tags_[type] = tag;
+    object_tag_types_[tag] = type;
+    return type;
+}
+
+bool Runtime::is_object_subtype(TypeID type) const
+{
+    return object_subtype_tags_.contains(type);
+}
+
+bool Runtime::is_object_like_type(TypeID type) const
+{
+    return type == object_id_ || is_object_subtype(type);
+}
+
+std::optional<nw::ObjectType> Runtime::object_subtype_tag(TypeID type) const
+{
+    auto it = object_subtype_tags_.find(type);
+    if (it == object_subtype_tags_.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
+TypeID Runtime::object_subtype_for_tag(nw::ObjectType tag) const
+{
+    auto it = object_tag_types_.find(tag);
+    if (it == object_tag_types_.end()) {
+        return invalid_type_id;
+    }
+    return it->second;
 }
 
 // -- Operator Registry -------------------------------------------------------
@@ -1349,7 +1408,7 @@ bool Runtime::has_hash_op(TypeID type) const
 bool Runtime::supports_equality_type(TypeID type) const
 {
     if (type == invalid_type_id || type == any_type()) { return true; }
-    if (type == object_type() || is_handle_type(type)) { return true; }
+    if (is_object_like_type(type) || is_handle_type(type)) { return true; }
 
     const Type* t = get_type(type);
     if (!t) { return false; }
@@ -1361,7 +1420,7 @@ bool Runtime::supports_equality_type(TypeID type) const
 bool Runtime::supports_hash_type(TypeID type) const
 {
     if (type == invalid_type_id || type == any_type()) { return true; }
-    if (type == object_type() || is_handle_type(type)) { return true; }
+    if (is_object_like_type(type) || is_handle_type(type)) { return true; }
 
     const Type* t = get_type(type);
     if (!t) { return false; }
@@ -1475,7 +1534,7 @@ Value Runtime::execute_binary_op(TokenType op, const Value& lhs, const Value& rh
     }
 
     if (op == TokenType::EQEQ && coerced_lhs.type_id == coerced_rhs.type_id) {
-        if (coerced_lhs.type_id == object_id_) {
+        if (is_object_like_type(coerced_lhs.type_id)) {
             return Value::make_bool(coerced_lhs.data.oval == coerced_rhs.data.oval);
         }
         if (is_handle_type(coerced_lhs.type_id)) {
@@ -1540,7 +1599,7 @@ Value Runtime::execute_str_op(const Value& val)
 
 Value Runtime::execute_hash_op(const Value& val)
 {
-    if (val.type_id == object_type()) {
+    if (is_object_like_type(val.type_id)) {
         return Value::make_int(static_cast<int32_t>(
             static_cast<uint32_t>(absl::HashOf(val.data.oval.to_ull()))));
     }
@@ -3722,6 +3781,11 @@ bool Runtime::native_types_compatible(TypeID cpp_type, TypeID script_type) const
     // Wildcard for dynamic types (any_type from C++ accepts any script type)
     // Used for generic returns like $T where script determines actual type
     if (cpp_type == any_id_) {
+        return true;
+    }
+
+    // Allow native ObjectHandle signatures to bind object subtypes.
+    if (cpp_type == object_id_ && is_object_subtype(script_type)) {
         return true;
     }
 

@@ -1,7 +1,7 @@
 [[native]] fn is_valid(obj: object): bool;
 [[native]] fn is_player(obj: object): bool;
-[[native]] fn as_player(obj: object): object;
-[[native]] fn get_hp_current(obj: object): int;
-[[native]] fn get_hp_max(obj: object): int;
-[[native]] fn is_pc(obj: object): bool;
+[[native]] fn as_player(obj: object): Player;
+[[native]] fn get_hp_current(obj: Player): int;
+[[native]] fn get_hp_max(obj: Player): int;
+[[native]] fn is_pc(obj: Player): bool;
 [[native]] fn type_id(): int;

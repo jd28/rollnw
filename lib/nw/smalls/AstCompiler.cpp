@@ -1287,6 +1287,7 @@ void AstCompiler::visit(SwitchStatement* stmt)
     // Check if this is a sum type switch
     const Type* target_type = runtime_->get_type(stmt->target->type_id_);
     bool is_sum_switch = target_type && target_type->type_kind == TK_sum;
+    bool is_object_switch = runtime_->is_object_like_type(stmt->target->type_id_);
 
     // 2. Jump to dispatch logic (at end)
     uint32_t jump_to_dispatch = emit_jump(Opcode::JMP, 0);
@@ -1295,7 +1296,9 @@ void AstCompiler::visit(SwitchStatement* stmt)
     ControlScope scope;
     scope.is_loop = false;
     scope.is_sum_switch = is_sum_switch;
+    scope.is_object_switch = is_object_switch;
     scope.sum_target_reg = target_reg;
+    scope.object_target_reg = target_reg;
     scope.sum_type_id = stmt->target->type_id_;
     control_stack_.push_back(scope);
 
@@ -1380,6 +1383,35 @@ void AstCompiler::visit(SwitchStatement* stmt)
         }
 
         registers_.free(tag_reg);
+    } else if (is_object_switch) {
+        auto& pattern_cases = control_stack_.back().object_pattern_cases;
+        for (const auto& [label_stmt, label_pc] : pattern_cases) {
+            TypeID case_type = label_stmt && label_stmt->expr ? label_stmt->expr->type_id_ : invalid_type_id;
+            if (case_type == invalid_type_id) {
+                continue;
+            }
+
+            uint16_t type_idx = 0;
+            auto it = std::find(module_->type_refs.begin(), module_->type_refs.end(), case_type);
+            if (it == module_->type_refs.end()) {
+                type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                module_->type_refs.push_back(case_type);
+            } else {
+                type_idx = static_cast<uint16_t>(std::distance(module_->type_refs.begin(), it));
+            }
+
+            uint8_t test_reg = registers_.allocate();
+            emit_abc(Opcode::MOVE, test_reg, target_reg, 0);
+            emit_abx(Opcode::IS, test_reg, type_idx);
+            emit_asbx(Opcode::JMPF, test_reg, 0);
+            uint32_t skip_jump = static_cast<uint32_t>(current_func_->instructions.size() - 1);
+            registers_.free(test_reg);
+
+            int32_t offset = static_cast<int32_t>(label_pc) - static_cast<int32_t>(current_func_->instructions.size() + 1);
+            emit_jump(Opcode::JMP, offset);
+
+            patch_jump(skip_jump, static_cast<int32_t>(current_func_->instructions.size()));
+        }
     } else {
         // Traditional switch dispatch
         auto& cases = control_stack_.back().cases;
@@ -1481,6 +1513,28 @@ void AstCompiler::visit(LabelStatement* stmt)
                         registers_.free(payload_reg);
                     }
                 }
+            }
+        }
+    } else if (scope.is_object_switch && stmt->is_pattern_match) {
+        scope.object_pattern_cases.push_back({stmt, current_pc});
+
+        if (stmt->bindings.size() == 1) {
+            auto* binding = stmt->bindings[0];
+            String var_name(binding->identifier_.loc.view());
+            uint8_t var_reg = allocate_local(var_name, false);
+            emit_abc(Opcode::MOVE, var_reg, scope.object_target_reg, 0);
+
+            TypeID binding_type = binding->type_id_;
+            if (binding_type != invalid_type_id) {
+                uint16_t type_idx = 0;
+                auto it = std::find(module_->type_refs.begin(), module_->type_refs.end(), binding_type);
+                if (it == module_->type_refs.end()) {
+                    type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                    module_->type_refs.push_back(binding_type);
+                } else {
+                    type_idx = static_cast<uint16_t>(std::distance(module_->type_refs.begin(), it));
+                }
+                emit_abx(Opcode::CAST, var_reg, type_idx);
             }
         }
     } else {

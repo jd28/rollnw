@@ -38,7 +38,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
         import core.creature as C;
         import core.effects as E;
 
-        fn main(target: object): int {
+        fn main(target: Creature): int {
             var before = C.get_ability_score(target, ability_strength);
             var base_before = C.get_ability_score(target, ability_strength, true);
             var mod_before = C.get_ability_modifier(target, ability_strength);
@@ -82,7 +82,9 @@ TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
     ASSERT_EQ(script->errors(), 0);
 
     nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::Value::make_object(creature->handle()));
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok());
@@ -107,7 +109,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
         from core.constants import { ability_strength, equip_index_arms };
         import core.creature as C;
 
-        fn main(target: object, item: object): int {
+        fn main(target: Creature, item: Item): int {
             if (!C.can_equip_item(target, item, equip_index_arms)) {
                 return 0;
             }
@@ -141,8 +143,12 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
     ASSERT_EQ(script->errors(), 0);
 
     nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::Value::make_object(creature->handle()));
-    args.push_back(nw::smalls::Value::make_object(item->handle()));
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+    auto item_value = nw::smalls::Value::make_object(item->handle());
+    item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_value);
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok());

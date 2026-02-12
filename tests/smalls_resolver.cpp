@@ -1978,6 +1978,136 @@ fn test() {
     EXPECT_EQ(var_c->type_id_, rt.bool_type());
 }
 
+TEST_F(SmallsResolver, ObjectSubtypeNarrowingInIfAnd)
+{
+    auto script = make_script(R"(
+fn something_else(): bool {
+    return true;
+}
+
+fn takes_creature(c: Creature): int {
+    return 1;
+}
+
+fn test(obj: object): int {
+    if (obj is Creature && something_else()) {
+        return takes_creature(obj);
+    }
+    return 0;
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, ObjectSubtypeNarrowingNotAppliedForOr)
+{
+    auto script = make_script(R"(
+fn something_else(): bool {
+    return true;
+}
+
+fn takes_creature(c: Creature): int {
+    return 1;
+}
+
+fn test(obj: object): int {
+    if (obj is Creature || something_else()) {
+        return takes_creature(obj);
+    }
+    return 0;
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, ObjectSubtypeSwitchPatternBinding)
+{
+    auto script = make_script(R"(
+fn takes_creature(c: Creature): int {
+    return 1;
+}
+
+fn test(obj: object): int {
+    switch (obj) {
+    case Creature(c):
+        return takes_creature(c);
+    default:
+        return 0;
+    }
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, ObjectSubtypeSwitchRejectsNonSubtypeCase)
+{
+    auto script = make_script(R"(
+fn test(obj: object): int {
+    switch (obj) {
+    case int(x):
+        return x;
+    default:
+        return 0;
+    }
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, NativeSubtypeParameterAcceptsSubtype)
+{
+    auto script = make_script(R"(
+from core.door import { as_door, get_hp };
+
+fn test(obj: object): int {
+    return get_hp(as_door(obj));
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, NativeSubtypeParameterRejectsObject)
+{
+    auto script = make_script(R"(
+from core.door import { get_hp };
+
+fn test(obj: object): int {
+    return get_hp(obj);
+}
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}
+
 // == Generic Functions =======================================================
 
 TEST_F(SmallsResolver, GenericFunctionDetection)

@@ -68,6 +68,7 @@ AstResolver::AstResolver(Script* parent, Context* ctx)
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
     env_stack_.push_back({});
+    type_refinements_.push_back({});
 
     auto& rt = nw::kernel::runtime();
     if (parent_ && parent_->name() == "core.prelude") {
@@ -288,12 +289,34 @@ void AstResolver::begin_scope()
 {
     scope_stack_.push_back(ScopeMap{});
     env_stack_.push_back(env_stack_.back());
+    type_refinements_.push_back(type_refinements_.back());
 }
 
 void AstResolver::end_scope()
 {
     scope_stack_.pop_back();
     env_stack_.pop_back();
+    type_refinements_.pop_back();
+}
+
+void AstResolver::refine_local_type(StringView name, TypeID type_id)
+{
+    if (type_refinements_.empty()) {
+        type_refinements_.push_back({});
+    }
+    type_refinements_.back()[String(name)] = type_id;
+}
+
+TypeID AstResolver::refined_local_type(StringView name) const
+{
+    if (type_refinements_.empty()) {
+        return invalid_type_id;
+    }
+    auto it = type_refinements_.back().find(String(name));
+    if (it == type_refinements_.back().end()) {
+        return invalid_type_id;
+    }
+    return it->second;
 }
 
 void AstResolver::declare_global(StringView name, Declaration* decl)
