@@ -34,6 +34,29 @@ TypeID resolve_newtype_type_id(Runtime* runtime, const Export* exp)
     return invalid_type_id;
 }
 
+TypeID resolve_function_value_type(Runtime* runtime, const FunctionDefinition* func)
+{
+    if (!runtime || !func) {
+        return invalid_type_id;
+    }
+
+    Vector<TypeID> param_types;
+    param_types.reserve(func->params.size());
+    for (const auto* param : func->params) {
+        if (!param || param->type_id_ == invalid_type_id) {
+            return invalid_type_id;
+        }
+        param_types.push_back(param->type_id_);
+    }
+
+    TypeID return_type = func->return_type ? func->return_type->type_id_ : runtime->void_type();
+    if (return_type == invalid_type_id) {
+        return invalid_type_id;
+    }
+
+    return runtime->register_function_type(param_types, return_type);
+}
+
 } // namespace
 
 // == RegisterAllocator =======================================================
@@ -337,6 +360,7 @@ bool AstCompiler::compile()
             compiled->param_count = static_cast<uint8_t>(func->params.size());
             compiled->register_count = compiled->param_count;
             compiled->return_type = func->return_type ? func->return_type->type_id_ : runtime_->void_type();
+            compiled->function_type = resolve_function_value_type(runtime_, func);
             compiled->source_ast = func;
             module_->add_function(compiled);
         }
@@ -411,6 +435,7 @@ bool AstCompiler::compile_function(FunctionDefinition* func)
     }
 
     CompiledFunction* compiled = const_cast<CompiledFunction*>(const_cf);
+    compiled->function_type = resolve_function_value_type(runtime_, func);
 
     current_func_ = compiled;
     registers_.reset();
@@ -447,6 +472,10 @@ bool AstCompiler::compile_function(FunctionDefinition* func)
 
 bool AstCompiler::compile_instantiated(CompiledFunction* compiled, FunctionDefinition* func)
 {
+    if (compiled) {
+        compiled->function_type = resolve_function_value_type(runtime_, func);
+    }
+
     current_func_ = compiled;
     registers_.reset();
     local_vars_.clear();
@@ -2295,6 +2324,36 @@ void AstCompiler::visit(IdentifierExpression* expr)
     }
 
     if (auto imported = expr->env_.find(var_name)) {
+        if (imported->kind == Export::Kind::function) {
+            if (imported->is_native) {
+                fail(fmt::format("Cannot use native function '{}' as a closure value", var_name));
+                return;
+            }
+
+            bool is_local_provider = imported->provider_module.empty()
+                || imported->provider_module == script_->name();
+            if (!is_local_provider) {
+                fail(fmt::format("Cannot use imported function '{}.{}' as a closure value", imported->provider_module, var_name));
+                return;
+            }
+
+            uint32_t func_idx = module_->get_function_index(var_name);
+            if (func_idx == UINT32_MAX) {
+                fail(fmt::format("Unable to materialize closure for function '{}'", var_name));
+                return;
+            }
+
+            if (func_idx > std::numeric_limits<uint16_t>::max()) {
+                fail(fmt::format("Function index too large for closure: {}", var_name));
+                return;
+            }
+
+            uint8_t result = registers_.allocate();
+            emit_abx(Opcode::CLOSURE, result, static_cast<uint16_t>(func_idx));
+            result_reg_ = result;
+            return;
+        }
+
         if (imported->kind == Export::Kind::variable) {
             if (try_emit_export_const(imported->const_value)) {
                 return;

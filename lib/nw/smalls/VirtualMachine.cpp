@@ -478,10 +478,15 @@ Value VirtualMachine::execute(const BytecodeModule* module, StringView function_
 {
     // Track entry frame depth for reentrant execution
     size_t entry_depth = frames_.size();
+    Value saved_reg0{};
+    bool saved_reg0_valid = false;
 
     if (entry_depth == 0) {
         reset();
         init_gas(gas_limit);
+    } else if (!frames_.empty()) {
+        saved_reg0 = reg(0);
+        saved_reg0_valid = true;
     }
 
     if (!module->external_refs.empty() && (module->external_indices.empty() || module->external_indices[0] == UINT32_MAX)) {
@@ -521,9 +526,17 @@ Value VirtualMachine::execute(const BytecodeModule* module, StringView function_
     if (success) {
         // For reentrant calls, the return value was written to register 0 of the entry frame
         if (entry_depth > 0 && !frames_.empty()) {
-            return reg(0);
+            Value result = reg(0);
+            if (saved_reg0_valid) {
+                reg(0) = saved_reg0;
+            }
+            return result;
         }
         return last_result_;
+    }
+
+    if (entry_depth > 0 && saved_reg0_valid && !frames_.empty()) {
+        reg(0) = saved_reg0;
     }
 
     return {};
@@ -537,9 +550,14 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     }
 
     size_t entry_depth = frames_.size();
+    Value saved_reg0{};
+    bool saved_reg0_valid = false;
     if (entry_depth == 0) {
         reset();
         init_gas(gas_limit);
+    } else if (!frames_.empty()) {
+        saved_reg0 = reg(0);
+        saved_reg0_valid = true;
     }
 
     const CompiledFunction* func = closure->function;
@@ -568,9 +586,17 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
 
     if (success) {
         if (entry_depth > 0 && !frames_.empty()) {
-            return reg(0);
+            Value result = reg(0);
+            if (saved_reg0_valid) {
+                reg(0) = saved_reg0;
+            }
+            return result;
         }
         return last_result_;
+    }
+
+    if (entry_depth > 0 && saved_reg0_valid && !frames_.empty()) {
+        reg(0) = saved_reg0;
     }
 
     return {};

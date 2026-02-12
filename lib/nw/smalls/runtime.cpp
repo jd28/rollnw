@@ -1533,10 +1533,15 @@ Value Runtime::execute_binary_op(TokenType op, const Value& lhs, const Value& rh
         }
     }
 
-    if (op == TokenType::EQEQ && coerced_lhs.type_id == coerced_rhs.type_id) {
-        if (is_object_like_type(coerced_lhs.type_id)) {
+    if (op == TokenType::EQEQ) {
+        if (is_object_like_type(coerced_lhs.type_id) && is_object_like_type(coerced_rhs.type_id)) {
             return Value::make_bool(coerced_lhs.data.oval == coerced_rhs.data.oval);
         }
+
+        if (coerced_lhs.type_id != coerced_rhs.type_id) {
+            return Value{invalid_type_id};
+        }
+
         if (is_handle_type(coerced_lhs.type_id)) {
             if (coerced_lhs.storage != ValueStorage::heap || coerced_rhs.storage != ValueStorage::heap) {
                 return Value::make_bool(false);

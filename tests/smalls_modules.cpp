@@ -181,6 +181,77 @@ TEST_F(SmallsModules, LoadCoreItemModule)
     EXPECT_NE(item_module->exports().find("clear_properties"), nullptr);
 }
 
+TEST_F(SmallsModules, NamedFunctionDecaysToClosure)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        import core.array as arr;
+
+        fn times_two(x: int): int {
+            return x * 2;
+        }
+
+        fn main(): int {
+            var base: array!(int) = { 1, 2, 3, 4 };
+            var doubled = arr.map(base, times_two);
+            if (arr.len(doubled) != 4) {
+                return 0;
+            }
+            if (arr.get(doubled, 0) != 2) {
+                return 0;
+            }
+            if (arr.get(doubled, 3) != 8) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.named_function_closure", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsModules, FunctionTypesInGenericContainers)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        fn plus_one(x: int): int {
+            return x + 1;
+        }
+
+        fn main(): int {
+            var funcs: array!(fn(int): int) = { plus_one };
+            var by_id: map!(int, fn(int): int) = {};
+            by_id[1] = plus_one;
+
+            var a = funcs[0](2);
+            var b = by_id[1](3);
+            if (a != 3) {
+                return 0;
+            }
+            if (b != 4) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.function_types_in_generic_containers", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
 TEST_F(SmallsModules, LoadObjectTypeStubModules)
 {
     auto& rt = nw::kernel::runtime();

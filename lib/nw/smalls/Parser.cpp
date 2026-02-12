@@ -56,6 +56,13 @@ String process_escape_sequences(StringView input)
     return result;
 }
 
+bool starts_type_expression(TokenType type)
+{
+    return type == TokenType::IDENTIFIER
+        || type == TokenType::FN
+        || type == TokenType::PAREN_OPEN;
+}
+
 struct ParseDepthGuard {
     Parser& parser;
 
@@ -586,7 +593,7 @@ IdentifierExpression* Parser::parse_identifier_expression(Token ident_token)
         if (!check({TokenType::PAREN_CLOSE})) {
             while (true) {
                 Expression* param;
-                if (check({TokenType::IDENTIFIER})) {
+                if (starts_type_expression(peek().type)) {
                     param = parse_type();
                 } else {
                     param = parse_expr_shift();
@@ -840,7 +847,7 @@ TypeExpression* Parser::parse_type()
         if (!check({TokenType::PAREN_CLOSE})) {
             while (true) {
                 Expression* param;
-                if (check({TokenType::IDENTIFIER})) {
+                if (starts_type_expression(peek().type)) {
                     param = parse_type();
                 } else {
                     param = parse_expr_shift();
@@ -1438,32 +1445,40 @@ Vector<Annotation> Parser::parse_annotations()
     Vector<Annotation> annotations;
 
     if (match({TokenType::ANNOTATION_OPEN})) {
-        Annotation annot;
-        annot.range_.start = previous().loc.range.start;
+        auto block_start = previous().loc.range.start;
 
-        consume(TokenType::IDENTIFIER, "Expected annotation name");
-        annot.name = previous();
+        do {
+            Annotation annot;
+            annot.range_.start = block_start;
 
-        if (match({TokenType::PAREN_OPEN})) {
-            if (!check({TokenType::PAREN_CLOSE})) {
-                do {
-                    AnnotationArg arg;
-                    if (check({TokenType::IDENTIFIER}) && lookahead(0).type == TokenType::EQ) {
-                        arg.name = consume(TokenType::IDENTIFIER, "Expected identifier");
-                        consume(TokenType::EQ, "Expected '='");
-                        arg.is_named = true;
-                    }
+            consume(TokenType::IDENTIFIER, "Expected annotation name");
+            annot.name = previous();
 
-                    arg.value = parse_expr();
-                    annot.args.push_back(arg);
-                } while (match({TokenType::COMMA}));
+            if (match({TokenType::PAREN_OPEN})) {
+                if (!check({TokenType::PAREN_CLOSE})) {
+                    do {
+                        AnnotationArg arg;
+                        if (check({TokenType::IDENTIFIER}) && lookahead(0).type == TokenType::EQ) {
+                            arg.name = consume(TokenType::IDENTIFIER, "Expected identifier");
+                            consume(TokenType::EQ, "Expected '='");
+                            arg.is_named = true;
+                        }
+
+                        arg.value = parse_expr();
+                        annot.args.push_back(arg);
+                    } while (match({TokenType::COMMA}));
+                }
+                consume(TokenType::PAREN_CLOSE, "Expected ')'");
             }
-            consume(TokenType::PAREN_CLOSE, "Expected ')'");
-        }
+
+            annotations.push_back(annot);
+        } while (match({TokenType::COMMA}));
 
         consume(TokenType::ANNOTATION_CLOSE, "Expected ']]'");
-        annot.range_.end = previous().loc.range.end;
-        annotations.push_back(annot);
+        auto block_end = previous().loc.range.end;
+        for (auto& a : annotations) {
+            a.range_.end = block_end;
+        }
     }
 
     return annotations;

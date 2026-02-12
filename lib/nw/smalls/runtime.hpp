@@ -1491,6 +1491,8 @@ T value_cast(Runtime* rt, const Value& v)
             return Bare{};
         }
         return v.data.oval;
+    } else if constexpr (std::is_same_v<Bare, Value>) {
+        return v;
     } else {
         return Bare{};
     }
@@ -1523,6 +1525,8 @@ Value make_value(Runtime* rt, const T& val)
         TypeID mapped = rt->object_subtype_for_tag(val.type);
         out.type_id = mapped != invalid_type_id ? mapped : rt->object_type();
         return out;
+    } else if constexpr (std::is_same_v<Bare, Value>) {
+        return val;
     } else {
         return Value{};
     }

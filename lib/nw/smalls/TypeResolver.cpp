@@ -2674,7 +2674,21 @@ void TypeResolver::visit(IdentifierExpression* expr)
     auto& rt = nw::kernel::runtime();
     auto* decl = ctx.resolve(expr->ident.loc.view(), expr->ident.loc.range);
     if (decl) {
-        expr->type_id_ = decl->type_id_;
+        if (auto* func_decl = dynamic_cast<const FunctionDefinition*>(decl)) {
+            Vector<TypeID> param_types;
+            param_types.reserve(func_decl->params.size());
+            for (auto* param : func_decl->params) {
+                param_types.push_back(param ? param->type_id_ : invalid_type_id);
+            }
+
+            TypeID return_type = func_decl->type_id_;
+            if (return_type == invalid_type_id) {
+                return_type = rt.void_type();
+            }
+            expr->type_id_ = rt.register_function_type(param_types, return_type);
+        } else {
+            expr->type_id_ = decl->type_id_;
+        }
         expr->is_const_ = decl->is_const_;
 
         TypeID refined = ctx.refined_local_type(expr->ident.loc.view());
