@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <typeindex>
 
 namespace nw::smalls {
 
@@ -1188,6 +1189,9 @@ private:
     // Native struct layouts registered from C++ for validation
     absl::flat_hash_map<String, NativeStructLayout> native_struct_layouts_;
 
+    // Maps C++ type_index to smalls qualified name for native structs
+    absl::flat_hash_map<std::type_index, String> native_struct_type_names_;
+
     // Built-in core prelude module
     Script* core_prelude_ = nullptr;
     Script* core_test_ = nullptr;
@@ -1212,6 +1216,16 @@ public:
     /// @param struct_def The smalls StructDef to validate
     /// @return true if valid, false if mismatch (logs error)
     bool validate_native_struct(StringView struct_name, const StructDef* struct_def) const;
+
+    /// Returns the smalls qualified name for a native struct C++ type, or empty if not registered
+    StringView native_struct_qualified_name(std::type_index idx) const
+    {
+        auto it = native_struct_type_names_.find(idx);
+        if (it != native_struct_type_names_.end()) {
+            return it->second;
+        }
+        return {};
+    }
 };
 
 // == Native Struct Registration ==============================================
@@ -1410,6 +1424,9 @@ NativeStructBuilder& ModuleBuilder::native_struct(StringView name)
     layout.size = sizeof(T);
     layout.alignment = alignof(T);
 
+    // Register C++ type → qualified name for make_value/value_cast
+    runtime_->native_struct_type_names_[std::type_index(typeid(T))] = qualified_name;
+
     LOG_F(INFO, "[native] Registered native struct '{}': size={}, alignment={}",
         qualified_name, sizeof(T), alignof(T));
 
@@ -1458,10 +1475,14 @@ TypeID cpp_to_typeid(Runtime* rt)
         return rt->any_array_type(); // Wildcard: matches any array<T>
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return rt->any_type(); // Dynamic type: script determines actual type
+    } else if constexpr (std::is_class_v<Bare>) {
+        StringView name = rt->native_struct_qualified_name(std::type_index(typeid(Bare)));
+        if (!name.empty()) {
+            return rt->type_id(name);
+        }
+        return invalid_type_id;
     } else {
-        // For other types, try to get by type name (opaque types)
-        // This will need the type to be registered first
-        return rt->type_id(typeid(Bare).name(), false);
+        return invalid_type_id;
     }
 }
 
@@ -1493,6 +1514,11 @@ T value_cast(Runtime* rt, const Value& v)
         return v.data.oval;
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return v;
+    } else if constexpr (std::is_class_v<Bare>) {
+        Bare result{};
+        if (!rt || v.data.hptr.value == 0) { return result; }
+        std::memcpy(&result, rt->heap_.get_ptr(v.data.hptr), sizeof(Bare));
+        return result;
     } else {
         return Bare{};
     }
@@ -1527,6 +1553,16 @@ Value make_value(Runtime* rt, const T& val)
         return out;
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return val;
+    } else if constexpr (std::is_class_v<Bare>) {
+        if (!rt) { return Value{}; }
+        StringView name = rt->native_struct_qualified_name(std::type_index(typeid(Bare)));
+        if (name.empty()) { return Value{}; }
+        TypeID tid = rt->type_id(name);
+        if (tid == invalid_type_id) { return Value{}; }
+        HeapPtr ptr = rt->alloc_struct(tid);
+        if (ptr.value == 0) { return Value{}; }
+        std::memcpy(rt->heap_.get_ptr(ptr), &val, sizeof(Bare));
+        return Value::make_heap(ptr, tid);
     } else {
         return Value{};
     }

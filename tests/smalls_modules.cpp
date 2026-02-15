@@ -179,6 +179,12 @@ TEST_F(SmallsModules, LoadCoreItemModule)
 
     EXPECT_NE(item_module->exports().find("property_count"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_properties"), nullptr);
+    EXPECT_NE(item_module->exports().find("ItemProperty"), nullptr);
+    EXPECT_NE(item_module->exports().find("set_generator_for_type"), nullptr);
+    EXPECT_NE(item_module->exports().find("clear_generator_for_type"), nullptr);
+    EXPECT_NE(item_module->exports().find("clear_generators"), nullptr);
+    EXPECT_NE(item_module->exports().find("process_item_properties"), nullptr);
+    EXPECT_NE(item_module->exports().find("ip_gen_ability_modifier"), nullptr);
 }
 
 TEST_F(SmallsModules, NamedFunctionDecaysToClosure)

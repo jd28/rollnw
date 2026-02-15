@@ -4,6 +4,7 @@
 #include "objects/Creature.hpp"
 #include "rules/effects.hpp"
 #include "scriptapi.hpp"
+#include "smalls/runtime.hpp"
 
 namespace nw {
 
@@ -35,22 +36,24 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
 {
     if (!obj || !item) { return 0; }
 
-    int processed = 0;
-    if (!remove) {
-        for (const auto& ip : item->properties) {
-            if (auto eff = nw::kernel::effects().generate(ip, index, item->baseitem)) {
-                eff->handle().creator = item->handle();
-                eff->handle().category = nw::EffectCategory::item;
-                if (!apply_effect(obj, eff)) {
-                    nw::kernel::effects().destroy(eff);
-                }
-                ++processed;
-            }
-        }
-        return processed;
-    } else {
-        return remove_effects_by(obj, item->handle());
-    }
+    auto& rt = nw::kernel::runtime();
+    nw::Vector<nw::smalls::Value> args;
+
+    auto creature_value = nw::smalls::Value::make_object(obj->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(obj->handle().type);
+    args.push_back(creature_value);
+
+    auto item_value = nw::smalls::Value::make_object(item->handle());
+    item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_value);
+
+    args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(index)));
+    args.push_back(nw::smalls::Value::make_bool(remove));
+
+    auto result = rt.execute_script("core.item", "process_item_properties", args);
+    if (result.ok()) { return result.value.data.ival; }
+    LOG_F(ERROR, "[functions] process_item_properties failed: {}", result.error_message);
+    return 0;
 }
 
 } // namespace nw

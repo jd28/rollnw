@@ -54,7 +54,16 @@ Intrinsics and native helpers for strings.
 
 ## core.item
 
+- `ItemProperty` — native value type struct with fields: `prop_type`, `subtype`, `cost_table`, `cost_value`, `param_table`, `param_value` (all `int`).
 - Item-property list helpers (`property_count`, `clear_properties`).
+- `process_item_properties(creature: Creature, item: Item, equip_index: int, remove: bool): int` — single entry point for item property effect application/removal. Called from C++ `process_item_properties`.
+- Type-specific generator hooks:
+  - `set_generator_for_type(prop_type: int, fn(ItemProperty): effects.Effect)` registers a type-specific translator.
+  - `clear_generator_for_type(prop_type: int)` removes one typed translator.
+  - `clear_generators()` clears all typed translators.
+- Generator resolution: type-specific generator first; if none, falls back to C++ `EffectSystem::generate()`.
+- `ip_gen_ability_modifier(ip: ItemProperty): effects.Effect` — proof-of-concept smalls generator for ability bonus/penalty item properties.
+- `__ip_cost_table_int(prop_type: int, cost_value: int, column: string): int` — native helper to look up cost table integer values.
 
 ## core.creature
 

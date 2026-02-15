@@ -9,6 +9,7 @@ type Save(int);
 type SaveVersus(int);
 type Skill(int);
 type EquipIndex(int);
+type ItemPropertyType(int);
 
 const ability_strength = Ability(0);
 const ability_dexterity = Ability(1);

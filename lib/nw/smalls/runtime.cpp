@@ -3771,6 +3771,14 @@ bool Runtime::native_types_compatible(TypeID cpp_type, TypeID script_type) const
         return true;
     }
 
+    // Wildcard for native structs (invalid_type_id from C++ accepts a registered native struct)
+    if (cpp_type == invalid_type_id) {
+        const Type* script_info = get_type(script_type);
+        if (script_info && native_struct_layouts_.count(String(script_info->name.view()))) {
+            return true;
+        }
+    }
+
     // Wildcard for arrays (any_array matches any array<T>)
     if (cpp_type == any_array_id_) {
         const Type* t = get_type(script_type);

@@ -15,6 +15,11 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/functions.hpp>
+#include <nw/objects/Equips.hpp>
+#include <nw/objects/Item.hpp>
+#include <nw/rules/effects.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
@@ -355,6 +360,59 @@ BENCHMARK(BM_script_resolve);
 BENCHMARK(BM_rules_master_feat);
 BENCHMARK(BM_rules_modifier);
 
+static void BM_itemprop_smalls_process(benchmark::State& state)
+{
+    auto* creature = nwk::objects().make<nw::Creature>();
+    if (!creature) { state.SkipWithError("failed to create creature"); return; }
+    auto* item = nwk::objects().make<nw::Item>();
+    if (!item) { state.SkipWithError("failed to create item"); return; }
+
+    item->baseitem = nwn1::base_item_gloves;
+    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
+    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(1), 2));
+
+    // Prime the smalls lazy generator init before benchmarking
+    nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
+    nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+
+    for (auto _ : state) {
+        nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
+        nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+    }
+
+    nwk::objects().destroy(item->handle());
+    nwk::objects().destroy(creature->handle());
+}
+BENCHMARK(BM_itemprop_smalls_process);
+
+static void BM_itemprop_cpp_generate(benchmark::State& state)
+{
+    auto* creature = nwk::objects().make<nw::Creature>();
+    if (!creature) { state.SkipWithError("failed to create creature"); return; }
+    auto* item = nwk::objects().make<nw::Item>();
+    if (!item) { state.SkipWithError("failed to create item"); return; }
+
+    item->baseitem = nwn1::base_item_gloves;
+    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
+    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(1), 2));
+
+    for (auto _ : state) {
+        for (const auto& ip : item->properties) {
+            auto* eff = nw::kernel::effects().generate(ip, nw::EquipIndex::arms, item->baseitem);
+            if (eff) {
+                eff->handle().creator = item->handle();
+                eff->handle().category = nw::EffectCategory::item;
+                nw::apply_effect(creature, eff);
+            }
+        }
+        nw::remove_effects_by(creature, item->handle());
+    }
+
+    nwk::objects().destroy(item->handle());
+    nwk::objects().destroy(creature->handle());
+}
+BENCHMARK(BM_itemprop_cpp_generate);
+
 static void BM_kernel_object_lookup(benchmark::State& state)
 {
     constexpr int num_objects = 10000;
@@ -386,6 +444,7 @@ int main(int argc, char** argv)
     nw::init_logger(argc, argv);
     nwk::config().initialize();
     nwk::services().start();
+    nw::kernel::runtime().add_module_path(fs::path("stdlib/core"));
 
     ::benchmark::Initialize(&argc, argv);
     if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;

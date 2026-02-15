@@ -1,2 +1,144 @@
+from core.constants import { Ability, AttackType, Class, Damage, DamageCategory, EquipIndex, ItemPropertyType, Save, SaveVersus, Skill };
+import core.effects as effects;
+import core.map as m;
+
+[[native]]
+type ItemProperty {
+    prop_type: int;
+    subtype: int;
+    cost_table: int;
+    cost_value: int;
+    param_table: int;
+    param_value: int;
+};
+
+var itemprop_generators_by_type: map!(int, fn(ItemProperty, EquipIndex): effects.Effect) = {};
+var _generators_registered = false;
+
 [[native]] fn property_count(item: Item): int;
-[[native]] fn clear_properties(item: Item): void;
+[[native]] fn clear_properties(item: Item);
+[[native]] fn __get_property(item: Item, index: int): ItemProperty;
+[[native]] fn __apply_item_effect(creature: Creature, item: Item, effect: effects.Effect): bool;
+[[native]] fn __remove_item_effects(creature: Creature, item: Item): int;
+[[native]] fn __generate_default_effect(item: Item, prop_index: int, equip_index: int): effects.Effect;
+[[native]] fn __ip_cost_table_int(prop_type: int, cost_value: int, column: string): int;
+[[native]] fn __equip_index_to_attack_type(equip_index: int): int;
+
+fn set_generator_for_type(prop_type: ItemPropertyType, generator: fn(ItemProperty, EquipIndex): effects.Effect) {
+    itemprop_generators_by_type[prop_type as int] = generator;
+}
+
+fn clear_generator_for_type(prop_type: ItemPropertyType) {
+    const pt = prop_type as int;
+    m.remove(itemprop_generators_by_type, pt);
+}
+
+fn clear_generators() {
+    m.clear(itemprop_generators_by_type);
+}
+
+// IP type constants
+const ip_ability_bonus                        = ItemPropertyType(0);
+const ip_enhancement_bonus                    = ItemPropertyType(6);
+const ip_enhancement_penalty                  = ItemPropertyType(10);
+const ip_bonus_spell_slot_of_level_n          = ItemPropertyType(13);
+const ip_damage_bonus                         = ItemPropertyType(16);
+const ip_decreased_ability_score              = ItemPropertyType(27);
+const ip_decreased_skill_modifier             = ItemPropertyType(29);
+const ip_haste                                = ItemPropertyType(35);
+const ip_saving_throw_bonus                   = ItemPropertyType(40);
+const ip_saving_throw_bonus_specific          = ItemPropertyType(41);
+const ip_decreased_saving_throws              = ItemPropertyType(49);
+const ip_decreased_saving_throws_specific     = ItemPropertyType(50);
+const ip_skill_bonus                          = ItemPropertyType(52);
+const ip_attack_bonus                         = ItemPropertyType(56);
+const ip_attack_penalty                       = ItemPropertyType(60);
+
+fn ip_gen_ability_modifier(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return effects.ability_modifier(Ability(ip.subtype), value);
+}
+
+fn ip_gen_attack_modifier(ip: ItemProperty, equip_index: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var attack = AttackType(__equip_index_to_attack_type(equip_index as int));
+    return effects.attack_modifier(attack, value);
+}
+
+fn ip_gen_enhancement_modifier(ip: ItemProperty, equip_index: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var attack = AttackType(__equip_index_to_attack_type(equip_index as int));
+    return effects.attack_modifier(attack, value);
+}
+
+fn ip_gen_bonus_spell_slot(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    return effects.bonus_spell_slot(Class(ip.subtype), ip.cost_value);
+}
+
+fn ip_gen_damage_bonus(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    var dice  = __ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+    var sides = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+    if (dice > 0) {
+        return effects.damage_bonus(Damage(ip.subtype), dice, sides, 0, DamageCategory(0));
+    }
+    return effects.damage_bonus(Damage(ip.subtype), 0, 0, sides, DamageCategory(0));
+}
+
+fn ip_gen_haste(_ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    return effects.haste();
+}
+
+fn ip_gen_save_modifier(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return effects.save_modifier(Save(ip.subtype), value, SaveVersus(-1));
+}
+
+fn ip_gen_save_vs_modifier(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return effects.save_modifier(Save(-1), value, SaveVersus(ip.subtype));
+}
+
+fn ip_gen_skill_modifier(ip: ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = __ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return effects.skill_modifier(Skill(ip.subtype), value);
+}
+
+fn register_default_generators() {
+    set_generator_for_type(ip_ability_bonus,                    ip_gen_ability_modifier);
+    set_generator_for_type(ip_decreased_ability_score,          ip_gen_ability_modifier);
+    set_generator_for_type(ip_attack_bonus,                     ip_gen_attack_modifier);
+    set_generator_for_type(ip_attack_penalty,                   ip_gen_attack_modifier);
+    set_generator_for_type(ip_enhancement_bonus,                ip_gen_enhancement_modifier);
+    set_generator_for_type(ip_enhancement_penalty,              ip_gen_enhancement_modifier);
+    set_generator_for_type(ip_bonus_spell_slot_of_level_n,      ip_gen_bonus_spell_slot);
+    set_generator_for_type(ip_damage_bonus,                     ip_gen_damage_bonus);
+    set_generator_for_type(ip_haste,                            ip_gen_haste);
+    set_generator_for_type(ip_saving_throw_bonus,               ip_gen_save_modifier);
+    set_generator_for_type(ip_decreased_saving_throws,          ip_gen_save_modifier);
+    set_generator_for_type(ip_saving_throw_bonus_specific,      ip_gen_save_vs_modifier);
+    set_generator_for_type(ip_decreased_saving_throws_specific, ip_gen_save_vs_modifier);
+    set_generator_for_type(ip_skill_bonus,                      ip_gen_skill_modifier);
+    set_generator_for_type(ip_decreased_skill_modifier,         ip_gen_skill_modifier);
+}
+
+fn process_item_properties(creature: Creature, item: Item, equip_index: EquipIndex, remove: bool): int {
+    if (!_generators_registered) {
+        register_default_generators();
+        _generators_registered = true;
+    }
+    if (remove) { return __remove_item_effects(creature, item); }
+    var count = property_count(item);
+    var processed = 0;
+    for (var i = 0; i < count; i = i + 1) {
+        var ip = __get_property(item, i);
+        var eff: effects.Effect;
+        if (m.has(itemprop_generators_by_type, ip.prop_type)) {
+            var f = itemprop_generators_by_type[ip.prop_type];
+            if(f) {
+                eff = itemprop_generators_by_type[ip.prop_type](ip, equip_index);
+            }
+        }
+        if (__apply_item_effect(creature, item, eff)) { processed = processed + 1; }
+    }
+    return processed;
+}

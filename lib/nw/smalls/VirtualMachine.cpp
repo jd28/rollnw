@@ -1543,21 +1543,38 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value dst = reg(dst_reg);
             Value src = reg(src_reg);
 
-            if (dst.storage != ValueStorage::stack || src.storage != ValueStorage::stack) {
-                fail("STACK_COPY requires stack values");
+            if (dst.storage != ValueStorage::stack) {
+                fail("STACK_COPY requires stack destination");
                 break;
             }
 
-            const Type* type = nw::kernel::runtime().get_type(src.type_id);
+            // Use destination type for size — it was allocated with STACK_ALLOC
+            // and always has the concrete type. Source may have 'any' type when
+            // returned from a native function with Value return type.
+            const Type* type = nw::kernel::runtime().get_type(dst.type_id);
             if (!type) {
                 fail("Invalid type in STACK_COPY");
                 break;
             }
 
-            std::memcpy(
-                frame.stack_.data() + dst.data.stack_offset,
-                frame.stack_.data() + src.data.stack_offset,
-                type->size);
+            if (src.storage == ValueStorage::stack) {
+                std::memcpy(
+                    frame.stack_.data() + dst.data.stack_offset,
+                    frame.stack_.data() + src.data.stack_offset,
+                    type->size);
+            } else if (src.storage == ValueStorage::heap && src.data.hptr.value != 0) {
+                // Copy from heap to stack (e.g. native function returning a value type)
+                void* heap_data = nw::kernel::runtime().heap_.get_ptr(src.data.hptr);
+                std::memcpy(
+                    frame.stack_.data() + dst.data.stack_offset,
+                    heap_data,
+                    type->size);
+            } else {
+                fail(fmt::format("STACK_COPY requires stack or heap source (src_reg={}, src storage={}, src type_id={}, src hptr={}, dst_reg={}, dst type_id={}, pc={})",
+                    src_reg, static_cast<int>(src.storage), src.type_id.value, src.data.hptr.value,
+                    dst_reg, dst.type_id.value, frame.pc - 1));
+                break;
+            }
             break;
         }
 
