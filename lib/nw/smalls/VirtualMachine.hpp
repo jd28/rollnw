@@ -122,10 +122,18 @@ private:
     bool gas_enabled_ = false;
     uint64_t remaining_gas_ = 0;
 
+    // Cached base register offset of the current frame.
+    // Updated by push_frame() and pop_frame() so reg() never touches frames_.
+    uint32_t current_base_ = 0;
+
+    // Cached pointer to the kernel Runtime, valid for the duration of run().
+    // Avoids repeated service-table scans on every opcode dispatch.
+    Runtime* rt_ = nullptr;
+
     inline Value& reg(uint8_t r)
     {
-        assert(frames_.back().base_register + r < maximum_registers);
-        return registers_[frames_.back().base_register + r];
+        assert(current_base_ + r < maximum_registers);
+        return registers_[current_base_ + r];
     }
 
     bool consume_gas(uint64_t amount = 1);
@@ -137,7 +145,7 @@ private:
     Upvalue* get_or_create_upvalue(CallFrame& frame, uint8_t reg);
     void close_upvalues(CallFrame& frame);
 
-    void copy_args_to_callee(Vector<Value>& args, size_t caller_frame_index, const char* opcode_name);
+    void copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc, size_t caller_frame_index, const char* opcode_name);
 
     // Inline helpers used by opcode dispatch
     enum class Truthiness { False,

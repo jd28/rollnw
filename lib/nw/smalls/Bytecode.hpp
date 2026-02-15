@@ -297,6 +297,11 @@ struct BytecodeModule {
     Vector<uint32_t> field_offsets;
     Vector<TypeID> field_types;
 
+    // Verification cache for VM entrypoints.
+    bool verification_attempted = false;
+    bool verification_passed = false;
+    String verification_error;
+
     // Module-scope globals (var/const at top level)
     uint32_t global_count = 0;
     Vector<Value> globals;

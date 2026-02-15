@@ -29,6 +29,7 @@ void VirtualMachine::reset()
 
     gas_enabled_ = false;
     remaining_gas_ = 0;
+    current_base_ = 0;
 }
 
 bool VirtualMachine::consume_gas(uint64_t amount)
@@ -115,7 +116,7 @@ uint8_t* VirtualMachine::current_frame_stack_data()
 String VirtualMachine::get_stack_trace() const
 {
     auto& rt = nw::kernel::runtime();
-    auto config = rt.diagnostic_config();
+    auto config = rt_->diagnostic_config();
 
     if (frames_.empty()) {
         return "Stack trace: (no frames)\n";
@@ -150,7 +151,7 @@ String VirtualMachine::get_stack_trace() const
                     loc.range.start.column);
                 if (i == frames_.size() && config.debug_level != DebugLevel::none) {
                     StringView line_view;
-                    if (rt.get_source_line(module_name, loc.range.start.line, line_view)) {
+                    if (rt_->get_source_line(module_name, loc.range.start.line, line_view)) {
                         trace += fmt::format("      {}\n      ", line_view);
                         for (size_t c = 0; c < loc.range.start.column; ++c) {
                             if (c < line_view.size() && line_view[c] == '\t') {
@@ -223,16 +224,18 @@ void VirtualMachine::push_frame(const BytecodeModule* module, const CompiledFunc
     frame.return_register = ret_reg;
     frame.open_upvalues = nullptr;
     frames_.push_back(frame);
+    current_base_ = base;
 }
 
 void VirtualMachine::pop_frame()
 {
     if (frames_.empty()) { return; }
 
-    CallFrame frame = frames_.back();
+    CallFrame frame = std::move(frames_.back());
     close_upvalues(frame);
     stack_top_ = frame.base_register;
     frames_.pop_back();
+    current_base_ = frames_.empty() ? 0 : frames_.back().base_register;
 }
 
 Upvalue* VirtualMachine::get_or_create_upvalue(CallFrame& frame, uint8_t reg)
@@ -242,8 +245,7 @@ Upvalue* VirtualMachine::get_or_create_upvalue(CallFrame& frame, uint8_t reg)
         if (uv->location == location) { return uv; }
     }
 
-    auto& rt = nw::kernel::runtime();
-    Upvalue* uv = rt.alloc_upvalue();
+    Upvalue* uv = rt_->alloc_upvalue();
     uv->location = location;
     uv->next = frame.open_upvalues;
     frame.open_upvalues = uv;
@@ -274,14 +276,13 @@ void VirtualMachine::init_gas(uint64_t gas_limit)
 
 VirtualMachine::Truthiness VirtualMachine::evaluate_truthiness(const Value& val, const char* opcode_name)
 {
-    auto& rt = nw::kernel::runtime();
-    if (val.type_id == rt.bool_type()) {
+    if (val.type_id == rt_->bool_type()) {
         return val.data.bval ? Truthiness::True : Truthiness::False;
     }
-    if (val.type_id == rt.int_type()) {
+    if (val.type_id == rt_->int_type()) {
         return val.data.ival != 0 ? Truthiness::True : Truthiness::False;
     }
-    const Type* type = rt.get_type(val.type_id);
+    const Type* type = rt_->get_type(val.type_id);
     if (type && type->type_kind == TK_function) {
         return val.storage == ValueStorage::heap && val.data.hptr.value != 0
             ? Truthiness::True
@@ -304,15 +305,14 @@ bool VirtualMachine::resolve_type_ref(uint16_t type_idx, const BytecodeModule* m
 void* VirtualMachine::resolve_sum_data(const Value& sum_val, CallFrame& frame,
     const SumDef*& out_def, const char* opcode_name)
 {
-    auto& rt = nw::kernel::runtime();
-    const Type* type = rt.get_type(sum_val.type_id);
+    const Type* type = rt_->get_type(sum_val.type_id);
     if (!type || type->type_kind != TK_sum) {
         fail(fmt::format("{} called on non-sum type", opcode_name));
         return nullptr;
     }
 
     auto sum_id = type->type_params[0].as<SumID>();
-    out_def = rt.type_table_.get(sum_id);
+    out_def = rt_->type_table_.get(sum_id);
     if (!out_def) {
         fail("Invalid sum definition");
         return nullptr;
@@ -321,7 +321,7 @@ void* VirtualMachine::resolve_sum_data(const Value& sum_val, CallFrame& frame,
     if (sum_val.storage == ValueStorage::stack) {
         return frame.stack_.data() + sum_val.data.stack_offset;
     }
-    return rt.heap_.get_ptr(sum_val.data.hptr);
+    return rt_->heap_.get_ptr(sum_val.data.hptr);
 }
 
 void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt,
@@ -341,40 +341,35 @@ void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
     const BytecodeModule* target_module, const CompiledFunction* callee,
     Closure* closure, const char* opcode_name)
 {
-    Vector<Value> args;
-    args.reserve(argc);
-    for (uint8_t i = 0; i < argc; ++i) {
-        args.push_back(reg(static_cast<uint8_t>(dest_reg + 1 + i)));
-    }
-
+    uint32_t caller_base = current_base_;
     size_t caller_frame_index = frames_.empty() ? 0 : frames_.size() - 1;
 
     push_frame(target_module, callee, dest_reg, closure);
     if (failed_) { return; }
 
-    copy_args_to_callee(args, caller_frame_index, opcode_name);
+    copy_args_to_callee(caller_base, dest_reg, argc, caller_frame_index, opcode_name);
 }
 
 Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
     uint32_t base_offset, uint32_t field_offset, Runtime& rt)
 {
-    if (field_type == rt.int_type()) {
+    if (field_type == rt_->int_type()) {
         return Value::make_int(*reinterpret_cast<int32_t*>(ptr));
     }
-    if (field_type == rt.float_type()) {
+    if (field_type == rt_->float_type()) {
         return Value::make_float(*reinterpret_cast<float*>(ptr));
     }
-    if (field_type == rt.bool_type()) {
+    if (field_type == rt_->bool_type()) {
         return Value::make_bool(*reinterpret_cast<bool*>(ptr));
     }
-    if (field_type == rt.string_type()) {
+    if (field_type == rt_->string_type()) {
         return Value::make_string(*reinterpret_cast<HeapPtr*>(ptr));
     }
-    if (field_type == rt.object_type()) {
+    if (field_type == rt_->object_type()) {
         return Value::make_object(*reinterpret_cast<ObjectHandle*>(ptr));
     }
 
-    const Type* ft = rt.get_type(field_type);
+    const Type* ft = rt_->get_type(field_type);
     if (ft && (ft->type_kind == TK_struct || ft->type_kind == TK_fixed_array)) {
         return Value::make_stack(base_offset + field_offset, field_type);
     }
@@ -384,26 +379,26 @@ Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
 void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Value& val,
     uint8_t* stack_data, Runtime& rt)
 {
-    if (field_type == rt.int_type()) {
-        if (val.type_id == rt.bool_type()) {
+    if (field_type == rt_->int_type()) {
+        if (val.type_id == rt_->bool_type()) {
             *reinterpret_cast<int32_t*>(ptr) = val.data.ival ? 1 : 0;
         } else {
             *reinterpret_cast<int32_t*>(ptr) = val.data.ival;
         }
-    } else if (field_type == rt.float_type()) {
+    } else if (field_type == rt_->float_type()) {
         *reinterpret_cast<float*>(ptr) = val.data.fval;
-    } else if (field_type == rt.bool_type()) {
-        if (val.type_id == rt.int_type()) {
+    } else if (field_type == rt_->bool_type()) {
+        if (val.type_id == rt_->int_type()) {
             *reinterpret_cast<bool*>(ptr) = val.data.ival != 0;
         } else {
             *reinterpret_cast<bool*>(ptr) = val.data.bval;
         }
-    } else if (field_type == rt.string_type()) {
+    } else if (field_type == rt_->string_type()) {
         *reinterpret_cast<HeapPtr*>(ptr) = val.data.hptr;
-    } else if (field_type == rt.object_type()) {
+    } else if (field_type == rt_->object_type()) {
         *reinterpret_cast<ObjectHandle*>(ptr) = val.data.oval;
     } else if (val.storage == ValueStorage::stack) {
-        const Type* ft = rt.get_type(field_type);
+        const Type* ft = rt_->get_type(field_type);
         if (ft) {
             std::memcpy(ptr, stack_data + val.data.stack_offset, ft->size);
         }
@@ -412,21 +407,21 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
     }
 }
 
-void VirtualMachine::copy_args_to_callee(Vector<Value>& args, size_t caller_frame_index, const char* opcode_name)
+void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc,
+    size_t caller_frame_index, const char* opcode_name)
 {
-    CallFrame& caller_frame = frames_[caller_frame_index];
     CallFrame& callee_frame = frames_.back();
-    auto& rt = nw::kernel::runtime();
 
-    for (size_t i = 0; i < args.size(); ++i) {
-        Value arg = args[i];
+    for (uint8_t i = 0; i < argc; ++i) {
+        Value arg = registers_[caller_base + dest_reg + 1 + i];
         if (arg.storage == ValueStorage::stack) {
-            const Type* type = rt.get_type(arg.type_id);
+            const Type* type = rt_->get_type(arg.type_id);
             if (!type) {
                 fail(fmt::format("{} argument has invalid type", opcode_name));
                 return;
             }
 
+            CallFrame& caller_frame = frames_[caller_frame_index];
             uint32_t dst_offset = callee_frame.stack_alloc(type->size, type->alignment, arg.type_id);
             std::memcpy(
                 callee_frame.stack_.data() + dst_offset,
@@ -435,7 +430,7 @@ void VirtualMachine::copy_args_to_callee(Vector<Value>& args, size_t caller_fram
             arg = Value::make_stack(dst_offset, arg.type_id);
         }
 
-        reg(static_cast<uint8_t>(i)) = arg;
+        registers_[current_base_ + i] = arg;
     }
 }
 
@@ -496,15 +491,16 @@ Value VirtualMachine::execute(const BytecodeModule* module, StringView function_
         }
     }
 
-    const CompiledFunction* func = module->get_function(function_name);
-    if (!func) {
-        fail(fmt::format("Function not found: {}", function_name));
-        return {};
+    if (!const_cast<BytecodeModule*>(module)->verification_attempted) {
+        String verify_error;
+        const bool verified = verify_bytecode_module(module, &verify_error);
+        auto* mutable_module = const_cast<BytecodeModule*>(module);
+        mutable_module->verification_attempted = true;
+        mutable_module->verification_passed = verified;
+        mutable_module->verification_error = std::move(verify_error);
     }
-
-    String verify_error;
-    if (!verify_bytecode_module(module, &verify_error)) {
-        fail(verify_error);
+    if (!module->verification_passed) {
+        fail(module->verification_error);
         return {};
     }
 
@@ -563,9 +559,16 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     const CompiledFunction* func = closure->function;
     const BytecodeModule* module = closure->module;
 
-    String verify_error;
-    if (!verify_bytecode_module(module, &verify_error)) {
-        fail(verify_error);
+    if (!const_cast<BytecodeModule*>(module)->verification_attempted) {
+        String verify_error;
+        const bool verified = verify_bytecode_module(module, &verify_error);
+        auto* mutable_module = const_cast<BytecodeModule*>(module);
+        mutable_module->verification_attempted = true;
+        mutable_module->verification_passed = verified;
+        mutable_module->verification_error = std::move(verify_error);
+    }
+    if (!module->verification_passed) {
+        fail(module->verification_error);
         return {};
     }
 
@@ -604,6 +607,7 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
 
 bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 {
+    rt_ = &nw::kernel::runtime();
     while (frames_.size() > entry_depth && !failed_) {
         if (step_limit_enabled_) {
             if (remaining_steps_ == 0) {
@@ -640,13 +644,12 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             const auto& k = current_module->constants[bx];
             Value val;
             val.type_id = k.type_id;
-            auto& rt = nw::kernel::runtime();
-            if (val.type_id == rt.int_type()) {
+            if (val.type_id == rt_->int_type()) {
                 val.data.ival = k.data.ival;
-            } else if (val.type_id == rt.float_type()) {
+            } else if (val.type_id == rt_->float_type()) {
                 val.data.fval = k.data.fval;
-            } else if (val.type_id == rt.string_type()) {
-                val.data.hptr = rt.alloc_string(current_module->get_string(k.data.string_idx));
+            } else if (val.type_id == rt_->string_type()) {
+                val.data.hptr = rt_->alloc_string(current_module->get_string(k.data.string_idx));
             } else {
                 fail("Unsupported constant type");
             }
@@ -728,14 +731,13 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             break;
 
         case Opcode::NEG: {
-            auto& rt = nw::kernel::runtime();
             const Value& operand = reg(b);
-            if (operand.type_id == rt.int_type()) {
+            if (operand.type_id == rt_->int_type()) {
                 reg(a) = Value::make_int(-operand.data.ival);
-            } else if (operand.type_id == rt.float_type()) {
+            } else if (operand.type_id == rt_->float_type()) {
                 reg(a) = Value::make_float(-operand.data.fval);
             } else {
-                Value result = rt.execute_unary_op(TokenType::MINUS, operand);
+                Value result = rt_->execute_unary_op(TokenType::MINUS, operand);
                 if (result.type_id == invalid_type_id) {
                     fail("Negation failed");
                 } else {
@@ -746,7 +748,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
         }
 
         case Opcode::NOT: {
-            Value result = nw::kernel::runtime().execute_unary_op(TokenType::NOT, reg(b));
+            Value result = rt_->execute_unary_op(TokenType::NOT, reg(b));
             if (result.type_id == invalid_type_id) {
                 fail("Logical not failed");
             } else {
@@ -776,15 +778,14 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t func_idx = b;
             uint8_t argc = c;
 
-            auto& rt = nw::kernel::runtime();
-            const NativeFunction* func = rt.get_native_function(func_idx);
+            const NativeFunction* func = rt_->get_native_function(func_idx);
             if (!func) {
                 fail("Native function index out of range");
                 break;
             }
 
             const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-            call_native_wrapper(func->wrapper, rt, args_ptr, argc, dest_reg, func->name);
+            call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
             break;
         }
 
@@ -806,8 +807,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            auto& rt = nw::kernel::runtime();
-            const ExternalFunction* ext = rt.get_external_function(ext_idx);
+            const ExternalFunction* ext = rt_->get_external_function(ext_idx);
             if (!ext) {
                 fail("External function index out of range");
                 break;
@@ -816,7 +816,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             if (ext->is_native()) {
                 if (gas_enabled_ && !consume_gas()) break;
                 const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-                call_native_wrapper(ext->native_wrapper, rt, args_ptr, argc,
+                call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
                     dest_reg, ext->qualified_name.view());
             } else {
                 if (ext->func_idx >= ext->script_module->functions.size()) {
@@ -845,7 +845,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t argc = c;
 
             Value id_val = reg(id_reg);
-            if (id_val.type_id != nw::kernel::runtime().int_type()) {
+            if (id_val.type_id != rt_->int_type()) {
                 fail("Intrinsic id must be int");
                 break;
             }
@@ -858,14 +858,14 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID tid;
             if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) break;
 
-            const Type* type = nw::kernel::runtime().get_type(tid);
+            const Type* type = rt_->get_type(tid);
             if (!type || type->type_kind != TK_array) {
                 fail("NEWARRAY called with non-array type");
                 break;
             }
 
             Value size_val = reg(dest_reg);
-            if (size_val.type_id != nw::kernel::runtime().int_type()) {
+            if (size_val.type_id != rt_->int_type()) {
                 fail("Array size must be an integer");
                 break;
             }
@@ -879,13 +879,13 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID elem_type = type->type_params[0].as<TypeID>();
 
             if (type->type_params[1].empty()) {
-                HeapPtr ptr = nw::kernel::runtime().create_array_typed(elem_type, count);
+                HeapPtr ptr = rt_->create_array_typed(elem_type, count);
                 if (ptr.value == 0) {
                     fail("Failed to allocate array");
                     break;
                 }
 
-                auto* arr = nw::kernel::runtime().get_array_typed(ptr);
+                auto* arr = rt_->get_array_typed(ptr);
                 if (!arr) {
                     fail("Failed to initialize array");
                     break;
@@ -893,7 +893,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 arr->resize(count);
                 reg(dest_reg) = Value::make_heap(ptr, tid);
             } else {
-                HeapPtr ptr = nw::kernel::runtime().alloc_array(elem_type, count);
+                HeapPtr ptr = rt_->alloc_array(elem_type, count);
                 if (ptr.value == 0) {
                     fail("Failed to allocate array");
                     break;
@@ -913,25 +913,25 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 element_types.push_back(reg(static_cast<uint8_t>(dest_reg + 1 + i)).type_id);
             }
 
-            TypeID tuple_tid = nw::kernel::runtime().register_tuple_type(element_types);
+            TypeID tuple_tid = rt_->register_tuple_type(element_types);
             if (tuple_tid == invalid_type_id) {
                 fail("Failed to register tuple type");
                 break;
             }
 
-            HeapPtr ptr = nw::kernel::runtime().alloc_tuple(tuple_tid);
+            HeapPtr ptr = rt_->alloc_tuple(tuple_tid);
             if (ptr.value == 0) {
                 fail("Failed to allocate tuple");
                 break;
             }
 
-            const Type* type = nw::kernel::runtime().get_type(tuple_tid);
+            const Type* type = rt_->get_type(tuple_tid);
             auto tuple_id = type->type_params[0].as<TupleID>();
-            const TupleDef* tuple_def = nw::kernel::runtime().type_table_.get(tuple_id);
+            const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
 
             for (uint8_t i = 0; i < count; ++i) {
                 Value val = reg(static_cast<uint8_t>(dest_reg + 1 + i));
-                if (!nw::kernel::runtime().write_tuple_element_by_index(ptr, tuple_def, i, val)) {
+                if (!rt_->write_tuple_element_by_index(ptr, tuple_def, i, val)) {
                     fail("Failed to write tuple element");
                     break;
                 }
@@ -949,16 +949,16 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value tuple_val = reg(src_reg);
             HeapPtr tuple_ptr = tuple_val.data.hptr;
 
-            const Type* type = nw::kernel::runtime().get_type(tuple_val.type_id);
+            const Type* type = rt_->get_type(tuple_val.type_id);
             if (!type || type->type_kind != TK_tuple) {
                 fail("GETTUPLE called on non-tuple");
                 break;
             }
 
             auto tuple_id = type->type_params[0].as<TupleID>();
-            const TupleDef* tuple_def = nw::kernel::runtime().type_table_.get(tuple_id);
+            const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
 
-            Value elem_val = nw::kernel::runtime().read_tuple_element_by_index(tuple_ptr, tuple_def, index);
+            Value elem_val = rt_->read_tuple_element_by_index(tuple_ptr, tuple_def, index);
             if (elem_val.type_id == invalid_type_id) {
                 fail("Failed to read tuple element");
                 break;
@@ -976,13 +976,13 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value arr_val = reg(arr_reg);
             Value idx_val = reg(idx_reg);
 
-            if (idx_val.type_id != nw::kernel::runtime().int_type()) {
+            if (idx_val.type_id != rt_->int_type()) {
                 fail("Array index must be integer");
                 break;
             }
 
             Value result;
-            if (!nw::kernel::runtime().array_get(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), result)) {
+            if (!rt_->array_get(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), result)) {
                 fail("Array access failed (index out of bounds?)");
                 break;
             }
@@ -1000,12 +1000,12 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value idx_val = reg(idx_reg);
             Value val = reg(val_reg);
 
-            if (idx_val.type_id != nw::kernel::runtime().int_type()) {
+            if (idx_val.type_id != rt_->int_type()) {
                 fail("Array index must be integer");
                 break;
             }
 
-            if (!nw::kernel::runtime().array_set(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), val)) {
+            if (!rt_->array_set(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), val)) {
                 fail("Array set failed");
                 break;
             }
@@ -1017,7 +1017,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID tid;
             if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) break;
 
-            const Type* type = nw::kernel::runtime().get_type(tid);
+            const Type* type = rt_->get_type(tid);
             if (!type || type->type_kind != TK_map) {
                 fail("NEWMAP called with non-map type");
                 break;
@@ -1026,7 +1026,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID key_type = type->type_params[0].as<TypeID>();
             TypeID val_type = type->type_params[1].as<TypeID>();
 
-            HeapPtr ptr = nw::kernel::runtime().alloc_map(key_type, val_type);
+            HeapPtr ptr = rt_->alloc_map(key_type, val_type);
             if (ptr.value == 0) {
                 fail("Failed to allocate map");
                 break;
@@ -1045,7 +1045,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value key_val = reg(key_reg);
 
             Value result;
-            if (nw::kernel::runtime().map_get(map_val.data.hptr, key_val, result)) {
+            if (rt_->map_get(map_val.data.hptr, key_val, result)) {
                 reg(dest_reg) = result;
             } else {
                 reg(dest_reg) = Value{};
@@ -1062,7 +1062,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value key_val = reg(key_reg);
             Value val = reg(val_reg);
 
-            (void)nw::kernel::runtime().map_set(map_val.data.hptr, key_val, val);
+            (void)rt_->map_set(map_val.data.hptr, key_val, val);
             break;
         }
 
@@ -1071,7 +1071,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID tid;
             if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
 
-            HeapPtr ptr = nw::kernel::runtime().alloc_struct(tid);
+            HeapPtr ptr = rt_->alloc_struct(tid);
             if (ptr.value == 0) {
                 fail("Failed to allocate struct");
                 break;
@@ -1086,7 +1086,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             TypeID tid;
             if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
 
-            HeapPtr ptr = nw::kernel::runtime().alloc_sum(tid);
+            HeapPtr ptr = rt_->alloc_sum(tid);
             if (ptr.value == 0) {
                 fail("Failed to allocate sum type");
                 break;
@@ -1110,12 +1110,11 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            auto& rt = nw::kernel::runtime();
-            rt.write_sum_tag(data, sum_def, tag_value);
+            rt_->write_sum_tag(data, sum_def, tag_value);
 
             if (payload_reg != 255) {
                 Value payload = reg(payload_reg);
-                rt.write_sum_payload(data, sum_def, tag_value, payload);
+                rt_->write_sum_payload(data, sum_def, tag_value, payload);
             }
             break;
         }
@@ -1129,7 +1128,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMGETTAG");
             if (!data) { break; }
 
-            uint32_t tag = nw::kernel::runtime().read_sum_tag(data, sum_def);
+            uint32_t tag = rt_->read_sum_tag(data, sum_def);
             if (tag >= sum_def->variant_count) {
                 fail(fmt::format("SUMGETTAG: tag {} out of range (variant_count={})", tag, sum_def->variant_count));
                 break;
@@ -1153,7 +1152,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            reg(dest_reg) = nw::kernel::runtime().read_sum_payload(data, sum_def, variant_idx);
+            reg(dest_reg) = rt_->read_sum_payload(data, sum_def, variant_idx);
             break;
         }
 
@@ -1168,15 +1167,14 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             }
 
             const CompiledFunction* callee = current_module->functions[func_idx];
-            auto& rt = nw::kernel::runtime();
 
             if (callee->function_type == invalid_type_id) {
                 fail("Closure missing function type");
                 break;
             }
 
-            HeapPtr closure_ptr = rt.alloc_closure(callee->function_type, callee, current_module, callee->upvalue_count);
-            Closure* closure = rt.get_closure(closure_ptr);
+            HeapPtr closure_ptr = rt_->alloc_closure(callee->function_type, callee, current_module, callee->upvalue_count);
+            Closure* closure = rt_->get_closure(closure_ptr);
             if (!closure) {
                 fail("Failed to allocate closure");
                 break;
@@ -1253,9 +1251,8 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value val = reg(a);
             *uv->location = val;
 
-            auto& rt = nw::kernel::runtime();
-            if (rt.gc() && !uv->is_open() && val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
-                rt.gc()->write_barrier(uv->heap_ptr, val.data.hptr);
+            if (rt_->gc() && !uv->is_open() && val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
+                rt_->gc()->write_barrier(uv->heap_ptr, val.data.hptr);
             }
             break;
         }
@@ -1297,13 +1294,12 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            auto& rt = nw::kernel::runtime();
-            const Type* callee_type = rt.get_type(callee_val.type_id);
+            const Type* callee_type = rt_->get_type(callee_val.type_id);
             if (!callee_type || callee_type->type_kind != TK_function) {
                 fail("CALLCLOSURE expects a function value");
                 break;
             }
-            Closure* closure = rt.get_closure(callee_val.data.hptr);
+            Closure* closure = rt_->get_closure(callee_val.data.hptr);
             if (!closure || !closure->function || !closure->module) {
                 fail("CALLCLOSURE has invalid closure");
                 break;
@@ -1320,16 +1316,16 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t field_idx = c;
 
             Value struct_val = reg(src_reg);
-            const Type* type = nw::kernel::runtime().get_type(struct_val.type_id);
+            const Type* type = rt_->get_type(struct_val.type_id);
             if (!type || type->type_kind != TK_struct) {
                 fail("GETFIELD called on non-struct");
                 break;
             }
 
             auto struct_id = type->type_params[0].as<StructID>();
-            const StructDef* struct_def = nw::kernel::runtime().type_table_.get(struct_id);
+            const StructDef* struct_def = rt_->type_table_.get(struct_id);
 
-            Value val = nw::kernel::runtime().read_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx);
+            Value val = rt_->read_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx);
             if (val.type_id == invalid_type_id) {
                 fail("Failed to read struct field");
                 break;
@@ -1346,17 +1342,17 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t val_reg = c;
 
             Value struct_val = reg(struct_reg);
-            const Type* type = nw::kernel::runtime().get_type(struct_val.type_id);
+            const Type* type = rt_->get_type(struct_val.type_id);
             if (!type || type->type_kind != TK_struct) {
                 fail("SETFIELD called on non-struct");
                 break;
             }
 
             auto struct_id = type->type_params[0].as<StructID>();
-            const StructDef* struct_def = nw::kernel::runtime().type_table_.get(struct_id);
+            const StructDef* struct_def = rt_->type_table_.get(struct_id);
 
             Value val = reg(val_reg);
-            if (!nw::kernel::runtime().write_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx, val)) {
+            if (!rt_->write_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx, val)) {
                 fail("Failed to write struct field");
                 break;
             }
@@ -1364,31 +1360,148 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
         }
 
         case Opcode::FIELDGETI:
-        case Opcode::FIELDGETI_R:
-        case Opcode::FIELDGETF:
-        case Opcode::FIELDGETF_R:
-        case Opcode::FIELDGETB:
-        case Opcode::FIELDGETB_R:
-        case Opcode::FIELDGETS:
-        case Opcode::FIELDGETS_R:
-        case Opcode::FIELDGETO:
-        case Opcode::FIELDGETO_R:
-        case Opcode::FIELDGETH:
-        case Opcode::FIELDGETH_R:
-        case Opcode::FIELDSETI:
-        case Opcode::FIELDSETI_R:
-        case Opcode::FIELDSETF:
-        case Opcode::FIELDSETF_R:
-        case Opcode::FIELDSETB:
-        case Opcode::FIELDSETB_R:
-        case Opcode::FIELDSETS:
-        case Opcode::FIELDSETS_R:
-        case Opcode::FIELDSETO:
-        case Opcode::FIELDSETO_R:
-        case Opcode::FIELDSETH:
-        case Opcode::FIELDSETH_R:
-            op_field_access(op, a, b, c, frame.module);
+        case Opcode::FIELDGETI_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETI) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            reg(a) = Value::make_int(*reinterpret_cast<int32_t*>(data + frame.module->field_offsets[ref_idx]));
             break;
+        }
+        case Opcode::FIELDGETF:
+        case Opcode::FIELDGETF_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETF) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            reg(a) = Value::make_float(*reinterpret_cast<float*>(data + frame.module->field_offsets[ref_idx]));
+            break;
+        }
+        case Opcode::FIELDGETB:
+        case Opcode::FIELDGETB_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETB) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            reg(a) = Value::make_bool(*reinterpret_cast<bool*>(data + frame.module->field_offsets[ref_idx]));
+            break;
+        }
+        case Opcode::FIELDGETS:
+        case Opcode::FIELDGETS_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETS) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            reg(a) = Value::make_string(*reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]));
+            break;
+        }
+        case Opcode::FIELDGETO:
+        case Opcode::FIELDGETO_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETO) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            reg(a) = Value::make_object(*reinterpret_cast<ObjectHandle*>(data + frame.module->field_offsets[ref_idx]));
+            break;
+        }
+        case Opcode::FIELDGETH:
+        case Opcode::FIELDGETH_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDGETH) ? c : static_cast<uint32_t>(reg(c).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
+            TypeID ftype = frame.module->field_types[ref_idx];
+            reg(a) = Value::make_heap(*reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]), ftype);
+            break;
+        }
+        case Opcode::FIELDSETI:
+        case Opcode::FIELDSETI_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETI) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
+            *reinterpret_cast<int32_t*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.ival;
+            break;
+        }
+        case Opcode::FIELDSETF:
+        case Opcode::FIELDSETF_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETF) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
+            *reinterpret_cast<float*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.fval;
+            break;
+        }
+        case Opcode::FIELDSETB:
+        case Opcode::FIELDSETB_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETB) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
+            *reinterpret_cast<bool*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.bval;
+            break;
+        }
+        case Opcode::FIELDSETS:
+        case Opcode::FIELDSETS_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETS) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            HeapPtr struct_ptr = reg(a).data.hptr;
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(struct_ptr));
+            Value val = reg(c);
+            *reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]) = val.data.hptr;
+            if (rt_->gc_ && val.storage == ValueStorage::heap) {
+                rt_->gc_->write_barrier(struct_ptr, val.data.hptr);
+            }
+            break;
+        }
+        case Opcode::FIELDSETO:
+        case Opcode::FIELDSETO_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETO) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
+            *reinterpret_cast<ObjectHandle*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.oval;
+            break;
+        }
+        case Opcode::FIELDSETH:
+        case Opcode::FIELDSETH_R: {
+            uint32_t ref_idx = (op == Opcode::FIELDSETH) ? b : static_cast<uint32_t>(reg(b).data.ival);
+            if (ref_idx >= frame.module->field_offsets.size()) {
+                fail("Field reference index out of range");
+                break;
+            }
+            HeapPtr struct_ptr = reg(a).data.hptr;
+            char* data = static_cast<char*>(rt_->heap_.get_ptr(struct_ptr));
+            Value val = reg(c);
+            *reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]) = val.data.hptr;
+            if (rt_->gc_ && val.storage == ValueStorage::heap) {
+                rt_->gc_->write_barrier(struct_ptr, val.data.hptr);
+            }
+            break;
+        }
 
         case Opcode::RET: {
             Value val = reg(a);
@@ -1396,8 +1509,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 
             // Stack values are frame-relative; copy them into the caller's frame before popping.
             if (val.storage == ValueStorage::stack) {
-                auto& rt = nw::kernel::runtime();
-                const Type* type = rt.get_type(val.type_id);
+                const Type* type = rt_->get_type(val.type_id);
                 if (!type) {
                     fail("RET has invalid value type");
                     break;
@@ -1413,8 +1525,8 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                     val = Value::make_stack(dst_offset, val.type_id);
                 } else {
                     // Returning a stack value out of the VM: materialize it on the heap.
-                    HeapPtr ptr = rt.heap_.allocate(type->size, type->alignment, val.type_id);
-                    void* data = rt.heap_.get_ptr(ptr);
+                    HeapPtr ptr = rt_->heap_.allocate(type->size, type->alignment, val.type_id);
+                    void* data = rt_->heap_.get_ptr(ptr);
                     std::memcpy(
                         data,
                         frame.stack_.data() + val.data.stack_offset,
@@ -1436,7 +1548,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
         case Opcode::RETVOID:
             pop_frame();
             if (frames_.empty()) {
-                last_result_ = Value{nw::kernel::runtime().void_type()};
+                last_result_ = Value{rt_->void_type()};
             }
             break;
 
@@ -1446,29 +1558,28 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { break; }
             Value& val = reg(reg_idx);
 
-            auto& rt = nw::kernel::runtime();
             if (val.type_id == target_tid) {
                 // No-op
-            } else if (target_tid == rt.float_type() && val.type_id == rt.int_type()) {
+            } else if (target_tid == rt_->float_type() && val.type_id == rt_->int_type()) {
                 val = Value::make_float(static_cast<float>(val.data.ival));
-            } else if (target_tid == rt.int_type() && val.type_id == rt.float_type()) {
+            } else if (target_tid == rt_->int_type() && val.type_id == rt_->float_type()) {
                 val = Value::make_int(static_cast<int32_t>(val.data.fval));
-            } else if (rt.is_object_like_type(target_tid) && rt.is_object_like_type(val.type_id)) {
+            } else if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
                 bool valid_object_cast = false;
-                if (target_tid == rt.object_type()) {
+                if (target_tid == rt_->object_type()) {
                     valid_object_cast = true;
-                } else if (auto expected_tag = rt.object_subtype_tag(target_tid)) {
+                } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
                     valid_object_cast = val.data.oval.type == *expected_tag;
                 }
 
                 if (valid_object_cast) {
                     val.type_id = target_tid;
                 } else {
-                    fail(fmt::format("Invalid cast from {} to {}", rt.type_name(val.type_id), rt.type_name(target_tid)));
+                    fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
                 }
             } else {
-                const Type* source_type = rt.get_type(val.type_id);
-                const Type* target_type = rt.get_type(target_tid);
+                const Type* source_type = rt_->get_type(val.type_id);
+                const Type* target_type = rt_->get_type(target_tid);
                 bool newtype_cast = false;
                 if (val.type_id == invalid_type_id && target_type && target_type->type_kind == TK_function) {
                     val = Value::make_heap(HeapPtr{0}, target_tid);
@@ -1491,7 +1602,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 }
 
                 if (!newtype_cast) {
-                    fail(fmt::format("Invalid cast from {} to {}", rt.type_name(val.type_id), rt.type_name(target_tid)));
+                    fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
                 }
             }
             break;
@@ -1504,11 +1615,10 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             Value val = reg(reg_idx);
 
             bool result = false;
-            auto& rt = nw::kernel::runtime();
-            if (rt.is_object_like_type(target_tid) && rt.is_object_like_type(val.type_id)) {
-                if (target_tid == rt.object_type()) {
+            if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
+                if (target_tid == rt_->object_type()) {
                     result = true;
-                } else if (auto expected_tag = rt.object_subtype_tag(target_tid)) {
+                } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
                     result = val.data.oval.type == *expected_tag;
                 }
             } else {
@@ -1524,14 +1634,14 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t dest_reg = a;
             TypeID tid;
             if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
-            const Type* type = nw::kernel::runtime().get_type(tid);
+            const Type* type = rt_->get_type(tid);
             if (!type) {
                 fail("Invalid type in STACK_ALLOC");
                 break;
             }
 
             uint32_t offset = frame.stack_alloc(type->size, type->alignment, tid);
-            nw::kernel::runtime().initialize_zero_defaults(tid, frame.stack_.data() + offset);
+            rt_->initialize_zero_defaults(tid, frame.stack_.data() + offset);
             reg(dest_reg) = Value::make_stack(offset, tid);
             break;
         }
@@ -1551,7 +1661,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             // Use destination type for size — it was allocated with STACK_ALLOC
             // and always has the concrete type. Source may have 'any' type when
             // returned from a native function with Value return type.
-            const Type* type = nw::kernel::runtime().get_type(dst.type_id);
+            const Type* type = rt_->get_type(dst.type_id);
             if (!type) {
                 fail("Invalid type in STACK_COPY");
                 break;
@@ -1564,7 +1674,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                     type->size);
             } else if (src.storage == ValueStorage::heap && src.data.hptr.value != 0) {
                 // Copy from heap to stack (e.g. native function returning a value type)
-                void* heap_data = nw::kernel::runtime().heap_.get_ptr(src.data.hptr);
+                void* heap_data = rt_->heap_.get_ptr(src.data.hptr);
                 std::memcpy(
                     frame.stack_.data() + dst.data.stack_offset,
                     heap_data,
@@ -1599,9 +1709,8 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 
             uint32_t field_offset = frame.module->field_offsets[field_idx];
             TypeID field_type = frame.module->field_types[field_idx];
-            auto& rt = nw::kernel::runtime();
             uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
-            reg(dest_reg) = read_stack_value(ptr, field_type, base.data.stack_offset, field_offset, rt);
+            reg(dest_reg) = read_stack_value(ptr, field_type, base.data.stack_offset, field_offset, *rt_);
             break;
         }
 
@@ -1627,9 +1736,8 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint32_t field_offset = frame.module->field_offsets[field_idx];
             TypeID field_type = frame.module->field_types[field_idx];
             Value val = reg(val_reg);
-            auto& rt = nw::kernel::runtime();
             uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
-            write_stack_value(ptr, field_type, val, frame.stack_.data(), rt);
+            write_stack_value(ptr, field_type, val, frame.stack_.data(), *rt_);
             break;
         }
 
@@ -1645,13 +1753,12 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             }
 
             Value idx_val = reg(idx_reg);
-            auto& rt = nw::kernel::runtime();
-            if (idx_val.type_id != rt.int_type()) {
+            if (idx_val.type_id != rt_->int_type()) {
                 fail("Fixed array index must be integer");
                 break;
             }
 
-            const Type* type = rt.get_type(base.type_id);
+            const Type* type = rt_->get_type(base.type_id);
             if (!type || type->type_kind != TK_fixed_array) {
                 fail("STACK_INDEXGET requires fixed array value");
                 break;
@@ -1665,7 +1772,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             }
 
             TypeID elem_type_id = type->type_params[0].as<TypeID>();
-            const Type* elem_type = rt.get_type(elem_type_id);
+            const Type* elem_type = rt_->get_type(elem_type_id);
             if (!elem_type) {
                 fail("Fixed array element type not found");
                 break;
@@ -1673,7 +1780,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 
             uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
             uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
-            reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, rt);
+            reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
             break;
         }
 
@@ -1689,13 +1796,12 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             }
 
             Value idx_val = reg(idx_reg);
-            auto& rt = nw::kernel::runtime();
-            if (idx_val.type_id != rt.int_type()) {
+            if (idx_val.type_id != rt_->int_type()) {
                 fail("Fixed array index must be integer");
                 break;
             }
 
-            const Type* type = rt.get_type(base.type_id);
+            const Type* type = rt_->get_type(base.type_id);
             if (!type || type->type_kind != TK_fixed_array) {
                 fail("STACK_INDEXSET requires fixed array value");
                 break;
@@ -1709,7 +1815,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             }
 
             TypeID elem_type_id = type->type_params[0].as<TypeID>();
-            const Type* elem_type = rt.get_type(elem_type_id);
+            const Type* elem_type = rt_->get_type(elem_type_id);
             if (!elem_type) {
                 fail("Fixed array element type not found");
                 break;
@@ -1718,7 +1824,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
             uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
             Value val = reg(val_reg);
-            write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), rt);
+            write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
             break;
         }
 
@@ -1733,24 +1839,23 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 
 void VirtualMachine::op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 {
-    auto& rt = nw::kernel::runtime();
     const Value& lv = reg(b);
     const Value& rv = reg(c);
 
     // Division/modulo by zero check
     if (op == Opcode::DIV || op == Opcode::MOD) {
-        if (rv.type_id == rt.int_type() && rv.data.ival == 0) {
+        if (rv.type_id == rt_->int_type() && rv.data.ival == 0) {
             fail(op == Opcode::DIV ? "Division by zero" : "Modulo by zero");
             return;
         }
-        if (rv.type_id == rt.float_type() && rv.data.fval == 0.0f) {
+        if (rv.type_id == rt_->float_type() && rv.data.fval == 0.0f) {
             fail("Division by zero");
             return;
         }
     }
 
     // Fast path: int op int
-    if (lv.type_id == rt.int_type() && rv.type_id == rt.int_type()) {
+    if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
         int32_t result_val;
         switch (op) {
         case Opcode::ADD:
@@ -1776,7 +1881,7 @@ void VirtualMachine::op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     }
 
     // Fast path: float op float
-    if (lv.type_id == rt.float_type() && rv.type_id == rt.float_type()) {
+    if (lv.type_id == rt_->float_type() && rv.type_id == rt_->float_type()) {
         float result_val;
         switch (op) {
         case Opcode::ADD:
@@ -1820,7 +1925,7 @@ slow_path:
         return;
     }
 
-    Value result = rt.execute_binary_op(tt, lv, rv);
+    Value result = rt_->execute_binary_op(tt, lv, rv);
     if (result.type_id == invalid_type_id) {
         fail(fmt::format("Arithmetic operation failed for opcode {}", static_cast<int>(op)));
     } else {
@@ -1830,12 +1935,11 @@ slow_path:
 
 void VirtualMachine::op_comparison(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 {
-    auto& rt = nw::kernel::runtime();
     const Value& lv = reg(b);
     const Value& rv = reg(c);
 
     // Fast path: int cmp int
-    if (lv.type_id == rt.int_type() && rv.type_id == rt.int_type()) {
+    if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
         bool result_val;
         switch (op) {
         case Opcode::EQ:
@@ -1864,7 +1968,7 @@ void VirtualMachine::op_comparison(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     }
 
     // Fast path: float cmp float
-    if (lv.type_id == rt.float_type() && rv.type_id == rt.float_type()) {
+    if (lv.type_id == rt_->float_type() && rv.type_id == rt_->float_type()) {
         bool result_val;
         switch (op) {
         case Opcode::EQ:
@@ -1893,7 +1997,7 @@ void VirtualMachine::op_comparison(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     }
 
     // Fast path: bool cmp bool
-    if (lv.type_id == rt.bool_type() && rv.type_id == rt.bool_type()) {
+    if (lv.type_id == rt_->bool_type() && rv.type_id == rt_->bool_type()) {
         bool result_val;
         switch (op) {
         case Opcode::EQ:
@@ -1922,9 +2026,9 @@ void VirtualMachine::op_comparison(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     }
 
     // Fast path: string cmp string
-    if (lv.type_id == rt.string_type() && rv.type_id == rt.string_type()) {
-        StringView ls = (lv.data.hptr.value != 0) ? rt.get_string_view(lv.data.hptr) : StringView{};
-        StringView rs = (rv.data.hptr.value != 0) ? rt.get_string_view(rv.data.hptr) : StringView{};
+    if (lv.type_id == rt_->string_type() && rv.type_id == rt_->string_type()) {
+        StringView ls = (lv.data.hptr.value != 0) ? rt_->get_string_view(lv.data.hptr) : StringView{};
+        StringView rs = (rv.data.hptr.value != 0) ? rt_->get_string_view(rv.data.hptr) : StringView{};
         bool result_val;
         switch (op) {
         case Opcode::EQ:
@@ -1978,7 +2082,7 @@ slow_path:
         break;
     }
 
-    Value result = rt.execute_binary_op(tt, lv, rv);
+    Value result = rt_->execute_binary_op(tt, lv, rv);
     if (result.type_id == invalid_type_id) {
         fail("Comparison failed");
     } else {
@@ -1988,11 +2092,10 @@ slow_path:
 
 void VirtualMachine::op_logical(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 {
-    auto& rt = nw::kernel::runtime();
     const Value& lv = reg(b);
     const Value& rv = reg(c);
 
-    if (lv.type_id == rt.bool_type() && rv.type_id == rt.bool_type()) {
+    if (lv.type_id == rt_->bool_type() && rv.type_id == rt_->bool_type()) {
         bool result_val = (op == Opcode::AND)
             ? (lv.data.bval && rv.data.bval)
             : (lv.data.bval || rv.data.bval);
@@ -2000,7 +2103,7 @@ void VirtualMachine::op_logical(Opcode op, uint8_t a, uint8_t b, uint8_t c)
         return;
     }
 
-    if (lv.type_id == rt.int_type() && rv.type_id == rt.int_type()) {
+    if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
         int32_t result_val = (op == Opcode::AND)
             ? (lv.data.ival && rv.data.ival)
             : (lv.data.ival || rv.data.ival);
@@ -2009,7 +2112,7 @@ void VirtualMachine::op_logical(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     }
 
     TokenType tt = (op == Opcode::AND) ? TokenType::ANDAND : TokenType::OROR;
-    Value result = rt.execute_binary_op(tt, lv, rv);
+    Value result = rt_->execute_binary_op(tt, lv, rv);
     if (result.type_id == invalid_type_id) {
         fail("Logical operation failed");
     } else {
@@ -2019,13 +2122,12 @@ void VirtualMachine::op_logical(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 
 void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
 {
-    auto& rt = nw::kernel::runtime();
     const Value& lv = reg(a);
     const Value& rv = reg(b);
     bool skip = false;
 
     // Fast path: int cmp int
-    if (lv.type_id == rt.int_type() && rv.type_id == rt.int_type()) {
+    if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
         switch (op) {
         case Opcode::ISEQ:
             skip = lv.data.ival == rv.data.ival;
@@ -2053,7 +2155,7 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
     }
 
     // Fast path: float cmp float
-    if (lv.type_id == rt.float_type() && rv.type_id == rt.float_type()) {
+    if (lv.type_id == rt_->float_type() && rv.type_id == rt_->float_type()) {
         switch (op) {
         case Opcode::ISEQ:
             skip = lv.data.fval == rv.data.fval;
@@ -2081,9 +2183,9 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
     }
 
     // Fast path: string cmp string
-    if (lv.type_id == rt.string_type() && rv.type_id == rt.string_type()) {
-        StringView ls = (lv.data.hptr.value != 0) ? rt.get_string_view(lv.data.hptr) : StringView{};
-        StringView rs = (rv.data.hptr.value != 0) ? rt.get_string_view(rv.data.hptr) : StringView{};
+    if (lv.type_id == rt_->string_type() && rv.type_id == rt_->string_type()) {
+        StringView ls = (lv.data.hptr.value != 0) ? rt_->get_string_view(lv.data.hptr) : StringView{};
+        StringView rs = (rv.data.hptr.value != 0) ? rt_->get_string_view(rv.data.hptr) : StringView{};
         switch (op) {
         case Opcode::ISEQ:
             skip = ls == rs;
@@ -2136,13 +2238,13 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
         break;
     }
 
-    Value result = rt.execute_binary_op(tt, lv, rv);
+    Value result = rt_->execute_binary_op(tt, lv, rv);
     if (result.type_id == invalid_type_id) {
         fail("Comparison failed in test_and_skip");
         return;
     }
 
-    if (result.type_id == rt.bool_type()) {
+    if (result.type_id == rt_->bool_type()) {
         skip = result.data.bval;
     } else {
         fail("Comparison result must be boolean");
@@ -2154,10 +2256,9 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
 
 void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t argc)
 {
-    auto& rt = nw::kernel::runtime();
     auto read_int = [&](uint8_t reg_idx, int32_t& out) -> bool {
         Value val = reg(reg_idx);
-        if (val.type_id != rt.int_type()) {
+        if (val.type_id != rt_->int_type()) {
             fail("Intrinsic arguments must be int");
             return false;
         }
@@ -2166,7 +2267,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
     };
     auto read_array = [&](uint8_t reg_idx, IArray*& out, TypeID& elem_type) -> bool {
         Value val = reg(reg_idx);
-        const Type* type = rt.get_type(val.type_id);
+        const Type* type = rt_->get_type(val.type_id);
         if (!type || type->type_kind != TK_array) {
             fail("Intrinsic expects array");
             return false;
@@ -2176,7 +2277,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return false;
         }
         elem_type = type->type_params[0].as<TypeID>();
-        out = rt.get_array_typed(val.data.hptr);
+        out = rt_->get_array_typed(val.data.hptr);
         if (!out) {
             fail("Intrinsic expects dynamic array");
             return false;
@@ -2185,7 +2286,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
     };
     auto read_map = [&](uint8_t reg_idx, TypeID& key_type, TypeID& value_type, HeapPtr& map_ptr) -> bool {
         Value val = reg(reg_idx);
-        const Type* type = rt.get_type(val.type_id);
+        const Type* type = rt_->get_type(val.type_id);
         if (!type || type->type_kind != TK_map) {
             fail("Intrinsic expects map");
             return false;
@@ -2201,7 +2302,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
     };
     auto read_string = [&](uint8_t reg_idx, const char* context) -> bool {
         Value val = reg(reg_idx);
-        if (val.type_id != rt.string_type() || val.data.hptr.value == 0) {
+        if (val.type_id != rt_->string_type() || val.data.hptr.value == 0) {
             fail(fmt::format("{} expects string argument", context));
             return false;
         }
@@ -2269,8 +2370,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("array.push value type mismatch");
             return;
         }
-        arr->append_value(val, rt);
-        reg(dest_reg) = Value(rt.void_type());
+        arr->append_value(val, *rt_);
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::ArrayPop: {
@@ -2286,7 +2387,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         Value result;
-        if (!arr->get_value(arr->size() - 1, result, rt)) {
+        if (!arr->get_value(arr->size() - 1, result, *rt_)) {
             fail("array.pop failed");
             return;
         }
@@ -2314,7 +2415,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
         arr->clear();
-        reg(dest_reg) = Value(rt.void_type());
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::ArrayReserve: {
@@ -2332,7 +2433,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->reserve(static_cast<size_t>(count));
-        reg(dest_reg) = Value(rt.void_type());
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::ArrayGet: {
@@ -2363,7 +2464,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             reg(dest_reg) = Value::make_stack(offset, elem_type);
         } else {
             Value result;
-            if (!arr->get_value(idx, result, rt)) {
+            if (!arr->get_value(idx, result, *rt_)) {
                 fail("array.get failed");
                 return;
             }
@@ -2390,11 +2491,11 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("array.set value type mismatch");
             return;
         }
-        if (!arr->set_value(static_cast<size_t>(index), val, rt)) {
+        if (!arr->set_value(static_cast<size_t>(index), val, *rt_)) {
             fail("array.set index out of bounds");
             return;
         }
-        reg(dest_reg) = Value(rt.void_type());
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::MapLen: {
@@ -2406,7 +2507,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         TypeID value_type = invalid_type_id;
         HeapPtr map_ptr{};
         if (!read_map(static_cast<uint8_t>(dest_reg + 1), key_type, value_type, map_ptr)) { return; }
-        reg(dest_reg) = Value::make_int(static_cast<int32_t>(rt.map_size(map_ptr)));
+        reg(dest_reg) = Value::make_int(static_cast<int32_t>(rt_->map_size(map_ptr)));
         return;
     }
     case IntrinsicId::MapHas: {
@@ -2423,7 +2524,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("map.has key type mismatch");
             return;
         }
-        reg(dest_reg) = Value::make_bool(rt.map_contains(map_ptr, key_val));
+        reg(dest_reg) = Value::make_bool(rt_->map_contains(map_ptr, key_val));
         return;
     }
     case IntrinsicId::MapGet: {
@@ -2441,7 +2542,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         Value result;
-        if (!rt.map_get(map_ptr, key_val, result)) {
+        if (!rt_->map_get(map_ptr, key_val, result)) {
             fail("map.get missing key");
             return;
         }
@@ -2467,7 +2568,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("map.set value type mismatch");
             return;
         }
-        reg(dest_reg) = Value::make_bool(rt.map_set(map_ptr, key_val, value_val));
+        reg(dest_reg) = Value::make_bool(rt_->map_set(map_ptr, key_val, value_val));
         return;
     }
     case IntrinsicId::MapRemove: {
@@ -2484,7 +2585,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("map.remove key type mismatch");
             return;
         }
-        reg(dest_reg) = Value::make_bool(rt.map_remove(map_ptr, key_val));
+        reg(dest_reg) = Value::make_bool(rt_->map_remove(map_ptr, key_val));
         return;
     }
     case IntrinsicId::MapClear: {
@@ -2496,8 +2597,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         TypeID value_type = invalid_type_id;
         HeapPtr map_ptr{};
         if (!read_map(static_cast<uint8_t>(dest_reg + 1), key_type, value_type, map_ptr)) { return; }
-        rt.map_clear(map_ptr);
-        reg(dest_reg) = Value(rt.void_type());
+        rt_->map_clear(map_ptr);
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::MapIterBegin: {
@@ -2509,7 +2610,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         TypeID value_type = invalid_type_id;
         HeapPtr map_ptr{};
         if (!read_map(static_cast<uint8_t>(dest_reg + 1), key_type, value_type, map_ptr)) { return; }
-        HeapPtr iter_ptr = rt.map_iter_begin(map_ptr);
+        HeapPtr iter_ptr = rt_->map_iter_begin(map_ptr);
         reg(dest_reg) = Value::make_heap(iter_ptr, invalid_type_id);
         return;
     }
@@ -2524,7 +2625,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         Value key, value;
-        bool valid = rt.map_iter_next(iter_val.data.hptr, key, value);
+        bool valid = rt_->map_iter_next(iter_val.data.hptr, key, value);
         reg(dest_reg) = Value::make_bool(valid);
         reg(static_cast<uint8_t>(dest_reg + 1)) = key;
         reg(static_cast<uint8_t>(dest_reg + 2)) = value;
@@ -2544,8 +2645,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("map_iter_end expects iterator argument");
             return;
         }
-        rt.map_iter_end(map_ptr, iter_val.data.hptr);
-        reg(dest_reg) = Value(rt.void_type());
+        rt_->map_iter_end(map_ptr, iter_val.data.hptr);
+        reg(dest_reg) = Value(rt_->void_type());
         return;
     }
     case IntrinsicId::StringLen: {
@@ -2555,7 +2656,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.len")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        reg(dest_reg) = Value::make_int(static_cast<int32_t>(rt.get_string_length(str_val.data.hptr)));
+        reg(dest_reg) = Value::make_int(static_cast<int32_t>(rt_->get_string_length(str_val.data.hptr)));
         return;
     }
     case IntrinsicId::StringSubstr: {
@@ -2569,7 +2670,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), start)) { return; }
         if (!read_int(static_cast<uint8_t>(dest_reg + 3), len)) { return; }
 
-        StringRepr* sr = static_cast<StringRepr*>(rt.heap_.get_ptr(str_val.data.hptr));
+        StringRepr* sr = static_cast<StringRepr*>(rt_->heap_.get_ptr(str_val.data.hptr));
         uint32_t str_len = sr->length;
 
         if (start < 0) start = 0;
@@ -2577,7 +2678,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (len < 0) len = 0;
         if (start + len > static_cast<int32_t>(str_len)) len = str_len - start;
 
-        HeapPtr new_str = rt.alloc_string_view(sr->backing, sr->offset + start, len);
+        HeapPtr new_str = rt_->alloc_string_view(sr->backing, sr->offset + start, len);
         reg(dest_reg) = Value::make_string(new_str);
         return;
     }
@@ -2591,7 +2692,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         int32_t idx = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), idx)) { return; }
 
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         if (idx < 0 || static_cast<size_t>(idx) >= sv.size()) {
             fail("string.char_at index out of bounds");
             return;
@@ -2608,8 +2709,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.find")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value needle_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView haystack = rt.get_string_view(str_val.data.hptr);
-        StringView needle = rt.get_string_view(needle_val.data.hptr);
+        StringView haystack = rt_->get_string_view(str_val.data.hptr);
+        StringView needle = rt_->get_string_view(needle_val.data.hptr);
         auto pos = haystack.find(needle);
         reg(dest_reg) = Value::make_int(pos == StringView::npos ? -1 : static_cast<int32_t>(pos));
         return;
@@ -2623,8 +2724,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.contains")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value needle_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView haystack = rt.get_string_view(str_val.data.hptr);
-        StringView needle = rt.get_string_view(needle_val.data.hptr);
+        StringView haystack = rt_->get_string_view(str_val.data.hptr);
+        StringView needle = rt_->get_string_view(needle_val.data.hptr);
         reg(dest_reg) = Value::make_bool(haystack.find(needle) != StringView::npos);
         return;
     }
@@ -2637,8 +2738,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.starts_with")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value prefix_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
-        StringView prefix = rt.get_string_view(prefix_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
+        StringView prefix = rt_->get_string_view(prefix_val.data.hptr);
         bool result = sv.size() >= prefix.size() && sv.substr(0, prefix.size()) == prefix;
         reg(dest_reg) = Value::make_bool(result);
         return;
@@ -2652,8 +2753,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.ends_with")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value suffix_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
-        StringView suffix = rt.get_string_view(suffix_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
+        StringView suffix = rt_->get_string_view(suffix_val.data.hptr);
         bool result = sv.size() >= suffix.size() && sv.substr(sv.size() - suffix.size()) == suffix;
         reg(dest_reg) = Value::make_bool(result);
         return;
@@ -2665,12 +2766,12 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.to_upper")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         String result(sv);
         for (char& c : result) {
             c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringToLower: {
@@ -2680,12 +2781,12 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.to_lower")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         String result(sv);
         for (char& c : result) {
             c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringTrim: {
@@ -2695,15 +2796,15 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.trim")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         size_t start = 0, end = sv.size();
         while (start < end && std::isspace(static_cast<unsigned char>(sv[start])))
             ++start;
         while (end > start && std::isspace(static_cast<unsigned char>(sv[end - 1])))
             --end;
 
-        StringRepr* sr = static_cast<StringRepr*>(rt.heap_.get_ptr(str_val.data.hptr));
-        HeapPtr new_str = rt.alloc_string_view(sr->backing, sr->offset + static_cast<uint32_t>(start),
+        StringRepr* sr = static_cast<StringRepr*>(rt_->heap_.get_ptr(str_val.data.hptr));
+        HeapPtr new_str = rt_->alloc_string_view(sr->backing, sr->offset + static_cast<uint32_t>(start),
             static_cast<uint32_t>(end - start));
         reg(dest_reg) = Value::make_string(new_str);
         return;
@@ -2719,9 +2820,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value old_val = reg(static_cast<uint8_t>(dest_reg + 2));
         Value new_val = reg(static_cast<uint8_t>(dest_reg + 3));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
-        StringView old_sv = rt.get_string_view(old_val.data.hptr);
-        StringView new_sv = rt.get_string_view(new_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
+        StringView old_sv = rt_->get_string_view(old_val.data.hptr);
+        StringView new_sv = rt_->get_string_view(new_val.data.hptr);
 
         if (old_sv.empty()) {
             reg(dest_reg) = str_val;
@@ -2740,7 +2841,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             result.append(new_sv);
             pos = found + old_sv.size();
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringSplit: {
@@ -2752,27 +2853,27 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.split")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value delim_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
-        StringView delim = rt.get_string_view(delim_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
+        StringView delim = rt_->get_string_view(delim_val.data.hptr);
 
-        HeapPtr arr_ptr = rt.create_array_typed(rt.string_type(), 4);
-        IArray* arr = rt.get_array_typed(arr_ptr);
-        TypeID arr_type = rt.heap_.get_header(arr_ptr)->type_id;
+        HeapPtr arr_ptr = rt_->create_array_typed(rt_->string_type(), 4);
+        IArray* arr = rt_->get_array_typed(arr_ptr);
+        TypeID arr_type = rt_->heap_.get_header(arr_ptr)->type_id;
 
         if (delim.empty()) {
-            Value elem = Value::make_string(rt.alloc_string(sv));
-            arr->append_value(elem, rt);
+            Value elem = Value::make_string(rt_->alloc_string(sv));
+            arr->append_value(elem, *rt_);
         } else {
             size_t pos = 0;
             while (pos <= sv.size()) {
                 size_t found = sv.find(delim, pos);
                 if (found == StringView::npos) {
-                    Value elem = Value::make_string(rt.alloc_string(sv.substr(pos)));
-                    arr->append_value(elem, rt);
+                    Value elem = Value::make_string(rt_->alloc_string(sv.substr(pos)));
+                    arr->append_value(elem, *rt_);
                     break;
                 }
-                Value elem = Value::make_string(rt.alloc_string(sv.substr(pos, found - pos)));
-                arr->append_value(elem, rt);
+                Value elem = Value::make_string(rt_->alloc_string(sv.substr(pos, found - pos)));
+                arr->append_value(elem, *rt_);
                 pos = found + delim.size();
             }
         }
@@ -2788,24 +2889,24 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         IArray* arr = nullptr;
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        if (elem_type != rt.string_type()) {
+        if (elem_type != rt_->string_type()) {
             fail("string.join expects array<string>");
             return;
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 2), "string.join")) { return; }
         Value delim_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        StringView delim = rt.get_string_view(delim_val.data.hptr);
+        StringView delim = rt_->get_string_view(delim_val.data.hptr);
 
         String result;
         for (size_t i = 0; i < arr->size(); ++i) {
             if (i > 0) result.append(delim);
             Value elem;
-            arr->get_value(i, elem, rt);
+            arr->get_value(i, elem, *rt_);
             if (elem.data.hptr.value != 0) {
-                result.append(rt.get_string_view(elem.data.hptr));
+                result.append(rt_->get_string_view(elem.data.hptr));
             }
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringToInt: {
@@ -2815,7 +2916,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.to_int")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         String s(sv);
         try {
             int32_t val = std::stoi(s);
@@ -2832,7 +2933,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         if (!read_string(static_cast<uint8_t>(dest_reg + 1), "string.to_float")) { return; }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        StringView sv = rt.get_string_view(str_val.data.hptr);
+        StringView sv = rt_->get_string_view(str_val.data.hptr);
         String s(sv);
         try {
             float val = std::stof(s);
@@ -2854,29 +2955,29 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         char c = static_cast<char>(code);
-        reg(dest_reg) = Value::make_string(rt.alloc_string(StringView(&c, 1)));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(StringView(&c, 1)));
         return;
     }
     case IntrinsicId::StringConcat: {
         String result;
         for (uint8_t i = 0; i < argc; ++i) {
             Value v = reg(static_cast<uint8_t>(dest_reg + 1 + i));
-            if (v.type_id == rt.string_type()) {
+            if (v.type_id == rt_->string_type()) {
                 if (v.data.hptr.value != 0) {
-                    absl::StrAppend(&result, rt.get_string_view(v.data.hptr));
+                    absl::StrAppend(&result, rt_->get_string_view(v.data.hptr));
                 }
-            } else if (v.type_id == rt.int_type()) {
+            } else if (v.type_id == rt_->int_type()) {
                 absl::StrAppend(&result, v.data.ival);
-            } else if (v.type_id == rt.float_type()) {
+            } else if (v.type_id == rt_->float_type()) {
                 absl::StrAppend(&result, v.data.fval);
-            } else if (v.type_id == rt.bool_type()) {
+            } else if (v.type_id == rt_->bool_type()) {
                 absl::StrAppend(&result, v.data.bval ? "true" : "false");
             } else {
                 fail("Cannot convert type to string in f-string");
                 return;
             }
         }
-        HeapPtr result_ptr = rt.alloc_string(result);
+        HeapPtr result_ptr = rt_->alloc_string(result);
         reg(dest_reg) = Value::make_string(result_ptr);
         return;
     }
@@ -2887,18 +2988,18 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value append_val = reg(static_cast<uint8_t>(dest_reg + 2));
-        if (str_val.type_id != rt.string_type() || append_val.type_id != rt.string_type()) {
+        if (str_val.type_id != rt_->string_type() || append_val.type_id != rt_->string_type()) {
             fail("string_append expects string arguments");
             return;
         }
         String result;
         if (str_val.data.hptr.value != 0) {
-            result = String(rt.get_string_view(str_val.data.hptr));
+            result = String(rt_->get_string_view(str_val.data.hptr));
         }
         if (append_val.data.hptr.value != 0) {
-            result.append(rt.get_string_view(append_val.data.hptr));
+            result.append(rt_->get_string_view(append_val.data.hptr));
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringInsert: {
@@ -2909,27 +3010,27 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
         Value pos_val = reg(static_cast<uint8_t>(dest_reg + 2));
         Value insert_val = reg(static_cast<uint8_t>(dest_reg + 3));
-        if (str_val.type_id != rt.string_type() || insert_val.type_id != rt.string_type()) {
+        if (str_val.type_id != rt_->string_type() || insert_val.type_id != rt_->string_type()) {
             fail("string_insert expects string arguments");
             return;
         }
-        if (pos_val.type_id != rt.int_type()) {
+        if (pos_val.type_id != rt_->int_type()) {
             fail("string_insert expects int position");
             return;
         }
         String result;
         if (str_val.data.hptr.value != 0) {
-            result = String(rt.get_string_view(str_val.data.hptr));
+            result = String(rt_->get_string_view(str_val.data.hptr));
         }
         int32_t pos = pos_val.data.ival;
         if (pos < 0) pos = 0;
         if (pos > static_cast<int32_t>(result.size())) pos = static_cast<int32_t>(result.size());
         StringView to_insert;
         if (insert_val.data.hptr.value != 0) {
-            to_insert = rt.get_string_view(insert_val.data.hptr);
+            to_insert = rt_->get_string_view(insert_val.data.hptr);
         }
         result.insert(static_cast<size_t>(pos), to_insert);
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     case IntrinsicId::StringReverse: {
@@ -2938,16 +3039,16 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         Value str_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (str_val.type_id != rt.string_type()) {
+        if (str_val.type_id != rt_->string_type()) {
             fail("string_reverse expects string argument");
             return;
         }
         String result;
         if (str_val.data.hptr.value != 0) {
-            StringView sv = rt.get_string_view(str_val.data.hptr);
+            StringView sv = rt_->get_string_view(str_val.data.hptr);
             result = String(sv.rbegin(), sv.rend());
         }
-        reg(dest_reg) = Value::make_string(rt.alloc_string(result));
+        reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
     default:
@@ -3020,10 +3121,10 @@ void VirtualMachine::op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c,
     Value struct_val = reg(struct_reg);
 
     if (is_get) {
-        reg(a) = nw::kernel::runtime().read_field_at_offset(struct_val.data.hptr, offset, type_id);
+        reg(a) = rt_->read_field_at_offset(struct_val.data.hptr, offset, type_id);
     } else {
         Value val = reg(val_reg);
-        if (!nw::kernel::runtime().write_field_at_offset(struct_val.data.hptr, offset, type_id, val)) {
+        if (!rt_->write_field_at_offset(struct_val.data.hptr, offset, type_id, val)) {
             fail("Field write failed (type mismatch?)");
         }
     }
