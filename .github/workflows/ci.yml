@@ -179,7 +179,7 @@ jobs:
           sudo apt-get install -y ninja-build clang llvm ccache
 
       - name: linux - cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/.ccache/
@@ -195,7 +195,7 @@ jobs:
 
       - name: linux - cache nwn
         id: cache-nwn
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/nwn/
@@ -237,7 +237,7 @@ jobs:
           sudo apt-get install -y ninja-build clang llvm ccache
 
       - name: linux - cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/.ccache/
@@ -253,7 +253,7 @@ jobs:
 
       - name: linux - cache nwn
         id: cache-nwn
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/nwn/
@@ -297,7 +297,7 @@ jobs:
           sudo apt-get install -y ninja-build clang llvm ccache
 
       - name: linux - cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/.ccache/
@@ -351,7 +351,7 @@ jobs:
           sudo apt-get install -y ninja-build clang llvm ccache
 
       - name: linux - cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/.ccache/
@@ -367,7 +367,7 @@ jobs:
 
       - name: linux - cache nwn
         id: cache-nwn
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/nwn/
