@@ -30,27 +30,6 @@ bool Profile::load_rules() const
 
     // == Load Rules ==========================================================
 
-    nw::AttackFuncs acb;
-    acb.resolve_attack = resolve_attack;
-    acb.resolve_attack_bonus = resolve_attack_bonus;
-    acb.resolve_attack_damage = resolve_attack_damage;
-    acb.resolve_attack_roll = resolve_attack_roll;
-    acb.resolve_attack_type = resolve_attack_type;
-    acb.resolve_concealment = resolve_concealment;
-    acb.resolve_critical_multiplier = resolve_critical_multiplier;
-    acb.resolve_critical_threat = resolve_critical_threat;
-    acb.resolve_damage_modifiers = resolve_damage_modifiers;
-    acb.resolve_damage_immunity = resolve_damage_immunity;
-    acb.resolve_damage_reduction = resolve_damage_reduction;
-    acb.resolve_damage_resistance = resolve_damage_resistance;
-    acb.resolve_dual_wield_penalty = resolve_dual_wield_penalty;
-    acb.resolve_iteration_penalty = resolve_iteration_penalty;
-    acb.resolve_number_of_attacks = resolve_number_of_attacks;
-    acb.resolve_target_state = resolve_target_state;
-    acb.resolve_weapon_damage_flags = resolve_weapon_damage_flags;
-    acb.resolve_weapon_power = resolve_weapon_power;
-    nwk::rules().set_attack_functions(acb);
-
     load_combat_modes();
     load_modifiers();
     load_master_feats();

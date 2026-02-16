@@ -29,9 +29,6 @@ struct Rules : public Service {
     /// Initializes rules system
     virtual void initialize(ServiceInitTime time) override;
 
-    /// Gets attack functions
-    [[nodiscard]] const AttackFuncs& attack_functions() const noexcept;
-
     /// Gets combat mode functions
     [[nodiscard]] CombatModeFuncs combat_mode(CombatMode mode);
 
@@ -49,9 +46,6 @@ struct Rules : public Service {
 
     /// Registers a special attack callbacks
     void register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs);
-
-    /// Sets attack callbacks
-    void set_attack_functions(AttackFuncs cbs);
 
     /// Sets a qualifier for a particular requirement type
     void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
@@ -81,7 +75,6 @@ private:
     std::array<bool (*)(const Qualifier&, const ObjectBase*), 256> qualifiers_;
     std::array<CombatModeFuncs, 32> combat_modes_;
     absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
-    AttackFuncs attack_functions_;
     size_t maximum_spell_levels_ = 10;
 };
 

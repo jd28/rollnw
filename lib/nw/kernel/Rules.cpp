@@ -47,11 +47,6 @@ void Rules::initialize(ServiceInitTime time)
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
-const AttackFuncs& Rules::attack_functions() const noexcept
-{
-    return attack_functions_;
-}
-
 CombatModeFuncs Rules::combat_mode(CombatMode mode)
 {
     return combat_modes_[mode.idx()];
@@ -90,11 +85,6 @@ void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_lis
 void Rules::register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs)
 {
     special_attacks_[*type] = funcs;
-}
-
-void Rules::set_attack_functions(AttackFuncs cbs)
-{
-    attack_functions_ = cbs;
 }
 
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))

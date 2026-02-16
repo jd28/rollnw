@@ -872,12 +872,11 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 {
     if (!attacker || !target) { return {}; }
 
-    auto acb = nwk::rules().attack_functions();
     auto target_cre = target->as_creature();
 
     // Every attack reset/update how many onhand and offhand attacks
     // the attacker has.
-    auto [onhand, offhand] = acb.resolve_number_of_attacks(attacker);
+    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
     attacker->combat_info.attacks_onhand = onhand;
     attacker->combat_info.attacks_offhand = offhand;
 
@@ -893,13 +892,13 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
     data->attacker = attacker;
     data->target = target;
-    data->type = acb.resolve_attack_type(attacker);
+    data->type = resolve_attack_type(attacker);
     data->weapon = get_weapon_by_attack_type(attacker, data->type);
-    data->target_state = acb.resolve_target_state(attacker, target);
+    data->target_state = resolve_target_state(attacker, target);
     data->target_is_creature = !!target_cre;
     data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));
     data->nth_attack = attacker->combat_info.attack_current;
-    data->result = acb.resolve_attack_roll(attacker, data->type, target, nullptr);
+    data->result = resolve_attack_roll(attacker, data->type, target, nullptr);
 
     if (nw::is_attack_type_hit(data->result)) {
         // Parry
@@ -933,13 +932,13 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
         // Check to make sure the hit hasn't be negated
         if (nw::is_attack_type_hit(data->result)) {
             if (data->result == nw::AttackResult::hit_by_critical) {
-                data->multiplier = acb.resolve_critical_multiplier(attacker, data->type, target);
+                data->multiplier = resolve_critical_multiplier(attacker, data->type, target);
             } else {
                 data->multiplier = 1;
             }
 
             // Resolve Damage
-            data->damage_total = acb.resolve_attack_damage(attacker, target, data.get());
+            data->damage_total = resolve_attack_damage(attacker, target, data.get());
 
             // Epic Dodge
         }
@@ -952,7 +951,6 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
-    auto acb = nwk::rules().attack_functions();
 
     int result = 0;
     if (!obj) { return result; }
@@ -975,7 +973,7 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     result = base_attack_bonus(obj);
 
     // Resolve dual wield penalty
-    auto [on, off] = acb.resolve_dual_wield_penalty(obj);
+    auto [on, off] = resolve_dual_wield_penalty(obj);
     if (type == attack_type_onhand) {
         result += on;
     } else if (type == attack_type_offhand) {
@@ -1139,15 +1137,13 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
 {
     static constexpr nw::DiceRoll d20{1, 20, 0};
     const auto roll = nw::roll_dice(d20);
-    auto acb = nwk::rules().attack_functions();
-
     if (roll == 1) { return nw::AttackResult::miss_by_auto_fail; }
 
     auto attack_result = nw::AttackResult::miss_by_roll;
 
-    const auto ab = acb.resolve_attack_bonus(obj, type, vs);
+    const auto ab = resolve_attack_bonus(obj, type, vs);
     const auto ac = calculate_ac_versus(obj, vs, false);
-    const auto iter = acb.resolve_iteration_penalty(obj, type);
+    const auto iter = resolve_iteration_penalty(obj, type);
 
     if (data) {
         data->attack_bonus = ab;
@@ -1164,14 +1160,14 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     }
 
     if (nw::is_attack_type_hit(attack_result)) {
-        int crit_threat = acb.resolve_critical_threat(obj, type);
+        int crit_threat = resolve_critical_threat(obj, type);
         if (data) { data->threat_range = crit_threat; }
         if (21 - roll <= crit_threat && ab + nw::roll_dice(d20) - iter >= ac) {
             attack_result = nw::AttackResult::hit_by_critical;
         }
 
         // Need to fix this vs ranged in non attack scenarios
-        auto [conceal, source] = acb.resolve_concealment(obj, vs, data ? data->is_ranged_attack : false);
+        auto [conceal, source] = resolve_concealment(obj, vs, data ? data->is_ranged_attack : false);
         if (conceal > 0) {
             if (data) { data->concealment = conceal; }
 
@@ -1383,8 +1379,6 @@ int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw
 void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
 {
     if (!obj || !versus || !data) { return; }
-    auto acb = nwk::rules().attack_functions();
-
     auto do_damage_resistance = [=](nw::DamageResult& dmg, int resist, nw::Effect* resist_eff) {
         int resist_remaining = 0;
         if (resist_eff) { resist_remaining = resist_eff->get_int(1); }
@@ -1422,25 +1416,25 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
     // Do Resistance and Immunity for all non-physical weapon damage
     for (auto& dmg : data->damages()) {
         if (dmg.amount <= 0) { continue; }
-        auto [resist, resist_eff] = acb.resolve_damage_resistance(versus, dmg.type, obj);
+        auto [resist, resist_eff] = resolve_damage_resistance(versus, dmg.type, obj);
         do_damage_resistance(dmg, resist, resist_eff);
 
         if (dmg.amount > 0) {
-            auto imm = acb.resolve_damage_immunity(versus, dmg.type, obj);
+            auto imm = resolve_damage_immunity(versus, dmg.type, obj);
             do_damage_immunity(dmg, imm);
         }
     }
 
     // Do Resistance and Immunity for all non-physical weapon damage
     // Resistance favors attacker, Immunity favors defender
-    const auto flags = acb.resolve_weapon_damage_flags(data->weapon);
+    const auto flags = resolve_weapon_damage_flags(data->weapon);
 
     int least_resist = std::numeric_limits<int>::max();
     nw::Effect* least_resist_eff = nullptr;
     for (auto type : {damage_type_bludgeoning, damage_type_piercing, damage_type_slashing}) {
         if (!flags.test(type)) { continue; }
 
-        auto [resist, resist_eff] = acb.resolve_damage_resistance(versus, type, obj);
+        auto [resist, resist_eff] = resolve_damage_resistance(versus, type, obj);
         if (resist < least_resist) {
             least_resist = resist;
             least_resist_eff = resist_eff;
@@ -1453,15 +1447,15 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
         for (auto type : {damage_type_bludgeoning, damage_type_piercing, damage_type_slashing}) {
             if (!flags.test(type)) { continue; }
 
-            auto imm = acb.resolve_damage_immunity(versus, type, obj);
+            auto imm = resolve_damage_immunity(versus, type, obj);
             best_imm = std::max(best_imm, imm);
         }
         do_damage_immunity(data->damage_base, best_imm);
     }
 
     if (data->damage_base.amount > 0) {
-        auto power = acb.resolve_weapon_power(obj, data->weapon);
-        auto [red, red_eff] = acb.resolve_damage_reduction(versus, power, obj);
+        auto power = resolve_weapon_power(obj, data->weapon);
+        auto [red, red_eff] = resolve_damage_reduction(versus, power, obj);
         int red_remaining = 0;
         if (red_eff) { red_remaining = red_eff->get_int(2); }
 
