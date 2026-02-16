@@ -1671,7 +1671,36 @@ ExecutionResult Runtime::execute_script(Script* script, StringView function_name
             .error_snippet = {}};
     }
 
-    Value result = vm_->execute(module, function_name, args, gas_limit);
+    const CompiledFunction* function = module->get_function(function_name);
+    if (!function) {
+        return ExecutionResult{
+            .value = Value{},
+            .failed = true,
+            .error_message = fmt::format("Function not found: {}", function_name),
+            .stack_trace = {},
+            .error_module = {},
+            .error_location = {},
+            .error_snippet = {}};
+    }
+
+    return execute_compiled(module, function, args, gas_limit);
+}
+
+ExecutionResult Runtime::execute_compiled(const BytecodeModule* module, const CompiledFunction* function,
+    const Vector<Value>& args, uint64_t gas_limit)
+{
+    if (!module || !function) {
+        return ExecutionResult{
+            .value = Value{},
+            .failed = true,
+            .error_message = "Invalid compiled function",
+            .stack_trace = {},
+            .error_module = {},
+            .error_location = {},
+            .error_snippet = {}};
+    }
+
+    Value result = vm_->execute(module, function, args, gas_limit);
 
     if (vm_->failed()) {
         ExecutionResult exec_result{

@@ -61,6 +61,15 @@ struct VirtualMachine {
     Value execute(const BytecodeModule* module, StringView function_name, const Vector<Value>& args,
         uint64_t gas_limit = 0);
 
+    /// Executes a pre-resolved compiled function in a module.
+    /// @param module The module containing the function
+    /// @param function The compiled function to call
+    /// @param args Arguments to pass to the function
+    /// @return Result value, or Value with invalid_type_id on error
+    /// @param gas_limit Gas budget for this execution (0 means unlimited). Only applied for top-level entry.
+    Value execute(const BytecodeModule* module, const CompiledFunction* function, const Vector<Value>& args,
+        uint64_t gas_limit = 0);
+
     /// Executes a closure directly
     /// @param gas_limit Gas budget for this execution (0 means unlimited). Only applied for top-level entry.
     Value execute_closure(Closure* closure, const Vector<Value>& args, uint64_t gas_limit = 0);

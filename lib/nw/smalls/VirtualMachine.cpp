@@ -471,6 +471,18 @@ void CallFrame::enumerate_stack_roots(GCRootVisitor& visitor, Runtime* runtime)
 Value VirtualMachine::execute(const BytecodeModule* module, StringView function_name, const Vector<Value>& args,
     uint64_t gas_limit)
 {
+    const CompiledFunction* func = module->get_function(function_name);
+    if (!func) {
+        fail(fmt::format("Function not found: {}", function_name));
+        return {};
+    }
+
+    return execute(module, func, args, gas_limit);
+}
+
+Value VirtualMachine::execute(const BytecodeModule* module, const CompiledFunction* func, const Vector<Value>& args,
+    uint64_t gas_limit)
+{
     // Track entry frame depth for reentrant execution
     size_t entry_depth = frames_.size();
     Value saved_reg0{};
@@ -505,8 +517,8 @@ Value VirtualMachine::execute(const BytecodeModule* module, StringView function_
     }
 
     if (args.size() != func->param_count) {
-        fail(fmt::format("Argument count mismatch for {}: expected {}, got {}",
-            function_name, func->param_count, args.size()));
+        fail(fmt::format("Argument count mismatch: expected {}, got {}",
+            func->param_count, args.size()));
         return {};
     }
 

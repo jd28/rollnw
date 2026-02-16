@@ -307,6 +307,10 @@ struct Runtime : public nw::kernel::Service {
     ExecutionResult execute_script(Script* script, StringView function_name, const Vector<Value>& args = {},
         uint64_t gas_limit = default_gas_limit);
 
+    /// Executes a pre-resolved compiled function.
+    ExecutionResult execute_compiled(const BytecodeModule* module, const CompiledFunction* function,
+        const Vector<Value>& args = {}, uint64_t gas_limit = default_gas_limit);
+
     /// Executes a script function by script path
     ExecutionResult execute_script(StringView path, StringView function_name, const Vector<Value>& args = {},
         uint64_t gas_limit = default_gas_limit);
@@ -1512,6 +1516,21 @@ T value_cast(Runtime* rt, const Value& v)
             return Bare{};
         }
         return v.data.oval;
+    } else if constexpr (std::is_same_v<Bare, IArray*> || (std::is_pointer_v<Bare> && std::is_base_of_v<IArray, std::remove_pointer_t<Bare>>)) {
+        if (!rt || v.storage != ValueStorage::heap || v.data.hptr.value == 0) {
+            return Bare{};
+        }
+
+        IArray* arr = rt->get_array_typed(v.data.hptr);
+        if (!arr) {
+            return Bare{};
+        }
+
+        if constexpr (std::is_same_v<Bare, IArray*>) {
+            return arr;
+        } else {
+            return dynamic_cast<Bare>(arr);
+        }
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return v;
     } else if constexpr (std::is_class_v<Bare>) {
