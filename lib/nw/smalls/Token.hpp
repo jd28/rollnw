@@ -72,6 +72,7 @@ enum class TokenType {
     CONTINUE, // continue
     DEFAULT,  // default
     ELSE,     // else
+    ELIF,     // elif
     EXTERN,   // extern
     FOR,      // for
     FROM,     // from

@@ -1148,23 +1148,46 @@ ExprStatement* Parser::parse_stmt_expr()
     return s;
 }
 
-// ifStmt -> if "(" expression ")" block ( else block )?
+// ifStmt -> if "(" expression ")" block ( elif "(" expression ")" block )* ( else block )?
 IfStatement* Parser::parse_stmt_if()
 {
-    auto s = ast_.create_node<IfStatement>();
-    s->range_.start = previous().loc.range.start;
+    auto* root = ast_.create_node<IfStatement>();
+    root->range_.start = previous().loc.range.start;
+
     consume(TokenType::PAREN_OPEN, "Expected '('.");
-    s->expr = parse_expr();
+    root->expr = parse_expr();
     consume(TokenType::PAREN_CLOSE, "Expected ')'.");
     consume(TokenType::BRACE_OPEN, "Expected '{'.");
-    s->range_.end = previous().loc.range.end;
-    s->if_branch = parse_stmt_block();
+    root->if_branch = parse_stmt_block();
+    root->range_.end = root->if_branch->range_.end;
+
+    auto* tail = root;
+    while (match({TokenType::ELIF})) {
+        auto elif_token = previous();
+        auto* elif_stmt = ast_.create_node<IfStatement>();
+        elif_stmt->range_.start = elif_token.loc.range.start;
+
+        consume(TokenType::PAREN_OPEN, "Expected '(' after 'elif'.");
+        elif_stmt->expr = parse_expr();
+        consume(TokenType::PAREN_CLOSE, "Expected ')'.");
+        consume(TokenType::BRACE_OPEN, "Expected '{'.");
+        elif_stmt->if_branch = parse_stmt_block();
+        elif_stmt->range_.end = elif_stmt->if_branch->range_.end;
+
+        auto* synthetic_else_block = ast_.create_node<BlockStatement>(ctx_->arena);
+        synthetic_else_block->range_ = elif_stmt->range_;
+        synthetic_else_block->nodes.push_back(elif_stmt);
+        tail->else_branch = synthetic_else_block;
+        tail = elif_stmt;
+    }
+
     if (match({TokenType::ELSE})) {
         consume(TokenType::BRACE_OPEN, "Expected '{'.");
-        s->else_branch = parse_stmt_block();
+        tail->else_branch = parse_stmt_block();
     }
-    s->range_.end = previous().loc.range.end;
-    return s;
+
+    root->range_.end = previous().loc.range.end;
+    return root;
 }
 
 // forStmt -> for block                                                       (infinite loop)

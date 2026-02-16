@@ -191,7 +191,7 @@ TEST_F(SmallsLexer, BasicLexing)
     EXPECT_EQ(int(lexer32.next().type), int(nw::smalls::TokenType::GT));
     EXPECT_EQ(int(lexer32.next().type), int(nw::smalls::TokenType::FUNC_RETURN));
 
-    nw::smalls::Lexer lexer33{R"(fn var type extern from import as is)", nw::kernel::runtime().diagnostic_context()};
+    nw::smalls::Lexer lexer33{R"(fn var type extern from import as is elif else)", nw::kernel::runtime().diagnostic_context()};
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::FN));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::VAR));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::TYPE));
@@ -200,6 +200,8 @@ TEST_F(SmallsLexer, BasicLexing)
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::IMPORT));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::AS));
     EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::IS));
+    EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::ELIF));
+    EXPECT_EQ(int(lexer33.next().type), int(nw::smalls::TokenType::ELSE));
 
     nw::smalls::Lexer lexer34{"*/", nw::kernel::runtime().diagnostic_context()};
     EXPECT_THROW(lexer34.next(), nw::smalls::lexical_error);

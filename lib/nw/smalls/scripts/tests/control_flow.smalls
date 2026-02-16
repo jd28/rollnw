@@ -30,6 +30,41 @@ fn test_if_else_false(): int {
     }
 }
 
+fn test_if_elif_first(): int {
+    var x = 7;
+    if (x < 5) {
+        return 1;
+    } elif (x < 10) {
+        return 2;
+    } else {
+        return 3;
+    }
+}
+
+fn test_if_elif_else_tail(): int {
+    var x = 11;
+    if (x < 5) {
+        return 1;
+    } elif (x < 10) {
+        return 2;
+    } elif (x < 15) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+fn test_if_elif_fallthrough_else(): int {
+    var x = 20;
+    if (x < 5) {
+        return 1;
+    } elif (x < 10) {
+        return 2;
+    } else {
+        return 3;
+    }
+}
+
 fn test_for_while_style(): int {
     var i = 0;
     for (i < 5) {
@@ -106,6 +141,9 @@ fn main() {
     test("if_false", test_if_false() == 0);
     test("if_else_true", test_if_else_true() == 1);
     test("if_else_false", test_if_else_false() == 2);
+    test("if_elif_first", test_if_elif_first() == 2);
+    test("if_elif_else_tail", test_if_elif_else_tail() == 3);
+    test("if_elif_fallthrough_else", test_if_elif_fallthrough_else() == 3);
     test("for_while_style", test_for_while_style() == 5);
     test("for_infinite_break", test_for_infinite_break() == 3);
     test("for_cstyle_decl", test_for_cstyle_decl() == 3);

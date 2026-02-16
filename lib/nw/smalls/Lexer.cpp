@@ -109,7 +109,9 @@ inline TokenType check_keyword(const Token& tk)
         }
         break;
     case 'e':
-        if (sv == "else") {
+        if (sv == "elif") {
+            return TokenType::ELIF;
+        } else if (sv == "else") {
             return TokenType::ELSE;
         } else if (sv == "extern") {
             return TokenType::EXTERN;

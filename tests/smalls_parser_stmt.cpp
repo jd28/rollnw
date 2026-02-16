@@ -64,6 +64,39 @@ TEST_F(SmallsParser, IfElseStatement)
     EXPECT_NE(if_stmt->if_branch, nullptr);
     EXPECT_NE(if_stmt->else_branch, nullptr);
 }
+
+TEST_F(SmallsParser, IfElifElseStatement)
+{
+    auto script = make_script(R"(
+        fn test() {
+            if (x > 10) {
+                return 1;
+            } elif (x > 5) {
+                return 2;
+            } else {
+                return 3;
+            }
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    auto& decls = script.ast().decls;
+    auto* func = dynamic_cast<nw::smalls::FunctionDefinition*>(decls[0]);
+    ASSERT_NE(func, nullptr);
+
+    auto* if_stmt = dynamic_cast<nw::smalls::IfStatement*>(func->block->nodes[0]);
+    ASSERT_NE(if_stmt, nullptr);
+    ASSERT_NE(if_stmt->else_branch, nullptr);
+    ASSERT_EQ(if_stmt->else_branch->nodes.size(), 1);
+
+    auto* nested_elif = dynamic_cast<nw::smalls::IfStatement*>(if_stmt->else_branch->nodes[0]);
+    ASSERT_NE(nested_elif, nullptr);
+    EXPECT_NE(nested_elif->expr, nullptr);
+    EXPECT_NE(nested_elif->if_branch, nullptr);
+    EXPECT_NE(nested_elif->else_branch, nullptr);
+}
 TEST_F(SmallsParser, ForLoop)
 {
     auto script = make_script(R"(
