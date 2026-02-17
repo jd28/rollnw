@@ -11,13 +11,11 @@
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
 
-#include <array>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
-#include <limits>
-#include <memory>
 #include <optional>
-#include <string>
+#include <vector>
 
 namespace nw {
 
@@ -79,10 +77,10 @@ struct GffStruct {
     bool get_to(StringView label, T& out, bool warn_missing = true) const;
 
     /// Number of fields in the struct.
-    size_t size() const { return entry_->field_count; }
+    size_t size() const { return valid() ? entry_->field_count : 0; }
 
     /// Check if Gff has been parsed without error.
-    bool valid() const { return parent_ != nullptr; }
+    bool valid() const { return parent_ != nullptr && entry_ != nullptr; }
 
     /// Get field by label
     GffField operator[](StringView label) const;
@@ -110,13 +108,13 @@ struct Gff {
     GffStruct toplevel() const;
 
     /// Get Gff type
-    StringView type() const { return {head_->type, 3}; }
+    StringView type() const { return valid() && head_ ? StringView{head_->type, 3} : StringView{}; }
 
     /// Get if Gff file successfully parsed
     bool valid() const;
 
     /// Get the Gff Version
-    StringView version() const { return {head_->version, 4}; }
+    StringView version() const { return valid() && head_ ? StringView{head_->version, 4} : StringView{}; }
 
     GffHeader* head_ = nullptr;
     GffLabel* labels_ = nullptr;
@@ -130,6 +128,12 @@ private:
     friend struct GffStruct;
 
     ResourceData data_;
+    GffHeader header_storage_{};
+    std::vector<GffLabel> labels_storage_;
+    std::vector<GffStructEntry> structs_storage_;
+    std::vector<GffFieldEntry> fields_storage_;
+    std::vector<uint32_t> field_indices_storage_;
+    std::vector<uint32_t> list_indices_storage_;
     bool is_loaded_ = false;
     nw::LanguageID lang_ = nw::LanguageID::english;
 
@@ -273,7 +277,7 @@ bool GffField::get_to(T& value) const
                 uint32_t size;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                 off += 4;
-                CHECK_OFF(off + size < parent_->data_.bytes.size());
+                CHECK_OFF(off + size <= parent_->data_.bytes.size());
                 String s{};
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
                 s.append(reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size);
@@ -296,7 +300,7 @@ bool GffField::get_to(T& value) const
                     off += 4;
                     CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                     off += 4;
-                    CHECK_OFF(off + size < parent_->data_.bytes.size());
+                    CHECK_OFF(off + size <= parent_->data_.bytes.size());
                     String s{reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
                     auto base_lang = Language::to_base_id(lang);
@@ -308,9 +312,9 @@ bool GffField::get_to(T& value) const
                 return true;
             } else if constexpr (std::is_same_v<T, ByteArray>) {
                 uint32_t size;
-                parent_->data_.bytes.read_at(off, &size, 4);
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                 off += 4;
-                CHECK_OFF(off + size < parent_->data_.bytes.size());
+                CHECK_OFF(off + size <= parent_->data_.bytes.size());
                 value = ByteArray(parent_->data_.bytes.data() + off, size);
                 return true;
             } else if constexpr (std::is_same_v<T, GffStruct>) {

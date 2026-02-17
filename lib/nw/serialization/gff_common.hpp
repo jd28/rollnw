@@ -1,11 +1,10 @@
 #pragma once
 
-#include "../i18n/LocString.hpp"
-#include "../resources/assets.hpp"
-#include "../util/ByteArray.hpp"
+#include "../config.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <type_traits>
 
 namespace nw {
 
