@@ -42,11 +42,12 @@ void Services::create()
 {
     if (services_created_) { return; }
     if (!profile_) {
-        if (config().version() == GameVersion::vEE
-            || config().version() == GameVersion::v1_69) {
+        if (config().profile() == "nwn1"
+            && (config().version() == GameVersion::vEE
+                || config().version() == GameVersion::v1_69)) {
             profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();
         } else {
-            std::runtime_error("currently selected game version is unsupported");
+            throw std::runtime_error("currently selected game profile/version is unsupported");
         }
     }
 

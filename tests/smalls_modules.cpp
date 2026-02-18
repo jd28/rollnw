@@ -90,11 +90,12 @@ TEST_F(SmallsModules, CoreEffectsConstructorsUseNewtypes)
     auto& rt = nw::kernel::runtime();
 
     std::string_view source = R"(
-        from core.constants import { Ability };
+        from nwn1.constants import { Ability };
         import core.effects as E;
+        import nwn1.effects as NWEff;
 
         fn main(): int {
-            var eff = E.ability_modifier(Ability(0), 2);
+            var eff = NWEff.ability_modifier(Ability(0), 2);
             if (!E.is_valid(eff)) {
                 return 0;
             }
@@ -105,7 +106,7 @@ TEST_F(SmallsModules, CoreEffectsConstructorsUseNewtypes)
                 return 0;
             }
 
-            var haste = E.haste();
+            var haste = NWEff.haste();
             if (E.is_valid(haste)) {
                 return 1;
             }
@@ -128,9 +129,10 @@ TEST_F(SmallsModules, CoreEffectsRejectRawIntWhenNewtypeRequired)
 
     std::string_view source = R"(
         import core.effects as E;
+        import nwn1.effects as NWEff;
 
         fn main() {
-            var eff = E.ability_modifier(0, 2);
+            var eff = NWEff.ability_modifier(0, 2);
             E.apply(eff);
         }
     )";
@@ -144,7 +146,7 @@ TEST_F(SmallsModules, CoreEffectsUseExpandedConstants)
 {
     auto& rt = nw::kernel::runtime();
 
-    auto* constants_module = rt.load_module("core.constants");
+    auto* constants_module = rt.load_module("nwn1.constants");
     ASSERT_NE(constants_module, nullptr);
 
     EXPECT_NE(constants_module->exports().find("attack_type_unarmed"), nullptr);
@@ -157,6 +159,78 @@ TEST_F(SmallsModules, CoreEffectsUseExpandedConstants)
     EXPECT_NE(constants_module->exports().find("equip_index_righthand"), nullptr);
 }
 
+TEST_F(SmallsModules, CoreEffectsPrimitiveAccessors)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        import core.effects as E;
+
+        fn main(): int {
+            var eff = E.create();
+            if (!E.is_valid(eff)) {
+                return 0;
+            }
+
+            E.set_int(eff, 0, 99);
+            if (E.get_int(eff, 0) != 99) {
+                return 0;
+            }
+
+            E.set_ints(eff, { 1, 2, 3 });
+            if (E.get_int(eff, 0) != 1 || E.get_int(eff, 1) != 2 || E.get_int(eff, 2) != 3) {
+                return 0;
+            }
+
+            E.set_type(eff, 7);
+            E.set_subtype(eff, 42);
+            if (E.get_type(eff) != 7 || E.get_subtype(eff) != 42) {
+                return 0;
+            }
+
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.core_effects_primitives", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsModules, LoadCoreCombatModule)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* combat_module = rt.load_module("core.combat");
+    ASSERT_NE(combat_module, nullptr);
+
+    EXPECT_NE(combat_module->exports().find("AttackData"), nullptr);
+    EXPECT_NE(combat_module->exports().find("base_attack_bonus"), nullptr);
+    EXPECT_NE(combat_module->exports().find("is_flanked"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_attack_bonus"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_attack_roll"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_attack_type"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_critical_multiplier"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_critical_threat"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_damage_immunity"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_iteration_penalty"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_weapon_power"), nullptr);
+    EXPECT_NE(combat_module->exports().find("resolve_attack"), nullptr);
+    EXPECT_NE(combat_module->exports().find("simulate_attack"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_is_valid"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_attack_type"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_attack_result"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_attack_bonus"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_nth_attack"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_critical_threat"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_iteration_penalty"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_is_ranged"), nullptr);
+    EXPECT_NE(combat_module->exports().find("attack_data_target_is_creature"), nullptr);
+}
+
 TEST_F(SmallsModules, LoadCoreCreatureModule)
 {
     auto& rt = nw::kernel::runtime();
@@ -165,6 +239,9 @@ TEST_F(SmallsModules, LoadCoreCreatureModule)
 
     EXPECT_NE(creature_module->exports().find("get_ability_score"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_ability_modifier"), nullptr);
+    EXPECT_NE(creature_module->exports().find("get_level_by_class"), nullptr);
+    EXPECT_NE(creature_module->exports().find("weapon_iteration_for_attack"), nullptr);
+    EXPECT_NE(creature_module->exports().find("attack_sequence_index"), nullptr);
     EXPECT_NE(creature_module->exports().find("can_equip_item"), nullptr);
     EXPECT_NE(creature_module->exports().find("equip_item"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_equipped_item"), nullptr);
@@ -184,7 +261,6 @@ TEST_F(SmallsModules, LoadCoreItemModule)
     EXPECT_NE(item_module->exports().find("clear_generator_for_type"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_generators"), nullptr);
     EXPECT_NE(item_module->exports().find("process_item_properties"), nullptr);
-    EXPECT_NE(item_module->exports().find("ip_gen_ability_modifier"), nullptr);
 }
 
 TEST_F(SmallsModules, NamedFunctionDecaysToClosure)
@@ -278,58 +354,36 @@ TEST_F(SmallsModules, LoadObjectTypeStubModules)
     for (auto module : modules) {
         auto* loaded = rt.load_module(module);
         ASSERT_NE(loaded, nullptr) << module;
-        EXPECT_NE(loaded->exports().find("is_valid"), nullptr) << module;
-        EXPECT_NE(loaded->exports().find("type_id"), nullptr) << module;
 
         if (module == "core.area") {
-            EXPECT_NE(loaded->exports().find("is_area"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_area"), nullptr);
             EXPECT_NE(loaded->exports().find("get_width"), nullptr);
             EXPECT_NE(loaded->exports().find("get_height"), nullptr);
             EXPECT_NE(loaded->exports().find("get_size"), nullptr);
         } else if (module == "core.door") {
-            EXPECT_NE(loaded->exports().find("is_door"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_door"), nullptr);
             EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
             EXPECT_NE(loaded->exports().find("is_open"), nullptr);
         } else if (module == "core.encounter") {
-            EXPECT_NE(loaded->exports().find("is_encounter"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_encounter"), nullptr);
             EXPECT_NE(loaded->exports().find("is_active"), nullptr);
             EXPECT_NE(loaded->exports().find("get_spawn_point_count"), nullptr);
         } else if (module == "core.module") {
-            EXPECT_NE(loaded->exports().find("is_module"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_module"), nullptr);
             EXPECT_NE(loaded->exports().find("get_area_count"), nullptr);
             EXPECT_NE(loaded->exports().find("is_save_game"), nullptr);
         } else if (module == "core.placeable") {
-            EXPECT_NE(loaded->exports().find("is_placeable"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_placeable"), nullptr);
             EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
             EXPECT_NE(loaded->exports().find("has_inventory"), nullptr);
         } else if (module == "core.player") {
-            EXPECT_NE(loaded->exports().find("is_player"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_player"), nullptr);
             EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
             EXPECT_NE(loaded->exports().find("is_pc"), nullptr);
         } else if (module == "core.sound") {
-            EXPECT_NE(loaded->exports().find("is_sound"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_sound"), nullptr);
             EXPECT_NE(loaded->exports().find("get_sound_count"), nullptr);
             EXPECT_NE(loaded->exports().find("is_active"), nullptr);
         } else if (module == "core.store") {
-            EXPECT_NE(loaded->exports().find("is_store"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_store"), nullptr);
             EXPECT_NE(loaded->exports().find("get_gold"), nullptr);
             EXPECT_NE(loaded->exports().find("is_blackmarket"), nullptr);
         } else if (module == "core.trigger") {
-            EXPECT_NE(loaded->exports().find("is_trigger"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_trigger"), nullptr);
             EXPECT_NE(loaded->exports().find("get_geometry_point_count"), nullptr);
             EXPECT_NE(loaded->exports().find("get_trigger_type"), nullptr);
         } else if (module == "core.waypoint") {
-            EXPECT_NE(loaded->exports().find("is_waypoint"), nullptr);
-            EXPECT_NE(loaded->exports().find("as_waypoint"), nullptr);
             EXPECT_NE(loaded->exports().find("get_appearance"), nullptr);
             EXPECT_NE(loaded->exports().find("has_map_note"), nullptr);
         }

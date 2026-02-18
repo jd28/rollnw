@@ -44,6 +44,18 @@ void register_core_object(Runtime& rt)
                 nw::kernel::runtime().set_handle_ownership(eff, OwnershipMode::VM_OWNED);
             }
             return removed; })
+        .function("is_pc", +[](nw::ObjectHandle obj) -> bool {
+            auto* base = nw::kernel::objects().get_object_base(obj);
+            if (!base) {
+                return false;
+            }
+            if (auto* creature = base->as_creature()) {
+                return creature->pc;
+            }
+            if (auto* player = base->as_player()) {
+                return player->pc;
+            }
+            return false; })
         .finalize();
 }
 

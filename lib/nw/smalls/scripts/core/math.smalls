@@ -1,7 +1,6 @@
 [[native]] fn sin(x: float): float;
 [[native]] fn cos(x: float): float;
 [[native]] fn sqrt(x: float): float;
-[[native]] fn abs(x: float): float;
 [[native]] fn log(x: float): float;
 [[native]] fn exp(x: float): float;
 [[native]] fn ceil(x: float): float;
@@ -9,6 +8,12 @@
 [[native]] fn round(x: float): float;
 [[native]] fn pow(base: float, exponent: float): float;
 [[native]] fn atan2(y: float, x: float): float;
+
+fn abs(a: $T): $T {
+    if (a < 0) { return -a; }
+    return a;
+}
+
 fn min(a: $T, b: $T): $T {
     if (a < b) { return a; }
     return b;

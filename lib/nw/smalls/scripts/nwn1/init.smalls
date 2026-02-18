@@ -1,0 +1,5 @@
+import nwn1.item as item;
+
+fn init() {
+    item.register_default_generators();
+}

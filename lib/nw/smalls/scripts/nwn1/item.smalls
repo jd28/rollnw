@@ -1,0 +1,113 @@
+from nwn1.constants import {
+    Ability,
+    AttackType,
+    Class,
+    Damage,
+    DamageCategory,
+    EquipIndex,
+    ItemPropertyType,
+    Save,
+    SaveVersus,
+    Skill,
+    base_item_cbludgweapon,
+    base_item_cpiercweapon,
+    base_item_cslashweapon,
+    base_item_cslshprcweap,
+};
+
+
+import core.item as base;
+import core.effects as effects;
+import nwn1.effects as nwn1eff;
+
+// IP type constants
+const ip_ability_bonus                        = ItemPropertyType(0);
+const ip_enhancement_bonus                    = ItemPropertyType(6);
+const ip_enhancement_penalty                  = ItemPropertyType(10);
+const ip_bonus_spell_slot_of_level_n          = ItemPropertyType(13);
+const ip_damage_bonus                         = ItemPropertyType(16);
+const ip_decreased_ability_score              = ItemPropertyType(27);
+const ip_decreased_skill_modifier             = ItemPropertyType(29);
+const ip_haste                                = ItemPropertyType(35);
+const ip_saving_throw_bonus                   = ItemPropertyType(40);
+const ip_saving_throw_bonus_specific          = ItemPropertyType(41);
+const ip_decreased_saving_throws              = ItemPropertyType(49);
+const ip_decreased_saving_throws_specific     = ItemPropertyType(50);
+const ip_skill_bonus                          = ItemPropertyType(52);
+const ip_attack_bonus                         = ItemPropertyType(56);
+const ip_attack_penalty                       = ItemPropertyType(60);
+
+fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return nwn1eff.ability_modifier(Ability(ip.subtype), value);
+}
+
+fn ip_gen_attack_modifier(ip: base.ItemProperty, equip_index: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var attack = AttackType(base.__equip_index_to_attack_type(equip_index as int));
+    return nwn1eff.attack_modifier(attack, value);
+}
+
+fn ip_gen_enhancement_modifier(ip: base.ItemProperty, equip_index: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var attack = AttackType(base.__equip_index_to_attack_type(equip_index as int));
+    return nwn1eff.attack_modifier(attack, value);
+}
+
+fn ip_gen_bonus_spell_slot(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    return nwn1eff.bonus_spell_slot(Class(ip.subtype), ip.cost_value);
+}
+
+fn ip_gen_damage_bonus(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    var dice  = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+    var sides = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+    if (dice > 0) {
+        return nwn1eff.damage_bonus(Damage(ip.subtype), dice, sides, 0, DamageCategory(0));
+    }
+    return nwn1eff.damage_bonus(Damage(ip.subtype), 0, 0, sides, DamageCategory(0));
+}
+
+fn ip_gen_haste(_ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    return nwn1eff.haste();
+}
+
+fn ip_gen_save_modifier(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return nwn1eff.save_modifier(Save(ip.subtype), value, SaveVersus(-1));
+}
+
+fn ip_gen_save_vs_modifier(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return nwn1eff.save_modifier(Save(-1), value, SaveVersus(ip.subtype));
+}
+
+fn ip_gen_skill_modifier(ip: base.ItemProperty, _equip: EquipIndex): effects.Effect {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return nwn1eff.skill_modifier(Skill(ip.subtype), value);
+}
+
+fn register_default_generators() {
+    base.set_generator_for_type(ip_ability_bonus,                    ip_gen_ability_modifier);
+    base.set_generator_for_type(ip_decreased_ability_score,          ip_gen_ability_modifier);
+    base.set_generator_for_type(ip_attack_bonus,                     ip_gen_attack_modifier);
+    base.set_generator_for_type(ip_attack_penalty,                   ip_gen_attack_modifier);
+    base.set_generator_for_type(ip_enhancement_bonus,                ip_gen_enhancement_modifier);
+    base.set_generator_for_type(ip_enhancement_penalty,              ip_gen_enhancement_modifier);
+    base.set_generator_for_type(ip_bonus_spell_slot_of_level_n,      ip_gen_bonus_spell_slot);
+    base.set_generator_for_type(ip_damage_bonus,                     ip_gen_damage_bonus);
+    base.set_generator_for_type(ip_haste,                            ip_gen_haste);
+    base.set_generator_for_type(ip_saving_throw_bonus,               ip_gen_save_modifier);
+    base.set_generator_for_type(ip_decreased_saving_throws,          ip_gen_save_modifier);
+    base.set_generator_for_type(ip_saving_throw_bonus_specific,      ip_gen_save_vs_modifier);
+    base.set_generator_for_type(ip_decreased_saving_throws_specific, ip_gen_save_vs_modifier);
+    base.set_generator_for_type(ip_skill_bonus,                      ip_gen_skill_modifier);
+    base.set_generator_for_type(ip_decreased_skill_modifier,         ip_gen_skill_modifier);
+}
+
+fn is_creature_weapon(it: Item): bool {
+    const bt = base.get_baseitem_type(it);
+    return bt == base_item_cbludgweapon
+        || bt == base_item_cpiercweapon
+        || bt == base_item_cslashweapon
+        || bt == base_item_cslshprcweap;
+}

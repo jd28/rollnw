@@ -1,15 +1,19 @@
-type Ability(int);
-type ArmorClass(int);
-type AttackType(int);
-type Class(int);
-type Damage(int);
-type DamageCategory(int);
-type MissChanceType(int);
-type Save(int);
-type SaveVersus(int);
-type Skill(int);
-type EquipIndex(int);
-type ItemPropertyType(int);
+from core.types import {
+    Ability,
+    ArmorClass,
+    AttackType,
+    BaseItemType,
+    Class,
+    Damage,
+    DamageCategory,
+    EffectType,
+    MissChanceType,
+    Save,
+    SaveVersus,
+    Skill,
+    EquipIndex,
+    ItemPropertyType,
+};
 
 const ability_strength = Ability(0);
 const ability_dexterity = Ability(1);
@@ -31,6 +35,96 @@ const attack_type_unarmed = AttackType(3);
 const attack_type_cweapon1 = AttackType(4);
 const attack_type_cweapon2 = AttackType(5);
 const attack_type_cweapon3 = AttackType(6);
+
+const base_item_shortsword = BaseItemType(0);
+const base_item_longsword = BaseItemType(1);
+const base_item_battleaxe = BaseItemType(2);
+const base_item_bastardsword = BaseItemType(3);
+const base_item_lightflail = BaseItemType(4);
+const base_item_warhammer = BaseItemType(5);
+const base_item_heavycrossbow = BaseItemType(6);
+const base_item_lightcrossbow = BaseItemType(7);
+const base_item_longbow = BaseItemType(8);
+const base_item_lightmace = BaseItemType(9);
+const base_item_halberd = BaseItemType(10);
+const base_item_shortbow = BaseItemType(11);
+const base_item_twobladedsword = BaseItemType(12);
+const base_item_greatsword = BaseItemType(13);
+const base_item_smallshield = BaseItemType(14);
+const base_item_torch = BaseItemType(15);
+const base_item_armor = BaseItemType(16);
+const base_item_helmet = BaseItemType(17);
+const base_item_greataxe = BaseItemType(18);
+const base_item_amulet = BaseItemType(19);
+const base_item_arrow = BaseItemType(20);
+const base_item_belt = BaseItemType(21);
+const base_item_dagger = BaseItemType(22);
+const base_item_miscsmall = BaseItemType(24);
+const base_item_bolt = BaseItemType(25);
+const base_item_boots = BaseItemType(26);
+const base_item_bullet = BaseItemType(27);
+const base_item_club = BaseItemType(28);
+const base_item_miscmedium = BaseItemType(29);
+const base_item_dart = BaseItemType(31);
+const base_item_diremace = BaseItemType(32);
+const base_item_doubleaxe = BaseItemType(33);
+const base_item_misclarge = BaseItemType(34);
+const base_item_heavyflail = BaseItemType(35);
+const base_item_gloves = BaseItemType(36);
+const base_item_lighthammer = BaseItemType(37);
+const base_item_handaxe = BaseItemType(38);
+const base_item_healerskit = BaseItemType(39);
+const base_item_kama = BaseItemType(40);
+const base_item_katana = BaseItemType(41);
+const base_item_kukri = BaseItemType(42);
+const base_item_misctall = BaseItemType(43);
+const base_item_magicrod = BaseItemType(44);
+const base_item_magicstaff = BaseItemType(45);
+const base_item_magicwand = BaseItemType(46);
+const base_item_morningstar = BaseItemType(47);
+const base_item_potions = BaseItemType(49);
+const base_item_quarterstaff = BaseItemType(50);
+const base_item_rapier = BaseItemType(51);
+const base_item_ring = BaseItemType(52);
+const base_item_scimitar = BaseItemType(53);
+const base_item_scroll = BaseItemType(54);
+const base_item_scythe = BaseItemType(55);
+const base_item_largeshield = BaseItemType(56);
+const base_item_towershield = BaseItemType(57);
+const base_item_shortspear = BaseItemType(58);
+const base_item_shuriken = BaseItemType(59);
+const base_item_sickle = BaseItemType(60);
+const base_item_sling = BaseItemType(61);
+const base_item_thievestools = BaseItemType(62);
+const base_item_throwingaxe = BaseItemType(63);
+const base_item_trapkit = BaseItemType(64);
+const base_item_key = BaseItemType(65);
+const base_item_largebox = BaseItemType(66);
+const base_item_miscwide = BaseItemType(68);
+const base_item_cslashweapon = BaseItemType(69);
+const base_item_cpiercweapon = BaseItemType(70);
+const base_item_cbludgweapon = BaseItemType(71);
+const base_item_cslshprcweap = BaseItemType(72);
+const base_item_creatureitem = BaseItemType(73);
+const base_item_book = BaseItemType(74);
+const base_item_spellscroll = BaseItemType(75);
+const base_item_gold = BaseItemType(76);
+const base_item_gem = BaseItemType(77);
+const base_item_bracer = BaseItemType(78);
+const base_item_miscthin = BaseItemType(79);
+const base_item_cloak = BaseItemType(80);
+const base_item_grenade = BaseItemType(81);
+const base_item_trident = BaseItemType(95);
+const base_item_blank_potion = BaseItemType(101);
+const base_item_blank_scroll = BaseItemType(102);
+const base_item_blank_wand = BaseItemType(103);
+const base_item_enchanted_potion = BaseItemType(104);
+const base_item_enchanted_scroll = BaseItemType(105);
+const base_item_enchanted_wand = BaseItemType(106);
+const base_item_dwarvenwaraxe = BaseItemType(108);
+const base_item_craftmaterialmed = BaseItemType(109);
+const base_item_craftmaterialsml = BaseItemType(110);
+const base_item_whip = BaseItemType(111);
 
 const class_type_barbarian = Class(0);
 const class_type_bard = Class(1);
@@ -78,6 +172,20 @@ const class_type_ooze = Class(38);
 const class_type_eye_of_gruumsh = Class(39);
 const class_type_shou_disciple = Class(40);
 const class_type_purple_dragon_knight = Class(41);
+
+const feat_ambidexterity = 1;
+const feat_blind_fight = 408;
+const feat_improved_two_weapon_fighting = 20;
+const feat_ki_strike = 213;
+const feat_ki_strike_2 = 343;
+const feat_ki_strike_3 = 344;
+const feat_epic_improved_ki_strike_4 = 697;
+const feat_epic_improved_ki_strike_5 = 698;
+const feat_prestige_enchant_arrow_1 = 445;
+const feat_prestige_enchant_arrow_5 = 449;
+const feat_prestige_enchant_arrow_6 = 1045;
+const feat_prestige_enchant_arrow_20 = 1059;
+const feat_two_weapon_fighting = 41;
 
 const damage_type_bludgeoning = Damage(0);
 const damage_type_piercing = Damage(1);
@@ -175,3 +283,25 @@ const equip_index_creature_left = EquipIndex(14);
 const equip_index_creature_right = EquipIndex(15);
 const equip_index_creature_bite = EquipIndex(16);
 const equip_index_creature_skin = EquipIndex(17);
+
+const effect_type_haste = EffectType(1);
+const effect_type_damage_resistance = EffectType(2);
+const effect_type_attack_increase = EffectType(10);
+const effect_type_attack_decrease = EffectType(11);
+const effect_type_damage_reduction = EffectType(12);
+const effect_type_damage_increase = EffectType(13);
+const effect_type_damage_decrease = EffectType(14);
+const effect_type_temporary_hitpoints = EffectType(15);
+const effect_type_damage_immunity_increase = EffectType(16);
+const effect_type_damage_immunity_decrease = EffectType(17);
+const effect_type_saving_throw_increase = EffectType(26);
+const effect_type_saving_throw_decrease = EffectType(27);
+const effect_type_ability_increase = EffectType(36);
+const effect_type_ability_decrease = EffectType(37);
+const effect_type_ac_increase = EffectType(48);
+const effect_type_ac_decrease = EffectType(49);
+const effect_type_skill_increase = EffectType(55);
+const effect_type_skill_decrease = EffectType(56);
+const effect_type_miss_chance = EffectType(75);
+const effect_type_concealment = EffectType(76);
+const effect_type_bonus_spell_of_level = EffectType(78);

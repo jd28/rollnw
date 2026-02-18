@@ -340,6 +340,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
+          fetch-depth: 0
 
       - uses: lukka/get-cmake@latest
         with:
@@ -379,7 +380,7 @@ jobs:
           curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
           unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
 
-      - name: benchmark canary
+      - name: benchmark canary (contender)
         env:
           NWN_ROOT: "${{ github.workspace }}/nwn/"
         run: |
@@ -388,20 +389,49 @@ jobs:
           cmake --build --preset ci-linux-clang-bench --target rollnw_benchmark
           mkdir -p tmp/bench
           ./build-ci-linux-clang-bench/benchmarks/rollnw_benchmark \
-            --benchmark_filter='BM_smalls_.*' \
             --benchmark_min_time=0.01s \
             --benchmark_repetitions=1 \
-            --benchmark_out=tmp/bench/smalls.json \
+            --benchmark_out=tmp/bench/contender.json \
             --benchmark_out_format=json
+
+      - name: benchmark canary (baseline)
+        if: github.event_name == 'pull_request'
+        env:
+          NWN_ROOT: "${{ github.workspace }}/nwn/"
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git worktree add ../rollnw-base "$BASE_SHA"
+          cd ../rollnw-base
+          git submodule update --init --recursive
+          ./scripts/ci/ensure_nwn.sh
+          cmake --preset ci-linux-clang-bench
+          cmake --build --preset ci-linux-clang-bench --target rollnw_benchmark
+          ./build-ci-linux-clang-bench/benchmarks/rollnw_benchmark \
+            --benchmark_min_time=0.01s \
+            --benchmark_repetitions=1 \
+            --benchmark_out=${{ github.workspace }}/tmp/bench/baseline.json \
+            --benchmark_out_format=json
+
+      - name: benchmark canary compare
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 benchmarks/compare_benchmarks.py \
+            tmp/bench/baseline.json \
+            tmp/bench/contender.json \
+            --warn-threshold 10 \
+            --min-baseline-ns 50 \
+            --top 30 | tee tmp/bench/compare.txt
 
       - name: upload benchmark results
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: benchmarks-smalls
+          name: benchmarks-canary
           if-no-files-found: warn
           path: |
-            tmp/bench/smalls.json
+            tmp/bench/contender.json
+            tmp/bench/baseline.json
+            tmp/bench/compare.txt
 
       - name: ccache stats
         run: |

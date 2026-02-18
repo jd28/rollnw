@@ -44,6 +44,36 @@ const ConfigOptions& Config::options() const noexcept
     return options_;
 }
 
+const std::string& Config::combat_policy_module() const noexcept
+{
+    return options_.combat_policy_module;
+}
+
+const std::string& Config::init_module() const noexcept
+{
+    return options_.init_module;
+}
+
+const std::string& Config::profile() const noexcept
+{
+    return options_.profile;
+}
+
+void Config::set_combat_policy_module(std::string module)
+{
+    options_.combat_policy_module = std::move(module);
+}
+
+void Config::set_init_module(std::string module)
+{
+    options_.init_module = std::move(module);
+}
+
+void Config::set_profile(std::string profile)
+{
+    options_.profile = std::move(profile);
+}
+
 void Config::set_paths(const std::filesystem::path install, const std::filesystem::path user)
 {
     install_ = std::move(install);

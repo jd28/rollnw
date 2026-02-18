@@ -26,11 +26,6 @@ void register_core_math(Runtime& rt)
     sqrt_meta.return_type = rt.float_type();
     sqrt_meta.params.push_back(ParamMetadata{String("x"), rt.float_type()});
 
-    FunctionMetadata abs_meta;
-    abs_meta.name = "abs";
-    abs_meta.return_type = rt.float_type();
-    abs_meta.params.push_back(ParamMetadata{String("x"), rt.float_type()});
-
     FunctionMetadata log_meta;
     log_meta.name = "log";
     log_meta.return_type = rt.float_type();
@@ -74,7 +69,6 @@ void register_core_math(Runtime& rt)
     iface.functions.push_back(sin_meta);
     iface.functions.push_back(cos_meta);
     iface.functions.push_back(sqrt_meta);
-    iface.functions.push_back(abs_meta);
     iface.functions.push_back(log_meta);
     iface.functions.push_back(exp_meta);
     iface.functions.push_back(ceil_meta);
@@ -110,15 +104,6 @@ void register_core_math(Runtime& rt)
             return Value::make_float(static_cast<float>(std::sqrt(args[0].data.fval)));
         },
         .metadata = sqrt_meta});
-
-    rt.register_native_function(NativeFunction{
-        .name = "core.math.abs",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::fabs(args[0].data.fval)));
-        },
-        .metadata = abs_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.log",

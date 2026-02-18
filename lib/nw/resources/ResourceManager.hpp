@@ -81,6 +81,12 @@ struct ResourceManager final : public kernel::Service {
     /// Unloads module
     void unload_module();
 
+    /// Returns true if the registry has been built and frozen.
+    bool is_frozen() const noexcept { return frozen_; }
+
+    /// Clears frozen state and registry so new containers can be added and the registry rebuilt.
+    void unfreeze();
+
     /// Demands a player character file
     ResourceData demand_server_vault(StringView cdkey, StringView resref);
 

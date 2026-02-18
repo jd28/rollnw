@@ -33,17 +33,18 @@ TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
     ASSERT_NE(creature, nullptr);
 
     std::string_view source = R"(
-        from core.constants import { ability_strength };
+        from nwn1.constants import { ability_strength };
         import core.object as O;
         import core.creature as C;
         import core.effects as E;
+        import nwn1.effects as NWEff;
 
         fn main(target: Creature): int {
             var before = C.get_ability_score(target, ability_strength);
             var base_before = C.get_ability_score(target, ability_strength, true);
             var mod_before = C.get_ability_modifier(target, ability_strength);
 
-            var eff = E.ability_modifier(ability_strength, 2);
+            var eff = NWEff.ability_modifier(ability_strength, 2);
             if (!O.apply_effect(target, eff)) {
                 return 0;
             }
@@ -106,7 +107,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
     item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
 
     std::string_view source = R"(
-        from core.constants import { Ability, ability_strength, equip_index_arms };
+        from nwn1.constants import { Ability, ability_strength, equip_index_arms };
         import core.creature as C;
 
         fn main(target: Creature, item: Item): int {
@@ -175,14 +176,15 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
     item->properties.push_back(prop);
 
     std::string_view source = R"(
-        from core.constants import { Ability, ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
+        from nwn1.constants import { Ability, ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
         import core.creature as C;
         import core.effects as E;
         import core.item as I;
         import core.object as O;
+        import nwn1.effects as NWEff;
 
         fn itemprop_to_effect(ip: I.ItemProperty, _equip: EquipIndex): E.Effect {
-            return E.ability_modifier(Ability(ip.subtype), ip.cost_value);
+            return NWEff.ability_modifier(Ability(ip.subtype), ip.cost_value);
         }
 
         fn main(target: Creature, item: Item): int {
@@ -264,13 +266,14 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
 
     // Type-specific smalls generator should take precedence over C++ EffectSystem::generate()
     std::string_view source = R"(
-        from core.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
+        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
         import core.creature as C;
         import core.effects as E;
         import core.item as I;
+        import nwn1.effects as NWEff;
 
         fn typed_generator(ip: I.ItemProperty, _equip: EquipIndex): E.Effect {
-            return E.ability_modifier(ability_strength, 2);
+            return NWEff.ability_modifier(ability_strength, 2);
         }
 
         fn main(target: Creature, item: Item): int {
@@ -332,13 +335,14 @@ TEST_F(SmallsEngineIntegration, CoreItemProcessCallsSmallsDirectly)
 
     // Register a type-specific generator, then call process_item_properties from smalls
     std::string_view source = R"(
-        from core.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
+        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
         import core.creature as C;
         import core.effects as E;
         import core.item as I;
+        import nwn1.effects as NWEff;
 
         fn typed_generator(ip: I.ItemProperty, _equip: EquipIndex): E.Effect {
-            return E.ability_modifier(ability_strength, 3);
+            return NWEff.ability_modifier(ability_strength, 3);
         }
 
         fn main(target: Creature, item: Item): int {
@@ -395,7 +399,7 @@ TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
 
     // Default smalls generators handle ip_ability_bonus directly (no C++ fallback)
     std::string_view source = R"(
-        from core.constants import { ability_strength, equip_index_arms, EquipIndex };
+        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex };
         import core.creature as C;
         import core.item as I;
 
@@ -432,4 +436,58 @@ TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
 
     nw::kernel::objects().destroy(item->handle());
     nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, CoreCombatCanSimulateAttack)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(attacker, nullptr);
+
+    auto* target = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(target, nullptr);
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        import core.combat as combat;
+
+        fn main(attacker: Creature, target: Creature): int {
+            var data = combat.resolve_attack(attacker, target);
+            if (!combat.attack_data_is_valid(data)) {
+                return 0;
+            }
+            if (combat.attack_data_attack_type(data) < 0) {
+                return 0;
+            }
+            if (combat.attack_data_attack_result(data) < 0) {
+                return 0;
+            }
+            if (!combat.attack_data_target_is_creature(data)) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.core_combat_simulate_attack", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto attacker_value = nw::smalls::Value::make_object(attacker->handle());
+    attacker_value.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+    args.push_back(attacker_value);
+
+    auto target_value = nw::smalls::Value::make_object(target->handle());
+    target_value.type_id = rt.object_subtype_for_tag(target->handle().type);
+    args.push_back(target_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(target->handle());
+    nw::kernel::objects().destroy(attacker->handle());
 }

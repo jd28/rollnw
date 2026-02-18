@@ -2,6 +2,7 @@
 
 #include <nw/functions.hpp>
 #include <nw/kernel/EventSystem.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -12,6 +13,8 @@
 #include <nw/rules/feats.hpp>
 #include <nw/scriptapi.hpp>
 #include <nw/serialization/GffBuilder.hpp>
+#include <nw/smalls/Smalls.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -311,6 +314,62 @@ TEST(Creature, BaseAttackBonus)
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_EQ(55, nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
+}
+
+TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto attacker = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    EXPECT_TRUE(attacker);
+
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    EXPECT_TRUE(target);
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("test.custom_combat_policy_attack_full_payload", R"(
+        import core.combat as C;
+        from nwn1.constants import { attack_type_offhand };
+
+        fn resolve_attack(_attacker: Creature, _target: object): C.AttackData {
+            var data = C._cpp_attack_data_create();
+            C._cpp_attack_data_set_attack_type(data, attack_type_offhand as int);
+            C._cpp_attack_data_set_attack_result(data, 2);
+            C._cpp_attack_data_set_attack_roll(data, 19);
+            C._cpp_attack_data_set_attack_bonus(data, 42);
+            C._cpp_attack_data_set_armor_class(data, 13);
+            C._cpp_attack_data_set_nth_attack(data, 1);
+            C._cpp_attack_data_set_damage_total(data, 17);
+            C._cpp_attack_data_set_critical_multiplier(data, 3);
+            C._cpp_attack_data_set_critical_threat(data, 4);
+            C._cpp_attack_data_set_concealment(data, 11);
+            C._cpp_attack_data_set_iteration_penalty(data, 5);
+            C._cpp_attack_data_set_is_ranged(data, true);
+            C._cpp_attack_data_set_target_is_creature(data, true);
+            return data;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nwk::config().set_combat_policy_module("test.custom_combat_policy_attack_full_payload");
+    auto attack = nwn1::resolve_attack(attacker, target);
+    ASSERT_NE(attack, nullptr);
+    EXPECT_EQ(attack->type, nwn1::attack_type_offhand);
+    EXPECT_EQ(attack->result, nw::AttackResult::hit_by_roll);
+    EXPECT_EQ(attack->attack_roll, 19);
+    EXPECT_EQ(attack->attack_bonus, 42);
+    EXPECT_EQ(attack->armor_class, 13);
+    EXPECT_EQ(attack->nth_attack, 1);
+    EXPECT_EQ(attack->damage_total, 17);
+    EXPECT_EQ(attack->multiplier, 3);
+    EXPECT_EQ(attack->threat_range, 4);
+    EXPECT_EQ(attack->concealment, 11);
+    EXPECT_EQ(attack->iteration_penalty, 5);
+    EXPECT_TRUE(attack->is_ranged_attack);
+    EXPECT_TRUE(attack->target_is_creature);
+    nwk::config().set_combat_policy_module("core.combat");
 }
 
 TEST(Creature, AttackBonus)

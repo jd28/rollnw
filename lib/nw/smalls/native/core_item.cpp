@@ -2,10 +2,10 @@
 
 #include "../../formats/StaticTwoDA.hpp"
 #include "../../objects/ObjectManager.hpp"
+#include "../../profiles/nwn1/scriptapi.hpp"
 #include "../../rules/effects.hpp"
 #include "../../rules/items.hpp"
 #include "../../scriptapi.hpp"
-#include "../../profiles/nwn1/scriptapi.hpp"
 
 namespace nw::smalls {
 
@@ -103,8 +103,14 @@ void register_core_item(Runtime& rt)
                 }
             }
             return 0; })
-        .function("__equip_index_to_attack_type", +[](int32_t equip_index) -> int32_t {
-            return *nwn1::equip_index_to_attack_type(static_cast<nw::EquipIndex>(equip_index)); })
+        .function("__equip_index_to_attack_type", +[](int32_t equip_index) -> int32_t { return *nwn1::equip_index_to_attack_type(static_cast<nw::EquipIndex>(equip_index)); })
+
+        .function("get_baseitem_type", +[](nw::ObjectHandle it) {
+            auto* item = as_item(it);
+            if (!item) { return -1; }
+            return *item->baseitem; })
+
+        // The End
         .finalize();
 }
 

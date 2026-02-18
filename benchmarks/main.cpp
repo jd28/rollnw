@@ -12,13 +12,14 @@
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 
-#include <nw/profiles/nwn1/Profile.hpp>
-#include <nw/profiles/nwn1/rules.hpp>
-#include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/functions.hpp>
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/profiles/nwn1/rules.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/effects.hpp>
+#include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <benchmark/benchmark.h>
@@ -34,6 +35,30 @@ namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
+
+static fs::path resolve_stdlib_module_path(const char* argv0, std::string_view module)
+{
+    std::error_code ec;
+
+    if (argv0 && argv0[0] != '\0') {
+        fs::path exe_path = fs::absolute(fs::path(argv0), ec);
+        if (!ec) {
+            fs::path exe_candidate = fs::weakly_canonical(exe_path, ec).parent_path() / "stdlib" / module;
+            ec.clear();
+            if (fs::exists(exe_candidate, ec) && fs::is_directory(exe_candidate, ec)) {
+                return exe_candidate;
+            }
+        }
+        ec.clear();
+    }
+
+    fs::path cwd_candidate = fs::path{"stdlib"} / module;
+    if (fs::exists(cwd_candidate, ec) && fs::is_directory(cwd_candidate, ec)) {
+        return cwd_candidate;
+    }
+
+    return cwd_candidate;
+}
 
 static void BM_parse_feat_2da_static(benchmark::State& state)
 {
@@ -213,6 +238,702 @@ static void BM_creature_attack_3(benchmark::State& state)
     }
 }
 
+static bool ensure_combat_passthrough_module()
+{
+    static bool loaded = false;
+    if (loaded) {
+        return true;
+    }
+
+    auto* script = nw::kernel::runtime().load_module_from_source("bench.combat_passthrough", R"(
+        import core.combat as C;
+        from core.constants import { AttackType, Damage };
+
+        fn base_attack_bonus(obj: Creature): int { return C.base_attack_bonus(obj); }
+        fn is_flanked(target: Creature, attacker: Creature): bool { return C.is_flanked(target, attacker); }
+        fn resolve_attack_bonus(obj: Creature, attack_type: AttackType, versus: object): int { return C.resolve_attack_bonus(obj, attack_type, versus); }
+        fn resolve_attack_roll(obj: Creature, attack_type: AttackType, versus: object): int { return C.resolve_attack_roll(obj, attack_type, versus); }
+        fn resolve_attack_type(obj: Creature): AttackType { return C.resolve_attack_type(obj); }
+        fn resolve_critical_multiplier(obj: Creature, attack_type: AttackType, versus: object): int { return C.resolve_critical_multiplier(obj, attack_type, versus); }
+        fn resolve_critical_threat(obj: Creature, attack_type: AttackType): int { return C.resolve_critical_threat(obj, attack_type); }
+        fn resolve_damage_immunity(obj: object, damage_type: Damage, versus: object): int { return C.resolve_damage_immunity(obj, damage_type, versus); }
+        fn resolve_iteration_penalty(obj: Creature, attack_type: AttackType): int { return C.resolve_iteration_penalty(obj, attack_type); }
+        fn resolve_weapon_power(obj: Creature, weapon: Item): int { return C.resolve_weapon_power(obj, weapon); }
+    )");
+
+    if (!script || script->errors() != 0) {
+        return false;
+    }
+    loaded = true;
+    return true;
+}
+
+static void benchmark_resolve_attack_policy(benchmark::State& state, std::string_view policy_module)
+{
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load benchmark creatures");
+        return;
+    }
+
+    if (policy_module == "bench.combat_passthrough"sv && !ensure_combat_passthrough_module()) {
+        state.SkipWithError("failed to load bench.combat_passthrough module");
+        return;
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module(std::string{policy_module});
+
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack(obj, vs);
+        benchmark::DoNotOptimize(out);
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+}
+
+static void BM_creature_attack_policy_cpp_only(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy(state, ""sv);
+}
+
+static void BM_creature_attack_policy_core_combat(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy(state, "core.combat"sv);
+}
+
+static void BM_creature_attack_policy_custom_passthrough(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy(state, "bench.combat_passthrough"sv);
+}
+
+static void benchmark_resolve_attack_policy_module_context(benchmark::State& state, std::string_view policy_module)
+{
+    static constexpr std::string_view default_attacker = "test_data/user/development/pl_agent_001.utc";
+    static constexpr std::string_view default_target = "test_data/user/development/nw_chicken.utc";
+
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto obj = nwk::objects().load_file<nw::Creature>(default_attacker);
+    auto vs = nwk::objects().load_file<nw::Creature>(default_target);
+    if (!obj || !vs) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load module-context benchmark creatures");
+        return;
+    }
+
+    if (policy_module == "bench.combat_passthrough"sv && !ensure_combat_passthrough_module()) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load bench.combat_passthrough module");
+        return;
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module(std::string{policy_module});
+
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack(obj, vs);
+        benchmark::DoNotOptimize(out);
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static void benchmark_resolve_attack_policy_module_context_case(
+    benchmark::State& state, std::string_view policy_module,
+    std::string_view attacker_path, std::string_view target_path,
+    bool magic_profile = false)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto obj = nwk::objects().load_file<nw::Creature>(attacker_path);
+    auto vs = nwk::objects().load_file<nw::Creature>(target_path);
+    if (!obj || !vs) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load module-context benchmark creatures");
+        return;
+    }
+
+    if (magic_profile) {
+        if (!nw::apply_effect(obj, nwn1::effect_haste())
+            || !nw::apply_effect(obj, nwn1::effect_attack_modifier(nwn1::attack_type_any, 5))
+            || !nw::apply_effect(obj, nwn1::effect_damage_bonus(nwn1::damage_type_fire, {2, 6, 4}))
+            || !nw::apply_effect(vs, nwn1::effect_concealment(30))
+            || !nw::apply_effect(vs, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 20, 100))
+            || !nw::apply_effect(vs, nwn1::effect_damage_immunity(nwn1::damage_type_fire, 30))) {
+            nwk::unload_module();
+            state.SkipWithError("failed to apply benchmark magic profile effects");
+            return;
+        }
+    }
+
+    if (policy_module == "bench.combat_passthrough"sv && !ensure_combat_passthrough_module()) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load bench.combat_passthrough module");
+        return;
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module(std::string{policy_module});
+
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack(obj, vs);
+        benchmark::DoNotOptimize(out);
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static void BM_creature_attack_policy_cpp_only_module_context(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context(state, ""sv);
+}
+
+static void BM_creature_attack_policy_core_combat_module_context(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context(state, "core.combat"sv);
+}
+
+static void BM_creature_attack_policy_custom_passthrough_module_context(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context(state, "bench.combat_passthrough"sv);
+}
+
+static void BM_creature_attack_policy_cpp_only_module_context_case_drorry(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        ""sv,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_policy_core_combat_module_context_case_drorry(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        "core.combat"sv,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_policy_cpp_only_module_context_case_dexweapfin(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        ""sv,
+        "test_data/user/development/dexweapfin.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_policy_core_combat_module_context_case_dexweapfin(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        "core.combat"sv,
+        "test_data/user/development/dexweapfin.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_policy_cpp_only_module_context_case_drorry_magic(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        ""sv,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv,
+        true);
+}
+
+static void BM_creature_attack_policy_core_combat_module_context_case_drorry_magic(benchmark::State& state)
+{
+    benchmark_resolve_attack_policy_module_context_case(
+        state,
+        "core.combat"sv,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv,
+        true);
+}
+
+static nw::smalls::Script* load_core_combat_direct_benchmark_script()
+{
+    return nw::kernel::runtime().load_module_from_source("bench.core_combat_direct", R"(
+        import core.combat as C;
+
+        fn resolve_attack_result(attacker: Creature, target: Creature): int {
+            var data = C.resolve_attack(attacker, target);
+            if (!C.attack_data_is_valid(data)) {
+                return -1;
+            }
+            return C.attack_data_attack_result(data);
+        }
+    )");
+}
+
+static void benchmark_resolve_attack_direct_module_context(benchmark::State& state, bool script_path)
+{
+    static constexpr std::string_view default_attacker = "test_data/user/development/pl_agent_001.utc";
+    static constexpr std::string_view default_target = "test_data/user/development/nw_chicken.utc";
+
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto* attacker = nwk::objects().load_file<nw::Creature>(default_attacker);
+    auto* target = nwk::objects().load_file<nw::Creature>(default_target);
+    if (!attacker || !target) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load direct benchmark creatures");
+        return;
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module("");
+
+    if (!script_path) {
+        for (auto _ : state) {
+            auto out = nwn1::resolve_attack(attacker, target);
+            benchmark::DoNotOptimize(out);
+        }
+    } else {
+        auto* script = load_core_combat_direct_benchmark_script();
+        if (!script || script->errors() != 0) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to load direct core.combat benchmark script");
+            return;
+        }
+
+        nw::Vector<nw::smalls::Value> args;
+        auto attacker_value = nw::smalls::Value::make_object(attacker->handle());
+        attacker_value.type_id = nwk::runtime().object_subtype_for_tag(attacker->handle().type);
+        args.push_back(attacker_value);
+
+        auto target_value = nw::smalls::Value::make_object(target->handle());
+        target_value.type_id = nwk::runtime().object_subtype_for_tag(target->handle().type);
+        args.push_back(target_value);
+
+        auto warmup = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+        if (!warmup.ok()) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to execute direct core.combat benchmark script");
+            return;
+        }
+
+        auto* gc = nwk::runtime().gc();
+        size_t iters = 0;
+
+        for (auto _ : state) {
+            auto out = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+            benchmark::DoNotOptimize(out);
+
+            ++iters;
+            if (gc && (iters % 1024) == 0) {
+                state.PauseTiming();
+                gc->collect_minor();
+                state.ResumeTiming();
+            }
+        }
+
+        if (gc) {
+            gc->collect_minor();
+        }
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static void benchmark_resolve_attack_direct_module_context_case(
+    benchmark::State& state, bool script_path,
+    std::string_view attacker_path, std::string_view target_path,
+    bool magic_profile = false)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto* attacker = nwk::objects().load_file<nw::Creature>(attacker_path);
+    auto* target = nwk::objects().load_file<nw::Creature>(target_path);
+    if (!attacker || !target) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load direct benchmark creatures");
+        return;
+    }
+
+    if (magic_profile) {
+        if (!nw::apply_effect(attacker, nwn1::effect_haste())
+            || !nw::apply_effect(attacker, nwn1::effect_attack_modifier(nwn1::attack_type_any, 5))
+            || !nw::apply_effect(attacker, nwn1::effect_damage_bonus(nwn1::damage_type_fire, {2, 6, 4}))
+            || !nw::apply_effect(target, nwn1::effect_concealment(30))
+            || !nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 20, 100))
+            || !nw::apply_effect(target, nwn1::effect_damage_immunity(nwn1::damage_type_fire, 30))) {
+            nwk::unload_module();
+            state.SkipWithError("failed to apply benchmark magic profile effects");
+            return;
+        }
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module("");
+
+    if (!script_path) {
+        for (auto _ : state) {
+            auto out = nwn1::resolve_attack(attacker, target);
+            benchmark::DoNotOptimize(out);
+        }
+    } else {
+        auto* script = load_core_combat_direct_benchmark_script();
+        if (!script || script->errors() != 0) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to load direct core.combat benchmark script");
+            return;
+        }
+
+        nw::Vector<nw::smalls::Value> args;
+        auto attacker_value = nw::smalls::Value::make_object(attacker->handle());
+        attacker_value.type_id = nwk::runtime().object_subtype_for_tag(attacker->handle().type);
+        args.push_back(attacker_value);
+
+        auto target_value = nw::smalls::Value::make_object(target->handle());
+        target_value.type_id = nwk::runtime().object_subtype_for_tag(target->handle().type);
+        args.push_back(target_value);
+
+        auto warmup = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+        if (!warmup.ok()) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to execute direct core.combat benchmark script");
+            return;
+        }
+
+        auto* gc = nwk::runtime().gc();
+        size_t iters = 0;
+
+        for (auto _ : state) {
+            auto out = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+            benchmark::DoNotOptimize(out);
+
+            ++iters;
+            if (gc && (iters % 1024) == 0) {
+                state.PauseTiming();
+                gc->collect_minor();
+                state.ResumeTiming();
+            }
+        }
+
+        if (gc) {
+            gc->collect_minor();
+        }
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static bool apply_effect_stack_profile(nw::Creature* attacker, nw::Creature* target, int count)
+{
+    if (!attacker || !target || count <= 0) {
+        return true;
+    }
+
+    for (int i = 0; i < count; ++i) {
+        if (!nw::apply_effect(attacker, nwn1::effect_attack_modifier(nwn1::attack_type_any, 1 + (i % 3)))) {
+            return false;
+        }
+        if (!nw::apply_effect(attacker, nwn1::effect_damage_bonus(nwn1::damage_type_fire, {1, 4, i % 2}))) {
+            return false;
+        }
+        if (!nw::apply_effect(target, nwn1::effect_concealment(10 + ((i % 3) * 5)))) {
+            return false;
+        }
+        if (!nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 5 + (i % 4), 0))) {
+            return false;
+        }
+        if (!nw::apply_effect(target, nwn1::effect_damage_immunity(nwn1::damage_type_fire, 2 + (i % 4)))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static void benchmark_resolve_attack_effect_stack(
+    benchmark::State& state, bool script_direct, std::string_view policy_module)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto* attacker = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto* target = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!attacker || !target) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load benchmark creatures");
+        return;
+    }
+
+    if (!apply_effect_stack_profile(attacker, target, static_cast<int>(state.range(0)))) {
+        nwk::unload_module();
+        state.SkipWithError("failed to apply effect stack profile");
+        return;
+    }
+
+    if (policy_module == "core.combat"sv) {
+        auto* script = nw::kernel::runtime().load_module("core.combat");
+        if (!script || script->errors() != 0) {
+            nwk::unload_module();
+            state.SkipWithError("failed to load core.combat policy module");
+            return;
+        }
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module(std::string{policy_module});
+
+    if (!script_direct) {
+        for (auto _ : state) {
+            auto out = nwn1::resolve_attack(attacker, target);
+            benchmark::DoNotOptimize(out);
+        }
+    } else {
+        auto* script = load_core_combat_direct_benchmark_script();
+        if (!script || script->errors() != 0) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to load direct core.combat benchmark script");
+            return;
+        }
+
+        nw::Vector<nw::smalls::Value> args;
+        auto attacker_value = nw::smalls::Value::make_object(attacker->handle());
+        attacker_value.type_id = nwk::runtime().object_subtype_for_tag(attacker->handle().type);
+        args.push_back(attacker_value);
+
+        auto target_value = nw::smalls::Value::make_object(target->handle());
+        target_value.type_id = nwk::runtime().object_subtype_for_tag(target->handle().type);
+        args.push_back(target_value);
+
+        auto warmup = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+        if (!warmup.ok()) {
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to execute direct core.combat benchmark script");
+            return;
+        }
+
+        auto* gc = nwk::runtime().gc();
+        size_t iters = 0;
+        for (auto _ : state) {
+            auto out = nwk::runtime().execute_script(script, "resolve_attack_result", args);
+            benchmark::DoNotOptimize(out);
+            ++iters;
+            if (gc && (iters % 1024) == 0) {
+                state.PauseTiming();
+                gc->collect_minor();
+                state.ResumeTiming();
+            }
+        }
+
+        if (gc) {
+            gc->collect_minor();
+        }
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static void BM_creature_attack_policy_core_combat_module_context_effect_stack(benchmark::State& state)
+{
+    benchmark_resolve_attack_effect_stack(state, false, "core.combat"sv);
+}
+
+static void BM_creature_attack_direct_core_combat_module_context_effect_stack(benchmark::State& state)
+{
+    benchmark_resolve_attack_effect_stack(state, true, ""sv);
+}
+
+static void BM_creature_attack_direct_cpp_module_context_effect_stack(benchmark::State& state)
+{
+    benchmark_resolve_attack_effect_stack(state, false, ""sv);
+}
+
+static void BM_creature_attack_direct_cpp_module_context(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context(state, false);
+}
+
+static void BM_creature_attack_direct_core_combat_module_context(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context(state, true);
+}
+
+static void BM_creature_attack_direct_cpp_module_context_case_drorry(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        false,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_direct_core_combat_module_context_case_drorry(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        true,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_direct_cpp_module_context_case_dexweapfin(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        false,
+        "test_data/user/development/dexweapfin.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_direct_core_combat_module_context_case_dexweapfin(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        true,
+        "test_data/user/development/dexweapfin.utc"sv,
+        "test_data/user/development/drorry.utc"sv);
+}
+
+static void BM_creature_attack_direct_cpp_module_context_case_drorry_magic(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        false,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv,
+        true);
+}
+
+static void BM_creature_attack_direct_core_combat_module_context_case_drorry_magic(benchmark::State& state)
+{
+    benchmark_resolve_attack_direct_module_context_case(
+        state,
+        true,
+        "test_data/user/development/drorry.utc"sv,
+        "test_data/user/development/drorry.utc"sv,
+        true);
+}
+
+static void benchmark_resolve_attack_bonus_policy_module_context(
+    benchmark::State& state, std::string_view policy_module, bool cold_cache)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto* obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    if (!obj || !vs) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load module-context benchmark creatures");
+        return;
+    }
+
+    auto previous_policy = nwk::config().combat_policy_module();
+    nwk::config().set_combat_policy_module(std::string{policy_module});
+
+    nw::Effect* active = nullptr;
+    bool toggle = false;
+
+    if (cold_cache) {
+        active = nwn1::effect_attack_modifier(nwn1::attack_type_any, 1);
+        if (!active || !nw::apply_effect(obj, active)) {
+            if (active) {
+                nw::kernel::effects().destroy(active);
+            }
+            nwk::config().set_combat_policy_module(previous_policy);
+            nwk::unload_module();
+            state.SkipWithError("failed to apply priming attack modifier effect");
+            return;
+        }
+    }
+
+    for (auto _ : state) {
+        if (cold_cache) {
+            if (active) {
+                nw::remove_effect(obj, active);
+                active = nullptr;
+            }
+
+            int value = toggle ? 1 : 2;
+            toggle = !toggle;
+            active = nwn1::effect_attack_modifier(nwn1::attack_type_any, value);
+            if (!active || !nw::apply_effect(obj, active)) {
+                if (active) {
+                    nw::kernel::effects().destroy(active);
+                    active = nullptr;
+                }
+                nwk::config().set_combat_policy_module(previous_policy);
+                nwk::unload_module();
+                state.SkipWithError("failed to rotate attack modifier effect");
+                return;
+            }
+        }
+
+        auto out = nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, vs);
+        benchmark::DoNotOptimize(out);
+    }
+
+    if (active) {
+        nw::remove_effect(obj, active);
+    }
+
+    nwk::config().set_combat_policy_module(previous_policy);
+    nwk::unload_module();
+}
+
+static void BM_creature_attack_bonus_policy_cpp_only_module_context_hot(benchmark::State& state)
+{
+    benchmark_resolve_attack_bonus_policy_module_context(state, ""sv, false);
+}
+
+static void BM_creature_attack_bonus_policy_core_combat_module_context_hot(benchmark::State& state)
+{
+    benchmark_resolve_attack_bonus_policy_module_context(state, "core.combat"sv, false);
+}
+
+static void BM_creature_attack_bonus_policy_cpp_only_module_context_cold(benchmark::State& state)
+{
+    benchmark_resolve_attack_bonus_policy_module_context(state, ""sv, true);
+}
+
+static void BM_creature_attack_bonus_policy_core_combat_module_context_cold(benchmark::State& state)
+{
+    benchmark_resolve_attack_bonus_policy_module_context(state, "core.combat"sv, true);
+}
+
 static void BM_creature_attack_bonus(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
@@ -348,6 +1069,33 @@ BENCHMARK(BM_creature_armor_class);
 BENCHMARK(BM_creature_attack);
 BENCHMARK(BM_creature_attack_2);
 BENCHMARK(BM_creature_attack_3);
+BENCHMARK(BM_creature_attack_policy_cpp_only);
+BENCHMARK(BM_creature_attack_policy_core_combat);
+BENCHMARK(BM_creature_attack_policy_custom_passthrough);
+BENCHMARK(BM_creature_attack_policy_cpp_only_module_context);
+BENCHMARK(BM_creature_attack_policy_core_combat_module_context);
+BENCHMARK(BM_creature_attack_policy_custom_passthrough_module_context);
+BENCHMARK(BM_creature_attack_direct_cpp_module_context);
+BENCHMARK(BM_creature_attack_direct_core_combat_module_context);
+BENCHMARK(BM_creature_attack_policy_cpp_only_module_context_case_drorry);
+BENCHMARK(BM_creature_attack_policy_core_combat_module_context_case_drorry);
+BENCHMARK(BM_creature_attack_policy_cpp_only_module_context_case_dexweapfin);
+BENCHMARK(BM_creature_attack_policy_core_combat_module_context_case_dexweapfin);
+BENCHMARK(BM_creature_attack_direct_cpp_module_context_case_drorry);
+BENCHMARK(BM_creature_attack_direct_core_combat_module_context_case_drorry);
+BENCHMARK(BM_creature_attack_direct_cpp_module_context_case_dexweapfin);
+BENCHMARK(BM_creature_attack_direct_core_combat_module_context_case_dexweapfin);
+BENCHMARK(BM_creature_attack_policy_cpp_only_module_context_case_drorry_magic);
+BENCHMARK(BM_creature_attack_policy_core_combat_module_context_case_drorry_magic);
+BENCHMARK(BM_creature_attack_direct_cpp_module_context_case_drorry_magic);
+BENCHMARK(BM_creature_attack_direct_core_combat_module_context_case_drorry_magic);
+BENCHMARK(BM_creature_attack_policy_core_combat_module_context_effect_stack)->Arg(0)->Arg(5)->Arg(10)->Arg(20);
+BENCHMARK(BM_creature_attack_direct_core_combat_module_context_effect_stack)->Arg(0)->Arg(5)->Arg(10)->Arg(20);
+BENCHMARK(BM_creature_attack_direct_cpp_module_context_effect_stack)->Arg(0)->Arg(5)->Arg(10)->Arg(20);
+BENCHMARK(BM_creature_attack_bonus_policy_cpp_only_module_context_hot);
+BENCHMARK(BM_creature_attack_bonus_policy_core_combat_module_context_hot);
+BENCHMARK(BM_creature_attack_bonus_policy_cpp_only_module_context_cold);
+BENCHMARK(BM_creature_attack_bonus_policy_core_combat_module_context_cold);
 BENCHMARK(BM_creature_attack_bonus);
 BENCHMARK(BM_creature_attack_roll);
 
@@ -363,9 +1111,15 @@ BENCHMARK(BM_rules_modifier);
 static void BM_itemprop_smalls_process(benchmark::State& state)
 {
     auto* creature = nwk::objects().make<nw::Creature>();
-    if (!creature) { state.SkipWithError("failed to create creature"); return; }
+    if (!creature) {
+        state.SkipWithError("failed to create creature");
+        return;
+    }
     auto* item = nwk::objects().make<nw::Item>();
-    if (!item) { state.SkipWithError("failed to create item"); return; }
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
 
     item->baseitem = nwn1::base_item_gloves;
     item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
@@ -375,9 +1129,23 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
     nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
 
+    auto* gc = nwk::runtime().gc();
+    size_t iters = 0;
+
     for (auto _ : state) {
         nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
         nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+
+        ++iters;
+        if (gc && (iters % 1024) == 0) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+        }
+    }
+
+    if (gc) {
+        gc->collect_minor();
     }
 
     nwk::objects().destroy(item->handle());
@@ -388,9 +1156,15 @@ BENCHMARK(BM_itemprop_smalls_process);
 static void BM_itemprop_cpp_generate(benchmark::State& state)
 {
     auto* creature = nwk::objects().make<nw::Creature>();
-    if (!creature) { state.SkipWithError("failed to create creature"); return; }
+    if (!creature) {
+        state.SkipWithError("failed to create creature");
+        return;
+    }
     auto* item = nwk::objects().make<nw::Item>();
-    if (!item) { state.SkipWithError("failed to create item"); return; }
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
 
     item->baseitem = nwn1::base_item_gloves;
     item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
@@ -444,7 +1218,8 @@ int main(int argc, char** argv)
     nw::init_logger(argc, argv);
     nwk::config().initialize();
     nwk::services().start();
-    nw::kernel::runtime().add_module_path(fs::path("stdlib/core"));
+    nw::kernel::runtime().add_module_path(resolve_stdlib_module_path(argv[0], "core"));
+    nw::kernel::runtime().add_module_path(resolve_stdlib_module_path(argv[0], "nwn1"));
 
     ::benchmark::Initialize(&argc, argv);
     if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;

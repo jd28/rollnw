@@ -5,6 +5,7 @@
 #include <nw/smalls/Context.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/VirtualMachine.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -112,9 +113,24 @@ static void BM_smalls_execute(benchmark::State& state)
     }
 
     nw::smalls::VirtualMachine vm{};
+    auto* gc = nw::kernel::runtime().gc();
+    size_t iters_since_gc = 0;
+    constexpr size_t k_gc_interval = 256;
+
     for (auto _ : state) {
         auto res = vm.execute(&module, "main", {});
         benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters_since_gc >= k_gc_interval) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters_since_gc = 0;
+        }
+    }
+
+    if (gc) {
+        gc->collect_major();
     }
 }
 BENCHMARK(BM_smalls_execute);

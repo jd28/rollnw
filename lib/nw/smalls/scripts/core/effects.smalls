@@ -1,35 +1,14 @@
-from core.constants import {
-    Ability,
-    ArmorClass,
-    AttackType,
-    Class,
-    Damage,
-    DamageCategory,
-    MissChanceType,
-    Save,
-    SaveVersus,
-    Skill,
-};
-
 [[native]] type Effect;
 
+[[native]] fn invalid(): Effect;
 [[native]] fn create(): Effect;
 [[native]] fn apply(effect: Effect): void;
 [[native]] fn is_valid(effect: Effect): bool;
 [[native]] fn destroy(effect: Effect): void;
-
-[[native]] fn ability_modifier(ability: Ability, modifier: int): Effect;
-[[native]] fn armor_class_modifier(ac_type: ArmorClass, modifier: int): Effect;
-[[native]] fn attack_modifier(attack: AttackType, modifier: int): Effect;
-[[native]] fn bonus_spell_slot(class_id: Class, spell_level: int): Effect;
-[[native]] fn concealment(value: int, miss_chance_type: MissChanceType): Effect;
-[[native]] fn damage_bonus(damage_type: Damage, dice: int, sides: int, bonus: int, category: DamageCategory): Effect;
-[[native]] fn damage_immunity(damage_type: Damage, value: int): Effect;
-[[native]] fn damage_penalty(damage_type: Damage, dice: int, sides: int, bonus: int): Effect;
-[[native]] fn damage_reduction(value: int, power: int, max: int): Effect;
-[[native]] fn damage_resistance(damage_type: Damage, value: int, max: int): Effect;
-[[native]] fn haste(): Effect;
-[[native]] fn hitpoints_temporary(amount: int): Effect;
-[[native]] fn miss_chance(value: int, miss_chance_type: MissChanceType): Effect;
-[[native]] fn save_modifier(save: Save, modifier: int, versus: SaveVersus): Effect;
-[[native]] fn skill_modifier(skill: Skill, modifier: int): Effect;
+[[native]] fn get_int(effect: Effect, index: int): int;
+[[native]] fn set_int(effect: Effect, index: int, value: int): void;
+[[native]] fn set_ints(effect: Effect, values: array!(int)): void;
+[[native]] fn get_type(effect: Effect): int;
+[[native]] fn set_type(effect: Effect, effect_type: int): void;
+[[native]] fn get_subtype(effect: Effect): int;
+[[native]] fn set_subtype(effect: Effect, subtype: int): void;

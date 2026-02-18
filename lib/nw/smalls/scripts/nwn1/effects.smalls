@@ -1,0 +1,186 @@
+import core.effects as eff;
+
+from core.math import { abs, clamp };
+
+from nwn1.constants import {
+    Ability,
+    ArmorClass,
+    AttackType,
+    Class,
+    Damage,
+    DamageCategory,
+    MissChanceType,
+    Save,
+    SaveVersus,
+    Skill,
+    effect_type_ability_increase,
+    effect_type_ability_decrease,
+    effect_type_ac_increase,
+    effect_type_ac_decrease,
+    effect_type_attack_increase,
+    effect_type_attack_decrease,
+    effect_type_bonus_spell_of_level,
+    effect_type_concealment,
+    effect_type_damage_increase,
+    effect_type_damage_decrease,
+    effect_type_damage_immunity_increase,
+    effect_type_damage_immunity_decrease,
+    effect_type_damage_reduction,
+    effect_type_damage_resistance,
+    effect_type_haste,
+    effect_type_temporary_hitpoints,
+    effect_type_miss_chance,
+    effect_type_saving_throw_increase,
+    effect_type_saving_throw_decrease,
+    effect_type_skill_increase,
+    effect_type_skill_decrease,
+};
+
+fn ability_modifier(ability: Ability, modifier: int): eff.Effect {
+    if (modifier == 0) { return eff.invalid(); }
+    var result = eff.create();
+    const et = modifier > 0 ? effect_type_ability_increase : effect_type_ability_decrease;
+    const value = modifier > 0 ? modifier : -modifier;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, ability as int);
+    eff.set_int(result, 0, value);
+    return result;
+}
+
+fn armor_class_modifier(ac_type: ArmorClass, modifier: int): eff.Effect {
+    if (modifier == 0) { return eff.invalid(); }
+    var result = eff.create();
+    const et = modifier > 0 ? effect_type_ac_increase : effect_type_ac_decrease;
+    const value = modifier > 0 ? modifier : -modifier;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, ac_type as int);
+    eff.set_int(result, 0, value);
+    return result;
+}
+
+fn attack_modifier(attack: AttackType, modifier: int): eff.Effect {
+    if (modifier == 0) { return eff.invalid(); }
+    var result = eff.create();
+    const et = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, attack as int);
+    eff.set_int(result, 0, abs(modifier));
+    return result;
+}
+
+fn bonus_spell_slot(class_id: Class, spell_level: int): eff.Effect {
+    if (spell_level < 0 || spell_level > 9) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_bonus_spell_of_level as int);
+    eff.set_subtype(result, class_id as int);
+    eff.set_int(result, 0, spell_level);
+    return result;
+}
+
+fn concealment(value: int, miss_chance_type: MissChanceType): eff.Effect {
+    if (value <= 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_concealment as int);
+    eff.set_subtype(result, miss_chance_type as int);
+    eff.set_int(result, 0, value);
+    return result;
+}
+
+fn damage_bonus(damage_type: Damage, dice: int, sides: int, bonus: int, category: DamageCategory): eff.Effect {
+    if (dice == 0 && sides == 0 && bonus == 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_damage_increase as int);
+    eff.set_subtype(result, damage_type as int);
+    eff.set_int(result, 0, dice);
+    eff.set_int(result, 1, sides);
+    eff.set_int(result, 2, bonus);
+    eff.set_int(result, 3, category as int);
+    return result;
+}
+
+fn damage_immunity(damage_type: Damage, value: int): eff.Effect {
+    if (value == 0) { return eff.invalid(); }
+    var clamped = clamp(value, -100, 100);
+    var result = eff.create();
+    const et = clamped > 0 ? effect_type_damage_immunity_increase : effect_type_damage_immunity_decrease;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, damage_type as int);
+    eff.set_int(result, 0, abs(clamped));
+    return result;
+}
+
+fn damage_penalty(damage_type: Damage, dice: int, sides: int, bonus: int): eff.Effect {
+    if (dice == 0 && sides == 0 && bonus == 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_damage_decrease as int);
+    eff.set_subtype(result, damage_type as int);
+    eff.set_int(result, 0, dice);
+    eff.set_int(result, 1, sides);
+    eff.set_int(result, 2, bonus);
+    return result;
+}
+
+fn damage_reduction(value: int, power: int, max: int): eff.Effect {
+    if (value == 0 || power <= 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_damage_reduction as int);
+    eff.set_int(result, 0, value);
+    eff.set_int(result, 1, power);
+    eff.set_int(result, 2, max);
+    return result;
+}
+
+fn damage_resistance(damage_type: Damage, value: int, max: int): eff.Effect {
+    if (value <= 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_damage_resistance as int);
+    eff.set_subtype(result, damage_type as int);
+    eff.set_int(result, 0, value);
+    eff.set_int(result, 1, max);
+    return result;
+}
+
+fn haste(): eff.Effect {
+    var result = eff.create();
+    eff.set_type(result, effect_type_haste as int);
+    return result;
+}
+
+fn hitpoints_temporary(amount: int): eff.Effect {
+    if (amount <= 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_temporary_hitpoints as int);
+    eff.set_int(result, 0, amount);
+    return result;
+}
+
+fn miss_chance(value: int, miss_chance_type: MissChanceType): eff.Effect {
+    if (value <= 0) { return eff.invalid(); }
+    var result = eff.create();
+    eff.set_type(result, effect_type_miss_chance as int);
+    eff.set_subtype(result, miss_chance_type as int);
+    eff.set_int(result, 0, value);
+    return result;
+}
+
+fn save_modifier(save: Save, modifier: int, versus: SaveVersus): eff.Effect {
+    if (modifier == 0) { return eff.invalid(); }
+    var result = eff.create();
+    const et = modifier > 0 ? effect_type_saving_throw_increase : effect_type_saving_throw_decrease;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, save as int);
+    eff.set_int(result, 0, abs(modifier));
+    eff.set_int(result, 1, versus as int);
+    return result;
+}
+
+fn skill_modifier(skill: Skill, modifier: int): eff.Effect {
+    if (modifier == 0) { return eff.invalid(); }
+    var result = eff.create();
+    const et = modifier > 0 ? effect_type_skill_increase : effect_type_skill_decrease;
+    const value = modifier > 0 ? modifier : -modifier;
+    eff.set_type(result, et as int);
+    eff.set_subtype(result, skill as int);
+    eff.set_int(result, 0, value);
+    return result;
+}

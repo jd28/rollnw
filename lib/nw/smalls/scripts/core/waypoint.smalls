@@ -1,7 +1,3 @@
-[[native]] fn is_valid(obj: object): bool;
-[[native]] fn is_waypoint(obj: object): bool;
-[[native]] fn as_waypoint(obj: object): Waypoint;
 [[native]] fn get_appearance(obj: Waypoint): int;
 [[native]] fn has_map_note(obj: Waypoint): bool;
 [[native]] fn is_map_note_enabled(obj: Waypoint): bool;
-[[native]] fn type_id(): int;

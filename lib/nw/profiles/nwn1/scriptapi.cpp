@@ -3,6 +3,7 @@
 #include "constants.hpp"
 
 #include "../../functions.hpp"
+#include "../../kernel/Config.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Door.hpp"
@@ -12,13 +13,199 @@
 #include "../../rules/combat.hpp"
 #include "../../rules/effects.hpp"
 #include "../../scriptapi.hpp"
+#include "../../smalls/Bytecode.hpp"
+#include "../../smalls/runtime.hpp"
 #include "../../util/macros.hpp"
 
 #include <cmath>
+#include <optional>
+#include <utility>
 
-namespace nwk = nw::kernel;
+namespace nw::smalls {
+bool try_copy_attack_data(nw::TypedHandle handle,
+    int32_t& attack_type, int32_t& attack_result, int32_t& attack_roll, int32_t& attack_bonus,
+    int32_t& armor_class, int32_t& nth_attack, int32_t& damage_total, int32_t& critical_multiplier,
+    int32_t& critical_threat, int32_t& concealment, int32_t& iteration_penalty,
+    bool& is_ranged, bool& target_is_creature);
+}
 
 namespace nwn1 {
+
+namespace {
+
+thread_local bool in_combat_policy_dispatch = false;
+thread_local nw::Vector<nw::smalls::Value> policy_args_cache;
+
+struct PolicyFnCacheEntry {
+    nw::String fn;
+    bool known_missing = false;
+    bool function_resolved = false;
+    const nw::smalls::BytecodeModule* bytecode_module = nullptr;
+    const nw::smalls::CompiledFunction* compiled_function = nullptr;
+};
+
+thread_local nw::Vector<PolicyFnCacheEntry> policy_fn_cache;
+
+struct PolicyModuleCache {
+    nw::String module;
+    nw::smalls::Script* script = nullptr;
+};
+
+thread_local PolicyModuleCache policy_module_cache;
+
+PolicyFnCacheEntry& resolve_policy_fn_cache(nw::StringView fn)
+{
+    for (auto& entry : policy_fn_cache) {
+        if (entry.fn == fn) {
+            return entry;
+        }
+    }
+
+    policy_fn_cache.push_back(PolicyFnCacheEntry{.fn = nw::String(fn)});
+    return policy_fn_cache.back();
+}
+
+nw::StringView configured_combat_module() noexcept
+{
+    return nw::kernel::config().combat_policy_module();
+}
+
+bool use_custom_combat_module() noexcept
+{
+    return !configured_combat_module().empty();
+}
+
+bool is_int_compatible_type(nw::smalls::Runtime& rt, nw::smalls::TypeID type_id) noexcept
+{
+    while (type_id != rt.int_type()) {
+        const auto* type = rt.get_type(type_id);
+        if (!type) {
+            return false;
+        }
+
+        if (type->type_kind != nw::smalls::TK_alias && type->type_kind != nw::smalls::TK_newtype) {
+            return type->primitive_kind == nw::smalls::PK_int;
+        }
+
+        if (type->type_params.empty() || !type->type_params[0].is<nw::smalls::TypeID>()) {
+            return false;
+        }
+        type_id = type->type_params[0].as<nw::smalls::TypeID>();
+    }
+
+    return true;
+}
+
+nw::smalls::Script* resolve_policy_script(nw::smalls::Runtime& rt, nw::StringView module)
+{
+    auto* script = rt.get_module(module);
+    if (policy_module_cache.module != module || policy_module_cache.script != script) {
+        policy_fn_cache.clear();
+        policy_module_cache.module = nw::String(module);
+        policy_module_cache.script = script;
+    }
+
+    return script;
+}
+
+std::optional<nw::smalls::Value> call_policy_value(nw::StringView fn, const nw::Vector<nw::smalls::Value>& args)
+{
+    auto& rt = nw::kernel::runtime();
+    auto module = configured_combat_module();
+    auto* script = resolve_policy_script(rt, module);
+    if (!script) {
+        LOG_F(ERROR, "[nwn1] combat policy module '{}' failed to load", module);
+        return std::nullopt;
+    }
+
+    struct PolicyCallGuard {
+        PolicyCallGuard() noexcept { in_combat_policy_dispatch = true; }
+        ~PolicyCallGuard() noexcept { in_combat_policy_dispatch = false; }
+    } guard;
+
+    auto& fn_cache = resolve_policy_fn_cache(fn);
+
+    auto* bytecode_module = rt.get_or_compile_module(script);
+    if (!bytecode_module) {
+        LOG_F(ERROR, "[nwn1] combat policy module '{}' failed to compile", module);
+        return std::nullopt;
+    }
+
+    if (fn_cache.bytecode_module != bytecode_module) {
+        fn_cache.known_missing = false;
+        fn_cache.function_resolved = false;
+        fn_cache.bytecode_module = bytecode_module;
+        fn_cache.compiled_function = nullptr;
+    }
+
+    if (!fn_cache.function_resolved) {
+        fn_cache.compiled_function = bytecode_module->get_function(fn);
+        fn_cache.function_resolved = true;
+        fn_cache.known_missing = fn_cache.compiled_function == nullptr;
+        if (fn_cache.known_missing) {
+            LOG_F(ERROR, "[nwn1] combat policy '{}.{}' failed: Function not found", module, fn);
+        }
+    }
+
+    if (fn_cache.known_missing) {
+        return std::nullopt;
+    }
+
+    auto result = rt.execute_compiled(bytecode_module, fn_cache.compiled_function, args);
+    if (!result.ok()) {
+        LOG_F(ERROR, "[nwn1] combat policy '{}.{}' failed: {}", module, fn, result.error_message);
+        return std::nullopt;
+    }
+
+    return result.value;
+}
+
+std::optional<int32_t> call_policy_int(nw::StringView fn, const nw::Vector<nw::smalls::Value>& args)
+{
+    auto result = call_policy_value(fn, args);
+    if (!result) {
+        return std::nullopt;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    if (!is_int_compatible_type(rt, result->type_id)) {
+        auto module = configured_combat_module();
+        LOG_F(ERROR, "[nwn1] combat policy '{}.{}' returned non-int-compatible type", module, fn);
+        return std::nullopt;
+    }
+
+    return result->data.ival;
+}
+
+template <typename... Values>
+std::optional<int32_t> call_policy_int_cached_args(nw::StringView fn, Values&&... values)
+{
+    auto& args = policy_args_cache;
+    args.clear();
+    args.reserve(sizeof...(Values));
+    (args.push_back(std::forward<Values>(values)), ...);
+    return call_policy_int(fn, args);
+}
+
+template <typename... Values>
+std::optional<nw::smalls::Value> call_policy_value_cached_args(nw::StringView fn, Values&&... values)
+{
+    auto& args = policy_args_cache;
+    args.clear();
+    args.reserve(sizeof...(Values));
+    (args.push_back(std::forward<Values>(values)), ...);
+    return call_policy_value(fn, args);
+}
+
+nw::smalls::Value make_object_arg(nw::ObjectHandle handle)
+{
+    auto& rt = nw::kernel::runtime();
+    auto value = nw::smalls::Value::make_object(handle);
+    value.type_id = rt.object_subtype_for_tag(handle.type);
+    return value;
+}
+
+} // namespace
 
 // ============================================================================
 // == Object ==================================================================
@@ -872,6 +1059,66 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 {
     if (!attacker || !target) { return {}; }
 
+    if (!in_combat_policy_dispatch) {
+        auto module = configured_combat_module();
+        if (!module.empty()) {
+            if (auto out = call_policy_value_cached_args("resolve_attack",
+                    make_object_arg(attacker->handle()),
+                    make_object_arg(target->handle()))) {
+                auto& rt = nw::kernel::runtime();
+                if (rt.is_handle_type(out->type_id)
+                    && out->storage == nw::smalls::ValueStorage::heap
+                    && out->data.hptr.value != 0) {
+                    if (auto* script_handle = rt.get_handle(out->data.hptr)) {
+                        int32_t attack_type = -1;
+                        int32_t attack_result = static_cast<int32_t>(nw::AttackResult::miss_by_roll);
+                        int32_t attack_roll = 0;
+                        int32_t attack_bonus = 0;
+                        int32_t armor_class = 0;
+                        int32_t nth_attack = 0;
+                        int32_t damage_total = 0;
+                        int32_t critical_multiplier = 0;
+                        int32_t critical_threat = 0;
+                        int32_t concealment = 0;
+                        int32_t iteration_penalty = 0;
+                        bool is_ranged = false;
+                        bool target_is_creature = false;
+
+                        if (nw::smalls::try_copy_attack_data(*script_handle,
+                                attack_type, attack_result, attack_roll, attack_bonus,
+                                armor_class, nth_attack, damage_total, critical_multiplier,
+                                critical_threat, concealment, iteration_penalty,
+                                is_ranged, target_is_creature)) {
+                            auto data = std::make_unique<nw::AttackData>();
+                            data->attacker = attacker;
+                            data->target = target;
+                            data->type = nw::AttackType::make(attack_type);
+                            data->weapon = get_weapon_by_attack_type(attacker, data->type);
+                            data->target_state = resolve_target_state(attacker, target);
+                            data->target_is_creature = target_is_creature;
+                            data->is_ranged_attack = is_ranged;
+                            data->nth_attack = nth_attack;
+                            data->result = static_cast<nw::AttackResult>(attack_result);
+                            data->attack_roll = attack_roll;
+                            data->attack_bonus = attack_bonus;
+                            data->armor_class = armor_class;
+                            data->damage_total = damage_total;
+                            data->multiplier = critical_multiplier;
+                            data->threat_range = critical_threat;
+                            data->concealment = concealment;
+                            data->iteration_penalty = iteration_penalty;
+                            return data;
+                        }
+
+                        LOG_F(ERROR, "[nwn1] combat policy '{}.resolve_attack' returned invalid AttackData handle", module);
+                    }
+                }
+
+                LOG_F(ERROR, "[nwn1] combat policy '{}.resolve_attack' returned non-handle result", module);
+            }
+        }
+    }
+
     auto target_cre = target->as_creature();
 
     // Every attack reset/update how many onhand and offhand attacks
@@ -951,7 +1198,6 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
-
     int result = 0;
     if (!obj) { return result; }
 
@@ -1300,7 +1546,7 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     }
 }
 
-int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase*)
+int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
     int result = 2;
     auto weapon = get_weapon_by_attack_type(obj, type);
@@ -1404,13 +1650,15 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
     };
 
     auto do_damage_immunity = [=](nw::DamageResult& dmg, int imm) {
+        int amount = 0;
         if (imm >= 100) {
-            dmg.immunity = dmg.amount;
-            dmg.amount = 0;
+            amount = dmg.amount;
         } else {
-            dmg.immunity = (imm * dmg.amount) / 100;
-            dmg.amount -= dmg.immunity;
+            amount = (imm * dmg.amount) / 100;
         }
+
+        dmg.immunity = amount;
+        dmg.amount -= amount;
     };
 
     // Do Resistance and Immunity for all non-physical weapon damage
@@ -1440,6 +1688,7 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
             least_resist_eff = resist_eff;
         }
     }
+
     do_damage_resistance(data->damage_base, least_resist, least_resist_eff);
 
     if (data->damage_base.amount > 0) {
@@ -1450,6 +1699,7 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
             auto imm = resolve_damage_immunity(versus, type, obj);
             best_imm = std::max(best_imm, imm);
         }
+
         do_damage_immunity(data->damage_base, best_imm);
     }
 
@@ -1459,7 +1709,8 @@ void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* ver
         int red_remaining = 0;
         if (red_eff) { red_remaining = red_eff->get_int(2); }
 
-        int amount = std::min(data->damage_base.amount, red);
+        int amount = 0;
+        amount = std::min(data->damage_base.amount, red);
         if (red_remaining > 0) {
             amount = std::min(amount, red_remaining);
         }
@@ -2226,6 +2477,7 @@ nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker)
 {
     nw::DiceRoll result;
     if (!attacker) { return result; }
+
     // Pick up all the specialization bonuses, actual roll is ignored
     result = resolve_weapon_damage(attacker, base_item_gloves);
     result.dice = 1;

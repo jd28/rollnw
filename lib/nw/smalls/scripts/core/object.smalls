@@ -1,5 +1,6 @@
-import core.effects as effects;
+import core.effects as Eff;
 
-[[native]] fn apply_effect(obj: object, effect: effects.Effect): bool;
-[[native]] fn has_effect_applied(obj: object, effect: effects.Effect): bool;
-[[native]] fn remove_effect(obj: object, effect: effects.Effect): bool;
+[[native]] fn apply_effect(obj: object, effect: Eff.Effect): bool;
+[[native]] fn has_effect_applied(obj: object, effect: Eff.Effect): bool;
+[[native]] fn remove_effect(obj: object, effect: Eff.Effect): bool;
+[[native]] fn is_pc(obj: object): bool;

@@ -1,3 +1,18 @@
+type Ability(int);
+type ArmorClass(int);
+type AttackType(int);
+type BaseItemType(int);
+type Class(int);
+type Damage(int);
+type DamageCategory(int);
+type EffectType(int);
+type MissChanceType(int);
+type Save(int);
+type SaveVersus(int);
+type Skill(int);
+type EquipIndex(int);
+type ItemPropertyType(int);
+
 type Color {
     r: int;
     g: int;

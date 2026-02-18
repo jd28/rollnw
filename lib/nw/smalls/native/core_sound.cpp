@@ -1,4 +1,4 @@
-#include "../stdlib.hpp"
+#include "../runtime.hpp"
 
 #include "../../objects/ObjectManager.hpp"
 

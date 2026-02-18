@@ -1,3 +1,5 @@
+include(GNUInstallDirs)
+
 add_custom_target(copy-benchmark-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/../lib/nw/smalls/scripts
@@ -20,4 +22,13 @@ target_link_libraries(rollnw_benchmark PRIVATE
     nw
 )
 
-install(TARGETS rollnw_benchmark)
+install(TARGETS rollnw_benchmark
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/
+    DESTINATION ${CMAKE_INSTALL_BINDIR}/stdlib
+    FILES_MATCHING
+        PATTERN "*.smalls"
+        PATTERN "package.json"
+)

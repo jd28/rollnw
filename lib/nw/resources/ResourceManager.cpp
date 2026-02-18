@@ -124,6 +124,12 @@ Container* ResourceManager::module_container() const
     return module_.get();
 }
 
+void ResourceManager::unfreeze()
+{
+    frozen_ = false;
+    registry_.clear();
+}
+
 void ResourceManager::unload_module()
 {
     LOG_F(INFO, "resman: unloading module container: {}", module_path_);

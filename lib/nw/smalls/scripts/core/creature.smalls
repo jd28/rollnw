@@ -1,8 +1,22 @@
-from core.constants import { Ability, EquipIndex };
+from core.types import { Ability, AttackType, Class, EquipIndex };
 
 [[native]] fn get_ability_score(obj: Creature, ability: Ability, base: bool = false): int;
 [[native]] fn get_ability_modifier(obj: Creature, ability: Ability, base: bool = false): int;
+[[native]] fn get_total_levels(obj: Creature): int;
+[[native]] fn get_level_by_class(obj: Creature, class_type: Class): int;
+[[native]] fn get_class_count(obj: Creature): int;
+[[native]] fn get_class_at(obj: Creature, index: int): Class;
+[[native]] fn get_class_levels_at(obj: Creature, index: int): int;
+[[native]] fn get_levelup_class_position(obj: Creature, level_index: int): int;
+[[native]] fn ac_armor_base(obj: Creature): int;
+[[native]] fn weapon_iteration_for_attack(obj: Creature, attack_type: AttackType): int;
+[[native]] fn attack_sequence_index(obj: Creature, attack_type: AttackType): int;
 [[native]] fn can_equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn get_equipped_item(creature: Creature, slot: EquipIndex): Item;
 [[native]] fn unequip_item(creature: Creature, slot: EquipIndex): Item;
+
+// == Feats ===================================================================
+// ============================================================================
+
+[[native]] fn has_feat(obj: Creature, feat: int): bool;

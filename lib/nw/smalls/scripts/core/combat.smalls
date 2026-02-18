@@ -1,0 +1,169 @@
+from core.types import { AttackType, Damage };
+import core.effects as effects;
+import core.creature as creature;
+
+[[native]] type AttackData;
+
+[[native]] fn _cpp_base_attack_bonus(obj: Creature): int;
+[[native]] fn _cpp_is_flanked(target: Creature, attacker: Creature): bool;
+[[native]] fn _cpp_resolve_attack_bonus(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn _cpp_attack_bonus_effective_attack_type(obj: Creature, attack_type: AttackType): AttackType;
+[[native]] fn _cpp_attack_bonus_dual_wield_penalty(obj: Creature, attack_type: AttackType): int;
+[[native]] fn _cpp_attack_bonus_size_modifier(obj: Creature): int;
+[[native]] fn _cpp_attack_bonus_modifier_sum(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn _cpp_attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn _cpp_resolve_attack_roll(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn _cpp_attack_roll_armor_class(obj: Creature, versus: object): int;
+[[native]] fn _cpp_attack_roll_concealment_data(obj: Creature, target: object, vs_ranged: bool): int;
+[[native]] fn _cpp_attack_roll_d20(): int;
+[[native]] fn _cpp_attack_roll_d100(): int;
+[[native]] fn _cpp_aggregate_effect_int(obj: object, effect_type: int, subtype: int, versus: object, int_index: int, stack_policy: int): int;
+[[native]] fn _cpp_aggregate_modifier_int(obj: object, modifier_type: int, subtype: int, versus: object, stack_policy: int): int;
+[[native]] fn _cpp_resolve_attack_type(obj: Creature): AttackType;
+[[native]] fn _cpp_attack_type_inputs(obj: Creature): int;
+[[native]] fn _cpp_resolve_critical_multiplier(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn _cpp_resolve_critical_threat(obj: Creature, attack_type: AttackType): int;
+[[native]] fn _cpp_weapon_critical_multiplier(obj: Creature, attack_type: AttackType): int;
+[[native]] fn _cpp_weapon_critical_threat(obj: Creature, attack_type: AttackType): int;
+[[native]] fn _cpp_weapon_has_keen(obj: Creature, attack_type: AttackType): bool;
+[[native]] fn _cpp_has_improved_critical(obj: Creature, attack_type: AttackType): bool;
+[[native]] fn _cpp_resolve_damage_immunity(obj: object, damage_type: Damage, versus: object): int;
+[[native]] fn _cpp_damage_immunity_modifier_bonus(obj: object, damage_type: Damage, versus: object): int;
+[[native]] fn _cpp_damage_immunity_effect_delta(obj: object, damage_type: Damage, versus: object): int;
+[[native]] fn _cpp_damage_reduction_modifier_bonus(obj: object, versus: object): int;
+[[native]] fn _cpp_damage_resistance_modifier_bonus(obj: object, damage_type: Damage, versus: object): int;
+[[native]] fn _cpp_object_effect_count(obj: object): int;
+[[native]] fn _cpp_object_effect_at(obj: object, index: int): effects.Effect;
+[[native]] fn _cpp_weapon_power_monk_applies(obj: Creature, weapon: Item): bool;
+[[native]] fn _cpp_weapon_power_item_property_bonus(weapon: Item): int;
+[[native]] fn _cpp_weapon_power_is_bow(weapon: Item): bool;
+[[native]] fn _cpp_weapon_damage_specialization_bonus(obj: Creature, base_item: int): int;
+[[native]] fn _cpp_weapon_damage_is_bow_base_item(base_item: int): bool;
+[[native]] fn _cpp_weapon_base_damage(base_item: int): int;
+[[native]] fn _cpp_weapon_damage_flags_mask(weapon: Item): int;
+[[native]] fn _cpp_unarmed_damage_inputs(obj: Creature): int;
+[[native]] fn _cpp_is_creature_weapon(weapon: Item): bool;
+[[native]] fn _cpp_is_unarmed_weapon(weapon: Item): bool;
+[[native]] fn _cpp_weapon_base_item(weapon: Item): int;
+[[native]] fn _cpp_roll_dice(dice: int, sides: int, bonus: int, multiplier: int): int;
+[[native]] fn _cpp_number_of_attacks_inputs(obj: Creature): int;
+[[native]] fn _cpp_dual_wield_penalty_inputs(obj: Creature): int;
+[[native]] fn _cpp_resolve_weapon_power(obj: Creature, weapon: Item): int;
+[[native]] fn _cpp_is_ranged_attack(obj: Creature, attack_type: AttackType): bool;
+[[native]] fn _cpp_attack_current(obj: Creature): int;
+[[native]] fn _cpp_object_is_creature(obj: object): bool;
+[[native]] fn _cpp_prepare_attack_round(attacker: Creature): void;
+[[native]] fn _cpp_advance_attack_round(attacker: Creature): void;
+[[native]] fn _cpp_attack_data_create(): AttackData;
+[[native]] fn _cpp_resolve_attack(attacker: Creature, target: object): AttackData;
+[[native]] fn _cpp_attack_data_is_valid(data: AttackData): bool;
+[[native]] fn _cpp_attack_data_attack_type(data: AttackData): int;
+[[native]] fn _cpp_attack_data_attack_result(data: AttackData): int;
+[[native]] fn _cpp_attack_data_attack_roll(data: AttackData): int;
+[[native]] fn _cpp_attack_data_attack_bonus(data: AttackData): int;
+[[native]] fn _cpp_attack_data_armor_class(data: AttackData): int;
+[[native]] fn _cpp_attack_data_nth_attack(data: AttackData): int;
+[[native]] fn _cpp_attack_data_damage_total(data: AttackData): int;
+[[native]] fn _cpp_attack_data_critical_multiplier(data: AttackData): int;
+[[native]] fn _cpp_attack_data_critical_threat(data: AttackData): int;
+[[native]] fn _cpp_attack_data_concealment(data: AttackData): int;
+[[native]] fn _cpp_attack_data_iteration_penalty(data: AttackData): int;
+[[native]] fn _cpp_attack_data_is_ranged(data: AttackData): bool;
+[[native]] fn _cpp_attack_data_set_attack_type(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_attack_result(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_attack_roll(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_attack_bonus(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_armor_class(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_nth_attack(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_damage_total(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_critical_multiplier(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_critical_threat(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_concealment(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_iteration_penalty(data: AttackData, value: int): void;
+[[native]] fn _cpp_attack_data_set_is_ranged(data: AttackData, value: bool): void;
+[[native]] fn _cpp_attack_data_target_is_creature(data: AttackData): bool;
+[[native]] fn _cpp_attack_data_set_target_is_creature(data: AttackData, value: bool): void;
+
+fn base_attack_bonus(obj: Creature): int {
+    return _cpp_base_attack_bonus(obj);
+}
+
+fn is_flanked(target: Creature, attacker: Creature): bool {
+    return _cpp_is_flanked(target, attacker);
+}
+
+fn resolve_attack_bonus(obj: Creature, attack_type: AttackType, versus: object): int {
+    return _cpp_resolve_attack_bonus(obj, attack_type, versus);
+}
+
+fn resolve_attack_roll(obj: Creature, attack_type: AttackType, versus: object): int {
+    return _cpp_resolve_attack_roll(obj, attack_type, versus);
+}
+
+fn resolve_attack_type(obj: Creature): AttackType {
+    return _cpp_resolve_attack_type(obj);
+}
+
+fn resolve_critical_multiplier(obj: Creature, attack_type: AttackType, versus: object): int {
+    return _cpp_resolve_critical_multiplier(obj, attack_type, versus);
+}
+
+fn resolve_critical_threat(obj: Creature, attack_type: AttackType): int {
+    return _cpp_resolve_critical_threat(obj, attack_type);
+}
+
+fn resolve_damage_immunity(obj: object, damage_type: Damage, versus: object): int {
+    return _cpp_resolve_damage_immunity(obj, damage_type, versus);
+}
+
+fn resolve_iteration_penalty(obj: Creature, attack_type: AttackType): int {
+    return creature.weapon_iteration_for_attack(obj, attack_type) * creature.attack_sequence_index(obj, attack_type);
+}
+
+fn resolve_weapon_power(obj: Creature, weapon: Item): int {
+    return _cpp_resolve_weapon_power(obj, weapon);
+}
+
+fn resolve_attack(attacker: Creature, target: object): AttackData {
+    return _cpp_resolve_attack(attacker, target);
+}
+
+fn simulate_attack(attacker: Creature, target: object): AttackData {
+    return resolve_attack(attacker, target);
+}
+
+fn attack_data_is_valid(data: AttackData): bool {
+    return _cpp_attack_data_is_valid(data);
+}
+
+fn attack_data_attack_type(data: AttackData): int {
+    return _cpp_attack_data_attack_type(data);
+}
+
+fn attack_data_attack_result(data: AttackData): int {
+    return _cpp_attack_data_attack_result(data);
+}
+
+fn attack_data_attack_bonus(data: AttackData): int {
+    return _cpp_attack_data_attack_bonus(data);
+}
+
+fn attack_data_nth_attack(data: AttackData): int {
+    return _cpp_attack_data_nth_attack(data);
+}
+
+fn attack_data_critical_threat(data: AttackData): int {
+    return _cpp_attack_data_critical_threat(data);
+}
+
+fn attack_data_iteration_penalty(data: AttackData): int {
+    return _cpp_attack_data_iteration_penalty(data);
+}
+
+fn attack_data_is_ranged(data: AttackData): bool {
+    return _cpp_attack_data_is_ranged(data);
+}
+
+fn attack_data_target_is_creature(data: AttackData): bool {
+    return _cpp_attack_data_target_is_creature(data);
+}

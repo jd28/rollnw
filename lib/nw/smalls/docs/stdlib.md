@@ -44,6 +44,7 @@ Intrinsics and native helpers for strings.
 
 - Handle-backed `Effect` lifecycle API (`create`, `apply`, `is_valid`, `destroy`).
 - Effect constructor APIs for engine rule effects (`ability_modifier`, `armor_class_modifier`, `attack_modifier`, `bonus_spell_slot`, `concealment`, `damage_bonus`, `damage_immunity`, `damage_penalty`, `damage_reduction`, `damage_resistance`, `haste`, `hitpoints_temporary`, `miss_chance`, `save_modifier`, `skill_modifier`).
+- Primitive slot/type APIs for effect policy layers (`get_int`, `set_int`, `set_ints`, `get_type`, `set_type`, `get_subtype`, `set_subtype`).
 - Constructors use `core.constants` newtypes for rule categories.
 - `destroy` is a no-op for engine-owned or borrowed effects.
 - `apply` is a low-level attach call and does not model equip-time item property application context.
@@ -51,6 +52,7 @@ Intrinsics and native helpers for strings.
 ## core.object
 
 - Object-context effect helpers (`apply_effect`, `has_effect_applied`, `remove_effect`).
+- Generic object helpers (`is_pc`).
 
 ## core.item
 
@@ -68,8 +70,20 @@ Intrinsics and native helpers for strings.
 ## core.creature
 
 - Creature helpers (`get_ability_score`, `get_ability_modifier`, `can_equip_item`, `equip_item`, `get_equipped_item`, `unequip_item`).
+- Creature progression helpers (`get_total_levels`, `get_level_by_class`, `get_class_count`, `get_class_at`, `get_class_levels_at`, `get_levelup_class_position`).
 - Ability APIs use `core.constants.Ability` newtypes.
 - Equip APIs use `core.constants.EquipIndex` newtypes.
+
+## core.progression
+
+- Rules-table progression helpers (`get_base_attack_bonus`).
+
+## core.combat
+
+- Combat rule helpers (`base_attack_bonus`, `is_flanked`, `resolve_attack_bonus`, `resolve_attack_roll`, `resolve_attack_type`, `resolve_critical_multiplier`, `resolve_critical_threat`, `resolve_damage_immunity`, `resolve_iteration_penalty`, `resolve_weapon_power`).
+- `core.combat` exports keep native `_cpp_*` baselines available and currently implement `resolve_iteration_penalty`, `resolve_attack_type`, `resolve_critical_multiplier`, and `resolve_critical_threat` policy flow in Smalls.
+- Engine combat policy override module is configured via `kernel::Config::combat_policy_module()` / `set_combat_policy_module()`.
+- Custom module override is attempted per resolver; if the function is missing, errors, or returns a non-`int`-compatible type (for example `bool`), engine C++ behavior is used as fallback.
 
 ## Object Type Stubs
 

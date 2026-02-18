@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
@@ -58,4 +59,12 @@ TEST(Kernel, LoadModuleWithScaled)
     EXPECT_GT(area->creatures.size(), 0);
     EXPECT_GT(area->creatures[0]->visual_transform().size(), 0);
     EXPECT_NEAR(area->creatures[0]->visual_transform()[0].scale_x.value_to, 2.2f, 0.1);
+}
+
+TEST(Kernel, ConfigProfileOption)
+{
+    auto previous = nw::kernel::config().profile();
+    nw::kernel::config().set_profile("nwn1");
+    EXPECT_EQ(nw::kernel::config().profile(), "nwn1");
+    nw::kernel::config().set_profile(previous);
 }

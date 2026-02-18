@@ -119,6 +119,7 @@ add_library(nw STATIC
     smalls/native/core_array.cpp
     smalls/native/core_area.cpp
     smalls/native/core_creature.cpp
+    smalls/native/core_combat.cpp
     smalls/native/core_door.cpp
     smalls/native/core_encounter.cpp
     smalls/native/core_effects.cpp
@@ -129,6 +130,7 @@ add_library(nw STATIC
     smalls/native/core_object.cpp
     smalls/native/core_placeable.cpp
     smalls/native/core_player.cpp
+    smalls/native/core_progression.cpp
     smalls/native/core_prelude.cpp
     smalls/native/core_sound.cpp
     smalls/native/core_store.cpp

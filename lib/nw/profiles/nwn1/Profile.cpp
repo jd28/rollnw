@@ -6,6 +6,7 @@
 
 #include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"
+#include "../../kernel/Kernel.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/Strings.hpp"
 #include "../../objects/Creature.hpp"
@@ -13,12 +14,18 @@
 #include "../../resources/ResourceManager.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
+#include "../../smalls/runtime.hpp"
 
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
 
 namespace nwn1 {
+
+void Profile::load_custom_services()
+{
+    nw::kernel::runtime().add_module_path(std::filesystem::path("stdlib") / "nwn1");
+}
 
 bool Profile::load_rules() const
 {

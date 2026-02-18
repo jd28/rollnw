@@ -1,20 +1,11 @@
 #include "../stdlib.hpp"
 
-#include "../../profiles/nwn1/scriptapi.hpp"
-#include "../../rules/Dice.hpp"
 #include "../../rules/effects.hpp"
+
+#include <algorithm>
 
 namespace nw::smalls {
 
-namespace {
-
-nw::TypedHandle to_typed(nw::Effect* eff)
-{
-    if (!eff) { return {}; }
-    return eff->handle().to_typed_handle();
-}
-
-} // namespace
 
 void register_core_effects(Runtime& rt)
 {
@@ -24,6 +15,7 @@ void register_core_effects(Runtime& rt)
 
     rt.module("core.effects")
         .handle_type("Effect", nw::RuntimeObjectPool::TYPE_EFFECT)
+        .function("invalid", +[]() -> nw::TypedHandle { return {}; })
         .function("create", +[]() -> nw::TypedHandle {
             auto* eff = nw::kernel::effects().create(nw::EffectType::invalid());
             if (!eff) { return {}; }
@@ -49,27 +41,60 @@ void register_core_effects(Runtime& rt)
             }
 
             nw::kernel::effects().destroy(e); })
-        .function("ability_modifier", +[](int32_t ability, int32_t modifier) -> nw::TypedHandle { return to_typed(nwn1::effect_ability_modifier(nw::Ability::make(ability), modifier)); })
-        .function("armor_class_modifier", +[](int32_t ac_type, int32_t modifier) -> nw::TypedHandle { return to_typed(nwn1::effect_armor_class_modifier(nw::ArmorClass::make(ac_type), modifier)); })
-        .function("attack_modifier", +[](int32_t attack, int32_t modifier) -> nw::TypedHandle { return to_typed(nwn1::effect_attack_modifier(nw::AttackType::make(attack), modifier)); })
-        .function("bonus_spell_slot", +[](int32_t class_id, int32_t spell_level) -> nw::TypedHandle { return to_typed(nwn1::effect_bonus_spell_slot(nw::Class::make(class_id), spell_level)); })
-        .function("concealment", +[](int32_t value, int32_t miss_chance_type) -> nw::TypedHandle { return to_typed(nwn1::effect_concealment(value, nw::MissChanceType::make(miss_chance_type))); })
-        .function("damage_bonus", +[](int32_t damage_type, int32_t dice, int32_t sides, int32_t bonus, int32_t category) -> nw::TypedHandle {
-            nw::DiceRoll roll{dice, sides, bonus};
-            return to_typed(nwn1::effect_damage_bonus(
-                nw::Damage::make(damage_type), roll, static_cast<nw::DamageCategory>(category))); })
-        .function("damage_immunity", +[](int32_t damage_type, int32_t value) -> nw::TypedHandle { return to_typed(nwn1::effect_damage_immunity(nw::Damage::make(damage_type), value)); })
-        .function("damage_penalty", +[](int32_t damage_type, int32_t dice, int32_t sides, int32_t bonus) -> nw::TypedHandle {
-            nw::DiceRoll roll{dice, sides, bonus};
-            return to_typed(nwn1::effect_damage_penalty(nw::Damage::make(damage_type), roll)); })
-        .function("damage_reduction", +[](int32_t value, int32_t power, int32_t max) -> nw::TypedHandle { return to_typed(nwn1::effect_damage_reduction(value, power, max)); })
-        .function("damage_resistance", +[](int32_t damage_type, int32_t value, int32_t max) -> nw::TypedHandle { return to_typed(nwn1::effect_damage_resistance(nw::Damage::make(damage_type), value, max)); })
-        .function("haste", +[]() -> nw::TypedHandle { return to_typed(nwn1::effect_haste()); })
-        .function("hitpoints_temporary", +[](int32_t amount) -> nw::TypedHandle { return to_typed(nwn1::effect_hitpoints_temporary(amount)); })
-        .function("miss_chance", +[](int32_t value, int32_t miss_chance_type) -> nw::TypedHandle { return to_typed(nwn1::effect_miss_chance(value, nw::MissChanceType::make(miss_chance_type))); })
-        .function("save_modifier", +[](int32_t save, int32_t modifier, int32_t versus) -> nw::TypedHandle { return to_typed(nwn1::effect_save_modifier(
-                                                                                                                nw::Save::make(save), modifier, nw::SaveVersus::make(versus))); })
-        .function("skill_modifier", +[](int32_t skill, int32_t modifier) -> nw::TypedHandle { return to_typed(nwn1::effect_skill_modifier(nw::Skill::make(skill), modifier)); })
+        .function("get_int", +[](nw::TypedHandle eff, int32_t index) -> int32_t {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e || index < 0) {
+                return 0;
+            }
+            return e->get_int(static_cast<size_t>(index)); })
+        .function("set_int", +[](nw::TypedHandle eff, int32_t index, int32_t value) {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e || index < 0) {
+                return;
+            }
+            e->set_int(static_cast<size_t>(index), value); })
+        .function("set_ints", +[](nw::TypedHandle eff, IArray* values) {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e || !values) {
+                return;
+            }
+
+            const size_t count = std::min(values->size(), size_t(nw::Effect::ints_count));
+            Value temp;
+            auto& rt = nw::kernel::runtime();
+            for (size_t i = 0; i < count; ++i) {
+                if (!values->get_value(i, temp, rt)) {
+                    break;
+                }
+                if (temp.type_id != rt.int_type()) {
+                    continue;
+                }
+                e->set_int(i, temp.data.ival);
+            } })
+        .function("get_type", +[](nw::TypedHandle eff) -> int32_t {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e) {
+                return -1;
+            }
+            return *e->handle().type; })
+        .function("set_type", +[](nw::TypedHandle eff, int32_t effect_type) {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e) {
+                return;
+            }
+            e->handle().type = nw::EffectType::make(effect_type); })
+        .function("get_subtype", +[](nw::TypedHandle eff) -> int32_t {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e) {
+                return -1;
+            }
+            return e->handle().subtype; })
+        .function("set_subtype", +[](nw::TypedHandle eff, int32_t subtype) {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e) {
+                return;
+            }
+            e->handle().subtype = subtype; })
         .finalize();
 }
 

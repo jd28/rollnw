@@ -212,19 +212,30 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_map(*this);
         register_core_math(*this);
         register_core_effects(*this);
-        register_core_object(*this);
         register_core_item(*this);
+        register_core_object(*this);
+        register_core_area(*this);
         register_core_creature(*this);
         register_core_area(*this);
         register_core_door(*this);
         register_core_encounter(*this);
         register_core_module(*this);
-        register_core_placeable(*this);
         register_core_player(*this);
-        register_core_sound(*this);
-        register_core_store(*this);
         register_core_trigger(*this);
         register_core_waypoint(*this);
+        register_core_sound(*this);
+        register_core_store(*this);
+        register_core_placeable(*this);
+        register_core_combat(*this);
+        register_core_progression(*this);
+
+        const auto& init_mod = kernel::config().init_module();
+        if (!init_mod.empty()) {
+            auto* init = load_module(init_mod);
+            if (init && init->errors() == 0) {
+                execute_script(init, "init");
+            }
+        }
     }
 }
 
@@ -2290,6 +2301,9 @@ void Runtime::add_module_path(const std::filesystem::path& path)
 
         module_paths_.push_back(canonical);
         void* ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
+        if (resman_.is_frozen()) {
+            resman_.unfreeze();
+        }
         resman_.add_custom_container(new (ptr) StaticDirectory(path, allocator()));
         resman_needs_build_ = true;
         LOG_F(INFO, "[runtime] Added module path: {}", path_to_string(path));
