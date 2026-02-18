@@ -4,3 +4,4 @@
 [[native]] fn error(message: string);
 [[native]] fn panic(message: string);
 [[native]] fn gc_collect();
+[[intrinsic("get_propset")]] fn get_propset(obj: object): $T;

@@ -28,8 +28,7 @@ protected:
 
 // Global VM pointer for the native callback
 static VirtualMachine* g_test_vm = nullptr;
-static const BytecodeModule* g_test_module = nullptr;
-
+static BytecodeModule* g_test_module = nullptr;
 
 // Wrapper to match ModuleBuilder signature
 static int32_t call_script_callback_wrapper()

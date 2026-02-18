@@ -1125,8 +1125,35 @@ struct CallResolver {
         }
 
         if (func_def->is_generic()) {
-            auto inferred_types = inference.infer_from_args(func_def, expr->args);
-            expr->inferred_type_args = inference.build_type_args(func_def, inferred_types, expr->range_);
+            Vector<TypeID> explicit_type_args;
+            if (ve && !ve->type_params.empty()) {
+                explicit_type_args.reserve(ve->type_params.size());
+                for (auto* param_expr : ve->type_params) {
+                    auto* type_expr = dynamic_cast<TypeExpression*>(param_expr);
+                    if (!type_expr) {
+                        resolver.ctx.error(expr->range_, "explicit generic function arguments must be types");
+                        explicit_type_args.clear();
+                        break;
+                    }
+                    type_expr->accept(&resolver);
+                    explicit_type_args.push_back(type_expr->type_id_);
+                }
+                if (!explicit_type_args.empty() && explicit_type_args.size() != func_def->type_params.size()) {
+                    resolver.ctx.errorf(expr->range_,
+                        "generic function '{}' expects {} type argument(s), got {}",
+                        func_name,
+                        func_def->type_params.size(),
+                        explicit_type_args.size());
+                    explicit_type_args.clear();
+                }
+            }
+
+            if (!explicit_type_args.empty()) {
+                expr->inferred_type_args = explicit_type_args;
+            } else {
+                auto inferred_types = inference.infer_from_args(func_def, expr->args);
+                expr->inferred_type_args = inference.build_type_args(func_def, inferred_types, expr->range_);
+            }
 
             auto* return_type_expr = func_def->return_type;
             if (!return_type_expr) {
@@ -1136,9 +1163,15 @@ struct CallResolver {
 
             auto return_type_name = return_type_expr->str();
             if (is_type_param_name(return_type_name)) {
-                auto it = inferred_types.find(return_type_name);
-                if (it != inferred_types.end()) {
-                    expr->type_id_ = it->second.type;
+                size_t tp_index = SIZE_MAX;
+                for (size_t i = 0; i < func_def->type_params.size(); ++i) {
+                    if (func_def->type_params[i] == return_type_name) {
+                        tp_index = i;
+                        break;
+                    }
+                }
+                if (tp_index != SIZE_MAX && tp_index < expr->inferred_type_args.size()) {
+                    expr->type_id_ = expr->inferred_type_args[tp_index];
                 } else {
                     expr->type_id_ = rt.any_type();
                 }
@@ -1656,6 +1689,40 @@ static void validate_map_intrinsic_signature(TypeResolver& resolver, FunctionDef
     }
 }
 
+static void validate_propset_intrinsic_signature(TypeResolver& resolver, FunctionDefinition* decl, IntrinsicId id)
+{
+    if (id != IntrinsicId::GetPropset) {
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto& ctx = resolver.ctx;
+
+    if (decl->type_params.size() != 1) {
+        ctx.error(decl->range_, "get_propset intrinsic must declare exactly one type parameter");
+        return;
+    }
+
+    if (decl->params.size() != 1) {
+        ctx.error(decl->range_, "get_propset intrinsic expects (object)");
+        return;
+    }
+
+    if (!rt.is_object_like_type(decl->params[0]->type_id_)) {
+        ctx.error(decl->range_, "get_propset intrinsic expects object parameter");
+    }
+
+    if (!decl->return_type) {
+        ctx.error(decl->range_, "get_propset intrinsic must return $T");
+        return;
+    }
+
+    auto ret_name = extract_identifier(decl->return_type->name);
+    if (!ret_name || *ret_name != decl->type_params[0]) {
+        ctx.error(decl->range_, "get_propset intrinsic must return its generic type parameter");
+    }
+}
+
 static void resolve_function_signature(TypeResolver& resolver, FunctionDefinition* decl)
 {
     auto& ctx = resolver.ctx;
@@ -1712,6 +1779,7 @@ static void resolve_function_signature(TypeResolver& resolver, FunctionDefinitio
         if (intrinsic_id) {
             validate_array_intrinsic_signature(resolver, decl, *intrinsic_id);
             validate_map_intrinsic_signature(resolver, decl, *intrinsic_id);
+            validate_propset_intrinsic_signature(resolver, decl, *intrinsic_id);
         }
     }
 
@@ -1993,8 +2061,36 @@ void TypeResolver::visit(StructDecl* decl)
         const Type* type = rt.get_type(decl->type_id_);
         if (!type || type->type_kind != TK_struct) {
             ctx.errorf(decl->range_, "[[propset]] '{}' failed to resolve to a struct type", decl->identifier());
-        } else if (type->contains_heap_refs) {
-            ctx.errorf(decl->range_, "[[propset]] struct '{}' cannot contain heap references in current phase", decl->identifier());
+        } else if (type->type_params[0].is<StructID>()) {
+            const StructDef* def = rt.type_table_.get(type->type_params[0].as<StructID>());
+            if (!def) {
+                ctx.errorf(decl->range_, "[[propset]] '{}' missing struct definition metadata", decl->identifier());
+            } else {
+                for (uint32_t i = 0; i < def->field_count; ++i) {
+                    const FieldDef& field = def->fields[i];
+                    const Type* field_type = rt.get_type(field.type_id);
+                    if (!field_type) {
+                        ctx.errorf(decl->range_, "[[propset]] '{}' has field '{}' with unresolved type", decl->identifier(), field.name.view());
+                        continue;
+                    }
+
+                    bool allowed = false;
+                    if (field_type->type_kind == TK_primitive) {
+                        allowed = true;
+                    } else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
+                        TypeID elem_tid = field_type->type_params[0].as<TypeID>();
+                        const Type* elem_type = rt.get_type(elem_tid);
+                        allowed = elem_type && elem_type->type_kind == TK_primitive;
+                    }
+
+                    if (!allowed) {
+                        ctx.errorf(decl->range_,
+                            "[[propset]] '{}' field '{}' must be primitive or array!(primitive) in v1",
+                            decl->identifier(),
+                            field.name.view());
+                    }
+                }
+            }
         }
     }
 

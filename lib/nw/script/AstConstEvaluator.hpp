@@ -284,7 +284,7 @@ struct AstConstEvaluator : public BaseVisitor {
 
     virtual void visit(LiteralVectorExpression* expr) override
     {
-        if (expr) { result_.push(expr->data); }
+        if (expr) { result_.emplace(expr->data); }
     }
 
     virtual void visit(LogicalExpression* expr) override

@@ -142,6 +142,9 @@ struct GarbageCollector {
     void on_allocation(size_t size);
     void write_barrier(HeapPtr target, HeapPtr stored_value);
     void write_barrier_marking(HeapPtr target, HeapPtr stored_value);
+    // Write barrier for root slots (module globals, config roots) that are not
+    // themselves inside ScriptHeap. Shades stored_value gray during incremental mark.
+    void write_barrier_root(HeapPtr stored_value);
 
     void start_major_gc();
     void finish_major_gc();

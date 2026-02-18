@@ -39,6 +39,7 @@ struct NativeStructLayout;
 struct Script;
 struct Token;
 struct VirtualMachine;
+class PropsetPoolManager;
 
 struct StringRepr {
     HeapPtr backing;
@@ -133,11 +134,11 @@ struct BytecodeModule;
 /// Stored on the heap, referenced by Value with TK_function type
 struct Closure {
     const CompiledFunction* function = nullptr;
-    const BytecodeModule* module = nullptr;
+    BytecodeModule* module = nullptr;
     Vector<Upvalue*> upvalues;
 
     Closure() = default;
-    Closure(const CompiledFunction* func, const BytecodeModule* mod)
+    Closure(const CompiledFunction* func, BytecodeModule* mod)
         : function(func)
         , module(mod)
     {
@@ -259,7 +260,7 @@ struct ExternalFunction {
 
     // If script_module != nullptr, this is a cross-module script function
     // Otherwise it's a native function
-    const BytecodeModule* script_module = nullptr;
+    BytecodeModule* script_module = nullptr;
     uint32_t func_idx = 0;
 
     // Only valid for native functions (script_module == nullptr)
@@ -308,7 +309,7 @@ struct Runtime : public nw::kernel::Service {
         uint64_t gas_limit = default_gas_limit);
 
     /// Executes a pre-resolved compiled function.
-    ExecutionResult execute_compiled(const BytecodeModule* module, const CompiledFunction* function,
+    ExecutionResult execute_compiled(BytecodeModule* module, const CompiledFunction* function,
         const Vector<Value>& args = {}, uint64_t gas_limit = default_gas_limit);
 
     /// Executes a script function by script path
@@ -725,6 +726,9 @@ struct Runtime : public nw::kernel::Service {
     // Script handle type IDs by runtime type (TypedHandle.type)
     std::array<TypeID, 256> handle_type_to_typeid_{};
 
+    // Propset pools and metadata
+    std::unique_ptr<PropsetPoolManager> propsets_;
+
     // -- Tuple Types ---------------------------------------------------------
 
     /// Register or lookup a tuple type by its element types
@@ -763,7 +767,7 @@ struct Runtime : public nw::kernel::Service {
     // -- Closures ------------------------------------------------------------
 
     /// Allocate a closure on the script heap
-    HeapPtr alloc_closure(TypeID func_type, const CompiledFunction* func, const BytecodeModule* module, size_t upvalue_count);
+    HeapPtr alloc_closure(TypeID func_type, const CompiledFunction* func, BytecodeModule* module, size_t upvalue_count);
 
     /// Get a closure from a heap pointer
     Closure* get_closure(HeapPtr ptr) const;
@@ -845,6 +849,18 @@ struct Runtime : public nw::kernel::Service {
     /// @param value The value to write
     /// @return true on success, false on failure
     bool write_struct_field(HeapPtr struct_ptr, TypeID struct_type_id, StringView field_name, const Value& value);
+
+    /// Read/write a field from any struct-like value, including propset refs.
+    Value read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id);
+    bool write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value);
+    bool write_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index, const Value& value);
+
+    // -- Propsets ------------------------------------------------------------
+
+    bool is_propset_type(TypeID type_id) const;
+    Value get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj);
+    void enumerate_propset_roots(GCRootVisitor& visitor, bool young_only);
+    void mark_propset_heap_mutation(HeapPtr ptr);
 
     // -- Tuple Element Access ------------------------------------------------
 

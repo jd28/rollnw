@@ -139,6 +139,7 @@ add_library(nw STATIC
     smalls/native/core_trigger.cpp
     smalls/native/core_waypoint.cpp
     smalls/Parser.cpp
+    smalls/PropsetPool.cpp
     smalls/runtime.cpp
     smalls/ScriptHeap.cpp
     smalls/Smalls.cpp

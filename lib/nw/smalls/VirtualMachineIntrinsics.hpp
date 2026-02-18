@@ -53,6 +53,8 @@ enum class IntrinsicId : uint16_t {
     StringInsert,
     StringReverse,
 
+    GetPropset,
+
     Invalid = 0xFFFF
 };
 
@@ -142,6 +144,8 @@ inline std::optional<IntrinsicId> intrinsic_id_from_string(std::string_view name
         return IntrinsicId::StringInsert;
     } else if (name == "string_reverse") {
         return IntrinsicId::StringReverse;
+    } else if (name == "get_propset") {
+        return IntrinsicId::GetPropset;
     }
 
     return std::nullopt;
@@ -234,6 +238,8 @@ inline std::string_view intrinsic_name(IntrinsicId id)
         return "string_insert";
     case IntrinsicId::StringReverse:
         return "string_reverse";
+    case IntrinsicId::GetPropset:
+        return "get_propset";
     default:
         return "<unknown>";
     }

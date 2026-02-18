@@ -249,6 +249,165 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
     nw::kernel::objects().destroy(creature->handle());
 }
 
+TEST_F(SmallsEngineIntegration, PropsetGetIntrinsicUsesExplicitTypeArgAndPersists)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type CreatureStats {
+            str: int;
+        };
+
+        fn main(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            stats.str = 18;
+
+            var again = get_propset!(CreatureStats)(target);
+            if (again.str != 18) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_get_intrinsic", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetDynamicArrayFieldMutationsPersist)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        import core.array as arr;
+
+        [[propset]]
+        type CreatureStats {
+            nums: array!(int);
+        };
+
+        fn main(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            if (arr.len(stats.nums) != 0) {
+                return 0;
+            }
+
+            arr.push(stats.nums, 10);
+            arr.push(stats.nums, 20);
+
+            var again = get_propset!(CreatureStats)(target);
+            if (arr.len(again.nums) != 2) {
+                return 0;
+            }
+            if (arr.get(again.nums, 1) != 20) {
+                return 0;
+            }
+
+            arr.set(again.nums, 0, 7);
+            return arr.get(stats.nums, 0) == 7 ? 1 : 0;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_dynamic_array", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetIsolationAcrossObjectsAndTypes)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* a = nw::kernel::objects().make<nw::Creature>();
+    auto* b = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(a, nullptr);
+    ASSERT_NE(b, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type StatsA {
+            value: int;
+        };
+
+        [[propset]]
+        type StatsB {
+            value: int;
+        };
+
+        fn main(one: Creature, two: Creature): int {
+            var a1 = get_propset!(StatsA)(one);
+            var a2 = get_propset!(StatsA)(two);
+            var b1 = get_propset!(StatsB)(one);
+
+            a1.value = 11;
+            a2.value = 22;
+            b1.value = 33;
+
+            if (get_propset!(StatsA)(one).value != 11) {
+                return 0;
+            }
+            if (get_propset!(StatsA)(two).value != 22) {
+                return 0;
+            }
+            if (get_propset!(StatsB)(one).value != 33) {
+                return 0;
+            }
+            if (get_propset!(StatsB)(two).value != 0) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_isolation", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto a_value = nw::smalls::Value::make_object(a->handle());
+    a_value.type_id = rt.object_subtype_for_tag(a->handle().type);
+    args.push_back(a_value);
+    auto b_value = nw::smalls::Value::make_object(b->handle());
+    b_value.type_id = rt.object_subtype_for_tag(b->handle().type);
+    args.push_back(b_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(a->handle());
+    nw::kernel::objects().destroy(b->handle());
+}
+
 TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
 {
     auto& rt = nw::kernel::runtime();

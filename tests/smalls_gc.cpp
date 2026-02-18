@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/GarbageCollector.hpp>
 #include <nw/smalls/Smalls.hpp>
@@ -181,6 +183,34 @@ TEST_F(SmallsGCTest, MajorCollectionStats)
 
     uint64_t major_after = gc->stats().major_collections;
     EXPECT_EQ(major_after, major_before + 1);
+}
+
+TEST_F(SmallsGCTest, AllocationDuringIncrementalMajorGCSurvives)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    gc->start_major_gc();
+    ASSERT_EQ(gc->phase(), GCPhase::mark_incremental);
+
+    HeapPtr ptr = runtime.alloc_string("alloc during major");
+    ASSERT_NE(ptr.value, 0);
+    ASSERT_TRUE(heap_contains(runtime, ptr));
+
+    if (gc->phase() == GCPhase::mark_incremental) {
+        while (!gc->mark_step(1024)) {
+        }
+        gc->finish_major_gc();
+    }
+
+    runtime.push(Value::make_string(ptr));
+    gc->collect_major();
+    EXPECT_TRUE(heap_contains(runtime, ptr));
+
+    runtime.pop();
+    gc->collect_major();
+    EXPECT_FALSE(heap_contains(runtime, ptr));
 }
 
 TEST_F(SmallsGCTest, WriteBarrierDirtiesCard)
@@ -573,4 +603,74 @@ TEST_F(SmallsGCTest, VMOwnedEffectHandleFinalizerDestroysEngineEffect)
     EXPECT_EQ(*destroyed, 1);
     EXPECT_EQ(runtime.lookup_handle(h).value, 0);
     EXPECT_EQ(nw::kernel::effects().get(h), nullptr);
+}
+
+TEST_F(SmallsGCTest, PropsetHeapFieldsCollectAfterOwnerDestroyed)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type OwnerData {
+            name: string;
+            nums: array!(int);
+        };
+    )";
+
+    auto* script = runtime.load_module_from_source("test.gc_propset", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    TypeID propset_tid = runtime.type_id("test.gc_propset.OwnerData", false);
+    ASSERT_NE(propset_tid, invalid_type_id);
+
+    const Type* propset_type = runtime.get_type(propset_tid);
+    ASSERT_NE(propset_type, nullptr);
+    ASSERT_TRUE(propset_type->type_kind == TK_struct && propset_type->type_params[0].is<StructID>());
+    const StructDef* def = runtime.type_table_.get(propset_type->type_params[0].as<StructID>());
+    ASSERT_NE(def, nullptr);
+
+    uint32_t name_offset = 0;
+    uint32_t nums_offset = 0;
+    TypeID name_tid = invalid_type_id;
+    TypeID nums_tid = invalid_type_id;
+    for (uint32_t i = 0; i < def->field_count; ++i) {
+        if (def->fields[i].name.view() == "name") {
+            name_offset = def->fields[i].offset;
+            name_tid = def->fields[i].type_id;
+        } else if (def->fields[i].name.view() == "nums") {
+            nums_offset = def->fields[i].offset;
+            nums_tid = def->fields[i].type_id;
+        }
+    }
+    ASSERT_NE(name_tid, invalid_type_id);
+    ASSERT_NE(nums_tid, invalid_type_id);
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    Value propset_ref = runtime.get_or_create_propset_ref(propset_tid, creature->handle());
+    ASSERT_EQ(propset_ref.type_id, propset_tid);
+
+    HeapPtr name_ptr = runtime.alloc_string("owner payload");
+    ASSERT_NE(name_ptr.value, 0);
+    Value name_val = Value::make_string(name_ptr);
+    ASSERT_TRUE(runtime.write_value_field_at_offset(propset_ref, name_offset, name_tid, name_val));
+
+    HeapPtr nums_ptr = runtime.create_array_typed(runtime.int_type(), 0);
+    ASSERT_NE(nums_ptr.value, 0);
+    Value nums_val = Value::make_heap(nums_ptr, nums_tid);
+    ASSERT_TRUE(runtime.write_value_field_at_offset(propset_ref, nums_offset, nums_tid, nums_val));
+
+    gc->collect_major();
+    EXPECT_TRUE(heap_contains(runtime, name_ptr));
+    EXPECT_TRUE(heap_contains(runtime, nums_ptr));
+
+    nw::kernel::objects().destroy(creature->handle());
+    gc->collect_major();
+
+    EXPECT_FALSE(heap_contains(runtime, name_ptr));
+    EXPECT_FALSE(heap_contains(runtime, nums_ptr));
 }

@@ -302,7 +302,8 @@ struct BytecodeModule {
     bool verification_passed = false;
     String verification_error;
 
-    // Module-scope globals (var/const at top level)
+    // Module-scope globals (var/const at top level). These are runtime state
+    // that can be modified during execution (e.g., via SETGLOBAL opcode).
     uint32_t global_count = 0;
     Vector<Value> globals;
 

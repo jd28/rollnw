@@ -2747,7 +2747,14 @@ void AstCompiler::visit(CallExpression* expr)
     if (expr->intrinsic_id.has_value()) {
         uint16_t intrinsic_id = static_cast<uint16_t>(expr->intrinsic_id.value());
 
-        uint8_t count = 1 + static_cast<uint8_t>(expr->args.size());
+        bool append_propset_type_arg = expr->intrinsic_id.value() == IntrinsicId::GetPropset;
+        if (append_propset_type_arg && expr->inferred_type_args.size() != 1) {
+            fail("get_propset intrinsic requires exactly one explicit type argument");
+            return;
+        }
+
+        uint8_t hidden_arg_count = append_propset_type_arg ? 1 : 0;
+        uint8_t count = 1 + static_cast<uint8_t>(expr->args.size()) + hidden_arg_count;
         uint8_t base_reg = registers_.allocate_contiguous(count);
         uint8_t dest_reg = base_reg;
 
@@ -2760,7 +2767,22 @@ void AstCompiler::visit(CallExpression* expr)
             }
         }
 
-        uint8_t argc = static_cast<uint8_t>(expr->args.size());
+        if (append_propset_type_arg) {
+            uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(expr->args.size());
+            TypeID tid = expr->inferred_type_args[0];
+            if (tid.value <= std::numeric_limits<int16_t>::max()) {
+                emit_asbx(Opcode::LOADI, target_reg, static_cast<int16_t>(tid.value));
+            } else {
+                uint32_t k_idx = add_constant_int(static_cast<int32_t>(tid.value));
+                if (k_idx > std::numeric_limits<uint16_t>::max()) {
+                    fail("Type id constant index too large");
+                    return;
+                }
+                emit_abx(Opcode::LOADK, target_reg, static_cast<uint16_t>(k_idx));
+            }
+        }
+
+        uint8_t argc = static_cast<uint8_t>(expr->args.size() + hidden_arg_count);
         if (intrinsic_id <= std::numeric_limits<uint8_t>::max()) {
             emit_abc(Opcode::CALLINTR, dest_reg, static_cast<uint8_t>(intrinsic_id), argc);
         } else {
@@ -2780,7 +2802,7 @@ void AstCompiler::visit(CallExpression* expr)
             registers_.free(id_reg);
         }
 
-        for (size_t i = 0; i < expr->args.size(); ++i) {
+        for (size_t i = 0; i < expr->args.size() + hidden_arg_count; ++i) {
             registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
         }
 

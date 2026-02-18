@@ -197,7 +197,7 @@ bool VirtualMachine::get_top_frame_location(SourceLocation& out_loc, StringView&
     return false;
 }
 
-void VirtualMachine::push_frame(const BytecodeModule* module, const CompiledFunction* func, uint32_t ret_reg, Closure* closure)
+void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* func, uint32_t ret_reg, Closure* closure)
 {
     if (gas_enabled_ && !consume_gas()) { return; }
 
@@ -338,7 +338,7 @@ void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, R
 }
 
 void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
-    const BytecodeModule* target_module, const CompiledFunction* callee,
+    BytecodeModule* target_module, const CompiledFunction* callee,
     Closure* closure, const char* opcode_name)
 {
     uint32_t caller_base = current_base_;
@@ -468,7 +468,7 @@ void CallFrame::enumerate_stack_roots(GCRootVisitor& visitor, Runtime* runtime)
     }
 }
 
-Value VirtualMachine::execute(const BytecodeModule* module, StringView function_name, const Vector<Value>& args,
+Value VirtualMachine::execute(BytecodeModule* module, StringView function_name, const Vector<Value>& args,
     uint64_t gas_limit)
 {
     const CompiledFunction* func = module->get_function(function_name);
@@ -480,7 +480,7 @@ Value VirtualMachine::execute(const BytecodeModule* module, StringView function_
     return execute(module, func, args, gas_limit);
 }
 
-Value VirtualMachine::execute(const BytecodeModule* module, const CompiledFunction* func, const Vector<Value>& args,
+Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* func, const Vector<Value>& args,
     uint64_t gas_limit)
 {
     // Track entry frame depth for reentrant execution
@@ -569,15 +569,14 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     }
 
     const CompiledFunction* func = closure->function;
-    const BytecodeModule* module = closure->module;
+    BytecodeModule* module = closure->module;
 
-    if (!const_cast<BytecodeModule*>(module)->verification_attempted) {
+    if (!module->verification_attempted) {
         String verify_error;
         const bool verified = verify_bytecode_module(module, &verify_error);
-        auto* mutable_module = const_cast<BytecodeModule*>(module);
-        mutable_module->verification_attempted = true;
-        mutable_module->verification_passed = verified;
-        mutable_module->verification_error = std::move(verify_error);
+        module->verification_attempted = true;
+        module->verification_passed = verified;
+        module->verification_error = std::move(verify_error);
     }
     if (!module->verification_passed) {
         fail(module->verification_error);
@@ -617,7 +616,7 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     return {};
 }
 
-bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
+bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
 {
     rt_ = &nw::kernel::runtime();
     while (frames_.size() > entry_depth && !failed_) {
@@ -648,7 +647,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
 
         case Opcode::LOADK: {
             uint16_t bx = instr.arg_bx();
-            const BytecodeModule* current_module = frame.module;
+            BytecodeModule* current_module = frame.module;
             if (bx >= current_module->constants.size()) {
                 fail("Constant index out of range");
                 break;
@@ -774,7 +773,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t func_idx = b;
             uint8_t argc = c;
 
-            const BytecodeModule* current_module = frame.module;
+            BytecodeModule* current_module = frame.module;
             if (func_idx >= current_module->functions.size()) {
                 fail("Function index out of range");
                 break;
@@ -806,7 +805,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t ref_idx = b;
             uint8_t argc = c;
 
-            const BytecodeModule* current_module = frame.module;
+            BytecodeModule* current_module = frame.module;
 
             if (ref_idx >= current_module->external_indices.size()) {
                 fail("External ref index out of range");
@@ -1172,7 +1171,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             uint8_t dest_reg = a;
             uint16_t func_idx = instr.arg_bx();
 
-            const BytecodeModule* current_module = frame.module;
+            BytecodeModule* current_module = frame.module;
             if (!current_module || func_idx >= current_module->functions.size()) {
                 fail("Closure function index out of range");
                 break;
@@ -1276,7 +1275,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 fail("GETGLOBAL slot out of range");
                 break;
             }
-            reg(dest) = const_cast<BytecodeModule*>(frame.module)->globals[slot];
+            reg(dest) = frame.module->globals[slot];
             break;
         }
 
@@ -1287,7 +1286,10 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
                 fail("SETGLOBAL slot out of range");
                 break;
             }
-            const_cast<BytecodeModule*>(frame.module)->globals[slot] = reg(src);
+            frame.module->globals[slot] = reg(src);
+            if (rt_->gc() && reg(src).storage == ValueStorage::heap) {
+                rt_->gc()->write_barrier_root(reg(src).data.hptr);
+            }
             break;
         }
 
@@ -1337,7 +1339,8 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             auto struct_id = type->type_params[0].as<StructID>();
             const StructDef* struct_def = rt_->type_table_.get(struct_id);
 
-            Value val = rt_->read_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx);
+            const FieldDef& field = struct_def->fields[field_idx];
+            Value val = rt_->read_value_field_at_offset(struct_val, field.offset, field.type_id);
             if (val.type_id == invalid_type_id) {
                 fail("Failed to read struct field");
                 break;
@@ -1364,7 +1367,7 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
             const StructDef* struct_def = rt_->type_table_.get(struct_id);
 
             Value val = reg(val_reg);
-            if (!rt_->write_struct_field_by_index(struct_val.data.hptr, struct_def, field_idx, val)) {
+            if (!rt_->write_struct_value_field(struct_val, struct_def, field_idx, val)) {
                 fail("Failed to write struct field");
                 break;
             }
@@ -1372,148 +1375,31 @@ bool VirtualMachine::run(const BytecodeModule* module, size_t entry_depth)
         }
 
         case Opcode::FIELDGETI:
-        case Opcode::FIELDGETI_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETI) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            reg(a) = Value::make_int(*reinterpret_cast<int32_t*>(data + frame.module->field_offsets[ref_idx]));
-            break;
-        }
+        case Opcode::FIELDGETI_R:
         case Opcode::FIELDGETF:
-        case Opcode::FIELDGETF_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETF) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            reg(a) = Value::make_float(*reinterpret_cast<float*>(data + frame.module->field_offsets[ref_idx]));
-            break;
-        }
+        case Opcode::FIELDGETF_R:
         case Opcode::FIELDGETB:
-        case Opcode::FIELDGETB_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETB) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            reg(a) = Value::make_bool(*reinterpret_cast<bool*>(data + frame.module->field_offsets[ref_idx]));
-            break;
-        }
+        case Opcode::FIELDGETB_R:
         case Opcode::FIELDGETS:
-        case Opcode::FIELDGETS_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETS) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            reg(a) = Value::make_string(*reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]));
-            break;
-        }
+        case Opcode::FIELDGETS_R:
         case Opcode::FIELDGETO:
-        case Opcode::FIELDGETO_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETO) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            reg(a) = Value::make_object(*reinterpret_cast<ObjectHandle*>(data + frame.module->field_offsets[ref_idx]));
-            break;
-        }
+        case Opcode::FIELDGETO_R:
         case Opcode::FIELDGETH:
-        case Opcode::FIELDGETH_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDGETH) ? c : static_cast<uint32_t>(reg(c).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(b).data.hptr));
-            TypeID ftype = frame.module->field_types[ref_idx];
-            reg(a) = Value::make_heap(*reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]), ftype);
-            break;
-        }
+        case Opcode::FIELDGETH_R:
         case Opcode::FIELDSETI:
-        case Opcode::FIELDSETI_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETI) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
-            *reinterpret_cast<int32_t*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.ival;
-            break;
-        }
+        case Opcode::FIELDSETI_R:
         case Opcode::FIELDSETF:
-        case Opcode::FIELDSETF_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETF) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
-            *reinterpret_cast<float*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.fval;
-            break;
-        }
+        case Opcode::FIELDSETF_R:
         case Opcode::FIELDSETB:
-        case Opcode::FIELDSETB_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETB) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
-            *reinterpret_cast<bool*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.bval;
-            break;
-        }
+        case Opcode::FIELDSETB_R:
         case Opcode::FIELDSETS:
-        case Opcode::FIELDSETS_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETS) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            HeapPtr struct_ptr = reg(a).data.hptr;
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(struct_ptr));
-            Value val = reg(c);
-            *reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]) = val.data.hptr;
-            if (rt_->gc_ && val.storage == ValueStorage::heap) {
-                rt_->gc_->write_barrier(struct_ptr, val.data.hptr);
-            }
-            break;
-        }
+        case Opcode::FIELDSETS_R:
         case Opcode::FIELDSETO:
-        case Opcode::FIELDSETO_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETO) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(reg(a).data.hptr));
-            *reinterpret_cast<ObjectHandle*>(data + frame.module->field_offsets[ref_idx]) = reg(c).data.oval;
-            break;
-        }
+        case Opcode::FIELDSETO_R:
         case Opcode::FIELDSETH:
-        case Opcode::FIELDSETH_R: {
-            uint32_t ref_idx = (op == Opcode::FIELDSETH) ? b : static_cast<uint32_t>(reg(b).data.ival);
-            if (ref_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range");
-                break;
-            }
-            HeapPtr struct_ptr = reg(a).data.hptr;
-            char* data = static_cast<char*>(rt_->heap_.get_ptr(struct_ptr));
-            Value val = reg(c);
-            *reinterpret_cast<HeapPtr*>(data + frame.module->field_offsets[ref_idx]) = val.data.hptr;
-            if (rt_->gc_ && val.storage == ValueStorage::heap) {
-                rt_->gc_->write_barrier(struct_ptr, val.data.hptr);
-            }
+        case Opcode::FIELDSETH_R:
+            op_field_access(op, a, b, c, frame.module);
             break;
-        }
 
         case Opcode::RET: {
             Value val = reg(a);
@@ -2375,14 +2261,17 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) return;
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         Value val = reg(static_cast<uint8_t>(dest_reg + 2));
         if (val.type_id != elem_type) {
             fail("array.push value type mismatch");
             return;
         }
         arr->append_value(val, *rt_);
+        rt_->mark_propset_heap_mutation(arr_ptr);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2392,8 +2281,10 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         if (arr->size() == 0) {
             fail("array.pop on empty array");
             return;
@@ -2404,6 +2295,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->resize(arr->size() - 1);
+        rt_->mark_propset_heap_mutation(arr_ptr);
         reg(dest_reg) = result;
         return;
     }
@@ -2424,9 +2316,12 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         arr->clear();
+        rt_->mark_propset_heap_mutation(arr_ptr);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2436,8 +2331,10 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t count = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), count)) { return; }
         if (count < 0) {
@@ -2445,6 +2342,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->reserve(static_cast<size_t>(count));
+        rt_->mark_propset_heap_mutation(arr_ptr);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2454,8 +2352,10 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t index = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), index)) { return; }
         if (index < 0) {
@@ -2490,8 +2390,10 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
+        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
+        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t index = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), index)) { return; }
         if (index < 0) {
@@ -2507,6 +2409,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("array.set index out of bounds");
             return;
         }
+        rt_->mark_propset_heap_mutation(arr_ptr);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -3063,6 +2966,28 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         reg(dest_reg) = Value::make_string(rt_->alloc_string(result));
         return;
     }
+    case IntrinsicId::GetPropset: {
+        if (argc != 2) {
+            fail("get_propset expects 2 arguments (object, type_id)");
+            return;
+        }
+        Value obj_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (!rt_->is_object_like_type(obj_val.type_id)) {
+            fail("get_propset expects object argument");
+            return;
+        }
+        Value tid_val = reg(static_cast<uint8_t>(dest_reg + 2));
+        if (tid_val.type_id != rt_->int_type()) {
+            fail("get_propset expects int type id argument");
+            return;
+        }
+        TypeID propset_type(static_cast<TypeID::underlying_type>(tid_val.data.ival));
+        reg(dest_reg) = rt_->get_or_create_propset_ref(propset_type, obj_val.data.oval);
+        if (reg(dest_reg).type_id == invalid_type_id) {
+            fail("get_propset failed");
+        }
+        return;
+    }
     default:
         fail("Unknown intrinsic id");
         return;
@@ -3133,10 +3058,10 @@ void VirtualMachine::op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c,
     Value struct_val = reg(struct_reg);
 
     if (is_get) {
-        reg(a) = rt_->read_field_at_offset(struct_val.data.hptr, offset, type_id);
+        reg(a) = rt_->read_value_field_at_offset(struct_val, offset, type_id);
     } else {
         Value val = reg(val_reg);
-        if (!rt_->write_field_at_offset(struct_val.data.hptr, offset, type_id, val)) {
+        if (!rt_->write_value_field_at_offset(struct_val, offset, type_id, val)) {
             fail("Field write failed (type mismatch?)");
         }
     }

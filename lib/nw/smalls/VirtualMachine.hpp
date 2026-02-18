@@ -23,7 +23,7 @@ struct StackSlot {
 
 /// Execution state for a single function call
 struct CallFrame {
-    const BytecodeModule* module = nullptr; // Module this function belongs to
+    BytecodeModule* module = nullptr; // Module this function belongs to (mutable for globals)
     const CompiledFunction* function = nullptr;
     Closure* closure = nullptr;   // Active closure (null for non-closure calls)
     uint32_t pc = 0;              // Program counter
@@ -58,7 +58,7 @@ struct VirtualMachine {
     /// @param args Arguments to pass to the function
     /// @return Result value, or Value with invalid_type_id on error
     /// @param gas_limit Gas budget for this execution (0 means unlimited). Only applied for top-level entry.
-    Value execute(const BytecodeModule* module, StringView function_name, const Vector<Value>& args,
+    Value execute(BytecodeModule* module, StringView function_name, const Vector<Value>& args,
         uint64_t gas_limit = 0);
 
     /// Executes a pre-resolved compiled function in a module.
@@ -67,7 +67,7 @@ struct VirtualMachine {
     /// @param args Arguments to pass to the function
     /// @return Result value, or Value with invalid_type_id on error
     /// @param gas_limit Gas budget for this execution (0 means unlimited). Only applied for top-level entry.
-    Value execute(const BytecodeModule* module, const CompiledFunction* function, const Vector<Value>& args,
+    Value execute(BytecodeModule* module, const CompiledFunction* function, const Vector<Value>& args,
         uint64_t gas_limit = 0);
 
     /// Executes a closure directly
@@ -77,7 +77,7 @@ struct VirtualMachine {
     /// Main execution loop
     /// @param module The module being executed
     /// @param entry_depth Stop execution when frames.size() reaches this depth (for reentrancy)
-    bool run(const BytecodeModule* module, size_t entry_depth = 0);
+    bool run(BytecodeModule* module, size_t entry_depth = 0);
 
     /// Reset VM state
     void reset();
@@ -148,7 +148,7 @@ private:
     bool consume_gas(uint64_t amount = 1);
     void init_gas(uint64_t gas_limit);
 
-    void push_frame(const BytecodeModule* module, const CompiledFunction* func, uint32_t ret_reg, Closure* closure);
+    void push_frame(BytecodeModule* module, const CompiledFunction* func, uint32_t ret_reg, Closure* closure);
     void pop_frame();
 
     Upvalue* get_or_create_upvalue(CallFrame& frame, uint8_t reg);
@@ -165,7 +165,7 @@ private:
     void* resolve_sum_data(const Value& sum_val, CallFrame& frame, const SumDef*& out_def, const char* opcode_name);
     void call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt, const Value* args, uint8_t argc,
         uint8_t dest_reg, StringView func_name);
-    void setup_script_call(uint8_t dest_reg, uint8_t argc, const BytecodeModule* target_module,
+    void setup_script_call(uint8_t dest_reg, uint8_t argc, BytecodeModule* target_module,
         const CompiledFunction* callee, Closure* closure, const char* opcode_name);
     Value read_stack_value(uint8_t* ptr, TypeID field_type, uint32_t base_offset, uint32_t field_offset,
         Runtime& rt);

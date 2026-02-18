@@ -10,6 +10,7 @@
 #include "AstResolver.hpp"
 #include "Context.hpp"
 #include "NullVisitor.hpp"
+#include "PropsetPool.hpp"
 #include "Smalls.hpp"
 #include "Token.hpp"
 #include "TypeResolver.hpp"
@@ -186,6 +187,7 @@ Runtime::Runtime(MemoryResource* scope)
     , resman_{nw::kernel::global_allocator(), &kernel::resman()}
     , gc_{std::make_unique<GarbageCollector>(&heap_, this)}
     , vm_{std::make_unique<VirtualMachine>()}
+    , propsets_{std::make_unique<PropsetPoolManager>()}
 {
     void* mem = allocator()->allocate(sizeof(Context), alignof(Context));
     diagnostic_context_ = new (mem) Context();
@@ -195,7 +197,34 @@ Runtime::Runtime(MemoryResource* scope)
     gc_->set_vm(vm_.get());
 }
 
-Runtime::~Runtime() = default;
+Runtime::~Runtime()
+{
+    LOG_F(INFO, "[runtime] Runtime destructor starting");
+
+    // Destroy VM and GC first to release any references before cleaning up
+    // objects they might point to.
+    vm_.reset();
+    gc_.reset();
+    propsets_.reset();
+
+    // Scripts and diagnostic_context_ are placement-new'd into arena memory,
+    // so we must call destructors explicitly before the arena is destroyed.
+    for (auto& [name, script] : modules_) {
+        if (script) {
+            script->~Script();
+        }
+    }
+
+    if (diagnostic_context_) {
+        diagnostic_context_->~Context();
+        diagnostic_context_ = nullptr;
+    }
+
+    // All other containers (modules_, bytecode_cache_, etc.) are automatically
+    // destroyed by their destructors in reverse declaration order.
+
+    LOG_F(INFO, "[runtime] Runtime destructor completed");
+}
 
 void Runtime::initialize(nw::kernel::ServiceInitTime time)
 {
@@ -367,6 +396,7 @@ nlohmann::json Runtime::stats() const
     size_t export_with_decl_count = 0;
     size_t export_with_function_abi_count = 0;
     for (const auto& [_, module] : bytecode_cache_) {
+        if (!module) { continue; }
         module_functions += module->functions.size();
         module_globals += module->global_count;
     }
@@ -1697,7 +1727,7 @@ ExecutionResult Runtime::execute_script(Script* script, StringView function_name
     return execute_compiled(module, function, args, gas_limit);
 }
 
-ExecutionResult Runtime::execute_compiled(const BytecodeModule* module, const CompiledFunction* function,
+ExecutionResult Runtime::execute_compiled(BytecodeModule* module, const CompiledFunction* function,
     const Vector<Value>& args, uint64_t gas_limit)
 {
     if (!module || !function) {
@@ -1864,6 +1894,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
 
     if (script->errors() > 0) {
         LOG_F(ERROR, "[runtime] Script '{}' has errors, cannot compile", script->name());
+        bytecode_cache_[script] = nullptr; // cache failure to suppress repeated attempts
         return nullptr;
     }
 
@@ -1876,7 +1907,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
 
     if (!compiler.compile()) {
         LOG_F(ERROR, "[runtime] Compilation failed for '{}': {}", script->name(), compiler.error_message_);
-        bytecode_cache_.erase(script);
+        bytecode_cache_[script] = nullptr; // downgrade to failed entry; do not retry
         return nullptr;
     }
 
@@ -1901,7 +1932,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
     // Resolve external function references
     if (!module->resolve_external_refs(this)) {
         LOG_F(ERROR, "[runtime] Failed to resolve external refs for '{}'", script->name());
-        bytecode_cache_.erase(script);
+        bytecode_cache_[script] = nullptr; // downgrade to failed entry; do not retry
         return nullptr;
     }
 
@@ -1923,6 +1954,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
 void Runtime::enumerate_module_globals(GCRootVisitor& visitor)
 {
     for (auto& [script, module] : bytecode_cache_) {
+        if (!module) { continue; } // null entry = previously failed module
         for (uint32_t i = 0; i < module->global_count; ++i) {
             if (module->globals[i].storage == ValueStorage::heap && module->globals[i].data.hptr.value != 0) {
                 visitor.visit_root(&module->globals[i].data.hptr);
@@ -2803,10 +2835,7 @@ Value Runtime::read_struct_value_field(const Value& struct_val, const StructDef*
     ENSURE_OR_RETURN_DEFAULT(def, "struct definition is null");
     ENSURE_OR_RETURN_DEFAULT(field_index < def->field_count, "struct field index out of range");
     const FieldDef& field = def->fields[field_index];
-    Value mut_val = struct_val;
-    void* data = get_value_data_ptr(mut_val);
-    if (!data) return Value{};
-    return read_field_as_value(static_cast<char*>(data) + field.offset, field.type_id, *this);
+    return read_value_field_at_offset(struct_val, field.offset, field.type_id);
 }
 
 uint32_t Runtime::read_sum_value_tag(const Value& sum_val, const SumDef* def)
@@ -2937,6 +2966,77 @@ bool Runtime::write_struct_field(HeapPtr struct_ptr, TypeID struct_type_id, Stri
         field_name, struct_type_id.value, struct_id.value);
 
     return write_struct_field_by_index(struct_ptr, struct_def, field_index, value);
+}
+
+bool Runtime::is_propset_type(TypeID type_id) const
+{
+    return propsets_ && propsets_->is_propset_type(*this, type_id);
+}
+
+Value Runtime::get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj)
+{
+    if (!propsets_) {
+        return Value{};
+    }
+    return propsets_->get_or_create(*this, propset_type, obj);
+}
+
+void Runtime::enumerate_propset_roots(GCRootVisitor& visitor, bool young_only)
+{
+    if (!propsets_) {
+        return;
+    }
+    propsets_->enumerate_roots(*this, visitor, young_only);
+}
+
+void Runtime::mark_propset_heap_mutation(HeapPtr ptr)
+{
+    if (!propsets_) {
+        return;
+    }
+    propsets_->mark_heap_mutation(ptr);
+}
+
+Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id)
+{
+    if (is_propset_type(struct_val.type_id)) {
+        return propsets_->read_field(*this, struct_val, offset, type_id, true);
+    }
+    Value mut = struct_val;
+    void* data = get_value_data_ptr(mut);
+    if (!data) {
+        return Value{};
+    }
+    return read_field_as_value(static_cast<uint8_t*>(data) + offset, type_id, *this);
+}
+
+bool Runtime::write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value)
+{
+    if (is_propset_type(struct_val.type_id)) {
+        return propsets_->write_field(*this, struct_val, offset, type_id, value);
+    }
+
+    Value mut = struct_val;
+    void* data = get_value_data_ptr(mut);
+    if (!data) {
+        return false;
+    }
+    write_value_to_field(static_cast<uint8_t*>(data) + offset, type_id, value, *this);
+    if (gc_ && type_table_.is_heap_type(type_id) && value.storage == ValueStorage::heap) {
+        if (struct_val.storage == ValueStorage::heap) {
+            gc_->write_barrier(struct_val.data.hptr, value.data.hptr);
+        }
+    }
+    return true;
+}
+
+bool Runtime::write_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index, const Value& value)
+{
+    if (!def || field_index >= def->field_count) {
+        return false;
+    }
+    const FieldDef& field = def->fields[field_index];
+    return write_value_field_at_offset(struct_val, field.offset, field.type_id, value);
 }
 
 // -- Tuple Element Access ----------------------------------------------------
@@ -3194,6 +3294,9 @@ bool Runtime::array_set(HeapPtr array_ptr, uint32_t index, const Value& value)
         if (result && gc_ && type_table_.is_heap_type(elem_type_id) && value.storage == ValueStorage::heap) {
             gc_->write_barrier(array_ptr, value.data.hptr);
         }
+        if (result) {
+            mark_propset_heap_mutation(array_ptr);
+        }
         return result;
     }
 
@@ -3217,6 +3320,8 @@ bool Runtime::array_set(HeapPtr array_ptr, uint32_t index, const Value& value)
     if (gc_ && type_table_.is_heap_type(elem_type_id) && value.storage == ValueStorage::heap) {
         gc_->write_barrier(array_ptr, value.data.hptr);
     }
+
+    mark_propset_heap_mutation(array_ptr);
 
     return true;
 }
@@ -4031,7 +4136,7 @@ TypeID Runtime::get_function_return_type(TypeID func_type) const
     return func_def->return_type;
 }
 
-HeapPtr Runtime::alloc_closure(TypeID func_type, const CompiledFunction* func, const BytecodeModule* module, size_t upvalue_count)
+HeapPtr Runtime::alloc_closure(TypeID func_type, const CompiledFunction* func, BytecodeModule* module, size_t upvalue_count)
 {
     HeapPtr ptr = heap_.allocate(sizeof(Closure), alignof(Closure), func_type);
     auto* closure = new (heap_.get_ptr(ptr)) Closure(func, module);

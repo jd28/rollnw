@@ -26,14 +26,16 @@ GarbageCollector::~GarbageCollector()
 bool GarbageCollector::is_young(HeapPtr ptr) const
 {
     if (ptr.value == 0) return false;
-    auto* header = heap_->get_header(ptr);
+    auto* header = heap_->try_get_header(ptr);
+    if (!header) return false;
     return header->generation == 0;
 }
 
 bool GarbageCollector::is_old(HeapPtr ptr) const
 {
     if (ptr.value == 0) return false;
-    auto* header = heap_->get_header(ptr);
+    auto* header = heap_->try_get_header(ptr);
+    if (!header) return false;
     return header->generation == 1;
 }
 
@@ -52,8 +54,11 @@ void GarbageCollector::register_object(HeapPtr ptr, size_t size)
 void GarbageCollector::write_barrier(HeapPtr target, HeapPtr stored_value)
 {
     if (target.value == 0 || stored_value.value == 0) { return; }
-    auto* target_header = heap_->get_header(target);
-    auto* value_header = heap_->get_header(stored_value);
+    auto* target_header = heap_->try_get_header(target);
+    auto* value_header = heap_->try_get_header(stored_value);
+    if (!target_header || !value_header) {
+        return;
+    }
 
     if (target_header->generation == 1 && value_header->generation == 0) {
         card_table_.mark_dirty(target.value);
@@ -68,10 +73,22 @@ void GarbageCollector::write_barrier_marking(HeapPtr target, HeapPtr stored_valu
 {
     if (target.value == 0 || stored_value.value == 0) { return; }
 
-    auto* target_header = heap_->get_header(target);
-    auto* value_header = heap_->get_header(stored_value);
+    auto* target_header = heap_->try_get_header(target);
+    auto* value_header = heap_->try_get_header(stored_value);
+    if (!target_header || !value_header) {
+        return;
+    }
 
     if (target_header->mark_color == static_cast<uint8_t>(MarkColor::BLACK) && value_header->mark_color == static_cast<uint8_t>(MarkColor::WHITE)) {
+        shade_gray(stored_value);
+    }
+}
+
+void GarbageCollector::write_barrier_root(HeapPtr stored_value)
+{
+    if (phase_ != GCPhase::mark_incremental || stored_value.value == 0) { return; }
+    auto* header = heap_->try_get_header(stored_value);
+    if (header && header->mark_color == static_cast<uint8_t>(MarkColor::WHITE)) {
         shade_gray(stored_value);
     }
 }
@@ -226,7 +243,10 @@ void GarbageCollector::mark_roots(bool young_only)
         {
             if (!ptr || ptr->value == 0) return;
 
-            auto* header = gc->heap_->get_header(*ptr);
+            auto* header = gc->heap_->try_get_header(*ptr);
+            if (!header) {
+                return;
+            }
             if (young_only && header->generation != 0) {
                 return;
             }
@@ -251,6 +271,7 @@ void GarbageCollector::mark_roots(bool young_only)
 
     runtime_->enumerate_module_globals(visitor);
     runtime_->enumerate_handle_roots(visitor);
+    runtime_->enumerate_propset_roots(visitor, young_only);
 }
 
 void GarbageCollector::mark_from_dirty_cards()
@@ -387,7 +408,10 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
 {
     if (ptr.value == 0) { return false; }
 
-    auto* header = heap_->get_header(ptr);
+    auto* header = heap_->try_get_header(ptr);
+    if (!header) {
+        return false;
+    }
     const Type* type = runtime_->get_type(header->type_id);
     if (!type) { return false; }
 
@@ -395,7 +419,8 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
 
     auto try_mark_child = [this, young_only, &has_young_refs](HeapPtr child) {
         if (child.value == 0) return;
-        auto* child_header = heap_->get_header(child);
+        auto* child_header = heap_->try_get_header(child);
+        if (!child_header) { return; } // back-pointer corrupted; skip safely
         if (young_only && child_header->generation != 0) {
             return;
         }
@@ -412,7 +437,10 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
         if (type->primitive_kind == PK_string) {
             StringRepr* sr = static_cast<StringRepr*>(heap_->get_ptr(ptr));
             if (sr->backing.value != 0) {
-                auto* backing_header = heap_->get_header(sr->backing);
+                auto* backing_header = heap_->try_get_header(sr->backing);
+                if (!backing_header) {
+                    break;
+                }
                 if (!young_only || backing_header->generation == 0) {
                     if (backing_header->generation == 0) {
                         has_young_refs = true;
@@ -554,7 +582,10 @@ void GarbageCollector::shade_gray(HeapPtr ptr)
 {
     if (ptr.value == 0) return;
 
-    auto* header = heap_->get_header(ptr);
+    auto* header = heap_->try_get_header(ptr);
+    if (!header) {
+        return;
+    }
     header->mark_color = static_cast<uint8_t>(MarkColor::GRAY);
     gray_stack_.push_back(ptr);
 }
@@ -563,7 +594,10 @@ void GarbageCollector::set_black(HeapPtr ptr)
 {
     if (ptr.value == 0) return;
 
-    auto* header = heap_->get_header(ptr);
+    auto* header = heap_->try_get_header(ptr);
+    if (!header) {
+        return;
+    }
     header->mark_color = static_cast<uint8_t>(MarkColor::BLACK);
 }
 

@@ -104,6 +104,10 @@ struct ScriptHeap {
         return static_cast<ObjectHeader*>(*back_ptr);
     }
 
+    /// Safely gets header for potentially invalid heap pointers.
+    /// Returns nullptr when the pointer does not appear to reference a live allocation.
+    ObjectHeader* try_get_header(HeapPtr ptr) const;
+
     /// Stats
     size_t reserved() const { return RESERVE_SIZE; }
     size_t committed() const { return committed_size_; }
