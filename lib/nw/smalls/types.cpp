@@ -6,6 +6,19 @@ namespace nw::smalls {
 
 namespace {
 
+bool struct_decl_has_annotation(const StructDecl* decl, StringView name)
+{
+    if (!decl) {
+        return false;
+    }
+    for (const auto& ann : decl->annotations_) {
+        if (ann.name.loc.view() == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int16_t find_generic_param_index(StringView type_name, const Vector<String>& type_params)
 {
     for (size_t i = 0; i < type_params.size(); ++i) {
@@ -112,6 +125,7 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
     def->field_count = field_count;
     def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
+    def->is_propset = struct_decl_has_annotation(decl, "propset");
     uint32_t struct_alignment = 1;
 
     if (field_count > 0) {
@@ -133,6 +147,13 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
                 if (field_alignment == 0) { field_alignment = 1; }
             }
 
+            const bool is_unmanaged_array_field = def->is_propset && field_type && field_type->type_kind == TK_array;
+            if (is_unmanaged_array_field) {
+                // Propset array fields store TypedHandle (u64) inline, not HeapPtr.
+                field_size = sizeof(uint64_t);
+                field_alignment = alignof(uint64_t);
+            }
+
             struct_alignment = std::max(struct_alignment, field_alignment);
             offset = (offset + field_alignment - 1) & ~(field_alignment - 1);
 
@@ -143,6 +164,9 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
             field.generic_param_index = vd->type
                 ? find_generic_param_index(vd->type->str(), decl->type_params)
                 : int16_t{-1};
+
+            // Propset array fields are unmanaged (engine-managed via TypedHandle, not GC).
+            field.is_unmanaged_array = is_unmanaged_array_field;
 
             offset += field_size;
             idx++;
@@ -227,6 +251,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
     def->field_count = field_count;
     def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
+    def->is_propset = struct_decl_has_annotation(decl, "propset");
     uint32_t struct_alignment = 1;
 
     if (field_count > 0) {
@@ -250,6 +275,13 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
             }
             // else: Type not resolved yet - use 0 size, will be fixed during resolution
 
+            const bool is_unmanaged_array_field = def->is_propset && field_type && field_type->type_kind == TK_array;
+            if (is_unmanaged_array_field) {
+                // Propset array fields store TypedHandle (u64) inline, not HeapPtr.
+                field_size = sizeof(uint64_t);
+                field_alignment = alignof(uint64_t);
+            }
+
             struct_alignment = std::max(struct_alignment, field_alignment);
             offset = (offset + field_alignment - 1) & ~(field_alignment - 1);
 
@@ -260,6 +292,8 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
             field.generic_param_index = vd->type
                 ? find_generic_param_index(vd->type->str(), decl->type_params)
                 : int16_t{-1};
+
+            field.is_unmanaged_array = is_unmanaged_array_field;
 
             offset += field_size;
             idx++;
@@ -729,6 +763,11 @@ void TypeTable::compute_heap_ref_info(StructDef* def, Type& type)
         const Type* field_type = get(field.type_id);
 
         if (!field_type) continue;
+
+        // Skip unmanaged array fields - they're not GC-managed
+        if (field.is_unmanaged_array) {
+            continue;
+        }
 
         if (is_heap_type(field.type_id)) {
             heap_offsets.push_back(field.offset);

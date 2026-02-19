@@ -84,6 +84,14 @@ Value Value::make_stack(uint32_t offset, TypeID tid)
     return val;
 }
 
+Value Value::make_unmanaged_array(TypedHandle h, TypeID array_type_id)
+{
+    Value val(array_type_id);
+    // Unmanaged arrays use immediate storage (GC doesn't trace them)
+    val.data.handle = h.to_ull();
+    return val;
+}
+
 // == Value Hashing/Equality ==================================================
 // ============================================================================
 
@@ -2981,14 +2989,6 @@ Value Runtime::get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj)
     return propsets_->get_or_create(*this, propset_type, obj);
 }
 
-void Runtime::enumerate_propset_roots(GCRootVisitor& visitor, bool young_only)
-{
-    if (!propsets_) {
-        return;
-    }
-    propsets_->enumerate_roots(*this, visitor, young_only);
-}
-
 void Runtime::mark_propset_heap_mutation(HeapPtr ptr)
 {
     if (!propsets_) {
@@ -3428,7 +3428,10 @@ IArray* Runtime::get_array_typed(HeapPtr array_ptr) const
 {
     if (array_ptr.value == 0) return nullptr;
 
-    auto* header = heap_.get_header(array_ptr);
+    auto* header = heap_.try_get_header(array_ptr);
+    if (!header) {
+        return nullptr;
+    }
     const Type* type = get_type(header->type_id);
 
     if (!type || type->type_kind != TK_array || !type->type_params[1].empty()) {
@@ -3771,6 +3774,16 @@ TypedHandle* Runtime::get_handle(HeapPtr ptr)
     return reinterpret_cast<TypedHandle*>(header + 1);
 }
 
+const TypedHandle* Runtime::get_handle(HeapPtr ptr) const
+{
+    if (ptr.value == 0) {
+        return nullptr;
+    }
+
+    auto* header = static_cast<const ScriptHeap::ObjectHeader*>(heap_.get_ptr(ptr));
+    return reinterpret_cast<const TypedHandle*>(header + 1);
+}
+
 HeapPtr Runtime::intern_handle(TypedHandle value, OwnershipMode mode, bool force_mode)
 {
     HeapPtr existing = lookup_handle(value);
@@ -3837,6 +3850,27 @@ bool Runtime::set_handle_ownership(TypedHandle h, OwnershipMode mode)
     return true;
 }
 
+void Runtime::unregister_handle(TypedHandle h)
+{
+    auto it = global_handle_registry_.find(h);
+    if (it == global_handle_registry_.end()) {
+        return;
+    }
+
+    // Invalidate the GC cell so any script HeapPtrs still pointing to it get
+    // an invalid handle on next dereference, without needing a pool generation
+    // check against the now-destroyed engine object.
+    HeapPtr cell = it->second.vm_value;
+    if (cell.value != 0) {
+        TypedHandle* slot = get_handle(cell);
+        if (slot) {
+            *slot = TypedHandle{};
+        }
+    }
+
+    global_handle_registry_.erase(it);
+}
+
 std::optional<OwnershipMode> Runtime::handle_ownership(TypedHandle h) const
 {
     auto it = global_handle_registry_.find(h);
@@ -3854,18 +3888,80 @@ bool Runtime::is_handle_type(TypeID tid) const
     return false;
 }
 
-void Runtime::enumerate_handle_roots(GCRootVisitor& visitor)
+size_t Runtime::prune_stale_handle_registry()
 {
-    for (auto& [h, entry] : global_handle_registry_) {
-        (void)h;
-        if (entry.mode == OwnershipMode::VM_OWNED) {
+    size_t removed = 0;
+    for (auto it = global_handle_registry_.begin(); it != global_handle_registry_.end();) {
+        const TypedHandle h = it->first;
+        const HandleEntry& entry = it->second;
+
+        bool stale = false;
+        if (entry.vm_value.value == 0) {
+            stale = true;
+        } else {
+            auto* header = heap_.try_get_header(entry.vm_value);
+            if (!header || !is_handle_type(header->type_id)) {
+                stale = true;
+            } else {
+                const TypedHandle* cell_handle = get_handle(entry.vm_value);
+                if (!cell_handle || *cell_handle != h) {
+                    stale = true;
+                }
+            }
+        }
+
+        if (stale) {
+            TypedHandle doomed = h;
+            ++it;
+            global_handle_registry_.erase(doomed);
+            ++removed;
             continue;
         }
 
-        if (entry.vm_value.value != 0) {
+        ++it;
+    }
+    return removed;
+}
+
+size_t Runtime::clear_non_vm_owned_handle_registry()
+{
+    size_t removed = 0;
+    for (auto it = global_handle_registry_.begin(); it != global_handle_registry_.end();) {
+        if (it->second.mode == OwnershipMode::VM_OWNED) {
+            ++it;
+            continue;
+        }
+
+        TypedHandle doomed = it->first;
+        ++it;
+        global_handle_registry_.erase(doomed);
+        ++removed;
+    }
+    return removed;
+}
+
+void Runtime::enumerate_handle_roots(GCRootVisitor& visitor, bool young_only)
+{
+    // ENGINE_OWNED and BORROWED handles are pinned — the engine controls their
+    // lifetime and they must never be GC'd. Root them unconditionally.
+    // VM_OWNED handle cells live only as long as the object graph reaches them.
+    for (auto& [h, entry] : global_handle_registry_) {
+        if (entry.mode != OwnershipMode::VM_OWNED && entry.vm_value.value != 0) {
             visitor.visit_root(&entry.vm_value);
         }
     }
+
+    // Prune stale VM_OWNED registry entries only on major/full collections to
+    // avoid repeated O(N) work.
+    if (!young_only) {
+        prune_stale_handle_registry();
+    }
+}
+
+bool Runtime::is_non_vm_owned_handle_cell(HeapPtr ptr) const
+{
+    (void)ptr;
+    return false;
 }
 
 void Runtime::register_handle_destructor(TypeID handle_type, std::function<void(TypedHandle, HeapPtr)> destructor)
@@ -4177,12 +4273,17 @@ void Runtime::destruct_object(HeapPtr ptr)
         const TypedHandle h = *hptr;
         auto it = global_handle_registry_.find(h);
         if (it != global_handle_registry_.end()) {
-            OwnershipMode mode = it->second.mode;
-            if (it->second.mode != OwnershipMode::VM_OWNED) {
-                LOG_F(ERROR,
-                    "[runtime] Finalizing non-VM-owned handle cell (type={}, gen={}, id={}, pool_type={}, mode={})",
-                    type_name(header->type_id), h.generation, h.id, h.type, static_cast<int>(it->second.mode));
+            if (it->second.vm_value.value != ptr.value) {
+                LOG_F(WARNING,
+                    "[runtime] Finalizing stale duplicate handle cell (type={}, gen={}, id={}, pool_type={}, registry_ptr={}, cell_ptr={})",
+                    type_name(header->type_id), h.generation, h.id, h.type,
+                    it->second.vm_value.value, ptr.value);
+                return;
             }
+
+            OwnershipMode mode = it->second.mode;
+            // Non-VM-owned handle cells are weak and may be collected when no
+            // script roots reference them. This is expected and not a warning.
 
             auto dt = handle_destructors_.find(header->type_id);
             std::function<void(TypedHandle, HeapPtr)> dtor;

@@ -843,6 +843,95 @@ void AstCompiler::emit_stack_field_set(uint8_t base_reg, uint32_t offset, TypeID
     }
 }
 
+std::pair<bool, int32_t> AstCompiler::try_eval_const_int(Expression* expr) const
+{
+    if (auto lit = dynamic_cast<LiteralExpression*>(expr)) {
+        if (lit->data.is<int32_t>()) {
+            return {true, lit->data.as<int32_t>()};
+        }
+    }
+
+    AstConstEvaluator eval(script_, expr);
+    if (!eval.failed_ && !eval.result_.empty() && eval.result_.back().type_id == runtime_->int_type()) {
+        return {true, eval.result_.back().data.ival};
+    }
+
+    return {false, -1};
+}
+
+uint8_t AstCompiler::emit_fixed_array_element_offset(uint8_t idx_reg, uint32_t base_offset, uint32_t elem_size)
+{
+    uint8_t offset_reg = registers_.allocate();
+    uint8_t base_reg = registers_.allocate();
+
+    if (base_offset <= 32767) {
+        emit_asbx(Opcode::LOADI, base_reg, static_cast<int16_t>(base_offset));
+    } else {
+        uint32_t k_idx = add_constant_int(static_cast<int32_t>(base_offset));
+        emit_abx(Opcode::LOADK, base_reg, static_cast<uint16_t>(k_idx));
+    }
+
+    if (elem_size == 1) {
+        emit_abc(Opcode::ADD, offset_reg, idx_reg, base_reg);
+    } else {
+        uint8_t size_reg = registers_.allocate();
+        if (elem_size <= 32767) {
+            emit_asbx(Opcode::LOADI, size_reg, static_cast<int16_t>(elem_size));
+        } else {
+            uint32_t k_idx = add_constant_int(static_cast<int32_t>(elem_size));
+            emit_abx(Opcode::LOADK, size_reg, static_cast<uint16_t>(k_idx));
+        }
+        uint8_t scaled_idx = registers_.allocate();
+        emit_abc(Opcode::MUL, scaled_idx, idx_reg, size_reg);
+        emit_abc(Opcode::ADD, offset_reg, scaled_idx, base_reg);
+        registers_.free(scaled_idx);
+        registers_.free(size_reg);
+    }
+
+    registers_.free(base_reg);
+    return offset_reg;
+}
+
+Opcode AstCompiler::field_offset_get_opcode(TypeID elem_type_id) const
+{
+    if (elem_type_id == runtime_->int_type()) {
+        return Opcode::FIELDGETI_OFF_R;
+    }
+    if (elem_type_id == runtime_->float_type()) {
+        return Opcode::FIELDGETF_OFF_R;
+    }
+    if (elem_type_id == runtime_->bool_type()) {
+        return Opcode::FIELDGETB_OFF_R;
+    }
+    if (elem_type_id == runtime_->string_type()) {
+        return Opcode::FIELDGETS_OFF_R;
+    }
+    if (runtime_->is_object_like_type(elem_type_id)) {
+        return Opcode::FIELDGETO_OFF_R;
+    }
+    return Opcode::FIELDGETH_OFF_R;
+}
+
+Opcode AstCompiler::field_offset_set_opcode(TypeID elem_type_id) const
+{
+    if (elem_type_id == runtime_->int_type()) {
+        return Opcode::FIELDSETI_OFF_R;
+    }
+    if (elem_type_id == runtime_->float_type()) {
+        return Opcode::FIELDSETF_OFF_R;
+    }
+    if (elem_type_id == runtime_->bool_type()) {
+        return Opcode::FIELDSETB_OFF_R;
+    }
+    if (elem_type_id == runtime_->string_type()) {
+        return Opcode::FIELDSETS_OFF_R;
+    }
+    if (runtime_->is_object_like_type(elem_type_id)) {
+        return Opcode::FIELDSETO_OFF_R;
+    }
+    return Opcode::FIELDSETH_OFF_R;
+}
+
 Opcode AstCompiler::token_to_binary_opcode(TokenType type)
 {
     switch (type) {
@@ -1940,6 +2029,8 @@ void AstCompiler::visit(UnaryExpression* expr)
 
 void AstCompiler::visit(AssignExpression* expr)
 {
+    pending_fixed_array_field_.active = false;
+
     // Check if this is a compound assignment (+=, *=, etc.)
     bool is_compound = expr->op.type != TokenType::EQ;
 
@@ -2124,7 +2215,10 @@ void AstCompiler::visit(AssignExpression* expr)
         }
     } else if (auto index = dynamic_cast<IndexExpression*>(expr->lhs)) {
         // 1. Compile target (map/array)
+        bool prev_short_circuit = allow_fixed_array_short_circuit_;
+        allow_fixed_array_short_circuit_ = true;
         index->target->accept(this);
+        allow_fixed_array_short_circuit_ = prev_short_circuit;
         uint8_t target_reg = result_reg_;
 
         const Type* type = runtime_->get_type(index->target->type_id_);
@@ -2134,6 +2228,84 @@ void AstCompiler::visit(AssignExpression* expr)
         }
 
         if (type->type_kind == TK_fixed_array) {
+            // Check if we have pending fixed array field info (from PathExpression)
+            if (pending_fixed_array_field_.active && pending_fixed_array_field_.is_heap_struct) {
+                // This is a fixed array field from a heap struct (including propsets)
+                auto [has_const_index, index_val] = try_eval_const_int(index->index);
+
+                uint8_t struct_reg = pending_fixed_array_field_.struct_reg;
+                uint32_t base_offset = pending_fixed_array_field_.field_offset;
+                uint32_t elem_size = pending_fixed_array_field_.elem_size;
+                int32_t size = pending_fixed_array_field_.array_size;
+                TypeID elem_type_id = pending_fixed_array_field_.elem_type_id;
+
+                if (has_const_index) {
+                    if (index_val < 0 || index_val >= size) {
+                        fail("Fixed array index out of bounds");
+                        registers_.free(struct_reg);
+                        pending_fixed_array_field_.active = false;
+                        return;
+                    }
+
+                    uint32_t effective_offset = base_offset + static_cast<uint32_t>(index_val) * elem_size;
+                    uint8_t value_reg = rhs_reg;
+
+                    if (is_compound) {
+                        uint8_t current_reg = registers_.allocate();
+                        // Read current value
+                        emit_field_get(current_reg, struct_reg, effective_offset, elem_type_id);
+
+                        value_reg = registers_.allocate();
+                        Opcode op_code = token_to_binary_opcode(expr->op.type);
+                        emit_abc(op_code, value_reg, current_reg, rhs_reg);
+
+                        registers_.free(current_reg);
+                        registers_.free(rhs_reg);
+                    }
+
+                    // Write value to element
+                    emit_field_set(struct_reg, effective_offset, elem_type_id, value_reg);
+
+                    registers_.free(struct_reg);
+                    pending_fixed_array_field_.active = false;
+                    result_reg_ = value_reg;
+                    return;
+                }
+
+                // Variable index case
+                index->index->accept(this);
+                uint8_t idx_reg = result_reg_;
+
+                uint8_t offset_reg = emit_fixed_array_element_offset(idx_reg, base_offset, elem_size);
+
+                uint8_t value_reg = rhs_reg;
+                if (is_compound) {
+                    uint8_t current_reg = registers_.allocate();
+                    // Read current value at computed offset
+                    Opcode get_op = field_offset_get_opcode(elem_type_id);
+                    emit_abc(get_op, current_reg, struct_reg, offset_reg);
+
+                    value_reg = registers_.allocate();
+                    Opcode op_code = token_to_binary_opcode(expr->op.type);
+                    emit_abc(op_code, value_reg, current_reg, rhs_reg);
+
+                    registers_.free(current_reg);
+                    registers_.free(rhs_reg);
+                }
+
+                // Write value at computed offset
+                Opcode set_op = field_offset_set_opcode(elem_type_id);
+                emit_abc(set_op, value_reg, struct_reg, offset_reg);
+
+                registers_.free(offset_reg);
+                registers_.free(idx_reg);
+                registers_.free(struct_reg);
+                pending_fixed_array_field_.active = false;
+                result_reg_ = value_reg;
+                return;
+            }
+
+            // Normal fixed array assignment (stack-backed)
             int32_t index_val = -1;
             bool has_const_index = false;
             if (auto lit = dynamic_cast<LiteralExpression*>(index->index)) {
@@ -2462,6 +2634,28 @@ void AstCompiler::visit(PathExpression* expr)
         uint32_t field_idx = struct_def->field_index(ident->ident.loc.view());
         const FieldDef& field = struct_def->fields[field_idx];
 
+        // Check if this is a fixed array field that might be indexed
+        const Type* field_type = runtime_->get_type(field.type_id);
+        if (allow_fixed_array_short_circuit_ && field_type && field_type->type_kind == TK_fixed_array && field_type->type_params[0].is<TypeID>() && field_type->type_params[1].is<int32_t>()) {
+            // This is a fixed array field - set up info for potential direct indexing
+            TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
+            const Type* elem_type = runtime_->get_type(elem_type_id);
+            if (elem_type) {
+                pending_fixed_array_field_.struct_reg = current_reg;
+                pending_fixed_array_field_.field_offset = field.offset;
+                pending_fixed_array_field_.elem_size = elem_type->size;
+                pending_fixed_array_field_.array_size = field_type->type_params[1].as<int32_t>();
+                pending_fixed_array_field_.elem_type_id = elem_type_id;
+                pending_fixed_array_field_.is_heap_struct = !is_value_type(current_type);
+                pending_fixed_array_field_.active = true;
+                // Don't emit field access - leave it for IndexExpression to handle directly
+                current_type = field.type_id;
+                // Don't free current_reg - IndexExpression will need it
+                result_reg_ = current_reg;
+                return;
+            }
+        }
+
         uint8_t dest_reg = registers_.allocate();
         if (is_value_type(current_type)) {
             emit_stack_field_get(dest_reg, current_reg, field.offset, field.type_id);
@@ -2479,10 +2673,15 @@ void AstCompiler::visit(PathExpression* expr)
 
 void AstCompiler::visit(IndexExpression* expr)
 {
+    pending_fixed_array_field_.active = false;
+
     if (try_emit_const(expr)) return;
 
     // 1. Compile target
+    bool prev_short_circuit = allow_fixed_array_short_circuit_;
+    allow_fixed_array_short_circuit_ = true;
     expr->target->accept(this);
+    allow_fixed_array_short_circuit_ = prev_short_circuit;
     uint8_t target_reg = result_reg_;
 
     const Type* type = runtime_->get_type(expr->target->type_id_);
@@ -2517,6 +2716,58 @@ void AstCompiler::visit(IndexExpression* expr)
         registers_.free(target_reg);
         result_reg_ = dest_reg;
     } else if (type->type_kind == TK_fixed_array) {
+        // Check if we have pending fixed array field info (from PathExpression)
+        if (pending_fixed_array_field_.active && pending_fixed_array_field_.is_heap_struct) {
+            // This is a fixed array field from a heap struct (including propsets)
+            // Use direct element access without copying the whole array
+            auto [has_const_index, index_val] = try_eval_const_int(expr->index);
+
+            uint8_t struct_reg = pending_fixed_array_field_.struct_reg;
+            uint32_t base_offset = pending_fixed_array_field_.field_offset;
+            uint32_t elem_size = pending_fixed_array_field_.elem_size;
+            int32_t size = pending_fixed_array_field_.array_size;
+            TypeID elem_type_id = pending_fixed_array_field_.elem_type_id;
+
+            uint8_t dest_reg = registers_.allocate();
+
+            if (has_const_index) {
+                if (index_val < 0 || index_val >= size) {
+                    fail("Fixed array index out of bounds");
+                    registers_.free(struct_reg);
+                    registers_.free(dest_reg);
+                    pending_fixed_array_field_.active = false;
+                    return;
+                }
+
+                // Compute effective offset: field_offset + index * elem_size
+                uint32_t effective_offset = base_offset + static_cast<uint32_t>(index_val) * elem_size;
+
+                // Emit direct field access at computed offset
+                emit_field_get(dest_reg, struct_reg, effective_offset, elem_type_id);
+
+                registers_.free(struct_reg);
+            } else {
+                // Variable index: emit code to compute offset
+                expr->index->accept(this);
+                uint8_t idx_reg = result_reg_;
+
+                uint8_t offset_reg = emit_fixed_array_element_offset(idx_reg, base_offset, elem_size);
+                registers_.free(idx_reg);
+
+                // Now emit the field access at the computed offset
+                Opcode get_op = field_offset_get_opcode(elem_type_id);
+
+                emit_abc(get_op, dest_reg, struct_reg, offset_reg);
+                registers_.free(offset_reg);
+                registers_.free(struct_reg);
+            }
+
+            pending_fixed_array_field_.active = false;
+            result_reg_ = dest_reg;
+            return;
+        }
+
+        // Normal fixed array handling (stack-backed)
         int32_t index_val = -1;
         bool has_const_index = false;
         if (auto lit = dynamic_cast<LiteralExpression*>(expr->index)) {

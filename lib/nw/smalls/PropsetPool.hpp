@@ -27,7 +27,6 @@ public:
     Value read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty);
     bool write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value);
 
-    void enumerate_roots(Runtime& rt, GCRootVisitor& visitor, bool young_only);
     void mark_heap_mutation(HeapPtr ptr);
 
 private:
@@ -37,6 +36,7 @@ private:
         uint32_t schema_version = 1;
         std::vector<uint32_t> field_ids;
         absl::flat_hash_map<uint32_t, uint32_t> offset_to_field;
+        std::vector<uint32_t> unmanaged_array_offsets; // Byte offsets of unmanaged array fields
     };
 
     struct SlotRef {
@@ -49,6 +49,8 @@ private:
         bool alive = false;
         bool aggregate_dirty = false;
         bool has_live_heap_refs = false;
+        bool is_static = false;            // NEW: Skip during root enumeration if true and not dirty
+        bool has_unmanaged_arrays = false; // True if slot contains unmanaged array handles
         uint64_t dirty_bits = 0;
         ObjectHandle owner;
     };
@@ -57,6 +59,7 @@ private:
         std::vector<uint8_t> storage;
         std::vector<Slot> slots;
         std::vector<uint8_t> dirty_heap_cards;
+        std::vector<uint16_t> dirty_heap_card_indices;
     };
 
     struct Pool {

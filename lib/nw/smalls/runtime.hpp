@@ -3,6 +3,7 @@
 #include "../kernel/Kernel.hpp"
 #include "../objects/ObjectHandle.hpp"
 #include "../resources/ResourceManager.hpp"
+#include "../rules/RuntimeObject.hpp"
 #include "../util/HandlePool.hpp"
 #include "Array.hpp"
 #include "Context.hpp"
@@ -68,6 +69,7 @@ struct Value {
         float fval;            // float primitives
         ObjectHandle oval;     // Game entity IDs (creatures, items, etc.)
         HeapPtr hptr;          // Script heap: strings, structs, arrays
+        uint64_t handle;       // Engine-managed: unmanaged arrays (TypedHandle bits)
         uint32_t stack_offset; // Frame stack: offset into CallFrame::stack_
     } data = {.ival = 0};
 
@@ -84,6 +86,7 @@ struct Value {
     static Value make_object(ObjectHandle obj);
     static Value make_heap(HeapPtr ptr, TypeID tid);
     static Value make_stack(uint32_t offset, TypeID tid);
+    static Value make_unmanaged_array(TypedHandle h, TypeID array_type_id);
 };
 
 // == Value Hashing/Equality ==================================================
@@ -671,6 +674,7 @@ struct Runtime : public nw::kernel::Service {
     /// @param ptr Heap pointer to handle
     /// @return Pointer to typed handle, or nullptr if invalid
     TypedHandle* get_handle(HeapPtr ptr);
+    const TypedHandle* get_handle(HeapPtr ptr) const;
 
     /// Gets or creates the heap cell for a typed handle and sets ownership.
     HeapPtr intern_handle(TypedHandle value, OwnershipMode mode, bool force_mode = false);
@@ -692,6 +696,15 @@ struct Runtime : public nw::kernel::Service {
     /// @return true if updated, false if handle not registered
     bool set_handle_ownership(TypedHandle h, OwnershipMode mode);
 
+    /// Unregisters a TypedHandle-based engine object when it is destroyed.
+    /// Writes TypedHandle{} (invalid) into the GC cell so any script HeapPtrs
+    /// get an immediately-invalid handle on next dereference, then removes the
+    /// registry entry so the cell becomes unreachable and is collected at the
+    /// next sweep once no script references remain.
+    /// Call this wherever ENGINE_OWNED TypedHandle objects are destroyed.
+    /// @param h Typed handle being destroyed
+    void unregister_handle(TypedHandle h);
+
     /// Gets ownership for a registered handle.
     /// @param h Typed handle
     /// @return Ownership mode if registered, std::nullopt otherwise
@@ -704,7 +717,26 @@ struct Runtime : public nw::kernel::Service {
 
     /// Enumerate ENGINE_OWNED/BORROWED handle heap cells as GC roots.
     /// VM_OWNED handles are intentionally excluded so they can be collected.
-    void enumerate_handle_roots(GCRootVisitor& visitor);
+    /// @param visitor Root visitor callback
+    /// @param young_only When true, skip prune and skip old-generation cells
+    ///                   (generation != 0) — correct for minor GC cycles where
+    ///                   write barriers already handle the old→young case.
+    void enumerate_handle_roots(GCRootVisitor& visitor, bool young_only = false);
+
+    /// Prunes stale entries from the global handle registry.
+    /// Removes entries whose heap cell is null, dead, wrong-type, or mismatched.
+    /// @return number of entries removed
+    size_t prune_stale_handle_registry();
+
+    /// Clears all non-VM-owned entries from the global handle registry.
+    /// Intended for benchmark/test isolation where engine-owned handle roots from
+    /// previous runs would otherwise dominate GC root scanning costs.
+    /// @return number of entries removed
+    size_t clear_non_vm_owned_handle_registry();
+
+    /// Returns true when ptr is the registry-backed cell for a non-VM-owned
+    /// handle and must not be collected.
+    bool is_non_vm_owned_handle_cell(HeapPtr ptr) const;
 
     /// Registers a finalizer callback for a script handle type.
     /// The callback is invoked when a VM_OWNED handle heap cell is finalized.
@@ -728,6 +760,14 @@ struct Runtime : public nw::kernel::Service {
 
     // Propset pools and metadata
     std::unique_ptr<PropsetPoolManager> propsets_;
+
+    // Runtime object pool for unmanaged arrays and other engine-managed objects
+    nw::RuntimeObjectPool object_pool_;
+
+public:
+    /// Access the runtime object pool for allocating unmanaged arrays
+    nw::RuntimeObjectPool& object_pool() { return object_pool_; }
+    const nw::RuntimeObjectPool& object_pool() const { return object_pool_; }
 
     // -- Tuple Types ---------------------------------------------------------
 
@@ -859,7 +899,6 @@ struct Runtime : public nw::kernel::Service {
 
     bool is_propset_type(TypeID type_id) const;
     Value get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj);
-    void enumerate_propset_roots(GCRootVisitor& visitor, bool young_only);
     void mark_propset_heap_mutation(HeapPtr ptr);
 
     // -- Tuple Element Access ------------------------------------------------

@@ -109,7 +109,14 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
     }
 
     header->next_object = all_objects_;
+    header->prev_object = HeapPtr{0};
+    if (all_objects_.value != 0) {
+        auto* old_head = get_header(all_objects_);
+        old_head->prev_object = ptr;
+    }
     all_objects_ = ptr;
+    header->next_young = young_objects_;
+    young_objects_ = ptr;
     young_bytes_ += alloc_size;
 
     return ptr;
@@ -120,12 +127,24 @@ void ScriptHeap::free(HeapPtr ptr)
     if (ptr.value == 0) return;
 
     ObjectHeader* header = get_header(ptr);
+
+    // Invalidate the back-pointer so stale HeapPtr values fail try_get_header().
+    void* raw_ptr = get_ptr(ptr);
+    void** back_ptr = reinterpret_cast<void**>(raw_ptr) - 1;
+    *back_ptr = nullptr;
+
+    header->next_object = HeapPtr{0};
+    header->prev_object = HeapPtr{0};
+    header->next_young = HeapPtr{0};
+    header->alloc_size = 0;
+
     allocator_->free(header->alloc);
 }
 
 ScriptHeap::ObjectHeader* ScriptHeap::try_get_header(HeapPtr ptr) const
 {
-    if (ptr.value == 0 || !base_address_) {
+    // Fast path: validate basic conditions
+    if (ptr.value == 0 || !base_address_) [[unlikely]] {
         return nullptr;
     }
 
@@ -133,23 +152,26 @@ ScriptHeap::ObjectHeader* ScriptHeap::try_get_header(HeapPtr ptr) const
     const uintptr_t end = base + committed_size_;
     const uintptr_t raw = base + ptr.value;
 
-    if (raw < base + sizeof(void*) || raw > end) {
+    // Bounds check - ensure pointer is within committed heap with space for back-pointer
+    if (raw < base + sizeof(void*) || raw > end) [[unlikely]] {
         return nullptr;
     }
 
     const uintptr_t back_ptr_addr = raw - sizeof(void*);
-    if (back_ptr_addr + sizeof(void*) > end) {
+    if (back_ptr_addr + sizeof(void*) > end) [[unlikely]] {
         return nullptr;
     }
 
+    // Load and validate back-pointer
     void* header_ptr = nullptr;
     std::memcpy(&header_ptr, reinterpret_cast<const void*>(back_ptr_addr), sizeof(void*));
-    if (!header_ptr) {
+    if (!header_ptr) [[unlikely]] {
         return nullptr;
     }
 
+    // Validate header is within heap bounds
     const uintptr_t header_addr = reinterpret_cast<uintptr_t>(header_ptr);
-    if (header_addr < base || header_addr + sizeof(ObjectHeader) > end) {
+    if (header_addr < base || header_addr + sizeof(ObjectHeader) > end) [[unlikely]] {
         return nullptr;
     }
 

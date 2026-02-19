@@ -2075,17 +2075,69 @@ void TypeResolver::visit(StructDecl* decl)
                     }
 
                     bool allowed = false;
+
+                    // Helper to check if primitive kind is in v1 allowlist
+                    auto is_v1_primitive = [&](PrimitiveKind pk) -> bool {
+                        return pk == PK_int || pk == PK_float || pk == PK_bool;
+                    };
+
+                    // Helper to check if type is a POD type (no heap references)
+                    auto is_pod_type = [&](const Type* t) -> bool {
+                        if (!t) return false;
+                        // Primitives (excluding string)
+                        if (t->type_kind == TK_primitive) {
+                            return is_v1_primitive(t->primitive_kind);
+                        }
+                        // POD structs have contains_heap_refs == false
+                        if (t->type_kind == TK_struct) {
+                            return !t->contains_heap_refs;
+                        }
+                        return false;
+                    };
+
+                    // Helper to check if struct is a [[value_type]] (inline storage)
+                    auto is_value_type_struct = [&](const Type* t) -> bool {
+                        if (!t || t->type_kind != TK_struct || !t->type_params[0].is<StructID>()) {
+                            return false;
+                        }
+                        StructID sid = t->type_params[0].as<StructID>();
+                        const StructDef* def = rt.type_table_.get(sid);
+                        if (!def || !def->decl) return false;
+                        for (const auto& ann : def->decl->annotations_) {
+                            if (ann.name.loc.view() == "value_type") {
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+
+                    // Case 1: Primitive types (int, float, bool only - NOT string)
                     if (field_type->type_kind == TK_primitive) {
-                        allowed = true;
-                    } else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
+                        allowed = is_v1_primitive(field_type->primitive_kind);
+                    }
+                    // Case 2: [[value_type]] structs with no heap references
+                    else if (field_type->type_kind == TK_struct) {
+                        // Must be [[value_type]] and contain no heap references
+                        allowed = is_value_type_struct(field_type) && !field_type->contains_heap_refs;
+                    }
+                    // Case 3: Fixed arrays T[N] where T is POD
+                    else if (field_type->type_kind == TK_fixed_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
                         const Type* elem_type = rt.get_type(elem_tid);
-                        allowed = elem_type && elem_type->type_kind == TK_primitive;
+                        allowed = is_pod_type(elem_type);
+                    }
+                    // Case 4: Dynamic arrays array!(T) where T is int/float/bool
+                    else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
+                        TypeID elem_tid = field_type->type_params[0].as<TypeID>();
+                        const Type* elem_type = rt.get_type(elem_tid);
+                        if (elem_type && elem_type->type_kind == TK_primitive) {
+                            allowed = is_v1_primitive(elem_type->primitive_kind);
+                        }
                     }
 
                     if (!allowed) {
                         ctx.errorf(decl->range_,
-                            "[[propset]] '{}' field '{}' must be primitive or array!(primitive) in v1",
+                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool)",
                             decl->identifier(),
                             field.name.view());
                     }
@@ -2267,6 +2319,39 @@ void TypeResolver::visit(AssignExpression* expr)
 
     if (!is_mutable_lvalue(expr->lhs)) {
         ctx.errorf(expr->lhs->range_, "cannot assign to const variable");
+    }
+
+    // Check for assignment to propset array fields (unmanaged arrays cannot be reassigned)
+    if (auto* path_expr = dynamic_cast<PathExpression*>(expr->lhs)) {
+        if (path_expr->parts.size() >= 2) {
+            // Check if base is a propset type
+            if (auto* base_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts[0])) {
+                if (auto* base_decl = ctx.resolve(base_ident->ident.loc.view(), base_ident->ident.loc.range)) {
+                    if (auto* var_decl = dynamic_cast<const VarDecl*>(base_decl)) {
+                        if (var_decl->type_id_ != invalid_type_id) {
+                            const Type* base_type = rt.get_type(var_decl->type_id_);
+                            if (base_type && base_type->type_kind == TK_struct && base_type->type_params[0].is<StructID>()) {
+                                const StructDef* struct_def = rt.type_table_.get(base_type->type_params[0].as<StructID>());
+                                if (struct_def && struct_def->is_propset) {
+                                    // Check if the field being accessed is an unmanaged array
+                                    if (auto* field_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.back())) {
+                                        StringView field_name = field_ident->ident.loc.view();
+                                        for (uint32_t i = 0; i < struct_def->field_count; ++i) {
+                                            if (struct_def->fields[i].name.view() == field_name) {
+                                                if (struct_def->fields[i].is_unmanaged_array) {
+                                                    ctx.errorf(expr->lhs->range_, "cannot reassign propset array field '{}' (use .push(), .clear(), etc. instead)", field_name);
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     propagate_brace_init_type(expr->rhs, expr->lhs->type_id_);

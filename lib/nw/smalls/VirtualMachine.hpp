@@ -17,11 +17,14 @@ struct GCRootVisitor {
 
 /// Tracks a stack-allocated value type for GC enumeration
 struct StackSlot {
-    uint32_t offset; // Byte offset in stack_
-    TypeID type_id;  // Type of the value (for heap ref enumeration)
+    uint32_t offset;             // Byte offset in stack_
+    TypeID type_id;              // Type of the value (for heap ref enumeration)
+    bool scan_heap_refs = false; // True when type can contain HeapPtr transitively
 };
 
 /// Execution state for a single function call
+struct GarbageCollector; // Forward declaration
+
 struct CallFrame {
     BytecodeModule* module = nullptr; // Module this function belongs to (mutable for globals)
     const CompiledFunction* function = nullptr;
@@ -36,7 +39,7 @@ struct CallFrame {
     Vector<StackSlot> stack_layout_; // For GC root enumeration
 
     // Allocate space on frame stack for a value type
-    uint32_t stack_alloc(uint32_t size, uint32_t alignment, TypeID type_id);
+    uint32_t stack_alloc(uint32_t size, uint32_t alignment, TypeID type_id, bool scan_heap_refs);
 
     // Free stack space back to a previous offset (for scope exit)
     void stack_free_to(uint32_t offset);
@@ -46,6 +49,8 @@ struct CallFrame {
 
     // Open upvalues captured from this frame
     Upvalue* open_upvalues = nullptr;
+
+    friend struct GarbageCollector; // Allow GC to access private members for optimized root scanning
 };
 
 /// Register-based virtual machine for Smalls bytecode
@@ -121,6 +126,8 @@ private:
     size_t stack_top_ = 0;
     Vector<CallFrame> frames_;
 
+    friend struct GarbageCollector; // Allow GC to access private members for optimized root scanning
+
     Value last_result_;
     bool failed_ = false;
     String error_message_;
@@ -178,6 +185,7 @@ private:
     void op_test_and_skip(Opcode op, uint8_t a, uint8_t b);
     void op_logical(Opcode op, uint8_t a, uint8_t b, uint8_t c);
     void op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c, const BytecodeModule* module);
+    void op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c);
     void call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t argc);
 };
 

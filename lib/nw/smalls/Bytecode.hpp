@@ -83,6 +83,22 @@ enum class Opcode : uint8_t {
     FIELDSETH,
     FIELDSETH_R,
 
+    // Fixed array field indexing (for inline arrays in heap structs/propsets)
+    // These access elements at runtime-computed offsets within fixed array fields
+    // A=dest/val, B=struct_reg, C=offset_reg (offset includes base field offset + index*elem_size)
+    FIELDGETI_OFF_R, // Read int from heap struct at computed offset
+    FIELDSETI_OFF_R, // Write int to heap struct at computed offset
+    FIELDGETF_OFF_R, // Read float from heap struct at computed offset
+    FIELDSETF_OFF_R, // Write float to heap struct at computed offset
+    FIELDGETB_OFF_R, // Read bool from heap struct at computed offset
+    FIELDSETB_OFF_R, // Write bool to heap struct at computed offset
+    FIELDGETS_OFF_R, // Read string from heap struct at computed offset
+    FIELDSETS_OFF_R, // Write string to heap struct at computed offset
+    FIELDGETO_OFF_R, // Read object from heap struct at computed offset
+    FIELDSETO_OFF_R, // Write object to heap struct at computed offset
+    FIELDGETH_OFF_R, // Read heap value from heap struct at computed offset
+    FIELDSETH_OFF_R, // Write heap value to heap struct at computed offset
+
     // Control Flow
     JMP,        // pc += jump_offset (24-bit signed)
     JMPT,       // if r0 then pc += sbx

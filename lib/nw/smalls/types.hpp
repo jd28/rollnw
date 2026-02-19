@@ -43,6 +43,7 @@ struct FieldDef {
     TypeID type_id;
     uint32_t offset;
     int16_t generic_param_index = -1;
+    bool is_unmanaged_array = false; // True if this field is an unmanaged propset array
 
     bool operator==(const FieldDef& rhs) const noexcept = default;
 };
@@ -57,6 +58,7 @@ struct StructDef {
     uint32_t generic_param_count = 0;
     FieldDef* fields;
     const StructDecl* decl = nullptr;
+    bool is_propset = false;
 
     // GC support: byte offsets of HeapPtr fields for root enumeration
     uint32_t heap_ref_count = 0;
@@ -266,6 +268,7 @@ struct Type {
     uint32_t size = 0;
     uint32_t alignment = 0;
     bool contains_heap_refs = false; // True if type contains HeapPtr fields (for GC)
+    bool is_unmanaged_array = false; // True if this is a propset array using engine pool (not GC)
 
     bool operator==(const Type& rhs) const noexcept = default;
 };
@@ -280,7 +283,8 @@ H AbslHashValue(H h, const Type& type)
         type.primitive_kind,
         type.size,
         type.alignment,
-        type.contains_heap_refs);
+        type.contains_heap_refs,
+        type.is_unmanaged_array);
 }
 
 enum class SemanticFlags : uint8_t {

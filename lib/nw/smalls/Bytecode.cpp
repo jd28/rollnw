@@ -110,6 +110,30 @@ static StringView opcode_name(Opcode op)
         return "FIELDSETH";
     case Opcode::FIELDSETH_R:
         return "FIELDSETH_R";
+    case Opcode::FIELDGETI_OFF_R:
+        return "FIELDGETI_OFF_R";
+    case Opcode::FIELDSETI_OFF_R:
+        return "FIELDSETI_OFF_R";
+    case Opcode::FIELDGETF_OFF_R:
+        return "FIELDGETF_OFF_R";
+    case Opcode::FIELDSETF_OFF_R:
+        return "FIELDSETF_OFF_R";
+    case Opcode::FIELDGETB_OFF_R:
+        return "FIELDGETB_OFF_R";
+    case Opcode::FIELDSETB_OFF_R:
+        return "FIELDSETB_OFF_R";
+    case Opcode::FIELDGETS_OFF_R:
+        return "FIELDGETS_OFF_R";
+    case Opcode::FIELDSETS_OFF_R:
+        return "FIELDSETS_OFF_R";
+    case Opcode::FIELDGETO_OFF_R:
+        return "FIELDGETO_OFF_R";
+    case Opcode::FIELDSETO_OFF_R:
+        return "FIELDSETO_OFF_R";
+    case Opcode::FIELDGETH_OFF_R:
+        return "FIELDGETH_OFF_R";
+    case Opcode::FIELDSETH_OFF_R:
+        return "FIELDSETH_OFF_R";
     case Opcode::GETARRAY:
         return "GETARRAY";
     case Opcode::SETARRAY:

@@ -54,6 +54,8 @@ struct ScriptHeap {
         uint8_t _reserved1 : 1;
 
         HeapPtr next_object;
+        HeapPtr prev_object;
+        HeapPtr next_young;
         uint32_t alloc_size;
 
         ObjectHeader()
@@ -64,6 +66,8 @@ struct ScriptHeap {
             , age{0}
             , _reserved1{0}
             , next_object{0}
+            , prev_object{0}
+            , next_young{0}
             , alloc_size{0}
         {
         }
@@ -118,6 +122,9 @@ struct ScriptHeap {
     HeapPtr all_objects() const { return all_objects_; }
     void set_all_objects(HeapPtr head) { all_objects_ = head; }
 
+    HeapPtr young_objects() const { return young_objects_; }
+    void set_young_objects(HeapPtr head) { young_objects_ = head; }
+
     size_t young_bytes() const { return young_bytes_; }
     void add_young_bytes(size_t bytes) { young_bytes_ += bytes; }
     void set_young_bytes(size_t bytes) { young_bytes_ = bytes; }
@@ -137,6 +144,7 @@ private:
     GarbageCollector* gc_ = nullptr;
 
     HeapPtr all_objects_{0};
+    HeapPtr young_objects_{0};
     size_t young_bytes_ = 0;
     size_t old_bytes_ = 0;
 

@@ -5,6 +5,7 @@
 #include "runtime.hpp"
 
 #include <unordered_map>
+#include <utility>
 
 namespace nw::smalls {
 
@@ -106,6 +107,21 @@ struct AstCompiler : public BaseVisitor {
     // Result of compiling an expression (which register holds the value)
     uint8_t result_reg_ = 0;
 
+    // For tracking fixed array field access that can be directly indexed
+    // When set, indicates that result_reg_ points to a struct and the next
+    // index operation should use this info for direct element access
+    struct FixedArrayFieldInfo {
+        uint8_t struct_reg = 0;      // Register holding the struct
+        uint32_t field_offset = 0;   // Offset of the fixed array field
+        uint32_t elem_size = 0;      // Size of each element
+        int32_t array_size = 0;      // Number of elements in the array
+        TypeID elem_type_id;         // Type of array elements
+        bool is_heap_struct = false; // true for heap structs (including propsets)
+        bool active = false;         // Whether this info is valid
+    };
+    FixedArrayFieldInfo pending_fixed_array_field_;
+    bool allow_fixed_array_short_circuit_ = false;
+
     // Current source location for debug info
     SourceRange current_source_range_;
 
@@ -155,6 +171,10 @@ struct AstCompiler : public BaseVisitor {
     bool is_value_type(TypeID tid) const;
     void emit_stack_field_get(uint8_t dest, uint8_t base_reg, uint32_t offset, TypeID type_id);
     void emit_stack_field_set(uint8_t base_reg, uint32_t offset, TypeID type_id, uint8_t val_reg);
+    std::pair<bool, int32_t> try_eval_const_int(Expression* expr) const;
+    uint8_t emit_fixed_array_element_offset(uint8_t idx_reg, uint32_t base_offset, uint32_t elem_size);
+    Opcode field_offset_get_opcode(TypeID elem_type_id) const;
+    Opcode field_offset_set_opcode(TypeID elem_type_id) const;
 
     // Converts TokenType to Opcode for binary operations
     Opcode token_to_binary_opcode(TokenType type);

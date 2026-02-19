@@ -11,6 +11,35 @@
 
 namespace nw::smalls {
 
+namespace {
+
+bool type_may_hold_heap_refs(Runtime* rt, TypeID type_id)
+{
+    if (!rt) {
+        return false;
+    }
+
+    const Type* type = rt->get_type(type_id);
+    if (!type) {
+        return false;
+    }
+
+    while (type->type_kind == TK_newtype || type->type_kind == TK_alias) {
+        if (!type->type_params[0].is<TypeID>()) {
+            return false;
+        }
+        type_id = type->type_params[0].as<TypeID>();
+        type = rt->get_type(type_id);
+        if (!type) {
+            return false;
+        }
+    }
+
+    return rt->type_table_.is_heap_type(type_id) || type->contains_heap_refs;
+}
+
+} // namespace
+
 VirtualMachine::VirtualMachine()
     : registers_(std::make_unique<Value[]>(maximum_registers))
 {
@@ -422,7 +451,8 @@ void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg,
             }
 
             CallFrame& caller_frame = frames_[caller_frame_index];
-            uint32_t dst_offset = callee_frame.stack_alloc(type->size, type->alignment, arg.type_id);
+            uint32_t dst_offset = callee_frame.stack_alloc(type->size, type->alignment, arg.type_id,
+                type_may_hold_heap_refs(rt_, arg.type_id));
             std::memcpy(
                 callee_frame.stack_.data() + dst_offset,
                 caller_frame.stack_.data() + arg.data.stack_offset,
@@ -436,14 +466,14 @@ void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg,
 
 // == CallFrame Stack Allocation ==============================================
 
-uint32_t CallFrame::stack_alloc(uint32_t size, uint32_t alignment, TypeID type_id)
+uint32_t CallFrame::stack_alloc(uint32_t size, uint32_t alignment, TypeID type_id, bool scan_heap_refs)
 {
     uint32_t aligned = (stack_top_ + alignment - 1) & ~(alignment - 1);
     if (aligned + size > stack_.size()) {
         stack_.resize(aligned + size);
     }
 
-    stack_layout_.push_back({aligned, type_id});
+    stack_layout_.push_back({aligned, type_id, scan_heap_refs});
     std::memset(stack_.data() + aligned, 0, size);
 
     stack_top_ = aligned + size;
@@ -461,6 +491,9 @@ void CallFrame::stack_free_to(uint32_t offset)
 void CallFrame::enumerate_stack_roots(GCRootVisitor& visitor, Runtime* runtime)
 {
     for (const StackSlot& slot : stack_layout_) {
+        if (!slot.scan_heap_refs) {
+            continue;
+        }
         uint8_t* base = stack_.data() + slot.offset;
         runtime->scan_value_heap_refs(slot.type_id, base, [&](HeapPtr* ptr) {
             visitor.visit_root(ptr);
@@ -992,9 +1025,32 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
+            if (idx_val.data.ival < 0) {
+                fail("Array index must be non-negative");
+                break;
+            }
+
             Value result;
-            if (!rt_->array_get(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), result)) {
-                fail("Array access failed (index out of bounds?)");
+            uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
+            if (arr_val.storage == ValueStorage::heap) {
+                if (!rt_->array_get(arr_val.data.hptr, index, result)) {
+                    fail("Array access failed (index out of bounds?)");
+                    break;
+                }
+            } else if (arr_val.storage == ValueStorage::immediate) {
+                TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
+                IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+                if (!arr) {
+                    fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
+                        arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+                    break;
+                }
+                if (!arr->get_value(index, result, *rt_)) {
+                    fail("Array access failed (index out of bounds?)");
+                    break;
+                }
+            } else {
+                fail("Array access on invalid value storage");
                 break;
             }
             reg(dest_reg) = result;
@@ -1016,8 +1072,31 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            if (!rt_->array_set(arr_val.data.hptr, static_cast<uint32_t>(idx_val.data.ival), val)) {
-                fail("Array set failed");
+            if (idx_val.data.ival < 0) {
+                fail("Array index must be non-negative");
+                break;
+            }
+
+            uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
+            if (arr_val.storage == ValueStorage::heap) {
+                if (!rt_->array_set(arr_val.data.hptr, index, val)) {
+                    fail("Array set failed");
+                    break;
+                }
+            } else if (arr_val.storage == ValueStorage::immediate) {
+                TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
+                IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+                if (!arr) {
+                    fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
+                        arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+                    break;
+                }
+                if (!arr->set_value(index, val, *rt_)) {
+                    fail("Array set failed");
+                    break;
+                }
+            } else {
+                fail("Array set on invalid value storage");
                 break;
             }
             break;
@@ -1401,6 +1480,21 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
             op_field_access(op, a, b, c, frame.module);
             break;
 
+        case Opcode::FIELDGETI_OFF_R:
+        case Opcode::FIELDSETI_OFF_R:
+        case Opcode::FIELDGETF_OFF_R:
+        case Opcode::FIELDSETF_OFF_R:
+        case Opcode::FIELDGETB_OFF_R:
+        case Opcode::FIELDSETB_OFF_R:
+        case Opcode::FIELDGETS_OFF_R:
+        case Opcode::FIELDSETS_OFF_R:
+        case Opcode::FIELDGETO_OFF_R:
+        case Opcode::FIELDSETO_OFF_R:
+        case Opcode::FIELDGETH_OFF_R:
+        case Opcode::FIELDSETH_OFF_R:
+            op_field_offset_access(op, a, b, c);
+            break;
+
         case Opcode::RET: {
             Value val = reg(a);
             uint32_t ret_reg = frame.return_register;
@@ -1415,7 +1509,8 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
 
                 if (frames_.size() >= 2) {
                     CallFrame& caller_frame = frames_[frames_.size() - 2];
-                    uint32_t dst_offset = caller_frame.stack_alloc(type->size, type->alignment, val.type_id);
+                    uint32_t dst_offset = caller_frame.stack_alloc(type->size, type->alignment, val.type_id,
+                        type_may_hold_heap_refs(rt_, val.type_id));
                     std::memcpy(
                         caller_frame.stack_.data() + dst_offset,
                         frame.stack_.data() + val.data.stack_offset,
@@ -1538,7 +1633,8 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
                 break;
             }
 
-            uint32_t offset = frame.stack_alloc(type->size, type->alignment, tid);
+            uint32_t offset = frame.stack_alloc(type->size, type->alignment, tid,
+                type_may_hold_heap_refs(rt_, tid));
             rt_->initialize_zero_defaults(tid, frame.stack_.data() + offset);
             reg(dest_reg) = Value::make_stack(offset, tid);
             break;
@@ -2170,13 +2266,27 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("Intrinsic expects array");
             return false;
         }
-        if (!type->type_params[1].empty()) {
-            fail("Intrinsic expects dynamic array");
+        if (type->type_params[1].is<int32_t>()) {
+            fail("Intrinsic expects dynamic array, not fixed array");
             return false;
         }
         elem_type = type->type_params[0].as<TypeID>();
-        out = rt_->get_array_typed(val.data.hptr);
-        if (!out) {
+
+        if (val.storage == ValueStorage::immediate) {
+            TypedHandle h = TypedHandle::from_ull(val.data.handle);
+            out = rt_->object_pool().get_unmanaged_array(h);
+            if (!out) {
+                fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
+                    val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+                return false;
+            }
+        } else if (val.storage == ValueStorage::heap) {
+            out = rt_->get_array_typed(val.data.hptr);
+            if (!out) {
+                fail("Intrinsic expects dynamic array");
+                return false;
+            }
+        } else {
             fail("Intrinsic expects dynamic array");
             return false;
         }
@@ -2261,17 +2371,19 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) return;
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         Value val = reg(static_cast<uint8_t>(dest_reg + 2));
         if (val.type_id != elem_type) {
             fail("array.push value type mismatch");
             return;
         }
         arr->append_value(val, *rt_);
-        rt_->mark_propset_heap_mutation(arr_ptr);
+        // Only mark GC mutation for heap-managed arrays.
+        Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
+        }
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2281,10 +2393,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         if (arr->size() == 0) {
             fail("array.pop on empty array");
             return;
@@ -2295,7 +2405,11 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->resize(arr->size() - 1);
-        rt_->mark_propset_heap_mutation(arr_ptr);
+        // Only mark GC mutation for heap-managed arrays.
+        Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
+        }
         reg(dest_reg) = result;
         return;
     }
@@ -2316,12 +2430,14 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         arr->clear();
-        rt_->mark_propset_heap_mutation(arr_ptr);
+        // Only mark GC mutation for heap-managed arrays.
+        Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
+        }
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2331,10 +2447,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t count = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), count)) { return; }
         if (count < 0) {
@@ -2342,7 +2456,11 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->reserve(static_cast<size_t>(count));
-        rt_->mark_propset_heap_mutation(arr_ptr);
+        // Only mark GC mutation for heap-managed arrays.
+        Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
+        }
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -2371,7 +2489,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (auto* struct_arr = dynamic_cast<StructArray*>(arr)) {
             const void* src = struct_arr->element_data(idx);
             CallFrame& frame = frames_.back();
-            uint32_t offset = frame.stack_alloc(struct_arr->elem_size, struct_arr->elem_alignment, elem_type);
+            uint32_t offset = frame.stack_alloc(struct_arr->elem_size, struct_arr->elem_alignment, elem_type,
+                type_may_hold_heap_refs(rt_, elem_type));
             std::memcpy(frame.stack_.data() + offset, src, struct_arr->elem_size);
             reg(dest_reg) = Value::make_stack(offset, elem_type);
         } else {
@@ -2390,10 +2509,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t index = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), index)) { return; }
         if (index < 0) {
@@ -2409,7 +2526,11 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("array.set index out of bounds");
             return;
         }
-        rt_->mark_propset_heap_mutation(arr_ptr);
+        // Only mark GC mutation for heap-managed arrays.
+        Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
+        }
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -3064,6 +3185,146 @@ void VirtualMachine::op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c,
         if (!rt_->write_value_field_at_offset(struct_val, offset, type_id, val)) {
             fail("Field write failed (type mismatch?)");
         }
+    }
+}
+
+void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c)
+{
+    // These opcodes access heap-backed structs (including propsets) at a runtime-computed offset.
+    // Format: A=dest (get) or val (set), B=struct_reg, C=offset_reg
+    // The offset register contains the byte offset from the struct start.
+
+    uint8_t struct_reg = b;
+    uint8_t offset_reg = c;
+
+    Value offset_val = reg(offset_reg);
+    if (offset_val.type_id != rt_->int_type()) {
+        fail("Field offset must be integer");
+        return;
+    }
+    int32_t offset = offset_val.data.ival;
+    if (offset < 0) {
+        fail("Field offset must be non-negative");
+        return;
+    }
+
+    Value struct_val = reg(struct_reg);
+    uint32_t effective_offset = static_cast<uint32_t>(offset);
+
+    const Type* struct_type = rt_->get_type(struct_val.type_id);
+    if (!struct_type || struct_type->type_kind != TK_struct || !struct_type->type_params[0].is<StructID>()) {
+        fail("Field offset access requires struct value");
+        return;
+    }
+
+    const StructDef* struct_def = rt_->type_table_.get(struct_type->type_params[0].as<StructID>());
+    if (!struct_def) {
+        fail("Invalid struct metadata for field offset access");
+        return;
+    }
+
+    auto matches_opcode_type = [&](TypeID elem_type_id) {
+        switch (op) {
+        case Opcode::FIELDGETI_OFF_R:
+        case Opcode::FIELDSETI_OFF_R:
+            return elem_type_id == rt_->int_type();
+        case Opcode::FIELDGETF_OFF_R:
+        case Opcode::FIELDSETF_OFF_R:
+            return elem_type_id == rt_->float_type();
+        case Opcode::FIELDGETB_OFF_R:
+        case Opcode::FIELDSETB_OFF_R:
+            return elem_type_id == rt_->bool_type();
+        case Opcode::FIELDGETS_OFF_R:
+        case Opcode::FIELDSETS_OFF_R:
+            return elem_type_id == rt_->string_type();
+        case Opcode::FIELDGETO_OFF_R:
+        case Opcode::FIELDSETO_OFF_R:
+            return rt_->is_object_like_type(elem_type_id);
+        case Opcode::FIELDGETH_OFF_R:
+        case Opcode::FIELDSETH_OFF_R:
+            return elem_type_id != rt_->int_type()
+                && elem_type_id != rt_->float_type()
+                && elem_type_id != rt_->bool_type()
+                && elem_type_id != rt_->string_type()
+                && !rt_->is_object_like_type(elem_type_id);
+        default:
+            return false;
+        }
+    };
+
+    TypeID access_type_id = invalid_type_id;
+    bool valid_offset = false;
+    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
+        const FieldDef& field = struct_def->fields[i];
+        const Type* field_type = rt_->get_type(field.type_id);
+        if (!field_type || field_type->type_kind != TK_fixed_array
+            || !field_type->type_params[0].is<TypeID>()
+            || !field_type->type_params[1].is<int32_t>()) {
+            continue;
+        }
+
+        TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
+        const Type* elem_type = rt_->get_type(elem_type_id);
+        if (!elem_type) {
+            continue;
+        }
+
+        int32_t elem_count = field_type->type_params[1].as<int32_t>();
+        if (elem_count <= 0 || elem_type->size == 0) {
+            continue;
+        }
+
+        uint32_t start = field.offset;
+        uint64_t bytes = static_cast<uint64_t>(elem_count) * elem_type->size;
+        uint64_t end = static_cast<uint64_t>(start) + bytes;
+        if (effective_offset < start || static_cast<uint64_t>(effective_offset) >= end) {
+            continue;
+        }
+
+        uint32_t rel = effective_offset - start;
+        if (rel % elem_type->size != 0) {
+            continue;
+        }
+
+        if (!matches_opcode_type(elem_type_id)) {
+            continue;
+        }
+
+        access_type_id = elem_type_id;
+        valid_offset = true;
+        break;
+    }
+
+    if (!valid_offset || access_type_id == invalid_type_id) {
+        fail("Fixed array index out of bounds");
+        return;
+    }
+
+    switch (op) {
+    case Opcode::FIELDGETI_OFF_R:
+    case Opcode::FIELDGETF_OFF_R:
+    case Opcode::FIELDGETB_OFF_R:
+    case Opcode::FIELDGETS_OFF_R:
+    case Opcode::FIELDGETO_OFF_R:
+    case Opcode::FIELDGETH_OFF_R:
+        reg(a) = rt_->read_value_field_at_offset(struct_val, effective_offset, access_type_id);
+        break;
+    case Opcode::FIELDSETI_OFF_R:
+    case Opcode::FIELDSETF_OFF_R:
+    case Opcode::FIELDSETB_OFF_R:
+    case Opcode::FIELDSETS_OFF_R:
+    case Opcode::FIELDSETO_OFF_R:
+    case Opcode::FIELDSETH_OFF_R: {
+        Value val = reg(a);
+        if (!rt_->write_value_field_at_offset(struct_val, effective_offset, access_type_id, val)) {
+            fail("Field write failed (type mismatch?)");
+            return;
+        }
+        break;
+    }
+    default:
+        fail("Invalid field offset access opcode");
+        break;
     }
 }
 

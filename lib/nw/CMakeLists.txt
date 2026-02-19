@@ -106,6 +106,7 @@ add_library(nw STATIC
     serialization/Serialization.cpp
 
     smalls/Array.cpp
+    smalls/UnmanagedArray.cpp
     smalls/Ast.cpp
     smalls/AstCompiler.cpp
     smalls/AstResolver.cpp

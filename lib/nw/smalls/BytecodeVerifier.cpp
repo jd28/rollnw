@@ -203,6 +203,29 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
             if (!check_reg(out, c, reg_count, ctx())) { return false; }
             break;
 
+        // field access at runtime-computed offset (for fixed array field indexing)
+        case Opcode::FIELDGETI_OFF_R:
+        case Opcode::FIELDGETF_OFF_R:
+        case Opcode::FIELDGETB_OFF_R:
+        case Opcode::FIELDGETS_OFF_R:
+        case Opcode::FIELDGETO_OFF_R:
+        case Opcode::FIELDGETH_OFF_R:
+            if (!check_reg(out, a, reg_count, ctx())) { return false; }
+            if (!check_reg(out, b, reg_count, ctx())) { return false; }
+            if (!check_reg(out, c, reg_count, ctx())) { return false; }
+            break;
+
+        case Opcode::FIELDSETI_OFF_R:
+        case Opcode::FIELDSETF_OFF_R:
+        case Opcode::FIELDSETB_OFF_R:
+        case Opcode::FIELDSETS_OFF_R:
+        case Opcode::FIELDSETO_OFF_R:
+        case Opcode::FIELDSETH_OFF_R:
+            if (!check_reg(out, a, reg_count, ctx())) { return false; }
+            if (!check_reg(out, b, reg_count, ctx())) { return false; }
+            if (!check_reg(out, c, reg_count, ctx())) { return false; }
+            break;
+
         // calls
         case Opcode::CALL:
         case Opcode::CALLNATIVE:

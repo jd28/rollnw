@@ -318,12 +318,12 @@ TEST_F(SmallsEngineIntegration, PropsetDynamicArrayFieldMutationsPersist)
             if (arr.len(again.nums) != 2) {
                 return 0;
             }
-            if (arr.get(again.nums, 1) != 20) {
+            if (again.nums[1] != 20) {
                 return 0;
             }
 
-            arr.set(again.nums, 0, 7);
-            return arr.get(stats.nums, 0) == 7 ? 1 : 0;
+            again.nums[0] = 7;
+            return stats.nums[0] == 7 ? 1 : 0;
         }
     )";
 
@@ -341,6 +341,28 @@ TEST_F(SmallsEngineIntegration, PropsetDynamicArrayFieldMutationsPersist)
     EXPECT_EQ(result.value.data.ival, 1);
 
     nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetArrayFieldReassignmentIsCompileError)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset]]
+        type CreatureStats {
+            nums: array!(int);
+        };
+
+        fn main(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            stats.nums = stats.nums;
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_array_reassign_error", source);
+    ASSERT_NE(script, nullptr);
+    EXPECT_GT(script->errors(), 0);
 }
 
 TEST_F(SmallsEngineIntegration, PropsetIsolationAcrossObjectsAndTypes)
@@ -406,6 +428,170 @@ TEST_F(SmallsEngineIntegration, PropsetIsolationAcrossObjectsAndTypes)
 
     nw::kernel::objects().destroy(a->handle());
     nw::kernel::objects().destroy(b->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldIndexing)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type CreatureStats {
+            scores: int[10];
+        };
+
+        fn main(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            
+            // Test constant index read/write
+            stats.scores[0] = 100;
+            if (stats.scores[0] != 100) {
+                return 11;  // Constant index write/read failed
+            }
+            
+            stats.scores[5] = 50;
+            if (stats.scores[5] != 50) {
+                return 12;  // Constant index at offset 5 failed
+            }
+            
+            // Test variable index
+            var i = 3;
+            stats.scores[i] = 30;
+            if (stats.scores[3] != 30) {
+                return 13;  // Variable index failed
+            }
+            
+            // Test persistence - get propset again and verify
+            var again = get_propset!(CreatureStats)(target);
+            if (again.scores[0] != 100) {
+                return 21;  // Persistence check 1 failed
+            }
+            if (again.scores[3] != 30) {
+                return 22;  // Persistence check 2 failed
+            }
+            
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_fixed_array", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldFloatBool)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type CreatureStats {
+            values: float[5];
+            flags: bool[4];
+        };
+
+        fn main(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            
+            // Test float array
+            stats.values[0] = 1.5;
+            stats.values[2] = 2.5;
+            if (stats.values[0] != 1.5) {
+                return 0;
+            }
+            if (stats.values[2] != 2.5) {
+                return 0;
+            }
+            
+            // Test bool array
+            stats.flags[0] = true;
+            stats.flags[1] = false;
+            if (stats.flags[0] != true) {
+                return 0;
+            }
+            if (stats.flags[1] != false) {
+                return 0;
+            }
+            
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_fixed_array_types", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldVariableIndexBounds)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type CreatureStats {
+            scores: int[4];
+        };
+
+        fn oob_high(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            var i = 4;
+            return stats.scores[i];
+        }
+
+        fn oob_negative(target: Creature): int {
+            var stats = get_propset!(CreatureStats)(target);
+            var i = -1;
+            return stats.scores[i];
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_fixed_array_bounds", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto high = rt.execute_script(script, "oob_high", args);
+    EXPECT_FALSE(high.ok());
+
+    auto negative = rt.execute_script(script, "oob_negative", args);
+    EXPECT_FALSE(negative.ok());
+
+    nw::kernel::objects().destroy(creature->handle());
 }
 
 TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)

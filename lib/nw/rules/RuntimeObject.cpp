@@ -10,6 +10,7 @@ namespace nw {
 // == RuntimeObjectPool =======================================================
 
 RuntimeObjectPool::RuntimeObjectPool()
+    : unmanaged_array_pool_(4096) // Chunk size: 4096 arrays per chunk
 {
     // Initialize system types
 
@@ -173,6 +174,82 @@ const VariantLayout* RuntimeObjectPool::get_variant_layout(uint8_t type_id) cons
         return nullptr;
     }
     return &variant_layouts_[type_id];
+}
+
+// == Unmanaged Array Implementation ==========================================
+
+TypedHandle RuntimeObjectPool::allocate_unmanaged_array(smalls::TypeID elem_type, uint32_t initial_capacity)
+{
+    smalls::IArray* arr = smalls::create_unmanaged_array(elem_type, initial_capacity);
+
+    if (!arr) {
+        LOG_F(ERROR, "[RuntimeObjectPool] Unsupported element type for unmanaged array: {}", elem_type.value);
+        return TypedHandle{};
+    }
+
+    // Store in pool using wrapper
+    UnmanagedArrayHandle* wrapper = unmanaged_array_pool_.create();
+    if (!wrapper) {
+        delete arr;
+        LOG_F(ERROR, "[RuntimeObjectPool] Failed to get pool slot for unmanaged array");
+        return TypedHandle{};
+    }
+
+    wrapper->array = arr;
+
+    // Convert generic Handle to TypedHandle
+    TypedHandle th;
+    th.id = wrapper->generic_handle.id;
+    th.type = TYPE_UNMANAGED_ARRAY;
+    th.generation = wrapper->generic_handle.generation;
+    return th;
+}
+
+smalls::IArray* RuntimeObjectPool::get_unmanaged_array(TypedHandle h)
+{
+    if (h.type != TYPE_UNMANAGED_ARRAY) {
+        return nullptr;
+    }
+
+    nw::Handle nh;
+    nh.id = h.id;
+    nh.generation = h.generation;
+
+    UnmanagedArrayHandle* wrapper = unmanaged_array_pool_.get(nh);
+    return wrapper ? wrapper->array : nullptr;
+}
+
+void RuntimeObjectPool::destroy_unmanaged_array(TypedHandle h)
+{
+    if (h.type != TYPE_UNMANAGED_ARRAY) {
+        LOG_F(WARNING, "[RuntimeObjectPool] Attempted to destroy non-array handle as unmanaged array");
+        return;
+    }
+
+    nw::Handle nh;
+    nh.id = h.id;
+    nh.generation = h.generation;
+
+    UnmanagedArrayHandle* wrapper = unmanaged_array_pool_.get(nh);
+    if (wrapper && wrapper->array) {
+        delete wrapper->array; // Virtual destructor handles concrete cleanup
+        wrapper->array = nullptr;
+    }
+
+    unmanaged_array_pool_.destroy(nh);
+}
+
+bool RuntimeObjectPool::valid_unmanaged_array(TypedHandle h) const
+{
+    if (h.type != TYPE_UNMANAGED_ARRAY) {
+        return false;
+    }
+
+    nw::Handle nh;
+    nh.id = h.id;
+    nh.generation = h.generation;
+
+    return unmanaged_array_pool_.valid(nh);
 }
 
 } // namespace nw

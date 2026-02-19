@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../smalls/UnmanagedArray.hpp"
 #include "../util/HandlePool.hpp"
 #include "../util/string.hpp"
 
@@ -55,6 +56,18 @@ struct VariantObject : RuntimeObject {
     }
 };
 
+// == UnmanagedArrayHandle ====================================================
+// ============================================================================
+
+/// Wrapper for IArray* to satisfy HandlePool requirements
+struct UnmanagedArrayHandle {
+    smalls::IArray* array = nullptr;
+    Handle generic_handle;
+
+    void set_generic_handle(Handle h) { generic_handle = h; }
+    void reset() { array = nullptr; }
+};
+
 // == RuntimeObjectPool =======================================================
 // ============================================================================
 
@@ -75,7 +88,8 @@ struct RuntimeObjectPool {
     static constexpr uint8_t TYPE_INVALID = 0;
     static constexpr uint8_t TYPE_EFFECT = 1;
     static constexpr uint8_t TYPE_EVENT = 2;
-    // Reserved: 3-127 for future system types
+    static constexpr uint8_t TYPE_UNMANAGED_ARRAY = 3;
+    // Reserved: 4-127 for future system types
     // User-defined types: 128-255
 
     /// Allocates an effect (system type)
@@ -111,6 +125,24 @@ struct RuntimeObjectPool {
     /// Gets the layout for a variant type (useful for validation/debugging)
     const VariantLayout* get_variant_layout(uint8_t type_id) const;
 
+    // == Unmanaged Array Support ==============================================
+
+    /// Allocates an unmanaged array for propset storage
+    /// @param elem_type TypeID of array elements
+    /// @param initial_capacity Starting capacity (0 = no allocation)
+    /// @return Handle to allocated array, or invalid handle on failure
+    TypedHandle allocate_unmanaged_array(smalls::TypeID elem_type, uint32_t initial_capacity = 0);
+
+    /// Gets unmanaged array by handle
+    /// @return IArray* or nullptr if handle invalid
+    smalls::IArray* get_unmanaged_array(TypedHandle h);
+
+    /// Destroys an unmanaged array
+    void destroy_unmanaged_array(TypedHandle h);
+
+    /// Validates unmanaged array handle
+    bool valid_unmanaged_array(TypedHandle h) const;
+
 private:
     /// Array of pools indexed by type ID (256 entries, ~2KB overhead)
     std::array<std::unique_ptr<nw::TypedHandlePool>, 256> pools_;
@@ -120,6 +152,10 @@ private:
 
     /// Next available user type ID (starts at 128)
     uint8_t next_user_type_id_ = 128;
+
+    /// Dedicated pool for unmanaged arrays (stores UnmanagedArrayHandle)
+    /// Separate from type-indexed pools due to different allocation pattern
+    nw::HandlePool<UnmanagedArrayHandle> unmanaged_array_pool_;
 };
 
 } // namespace nw

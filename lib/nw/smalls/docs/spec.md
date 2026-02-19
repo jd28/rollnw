@@ -1338,7 +1338,7 @@ auto* spell = rt.load_config<SpellInfo>("fireball", "game_types");
 
 ### Property Sets
 
-Property sets are script-defined components for the Entity-Component-System (ECS) architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.
+Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.
 
 ```smalls
 [[propset]]
@@ -1361,11 +1361,44 @@ type Position {
 - **Memory in engine** — Object manager allocates components in contiguous chunks for cache efficiency
 - **C++-compatible layout** — Memory matches C struct layout for zero-overhead access
 
-#### Property Sets with Heap Types
+#### Property Sets: v1 Contract (Normative)
 
-**Current Phase**: Property sets contain value types only (primitives, inline structs like `vec3`).
+**Contract (v1)**: `[[propset]]` storage is **not GC-rooted**.
+To keep propsets invisible to GC, propset fields MUST NOT store `HeapPtr` values.
 
-**Long-term Vision**: Property sets will support heap-allocated collections for fully script-managed gameplay. Property set structs would store HeapPtr references (inline, fixed-size), with collection data on the VM heap.
+**Allowed Field Forms (v1)**:
+| Field form | Allowed | Storage | Reassignable | Indexable |
+|---|---:|---|---:|---|
+| `int`, `float`, `bool` | Yes | Inline POD bytes | Yes | N/A |
+| `int[N]`, `float[N]`, `bool[N]` (N > 0) | Yes | Inline POD bytes | Yes | Yes (variable index) |
+| `[[value_type]]` struct (no heap references) | Yes | Inline POD bytes | Yes | N/A |
+| `T[N]` where T is `[[value_type]]` POD struct | Yes | Inline POD bytes | Yes | Yes (variable index) |
+| `array!(int\|float\|bool)` | Yes | Inline `TypedHandle` to unmanaged `IArray` | No | Yes (via IArray API) |
+| All other forms | **No** | N/A | N/A | N/A |
+
+**Explicitly Rejected**:
+- `string` (requires GC pointer)
+- `array!(string)` or `array!(non-primitive)`
+- `map!(...)`, `tuple`, `sum`, `function`
+- Any heap-backed handle type
+- Regular structs (not marked `[[value_type]]`)
+- `[[value_type]]` structs containing heap references (strings, arrays, maps, etc.)
+
+**Lifecycle Rules**:
+1. Propset-owned unmanaged arrays are created by engine/runtime and destroyed deterministically when the owning object is destroyed.
+2. Script aliases to those arrays become stale after owner destruction; operations fail with a deterministic runtime error.
+3. Because propset storage has no GC pointers in v1, propset slots are excluded from GC root enumeration.
+
+**Fixed Array Semantics**:
+- Fixed arrays `T[N]` in propsets are stored inline (contiguous POD bytes) matching C struct layout.
+- Full indexing supported: both constant (`arr[0]`) and variable (`arr[i]`) indices.
+- Bounds checking enforced at runtime; out-of-bounds access fails deterministically.
+- Assignment to array field replaces the entire inline array (not element-by-element).
+
+**Dynamic Array Semantics**:
+- Dynamic array fields `array!(T)` are non-reassignable; the field binding is immutable.
+- Mutation is via IArray API (`push`, `set`, `clear`, etc.).
+- Direct assignment (`ps.arr = other_arr`) is a compile-time error.
 
 #### Native Property Sets
 
@@ -1378,7 +1411,7 @@ For engine-managed data or functionality not yet in script, native property sets
 
 **Native vs Script Property Sets**:
 - **Native propsets** — Always exist for engine systems (physics, rendering, pathfinding)
-- **Script propsets** — Gameplay data (stats, inventory, skills, etc.)
+- **Script propsets** — Gameplay data (stats, skills, etc.)
 - **Bridge pattern** — Native functions provide interface to native propsets
 
 ### Native Interfaces

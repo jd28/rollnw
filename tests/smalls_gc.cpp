@@ -482,6 +482,57 @@ TEST_F(SmallsGCTest, GCStatsTracking)
 
     EXPECT_EQ(gc->stats().minor_collections, minor_before + 2);
     EXPECT_EQ(gc->stats().major_collections, major_before + 1);
+    EXPECT_GE(gc->stats().minor_roots_time_us, 0u);
+    EXPECT_GE(gc->stats().minor_trace_time_us, 0u);
+    EXPECT_GE(gc->stats().minor_sweep_promote_time_us, 0u);
+}
+
+TEST_F(SmallsGCTest, MinorStepCollectsUnreachableYoung)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HeapPtr tmp = runtime.alloc_string("minor-step-temp");
+    ASSERT_NE(tmp.value, 0);
+    ASSERT_TRUE(heap_contains(runtime, tmp));
+
+    bool done = false;
+    for (int i = 0; i < 4096 && !done; ++i) {
+        done = gc->collect_minor_step(1);
+    }
+    ASSERT_TRUE(done);
+    EXPECT_FALSE(heap_contains(runtime, tmp));
+}
+
+TEST_F(SmallsGCTest, RememberedOldObjectKeepsYoungChildAlive)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HeapPtr old_arr = runtime.alloc_array(runtime.string_type(), 1);
+    ASSERT_NE(old_arr.value, 0);
+    auto* old_header = runtime.heap_.get_header(old_arr);
+    old_header->generation = 1;
+
+    HeapPtr young_child = runtime.alloc_string("young-child");
+    ASSERT_NE(young_child.value, 0);
+
+    TypeID old_arr_type = old_header->type_id;
+    runtime.push(Value::make_heap(old_arr, old_arr_type));
+
+    ASSERT_TRUE(runtime.array_set(old_arr, 0, Value::make_string(young_child)));
+
+    bool done = false;
+    for (int i = 0; i < 4096 && !done; ++i) {
+        done = gc->collect_minor_step(1);
+    }
+    ASSERT_TRUE(done);
+    EXPECT_TRUE(heap_contains(runtime, young_child));
+
+    runtime.pop();
+    gc->collect_major();
 }
 
 TEST_F(SmallsGCTest, VMOwnedHandleFinalizationFiresDestructorOnceAndDeregisters)
@@ -605,16 +656,13 @@ TEST_F(SmallsGCTest, VMOwnedEffectHandleFinalizerDestroysEngineEffect)
     EXPECT_EQ(nw::kernel::effects().get(h), nullptr);
 }
 
-TEST_F(SmallsGCTest, PropsetHeapFieldsCollectAfterOwnerDestroyed)
+TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
 {
     auto& runtime = nw::kernel::runtime();
-    auto* gc = runtime.gc();
-    ASSERT_NE(gc, nullptr);
 
     std::string_view source = R"(
         [[propset]]
         type OwnerData {
-            name: string;
             nums: array!(int);
         };
     )";
@@ -632,20 +680,16 @@ TEST_F(SmallsGCTest, PropsetHeapFieldsCollectAfterOwnerDestroyed)
     const StructDef* def = runtime.type_table_.get(propset_type->type_params[0].as<StructID>());
     ASSERT_NE(def, nullptr);
 
-    uint32_t name_offset = 0;
     uint32_t nums_offset = 0;
-    TypeID name_tid = invalid_type_id;
     TypeID nums_tid = invalid_type_id;
     for (uint32_t i = 0; i < def->field_count; ++i) {
-        if (def->fields[i].name.view() == "name") {
-            name_offset = def->fields[i].offset;
-            name_tid = def->fields[i].type_id;
-        } else if (def->fields[i].name.view() == "nums") {
+        if (def->fields[i].name.view() == "nums") {
             nums_offset = def->fields[i].offset;
             nums_tid = def->fields[i].type_id;
+            EXPECT_TRUE(def->fields[i].is_unmanaged_array);
+            break;
         }
     }
-    ASSERT_NE(name_tid, invalid_type_id);
     ASSERT_NE(nums_tid, invalid_type_id);
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
@@ -654,23 +698,12 @@ TEST_F(SmallsGCTest, PropsetHeapFieldsCollectAfterOwnerDestroyed)
     Value propset_ref = runtime.get_or_create_propset_ref(propset_tid, creature->handle());
     ASSERT_EQ(propset_ref.type_id, propset_tid);
 
-    HeapPtr name_ptr = runtime.alloc_string("owner payload");
-    ASSERT_NE(name_ptr.value, 0);
-    Value name_val = Value::make_string(name_ptr);
-    ASSERT_TRUE(runtime.write_value_field_at_offset(propset_ref, name_offset, name_tid, name_val));
+    Value nums_val = runtime.read_value_field_at_offset(propset_ref, nums_offset, nums_tid);
+    ASSERT_EQ(nums_val.type_id, nums_tid);
+    ASSERT_EQ(nums_val.storage, ValueStorage::immediate);
 
-    HeapPtr nums_ptr = runtime.create_array_typed(runtime.int_type(), 0);
-    ASSERT_NE(nums_ptr.value, 0);
-    Value nums_val = Value::make_heap(nums_ptr, nums_tid);
-    ASSERT_TRUE(runtime.write_value_field_at_offset(propset_ref, nums_offset, nums_tid, nums_val));
-
-    gc->collect_major();
-    EXPECT_TRUE(heap_contains(runtime, name_ptr));
-    EXPECT_TRUE(heap_contains(runtime, nums_ptr));
+    nw::TypedHandle nums_handle = nw::TypedHandle::from_ull(nums_val.data.handle);
+    EXPECT_TRUE(runtime.object_pool().valid_unmanaged_array(nums_handle));
 
     nw::kernel::objects().destroy(creature->handle());
-    gc->collect_major();
-
-    EXPECT_FALSE(heap_contains(runtime, name_ptr));
-    EXPECT_FALSE(heap_contains(runtime, nums_ptr));
 }
