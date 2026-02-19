@@ -31,10 +31,22 @@ inline void rollnw_prefetch(const void* ptr, int rw, int locality)
 {
     // rw: 0=read, 1=write
     // locality: 0=no locality, 3=high locality
-    _mm_prefetch(reinterpret_cast<const char*>(ptr),
-        locality >= 3 ? _MM_HINT_T0 : locality >= 2 ? _MM_HINT_T1
-            : locality >= 1                         ? _MM_HINT_T2
-                                                    : _MM_HINT_NTA);
+    (void)rw;
+    const int loc = locality < 0 ? 0 : (locality > 3 ? 3 : locality);
+    switch (loc) {
+    case 0:
+        _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_NTA);
+        break;
+    case 1:
+        _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T2);
+        break;
+    case 2:
+        _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T1);
+        break;
+    default:
+        _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
+        break;
+    }
 }
 
 #else // GCC/Clang

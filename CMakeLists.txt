@@ -158,8 +158,8 @@ set(BENCHMARK_ENABLE_TESTING OFF)
 add_subdirectory(external/benchmark-1.8.3)
 # GCC 15 emits -Wmaybe-uninitialized false positives in benchmark's <regex> usage;
 # suppress it on the vendored target rather than dropping -Werror project-wide.
-target_compile_options(benchmark PRIVATE -Wno-maybe-uninitialized)
-target_compile_options(benchmark_main PRIVATE -Wno-maybe-uninitialized)
+target_compile_options(benchmark PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>)
+target_compile_options(benchmark_main PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>)
 add_subdirectory(benchmarks)
 endif()
 
