@@ -2,6 +2,7 @@
 
 #include "../formats/Ini.hpp"
 #include "../resources/ResourceManager.hpp"
+#include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -16,6 +17,8 @@ TilesetRegistry::TilesetRegistry(MemoryResource* memory)
 
 void TilesetRegistry::initialize(ServiceInitTime time)
 {
+    NW_PROFILE_SCOPE_N("tilesets.initialize");
+
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
@@ -23,12 +26,18 @@ void TilesetRegistry::initialize(ServiceInitTime time)
     LOG_F(INFO, "kernel: tileset registry initializing...");
     auto start = std::chrono::high_resolution_clock::now();
 
-    auto set_getter = [this](const Resource& res) {
-        if (res.type != ResourceType::set) { return; }
-        load(res.resref.view());
-    };
+    {
+        NW_PROFILE_SCOPE_N("tilesets.initialize.visit_sets");
+        auto set_getter = [this](const Resource& res) {
+            if (res.type != ResourceType::set) { return; }
+            NW_PROFILE_SCOPE_N("tilesets.initialize.load_set");
+            auto resref = res.resref.string();
+            NW_PROFILE_TEXT(resref.data(), resref.size());
+            load(res.resref.view());
+        };
 
-    resman().visit(set_getter);
+        resman().visit(set_getter);
+    }
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     metrics_.initialization_time = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();

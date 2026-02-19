@@ -1,5 +1,6 @@
 #include "Rules.hpp"
 
+#include "../util/profile.hpp"
 #include "../util/string.hpp"
 #include "GameProfile.hpp"
 #include "TwoDACache.hpp"
@@ -33,6 +34,8 @@ Rules::Rules(MemoryResource* scope)
 
 void Rules::initialize(ServiceInitTime time)
 {
+    NW_PROFILE_SCOPE_N("rules.initialize");
+
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
@@ -40,7 +43,10 @@ void Rules::initialize(ServiceInitTime time)
     auto start = std::chrono::high_resolution_clock::now();
 
     LOG_F(INFO, "kernel: rules system initializing...");
-    services().profile()->load_rules();
+    {
+        NW_PROFILE_SCOPE_N("rules.initialize.load_rules");
+        services().profile()->load_rules();
+    }
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     LOG_F(INFO, "kernel: rules system initialized. ({}ms)",

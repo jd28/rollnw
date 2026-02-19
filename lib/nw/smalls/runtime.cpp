@@ -6,6 +6,7 @@
 #include "../resources/StaticDirectory.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
+#include "../util/profile.hpp"
 #include "AstCompiler.hpp"
 #include "AstResolver.hpp"
 #include "Context.hpp"
@@ -1707,6 +1708,9 @@ Value Runtime::execute_hash_op(const Value& val)
 ExecutionResult Runtime::execute_script(Script* script, StringView function_name, const Vector<Value>& args,
     uint64_t gas_limit)
 {
+    NW_PROFILE_SCOPE_N("smalls.execute_script");
+    NW_PROFILE_VALUE(gas_limit);
+
     BytecodeModule* module = get_or_compile_module(script);
     if (!module) {
         LOG_F(ERROR, "[runtime] Failed to get bytecode for script '{}'", script->name());
@@ -1877,6 +1881,8 @@ bool Runtime::get_source_line(StringView module_name, size_t line, StringView& o
 
 BytecodeModule* Runtime::get_or_compile_module(Script* script)
 {
+    NW_PROFILE_SCOPE_N("smalls.get_or_compile_module");
+
     auto it = bytecode_cache_.find(script);
     if (it != bytecode_cache_.end()) {
         return it->second.get();

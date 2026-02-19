@@ -9,6 +9,7 @@
 #include "../kernel/GameProfile.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
+#include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -47,13 +48,24 @@ ResourceManager::ResourceManager(MemoryResource* scope, const ResourceManager* p
 
 void ResourceManager::initialize(kernel::ServiceInitTime time)
 {
+    NW_PROFILE_SCOPE_N("resman.initialize");
+
     if (time == kernel::ServiceInitTime::kernel_start || time == kernel::ServiceInitTime::module_pre_load) {
         LOG_F(INFO, "kernel: resource system initializing...");
         auto start = std::chrono::high_resolution_clock::now();
 
-        kernel::services().profile()->load_resources();
-        update_container_search();
-        load_palette_textures();
+        {
+            NW_PROFILE_SCOPE_N("resman.initialize.load_resources");
+            kernel::services().profile()->load_resources();
+        }
+        {
+            NW_PROFILE_SCOPE_N("resman.initialize.update_search");
+            update_container_search();
+        }
+        {
+            NW_PROFILE_SCOPE_N("resman.initialize.load_palette_textures");
+            load_palette_textures();
+        }
 
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
         LOG_F(INFO, "kernel: resource system initialized ({}ms)",
@@ -71,17 +83,24 @@ void ResourceManager::initialize(kernel::ServiceInitTime time)
 
 bool ResourceManager::load_module(std::filesystem::path path)
 {
+    NW_PROFILE_SCOPE_N("resman.load_module");
+    auto module_path = path.string();
+    NW_PROFILE_TEXT(module_path.data(), module_path.size());
+
     LOG_F(INFO, "resman: loading module container: {}", path);
 
-    if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
-        auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
-        module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
-    } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
-        auto ptr = allocator()->allocate(sizeof(StaticErf), alignof(StaticErf));
-        module_ = make_unique_container(new (ptr) StaticErf(path, allocator()));
-    } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
-        auto ptr = allocator()->allocate(sizeof(StaticZip), alignof(StaticZip));
-        module_ = make_unique_container(new (ptr) StaticZip(path, allocator()));
+    {
+        NW_PROFILE_SCOPE_N("resman.load_module.resolve_container");
+        if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
+            auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
+            module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
+        } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
+            auto ptr = allocator()->allocate(sizeof(StaticErf), alignof(StaticErf));
+            module_ = make_unique_container(new (ptr) StaticErf(path, allocator()));
+        } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
+            auto ptr = allocator()->allocate(sizeof(StaticZip), alignof(StaticZip));
+            module_ = make_unique_container(new (ptr) StaticZip(path, allocator()));
+        }
     }
 
     if (!module_ || !module_->valid()) {
@@ -90,12 +109,17 @@ bool ResourceManager::load_module(std::filesystem::path path)
     }
 
     module_path_ = std::move(path);
-    update_container_search();
+    {
+        NW_PROFILE_SCOPE_N("resman.load_module.update_search");
+        update_container_search();
+    }
     return true;
 }
 
 void ResourceManager::load_module_haks(const Vector<String>& haks)
 {
+    NW_PROFILE_SCOPE_N("resman.load_module_haks");
+    NW_PROFILE_VALUE(haks.size());
 
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -212,25 +236,36 @@ bool ResourceManager::add_override_container(const std::filesystem::path& path, 
 
 void ResourceManager::build_registry()
 {
+    NW_PROFILE_SCOPE_N("resman.build_registry");
+
     ENSURE_OR_RETURN(!frozen_, "[resman] asset registry is already frozen");
     Container* current = nullptr;
 
     size_t sz = 0;
-    for (auto& [cont, _] : search_) {
-        current = get_container(cont);
-        sz += current->size();
+    {
+        NW_PROFILE_SCOPE_N("resman.build_registry.count");
+        for (auto& [cont, _] : search_) {
+            current = get_container(cont);
+            sz += current->size();
+        }
     }
 
-    registry_.reserve(sz);
+    {
+        NW_PROFILE_SCOPE_N("resman.build_registry.reserve");
+        registry_.reserve(sz);
+    }
 
     // The registry will determine how assets stack..
     auto cb = [this, &current](Resource uri, const ContainerKey* key) {
         registry_.insert(uri, current, key);
     };
 
-    for (auto& [cont, _] : search_) {
-        current = get_container(cont);
-        current->visit(cb);
+    {
+        NW_PROFILE_SCOPE_N("resman.build_registry.visit");
+        for (auto& [cont, _] : search_) {
+            current = get_container(cont);
+            current->visit(cb);
+        }
     }
 
     frozen_ = true;

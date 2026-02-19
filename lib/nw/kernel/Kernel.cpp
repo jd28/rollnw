@@ -5,6 +5,7 @@
 #include "../resources/ResourceManager.hpp"
 #include "../rules/effects.hpp"
 #include "../smalls/runtime.hpp"
+#include "../util/profile.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
@@ -14,6 +15,47 @@
 #include "TwoDACache.hpp"
 
 namespace nw::kernel {
+
+namespace {
+
+const char* service_name(const ServiceEntry& entry)
+{
+    if (entry.index == Strings::type_index) { return "strings"; }
+    if (entry.index == ResourceManager::type_index) { return "resources"; }
+    if (entry.index == smalls::Runtime::type_index) { return "smalls.runtime"; }
+    if (entry.index == TwoDACache::type_index) { return "twoda.cache"; }
+    if (entry.index == EffectSystem::type_index) { return "effects"; }
+    if (entry.index == Rules::type_index) { return "rules"; }
+    if (entry.index == ObjectManager::type_index) { return "objects"; }
+    if (entry.index == EventSystem::type_index) { return "events"; }
+    if (entry.index == ModelCache::type_index) { return "model_cache"; }
+    if (entry.index == TilesetRegistry::type_index) { return "tilesets"; }
+    if (entry.index == FactionSystem::type_index) { return "factions"; }
+    return "unknown";
+}
+
+void profile_service_init(ServiceEntry& entry, ServiceInitTime time)
+{
+    NW_PROFILE_SCOPE_N("kernel.service.initialize");
+    NW_PROFILE_TEXT_CSTR(service_name(entry));
+    switch (time) {
+    case ServiceInitTime::kernel_start:
+        NW_PROFILE_TEXT_CSTR("kernel_start");
+        break;
+    case ServiceInitTime::module_pre_load:
+        NW_PROFILE_TEXT_CSTR("module_pre_load");
+        break;
+    case ServiceInitTime::module_post_load:
+        NW_PROFILE_TEXT_CSTR("module_post_load");
+        break;
+    case ServiceInitTime::module_post_instantiation:
+        NW_PROFILE_TEXT_CSTR("module_post_instantiation");
+        break;
+    }
+    entry.service->initialize(time);
+}
+
+} // namespace
 
 // == Service =================================================================
 
@@ -58,16 +100,22 @@ void Services::create()
 
 void Services::start()
 {
+    NW_PROFILE_SCOPE_N("kernel.services.start");
+
     if (serices_started_) { return; }
 
     LOG_F(INFO, "kernel: starting kernel services");
 
-    create();
+    {
+        NW_PROFILE_SCOPE_N("kernel.services.create");
+        create();
+    }
 
     if (!module_loading_) {
+        NW_PROFILE_SCOPE_N("kernel.services.init.kernel_start");
         for (auto& entry : services_) {
             if (!entry.service) { break; }
-            entry.service->initialize(ServiceInitTime::kernel_start);
+            profile_service_init(entry, ServiceInitTime::kernel_start);
         }
     }
 
@@ -162,7 +210,12 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
+    NW_PROFILE_SCOPE_N("kernel.load_module");
+    auto load_path = path.string();
+    NW_PROFILE_TEXT(load_path.data(), load_path.size());
+
     if (services().serices_started_) {
+        NW_PROFILE_SCOPE_N("kernel.load_module.pre_start_shutdown");
         services().shutdown();
         services().module_loaded_ = false;
     }
@@ -170,39 +223,62 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     services().module_loading_ = true;
 
     auto start = std::chrono::high_resolution_clock::now();
-    services().start();
-
-    for (auto& s : services().services_) {
-        if (!s.service) { break; }
-        s.service->initialize(ServiceInitTime::module_pre_load);
+    {
+        NW_PROFILE_SCOPE_N("kernel.load_module.start_services");
+        services().start();
     }
 
-    resman().load_module(path);
+    {
+        NW_PROFILE_SCOPE_N("kernel.load_module.init.module_pre_load");
+        for (auto& s : services().services_) {
+            if (!s.service) { break; }
+            profile_service_init(s, ServiceInitTime::module_pre_load);
+        }
+    }
 
-    Module* mod = objects().make_module();
+    {
+        NW_PROFILE_SCOPE_N("kernel.load_module.resman_load_module");
+        resman().load_module(path);
+    }
+
+    Module* mod = nullptr;
+    {
+        NW_PROFILE_SCOPE_N("kernel.load_module.make_module");
+        mod = objects().make_module();
+    }
     if (!mod) { return nullptr; }
+
     if (mod->haks.size()) {
+        NW_PROFILE_SCOPE_N("kernel.load_module.load_haks");
         nw::kernel::resman().load_module_haks(mod->haks);
     }
 
     if (mod->tlk.size()) {
+        NW_PROFILE_SCOPE_N("kernel.load_module.load_custom_tlk");
         auto path = nw::kernel::config().user_path() / "tlk";
         nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
     }
 
-    for (auto& s : services().services_) {
-        if (!s.service) { break; }
-        s.service->initialize(ServiceInitTime::module_post_load);
+    {
+        NW_PROFILE_SCOPE_N("kernel.load_module.init.module_post_load");
+        for (auto& s : services().services_) {
+            if (!s.service) { break; }
+            profile_service_init(s, ServiceInitTime::module_post_load);
+        }
     }
 
     if (instantiate) {
+        NW_PROFILE_SCOPE_N("kernel.load_module.instantiate");
         if (mod) {
             mod->instantiate();
         }
 
-        for (auto& s : services().services_) {
-            if (!s.service) { break; }
-            s.service->initialize(ServiceInitTime::module_post_instantiation);
+        {
+            NW_PROFILE_SCOPE_N("kernel.load_module.init.module_post_instantiation");
+            for (auto& s : services().services_) {
+                if (!s.service) { break; }
+                profile_service_init(s, ServiceInitTime::module_post_instantiation);
+            }
         }
     }
 

@@ -190,6 +190,11 @@ target_link_libraries(nw PUBLIC
     coverage_config
 )
 
+if(ROLLNW_ENABLE_TRACY)
+target_link_libraries(nw PUBLIC Tracy::TracyClient)
+target_compile_definitions(nw PUBLIC ROLLNW_ENABLE_TRACY)
+endif()
+
 if(NOT LINUX)
 target_link_libraries(nw PUBLIC
     iconv

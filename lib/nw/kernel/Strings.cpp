@@ -2,6 +2,7 @@
 
 #include "../i18n/Language.hpp"
 #include "../log.hpp"
+#include "../util/profile.hpp"
 #include "../util/templates.hpp"
 #include "Config.hpp"
 #include "Kernel.hpp"
@@ -53,11 +54,18 @@ InternedString Strings::get_interned(StringView str) const
 
 void Strings::initialize(ServiceInitTime time)
 {
+    NW_PROFILE_SCOPE_N("strings.initialize");
+
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_pre_load) { return; }
     auto lang = Language::to_string(global_language());
     if (config().version() == GameVersion::vEE) {
         auto path = config().install_path() / "lang" / lang / "data" / "dialog.tlk";
-        load_dialog_tlk(path);
+        auto tlk_path = path.string();
+        NW_PROFILE_TEXT(tlk_path.data(), tlk_path.size());
+        {
+            NW_PROFILE_SCOPE_N("strings.initialize.load_dialog_tlk");
+            load_dialog_tlk(path);
+        }
     }
 }
 

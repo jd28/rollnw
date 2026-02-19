@@ -3,6 +3,7 @@ project(rollNW VERSION 0.45.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 include(cmake/Sanitizers.cmake)
+include(GNUInstallDirs)
 
 # Apply sanitizer flags globally (including external deps) when enabled.
 enable_global_sanitizers()
@@ -15,6 +16,8 @@ option(ROLLNW_BUILD_FUZZERS "Build libFuzzer targets" OFF)
 option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 option(ROLLNW_BUILD_WITH_MIMALLOC "Build with mimalloc" OFF)
 option(ROLLNW_BUILD_TOOLS "Build CLI tools" OFF)
+option(ROLLNW_ENABLE_TRACY "Enable Tracy profiling" OFF)
+option(ROLLNW_TRACY_ON_DEMAND "Enable Tracy on-demand profiling" ON)
 
 if(ROLLNW_BUILD_PYTHON AND ROLLNW_BUILD_WITH_MIMALLOC)
 message(FATAL_ERROR "Python bindings cannot be built with mimalloc")
@@ -118,6 +121,16 @@ include_directories(SYSTEM external/libzip-1.11.3/lib)
 
 add_subdirectory(external/nowide EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/stb EXCLUDE_FROM_ALL SYSTEM)
+
+if(ROLLNW_ENABLE_TRACY)
+  set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
+  if(ROLLNW_TRACY_ON_DEMAND)
+    set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
+  else()
+    set(TRACY_ON_DEMAND OFF CACHE BOOL "" FORCE)
+  endif()
+  add_subdirectory(external/tracy-0.13.1 EXCLUDE_FROM_ALL SYSTEM)
+endif()
 
 include_directories(SYSTEM external/zstd-1.5.6/lib)
 set(ZSTD_BUILD_PROGRAMS OFF)
