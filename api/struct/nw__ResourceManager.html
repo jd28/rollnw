@@ -187,6 +187,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw15ResourceManager5statsEv"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw15ResourceManager16module_containerEv"><code class="docutils literal notranslate"><span class="pre">module_container()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15ResourceManager13unload_moduleEv"><code class="docutils literal notranslate"><span class="pre">unload_module()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw15ResourceManager9is_frozenEv"><code class="docutils literal notranslate"><span class="pre">is_frozen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15ResourceManager8unfreezeEv"><code class="docutils literal notranslate"><span class="pre">unfreeze()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15ResourceManager19demand_server_vaultE10StringView10StringView"><code class="docutils literal notranslate"><span class="pre">demand_server_vault()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15ResourceManager15palette_textureE8PltLayer"><code class="docutils literal notranslate"><span class="pre">palette_texture()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw15ResourceManager7textureE6Resref"><code class="docutils literal notranslate"><span class="pre">texture()</span></code></a></li>
@@ -476,6 +478,18 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw15ResourceManager13unload_moduleEv">
 <span id="_CPPv3N2nw15ResourceManager13unload_moduleEv"></span><span id="_CPPv2N2nw15ResourceManager13unload_moduleEv"></span><span id="nw::ResourceManager::unload_module"></span><span class="target" id="structnw_1_1_resource_manager_1a449cc85261af0c9b884537c82b526c34"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unload_module</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw15ResourceManager13unload_moduleEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Unloads module. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw15ResourceManager9is_frozenEv">
+<span id="_CPPv3NK2nw15ResourceManager9is_frozenEv"></span><span id="_CPPv2NK2nw15ResourceManager9is_frozenEv"></span><span id="nw::ResourceManager::is_frozenC"></span><span class="target" id="structnw_1_1_resource_manager_1a370461063305042e52e2c9d75416f318"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_frozen</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw15ResourceManager9is_frozenEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns true if the registry has been built and frozen. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15ResourceManager8unfreezeEv">
+<span id="_CPPv3N2nw15ResourceManager8unfreezeEv"></span><span id="_CPPv2N2nw15ResourceManager8unfreezeEv"></span><span id="nw::ResourceManager::unfreeze"></span><span class="target" id="structnw_1_1_resource_manager_1a2fe3770b8e67835eb8298e09c9973230"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unfreeze</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw15ResourceManager8unfreezeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clears frozen state and registry so new containers can be added and the registry rebuilt. </p>
 </dd></dl>
 
 <dl class="cpp function">
