@@ -387,11 +387,12 @@ jobs:
           ./scripts/ci/ensure_nwn.sh
           cmake --preset ci-linux-clang-bench
           cmake --build --preset ci-linux-clang-bench --target rollnw_benchmark
+          cmake --install build-ci-linux-clang-bench --prefix "${{ github.workspace }}/install-bench-contender"
           mkdir -p tmp/bench
-          ./build-ci-linux-clang-bench/benchmarks/rollnw_benchmark \
+          cmake -E chdir "${{ github.workspace }}/install-bench-contender/bin" ./rollnw_benchmark \
             --benchmark_min_time=0.01s \
             --benchmark_repetitions=1 \
-            --benchmark_out=tmp/bench/contender.json \
+            --benchmark_out="${{ github.workspace }}/tmp/bench/contender.json" \
             --benchmark_out_format=json
 
       - name: benchmark canary (baseline)
@@ -406,7 +407,8 @@ jobs:
           ./scripts/ci/ensure_nwn.sh
           cmake --preset ci-linux-clang-bench
           cmake --build --preset ci-linux-clang-bench --target rollnw_benchmark
-          ./build-ci-linux-clang-bench/benchmarks/rollnw_benchmark \
+          cmake --install build-ci-linux-clang-bench --prefix "${{ github.workspace }}/install-bench-baseline"
+          cmake -E chdir "${{ github.workspace }}/install-bench-baseline/bin" ./rollnw_benchmark \
             --benchmark_min_time=0.01s \
             --benchmark_repetitions=1 \
             --benchmark_out=${{ github.workspace }}/tmp/bench/baseline.json \

@@ -33,3 +33,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/
         PATTERN "*.smalls"
         PATTERN "package.json"
 )
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/test_data/
+    DESTINATION ${CMAKE_INSTALL_BINDIR}/test_data
+)
