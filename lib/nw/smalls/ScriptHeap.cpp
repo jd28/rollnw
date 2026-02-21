@@ -71,9 +71,18 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
     size_t total_size = (header_align - 1) + sizeof(ObjectHeader) + sizeof(void*) + size + (alignment - 1);
     uint32_t alloc_size = static_cast<uint32_t>(total_size);
 
+    // Pre-allocation emergency GC: if the OffsetAllocator node pool is over half
+    // full, trigger a stop-the-world minor collection before attempting the
+    // allocation.  This runs *before* the allocate() call so that freed nodes
+    // are available and the allocator never sees a full pool.
+    if (gc_ && alloc_count_ > MAX_ALLOCS / 2) {
+        gc_->try_emergency_collect_minor();
+    }
+
     OffsetAllocator::Allocation alloc = allocator_->allocate(alloc_size);
     CHECK_F(alloc.offset != OffsetAllocator::Allocation::NO_SPACE,
         "ScriptHeap allocation failed - out of space");
+    ++alloc_count_;
 
     size_t end_offset = alloc.offset + alloc_size;
     if (end_offset > committed_size_) {
@@ -138,6 +147,7 @@ void ScriptHeap::free(HeapPtr ptr)
     header->next_young = HeapPtr{0};
     header->alloc_size = 0;
 
+    --alloc_count_;
     allocator_->free(header->alloc);
 }
 

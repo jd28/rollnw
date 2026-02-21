@@ -115,6 +115,9 @@ struct ScriptHeap {
     /// Stats
     size_t reserved() const { return RESERVE_SIZE; }
     size_t committed() const { return committed_size_; }
+    size_t alloc_count() const noexcept { return alloc_count_; }
+
+    static constexpr size_t max_node_allocs = 1024 * 1024;
 
     void set_gc(GarbageCollector* gc) { gc_ = gc; }
     GarbageCollector* gc() const { return gc_; }
@@ -127,6 +130,7 @@ struct ScriptHeap {
 
     size_t young_bytes() const { return young_bytes_; }
     void add_young_bytes(size_t bytes) { young_bytes_ += bytes; }
+    void sub_young_bytes(size_t bytes) { young_bytes_ -= bytes; }
     void set_young_bytes(size_t bytes) { young_bytes_ = bytes; }
 
     size_t old_bytes() const { return old_bytes_; }
@@ -135,7 +139,7 @@ struct ScriptHeap {
 
 private:
     static constexpr size_t RESERVE_SIZE = GB(2);
-    static constexpr size_t MAX_ALLOCS = 1024 * 1024; // 1M allocations
+    static constexpr size_t MAX_ALLOCS = max_node_allocs;
 
     uint8_t* base_address_ = nullptr;
     size_t committed_size_ = 0;
@@ -147,6 +151,7 @@ private:
     HeapPtr young_objects_{0};
     size_t young_bytes_ = 0;
     size_t old_bytes_ = 0;
+    size_t alloc_count_ = 0;
 
     void commit_pages(size_t offset, size_t size);
 };

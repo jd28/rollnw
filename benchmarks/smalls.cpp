@@ -144,6 +144,12 @@ static void BM_smalls_gc_minor(benchmark::State& state)
         return;
     }
 
+    // Clear engine-owned/borrowed handles accumulated by game data loading so
+    // enumerate_handle_roots doesn't iterate thousands of stale entries on every
+    // mark_roots call, which would dominate the measurement.
+    rt.clear_non_vm_owned_handle_registry();
+    rt.prune_stale_handle_registry();
+
     for (auto _ : state) {
         for (int i = 0; i < 10000; ++i) {
             char buf[32];
@@ -152,6 +158,7 @@ static void BM_smalls_gc_minor(benchmark::State& state)
         }
         gc->collect_minor();
     }
+    state.SetItemsProcessed(10000 * state.iterations());
 }
 BENCHMARK(BM_smalls_gc_minor);
 
@@ -164,6 +171,11 @@ static void BM_smalls_gc_major(benchmark::State& state)
         return;
     }
 
+    // Same as gc_minor: prune stale handles so sweep_all and mark_roots only
+    // see objects actually allocated by this benchmark.
+    rt.clear_non_vm_owned_handle_registry();
+    rt.prune_stale_handle_registry();
+
     for (auto _ : state) {
         for (int i = 0; i < 20000; ++i) {
             char buf[32];
@@ -172,6 +184,7 @@ static void BM_smalls_gc_major(benchmark::State& state)
         }
         gc->collect_major();
     }
+    state.SetItemsProcessed(20000 * state.iterations());
 }
 BENCHMARK(BM_smalls_gc_major);
 
@@ -318,3 +331,151 @@ fn main(): int {
     }
 }
 BENCHMARK(BM_vm_field_loop);
+
+// Closure allocation + upvalue capture + closure dispatch.
+// make_adder captures one int upvalue; the returned closure is called 1000x.
+static void BM_vm_closure_call_loop(benchmark::State& state)
+{
+    auto module = vm_compile(R"(
+fn make_adder(n: int): fn(int): int {
+    return fn(x: int): int { return x + n; };
+}
+fn main(): int {
+    var add = make_adder(1);
+    var sum = 0;
+    var i = 0;
+    for (i < 1000) {
+        sum = add(sum);
+        i = i + 1;
+    }
+    return sum;
+}
+)");
+    nw::smalls::VirtualMachine vm{};
+    auto* gc = nw::kernel::runtime().gc();
+    size_t iters_since_gc = 0;
+    constexpr size_t k_gc_interval = 256;
+
+    for (auto _ : state) {
+        auto res = vm.execute(&module, "main", {});
+        benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters_since_gc >= k_gc_interval) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters_since_gc = 0;
+        }
+    }
+    state.SetItemsProcessed(1000 * state.iterations());
+
+    if (gc) {
+        gc->collect_major();
+    }
+}
+BENCHMARK(BM_vm_closure_call_loop);
+
+// String heap allocation rate and GC pressure.
+// 100 str.append calls per execution build up a growing string.
+static void BM_vm_string_concat_loop(benchmark::State& state)
+{
+    auto module = vm_compile(R"(
+import core.string as str;
+fn main(): string {
+    var s = "";
+    var i = 0;
+    for (i < 100) {
+        s = str.append(s, "hello");
+        i = i + 1;
+    }
+    return s;
+}
+)");
+    nw::smalls::VirtualMachine vm{};
+    auto* gc = nw::kernel::runtime().gc();
+    size_t iters_since_gc = 0;
+    constexpr size_t k_gc_interval = 64;
+
+    for (auto _ : state) {
+        auto res = vm.execute(&module, "main", {});
+        benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters_since_gc >= k_gc_interval) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters_since_gc = 0;
+        }
+    }
+    state.SetItemsProcessed(100 * state.iterations());
+
+    if (gc) {
+        gc->collect_major();
+    }
+}
+BENCHMARK(BM_vm_string_concat_loop);
+
+// Map boxing overhead: Value hashing/equality, absl hash map through smalls.
+// 100 puts + 100 gets per execution.
+static void BM_vm_map_put_get_loop(benchmark::State& state)
+{
+    auto module = vm_compile(R"(
+fn main(): int {
+    var m: map!(int, int) = {};
+    var sum = 0;
+    var i = 0;
+    for (i < 100) {
+        m[i] = i * 2;
+        sum = sum + m[i];
+        i = i + 1;
+    }
+    return sum;
+}
+)");
+    nw::smalls::VirtualMachine vm{};
+    auto* gc = nw::kernel::runtime().gc();
+    size_t iters_since_gc = 0;
+    constexpr size_t k_gc_interval = 128;
+
+    for (auto _ : state) {
+        auto res = vm.execute(&module, "main", {});
+        benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters_since_gc >= k_gc_interval) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters_since_gc = 0;
+        }
+    }
+    state.SetItemsProcessed(200 * state.iterations());
+
+    if (gc) {
+        gc->collect_major();
+    }
+}
+BENCHMARK(BM_vm_map_put_get_loop);
+
+// Minimum C++→smalls boundary cost: module lookup, function name lookup, frame setup.
+// Uses execute_script (not execute_compiled) to exercise the full dispatch path.
+static void BM_smalls_script_entry(benchmark::State& state)
+{
+    nw::MemoryArena arena(nw::MB(4));
+    nw::MemoryScope scope(&arena);
+    nw::smalls::Context ctx;
+    ctx.arena = &arena;
+    ctx.scope = &scope;
+    nw::smalls::Script script("bench_entry.smalls", "fn noop(): int { return 0; }", &ctx);
+    script.parse();
+    script.resolve();
+
+    auto& rt = nw::kernel::runtime();
+    // Warm up: force module compilation and populate the cache.
+    rt.execute_script(&script, "noop");
+
+    for (auto _ : state) {
+        auto res = rt.execute_script(&script, "noop");
+        benchmark::DoNotOptimize(res);
+    }
+}
+BENCHMARK(BM_smalls_script_entry);

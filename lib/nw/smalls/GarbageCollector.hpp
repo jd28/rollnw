@@ -284,6 +284,19 @@ struct GCStats {
     uint64_t major_collections = 0;
     uint64_t objects_freed = 0;
     uint64_t bytes_freed = 0;
+    uint64_t objects_promoted = 0;
+    uint64_t objects_aged = 0;
+    uint64_t objects_marked_gray = 0;
+    uint64_t objects_marked_black = 0;
+    uint64_t trace_gray_calls = 0;
+    uint64_t trace_gray_empty = 0;
+    uint64_t gray_stack_after_roots = 0;
+    uint64_t mark_roots_calls = 0;
+    uint64_t gray_stack_at_trace = 0;
+    uint64_t begin_cycle_calls = 0;
+    uint64_t gray_stack_at_begin = 0;
+    uint64_t gray_stack_pops = 0;
+    uint64_t wrong_phase_order = 0;
     uint64_t total_pause_time_us = 0;
     uint64_t max_pause_time_us = 0;
     uint64_t minor_roots_time_us = 0;
@@ -394,6 +407,10 @@ struct GarbageCollector {
 
     void start_major_gc();
     void finish_major_gc();
+    // Called from ScriptHeap::allocate() before each allocation when the node
+    // pool is getting full.  Completes the current minor cycle stop-the-world
+    // so that young objects are freed and nodes are returned to the pool.
+    void try_emergency_collect_minor();
     bool is_marking() const noexcept { return phase_ == GCPhase::mark_incremental; }
     bool is_minor_collecting() const noexcept { return minor_phase_ != MinorPhase::idle; }
 
@@ -431,6 +448,8 @@ private:
     bool trace_object(HeapPtr ptr, bool young_only);
     void shade_gray(HeapPtr ptr);
     void set_black(HeapPtr ptr);
+
+    bool emergency_collecting_ = false;
 
     ScriptHeap* heap_;
     Runtime* runtime_;

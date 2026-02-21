@@ -83,8 +83,23 @@ void GarbageCollector::write_barrier_root(HeapPtr stored_value)
     }
 }
 
+void GarbageCollector::try_emergency_collect_minor()
+{
+    if (emergency_collecting_) return;
+    emergency_collecting_ = true;
+    collect_minor();
+    emergency_collecting_ = false;
+}
+
 void GarbageCollector::on_allocation(size_t size)
 {
+    // Don't do major GC work while a minor cycle is in progress.
+    // Minor sub-phases (scan_remembered, trace_gray) set phase_ = mark_incremental
+    // for write-barrier correctness, but that must not trigger major GC marking here.
+    if (minor_phase_ != MinorPhase::idle) {
+        return;
+    }
+
     if (phase_ == GCPhase::idle && heap_->old_bytes() > config_.major_threshold_percent * heap_->committed()) {
         start_major_gc();
     }
@@ -221,8 +236,6 @@ void GarbageCollector::collect_major()
     phase_ = GCPhase::sweep;
     sweep_all();
 
-    heap_->set_young_bytes(0);
-
     phase_ = GCPhase::idle;
     stats_.major_collections++;
 
@@ -260,7 +273,6 @@ void GarbageCollector::finish_major_gc()
 
     phase_ = GCPhase::sweep;
     sweep_all();
-    heap_->set_young_bytes(0);
     phase_ = GCPhase::idle;
     stats_.major_collections++;
 
@@ -621,6 +633,7 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
 
             freed_bytes += header->alloc_size;
             ++freed_count;
+            heap_->sub_young_bytes(header->alloc_size);
             runtime_->destruct_object(current);
             heap_->free(current);
             // young_sweep_all_prev_ stays the same (we removed current, so prev is still prev)
@@ -633,6 +646,8 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
         if (header->age >= config_.promotion_threshold) {
             header->generation = 1;
             heap_->add_old_bytes(header->alloc_size);
+            heap_->sub_young_bytes(header->alloc_size);
+            ++stats_.objects_promoted;
             card_table_.mark_dirty(current.value);
             enqueue_remembered_object(current);
 
@@ -763,7 +778,16 @@ void GarbageCollector::sweep_all()
         current = next;
     }
 
+    size_t new_young_bytes = 0;
+    HeapPtr h = new_young_head;
+    while (h.value != 0) {
+        auto* header = heap_->get_header(h);
+        new_young_bytes += header->alloc_size;
+        h = header->next_young;
+    }
+
     heap_->set_young_objects(new_young_head);
+    heap_->set_young_bytes(new_young_bytes);
     heap_->set_old_bytes(new_old_bytes);
     stats_.objects_freed += freed_count;
     stats_.bytes_freed += freed_bytes;
