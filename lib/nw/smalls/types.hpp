@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../kernel/Memory.hpp"
+#include "../objects/ObjectHandle.hpp"
 #include "../util/InternedString.hpp"
 #include "../util/StrongID.hpp"
 #include "../util/Variant.hpp"
@@ -59,6 +60,7 @@ struct StructDef {
     FieldDef* fields;
     const StructDecl* decl = nullptr;
     bool is_propset = false;
+    ObjectType propset_object_type = ObjectType::invalid; // invalid = unrestricted
 
     // GC support: byte offsets of HeapPtr fields for root enumeration
     uint32_t heap_ref_count = 0;

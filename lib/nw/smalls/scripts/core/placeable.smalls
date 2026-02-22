@@ -1,3 +1,18 @@
 [[native]] fn get_hp(obj: Placeable): int;
 [[native]] fn get_hp_current(obj: Placeable): int;
 [[native]] fn has_inventory(obj: Placeable): bool;
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Placeable)]]
+type PlaceableState {
+    hp: int;
+    hp_current: int;
+    hardness: int;
+    locked: int;
+    plot: int;
+    useable: int;
+    has_inventory: int;
+    static_: int;
+};

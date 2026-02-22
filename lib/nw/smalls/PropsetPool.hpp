@@ -24,6 +24,9 @@ public:
     bool is_propset_type(const Runtime& rt, TypeID type_id) const;
     Value get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj);
 
+    void init_object_propsets(Runtime& rt, ObjectHandle obj);
+    void free_object_propsets(Runtime& rt, ObjectHandle obj);
+
     Value read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty);
     bool write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value);
 
@@ -37,6 +40,7 @@ private:
         std::vector<uint32_t> field_ids;
         absl::flat_hash_map<uint32_t, uint32_t> offset_to_field;
         std::vector<uint32_t> unmanaged_array_offsets; // Byte offsets of unmanaged array fields
+        ObjectType object_type = ObjectType::invalid;  // invalid = unrestricted
     };
 
     struct SlotRef {
@@ -93,6 +97,7 @@ private:
 
     absl::flat_hash_map<TypeID, Pool> pools_;
     absl::flat_hash_map<uint32_t, HeapOwner> heap_owners_;
+    absl::flat_hash_map<uint8_t, std::vector<TypeID>> object_type_propsets_;
 };
 
 } // namespace nw::smalls

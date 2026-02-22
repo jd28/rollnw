@@ -19,6 +19,40 @@ bool struct_decl_has_annotation(const StructDecl* decl, StringView name)
     return false;
 }
 
+nw::ObjectType struct_decl_propset_object_type(const StructDecl* decl)
+{
+    if (!decl) {
+        return nw::ObjectType::invalid;
+    }
+    for (const auto& ann : decl->annotations_) {
+        if (ann.name.loc.view() != "propset" || ann.args.empty()) {
+            continue;
+        }
+        // Annotation args can be IdentifierExpression or single-part PathExpression
+        IdentifierExpression* ident = nullptr;
+        if (auto* path = dynamic_cast<PathExpression*>(ann.args[0].value)) {
+            ident = path->last_identifier();
+        } else {
+            ident = dynamic_cast<IdentifierExpression*>(ann.args[0].value);
+        }
+        if (!ident) { return nw::ObjectType::invalid; }
+        StringView name = ident->ident.loc.view();
+        if (name == "Creature") { return nw::ObjectType::creature; }
+        if (name == "Item") { return nw::ObjectType::item; }
+        if (name == "Door") { return nw::ObjectType::door; }
+        if (name == "Placeable") { return nw::ObjectType::placeable; }
+        if (name == "Area") { return nw::ObjectType::area; }
+        if (name == "Module") { return nw::ObjectType::module; }
+        if (name == "Trigger") { return nw::ObjectType::trigger; }
+        if (name == "Waypoint") { return nw::ObjectType::waypoint; }
+        if (name == "Encounter") { return nw::ObjectType::encounter; }
+        if (name == "Store") { return nw::ObjectType::store; }
+        if (name == "Sound") { return nw::ObjectType::sound; }
+        return nw::ObjectType::invalid;
+    }
+    return nw::ObjectType::invalid;
+}
+
 int16_t find_generic_param_index(StringView type_name, const Vector<String>& type_params)
 {
     for (size_t i = 0; i < type_params.size(); ++i) {
@@ -126,6 +160,7 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
     def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
     def->is_propset = struct_decl_has_annotation(decl, "propset");
+    def->propset_object_type = struct_decl_propset_object_type(decl);
     uint32_t struct_alignment = 1;
 
     if (field_count > 0) {
@@ -252,6 +287,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
     def->generic_param_count = static_cast<uint32_t>(decl->type_params.size());
     def->decl = decl;
     def->is_propset = struct_decl_has_annotation(decl, "propset");
+    def->propset_object_type = struct_decl_propset_object_type(decl);
     uint32_t struct_alignment = 1;
 
     if (field_count > 0) {

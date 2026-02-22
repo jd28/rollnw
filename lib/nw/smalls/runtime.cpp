@@ -3003,6 +3003,18 @@ void Runtime::mark_propset_heap_mutation(HeapPtr ptr)
     propsets_->mark_heap_mutation(ptr);
 }
 
+void Runtime::init_object_propsets(ObjectHandle obj)
+{
+    if (!propsets_) { return; }
+    propsets_->init_object_propsets(*this, obj);
+}
+
+void Runtime::free_object_propsets(ObjectHandle obj)
+{
+    if (!propsets_) { return; }
+    propsets_->free_object_propsets(*this, obj);
+}
+
 Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id)
 {
     if (is_propset_type(struct_val.type_id)) {

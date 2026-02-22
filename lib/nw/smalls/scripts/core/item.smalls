@@ -54,3 +54,20 @@ fn process_item_properties(creature: Creature, item: Item, equip_index: EquipInd
     }
     return processed;
 }
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Item)]]
+type ItemStats {
+    base_item: int;
+    cost: int;
+    cost_additional: int;
+    stack_size: int;
+    charges: int;
+    cursed: int;
+    identified: int;
+    plot: int;
+    stolen: int;
+    // item properties: deferred — requires structured array representation
+};

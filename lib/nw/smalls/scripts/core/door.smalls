@@ -5,3 +5,19 @@
 [[native]] fn get_hp_current(obj: Door): int;
 [[native]] fn is_open(obj: Door): bool;
 [[native]] fn type_id(): int;
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Door)]]
+type DoorState {
+    hp: int;
+    hp_current: int;
+    hardness: int;
+    locked: int;
+    lock_dc: int;
+    bash_dc: int;
+    open_state: int;
+    plot: int;
+    interruptable: int;
+};

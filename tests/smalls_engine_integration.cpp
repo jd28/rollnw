@@ -836,3 +836,173 @@ TEST_F(SmallsEngineIntegration, CoreCombatCanSimulateAttack)
     nw::kernel::objects().destroy(target->handle());
     nw::kernel::objects().destroy(attacker->handle());
 }
+
+// == Propset Object Type Restriction Tests ===================================
+// ============================================================================
+
+TEST_F(SmallsEngineIntegration, PropsetObjectTypeRestriction_MatchingType_Succeeds)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset(Creature)]]
+        type CreatureTestPropset {
+            value: int;
+        };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_type_match", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID propset_tid = rt.type_id("test.propset_type_match.CreatureTestPropset", false);
+    ASSERT_NE(propset_tid, nw::smalls::invalid_type_id);
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(propset_tid, creature->handle());
+    EXPECT_EQ(ref.type_id, propset_tid);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetObjectTypeRestriction_MismatchedType_Fails)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset(Creature)]]
+        type CreatureOnlyPropset {
+            value: int;
+        };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_type_mismatch", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID propset_tid = rt.type_id("test.propset_type_mismatch.CreatureOnlyPropset", false);
+    ASSERT_NE(propset_tid, nw::smalls::invalid_type_id);
+
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(propset_tid, item->handle());
+    EXPECT_EQ(ref.type_id, nw::smalls::invalid_type_id);
+
+    nw::kernel::objects().destroy(item->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetNoRestriction_AnyObject_Succeeds)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset]]
+        type UnrestrictedPropset {
+            value: int;
+        };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_unrestricted", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID propset_tid = rt.type_id("test.propset_unrestricted.UnrestrictedPropset", false);
+    ASSERT_NE(propset_tid, nw::smalls::invalid_type_id);
+
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(propset_tid, item->handle());
+    EXPECT_EQ(ref.type_id, propset_tid);
+
+    nw::kernel::objects().destroy(item->handle());
+}
+
+TEST_F(SmallsEngineIntegration, InitObjectPropsets_AllocatesAllTypeSpecificPropsets)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset(Creature)]]
+        type CreaturePropA { a: int; };
+
+        [[propset(Creature)]]
+        type CreaturePropB { b: int; };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_init", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID tid_a = rt.type_id("test.propset_init.CreaturePropA", false);
+    nw::smalls::TypeID tid_b = rt.type_id("test.propset_init.CreaturePropB", false);
+    ASSERT_NE(tid_a, nw::smalls::invalid_type_id);
+    ASSERT_NE(tid_b, nw::smalls::invalid_type_id);
+
+    // Bootstrap: ensure pools are created and object_type_propsets_ is populated
+    auto* bootstrap = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(bootstrap, nullptr);
+    rt.get_or_create_propset_ref(tid_a, bootstrap->handle());
+    rt.get_or_create_propset_ref(tid_b, bootstrap->handle());
+    nw::kernel::objects().destroy(bootstrap->handle());
+
+    // Now create the real creature and use init_object_propsets
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    rt.init_object_propsets(creature->handle());
+
+    // Both propsets should be accessible without lazy creation
+    nw::smalls::Value ref_a = rt.get_or_create_propset_ref(tid_a, creature->handle());
+    nw::smalls::Value ref_b = rt.get_or_create_propset_ref(tid_b, creature->handle());
+    EXPECT_EQ(ref_a.type_id, tid_a);
+    EXPECT_EQ(ref_b.type_id, tid_b);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, FreeObjectPropsets_AllowsFreshCreation)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset(Creature)]]
+        type CreaturePropFree { value: int; };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_free", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID propset_tid = rt.type_id("test.propset_free.CreaturePropFree", false);
+    ASSERT_NE(propset_tid, nw::smalls::invalid_type_id);
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    // Create propset and write to it
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(propset_tid, creature->handle());
+    ASSERT_EQ(ref.type_id, propset_tid);
+
+    const nw::smalls::Type* type = rt.get_type(propset_tid);
+    ASSERT_NE(type, nullptr);
+    ASSERT_TRUE(type->type_kind == nw::smalls::TK_struct);
+
+    // Write a non-zero value to offset 0 (value field)
+    nw::smalls::Value val = nw::smalls::Value::make_int(42);
+    rt.write_value_field_at_offset(ref, 0, rt.int_type(), val);
+
+    // Free all propsets for this object
+    rt.free_object_propsets(creature->handle());
+
+    // Re-create — should be zero-initialized (fresh instance)
+    nw::smalls::Value ref2 = rt.get_or_create_propset_ref(propset_tid, creature->handle());
+    ASSERT_EQ(ref2.type_id, propset_tid);
+    nw::smalls::Value read_back = rt.read_value_field_at_offset(ref2, 0, rt.int_type());
+    EXPECT_EQ(read_back.data.ival, 0);
+
+    nw::kernel::objects().destroy(creature->handle());
+}

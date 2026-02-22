@@ -123,6 +123,7 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     Pool pool;
     pool.info.type_id = type_id;
     pool.info.def = def;
+    pool.info.object_type = def->propset_object_type;
     pool.info.field_ids.reserve(def->field_count);
     for (uint32_t i = 0; i < def->field_count; ++i) {
         pool.info.field_ids.push_back(i);
@@ -134,6 +135,9 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     }
 
     auto [inserted_it, _] = pools_.emplace(type_id, std::move(pool));
+    if (inserted_it->second.info.object_type != ObjectType::invalid) {
+        object_type_propsets_[static_cast<uint8_t>(inserted_it->second.info.object_type)].push_back(type_id);
+    }
     return &inserted_it->second;
 }
 
@@ -333,6 +337,11 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     Pool* pool = ensure_pool(rt, propset_type);
     if (!pool) {
         rt.fail("get_propset: requested type is not a [[propset]] struct");
+        return Value{};
+    }
+
+    if (pool->info.object_type != ObjectType::invalid && pool->info.object_type != obj.type) {
+        rt.fail("get_propset: object type mismatch for type-restricted propset");
         return Value{};
     }
 
@@ -560,6 +569,29 @@ void PropsetPoolManager::prune_invalid_owners(Runtime& rt)
         }
         for (const auto& [object_id, slot] : stale) {
             free_slot(rt, pool, object_id, slot);
+        }
+    }
+}
+
+void PropsetPoolManager::init_object_propsets(Runtime& rt, ObjectHandle obj)
+{
+    if (obj.type == ObjectType::invalid) { return; }
+
+    auto it = object_type_propsets_.find(static_cast<uint8_t>(obj.type));
+    if (it == object_type_propsets_.end()) { return; }
+
+    for (TypeID type_id : it->second) {
+        get_or_create(rt, type_id, obj);
+    }
+}
+
+void PropsetPoolManager::free_object_propsets(Runtime& rt, ObjectHandle obj)
+{
+    uint32_t object_id = static_cast<uint32_t>(obj.id);
+    for (auto& [_, pool] : pools_) {
+        auto it = pool.object_slots.find(object_id);
+        if (it != pool.object_slots.end()) {
+            free_slot(rt, pool, object_id, it->second);
         }
     }
 }

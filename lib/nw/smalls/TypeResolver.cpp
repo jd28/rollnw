@@ -2054,6 +2054,27 @@ void TypeResolver::visit(StructDecl* decl)
     bool has_propset = ctx.has_annotation(decl, "propset");
 
     if (has_propset) {
+        auto* propset_annot = ctx.get_annotation(decl, "propset");
+        if (propset_annot && !propset_annot->args.empty()) {
+            auto* ident_expr = extract_tail_identifier(propset_annot->args[0].value);
+            if (!ident_expr) {
+                ctx.error(propset_annot->range_, "[[propset(...)]] expects identifier as object type");
+            } else {
+                StringView type_name = ident_expr->ident.loc.view();
+                static constexpr StringView valid_names[] = {
+                    "Creature", "Item", "Door", "Placeable", "Area", "Module",
+                    "Trigger", "Waypoint", "Encounter", "Store", "Sound",
+                };
+                bool recognized = false;
+                for (auto n : valid_names) {
+                    if (n == type_name) { recognized = true; break; }
+                }
+                if (!recognized) {
+                    ctx.errorf(propset_annot->range_, "unknown object type '{}' in [[propset(...)]]", type_name);
+                }
+            }
+        }
+
         if (decl->is_generic()) {
             ctx.errorf(decl->range_, "[[propset]] struct '{}' cannot be generic", decl->identifier());
         }

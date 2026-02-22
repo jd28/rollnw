@@ -20,3 +20,71 @@ from core.types import { Ability, AttackType, Class, EquipIndex };
 // ============================================================================
 
 [[native]] fn has_feat(obj: Creature, feat: int): bool;
+
+// == Propsets ================================================================
+// ============================================================================
+
+// "What this creature is" — rarely changes, consulted by most RPG calculations
+[[propset(Creature)]]
+type CreatureStats {
+    abilities: int[6];      // STR=0, DEX=1, CON=2, INT=3, WIS=4, CHA=5
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
+    skills: array!(int);    // indexed by Skill value
+    feats: array!(int);     // Feat values
+    race: int;
+    gender: int;
+    good_evil: int;         // 0=evil, 50=neutral, 100=good
+    lawful_chaotic: int;    // 0=chaotic, 50=neutral, 100=lawful
+    ac_natural_bonus: int;
+    cr: float;
+    cr_adjust: int;
+    perception_range: int;
+    disarmable: int;
+    immortal: int;
+    interruptable: int;
+    lootable: int;
+    pc: int;
+    plot: int;
+    chunk_death: int;
+    bodybag: int;
+};
+
+// Vital state — changes in combat, persisted to disk
+[[propset(Creature)]]
+type CreatureHealth {
+    hp: int;
+    hp_current: int;
+    hp_max: int;
+    hp_temp: int;
+    faction_id: int;
+    starting_package: int;
+};
+
+// Class progression — changes on level-up, source of BAB and spell slots
+[[propset(Creature)]]
+type CreatureLevels {
+    classes: int[8];        // Class IDs per slot
+    class_levels: int[8];   // Level count per slot
+    xp: int;
+    walkrate: int;
+};
+
+// Transient combat state — resets between sessions, not persisted
+[[propset(Creature)]]
+type CreatureCombat {
+    attack_current: int;
+    attacks_onhand: int;
+    attacks_offhand: int;
+    attacks_extra: int;
+    combat_mode: int;
+    ac_armor_base: int;
+    ac_shield_base: int;
+    size_ab_modifier: int;
+    size_ac_modifier: int;
+    target_distance_sq: float;
+    target_state: int;
+    hasted: int;
+    size: int;
+};

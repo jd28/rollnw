@@ -900,6 +900,8 @@ public:
     bool is_propset_type(TypeID type_id) const;
     Value get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj);
     void mark_propset_heap_mutation(HeapPtr ptr);
+    void init_object_propsets(ObjectHandle obj);
+    void free_object_propsets(ObjectHandle obj);
 
     // -- Tuple Element Access ------------------------------------------------
 
