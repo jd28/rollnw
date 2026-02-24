@@ -157,12 +157,16 @@ struct ObjectManager : public kernel::Service {
     /// Set instatiate callback
     void set_instantiate_callback(void (*callback)(ObjectBase*));
 
+    /// Set destroy callback — called just before an object is freed
+    void set_destroy_callback(void (*callback)(ObjectBase*));
+
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
 
     ObjectArray objects_array_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
+    void (*destroy_callback_)(ObjectBase*) = nullptr;
 };
 
 inline ObjectType serial_id_to_obj_type(StringView id)

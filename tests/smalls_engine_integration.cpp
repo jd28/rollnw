@@ -4,6 +4,7 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
+#include <nw/profiles/nwn1/propset_populate.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -1006,3 +1007,296 @@ TEST_F(SmallsEngineIntegration, FreeObjectPropsets_AllowsFreshCreation)
 
     nw::kernel::objects().destroy(creature->handle());
 }
+
+// == Propset Population Tests ================================================
+// ============================================================================
+
+static const nw::smalls::StructDef* get_propset_def(nw::smalls::Runtime& rt, const char* name)
+{
+    nw::smalls::TypeID tid = rt.type_id(name, false);
+    if (tid == nw::smalls::invalid_type_id) { return nullptr; }
+    const nw::smalls::Type* type = rt.get_type(tid);
+    if (!type || type->type_kind != nw::smalls::TK_struct) { return nullptr; }
+    auto sid = type->type_params[0].as<nw::smalls::StructID>();
+    return rt.type_table_.get(sid);
+}
+
+TEST_F(SmallsEngineIntegration, PropsetPopulate_CreatureStatsReflectCppFields)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    cre->stats.abilities_[0] = 18; // STR
+    cre->stats.abilities_[1] = 14; // DEX
+    cre->stats.save_bonus.fort = 7;
+    cre->good_evil = 100;
+
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    nw::smalls::TypeID tid = rt.type_id("core.creature.CreatureStats", false);
+    ASSERT_NE(tid, nw::smalls::invalid_type_id);
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(tid, cre->handle());
+    ASSERT_EQ(ref.type_id, tid);
+
+    const nw::smalls::StructDef* def = get_propset_def(rt, "core.creature.CreatureStats");
+    ASSERT_NE(def, nullptr);
+
+    uint32_t ai = def->field_index("abilities");
+    ASSERT_NE(ai, UINT32_MAX);
+    nw::smalls::Value str = rt.read_value_field_at_offset(ref, def->fields[ai].offset, rt.int_type());
+    EXPECT_EQ(str.data.ival, 18);
+    nw::smalls::Value dex = rt.read_value_field_at_offset(ref, def->fields[ai].offset + 4, rt.int_type());
+    EXPECT_EQ(dex.data.ival, 14);
+
+    uint32_t fi = def->field_index("save_fort");
+    ASSERT_NE(fi, UINT32_MAX);
+    nw::smalls::Value fort = rt.read_value_field_at_offset(ref, def->fields[fi].offset, rt.int_type());
+    EXPECT_EQ(fort.data.ival, 7);
+
+    uint32_t gei = def->field_index("good_evil");
+    ASSERT_NE(gei, UINT32_MAX);
+    nw::smalls::Value ge = rt.read_value_field_at_offset(ref, def->fields[gei].offset, rt.int_type());
+    EXPECT_EQ(ge.data.ival, 100);
+
+    nw::kernel::objects().destroy(cre->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetPopulate_CreatureHealthReflectsCppFields)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    cre->hp = 50;
+    cre->hp_current = 30;
+    cre->hp_max = 50;
+    cre->faction_id = 3;
+
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    nw::smalls::TypeID tid = rt.type_id("core.creature.CreatureHealth", false);
+    ASSERT_NE(tid, nw::smalls::invalid_type_id);
+    nw::smalls::Value ref = rt.get_or_create_propset_ref(tid, cre->handle());
+    ASSERT_EQ(ref.type_id, tid);
+
+    const nw::smalls::StructDef* def = get_propset_def(rt, "core.creature.CreatureHealth");
+    ASSERT_NE(def, nullptr);
+
+    uint32_t hpi = def->field_index("hp_current");
+    ASSERT_NE(hpi, UINT32_MAX);
+    nw::smalls::Value hp = rt.read_value_field_at_offset(ref, def->fields[hpi].offset, rt.int_type());
+    EXPECT_EQ(hp.data.ival, 30);
+
+    uint32_t faci = def->field_index("faction_id");
+    ASSERT_NE(faci, UINT32_MAX);
+    nw::smalls::Value fac = rt.read_value_field_at_offset(ref, def->fields[faci].offset, rt.int_type());
+    EXPECT_EQ(fac.data.ival, 3);
+
+    nw::kernel::objects().destroy(cre->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetPopulate_DestroyCallbackFreesSlots)
+{
+    auto& rt = nw::kernel::runtime();
+
+    nw::smalls::TypeID tid = rt.type_id("core.creature.CreatureStats", false);
+    ASSERT_NE(tid, nw::smalls::invalid_type_id);
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    // Destroy triggers the destroy callback -> free_object_propsets
+    nw::kernel::objects().destroy(cre->handle());
+
+    // New creature at same slot should get zero-initialized propset
+    auto* cre2 = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre2, nullptr);
+    rt.init_object_propsets(cre2->handle());
+
+    nw::smalls::Value ref2 = rt.get_or_create_propset_ref(tid, cre2->handle());
+    ASSERT_EQ(ref2.type_id, tid);
+
+    const nw::smalls::StructDef* def = get_propset_def(rt, "core.creature.CreatureStats");
+    ASSERT_NE(def, nullptr);
+    uint32_t ai = def->field_index("abilities");
+    ASSERT_NE(ai, UINT32_MAX);
+    nw::smalls::Value fresh = rt.read_value_field_at_offset(ref2, def->fields[ai].offset, rt.int_type());
+    EXPECT_EQ(fresh.data.ival, 0);
+
+    nw::kernel::objects().destroy(cre2->handle());
+}
+
+// == PropsetScript Tests =====================================================
+// ============================================================================
+
+TEST_F(SmallsEngineIntegration, PropsetScript_AbilityScoreFromPropset)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    cre->stats.abilities_[0] = 18; // STR = 18
+
+    rt.free_object_propsets(cre->handle());
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    std::string_view source = R"(
+        import nwn1.creature as NC;
+        import nwn1.effects as NWEff;
+        import core.object as O;
+        from nwn1.constants import { ability_strength };
+
+        fn main(target: Creature): int {
+            // base path: propset only
+            if (NC.get_ability_score(target, ability_strength, true) != 18) { return 0; }
+            if (NC.get_ability_modifier(target, ability_strength, true) != 4) { return 0; }
+
+            // live path: same before effects
+            if (NC.get_ability_score(target, ability_strength) != 18) { return 0; }
+
+            // apply +2 STR effect, live path should reflect it
+            var eff = NWEff.ability_modifier(ability_strength, 2);
+            if (!O.apply_effect(target, eff)) { return 0; }
+            if (NC.get_ability_score(target, ability_strength) != 20) { return 0; }
+            if (NC.get_ability_modifier(target, ability_strength) != 5) { return 0; }
+
+            // base path unaffected by effect
+            if (NC.get_ability_score(target, ability_strength, true) != 18) { return 0; }
+
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_script_ability_score", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(cre->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(cre->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(cre->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetScript_SavingThrowBaseFromPropset)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    cre->stats.save_bonus.fort = 3;
+    cre->stats.abilities_[2] = 14; // CON = 14, modifier = 2
+
+    rt.free_object_propsets(cre->handle());
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    std::string_view source = R"(
+        import nwn1.creature as NC;
+        from nwn1.constants import { saving_throw_fort };
+
+        fn main(target: Creature): int {
+            return NC.get_saving_throw(target, saving_throw_fort);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_script_saving_throw", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(cre->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(cre->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 5); // 3 + (14 - 10) / 2 = 5
+
+    nw::kernel::objects().destroy(cre->handle());
+}
+
+TEST_F(SmallsEngineIntegration, PropsetScript_SkillRankFromPropset)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(cre, nullptr);
+
+    cre->stats.skills_.push_back(7); // skill 0 = 7
+
+    rt.free_object_propsets(cre->handle());
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+
+    std::string_view source = R"(
+        import nwn1.creature as NC;
+        from nwn1.constants import { skill_animal_empathy };
+
+        fn main(target: Creature): int {
+            return NC.get_skill_rank(target, skill_animal_empathy);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_script_skill_rank", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(cre->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(cre->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 7);
+
+    nw::kernel::objects().destroy(cre->handle());
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBuildsClassArray)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(): int {
+            var classes = load_config!(R.ClassEntry)("nwn1.data.classes");
+            if (arr.len(classes) == 0) { return -1; }
+            var barb = arr.get(classes, 0);
+            var fighter = arr.get(classes, 4);
+            if (barb.hit_die != 12) { return -2; }
+            if (fighter.hit_die != 10) { return -3; }
+            if (fighter.spellcaster) { return -4; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_classes", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+

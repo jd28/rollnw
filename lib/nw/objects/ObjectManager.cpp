@@ -217,6 +217,10 @@ void ObjectManager::destroy(ObjectHandle obj)
         }
     }
 
+    if (destroy_callback_) {
+        destroy_callback_(o);
+    }
+
     objects_array_.destroy(obj);
 }
 
@@ -314,6 +318,11 @@ void ObjectManager::run_instantiate_callback(ObjectBase* obj)
 void ObjectManager::set_instantiate_callback(void (*callback)(ObjectBase*))
 {
     instatiate_callback_ = callback;
+}
+
+void ObjectManager::set_destroy_callback(void (*callback)(ObjectBase*))
+{
+    destroy_callback_ = callback;
 }
 
 nlohmann::json ObjectManager::stats() const

@@ -26,6 +26,7 @@ public:
 
     void init_object_propsets(Runtime& rt, ObjectHandle obj);
     void free_object_propsets(Runtime& rt, ObjectHandle obj);
+    void prime_pools(Runtime& rt);
 
     Value read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty);
     bool write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value);

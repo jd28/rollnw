@@ -1,6 +1,7 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
+#include "propset_populate.hpp"
 #include "rules.hpp"
 #include "scriptapi.hpp"
 
@@ -46,13 +47,36 @@ bool Profile::load_rules() const
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
         switch (obj->handle().type) {
         default:
-            return;
+            break;
         case nw::ObjectType::creature: {
             auto cre = obj->as_creature();
             cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
             recompute_all_availabe_spell_slots(cre);
+        } break;
         }
+
+        auto& rt = nw::kernel::runtime();
+        rt.init_object_propsets(obj->handle());
+        switch (obj->handle().type) {
+        default:
+            break;
+        case nw::ObjectType::creature:
+            nwn1::populate_creature_propsets(&rt, obj);
+            break;
+        case nw::ObjectType::item:
+            nwn1::populate_item_propsets(&rt, obj);
+            break;
+        case nw::ObjectType::door:
+            nwn1::populate_door_propsets(&rt, obj);
+            break;
+        case nw::ObjectType::placeable:
+            nwn1::populate_placeable_propsets(&rt, obj);
+            break;
         }
+    });
+
+    nw::kernel::objects().set_destroy_callback([](nw::ObjectBase* obj) {
+        nw::kernel::runtime().free_object_propsets(obj->handle());
     });
 
     // == Load 2das ===========================================================

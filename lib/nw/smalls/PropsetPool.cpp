@@ -596,6 +596,16 @@ void PropsetPoolManager::free_object_propsets(Runtime& rt, ObjectHandle obj)
     }
 }
 
+void PropsetPoolManager::prime_pools(Runtime& rt)
+{
+    const auto& types = rt.type_table_.types_;
+    for (size_t i = 0; i < types.size(); ++i) {
+        if (types[i].type_kind == TK_struct) {
+            ensure_pool(rt, TypeID{static_cast<int32_t>(i + 1)});
+        }
+    }
+}
+
 void PropsetPoolManager::mark_heap_mutation(HeapPtr ptr)
 {
     if (ptr.value == 0) {

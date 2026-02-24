@@ -267,6 +267,13 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_combat(*this);
         register_core_progression(*this);
 
+        // Force-load core propset schemas so pools are primed before object creation
+        load_module("core.creature");
+        load_module("core.item");
+        load_module("core.door");
+        load_module("core.placeable");
+        prime_propset_pools();
+
         const auto& init_mod = kernel::config().init_module();
         if (!init_mod.empty()) {
             auto* init = load_module(init_mod);
@@ -3015,6 +3022,12 @@ void Runtime::free_object_propsets(ObjectHandle obj)
     propsets_->free_object_propsets(*this, obj);
 }
 
+void Runtime::prime_propset_pools()
+{
+    if (!propsets_) { return; }
+    propsets_->prime_pools(*this);
+}
+
 Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id)
 {
     if (is_propset_type(struct_val.type_id)) {
@@ -5276,7 +5289,9 @@ Value Runtime::load_config_value(StringView path, StringView prelude_module)
     }
 
     for (const auto& search_path : module_paths_) {
-        auto full_path = search_path / module_name_to_path(path);
+        bool has_package = std::filesystem::exists(search_path / "package.json");
+        auto effective_root = has_package ? search_path.parent_path() : search_path;
+        auto full_path = effective_root / module_name_to_path(path);
         if (std::filesystem::exists(full_path)) {
             std::ifstream file(full_path);
             if (file.is_open()) {
