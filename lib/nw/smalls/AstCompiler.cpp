@@ -2942,6 +2942,18 @@ void AstCompiler::visit(CallExpression* expr)
                 if (exp) {
                     newtype_type_id = resolve_newtype_type_id(runtime_, exp);
                 }
+                // Prelude fallback: user_prelude_ and core_prelude_ exports are not
+                // injected into env_stack_ snapshots, so check them explicitly.
+                if (newtype_type_id == invalid_type_id) {
+                    for (auto* prelude : {runtime_->user_prelude(), runtime_->core_prelude()}) {
+                        if (!prelude) { continue; }
+                        auto pexp = prelude->exports().find(name);
+                        if (pexp) {
+                            newtype_type_id = resolve_newtype_type_id(runtime_, pexp);
+                            if (newtype_type_id != invalid_type_id) { break; }
+                        }
+                    }
+                }
             }
         } else if (path_expr->parts.size() == 2) {
             auto lhs_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.front());
