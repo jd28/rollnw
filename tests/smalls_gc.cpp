@@ -8,6 +8,8 @@
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <unordered_set>
+
 using namespace nw;
 using namespace nw::smalls;
 
@@ -30,6 +32,36 @@ bool heap_contains(const Runtime& runtime, HeapPtr ptr)
         current = header->next_object;
     }
     return false;
+}
+
+bool heap_list_is_well_formed(const Runtime& runtime)
+{
+    HeapPtr current = runtime.heap_.all_objects();
+    size_t steps = 0;
+    constexpr size_t step_limit = 1'000'000;
+    std::unordered_set<uint32_t> visited;
+
+    while (current.value != 0) {
+        if (++steps > step_limit) {
+            return false;
+        }
+        if (!visited.insert(current.value).second) {
+            return false;
+        }
+
+        auto* header = runtime.heap_.try_get_header(current);
+        if (!header) {
+            return false;
+        }
+
+        if (header->alloc_size == 0) {
+            return false;
+        }
+
+        current = header->next_object;
+    }
+
+    return true;
 }
 
 } // namespace
@@ -530,6 +562,43 @@ TEST_F(SmallsGCTest, RememberedOldObjectKeepsYoungChildAlive)
     }
     ASSERT_TRUE(done);
     EXPECT_TRUE(heap_contains(runtime, young_child));
+
+    runtime.pop();
+    gc->collect_major();
+}
+
+TEST_F(SmallsGCTest, MinorSweepHandlesInterleavedOldYoungAllObjects)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HeapPtr y1 = runtime.alloc_string("y1");
+    HeapPtr o1 = runtime.alloc_string("o1");
+    HeapPtr y2 = runtime.alloc_string("y2");
+    HeapPtr o2 = runtime.alloc_string("o2");
+
+    ASSERT_NE(y1.value, 0);
+    ASSERT_NE(o1.value, 0);
+    ASSERT_NE(y2.value, 0);
+    ASSERT_NE(o2.value, 0);
+
+    runtime.heap_.get_header(o1)->generation = 1;
+    runtime.heap_.get_header(o2)->generation = 1;
+
+    runtime.push(Value::make_heap(y1, runtime.string_type()));
+
+    bool done = false;
+    for (int i = 0; i < 4096 && !done; ++i) {
+        done = gc->collect_minor_step(1);
+    }
+    ASSERT_TRUE(done);
+
+    EXPECT_TRUE(heap_contains(runtime, y1));
+    EXPECT_FALSE(heap_contains(runtime, y2));
+    EXPECT_TRUE(heap_contains(runtime, o1));
+    EXPECT_TRUE(heap_contains(runtime, o2));
+    EXPECT_TRUE(heap_list_is_well_formed(runtime));
 
     runtime.pop();
     gc->collect_major();

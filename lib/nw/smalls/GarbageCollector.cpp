@@ -568,6 +568,69 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
     size_t freed_count = 0;
     size_t freed_bytes = 0;
 
+    auto unlink_from_all_objects = [this](HeapPtr victim, HeapPtr next_obj) -> bool {
+        if (victim.value == 0) {
+            return false;
+        }
+
+        auto* victim_header = heap_->try_get_header(victim);
+        if (!victim_header) {
+            return false;
+        }
+
+        HeapPtr prev = victim_header->prev_object;
+        bool unlinked = false;
+
+        auto link_prev_to_next = [&](HeapPtr prev_ptr) {
+            if (prev_ptr.value == 0) {
+                if (heap_->all_objects().value == victim.value) {
+                    heap_->set_all_objects(next_obj);
+                    return true;
+                }
+                return false;
+            }
+
+            auto* prev_header = heap_->try_get_header(prev_ptr);
+            if (!prev_header || prev_header->next_object.value != victim.value) {
+                return false;
+            }
+            prev_header->next_object = next_obj;
+            return true;
+        };
+
+        unlinked = link_prev_to_next(prev);
+        if (!unlinked) {
+            prev = HeapPtr{0};
+            HeapPtr scan = heap_->all_objects();
+            while (scan.value != 0 && scan.value != victim.value) {
+                auto* scan_header = heap_->try_get_header(scan);
+                if (!scan_header) {
+                    break;
+                }
+                prev = scan;
+                scan = scan_header->next_object;
+            }
+
+            if (scan.value == 0 || scan.value != victim.value) {
+                return false;
+            }
+
+            unlinked = link_prev_to_next(prev);
+            if (!unlinked) {
+                return false;
+            }
+        }
+
+        if (next_obj.value != 0) {
+            auto* next_header = heap_->try_get_header(next_obj);
+            if (next_header) {
+                next_header->prev_object = prev;
+            }
+        }
+
+        return true;
+    };
+
     while (young_sweep_current_.value != 0 && work_done < work_budget) {
         if (deadline && std::chrono::high_resolution_clock::now() >= *deadline) {
             if (freed_count != 0) {
@@ -598,8 +661,6 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
                     young_sweep_prev_ = HeapPtr{0};
                 }
             }
-            // Track in all_objects list - this object stays in place
-            young_sweep_all_prev_ = current;
             young_sweep_current_ = next_young;
             ++work_done;
             continue;
@@ -610,12 +671,13 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
         if (white && !protected_handle) {
             HeapPtr next_obj = header->next_object;
 
-            // O(1) removal from all_objects list using tracked previous pointer
-            if (young_sweep_all_prev_.value == 0) {
-                heap_->set_all_objects(next_obj);
-            } else {
-                auto* prev_header = heap_->get_header(young_sweep_all_prev_);
-                prev_header->next_object = next_obj;
+            if (!unlink_from_all_objects(current, next_obj)) {
+                // Keep object linked if all_objects chain cannot be updated safely.
+                header->mark_color = 0;
+                young_sweep_prev_ = current;
+                young_sweep_current_ = next_young;
+                ++work_done;
+                continue;
             }
 
             // Remove from young list
@@ -636,7 +698,6 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
             heap_->sub_young_bytes(header->alloc_size);
             runtime_->destruct_object(current);
             heap_->free(current);
-            // young_sweep_all_prev_ stays the same (we removed current, so prev is still prev)
             young_sweep_current_ = next_young;
             ++work_done;
             continue;
@@ -663,12 +724,9 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
                     young_sweep_prev_ = HeapPtr{0};
                 }
             }
-            // Track in all_objects list - this object stays in place
-            young_sweep_all_prev_ = current;
         } else {
             // Object stays in young generation - advance both trackers
             young_sweep_prev_ = current;
-            young_sweep_all_prev_ = current;
         }
 
         header->mark_color = 0;
@@ -703,7 +761,6 @@ void GarbageCollector::begin_minor_cycle()
     remembered_scan_cursor_ = 0;
     remembered_retained_.clear();
     young_sweep_prev_ = HeapPtr{0};
-    young_sweep_all_prev_ = HeapPtr{0};
     young_sweep_current_ = heap_->young_objects();
     minor_phase_ = MinorPhase::mark_roots;
 }
@@ -714,7 +771,6 @@ void GarbageCollector::finish_minor_cycle()
     minor_phase_ = MinorPhase::idle;
     remembered_scan_cursor_ = 0;
     young_sweep_prev_ = HeapPtr{0};
-    young_sweep_all_prev_ = HeapPtr{0};
     young_sweep_current_ = HeapPtr{0};
     ++stats_.minor_collections;
 
@@ -756,8 +812,20 @@ void GarbageCollector::sweep_all()
             if (prev_ptr.value == 0) {
                 heap_->set_all_objects(next);
             } else {
-                auto* prev_header = heap_->get_header(prev_ptr);
-                prev_header->next_object = next;
+                auto* prev_header = heap_->try_get_header(prev_ptr);
+                if (prev_header) {
+                    prev_header->next_object = next;
+                } else {
+                    heap_->set_all_objects(next);
+                    prev_ptr = HeapPtr{0};
+                }
+            }
+
+            if (next.value != 0) {
+                auto* next_header = heap_->try_get_header(next);
+                if (next_header) {
+                    next_header->prev_object = prev_ptr;
+                }
             }
 
             freed_bytes += header->alloc_size;
@@ -772,6 +840,7 @@ void GarbageCollector::sweep_all()
                 header->next_young = new_young_head;
                 new_young_head = current;
             }
+            header->prev_object = prev_ptr;
             prev_ptr = current;
         }
 

@@ -468,7 +468,6 @@ private:
     MinorPhase minor_phase_ = MinorPhase::idle;
     HeapPtr young_sweep_current_{0};
     HeapPtr young_sweep_prev_{0};
-    HeapPtr young_sweep_all_prev_{0}; // Previous object in all_objects list during sweep
     std::chrono::high_resolution_clock::time_point minor_start_time_;
 
     HeapPtr all_objects_{0};

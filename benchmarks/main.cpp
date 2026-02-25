@@ -789,7 +789,10 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
     nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
 
-    auto* gc = nwk::runtime().gc();
+    auto& rt = nwk::runtime();
+    auto* gc = rt.gc();
+    rt.clear_non_vm_owned_handle_registry();
+    rt.prune_stale_handle_registry();
     size_t iters = 0;
 
     for (auto _ : state) {
@@ -800,6 +803,8 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
         if (gc && (iters % 1024) == 0) {
             state.PauseTiming();
             gc->collect_minor();
+            rt.clear_non_vm_owned_handle_registry();
+            rt.prune_stale_handle_registry();
             state.ResumeTiming();
         }
     }

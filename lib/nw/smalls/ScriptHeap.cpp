@@ -120,8 +120,12 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
     header->next_object = all_objects_;
     header->prev_object = HeapPtr{0};
     if (all_objects_.value != 0) {
-        auto* old_head = get_header(all_objects_);
-        old_head->prev_object = ptr;
+        auto* old_head = try_get_header(all_objects_);
+        if (old_head) {
+            old_head->prev_object = ptr;
+        } else {
+            all_objects_ = HeapPtr{0};
+        }
     }
     all_objects_ = ptr;
     header->next_young = young_objects_;
