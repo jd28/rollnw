@@ -343,10 +343,14 @@ bool AstCompiler::compile()
     uint16_t global_slot = 0;
     for (auto* decl : script_->ast().decls) {
         if (auto* var = dynamic_cast<VarDecl*>(decl)) {
-            module_globals_[String(var->identifier())] = {global_slot++, var->is_const_};
+            module_globals_[String(var->identifier())] = {global_slot, var->is_const_};
+            module_->global_slot_map[String(var->identifier())] = global_slot;
+            ++global_slot;
         } else if (auto* decl_list = dynamic_cast<DeclList*>(decl)) {
             for (auto& d : decl_list->decls) {
-                module_globals_[String(d->identifier())] = {global_slot++, d->is_const_};
+                module_globals_[String(d->identifier())] = {global_slot, d->is_const_};
+                module_->global_slot_map[String(d->identifier())] = global_slot;
+                ++global_slot;
             }
         }
     }
@@ -2535,6 +2539,16 @@ void AstCompiler::visit(IdentifierExpression* expr)
                 if (try_emit_imported_const_from_provider(var_name, *imported)) {
                     return;
                 }
+                // Fall back to runtime cross-module global read
+                if (!imported->provider_module.empty()) {
+                    uint32_t ref_idx = module_->add_global_ref(imported->provider_module, var_name);
+                    if (ref_idx <= 65535) {
+                        uint8_t dest = registers_.allocate();
+                        emit_abx(Opcode::GETEXTGLOBAL, dest, static_cast<uint16_t>(ref_idx));
+                        result_reg_ = dest;
+                        return;
+                    }
+                }
                 fail(fmt::format("Unable to materialize imported const: {}", var_name));
                 return;
             }
@@ -2609,6 +2623,41 @@ void AstCompiler::visit(PathExpression* expr)
 
             result_reg_ = dest_reg;
             return;
+        }
+    }
+
+    // Check if this is module_alias.variable — emit GETEXTGLOBAL
+    if (expr->parts.size() == 2) {
+        auto lhs_ident = dynamic_cast<IdentifierExpression*>(expr->parts.front());
+        auto rhs_ident = dynamic_cast<IdentifierExpression*>(expr->parts.back());
+        if (lhs_ident && rhs_ident) {
+            String lhs_name(lhs_ident->ident.loc.view());
+            auto exp = expr->env_.find(lhs_name);
+            if (exp && exp->kind == Export::Kind::module_alias && !exp->provider_module.empty()) {
+                auto* provider = runtime_->get_module(exp->provider_module);
+                String rhs_name(rhs_ident->ident.loc.view());
+                if (provider) {
+                    auto pexp = provider->exports().find(rhs_name);
+                    if (pexp && pexp->kind == Export::Kind::variable) {
+                        // Try inline materialization first (works for int/float/bool/string consts)
+                        if (try_emit_export_const(pexp->const_value)) { return; }
+                        ExportConstValue materialized;
+                        if (try_materialize_export_const(provider, *pexp, materialized)) {
+                            if (try_emit_export_const(materialized)) { return; }
+                        }
+                        // Fall back to runtime cross-module global read
+                        uint32_t ref_idx = module_->add_global_ref(exp->provider_module, rhs_name);
+                        if (ref_idx > 65535) {
+                            fail("Global ref index overflow");
+                            return;
+                        }
+                        uint8_t dest = registers_.allocate();
+                        emit_abx(Opcode::GETEXTGLOBAL, dest, static_cast<uint16_t>(ref_idx));
+                        result_reg_ = dest;
+                        return;
+                    }
+                }
+            }
         }
     }
 

@@ -439,10 +439,28 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
 void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc,
     size_t caller_frame_index, const char* opcode_name)
 {
-    CallFrame& callee_frame = frames_.back();
+    const Value* src = &registers_[caller_base + dest_reg + 1];
+    Value* dst = &registers_[current_base_];
 
+    // Fast path: no stack-resident value types — bulk-copy all args at once.
+    // Stack args only arise when passing structs/fixed-arrays by value; primitives,
+    // objects, heap refs, and closures never use this storage.
+    bool has_stack = false;
     for (uint8_t i = 0; i < argc; ++i) {
-        Value arg = registers_[caller_base + dest_reg + 1 + i];
+        if (src[i].storage == ValueStorage::stack) {
+            has_stack = true;
+            break;
+        }
+    }
+    if (!has_stack) {
+        std::memcpy(dst, src, static_cast<size_t>(argc) * sizeof(Value));
+        return;
+    }
+
+    // Slow path: at least one arg is a stack-resident struct/fixed-array.
+    CallFrame& callee_frame = frames_.back();
+    for (uint8_t i = 0; i < argc; ++i) {
+        Value arg = src[i];
         if (arg.storage == ValueStorage::stack) {
             const Type* type = rt_->get_type(arg.type_id);
             if (!type) {
@@ -460,7 +478,7 @@ void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg,
             arg = Value::make_stack(dst_offset, arg.type_id);
         }
 
-        registers_[current_base_ + i] = arg;
+        dst[i] = arg;
     }
 }
 
@@ -722,9 +740,18 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
         } break;
 
         case Opcode::JMPT: {
-            Truthiness t = evaluate_truthiness(reg(a), "JMPT");
-            if (t == Truthiness::Error) { break; }
-            if (t == Truthiness::True) {
+            const Value& cond_jmpt = reg(a);
+            bool take_jmpt;
+            if (cond_jmpt.type_id == rt_->bool_type()) {
+                take_jmpt = cond_jmpt.data.bval;
+            } else if (cond_jmpt.type_id == rt_->int_type()) {
+                take_jmpt = cond_jmpt.data.ival != 0;
+            } else {
+                Truthiness t = evaluate_truthiness(cond_jmpt, "JMPT");
+                if (t == Truthiness::Error) { break; }
+                take_jmpt = (t == Truthiness::True);
+            }
+            if (take_jmpt) {
                 int16_t off = instr.arg_sbx();
                 if (off < 0 && gas_enabled_ && !consume_gas()) break;
                 frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
@@ -733,9 +760,18 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
         }
 
         case Opcode::JMPF: {
-            Truthiness t = evaluate_truthiness(reg(a), "JMPF");
-            if (t == Truthiness::Error) { break; }
-            if (t == Truthiness::False) {
+            const Value& cond_jmpf = reg(a);
+            bool take_jmpf;
+            if (cond_jmpf.type_id == rt_->bool_type()) {
+                take_jmpf = !cond_jmpf.data.bval;
+            } else if (cond_jmpf.type_id == rt_->int_type()) {
+                take_jmpf = cond_jmpf.data.ival == 0;
+            } else {
+                Truthiness t = evaluate_truthiness(cond_jmpf, "JMPF");
+                if (t == Truthiness::Error) { break; }
+                take_jmpf = (t == Truthiness::False);
+            }
+            if (take_jmpf) {
                 int16_t off = instr.arg_sbx();
                 if (off < 0 && gas_enabled_ && !consume_gas()) break;
                 frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
@@ -876,9 +912,9 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
         case Opcode::CALLINTR: {
             if (gas_enabled_ && !consume_gas()) { break; }
             uint8_t dest_reg = a;
-            uint8_t intrinsic_idx = b;
+            auto intr_id = static_cast<IntrinsicId>(b);
             uint8_t argc = c;
-            call_intrinsic(static_cast<IntrinsicId>(intrinsic_idx), dest_reg, argc);
+            call_intrinsic(intr_id, dest_reg, argc);
             break;
         }
 
@@ -1355,6 +1391,21 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
                 break;
             }
             reg(dest) = frame.module->globals[slot];
+            break;
+        }
+
+        case Opcode::GETEXTGLOBAL: {
+            uint16_t ref_idx = instr.arg_bx();
+            if (ref_idx >= frame.module->global_refs.size()) {
+                fail("GETEXTGLOBAL ref index out of range");
+                break;
+            }
+            const auto& ref = frame.module->global_refs[ref_idx];
+            if (!ref.resolved_module || ref.resolved_slot >= ref.resolved_module->global_count) {
+                fail("GETEXTGLOBAL: unresolved or slot out of range");
+                break;
+            }
+            reg(a) = ref.resolved_module->globals[ref.resolved_slot];
             break;
         }
 

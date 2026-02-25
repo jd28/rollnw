@@ -157,8 +157,9 @@ enum class Opcode : uint8_t {
     CALLCLOSURE, // rA = call_closure(closure=rB, argc=C, args start at rA+1)
 
     // Module globals
-    GETGLOBAL, // rA = module.globals[Bx]
-    SETGLOBAL, // module.globals[Bx] = rA
+    GETGLOBAL,    // rA = module.globals[Bx]
+    SETGLOBAL,    // module.globals[Bx] = rA
+    GETEXTGLOBAL, // rA = global_refs[Bx].module->globals[global_refs[Bx].slot]
 };
 
 // == Instruction Encoding ====================================================
@@ -303,6 +304,9 @@ struct BytecodeModule {
     uint32_t add_external_ref(InternedString qualified_name);
     bool resolve_external_refs(struct Runtime* runtime);
 
+    // External global reference management (for cross-module variable access)
+    uint32_t add_global_ref(StringView module_name, StringView var_name);
+
     String module_name;
     Vector<String> string_pool;
     absl::flat_hash_map<String, uint32_t> string_indices;
@@ -322,11 +326,22 @@ struct BytecodeModule {
     // that can be modified during execution (e.g., via SETGLOBAL opcode).
     uint32_t global_count = 0;
     Vector<Value> globals;
+    absl::flat_hash_map<String, uint32_t> global_slot_map; // var_name -> slot (set during compilation)
 
     // External function indirection table
     Vector<InternedString> external_refs;                           // qualified names (stable)
     Vector<uint32_t> external_indices;                              // resolved runtime indices (rebuilt on reload)
     absl::flat_hash_map<InternedString, uint32_t> external_ref_map; // name -> local ref index
+
+    // Cross-module global access (resolved at link time via resolve_external_refs)
+    struct ExternalGlobalRef {
+        String module_name;
+        String var_name;
+        BytecodeModule* resolved_module = nullptr; // set by resolve_external_refs
+        uint32_t resolved_slot = UINT32_MAX;       // set by resolve_external_refs
+    };
+    Vector<ExternalGlobalRef> global_refs;
+    absl::flat_hash_map<String, uint32_t> global_ref_map; // "module::var" -> index
 };
 
 } // namespace nw::smalls

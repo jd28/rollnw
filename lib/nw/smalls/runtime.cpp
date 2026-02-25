@@ -1569,6 +1569,20 @@ Value Runtime::execute_binary_op(TokenType op, const Value& lhs, const Value& rh
         coerced_rhs = Value::make_bool(rhs.data.ival != 0);
     }
 
+    // Unwrap newtypes and aliases to their underlying base type for operator resolution.
+    // Explicit newtype operators are compiled to CALLEXT/CALLNATIVE (not EQ/LT opcodes),
+    // so any newtype values reaching here have no custom op and should use the base type's.
+    {
+        const Type* lt = get_type(coerced_lhs.type_id);
+        if (lt && (lt->type_kind == TK_newtype || lt->type_kind == TK_alias)) {
+            coerced_lhs.type_id = unwrap_type(*this, coerced_lhs.type_id);
+        }
+        const Type* rt = get_type(coerced_rhs.type_id);
+        if (rt && (rt->type_kind == TK_newtype || rt->type_kind == TK_alias)) {
+            coerced_rhs.type_id = unwrap_type(*this, coerced_rhs.type_id);
+        }
+    }
+
     auto it = binary_ops_.find(std::make_tuple(op, coerced_lhs.type_id, coerced_rhs.type_id));
     if (it != binary_ops_.end()) {
         const auto& overload = it->second;

@@ -224,6 +224,8 @@ static StringView opcode_name(Opcode op)
         return "GETGLOBAL";
     case Opcode::SETGLOBAL:
         return "SETGLOBAL";
+    case Opcode::GETEXTGLOBAL:
+        return "GETEXTGLOBAL";
     default:
         return "";
     }
@@ -543,6 +545,9 @@ void CompiledFunction::disassemble(String* result, const BytecodeModule* module)
         case Opcode::SETGLOBAL:
             fmt::format_to(std::back_inserter(*result), "g{}, r{}", instr.arg_bx(), instr.arg_a());
             break;
+        case Opcode::GETEXTGLOBAL:
+            fmt::format_to(std::back_inserter(*result), "r{}, extg{}", instr.arg_a(), instr.arg_bx());
+            break;
 
         // Jump format
         case Opcode::JMP:
@@ -681,6 +686,19 @@ uint32_t BytecodeModule::add_external_ref(InternedString qualified_name)
     return idx;
 }
 
+uint32_t BytecodeModule::add_global_ref(StringView mod_name, StringView var_name)
+{
+    String key = fmt::format("{}::{}", mod_name, var_name);
+    auto it = global_ref_map.find(key);
+    if (it != global_ref_map.end()) {
+        return it->second;
+    }
+    uint32_t idx = static_cast<uint32_t>(global_refs.size());
+    global_refs.push_back({String(mod_name), String(var_name)});
+    global_ref_map[std::move(key)] = idx;
+    return idx;
+}
+
 bool BytecodeModule::resolve_external_refs(Runtime* runtime)
 {
     bool all_resolved = true;
@@ -695,6 +713,33 @@ bool BytecodeModule::resolve_external_refs(Runtime* runtime)
         }
         external_indices[i] = ext_idx;
     }
+
+    for (auto& ref : global_refs) {
+        Script* provider = runtime->get_module(ref.module_name);
+        if (!provider) {
+            LOG_F(ERROR, "[bytecode] Failed to resolve global ref '{}::{}' in module '{}': provider not found",
+                ref.module_name, ref.var_name, module_name);
+            all_resolved = false;
+            continue;
+        }
+        BytecodeModule* pmod = runtime->get_or_compile_module(provider);
+        if (!pmod) {
+            LOG_F(ERROR, "[bytecode] Failed to resolve global ref '{}::{}' in module '{}': provider not compiled",
+                ref.module_name, ref.var_name, module_name);
+            all_resolved = false;
+            continue;
+        }
+        auto sit = pmod->global_slot_map.find(ref.var_name);
+        if (sit == pmod->global_slot_map.end()) {
+            LOG_F(ERROR, "[bytecode] Failed to resolve global ref '{}::{}' in module '{}': variable not in slot map",
+                ref.module_name, ref.var_name, module_name);
+            all_resolved = false;
+            continue;
+        }
+        ref.resolved_module = pmod;
+        ref.resolved_slot = sit->second;
+    }
+
     return all_resolved;
 }
 

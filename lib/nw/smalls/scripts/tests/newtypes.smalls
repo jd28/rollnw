@@ -31,12 +31,35 @@ fn test_newtype_tuple(): bool {
     return (t[0] as int) == 3 && (t[1] as int) == 4;
 }
 
+fn test_newtype_comparison(): bool {
+    var h1: HP = HP(10);
+    var h2: HP = HP(10);
+    var h3: HP = HP(5);
+    // Equality
+    if (!(h1 == h2)) { return false; }
+    if (h1 == h3) { return false; }
+    if (h1 != h2) { return false; }
+    if (!(h1 != h3)) { return false; }
+    // Ordering
+    if (!(h3 < h1)) { return false; }
+    if (h1 < h3) { return false; }
+    if (!(h1 > h3)) { return false; }
+    if (!(h3 <= h1)) { return false; }
+    if (!(h1 >= h3)) { return false; }
+    // Construct from int, then compare (the original failing pattern)
+    var subtype = 10;
+    var constructed: HP = HP(subtype);
+    if (!(constructed == h1)) { return false; }
+    return true;
+}
+
 fn main() {
     reset();
 
     test("newtype_construct", test_newtype_construct());
     test("newtype_functions", test_newtype_functions());
     test("newtype_tuple", test_newtype_tuple());
+    test("newtype_comparison", test_newtype_comparison());
 
     summary();
 }

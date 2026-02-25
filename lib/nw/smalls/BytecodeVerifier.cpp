@@ -355,6 +355,15 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
             break;
         }
 
+        case Opcode::GETEXTGLOBAL: {
+            if (!check_reg(out, a, reg_count, ctx())) { return false; }
+            const uint16_t ref_idx = instr.arg_bx();
+            if (ref_idx >= module->global_refs.size()) {
+                return fail(out, fmt::format("{}: external global ref index out of range: {} (refs={})", ctx(), ref_idx, module->global_refs.size()));
+            }
+            break;
+        }
+
         case Opcode::CLOSEUPVALS:
             break;
 
