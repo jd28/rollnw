@@ -954,3 +954,265 @@ TEST_F(SmallsCompiler, GenericFunctionMultipleTypeParams)
     }
     EXPECT_TRUE(found_call);
 }
+
+// == Constant Folding & DCE =================================================
+
+TEST_F(SmallsCompiler, ConstantFoldBinaryArithmetic)
+{
+    // "1 + 2" should fold to a single LOADI 3, not LOADI 1 + LOADI 2 + ADD
+    auto script = make_script(R"(
+        fn test(): int { return 1 + 2; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADI r0, 3; CLOSEUPVALS; RET r0
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADI);
+    EXPECT_EQ(func->instructions[0].arg_sbx(), 3);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD);
+    }
+}
+
+TEST_F(SmallsCompiler, ConstantFoldNestedExpr)
+{
+    // "10 * 2 + 5" should fold to a single LOADI 25
+    auto script = make_script(R"(
+        fn test(): int { return 10 * 2 + 5; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADI);
+    EXPECT_EQ(func->instructions[0].arg_sbx(), 25);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::MUL);
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD);
+    }
+}
+
+TEST_F(SmallsCompiler, ConstantFoldStringConcat)
+{
+    // '"hello" + " world"' should fold to a single LOADK for "hello world"
+    auto script = make_script(R"(
+        fn test(): string { return "hello" + " world"; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADK r0, 0; CLOSEUPVALS; RET r0
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADK);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD);
+    }
+    // String pool should contain the concatenated result, not the two parts separately
+    bool found = false;
+    for (const auto& s : module.string_pool) {
+        if (s == "hello world") { found = true; break; }
+    }
+    EXPECT_TRUE(found) << "String pool should contain \"hello world\"";
+}
+
+TEST_F(SmallsCompiler, ConstantFoldBoolLogical)
+{
+    // "true && false" should fold to a single LOADB false, no short-circuit JMPF
+    auto script = make_script(R"(
+        fn test(): bool { return true && false; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADB r0, 0, 0; CLOSEUPVALS; RET r0
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADB);
+    EXPECT_EQ(func->instructions[0].arg_b(), 0); // false
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF);
+    }
+}
+
+TEST_F(SmallsCompiler, DCE_IfTrue)
+{
+    // if (true) → only 'then' branch compiled; 'else' branch is dead code
+    auto script = make_script(R"(
+        fn test(): int {
+            if (true) { return 1; } else { return 2; }
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADI r0, 1; CLOSEUPVALS; RET r0 — else branch eliminated
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADI);
+    EXPECT_EQ(func->instructions[0].arg_sbx(), 1);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF);
+        if (instr.opcode() == nw::smalls::Opcode::LOADI) {
+            EXPECT_NE(instr.arg_sbx(), 2); // 'return 2' never compiled
+        }
+    }
+}
+
+TEST_F(SmallsCompiler, DCE_IfFalse)
+{
+    // if (false) → only 'else' branch compiled; 'then' branch is dead code
+    auto script = make_script(R"(
+        fn test(): int {
+            if (false) { return 1; } else { return 2; }
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADI r0, 2; CLOSEUPVALS; RET r0 — then branch eliminated
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADI);
+    EXPECT_EQ(func->instructions[0].arg_sbx(), 2);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF);
+        if (instr.opcode() == nw::smalls::Opcode::LOADI) {
+            EXPECT_NE(instr.arg_sbx(), 1); // 'return 1' never compiled
+        }
+    }
+}
+
+TEST_F(SmallsCompiler, DCE_TernaryConstTrue)
+{
+    // "true ? 1 : 2" — entire conditional is const, folds to LOADI 1, no JMPF
+    auto script = make_script(R"(
+        fn test(): int { return true ? 1 : 2; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADI r0, 1; CLOSEUPVALS; RET r0
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADI);
+    EXPECT_EQ(func->instructions[0].arg_sbx(), 1);
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF);
+    }
+}
+
+TEST_F(SmallsCompiler, DCE_LogicalAndConstFalse)
+{
+    // "false && x" — const LHS short-circuit emits LOADB false; x is never evaluated
+    auto script = make_script(R"(
+        fn test(x: bool): bool { return false && x; }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // LOADB r1, 0; CLOSEUPVALS; RET r1 — parameter x is never accessed
+    ASSERT_EQ(func->instructions.size(), 3);
+    EXPECT_EQ(func->instructions[0].opcode(), nw::smalls::Opcode::LOADB);
+    EXPECT_EQ(func->instructions[0].arg_b(), 0); // false
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF);
+    }
+}
+
+TEST_F(SmallsCompiler, DCE_ForConstFalse)
+{
+    // for loop with constant-false condition: body and increment are never compiled
+    auto script = make_script(R"(
+        fn test(): int {
+            var sum = 0;
+            for (var i = 0; false; i = i + 1) { sum = sum + 1; }
+            return sum;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    EXPECT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const auto* func = module.get_function("test");
+    ASSERT_NE(func, nullptr);
+
+    // No loop condition check and no body/increment instructions
+    for (const auto& instr : func->instructions) {
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF) << "Loop condition should be DCE'd";
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD)  << "Loop body/increment should be DCE'd";
+    }
+}
