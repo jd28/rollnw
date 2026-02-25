@@ -1520,6 +1520,7 @@ static void resolve_function_body(TypeResolver& resolver, FunctionDefinition* de
 static void resolve_struct_field(TypeResolver& resolver, VarDecl* decl);
 static void validate_array_intrinsic_signature(TypeResolver& resolver, FunctionDefinition* decl, IntrinsicId id);
 static void validate_map_intrinsic_signature(TypeResolver& resolver, FunctionDefinition* decl, IntrinsicId id);
+static void validate_load_config_intrinsic_signature(TypeResolver& resolver, FunctionDefinition* decl, IntrinsicId id);
 
 void TypeResolver::visit(Ast* script)
 {
@@ -1723,6 +1724,48 @@ static void validate_propset_intrinsic_signature(TypeResolver& resolver, Functio
     }
 }
 
+static void validate_load_config_intrinsic_signature(TypeResolver& resolver, FunctionDefinition* decl, IntrinsicId id)
+{
+    if (id != IntrinsicId::LoadConfig) {
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto& ctx = resolver.ctx;
+
+    if (decl->type_params.size() != 1) {
+        ctx.error(decl->range_, "load_config intrinsic must declare exactly one type parameter");
+        return;
+    }
+
+    if (decl->params.size() != 1) {
+        ctx.error(decl->range_, "load_config intrinsic expects (path: string)");
+        return;
+    }
+
+    if (decl->params[0]->type_id_ != rt.string_type()) {
+        ctx.error(decl->range_, "load_config intrinsic expects string path parameter");
+    }
+
+    if (!decl->return_type) {
+        ctx.error(decl->range_, "load_config intrinsic must return array!($T)");
+        return;
+    }
+
+    // Return type must be array!($T) where $T matches the type parameter
+    auto ret_name = extract_identifier(decl->return_type->name);
+    if (!ret_name || *ret_name != "array" || decl->return_type->params.size() != 1) {
+        ctx.error(decl->range_, "load_config intrinsic must return array!($T)");
+        return;
+    }
+
+    auto* elem_type_expr = dynamic_cast<TypeExpression*>(decl->return_type->params[0]);
+    auto elem_name = elem_type_expr ? extract_identifier(elem_type_expr->name) : std::nullopt;
+    if (!elem_name || *elem_name != decl->type_params[0]) {
+        ctx.error(decl->range_, "load_config intrinsic must return array!($T) where $T matches its type parameter");
+    }
+}
+
 static void resolve_function_signature(TypeResolver& resolver, FunctionDefinition* decl)
 {
     auto& ctx = resolver.ctx;
@@ -1780,6 +1823,7 @@ static void resolve_function_signature(TypeResolver& resolver, FunctionDefinitio
             validate_array_intrinsic_signature(resolver, decl, *intrinsic_id);
             validate_map_intrinsic_signature(resolver, decl, *intrinsic_id);
             validate_propset_intrinsic_signature(resolver, decl, *intrinsic_id);
+            validate_load_config_intrinsic_signature(resolver, decl, *intrinsic_id);
         }
     }
 

@@ -1300,3 +1300,55 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBuildsClassArray)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicCachesResult)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(): int {
+            var a = load_config!(R.ClassEntry)("nwn1.data.classes");
+            var b = load_config!(R.ClassEntry)("nwn1.data.classes");
+            if (arr.len(a) != arr.len(b)) { return -1; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_cache", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicFeatEntry)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(): int {
+            var feats = load_config!(R.FeatEntry)("nwn1.data.feats");
+            if (arr.len(feats) == 0) { return -1; }
+            var dodge = arr.get(feats, 0);
+            if (dodge.passive) { return -2; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_feats", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}

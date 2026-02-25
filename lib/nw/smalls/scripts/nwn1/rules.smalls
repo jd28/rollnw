@@ -1,0 +1,37 @@
+// NWN1 ruleset type definitions for load_config! config arrays.
+// [[index]] marks the array placement field (must be int).
+// [[value_type]] stores structs inline in array!(T) for cache-efficient lookup.
+
+type StrRef(int);
+
+[[value_type]]
+type ClassEntry {
+    [[index]]
+    id:           int;
+    name:         StrRef;
+    hit_die:      int;
+    attack_table: int;
+    saves_table:  int;
+    spellcaster:  bool;
+};
+
+[[value_type]]
+type FeatEntry {
+    [[index]]
+    id:        int;
+    name:      StrRef;
+    min_level: int;
+    max_cr:    float;
+    passive:   bool;
+};
+
+[[value_type]]
+type BaseItemEntry {
+    [[index]]
+    id:         int;
+    name:       StrRef;
+    stack_size: int;
+    damage_num: int;
+    damage_die: int;
+    ranged:     bool;
+};

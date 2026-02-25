@@ -1,0 +1,8 @@
+BaseItemEntry {
+    id = 27,
+    name = StrRef(1614),
+    stack_size = 1,
+    damage_num = 1,
+    damage_die = 6,
+    ranged = false,
+}

@@ -19,6 +19,7 @@
 #include "VirtualMachine.hpp"
 #include "stdlib.hpp"
 
+#include "../formats/StaticTwoDA.hpp"
 #include "xxhash/xxh3.h"
 #include <absl/hash/hash.h>
 #include <absl/strings/str_cat.h>
@@ -5332,6 +5333,292 @@ Value Runtime::load_config_value(StringView path, StringView prelude_module)
         user_prelude_ = prev_prelude;
     }
     return Value{};
+}
+
+namespace {
+
+// Find the field index (0-based) for the [[index]] annotated field in a struct.
+static uint32_t find_index_field(const StructDef* def)
+{
+    if (!def || !def->decl) return UINT32_MAX;
+
+    uint32_t fi = 0;
+    for (auto* d : def->decl->decls) {
+        bool found = false;
+
+        auto check = [&](const VarDecl* vd) {
+            for (const auto& ann : vd->annotations_) {
+                if (ann.name.loc.view() == "index") {
+                    found = true;
+                    return;
+                }
+            }
+            fi++;
+        };
+
+        if (auto* vdl = dynamic_cast<const DeclList*>(d)) {
+            for (auto* d2 : vdl->decls) {
+                if (auto* vd = dynamic_cast<const VarDecl*>(d2)) {
+                    check(vd);
+                    if (found) return fi;
+                }
+            }
+        } else if (auto* vd = dynamic_cast<const VarDecl*>(d)) {
+            check(vd);
+            if (found) return fi;
+        }
+    }
+
+    return UINT32_MAX;
+}
+
+} // namespace
+
+Value Runtime::load_config_array_value(StringView path, TypeID config_type)
+{
+    // Cache lookup
+    auto cache_key = std::make_pair(String(path), config_type);
+    auto it = config_array_cache_.find(cache_key);
+    if (it != config_array_cache_.end()) {
+        HeapPtr cached_ptr = it->second;
+        auto* header = heap_.get_header(cached_ptr);
+        if (header) {
+            return Value::make_heap(cached_ptr, header->type_id);
+        }
+    }
+
+    // Get the struct type info
+    const Type* type = get_type(config_type);
+    if (!type || type->type_kind != TK_struct) {
+        LOG_F(ERROR, "[config] load_config! type is not a struct (TypeID={})", config_type.value);
+        return Value{};
+    }
+
+    StructID sid = type->type_params[0].as<StructID>();
+    const StructDef* def = type_table_.get(sid);
+    if (!def || !def->decl) {
+        LOG_F(ERROR, "[config] load_config! struct definition missing for type '{}'", type->name.view());
+        return Value{};
+    }
+
+    // Extract module name from type's qualified name
+    // e.g., "nwn1.types.rules.ClassEntry" -> "nwn1.types.rules"
+    String type_name_str(type->name.view());
+    String module_name;
+    auto last_dot = type_name_str.rfind('.');
+    if (last_dot != String::npos) {
+        module_name = type_name_str.substr(0, last_dot);
+    }
+
+    // Find the [[index]] field
+    uint32_t index_field_idx = find_index_field(def);
+    if (index_field_idx == UINT32_MAX) {
+        LOG_F(ERROR, "[config] load_config! struct '{}' has no [[index]] field", type->name.view());
+        return Value{};
+    }
+
+    if (index_field_idx >= def->field_count || def->fields[index_field_idx].type_id != int_type()) {
+        LOG_F(ERROR, "[config] load_config! struct '{}' [[index]] field must be int", type->name.view());
+        return Value{};
+    }
+
+    // If a 2da converter is registered for this path, use it instead of .smalls files
+    auto conv_it = twoda_converters_.find(String(path));
+    if (conv_it != twoda_converters_.end()) {
+        return load_twoda_as_config_array(path, config_type, def, index_field_idx, conv_it->second);
+    }
+
+    // Build resref prefix: "nwn1.data.classes" → "nwn1/data/classes/"
+    // Resources in the resman are registered with forward-slash paths (no extension).
+    String resref_prefix = path_to_string(module_name_to_path(path, "")) + "/";
+
+    // Collect all .smalls resources directly under this prefix (no deeper nesting).
+    Vector<String> matching_resrefs;
+    resman_.visit([&](Resource res) {
+        if (res.type != ResourceType::smalls) { return; }
+        StringView rv = res.resref.view();
+        if (!rv.starts_with(resref_prefix)) { return; }
+        // Only direct children: no additional '/' after the prefix
+        if (rv.find('/', resref_prefix.size()) != StringView::npos) { return; }
+        matching_resrefs.push_back(String(rv));
+    });
+
+    auto make_empty_array = [&]() -> Value {
+        HeapPtr empty = create_array_typed(config_type, 0);
+        if (empty.value == 0) { return Value{}; }
+        auto* header = heap_.get_header(empty);
+        config_roots_.push_back(empty);
+        config_array_cache_.emplace(cache_key, empty);
+        return header ? Value::make_heap(empty, header->type_id) : Value{};
+    };
+
+    if (matching_resrefs.empty()) {
+        LOG_F(WARNING, "[config] load_config! no entries found for path '{}'", path);
+        return make_empty_array();
+    }
+
+    std::sort(matching_resrefs.begin(), matching_resrefs.end());
+
+    // Set user prelude so the struct type is in scope when parsing config files
+    Script* prev_prelude = user_prelude_;
+    if (!module_name.empty()) {
+        set_user_prelude(module_name);
+    }
+
+    struct Entry {
+        int32_t index;
+        Value val;
+    };
+    Vector<Entry> entries;
+    int32_t max_index = -1;
+
+    absl::flat_hash_map<int32_t, String> seen_indices;
+
+    for (const auto& resref_str : matching_resrefs) {
+        // Convert resref "nwn1/data/classes/fighter" → module path "nwn1.data.classes.fighter"
+        String entry_path = resref_str;
+        for (char& c : entry_path) {
+            if (c == '/') { c = '.'; }
+        }
+
+        Value entry_val = load_config_value(entry_path, "");
+        if (entry_val.type_id == invalid_type_id) {
+            LOG_F(WARNING, "[config] load_config! failed to load entry '{}'", entry_path);
+            continue;
+        }
+
+        Value idx_val = read_struct_value_field(entry_val, def, index_field_idx);
+        if (idx_val.type_id != int_type()) {
+            LOG_F(WARNING, "[config] load_config! entry '{}' [[index]] field is not int", entry_path);
+            continue;
+        }
+
+        int32_t entry_index = idx_val.data.ival;
+        if (entry_index < 0) {
+            LOG_F(WARNING, "[config] load_config! entry '{}' has negative index {}", entry_path, entry_index);
+            continue;
+        }
+
+        auto dup_it = seen_indices.find(entry_index);
+        if (dup_it != seen_indices.end()) {
+            LOG_F(WARNING, "[config] load_config! duplicate index {} in '{}' (previous: '{}'), last-wins",
+                entry_index, entry_path, dup_it->second);
+        }
+        seen_indices[entry_index] = entry_path;
+
+        if (entry_index > max_index) {
+            max_index = entry_index;
+        }
+        entries.push_back({entry_index, entry_val});
+    }
+
+    // Restore prelude
+    user_prelude_ = prev_prelude;
+
+    // Build the array
+    size_t arr_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
+    HeapPtr array_ptr = create_array_typed(config_type, arr_size);
+    if (array_ptr.value == 0) return Value{};
+
+    IArray* arr = get_array_typed(array_ptr);
+    if (!arr) return Value{};
+
+    arr->resize(arr_size);
+
+    // For duplicate indices, later entries (sorted by filename) win
+    for (const auto& e : entries) {
+        arr->set_value(static_cast<size_t>(e.index), e.val, *this);
+    }
+
+    auto* header = heap_.get_header(array_ptr);
+    if (!header) return Value{};
+
+    config_roots_.push_back(array_ptr);
+    config_array_cache_.emplace(cache_key, array_ptr);
+
+    return Value::make_heap(array_ptr, header->type_id);
+}
+
+void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
+                                        Vector<TwoDAColumnMapping> mappings)
+{
+    twoda_converters_.insert_or_assign(String(path),
+        TwoDAConverterSpec{String(twoda_name), std::move(mappings)});
+}
+
+Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
+    const StructDef* def, uint32_t index_field_idx, const TwoDAConverterSpec& conv)
+{
+    auto cache_key = std::make_pair(String(path), config_type);
+
+    StaticTwoDA tda{kernel::resman().demand({conv.twoda_name, ResourceType::twoda})};
+    if (!tda.is_valid()) {
+        LOG_F(WARNING, "[config] twoda converter: '{}' not found", conv.twoda_name);
+        HeapPtr empty = create_array_typed(config_type, 0);
+        if (empty.value == 0) return Value{};
+        auto* hdr = heap_.get_header(empty);
+        config_roots_.push_back(empty);
+        config_array_cache_.emplace(cache_key, empty);
+        return hdr ? Value::make_heap(empty, hdr->type_id) : Value{};
+    }
+
+    size_t nrows = tda.rows();
+    HeapPtr array_ptr = create_array_typed(config_type, nrows);
+    if (!array_ptr.value) return Value{};
+    IArray* arr = get_array_typed(array_ptr);
+    if (!arr) return Value{};
+    arr->resize(nrows);
+
+    for (size_t i = 0; i < nrows; ++i) {
+        HeapPtr entry = alloc_struct(config_type);
+        if (!entry.value) continue;
+        uint8_t* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
+
+        // Write [[index]] field = row index
+        *reinterpret_cast<int32_t*>(data + def->fields[index_field_idx].offset) =
+            static_cast<int32_t>(i);
+
+        // Write each mapped column into the corresponding field
+        for (const auto& m : conv.mappings) {
+            uint32_t fidx = def->field_index(m.field);
+            if (fidx == UINT32_MAX) continue;
+            const FieldDef& fd = def->fields[fidx];
+            uint8_t* fptr = data + fd.offset;
+
+            // Unwrap newtypes to find the underlying primitive type
+            TypeID field_type = fd.type_id;
+            const Type* ftype = get_type(field_type);
+            while (ftype && (ftype->type_kind == TK_newtype || ftype->type_kind == TK_alias)) {
+                TypeID next = ftype->type_params[0].as<TypeID>();
+                if (next == invalid_type_id || next == field_type) break;
+                field_type = next;
+                ftype = get_type(field_type);
+            }
+
+            if (!ftype || ftype->type_kind != TK_primitive) continue;
+
+            if (field_type == int_type()) {
+                int32_t v = 0;
+                tda.get_to(i, m.column, v);
+                *reinterpret_cast<int32_t*>(fptr) = v;
+            } else if (field_type == float_type()) {
+                float v = 0.f;
+                tda.get_to(i, m.column, v);
+                *reinterpret_cast<float*>(fptr) = v;
+            } else if (field_type == bool_type()) {
+                int32_t v = 0;
+                tda.get_to(i, m.column, v);
+                *reinterpret_cast<bool*>(fptr) = (v != 0);
+            }
+        }
+
+        arr->set_value(i, Value::make_heap(entry, config_type), *this);
+    }
+
+    auto* header = heap_.get_header(array_ptr);
+    config_roots_.push_back(array_ptr);
+    config_array_cache_.emplace(cache_key, array_ptr);
+    return header ? Value::make_heap(array_ptr, header->type_id) : Value{};
 }
 
 } // namespace nw::smalls

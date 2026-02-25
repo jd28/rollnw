@@ -1365,9 +1365,23 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
                 fail("SETGLOBAL slot out of range");
                 break;
             }
-            frame.module->globals[slot] = reg(src);
-            if (rt_->gc() && reg(src).storage == ValueStorage::heap) {
-                rt_->gc()->write_barrier_root(reg(src).data.hptr);
+            Value v = reg(src);
+            // Box stack-resident value_type structs to heap so globals don't
+            // hold dangling stack references after __init returns.
+            if (v.storage == ValueStorage::stack) {
+                const Type* type = rt_->get_type(v.type_id);
+                if (type) {
+                    HeapPtr ptr = rt_->alloc_struct(v.type_id);
+                    void* dst = rt_->heap_.get_ptr(ptr);
+                    if (dst) {
+                        std::memcpy(dst, frame.stack_.data() + v.data.stack_offset, type->size);
+                        v = Value::make_heap(ptr, v.type_id);
+                    }
+                }
+            }
+            frame.module->globals[slot] = v;
+            if (rt_->gc() && v.storage == ValueStorage::heap) {
+                rt_->gc()->write_barrier_root(v.data.hptr);
             }
             break;
         }
@@ -3106,6 +3120,29 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         reg(dest_reg) = rt_->get_or_create_propset_ref(propset_type, obj_val.data.oval);
         if (reg(dest_reg).type_id == invalid_type_id) {
             fail("get_propset failed");
+        }
+        return;
+    }
+    case IntrinsicId::LoadConfig: {
+        if (argc != 2) {
+            fail("load_config expects 2 arguments (path, type_id)");
+            return;
+        }
+        Value path_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (path_val.type_id != rt_->string_type() || path_val.data.hptr.value == 0) {
+            fail("load_config expects string path argument");
+            return;
+        }
+        Value tid_val = reg(static_cast<uint8_t>(dest_reg + 2));
+        if (tid_val.type_id != rt_->int_type()) {
+            fail("load_config expects int type id argument");
+            return;
+        }
+        StringView path_sv = rt_->get_string_view(path_val.data.hptr);
+        TypeID config_type(static_cast<TypeID::underlying_type>(tid_val.data.ival));
+        reg(dest_reg) = rt_->load_config_array_value(path_sv, config_type);
+        if (reg(dest_reg).type_id == invalid_type_id) {
+            fail("load_config failed");
         }
         return;
     }

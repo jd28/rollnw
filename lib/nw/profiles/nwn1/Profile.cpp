@@ -496,6 +496,30 @@ bool Profile::load_rules() const
         }
     }
 
+    // Register 2da-based converters for smalls load_config! paths
+    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
+    auto& srt = nw::kernel::runtime();
+    srt.register_twoda_converter("nwn1.data.classes", "classes", {
+        CM{"STRING_REF",       "name"},
+        CM{"HitDie",           "hit_die"},
+        CM{"AttackBonusTable", "attack_table"},
+        CM{"SavingThrowTable", "saves_table"},
+        CM{"SpellCaster",      "spellcaster"},
+    });
+    srt.register_twoda_converter("nwn1.data.feats", "feat", {
+        CM{"FEAT",          "name"},
+        CM{"MINLEVELCLASS", "min_level"},
+        CM{"MAXCR",         "max_cr"},
+        CM{"PASSIVE",       "passive"},
+    });
+    srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
+        CM{"Name",             "name"},
+        CM{"Stacking",         "stack_size"},
+        CM{"WeaponNumDice",    "damage_num"},
+        CM{"WeaponDieToRoll",  "damage_die"},
+        CM{"RangedWeapon",     "ranged"},
+    });
+
     return true;
 }
 

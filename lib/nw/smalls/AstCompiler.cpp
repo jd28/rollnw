@@ -3010,9 +3010,10 @@ void AstCompiler::visit(CallExpression* expr)
     if (expr->intrinsic_id.has_value()) {
         uint16_t intrinsic_id = static_cast<uint16_t>(expr->intrinsic_id.value());
 
-        bool append_propset_type_arg = expr->intrinsic_id.value() == IntrinsicId::GetPropset;
+        bool append_propset_type_arg = expr->intrinsic_id.value() == IntrinsicId::GetPropset
+            || expr->intrinsic_id.value() == IntrinsicId::LoadConfig;
         if (append_propset_type_arg && expr->inferred_type_args.size() != 1) {
-            fail("get_propset intrinsic requires exactly one explicit type argument");
+            fail("intrinsic requires exactly one explicit type argument");
             return;
         }
 

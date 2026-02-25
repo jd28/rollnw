@@ -895,6 +895,29 @@ public:
     bool write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value);
     bool write_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index, const Value& value);
 
+    // -- Config Arrays -------------------------------------------------------
+
+    /// Maps a 2da column name to a smalls struct field name.
+    struct TwoDAColumnMapping {
+        String column; // 2da column name, e.g. "HitDie"
+        String field;  // smalls struct field name, e.g. "hit_die"
+    };
+
+    /// Registered converter for a config-array path: read from a .2da instead of .smalls files.
+    struct TwoDAConverterSpec {
+        String twoda_name;
+        Vector<TwoDAColumnMapping> mappings;
+    };
+
+    /// Register a 2da-based converter for a load_config! path.
+    /// When load_config!(T)(path) is called, it reads from the named 2da instead of .smalls data files.
+    void register_twoda_converter(StringView path, StringView twoda_name,
+                                   Vector<TwoDAColumnMapping> mappings);
+
+    /// Load all .smalls files from a directory path as an array!(T).
+    /// Assembles entries using the [[index]] field. Caches permanently.
+    Value load_config_array_value(StringView path, TypeID config_type);
+
     // -- Propsets ------------------------------------------------------------
 
     bool is_propset_type(TypeID type_id) const;
@@ -902,6 +925,7 @@ public:
     void mark_propset_heap_mutation(HeapPtr ptr);
     void init_object_propsets(ObjectHandle obj);
     void free_object_propsets(ObjectHandle obj);
+    void prime_propset_pools();
 
     // -- Tuple Element Access ------------------------------------------------
 
@@ -1259,8 +1283,13 @@ private:
     Script* user_prelude_ = nullptr;
 
     Vector<HeapPtr> config_roots_;
+    absl::flat_hash_map<std::pair<String, TypeID>, HeapPtr> config_array_cache_;
+    absl::flat_hash_map<String, TwoDAConverterSpec> twoda_converters_;
 
     Value load_config_value(StringView path, StringView prelude_module);
+    Value load_twoda_as_config_array(StringView path, TypeID config_type,
+                                      const StructDef* def, uint32_t index_field_idx,
+                                      const TwoDAConverterSpec& conv);
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;
