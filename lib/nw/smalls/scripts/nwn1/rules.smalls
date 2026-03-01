@@ -35,3 +35,14 @@ type BaseItemEntry {
     damage_die: int;
     ranged:     bool;
 };
+
+[[value_type]]
+type RaceEntry {
+    [[index]]
+    id:          int;
+    name:        StrRef;
+    size:        int;
+    abilities:   int[6];
+    cr_modifier: float;
+    player_race: bool;
+};

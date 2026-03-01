@@ -500,25 +500,36 @@ bool Profile::load_rules() const
     using CM = nw::smalls::Runtime::TwoDAColumnMapping;
     auto& srt = nw::kernel::runtime();
     srt.register_twoda_converter("nwn1.data.classes", "classes", {
-        CM{"STRING_REF",       "name"},
-        CM{"HitDie",           "hit_die"},
-        CM{"AttackBonusTable", "attack_table"},
-        CM{"SavingThrowTable", "saves_table"},
-        CM{"SpellCaster",      "spellcaster"},
-    });
+                                                                     CM{"STRING_REF", "name"},
+                                                                     CM{"HitDie", "hit_die"},
+                                                                     CM{"AttackBonusTable", "attack_table"},
+                                                                     CM{"SavingThrowTable", "saves_table"},
+                                                                     CM{"SpellCaster", "spellcaster"},
+                                                                 });
     srt.register_twoda_converter("nwn1.data.feats", "feat", {
-        CM{"FEAT",          "name"},
-        CM{"MINLEVELCLASS", "min_level"},
-        CM{"MAXCR",         "max_cr"},
-        CM{"PASSIVE",       "passive"},
-    });
+                                                                CM{"FEAT", "name"},
+                                                                CM{"MINLEVELCLASS", "min_level"},
+                                                                CM{"MAXCR", "max_cr"},
+                                                                CM{"PASSIVE", "passive"},
+                                                            });
     srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
-        CM{"Name",             "name"},
-        CM{"Stacking",         "stack_size"},
-        CM{"WeaponNumDice",    "damage_num"},
-        CM{"WeaponDieToRoll",  "damage_die"},
-        CM{"RangedWeapon",     "ranged"},
-    });
+                                                                         CM{"Name", "name"},
+                                                                         CM{"Stacking", "stack_size"},
+                                                                         CM{"WeaponNumDice", "damage_num"},
+                                                                         CM{"WeaponDieToRoll", "damage_die"},
+                                                                         CM{"RangedWeapon", "ranged"},
+                                                                     });
+    srt.register_twoda_converter("nwn1/data/races", "racialtypes", {
+                                                                       CM{"Name", "name"},
+                                                                       CM{"StrAdjust", "abilities[0]"},
+                                                                       CM{"DexAdjust", "abilities[1]"},
+                                                                       CM{"ConAdjust", "abilities[2]"},
+                                                                       CM{"IntAdjust", "abilities[3]"},
+                                                                       CM{"WisAdjust", "abilities[4]"},
+                                                                       CM{"ChaAdjust", "abilities[5]"},
+                                                                       CM{"CRModifier", "cr_modifier"},
+                                                                       CM{"PlayerRace", "player_race"},
+                                                                   });
 
     return true;
 }

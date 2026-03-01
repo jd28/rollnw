@@ -68,6 +68,7 @@ add_executable(rollnw_test
     smalls_bytecode.cpp
     smalls_bytecode_verifier.cpp
     smalls_compiler.cpp
+    smalls_combat_parity.cpp
     smalls_gc.cpp
     smalls_diagnostics.cpp
     smalls_lexer.cpp

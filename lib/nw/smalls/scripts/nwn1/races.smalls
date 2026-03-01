@@ -1,0 +1,21 @@
+from nwn1.rules import { RaceEntry, StrRef };
+from nwn1.constants import { creature_size_medium };
+import core.array as Array;
+
+var _races: array!(RaceEntry) = load_config!(RaceEntry)("nwn1/data/races");
+
+fn size(race_id: int): int {
+    if (race_id < 0 || race_id >= Array.len(_races)) {
+        return creature_size_medium;
+    }
+    return _races[race_id].size;
+}
+
+fn ability_modifier(race_id: int, ability: int): int {
+    if (ability < 0 || ability >= 6 || race_id < 0 || race_id >= Array.len(_races)) {
+        return 0;
+    }
+    var entry = _races[race_id];
+    var abilities = entry.abilities;
+    return abilities[ability];
+}

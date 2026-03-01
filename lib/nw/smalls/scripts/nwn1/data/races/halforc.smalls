@@ -1,0 +1,8 @@
+RaceEntry {
+    id = 5,
+    name = StrRef(7),
+    size = 3,
+    abilities = {2, 0, 0, -2, 0, -2},
+    cr_modifier = 1.0,
+    player_race = true,
+}
