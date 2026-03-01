@@ -2,6 +2,7 @@ from nwn1.constants import {
     AttackType,
     Class,
     Damage,
+    Feat,
     class_type_ranger,
     class_type_weapon_master,
     feat_ambidexterity,
@@ -17,21 +18,39 @@ from nwn1.constants import {
     feat_prestige_enchant_arrow_6,
     feat_prestige_enchant_arrow_20,
     feat_two_weapon_fighting,
+    mod_type_attack_bonus,
+    attack_type_any,
     attack_type_offhand,
     attack_type_onhand,
     attack_type_unarmed,
     attack_type_cweapon1,
     attack_type_cweapon2,
     attack_type_cweapon3,
+    base_item_bracer,
+    base_item_cbludgweapon,
+    base_item_cpiercweapon,
+    base_item_cslashweapon,
+    base_item_cslshprcweap,
+    base_item_dart,
+    base_item_gloves,
+    base_item_heavycrossbow,
+    base_item_lightcrossbow,
+    base_item_longbow,
+    base_item_shortbow,
+    base_item_shuriken,
+    base_item_sling,
+    base_item_throwingaxe,
+    creature_size_medium,
 };
 
 from core.combat import { AttackData };
-import core.bit as bit;
+from core.creature import { CreatureCombat, CreatureStats };
 import core.combat as C;
-import core.creature as creature;
+import core.creature as Cre;
 import core.effects as effects;
 import core.item as item;
 import nwn1.progression as progression;
+import nwn1.races as races;
 import core.object as Obj;
 
 const stack_policy_sum_all = 0;
@@ -40,18 +59,29 @@ const stack_policy_min = 2;
 const stack_policy_best_and_worst = 3;
 
 fn aggregate_effect_int(obj: object, effect_type: int, subtype: int, versus: object, int_index: int, stack_policy: int): int {
-    return C._cpp_aggregate_effect_int(obj, effect_type, subtype, versus, int_index, stack_policy);
+    return C.aggregate_effect_int(obj, effect_type, subtype, versus, int_index, stack_policy);
 }
 
 fn aggregate_modifier_int(obj: object, modifier_type: int, subtype: int, versus: object, stack_policy: int): int {
-    return C._cpp_aggregate_modifier_int(obj, modifier_type, subtype, versus, stack_policy);
+    return C.aggregate_modifier_int(obj, modifier_type, subtype, versus, stack_policy);
+}
+
+fn roll_uniform_int(min: int, max: int): int {
+    return C.roll_uniform_int(min, max);
+}
+
+fn roll_range(min: int, max: int): int {
+    return roll_uniform_int(min, max);
+}
+
+fn roll_dice(dice: int, sides: int, bonus: int, mult: int = 1): int {
+    if (mult <= 0) { return 0; }
+    return C.roll_dice(dice, sides, bonus, mult);
 }
 
 fn base_attack_bonus(obj: Creature): int {
-    var levels = creature.get_total_levels(obj);
-    if (levels <= 0) {
-        return 0;
-    }
+    var levels = Cre.get_total_levels(obj);
+    if (levels <= 0) { return 0; }
 
     var epic = 0;
     if (levels >= 20) {
@@ -60,38 +90,36 @@ fn base_attack_bonus(obj: Creature): int {
     }
 
     var result = 0;
-    var class_count = creature.get_class_count(obj);
+    var class_count = Cre.get_class_count(obj);
     if (Obj.is_pc(obj)) {
-        for (var i = 0; i < class_count; i = i + 1) {
-            var cl = creature.get_class_at(obj, i);
+        for (var i = 0; i < class_count; i += 1) {
+            var cl = Cre.get_class_at(obj, i);
             var class_levels = 0;
 
             for (var j = 0; j < levels; j = j + 1) {
-                if (creature.get_levelup_class_position(obj, j) == i) {
+                if (Cre.get_levelup_class_position(obj, j) == i) {
                     class_levels = class_levels + 1;
                 }
             }
 
             if (class_levels > 0) {
-                result = result + progression.get_base_attack_bonus(cl, class_levels);
+                result += progression.get_base_attack_bonus(cl, class_levels);
             }
         }
     } else {
         var remaining_levels = levels;
-        for (var i = 0; i < class_count; i = i + 1) {
-            if (remaining_levels <= 0) {
-                break;
-            }
+        for (var i = 0; i < class_count; i += 1) {
+            if (remaining_levels <= 0) { break; }
 
-            var cl = creature.get_class_at(obj, i);
-            var class_levels = creature.get_class_levels_at(obj, i);
+            var cl = Cre.get_class_at(obj, i);
+            var class_levels = Cre.get_class_levels_at(obj, i);
             if (class_levels > remaining_levels) {
                 class_levels = remaining_levels;
             }
 
             if (class_levels > 0) {
-                result = result + progression.get_base_attack_bonus(cl, class_levels);
-                remaining_levels = remaining_levels - class_levels;
+                result += progression.get_base_attack_bonus(cl, class_levels);
+                remaining_levels -= class_levels;
             }
         }
     }
@@ -99,37 +127,98 @@ fn base_attack_bonus(obj: Creature): int {
     return result + epic;
 }
 
+fn is_creature_weapon(weapon: Item): bool {
+    var bi = item.get_baseitem_type(weapon);
+    return bi == base_item_cbludgweapon
+        || bi == base_item_cpiercweapon
+        || bi == base_item_cslashweapon
+        || bi == base_item_cslshprcweap;
+}
+
+fn is_unarmed_weapon(weapon: Item): bool {
+    var bi = item.get_baseitem_type(weapon);
+    if (bi < 0) {
+        return true;
+    }
+    return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(weapon);
+}
+
+fn is_ranged_weapon(weapon: Item): bool {
+    var bi = item.get_baseitem_type(weapon);
+    return bi == base_item_longbow
+        || bi == base_item_shortbow
+        || bi == base_item_lightcrossbow
+        || bi == base_item_heavycrossbow
+        || bi == base_item_sling
+        || bi == base_item_dart
+        || bi == base_item_shuriken
+        || bi == base_item_throwingaxe;
+}
+
+fn is_ranged_attack(obj: Creature, attack_type: AttackType): bool {
+    return is_ranged_weapon(Cre.weapon_for_attack(obj, attack_type));
+}
+
+fn has_attack_weapon(obj: Creature, attack_type: AttackType): bool {
+    return item.get_baseitem_type(Cre.weapon_for_attack(obj, attack_type)) >= 0;
+}
+
 fn is_flanked(target: Creature, attacker: Creature): bool {
-    return C._cpp_is_flanked(target, attacker);
+    return C.is_flanked(target, attacker);
+}
+
+fn resolve_effective_attack_type(obj: Creature, attack_type: AttackType): AttackType {
+    var combat = get_propset!(CreatureCombat)(obj);
+    if (attack_type == attack_type_onhand) {
+        return has_attack_weapon(obj, attack_type_onhand) ? attack_type_onhand : attack_type_unarmed;
+    } elif (attack_type == attack_type_offhand) {
+        return combat.attacks_offhand > 0 ? attack_type_offhand : attack_type_unarmed;
+    } elif (attack_type == attack_type_cweapon1) {
+        return has_attack_weapon(obj, attack_type_cweapon1) ? attack_type_cweapon1 : attack_type_unarmed;
+    } elif (attack_type == attack_type_cweapon2) {
+        return has_attack_weapon(obj, attack_type_cweapon2) ? attack_type_cweapon2 : attack_type_unarmed;
+    } elif (attack_type == attack_type_cweapon3) {
+        return has_attack_weapon(obj, attack_type_cweapon3) ? attack_type_cweapon3 : attack_type_unarmed;
+    }
+
+    return attack_type_unarmed;
 }
 
 fn resolve_attack_bonus(obj: Creature, attack_type: AttackType, versus: object): int {
-    var effective_attack_type = C._cpp_attack_bonus_effective_attack_type(obj, attack_type);
+    var effective_attack_type = resolve_effective_attack_type(obj, attack_type);
+    var combat = get_propset!(CreatureCombat)(obj);
     var dual_wield_penalty = 0;
+    var modifier_sum = C.aggregate_modifier_int(
+        obj,
+        mod_type_attack_bonus as int,
+        effective_attack_type as int,
+        versus,
+        stack_policy_sum_all
+    );
+
+    if (effective_attack_type != attack_type_any) {
+        modifier_sum += C.aggregate_modifier_int(
+            obj,
+            mod_type_attack_bonus as int,
+            attack_type_any as int,
+            versus,
+            stack_policy_sum_all
+        );
+    }
+
     if (effective_attack_type == attack_type_onhand || effective_attack_type == attack_type_offhand) {
-        var packed = resolve_dual_wield_penalty(obj);
-        var on = bit.and(packed, 65535);
-        if (on >= 32768) {
-            on = on - 65536;
-        }
-
-        var off = bit.and(bit.shr(packed, 16), 65535);
-        if (off >= 32768) {
-            off = off - 65536;
-        }
-
         if (effective_attack_type == attack_type_onhand) {
-            dual_wield_penalty = on;
+            dual_wield_penalty = resolve_dual_wield_penalty_onhand(obj);
         } else {
-            dual_wield_penalty = off;
+            dual_wield_penalty = resolve_dual_wield_penalty_offhand(obj);
         }
     }
 
     return base_attack_bonus(obj)
         + dual_wield_penalty
-        + C._cpp_attack_bonus_size_modifier(obj)
-        + C._cpp_attack_bonus_modifier_sum(obj, effective_attack_type, versus)
-        + C._cpp_attack_bonus_effect_delta_clamped(obj, effective_attack_type, versus);
+        + combat.size_ab_modifier
+        + modifier_sum
+        + C.attack_bonus_effect_delta_clamped(obj, effective_attack_type, versus);
 }
 
 fn _resolve_attack_roll_with_inputs(
@@ -149,13 +238,13 @@ fn _resolve_attack_roll_with_inputs(
     const attack_result_miss_by_miss_chance = 5;
     const attack_result_miss_by_roll = 6;
 
-    var roll = C._cpp_attack_roll_d20();
+    var roll = C.roll_uniform_int(1, 20);
     if (roll == 1) {
         return attack_result_miss_by_auto_fail;
     }
 
     var attack_result = attack_result_miss_by_roll;
-    var ac = C._cpp_attack_roll_armor_class(obj, versus);
+    var ac = C.attack_roll_armor_class(obj, versus);
 
     if (roll == 20) {
         attack_result = attack_result_hit_by_auto_success;
@@ -166,18 +255,17 @@ fn _resolve_attack_roll_with_inputs(
     }
 
     if (attack_result <= attack_result_hit_by_roll) {
-        if (21 - roll <= crit_threat && ab + C._cpp_attack_roll_d20() - iter >= ac) {
+        if (21 - roll <= crit_threat && ab + C.roll_uniform_int(1, 20) - iter >= ac) {
             attack_result = attack_result_hit_by_critical;
         }
 
-        var conceal_data = C._cpp_attack_roll_concealment_data(obj, versus, is_ranged);
-        var conceal = bit.and(conceal_data, 65535);
-        var miss_chance_source = bit.and(conceal_data, 65536) != 0;
+        var conceal = C.attack_roll_concealment(obj, versus, is_ranged);
+        var miss_chance_source = C.attack_roll_is_miss_chance_source(obj, versus, is_ranged);
         if (conceal > 0) {
-            var conceal_check = C._cpp_attack_roll_d100();
+            var conceal_check = C.roll_uniform_int(1, 100);
             if (conceal_check <= conceal) {
-                if (creature.has_feat(obj, feat_blind_fight)) {
-                    conceal_check = C._cpp_attack_roll_d100();
+                if (Cre.has_feat(obj, feat_blind_fight)) {
+                    conceal_check = C.roll_uniform_int(1, 100);
                     if (conceal_check <= conceal) {
                         attack_result = miss_chance_source
                             ? attack_result_miss_by_miss_chance
@@ -199,53 +287,70 @@ fn resolve_attack_roll(obj: Creature, attack_type: AttackType, versus: object): 
     var ab = resolve_attack_bonus(obj, attack_type, versus);
     var iter = resolve_iteration_penalty(obj, attack_type);
     var crit_threat = resolve_critical_threat(obj, attack_type);
-    var is_ranged = C._cpp_is_ranged_attack(obj, attack_type);
+    var is_ranged = is_ranged_attack(obj, attack_type);
     return _resolve_attack_roll_with_inputs(obj, attack_type, versus, ab, iter, crit_threat, is_ranged);
 }
+
 fn resolve_attack_type(obj: Creature): AttackType {
-    const attack_state_primary_window = 1;
-    const attack_state_has_offhand_attacks = 2;
-    const attack_state_has_onhand_weapon = 4;
-    const attack_state_has_unarmed_weapon = 8;
-    const attack_state_has_cweapon1 = 16;
-    const attack_state_has_cweapon2 = 32;
-    const attack_state_has_cweapon3 = 64;
-    const attack_state_random_shift = 8;
+    var combat = get_propset!(CreatureCombat)(obj);
+    var primary_window = combat.attack_current < combat.attacks_onhand + combat.attacks_extra;
+    var has_offhand_attacks = combat.attacks_offhand > 0;
+    var onhand_weapon = Cre.weapon_for_attack(obj, attack_type_onhand);
+    var unarmed_weapon = Cre.weapon_for_attack(obj, attack_type_unarmed);
+    var cweapon1 = Cre.weapon_for_attack(obj, attack_type_cweapon1);
+    var cweapon2 = Cre.weapon_for_attack(obj, attack_type_cweapon2);
+    var cweapon3 = Cre.weapon_for_attack(obj, attack_type_cweapon3);
 
-    var state = C._cpp_attack_type_inputs(obj);
+    var onhand_base = item.get_baseitem_type(onhand_weapon);
+    var unarmed_base = item.get_baseitem_type(unarmed_weapon);
+    var cweapon1_base = item.get_baseitem_type(cweapon1);
+    var cweapon2_base = item.get_baseitem_type(cweapon2);
+    var cweapon3_base = item.get_baseitem_type(cweapon3);
 
-    if (bit.and(state, attack_state_primary_window) == 0) {
-        if (bit.and(state, attack_state_has_offhand_attacks) != 0) {
+    var has_onhand_weapon = onhand_base >= 0;
+    var has_unarmed_weapon = unarmed_base < 0
+        || unarmed_base == base_item_gloves
+        || unarmed_base == base_item_bracer
+        || unarmed_base == base_item_cbludgweapon
+        || unarmed_base == base_item_cpiercweapon
+        || unarmed_base == base_item_cslashweapon
+        || unarmed_base == base_item_cslshprcweap;
+    var has_cweapon1 = cweapon1_base >= 0;
+    var has_cweapon2 = cweapon2_base >= 0;
+    var has_cweapon3 = cweapon3_base >= 0;
+
+    if (!primary_window) {
+        if (has_offhand_attacks) {
             return attack_type_offhand;
         }
         return AttackType(-1);
     }
 
     var result = attack_type_unarmed;
-    if (bit.and(state, attack_state_has_onhand_weapon) != 0) {
+    if (has_onhand_weapon) {
         result = attack_type_onhand;
     }
 
-    if (result == attack_type_unarmed && bit.and(state, attack_state_has_unarmed_weapon) == 0) {
-        var roll = bit.shr(state, attack_state_random_shift);
+    if (result == attack_type_unarmed && !has_unarmed_weapon) {
+        var roll = C.roll_uniform_int(1, 3);
 
-        if (roll == 1 && bit.and(state, attack_state_has_cweapon1) != 0) {
+        if (roll == 1 && has_cweapon1) {
             return attack_type_cweapon1;
         }
-        if (roll == 2 && bit.and(state, attack_state_has_cweapon2) != 0) {
+
+        if (roll == 2 && has_cweapon2) {
             return attack_type_cweapon2;
         }
-        if (roll == 3 && bit.and(state, attack_state_has_cweapon3) != 0) {
+
+        if (roll == 3 && has_cweapon3) {
             return attack_type_cweapon3;
         }
 
-        if (bit.and(state, attack_state_has_cweapon1) != 0) {
-            return attack_type_cweapon3;
-        }
-        if (bit.and(state, attack_state_has_cweapon2) != 0) {
-            return attack_type_cweapon3;
-        }
-        if (bit.and(state, attack_state_has_cweapon3) != 0) {
+        if (has_cweapon1) {
+            return attack_type_cweapon1;
+        } elif (has_cweapon2) {
+            return attack_type_cweapon2;
+        } elif (has_cweapon3) {
             return attack_type_cweapon3;
         }
 
@@ -256,31 +361,31 @@ fn resolve_attack_type(obj: Creature): AttackType {
 }
 
 fn resolve_critical_multiplier(obj: Creature, attack_type: AttackType, versus: object): int {
-    var result = C._cpp_weapon_critical_multiplier(obj, attack_type);
-    if (creature.get_level_by_class(obj, class_type_weapon_master) >= 5) {
+    var result = C.weapon_critical_multiplier(obj, attack_type);
+    if (Cre.get_level_by_class(obj, class_type_weapon_master) >= 5) {
         result = result + 1;
     }
     return result;
 }
 
 fn resolve_critical_threat(obj: Creature, attack_type: AttackType): int {
-    var start = C._cpp_weapon_critical_threat(obj, attack_type);
+    var start = C.weapon_critical_threat(obj, attack_type);
     var result = start;
-    if (C._cpp_weapon_has_keen(obj, attack_type)) {
+    if (C.weapon_has_keen(obj, attack_type)) {
         result = result + start;
     }
-    if (C._cpp_has_improved_critical(obj, attack_type)) {
+    if (C.has_improved_critical(obj, attack_type)) {
         result = result + start;
     }
-    if (creature.get_level_by_class(obj, class_type_weapon_master) >= 7) {
+    if (Cre.get_level_by_class(obj, class_type_weapon_master) >= 7) {
         result = result + 2;
     }
     return result;
 }
 
 fn resolve_damage_immunity(obj: object, damage_type: Damage, versus: object): int {
-    var mod_bonus = C._cpp_damage_immunity_modifier_bonus(obj, damage_type, versus);
-    var effect_delta = C._cpp_damage_immunity_effect_delta(obj, damage_type, versus);
+    var mod_bonus = C.damage_immunity_modifier_bonus(obj, damage_type, versus);
+    var effect_delta = C.damage_immunity_effect_delta(obj, damage_type, versus);
     if (mod_bonus >= effect_delta) {
         return mod_bonus;
     }
@@ -288,31 +393,11 @@ fn resolve_damage_immunity(obj: object, damage_type: Damage, versus: object): in
 }
 
 fn resolve_damage_reduction(obj: object, power: int, versus: object): int {
-    const effect_type_damage_reduction = 12;
+    if (power <= 0) { return 0; }
 
-    if (power <= 0) {
-        return 0;
-    }
-
-    var mod_bonus = C._cpp_damage_reduction_modifier_bonus(obj, versus);
-    var effect_bonus = 0;
-    var effect_remain = 0;
-
-    var count = C._cpp_object_effect_count(obj);
-    for (var i = 0; i < count; i = i + 1) {
-        var eff = C._cpp_object_effect_at(obj, i);
-        if (!effects.is_valid(eff) || effects.get_type(eff) != effect_type_damage_reduction) {
-            continue;
-        }
-
-        var amount = effects.get_int(eff, 0);
-        var bypass = effects.get_int(eff, 1);
-        var remain = effects.get_int(eff, 2);
-        if (bypass > power && (amount > effect_bonus || (amount == effect_bonus && remain > effect_remain))) {
-            effect_bonus = amount;
-            effect_remain = remain;
-        }
-    }
+    var mod_bonus = C.damage_reduction_modifier_bonus(obj, versus);
+    var effect = C.effect_best_damage_reduction(obj, power);
+    var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 
     if (mod_bonus >= effect_bonus) {
         return mod_bonus;
@@ -321,69 +406,136 @@ fn resolve_damage_reduction(obj: object, power: int, versus: object): int {
 }
 
 fn resolve_damage_resistance(obj: object, damage_type: Damage, versus: object): int {
-    const effect_type_damage_resistance = 2;
-
-    var mod_bonus = C._cpp_damage_resistance_modifier_bonus(obj, damage_type, versus);
-    var effect_bonus = 0;
-    var effect_remain = 0;
-
-    var count = C._cpp_object_effect_count(obj);
-    for (var i = 0; i < count; i = i + 1) {
-        var eff = C._cpp_object_effect_at(obj, i);
-        if (!effects.is_valid(eff) || effects.get_type(eff) != effect_type_damage_resistance) {
-            continue;
-        }
-        if (effects.get_subtype(eff) != damage_type) {
-            continue;
-        }
-
-        var amount = effects.get_int(eff, 0);
-        var remain = effects.get_int(eff, 1);
-        if (amount > effect_bonus || (amount == effect_bonus && remain > effect_remain)) {
-            effect_bonus = amount;
-            effect_remain = remain;
-        }
-    }
+    var mod_bonus = C.damage_resistance_modifier_bonus(obj, damage_type, versus);
+    var effect = C.effect_best_damage_resistance(obj, damage_type);
+    var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 
     if (mod_bonus >= effect_bonus) {
         return mod_bonus;
     }
     return effect_bonus;
 }
+
+fn apply_damage_reduction(obj: object, power: int, versus: object, incoming: int): int {
+    if (incoming <= 0 || power <= 0) {
+        return 0;
+    }
+
+    var mod_bonus = C.damage_reduction_modifier_bonus(obj, versus);
+    var effect = C.effect_best_damage_reduction(obj, power);
+    var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
+
+    var amount = effect_bonus;
+    if (mod_bonus >= effect_bonus) {
+        amount = mod_bonus;
+    }
+    if (amount <= 0) {
+        return 0;
+    }
+    if (amount > incoming) {
+        amount = incoming;
+    }
+
+    if (mod_bonus >= effect_bonus) {
+        return amount;
+    }
+
+    if (effects.is_valid(effect)) {
+        var remaining = effects.get_int(effect, 2);
+        if (remaining > 0) {
+            if (amount > remaining) {
+                amount = remaining;
+            }
+
+            var next = remaining - amount;
+            if (next <= 0) {
+                Obj.remove_effect(obj, effect);
+            } else {
+                effects.set_int(effect, 2, next);
+            }
+        }
+    }
+
+    return amount;
+}
+
+fn apply_damage_resistance(obj: object, damage_type: Damage, versus: object, incoming: int): int {
+    if (incoming <= 0) {
+        return 0;
+    }
+
+    var mod_bonus = C.damage_resistance_modifier_bonus(obj, damage_type, versus);
+    var effect = C.effect_best_damage_resistance(obj, damage_type);
+    var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
+
+    var amount = effect_bonus;
+    if (mod_bonus >= effect_bonus) {
+        amount = mod_bonus;
+    }
+    if (amount <= 0) {
+        return 0;
+    }
+    if (amount > incoming) {
+        amount = incoming;
+    }
+
+    if (mod_bonus >= effect_bonus) {
+        return amount;
+    }
+
+    if (effects.is_valid(effect)) {
+        var remaining = effects.get_int(effect, 1);
+        if (remaining > 0) {
+            if (amount > remaining) {
+                amount = remaining;
+            }
+
+            var next = remaining - amount;
+            if (next <= 0) {
+                Obj.remove_effect(obj, effect);
+            } else {
+                effects.set_int(effect, 1, next);
+            }
+        }
+    }
+
+    return amount;
+}
+
 fn resolve_iteration_penalty(obj: Creature, attack_type: AttackType): int {
-    return creature.weapon_iteration_for_attack(obj, attack_type) * creature.attack_sequence_index(obj, attack_type);
+    return Cre.weapon_iteration_for_attack(obj, attack_type) * Cre.attack_sequence_index(obj, attack_type);
 }
 
 fn resolve_weapon_power(obj: Creature, weapon: Item): int {
     var monk_bonus = 0;
-    if (C._cpp_weapon_power_monk_applies(obj, weapon)) {
-        if (creature.has_feat(obj, feat_epic_improved_ki_strike_5)) {
+    if (C.weapon_power_monk_applies(obj, weapon)) {
+        if (Cre.has_feat(obj, feat_epic_improved_ki_strike_5)) {
             monk_bonus = 5;
-        } elif (creature.has_feat(obj, feat_epic_improved_ki_strike_4)) {
+        } elif (Cre.has_feat(obj, feat_epic_improved_ki_strike_4)) {
             monk_bonus = 4;
-        } elif (creature.has_feat(obj, feat_ki_strike_3)) {
+        } elif (Cre.has_feat(obj, feat_ki_strike_3)) {
             monk_bonus = 3;
-        } elif (creature.has_feat(obj, feat_ki_strike_2)) {
+        } elif (Cre.has_feat(obj, feat_ki_strike_2)) {
             monk_bonus = 2;
-        } elif (creature.has_feat(obj, feat_ki_strike)) {
+        } elif (Cre.has_feat(obj, feat_ki_strike)) {
             monk_bonus = 1;
         }
     }
 
-    var item_bonus = C._cpp_weapon_power_item_property_bonus(weapon);
+    var item_bonus = C.weapon_power_item_property_bonus(weapon);
     var enchant_arrow_bonus = 0;
-    if (C._cpp_weapon_power_is_bow(weapon)) {
-        for (var feat = feat_prestige_enchant_arrow_20; feat >= feat_prestige_enchant_arrow_6; feat = feat - 1) {
-            if (creature.has_feat(obj, feat)) {
-                enchant_arrow_bonus = feat - feat_prestige_enchant_arrow_6 + 6;
+    if (is_ranged_weapon(weapon) && !is_creature_weapon(weapon)) {
+        for (var f = feat_prestige_enchant_arrow_20 as int; f >= feat_prestige_enchant_arrow_6 as int; f -= 1) {
+            if (Cre.has_feat(obj, Feat(f))) {
+                enchant_arrow_bonus = f - feat_prestige_enchant_arrow_6 as int + 6;
                 break;
             }
         }
 
         if (enchant_arrow_bonus == 0) {
-            for (var feat = feat_prestige_enchant_arrow_5; feat >= feat_prestige_enchant_arrow_1; feat = feat - 1) {
-                if (creature.has_feat(obj, feat)) {
-                    enchant_arrow_bonus = feat - feat_prestige_enchant_arrow_1 + 1;
+            for (var f = feat_prestige_enchant_arrow_5 as int; f >= feat_prestige_enchant_arrow_1 as int; f -= 1) {
+                if (Cre.has_feat(obj, Feat(f))) {
+                    enchant_arrow_bonus = f - feat_prestige_enchant_arrow_1 as int + 1;
                     break;
                 }
             }
@@ -400,23 +552,19 @@ fn resolve_weapon_power(obj: Creature, weapon: Item): int {
     return result;
 }
 
-fn resolve_weapon_damage_flags(weapon: Item): int {
-    return C._cpp_weapon_damage_flags_mask(weapon);
-}
-
 fn resolve_weapon_damage_bonus(obj: Creature, base_item: int): int {
-    var result = C._cpp_weapon_damage_specialization_bonus(obj, base_item);
+    var result = C.weapon_damage_specialization_bonus(obj, base_item);
 
-    if (C._cpp_weapon_damage_is_bow_base_item(base_item)) {
-        for (var feat = feat_prestige_enchant_arrow_20; feat >= feat_prestige_enchant_arrow_6; feat = feat - 1) {
-            if (creature.has_feat(obj, feat)) {
-                return result + feat - feat_prestige_enchant_arrow_6 + 6;
+    if (base_item == base_item_longbow || base_item == base_item_shortbow) {
+        for (var f = feat_prestige_enchant_arrow_20 as int; f >= feat_prestige_enchant_arrow_6 as int; f -= 1) {
+            if (Cre.has_feat(obj, Feat(f))) {
+                return result + f - feat_prestige_enchant_arrow_6 as int + 6;
             }
         }
 
-        for (var feat = feat_prestige_enchant_arrow_5; feat >= feat_prestige_enchant_arrow_1; feat = feat - 1) {
-            if (creature.has_feat(obj, feat)) {
-                return result + feat - feat_prestige_enchant_arrow_1 + 1;
+        for (var f = feat_prestige_enchant_arrow_5 as int; f >= feat_prestige_enchant_arrow_1 as int; f -= 1) {
+            if (Cre.has_feat(obj, Feat(f))) {
+                return result + f - feat_prestige_enchant_arrow_1 as int + 1;
             }
         }
     }
@@ -424,37 +572,17 @@ fn resolve_weapon_damage_bonus(obj: Creature, base_item: int): int {
     return result;
 }
 
-fn resolve_weapon_damage(obj: Creature, base_item: int): int {
-    const weapon_damage_mask = 255;
-    const weapon_sides_shift = 8;
-    const weapon_bonus_shift = 16;
-
-    var packed = C._cpp_weapon_base_damage(base_item);
-    var dice = bit.and(packed, weapon_damage_mask);
-    var sides = bit.and(bit.shr(packed, weapon_sides_shift), weapon_damage_mask);
-    var bonus = bit.and(bit.shr(packed, weapon_bonus_shift), 65535);
-    if (bonus >= 32768) {
-        bonus = bonus - 65536;
-    }
-
-    bonus = bonus + resolve_weapon_damage_bonus(obj, base_item);
-
-    return bit.and(dice, weapon_damage_mask)
-        + bit.shl(bit.and(sides, weapon_damage_mask), weapon_sides_shift)
-        + bit.shl(bit.and(bonus, 65535), weapon_bonus_shift);
-}
-
 fn resolve_unarmed_damage(obj: Creature): int {
-    const unarmed_level_mask = 255;
-    const unarmed_big_flag = 256;
-    const unarmed_dice_mask = 255;
-    const unarmed_sides_shift = 8;
-    const unarmed_bonus_shift = 16;
     const base_item_gloves = 36;
 
-    var state = C._cpp_unarmed_damage_inputs(obj);
-    var level = bit.and(state, unarmed_level_mask);
-    var big = bit.and(state, unarmed_big_flag) != 0;
+    var level = C.unarmed_damage_level(obj);
+    var combat = get_propset!(CreatureCombat)(obj);
+    var size = combat.size;
+    if (size <= 0) {
+        var stats = get_propset!(CreatureStats)(obj);
+        size = races.size(stats.race);
+    }
+    var big = size >= creature_size_medium;
 
     var dice = 1;
     var sides = 2;
@@ -484,24 +612,20 @@ fn resolve_unarmed_damage(obj: Creature): int {
     }
 
     var bonus = resolve_weapon_damage_bonus(obj, base_item_gloves);
-    return bit.and(dice, unarmed_dice_mask)
-        + bit.shl(bit.and(sides, unarmed_dice_mask), unarmed_sides_shift)
-        + bit.shl(bit.and(bonus, 65535), unarmed_bonus_shift);
+    return roll_dice(dice, sides, bonus);
 }
 
 fn resolve_creature_damage(_obj: Creature, weapon: Item): int {
-    const creature_dice_mask = 255;
-    const creature_sides_shift = 8;
     const ip_monster_damage = 77;
 
-    if (!C._cpp_is_creature_weapon(weapon)) {
+    if (!is_creature_weapon(weapon)) {
         return 0;
     }
 
     var dice = 0;
     var sides = 0;
     var count = item.property_count(weapon);
-    for (var i = 0; i < count; i = i + 1) {
+    for (var i = 0; i < count; i += 1) {
         var ip = item.__get_property(weapon, i);
         if (ip.prop_type == ip_monster_damage) {
             dice = item.__ip_cost_table_int(ip_monster_damage, ip.cost_value, "NumDice");
@@ -510,39 +634,28 @@ fn resolve_creature_damage(_obj: Creature, weapon: Item): int {
         }
     }
 
-    return bit.and(dice, creature_dice_mask)
-        + bit.shl(bit.and(sides, creature_dice_mask), creature_sides_shift);
+    return roll_dice(dice, sides, 0);
 }
 
 fn resolve_attack_base_damage(obj: Creature, weapon: Item, multiplier: int): int {
-    const damage_mask = 255;
-    const damage_sides_shift = 8;
-    const damage_bonus_shift = 16;
-
-    var packed = 0;
-    if (C._cpp_is_unarmed_weapon(weapon)) {
-        packed = resolve_unarmed_damage(obj);
-    } elif (C._cpp_is_creature_weapon(weapon)) {
-        packed = resolve_creature_damage(obj, weapon);
+    if (is_unarmed_weapon(weapon)) {
+        return resolve_unarmed_damage(obj) * multiplier;
+    } elif (is_creature_weapon(weapon)) {
+        return resolve_creature_damage(obj, weapon) * multiplier;
     } else {
-        packed = resolve_weapon_damage(obj, C._cpp_weapon_base_item(weapon));
+        var base_item = item.get_baseitem_type(weapon) as int;
+        var dice = C.weapon_base_damage_dice(base_item);
+        var sides = C.weapon_base_damage_sides(base_item);
+        var bonus = C.weapon_base_damage_bonus(base_item) + resolve_weapon_damage_bonus(obj, base_item);
+        return roll_dice(dice, sides, bonus) * multiplier;
     }
-
-    var dice = bit.and(packed, damage_mask);
-    var sides = bit.and(bit.shr(packed, damage_sides_shift), damage_mask);
-    var bonus = bit.and(bit.shr(packed, damage_bonus_shift), 65535);
-    if (bonus >= 32768) {
-        bonus = bonus - 65536;
-    }
-
-    return C._cpp_roll_dice(dice, sides, bonus, multiplier);
 }
 
 fn resolve_target_state(attacker: Creature, target: object): int {
     const target_state_none = 0;
     const target_state_flanked = 64;
 
-    if (!C._cpp_object_is_creature(target)) {
+    if (!(target is Creature)) {
         return target_state_none;
     }
 
@@ -553,15 +666,9 @@ fn resolve_target_state(attacker: Creature, target: object): int {
     return target_state_none;
 }
 
-fn resolve_number_of_attacks(obj: Creature): int {
-    const number_of_attacks_ab_mask = 4095;
-    const number_of_attacks_iter_shift = 12;
-    const number_of_attacks_iter_mask = 15;
-    const number_of_attacks_has_offhand_weapon = 65536;
-
-    var state = C._cpp_number_of_attacks_inputs(obj);
-    var ab = bit.and(state, number_of_attacks_ab_mask);
-    var iter = bit.and(bit.shr(state, number_of_attacks_iter_shift), number_of_attacks_iter_mask);
+fn resolve_number_of_attacks_onhand(obj: Creature): int {
+    var ab = base_attack_bonus(obj);
+    var iter = Cre.weapon_iteration_for_attack(obj, attack_type_onhand);
 
     var onhand = 0;
     if (iter > 0) {
@@ -575,77 +682,65 @@ fn resolve_number_of_attacks(obj: Creature): int {
         onhand = 6;
     }
 
+    return onhand;
+}
+
+fn resolve_number_of_attacks_offhand(obj: Creature): int {
     var offhand = 0;
-    if (bit.and(state, number_of_attacks_has_offhand_weapon) != 0) {
+    if (C.dual_wield_has_pair(obj)) {
         offhand = 1;
-        if (creature.has_feat(obj, feat_improved_two_weapon_fighting)
-            || (creature.ac_armor_base(obj) <= 3 && creature.get_level_by_class(obj, class_type_ranger) >= 9)) {
+        if (Cre.has_feat(obj, feat_improved_two_weapon_fighting)
+            || (Cre.ac_armor_base(obj) <= 3 && Cre.get_level_by_class(obj, class_type_ranger) >= 9)) {
             offhand = offhand + 1;
         }
     }
 
-    return onhand + bit.shl(offhand, 16);
+    return offhand;
 }
 
-fn resolve_dual_wield_penalty(obj: Creature): int {
-    const dual_wield_has_pair = 1;
-    const dual_wield_off_is_light = 2;
-
-    var state = C._cpp_dual_wield_penalty_inputs(obj);
-    if (bit.and(state, dual_wield_has_pair) == 0) {
+fn resolve_dual_wield_penalty_onhand(obj: Creature): int {
+    if (!C.dual_wield_has_pair(obj)) {
         return 0;
     }
 
     var on = -6;
-    var off = -10;
-    if (bit.and(state, dual_wield_off_is_light) != 0) {
+    if (C.dual_wield_off_is_light(obj)) {
         on = -4;
+    }
+
+    if (Cre.ac_armor_base(obj) <= 3 && Cre.get_level_by_class(obj, class_type_ranger) > 0) {
+        on = on + 2;
+    } else {
+        if (Cre.has_feat(obj, feat_two_weapon_fighting)) {
+            on = on + 2;
+        }
+    }
+
+    return on;
+}
+
+fn resolve_dual_wield_penalty_offhand(obj: Creature): int {
+    if (!C.dual_wield_has_pair(obj)) {
+        return 0;
+    }
+
+    var off = -10;
+    if (C.dual_wield_off_is_light(obj)) {
         off = -8;
     }
 
-    if (creature.ac_armor_base(obj) <= 3 && creature.get_level_by_class(obj, class_type_ranger) > 0) {
-        on = on + 2;
+    if (Cre.ac_armor_base(obj) <= 3 && Cre.get_level_by_class(obj, class_type_ranger) > 0) {
         off = off + 6;
     } else {
-        if (creature.has_feat(obj, feat_two_weapon_fighting)) {
-            on = on + 2;
+        if (Cre.has_feat(obj, feat_two_weapon_fighting)) {
             off = off + 2;
         }
-        if (creature.has_feat(obj, feat_ambidexterity)) {
+        if (Cre.has_feat(obj, feat_ambidexterity)) {
             off = off + 4;
         }
     }
 
-    return bit.and(on, 65535) + bit.shl(bit.and(off, 65535), 16);
-}
-
-fn resolve_damage_resistance_applied(amount: int, resist: int, resist_remaining: int): int {
-    var applied = amount;
-    if (resist < applied) {
-        applied = resist;
-    }
-    if (resist_remaining > 0 && resist_remaining < applied) {
-        applied = resist_remaining;
-    }
-    return applied;
-}
-
-fn resolve_damage_immunity_applied(amount: int, immunity: int): int {
-    if (immunity >= 100) {
-        return amount;
-    }
-    return (immunity * amount) / 100;
-}
-
-fn resolve_damage_reduction_applied(amount: int, reduction: int, reduction_remaining: int): int {
-    var applied = amount;
-    if (reduction < applied) {
-        applied = reduction;
-    }
-    if (reduction_remaining > 0 && reduction_remaining < applied) {
-        applied = reduction_remaining;
-    }
-    return applied;
+    return off;
 }
 
 fn resolve_damage_base_resistance(obj: object, weapon: Item, versus: object): int {
@@ -653,24 +748,23 @@ fn resolve_damage_base_resistance(obj: object, weapon: Item, versus: object): in
     const damage_type_piercing = 1;
     const damage_type_slashing = 2;
 
-    var flags = resolve_weapon_damage_flags(weapon);
     var least = 2147483647;
 
-    if (bit.and(flags, bit.shl(1, damage_type_bludgeoning)) != 0) {
+    if (C.weapon_damage_has_bludgeoning(weapon)) {
         var resist = resolve_damage_resistance(obj, Damage(damage_type_bludgeoning), versus);
         if (resist < least) {
             least = resist;
         }
     }
 
-    if (bit.and(flags, bit.shl(1, damage_type_piercing)) != 0) {
+    if (C.weapon_damage_has_piercing(weapon)) {
         var resist = resolve_damage_resistance(obj, Damage(damage_type_piercing), versus);
         if (resist < least) {
             least = resist;
         }
     }
 
-    if (bit.and(flags, bit.shl(1, damage_type_slashing)) != 0) {
+    if (C.weapon_damage_has_slashing(weapon)) {
         var resist = resolve_damage_resistance(obj, Damage(damage_type_slashing), versus);
         if (resist < least) {
             least = resist;
@@ -688,24 +782,23 @@ fn resolve_damage_base_immunity(obj: object, weapon: Item, versus: object): int 
     const damage_type_piercing = 1;
     const damage_type_slashing = 2;
 
-    var flags = resolve_weapon_damage_flags(weapon);
     var best = 0;
 
-    if (bit.and(flags, bit.shl(1, damage_type_bludgeoning)) != 0) {
+    if (C.weapon_damage_has_bludgeoning(weapon)) {
         var imm = resolve_damage_immunity(obj, Damage(damage_type_bludgeoning), versus);
         if (imm > best) {
             best = imm;
         }
     }
 
-    if (bit.and(flags, bit.shl(1, damage_type_piercing)) != 0) {
+    if (C.weapon_damage_has_piercing(weapon)) {
         var imm = resolve_damage_immunity(obj, Damage(damage_type_piercing), versus);
         if (imm > best) {
             best = imm;
         }
     }
 
-    if (bit.and(flags, bit.shl(1, damage_type_slashing)) != 0) {
+    if (C.weapon_damage_has_slashing(weapon)) {
         var imm = resolve_damage_immunity(obj, Damage(damage_type_slashing), versus);
         if (imm > best) {
             best = imm;
@@ -716,45 +809,105 @@ fn resolve_damage_base_immunity(obj: object, weapon: Item, versus: object): int 
 }
 
 fn resolve_attack(attacker: Creature, target: object): AttackData {
-    return C._cpp_resolve_attack(attacker, target);
+    const attack_result_hit_by_critical = 1;
+    const attack_result_hit_by_roll = 2;
+    const attack_result_hit_by_auto_success = 0;
+    const attack_result_miss_by_auto_fail = 3;
+    const attack_result_miss_by_concealment = 4;
+    const attack_result_miss_by_miss_chance = 5;
+    const attack_result_miss_by_roll = 6;
+
+    C.prepare_attack_round(attacker);
+
+    var data = C.attack_data_create();
+    if (!C.attack_data_is_valid(data)) {
+        return C.resolve_attack(attacker, target);
+    }
+
+    var attack_type = resolve_attack_type(attacker);
+    var attack_bonus = resolve_attack_bonus(attacker, attack_type, target);
+    var armor_class = C.attack_roll_armor_class(attacker, target);
+    var iteration_penalty = resolve_iteration_penalty(attacker, attack_type);
+    var critical_threat = resolve_critical_threat(attacker, attack_type);
+    var is_ranged = is_ranged_attack(attacker, attack_type);
+    var attack_roll = C.roll_uniform_int(1, 20);
+    var attack_result = attack_result_miss_by_roll;
+    var concealment = 0;
+
+    if (attack_roll == 1) {
+        attack_result = attack_result_miss_by_auto_fail;
+    } elif (attack_roll == 20) {
+        attack_result = attack_result_hit_by_auto_success;
+    } elif (attack_bonus + attack_roll - iteration_penalty >= armor_class) {
+        attack_result = attack_result_hit_by_roll;
+    }
+
+    if (attack_result <= attack_result_hit_by_roll) {
+        if (21 - attack_roll <= critical_threat
+            && attack_bonus + C.roll_uniform_int(1, 20) - iteration_penalty >= armor_class) {
+            attack_result = attack_result_hit_by_critical;
+        }
+
+        concealment = C.attack_roll_concealment(attacker, target, is_ranged);
+
+        if (concealment > 0) {
+            var miss_chance_source = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged);
+            var conceal_check = C.roll_uniform_int(1, 100);
+            if (conceal_check <= concealment) {
+                if (Cre.has_feat(attacker, feat_blind_fight)) {
+                    conceal_check = C.roll_uniform_int(1, 100);
+                    if (conceal_check <= concealment) {
+                        attack_result = miss_chance_source
+                            ? attack_result_miss_by_miss_chance
+                            : attack_result_miss_by_concealment;
+                    }
+                } else {
+                    attack_result = miss_chance_source
+                        ? attack_result_miss_by_miss_chance
+                        : attack_result_miss_by_concealment;
+                }
+            }
+        }
+    }
+
+    var critical_multiplier = 0;
+    if (attack_result == attack_result_hit_by_critical) {
+        critical_multiplier = resolve_critical_multiplier(attacker, attack_type, target);
+    } elif (attack_result <= attack_result_hit_by_roll) {
+        critical_multiplier = 1;
+    }
+
+    C.attack_data_set_attack_type(data, attack_type as int);
+    C.attack_data_set_attack_result(data, attack_result);
+    C.attack_data_set_attack_roll(data, attack_roll);
+    C.attack_data_set_attack_bonus(data, attack_bonus);
+    C.attack_data_set_armor_class(data, armor_class);
+    var combat = get_propset!(CreatureCombat)(attacker);
+    C.attack_data_set_nth_attack(data, combat.attack_current);
+    C.attack_data_set_critical_threat(data, critical_threat);
+    C.attack_data_set_critical_multiplier(data, critical_multiplier);
+    C.attack_data_set_concealment(data, concealment);
+    C.attack_data_set_iteration_penalty(data, iteration_penalty);
+    C.attack_data_set_is_ranged(data, is_ranged);
+    var target_is_creature = target is Creature;
+    C.attack_data_set_target_is_creature(data, target_is_creature);
+
+    if (attack_result <= attack_result_hit_by_roll) {
+        C.attack_data_apply_damage_total(attacker, target, data);
+    }
+
+    C.advance_attack_round(attacker);
+    return data;
 }
 
 fn simulate_attack(attacker: Creature, target: object): AttackData {
     return resolve_attack(attacker, target);
 }
 
-fn attack_data_is_valid(data: AttackData): bool {
-    return C._cpp_attack_data_is_valid(data);
-}
-
-fn attack_data_attack_type(data: AttackData): int {
-    return C._cpp_attack_data_attack_type(data);
-}
-
-fn attack_data_attack_result(data: AttackData): int {
-    return C._cpp_attack_data_attack_result(data);
-}
-
-fn attack_data_attack_bonus(data: AttackData): int {
-    return C._cpp_attack_data_attack_bonus(data);
-}
-
-fn attack_data_nth_attack(data: AttackData): int {
-    return C._cpp_attack_data_nth_attack(data);
-}
-
-fn attack_data_critical_threat(data: AttackData): int {
-    return C._cpp_attack_data_critical_threat(data);
-}
-
-fn attack_data_iteration_penalty(data: AttackData): int {
-    return C._cpp_attack_data_iteration_penalty(data);
-}
-
-fn attack_data_is_ranged(data: AttackData): bool {
-    return C._cpp_attack_data_is_ranged(data);
-}
-
-fn attack_data_target_is_creature(data: AttackData): bool {
-    return C._cpp_attack_data_target_is_creature(data);
+fn resolve_attack_outcome(attacker: Creature, target: object): int {
+    var data = resolve_attack(attacker, target);
+    if (!C.attack_data_is_valid(data)) {
+        return -1;
+    }
+    return C.attack_data_attack_result(data);
 }

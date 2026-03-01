@@ -1,5 +1,6 @@
 #include "../runtime.hpp"
 
+#include "../../kernel/Rules.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../profiles/nwn1/scriptapi.hpp"
 
@@ -47,9 +48,7 @@ void register_core_creature(Runtime& rt)
             return creature->levels.level_by_class(nw::Class::make(class_type)); })
         .function("get_class_count", +[](nw::ObjectHandle obj) -> int32_t {
             auto* creature = as_creature(obj);
-            if (!creature) {
-                return 0;
-            }
+            if (!creature) { return 0; }
 
             int32_t result = 0;
             for (const auto& ent : creature->levels.entries) {
@@ -99,6 +98,10 @@ void register_core_creature(Runtime& rt)
                 return creature->combat_info.attack_current - creature->combat_info.attacks_onhand - creature->combat_info.attacks_extra;
             }
             return creature->combat_info.attack_current; })
+        .function("weapon_for_attack", +[](nw::ObjectHandle obj, int32_t attack_type) -> nw::ObjectHandle {
+            auto* creature = as_creature(obj);
+            auto* item = nwn1::get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type));
+            return item ? item->handle() : nw::ObjectHandle{}; })
         .function("can_equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nwn1::can_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
         .function("equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nwn1::equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
         .function("get_equipped_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
@@ -113,6 +116,32 @@ void register_core_creature(Runtime& rt)
         .function("has_feat", +[](nw::ObjectHandle obj, int32_t feat) -> bool {
             auto* creature = as_creature(obj);
             return creature && creature->stats.has_feat(nw::Feat::make(feat)); })
+
+        // Returns the highest feat value in [start, stop] the creature has, or -1 if none.
+        // Uses a single binary search on the sorted feat list — O(log n) vs O(range * log n)
+        // for looping has_feat.
+        .function("highest_feat_in_range", +[](nw::ObjectHandle obj, int32_t start, int32_t stop) -> int32_t {
+            auto* creature = as_creature(obj);
+            if (!creature) return -1;
+            const auto& feats = creature->stats.feats();
+            auto it = std::upper_bound(feats.begin(), feats.end(), nw::Feat::make(stop));
+            if (it != feats.begin()) {
+                --it;
+                if (*(*it) >= start) return *(*it);
+            }
+            return -1; })
+
+        // Returns highest - start + 1 for the highest feat in [start, stop], or 0 if none.
+        .function("count_feats_in_range", +[](nw::ObjectHandle obj, int32_t start, int32_t stop) -> int32_t {
+            auto* creature = as_creature(obj);
+            if (!creature) return 0;
+            const auto& feats = creature->stats.feats();
+            auto it = std::upper_bound(feats.begin(), feats.end(), nw::Feat::make(stop));
+            if (it != feats.begin()) {
+                --it;
+                if (*(*it) >= start) return *(*it) - start + 1;
+            }
+            return 0; })
 
         // The end.
         .finalize();

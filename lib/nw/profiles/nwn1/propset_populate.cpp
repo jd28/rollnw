@@ -85,9 +85,9 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                         }
                     }
 
-                    write_int(rt, ref, def, "save_fort",       cre->stats.save_bonus.fort);
-                    write_int(rt, ref, def, "save_reflex",     cre->stats.save_bonus.reflex);
-                    write_int(rt, ref, def, "save_will",       cre->stats.save_bonus.will);
+                    write_int(rt, ref, def, "save_fort", cre->stats.save_bonus.fort);
+                    write_int(rt, ref, def, "save_reflex", cre->stats.save_bonus.reflex);
+                    write_int(rt, ref, def, "save_will", cre->stats.save_bonus.will);
 
                     // Unmanaged arrays
                     fill_int_array(rt, ref, def, "skills", cre->stats.skills_,
@@ -95,22 +95,22 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                     fill_int_array(rt, ref, def, "feats", cre->stats.feats_,
                         [](nw::Feat f) { return static_cast<int32_t>(*f); });
 
-                    write_int(rt, ref, def, "race",             *cre->race);
-                    write_int(rt, ref, def, "gender",           cre->gender);
-                    write_int(rt, ref, def, "good_evil",        cre->good_evil);
-                    write_int(rt, ref, def, "lawful_chaotic",   cre->lawful_chaotic);
+                    write_int(rt, ref, def, "race", *cre->race);
+                    write_int(rt, ref, def, "gender", cre->gender);
+                    write_int(rt, ref, def, "good_evil", cre->good_evil);
+                    write_int(rt, ref, def, "lawful_chaotic", cre->lawful_chaotic);
                     write_int(rt, ref, def, "ac_natural_bonus", cre->combat_info.ac_natural_bonus);
-                    write_float(rt, ref, def, "cr",             cre->cr);
-                    write_int(rt, ref, def, "cr_adjust",        cre->cr_adjust);
+                    write_float(rt, ref, def, "cr", cre->cr);
+                    write_int(rt, ref, def, "cr_adjust", cre->cr_adjust);
                     write_int(rt, ref, def, "perception_range", cre->perception_range);
-                    write_int(rt, ref, def, "disarmable",       cre->disarmable);
-                    write_int(rt, ref, def, "immortal",         cre->immortal);
-                    write_int(rt, ref, def, "interruptable",    cre->interruptable);
-                    write_int(rt, ref, def, "lootable",         cre->lootable);
-                    write_int(rt, ref, def, "pc",               cre->pc);
-                    write_int(rt, ref, def, "plot",             cre->plot ? 1 : 0);
-                    write_int(rt, ref, def, "chunk_death",      cre->chunk_death);
-                    write_int(rt, ref, def, "bodybag",          cre->bodybag);
+                    write_int(rt, ref, def, "disarmable", cre->disarmable);
+                    write_int(rt, ref, def, "immortal", cre->immortal);
+                    write_int(rt, ref, def, "interruptable", cre->interruptable);
+                    write_int(rt, ref, def, "lootable", cre->lootable);
+                    write_int(rt, ref, def, "pc", cre->pc);
+                    write_int(rt, ref, def, "plot", cre->plot ? 1 : 0);
+                    write_int(rt, ref, def, "chunk_death", cre->chunk_death);
+                    write_int(rt, ref, def, "bodybag", cre->bodybag);
                 }
             }
         }
@@ -124,11 +124,11 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
             if (ref.type_id != nw::smalls::invalid_type_id) {
                 const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
                 if (def) {
-                    write_int(rt, ref, def, "hp",               cre->hp);
-                    write_int(rt, ref, def, "hp_current",       cre->hp_current);
-                    write_int(rt, ref, def, "hp_max",           cre->hp_max);
-                    write_int(rt, ref, def, "hp_temp",          cre->hp_temp);
-                    write_int(rt, ref, def, "faction_id",       cre->faction_id);
+                    write_int(rt, ref, def, "hp", cre->hp);
+                    write_int(rt, ref, def, "hp_current", cre->hp_current);
+                    write_int(rt, ref, def, "hp_max", cre->hp_max);
+                    write_int(rt, ref, def, "hp_temp", cre->hp_temp);
+                    write_int(rt, ref, def, "faction_id", cre->faction_id);
                     write_int(rt, ref, def, "starting_package", static_cast<int32_t>(cre->starting_package));
                 }
             }
@@ -169,14 +169,38 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                         }
                     }
 
-                    write_int(rt, ref, def, "xp",       0); // Not serialized on Creature
-                    write_int(rt, ref, def, "walkrate",  cre->walkrate);
+                    write_int(rt, ref, def, "xp", 0); // Not serialized on Creature
+                    write_int(rt, ref, def, "walkrate", cre->walkrate);
                 }
             }
         }
     }
 
-    // CreatureCombat — zero-init only; pool pre-created by init_object_propsets
+    // CreatureCombat
+    {
+        nw::smalls::TypeID tid = rt->type_id("core.creature.CreatureCombat", false);
+        if (tid != nw::smalls::invalid_type_id) {
+            nw::smalls::Value ref = rt->get_or_create_propset_ref(tid, cre->handle());
+            if (ref.type_id != nw::smalls::invalid_type_id) {
+                const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
+                if (def) {
+                    write_int(rt, ref, def, "attack_current", cre->combat_info.attack_current);
+                    write_int(rt, ref, def, "attacks_onhand", cre->combat_info.attacks_onhand);
+                    write_int(rt, ref, def, "attacks_offhand", cre->combat_info.attacks_offhand);
+                    write_int(rt, ref, def, "attacks_extra", cre->combat_info.attacks_extra);
+                    write_int(rt, ref, def, "combat_mode", *cre->combat_info.combat_mode);
+                    write_int(rt, ref, def, "ac_armor_base", cre->combat_info.ac_armor_base);
+                    write_int(rt, ref, def, "ac_shield_base", cre->combat_info.ac_shield_base);
+                    write_int(rt, ref, def, "size_ab_modifier", cre->combat_info.size_ab_modifier);
+                    write_int(rt, ref, def, "size_ac_modifier", cre->combat_info.size_ac_modifier);
+                    write_float(rt, ref, def, "target_distance_sq", cre->combat_info.target_distance_sq);
+                    write_int(rt, ref, def, "target_state", static_cast<int32_t>(cre->combat_info.target_state));
+                    write_int(rt, ref, def, "hasted", cre->hasted);
+                    write_int(rt, ref, def, "size", cre->size);
+                }
+            }
+        }
+    }
 }
 
 // -- Item --------------------------------------------------------------------
@@ -195,15 +219,15 @@ void populate_item_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
     const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
     if (!def) { return; }
 
-    write_int(rt, ref, def, "base_item",       *item->baseitem);
-    write_int(rt, ref, def, "cost",            static_cast<int32_t>(item->cost));
+    write_int(rt, ref, def, "base_item", *item->baseitem);
+    write_int(rt, ref, def, "cost", static_cast<int32_t>(item->cost));
     write_int(rt, ref, def, "cost_additional", static_cast<int32_t>(item->additional_cost));
-    write_int(rt, ref, def, "stack_size",      item->stacksize);
-    write_int(rt, ref, def, "charges",         item->charges);
-    write_int(rt, ref, def, "cursed",          item->cursed ? 1 : 0);
-    write_int(rt, ref, def, "identified",      item->identified ? 1 : 0);
-    write_int(rt, ref, def, "plot",            item->plot ? 1 : 0);
-    write_int(rt, ref, def, "stolen",          item->stolen ? 1 : 0);
+    write_int(rt, ref, def, "stack_size", item->stacksize);
+    write_int(rt, ref, def, "charges", item->charges);
+    write_int(rt, ref, def, "cursed", item->cursed ? 1 : 0);
+    write_int(rt, ref, def, "identified", item->identified ? 1 : 0);
+    write_int(rt, ref, def, "plot", item->plot ? 1 : 0);
+    write_int(rt, ref, def, "stolen", item->stolen ? 1 : 0);
 }
 
 // -- Door --------------------------------------------------------------------
@@ -222,14 +246,14 @@ void populate_door_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
     const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
     if (!def) { return; }
 
-    write_int(rt, ref, def, "hp",            door->hp);
-    write_int(rt, ref, def, "hp_current",    door->hp_current);
-    write_int(rt, ref, def, "hardness",      door->hardness);
-    write_int(rt, ref, def, "locked",        door->lock.locked ? 1 : 0);
-    write_int(rt, ref, def, "lock_dc",       door->lock.lock_dc);
-    write_int(rt, ref, def, "bash_dc",       0); // No direct bash_dc field on Door
-    write_int(rt, ref, def, "open_state",    static_cast<int32_t>(door->animation_state));
-    write_int(rt, ref, def, "plot",          door->plot ? 1 : 0);
+    write_int(rt, ref, def, "hp", door->hp);
+    write_int(rt, ref, def, "hp_current", door->hp_current);
+    write_int(rt, ref, def, "hardness", door->hardness);
+    write_int(rt, ref, def, "locked", door->lock.locked ? 1 : 0);
+    write_int(rt, ref, def, "lock_dc", door->lock.lock_dc);
+    write_int(rt, ref, def, "bash_dc", 0); // No direct bash_dc field on Door
+    write_int(rt, ref, def, "open_state", static_cast<int32_t>(door->animation_state));
+    write_int(rt, ref, def, "plot", door->plot ? 1 : 0);
     write_int(rt, ref, def, "interruptable", door->interruptable ? 1 : 0);
 }
 
@@ -249,14 +273,14 @@ void populate_placeable_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
     const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
     if (!def) { return; }
 
-    write_int(rt, ref, def, "hp",            plc->hp);
-    write_int(rt, ref, def, "hp_current",    plc->hp_current);
-    write_int(rt, ref, def, "hardness",      plc->hardness);
-    write_int(rt, ref, def, "locked",        plc->lock.locked ? 1 : 0);
-    write_int(rt, ref, def, "plot",          plc->plot ? 1 : 0);
-    write_int(rt, ref, def, "useable",       plc->useable ? 1 : 0);
+    write_int(rt, ref, def, "hp", plc->hp);
+    write_int(rt, ref, def, "hp_current", plc->hp_current);
+    write_int(rt, ref, def, "hardness", plc->hardness);
+    write_int(rt, ref, def, "locked", plc->lock.locked ? 1 : 0);
+    write_int(rt, ref, def, "plot", plc->plot ? 1 : 0);
+    write_int(rt, ref, def, "useable", plc->useable ? 1 : 0);
     write_int(rt, ref, def, "has_inventory", plc->has_inventory ? 1 : 0);
-    write_int(rt, ref, def, "static_",       plc->static_ ? 1 : 0);
+    write_int(rt, ref, def, "static_", plc->static_ ? 1 : 0);
 }
 
 } // namespace nwn1

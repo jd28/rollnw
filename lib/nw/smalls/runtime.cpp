@@ -26,6 +26,7 @@
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 
@@ -5554,7 +5555,7 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
 }
 
 void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
-                                        Vector<TwoDAColumnMapping> mappings)
+    Vector<TwoDAColumnMapping> mappings)
 {
     twoda_converters_.insert_or_assign(String(path),
         TwoDAConverterSpec{String(twoda_name), std::move(mappings)});
@@ -5589,19 +5590,89 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
         uint8_t* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
 
         // Write [[index]] field = row index
-        *reinterpret_cast<int32_t*>(data + def->fields[index_field_idx].offset) =
-            static_cast<int32_t>(i);
+        *reinterpret_cast<int32_t*>(data + def->fields[index_field_idx].offset) = static_cast<int32_t>(i);
 
         // Write each mapped column into the corresponding field
         for (const auto& m : conv.mappings) {
-            uint32_t fidx = def->field_index(m.field);
+            StringView field_name = m.field;
+            int32_t fixed_index = -1;
+
+            auto lbracket = field_name.find('[');
+            if (lbracket != StringView::npos && field_name.back() == ']') {
+                StringView idx_str = field_name.substr(lbracket + 1, field_name.size() - lbracket - 2);
+                if (!idx_str.empty()) {
+                    bool ok = true;
+                    int32_t parsed = 0;
+                    for (char ch : idx_str) {
+                        if (!std::isdigit(static_cast<unsigned char>(ch))) {
+                            ok = false;
+                            break;
+                        }
+                        parsed = parsed * 10 + (ch - '0');
+                    }
+                    if (ok) {
+                        fixed_index = parsed;
+                        field_name = field_name.substr(0, lbracket);
+                    }
+                }
+            }
+
+            uint32_t fidx = def->field_index(field_name);
             if (fidx == UINT32_MAX) continue;
             const FieldDef& fd = def->fields[fidx];
             uint8_t* fptr = data + fd.offset;
 
-            // Unwrap newtypes to find the underlying primitive type
             TypeID field_type = fd.type_id;
             const Type* ftype = get_type(field_type);
+
+            if (fixed_index >= 0) {
+                while (ftype && (ftype->type_kind == TK_newtype || ftype->type_kind == TK_alias)) {
+                    TypeID next = ftype->type_params[0].as<TypeID>();
+                    if (next == invalid_type_id || next == field_type) break;
+                    field_type = next;
+                    ftype = get_type(field_type);
+                }
+
+                if (!ftype || ftype->type_kind != TK_fixed_array || !ftype->type_params[0].is<TypeID>() || !ftype->type_params[1].is<int32_t>()) {
+                    continue;
+                }
+
+                int32_t fixed_size = ftype->type_params[1].as<int32_t>();
+                if (fixed_index < 0 || fixed_index >= fixed_size) {
+                    continue;
+                }
+
+                TypeID elem_type = ftype->type_params[0].as<TypeID>();
+                const Type* elem_type_obj = get_type(elem_type);
+                while (elem_type_obj && (elem_type_obj->type_kind == TK_newtype || elem_type_obj->type_kind == TK_alias)) {
+                    TypeID next = elem_type_obj->type_params[0].as<TypeID>();
+                    if (next == invalid_type_id || next == elem_type) break;
+                    elem_type = next;
+                    elem_type_obj = get_type(elem_type);
+                }
+
+                if (!elem_type_obj || elem_type_obj->type_kind != TK_primitive) {
+                    continue;
+                }
+
+                uint8_t* eptr = fptr + static_cast<size_t>(fixed_index) * elem_type_obj->size;
+                if (elem_type == int_type()) {
+                    int32_t v = 0;
+                    tda.get_to(i, m.column, v);
+                    *reinterpret_cast<int32_t*>(eptr) = v;
+                } else if (elem_type == float_type()) {
+                    float v = 0.f;
+                    tda.get_to(i, m.column, v);
+                    *reinterpret_cast<float*>(eptr) = v;
+                } else if (elem_type == bool_type()) {
+                    int32_t v = 0;
+                    tda.get_to(i, m.column, v);
+                    *reinterpret_cast<bool*>(eptr) = (v != 0);
+                }
+                continue;
+            }
+
+            // Unwrap newtypes to find the underlying primitive type
             while (ftype && (ftype->type_kind == TK_newtype || ftype->type_kind == TK_alias)) {
                 TypeID next = ftype->type_params[0].as<TypeID>();
                 if (next == invalid_type_id || next == field_type) break;

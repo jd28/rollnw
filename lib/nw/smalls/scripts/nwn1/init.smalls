@@ -1,5 +1,7 @@
 import nwn1.item as item;
+import nwn1.modifier as modifier;
 
 fn init() {
     item.register_default_generators();
+    modifier.init_modifiers();
 }

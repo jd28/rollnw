@@ -1,5 +1,6 @@
 #include "smalls_fixtures.hpp"
 
+#include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -18,6 +19,7 @@ protected:
     {
         nw::kernel::services().start();
         nw::kernel::runtime().add_module_path(fs::path("stdlib/core"));
+        nw::kernel::runtime().add_module_path(fs::path("stdlib/nwn1"));
     }
 
     void TearDown() override
@@ -36,7 +38,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
     std::string_view source = R"(
         from nwn1.constants import { ability_strength };
         import core.object as O;
-        import core.creature as C;
+        import nwn1.creature as C;
         import core.effects as E;
         import nwn1.effects as NWEff;
 
@@ -446,25 +448,25 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldIndexing)
 
         fn main(target: Creature): int {
             var stats = get_propset!(CreatureStats)(target);
-            
+
             // Test constant index read/write
             stats.scores[0] = 100;
             if (stats.scores[0] != 100) {
                 return 11;  // Constant index write/read failed
             }
-            
+
             stats.scores[5] = 50;
             if (stats.scores[5] != 50) {
                 return 12;  // Constant index at offset 5 failed
             }
-            
+
             // Test variable index
             var i = 3;
             stats.scores[i] = 30;
             if (stats.scores[3] != 30) {
                 return 13;  // Variable index failed
             }
-            
+
             // Test persistence - get propset again and verify
             var again = get_propset!(CreatureStats)(target);
             if (again.scores[0] != 100) {
@@ -473,7 +475,7 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldIndexing)
             if (again.scores[3] != 30) {
                 return 22;  // Persistence check 2 failed
             }
-            
+
             return 1;
         }
     )";
@@ -510,7 +512,7 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldFloatBool)
 
         fn main(target: Creature): int {
             var stats = get_propset!(CreatureStats)(target);
-            
+
             // Test float array
             stats.values[0] = 1.5;
             stats.values[2] = 2.5;
@@ -520,7 +522,7 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldFloatBool)
             if (stats.values[2] != 2.5) {
                 return 0;
             }
-            
+
             // Test bool array
             stats.flags[0] = true;
             stats.flags[1] = false;
@@ -530,7 +532,7 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldFloatBool)
             if (stats.flags[1] != false) {
                 return 0;
             }
-            
+
             return 1;
         }
     )";
@@ -682,7 +684,7 @@ TEST_F(SmallsEngineIntegration, CoreItemProcessCallsSmallsDirectly)
     // Register a type-specific generator, then call process_item_properties from smalls
     std::string_view source = R"(
         from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
-        import core.creature as C;
+        import nwn1.creature as C;
         import core.effects as E;
         import core.item as I;
         import nwn1.effects as NWEff;
@@ -746,7 +748,7 @@ TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
     // Default smalls generators handle ip_ability_bonus directly (no C++ fallback)
     std::string_view source = R"(
         from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex };
-        import core.creature as C;
+        import nwn1.creature as C;
         import core.item as I;
 
         fn main(target: Creature, item: Item): int {
@@ -784,7 +786,7 @@ TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreCombatCanSimulateAttack)
+TEST_F(SmallsEngineIntegration, Nwn1CombatCanSimulateAttack)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(mod);
@@ -797,27 +799,28 @@ TEST_F(SmallsEngineIntegration, CoreCombatCanSimulateAttack)
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        import core.combat as combat;
+        import core.combat as C;
+        import nwn1.combat as NC;
 
         fn main(attacker: Creature, target: Creature): int {
-            var data = combat.resolve_attack(attacker, target);
-            if (!combat.attack_data_is_valid(data)) {
+            var data = NC.resolve_attack(attacker, target);
+            if (!C.attack_data_is_valid(data)) {
                 return 0;
             }
-            if (combat.attack_data_attack_type(data) < 0) {
+            if (C.attack_data_attack_type(data) < 0) {
                 return 0;
             }
-            if (combat.attack_data_attack_result(data) < 0) {
+            if (C.attack_data_attack_result(data) < 0) {
                 return 0;
             }
-            if (!combat.attack_data_target_is_creature(data)) {
+            if (!C.attack_data_target_is_creature(data)) {
                 return 0;
             }
             return 1;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.core_combat_simulate_attack", source);
+    auto* script = rt.load_module_from_source("test.nwn1_combat_simulate_attack", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0);
 
@@ -1351,4 +1354,116 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicFeatEntry)
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import nwn1.races as races;
+
+        fn main(race_id: int, ability: int): int {
+            return races.ability_modifier(race_id, ability);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_races", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto& race_entries = nw::kernel::rules().races.entries;
+    ASSERT_FALSE(race_entries.empty());
+
+    const int max_races = std::min<int>(static_cast<int>(race_entries.size()), 16);
+    for (int race = 0; race < max_races; ++race) {
+        for (int ability = 0; ability < 6; ++ability) {
+            nw::Vector<nw::smalls::Value> args;
+            args.push_back(nw::smalls::Value::make_int(race));
+            args.push_back(nw::smalls::Value::make_int(ability));
+
+            auto result = rt.execute_script(script, "main", args);
+            ASSERT_TRUE(result.ok()) << result.error_message;
+            EXPECT_EQ(result.value.data.ival, race_entries[race].ability_modifiers[ability])
+                << "race=" << race << " ability=" << ability;
+        }
+    }
+}
+
+// == Proof-of-concept: nwn1.creature.get_ability_score with real creature ====
+// ============================================================================
+
+TEST_F(SmallsEngineIntegration, Nwn1GetAbilityScoreEndToEndWithRealCreature)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    auto& rt = nw::kernel::runtime();
+
+    // C++ ground truth: base=true (raw struct values, no effects) to test propset correctness
+    std::array<int32_t, 6> cpp_scores;
+    for (int i = 0; i < 6; ++i) {
+        cpp_scores[i] = nwn1::get_ability_score(creature, nw::Ability::make(i), true);
+    }
+
+    std::string_view source = R"(
+        import nwn1.creature as NC;
+        import nwn1.effects as NWEff;
+        import core.object as O;
+        from nwn1.constants import {
+            ability_strength, ability_dexterity, ability_constitution,
+            ability_intelligence, ability_wisdom, ability_charisma
+        };
+
+        fn main(target: Creature,
+                exp_str: int, exp_dex: int, exp_con: int,
+                exp_int: int, exp_wis: int, exp_cha: int): int {
+
+            // Verify base scores match C++ ground truth (propset correctness)
+            if (NC.get_ability_score(target, ability_strength,     true) != exp_str) { return -1; }
+            if (NC.get_ability_score(target, ability_dexterity,    true) != exp_dex) { return -2; }
+            if (NC.get_ability_score(target, ability_constitution, true) != exp_con) { return -3; }
+            if (NC.get_ability_score(target, ability_intelligence, true) != exp_int) { return -4; }
+            if (NC.get_ability_score(target, ability_wisdom,       true) != exp_wis) { return -5; }
+            if (NC.get_ability_score(target, ability_charisma,     true) != exp_cha) { return -6; }
+
+            // Apply +4 STR effect — live score increases, base score unchanged
+            var eff = NWEff.ability_modifier(ability_strength, 4);
+            if (!O.apply_effect(target, eff)) { return -7; }
+            if (NC.get_ability_score(target, ability_strength)        != exp_str + 4) { return -8; }
+            if (NC.get_ability_score(target, ability_strength, true)  != exp_str)     { return -9; }
+
+            // Other abilities unaffected by STR effect
+            if (NC.get_ability_score(target, ability_dexterity, true) != exp_dex) { return -10; }
+
+            // Ability modifier tracks live score
+            const expected_mod = (exp_str + 4 - 10) / 2;
+            if (NC.get_ability_modifier(target, ability_strength) != expected_mod) { return -11; }
+
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_ability_score_end_to_end", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    nw::Vector<nw::smalls::Value> args;
+    auto cv = nw::smalls::Value::make_object(creature->handle());
+    cv.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(cv);
+    for (int i = 0; i < 6; ++i) {
+        args.push_back(nw::smalls::Value::make_int(cpp_scores[i]));
+    }
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
 }

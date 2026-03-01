@@ -1,4 +1,4 @@
-from core.types import { Ability, AttackType, Class, EquipIndex };
+from core.types import { Ability, AttackType, Class, EquipIndex, Feat };
 
 [[native]] fn get_ability_score(obj: Creature, ability: Ability, base: bool = false): int;
 [[native]] fn get_ability_modifier(obj: Creature, ability: Ability, base: bool = false): int;
@@ -11,6 +11,7 @@ from core.types import { Ability, AttackType, Class, EquipIndex };
 [[native]] fn ac_armor_base(obj: Creature): int;
 [[native]] fn weapon_iteration_for_attack(obj: Creature, attack_type: AttackType): int;
 [[native]] fn attack_sequence_index(obj: Creature, attack_type: AttackType): int;
+[[native]] fn weapon_for_attack(obj: Creature, attack_type: AttackType): Item;
 [[native]] fn can_equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn get_equipped_item(creature: Creature, slot: EquipIndex): Item;
@@ -19,7 +20,15 @@ from core.types import { Ability, AttackType, Class, EquipIndex };
 // == Feats ===================================================================
 // ============================================================================
 
-[[native]] fn has_feat(obj: Creature, feat: int): bool;
+[[native]] fn has_feat(obj: Creature, feat: Feat): bool;
+
+// Returns the highest feat in [start, stop] that obj has, or Feat(-1) if none.
+// Single binary search — faster than looping has_feat.
+[[native]] fn highest_feat_in_range(obj: Creature, start: Feat, stop: Feat): Feat;
+
+// Returns how many feat tiers in [start, stop] the creature has progressed through
+// (i.e. highest - start + 1), or 0 if none.
+[[native]] fn count_feats_in_range(obj: Creature, start: Feat, stop: Feat): int;
 
 // == Propsets ================================================================
 // ============================================================================

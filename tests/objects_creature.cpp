@@ -333,20 +333,20 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
         from nwn1.constants import { attack_type_offhand };
 
         fn resolve_attack(_attacker: Creature, _target: object): C.AttackData {
-            var data = C._cpp_attack_data_create();
-            C._cpp_attack_data_set_attack_type(data, attack_type_offhand as int);
-            C._cpp_attack_data_set_attack_result(data, 2);
-            C._cpp_attack_data_set_attack_roll(data, 19);
-            C._cpp_attack_data_set_attack_bonus(data, 42);
-            C._cpp_attack_data_set_armor_class(data, 13);
-            C._cpp_attack_data_set_nth_attack(data, 1);
-            C._cpp_attack_data_set_damage_total(data, 17);
-            C._cpp_attack_data_set_critical_multiplier(data, 3);
-            C._cpp_attack_data_set_critical_threat(data, 4);
-            C._cpp_attack_data_set_concealment(data, 11);
-            C._cpp_attack_data_set_iteration_penalty(data, 5);
-            C._cpp_attack_data_set_is_ranged(data, true);
-            C._cpp_attack_data_set_target_is_creature(data, true);
+            var data = C.attack_data_create();
+            C.attack_data_set_attack_type(data, attack_type_offhand as int);
+            C.attack_data_set_attack_result(data, 2);
+            C.attack_data_set_attack_roll(data, 19);
+            C.attack_data_set_attack_bonus(data, 42);
+            C.attack_data_set_armor_class(data, 13);
+            C.attack_data_set_nth_attack(data, 1);
+            C.attack_data_set_damage_total(data, 17);
+            C.attack_data_set_critical_multiplier(data, 3);
+            C.attack_data_set_critical_threat(data, 4);
+            C.attack_data_set_concealment(data, 11);
+            C.attack_data_set_iteration_penalty(data, 5);
+            C.attack_data_set_is_ranged(data, true);
+            C.attack_data_set_target_is_creature(data, true);
             return data;
         }
     )");
@@ -370,6 +370,111 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
     EXPECT_TRUE(attack->is_ranged_attack);
     EXPECT_TRUE(attack->target_is_creature);
     nwk::config().set_combat_policy_module("core.combat");
+}
+
+TEST(Creature, CombatPolicyModuleDamageMitigationEffectConsumption)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    EXPECT_TRUE(target);
+
+    auto versus = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    EXPECT_TRUE(versus);
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("test.custom_combat_policy_damage_mitigation_effect_consumption", R"(
+        import core.combat as C;
+        import core.effects as Eff;
+        import core.object as Obj;
+        import nwn1.combat as Combat;
+        from nwn1.constants import { damage_type_fire };
+
+        const effect_type_damage_reduction = 12;
+        const effect_type_damage_resistance = 2;
+
+        fn add_damage_reduction(target: Creature, amount: int, bypass: int, remaining: int): int {
+            var eff = Eff.create();
+            if (!Eff.is_valid(eff)) {
+                return 0;
+            }
+
+            Eff.set_type(eff, effect_type_damage_reduction);
+            Eff.set_int(eff, 0, amount);
+            Eff.set_int(eff, 1, bypass);
+            Eff.set_int(eff, 2, remaining);
+            return Obj.apply_effect(target, eff) ? 1 : 0;
+        }
+
+        fn add_damage_resistance(target: Creature, amount: int, remaining: int): int {
+            var eff = Eff.create();
+            if (!Eff.is_valid(eff)) {
+                return 0;
+            }
+
+            Eff.set_type(eff, effect_type_damage_resistance);
+            Eff.set_subtype(eff, damage_type_fire as int);
+            Eff.set_int(eff, 0, amount);
+            Eff.set_int(eff, 1, remaining);
+            return Obj.apply_effect(target, eff) ? 1 : 0;
+        }
+
+        fn apply_damage_reduction_once(target: Creature, versus: Creature, incoming: int): int {
+            return Combat.apply_damage_reduction(target, 10, versus, incoming);
+        }
+
+        fn apply_damage_resistance_once(target: Creature, versus: Creature, incoming: int): int {
+            return Combat.apply_damage_resistance(target, damage_type_fire, versus, incoming);
+        }
+
+        fn damage_reduction_remaining(target: Creature): int {
+            var eff = C.effect_best_damage_reduction(target, 10);
+            if (!Eff.is_valid(eff)) {
+                return -1;
+            }
+            return Eff.get_int(eff, 2);
+        }
+
+        fn damage_resistance_remaining(target: Creature): int {
+            var eff = C.effect_best_damage_resistance(target, damage_type_fire);
+            if (!Eff.is_valid(eff)) {
+                return -1;
+            }
+            return Eff.get_int(eff, 1);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto make_obj_arg = [&rt](const nw::ObjectBase* obj) {
+        auto value = nw::smalls::Value::make_object(obj->handle());
+        value.type_id = rt.object_subtype_for_tag(obj->handle().type);
+        return value;
+    };
+
+    auto exec_int = [&](const char* fn, nw::Vector<nw::smalls::Value> args) {
+        auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        if (!result.ok()) { return 0; }
+        EXPECT_EQ(result.value.type_id, rt.int_type());
+        return result.value.data.ival;
+    };
+
+    auto target_arg = make_obj_arg(target);
+    auto versus_arg = make_obj_arg(versus);
+
+    EXPECT_EQ(exec_int("add_damage_reduction", {target_arg, nw::smalls::Value::make_int(6), nw::smalls::Value::make_int(20), nw::smalls::Value::make_int(5)}), 1);
+    EXPECT_EQ(exec_int("apply_damage_reduction_once", {target_arg, versus_arg, nw::smalls::Value::make_int(4)}), 4);
+    EXPECT_EQ(exec_int("damage_reduction_remaining", {target_arg}), 1);
+    EXPECT_EQ(exec_int("apply_damage_reduction_once", {target_arg, versus_arg, nw::smalls::Value::make_int(4)}), 1);
+    EXPECT_EQ(exec_int("damage_reduction_remaining", {target_arg}), -1);
+
+    EXPECT_EQ(exec_int("add_damage_resistance", {target_arg, nw::smalls::Value::make_int(7), nw::smalls::Value::make_int(6)}), 1);
+    EXPECT_EQ(exec_int("apply_damage_resistance_once", {target_arg, versus_arg, nw::smalls::Value::make_int(4)}), 4);
+    EXPECT_EQ(exec_int("damage_resistance_remaining", {target_arg}), 2);
+    EXPECT_EQ(exec_int("apply_damage_resistance_once", {target_arg, versus_arg, nw::smalls::Value::make_int(4)}), 2);
+    EXPECT_EQ(exec_int("damage_resistance_remaining", {target_arg}), -1);
 }
 
 TEST(Creature, AttackBonus)

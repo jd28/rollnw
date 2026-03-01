@@ -1,5 +1,10 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Memory.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectManager.hpp>
+#include <nw/profiles/nwn1/propset_populate.hpp>
+#include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/scriptapi.hpp>
 #include <nw/smalls/AstCompiler.hpp>
 #include <nw/smalls/Bytecode.hpp>
 #include <nw/smalls/Context.hpp>
@@ -325,9 +330,20 @@ fn main(): int {
 }
 )");
     nw::smalls::VirtualMachine vm{};
+    auto* gc = nw::kernel::runtime().gc();
+    size_t iters_since_gc = 0;
+    constexpr size_t k_gc_interval = 256;
+
     for (auto _ : state) {
         auto res = vm.execute(&module, "main", {});
         benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters_since_gc >= k_gc_interval) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters_since_gc = 0;
+        }
     }
 }
 BENCHMARK(BM_vm_field_loop);
@@ -479,3 +495,249 @@ static void BM_smalls_script_entry(benchmark::State& state)
     }
 }
 BENCHMARK(BM_smalls_script_entry);
+
+// == Modifier system benchmarks ==============================================
+// Both benchmarks require nwn1.init to have been called (init_modifiers).
+// The main() in main.cpp starts kernel services and loads stdlib module paths,
+// so by the time these run the modifier registry is populated.
+
+static nw::Creature* make_bench_creature()
+{
+    auto* cre = nw::kernel::objects().make<nw::Creature>();
+    if (!cre) { return nullptr; }
+    cre->stats.abilities_[0] = 18; // STR = 18
+    auto& rt = nw::kernel::runtime();
+    rt.free_object_propsets(cre->handle());
+    rt.init_object_propsets(cre->handle());
+    nwn1::populate_creature_propsets(&rt, cre);
+    return cre;
+}
+
+// Closure dispatch loop: iterates all registered mod_type_ability closures for
+// a bare creature. Measures the for-loop + closure-call overhead in sum_modifiers
+// with 2 registered closures (class_stat_gain stub + epic_great_ability).
+static void BM_modifier_sum_ability(benchmark::State& state)
+{
+    auto* cre = make_bench_creature();
+    if (!cre) {
+        state.SkipWithError("failed to create creature");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.modifier_sum_ability", R"(
+import nwn1.modifier as Mod;
+import core.object as O;
+from nwn1.constants import { mod_type_ability, ability_strength };
+
+fn bench(obj: Creature): int {
+    return Mod.sum_modifiers(obj, mod_type_ability, ability_strength as int, O.invalid);
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile modifier bench script");
+        nw::kernel::objects().destroy(cre->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto cre_val = nw::smalls::Value::make_object(cre->handle());
+    cre_val.type_id = rt.object_subtype_for_tag(cre->handle().type);
+    args.push_back(cre_val);
+
+    rt.execute_script(script, "bench", args); // warm up
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) gc->collect_minor();
+    nw::kernel::objects().destroy(cre->handle());
+}
+BENCHMARK(BM_modifier_sum_ability);
+
+// Full get_ability_score path: propset lookup + sum_modifiers + effect aggregate.
+// Measures the complete game-level modifier pipeline for a single ability score.
+static void BM_modifier_get_ability_score(benchmark::State& state)
+{
+    auto* cre = make_bench_creature();
+    if (!cre) {
+        state.SkipWithError("failed to create creature");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.modifier_get_ability_score", R"(
+import nwn1.creature as NC;
+from nwn1.constants import { ability_strength };
+
+fn bench(obj: Creature): int {
+    return NC.get_ability_score(obj, ability_strength);
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile modifier bench script");
+        nw::kernel::objects().destroy(cre->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto cre_val = nw::smalls::Value::make_object(cre->handle());
+    cre_val.type_id = rt.object_subtype_for_tag(cre->handle().type);
+    args.push_back(cre_val);
+
+    rt.execute_script(script, "bench", args); // warm up
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) gc->collect_minor();
+    nw::kernel::objects().destroy(cre->handle());
+}
+BENCHMARK(BM_modifier_get_ability_score);
+
+static void BM_smalls_damage_reduction_scan(benchmark::State& state)
+{
+    auto* target = make_bench_creature();
+    auto* versus = make_bench_creature();
+    if (!target || !versus) {
+        state.SkipWithError("failed to create damage reduction benchmark creatures");
+        return;
+    }
+
+    const int count = static_cast<int>(state.range(0));
+    for (int i = 0; i < count; ++i) {
+        nw::apply_effect(target, nwn1::effect_damage_reduction(5 + (i % 4), 10 + (i % 3), 0));
+        nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 2 + (i % 3), 0));
+        nw::apply_effect(target, nwn1::effect_concealment(10 + (i % 3) * 5));
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.smalls_damage_reduction_scan", R"(
+import nwn1.combat as Combat;
+
+fn bench(obj: Creature, versus: Creature): int {
+    return Combat.resolve_damage_reduction(obj, 10, versus);
+}
+)");
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile smalls damage reduction benchmark script");
+        nw::kernel::objects().destroy(target->handle());
+        nw::kernel::objects().destroy(versus->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto target_val = nw::smalls::Value::make_object(target->handle());
+    target_val.type_id = rt.object_subtype_for_tag(target->handle().type);
+    args.push_back(target_val);
+    auto versus_val = nw::smalls::Value::make_object(versus->handle());
+    versus_val.type_id = rt.object_subtype_for_tag(versus->handle().type);
+    args.push_back(versus_val);
+
+    rt.execute_script(script, "bench", args); // warm up
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) gc->collect_minor();
+    nw::kernel::objects().destroy(target->handle());
+    nw::kernel::objects().destroy(versus->handle());
+}
+BENCHMARK(BM_smalls_damage_reduction_scan)->Arg(0)->Arg(8)->Arg(32)->Arg(128);
+
+static void BM_smalls_damage_resistance_scan(benchmark::State& state)
+{
+    auto* target = make_bench_creature();
+    auto* versus = make_bench_creature();
+    if (!target || !versus) {
+        state.SkipWithError("failed to create damage resistance benchmark creatures");
+        return;
+    }
+
+    const int count = static_cast<int>(state.range(0));
+    for (int i = 0; i < count; ++i) {
+        nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 2 + (i % 4), 0));
+        nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_cold, 2 + (i % 4), 0));
+        nw::apply_effect(target, nwn1::effect_damage_reduction(5 + (i % 3), 10 + (i % 2), 0));
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.smalls_damage_resistance_scan", R"(
+import nwn1.combat as Combat;
+from nwn1.constants import { damage_type_fire };
+
+fn bench(obj: Creature, versus: Creature): int {
+    return Combat.resolve_damage_resistance(obj, damage_type_fire, versus);
+}
+)");
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile smalls damage resistance benchmark script");
+        nw::kernel::objects().destroy(target->handle());
+        nw::kernel::objects().destroy(versus->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto target_val = nw::smalls::Value::make_object(target->handle());
+    target_val.type_id = rt.object_subtype_for_tag(target->handle().type);
+    args.push_back(target_val);
+    auto versus_val = nw::smalls::Value::make_object(versus->handle());
+    versus_val.type_id = rt.object_subtype_for_tag(versus->handle().type);
+    args.push_back(versus_val);
+
+    rt.execute_script(script, "bench", args); // warm up
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) gc->collect_minor();
+    nw::kernel::objects().destroy(target->handle());
+    nw::kernel::objects().destroy(versus->handle());
+}
+BENCHMARK(BM_smalls_damage_resistance_scan)->Arg(0)->Arg(8)->Arg(32)->Arg(128);

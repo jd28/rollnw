@@ -208,44 +208,25 @@ TEST_F(SmallsModules, LoadCoreCombatModule)
     ASSERT_NE(combat_module, nullptr);
 
     EXPECT_NE(combat_module->exports().find("AttackData"), nullptr);
-    EXPECT_NE(combat_module->exports().find("base_attack_bonus"), nullptr);
-    EXPECT_NE(combat_module->exports().find("is_flanked"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_attack_bonus"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_attack_roll"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_attack_type"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_critical_multiplier"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_critical_threat"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_damage_immunity"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_iteration_penalty"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_weapon_power"), nullptr);
-    EXPECT_NE(combat_module->exports().find("resolve_attack"), nullptr);
-    EXPECT_NE(combat_module->exports().find("simulate_attack"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("resolve_attack"), nullptr);
     EXPECT_NE(combat_module->exports().find("attack_data_is_valid"), nullptr);
     EXPECT_NE(combat_module->exports().find("attack_data_attack_type"), nullptr);
     EXPECT_NE(combat_module->exports().find("attack_data_attack_result"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_attack_bonus"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_nth_attack"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_critical_threat"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_iteration_penalty"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_is_ranged"), nullptr);
     EXPECT_NE(combat_module->exports().find("attack_data_target_is_creature"), nullptr);
 }
 
-TEST_F(SmallsModules, LoadCoreCreatureModule)
+TEST_F(SmallsModules, LoadNwn1CreatureModule)
 {
     auto& rt = nw::kernel::runtime();
-    auto* creature_module = rt.load_module("core.creature");
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* creature_module = rt.load_module("nwn1.creature");
     ASSERT_NE(creature_module, nullptr);
 
+    // nwn1.creature is pure smalls rules — no [[native]] functions
     EXPECT_NE(creature_module->exports().find("get_ability_score"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_ability_modifier"), nullptr);
-    EXPECT_NE(creature_module->exports().find("get_level_by_class"), nullptr);
-    EXPECT_NE(creature_module->exports().find("weapon_iteration_for_attack"), nullptr);
-    EXPECT_NE(creature_module->exports().find("attack_sequence_index"), nullptr);
-    EXPECT_NE(creature_module->exports().find("can_equip_item"), nullptr);
-    EXPECT_NE(creature_module->exports().find("equip_item"), nullptr);
-    EXPECT_NE(creature_module->exports().find("get_equipped_item"), nullptr);
-    EXPECT_NE(creature_module->exports().find("unequip_item"), nullptr);
+    EXPECT_NE(creature_module->exports().find("get_saving_throw"), nullptr);
+    EXPECT_NE(creature_module->exports().find("get_skill_rank"), nullptr);
 }
 
 TEST_F(SmallsModules, LoadCoreItemModule)

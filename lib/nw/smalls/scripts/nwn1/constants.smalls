@@ -7,7 +7,9 @@ from core.types import {
     Damage,
     DamageCategory,
     EffectType,
+    Feat,
     MissChanceType,
+    ModifierType,
     Save,
     SaveVersus,
     Skill,
@@ -35,6 +37,8 @@ const attack_type_unarmed = AttackType(3);
 const attack_type_cweapon1 = AttackType(4);
 const attack_type_cweapon2 = AttackType(5);
 const attack_type_cweapon3 = AttackType(6);
+
+const creature_size_medium = 3;
 
 const base_item_shortsword = BaseItemType(0);
 const base_item_longsword = BaseItemType(1);
@@ -173,19 +177,55 @@ const class_type_eye_of_gruumsh = Class(39);
 const class_type_shou_disciple = Class(40);
 const class_type_purple_dragon_knight = Class(41);
 
-const feat_ambidexterity = 1;
-const feat_blind_fight = 408;
-const feat_improved_two_weapon_fighting = 20;
-const feat_ki_strike = 213;
-const feat_ki_strike_2 = 343;
-const feat_ki_strike_3 = 344;
-const feat_epic_improved_ki_strike_4 = 697;
-const feat_epic_improved_ki_strike_5 = 698;
-const feat_prestige_enchant_arrow_1 = 445;
-const feat_prestige_enchant_arrow_5 = 449;
-const feat_prestige_enchant_arrow_6 = 1045;
-const feat_prestige_enchant_arrow_20 = 1059;
-const feat_two_weapon_fighting = 41;
+const feat_ambidexterity = Feat(1);
+const feat_blind_fight = Feat(408);
+const feat_improved_two_weapon_fighting = Feat(20);
+const feat_ki_strike = Feat(213);
+const feat_ki_strike_2 = Feat(343);
+const feat_ki_strike_3 = Feat(344);
+const feat_epic_improved_ki_strike_4 = Feat(697);
+const feat_epic_improved_ki_strike_5 = Feat(698);
+const feat_prestige_enchant_arrow_1 = Feat(445);
+const feat_prestige_enchant_arrow_5 = Feat(449);
+const feat_prestige_enchant_arrow_6 = Feat(1045);
+const feat_prestige_enchant_arrow_20 = Feat(1059);
+const feat_two_weapon_fighting = Feat(41);
+
+const feat_toughness = Feat(40);
+const feat_epic_toughness_1 = Feat(754);
+const feat_epic_toughness_10 = Feat(763);
+const feat_epic_great_charisma_1 = Feat(764);
+const feat_epic_great_charisma_10 = Feat(773);
+const feat_epic_great_constitution_1 = Feat(774);
+const feat_epic_great_constitution_10 = Feat(783);
+const feat_epic_great_dexterity_1 = Feat(784);
+const feat_epic_great_dexterity_10 = Feat(793);
+const feat_epic_great_intelligence_1 = Feat(794);
+const feat_epic_great_intelligence_10 = Feat(803);
+const feat_epic_great_wisdom_1 = Feat(804);
+const feat_epic_great_wisdom_10 = Feat(813);
+const feat_epic_great_strength_1 = Feat(814);
+const feat_epic_great_strength_10 = Feat(823);
+const feat_stonecunning = Feat(227);
+const feat_epic_armor_skin = Feat(490);
+const feat_epic_damage_reduction_3 = Feat(492);
+const feat_epic_damage_reduction_6 = Feat(493);
+const feat_epic_damage_reduction_9 = Feat(494);
+const feat_resist_energy_cold = Feat(427);
+const feat_resist_energy_acid = Feat(428);
+const feat_resist_energy_fire = Feat(429);
+const feat_resist_energy_electrical = Feat(430);
+const feat_resist_energy_sonic = Feat(431);
+const feat_epic_energy_resistance_cold_1 = Feat(533);
+const feat_epic_energy_resistance_cold_10 = Feat(542);
+const feat_epic_energy_resistance_acid_1 = Feat(543);
+const feat_epic_energy_resistance_acid_10 = Feat(552);
+const feat_epic_energy_resistance_fire_1 = Feat(553);
+const feat_epic_energy_resistance_fire_10 = Feat(562);
+const feat_epic_energy_resistance_electrical_1 = Feat(563);
+const feat_epic_energy_resistance_electrical_10 = Feat(572);
+const feat_epic_energy_resistance_sonic_1 = Feat(573);
+const feat_epic_energy_resistance_sonic_10 = Feat(582);
 
 const damage_type_bludgeoning = Damage(0);
 const damage_type_piercing = Damage(1);
@@ -305,3 +345,25 @@ const effect_type_skill_decrease = EffectType(56);
 const effect_type_miss_chance = EffectType(75);
 const effect_type_concealment = EffectType(76);
 const effect_type_bonus_spell_of_level = EffectType(78);
+
+// Modifier type constants (match C++ nwn1::mod_type_* values)
+const mod_type_ability = ModifierType(0);
+const mod_type_armor_class = ModifierType(1);
+const mod_type_attack_bonus = ModifierType(2);
+const mod_type_concealment = ModifierType(3);
+const mod_type_crit_multiplier = ModifierType(4);
+const mod_type_crit_threat = ModifierType(5);
+const mod_type_dmg_immunity = ModifierType(6);
+const mod_type_dmg_reduction = ModifierType(7);
+const mod_type_dmg_resistance = ModifierType(8);
+const mod_type_hitpoints = ModifierType(9);
+const mod_type_immunity = ModifierType(10);
+const mod_type_initiative = ModifierType(11);
+const mod_type_movement_speed = ModifierType(12);
+const mod_type_regeneration = ModifierType(13);
+const mod_type_save = ModifierType(14);
+const mod_type_skill = ModifierType(15);
+const mod_type_spell_immunity = ModifierType(16);
+const mod_type_spell_resistance = ModifierType(17);
+const mod_type_damage = ModifierType(18);
+const mod_type_damage_special_attack = ModifierType(19);
