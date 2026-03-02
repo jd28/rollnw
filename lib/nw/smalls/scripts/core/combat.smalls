@@ -1,7 +1,37 @@
-from core.types import { AttackType, Damage };
+from core.types import { AttackType, Damage, DamageRoll };
 import core.effects as effects;
 
-[[native]] type AttackData;
+[[value_type]]
+type DamageResult {
+    damage_type: Damage;
+    amount: int;
+    unblocked: int;
+    immunity: int;
+    reduction: int;
+    reduction_remaining: int;
+    resist: int;
+    resist_remaining: int;
+};
+
+[[value_type]]
+type AttackData {
+    attack_type: int;
+    attack_result: int;
+    attack_roll: int;
+    attack_bonus: int;
+    armor_class: int;
+    nth_attack: int;
+    damage_total: int;
+    critical_multiplier: int;
+    critical_threat: int;
+    concealment: int;
+    iteration_penalty: int;
+    is_ranged: bool;
+    target_is_creature: bool;
+    base_damage: DamageResult;
+    damages: array!(DamageResult);
+    rolls: array!(DamageRoll);
+};
 
 [[native]] fn is_flanked(target: Creature, attacker: Creature): bool;
 [[native]] fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int;
@@ -38,34 +68,8 @@ import core.effects as effects;
 [[native]] fn dual_wield_has_pair(obj: Creature): bool;
 [[native]] fn dual_wield_off_is_light(obj: Creature): bool;
 [[native]] fn prepare_attack_round(attacker: Creature): void;
+[[native]] fn attack_current(attacker: Creature): int;
+[[native]] fn attacks_onhand(attacker: Creature): int;
+[[native]] fn attacks_offhand(attacker: Creature): int;
+[[native]] fn attacks_extra(attacker: Creature): int;
 [[native]] fn advance_attack_round(attacker: Creature): void;
-[[native]] fn attack_data_create(): AttackData;
-[[native]] fn attack_data_apply_damage_total(attacker: Creature, target: object, data: AttackData): int;
-[[native]] fn resolve_attack(attacker: Creature, target: object): AttackData;
-[[native]] fn attack_data_is_valid(data: AttackData): bool;
-[[native]] fn attack_data_attack_type(data: AttackData): int;
-[[native]] fn attack_data_attack_result(data: AttackData): int;
-[[native]] fn attack_data_attack_roll(data: AttackData): int;
-[[native]] fn attack_data_attack_bonus(data: AttackData): int;
-[[native]] fn attack_data_armor_class(data: AttackData): int;
-[[native]] fn attack_data_nth_attack(data: AttackData): int;
-[[native]] fn attack_data_damage_total(data: AttackData): int;
-[[native]] fn attack_data_critical_multiplier(data: AttackData): int;
-[[native]] fn attack_data_critical_threat(data: AttackData): int;
-[[native]] fn attack_data_concealment(data: AttackData): int;
-[[native]] fn attack_data_iteration_penalty(data: AttackData): int;
-[[native]] fn attack_data_is_ranged(data: AttackData): bool;
-[[native]] fn attack_data_set_attack_type(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_attack_result(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_attack_roll(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_attack_bonus(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_armor_class(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_nth_attack(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_damage_total(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_critical_multiplier(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_critical_threat(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_concealment(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_iteration_penalty(data: AttackData, value: int): void;
-[[native]] fn attack_data_set_is_ranged(data: AttackData, value: bool): void;
-[[native]] fn attack_data_target_is_creature(data: AttackData): bool;
-[[native]] fn attack_data_set_target_is_creature(data: AttackData, value: bool): void;

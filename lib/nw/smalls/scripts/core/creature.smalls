@@ -87,6 +87,30 @@ type CreatureCombat {
     attacks_onhand: int;
     attacks_offhand: int;
     attacks_extra: int;
+    bab_cached: int;
+    bab_cache_valid: int;
+    monk_power_cached: int;
+    enchant_arrow_cached: int;
+    feat_cache_valid: int;
+    // Dual-wield penalty cache (stable per round)
+    dual_wield_onhand: int;
+    dual_wield_offhand: int;
+    dual_wield_valid: int;
+    // Critical threat cache per attack slot (stable per round)
+    crit_threat_onhand: int;
+    crit_threat_offhand: int;
+    crit_threat_onhand_valid: int;
+    crit_threat_offhand_valid: int;
+    // Weapon iteration factor cache per slot (stable per round)
+    weapon_iter_onhand: int;
+    weapon_iter_offhand: int;
+    weapon_iter_onhand_valid: int;
+    weapon_iter_offhand_valid: int;
+    // Weapon power cache per slot (stable per round)
+    weapon_power_onhand: int;
+    weapon_power_onhand_valid: int;
+    weapon_power_offhand: int;
+    weapon_power_offhand_valid: int;
     combat_mode: int;
     ac_armor_base: int;
     ac_shield_base: int;

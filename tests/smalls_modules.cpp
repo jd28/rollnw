@@ -208,11 +208,12 @@ TEST_F(SmallsModules, LoadCoreCombatModule)
     ASSERT_NE(combat_module, nullptr);
 
     EXPECT_NE(combat_module->exports().find("AttackData"), nullptr);
+    EXPECT_NE(combat_module->exports().find("DamageResult"), nullptr);
     EXPECT_EQ(combat_module->exports().find("resolve_attack"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_is_valid"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_attack_type"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_attack_result"), nullptr);
-    EXPECT_NE(combat_module->exports().find("attack_data_target_is_creature"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("attack_data_is_valid"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("attack_data_attack_type"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("attack_data_attack_result"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("attack_data_target_is_creature"), nullptr);
 }
 
 TEST_F(SmallsModules, LoadNwn1CreatureModule)

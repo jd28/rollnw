@@ -804,16 +804,13 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatCanSimulateAttack)
 
         fn main(attacker: Creature, target: Creature): int {
             var data = NC.resolve_attack(attacker, target);
-            if (!C.attack_data_is_valid(data)) {
+            if (data.attack_type < 0) {
                 return 0;
             }
-            if (C.attack_data_attack_type(data) < 0) {
+            if (data.attack_result < 0) {
                 return 0;
             }
-            if (C.attack_data_attack_result(data) < 0) {
-                return 0;
-            }
-            if (!C.attack_data_target_is_creature(data)) {
+            if (!data.target_is_creature) {
                 return 0;
             }
             return 1;
@@ -821,6 +818,70 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatCanSimulateAttack)
     )";
 
     auto* script = rt.load_module_from_source("test.nwn1_combat_simulate_attack", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto attacker_value = nw::smalls::Value::make_object(attacker->handle());
+    attacker_value.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+    args.push_back(attacker_value);
+
+    auto target_value = nw::smalls::Value::make_object(target->handle());
+    target_value.type_id = rt.object_subtype_for_tag(target->handle().type);
+    args.push_back(target_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(target->handle());
+    nw::kernel::objects().destroy(attacker->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1CombatSyncsPropsetCombatRoundStateWithNative)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(attacker, nullptr);
+
+    auto* target = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(target, nullptr);
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        from core.creature import { CreatureCombat };
+        import core.combat as C;
+        import nwn1.combat as NC;
+
+        fn main(attacker: Creature, target: Creature): int {
+            for (var i = 0; i < 3; i += 1) {
+                var data = NC.resolve_attack(attacker, target);
+                if (data.attack_result < 0) {
+                    return 0;
+                }
+
+                var combat = get_propset!(CreatureCombat)(attacker);
+                if (combat.attack_current != C.attack_current(attacker)) {
+                    return 0;
+                }
+                if (combat.attacks_onhand != C.attacks_onhand(attacker)) {
+                    return 0;
+                }
+                if (combat.attacks_offhand != C.attacks_offhand(attacker)) {
+                    return 0;
+                }
+                if (combat.attacks_extra != C.attacks_extra(attacker)) {
+                    return 0;
+                }
+            }
+
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_combat_round_state_sync", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0);
 

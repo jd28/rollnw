@@ -15,8 +15,6 @@ namespace nw::smalls {
 
 namespace {
 
-constexpr uint8_t attack_data_handle_type = 128;
-
 int32_t aggregate_values(const std::vector<int32_t>& values, int32_t stack_policy)
 {
     if (values.empty()) {
@@ -666,44 +664,6 @@ int32_t unarmed_damage_level(nw::ObjectHandle obj)
     return level;
 }
 
-struct ScriptAttackData {
-    int32_t attack_type = -1;
-    int32_t attack_result = -1;
-    int32_t attack_roll = 0;
-    int32_t attack_bonus = 0;
-    int32_t armor_class = 0;
-    int32_t nth_attack = 0;
-    int32_t damage_total = 0;
-    int32_t critical_multiplier = 0;
-    int32_t critical_threat = 0;
-    int32_t concealment = 0;
-    int32_t iteration_penalty = 0;
-    bool is_ranged = false;
-    bool target_is_creature = false;
-};
-
-nw::TypedHandlePool& attack_data_pool()
-{
-    static nw::TypedHandlePool pool(sizeof(ScriptAttackData));
-    return pool;
-}
-
-ScriptAttackData* get_attack_data(nw::TypedHandle h)
-{
-    if (!h.is_valid() || h.type != attack_data_handle_type) {
-        return nullptr;
-    }
-    return static_cast<ScriptAttackData*>(attack_data_pool().get(h));
-}
-
-void destroy_attack_data(nw::TypedHandle h)
-{
-    if (!h.is_valid() || h.type != attack_data_handle_type) {
-        return;
-    }
-    attack_data_pool().destroy(h);
-}
-
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -712,11 +672,7 @@ void register_core_combat(Runtime& rt)
         return;
     }
 
-    auto attack_data_type = rt.type_id("core.combat.AttackData", true);
-    rt.register_handle_destructor(attack_data_type, +[](nw::TypedHandle h, HeapPtr) { destroy_attack_data(h); });
-
     rt.module("core.combat")
-        .handle_type("AttackData", attack_data_handle_type)
         .function("is_flanked", +[](nw::ObjectHandle target, nw::ObjectHandle attacker) -> bool { return nwn1::is_flanked(as_creature(target), as_creature(attacker)); })
         .function("attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, versus); })
         .function("weapon_critical_multiplier", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_multiplier(obj, attack_type); })
@@ -771,211 +727,24 @@ void register_core_combat(Runtime& rt)
             if (cre->combat_info.attack_current >= total_attacks) {
                 cre->combat_info.attack_current = 0;
             } })
+        .function("attack_current", +[](nw::ObjectHandle attacker) -> int32_t {
+            auto* cre = as_creature(attacker);
+            return cre ? cre->combat_info.attack_current : 0; })
+        .function("attacks_onhand", +[](nw::ObjectHandle attacker) -> int32_t {
+            auto* cre = as_creature(attacker);
+            return cre ? cre->combat_info.attacks_onhand : 0; })
+        .function("attacks_offhand", +[](nw::ObjectHandle attacker) -> int32_t {
+            auto* cre = as_creature(attacker);
+            return cre ? cre->combat_info.attacks_offhand : 0; })
+        .function("attacks_extra", +[](nw::ObjectHandle attacker) -> int32_t {
+            auto* cre = as_creature(attacker);
+            return cre ? cre->combat_info.attacks_extra : 0; })
         .function("advance_attack_round", +[](nw::ObjectHandle attacker) {
             auto* cre = as_creature(attacker);
             if (cre) {
                 ++cre->combat_info.attack_current;
             } })
-        .function("attack_data_create", +[]() -> nw::TypedHandle {
-            auto handle = attack_data_pool().allocate();
-            handle.type = attack_data_handle_type;
-            auto* out = get_attack_data(handle);
-            if (!out) {
-                destroy_attack_data(handle);
-                return {};
-            }
-            *out = {};
-            return handle; })
-        .function("attack_data_apply_damage_total", +[](nw::ObjectHandle attacker, nw::ObjectHandle target, nw::TypedHandle data) -> int32_t {
-            auto* cre = as_creature(attacker);
-            auto* tgt = as_object_base(target);
-            auto* ad = get_attack_data(data);
-            if (!cre || !tgt || !ad) {
-                return 0;
-            }
-
-            nw::AttackData native{};
-            native.attacker = cre;
-            native.target = tgt;
-            native.type = nw::AttackType::make(ad->attack_type);
-            native.weapon = nwn1::get_weapon_by_attack_type(cre, native.type);
-            native.target_state = nwn1::resolve_target_state(cre, tgt);
-            native.target_is_creature = ad->target_is_creature;
-            native.is_ranged_attack = ad->is_ranged;
-            native.nth_attack = ad->nth_attack;
-            native.result = static_cast<nw::AttackResult>(ad->attack_result);
-            native.attack_roll = ad->attack_roll;
-            native.attack_bonus = ad->attack_bonus;
-            native.armor_class = ad->armor_class;
-            native.multiplier = ad->critical_multiplier;
-            native.threat_range = ad->critical_threat;
-            native.concealment = ad->concealment;
-            native.iteration_penalty = ad->iteration_penalty;
-
-            ad->damage_total = nwn1::resolve_attack_damage(cre, tgt, &native);
-            return ad->damage_total; })
-        .function("resolve_attack", +[](nw::ObjectHandle attacker, nw::ObjectHandle target) -> nw::TypedHandle {
-            auto attack = nwn1::resolve_attack(as_creature(attacker), as_object_base(target));
-            if (!attack) {
-                return {};
-            }
-
-            auto handle = attack_data_pool().allocate();
-            handle.type = attack_data_handle_type;
-
-            auto* out = get_attack_data(handle);
-            if (!out) {
-                destroy_attack_data(handle);
-                return {};
-            }
-
-            out->attack_type = *attack->type;
-            out->attack_result = static_cast<int32_t>(attack->result);
-            out->attack_roll = attack->attack_roll;
-            out->attack_bonus = attack->attack_bonus;
-            out->armor_class = attack->armor_class;
-            out->nth_attack = attack->nth_attack;
-            out->damage_total = attack->damage_total;
-            out->critical_multiplier = attack->multiplier;
-            out->critical_threat = attack->threat_range;
-            out->concealment = attack->concealment;
-            out->iteration_penalty = attack->iteration_penalty;
-            out->is_ranged = attack->is_ranged_attack;
-            out->target_is_creature = attack->target_is_creature;
-            return handle; })
-        .function("attack_data_is_valid", +[](nw::TypedHandle data) -> bool { return get_attack_data(data) != nullptr; })
-        .function("attack_data_attack_type", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->attack_type : -1; })
-        .function("attack_data_attack_result", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->attack_result : -1; })
-        .function("attack_data_attack_roll", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->attack_roll : 0; })
-        .function("attack_data_attack_bonus", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->attack_bonus : 0; })
-        .function("attack_data_armor_class", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->armor_class : 0; })
-        .function("attack_data_nth_attack", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->nth_attack : 0; })
-        .function("attack_data_damage_total", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->damage_total : 0; })
-        .function("attack_data_critical_multiplier", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->critical_multiplier : 0; })
-        .function("attack_data_critical_threat", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->critical_threat : 0; })
-        .function("attack_data_concealment", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->concealment : 0; })
-        .function("attack_data_iteration_penalty", +[](nw::TypedHandle data) -> int32_t {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->iteration_penalty : 0; })
-        .function("attack_data_is_ranged", +[](nw::TypedHandle data) -> bool {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->is_ranged : false; })
-        .function("attack_data_set_attack_type", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->attack_type = value;
-            } })
-        .function("attack_data_set_attack_result", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->attack_result = value;
-            } })
-        .function("attack_data_set_attack_roll", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->attack_roll = value;
-            } })
-        .function("attack_data_set_attack_bonus", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->attack_bonus = value;
-            } })
-        .function("attack_data_set_armor_class", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->armor_class = value;
-            } })
-        .function("attack_data_set_nth_attack", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->nth_attack = value;
-            } })
-        .function("attack_data_set_damage_total", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->damage_total = value;
-            } })
-        .function("attack_data_set_critical_multiplier", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->critical_multiplier = value;
-            } })
-        .function("attack_data_set_critical_threat", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->critical_threat = value;
-            } })
-        .function("attack_data_set_concealment", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->concealment = value;
-            } })
-        .function("attack_data_set_iteration_penalty", +[](nw::TypedHandle data, int32_t value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->iteration_penalty = value;
-            } })
-        .function("attack_data_set_is_ranged", +[](nw::TypedHandle data, bool value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->is_ranged = value;
-            } })
-        .function("attack_data_target_is_creature", +[](nw::TypedHandle data) -> bool {
-            auto* ad = get_attack_data(data);
-            return ad ? ad->target_is_creature : false; })
-        .function("attack_data_set_target_is_creature", +[](nw::TypedHandle data, bool value) {
-            auto* ad = get_attack_data(data);
-            if (ad) {
-                ad->target_is_creature = value;
-            } })
         .finalize();
-}
-
-bool try_copy_attack_data(nw::TypedHandle handle,
-    int32_t& attack_type, int32_t& attack_result, int32_t& attack_roll, int32_t& attack_bonus,
-    int32_t& armor_class, int32_t& nth_attack, int32_t& damage_total, int32_t& critical_multiplier,
-    int32_t& critical_threat, int32_t& concealment, int32_t& iteration_penalty,
-    bool& is_ranged, bool& target_is_creature)
-{
-    auto* data = get_attack_data(handle);
-    if (!data) {
-        return false;
-    }
-
-    attack_type = data->attack_type;
-    attack_result = data->attack_result;
-    attack_roll = data->attack_roll;
-    attack_bonus = data->attack_bonus;
-    armor_class = data->armor_class;
-    nth_attack = data->nth_attack;
-    damage_total = data->damage_total;
-    critical_multiplier = data->critical_multiplier;
-    critical_threat = data->critical_threat;
-    concealment = data->concealment;
-    iteration_penalty = data->iteration_penalty;
-    is_ranged = data->is_ranged;
-    target_is_creature = data->target_is_creature;
-    return true;
 }
 
 } // namespace nw::smalls

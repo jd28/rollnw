@@ -15,6 +15,20 @@ type Skill(int);
 type EquipIndex(int);
 type ItemPropertyType(int);
 
+[[value_type]]
+type DiceRoll {
+    dice: int;
+    sides: int;
+    bonus: int;
+};
+
+[[value_type]]
+type DamageRoll {
+    damage_type: Damage;
+    roll: DiceRoll;
+    flags: DamageCategory;
+};
+
 type Color {
     r: int;
     g: int;

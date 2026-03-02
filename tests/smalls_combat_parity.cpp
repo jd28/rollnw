@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/kernel/Config.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -24,6 +25,8 @@ constexpr std::string_view combat_parity_bridge_source = R"(
     import nwn1.combat as Combat;
     import nwn1.races as races;
     import core.combat as C;
+    from core.combat import { AttackData, DamageResult };
+    from core.types import { Damage, DamageRoll };
     import core.creature as Cre;
     import core.object as Obj;
     from core.creature import { CreatureCombat, CreatureStats };
@@ -149,7 +152,7 @@ constexpr std::string_view combat_parity_bridge_source = R"(
         return C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
     }
 
-    fn resolve_attack_data(attacker: Creature, target: object): C.AttackData {
+    fn resolve_attack_data(attacker: Creature, target: object): AttackData {
         return Combat.resolve_attack(attacker, target);
     }
 
@@ -160,9 +163,7 @@ constexpr std::string_view combat_parity_bridge_source = R"(
         confirm_roll: int,
         conceal_roll_1: int,
         conceal_roll_2: int,
-    ): C.AttackData {
-        var data = C.attack_data_create();
-
+    ): AttackData {
         var attack_bonus = Combat.resolve_attack_bonus(attacker, attack_type_onhand, target);
         var armor_class = C.attack_roll_armor_class(attacker, target);
         var iteration_penalty = Combat.resolve_iteration_penalty(attacker, attack_type_onhand);
@@ -180,68 +181,37 @@ constexpr std::string_view combat_parity_bridge_source = R"(
             critical_multiplier = 1;
         }
 
-        C.attack_data_set_attack_type(data, attack_type_onhand as int);
-        C.attack_data_set_attack_result(data, result);
-        C.attack_data_set_attack_roll(data, d20_roll);
-        C.attack_data_set_attack_bonus(data, attack_bonus);
-        C.attack_data_set_armor_class(data, armor_class);
-        C.attack_data_set_nth_attack(data, nth_attack);
-        C.attack_data_set_critical_threat(data, critical_threat);
-        C.attack_data_set_iteration_penalty(data, iteration_penalty);
-        C.attack_data_set_concealment(data, concealment);
-        C.attack_data_set_is_ranged(data, is_ranged);
-        C.attack_data_set_target_is_creature(data, Obj.is_creature(target));
-        C.attack_data_set_critical_multiplier(data, critical_multiplier);
+        var base_damage: DamageResult = {
+            damage_type = Damage(-1),
+            amount = 0,
+            unblocked = 0,
+            immunity = 0,
+            reduction = 0,
+            reduction_remaining = 0,
+            resist = 0,
+            resist_remaining = 0,
+        };
+        var damages: array!(DamageResult);
+        var rolls: array!(DamageRoll);
 
-        return data;
-    }
-
-    fn attack_data_attack_type_ext(data: C.AttackData): int {
-        return C.attack_data_attack_type(data);
-    }
-
-    fn attack_data_attack_bonus_ext(data: C.AttackData): int {
-        return C.attack_data_attack_bonus(data);
-    }
-
-    fn attack_data_attack_result_ext(data: C.AttackData): int {
-        return C.attack_data_attack_result(data);
-    }
-
-    fn attack_data_attack_roll_ext(data: C.AttackData): int {
-        return C.attack_data_attack_roll(data);
-    }
-
-    fn attack_data_armor_class_ext(data: C.AttackData): int {
-        return C.attack_data_armor_class(data);
-    }
-
-    fn attack_data_nth_attack_ext(data: C.AttackData): int {
-        return C.attack_data_nth_attack(data);
-    }
-
-    fn attack_data_critical_threat_ext(data: C.AttackData): int {
-        return C.attack_data_critical_threat(data);
-    }
-
-    fn attack_data_critical_multiplier_ext(data: C.AttackData): int {
-        return C.attack_data_critical_multiplier(data);
-    }
-
-    fn attack_data_concealment_ext(data: C.AttackData): int {
-        return C.attack_data_concealment(data);
-    }
-
-    fn attack_data_iteration_penalty_ext(data: C.AttackData): int {
-        return C.attack_data_iteration_penalty(data);
-    }
-
-    fn attack_data_is_ranged_ext(data: C.AttackData): int {
-        return C.attack_data_is_ranged(data) ? 1 : 0;
-    }
-
-    fn attack_data_target_is_creature_ext(data: C.AttackData): int {
-        return C.attack_data_target_is_creature(data) ? 1 : 0;
+        return AttackData {
+            attack_type = attack_type_onhand as int,
+            attack_result = result,
+            attack_roll = d20_roll,
+            attack_bonus = attack_bonus,
+            armor_class = armor_class,
+            nth_attack = nth_attack,
+            damage_total = 0,
+            critical_threat = critical_threat,
+            critical_multiplier = critical_multiplier,
+            concealment = concealment,
+            iteration_penalty = iteration_penalty,
+            is_ranged = is_ranged,
+            target_is_creature = Obj.is_creature(target),
+            base_damage = base_damage,
+            damages = damages,
+            rolls = rolls,
+        };
     }
 
     fn resolve_unarmed_profile_value(attacker: Creature, which: int): int {
@@ -299,6 +269,52 @@ nw::smalls::Value make_object_arg(nw::ObjectHandle handle)
     auto value = nw::smalls::Value::make_object(handle);
     value.type_id = rt.object_subtype_for_tag(handle.type);
     return value;
+}
+
+const nw::smalls::StructDef* get_attack_data_def(nw::smalls::Runtime& rt, const nw::smalls::Value& value)
+{
+    const auto* type = rt.get_type(value.type_id);
+    if (!type || type->type_kind != nw::smalls::TK_struct || !type->type_params[0].is<nw::smalls::StructID>()) {
+        return nullptr;
+    }
+    if (rt.type_name(value.type_id) != "core.combat.AttackData") {
+        return nullptr;
+    }
+    auto struct_id = type->type_params[0].as<nw::smalls::StructID>();
+    return rt.type_table_.get(struct_id);
+}
+
+int read_attack_data_int(nw::smalls::Runtime& rt, const nw::smalls::Value& data,
+    const nw::smalls::StructDef* def, nw::StringView field_name)
+{
+    if (!def) {
+        return 0;
+    }
+    uint32_t field_index = def->field_index(field_name);
+    if (field_index == UINT32_MAX) {
+        return 0;
+    }
+    const auto& field = def->fields[field_index];
+    auto value = rt.read_value_field_at_offset(data, field.offset, field.type_id);
+    return value.data.ival;
+}
+
+bool read_attack_data_bool(nw::smalls::Runtime& rt, const nw::smalls::Value& data,
+    const nw::smalls::StructDef* def, nw::StringView field_name)
+{
+    if (!def) {
+        return false;
+    }
+    uint32_t field_index = def->field_index(field_name);
+    if (field_index == UINT32_MAX) {
+        return false;
+    }
+    const auto& field = def->fields[field_index];
+    auto value = rt.read_value_field_at_offset(data, field.offset, field.type_id);
+    if (value.type_id == rt.bool_type()) {
+        return value.data.bval;
+    }
+    return value.data.ival != 0;
 }
 
 nw::AttackResult resolve_attack_roll_cpp_deterministic(
@@ -413,6 +429,7 @@ protected:
     void SetUp() override
     {
         nwk::services().start();
+        nwk::config().set_combat_policy_module("nwn1.combat");
         auto& rt = nwk::runtime();
         rt.add_module_path(fs::path("stdlib/core"));
         rt.add_module_path(fs::path("stdlib/nwn1"));
@@ -684,22 +701,22 @@ TEST_F(SmallsCombatParity, AttackDataDeterministicDecisionFieldsMatchCppReferenc
 
             auto resolve_result = nwk::runtime().execute_script(script_, "resolve_attack_data_onhand_deterministic", resolve_args);
             ASSERT_TRUE(resolve_result.ok()) << resolve_result.error_message;
+            auto& rt = nwk::runtime();
+            const auto* attack_data_def = get_attack_data_def(rt, resolve_result.value);
+            ASSERT_NE(attack_data_def, nullptr);
 
-            nw::Vector<nw::smalls::Value> data_args;
-            data_args.push_back(resolve_result.value);
-
-            const int smalls_attack_type = exec_int("attack_data_attack_type_ext", data_args);
-            const int smalls_attack_result = exec_int("attack_data_attack_result_ext", data_args);
-            const int smalls_attack_roll = exec_int("attack_data_attack_roll_ext", data_args);
-            const int smalls_attack_bonus = exec_int("attack_data_attack_bonus_ext", data_args);
-            const int smalls_armor_class = exec_int("attack_data_armor_class_ext", data_args);
-            const int smalls_nth_attack = exec_int("attack_data_nth_attack_ext", data_args);
-            const int smalls_critical_threat = exec_int("attack_data_critical_threat_ext", data_args);
-            const int smalls_critical_multiplier = exec_int("attack_data_critical_multiplier_ext", data_args);
-            const int smalls_concealment = exec_int("attack_data_concealment_ext", data_args);
-            const int smalls_iteration_penalty = exec_int("attack_data_iteration_penalty_ext", data_args);
-            const int smalls_is_ranged = exec_int("attack_data_is_ranged_ext", data_args);
-            const int smalls_target_is_creature = exec_int("attack_data_target_is_creature_ext", data_args);
+            const int smalls_attack_type = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_type");
+            const int smalls_attack_result = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_result");
+            const int smalls_attack_roll = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_roll");
+            const int smalls_attack_bonus = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_bonus");
+            const int smalls_armor_class = read_attack_data_int(rt, resolve_result.value, attack_data_def, "armor_class");
+            const int smalls_nth_attack = read_attack_data_int(rt, resolve_result.value, attack_data_def, "nth_attack");
+            const int smalls_critical_threat = read_attack_data_int(rt, resolve_result.value, attack_data_def, "critical_threat");
+            const int smalls_critical_multiplier = read_attack_data_int(rt, resolve_result.value, attack_data_def, "critical_multiplier");
+            const int smalls_concealment = read_attack_data_int(rt, resolve_result.value, attack_data_def, "concealment");
+            const int smalls_iteration_penalty = read_attack_data_int(rt, resolve_result.value, attack_data_def, "iteration_penalty");
+            const int smalls_is_ranged = read_attack_data_bool(rt, resolve_result.value, attack_data_def, "is_ranged") ? 1 : 0;
+            const int smalls_target_is_creature = read_attack_data_bool(rt, resolve_result.value, attack_data_def, "target_is_creature") ? 1 : 0;
 
             const auto expected = resolve_attack_data_cpp_deterministic(
                 cpp_attacker, cpp_target, c.roll, c.confirm, c.conceal_1, c.conceal_2);
@@ -782,19 +799,18 @@ TEST_F(SmallsCombatParity, ResolveAttackPayloadDeterministicFieldsMatchCppRefere
 
         auto resolve_result = nwk::runtime().execute_script(script_, "resolve_attack_data", resolve_args);
         ASSERT_TRUE(resolve_result.ok()) << resolve_result.error_message;
-        auto smalls_data = resolve_result.value;
+        auto& rt = nwk::runtime();
+        const auto* attack_data_def = get_attack_data_def(rt, resolve_result.value);
+        ASSERT_NE(attack_data_def, nullptr);
 
-        nw::Vector<nw::smalls::Value> data_args;
-        data_args.push_back(smalls_data);
-
-        const int smalls_attack_type = exec_int("attack_data_attack_type_ext", data_args);
-        const int smalls_attack_bonus = exec_int("attack_data_attack_bonus_ext", data_args);
-        const int smalls_armor_class = exec_int("attack_data_armor_class_ext", data_args);
-        const int smalls_nth_attack = exec_int("attack_data_nth_attack_ext", data_args);
-        const int smalls_critical_threat = exec_int("attack_data_critical_threat_ext", data_args);
-        const int smalls_iteration_penalty = exec_int("attack_data_iteration_penalty_ext", data_args);
-        const int smalls_is_ranged = exec_int("attack_data_is_ranged_ext", data_args);
-        const int smalls_target_is_creature = exec_int("attack_data_target_is_creature_ext", data_args);
+        const int smalls_attack_type = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_type");
+        const int smalls_attack_bonus = read_attack_data_int(rt, resolve_result.value, attack_data_def, "attack_bonus");
+        const int smalls_armor_class = read_attack_data_int(rt, resolve_result.value, attack_data_def, "armor_class");
+        const int smalls_nth_attack = read_attack_data_int(rt, resolve_result.value, attack_data_def, "nth_attack");
+        const int smalls_critical_threat = read_attack_data_int(rt, resolve_result.value, attack_data_def, "critical_threat");
+        const int smalls_iteration_penalty = read_attack_data_int(rt, resolve_result.value, attack_data_def, "iteration_penalty");
+        const int smalls_is_ranged = read_attack_data_bool(rt, resolve_result.value, attack_data_def, "is_ranged") ? 1 : 0;
+        const int smalls_target_is_creature = read_attack_data_bool(rt, resolve_result.value, attack_data_def, "target_is_creature") ? 1 : 0;
 
         auto cpp_data = nwn1::resolve_attack(cpp_attacker, cpp_target);
         ASSERT_NE(cpp_data, nullptr);

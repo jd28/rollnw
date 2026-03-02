@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "../../rules/Spell.hpp"
 #include "../../rules/attributes.hpp"
 #include "constants.hpp"
@@ -26,6 +28,17 @@ using DamageFlag = RuleFlag<Damage, 32>;
 } // namespace nw
 
 namespace nwn1 {
+
+struct CombatPolicyTimingSnapshot {
+    uint64_t policy_call_ns = 0;
+    uint64_t decode_ns = 0;
+    uint64_t fallback_ns = 0;
+    uint64_t iterations = 0;
+};
+
+void set_combat_policy_timing_enabled(bool enabled) noexcept;
+void reset_combat_policy_timing() noexcept;
+CombatPolicyTimingSnapshot combat_policy_timing_snapshot() noexcept;
 
 // ============================================================================
 // == Object ==================================================================

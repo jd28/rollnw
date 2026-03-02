@@ -17,17 +17,10 @@
 #include "../../smalls/runtime.hpp"
 #include "../../util/macros.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <optional>
 #include <utility>
-
-namespace nw::smalls {
-bool try_copy_attack_data(nw::TypedHandle handle,
-    int32_t& attack_type, int32_t& attack_result, int32_t& attack_roll, int32_t& attack_bonus,
-    int32_t& armor_class, int32_t& nth_attack, int32_t& damage_total, int32_t& critical_multiplier,
-    int32_t& critical_threat, int32_t& concealment, int32_t& iteration_penalty,
-    bool& is_ranged, bool& target_is_creature);
-}
 
 namespace nwn1 {
 
@@ -52,6 +45,23 @@ struct PolicyModuleCache {
 };
 
 thread_local PolicyModuleCache policy_module_cache;
+
+thread_local bool combat_policy_timing_enabled = false;
+
+struct CombatPolicyTimingData {
+    uint64_t policy_call_ns = 0;
+    uint64_t decode_ns = 0;
+    uint64_t fallback_ns = 0;
+    uint64_t iterations = 0;
+};
+
+thread_local CombatPolicyTimingData combat_policy_timing;
+
+inline uint64_t now_ns() noexcept
+{
+    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
+}
 
 PolicyFnCacheEntry& resolve_policy_fn_cache(nw::StringView fn)
 {
@@ -205,7 +215,99 @@ nw::smalls::Value make_object_arg(nw::ObjectHandle handle)
     return value;
 }
 
+const nw::smalls::StructDef* get_attack_data_def(nw::smalls::Runtime& rt, const nw::smalls::Value& value)
+{
+    const auto* type = rt.get_type(value.type_id);
+    if (!type || type->type_kind != nw::smalls::TK_struct || !type->type_params[0].is<nw::smalls::StructID>()) {
+        return nullptr;
+    }
+
+    if (rt.type_name(value.type_id) != "core.combat.AttackData") {
+        return nullptr;
+    }
+
+    auto struct_id = type->type_params[0].as<nw::smalls::StructID>();
+    return rt.type_table_.get(struct_id);
+}
+
+bool read_attack_data_int_field(nw::smalls::Runtime& rt, const nw::smalls::Value& data,
+    const nw::smalls::StructDef* def, nw::StringView field_name, int32_t& out)
+{
+    if (!def) {
+        return false;
+    }
+
+    uint32_t field_index = def->field_index(field_name);
+    if (field_index == UINT32_MAX) {
+        return false;
+    }
+
+    const auto& field = def->fields[field_index];
+    auto value = rt.read_value_field_at_offset(data, field.offset, field.type_id);
+    if (!value.type_id.value) {
+        return false;
+    }
+
+    if (!is_int_compatible_type(rt, value.type_id)) {
+        return false;
+    }
+
+    out = value.data.ival;
+    return true;
+}
+
+bool read_attack_data_bool_field(nw::smalls::Runtime& rt, const nw::smalls::Value& data,
+    const nw::smalls::StructDef* def, nw::StringView field_name, bool& out)
+{
+    if (!def) {
+        return false;
+    }
+
+    uint32_t field_index = def->field_index(field_name);
+    if (field_index == UINT32_MAX) {
+        return false;
+    }
+
+    const auto& field = def->fields[field_index];
+    auto value = rt.read_value_field_at_offset(data, field.offset, field.type_id);
+    if (!value.type_id.value) {
+        return false;
+    }
+
+    if (value.type_id == rt.bool_type()) {
+        out = value.data.bval;
+        return true;
+    }
+
+    if (!is_int_compatible_type(rt, value.type_id)) {
+        return false;
+    }
+
+    out = value.data.ival != 0;
+    return true;
+}
+
 } // namespace
+
+void set_combat_policy_timing_enabled(bool enabled) noexcept
+{
+    combat_policy_timing_enabled = enabled;
+}
+
+void reset_combat_policy_timing() noexcept
+{
+    combat_policy_timing = {};
+}
+
+nwn1::CombatPolicyTimingSnapshot combat_policy_timing_snapshot() noexcept
+{
+    return {
+        .policy_call_ns = combat_policy_timing.policy_call_ns,
+        .decode_ns = combat_policy_timing.decode_ns,
+        .fallback_ns = combat_policy_timing.fallback_ns,
+        .iterations = combat_policy_timing.iterations,
+    };
+}
 
 // ============================================================================
 // == Object ==================================================================
@@ -1059,64 +1161,100 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 {
     if (!attacker || !target) { return {}; }
 
+    if (combat_policy_timing_enabled) {
+        ++combat_policy_timing.iterations;
+    }
+
     if (!in_combat_policy_dispatch) {
         auto module = configured_combat_module();
         if (!module.empty()) {
+            uint64_t policy_call_begin_ns = 0;
+            if (combat_policy_timing_enabled) {
+                policy_call_begin_ns = now_ns();
+            }
+
             if (auto out = call_policy_value_cached_args("resolve_attack",
                     make_object_arg(attacker->handle()),
                     make_object_arg(target->handle()))) {
-                auto& rt = nw::kernel::runtime();
-                if (rt.is_handle_type(out->type_id)
-                    && out->storage == nw::smalls::ValueStorage::heap
-                    && out->data.hptr.value != 0) {
-                    if (auto* script_handle = rt.get_handle(out->data.hptr)) {
-                        int32_t attack_type = -1;
-                        int32_t attack_result = static_cast<int32_t>(nw::AttackResult::miss_by_roll);
-                        int32_t attack_roll = 0;
-                        int32_t attack_bonus = 0;
-                        int32_t armor_class = 0;
-                        int32_t nth_attack = 0;
-                        int32_t damage_total = 0;
-                        int32_t critical_multiplier = 0;
-                        int32_t critical_threat = 0;
-                        int32_t concealment = 0;
-                        int32_t iteration_penalty = 0;
-                        bool is_ranged = false;
-                        bool target_is_creature = false;
-
-                        if (nw::smalls::try_copy_attack_data(*script_handle,
-                                attack_type, attack_result, attack_roll, attack_bonus,
-                                armor_class, nth_attack, damage_total, critical_multiplier,
-                                critical_threat, concealment, iteration_penalty,
-                                is_ranged, target_is_creature)) {
-                            auto data = std::make_unique<nw::AttackData>();
-                            data->attacker = attacker;
-                            data->target = target;
-                            data->type = nw::AttackType::make(attack_type);
-                            data->weapon = get_weapon_by_attack_type(attacker, data->type);
-                            data->target_state = resolve_target_state(attacker, target);
-                            data->target_is_creature = target_is_creature;
-                            data->is_ranged_attack = is_ranged;
-                            data->nth_attack = nth_attack;
-                            data->result = static_cast<nw::AttackResult>(attack_result);
-                            data->attack_roll = attack_roll;
-                            data->attack_bonus = attack_bonus;
-                            data->armor_class = armor_class;
-                            data->damage_total = damage_total;
-                            data->multiplier = critical_multiplier;
-                            data->threat_range = critical_threat;
-                            data->concealment = concealment;
-                            data->iteration_penalty = iteration_penalty;
-                            return data;
-                        }
-
-                        LOG_F(ERROR, "[nwn1] combat policy '{}.resolve_attack' returned invalid AttackData handle", module);
-                    }
+                if (combat_policy_timing_enabled) {
+                    combat_policy_timing.policy_call_ns += now_ns() - policy_call_begin_ns;
                 }
 
-                LOG_F(ERROR, "[nwn1] combat policy '{}.resolve_attack' returned non-handle result", module);
+                uint64_t decode_begin_ns = 0;
+                if (combat_policy_timing_enabled) {
+                    decode_begin_ns = now_ns();
+                }
+
+                auto& rt = nw::kernel::runtime();
+                int32_t attack_type = -1;
+                int32_t attack_result = static_cast<int32_t>(nw::AttackResult::miss_by_roll);
+                int32_t attack_roll = 0;
+                int32_t attack_bonus = 0;
+                int32_t armor_class = 0;
+                int32_t nth_attack = 0;
+                int32_t damage_total = 0;
+                int32_t critical_multiplier = 0;
+                int32_t critical_threat = 0;
+                int32_t concealment = 0;
+                int32_t iteration_penalty = 0;
+                bool is_ranged = false;
+                bool target_is_creature = false;
+
+                const auto* def = get_attack_data_def(rt, *out);
+                if (def
+                    && read_attack_data_int_field(rt, *out, def, "attack_type", attack_type)
+                    && read_attack_data_int_field(rt, *out, def, "attack_result", attack_result)
+                    && read_attack_data_int_field(rt, *out, def, "attack_roll", attack_roll)
+                    && read_attack_data_int_field(rt, *out, def, "attack_bonus", attack_bonus)
+                    && read_attack_data_int_field(rt, *out, def, "armor_class", armor_class)
+                    && read_attack_data_int_field(rt, *out, def, "nth_attack", nth_attack)
+                    && read_attack_data_int_field(rt, *out, def, "damage_total", damage_total)
+                    && read_attack_data_int_field(rt, *out, def, "critical_multiplier", critical_multiplier)
+                    && read_attack_data_int_field(rt, *out, def, "critical_threat", critical_threat)
+                    && read_attack_data_int_field(rt, *out, def, "concealment", concealment)
+                    && read_attack_data_int_field(rt, *out, def, "iteration_penalty", iteration_penalty)
+                    && read_attack_data_bool_field(rt, *out, def, "is_ranged", is_ranged)
+                    && read_attack_data_bool_field(rt, *out, def, "target_is_creature", target_is_creature)) {
+                    auto data = std::make_unique<nw::AttackData>();
+                    data->attacker = attacker;
+                    data->target = target;
+                    data->type = nw::AttackType::make(attack_type);
+                    data->weapon = get_weapon_by_attack_type(attacker, data->type);
+                    data->target_state = resolve_target_state(attacker, target);
+                    data->target_is_creature = target_is_creature;
+                    data->is_ranged_attack = is_ranged;
+                    data->nth_attack = nth_attack;
+                    data->result = static_cast<nw::AttackResult>(attack_result);
+                    data->attack_roll = attack_roll;
+                    data->attack_bonus = attack_bonus;
+                    data->armor_class = armor_class;
+                    data->damage_total = damage_total;
+                    data->multiplier = critical_multiplier;
+                    data->threat_range = critical_threat;
+                    data->concealment = concealment;
+                    data->iteration_penalty = iteration_penalty;
+
+                    if (combat_policy_timing_enabled) {
+                        combat_policy_timing.decode_ns += now_ns() - decode_begin_ns;
+                    }
+
+                    return data;
+                }
+
+                if (combat_policy_timing_enabled) {
+                    combat_policy_timing.decode_ns += now_ns() - decode_begin_ns;
+                }
+
+                LOG_F(ERROR, "[nwn1] combat policy '{}.resolve_attack' returned invalid core.combat.AttackData struct", module);
+            } else if (combat_policy_timing_enabled) {
+                combat_policy_timing.policy_call_ns += now_ns() - policy_call_begin_ns;
             }
         }
+    }
+
+    uint64_t fallback_begin_ns = 0;
+    if (combat_policy_timing_enabled) {
+        fallback_begin_ns = now_ns();
     }
 
     auto target_cre = target->as_creature();
@@ -1192,6 +1330,10 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
     }
 
     ++attacker->combat_info.attack_current;
+
+    if (combat_policy_timing_enabled) {
+        combat_policy_timing.fallback_ns += now_ns() - fallback_begin_ns;
+    }
 
     return data;
 }

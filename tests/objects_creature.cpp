@@ -330,24 +330,41 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
     auto& rt = nw::kernel::runtime();
     auto* script = rt.load_module_from_source("test.custom_combat_policy_attack_full_payload", R"(
         import core.combat as C;
+        from core.combat import { AttackData, DamageResult };
+        from core.types import { Damage, DamageRoll };
         from nwn1.constants import { attack_type_offhand };
 
-        fn resolve_attack(_attacker: Creature, _target: object): C.AttackData {
-            var data = C.attack_data_create();
-            C.attack_data_set_attack_type(data, attack_type_offhand as int);
-            C.attack_data_set_attack_result(data, 2);
-            C.attack_data_set_attack_roll(data, 19);
-            C.attack_data_set_attack_bonus(data, 42);
-            C.attack_data_set_armor_class(data, 13);
-            C.attack_data_set_nth_attack(data, 1);
-            C.attack_data_set_damage_total(data, 17);
-            C.attack_data_set_critical_multiplier(data, 3);
-            C.attack_data_set_critical_threat(data, 4);
-            C.attack_data_set_concealment(data, 11);
-            C.attack_data_set_iteration_penalty(data, 5);
-            C.attack_data_set_is_ranged(data, true);
-            C.attack_data_set_target_is_creature(data, true);
-            return data;
+        fn resolve_attack(_attacker: Creature, _target: object): AttackData {
+            var base: DamageResult = {
+                damage_type = Damage(-1),
+                amount = 0,
+                unblocked = 0,
+                immunity = 0,
+                reduction = 0,
+                reduction_remaining = 0,
+                resist = 0,
+                resist_remaining = 0,
+            };
+            var damages: array!(DamageResult);
+            var rolls: array!(DamageRoll);
+            return AttackData {
+                attack_type = attack_type_offhand as int,
+                attack_result = 2,
+                attack_roll = 19,
+                attack_bonus = 42,
+                armor_class = 13,
+                nth_attack = 1,
+                damage_total = 17,
+                critical_multiplier = 3,
+                critical_threat = 4,
+                concealment = 11,
+                iteration_penalty = 5,
+                is_ranged = true,
+                target_is_creature = true,
+                base_damage = base,
+                damages = damages,
+                rolls = rolls,
+            };
         }
     )");
     ASSERT_NE(script, nullptr);
