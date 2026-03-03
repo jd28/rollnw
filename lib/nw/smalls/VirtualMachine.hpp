@@ -79,10 +79,13 @@ struct VirtualMachine {
     /// @param gas_limit Gas budget for this execution (0 means unlimited). Only applied for top-level entry.
     Value execute_closure(Closure* closure, const Vector<Value>& args, uint64_t gas_limit = 0);
 
-    /// Main execution loop
+    /// Main execution loop (no step-limit check — fast path)
     /// @param module The module being executed
     /// @param entry_depth Stop execution when frames.size() reaches this depth (for reentrancy)
     bool run(BytecodeModule* module, size_t entry_depth = 0);
+
+    /// Step-limited execution loop — only called when step_limit_enabled_ is true
+    bool run_limited(BytecodeModule* module, size_t entry_depth = 0);
 
     /// Reset VM state
     void reset();
@@ -178,6 +181,9 @@ private:
         Runtime& rt);
     void write_stack_value(uint8_t* ptr, TypeID field_type, const Value& val, uint8_t* stack_data,
         Runtime& rt);
+
+    template <bool StepLimited>
+    bool run_impl(BytecodeModule* module, size_t entry_depth);
 
     // Opcode handlers
     void op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c);

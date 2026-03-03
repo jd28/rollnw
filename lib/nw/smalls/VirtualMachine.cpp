@@ -357,12 +357,11 @@ void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, R
     const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
 {
     try {
-        Value result = wrapper(&rt, args, argc);
-        reg(dest_reg) = result;
-    } catch (const std::exception& e) {
-        fail(fmt::format("Native function '{}' threw exception: {}", func_name, e.what()));
+        reg(dest_reg) = wrapper(&rt, args, argc);
+    } catch (const std::exception& ex) {
+        fail(absl::StrCat("Native '", func_name, "' threw exception: ", ex.what()));
     } catch (...) {
-        fail(fmt::format("Native function '{}' threw unknown exception", func_name));
+        fail(absl::StrCat("Native '", func_name, "' threw unknown exception"));
     }
 }
 
@@ -580,7 +579,7 @@ Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* fu
         reg(static_cast<uint8_t>(i)) = args[i];
     }
 
-    bool success = run(module, entry_depth);
+    bool success = step_limit_enabled_ ? run_limited(module, entry_depth) : run(module, entry_depth);
 
     if (success) {
         // For reentrant calls, the return value was written to register 0 of the entry frame
@@ -647,7 +646,7 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
         reg(static_cast<uint8_t>(i)) = args[i];
     }
 
-    bool success = run(module, entry_depth);
+    bool success = step_limit_enabled_ ? run_limited(module, entry_depth) : run(module, entry_depth);
 
     if (success) {
         if (entry_depth > 0 && !frames_.empty()) {
@@ -667,11 +666,1404 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     return {};
 }
 
-bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
+template <bool StepLimited>
+bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
 {
+#if defined(__GNUC__) || defined(__clang__)
+    // =========================================================================
+    // Computed goto dispatch (GCC / Clang)
+    // Each opcode handler ends with DISPATCH() which jumps directly to the
+    // next handler via dispatch_table[], eliminating the per-instruction
+    // indirect branch overhead of a switch statement.
+    // =========================================================================
+
+    // One entry per Opcode value, in enum declaration order.
+    static const void* dispatch_table[] = {
+        &&lbl_ADD,              // 0
+        &&lbl_SUB,              // 1
+        &&lbl_MUL,              // 2
+        &&lbl_DIV,              // 3
+        &&lbl_MOD,              // 4
+        &&lbl_NEG,              // 5
+        &&lbl_AND,              // 6
+        &&lbl_OR,               // 7
+        &&lbl_NOT,              // 8
+        &&lbl_EQ,               // 9
+        &&lbl_NE,               // 10
+        &&lbl_LT,               // 11
+        &&lbl_LE,               // 12
+        &&lbl_GT,               // 13
+        &&lbl_GE,               // 14
+        &&lbl_LOADK,            // 15
+        &&lbl_LOADI,            // 16
+        &&lbl_LOADB,            // 17
+        &&lbl_MOVE,             // 18
+        &&lbl_LOADNIL,          // 19
+        &&lbl_GETFIELD,         // 20
+        &&lbl_SETFIELD,         // 21
+        &&lbl_GETTUPLE,         // 22
+        &&lbl_GETARRAY,         // 23
+        &&lbl_SETARRAY,         // 24
+        &&lbl_FIELDGETI,        // 25
+        &&lbl_FIELDGETI_R,      // 26
+        &&lbl_FIELDSETI,        // 27
+        &&lbl_FIELDSETI_R,      // 28
+        &&lbl_FIELDGETF,        // 29
+        &&lbl_FIELDGETF_R,      // 30
+        &&lbl_FIELDSETF,        // 31
+        &&lbl_FIELDSETF_R,      // 32
+        &&lbl_FIELDGETB,        // 33
+        &&lbl_FIELDGETB_R,      // 34
+        &&lbl_FIELDSETB,        // 35
+        &&lbl_FIELDSETB_R,      // 36
+        &&lbl_FIELDGETS,        // 37
+        &&lbl_FIELDGETS_R,      // 38
+        &&lbl_FIELDSETS,        // 39
+        &&lbl_FIELDSETS_R,      // 40
+        &&lbl_FIELDGETO,        // 41
+        &&lbl_FIELDGETO_R,      // 42
+        &&lbl_FIELDSETO,        // 43
+        &&lbl_FIELDSETO_R,      // 44
+        &&lbl_FIELDGETH,        // 45
+        &&lbl_FIELDGETH_R,      // 46
+        &&lbl_FIELDSETH,        // 47
+        &&lbl_FIELDSETH_R,      // 48
+        &&lbl_FIELDGETI_OFF_R,  // 49
+        &&lbl_FIELDSETI_OFF_R,  // 50
+        &&lbl_FIELDGETF_OFF_R,  // 51
+        &&lbl_FIELDSETF_OFF_R,  // 52
+        &&lbl_FIELDGETB_OFF_R,  // 53
+        &&lbl_FIELDSETB_OFF_R,  // 54
+        &&lbl_FIELDGETS_OFF_R,  // 55
+        &&lbl_FIELDSETS_OFF_R,  // 56
+        &&lbl_FIELDGETO_OFF_R,  // 57
+        &&lbl_FIELDSETO_OFF_R,  // 58
+        &&lbl_FIELDGETH_OFF_R,  // 59
+        &&lbl_FIELDSETH_OFF_R,  // 60
+        &&lbl_JMP,              // 61
+        &&lbl_JMPT,             // 62
+        &&lbl_JMPF,             // 63
+        &&lbl_CALL,             // 64
+        &&lbl_CALLNATIVE,       // 65
+        &&lbl_CALLEXT,          // 66
+        &&lbl_CALLEXT_R,        // 67
+        &&lbl_CALLINTR,         // 68
+        &&lbl_CALLINTR_R,       // 69
+        &&lbl_RET,              // 70
+        &&lbl_RETVOID,          // 71
+        &&lbl_CAST,             // 72
+        &&lbl_TYPEOF,           // 73
+        &&lbl_IS,               // 74
+        &&lbl_ISEQ,             // 75
+        &&lbl_ISNE,             // 76
+        &&lbl_ISLT,             // 77
+        &&lbl_ISLE,             // 78
+        &&lbl_ISGT,             // 79
+        &&lbl_ISGE,             // 80
+        &&lbl_NEWSTRUCT,        // 81
+        &&lbl_NEWTUPLE,         // 82
+        &&lbl_NEWARRAY,         // 83
+        &&lbl_NEWMAP,           // 84
+        &&lbl_MAPGET,           // 85
+        &&lbl_MAPSET,           // 86
+        &&lbl_STACK_ALLOC,      // 87
+        &&lbl_STACK_COPY,       // 88
+        &&lbl_STACK_FIELDGET,   // 89
+        &&lbl_STACK_FIELDGET_R, // 90
+        &&lbl_STACK_FIELDSET,   // 91
+        &&lbl_STACK_FIELDSET_R, // 92
+        &&lbl_STACK_INDEXGET,   // 93
+        &&lbl_STACK_INDEXSET,   // 94
+        &&lbl_NEWSUM,           // 95
+        &&lbl_SUMINIT,          // 96
+        &&lbl_SUMGETTAG,        // 97
+        &&lbl_SUMGETPAYLOAD,    // 98
+        &&lbl_CLOSURE,          // 99
+        &&lbl_GETUPVAL,         // 100
+        &&lbl_SETUPVAL,         // 101
+        &&lbl_CLOSEUPVALS,      // 102
+        &&lbl_CALLCLOSURE,      // 103
+        &&lbl_GETGLOBAL,        // 104
+        &&lbl_SETGLOBAL,        // 105
+        &&lbl_GETEXTGLOBAL,     // 106
+    };
+    static_assert(std::size(dispatch_table) == static_cast<size_t>(Opcode::_COUNT),
+        "dispatch_table out of sync with Opcode enum — update both when adding opcodes");
+
+    CallFrame* frame_ptr = nullptr;
+    Instruction _instr{};
+    uint8_t _a{}, _b{}, _c{};
+
+    rt_ = &nw::kernel::runtime();
+
+// Handler-local aliases — valid only within the #if __GNUC__ block
+#define frame (*frame_ptr)
+#define instr _instr
+#define a _a
+#define b _b
+#define c _c
+#define op (_instr.opcode())
+// DISPATCH() — inline fetch of the next instruction and jump to its handler.
+// Each call site produces its own indirect branch, enabling per-handler
+// prediction by the CPU's indirect branch predictor (true threaded dispatch).
+// The rare cases (failed, exhausted frame, end of function) fall back to
+// dispatch_top which loops safely.
+#define DISPATCH()                                                                           \
+    do {                                                                                     \
+        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                                       \
+        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;                 \
+        if constexpr (StepLimited) {                                                         \
+            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                                 \
+                fail("Script exceeded execution limit");                                     \
+                goto vm_exit;                                                                \
+            }                                                                                \
+            --remaining_steps_;                                                              \
+        }                                                                                    \
+        frame_ptr = &frames_.back();                                                         \
+        if (ABSL_PREDICT_FALSE(frame_ptr->pc >= frame_ptr->function->instructions.size())) { \
+            pop_frame();                                                                     \
+            goto dispatch_top;                                                               \
+        }                                                                                    \
+        _instr = frame_ptr->function->instructions[frame_ptr->pc++];                         \
+        _a = _instr.arg_a();                                                                 \
+        _b = _instr.arg_b();                                                                 \
+        _c = _instr.arg_c();                                                                 \
+        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];                         \
+    } while (0)
+
+// dispatch_top: entry point for initial dispatch and the pop_frame fallback.
+dispatch_top:
+    if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;
+    if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;
+    if constexpr (StepLimited) {
+        if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {
+            fail("Script exceeded execution limit");
+            goto vm_exit;
+        }
+        --remaining_steps_;
+    }
+    frame_ptr = &frames_.back();
+    if (ABSL_PREDICT_FALSE(frame_ptr->pc >= frame_ptr->function->instructions.size())) {
+        pop_frame();
+        goto dispatch_top;
+    }
+    _instr = frame_ptr->function->instructions[frame_ptr->pc++];
+    _a = _instr.arg_a();
+    _b = _instr.arg_b();
+    _c = _instr.arg_c();
+    goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];
+    __builtin_unreachable();
+
+    // -------------------------------------------------------------------------
+    // Opcode handlers (in enum order)
+    // -------------------------------------------------------------------------
+
+lbl_MOVE:
+    reg(a) = reg(b);
+    DISPATCH();
+
+lbl_LOADK: {
+    uint16_t bx = instr.arg_bx();
+    BytecodeModule* current_module = frame.module;
+    if (bx >= current_module->constants.size()) {
+        fail("Constant index out of range");
+        DISPATCH();
+    }
+    const auto& k = current_module->constants[bx];
+    Value val;
+    val.type_id = k.type_id;
+    if (val.type_id == rt_->int_type()) {
+        val.data.ival = k.data.ival;
+    } else if (val.type_id == rt_->float_type()) {
+        val.data.fval = k.data.fval;
+    } else if (val.type_id == rt_->string_type()) {
+        val.data.hptr = rt_->alloc_string(current_module->get_string(k.data.string_idx));
+    } else {
+        fail("Unsupported constant type");
+    }
+    reg(a) = val;
+    DISPATCH();
+}
+
+lbl_LOADI:
+    reg(a) = Value::make_int(instr.arg_sbx());
+    DISPATCH();
+
+lbl_LOADB:
+    reg(a) = Value::make_bool(instr.arg_b() != 0);
+    DISPATCH();
+
+lbl_LOADNIL:
+    reg(a) = Value{};
+    DISPATCH();
+
+lbl_JMP: {
+    int32_t off = instr.arg_jump();
+    if (off < 0 && gas_enabled_ && !consume_gas()) {
+        DISPATCH();
+    }
+    frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+    DISPATCH();
+}
+
+lbl_JMPT: {
+    const Value& cond_jmpt = reg(a);
+    bool take_jmpt;
+    if (cond_jmpt.type_id == rt_->bool_type()) {
+        take_jmpt = cond_jmpt.data.bval;
+    } else if (cond_jmpt.type_id == rt_->int_type()) {
+        take_jmpt = cond_jmpt.data.ival != 0;
+    } else {
+        Truthiness t = evaluate_truthiness(cond_jmpt, "JMPT");
+        if (t == Truthiness::Error) { DISPATCH(); }
+        take_jmpt = (t == Truthiness::True);
+    }
+    if (take_jmpt) {
+        int16_t off = instr.arg_sbx();
+        if (off < 0 && gas_enabled_ && !consume_gas()) { DISPATCH(); }
+        frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+    }
+    DISPATCH();
+}
+
+lbl_JMPF: {
+    const Value& cond_jmpf = reg(a);
+    bool take_jmpf;
+    if (cond_jmpf.type_id == rt_->bool_type()) {
+        take_jmpf = !cond_jmpf.data.bval;
+    } else if (cond_jmpf.type_id == rt_->int_type()) {
+        take_jmpf = cond_jmpf.data.ival == 0;
+    } else {
+        Truthiness t = evaluate_truthiness(cond_jmpf, "JMPF");
+        if (t == Truthiness::Error) { DISPATCH(); }
+        take_jmpf = (t == Truthiness::False);
+    }
+    if (take_jmpf) {
+        int16_t off = instr.arg_sbx();
+        if (off < 0 && gas_enabled_ && !consume_gas()) { DISPATCH(); }
+        frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+    }
+    DISPATCH();
+}
+
+lbl_ADD:
+lbl_SUB:
+lbl_MUL:
+lbl_DIV:
+lbl_MOD:
+    op_arithmetic(op, a, b, c);
+    DISPATCH();
+
+lbl_EQ:
+lbl_NE:
+lbl_LT:
+lbl_LE:
+lbl_GT:
+lbl_GE:
+    op_comparison(op, a, b, c);
+    DISPATCH();
+
+lbl_ISEQ:
+lbl_ISNE:
+lbl_ISLT:
+lbl_ISLE:
+lbl_ISGT:
+lbl_ISGE:
+    op_test_and_skip(op, a, b);
+    DISPATCH();
+
+lbl_AND:
+lbl_OR:
+    op_logical(op, a, b, c);
+    DISPATCH();
+
+lbl_NEG: {
+    const Value& operand = reg(b);
+    if (operand.type_id == rt_->int_type()) {
+        reg(a) = Value::make_int(-operand.data.ival);
+    } else if (operand.type_id == rt_->float_type()) {
+        reg(a) = Value::make_float(-operand.data.fval);
+    } else {
+        Value result = rt_->execute_unary_op(TokenType::MINUS, operand);
+        if (result.type_id == invalid_type_id) {
+            fail("Negation failed");
+        } else {
+            reg(a) = result;
+        }
+    }
+    DISPATCH();
+}
+
+lbl_NOT: {
+    Value result = rt_->execute_unary_op(TokenType::NOT, reg(b));
+    if (result.type_id == invalid_type_id) {
+        fail("Logical not failed");
+    } else {
+        reg(a) = result;
+    }
+    DISPATCH();
+}
+
+lbl_CALL: {
+    uint8_t dest_reg = a;
+    uint8_t func_idx = b;
+    uint8_t argc = c;
+
+    BytecodeModule* current_module = frame.module;
+    if (func_idx >= current_module->functions.size()) {
+        fail("Function index out of range");
+        DISPATCH();
+    }
+    const CompiledFunction* callee = current_module->functions[func_idx];
+    setup_script_call(dest_reg, argc, current_module, callee, nullptr, "CALL");
+    DISPATCH();
+}
+
+lbl_CALLNATIVE: {
+    if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
+    uint8_t dest_reg = a;
+    uint8_t func_idx = b;
+    uint8_t argc = c;
+
+    const NativeFunction* func = rt_->get_native_function(func_idx);
+    if (!func) {
+        fail("Native function index out of range");
+        DISPATCH();
+    }
+
+    const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
+    call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+    DISPATCH();
+}
+
+lbl_CALLEXT: {
+    uint8_t dest_reg = a;
+    uint8_t ref_idx = b;
+    uint8_t argc = c;
+
+    BytecodeModule* current_module = frame.module;
+
+    if (ref_idx >= current_module->external_indices.size()) {
+        fail("External ref index out of range");
+        DISPATCH();
+    }
+    uint32_t ext_idx = current_module->external_indices[ref_idx];
+    if (ext_idx == UINT32_MAX) {
+        fail(fmt::format("Unresolved external function: {}",
+            current_module->external_refs[ref_idx].view()));
+        DISPATCH();
+    }
+
+    const ExternalFunction* ext = rt_->get_external_function(ext_idx);
+    if (!ext) {
+        fail("External function index out of range");
+        DISPATCH();
+    }
+
+    if (ext->is_native()) {
+        if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
+        const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
+        call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
+            dest_reg, ext->qualified_name.view());
+    } else {
+        if (ext->func_idx >= ext->script_module->functions.size()) {
+            fail("External script function index out of range");
+            DISPATCH();
+        }
+        const CompiledFunction* callee = ext->script_module->functions[ext->func_idx];
+        setup_script_call(dest_reg, argc, ext->script_module, callee, nullptr, "CALLEXT");
+    }
+    DISPATCH();
+}
+
+lbl_CALLEXT_R:
+lbl_TYPEOF:
+    fail(fmt::format("Unimplemented opcode: {}", static_cast<int>(op)));
+    DISPATCH();
+
+lbl_CALLINTR: {
+    if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
+    uint8_t dest_reg = a;
+    auto intr_id = static_cast<IntrinsicId>(b);
+    uint8_t argc = c;
+    call_intrinsic(intr_id, dest_reg, argc);
+    DISPATCH();
+}
+
+lbl_CALLINTR_R: {
+    if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
+    uint8_t dest_reg = a;
+    uint8_t id_reg = b;
+    uint8_t argc = c;
+
+    Value id_val = reg(id_reg);
+    if (id_val.type_id != rt_->int_type()) {
+        fail("Intrinsic id must be int");
+        DISPATCH();
+    }
+    call_intrinsic(static_cast<IntrinsicId>(id_val.data.ival), dest_reg, argc);
+    DISPATCH();
+}
+
+lbl_NEWARRAY: {
+    uint8_t dest_reg = a;
+    TypeID tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
+
+    const Type* type = rt_->get_type(tid);
+    if (!type || type->type_kind != TK_array) {
+        fail("NEWARRAY called with non-array type");
+        DISPATCH();
+    }
+
+    Value size_val = reg(dest_reg);
+    if (size_val.type_id != rt_->int_type()) {
+        fail("Array size must be an integer");
+        DISPATCH();
+    }
+
+    if (size_val.data.ival < 0) {
+        fail("Array size must be non-negative");
+        DISPATCH();
+    }
+
+    uint32_t count = static_cast<uint32_t>(size_val.data.ival);
+    TypeID elem_type = type->type_params[0].as<TypeID>();
+
+    if (type->type_params[1].empty()) {
+        HeapPtr ptr = rt_->create_array_typed(elem_type, count);
+        if (ptr.value == 0) {
+            fail("Failed to allocate array");
+            DISPATCH();
+        }
+
+        auto* arr = rt_->get_array_typed(ptr);
+        if (!arr) {
+            fail("Failed to initialize array");
+            DISPATCH();
+        }
+        arr->resize(count);
+        reg(dest_reg) = Value::make_heap(ptr, tid);
+    } else {
+        HeapPtr ptr = rt_->alloc_array(elem_type, count);
+        if (ptr.value == 0) {
+            fail("Failed to allocate array");
+            DISPATCH();
+        }
+        reg(dest_reg) = Value::make_heap(ptr, tid);
+    }
+    DISPATCH();
+}
+
+lbl_NEWTUPLE: {
+    uint8_t dest_reg = a;
+    uint8_t count = b;
+
+    // element_types must be destroyed before any DISPATCH() (indirect goto).
+    // Scope it into a sub-block so it's gone before the first DISPATCH() site.
+    TypeID tuple_tid;
+    {
+        Vector<TypeID> element_types;
+        element_types.reserve(count);
+        for (uint8_t i = 0; i < count; ++i) {
+            element_types.push_back(reg(static_cast<uint8_t>(dest_reg + 1 + i)).type_id);
+        }
+        tuple_tid = rt_->register_tuple_type(element_types);
+    } // element_types destroyed here
+
+    if (tuple_tid == invalid_type_id) {
+        fail("Failed to register tuple type");
+        DISPATCH();
+    }
+
+    HeapPtr ptr = rt_->alloc_tuple(tuple_tid);
+    if (ptr.value == 0) {
+        fail("Failed to allocate tuple");
+        DISPATCH();
+    }
+
+    const Type* type = rt_->get_type(tuple_tid);
+    auto tuple_id = type->type_params[0].as<TupleID>();
+    const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
+
+    for (uint8_t i = 0; i < count; ++i) {
+        Value val = reg(static_cast<uint8_t>(dest_reg + 1 + i));
+        if (!rt_->write_tuple_element_by_index(ptr, tuple_def, i, val)) {
+            fail("Failed to write tuple element");
+            break;
+        }
+    }
+
+    reg(dest_reg) = Value::make_heap(ptr, tuple_tid);
+    DISPATCH();
+}
+
+lbl_GETTUPLE: {
+    uint8_t dest_reg = a;
+    uint8_t src_reg = b;
+    uint8_t index = c;
+
+    Value tuple_val = reg(src_reg);
+    HeapPtr tuple_ptr = tuple_val.data.hptr;
+
+    const Type* type = rt_->get_type(tuple_val.type_id);
+    if (!type || type->type_kind != TK_tuple) {
+        fail("GETTUPLE called on non-tuple");
+        DISPATCH();
+    }
+
+    auto tuple_id = type->type_params[0].as<TupleID>();
+    const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
+
+    Value elem_val = rt_->read_tuple_element_by_index(tuple_ptr, tuple_def, index);
+    if (elem_val.type_id == invalid_type_id) {
+        fail("Failed to read tuple element");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = elem_val;
+    DISPATCH();
+}
+
+lbl_GETARRAY: {
+    uint8_t dest_reg = a;
+    uint8_t arr_reg = b;
+    uint8_t idx_reg = c;
+
+    Value arr_val = reg(arr_reg);
+    Value idx_val = reg(idx_reg);
+
+    if (idx_val.type_id != rt_->int_type()) {
+        fail("Array index must be integer");
+        DISPATCH();
+    }
+
+    if (idx_val.data.ival < 0) {
+        fail("Array index must be non-negative");
+        DISPATCH();
+    }
+
+    Value result;
+    uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
+    if (arr_val.storage == ValueStorage::heap) {
+        if (!rt_->array_get(arr_val.data.hptr, index, result)) {
+            fail("Array access failed (index out of bounds?)");
+            DISPATCH();
+        }
+    } else if (arr_val.storage == ValueStorage::immediate) {
+        TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
+        IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+        if (!arr) {
+            fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
+                arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+            DISPATCH();
+        }
+        if (!arr->get_value(index, result, *rt_)) {
+            fail("Array access failed (index out of bounds?)");
+            DISPATCH();
+        }
+    } else {
+        fail("Array access on invalid value storage");
+        DISPATCH();
+    }
+    reg(dest_reg) = result;
+    DISPATCH();
+}
+
+lbl_SETARRAY: {
+    uint8_t arr_reg = a;
+    uint8_t idx_reg = b;
+    uint8_t val_reg = c;
+
+    Value arr_val = reg(arr_reg);
+    Value idx_val = reg(idx_reg);
+    Value val = reg(val_reg);
+
+    if (idx_val.type_id != rt_->int_type()) {
+        fail("Array index must be integer");
+        DISPATCH();
+    }
+
+    if (idx_val.data.ival < 0) {
+        fail("Array index must be non-negative");
+        DISPATCH();
+    }
+
+    uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
+    if (arr_val.storage == ValueStorage::heap) {
+        if (!rt_->array_set(arr_val.data.hptr, index, val)) {
+            fail("Array set failed");
+            DISPATCH();
+        }
+    } else if (arr_val.storage == ValueStorage::immediate) {
+        TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
+        IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+        if (!arr) {
+            fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
+                arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+            DISPATCH();
+        }
+        if (!arr->set_value(index, val, *rt_)) {
+            fail("Array set failed");
+            DISPATCH();
+        }
+    } else {
+        fail("Array set on invalid value storage");
+        DISPATCH();
+    }
+    DISPATCH();
+}
+
+lbl_NEWMAP: {
+    uint8_t dest_reg = a;
+    TypeID tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
+
+    const Type* type = rt_->get_type(tid);
+    if (!type || type->type_kind != TK_map) {
+        fail("NEWMAP called with non-map type");
+        DISPATCH();
+    }
+
+    TypeID key_type = type->type_params[0].as<TypeID>();
+    TypeID val_type = type->type_params[1].as<TypeID>();
+
+    HeapPtr ptr = rt_->alloc_map(key_type, val_type);
+    if (ptr.value == 0) {
+        fail("Failed to allocate map");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = Value::make_heap(ptr, tid);
+    DISPATCH();
+}
+
+lbl_MAPGET: {
+    uint8_t dest_reg = a;
+    uint8_t map_reg = b;
+    uint8_t key_reg = c;
+
+    Value map_val = reg(map_reg);
+    Value key_val = reg(key_reg);
+
+    Value result;
+    if (rt_->map_get(map_val.data.hptr, key_val, result)) {
+        reg(dest_reg) = result;
+    } else {
+        reg(dest_reg) = Value{};
+    }
+    DISPATCH();
+}
+
+lbl_MAPSET: {
+    uint8_t map_reg = a;
+    uint8_t key_reg = b;
+    uint8_t val_reg = c;
+
+    Value map_val = reg(map_reg);
+    Value key_val = reg(key_reg);
+    Value val = reg(val_reg);
+
+    (void)rt_->map_set(map_val.data.hptr, key_val, val);
+    DISPATCH();
+}
+
+lbl_NEWSTRUCT: {
+    uint8_t dest_reg = a;
+    TypeID tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
+
+    HeapPtr ptr = rt_->alloc_struct(tid);
+    if (ptr.value == 0) {
+        fail("Failed to allocate struct");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = Value::make_heap(ptr, tid);
+    DISPATCH();
+}
+
+lbl_NEWSUM: {
+    uint8_t dest_reg = a;
+    TypeID tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
+
+    HeapPtr ptr = rt_->alloc_sum(tid);
+    if (ptr.value == 0) {
+        fail("Failed to allocate sum type");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = Value::make_heap(ptr, tid);
+    DISPATCH();
+}
+
+lbl_SUMINIT: {
+    uint8_t sum_reg = a;
+    uint8_t tag_value = b;
+    uint8_t payload_reg = c;
+
+    Value sum_val = reg(sum_reg);
+    const SumDef* sum_def = nullptr;
+    void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMINIT");
+    if (!data) { DISPATCH(); }
+    if (tag_value >= sum_def->variant_count) {
+        fail("Invalid sum variant index");
+        DISPATCH();
+    }
+
+    rt_->write_sum_tag(data, sum_def, tag_value);
+
+    if (payload_reg != 255) {
+        Value payload = reg(payload_reg);
+        rt_->write_sum_payload(data, sum_def, tag_value, payload);
+    }
+    DISPATCH();
+}
+
+lbl_SUMGETTAG: {
+    uint8_t dest_reg = a;
+    uint8_t src_reg = b;
+
+    Value sum_val = reg(src_reg);
+    const SumDef* sum_def = nullptr;
+    void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMGETTAG");
+    if (!data) { DISPATCH(); }
+
+    uint32_t tag = rt_->read_sum_tag(data, sum_def);
+    if (tag >= sum_def->variant_count) {
+        fail(fmt::format("SUMGETTAG: tag {} out of range (variant_count={})", tag, sum_def->variant_count));
+        DISPATCH();
+    }
+    reg(dest_reg) = Value::make_int(static_cast<int32_t>(tag));
+    DISPATCH();
+}
+
+lbl_SUMGETPAYLOAD: {
+    uint8_t dest_reg = a;
+    uint8_t src_reg = b;
+    uint8_t variant_idx = c;
+
+    Value sum_val = reg(src_reg);
+    const SumDef* sum_def = nullptr;
+    void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMGETPAYLOAD");
+    if (!data) { DISPATCH(); }
+
+    if (variant_idx >= sum_def->variant_count) {
+        fail("Invalid sum variant index");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = rt_->read_sum_payload(data, sum_def, variant_idx);
+    DISPATCH();
+}
+
+lbl_CLOSURE: {
+    uint8_t dest_reg = a;
+    uint16_t func_idx = instr.arg_bx();
+
+    BytecodeModule* current_module = frame.module;
+    if (!current_module || func_idx >= current_module->functions.size()) {
+        fail("Closure function index out of range");
+        DISPATCH();
+    }
+
+    const CompiledFunction* callee = current_module->functions[func_idx];
+
+    if (callee->function_type == invalid_type_id) {
+        fail("Closure missing function type");
+        DISPATCH();
+    }
+
+    HeapPtr closure_ptr = rt_->alloc_closure(callee->function_type, callee, current_module, callee->upvalue_count);
+    Closure* closure = rt_->get_closure(closure_ptr);
+    if (!closure) {
+        fail("Failed to allocate closure");
+        DISPATCH();
+    }
+
+    uint8_t upvalue_count = callee->upvalue_count;
+    size_t words = (upvalue_count + 3) / 4;
+    uint32_t upval_index = 0;
+    bool ok = true;
+
+    for (size_t w = 0; w < words; ++w) {
+        if (frame.pc >= frame.function->instructions.size()) {
+            fail("Closure upvalue descriptor out of range");
+            ok = false;
+            break;
+        }
+        uint32_t raw = frame.function->instructions[frame.pc++].raw;
+        for (size_t i = 0; i < 4 && upval_index < upvalue_count; ++i, ++upval_index) {
+            uint8_t desc = static_cast<uint8_t>((raw >> (8 * i)) & 0xFF);
+            bool is_local = (desc & 0x1) != 0;
+            uint8_t index = static_cast<uint8_t>(desc >> 1);
+
+            if (is_local) {
+                closure->upvalues.push_back(get_or_create_upvalue(frame, index));
+            } else {
+                if (!frame.closure || index >= frame.closure->upvalues.size()) {
+                    fail("Closure upvalue index out of range");
+                    ok = false;
+                    break;
+                }
+                closure->upvalues.push_back(frame.closure->upvalues[index]);
+            }
+        }
+        if (!ok) { break; }
+    }
+    if (!ok) { DISPATCH(); }
+
+    reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
+    DISPATCH();
+}
+
+lbl_GETUPVAL: {
+    if (!frame.closure) {
+        fail("GETUPVAL used without active closure");
+        DISPATCH();
+    }
+    if (b >= frame.closure->upvalues.size()) {
+        fail("Upvalue index out of range");
+        DISPATCH();
+    }
+    Upvalue* uv = frame.closure->upvalues[b];
+    if (!uv) {
+        fail("Upvalue is null");
+        DISPATCH();
+    }
+    reg(a) = *uv->location;
+    DISPATCH();
+}
+
+lbl_SETUPVAL: {
+    if (!frame.closure) {
+        fail("SETUPVAL used without active closure");
+        DISPATCH();
+    }
+    if (b >= frame.closure->upvalues.size()) {
+        fail("Upvalue index out of range");
+        DISPATCH();
+    }
+    Upvalue* uv = frame.closure->upvalues[b];
+    if (!uv) {
+        fail("Upvalue is null");
+        DISPATCH();
+    }
+    Value val = reg(a);
+    *uv->location = val;
+
+    if (rt_->gc() && !uv->is_open() && val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
+        rt_->gc()->write_barrier(uv->heap_ptr, val.data.hptr);
+    }
+    DISPATCH();
+}
+
+lbl_GETGLOBAL: {
+    uint8_t dest = a;
+    uint16_t slot = instr.arg_bx();
+    if (slot >= frame.module->global_count) {
+        fail("GETGLOBAL slot out of range");
+        DISPATCH();
+    }
+    reg(dest) = frame.module->globals[slot];
+    DISPATCH();
+}
+
+lbl_GETEXTGLOBAL: {
+    uint16_t ref_idx = instr.arg_bx();
+    if (ref_idx >= frame.module->global_refs.size()) {
+        fail("GETEXTGLOBAL ref index out of range");
+        DISPATCH();
+    }
+    const auto& ref = frame.module->global_refs[ref_idx];
+    if (!ref.resolved_module || ref.resolved_slot >= ref.resolved_module->global_count) {
+        fail("GETEXTGLOBAL: unresolved or slot out of range");
+        DISPATCH();
+    }
+    reg(a) = ref.resolved_module->globals[ref.resolved_slot];
+    DISPATCH();
+}
+
+lbl_SETGLOBAL: {
+    uint8_t src = a;
+    uint16_t slot = instr.arg_bx();
+    if (slot >= frame.module->global_count) {
+        fail("SETGLOBAL slot out of range");
+        DISPATCH();
+    }
+    Value v = reg(src);
+    if (v.storage == ValueStorage::stack) {
+        const Type* type = rt_->get_type(v.type_id);
+        if (type) {
+            HeapPtr ptr = rt_->alloc_struct(v.type_id);
+            void* dst = rt_->heap_.get_ptr(ptr);
+            if (dst) {
+                std::memcpy(dst, frame.stack_.data() + v.data.stack_offset, type->size);
+                v = Value::make_heap(ptr, v.type_id);
+            }
+        }
+    }
+    frame.module->globals[slot] = v;
+    if (rt_->gc() && v.storage == ValueStorage::heap) {
+        rt_->gc()->write_barrier_root(v.data.hptr);
+    }
+    DISPATCH();
+}
+
+lbl_CLOSEUPVALS:
+    close_upvalues(frame);
+    DISPATCH();
+
+lbl_CALLCLOSURE: {
+    uint8_t dest_reg = a;
+    uint8_t closure_reg = b;
+    uint8_t argc = c;
+
+    Value callee_val = reg(closure_reg);
+    if (callee_val.storage != ValueStorage::heap || callee_val.data.hptr.value == 0) {
+        fail("CALLCLOSURE expects a heap value");
+        DISPATCH();
+    }
+
+    const Type* callee_type = rt_->get_type(callee_val.type_id);
+    if (!callee_type || callee_type->type_kind != TK_function) {
+        fail("CALLCLOSURE expects a function value");
+        DISPATCH();
+    }
+    Closure* closure = rt_->get_closure(callee_val.data.hptr);
+    if (!closure || !closure->function || !closure->module) {
+        fail("CALLCLOSURE has invalid closure");
+        DISPATCH();
+    }
+
+    setup_script_call(dest_reg, argc, closure->module, closure->function, closure, "CALLCLOSURE");
+    DISPATCH();
+}
+
+lbl_GETFIELD: {
+    uint8_t dest_reg = a;
+    uint8_t src_reg = b;
+    uint8_t field_idx = c;
+
+    Value struct_val = reg(src_reg);
+    const Type* type = rt_->get_type(struct_val.type_id);
+    if (!type || type->type_kind != TK_struct) {
+        fail("GETFIELD called on non-struct");
+        DISPATCH();
+    }
+
+    auto struct_id = type->type_params[0].as<StructID>();
+    const StructDef* struct_def = rt_->type_table_.get(struct_id);
+
+    const FieldDef& field = struct_def->fields[field_idx];
+    Value val = rt_->read_value_field_at_offset(struct_val, field.offset, field.type_id);
+    if (val.type_id == invalid_type_id) {
+        fail("Failed to read struct field");
+        DISPATCH();
+    }
+
+    reg(dest_reg) = val;
+    DISPATCH();
+}
+
+lbl_SETFIELD: {
+    uint8_t struct_reg = a;
+    uint8_t field_idx = b;
+    uint8_t val_reg = c;
+
+    Value struct_val = reg(struct_reg);
+    const Type* type = rt_->get_type(struct_val.type_id);
+    if (!type || type->type_kind != TK_struct) {
+        fail("SETFIELD called on non-struct");
+        DISPATCH();
+    }
+
+    auto struct_id = type->type_params[0].as<StructID>();
+    const StructDef* struct_def = rt_->type_table_.get(struct_id);
+
+    Value val = reg(val_reg);
+    if (!rt_->write_struct_value_field(struct_val, struct_def, field_idx, val)) {
+        fail("Failed to write struct field");
+        DISPATCH();
+    }
+    DISPATCH();
+}
+
+lbl_FIELDGETI:
+lbl_FIELDGETI_R:
+lbl_FIELDSETI:
+lbl_FIELDSETI_R:
+lbl_FIELDGETF:
+lbl_FIELDGETF_R:
+lbl_FIELDSETF:
+lbl_FIELDSETF_R:
+lbl_FIELDGETB:
+lbl_FIELDGETB_R:
+lbl_FIELDSETB:
+lbl_FIELDSETB_R:
+lbl_FIELDGETS:
+lbl_FIELDGETS_R:
+lbl_FIELDSETS:
+lbl_FIELDSETS_R:
+lbl_FIELDGETO:
+lbl_FIELDGETO_R:
+lbl_FIELDSETO:
+lbl_FIELDSETO_R:
+lbl_FIELDGETH:
+lbl_FIELDGETH_R:
+lbl_FIELDSETH:
+lbl_FIELDSETH_R:
+    op_field_access(op, a, b, c, frame.module);
+    DISPATCH();
+
+lbl_FIELDGETI_OFF_R:
+lbl_FIELDSETI_OFF_R:
+lbl_FIELDGETF_OFF_R:
+lbl_FIELDSETF_OFF_R:
+lbl_FIELDGETB_OFF_R:
+lbl_FIELDSETB_OFF_R:
+lbl_FIELDGETS_OFF_R:
+lbl_FIELDSETS_OFF_R:
+lbl_FIELDGETO_OFF_R:
+lbl_FIELDSETO_OFF_R:
+lbl_FIELDGETH_OFF_R:
+lbl_FIELDSETH_OFF_R:
+    op_field_offset_access(op, a, b, c);
+    DISPATCH();
+
+lbl_RET: {
+    Value val = reg(a);
+    uint32_t ret_reg = frame.return_register;
+
+    if (val.storage == ValueStorage::stack) {
+        const Type* type = rt_->get_type(val.type_id);
+        if (!type) {
+            fail("RET has invalid value type");
+            DISPATCH();
+        }
+
+        if (frames_.size() >= 2) {
+            CallFrame& caller_frame = frames_[frames_.size() - 2];
+            uint32_t dst_offset = caller_frame.stack_alloc(type->size, type->alignment, val.type_id,
+                type_may_hold_heap_refs(rt_, val.type_id));
+            std::memcpy(
+                caller_frame.stack_.data() + dst_offset,
+                frame.stack_.data() + val.data.stack_offset,
+                type->size);
+            val = Value::make_stack(dst_offset, val.type_id);
+        } else {
+            HeapPtr ptr = rt_->heap_.allocate(type->size, type->alignment, val.type_id);
+            void* data = rt_->heap_.get_ptr(ptr);
+            std::memcpy(
+                data,
+                frame.stack_.data() + val.data.stack_offset,
+                type->size);
+            val = Value::make_heap(ptr, val.type_id);
+        }
+    }
+
+    pop_frame();
+    if (!frames_.empty()) {
+        reg(static_cast<uint8_t>(ret_reg)) = val;
+    } else {
+        last_result_ = val;
+    }
+    DISPATCH();
+}
+
+lbl_RETVOID:
+    pop_frame();
+    if (frames_.empty()) {
+        last_result_ = Value{rt_->void_type()};
+    }
+    DISPATCH();
+
+lbl_CAST: {
+    uint8_t reg_idx = a;
+    TypeID target_tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { DISPATCH(); }
+    Value& val = reg(reg_idx);
+
+    if (val.type_id == target_tid) {
+        // No-op
+    } else if (target_tid == rt_->float_type() && val.type_id == rt_->int_type()) {
+        val = Value::make_float(static_cast<float>(val.data.ival));
+    } else if (target_tid == rt_->int_type() && val.type_id == rt_->float_type()) {
+        val = Value::make_int(static_cast<int32_t>(val.data.fval));
+    } else if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
+        bool valid_object_cast = false;
+        if (target_tid == rt_->object_type()) {
+            valid_object_cast = true;
+        } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
+            valid_object_cast = val.data.oval.type == *expected_tag;
+        }
+
+        if (valid_object_cast) {
+            val.type_id = target_tid;
+        } else {
+            fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
+        }
+    } else {
+        const Type* source_type = rt_->get_type(val.type_id);
+        const Type* target_type = rt_->get_type(target_tid);
+        bool newtype_cast = false;
+        if (val.type_id == invalid_type_id && target_type && target_type->type_kind == TK_function) {
+            val = Value::make_heap(HeapPtr{0}, target_tid);
+            newtype_cast = true;
+        }
+        if (source_type && target_type) {
+            if (target_type->type_kind == TK_newtype) {
+                TypeID wrapped = target_type->type_params[0].as<TypeID>();
+                if (val.type_id == wrapped) {
+                    val.type_id = target_tid;
+                    newtype_cast = true;
+                }
+            } else if (source_type->type_kind == TK_newtype) {
+                TypeID wrapped = source_type->type_params[0].as<TypeID>();
+                if (target_tid == wrapped) {
+                    val.type_id = target_tid;
+                    newtype_cast = true;
+                }
+            }
+        }
+
+        if (!newtype_cast) {
+            fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
+        }
+    }
+    DISPATCH();
+}
+
+lbl_IS: {
+    uint8_t reg_idx = a;
+    TypeID target_tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { DISPATCH(); }
+    Value val = reg(reg_idx);
+
+    bool result = false;
+    if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
+        if (target_tid == rt_->object_type()) {
+            result = true;
+        } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
+            result = val.data.oval.type == *expected_tag;
+        }
+    } else {
+        result = (val.type_id == target_tid);
+    }
+    reg(reg_idx) = Value::make_bool(result);
+    DISPATCH();
+}
+
+lbl_STACK_ALLOC: {
+    uint8_t dest_reg = a;
+    TypeID tid;
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
+    const Type* type = rt_->get_type(tid);
+    if (!type) {
+        fail("Invalid type in STACK_ALLOC");
+        DISPATCH();
+    }
+
+    uint32_t offset = frame.stack_alloc(type->size, type->alignment, tid,
+        type_may_hold_heap_refs(rt_, tid));
+    rt_->initialize_zero_defaults(tid, frame.stack_.data() + offset);
+    reg(dest_reg) = Value::make_stack(offset, tid);
+    DISPATCH();
+}
+
+lbl_STACK_COPY: {
+    uint8_t dst_reg = a;
+    uint8_t src_reg = b;
+
+    Value dst = reg(dst_reg);
+    Value src = reg(src_reg);
+
+    if (dst.storage != ValueStorage::stack) {
+        fail("STACK_COPY requires stack destination");
+        DISPATCH();
+    }
+
+    const Type* type = rt_->get_type(dst.type_id);
+    if (!type) {
+        fail("Invalid type in STACK_COPY");
+        DISPATCH();
+    }
+
+    if (src.storage == ValueStorage::stack) {
+        std::memcpy(
+            frame.stack_.data() + dst.data.stack_offset,
+            frame.stack_.data() + src.data.stack_offset,
+            type->size);
+    } else if (src.storage == ValueStorage::heap && src.data.hptr.value != 0) {
+        void* heap_data = rt_->heap_.get_ptr(src.data.hptr);
+        std::memcpy(
+            frame.stack_.data() + dst.data.stack_offset,
+            heap_data,
+            type->size);
+    } else {
+        fail(fmt::format("STACK_COPY requires stack or heap source (src_reg={}, src storage={}, src type_id={}, src hptr={}, dst_reg={}, dst type_id={}, pc={})",
+            src_reg, static_cast<int>(src.storage), src.type_id.value, src.data.hptr.value,
+            dst_reg, dst.type_id.value, frame.pc - 1));
+        DISPATCH();
+    }
+    DISPATCH();
+}
+
+lbl_STACK_FIELDGET:
+lbl_STACK_FIELDGET_R: {
+    uint8_t dest_reg = a;
+    uint8_t base_reg = b;
+    uint32_t field_idx = (op == Opcode::STACK_FIELDGET)
+        ? static_cast<uint32_t>(c)
+        : static_cast<uint32_t>(reg(c).data.ival);
+
+    Value base = reg(base_reg);
+    if (base.storage != ValueStorage::stack) {
+        fail("STACK_FIELDGET requires stack value");
+        DISPATCH();
+    }
+
+    if (field_idx >= frame.module->field_offsets.size()) {
+        fail("Field reference index out of range in STACK_FIELDGET");
+        DISPATCH();
+    }
+
+    uint32_t field_offset = frame.module->field_offsets[field_idx];
+    TypeID field_type = frame.module->field_types[field_idx];
+    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
+    reg(dest_reg) = read_stack_value(ptr, field_type, base.data.stack_offset, field_offset, *rt_);
+    DISPATCH();
+}
+
+lbl_STACK_FIELDSET:
+lbl_STACK_FIELDSET_R: {
+    uint8_t base_reg = a;
+    uint8_t val_reg = c;
+    uint32_t field_idx = (op == Opcode::STACK_FIELDSET)
+        ? static_cast<uint32_t>(b)
+        : static_cast<uint32_t>(reg(b).data.ival);
+
+    Value base = reg(base_reg);
+    if (base.storage != ValueStorage::stack) {
+        fail("STACK_FIELDSET requires stack value");
+        DISPATCH();
+    }
+
+    if (field_idx >= frame.module->field_offsets.size()) {
+        fail("Field reference index out of range in STACK_FIELDSET");
+        DISPATCH();
+    }
+
+    uint32_t field_offset = frame.module->field_offsets[field_idx];
+    TypeID field_type = frame.module->field_types[field_idx];
+    Value val = reg(val_reg);
+    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
+    write_stack_value(ptr, field_type, val, frame.stack_.data(), *rt_);
+    DISPATCH();
+}
+
+lbl_STACK_INDEXGET: {
+    uint8_t dest_reg = a;
+    uint8_t base_reg = b;
+    uint8_t idx_reg = c;
+
+    Value base = reg(base_reg);
+    if (base.storage != ValueStorage::stack) {
+        fail("STACK_INDEXGET requires stack value");
+        DISPATCH();
+    }
+
+    Value idx_val = reg(idx_reg);
+    if (idx_val.type_id != rt_->int_type()) {
+        fail("Fixed array index must be integer");
+        DISPATCH();
+    }
+
+    const Type* type = rt_->get_type(base.type_id);
+    if (!type || type->type_kind != TK_fixed_array) {
+        fail("STACK_INDEXGET requires fixed array value");
+        DISPATCH();
+    }
+
+    int32_t size = type->type_params[1].as<int32_t>();
+    int32_t index = idx_val.data.ival;
+    if (index < 0 || index >= size) {
+        fail("Fixed array index out of bounds");
+        DISPATCH();
+    }
+
+    TypeID elem_type_id = type->type_params[0].as<TypeID>();
+    const Type* elem_type = rt_->get_type(elem_type_id);
+    if (!elem_type) {
+        fail("Fixed array element type not found");
+        DISPATCH();
+    }
+
+    uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
+    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
+    reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
+    DISPATCH();
+}
+
+lbl_STACK_INDEXSET: {
+    uint8_t base_reg = a;
+    uint8_t idx_reg = b;
+    uint8_t val_reg = c;
+
+    Value base = reg(base_reg);
+    if (base.storage != ValueStorage::stack) {
+        fail("STACK_INDEXSET requires stack value");
+        DISPATCH();
+    }
+
+    Value idx_val = reg(idx_reg);
+    if (idx_val.type_id != rt_->int_type()) {
+        fail("Fixed array index must be integer");
+        DISPATCH();
+    }
+
+    const Type* type = rt_->get_type(base.type_id);
+    if (!type || type->type_kind != TK_fixed_array) {
+        fail("STACK_INDEXSET requires fixed array value");
+        DISPATCH();
+    }
+
+    int32_t size = type->type_params[1].as<int32_t>();
+    int32_t index = idx_val.data.ival;
+    if (index < 0 || index >= size) {
+        fail("Fixed array index out of bounds");
+        DISPATCH();
+    }
+
+    TypeID elem_type_id = type->type_params[0].as<TypeID>();
+    const Type* elem_type = rt_->get_type(elem_type_id);
+    if (!elem_type) {
+        fail("Fixed array element type not found");
+        DISPATCH();
+    }
+
+    uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
+    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
+    Value val = reg(val_reg);
+    write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+    DISPATCH();
+}
+
+vm_exit:
+#undef frame
+#undef instr
+#undef a
+#undef b
+#undef c
+#undef op
+#undef DISPATCH
+    return !failed_;
+
+#else  // !defined(__GNUC__) && !defined(__clang__)
     rt_ = &nw::kernel::runtime();
     while (frames_.size() > entry_depth && !failed_) {
-        if (step_limit_enabled_) {
+        if constexpr (StepLimited) {
             if (remaining_steps_ == 0) {
                 fail("Script exceeded execution limit");
                 break;
@@ -1894,6 +3286,17 @@ bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
     }
 
     return !failed_;
+#endif // !defined(__GNUC__) && !defined(__clang__)
+}
+
+bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
+{
+    return run_impl<false>(module, entry_depth);
+}
+
+bool VirtualMachine::run_limited(BytecodeModule* module, size_t entry_depth)
+{
+    return run_impl<true>(module, entry_depth);
 }
 
 void VirtualMachine::op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c)

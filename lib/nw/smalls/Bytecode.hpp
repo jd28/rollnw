@@ -160,6 +160,8 @@ enum class Opcode : uint8_t {
     GETGLOBAL,    // rA = module.globals[Bx]
     SETGLOBAL,    // module.globals[Bx] = rA
     GETEXTGLOBAL, // rA = global_refs[Bx].module->globals[global_refs[Bx].slot]
+
+    _COUNT, // Must be last — used for computed-goto dispatch table sizing
 };
 
 // == Instruction Encoding ====================================================
