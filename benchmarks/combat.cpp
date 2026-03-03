@@ -197,8 +197,8 @@ static nw::Vector<nw::smalls::Value> make_creature_script_args(nw::Creature* att
 
 static void benchmark_resolve_attack_direct_module_context(benchmark::State& state, bool script_path)
 {
-    static constexpr std::string_view default_attacker = "test_data/user/development/pl_agent_001.utc";
-    static constexpr std::string_view default_target = "test_data/user/development/nw_chicken.utc";
+    static constexpr std::string_view default_attacker = "test_data/user/development/drorry.utc";
+    static constexpr std::string_view default_target = "test_data/user/development/drorry.utc";
 
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     if (!module) {

@@ -63,48 +63,61 @@ static fs::path resolve_stdlib_module_path(const char* argv0, std::string_view m
 static void BM_parse_feat_2da_static(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/feat.2da");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         nw::StaticTwoDA tda{data.copy()};
         benchmark::DoNotOptimize(tda);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 BENCHMARK(BM_parse_feat_2da_static);
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/feat.2da");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         nw::TwoDA tda{data.copy()};
         benchmark::DoNotOptimize(tda);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 BENCHMARK(BM_parse_feat_2da);
 
 static void BM_load_creature_gff(benchmark::State& state)
 {
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/drorry.utc");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         nw::Gff gff{nw::ResourceData::from_file("test_data/user/development/drorry.utc")};
         benchmark::DoNotOptimize(gff);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 BENCHMARK(BM_load_creature_gff);
 
 static void BM_creature_from_gff(benchmark::State& state)
 {
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/drorry.utc");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
         benchmark::DoNotOptimize(ent);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 BENCHMARK(BM_creature_from_gff);
 
 static void BM_creature_from_json(benchmark::State& state)
 {
     nlohmann::json j;
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/drorry.utc.json");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc.json");
         benchmark::DoNotOptimize(ent);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 BENCHMARK(BM_creature_from_json);
 
@@ -211,6 +224,7 @@ static void BM_creature_armor_class(benchmark::State& state)
 static void BM_script_lex(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     auto ctx = new nw::script::Context;
     for (auto _ : state) {
         nw::script::NssLexer lexer{data.bytes.string_view(), ctx};
@@ -218,22 +232,26 @@ static void BM_script_lex(benchmark::State& state)
             ;
         benchmark::DoNotOptimize(lexer);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 
 static void BM_script_parse(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         nw::script::Context ctx;
         nw::script::Nss nss(data.bytes.string_view(), &ctx, true);
         nss.parse();
         benchmark::DoNotOptimize(nss);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 
 static void BM_script_resolve(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+    const auto bytes = static_cast<int64_t>(data.bytes.size());
     for (auto _ : state) {
         nw::script::Context ctx;
         nw::script::Nss nss(data.bytes.string_view(), &ctx, true);
@@ -241,13 +259,20 @@ static void BM_script_resolve(benchmark::State& state)
         nss.resolve();
         benchmark::DoNotOptimize(nss);
     }
+    state.SetBytesProcessed(state.iterations() * bytes);
 }
 
 static void BM_model_parse(benchmark::State& state)
 {
+    std::error_code ec;
+    const auto file_size = fs::file_size("test_data/user/development/alt_dfa19.mdl", ec);
+    const auto bytes = ec ? int64_t{0} : static_cast<int64_t>(file_size);
     for (auto _ : state) {
         nw::model::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
         benchmark::DoNotOptimize(mdl);
+    }
+    if (bytes > 0) {
+        state.SetBytesProcessed(state.iterations() * bytes);
     }
 }
 

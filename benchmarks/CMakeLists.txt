@@ -11,6 +11,7 @@ add_executable(rollnw_benchmark
     main.cpp
     propset.cpp
     smalls.cpp
+    unmanaged_array.cpp
 )
 
 target_include_directories(rollnw_benchmark PRIVATE

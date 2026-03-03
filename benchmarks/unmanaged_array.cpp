@@ -16,9 +16,10 @@ namespace nws = nw::smalls;
 static void BM_unmanaged_array_alloc_free(benchmark::State& state)
 {
     nw::RuntimeObjectPool pool;
+    nws::Runtime& rt = nwk::runtime();
 
     for (auto _ : state) {
-        nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 4);
+        nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 4);
         benchmark::DoNotOptimize(h);
         pool.destroy_unmanaged_array(h);
     }
@@ -30,7 +31,7 @@ static void BM_unmanaged_array_push(benchmark::State& state)
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
-    nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 4);
+    nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 4);
     nws::IArray* arr = pool.get_unmanaged_array(h);
 
     int32_t val = 0;
@@ -51,7 +52,7 @@ static void BM_unmanaged_array_get(benchmark::State& state)
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
-    nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 100);
+    nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 100);
     nws::IArray* arr = pool.get_unmanaged_array(h);
 
     // Populate array
@@ -76,7 +77,7 @@ static void BM_unmanaged_array_set(benchmark::State& state)
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
-    nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 100);
+    nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 100);
     nws::IArray* arr = pool.get_unmanaged_array(h);
     arr->resize(100);
 
@@ -96,12 +97,12 @@ BENCHMARK(BM_unmanaged_array_set);
 
 static void BM_unmanaged_array_push_heavy(benchmark::State& state)
 {
-    const int num_pushes = state.range(0);
+    const int num_pushes = static_cast<int>(state.range(0));
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
     for (auto _ : state) {
-        nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 0);
+        nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 0);
         nws::IArray* arr = pool.get_unmanaged_array(h);
 
         for (int i = 0; i < num_pushes; ++i) {
@@ -118,7 +119,7 @@ BENCHMARK(BM_unmanaged_array_push_heavy)->Arg(10)->Arg(100)->Arg(1000);
 
 static void BM_scriptheap_array_push_heavy(benchmark::State& state)
 {
-    const int num_pushes = state.range(0);
+    const int num_pushes = static_cast<int>(state.range(0));
     nws::Runtime& rt = nwk::runtime();
 
     for (auto _ : state) {
@@ -146,7 +147,7 @@ BENCHMARK(BM_scriptheap_array_push_heavy)->Arg(10)->Arg(100)->Arg(1000);
 
 static void BM_unmanaged_array_many_small(benchmark::State& state)
 {
-    const int num_arrays = state.range(0);
+    const int num_arrays = static_cast<int>(state.range(0));
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
@@ -159,7 +160,7 @@ static void BM_unmanaged_array_many_small(benchmark::State& state)
 
         // Allocate arrays
         for (int i = 0; i < num_arrays; ++i) {
-            handles.push_back(pool.allocate_unmanaged_array(nws::TypeID{1}, 4));
+            handles.push_back(pool.allocate_unmanaged_array(rt.int_type(), 4));
         }
         state.ResumeTiming();
 
@@ -186,7 +187,7 @@ BENCHMARK(BM_unmanaged_array_many_small)->Arg(10)->Arg(100)->Arg(1000);
 
 static void BM_unmanaged_array_dense_mutation(benchmark::State& state)
 {
-    const int num_arrays = state.range(0);
+    const int num_arrays = static_cast<int>(state.range(0));
     const int mutations_per_iter = 100;
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
@@ -196,7 +197,7 @@ static void BM_unmanaged_array_dense_mutation(benchmark::State& state)
 
     // Setup: create arrays with initial data
     for (int i = 0; i < num_arrays; ++i) {
-        nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 64);
+        nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 64);
         handles.push_back(h);
     }
 
@@ -229,7 +230,7 @@ BENCHMARK(BM_unmanaged_array_dense_mutation)->Arg(10)->Arg(100)->Arg(1000);
 
 static void BM_gc_roots_with_unmanaged_arrays(benchmark::State& state)
 {
-    const int num_objects = state.range(0);
+    const int num_objects = static_cast<int>(state.range(0));
     auto& rt = nwk::runtime();
     auto* gc = rt.gc();
 
@@ -244,7 +245,7 @@ static void BM_gc_roots_with_unmanaged_arrays(benchmark::State& state)
     std::vector<nw::TypedHandle> handles;
     handles.reserve(num_objects);
     for (int i = 0; i < num_objects; ++i) {
-        handles.push_back(pool.allocate_unmanaged_array(nws::TypeID{1}, 16));
+        handles.push_back(pool.allocate_unmanaged_array(rt.int_type(), 16));
     }
 
     for (auto _ : state) {
@@ -260,7 +261,7 @@ BENCHMARK(BM_gc_roots_with_unmanaged_arrays)->Arg(100)->Arg(1000)->Arg(10000);
 
 static void BM_gc_roots_with_scriptheap_arrays(benchmark::State& state)
 {
-    const int num_objects = state.range(0);
+    const int num_objects = static_cast<int>(state.range(0));
     auto& rt = nwk::runtime();
     auto* gc = rt.gc();
 
@@ -293,7 +294,7 @@ static void BM_unmanaged_array_throughput(benchmark::State& state)
     nw::RuntimeObjectPool pool;
     nws::Runtime& rt = nwk::runtime();
 
-    nw::TypedHandle h = pool.allocate_unmanaged_array(nws::TypeID{1}, 1024);
+    nw::TypedHandle h = pool.allocate_unmanaged_array(rt.int_type(), 1024);
     nws::IArray* arr = pool.get_unmanaged_array(h);
 
     int32_t val = 0;

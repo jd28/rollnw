@@ -424,6 +424,44 @@ jobs:
             --min-baseline-ns 50 \
             --top 30 | tee tmp/bench/compare.txt
 
+      - name: benchmark profile bench-pr (contender)
+        env:
+          NWN_ROOT: "${{ github.workspace }}/nwn/"
+        run: |
+          FILTER=$(python3 benchmarks/benchmark_profile.py --profile bench-pr --format filter)
+          cmake -E chdir "${{ github.workspace }}/install-bench-contender/bin" ./rollnw_benchmark \
+            --benchmark_filter="$FILTER" \
+            --benchmark_min_time=0.02s \
+            --benchmark_repetitions=1 \
+            --benchmark_out="${{ github.workspace }}/tmp/bench/contender-bench-pr.json" \
+            --benchmark_out_format=json
+
+      - name: benchmark profile bench-pr (baseline)
+        if: github.event_name == 'pull_request'
+        env:
+          NWN_ROOT: "${{ github.workspace }}/nwn/"
+        run: |
+          FILTER=$(python3 benchmarks/benchmark_profile.py --profile bench-pr --format filter)
+          cmake -E chdir "${{ github.workspace }}/install-bench-baseline/bin" ./rollnw_benchmark \
+            --benchmark_filter="$FILTER" \
+            --benchmark_min_time=0.02s \
+            --benchmark_repetitions=1 \
+            --benchmark_out="${{ github.workspace }}/tmp/bench/baseline-bench-pr.json" \
+            --benchmark_out_format=json
+
+      - name: benchmark profile bench-pr compare
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 benchmarks/compare_benchmarks.py \
+            tmp/bench/baseline-bench-pr.json \
+            tmp/bench/contender-bench-pr.json \
+            --config benchmarks/benchmark_profiles.json \
+            --profile bench-pr \
+            --warn-threshold 8 \
+            --min-baseline-ns 50 \
+            --top 30 \
+            --out-json tmp/bench/compare-bench-pr.json | tee tmp/bench/compare-bench-pr.txt
+
       - name: upload benchmark results
         if: always()
         uses: actions/upload-artifact@v6
@@ -434,6 +472,10 @@ jobs:
             tmp/bench/contender.json
             tmp/bench/baseline.json
             tmp/bench/compare.txt
+            tmp/bench/contender-bench-pr.json
+            tmp/bench/baseline-bench-pr.json
+            tmp/bench/compare-bench-pr.txt
+            tmp/bench/compare-bench-pr.json
 
       - name: ccache stats
         run: |
