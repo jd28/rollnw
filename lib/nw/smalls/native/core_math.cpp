@@ -80,7 +80,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.sin",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::sin(args[0].data.fval)));
@@ -89,7 +89,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.cos",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::cos(args[0].data.fval)));
@@ -98,7 +98,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.sqrt",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::sqrt(args[0].data.fval)));
@@ -107,7 +107,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.log",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::log(args[0].data.fval)));
@@ -116,7 +116,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.exp",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::exp(args[0].data.fval)));
@@ -125,7 +125,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.ceil",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::ceil(args[0].data.fval)));
@@ -134,7 +134,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.floor",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::floor(args[0].data.fval)));
@@ -143,7 +143,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.round",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::round(args[0].data.fval)));
@@ -152,7 +152,7 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.pow",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 2 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             if (args[1].type_id != rt->float_type()) { return Value{}; }
@@ -162,14 +162,13 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.atan2",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 2 || !rt) { return Value{}; }
             if (args[0].type_id != rt->float_type()) { return Value{}; }
             if (args[1].type_id != rt->float_type()) { return Value{}; }
             return Value::make_float(static_cast<float>(std::atan2(args[0].data.fval, args[1].data.fval)));
         },
         .metadata = atan2_meta});
-
 }
 
 } // namespace nw::smalls

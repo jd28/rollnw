@@ -2454,6 +2454,12 @@ const ModuleInterface* Runtime::get_native_module(StringView module_path) const
 
 uint32_t Runtime::register_native_function(NativeFunction func)
 {
+    if (!func.fast_wrapper) {
+        if (auto* fast = func.wrapper.target<NativeFunctionPointer>()) {
+            func.fast_wrapper = *fast;
+        }
+    }
+
     uint32_t native_idx = static_cast<uint32_t>(native_functions_.size());
     native_function_names_[func.name] = native_idx;
 
@@ -2464,6 +2470,7 @@ uint32_t Runtime::register_native_function(NativeFunction func)
     ext.script_module = nullptr; // marks as native
     ext.func_idx = native_idx;
     ext.native_wrapper = func.wrapper;
+    ext.native_fast_wrapper = func.fast_wrapper;
     register_external_function(std::move(ext));
 
     native_functions_.push_back(std::move(func));
@@ -4367,7 +4374,7 @@ void Runtime::destruct_object(HeapPtr ptr)
     }
 }
 
-void* Runtime::get_value_data_ptr(const Value& v)
+void* Runtime::get_value_data_ptr(const Value& v) noexcept
 {
     if (v.storage == ValueStorage::heap) {
         return heap_.get_ptr(v.data.hptr);

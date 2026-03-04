@@ -51,7 +51,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.print",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].type_id != rt->string_type()) { return Value{}; }
 
@@ -66,7 +66,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.println",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].type_id != rt->string_type()) { return Value{}; }
 
@@ -81,7 +81,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.assert",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].type_id != rt->bool_type()) { return Value{}; }
 
@@ -94,7 +94,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.error",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].type_id != rt->string_type()) { return Value{}; }
 
@@ -109,7 +109,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.panic",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].type_id != rt->string_type()) { return Value{}; }
 
@@ -124,7 +124,7 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.gc_collect",
-        .wrapper = [](Runtime* rt, const Value*, uint8_t) -> Value {
+        .wrapper = +[](Runtime* rt, const Value*, uint8_t) -> Value {
             if (!rt) { return Value{}; }
             if (auto* gc = rt->gc()) {
                 gc->collect_minor();

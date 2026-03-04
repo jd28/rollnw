@@ -365,6 +365,18 @@ void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, R
     }
 }
 
+void VirtualMachine::call_native_pointer(NativeFunctionPointer fn, Runtime& rt,
+    const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
+{
+    try {
+        reg(dest_reg) = fn(&rt, args, argc);
+    } catch (const std::exception& ex) {
+        fail(absl::StrCat("Native '", func_name, "' threw exception: ", ex.what()));
+    } catch (...) {
+        fail(absl::StrCat("Native '", func_name, "' threw unknown exception"));
+    }
+}
+
 void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
     BytecodeModule* target_module, const CompiledFunction* callee,
     Closure* closure, const char* opcode_name)
@@ -441,9 +453,7 @@ void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg,
     const Value* src = &registers_[caller_base + dest_reg + 1];
     Value* dst = &registers_[current_base_];
 
-    // Fast path: no stack-resident value types — bulk-copy all args at once.
-    // Stack args only arise when passing structs/fixed-arrays by value; primitives,
-    // objects, heap refs, and closures never use this storage.
+    // Fast path: no stack-resident value types in the actual args.
     bool has_stack = false;
     for (uint8_t i = 0; i < argc; ++i) {
         if (src[i].storage == ValueStorage::stack) {
@@ -1032,7 +1042,11 @@ lbl_CALLNATIVE: {
     }
 
     const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-    call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+    if (func->fast_wrapper) {
+        call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+    } else {
+        call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+    }
     DISPATCH();
 }
 
@@ -1063,8 +1077,13 @@ lbl_CALLEXT: {
     if (ext->is_native()) {
         if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
         const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-        call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
-            dest_reg, ext->qualified_name.view());
+        if (ext->native_fast_wrapper) {
+            call_native_pointer(ext->native_fast_wrapper, *rt_, args_ptr, argc,
+                dest_reg, ext->qualified_name.view());
+        } else {
+            call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
+                dest_reg, ext->qualified_name.view());
+        }
     } else {
         if (ext->func_idx >= ext->script_module->functions.size()) {
             fail("External script function index out of range");
@@ -2257,7 +2276,11 @@ vm_exit:
             }
 
             const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-            call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+            if (func->fast_wrapper) {
+                call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+            } else {
+                call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+            }
             break;
         }
 
@@ -2288,8 +2311,13 @@ vm_exit:
             if (ext->is_native()) {
                 if (gas_enabled_ && !consume_gas()) break;
                 const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-                call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
-                    dest_reg, ext->qualified_name.view());
+                if (ext->native_fast_wrapper) {
+                    call_native_pointer(ext->native_fast_wrapper, *rt_, args_ptr, argc,
+                        dest_reg, ext->qualified_name.view());
+                } else {
+                    call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
+                        dest_reg, ext->qualified_name.view());
+                }
             } else {
                 if (ext->func_idx >= ext->script_module->functions.size()) {
                     fail("External script function index out of range");

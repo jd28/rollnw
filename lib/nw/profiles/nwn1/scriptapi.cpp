@@ -29,12 +29,32 @@ namespace {
 thread_local bool in_combat_policy_dispatch = false;
 thread_local nw::Vector<nw::smalls::Value> policy_args_cache;
 
+/// Pre-cached byte offsets for all AttackData fields.
+/// Resolved once when "resolve_attack" is first compiled; used for zero-copy decode.
+struct AttackDataOffsetCache {
+    bool valid = false;
+    uint32_t attack_type;
+    uint32_t attack_result;
+    uint32_t attack_roll;
+    uint32_t attack_bonus;
+    uint32_t armor_class;
+    uint32_t nth_attack;
+    uint32_t damage_total;
+    uint32_t critical_multiplier;
+    uint32_t critical_threat;
+    uint32_t concealment;
+    uint32_t iteration_penalty;
+    uint32_t is_ranged;
+    uint32_t target_is_creature;
+};
+
 struct PolicyFnCacheEntry {
     nw::String fn;
     bool known_missing = false;
     bool function_resolved = false;
     const nw::smalls::BytecodeModule* bytecode_module = nullptr;
     const nw::smalls::CompiledFunction* compiled_function = nullptr;
+    AttackDataOffsetCache attack_data_offsets;
 };
 
 thread_local nw::Vector<PolicyFnCacheEntry> policy_fn_cache;
@@ -146,6 +166,7 @@ std::optional<nw::smalls::Value> call_policy_value(nw::StringView fn, const nw::
         fn_cache.function_resolved = false;
         fn_cache.bytecode_module = bytecode_module;
         fn_cache.compiled_function = nullptr;
+        fn_cache.attack_data_offsets = {};
     }
 
     if (!fn_cache.function_resolved) {
@@ -154,6 +175,37 @@ std::optional<nw::smalls::Value> call_policy_value(nw::StringView fn, const nw::
         fn_cache.known_missing = fn_cache.compiled_function == nullptr;
         if (fn_cache.known_missing) {
             LOG_F(ERROR, "[nwn1] combat policy '{}.{}' failed: Function not found", module, fn);
+        }
+
+        // Resolve field offsets once for AttackData-returning functions (fast decode path)
+        if (fn_cache.compiled_function) {
+            const auto* ret_type = rt.get_type(fn_cache.compiled_function->return_type);
+            if (ret_type && ret_type->type_kind == nw::smalls::TK_struct
+                && rt.type_name(fn_cache.compiled_function->return_type) == "core.combat.AttackData") {
+                auto sid = ret_type->type_params[0].as<nw::smalls::StructID>();
+                const auto* def = rt.type_table_.get(sid);
+                if (def) {
+                    auto& c = fn_cache.attack_data_offsets;
+                    auto resolve_field = [&](nw::StringView name) -> uint32_t {
+                        uint32_t idx = def->field_index(name);
+                        return (idx != UINT32_MAX) ? def->fields[idx].offset : UINT32_MAX;
+                    };
+                    c.attack_type = resolve_field("attack_type");
+                    c.attack_result = resolve_field("attack_result");
+                    c.attack_roll = resolve_field("attack_roll");
+                    c.attack_bonus = resolve_field("attack_bonus");
+                    c.armor_class = resolve_field("armor_class");
+                    c.nth_attack = resolve_field("nth_attack");
+                    c.damage_total = resolve_field("damage_total");
+                    c.critical_multiplier = resolve_field("critical_multiplier");
+                    c.critical_threat = resolve_field("critical_threat");
+                    c.concealment = resolve_field("concealment");
+                    c.iteration_penalty = resolve_field("iteration_penalty");
+                    c.is_ranged = resolve_field("is_ranged");
+                    c.target_is_creature = resolve_field("target_is_creature");
+                    c.valid = (c.attack_type != UINT32_MAX);
+                }
+            }
         }
     }
 
@@ -1186,6 +1238,48 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
                 }
 
                 auto& rt = nw::kernel::runtime();
+
+                // Fast path: use pre-cached field offsets for direct byte reads
+                const auto& offsets = resolve_policy_fn_cache("resolve_attack").attack_data_offsets;
+                if (offsets.valid) {
+                    void* raw = rt.get_value_data_ptr(*out);
+                    if (raw) {
+                        const auto* bytes = static_cast<const uint8_t*>(raw);
+                        auto ri = [bytes](uint32_t off) noexcept {
+                            return *reinterpret_cast<const int32_t*>(bytes + off);
+                        };
+                        auto rb = [bytes](uint32_t off) noexcept {
+                            return *reinterpret_cast<const bool*>(bytes + off);
+                        };
+
+                        auto data = std::make_unique<nw::AttackData>();
+                        data->attacker = attacker;
+                        data->target = target;
+                        data->type = nw::AttackType::make(ri(offsets.attack_type));
+                        data->weapon = get_weapon_by_attack_type(attacker, data->type);
+                        data->target_state = resolve_target_state(attacker, target);
+                        data->target_is_creature = rb(offsets.target_is_creature);
+                        data->is_ranged_attack = rb(offsets.is_ranged);
+                        data->nth_attack = ri(offsets.nth_attack);
+                        data->result = static_cast<nw::AttackResult>(ri(offsets.attack_result));
+                        data->attack_roll = ri(offsets.attack_roll);
+                        data->attack_bonus = ri(offsets.attack_bonus);
+                        data->armor_class = ri(offsets.armor_class);
+                        data->damage_total = ri(offsets.damage_total);
+                        data->multiplier = ri(offsets.critical_multiplier);
+                        data->threat_range = ri(offsets.critical_threat);
+                        data->concealment = ri(offsets.concealment);
+                        data->iteration_penalty = ri(offsets.iteration_penalty);
+
+                        if (combat_policy_timing_enabled) {
+                            combat_policy_timing.decode_ns += now_ns() - decode_begin_ns;
+                        }
+
+                        return data;
+                    }
+                }
+
+                // Slow path: field-by-field lookup (fallback for first call or offset miss)
                 int32_t attack_type = -1;
                 int32_t attack_result = static_cast<int32_t>(nw::AttackResult::miss_by_roll);
                 int32_t attack_roll = 0;

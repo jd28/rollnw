@@ -52,24 +52,39 @@ void insertion_sort(SortContext& ctx, size_t lo, size_t hi)
     for (size_t i = lo + 1; i < hi; ++i) {
         if (ctx.failed) { return; }
         Value key;
-        if (!ctx.arr->get_value(i, key, *ctx.rt)) { ctx.failed = true; return; }
+        if (!ctx.arr->get_value(i, key, *ctx.rt)) {
+            ctx.failed = true;
+            return;
+        }
 
         size_t j = i;
         while (j > lo) {
             Value prev;
-            if (!ctx.arr->get_value(j - 1, prev, *ctx.rt)) { ctx.failed = true; return; }
+            if (!ctx.arr->get_value(j - 1, prev, *ctx.rt)) {
+                ctx.failed = true;
+                return;
+            }
 
             ctx.call_args->clear();
             ctx.call_args->push_back(key);
             ctx.call_args->push_back(prev);
             Value r = ctx.rt->call_closure(*ctx.closure, *ctx.call_args);
-            if (r.type_id != ctx.rt->bool_type()) { ctx.failed = true; return; }
+            if (r.type_id != ctx.rt->bool_type()) {
+                ctx.failed = true;
+                return;
+            }
             if (!r.data.bval) { break; }
 
-            if (!ctx.arr->set_value(j, prev, *ctx.rt)) { ctx.failed = true; return; }
+            if (!ctx.arr->set_value(j, prev, *ctx.rt)) {
+                ctx.failed = true;
+                return;
+            }
             --j;
         }
-        if (!ctx.arr->set_value(j, key, *ctx.rt)) { ctx.failed = true; return; }
+        if (!ctx.arr->set_value(j, key, *ctx.rt)) {
+            ctx.failed = true;
+            return;
+        }
     }
 }
 
@@ -229,7 +244,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.map",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
@@ -277,7 +292,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.filter",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
@@ -324,7 +339,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.reduce",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 3) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[2].storage != ValueStorage::heap || args[2].data.hptr.value == 0) { return Value{}; }
@@ -372,7 +387,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.sort",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
@@ -404,7 +419,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.find",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
@@ -441,7 +456,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.reverse",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
@@ -463,7 +478,7 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.slice",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 3) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].type_id != rt->int_type()) { return Value{}; }

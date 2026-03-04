@@ -33,7 +33,7 @@ void register_core_map(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.has_key",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
@@ -53,7 +53,7 @@ void register_core_map(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.keys",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
@@ -87,7 +87,7 @@ void register_core_map(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.values",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 

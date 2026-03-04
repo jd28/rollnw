@@ -2199,10 +2199,15 @@ void TypeResolver::visit(StructDecl* decl)
                             allowed = is_v1_primitive(elem_type->primitive_kind);
                         }
                     }
+                    // Case 5: Object handle types (object, Creature, Item, etc.)
+                    // Stored as immediate 8-byte values; no heap references, no GC needed.
+                    else if (rt.is_object_like_type(field.type_id)) {
+                        allowed = true;
+                    }
 
                     if (!allowed) {
                         ctx.errorf(decl->range_,
-                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool)",
+                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool)",
                             decl->identifier(),
                             field.name.view());
                     }

@@ -43,7 +43,7 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.test",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (!rt || argc != 2) { return Value{}; }
             if (args[0].type_id != rt->string_type() || args[1].type_id != rt->bool_type()) {
                 return Value{};
@@ -61,7 +61,7 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.reset",
-        .wrapper = [](Runtime* rt, const Value*, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
             if (!rt || argc != 0) { return Value{}; }
             rt->reset_test_state();
             return Value(rt->void_type());
@@ -70,7 +70,7 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.summary",
-        .wrapper = [](Runtime* rt, const Value*, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
             if (!rt || argc != 0) { return Value{}; }
             rt->report_test_summary();
             return Value(rt->void_type());
@@ -79,7 +79,7 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.failures",
-        .wrapper = [](Runtime* rt, const Value*, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
             if (!rt || argc != 0) { return Value{}; }
             return Value::make_int(static_cast<int32_t>(rt->test_failures()));
         },
@@ -87,7 +87,7 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.count",
-        .wrapper = [](Runtime* rt, const Value*, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
             if (!rt || argc != 0) { return Value{}; }
             return Value::make_int(static_cast<int32_t>(rt->test_count()));
         },

@@ -164,7 +164,8 @@ private:
     Upvalue* get_or_create_upvalue(CallFrame& frame, uint8_t reg);
     void close_upvalues(CallFrame& frame);
 
-    void copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc, size_t caller_frame_index, const char* opcode_name);
+    void copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc,
+        size_t caller_frame_index, const char* opcode_name);
 
     // Inline helpers used by opcode dispatch
     enum class Truthiness { False,
@@ -173,6 +174,8 @@ private:
     Truthiness evaluate_truthiness(const Value& val, const char* opcode_name);
     bool resolve_type_ref(uint16_t type_idx, const BytecodeModule* mod, TypeID& out_tid);
     void* resolve_sum_data(const Value& sum_val, CallFrame& frame, const SumDef*& out_def, const char* opcode_name);
+    void call_native_pointer(NativeFunctionPointer fn, Runtime& rt, const Value* args, uint8_t argc,
+        uint8_t dest_reg, StringView func_name);
     void call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt, const Value* args, uint8_t argc,
         uint8_t dest_reg, StringView func_name);
     void setup_script_call(uint8_t dest_reg, uint8_t argc, BytecodeModule* target_module,

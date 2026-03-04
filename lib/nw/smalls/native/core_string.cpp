@@ -67,7 +67,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.pad_left",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 3 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type() || args[1].type_id != rt->int_type()
                 || args[2].type_id != rt->string_type()) {
@@ -98,7 +98,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.pad_right",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 3 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type() || args[1].type_id != rt->int_type()
                 || args[2].type_id != rt->string_type()) {
@@ -128,7 +128,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.last_index_of",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 2 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type() || args[1].type_id != rt->string_type()) {
                 return Value{};
@@ -154,7 +154,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.count",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 2 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type() || args[1].type_id != rt->string_type()) {
                 return Value{};
@@ -182,7 +182,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.trim_start",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type()) {
                 return Value{};
@@ -201,7 +201,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.trim_end",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 1 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type()) {
                 return Value{};
@@ -220,7 +220,7 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.format",
-        .wrapper = [](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
             if (argc != 2 || !rt) { return Value{}; }
             if (args[0].type_id != rt->string_type()) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }

@@ -41,6 +41,7 @@ struct Script;
 struct Token;
 struct VirtualMachine;
 class PropsetPoolManager;
+struct Runtime;
 
 struct StringRepr {
     HeapPtr backing;
@@ -246,12 +247,14 @@ struct ModuleInterface {
 };
 
 /// Signature for native function wrappers called by the VM
+using NativeFunctionPointer = Value (*)(Runtime*, const Value*, uint8_t);
 using NativeFunctionWrapper = std::function<Value(Runtime*, const Value*, uint8_t)>;
 
 /// Metadata and wrapper for a registered native function
 struct NativeFunction {
     String name;
     NativeFunctionWrapper wrapper;
+    NativeFunctionPointer fast_wrapper = nullptr;
     FunctionMetadata metadata;
 };
 
@@ -268,6 +271,7 @@ struct ExternalFunction {
 
     // Only valid for native functions (script_module == nullptr)
     NativeFunctionWrapper native_wrapper;
+    NativeFunctionPointer native_fast_wrapper = nullptr;
 
     bool is_native() const { return script_module == nullptr; }
 };
@@ -912,7 +916,7 @@ public:
     /// Register a 2da-based converter for a load_config! path.
     /// When load_config!(T)(path) is called, it reads from the named 2da instead of .smalls data files.
     void register_twoda_converter(StringView path, StringView twoda_name,
-                                   Vector<TwoDAColumnMapping> mappings);
+        Vector<TwoDAColumnMapping> mappings);
 
     /// Load all .smalls files from a directory path as an array!(T).
     /// Assembles entries using the [[index]] field. Caches permanently.
@@ -1096,7 +1100,7 @@ public:
     GarbageCollector* gc() { return gc_.get(); }
 
     void destruct_object(HeapPtr ptr);
-    void* get_value_data_ptr(const Value& v);
+    void* get_value_data_ptr(const Value& v) noexcept;
     void enumerate_module_globals(GCRootVisitor& visitor);
 
     template <typename Callback>
@@ -1288,8 +1292,8 @@ private:
 
     Value load_config_value(StringView path, StringView prelude_module);
     Value load_twoda_as_config_array(StringView path, TypeID config_type,
-                                      const StructDef* def, uint32_t index_field_idx,
-                                      const TwoDAConverterSpec& conv);
+        const StructDef* def, uint32_t index_field_idx,
+        const TwoDAConverterSpec& conv);
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;
