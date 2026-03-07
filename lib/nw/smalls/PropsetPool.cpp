@@ -82,6 +82,8 @@ void write_field_value(Runtime& rt, void* ptr, TypeID type_id, const Value& valu
 
 } // namespace
 
+// == Type Queries =============================================================
+
 bool PropsetPoolManager::is_propset_type(const Runtime& rt, TypeID type_id) const
 {
     const Type* type = rt.get_type(type_id);
@@ -91,6 +93,8 @@ bool PropsetPoolManager::is_propset_type(const Runtime& rt, TypeID type_id) cons
     const StructDef* def = rt.type_table_.get(type->type_params[0].as<StructID>());
     return has_annotation(def, "propset");
 }
+
+// == Pool Management ==========================================================
 
 PropsetPoolManager::Pool* PropsetPoolManager::get_pool(TypeID type_id)
 {
@@ -124,11 +128,11 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     pool.info.type_id = type_id;
     pool.info.def = def;
     pool.info.object_type = def->propset_object_type;
+    pool.entry_stride = static_cast<uint32_t>(sizeof(PropsetHeader)) + def->size;
     pool.info.field_ids.reserve(def->field_count);
     for (uint32_t i = 0; i < def->field_count; ++i) {
         pool.info.field_ids.push_back(i);
         pool.info.offset_to_field[def->fields[i].offset] = i;
-        // Track unmanaged array fields
         if (def->fields[i].is_unmanaged_array) {
             pool.info.unmanaged_array_offsets.push_back(def->fields[i].offset);
         }
@@ -141,80 +145,86 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     return &inserted_it->second;
 }
 
-PropsetPoolManager::SlotRef PropsetPoolManager::allocate_slot(Pool& pool)
+// == Chunk Access =============================================================
+
+uint8_t* PropsetPoolManager::get_entry(Pool& pool, uint32_t object_id)
 {
-    if (!pool.free_slots.empty()) {
-        SlotRef slot = pool.free_slots.back();
-        pool.free_slots.pop_back();
-        return slot;
+    uint32_t chunk_idx = object_id / chunk_size;
+    uint32_t slot_idx = object_id % chunk_size;
+    if (chunk_idx >= pool.chunks.size() || !pool.chunks[chunk_idx]) {
+        return nullptr;
     }
-
-    Slab slab;
-    slab.storage.resize(static_cast<size_t>(slots_per_slab) * pool.info.def->size);
-    slab.slots.resize(slots_per_slab);
-    // one card bit per slots_per_card slots; covers full slab
-    slab.dirty_heap_cards.resize((slots_per_slab + slots_per_card - 1) / slots_per_card, 0);
-    slab.dirty_heap_card_indices.reserve(slab.dirty_heap_cards.size());
-
-    pool.slabs.push_back(std::move(slab));
-    const uint32_t slab_index = static_cast<uint32_t>(pool.slabs.size() - 1);
-    // Slots 1..slots_per_slab-1 are pushed into free_slots in reverse order (LIFO).
-    // Slot 0 is returned directly — it is never pushed to avoid a bookkeeping asymmetry
-    // where the first alloc from a fresh slab would require an immediate pop-then-return.
-    for (uint32_t i = slots_per_slab - 1; i > 0; --i) {
-        pool.free_slots.push_back(SlotRef{slab_index, i});
-    }
-    return SlotRef{slab_index, 0};
+    return pool.chunks[chunk_idx].get() + static_cast<size_t>(slot_idx) * pool.entry_stride;
 }
 
-uint8_t* PropsetPoolManager::slot_ptr(Pool& pool, const SlotRef& slot)
+uint8_t* PropsetPoolManager::get_or_alloc_entry(Pool& pool, uint32_t object_id)
 {
-    Slab& slab = pool.slabs[slot.slab];
-    return slab.storage.data() + static_cast<size_t>(slot.index) * pool.info.def->size;
-}
-
-const uint8_t* PropsetPoolManager::slot_ptr(const Pool& pool, const SlotRef& slot) const
-{
-    const Slab& slab = pool.slabs[slot.slab];
-    return slab.storage.data() + static_cast<size_t>(slot.index) * pool.info.def->size;
-}
-
-void PropsetPoolManager::mark_slot_dirty(Pool& pool, const SlotRef& slot, uint32_t field_index, bool is_heap_field)
-{
-    Slab& slab = pool.slabs[slot.slab];
-    Slot& slot_data = slab.slots[slot.index];
-    if (field_index < 64) {
-        slot_data.dirty_bits |= (uint64_t{1} << field_index);
-    } else {
-        slot_data.dirty_bits = ~uint64_t{0};
+    uint32_t chunk_idx = object_id / chunk_size;
+    uint32_t slot_idx = object_id % chunk_size;
+    if (chunk_idx >= pool.chunks.size()) {
+        pool.chunks.resize(chunk_idx + 1);
     }
-    slot_data.aggregate_dirty = true;
-    slot_data.is_static = false; // Any write makes slot non-static
+    if (!pool.chunks[chunk_idx]) {
+        size_t chunk_bytes = static_cast<size_t>(chunk_size) * pool.entry_stride;
+        pool.chunks[chunk_idx] = std::make_unique<uint8_t[]>(chunk_bytes);
+        std::memset(pool.chunks[chunk_idx].get(), 0, chunk_bytes);
+    }
+    return pool.chunks[chunk_idx].get() + static_cast<size_t>(slot_idx) * pool.entry_stride;
+}
 
-    // Only mark the GC card dirty for heap-ref field mutations (write barrier).
-    // Scalar field mutations affect replication tracking (dirty_bits/aggregate_dirty)
-    // but do not require GC scanning of the card.
-    if (is_heap_field) {
-        uint32_t card = slot.index / slots_per_card;
-        if (card < slab.dirty_heap_cards.size()) {
-            if (!slab.dirty_heap_cards[card]) {
-                slab.dirty_heap_cards[card] = 1;
-                slab.dirty_heap_card_indices.push_back(static_cast<uint16_t>(card));
+// == Entry Lifecycle ==========================================================
+
+void PropsetPoolManager::free_entry(Runtime& rt, Pool& pool, uint32_t /*object_id*/, PropsetHeader* hdr, uint8_t* data)
+{
+    if (!hdr->alive()) {
+        return;
+    }
+
+    // Cleanup engine-managed (unmanaged) arrays
+    if (hdr->has_unmanaged_arrays()) {
+        for (uint32_t offset : pool.info.unmanaged_array_offsets) {
+            auto* handle_ptr = reinterpret_cast<TypedHandle*>(data + offset);
+            if (handle_ptr->is_valid()) {
+                rt.object_pool().destroy_unmanaged_array(*handle_ptr);
+                *handle_ptr = TypedHandle{};
             }
         }
     }
+
+    // Release GC-managed heap references
+    for (uint32_t i = 0; i < pool.info.def->heap_ref_count; ++i) {
+        auto* ptr = reinterpret_cast<HeapPtr*>(data + pool.info.def->heap_ref_offsets[i]);
+        if (ptr->value != 0) {
+            heap_owners_.erase(ptr->value);
+            *ptr = HeapPtr{0};
+        }
+    }
+
+    std::memset(data, 0, pool.info.def->size);
+    hdr->owner = ObjectHandle{};
+    hdr->dirty_bits = 0;
+    hdr->flags = 0; // Clears HDR_ALIVE and all other flags
 }
 
-void PropsetPoolManager::bind_heap_owner(Pool& pool, const SlotRef& slot, uint32_t field_index, HeapPtr ptr)
+void PropsetPoolManager::mark_entry_dirty(PropsetHeader* hdr, uint32_t field_index, bool /*is_heap_field*/)
+{
+    if (field_index < 64) {
+        hdr->dirty_bits |= (uint64_t{1} << field_index);
+    } else {
+        hdr->dirty_bits = ~uint64_t{0};
+    }
+    hdr->flags |= PropsetHeader::HDR_AGGREGATE_DIRTY;
+    hdr->flags &= ~PropsetHeader::HDR_IS_STATIC;
+}
+
+void PropsetPoolManager::bind_heap_owner(Pool& pool, uint32_t object_id, uint32_t field_index, HeapPtr ptr)
 {
     if (ptr.value == 0) {
         return;
     }
-    Slab& slab = pool.slabs[slot.slab];
-    ObjectHandle owner = slab.slots[slot.index].owner;
     heap_owners_[ptr.value] = HeapOwner{
         .propset_type = pool.info.type_id,
-        .object_id = static_cast<uint32_t>(owner.id),
+        .object_id = object_id,
         .field_index = field_index,
     };
 }
@@ -227,105 +237,24 @@ void PropsetPoolManager::unbind_heap_owner(HeapPtr ptr)
     heap_owners_.erase(ptr.value);
 }
 
-void PropsetPoolManager::update_slot_heap_liveness(Runtime& rt, Pool& pool, const SlotRef& slot)
+void PropsetPoolManager::update_entry_heap_liveness(Runtime& /*rt*/, Pool& pool, PropsetHeader* hdr, uint8_t* data)
 {
-    Slab& slab = pool.slabs[slot.slab];
-    Slot& slot_data = slab.slots[slot.index];
-    uint8_t* base = slot_ptr(pool, slot);
     bool has_live = false;
     for (uint32_t i = 0; i < pool.info.def->heap_ref_count; ++i) {
-        auto* ptr = reinterpret_cast<HeapPtr*>(base + pool.info.def->heap_ref_offsets[i]);
+        auto* ptr = reinterpret_cast<HeapPtr*>(data + pool.info.def->heap_ref_offsets[i]);
         if (ptr->value != 0) {
             has_live = true;
             break;
         }
     }
-    slot_data.has_live_heap_refs = has_live;
     if (has_live) {
-        uint32_t card = slot.index / slots_per_card;
-        if (card < slab.dirty_heap_cards.size()) {
-            if (!slab.dirty_heap_cards[card]) {
-                slab.dirty_heap_cards[card] = 1;
-                slab.dirty_heap_card_indices.push_back(static_cast<uint16_t>(card));
-            }
-        }
+        hdr->flags |= PropsetHeader::HDR_HAS_LIVE_HEAP_REFS;
+    } else {
+        hdr->flags &= ~PropsetHeader::HDR_HAS_LIVE_HEAP_REFS;
     }
 }
 
-void PropsetPoolManager::free_slot(Runtime& rt, Pool& pool, uint32_t object_id, const SlotRef& slot)
-{
-    Slab& slab = pool.slabs[slot.slab];
-    Slot& slot_data = slab.slots[slot.index];
-    if (!slot_data.alive) {
-        return;
-    }
-
-    uint8_t* base = slot_ptr(pool, slot);
-
-    // Cleanup unmanaged arrays (engine-managed, not GC)
-    if (slot_data.has_unmanaged_arrays) {
-        for (uint32_t offset : pool.info.unmanaged_array_offsets) {
-            auto* handle_ptr = reinterpret_cast<TypedHandle*>(base + offset);
-            if (handle_ptr->is_valid()) {
-                rt.object_pool().destroy_unmanaged_array(*handle_ptr);
-                *handle_ptr = TypedHandle{};
-            }
-        }
-    }
-
-    // Cleanup GC-managed heap references
-    for (uint32_t i = 0; i < pool.info.def->heap_ref_count; ++i) {
-        auto* ptr = reinterpret_cast<HeapPtr*>(base + pool.info.def->heap_ref_offsets[i]);
-        if (ptr->value != 0) {
-            heap_owners_.erase(ptr->value);
-            *ptr = HeapPtr{0};
-        }
-    }
-
-    std::memset(base, 0, pool.info.def->size);
-    slot_data = Slot{}; // Reset all slot fields to default
-    pool.object_slots.erase(object_id);
-    pool.free_slots.push_back(slot);
-}
-
-bool PropsetPoolManager::validate_ref(Runtime& rt, const Value& propset_ref, Pool*& out_pool, SlotRef& out_slot, uint32_t& out_object_id)
-{
-    out_pool = nullptr;
-    out_slot = {};
-    out_object_id = 0;
-
-    if (!is_propset_type(rt, propset_ref.type_id)) {
-        return false;
-    }
-
-    Pool* pool = get_pool(propset_ref.type_id);
-    if (!pool) {
-        return false;
-    }
-
-    ObjectHandle obj = propset_ref.data.oval;
-    if (!nw::kernel::objects().valid(obj)) {
-        return false;
-    }
-
-    uint32_t object_id = static_cast<uint32_t>(obj.id);
-    auto it = pool->object_slots.find(object_id);
-    if (it == pool->object_slots.end()) {
-        return false;
-    }
-
-    const SlotRef slot = it->second;
-    const Slab& slab = pool->slabs[slot.slab];
-    const Slot& slot_data = slab.slots[slot.index];
-    if (!slot_data.alive || !(slot_data.owner == obj)) {
-        return false;
-    }
-
-    out_pool = pool;
-    out_slot = slot;
-    out_object_id = object_id;
-    return true;
-}
+// == get_or_create ============================================================
 
 Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj)
 {
@@ -346,63 +275,58 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     }
 
     uint32_t object_id = static_cast<uint32_t>(obj.id);
-    auto it = pool->object_slots.find(object_id);
-    if (it != pool->object_slots.end()) {
-        const SlotRef slot = it->second;
-        const Slab& slab = pool->slabs[slot.slab];
-        const Slot& slot_data = slab.slots[slot.index];
-        if (slot_data.alive && slot_data.owner == obj) {
+    uint8_t* entry = get_or_alloc_entry(*pool, object_id);
+    auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+    uint8_t* data = entry + sizeof(PropsetHeader);
+
+    if (hdr->alive()) {
+        if (hdr->owner == obj) {
+            // Fast path: entry is already initialized for this object
             Value out(propset_type);
-            out.storage = ValueStorage::immediate;
-            out.data.oval = obj;
+            out.storage = ValueStorage::propset;
+            out.data.propset_ptr = entry;
             return out;
         }
-        free_slot(rt, *pool, object_id, slot);
+        // Same slot ID but different object version — stale entry, reinitialize
+        free_entry(rt, *pool, object_id, hdr, data);
     }
 
-    SlotRef slot = allocate_slot(*pool);
-    Slab& slab = pool->slabs[slot.slab];
-    Slot& slot_data = slab.slots[slot.index];
+    // Initialize a fresh entry
+    std::memset(data, 0, pool->info.def->size);
+    rt.initialize_zero_defaults(propset_type, data);
 
-    uint8_t* base = slot_ptr(*pool, slot);
-    std::memset(base, 0, pool->info.def->size);
-    rt.initialize_zero_defaults(propset_type, base);
-
-    slot_data.alive = true;
-    slot_data.owner = obj;
-    slot_data.dirty_bits = 0;
-    slot_data.aggregate_dirty = false;
-    slot_data.is_static = true; // NEW: Start as static, cleared on first write
-    slot_data.has_unmanaged_arrays = !pool->info.unmanaged_array_offsets.empty();
-    pool->object_slots[object_id] = slot;
-    update_slot_heap_liveness(rt, *pool, slot);
+    hdr->owner = obj;
+    hdr->dirty_bits = 0;
+    hdr->flags = PropsetHeader::HDR_ALIVE | PropsetHeader::HDR_IS_STATIC;
+    if (!pool->info.unmanaged_array_offsets.empty()) {
+        hdr->flags |= PropsetHeader::HDR_HAS_UNMANAGED_ARRAYS;
+    }
 
     // Initialize unmanaged arrays (engine-managed, not GC)
-    if (slot_data.has_unmanaged_arrays) {
+    if (hdr->has_unmanaged_arrays()) {
         for (uint32_t offset : pool->info.unmanaged_array_offsets) {
-            auto* handle_ptr = reinterpret_cast<TypedHandle*>(base + offset);
+            auto* handle_ptr = reinterpret_cast<TypedHandle*>(data + offset);
             auto field_it = pool->info.offset_to_field.find(offset);
             if (field_it != pool->info.offset_to_field.end()) {
                 uint32_t field_idx = field_it->second;
                 TypeID field_type_id = pool->info.def->fields[field_idx].type_id;
-                // Get element type from array type (type_params[0])
                 const Type* field_type = rt.get_type(field_type_id);
                 if (field_type && field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
                     TypeID elem_type = field_type->type_params[0].as<TypeID>();
-                    // Allocate empty unmanaged array via RuntimeObjectPool
                     *handle_ptr = rt.object_pool().allocate_unmanaged_array(elem_type, 0);
                 }
             }
         }
     }
 
+    // Bind any non-zero heap refs from default initialization
     if (pool->info.def->heap_ref_count > 0) {
         for (uint32_t i = 0; i < pool->info.def->heap_ref_count; ++i) {
             uint32_t heap_off = pool->info.def->heap_ref_offsets[i];
-            auto* ptr = reinterpret_cast<HeapPtr*>(base + heap_off);
+            auto* ptr = reinterpret_cast<HeapPtr*>(data + heap_off);
             auto field_it = pool->info.offset_to_field.find(heap_off);
             if (ptr->value != 0 && field_it != pool->info.offset_to_field.end()) {
-                bind_heap_owner(*pool, slot, field_it->second, *ptr);
+                bind_heap_owner(*pool, object_id, field_it->second, *ptr);
                 if (auto* gc = rt.gc()) {
                     gc->write_barrier_root(*ptr);
                 }
@@ -410,72 +334,76 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
         }
     }
 
+    update_entry_heap_liveness(rt, *pool, hdr, data);
+
     Value out(propset_type);
-    out.storage = ValueStorage::immediate;
-    out.data.oval = obj;
+    out.storage = ValueStorage::propset;
+    out.data.propset_ptr = entry;
     return out;
 }
 
+// == read_field ===============================================================
+
 Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty)
 {
-    Pool* pool = nullptr;
-    SlotRef slot{};
-    uint32_t object_id = 0;
-    if (!validate_ref(rt, propset_ref, pool, slot, object_id)) {
+    uint8_t* entry = propset_ref.data.propset_ptr;
+    auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+    uint8_t* data = entry + sizeof(PropsetHeader);
+
+    if (!hdr->alive()) {
         rt.fail("dangling propset reference");
         return Value{};
     }
 
-    uint8_t* base = slot_ptr(*pool, slot);
-
-    // Check if this is an unmanaged array field
-    auto field_it = pool->info.offset_to_field.find(offset);
-    bool is_unmanaged_array = false;
-    if (field_it != pool->info.offset_to_field.end()) {
-        is_unmanaged_array = pool->info.def->fields[field_it->second].is_unmanaged_array;
+    // Fast path: non-heap scalar field with no unmanaged arrays.
+    // Dirty marking on read only applies to heap fields, so we can return directly.
+    if (!rt.type_table_.is_heap_type(field_type) && !hdr->has_unmanaged_arrays()) {
+        return read_field_value(rt, data + offset, field_type);
     }
 
-    if (is_unmanaged_array) {
-        // Unmanaged arrays store TypedHandle directly
-        auto* handle_ptr = reinterpret_cast<TypedHandle*>(base + offset);
+    // Slow path: heap field or entry contains unmanaged arrays
+    Pool* pool = get_pool(propset_ref.type_id);
+    if (!pool) {
+        rt.fail("dangling propset reference");
+        return Value{};
+    }
+
+    auto field_it = pool->info.offset_to_field.find(offset);
+
+    // Check for unmanaged array field
+    if (hdr->has_unmanaged_arrays() && field_it != pool->info.offset_to_field.end()
+        && pool->info.def->fields[field_it->second].is_unmanaged_array) {
+        auto* handle_ptr = reinterpret_cast<TypedHandle*>(data + offset);
         if (!handle_ptr->is_valid()) {
-            // Should have been initialized in get_or_create
             LOG_F(WARNING, "[PropsetPool] Unmanaged array handle not initialized at offset {}", offset);
             return Value{};
         }
-
-        // Return as unmanaged array value
         Value out = Value::make_unmanaged_array(*handle_ptr, field_type);
-
-        if (mark_heap_get_dirty && field_it != pool->info.offset_to_field.end()) {
-            mark_slot_dirty(*pool, slot, field_it->second, /*is_heap_field=*/false);
+        if (mark_heap_get_dirty) {
+            mark_entry_dirty(hdr, field_it->second, /*is_heap_field=*/false);
         }
-
         return out;
     }
 
-    // TODO(v2-cleanup): The heap-type branch below is dead in v1 — the TypeResolver
-    // rejects heap-typed propset fields at compile time and compute_heap_ref_info()
-    // ensures heap_ref_count == 0 for all valid propset definitions.  Remove once
-    // v1 field constraints are confirmed stable and v2 designs are settled.
+    // TODO(v2-cleanup): Heap-typed propset fields are rejected by the TypeResolver in v1.
+    // This branch handles any future relaxation of that constraint.
     if (rt.type_table_.is_heap_type(field_type)) {
-        auto* ptr = reinterpret_cast<HeapPtr*>(base + offset);
+        auto* ptr = reinterpret_cast<HeapPtr*>(data + offset);
+
         const auto ensure_initialized = [&]() {
             if (ptr->value == 0) {
                 rt.initialize_zero_defaults(field_type, reinterpret_cast<uint8_t*>(ptr));
-                auto field_it = pool->info.offset_to_field.find(offset);
                 if (field_it != pool->info.offset_to_field.end()) {
-                    bind_heap_owner(*pool, slot, field_it->second, *ptr);
+                    uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                    bind_heap_owner(*pool, object_id, field_it->second, *ptr);
                     if (auto* gc = rt.gc()) {
                         gc->write_barrier_root(*ptr);
                     }
                 }
-                update_slot_heap_liveness(rt, *pool, slot);
+                update_entry_heap_liveness(rt, *pool, hdr, data);
             }
         };
 
-        // Repair stale/incompatible heap references that can surface when a
-        // propset field still contains a dead/recycled HeapPtr.
         if (ptr->value != 0) {
             bool valid = false;
             if (auto* header = rt.heap_.try_get_header(*ptr)) {
@@ -489,89 +417,83 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
 
         ensure_initialized();
     }
-    Value out = read_field_value(rt, base + offset, field_type);
+
+    Value out = read_field_value(rt, data + offset, field_type);
 
     if (mark_heap_get_dirty && rt.type_table_.is_heap_type(field_type)) {
-        auto field_it = pool->info.offset_to_field.find(offset);
         if (field_it != pool->info.offset_to_field.end()) {
-            mark_slot_dirty(*pool, slot, field_it->second, /*is_heap_field=*/true);
+            mark_entry_dirty(hdr, field_it->second, /*is_heap_field=*/true);
             if (out.storage == ValueStorage::heap) {
-                bind_heap_owner(*pool, slot, field_it->second, out.data.hptr);
+                uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                bind_heap_owner(*pool, object_id, field_it->second, out.data.hptr);
             }
-            update_slot_heap_liveness(rt, *pool, slot);
+            update_entry_heap_liveness(rt, *pool, hdr, data);
         }
     }
 
     return out;
 }
 
+// == write_field ==============================================================
+
 bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value)
 {
-    Pool* pool = nullptr;
-    SlotRef slot{};
-    uint32_t object_id = 0;
-    if (!validate_ref(rt, propset_ref, pool, slot, object_id)) {
+    uint8_t* entry = propset_ref.data.propset_ptr;
+    auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+    uint8_t* data = entry + sizeof(PropsetHeader);
+
+    if (!hdr->alive()) {
         rt.fail("dangling propset reference");
         return false;
     }
 
-    // Check if this is an unmanaged array field - assignment not allowed
-    auto field_it = pool->info.offset_to_field.find(offset);
-    if (field_it != pool->info.offset_to_field.end()) {
-        if (pool->info.def->fields[field_it->second].is_unmanaged_array) {
-            rt.fail("cannot assign to propset array field (use .push(), .clear(), etc. instead)");
-            return false;
-        }
+    Pool* pool = get_pool(propset_ref.type_id);
+    if (!pool) {
+        rt.fail("dangling propset reference");
+        return false;
     }
 
-    uint8_t* base = slot_ptr(*pool, slot);
-    HeapPtr old_heap_ptr{};
-    // TODO(v2-cleanup): is_heap_field / old_heap_ptr bookkeeping below is dead
-    // in v1 — TypeResolver rejects heap-typed propset fields at compile time.
-    // Remove once v1 constraints are confirmed stable.
-    const bool is_heap_field = rt.type_table_.is_heap_type(field_type);
-    if (is_heap_field) {
-        old_heap_ptr = *reinterpret_cast<HeapPtr*>(base + offset);
+    auto field_it = pool->info.offset_to_field.find(offset);
+
+    // Reject assignment to unmanaged array fields
+    if (field_it != pool->info.offset_to_field.end()
+        && pool->info.def->fields[field_it->second].is_unmanaged_array) {
+        rt.fail("cannot assign to propset array field (use .push(), .clear(), etc. instead)");
+        return false;
     }
-    write_field_value(rt, base + offset, field_type, value);
+
+    const bool is_heap_field = rt.type_table_.is_heap_type(field_type);
+    HeapPtr old_heap_ptr{};
     if (is_heap_field) {
-        HeapPtr new_heap_ptr = *reinterpret_cast<HeapPtr*>(base + offset);
+        old_heap_ptr = *reinterpret_cast<HeapPtr*>(data + offset);
+    }
+
+    write_field_value(rt, data + offset, field_type, value);
+
+    if (is_heap_field) {
+        HeapPtr new_heap_ptr = *reinterpret_cast<HeapPtr*>(data + offset);
         if (old_heap_ptr.value != 0 && old_heap_ptr.value != new_heap_ptr.value) {
             unbind_heap_owner(old_heap_ptr);
         }
     }
 
     if (field_it != pool->info.offset_to_field.end()) {
-        mark_slot_dirty(*pool, slot, field_it->second, is_heap_field);
+        mark_entry_dirty(hdr, field_it->second, is_heap_field);
         if (is_heap_field) {
-            HeapPtr ptr = *reinterpret_cast<HeapPtr*>(base + offset);
-            bind_heap_owner(*pool, slot, field_it->second, ptr);
+            HeapPtr ptr = *reinterpret_cast<HeapPtr*>(data + offset);
+            uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+            bind_heap_owner(*pool, object_id, field_it->second, ptr);
             if (auto* gc = rt.gc()) {
                 gc->write_barrier_root(ptr);
             }
         }
     }
-    update_slot_heap_liveness(rt, *pool, slot);
+
+    update_entry_heap_liveness(rt, *pool, hdr, data);
     return true;
 }
 
-void PropsetPoolManager::prune_invalid_owners(Runtime& rt)
-{
-    for (auto& [_, pool] : pools_) {
-        std::vector<std::pair<uint32_t, SlotRef>> stale;
-        stale.reserve(pool.object_slots.size());
-        for (const auto& [object_id, slot] : pool.object_slots) {
-            const Slab& slab = pool.slabs[slot.slab];
-            const Slot& slot_data = slab.slots[slot.index];
-            if (!slot_data.alive || !nw::kernel::objects().valid(slot_data.owner)) {
-                stale.push_back({object_id, slot});
-            }
-        }
-        for (const auto& [object_id, slot] : stale) {
-            free_slot(rt, pool, object_id, slot);
-        }
-    }
-}
+// == Object Lifecycle =========================================================
 
 void PropsetPoolManager::init_object_propsets(Runtime& rt, ObjectHandle obj)
 {
@@ -589,10 +511,12 @@ void PropsetPoolManager::free_object_propsets(Runtime& rt, ObjectHandle obj)
 {
     uint32_t object_id = static_cast<uint32_t>(obj.id);
     for (auto& [_, pool] : pools_) {
-        auto it = pool.object_slots.find(object_id);
-        if (it != pool.object_slots.end()) {
-            free_slot(rt, pool, object_id, it->second);
-        }
+        uint8_t* entry = get_entry(pool, object_id);
+        if (!entry) { continue; }
+        auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+        if (!hdr->alive() || hdr->owner != obj) { continue; }
+        uint8_t* data = entry + sizeof(PropsetHeader);
+        free_entry(rt, pool, object_id, hdr, data);
     }
 }
 
@@ -606,6 +530,8 @@ void PropsetPoolManager::prime_pools(Runtime& rt)
     }
 }
 
+// == Heap Mutation Notification ===============================================
+
 void PropsetPoolManager::mark_heap_mutation(HeapPtr ptr)
 {
     if (ptr.value == 0) {
@@ -616,17 +542,40 @@ void PropsetPoolManager::mark_heap_mutation(HeapPtr ptr)
         return;
     }
 
-    auto pool_it = pools_.find(it->second.propset_type);
-    if (pool_it == pools_.end()) {
+    Pool* pool = get_pool(it->second.propset_type);
+    if (!pool) {
         return;
     }
-    Pool& pool = pool_it->second;
 
-    auto slot_it = pool.object_slots.find(it->second.object_id);
-    if (slot_it == pool.object_slots.end()) {
+    uint8_t* entry = get_entry(*pool, it->second.object_id);
+    if (!entry) {
         return;
     }
-    mark_slot_dirty(pool, slot_it->second, it->second.field_index, /*is_heap_field=*/true);
+
+    auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+    mark_entry_dirty(hdr, it->second.field_index, /*is_heap_field=*/true);
+}
+
+// == Pruning ==================================================================
+
+void PropsetPoolManager::prune_invalid_owners(Runtime& rt)
+{
+    for (auto& [_, pool] : pools_) {
+        for (auto& chunk_ptr : pool.chunks) {
+            if (!chunk_ptr) { continue; }
+            uint8_t* chunk = chunk_ptr.get();
+            for (uint32_t i = 0; i < chunk_size; ++i) {
+                uint8_t* entry = chunk + static_cast<size_t>(i) * pool.entry_stride;
+                auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+                if (!hdr->alive()) { continue; }
+                if (!nw::kernel::objects().valid(hdr->owner)) {
+                    uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                    uint8_t* data = entry + sizeof(PropsetHeader);
+                    free_entry(rt, pool, object_id, hdr, data);
+                }
+            }
+        }
+    }
 }
 
 } // namespace nw::smalls

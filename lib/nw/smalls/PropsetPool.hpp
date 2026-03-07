@@ -8,6 +8,7 @@
 #include <absl/container/flat_hash_map.h>
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace nw::smalls {
@@ -16,10 +17,35 @@ struct Runtime;
 struct GCRootVisitor;
 struct Value;
 
+/// Header stored at the start of every propset entry in the chunked array.
+/// Entry layout: [PropsetHeader (24 bytes)] [struct_data (def->size bytes)]
+/// The header is 24 bytes, keeping struct_data 8-byte aligned.
+struct PropsetHeader {
+    ObjectHandle owner;      ///< Owning object handle; zero id = unallocated slot.
+    uint64_t dirty_bits = 0; ///< Per-field dirty mask; field >= 64 sets all bits.
+    uint8_t flags = 0;       ///< Packed booleans — see HDR_* constants.
+    uint8_t _pad[7] = {};    ///< Padding to 24 bytes total.
+
+    static constexpr uint8_t HDR_ALIVE = 0x01;
+    static constexpr uint8_t HDR_AGGREGATE_DIRTY = 0x02;
+    static constexpr uint8_t HDR_HAS_LIVE_HEAP_REFS = 0x04;
+    static constexpr uint8_t HDR_IS_STATIC = 0x08;
+    static constexpr uint8_t HDR_HAS_UNMANAGED_ARRAYS = 0x10;
+
+    bool alive() const noexcept { return flags & HDR_ALIVE; }
+    bool aggregate_dirty() const noexcept { return flags & HDR_AGGREGATE_DIRTY; }
+    bool has_live_heap_refs() const noexcept { return flags & HDR_HAS_LIVE_HEAP_REFS; }
+    bool is_static() const noexcept { return flags & HDR_IS_STATIC; }
+    bool has_unmanaged_arrays() const noexcept { return flags & HDR_HAS_UNMANAGED_ARRAYS; }
+};
+
+static_assert(sizeof(PropsetHeader) == 24, "PropsetHeader must be exactly 24 bytes");
+static_assert(alignof(PropsetHeader) == 8, "PropsetHeader must be 8-byte aligned");
+
 class PropsetPoolManager {
 public:
-    static constexpr uint32_t slots_per_slab = 256;
-    static constexpr uint32_t slots_per_card = 64;
+    /// Slots per chunk — matches the object manager's ObjectArray chunk size.
+    static constexpr uint32_t chunk_size = 2048;
 
     bool is_propset_type(const Runtime& rt, TypeID type_id) const;
     Value get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj);
@@ -40,38 +66,16 @@ private:
         uint32_t schema_version = 1;
         std::vector<uint32_t> field_ids;
         absl::flat_hash_map<uint32_t, uint32_t> offset_to_field;
-        std::vector<uint32_t> unmanaged_array_offsets; // Byte offsets of unmanaged array fields
-        ObjectType object_type = ObjectType::invalid;  // invalid = unrestricted
-    };
-
-    struct SlotRef {
-        uint32_t slab = 0;
-        uint32_t index = 0;
-        bool operator==(const SlotRef& other) const = default;
-    };
-
-    struct Slot {
-        bool alive = false;
-        bool aggregate_dirty = false;
-        bool has_live_heap_refs = false;
-        bool is_static = false;            // NEW: Skip during root enumeration if true and not dirty
-        bool has_unmanaged_arrays = false; // True if slot contains unmanaged array handles
-        uint64_t dirty_bits = 0;
-        ObjectHandle owner;
-    };
-
-    struct Slab {
-        std::vector<uint8_t> storage;
-        std::vector<Slot> slots;
-        std::vector<uint8_t> dirty_heap_cards;
-        std::vector<uint16_t> dirty_heap_card_indices;
+        std::vector<uint32_t> unmanaged_array_offsets;
+        ObjectType object_type = ObjectType::invalid; // invalid = unrestricted
     };
 
     struct Pool {
         TypeInfo info;
-        std::vector<Slab> slabs;
-        std::vector<SlotRef> free_slots;
-        absl::flat_hash_map<uint32_t, SlotRef> object_slots;
+        /// Chunks indexed by (object_id / chunk_size).
+        /// Each chunk holds chunk_size entries of entry_stride bytes each.
+        std::vector<std::unique_ptr<uint8_t[]>> chunks;
+        uint32_t entry_stride = 0; ///< sizeof(PropsetHeader) + def->size
     };
 
     struct HeapOwner {
@@ -84,15 +88,15 @@ private:
     Pool* get_pool(TypeID type_id);
     const Pool* get_pool(TypeID type_id) const;
 
-    SlotRef allocate_slot(Pool& pool);
-    void free_slot(Runtime& rt, Pool& pool, uint32_t object_id, const SlotRef& slot);
-    uint8_t* slot_ptr(Pool& pool, const SlotRef& slot);
-    const uint8_t* slot_ptr(const Pool& pool, const SlotRef& slot) const;
+    /// Returns pointer to entry start (PropsetHeader), or nullptr if chunk not allocated.
+    uint8_t* get_entry(Pool& pool, uint32_t object_id);
+    /// Returns pointer to entry start, allocating the chunk if needed.
+    uint8_t* get_or_alloc_entry(Pool& pool, uint32_t object_id);
 
-    bool validate_ref(Runtime& rt, const Value& propset_ref, Pool*& out_pool, SlotRef& out_slot, uint32_t& out_object_id);
-    void mark_slot_dirty(Pool& pool, const SlotRef& slot, uint32_t field_index, bool is_heap_field = false);
-    void update_slot_heap_liveness(Runtime& rt, Pool& pool, const SlotRef& slot);
-    void bind_heap_owner(Pool& pool, const SlotRef& slot, uint32_t field_index, HeapPtr ptr);
+    void free_entry(Runtime& rt, Pool& pool, uint32_t object_id, PropsetHeader* hdr, uint8_t* data);
+    void mark_entry_dirty(PropsetHeader* hdr, uint32_t field_index, bool is_heap_field = false);
+    void update_entry_heap_liveness(Runtime& rt, Pool& pool, PropsetHeader* hdr, uint8_t* data);
+    void bind_heap_owner(Pool& pool, uint32_t object_id, uint32_t field_index, HeapPtr ptr);
     void unbind_heap_owner(HeapPtr ptr);
     void prune_invalid_owners(Runtime& rt);
 

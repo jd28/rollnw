@@ -764,38 +764,39 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
         &&lbl_CAST,             // 72
         &&lbl_TYPEOF,           // 73
         &&lbl_IS,               // 74
-        &&lbl_ISEQ,             // 75
-        &&lbl_ISNE,             // 76
-        &&lbl_ISLT,             // 77
-        &&lbl_ISLE,             // 78
-        &&lbl_ISGT,             // 79
-        &&lbl_ISGE,             // 80
-        &&lbl_NEWSTRUCT,        // 81
-        &&lbl_NEWTUPLE,         // 82
-        &&lbl_NEWARRAY,         // 83
-        &&lbl_NEWMAP,           // 84
-        &&lbl_MAPGET,           // 85
-        &&lbl_MAPSET,           // 86
-        &&lbl_STACK_ALLOC,      // 87
-        &&lbl_STACK_COPY,       // 88
-        &&lbl_STACK_FIELDGET,   // 89
-        &&lbl_STACK_FIELDGET_R, // 90
-        &&lbl_STACK_FIELDSET,   // 91
-        &&lbl_STACK_FIELDSET_R, // 92
-        &&lbl_STACK_INDEXGET,   // 93
-        &&lbl_STACK_INDEXSET,   // 94
-        &&lbl_NEWSUM,           // 95
-        &&lbl_SUMINIT,          // 96
-        &&lbl_SUMGETTAG,        // 97
-        &&lbl_SUMGETPAYLOAD,    // 98
-        &&lbl_CLOSURE,          // 99
-        &&lbl_GETUPVAL,         // 100
-        &&lbl_SETUPVAL,         // 101
-        &&lbl_CLOSEUPVALS,      // 102
-        &&lbl_CALLCLOSURE,      // 103
-        &&lbl_GETGLOBAL,        // 104
-        &&lbl_SETGLOBAL,        // 105
-        &&lbl_GETEXTGLOBAL,     // 106
+        &&lbl_IS_OBJ_SUBTYPE,   // 75
+        &&lbl_ISEQ,             // 76
+        &&lbl_ISNE,             // 77
+        &&lbl_ISLT,             // 78
+        &&lbl_ISLE,             // 79
+        &&lbl_ISGT,             // 80
+        &&lbl_ISGE,             // 81
+        &&lbl_NEWSTRUCT,        // 82
+        &&lbl_NEWTUPLE,         // 83
+        &&lbl_NEWARRAY,         // 84
+        &&lbl_NEWMAP,           // 85
+        &&lbl_MAPGET,           // 86
+        &&lbl_MAPSET,           // 87
+        &&lbl_STACK_ALLOC,      // 88
+        &&lbl_STACK_COPY,       // 89
+        &&lbl_STACK_FIELDGET,   // 90
+        &&lbl_STACK_FIELDGET_R, // 91
+        &&lbl_STACK_FIELDSET,   // 92
+        &&lbl_STACK_FIELDSET_R, // 93
+        &&lbl_STACK_INDEXGET,   // 94
+        &&lbl_STACK_INDEXSET,   // 95
+        &&lbl_NEWSUM,           // 96
+        &&lbl_SUMINIT,          // 97
+        &&lbl_SUMGETTAG,        // 98
+        &&lbl_SUMGETPAYLOAD,    // 99
+        &&lbl_CLOSURE,          // 100
+        &&lbl_GETUPVAL,         // 101
+        &&lbl_SETUPVAL,         // 102
+        &&lbl_CLOSEUPVALS,      // 103
+        &&lbl_CALLCLOSURE,      // 104
+        &&lbl_GETGLOBAL,        // 105
+        &&lbl_SETGLOBAL,        // 106
+        &&lbl_GETEXTGLOBAL,     // 107
     };
     static_assert(std::size(dispatch_table) == static_cast<size_t>(Opcode::_COUNT),
         "dispatch_table out of sync with Opcode enum — update both when adding opcodes");
@@ -1870,6 +1871,15 @@ lbl_IS: {
     } else {
         result = (val.type_id == target_tid);
     }
+    reg(reg_idx) = Value::make_bool(result);
+    DISPATCH();
+}
+
+lbl_IS_OBJ_SUBTYPE: {
+    uint8_t reg_idx = a;
+    auto expected_tag = static_cast<nw::ObjectType>(instr.arg_bx());
+    Value val = reg(reg_idx);
+    bool result = rt_->is_object_like_type(val.type_id) && val.data.oval.type == expected_tag;
     reg(reg_idx) = Value::make_bool(result);
     DISPATCH();
 }
@@ -3102,6 +3112,15 @@ vm_exit:
             } else {
                 result = (val.type_id == target_tid);
             }
+            reg(reg_idx) = Value::make_bool(result);
+            break;
+        }
+
+        case Opcode::IS_OBJ_SUBTYPE: {
+            uint8_t reg_idx = a;
+            auto expected_tag = static_cast<nw::ObjectType>(instr.arg_bx());
+            Value val = reg(reg_idx);
+            bool result = rt_->is_object_like_type(val.type_id) && val.data.oval.type == expected_tag;
             reg(reg_idx) = Value::make_bool(result);
             break;
         }

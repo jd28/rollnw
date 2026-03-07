@@ -3053,7 +3053,7 @@ void Runtime::prime_propset_pools()
 
 Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id)
 {
-    if (is_propset_type(struct_val.type_id)) {
+    if (struct_val.storage == ValueStorage::propset) {
         return propsets_->read_field(*this, struct_val, offset, type_id, true);
     }
     Value mut = struct_val;
@@ -3066,7 +3066,7 @@ Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offs
 
 bool Runtime::write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value)
 {
-    if (is_propset_type(struct_val.type_id)) {
+    if (struct_val.storage == ValueStorage::propset) {
         return propsets_->write_field(*this, struct_val, offset, type_id, value);
     }
 

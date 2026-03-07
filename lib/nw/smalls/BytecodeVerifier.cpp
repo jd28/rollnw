@@ -297,6 +297,12 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
             break;
         }
 
+        case Opcode::IS_OBJ_SUBTYPE: {
+            if (!check_reg(out, a, reg_count, ctx())) { return false; }
+            // bx is a raw ObjectType tag value, not a type_ref index — no range check needed
+            break;
+        }
+
         case Opcode::NEWTUPLE: {
             const uint8_t dest = a;
             const uint8_t count = b;

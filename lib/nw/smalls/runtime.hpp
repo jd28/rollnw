@@ -56,7 +56,8 @@ struct StringRepr {
 enum class ValueStorage : uint8_t {
     immediate, // Primitives: int, float, bool, ObjectHandle
     heap,      // HeapPtr: strings, structs, arrays, maps
-    stack      // stack_offset: frame-relative offset into CallFrame::stack_
+    stack,     // stack_offset: frame-relative offset into CallFrame::stack_
+    propset,   // propset_ptr: raw pointer into PropsetPoolManager chunk
 };
 
 /// Runtime value representation
@@ -72,6 +73,7 @@ struct Value {
         HeapPtr hptr;          // Script heap: strings, structs, arrays
         uint64_t handle;       // Engine-managed: unmanaged arrays (TypedHandle bits)
         uint32_t stack_offset; // Frame stack: offset into CallFrame::stack_
+        uint8_t* propset_ptr;  // PropsetPool: raw pointer to PropsetHeader in chunk
     } data = {.ival = 0};
 
     Value() = default;

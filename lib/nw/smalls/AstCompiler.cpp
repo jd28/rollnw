@@ -3561,11 +3561,17 @@ void AstCompiler::visit(CastExpression* expr)
         }
         emit_abx(Opcode::CAST, dest_reg, type_idx);
     } else if (expr->op.type == TokenType::IS) {
-        // IS dest, type_idx
+        // IS dest, type_idx — or IS_OBJ_SUBTYPE if target is a known object subtype
         if (dest_reg != src_reg) {
             emit_abc(Opcode::MOVE, dest_reg, src_reg, 0);
         }
-        emit_abx(Opcode::IS, dest_reg, type_idx);
+        auto maybe_tag = runtime_->object_subtype_tag(target_tid);
+        if (maybe_tag) {
+            emit_abx(Opcode::IS_OBJ_SUBTYPE, dest_reg,
+                static_cast<uint16_t>(static_cast<uint8_t>(*maybe_tag)));
+        } else {
+            emit_abx(Opcode::IS, dest_reg, type_idx);
+        }
     } else {
         fail("Unknown cast operator");
     }

@@ -115,7 +115,8 @@ enum class Opcode : uint8_t {
     // Type Operations
     CAST,   // r0 = cast<type_id=bx>(r1)
     TYPEOF, // r0 = typeof(r1)
-    IS,     // r0 = (r1 is type_id=bx)
+    IS,             // r0 = (r1 is type_id=bx)
+    IS_OBJ_SUBTYPE, // r0 = (r1.oval.type == ObjectType(bx)) — fast path, tag baked at compile time
 
     // Test and Skip (skip next instruction if true)
     ISEQ, // if rA == rB skip next

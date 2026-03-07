@@ -164,6 +164,8 @@ static StringView opcode_name(Opcode op)
         return "TYPEOF";
     case Opcode::IS:
         return "IS";
+    case Opcode::IS_OBJ_SUBTYPE:
+        return "IS_OBJ_SUBTYPE";
     case Opcode::ISEQ:
         return "ISEQ";
     case Opcode::ISNE:
