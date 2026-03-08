@@ -112,13 +112,14 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
     std::string_view source = R"(
         from nwn1.constants import { Ability, ability_strength, equip_index_arms };
         import core.creature as C;
+        import nwn1.creature as NC;
 
         fn main(target: Creature, item: Item): int {
             if (!C.can_equip_item(target, item, equip_index_arms)) {
                 return 0;
             }
 
-            var before = C.get_ability_score(target, ability_strength);
+            var before = NC.get_ability_score(target, ability_strength);
             if (!C.equip_item(target, item, equip_index_arms)) {
                 return 0;
             }
@@ -128,13 +129,13 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
                 return 0;
             }
 
-            var after = C.get_ability_score(target, ability_strength);
+            var after = NC.get_ability_score(target, ability_strength);
             var removed = C.unequip_item(target, equip_index_arms);
             if (removed != item) {
                 return 0;
             }
 
-            var final = C.get_ability_score(target, ability_strength);
+            var final = NC.get_ability_score(target, ability_strength);
             if (after == before + 2 && final == before) {
                 return 1;
             }
@@ -181,6 +182,7 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
     std::string_view source = R"(
         from nwn1.constants import { Ability, ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
         import core.creature as C;
+        import nwn1.creature as NC;
         import core.effects as E;
         import core.item as I;
         import core.object as O;
@@ -202,7 +204,7 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
 
             I.set_generator_for_type(test_prop_type, itemprop_to_effect);
 
-            var before = C.get_ability_score(target, ability_strength);
+            var before = NC.get_ability_score(target, ability_strength);
             if (!C.can_equip_item(target, item, equip_index_arms)) {
                 I.clear_generator_for_type(test_prop_type);
                 return 0;
@@ -219,14 +221,14 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
                 return 0;
             }
 
-            var after = C.get_ability_score(target, ability_strength);
+            var after = NC.get_ability_score(target, ability_strength);
             var removed = C.unequip_item(target, equip_index_arms);
             if (removed != item) {
                 I.clear_generator_for_type(test_prop_type);
                 return 0;
             }
 
-            var final = C.get_ability_score(target, ability_strength);
+            var final = NC.get_ability_score(target, ability_strength);
             I.clear_generator_for_type(test_prop_type);
             return (after == before + 2 && final == before) ? 1 : 0;
         }
@@ -616,6 +618,7 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
     std::string_view source = R"(
         from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
         import core.creature as C;
+        import nwn1.creature as NC;
         import core.effects as E;
         import core.item as I;
         import nwn1.effects as NWEff;
@@ -627,20 +630,20 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
         fn main(target: Creature, item: Item): int {
             const test_prop_type = ItemPropertyType(65001);
             I.set_generator_for_type(test_prop_type, typed_generator);
-            var before = C.get_ability_score(target, ability_strength);
+            var before = NC.get_ability_score(target, ability_strength);
             if (!C.equip_item(target, item, equip_index_arms)) {
                 I.clear_generators();
                 return 0;
             }
 
-            var after = C.get_ability_score(target, ability_strength);
+            var after = NC.get_ability_score(target, ability_strength);
             var removed = C.unequip_item(target, equip_index_arms);
             if (removed != item) {
                 I.clear_generators();
                 return 0;
             }
 
-            var final = C.get_ability_score(target, ability_strength);
+            var final = NC.get_ability_score(target, ability_strength);
             I.clear_generators();
             return (after == before + 2 && final == before) ? 1 : 0;
         }

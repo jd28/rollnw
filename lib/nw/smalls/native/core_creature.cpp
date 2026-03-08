@@ -35,8 +35,6 @@ void register_core_creature(Runtime& rt)
     }
 
     rt.module("core.creature")
-        .function("get_ability_score", +[](nw::ObjectHandle obj, int32_t ability, bool base) -> int32_t { return nwn1::get_ability_score(as_creature(obj), nw::Ability::make(ability), base); })
-        .function("get_ability_modifier", +[](nw::ObjectHandle obj, int32_t ability, bool base) -> int32_t { return nwn1::get_ability_modifier(as_creature(obj), nw::Ability::make(ability), base); })
         .function("get_total_levels", +[](nw::ObjectHandle obj) -> int32_t {
             auto* creature = as_creature(obj);
             return creature ? creature->levels.level() : 0; })
@@ -142,6 +140,32 @@ void register_core_creature(Runtime& rt)
                 if (*(*it) >= start) return *(*it) - start + 1;
             }
             return 0; })
+
+        // Returns the class progression save bonus for a given save type.
+        // save_type: 1=Fort, 2=Reflex, 3=Will
+        .function("class_save_bonus", +[](int32_t class_id, int32_t level, int32_t save_type) -> int32_t {
+            auto bonus = nw::kernel::rules().classes.get_class_save_bonus(
+                nw::Class::make(class_id), static_cast<size_t>(level));
+            switch (save_type) {
+            case 1: return bonus.fort;
+            case 2: return bonus.reflex;
+            case 3: return bonus.will;
+            default: return 0;
+            }
+        })
+
+        // Returns the ability governing a skill (for ability modifier contribution).
+        // Returns -1 for invalid skills.
+        .function("skill_key_ability", +[](int32_t skill) -> int32_t {
+            auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
+            return info ? static_cast<int32_t>(*info->ability) : -1;
+        })
+
+        // Returns true if the skill can be used without training (0 ranks).
+        .function("skill_is_untrained", +[](int32_t skill) -> bool {
+            auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
+            return info && info->untrained;
+        })
 
         // The end.
         .finalize();

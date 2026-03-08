@@ -206,6 +206,12 @@ const feat_epic_great_wisdom_1 = Feat(804);
 const feat_epic_great_wisdom_10 = Feat(813);
 const feat_epic_great_strength_1 = Feat(814);
 const feat_epic_great_strength_10 = Feat(823);
+const feat_deflect_arrows = Feat(8);
+const feat_improved_parry = Feat(18);
+const combat_mode_parry = 1;
+const feat_knockdown = Feat(23);
+const feat_improved_knockdown = Feat(17);
+
 const feat_stonecunning = Feat(227);
 const feat_epic_armor_skin = Feat(490);
 const feat_epic_damage_reduction_3 = Feat(492);

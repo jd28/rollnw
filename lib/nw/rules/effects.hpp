@@ -141,6 +141,8 @@ struct EffectArray {
     /// Gets the number of applied effects
     size_t size() const noexcept;
 
+    uint32_t effect_version = 0;
+
 private:
     nw::MemoryResource* allocator_ = nullptr;
     storage effects_;

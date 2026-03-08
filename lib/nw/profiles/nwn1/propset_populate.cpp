@@ -189,6 +189,9 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                     write_int(rt, ref, def, "attacks_offhand", cre->combat_info.attacks_offhand);
                     write_int(rt, ref, def, "attacks_extra", cre->combat_info.attacks_extra);
                     write_int(rt, ref, def, "combat_mode", *cre->combat_info.combat_mode);
+                    write_int(rt, ref, def, "effect_epoch", static_cast<int32_t>(cre->effects().effect_version));
+                    write_int(rt, ref, def, "equip_epoch", static_cast<int32_t>(cre->equipment.equip_version));
+                    write_int(rt, ref, def, "progression_epoch", static_cast<int32_t>(cre->levels.level()));
                     write_int(rt, ref, def, "ac_armor_base", cre->combat_info.ac_armor_base);
                     write_int(rt, ref, def, "ac_shield_base", cre->combat_info.ac_shield_base);
                     write_int(rt, ref, def, "size_ab_modifier", cre->combat_info.size_ab_modifier);

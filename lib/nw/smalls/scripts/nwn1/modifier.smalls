@@ -1,58 +1,112 @@
 import core.array as arr;
+import core.bit as bit;
+import core.combat as C;
 import core.creature as Cre;
-from core.creature import { CreatureStats };
-from nwn1.constants import {
-    Ability,
-    Feat,
-    ModifierType,
-    ability_strength, ability_dexterity, ability_constitution,
-    ability_intelligence, ability_wisdom, ability_charisma,
-    ac_natural, ac_dodge,
-    class_type_dragon_disciple, class_type_pale_master,
-    class_type_barbarian, class_type_dwarven_defender,
-    damage_type_acid, damage_type_cold, damage_type_electrical,
-    damage_type_fire, damage_type_sonic,
-    mod_type_ability, mod_type_armor_class, mod_type_dmg_reduction,
-    mod_type_dmg_resistance, mod_type_hitpoints, mod_type_skill,
-    skill_tumble, skill_search,
-    feat_toughness,
-    feat_epic_toughness_1, feat_epic_toughness_10,
-    feat_epic_great_strength_1, feat_epic_great_strength_10,
-    feat_epic_great_dexterity_1, feat_epic_great_dexterity_10,
-    feat_epic_great_constitution_1, feat_epic_great_constitution_10,
-    feat_epic_great_intelligence_1, feat_epic_great_intelligence_10,
-    feat_epic_great_wisdom_1, feat_epic_great_wisdom_10,
-    feat_epic_great_charisma_1, feat_epic_great_charisma_10,
-    feat_epic_armor_skin,
-    feat_stonecunning,
-    feat_epic_damage_reduction_3, feat_epic_damage_reduction_6, feat_epic_damage_reduction_9,
-    feat_resist_energy_acid, feat_resist_energy_cold,
-    feat_resist_energy_electrical, feat_resist_energy_fire, feat_resist_energy_sonic,
-    feat_epic_energy_resistance_acid_1, feat_epic_energy_resistance_acid_10,
-    feat_epic_energy_resistance_cold_1, feat_epic_energy_resistance_cold_10,
-    feat_epic_energy_resistance_electrical_1, feat_epic_energy_resistance_electrical_10,
-    feat_epic_energy_resistance_fire_1, feat_epic_energy_resistance_fire_10,
-    feat_epic_energy_resistance_sonic_1, feat_epic_energy_resistance_sonic_10,
+import core.item as item;
+import core.object as Obj;
+from core.creature import { CreatureCombat };
+from nwn1.cachedefs import {
+    slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
+    slot_off_ab_nt_unarmed, slot_off_ab_nt_any, slot_off_ab_t_any,
+    slot_def_ac_t_any,
+    slot_def_conceal_t_melee, slot_def_conceal_t_ranged,
+    slot_def_miss_chance_t_melee, slot_def_miss_chance_t_ranged,
+    ctx_defense, dep_target, scope_subtype, scope_attack_any, scope_onhand, scope_offhand,
+    inv_target_change, inv_self_effect_epoch, inv_target_effect_epoch,
+    inv_equipment_epoch, inv_progression_epoch, inv_mode_epoch,
+    key_target_id, key_self_effect_epoch, key_target_effect_epoch,
+    key_equipment_epoch, key_progression_epoch, key_mode_epoch,
 };
+
+import nwn1.constants as Const;
 
 // Total number of modifier types (0..mod_type_damage_special_attack inclusive)
 const NUM_MOD_TYPES = 20;
 
-[[value_type]]
 type Modifier {
     tag: string;
     payload: fn(Creature, object, int): int;
     subtype: int;
+    meta_flags: int;
+};
 
+type DefenseConcealData {
+    concealment: int;
+    miss_chance_source: bool;
 };
 
 // Smalls-side permanent modifier registry.
-// Indexed by ModifierType value; each entry is a list of closures for that category.
+// Indexed by Const.ModifierType value; each entry is a list of closures for that category.
 // Closure signature: fn(obj: Creature, versus: object, subtype: int): int
 var modifiers: array!(array!(fn(Creature, object, int): int)) = {};
 
+// Attack bonus uses structured modifier entries for slot-cache routing.
+const cache_group_non_target = 1;
+const cache_group_target = 2;
+var attack_bonus_modifiers: array!(Modifier) = {};
+
+// Prebuilt per-slot closure arrays. Index = slot ID from cachedefs.
+// slot_buckets[i] holds the closures that contribute to slot i's aggregate.
+// Populated by init_modifiers; queried by get_off_attack_bonus.
+var slot_buckets: array!(array!(fn(Creature, object, int): int)) = {};
+
+// Per-slot dependency masks (pre-computed in init_modifiers from cachedefs key_* values).
+// slot_depends_on[i] is a bitmask of key_* bits; if any bit is in changed_key_mask, slot i is stale.
+var slot_depends_on: array!(int) = {};
+
+fn get_off_effect_delta(combat: CreatureCombat, attacker: Creature, target: object, effective_subtype: Const.AttackType): int {
+    var stale = target != combat.off_effect_delta_target
+        || combat.off_effect_delta_self_epoch != combat.off_effect_epoch
+        || combat.off_effect_delta_target_epoch != combat.off_target_effect_epoch
+        || combat.off_effect_delta_subtype != effective_subtype as int;
+
+    if (stale) {
+        combat.off_effect_delta_target = target;
+        combat.off_effect_delta_self_epoch = combat.off_effect_epoch;
+        combat.off_effect_delta_target_epoch = combat.off_target_effect_epoch;
+        combat.off_effect_delta_subtype = effective_subtype as int;
+        combat.off_effect_delta_value = C.attack_bonus_effect_delta_clamped(
+            attacker, effective_subtype, target);
+    }
+
+    return combat.off_effect_delta_value;
+}
+
+fn register_attack_bonus_modifier(
+    tag: string,
+    payload: fn(Creature, object, int): int,
+    subtype: int,
+    meta_flags: int,
+) {
+    arr.push(attack_bonus_modifiers, Modifier {
+        tag = tag,
+        payload = payload,
+        subtype = subtype,
+        meta_flags = meta_flags,
+    });
+}
+
+fn sum_attack_bonus_modifiers(obj: Creature, versus: object, subtype: int, requested_cache_flags: int): int {
+    var total = 0;
+    for (var entry in attack_bonus_modifiers) {
+        if (entry.subtype >= 0 && entry.subtype != subtype) {
+            continue;
+        }
+        if (requested_cache_flags != 0 && bit.and(entry.meta_flags, requested_cache_flags) == 0) {
+            continue;
+        }
+        var f = entry.payload;
+        total += f(obj, versus, subtype);
+    }
+    return total;
+}
+
 // Sum all registered modifier closures for modifier_type with given subtype.
-fn sum_modifiers(obj: Creature, modifier_type: ModifierType, subtype: int, versus: object): int {
+fn sum_modifiers(obj: Creature, modifier_type: Const.ModifierType, subtype: int, versus: object): int {
+    if (modifier_type == Const.mod_type_attack_bonus) {
+        return attack_bonus_total(obj, versus, subtype);
+    }
+
     const idx = modifier_type as int;
     if (idx < 0 || idx >= arr.len(modifiers)) { return 0; }
     var total = 0;
@@ -62,201 +116,377 @@ fn sum_modifiers(obj: Creature, modifier_type: ModifierType, subtype: int, versu
     return total;
 }
 
-// dragon disciple ability
-fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {
-    const st = Ability(subtype);
-    const rdd_level = Cre.get_level_by_class(obj, class_type_dragon_disciple);
-    if(rdd_level == 0) { return 0; }
+// == Slot cache helpers ======================================================
+// ============================================================================
 
-    if (st == ability_strength) {
-        if(rdd_level >= 10) { return 8; }
-        elif(rdd_level >= 4) { return 4; }
-        elif(rdd_level >= 2) { return 2; }
-    } elif (st == ability_constitution) {
-        if(rdd_level >= 5) { return 2; }
-    } elif (st == ability_intelligence) {
-        if(rdd_level >= 9) { return 2; }
-    } elif (st == ability_charisma) {
-        if(rdd_level >= 10) { return 2; }
+fn slot_valid(combat: CreatureCombat, slot: int): bool {
+    return bit.and(combat.slot_valid_mask, bit.shl(1, slot)) != 0;
+}
+
+fn slot_set_valid(combat: CreatureCombat, slot: int) {
+    combat.slot_valid_mask = bit.or(combat.slot_valid_mask, bit.shl(1, slot));
+}
+
+fn slot_clear(combat: CreatureCombat, clear_mask_of_slots: int) {
+    combat.slot_valid_mask = bit.and(combat.slot_valid_mask, bit.not(clear_mask_of_slots));
+}
+
+// Rebuild a single non-target offense slot by summing its bucket closures.
+// For subtype slots (0-3), also runs the any-bucket and folds it in.
+fn rebuild_off_nt_slot(attacker: Creature, slot: int) {
+    var subtype = Const.attack_type_any;
+    if (slot == slot_off_ab_nt_onhand)  { subtype = Const.attack_type_onhand; }
+    elif (slot == slot_off_ab_nt_offhand) { subtype = Const.attack_type_offhand; }
+    elif (slot == slot_off_ab_nt_cweapon) { subtype = Const.attack_type_cweapon1; }
+    elif (slot == slot_off_ab_nt_unarmed) { subtype = Const.attack_type_unarmed; }
+
+    var combat = get_propset!(CreatureCombat)(attacker);
+    var sum = 0;
+    for (var f in slot_buckets[slot]) {
+        sum += f(attacker, Obj.invalid, subtype as int);
     }
+    // For subtype slots (not the any-slot itself), also fold in the any-bucket.
+    if (slot != slot_off_ab_nt_any) {
+        for (var f in slot_buckets[slot_off_ab_nt_any]) {
+            sum += f(attacker, Obj.invalid, Const.attack_type_any as int);
+        }
+    }
+    combat.slot_values[slot] = sum;
+    slot_set_valid(combat, slot);
+}
 
+fn target_effect_epoch(obj: object): int {
+    if (obj is Creature) {
+        var combat = get_propset!(CreatureCombat)(obj);
+        return combat.effect_epoch;
+    }
     return 0;
 }
 
-// epic_great_ability: count the highest Epic Great <Stat> feat tier
-fn epic_great_ability(obj: Creature, _vs: object, subtype: int): int {
-    const st = Ability(subtype);
-    if (st == ability_strength) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_strength_1, feat_epic_great_strength_10);
-    } elif (st == ability_dexterity) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_dexterity_1, feat_epic_great_dexterity_10);
-    } elif (st == ability_constitution) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_constitution_1, feat_epic_great_constitution_10);
-    } elif (st == ability_intelligence) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_intelligence_1, feat_epic_great_intelligence_10);
-    } elif (st == ability_wisdom) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_wisdom_1, feat_epic_great_wisdom_10);
-    } elif (st == ability_charisma) {
-        return Cre.count_feats_in_range(obj, feat_epic_great_charisma_1, feat_epic_great_charisma_10);
+// Sync offense context keys for attacker vs target. Invalidates stale slots
+// and eagerly rebuilds the two most common non-target slots (onhand/offhand).
+// Returns the attacker's CreatureCombat handle so callers avoid a second get_propset!.
+fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
+    var combat = get_propset!(CreatureCombat)(attacker);
+
+    var cur_self_eff  = combat.effect_epoch;
+    var cur_equip     = combat.equip_epoch;
+    var cur_mode      = combat.combat_mode;
+    var cur_prog      = combat.progression_epoch;
+    var cur_tgt_eff   = target_effect_epoch(target);
+
+    var changed_key_mask = 0;
+    if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
+    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
+    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
+
+    if (changed_key_mask != 0) {
+        // Build slot bits to clear for all offense slots 0-27.
+        var clear_slot_bits = 0;
+        for (var i = 0; i < 28; i += 1) {
+            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
+                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
+            }
+        }
+        slot_clear(combat, clear_slot_bits);
+
+        // Update stored context keys.
+        combat.off_target             = target;
+        combat.off_effect_epoch       = cur_self_eff;
+        combat.off_target_effect_epoch = cur_tgt_eff;
+        combat.off_equip_epoch        = cur_equip;
+        combat.off_mode_epoch         = cur_mode;
+        combat.off_progression_epoch  = cur_prog;
+
+        // Prewarm the two most common non-target AB slots (onhand/offhand).
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+        }
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+        }
     }
-    return 0;
+
+    return combat;
 }
 
-// Populate the modifier registry.  Called from nwn1.init.
-fn init_modifiers() {
-    // Pre-fill with empty inner arrays, one slot per mod_type
-    var i = 0;
-    for (i < NUM_MOD_TYPES) {
-        var empty: array!(fn(Creature, object, int): int);
-        arr.push(modifiers, empty);
-        i += 1;
+// Same as sync_off_context but caller already holds the attacker's propset handle
+// (e.g. returned by sync_combat_round_state_from_native). Skips the initial
+// get_propset! call on attacker.
+fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, target: object): CreatureCombat {
+    var cur_self_eff  = combat.effect_epoch;
+    var cur_equip     = combat.equip_epoch;
+    var cur_mode      = combat.combat_mode;
+    var cur_prog      = combat.progression_epoch;
+    var cur_tgt_eff   = target_effect_epoch(target);
+
+    var changed_key_mask = 0;
+    if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
+    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
+    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
+
+    if (changed_key_mask != 0) {
+        var clear_slot_bits = 0;
+        for (var i = 0; i < 28; i += 1) {
+            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
+                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
+            }
+        }
+        slot_clear(combat, clear_slot_bits);
+
+        combat.off_target             = target;
+        combat.off_effect_epoch       = cur_self_eff;
+        combat.off_target_effect_epoch = cur_tgt_eff;
+        combat.off_equip_epoch        = cur_equip;
+        combat.off_mode_epoch         = cur_mode;
+        combat.off_progression_epoch  = cur_prog;
+
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+        }
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+        }
     }
 
-    // == Ability =============================================================
-    arr.push(modifiers[mod_type_ability as int], epic_great_ability);
-    arr.push(modifiers[mod_type_ability as int], dragon_disciple_ability);
+    return combat;
+}
 
-    // == Armor Class =========================================================
+// Like sync_off_context_from_handle but takes the target's effect epoch as a parameter,
+// avoiding a redundant get_propset!(CreatureCombat)(target) call when the caller already
+// holds a def_combat handle for the target (e.g. from sync_def_context).
+fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, target: object, cur_tgt_eff: int): CreatureCombat {
+    var cur_self_eff  = combat.effect_epoch;
+    var cur_equip     = combat.equip_epoch;
+    var cur_mode      = combat.combat_mode;
+    var cur_prog      = combat.progression_epoch;
 
-    // dragon_disciple_ac: natural AC bonus from Dragon Disciple class levels
-    arr.push(modifiers[mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != ac_natural as int) { return 0; }
-            var level = Cre.get_level_by_class(obj, class_type_dragon_disciple);
-            if (level >= 10) {
-                return (level / 5) + 2;
-            } elif (level >= 8) {
-                return 3;
-            } elif (level >= 5) {
-                return 2;
-            } elif (level >= 1) {
-                return 1;
+    var changed_key_mask = 0;
+    if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
+    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
+    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
+
+    if (changed_key_mask != 0) {
+        var clear_slot_bits = 0;
+        for (var i = 0; i < 28; i += 1) {
+            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
+                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
             }
-            return 0;
-        });
+        }
+        slot_clear(combat, clear_slot_bits);
 
-    // pale_master_ac: natural AC bonus from Pale Master class levels
-    arr.push(modifiers[mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != ac_natural as int) { return 0; }
-            var pm_level = Cre.get_level_by_class(obj, class_type_pale_master);
-            if (pm_level > 0) {
-                return ((pm_level / 4) + 1) * 2;
+        combat.off_target             = target;
+        combat.off_effect_epoch       = cur_self_eff;
+        combat.off_target_effect_epoch = cur_tgt_eff;
+        combat.off_equip_epoch        = cur_equip;
+        combat.off_mode_epoch         = cur_mode;
+        combat.off_progression_epoch  = cur_prog;
+
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+        }
+        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
+            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+        }
+    }
+
+    return combat;
+}
+
+// Sync defense context keys for target vs attacker. Invalidates stale def slots.
+// Defense slots are lazy (rebuild_policy=0 for most), rebuilt on demand.
+// Sync defense context keys for attacker (the creature whose AC we're caching).
+// AC depends on attacker's own effects/equipment/mode. Does not track 'target'
+// (the attacker's identity rarely affects conditional AC modifiers in NWN1).
+// Returns the target's CreatureCombat handle so callers avoid a second get_propset!.
+fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, attacker_effect_epoch: int = -2147483648): CreatureCombat {
+    var combat = get_propset!(CreatureCombat)(target);
+
+    var cur_self_eff = combat.effect_epoch;
+    var cur_equip    = combat.equip_epoch;
+    var cur_mode     = combat.combat_mode;
+    var cur_atk_eff = attacker_effect_epoch;
+    if (cur_atk_eff == -2147483648) {
+        cur_atk_eff = target_effect_epoch(attacker);
+    }
+
+    var changed_key_mask = 0;
+    if (attacker != combat.def_target) { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
+    if (cur_self_eff != combat.def_self_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (cur_atk_eff  != combat.def_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
+    if (cur_equip    != combat.def_equip_epoch)       { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (cur_mode     != combat.def_mode_epoch)        { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+
+    if (changed_key_mask != 0) {
+        // Build slot bits to clear for defense slots 6-15.
+        var clear_slot_bits = 0;
+        for (var i = 6; i < 16; i += 1) {
+            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
+                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
             }
-            return 0;
-        });
+        }
+        slot_clear(combat, clear_slot_bits);
 
-    // epic_armor_skin: flat +2 natural AC from Epic Armor Skin feat
-    arr.push(modifiers[mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != ac_natural as int) { return 0; }
-            if (Cre.has_feat(obj, feat_epic_armor_skin)) { return 2; }
-            return 0;
-        });
+        combat.def_target            = attacker;
+        combat.def_self_effect_epoch = cur_self_eff;
+        combat.def_target_effect_epoch = cur_atk_eff;
+        combat.def_equip_epoch       = cur_equip;
+        combat.def_mode_epoch        = cur_mode;
+    }
 
-    // tumble_ac: dodge AC bonus from Tumble skill (rank / 5)
-    arr.push(modifiers[mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != ac_dodge as int) { return 0; }
-            var stats = get_propset!(CreatureStats)(obj);
-            return stats.skills[skill_tumble as int] / 5;
-        });
+    return combat;
+}
 
-    // == Hitpoints ===========================================================
+// Query the cached AC for attacker versus target. Uses slot_def_ac_t_any (9).
+// Invalidated by target change, attacker effect/equip/mode changes.
+fn get_def_armor_class(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): int {
+    if (target is Creature) {
+        var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
+        if (!slot_valid(combat, slot_def_ac_t_any)) {
+            combat.slot_values[slot_def_ac_t_any] = C.attack_roll_armor_class(attacker, target);
+            slot_set_valid(combat, slot_def_ac_t_any);
+        }
+        return combat.slot_values[slot_def_ac_t_any];
+    }
+    return C.attack_roll_armor_class(attacker, target);
+}
 
-    // toughness: +1 HP per total level
-    arr.push(modifiers[mod_type_hitpoints as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            if (Cre.has_feat(obj, feat_toughness)) {
-                return Cre.get_total_levels(obj);
-            }
-            return 0;
-        });
+fn get_def_concealment(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): int {
+    if (target is Creature) {
+        var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
+        var slot = is_ranged ? slot_def_conceal_t_ranged : slot_def_conceal_t_melee;
+        if (!slot_valid(combat, slot)) {
+            combat.slot_values[slot] = C.attack_roll_concealment(attacker, target, is_ranged);
+            slot_set_valid(combat, slot);
+        }
+        return combat.slot_values[slot];
+    }
+    return C.attack_roll_concealment(attacker, target, is_ranged);
+}
 
-    // epic_toughness: +20 HP per tier (1-10)
-    arr.push(modifiers[mod_type_hitpoints as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            return Cre.count_feats_in_range(obj, feat_epic_toughness_1, feat_epic_toughness_10) * 20;
-        });
+fn get_def_miss_chance_source(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): bool {
+    if (target is Creature) {
+        var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
+        var slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
+        if (!slot_valid(combat, slot)) {
+            combat.slot_values[slot] = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
+            slot_set_valid(combat, slot);
+        }
+        return combat.slot_values[slot] != 0;
+    }
+    return C.attack_roll_is_miss_chance_source(attacker, target, is_ranged);
+}
 
-    // == Damage Reduction ====================================================
+fn get_def_conceal_data(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): DefenseConcealData {
+    if (target is Creature) {
+        var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
 
-    // barbarian_dmg_reduction: DR 1+((barb-10)/3)/- for barbarian levels > 10
-    arr.push(modifiers[mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            var barb = Cre.get_level_by_class(obj, class_type_barbarian);
-            if (barb > 10) {
-                return 1 + (barb - 10) / 3;
-            }
-            return 0;
-        });
+        var conceal_slot = is_ranged ? slot_def_conceal_t_ranged : slot_def_conceal_t_melee;
+        if (!slot_valid(combat, conceal_slot)) {
+            combat.slot_values[conceal_slot] = C.attack_roll_concealment(attacker, target, is_ranged);
+            slot_set_valid(combat, conceal_slot);
+        }
 
-    // dwarven_defender_dmg_reduction
-    arr.push(modifiers[mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            var dd = Cre.get_level_by_class(obj, class_type_dwarven_defender);
-            if (dd > 0) {
-                return 3 + ((dd - 6) / 4 * 3);
-            }
-            return 0;
-        });
+        var concealment = combat.slot_values[conceal_slot];
+        if (concealment <= 0) {
+            return {
+                concealment = 0,
+                miss_chance_source = false,
+            };
+        }
 
-    // epic_dmg_reduction: 3/6/9 from epic feats (checked highest first)
-    arr.push(modifiers[mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            if (Cre.has_feat(obj, feat_epic_damage_reduction_9)) { return 9; }
-            elif (Cre.has_feat(obj, feat_epic_damage_reduction_6)) { return 6; }
-            elif (Cre.has_feat(obj, feat_epic_damage_reduction_3)) { return 3; }
-            return 0;
-        });
+        var miss_slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
+        if (!slot_valid(combat, miss_slot)) {
+            combat.slot_values[miss_slot] = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
+            slot_set_valid(combat, miss_slot);
+        }
 
-    // == Damage Resistance ===================================================
+        return {
+            concealment = concealment,
+            miss_chance_source = combat.slot_values[miss_slot] != 0,
+        };
+    }
 
-    // energy_resistance: base resist feat (5) or epic tiers (10 per tier)
-    arr.push(modifiers[mod_type_dmg_resistance as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            var start = -1;
-            var stop = -1;
-            var base_feat = -1;
-            if (subtype == damage_type_acid as int) {
-                start = feat_epic_energy_resistance_acid_1 as int;
-                stop = feat_epic_energy_resistance_acid_10 as int;
-                base_feat = feat_resist_energy_acid as int;
-            } elif (subtype == damage_type_cold as int) {
-                start = feat_epic_energy_resistance_cold_1 as int;
-                stop = feat_epic_energy_resistance_cold_10 as int;
-                base_feat = feat_resist_energy_cold as int;
-            } elif (subtype == damage_type_electrical as int) {
-                start = feat_epic_energy_resistance_electrical_1 as int;
-                stop = feat_epic_energy_resistance_electrical_10 as int;
-                base_feat = feat_resist_energy_electrical as int;
-            } elif (subtype == damage_type_fire as int) {
-                start = feat_epic_energy_resistance_fire_1 as int;
-                stop = feat_epic_energy_resistance_fire_10 as int;
-                base_feat = feat_resist_energy_fire as int;
-            } elif (subtype == damage_type_sonic as int) {
-                start = feat_epic_energy_resistance_sonic_1 as int;
-                stop = feat_epic_energy_resistance_sonic_10 as int;
-                base_feat = feat_resist_energy_sonic as int;
-            } else {
-                return 0;
-            }
-            var nth = Cre.highest_feat_in_range(obj, Feat(start), Feat(stop));
-            if (nth as int >= 0) {
-                return ((nth as int) - start + 1) * 10;
-            } elif (Cre.has_feat(obj, Feat(base_feat))) {
-                return 5;
-            }
-            return 0;
-        });
+    var conceal = C.attack_roll_concealment(attacker, target, is_ranged);
+    if (conceal <= 0) {
+        return {
+            concealment = 0,
+            miss_chance_source = false,
+        };
+    }
+    return {
+        concealment = conceal,
+        miss_chance_source = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged),
+    };
+}
 
-    // == Skills ==============================================================
+// Inner variant: caller has already called sync_off_context and holds the handle.
+// Skips the sync; useful when the caller already synced for other slot reads.
+fn get_off_attack_bonus_raw(combat: CreatureCombat, attacker: Creature, target: object, effective_subtype: Const.AttackType): int {
+    var nt_slot = slot_off_ab_nt_unarmed;
+    if (effective_subtype == Const.attack_type_onhand) {
+        nt_slot = slot_off_ab_nt_onhand;
+    } elif (effective_subtype == Const.attack_type_offhand) {
+        nt_slot = slot_off_ab_nt_offhand;
+    } elif (effective_subtype == Const.attack_type_cweapon1) {
+        nt_slot = slot_off_ab_nt_cweapon;
+    } elif (effective_subtype == Const.attack_type_cweapon2) {
+        nt_slot = slot_off_ab_nt_cweapon;
+    } elif (effective_subtype == Const.attack_type_cweapon3) {
+        nt_slot = slot_off_ab_nt_cweapon;
+    }
 
-    // stonecunning: +2 to Search (racial feat for dwarves)
-    arr.push(modifiers[mod_type_skill as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != skill_search as int) { return 0; }
-            if (Cre.has_feat(obj, feat_stonecunning)) { return 2; }
-            return 0;
-        });
+    if (!slot_valid(combat, nt_slot)) {
+        rebuild_off_nt_slot(attacker, nt_slot);
+    }
+
+    if (!slot_valid(combat, slot_off_ab_t_any)) {
+        var t_sum = 0;
+        for (var f in slot_buckets[slot_off_ab_t_any]) {
+            t_sum += f(attacker, target, Const.attack_type_any as int);
+        }
+        combat.slot_values[slot_off_ab_t_any] = t_sum;
+        slot_set_valid(combat, slot_off_ab_t_any);
+    }
+
+    return combat.slot_values[nt_slot] + combat.slot_values[slot_off_ab_t_any]
+        + get_off_effect_delta(combat, attacker, target, effective_subtype);
+}
+
+// Query the cached offense AB (non-target portion + target-sensitive portion).
+// Calls sync_off_context to refresh stale slots, then sums the matching
+// non-target slot and the target slot.
+fn get_off_attack_bonus(attacker: Creature, target: object, effective_subtype: Const.AttackType): int {
+    var combat = sync_off_context(attacker, target);
+    return get_off_attack_bonus_raw(combat, attacker, target, effective_subtype);
+}
+
+fn attack_bonus_non_target(obj: Creature, subtype: int): int {
+    return sum_attack_bonus_modifiers(obj, Obj.invalid, subtype, cache_group_non_target);
+}
+
+fn attack_bonus_target(obj: Creature, versus: object, subtype: int): int {
+    return sum_attack_bonus_modifiers(obj, versus, subtype, cache_group_target);
+}
+
+fn attack_bonus_total(obj: Creature, versus: object, subtype: int): int {
+    return attack_bonus_non_target(obj, subtype)
+        + attack_bonus_target(obj, versus, subtype);
+}
+
+fn attack_bonus_total_effective(obj: Creature, versus: object, effective_subtype: int): int {
+    var total = attack_bonus_total(obj, versus, effective_subtype);
+    if (effective_subtype != Const.attack_type_any as int) {
+        total += attack_bonus_total(obj, versus, Const.attack_type_any as int);
+    }
+    return total;
 }

@@ -160,6 +160,7 @@ struct Equips {
 
     nw::Creature* owner_ = nullptr;
     std::array<EquipItem, 18> equips;
+    uint32_t equip_version = 0;
 };
 
 bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile);

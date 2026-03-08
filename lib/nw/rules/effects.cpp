@@ -122,6 +122,7 @@ bool EffectArray::add(Effect* effect)
     };
     auto it = std::lower_bound(std::begin(effects_), std::end(effects_), needle, comp);
     effects_.insert(it, needle);
+    ++effect_version;
 
     return true;
 }
@@ -145,6 +146,7 @@ bool EffectArray::remove(Effect* effect)
         return false;
     });
     effects_.erase(it, std::end(effects_));
+    if (count > 0) { ++effect_version; }
     return count > 0;
 }
 

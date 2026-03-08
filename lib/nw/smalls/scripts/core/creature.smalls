@@ -1,7 +1,5 @@
-from core.types import { Ability, AttackType, Class, EquipIndex, Feat };
+from core.types import { Ability, AttackType, Class, EquipIndex, Feat, Save, Skill };
 
-[[native]] fn get_ability_score(obj: Creature, ability: Ability, base: bool = false): int;
-[[native]] fn get_ability_modifier(obj: Creature, ability: Ability, base: bool = false): int;
 [[native]] fn get_total_levels(obj: Creature): int;
 [[native]] fn get_level_by_class(obj: Creature, class_type: Class): int;
 [[native]] fn get_class_count(obj: Creature): int;
@@ -29,6 +27,20 @@ from core.types import { Ability, AttackType, Class, EquipIndex, Feat };
 // Returns how many feat tiers in [start, stop] the creature has progressed through
 // (i.e. highest - start + 1), or 0 if none.
 [[native]] fn count_feats_in_range(obj: Creature, start: Feat, stop: Feat): int;
+
+// == Rules data accessors ====================================================
+// ============================================================================
+
+// Returns the class progression save bonus for (class_id, class_level, save_type).
+// save_type: Save(1)=Fort, Save(2)=Reflex, Save(3)=Will
+[[native]] fn class_save_bonus(class_id: Class, level: int, save_type: Save): int;
+
+// Returns the ability that governs a skill (for the ability modifier contribution).
+// Returns Ability(-1) for invalid skills.
+[[native]] fn skill_key_ability(skill: Skill): Ability;
+
+// Returns true if the skill can be used untrained (0 ranks).
+[[native]] fn skill_is_untrained(skill: Skill): bool;
 
 // == Propsets ================================================================
 // ============================================================================
@@ -87,31 +99,10 @@ type CreatureCombat {
     attacks_onhand: int;
     attacks_offhand: int;
     attacks_extra: int;
-    bab_cached: int;
-    bab_cache_valid: int;
-    monk_power_cached: int;
-    enchant_arrow_cached: int;
-    feat_cache_valid: int;
-    // Dual-wield penalty cache (stable per round)
-    dual_wield_onhand: int;
-    dual_wield_offhand: int;
-    dual_wield_valid: int;
-    // Critical threat cache per attack slot (stable per round)
-    crit_threat_onhand: int;
-    crit_threat_offhand: int;
-    crit_threat_onhand_valid: int;
-    crit_threat_offhand_valid: int;
-    // Weapon iteration factor cache per slot (stable per round)
-    weapon_iter_onhand: int;
-    weapon_iter_offhand: int;
-    weapon_iter_onhand_valid: int;
-    weapon_iter_offhand_valid: int;
-    // Weapon power cache per slot (stable per round)
-    weapon_power_onhand: int;
-    weapon_power_onhand_valid: int;
-    weapon_power_offhand: int;
-    weapon_power_offhand_valid: int;
     combat_mode: int;
+    effect_epoch: int;
+    equip_epoch: int;
+    progression_epoch: int;
     ac_armor_base: int;
     ac_shield_base: int;
     size_ab_modifier: int;
@@ -120,4 +111,31 @@ type CreatureCombat {
     target_state: int;
     hasted: int;
     size: int;
+    // Unified slot cache: 0-15 offense/defense AB+AC+conceal, 16-27 per-round stable
+    slot_valid_mask: int;          // 1 bit per slot indicating validity
+    slot_values: int[32];          // cached aggregate value per slot
+    // Offense context keys (stored on attacker, compared each sync)
+    off_target: object;
+    off_target_effect_epoch: int;
+    off_effect_epoch: int;
+    off_equip_epoch: int;
+    off_mode_epoch: int;
+    off_progression_epoch: int;    // tracks class progression changes
+    // Cached attack_bonus_effect_delta_clamped(attacker, subtype, target)
+    off_effect_delta_target: object;
+    off_effect_delta_self_epoch: int;
+    off_effect_delta_target_epoch: int;
+    off_effect_delta_subtype: int;
+    off_effect_delta_value: int;
+    // Defense context keys (stored on target, compared each sync)
+    def_self_effect_epoch: int;
+    def_equip_epoch: int;
+    def_progression_epoch: int;
+    def_mode_epoch: int;
+    def_target: object;
+    def_target_effect_epoch: int;
+    // Caller-set special attack request; consumed (cleared to 0) on resolution.
+    // special_attack_ab is the AB modifier for that attack (e.g. -4 for knockdown).
+    special_attack_request: int;
+    special_attack_ab: int;
 };

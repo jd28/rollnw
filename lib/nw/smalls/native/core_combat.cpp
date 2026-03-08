@@ -151,6 +151,94 @@ int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_t
     return std::clamp(bonus - decrease, min, max);
 }
 
+int32_t attack_bonus_mod_weapon_feat(nw::ObjectHandle obj, int32_t attack_type)
+{
+    auto type = nw::AttackType::make(attack_type);
+    if (type == nw::AttackType::invalid() || type == nwn1::attack_type_any) {
+        return 0;
+    }
+
+    auto* cre = as_creature(obj);
+    if (!cre) {
+        return 0;
+    }
+
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto* weapon = get_weapon_for_attack_type(obj, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
+
+    int result = 0;
+    nw::kernel::resolve_master_feats<int>(
+        cre, baseitem,
+        [&result](int val) { result += val; },
+        nwn1::mfeat_weapon_focus,
+        nwn1::mfeat_weapon_focus_epic);
+    return result;
+}
+
+int32_t attack_bonus_mod_favored_enemy(nw::ObjectHandle obj, nw::ObjectHandle versus)
+{
+    auto* cre = as_creature(obj);
+    auto* vs = as_object_const(versus);
+    auto* vs_cre = vs ? vs->as_creature() : nullptr;
+    if (!cre || !vs_cre) {
+        return 0;
+    }
+
+    if (cre->levels.level_by_class(nwn1::class_type_ranger) == 0) {
+        return 0;
+    }
+
+    if (!!nw::kernel::resolve_master_feat<int>(cre, vs_cre->race, nwn1::mfeat_favored_enemy)
+        && cre->stats.has_feat(nwn1::feat_epic_bane_of_enemies)) {
+        return 2;
+    }
+
+    return 0;
+}
+
+int32_t attack_bonus_mod_combat_mode(nw::ObjectHandle obj)
+{
+    auto* cre = as_creature(obj);
+    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) {
+        return 0;
+    }
+
+    auto cbs = nw::kernel::rules().combat_mode(cre->combat_info.combat_mode);
+    return cbs.modifier(cre->combat_info.combat_mode, nwn1::mod_type_attack_bonus, cre).as<int>();
+}
+
+int32_t attack_bonus_mod_weapon_master(nw::ObjectHandle obj, int32_t attack_type)
+{
+    auto* cre = as_creature(obj);
+    if (!cre) {
+        return 0;
+    }
+
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto* weapon = get_weapon_for_attack_type(obj, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
+
+    auto wm = cre->levels.level_by_class(nwn1::class_type_weapon_master);
+    if (wm < 5) {
+        return 0;
+    }
+
+    bool has_feat = !!nw::kernel::resolve_master_feat<int>(cre, baseitem, nwn1::mfeat_weapon_of_choice);
+    if (!has_feat) {
+        return 0;
+    }
+
+    int result = 1;
+    if (wm >= 13) {
+        result += (wm - 10) / 3;
+    }
+
+    return result;
+}
+
 int32_t weapon_critical_threat(nw::ObjectHandle obj, int32_t attack_type)
 {
     auto* weapon = get_weapon_for_attack_type(obj, attack_type);
@@ -664,6 +752,29 @@ int32_t unarmed_damage_level(nw::ObjectHandle obj)
     return level;
 }
 
+int32_t object_id(nw::ObjectHandle obj)
+{
+    return static_cast<int32_t>(static_cast<uint32_t>(obj.id));
+}
+
+int32_t creature_effect_version(nw::ObjectHandle obj)
+{
+    auto* cre = as_creature(obj);
+    return cre ? static_cast<int32_t>(cre->effects().effect_version) : 0;
+}
+
+int32_t creature_equip_version(nw::ObjectHandle obj)
+{
+    auto* cre = as_creature(obj);
+    return cre ? static_cast<int32_t>(cre->equipment.equip_version) : 0;
+}
+
+int32_t get_combat_mode(nw::ObjectHandle obj)
+{
+    auto* cre = as_creature(obj);
+    return cre ? static_cast<int32_t>(*cre->combat_info.combat_mode) : -1;
+}
+
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -675,6 +786,10 @@ void register_core_combat(Runtime& rt)
     rt.module("core.combat")
         .function("is_flanked", +[](nw::ObjectHandle target, nw::ObjectHandle attacker) -> bool { return nwn1::is_flanked(as_creature(target), as_creature(attacker)); })
         .function("attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, versus); })
+        .function("attack_bonus_mod_weapon_feat", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return attack_bonus_mod_weapon_feat(obj, attack_type); })
+        .function("attack_bonus_mod_favored_enemy", +[](nw::ObjectHandle obj, nw::ObjectHandle versus) -> int32_t { return attack_bonus_mod_favored_enemy(obj, versus); })
+        .function("attack_bonus_mod_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return attack_bonus_mod_combat_mode(obj); })
+        .function("attack_bonus_mod_weapon_master", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return attack_bonus_mod_weapon_master(obj, attack_type); })
         .function("weapon_critical_multiplier", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_multiplier(obj, attack_type); })
         .function("weapon_critical_threat", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_threat(obj, attack_type); })
         .function("weapon_has_keen", +[](nw::ObjectHandle obj, int32_t attack_type) -> bool { return weapon_has_keen(obj, attack_type); })
@@ -744,6 +859,16 @@ void register_core_combat(Runtime& rt)
             if (cre) {
                 ++cre->combat_info.attack_current;
             } })
+        .function("object_id", +[](nw::ObjectHandle obj) -> int32_t { return object_id(obj); })
+        .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })
+        .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
+        .function("get_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return get_combat_mode(obj); })
+        .function("weapon_is_ranged", +[](nw::ObjectHandle weapon) -> bool {
+            auto* it = as_item(weapon);
+            if (!it) { return false; }
+            auto bi = nw::kernel::rules().baseitems.get(it->baseitem);
+            return bi && bi->ranged;
+        })
         .finalize();
 }
 

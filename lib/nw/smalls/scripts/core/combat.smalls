@@ -31,10 +31,15 @@ type AttackData {
     base_damage: DamageResult;
     damages: array!(DamageResult);
     rolls: array!(DamageRoll);
+    special_attack: int;   // 0 = none; else SpecialAttack value that triggered on this hit
 };
 
 [[native]] fn is_flanked(target: Creature, attacker: Creature): bool;
 [[native]] fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn attack_bonus_mod_weapon_feat(obj: Creature, attack_type: AttackType): int;
+[[native]] fn attack_bonus_mod_favored_enemy(obj: Creature, versus: object): int;
+[[native]] fn attack_bonus_mod_combat_mode(obj: Creature): int;
+[[native]] fn attack_bonus_mod_weapon_master(obj: Creature, attack_type: AttackType): int;
 [[native]] fn attack_roll_armor_class(obj: Creature, versus: object): int;
 [[native]] fn attack_roll_concealment(obj: Creature, target: object, vs_ranged: bool): int;
 [[native]] fn attack_roll_is_miss_chance_source(obj: Creature, target: object, vs_ranged: bool): bool;
@@ -73,3 +78,8 @@ type AttackData {
 [[native]] fn attacks_offhand(attacker: Creature): int;
 [[native]] fn attacks_extra(attacker: Creature): int;
 [[native]] fn advance_attack_round(attacker: Creature): void;
+[[native]] fn object_id(obj: object): int;
+[[native]] fn creature_effect_version(obj: Creature): int;
+[[native]] fn creature_equip_version(obj: Creature): int;
+[[native]] fn get_combat_mode(obj: Creature): int;
+[[native]] fn weapon_is_ranged(weapon: Item): bool;

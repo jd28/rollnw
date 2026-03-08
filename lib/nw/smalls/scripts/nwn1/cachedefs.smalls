@@ -1,0 +1,81 @@
+// == Slot IDs ================================================================
+// 16 cache slots: offense (0-5) on attacker's CreatureCombat,
+// defense (6-15) on target's CreatureCombat.
+// ============================================================================
+
+const slot_off_ab_nt_onhand    = 0;   // non-target AB for onhand subtype
+const slot_off_ab_nt_offhand   = 1;   // non-target AB for offhand subtype
+const slot_off_ab_nt_cweapon   = 2;   // non-target AB for creature weapons
+const slot_off_ab_nt_unarmed   = 3;   // non-target AB for unarmed
+const slot_off_ab_nt_any       = 4;   // non-target AB for attack_type_any
+const slot_off_ab_t_any        = 5;   // target-sensitive AB (favored enemy, training, state, effects)
+
+const slot_def_ac_nt_base      = 6;   // non-target AC: armor/natural/shield (equip + progression)
+const slot_def_ac_nt_mode_size = 7;   // non-target AC: mode + size bonuses
+const slot_def_ac_nt_misc      = 8;   // non-target AC: misc (self_effect + progression)
+const slot_def_ac_t_any        = 9;   // target-sensitive AC: any
+const slot_def_ac_t_melee      = 10;  // target-sensitive AC: melee
+const slot_def_ac_t_ranged     = 11;  // target-sensitive AC: ranged
+const slot_def_conceal_t_melee = 12;  // concealment vs melee
+const slot_def_conceal_t_ranged = 13; // concealment vs ranged
+const slot_def_miss_chance_t_melee  = 14; // miss chance source flag vs melee
+const slot_def_miss_chance_t_ranged = 15; // miss chance source flag vs ranged
+
+// == Modifier meta_flags bits ================================================
+// These flags are stored in Modifier.meta_flags to describe context, scope,
+// and invalidation dependencies for the slot cache system.
+// ============================================================================
+
+const ctx_defense        = 0x0001;  // set = defense slot; unset = offense slot
+const dep_target         = 0x0002;  // modifier depends on the target's identity
+const dep_round          = 0x0004;  // modifier depends on the current attack round
+const dep_progression    = 0x0008;  // modifier depends on class progression
+const scope_subtype      = 0x0010;  // modifier applies to a specific attack subtype
+const scope_attack_any   = 0x0020;  // modifier applies to attack_type_any
+const scope_onhand       = 0x0040;  // modifier applies to onhand specifically
+const scope_offhand      = 0x0080;  // modifier applies to offhand specifically
+
+// Invalidation trigger bits (parallel with key_* context key masks below)
+const inv_target_change       = 0x0100;  // invalidate when target changes
+const inv_round_advance       = 0x0200;  // invalidate when attack_current changes
+const inv_self_effect_epoch   = 0x0400;  // invalidate when attacker/self effect_version changes
+const inv_target_effect_epoch = 0x0800;  // invalidate when target effect_version changes
+const inv_equipment_epoch     = 0x1000;  // invalidate when equip_version changes
+const inv_progression_epoch   = 0x2000;  // invalidate when class levels change
+const inv_mode_epoch          = 0x4000;  // invalidate when combat_mode changes
+
+// == Context key masks =======================================================
+// Must match the corresponding inv_* bits exactly (used for changed_key_mask diff).
+// ============================================================================
+
+const key_target_id           = 0x0100;
+const key_round_seq           = 0x0200;
+const key_self_effect_epoch   = 0x0400;
+const key_target_effect_epoch = 0x0800;
+const key_equipment_epoch     = 0x1000;
+const key_progression_epoch   = 0x2000;
+const key_mode_epoch          = 0x4000;
+
+// == Per-round stable offense caches (slots 16-27) ===========================
+// Stored on attacker's CreatureCombat. Invalidated by equipment or progression
+// changes; since neither changes mid-combat in NWN1, effectively permanent once built.
+// ============================================================================
+
+const slot_off_bab              = 16;  // base attack bonus
+const slot_off_feat_flags       = 17;  // bitmask of combat-relevant feat flags
+const slot_off_dual_wield_on    = 18;  // dual-wield penalty: onhand
+const slot_off_dual_wield_off   = 19;  // dual-wield penalty: offhand
+const slot_off_crit_threat_on   = 20;  // critical threat range: onhand
+const slot_off_crit_threat_off  = 21;  // critical threat range: offhand
+const slot_off_weapon_iter_on   = 22;  // weapon iteration factor: onhand
+const slot_off_weapon_iter_off  = 23;  // weapon iteration factor: offhand
+const slot_off_weapon_power_on  = 24;  // weapon power: onhand
+const slot_off_weapon_power_off = 25;  // weapon power: offhand
+const slot_off_monk_power       = 26;  // monk ki strike power level
+const slot_off_enchant_arrow    = 27;  // arcane archer enchant arrow bonus
+
+// Bit flags for slot_off_feat_flags
+const feat_flag_blind_fight     = 1;   // has Blind Fight feat
+const feat_flag_twf             = 2;   // has Two-Weapon Fighting feat
+const feat_flag_ambidexterity   = 4;   // has Ambidexterity feat
+const feat_flag_itwf            = 8;   // has Improved Two-Weapon Fighting feat

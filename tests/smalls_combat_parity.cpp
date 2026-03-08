@@ -23,6 +23,7 @@ namespace {
 constexpr std::string_view combat_parity_bridge_source = R"(
     from nwn1.constants import { attack_type_onhand, attack_type_offhand, feat_blind_fight, creature_size_medium };
     import nwn1.combat as Combat;
+    import nwn1.modifier as Mod;
     import nwn1.races as races;
     import core.combat as C;
     from core.combat import { AttackData, DamageResult };
@@ -132,6 +133,11 @@ constexpr std::string_view combat_parity_bridge_source = R"(
 
     fn resolve_attack_roll_onhand_context_armor_class(attacker: Creature, target: object): int {
         return C.attack_roll_armor_class(attacker, target);
+    }
+
+    fn resolve_cached_armor_class_onhand(attacker: Creature, target: object): int {
+        var is_ranged = Combat.is_ranged_attack(attacker, attack_type_onhand);
+        return Mod.get_def_armor_class(attacker, target, is_ranged);
     }
 
     fn resolve_attack_roll_onhand_context_iteration_penalty(attacker: Creature): int {
@@ -824,6 +830,52 @@ TEST_F(SmallsCombatParity, ResolveAttackPayloadDeterministicFieldsMatchCppRefere
         EXPECT_EQ(smalls_is_ranged, cpp_data->is_ranged_attack ? 1 : 0) << attacker_resref;
         EXPECT_EQ(smalls_target_is_creature, cpp_data->target_is_creature ? 1 : 0) << attacker_resref;
     }
+}
+
+TEST_F(SmallsCombatParity, CacheInvalidationAttackBonusAndArmorClassTracksCpp)
+{
+    auto* attacker_a = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ASSERT_NE(attacker_a, nullptr);
+    auto* attacker_b = nwk::objects().load_file<nw::Creature>("test_data/user/development/rangerdexranged.utc");
+    ASSERT_NE(attacker_b, nullptr);
+    auto* target_a = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(target_a, nullptr);
+    auto* target_b = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
+    ASSERT_NE(target_b, nullptr);
+
+    const auto run_ab = [&](nw::Creature* attacker, nw::Creature* target) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(make_object_arg(attacker->handle()));
+        args.push_back(make_object_arg(target->handle()));
+        return exec_int("resolve_attack_bonus_onhand", args);
+    };
+
+    const auto run_cached_ac = [&](nw::Creature* attacker, nw::Creature* target) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(make_object_arg(attacker->handle()));
+        args.push_back(make_object_arg(target->handle()));
+        return exec_int("resolve_cached_armor_class_onhand", args);
+    };
+
+    // Warm + baseline against first target.
+    EXPECT_EQ(run_ab(attacker_a, target_a), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_a));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_a), nwn1::calculate_ac_versus(attacker_a, target_a, false));
+
+    // Target switch must invalidate both offense and defense target-sensitive cache state.
+    EXPECT_EQ(run_ab(attacker_a, target_b), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_b));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(attacker_a, target_b, false));
+
+    // Attacker effect epoch change must invalidate offense caches.
+    ASSERT_TRUE(nw::apply_effect(attacker_a, nwn1::effect_attack_modifier(nwn1::attack_type_any, 3)));
+    EXPECT_EQ(run_ab(attacker_a, target_a), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_a));
+    EXPECT_EQ(run_ab(attacker_a, target_b), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_b));
+
+    // Defender effect epoch change must invalidate defense cache.
+    ASSERT_TRUE(nw::apply_effect(target_b, nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 4)));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(attacker_a, target_b, false));
+
+    // Defender cache tracks attacker identity; swapping attacker must not reuse stale value.
+    EXPECT_EQ(run_cached_ac(attacker_b, target_b), nwn1::calculate_ac_versus(attacker_b, target_b, false));
 }
 
 TEST_F(SmallsCombatParity, UnarmedDamageProfileMatchesCppReference)

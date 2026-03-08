@@ -1,12 +1,8 @@
 from core.creature import { CreatureStats };
-from nwn1.constants import {
-    Ability, Save, Skill,
-    ability_constitution, ability_dexterity, ability_wisdom,
-    saving_throw_fort, saving_throw_reflex, saving_throw_will,
-    effect_type_ability_increase, effect_type_ability_decrease,
-    mod_type_ability,
-};
+import nwn1.constants as Const;
+
 import core.combat as Comb;
+import core.creature as Cre;
 import core.object as O;
 import nwn1.modifier as Mod;
 import nwn1.races as races;
@@ -18,12 +14,12 @@ const stack_sum = 0;
 const ability_effect_min = -12;
 const ability_effect_max = 12;
 
-// == Ability scores ==========================================================
+// == Const.Ability scores ==========================================================
 // ============================================================================
 
-// Ability score: base=true returns score without temporary effects (includes
+// Const.Ability score: base=true returns score without temporary effects (includes
 // racial adjustments and permanent modifiers); base=false also adds effects.
-fn get_ability_score(obj: Creature, ability: Ability, base: bool = false): int {
+fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false): int {
     var stats = get_propset!(CreatureStats)(obj);
     var score = stats.abilities[ability as int];
 
@@ -31,17 +27,17 @@ fn get_ability_score(obj: Creature, ability: Ability, base: bool = false): int {
     score = score + races.ability_modifier(stats.race, ability as int);
 
     // Permanent modifiers (feats, class gains, etc.)
-    score = score + Mod.sum_modifiers(obj, mod_type_ability, ability as int, O.invalid);
+    score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, ability as int, O.invalid);
 
     if (base) { return score; }
 
     // Effects, clamped to [-12, 12]
-    var bonus = Comb.aggregate_effect_int(obj, effect_type_ability_increase as int, ability as int, obj, 0, stack_sum);
-    var decrease = Comb.aggregate_effect_int(obj, effect_type_ability_decrease as int, ability as int, obj, 0, stack_sum);
+    var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, ability as int, obj, 0, stack_sum);
+    var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, ability as int, obj, 0, stack_sum);
     return score + Math.clamp(bonus - decrease, -12, 12);
 }
 
-fn get_ability_modifier(obj: Creature, ability: Ability, base: bool = false): int {
+fn get_ability_modifier(obj: Creature, ability: Const.Ability, base: bool = false): int {
     return (get_ability_score(obj, ability, base) - 10) / 2;
 }
 
@@ -49,23 +45,81 @@ fn get_ability_modifier(obj: Creature, ability: Ability, base: bool = false): in
 // ============================================================================
 
 // Base saving throw: innate save + ability modifier (no class bonuses, no effects)
-fn get_saving_throw(obj: Creature, save_type: Save): int {
+fn get_saving_throw(obj: Creature, save_type: Const.Save): int {
     var stats = get_propset!(CreatureStats)(obj);
-    if (save_type == saving_throw_fort) {
-        return stats.save_fort + get_ability_modifier(obj, ability_constitution);
-    } elif (save_type == saving_throw_reflex) {
-        return stats.save_reflex + get_ability_modifier(obj, ability_dexterity);
-    } elif (save_type == saving_throw_will) {
-        return stats.save_will + get_ability_modifier(obj, ability_wisdom);
+    if (save_type == Const.saving_throw_fort) {
+        return stats.save_fort + get_ability_modifier(obj, Const.ability_constitution);
+    } elif (save_type == Const.saving_throw_reflex) {
+        return stats.save_reflex + get_ability_modifier(obj, Const.ability_dexterity);
+    } elif (save_type == Const.saving_throw_will) {
+        return stats.save_will + get_ability_modifier(obj, Const.ability_wisdom);
     }
     return 0;
+}
+
+// Full saving throw roll: roll 1d20; 1=auto-fail, 20=auto-pass; else save+roll >= dc.
+// Includes: innate save, ability modifier, class progression bonuses, modifiers, effects.
+fn resolve_saving_throw(obj: Creature, save_type: Const.Save, dc: int, versus: object): bool {
+    var roll = Comb.roll_uniform_int(1, 20);
+    if (roll == 1) { return false; }
+    if (roll == 20) { return true; }
+
+    // Innate save + ability modifier
+    var save = get_saving_throw(obj, save_type);
+
+    // Class progression save bonuses
+    var class_count = Cre.get_class_count(obj);
+    for (var i = 0; i < class_count; i += 1) {
+        save = save + Cre.class_save_bonus(
+            Cre.get_class_at(obj, i),
+            Cre.get_class_levels_at(obj, i),
+            save_type);
+    }
+
+    // Permanent modifiers (feats, etc.)
+    save = save + Comb.aggregate_modifier_int(obj, Const.mod_type_save as int, save_type as int, versus, 0);
+
+    // Effects
+    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_increase as int, save_type as int, versus, 0, 0);
+    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_decrease as int, save_type as int, versus, 0, 0);
+    save = save + eff_inc - eff_dec;
+
+    return save + roll >= dc;
 }
 
 // == Skills ==================================================================
 // ============================================================================
 
-// Skill rank from propset
-fn get_skill_rank(obj: Creature, skill: Skill): int {
+// Const.Skill rank from propset
+fn get_skill_rank(obj: Creature, skill: Const.Skill): int {
     var stats = get_propset!(CreatureStats)(obj);
     return stats.skills[skill as int];
+}
+
+// Full skill rank: rank + ability modifier (if trained or skill is untrained-accessible)
+// + permanent modifiers + effects.
+fn get_skill_rank_full(obj: Creature, skill: Const.Skill, versus: object): int {
+    var rank = get_skill_rank(obj, skill);
+
+    if (rank > 0 || Cre.skill_is_untrained(skill)) {
+        var ability = Cre.skill_key_ability(skill);
+        if (ability as int >= 0) {
+            rank = rank + get_ability_modifier(obj, ability);
+        }
+    }
+
+    // Permanent modifiers (feats, etc.)
+    rank = rank + Comb.aggregate_modifier_int(obj, Const.mod_type_skill as int, skill as int, versus, 0);
+
+    // Effects
+    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_skill_increase as int, skill as int, versus, 0, 0);
+    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_skill_decrease as int, skill as int, versus, 0, 0);
+    return rank + eff_inc - eff_dec;
+}
+
+// Skill check: rank + 20 < dc => impossible; else rank + d20 >= dc => success.
+fn resolve_skill_check(obj: Creature, skill: Const.Skill, dc: int, versus: object): bool {
+    var rank = get_skill_rank_full(obj, skill, versus);
+    if (rank + 20 < dc) { return false; }
+    return rank + Comb.roll_uniform_int(1, 20) >= dc;
 }

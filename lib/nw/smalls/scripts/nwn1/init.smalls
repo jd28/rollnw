@@ -1,7 +1,540 @@
-import nwn1.item as item;
+import core.array as arr;
+import core.bit as bit;
+import core.combat as C;
+import core.creature as Cre;
+import core.item as Item;
+import core.object as Obj;
+from core.creature import { CreatureCombat, CreatureStats };
+
+import nwn1.creature as NCre;
+import nwn1.item as nwn1item;
 import nwn1.modifier as modifier;
+import nwn1.constants as Const;
+
+from nwn1.cachedefs import {
+    slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
+    slot_off_ab_nt_unarmed, slot_off_ab_nt_any, slot_off_ab_t_any,
+    dep_target, scope_subtype, scope_attack_any,
+    inv_target_change, inv_self_effect_epoch,
+    inv_equipment_epoch, inv_progression_epoch, inv_mode_epoch,
+    key_target_id, key_self_effect_epoch, key_target_effect_epoch,
+    key_equipment_epoch, key_progression_epoch, key_mode_epoch,
+    slot_off_bab, slot_off_feat_flags,
+    slot_off_dual_wield_on, slot_off_dual_wield_off,
+    slot_off_crit_threat_on, slot_off_crit_threat_off,
+    slot_off_weapon_iter_on, slot_off_weapon_iter_off,
+    slot_off_weapon_power_on, slot_off_weapon_power_off,
+    slot_off_monk_power, slot_off_enchant_arrow,
+};
+
+fn is_ranged_base_item(base_item: int): bool {
+    return base_item == Const.base_item_longbow
+        || base_item == Const.base_item_shortbow
+        || base_item == Const.base_item_lightcrossbow
+        || base_item == Const.base_item_heavycrossbow
+        || base_item == Const.base_item_sling
+        || base_item == Const.base_item_dart
+        || base_item == Const.base_item_shuriken
+        || base_item == Const.base_item_throwingaxe;
+}
+
+fn is_finessable_base_item(base_item: int): bool {
+    return base_item == Const.base_item_dagger
+        || base_item == Const.base_item_rapier
+        || base_item == Const.base_item_shortsword
+        || base_item == Const.base_item_kama
+        || base_item == Const.base_item_kukri
+        || base_item == Const.base_item_whip;
+}
+
+fn ability_attack_bonus(obj: Creature, subtype: int): int {
+    const feat_zen_archery = Const.Feat(412);
+    const feat_weapon_finesse = Const.Feat(42);
+
+    if (subtype < 0 || subtype == Const.attack_type_any as int) {
+        return 0;
+    }
+
+    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var base_item = Item.get_baseitem_type(weapon) as int;
+    if (is_ranged_base_item(base_item)) {
+        var modifier = NCre.get_ability_modifier(obj, Const.ability_dexterity);
+        if (Cre.has_feat(obj, feat_zen_archery)) {
+            var wisdom_mod = NCre.get_ability_modifier(obj, Const.ability_wisdom);
+            if (wisdom_mod > modifier) {
+                modifier = wisdom_mod;
+            }
+        }
+        return modifier;
+    }
+
+    var modifier = NCre.get_ability_modifier(obj, Const.ability_strength);
+    if (Cre.has_feat(obj, feat_weapon_finesse) && is_finessable_base_item(base_item)) {
+        var dex_mod = NCre.get_ability_modifier(obj, Const.ability_dexterity);
+        if (dex_mod > modifier) {
+            modifier = dex_mod;
+        }
+    }
+    return modifier;
+}
+
+fn attack_bonus_enchant_arrow(obj: Creature, subtype: int): int {
+    if (subtype != Const.attack_type_onhand as int) {
+        return 0;
+    }
+
+    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var base_item = Item.get_baseitem_type(weapon) as int;
+    if (base_item != Const.base_item_longbow && base_item != Const.base_item_shortbow) {
+        return 0;
+    }
+
+    var feat = Cre.highest_feat_in_range(obj, Const.feat_prestige_enchant_arrow_6, Const.feat_prestige_enchant_arrow_20);
+    if ((feat as int) >= 0) {
+        return feat as int - Const.feat_prestige_enchant_arrow_6 as int + 6;
+    }
+
+    feat = Cre.highest_feat_in_range(obj, Const.feat_prestige_enchant_arrow_1, Const.feat_prestige_enchant_arrow_5);
+    if ((feat as int) >= 0) {
+        return feat as int - Const.feat_prestige_enchant_arrow_1 as int + 1;
+    }
+
+    return 0;
+}
+
+fn attack_bonus_epic_prowess(obj: Creature, subtype: int): int {
+    const feat_epic_prowess = Const.Feat(584);
+    if (subtype != Const.attack_type_any as int) { return 0; }
+    return Cre.has_feat(obj, feat_epic_prowess) ? 1 : 0;
+}
+
+fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
+    const feat_good_aim = Const.Feat(250);
+    const racial_type_halfling = 3;
+
+    if (subtype != Const.attack_type_onhand as int) { return 0; }
+
+    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var base_item = Item.get_baseitem_type(weapon) as int;
+    var stats = get_propset!(CreatureStats)(obj);
+
+    if (stats.race == racial_type_halfling && base_item == Const.base_item_sling) {
+        return 1;
+    }
+
+    if (is_ranged_base_item(base_item) && Cre.has_feat(obj, feat_good_aim)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
+    const feat_blind_fight = Const.Feat(408);
+    const feat_prestige_defensive_awareness_2 = Const.Feat(950);
+    const target_state_blind = 1;
+    const target_state_attacker_invis = 2;
+    const target_state_unseen = 4;
+    const target_state_stunned = 32;
+    const target_state_flanked = 64;
+    const target_state_invis = 1024;
+
+    if (subtype != Const.attack_type_any as int) {
+        return 0;
+    }
+    if (!(versus is Creature)) {
+        return 0;
+    }
+
+    var result = 0;
+    var combat = get_propset!(CreatureCombat)(obj);
+    var vs = versus as Creature;
+
+    if (bit.and(combat.target_state, target_state_attacker_invis) != 0
+        || bit.and(combat.target_state, target_state_blind) != 0) {
+        if (!Cre.has_feat(vs, feat_blind_fight)) {
+            result += 2;
+        }
+    }
+
+    if (bit.and(combat.target_state, target_state_stunned) != 0) {
+        result += 2;
+    }
+
+    if (bit.and(combat.target_state, target_state_flanked) != 0) {
+        if (!Cre.has_feat(vs, feat_prestige_defensive_awareness_2)) {
+            result += 2;
+        }
+    }
+
+    if (bit.and(combat.target_state, target_state_unseen) != 0
+        || bit.and(combat.target_state, target_state_invis) != 0) {
+        result -= 4;
+    }
+
+    return result;
+}
+
+fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): int {
+    const feat_battle_training_versus_orcs = Const.Feat(231);
+    const feat_battle_training_versus_goblins = Const.Feat(232);
+    const feat_battle_training_versus_reptilians = Const.Feat(242);
+    const racial_type_humanoid_goblinoid = 12;
+    const racial_type_humanoid_orc = 14;
+    const racial_type_humanoid_reptilian = 15;
+
+    if (subtype != Const.attack_type_any as int) {
+        return 0;
+    }
+    if (!(versus is Creature)) {
+        return 0;
+    }
+
+    var vs_stats = get_propset!(CreatureStats)(versus as Creature);
+    if (vs_stats.race == racial_type_humanoid_goblinoid
+        && Cre.has_feat(obj, feat_battle_training_versus_goblins)) {
+        return 1;
+    }
+    if (vs_stats.race == racial_type_humanoid_orc
+        && Cre.has_feat(obj, feat_battle_training_versus_orcs)) {
+        return 1;
+    }
+    if (vs_stats.race == racial_type_humanoid_reptilian
+        && Cre.has_feat(obj, feat_battle_training_versus_reptilians)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+fn attack_bonus_weapon_feat(obj: Creature, subtype: int): int {
+    return C.attack_bonus_mod_weapon_feat(obj, Const.AttackType(subtype));
+}
+
+fn attack_bonus_favored_enemy(obj: Creature, versus: object, subtype: int): int {
+    if (subtype != Const.attack_type_any as int) {
+        return 0;
+    }
+    return C.attack_bonus_mod_favored_enemy(obj, versus);
+}
+
+fn attack_bonus_combat_mode(obj: Creature, subtype: int): int {
+    if (subtype != Const.attack_type_any as int) {
+        return 0;
+    }
+    return C.attack_bonus_mod_combat_mode(obj);
+}
+
+fn attack_bonus_weapon_master(obj: Creature, subtype: int): int {
+    return C.attack_bonus_mod_weapon_master(obj, Const.AttackType(subtype));
+}
+
+fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {
+    const st = Const.Ability(subtype);
+    const rdd_level = Cre.get_level_by_class(obj, Const.class_type_dragon_disciple);
+    if (rdd_level == 0) { return 0; }
+
+    if (st == Const.ability_strength) {
+        if (rdd_level >= 10) { return 8; }
+        elif (rdd_level >= 4) { return 4; }
+        elif (rdd_level >= 2) { return 2; }
+    } elif (st == Const.ability_constitution) {
+        if (rdd_level >= 5) { return 2; }
+    } elif (st == Const.ability_intelligence) {
+        if (rdd_level >= 9) { return 2; }
+    } elif (st == Const.ability_charisma) {
+        if (rdd_level >= 10) { return 2; }
+    }
+
+    return 0;
+}
+
+fn epic_great_ability(obj: Creature, _vs: object, subtype: int): int {
+    const st = Const.Ability(subtype);
+    if (st == Const.ability_strength) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_strength_1, Const.feat_epic_great_strength_10);
+    } elif (st == Const.ability_dexterity) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_dexterity_1, Const.feat_epic_great_dexterity_10);
+    } elif (st == Const.ability_constitution) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_constitution_1, Const.feat_epic_great_constitution_10);
+    } elif (st == Const.ability_intelligence) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_intelligence_1, Const.feat_epic_great_intelligence_10);
+    } elif (st == Const.ability_wisdom) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_wisdom_1, Const.feat_epic_great_wisdom_10);
+    } elif (st == Const.ability_charisma) {
+        return Cre.count_feats_in_range(obj, Const.feat_epic_great_charisma_1, Const.feat_epic_great_charisma_10);
+    }
+    return 0;
+}
+
+fn init_modifiers() {
+    // Pre-fill with empty inner arrays, one slot per mod_type
+    var i = 0;
+    for (i < modifier.NUM_MOD_TYPES) {
+        var empty: array!(fn(Creature, object, int): int);
+        arr.push(modifier.modifiers, empty);
+        i += 1;
+    }
+
+    // == Slot system: slot_depends_on ========================================
+    var off_nt_mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch));
+    var off_t_mask  = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch));
+    var perm_mask   = bit.or(key_equipment_epoch, key_progression_epoch);
+    // slot_depends_on: push 28 values in slot order (0-27)
+    arr.push(modifier.slot_depends_on, off_nt_mask);  // 0: slot_off_ab_nt_onhand
+    arr.push(modifier.slot_depends_on, off_nt_mask);  // 1: slot_off_ab_nt_offhand
+    arr.push(modifier.slot_depends_on, off_nt_mask);  // 2: slot_off_ab_nt_cweapon
+    arr.push(modifier.slot_depends_on, off_nt_mask);  // 3: slot_off_ab_nt_unarmed
+    arr.push(modifier.slot_depends_on, off_nt_mask);  // 4: slot_off_ab_nt_any
+    arr.push(modifier.slot_depends_on, off_t_mask);   // 5: slot_off_ab_t_any
+    arr.push(modifier.slot_depends_on, bit.or(key_equipment_epoch, key_progression_epoch));   // 6: slot_def_ac_nt_base
+    arr.push(modifier.slot_depends_on, bit.or(key_mode_epoch, key_progression_epoch));         // 7: slot_def_ac_nt_mode_size
+    arr.push(modifier.slot_depends_on, bit.or(key_self_effect_epoch, key_progression_epoch));  // 8: slot_def_ac_nt_misc
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 9:  slot_def_ac_t_any
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 10: slot_def_ac_t_melee
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 11: slot_def_ac_t_ranged
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 12: slot_def_conceal_t_melee
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 13: slot_def_conceal_t_ranged
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 14: slot_def_miss_chance_t_melee
+    arr.push(modifier.slot_depends_on, off_t_mask);  // 15: slot_def_miss_chance_t_ranged
+    // Per-round stable offense caches (16-27): invalidated by equipment or progression.
+    // Since neither changes mid-combat in NWN1, these are effectively permanent once built.
+    arr.push(modifier.slot_depends_on, perm_mask);   // 16: slot_off_bab
+    arr.push(modifier.slot_depends_on, perm_mask);   // 17: slot_off_feat_flags
+    arr.push(modifier.slot_depends_on, perm_mask);   // 18: slot_off_dual_wield_on
+    arr.push(modifier.slot_depends_on, perm_mask);   // 19: slot_off_dual_wield_off
+    arr.push(modifier.slot_depends_on, perm_mask);   // 20: slot_off_crit_threat_on
+    arr.push(modifier.slot_depends_on, perm_mask);   // 21: slot_off_crit_threat_off
+    arr.push(modifier.slot_depends_on, perm_mask);   // 22: slot_off_weapon_iter_on
+    arr.push(modifier.slot_depends_on, perm_mask);   // 23: slot_off_weapon_iter_off
+    arr.push(modifier.slot_depends_on, perm_mask);   // 24: slot_off_weapon_power_on
+    arr.push(modifier.slot_depends_on, perm_mask);   // 25: slot_off_weapon_power_off
+    arr.push(modifier.slot_depends_on, perm_mask);   // 26: slot_off_monk_power
+    arr.push(modifier.slot_depends_on, perm_mask);   // 27: slot_off_enchant_arrow
+
+    // == Ability =============================================================
+    arr.push(modifier.modifiers[Const.mod_type_ability as int],
+        fn(obj: Creature, vs: object, subtype: int): int {
+            return epic_great_ability(obj, vs, subtype);
+        });
+    arr.push(modifier.modifiers[Const.mod_type_ability as int],
+        fn(obj: Creature, vs: object, subtype: int): int {
+            return dragon_disciple_ability(obj, vs, subtype);
+        });
+
+    // == Armor Class =========================================================
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.ac_natural as int) { return 0; }
+            var level = Cre.get_level_by_class(obj, Const.class_type_dragon_disciple);
+            if (level >= 10) {
+                return (level / 5) + 2;
+            } elif (level >= 8) {
+                return 3;
+            } elif (level >= 5) {
+                return 2;
+            } elif (level >= 1) {
+                return 1;
+            }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.ac_natural as int) { return 0; }
+            var pm_level = Cre.get_level_by_class(obj, Const.class_type_pale_master);
+            if (pm_level > 0) {
+                return ((pm_level / 4) + 1) * 2;
+            }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.ac_natural as int) { return 0; }
+            if (Cre.has_feat(obj, Const.feat_epic_armor_skin)) { return 2; }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.ac_dodge as int) { return 0; }
+            var stats = get_propset!(CreatureStats)(obj);
+            return stats.skills[Const.skill_tumble as int] / 5;
+        });
+
+    // == Attack Bonus ========================================================
+    modifier.register_attack_bonus_modifier("ability_attack_bonus",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return ability_attack_bonus(obj, subtype);
+        },
+        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_enchant_arrow",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_enchant_arrow(obj, subtype);
+        },
+        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_epic_prowess",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_epic_prowess(obj, subtype);
+        },
+        -1, bit.or(scope_attack_any, inv_progression_epoch));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_good_aim",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_good_aim(obj, subtype);
+        },
+        -1, bit.or(scope_subtype, inv_equipment_epoch));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_target_state",
+        fn(obj: Creature, vs: object, subtype: int): int {
+            return attack_bonus_target_state(obj, vs, subtype);
+        },
+        -1, bit.or(dep_target, bit.or(scope_attack_any,
+                   bit.or(inv_target_change, inv_self_effect_epoch))));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_training_versus",
+        fn(obj: Creature, vs: object, subtype: int): int {
+            return attack_bonus_training_versus(obj, vs, subtype);
+        },
+        -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_weapon_feat",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_weapon_feat(obj, subtype);
+        },
+        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_favored_enemy",
+        fn(obj: Creature, vs: object, subtype: int): int {
+            return attack_bonus_favored_enemy(obj, vs, subtype);
+        },
+        -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_combat_mode",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_combat_mode(obj, subtype);
+        },
+        -1, bit.or(scope_attack_any, inv_mode_epoch));
+
+    modifier.register_attack_bonus_modifier("attack_bonus_weapon_master",
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            return attack_bonus_weapon_master(obj, subtype);
+        },
+        -1, bit.or(scope_subtype, inv_progression_epoch));
+
+    // == Build slot_buckets ==================================================
+    i = 0;
+    for (i < 28) {
+        var empty_bucket: array!(fn(Creature, object, int): int);
+        arr.push(modifier.slot_buckets, empty_bucket);
+        i += 1;
+    }
+
+    for (var ab_mod in modifier.attack_bonus_modifiers) {
+        if (bit.and(ab_mod.meta_flags, dep_target) != 0) {
+            arr.push(modifier.slot_buckets[slot_off_ab_t_any], ab_mod.payload);
+        } elif (bit.and(ab_mod.meta_flags, scope_attack_any) != 0) {
+            arr.push(modifier.slot_buckets[slot_off_ab_nt_any], ab_mod.payload);
+        } else {
+            arr.push(modifier.slot_buckets[slot_off_ab_nt_onhand], ab_mod.payload);
+            arr.push(modifier.slot_buckets[slot_off_ab_nt_offhand], ab_mod.payload);
+            arr.push(modifier.slot_buckets[slot_off_ab_nt_cweapon], ab_mod.payload);
+            arr.push(modifier.slot_buckets[slot_off_ab_nt_unarmed], ab_mod.payload);
+        }
+    }
+
+    // == Hitpoints ===========================================================
+    arr.push(modifier.modifiers[Const.mod_type_hitpoints as int],
+        fn(obj: Creature, _vs: object, _subtype: int): int {
+            if (Cre.has_feat(obj, Const.feat_toughness)) {
+                return Cre.get_total_levels(obj);
+            }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_hitpoints as int],
+        fn(obj: Creature, _vs: object, _subtype: int): int {
+            return Cre.count_feats_in_range(obj, Const.feat_epic_toughness_1, Const.feat_epic_toughness_10) * 20;
+        });
+
+    // == Damage Reduction ====================================================
+    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
+        fn(obj: Creature, _vs: object, _subtype: int): int {
+            var barb = Cre.get_level_by_class(obj, Const.class_type_barbarian);
+            if (barb > 10) {
+                return 1 + (barb - 10) / 3;
+            }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
+        fn(obj: Creature, _vs: object, _subtype: int): int {
+            var dd = Cre.get_level_by_class(obj, Const.class_type_dwarven_defender);
+            if (dd > 0) {
+                return 3 + ((dd - 6) / 4 * 3);
+            }
+            return 0;
+        });
+
+    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
+        fn(obj: Creature, _vs: object, _subtype: int): int {
+            if (Cre.has_feat(obj, Const.feat_epic_damage_reduction_9)) { return 9; }
+            elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_6)) { return 6; }
+            elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_3)) { return 3; }
+            return 0;
+        });
+
+    // == Damage Resistance ===================================================
+    arr.push(modifier.modifiers[Const.mod_type_dmg_resistance as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            var start = -1;
+            var stop = -1;
+            var base_feat = -1;
+            if (subtype == Const.damage_type_acid as int) {
+                start = Const.feat_epic_energy_resistance_acid_1 as int;
+                stop = Const.feat_epic_energy_resistance_acid_10 as int;
+                base_feat = Const.feat_resist_energy_acid as int;
+            } elif (subtype == Const.damage_type_cold as int) {
+                start = Const.feat_epic_energy_resistance_cold_1 as int;
+                stop = Const.feat_epic_energy_resistance_cold_10 as int;
+                base_feat = Const.feat_resist_energy_cold as int;
+            } elif (subtype == Const.damage_type_electrical as int) {
+                start = Const.feat_epic_energy_resistance_electrical_1 as int;
+                stop = Const.feat_epic_energy_resistance_electrical_10 as int;
+                base_feat = Const.feat_resist_energy_electrical as int;
+            } elif (subtype == Const.damage_type_fire as int) {
+                start = Const.feat_epic_energy_resistance_fire_1 as int;
+                stop = Const.feat_epic_energy_resistance_fire_10 as int;
+                base_feat = Const.feat_resist_energy_fire as int;
+            } elif (subtype == Const.damage_type_sonic as int) {
+                start = Const.feat_epic_energy_resistance_sonic_1 as int;
+                stop = Const.feat_epic_energy_resistance_sonic_10 as int;
+                base_feat = Const.feat_resist_energy_sonic as int;
+            } else {
+                return 0;
+            }
+            var nth = Cre.highest_feat_in_range(obj, Const.Feat(start), Const.Feat(stop));
+            if (nth as int >= 0) {
+                return ((nth as int) - start + 1) * 10;
+            } elif (Cre.has_feat(obj, Const.Feat(base_feat))) {
+                return 5;
+            }
+            return 0;
+        });
+
+    // == Skills ==============================================================
+    arr.push(modifier.modifiers[Const.mod_type_skill as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.skill_search as int) { return 0; }
+            if (Cre.has_feat(obj, Const.feat_stonecunning)) { return 2; }
+            return 0;
+        });
+}
 
 fn init() {
-    item.register_default_generators();
-    modifier.init_modifiers();
+    nwn1item.register_default_generators();
+    init_modifiers();
 }

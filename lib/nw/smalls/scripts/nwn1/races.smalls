@@ -1,12 +1,13 @@
 from nwn1.rules import { RaceEntry, StrRef };
-from nwn1.constants import { creature_size_medium };
+import nwn1.constants as Const;
+
 import core.array as Array;
 
 var _races: array!(RaceEntry) = load_config!(RaceEntry)("nwn1/data/races");
 
 fn size(race_id: int): int {
     if (race_id < 0 || race_id >= Array.len(_races)) {
-        return creature_size_medium;
+        return Const.creature_size_medium;
     }
     return _races[race_id].size;
 }

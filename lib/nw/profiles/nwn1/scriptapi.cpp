@@ -2270,6 +2270,7 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     if (!can_equip_item(obj, item, slot)) { return false; }
     unequip_item(obj, slot);
     obj->equipment.equips[size_t(slot)] = item;
+    ++obj->equipment.equip_version;
     nw::process_item_properties(obj, item, slot, false);
     if (slot == nw::EquipIndex::chest) {
         obj->combat_info.ac_armor_base = calculate_item_ac(item);
@@ -2302,6 +2303,7 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
         result = it.as<nw::Item*>();
         if (!result) { return result; }
         it = nullptr;
+        ++obj->equipment.equip_version;
         nw::process_item_properties(obj, result, slot, true);
         if (slot == nw::EquipIndex::chest) {
             obj->combat_info.ac_armor_base = 0;
