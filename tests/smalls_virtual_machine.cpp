@@ -1416,3 +1416,136 @@ TEST_F(SmallsVirtualMachine, GenericMax)
     EXPECT_EQ(result.type_id, nw::kernel::runtime().type_id("int"));
     EXPECT_EQ(result.data.ival, 25);
 }
+
+TEST_F(SmallsVirtualMachine, ModuleGlobalFixedArrayVariableIndexInt)
+{
+    using namespace nw::smalls;
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        var nums: int[4] = { 1, 2, 3, 4 };
+
+        fn test(): int {
+            var i = 2;
+            var j = 0;
+            nums[i] = 9;
+            return nums[i] + nums[j];
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.vm.global_fixed_array_int", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "test", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.type_id, rt.type_id("int"));
+    EXPECT_EQ(result.value.data.ival, 10);
+}
+
+TEST_F(SmallsVirtualMachine, ModuleGlobalFixedArrayVariableIndexValueType)
+{
+    using namespace nw::smalls;
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        [[value_type]]
+        type Pair { x, y: int; };
+
+        var pairs: Pair[2] = {
+            Pair { x = 1, y = 2 },
+            Pair { x = 3, y = 4 }
+        };
+
+        fn test(): int {
+            var i = 1;
+            var p = pairs[i];
+            p.x = 9;
+            pairs[i] = p;
+            return pairs[i].x + pairs[i].y;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.vm.global_fixed_array_pair", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "test", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.type_id, rt.type_id("int"));
+    EXPECT_EQ(result.value.data.ival, 13);
+}
+
+TEST_F(SmallsVirtualMachine, ForEachValueTypeArrayWithClosureField)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        [[value_type]]
+        type Step { f: fn(int): int; n: int; };
+
+        fn test(steps: array!(Step)): int {
+            var total = 0;
+            for (var s in steps) {
+                if (!s.f) {
+                    total = total + s.n;
+                }
+            }
+            return total;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const CompiledFunction* fn = module.get_function("test");
+    ASSERT_NE(fn, nullptr);
+
+    bool saw_stack_alloc = false;
+    bool saw_stack_copy = false;
+    for (const auto& instr : fn->instructions) {
+        if (instr.opcode() == Opcode::STACK_ALLOC) {
+            saw_stack_alloc = true;
+        }
+        if (instr.opcode() == Opcode::STACK_COPY) {
+            saw_stack_copy = true;
+        }
+    }
+
+    EXPECT_TRUE(saw_stack_alloc);
+    EXPECT_TRUE(saw_stack_copy);
+}
+
+TEST_F(SmallsVirtualMachine, StructClosureFieldCall)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        [[value_type]]
+        type Wrapper { cb: fn(int): int; };
+
+        fn test(): int {
+            var w: Wrapper = Wrapper {
+                cb = fn(x: int): int { return x + 7; }
+            };
+            return w.cb(5);
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    VirtualMachine vm{};
+    auto result = vm.execute(&module, "test", {});
+
+    EXPECT_EQ(result.type_id, nw::kernel::runtime().type_id("int"));
+    EXPECT_EQ(result.data.ival, 12);
+}

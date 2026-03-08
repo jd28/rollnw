@@ -1998,8 +1998,8 @@ lbl_STACK_INDEXGET: {
     uint8_t idx_reg = c;
 
     Value base = reg(base_reg);
-    if (base.storage != ValueStorage::stack) {
-        fail("STACK_INDEXGET requires stack value");
+    if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
+        fail("STACK_INDEXGET requires stack or heap value");
         DISPATCH();
     }
 
@@ -2030,8 +2030,20 @@ lbl_STACK_INDEXGET: {
     }
 
     uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
-    reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
+    if (base.storage == ValueStorage::stack) {
+        uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
+        reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
+    } else {
+        uint8_t* ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
+        if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+            uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment, elem_type_id,
+                type_may_hold_heap_refs(rt_, elem_type_id));
+            std::memcpy(frame.stack_.data() + dst_off, ptr, elem_type->size);
+            reg(dest_reg) = Value::make_stack(dst_off, elem_type_id);
+        } else {
+            reg(dest_reg) = rt_->read_value_field_at_offset(base, offset, elem_type_id);
+        }
+    }
     DISPATCH();
 }
 
@@ -2041,8 +2053,8 @@ lbl_STACK_INDEXSET: {
     uint8_t val_reg = c;
 
     Value base = reg(base_reg);
-    if (base.storage != ValueStorage::stack) {
-        fail("STACK_INDEXSET requires stack value");
+    if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
+        fail("STACK_INDEXSET requires stack or heap value");
         DISPATCH();
     }
 
@@ -2073,9 +2085,27 @@ lbl_STACK_INDEXSET: {
     }
 
     uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-    uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
     Value val = reg(val_reg);
-    write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+    uint8_t* ptr = nullptr;
+    if (base.storage == ValueStorage::stack) {
+        ptr = frame.stack_.data() + base.data.stack_offset + offset;
+    } else {
+        ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
+    }
+
+    if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+        if (val.storage == ValueStorage::stack) {
+            std::memcpy(ptr, frame.stack_.data() + val.data.stack_offset, elem_type->size);
+        } else if (val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
+            void* src = rt_->heap_.get_ptr(val.data.hptr);
+            std::memcpy(ptr, src, elem_type->size);
+        } else {
+            fail("STACK_INDEXSET requires stack or heap aggregate value");
+            DISPATCH();
+        }
+    } else {
+        write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+    }
     DISPATCH();
 }
 
@@ -3245,8 +3275,8 @@ vm_exit:
             uint8_t idx_reg = c;
 
             Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack) {
-                fail("STACK_INDEXGET requires stack value");
+            if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
+                fail("STACK_INDEXGET requires stack or heap value");
                 break;
             }
 
@@ -3277,8 +3307,20 @@ vm_exit:
             }
 
             uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-            uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
-            reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
+            if (base.storage == ValueStorage::stack) {
+                uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
+                reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
+            } else {
+                uint8_t* ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
+                if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+                    uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment, elem_type_id,
+                        type_may_hold_heap_refs(rt_, elem_type_id));
+                    std::memcpy(frame.stack_.data() + dst_off, ptr, elem_type->size);
+                    reg(dest_reg) = Value::make_stack(dst_off, elem_type_id);
+                } else {
+                    reg(dest_reg) = rt_->read_value_field_at_offset(base, offset, elem_type_id);
+                }
+            }
             break;
         }
 
@@ -3288,8 +3330,8 @@ vm_exit:
             uint8_t val_reg = c;
 
             Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack) {
-                fail("STACK_INDEXSET requires stack value");
+            if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
+                fail("STACK_INDEXSET requires stack or heap value");
                 break;
             }
 
@@ -3320,9 +3362,27 @@ vm_exit:
             }
 
             uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-            uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
             Value val = reg(val_reg);
-            write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+            uint8_t* ptr = nullptr;
+            if (base.storage == ValueStorage::stack) {
+                ptr = frame.stack_.data() + base.data.stack_offset + offset;
+            } else {
+                ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
+            }
+
+            if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+                if (val.storage == ValueStorage::stack) {
+                    std::memcpy(ptr, frame.stack_.data() + val.data.stack_offset, elem_type->size);
+                } else if (val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
+                    void* src = rt_->heap_.get_ptr(val.data.hptr);
+                    std::memcpy(ptr, src, elem_type->size);
+                } else {
+                    fail("STACK_INDEXSET requires stack or heap aggregate value");
+                    break;
+                }
+            } else {
+                write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+            }
             break;
         }
 

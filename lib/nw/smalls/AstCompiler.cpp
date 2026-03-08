@@ -1360,7 +1360,18 @@ void AstCompiler::visit(ForEachStatement* stmt)
 
         // elem = collection[index]
         uint8_t elem_reg = allocate_local(stmt->var->identifier_.loc.view(), false);
-        emit_abc(Opcode::GETARRAY, elem_reg, collection_reg, index_reg);
+        if (is_value_type(stmt->element_type)) {
+            uint16_t type_idx = static_cast<uint16_t>(module_->type_refs.size());
+            module_->type_refs.push_back(stmt->element_type);
+            emit_abx(Opcode::STACK_ALLOC, elem_reg, type_idx);
+
+            uint8_t tmp_reg = registers_.allocate();
+            emit_abc(Opcode::GETARRAY, tmp_reg, collection_reg, index_reg);
+            emit_abc(Opcode::STACK_COPY, elem_reg, tmp_reg, 0);
+            registers_.free(tmp_reg);
+        } else {
+            emit_abc(Opcode::GETARRAY, elem_reg, collection_reg, index_reg);
+        }
 
         // Body
         if (stmt->block) {
@@ -3141,15 +3152,17 @@ void AstCompiler::visit(CallExpression* expr)
     const Type* callee_type = runtime_->get_type(expr->expr->type_id_);
     bool is_direct_symbol_call = false;
     if (auto path_expr = dynamic_cast<PathExpression*>(expr->expr)) {
-        if (!path_expr->parts.empty() && path_expr->parts.size() <= 2) {
-            bool all_identifiers = true;
-            for (auto* part : path_expr->parts) {
-                if (!dynamic_cast<IdentifierExpression*>(part)) {
-                    all_identifiers = false;
-                    break;
-                }
+        if (path_expr->parts.size() == 1) {
+            is_direct_symbol_call = dynamic_cast<IdentifierExpression*>(path_expr->parts.front()) != nullptr;
+        } else if (path_expr->parts.size() == 2) {
+            auto* lhs_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.front());
+            auto* rhs_ident = dynamic_cast<IdentifierExpression*>(path_expr->parts.back());
+            if (lhs_ident && rhs_ident) {
+                auto lhs_exp = expr->env_.find(String(lhs_ident->ident.loc.view()));
+                is_direct_symbol_call = lhs_exp
+                    && lhs_exp->kind == Export::Kind::module_alias
+                    && !lhs_exp->provider_module.empty();
             }
-            is_direct_symbol_call = all_identifiers;
         }
     }
 

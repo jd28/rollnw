@@ -989,7 +989,10 @@ struct CallResolver {
             }
 
             if (!alias_module) {
-                resolver.ctx.errorf(lhs_ident->range_, "'{}' is not an imported module alias", lhs_ident->ident.loc.view());
+                expr->expr->accept(&resolver);
+                if (!resolve_function_type_call(expr, expr->expr->type_id_)) {
+                    resolver.ctx.error(expr->expr->range_, "call target not a function");
+                }
                 return;
             }
 
@@ -2106,12 +2109,24 @@ void TypeResolver::visit(StructDecl* decl)
             } else {
                 StringView type_name = ident_expr->ident.loc.view();
                 static constexpr StringView valid_names[] = {
-                    "Creature", "Item", "Door", "Placeable", "Area", "Module",
-                    "Trigger", "Waypoint", "Encounter", "Store", "Sound",
+                    "Creature",
+                    "Item",
+                    "Door",
+                    "Placeable",
+                    "Area",
+                    "Module",
+                    "Trigger",
+                    "Waypoint",
+                    "Encounter",
+                    "Store",
+                    "Sound",
                 };
                 bool recognized = false;
                 for (auto n : valid_names) {
-                    if (n == type_name) { recognized = true; break; }
+                    if (n == type_name) {
+                        recognized = true;
+                        break;
+                    }
                 }
                 if (!recognized) {
                     ctx.errorf(propset_annot->range_, "unknown object type '{}' in [[propset(...)]]", type_name);
