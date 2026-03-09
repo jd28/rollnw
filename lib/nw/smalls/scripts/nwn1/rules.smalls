@@ -28,12 +28,23 @@ type FeatEntry {
 [[value_type]]
 type BaseItemEntry {
     [[index]]
-    id:         int;
-    name:       StrRef;
-    stack_size: int;
-    damage_num: int;
-    damage_die: int;
-    ranged:     bool;
+    id:                                    int;
+    name:                                  StrRef;
+    stack_size:                            int;
+    damage_num:                            int;
+    damage_die:                            int;
+    crit_threat:                           int;
+    crit_multiplier:                       int;
+    weapon_type:                           int;
+    ranged:                                bool;
+    weapon_focus_feat:                     int;
+    epic_weapon_focus_feat:                int;
+    weapon_specialization_feat:            int;
+    epic_weapon_specialization_feat:       int;
+    weapon_improved_critical_feat:         int;
+    epic_weapon_overwhelming_critical_feat:int;
+    epic_weapon_devastating_critical_feat: int;
+    weapon_of_choice_feat:                 int;
 };
 
 [[value_type]]

@@ -1,0 +1,131 @@
+from nwn1.rules import { BaseItemEntry };
+from core.types import { BaseItemType };
+
+import core.array as Array;
+
+type BaseItemLookup = Some(BaseItemEntry) | None;
+
+var _loaded = false;
+var _baseitems: array!(BaseItemEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _baseitems = load_config!(BaseItemEntry)("nwn1.data.baseitems");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_baseitems);
+}
+
+fn exists(base_item: BaseItemType): bool {
+    _ensure_loaded();
+    var index = base_item as int;
+    return index >= 0 && index < Array.len(_baseitems);
+}
+
+fn try_get_baseitem(base_item: BaseItemType): BaseItemLookup {
+    if (!exists(base_item)) {
+        return BaseItemLookup.None;
+    }
+    return BaseItemLookup.Some(Array.get(_baseitems, base_item as int));
+}
+
+fn ranged(base_item: BaseItemType): bool {
+    if (!exists(base_item)) {
+        return false;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.ranged;
+}
+
+fn weapon_type(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_type;
+}
+
+fn crit_threat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return 0;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.crit_threat;
+}
+
+fn crit_multiplier(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return 0;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.crit_multiplier;
+}
+
+fn weapon_focus_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_focus_feat;
+}
+
+fn epic_weapon_focus_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.epic_weapon_focus_feat;
+}
+
+fn weapon_specialization_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_specialization_feat;
+}
+
+fn epic_weapon_specialization_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.epic_weapon_specialization_feat;
+}
+
+fn weapon_improved_critical_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_improved_critical_feat;
+}
+
+fn epic_weapon_overwhelming_critical_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.epic_weapon_overwhelming_critical_feat;
+}
+
+fn epic_weapon_devastating_critical_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.epic_weapon_devastating_critical_feat;
+}
+
+fn weapon_of_choice_feat(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return -1;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_of_choice_feat;
+}

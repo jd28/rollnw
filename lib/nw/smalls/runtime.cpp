@@ -5398,8 +5398,10 @@ static uint32_t find_index_field(const StructDef* def)
 
 Value Runtime::load_config_array_value(StringView path, TypeID config_type)
 {
+    String canonical_path = normalize_module_name(path);
+
     // Cache lookup
-    auto cache_key = std::make_pair(String(path), config_type);
+    auto cache_key = std::make_pair(canonical_path, config_type);
     auto it = config_array_cache_.find(cache_key);
     if (it != config_array_cache_.end()) {
         HeapPtr cached_ptr = it->second;
@@ -5445,14 +5447,14 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     }
 
     // If a 2da converter is registered for this path, use it instead of .smalls files
-    auto conv_it = twoda_converters_.find(String(path));
+    auto conv_it = twoda_converters_.find(canonical_path);
     if (conv_it != twoda_converters_.end()) {
-        return load_twoda_as_config_array(path, config_type, def, index_field_idx, conv_it->second);
+        return load_twoda_as_config_array(canonical_path, config_type, def, index_field_idx, conv_it->second);
     }
 
     // Build resref prefix: "nwn1.data.classes" → "nwn1/data/classes/"
     // Resources in the resman are registered with forward-slash paths (no extension).
-    String resref_prefix = path_to_string(module_name_to_path(path, "")) + "/";
+    String resref_prefix = path_to_string(module_name_to_path(canonical_path, "")) + "/";
 
     // Collect all .smalls resources directly under this prefix (no deeper nesting).
     Vector<String> matching_resrefs;
@@ -5475,7 +5477,7 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     };
 
     if (matching_resrefs.empty()) {
-        LOG_F(WARNING, "[config] load_config! no entries found for path '{}'", path);
+        LOG_F(WARNING, "[config] load_config! no entries found for path '{}'", canonical_path);
         return make_empty_array();
     }
 
@@ -5564,7 +5566,7 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
 void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
     Vector<TwoDAColumnMapping> mappings)
 {
-    twoda_converters_.insert_or_assign(String(path),
+    twoda_converters_.insert_or_assign(normalize_module_name(path),
         TwoDAConverterSpec{String(twoda_name), std::move(mappings)});
 }
 

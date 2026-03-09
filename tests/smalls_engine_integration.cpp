@@ -32,7 +32,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
 {
     auto& rt = nw::kernel::runtime();
 
-    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ASSERT_NE(creature, nullptr);
 
     std::string_view source = R"(
@@ -101,7 +101,7 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
 {
     auto& rt = nw::kernel::runtime();
 
-    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ASSERT_NE(creature, nullptr);
     auto* item = nw::kernel::objects().make<nw::Item>();
     ASSERT_NE(item, nullptr);
@@ -1420,6 +1420,176 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicFeatEntry)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBaseItemEntry)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(base_item: int, expected_ranged: int): int {
+            var items = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
+            if (arr.len(items) <= base_item) { return -1; }
+            var entry = arr.get(items, base_item);
+            if (entry.id != base_item) { return -2; }
+            if ((entry.ranged ? 1 : 0) != expected_ranged) { return -3; }
+            if (entry.damage_num <= 0 || entry.damage_die <= 0) { return -4; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_baseitems", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto base_item = nwn1::base_item_shortsword;
+    auto* info = nw::kernel::rules().baseitems.get(base_item);
+    ASSERT_NE(info, nullptr);
+
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::Value::make_int(*base_item));
+    args.push_back(nw::smalls::Value::make_int(info->ranged ? 1 : 0));
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBaseItemsMasterFeatColumns)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(base_item: int,
+                expected_wf: int,
+                expected_wf_epic: int,
+                expected_ws: int,
+                expected_ws_epic: int,
+                expected_icrit: int,
+                expected_ocrit: int,
+                expected_dcrit: int,
+                expected_woc: int): int {
+            var items = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
+            if (arr.len(items) <= base_item) { return -1; }
+            var entry = arr.get(items, base_item);
+            if (entry.weapon_focus_feat != expected_wf) { return -2; }
+            if (entry.epic_weapon_focus_feat != expected_wf_epic) { return -3; }
+            if (entry.weapon_specialization_feat != expected_ws) { return -4; }
+            if (entry.epic_weapon_specialization_feat != expected_ws_epic) { return -5; }
+            if (entry.weapon_improved_critical_feat != expected_icrit) { return -6; }
+            if (entry.epic_weapon_overwhelming_critical_feat != expected_ocrit) { return -7; }
+            if (entry.epic_weapon_devastating_critical_feat != expected_dcrit) { return -8; }
+            if (entry.weapon_of_choice_feat != expected_woc) { return -9; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_baseitem_master_feats", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto base_item = nwn1::base_item_shortsword;
+    int expected_wf = -1;
+    int expected_wf_epic = -1;
+    int expected_ws = -1;
+    int expected_ws_epic = -1;
+    int expected_icrit = -1;
+    int expected_ocrit = -1;
+    int expected_dcrit = -1;
+    int expected_woc = -1;
+
+    for (const auto& entry : nw::kernel::rules().master_feats.entries()) {
+        if (entry.type != *base_item) {
+            continue;
+        }
+        if (entry.mfeat == nwn1::mfeat_weapon_focus) {
+            expected_wf = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_weapon_focus_epic) {
+            expected_wf_epic = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_weapon_spec) {
+            expected_ws = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_weapon_spec_epic) {
+            expected_ws_epic = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_improved_crit) {
+            expected_icrit = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_overwhelming_crit) {
+            expected_ocrit = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_devastating_crit) {
+            expected_dcrit = *entry.feat;
+        } else if (entry.mfeat == nwn1::mfeat_weapon_of_choice) {
+            expected_woc = *entry.feat;
+        }
+    }
+
+    ASSERT_GT(expected_wf, 0);
+    ASSERT_GT(expected_wf_epic, 0);
+    ASSERT_GT(expected_ws, 0);
+    ASSERT_GT(expected_ws_epic, 0);
+    ASSERT_GT(expected_icrit, 0);
+    ASSERT_GT(expected_ocrit, 0);
+    ASSERT_GT(expected_dcrit, 0);
+    ASSERT_GT(expected_woc, 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::Value::make_int(*base_item));
+    args.push_back(nw::smalls::Value::make_int(expected_wf));
+    args.push_back(nw::smalls::Value::make_int(expected_wf_epic));
+    args.push_back(nw::smalls::Value::make_int(expected_ws));
+    args.push_back(nw::smalls::Value::make_int(expected_ws_epic));
+    args.push_back(nw::smalls::Value::make_int(expected_icrit));
+    args.push_back(nw::smalls::Value::make_int(expected_ocrit));
+    args.push_back(nw::smalls::Value::make_int(expected_dcrit));
+    args.push_back(nw::smalls::Value::make_int(expected_woc));
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPathNormalizationForBaseItems)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(base_item: int): int {
+            var dot_path = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
+            var slash_path = load_config!(R.BaseItemEntry)("nwn1/data/baseitems");
+            if (arr.len(dot_path) != arr.len(slash_path)) { return -1; }
+            if (arr.len(dot_path) <= base_item) { return -2; }
+
+            var a = arr.get(dot_path, base_item);
+            var b = arr.get(slash_path, base_item);
+
+            if (a.name != b.name) { return -3; }
+            if (a.weapon_focus_feat != b.weapon_focus_feat) { return -4; }
+            if (a.weapon_of_choice_feat != b.weapon_of_choice_feat) { return -5; }
+
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_path_normalization_baseitems", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
 TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
 {
     auto& rt = nw::kernel::runtime();
@@ -1453,6 +1623,134 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
                 << "race=" << race << " ability=" << ability;
         }
     }
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1SkillFocusBonusMatchesCppReference)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        import nwn1.master_feats as MFeat;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature): int {
+            return MFeat.skill_focus_bonus(target, Const.skill_discipline);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_skill_focus_bonus", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&]() {
+        nw::Vector<nw::smalls::Value> args;
+        auto value = nw::smalls::Value::make_object(creature->handle());
+        value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+        args.push_back(value);
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    auto resolve_cpp = [&]() {
+        int result = 0;
+        nw::kernel::resolve_master_feats<int>(creature, nwn1::skill_discipline, [&result](int value) { result += value; }, nwn1::mfeat_skill_focus, nwn1::mfeat_skill_focus_epic);
+        return result;
+    };
+
+    const auto cpp_before = resolve_cpp();
+    const auto smalls_before = run_smalls();
+    EXPECT_EQ(smalls_before, cpp_before);
+
+    int expected_delta = 0;
+    if (!creature->stats.has_feat(nwn1::feat_skill_focus_discipline)) {
+        ASSERT_TRUE(creature->stats.add_feat(nwn1::feat_skill_focus_discipline));
+        expected_delta += 3;
+    }
+    if (!creature->stats.has_feat(nwn1::feat_epic_skill_focus_discipline)) {
+        ASSERT_TRUE(creature->stats.add_feat(nwn1::feat_epic_skill_focus_discipline));
+        expected_delta += 10;
+    }
+
+    const auto cpp_after = resolve_cpp();
+    const auto smalls_after = run_smalls();
+
+    EXPECT_EQ(cpp_after - cpp_before, expected_delta);
+    EXPECT_EQ(smalls_after - smalls_before, expected_delta);
+    EXPECT_EQ(smalls_after, cpp_after);
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1SpellFocusBonusMatchesCppReference)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        import nwn1.master_feats as MFeat;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature, school: Const.SpellSchool): int {
+            return MFeat.spell_focus_bonus(target, school);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_spell_focus_bonus", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](nw::SpellSchool school) {
+        nw::Vector<nw::smalls::Value> args;
+        auto value = nw::smalls::Value::make_object(creature->handle());
+        value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+        args.push_back(value);
+        args.push_back(nw::smalls::Value::make_int(*school));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    auto resolve_cpp = [&]() {
+        int result = 0;
+        nw::kernel::resolve_master_feats<int>(creature, nwn1::spell_school_evocation, [&result](int value) { result += value; }, nwn1::mfeat_spell_focus, nwn1::mfeat_spell_focus_greater, nwn1::mfeat_spell_focus_epic);
+        return result;
+    };
+
+    const auto school_evocation = nwn1::spell_school_evocation;
+
+    EXPECT_EQ(run_smalls(school_evocation), resolve_cpp());
+
+    if (!creature->stats.has_feat(nwn1::feat_spell_focus_evocation)) {
+        ASSERT_TRUE(creature->stats.add_feat(nwn1::feat_spell_focus_evocation));
+    }
+    EXPECT_EQ(run_smalls(school_evocation), resolve_cpp());
+
+    if (!creature->stats.has_feat(nwn1::feat_greater_spell_focus_evocation)) {
+        ASSERT_TRUE(creature->stats.add_feat(nwn1::feat_greater_spell_focus_evocation));
+    }
+    EXPECT_EQ(run_smalls(school_evocation), resolve_cpp());
+
+    if (!creature->stats.has_feat(nwn1::feat_epic_spell_focus_evocation)) {
+        ASSERT_TRUE(creature->stats.add_feat(nwn1::feat_epic_spell_focus_evocation));
+    }
+    const auto smalls_after = run_smalls(school_evocation);
+    const auto cpp_after = resolve_cpp();
+    EXPECT_EQ(smalls_after, 6);
+    EXPECT_EQ(smalls_after, cpp_after);
 }
 
 // == Proof-of-concept: nwn1.creature.get_ability_score with real creature ====

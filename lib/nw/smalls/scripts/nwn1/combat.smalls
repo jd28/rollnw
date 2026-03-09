@@ -10,6 +10,7 @@ import core.creature as Cre;
 import core.effects as effects;
 import core.item as item;
 import nwn1.creature as NCre;
+import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
 import nwn1.progression as progression;
 import nwn1.races as races;
@@ -417,7 +418,7 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
             var start = C.weapon_critical_threat(obj, attack_type);
             var ct = start;
             if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(obj, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_on] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_on);
@@ -428,7 +429,7 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
             var start = C.weapon_critical_threat(obj, attack_type);
             var ct = start;
             if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(obj, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_off] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_off);
@@ -438,7 +439,7 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
         var start = C.weapon_critical_threat(obj, attack_type);
         crit_threat = start;
         if (C.weapon_has_keen(obj, attack_type)) { crit_threat = crit_threat + start; }
-        if (C.has_improved_critical(obj, attack_type)) { crit_threat = crit_threat + start; }
+        if (mfeat.has_improved_critical(obj, attack_type)) { crit_threat = crit_threat + start; }
         if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { crit_threat = crit_threat + 2; }
     }
 
@@ -601,7 +602,7 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
             var start = C.weapon_critical_threat(obj, attack_type);
             var ct = start;
             if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(obj, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_on] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_on);
@@ -613,7 +614,7 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
             var start = C.weapon_critical_threat(obj, attack_type);
             var ct = start;
             if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(obj, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_off] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_off);
@@ -624,7 +625,7 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
     var start = C.weapon_critical_threat(obj, attack_type);
     var result = start;
     if (C.weapon_has_keen(obj, attack_type)) { result = result + start; }
-    if (C.has_improved_critical(obj, attack_type)) { result = result + start; }
+    if (mfeat.has_improved_critical(obj, attack_type)) { result = result + start; }
     if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { result = result + 2; }
     return result;
 }
@@ -813,7 +814,7 @@ fn _get_weapon_power(obj: Creature, weapon: Item, attack_type: Const.AttackType)
 }
 
 fn resolve_weapon_damage_bonus(obj: Creature, base_item: BaseItemType): int {
-    var result = C.weapon_damage_specialization_bonus(obj, base_item as int);
+    var result = mfeat.weapon_damage_specialization_bonus(obj, base_item);
 
     if (base_item == Const.base_item_longbow || base_item == Const.base_item_shortbow) {
         var combat = ensure_feat_cache(obj);
@@ -1278,7 +1279,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
             var start = C.weapon_critical_threat(attacker, attack_type);
             var ct = start;
             if (C.weapon_has_keen(attacker, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(attacker, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(attacker, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(attacker, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_on] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_on);
@@ -1289,7 +1290,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
             var start = C.weapon_critical_threat(attacker, attack_type);
             var ct = start;
             if (C.weapon_has_keen(attacker, attack_type)) { ct = ct + start; }
-            if (C.has_improved_critical(attacker, attack_type)) { ct = ct + start; }
+            if (mfeat.has_improved_critical(attacker, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(attacker, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_off] = ct;
             modifier.slot_set_valid(combat, slot_off_crit_threat_off);
@@ -1299,7 +1300,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         var start = C.weapon_critical_threat(attacker, attack_type);
         critical_threat = start;
         if (C.weapon_has_keen(attacker, attack_type)) { critical_threat = critical_threat + start; }
-        if (C.has_improved_critical(attacker, attack_type)) { critical_threat = critical_threat + start; }
+        if (mfeat.has_improved_critical(attacker, attack_type)) { critical_threat = critical_threat + start; }
         if (Cre.get_level_by_class(attacker, Const.class_type_weapon_master) >= 7) { critical_threat = critical_threat + 2; }
     }
 

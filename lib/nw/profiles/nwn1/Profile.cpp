@@ -515,9 +515,20 @@ bool Profile::load_rules() const
     srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
                                                                          CM{"Name", "name"},
                                                                          CM{"Stacking", "stack_size"},
-                                                                         CM{"WeaponNumDice", "damage_num"},
-                                                                         CM{"WeaponDieToRoll", "damage_die"},
+                                                                         CM{"NumDice", "damage_num"},
+                                                                         CM{"DieToRoll", "damage_die"},
+                                                                         CM{"CritThreat", "crit_threat"},
+                                                                         CM{"CritHitMult", "crit_multiplier"},
+                                                                         CM{"WeaponType", "weapon_type"},
                                                                          CM{"RangedWeapon", "ranged"},
+                                                                         CM{"WeaponFocusFeat", "weapon_focus_feat"},
+                                                                         CM{"EpicWeaponFocusFeat", "epic_weapon_focus_feat"},
+                                                                         CM{"WeaponSpecializationFeat", "weapon_specialization_feat"},
+                                                                         CM{"EpicWeaponSpecializationFeat", "epic_weapon_specialization_feat"},
+                                                                         CM{"WeaponImprovedCriticalFeat", "weapon_improved_critical_feat"},
+                                                                         CM{"EpicWeaponOverwhelmingCriticalFeat", "epic_weapon_overwhelming_critical_feat"},
+                                                                         CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
+                                                                         CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
                                                                      });
     srt.register_twoda_converter("nwn1/data/races", "racialtypes", {
                                                                        CM{"Name", "name"},

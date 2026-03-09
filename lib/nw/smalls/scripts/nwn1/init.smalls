@@ -8,6 +8,7 @@ from core.creature import { CreatureCombat, CreatureStats };
 
 import nwn1.creature as NCre;
 import nwn1.item as nwn1item;
+import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
 import nwn1.constants as Const;
 
@@ -48,9 +49,6 @@ fn is_finessable_base_item(base_item: int): bool {
 }
 
 fn ability_attack_bonus(obj: Creature, subtype: int): int {
-    const feat_zen_archery = Const.Feat(412);
-    const feat_weapon_finesse = Const.Feat(42);
-
     if (subtype < 0 || subtype == Const.attack_type_any as int) {
         return 0;
     }
@@ -59,7 +57,7 @@ fn ability_attack_bonus(obj: Creature, subtype: int): int {
     var base_item = Item.get_baseitem_type(weapon) as int;
     if (is_ranged_base_item(base_item)) {
         var modifier = NCre.get_ability_modifier(obj, Const.ability_dexterity);
-        if (Cre.has_feat(obj, feat_zen_archery)) {
+        if (Cre.has_feat(obj, Const.feat_zen_archery)) {
             var wisdom_mod = NCre.get_ability_modifier(obj, Const.ability_wisdom);
             if (wisdom_mod > modifier) {
                 modifier = wisdom_mod;
@@ -69,7 +67,7 @@ fn ability_attack_bonus(obj: Creature, subtype: int): int {
     }
 
     var modifier = NCre.get_ability_modifier(obj, Const.ability_strength);
-    if (Cre.has_feat(obj, feat_weapon_finesse) && is_finessable_base_item(base_item)) {
+    if (Cre.has_feat(obj, Const.feat_weapon_finesse) && is_finessable_base_item(base_item)) {
         var dex_mod = NCre.get_ability_modifier(obj, Const.ability_dexterity);
         if (dex_mod > modifier) {
             modifier = dex_mod;
@@ -103,13 +101,11 @@ fn attack_bonus_enchant_arrow(obj: Creature, subtype: int): int {
 }
 
 fn attack_bonus_epic_prowess(obj: Creature, subtype: int): int {
-    const feat_epic_prowess = Const.Feat(584);
     if (subtype != Const.attack_type_any as int) { return 0; }
-    return Cre.has_feat(obj, feat_epic_prowess) ? 1 : 0;
+    return Cre.has_feat(obj, Const.feat_epic_prowess) ? 1 : 0;
 }
 
 fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
-    const feat_good_aim = Const.Feat(250);
     const racial_type_halfling = 3;
 
     if (subtype != Const.attack_type_onhand as int) { return 0; }
@@ -122,7 +118,7 @@ fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
         return 1;
     }
 
-    if (is_ranged_base_item(base_item) && Cre.has_feat(obj, feat_good_aim)) {
+    if (is_ranged_base_item(base_item) && Cre.has_feat(obj, Const.feat_good_aim)) {
         return 1;
     }
 
@@ -130,8 +126,6 @@ fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
 }
 
 fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
-    const feat_blind_fight = Const.Feat(408);
-    const feat_prestige_defensive_awareness_2 = Const.Feat(950);
     const target_state_blind = 1;
     const target_state_attacker_invis = 2;
     const target_state_unseen = 4;
@@ -152,7 +146,7 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
 
     if (bit.and(combat.target_state, target_state_attacker_invis) != 0
         || bit.and(combat.target_state, target_state_blind) != 0) {
-        if (!Cre.has_feat(vs, feat_blind_fight)) {
+        if (!Cre.has_feat(vs, Const.feat_blind_fight)) {
             result += 2;
         }
     }
@@ -162,7 +156,7 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
     }
 
     if (bit.and(combat.target_state, target_state_flanked) != 0) {
-        if (!Cre.has_feat(vs, feat_prestige_defensive_awareness_2)) {
+        if (!Cre.has_feat(vs, Const.feat_prestige_defensive_awareness_2)) {
             result += 2;
         }
     }
@@ -176,9 +170,6 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
 }
 
 fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): int {
-    const feat_battle_training_versus_orcs = Const.Feat(231);
-    const feat_battle_training_versus_goblins = Const.Feat(232);
-    const feat_battle_training_versus_reptilians = Const.Feat(242);
     const racial_type_humanoid_goblinoid = 12;
     const racial_type_humanoid_orc = 14;
     const racial_type_humanoid_reptilian = 15;
@@ -192,15 +183,15 @@ fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): in
 
     var vs_stats = get_propset!(CreatureStats)(versus as Creature);
     if (vs_stats.race == racial_type_humanoid_goblinoid
-        && Cre.has_feat(obj, feat_battle_training_versus_goblins)) {
+        && Cre.has_feat(obj, Const.feat_battle_training_versus_goblins)) {
         return 1;
     }
     if (vs_stats.race == racial_type_humanoid_orc
-        && Cre.has_feat(obj, feat_battle_training_versus_orcs)) {
+        && Cre.has_feat(obj, Const.feat_battle_training_versus_orcs)) {
         return 1;
     }
     if (vs_stats.race == racial_type_humanoid_reptilian
-        && Cre.has_feat(obj, feat_battle_training_versus_reptilians)) {
+        && Cre.has_feat(obj, Const.feat_battle_training_versus_reptilians)) {
         return 1;
     }
 
@@ -208,14 +199,14 @@ fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): in
 }
 
 fn attack_bonus_weapon_feat(obj: Creature, subtype: int): int {
-    return C.attack_bonus_mod_weapon_feat(obj, Const.AttackType(subtype));
+    return mfeat.attack_bonus_weapon_feat(obj, Const.AttackType(subtype));
 }
 
 fn attack_bonus_favored_enemy(obj: Creature, versus: object, subtype: int): int {
     if (subtype != Const.attack_type_any as int) {
         return 0;
     }
-    return C.attack_bonus_mod_favored_enemy(obj, versus);
+    return mfeat.attack_bonus_favored_enemy(obj, versus);
 }
 
 fn attack_bonus_combat_mode(obj: Creature, subtype: int): int {
@@ -226,7 +217,7 @@ fn attack_bonus_combat_mode(obj: Creature, subtype: int): int {
 }
 
 fn attack_bonus_weapon_master(obj: Creature, subtype: int): int {
-    return C.attack_bonus_mod_weapon_master(obj, Const.AttackType(subtype));
+    return mfeat.attack_bonus_weapon_master(obj, Const.AttackType(subtype));
 }
 
 fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {

@@ -11,6 +11,7 @@ type MissChanceType(int);
 type ModifierType(int);
 type Save(int);
 type SaveVersus(int);
+type SpellSchool(int);
 type Skill(int);
 type EquipIndex(int);
 type ItemPropertyType(int);

@@ -23,6 +23,7 @@ namespace {
 constexpr std::string_view combat_parity_bridge_source = R"(
     from nwn1.constants import { attack_type_onhand, attack_type_offhand, feat_blind_fight, creature_size_medium };
     import nwn1.combat as Combat;
+    import nwn1.master_feats as MFeat;
     import nwn1.modifier as Mod;
     import nwn1.races as races;
     import core.combat as C;
@@ -259,7 +260,7 @@ constexpr std::string_view combat_parity_bridge_source = R"(
             sides = big ? 3 : 2;
         }
 
-        var bonus = C.weapon_damage_specialization_bonus(attacker, base_item_gloves);
+        var bonus = MFeat.weapon_damage_specialization_bonus(attacker, base_item_gloves);
         if (which == 0) {
             return dice;
         } elif (which == 1) {
