@@ -912,12 +912,31 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
         }
         break;
 
-    case TK_struct:
+    case TK_struct: {
+        uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));
+        auto struct_id = type->type_params[0].as<StructID>();
+        const StructDef* def = runtime_->type_table_.get(struct_id);
+        if (def) {
+            for (uint32_t i = 0; i < def->heap_ref_count; ++i) {
+                HeapPtr* child_ptr = reinterpret_cast<HeapPtr*>(data + def->heap_ref_offsets[i]);
+                if (child_ptr->value != 0) {
+                    try_mark_child(*child_ptr);
+                }
+            }
+        }
+        break;
+    }
     case TK_tuple: {
         uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));
-        runtime_->scan_value_heap_refs(header->type_id, data, [&](HeapPtr* child_ptr) {
-            try_mark_child(*child_ptr);
-        });
+        auto tuple_id = type->type_params[0].as<TupleID>();
+        const TupleDef* def = runtime_->type_table_.get(tuple_id);
+        if (def) {
+            for (uint32_t i = 0; i < def->element_count; ++i) {
+                runtime_->scan_value_heap_refs(def->element_types[i], data + def->offsets[i], [&](HeapPtr* child_ptr) {
+                    try_mark_child(*child_ptr);
+                });
+            }
+        }
         break;
     }
 

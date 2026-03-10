@@ -19,6 +19,10 @@ static void BM_creature_attack(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load BM_creature_attack creatures");
+        return;
+    }
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -29,6 +33,10 @@ static void BM_creature_attack_2(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/rangerdexranged.utc");
     auto vs = nwk::objects().load<nw::Creature>(nw::Resref("nw_drggreen003"));
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load BM_creature_attack_2 creatures");
+        return;
+    }
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -39,6 +47,10 @@ static void BM_creature_attack_3(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
     auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load BM_creature_attack_3 creatures");
+        return;
+    }
     for (auto _ : state) {
         auto out = nwn1::resolve_attack(obj, vs);
         benchmark::DoNotOptimize(out);
@@ -47,7 +59,9 @@ static void BM_creature_attack_3(benchmark::State& state)
 
 static nw::smalls::Script* load_nwn1_combat_direct_benchmark_script()
 {
-    return nw::kernel::runtime().load_module_from_source("bench.nwn1_combat_direct", R"(
+    static uint64_t script_id = 0;
+    auto module_name = std::string("bench.nwn1_combat_direct_") + std::to_string(++script_id);
+    return nw::kernel::runtime().load_module_from_source(module_name, R"(
         import nwn1.combat as Combat;
 
         fn bench_resolve_attack_result(attacker: Creature, target: Creature): int {
@@ -58,7 +72,9 @@ static nw::smalls::Script* load_nwn1_combat_direct_benchmark_script()
 
 static nw::smalls::Script* load_nwn1_combat_decompose_benchmark_script()
 {
-    return nw::kernel::runtime().load_module_from_source("bench.nwn1_combat_decompose", R"(
+    static uint64_t script_id = 0;
+    auto module_name = std::string("bench.nwn1_combat_decompose_") + std::to_string(++script_id);
+    return nw::kernel::runtime().load_module_from_source(module_name, R"(
         from core.combat import { AttackData, DamageResult };
         from core.types import { Damage, DamageRoll };
         from nwn1.constants import { attack_type_onhand };
@@ -170,7 +186,9 @@ static nw::smalls::Script* load_nwn1_policy_minimal_benchmark_script()
 
 static nw::smalls::Script* load_nwn1_policy_full_benchmark_script()
 {
-    return nw::kernel::runtime().load_module_from_source("bench.nwn1_policy_full", R"(
+    static uint64_t script_id = 0;
+    auto module_name = std::string("bench.nwn1_policy_full_") + std::to_string(++script_id);
+    return nw::kernel::runtime().load_module_from_source(module_name, R"(
         from core.combat import { AttackData };
         import nwn1.combat as Combat;
 
@@ -697,6 +715,10 @@ static void BM_creature_attack_bonus(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load BM_creature_attack_bonus creatures");
+        return;
+    }
     for (auto _ : state) {
         auto out = nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, vs);
         benchmark::DoNotOptimize(out);
@@ -707,6 +729,10 @@ static void BM_creature_attack_roll(benchmark::State& state)
 {
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load BM_creature_attack_roll creatures");
+        return;
+    }
     auto eff = nwn1::effect_concealment(20);
     nw::apply_effect(vs, eff);
     for (auto _ : state) {
