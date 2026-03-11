@@ -10,6 +10,7 @@ import nwn1.creature as NCre;
 import nwn1.item as nwn1item;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
+import nwn1.on_hit as on_hit;
 import nwn1.constants as Const;
 
 from nwn1.cachedefs import {
@@ -106,15 +107,14 @@ fn attack_bonus_epic_prowess(obj: Creature, subtype: int): int {
 }
 
 fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
-    const racial_type_halfling = 3;
-
     if (subtype != Const.attack_type_onhand as int) { return 0; }
 
     var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
     var base_item = Item.get_baseitem_type(weapon) as int;
     var stats = get_propset!(CreatureStats)(obj);
+    var race = Const.RacialType(stats.race);
 
-    if (stats.race == racial_type_halfling && base_item == Const.base_item_sling) {
+    if (race == Const.racial_type_halfling && base_item == Const.base_item_sling) {
         return 1;
     }
 
@@ -170,10 +170,6 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
 }
 
 fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): int {
-    const racial_type_humanoid_goblinoid = 12;
-    const racial_type_humanoid_orc = 14;
-    const racial_type_humanoid_reptilian = 15;
-
     if (subtype != Const.attack_type_any as int) {
         return 0;
     }
@@ -182,15 +178,16 @@ fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): in
     }
 
     var vs_stats = get_propset!(CreatureStats)(versus as Creature);
-    if (vs_stats.race == racial_type_humanoid_goblinoid
+    var race = Const.RacialType(vs_stats.race);
+    if (race == Const.racial_type_humanoid_goblinoid
         && Cre.has_feat(obj, Const.feat_battle_training_versus_goblins)) {
         return 1;
     }
-    if (vs_stats.race == racial_type_humanoid_orc
+    if (race == Const.racial_type_humanoid_orc
         && Cre.has_feat(obj, Const.feat_battle_training_versus_orcs)) {
         return 1;
     }
-    if (vs_stats.race == racial_type_humanoid_reptilian
+    if (race == Const.racial_type_humanoid_reptilian
         && Cre.has_feat(obj, Const.feat_battle_training_versus_reptilians)) {
         return 1;
     }
@@ -528,4 +525,5 @@ fn init_modifiers() {
 fn init() {
     nwn1item.register_default_generators();
     init_modifiers();
+    on_hit.register_default_handlers();
 }

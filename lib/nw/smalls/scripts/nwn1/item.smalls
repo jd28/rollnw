@@ -58,12 +58,12 @@ fn ip_gen_haste(_ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effec
 
 fn ip_gen_save_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.save_modifier(Const.Save(ip.subtype), value, Const.SaveVersus(-1));
+    return nwn1eff.save_modifier(Const.Save(ip.subtype), value, Const.saving_throw_vs_all);
 }
 
 fn ip_gen_save_vs_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.save_modifier(Const.Save(-1), value, Const.SaveVersus(ip.subtype));
+    return nwn1eff.save_modifier(Const.saving_throw_all, value, Const.SaveVersus(ip.subtype));
 }
 
 fn ip_gen_skill_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {

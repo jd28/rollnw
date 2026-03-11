@@ -21,7 +21,7 @@ namespace nwk = nw::kernel;
 namespace {
 
 constexpr std::string_view combat_parity_bridge_source = R"(
-    from nwn1.constants import { attack_type_onhand, attack_type_offhand, feat_blind_fight, creature_size_medium };
+    from nwn1.constants import { attack_type_onhand, attack_type_offhand, feat_blind_fight, creature_size_medium, base_item_gloves };
     import nwn1.combat as Combat;
     import nwn1.master_feats as MFeat;
     import nwn1.modifier as Mod;
@@ -222,8 +222,6 @@ constexpr std::string_view combat_parity_bridge_source = R"(
     }
 
     fn resolve_unarmed_profile_value(attacker: Creature, which: int): int {
-        const base_item_gloves = 36;
-
         var level = C.unarmed_damage_level(attacker);
         var combat = get_propset!(CreatureCombat)(attacker);
         var size = combat.size;

@@ -10,6 +10,7 @@ from core.types import {
     Feat,
     MissChanceType,
     ModifierType,
+    RacialType,
     Save,
     SaveVersus,
     SpellSchool,
@@ -38,6 +39,7 @@ const attack_type_unarmed = AttackType(3);
 const attack_type_cweapon1 = AttackType(4);
 const attack_type_cweapon2 = AttackType(5);
 const attack_type_cweapon3 = AttackType(6);
+const attack_type_invalid = AttackType(-1);
 
 const creature_size_medium = 3;
 
@@ -177,7 +179,35 @@ const class_type_ooze = Class(38);
 const class_type_eye_of_gruumsh = Class(39);
 const class_type_shou_disciple = Class(40);
 const class_type_purple_dragon_knight = Class(41);
+const class_type_invalid = Class(-1);
 
+const racial_type_dwarf = RacialType(0);
+const racial_type_elf = RacialType(1);
+const racial_type_gnome = RacialType(2);
+const racial_type_halfling = RacialType(3);
+const racial_type_halfelf = RacialType(4);
+const racial_type_halforc = RacialType(5);
+const racial_type_human = RacialType(6);
+const racial_type_aberration = RacialType(7);
+const racial_type_animal = RacialType(8);
+const racial_type_beast = RacialType(9);
+const racial_type_construct = RacialType(10);
+const racial_type_dragon = RacialType(11);
+const racial_type_humanoid_goblinoid = RacialType(12);
+const racial_type_humanoid_monstrous = RacialType(13);
+const racial_type_humanoid_orc = RacialType(14);
+const racial_type_humanoid_reptilian = RacialType(15);
+const racial_type_elemental = RacialType(16);
+const racial_type_fey = RacialType(17);
+const racial_type_giant = RacialType(18);
+const racial_type_magical_beast = RacialType(19);
+const racial_type_outsider = RacialType(20);
+const racial_type_shapechanger = RacialType(23);
+const racial_type_undead = RacialType(24);
+const racial_type_vermin = RacialType(25);
+const racial_type_invalid = RacialType(-1);
+
+const feat_type_invalid = Feat(-1);
 const feat_ambidexterity = Feat(1);
 const feat_blind_fight = Feat(408);
 const feat_improved_two_weapon_fighting = Feat(20);
@@ -342,6 +372,8 @@ const feat_epic_great_strength_10 = Feat(823);
 const feat_deflect_arrows = Feat(8);
 const feat_improved_parry = Feat(18);
 const combat_mode_parry = 1;
+const combat_mode_power_attack = 2;
+const combat_mode_improved_power_attack = 3;
 const feat_knockdown = Feat(23);
 const feat_improved_knockdown = Feat(17);
 
@@ -365,6 +397,7 @@ const damage_type_negative = Damage(9);
 const damage_type_positive = Damage(10);
 const damage_type_sonic = Damage(11);
 const damage_type_base_weapon = Damage(12);
+const damage_type_invalid = Damage(-1);
 
 const damage_category_none = DamageCategory(0);
 const damage_category_penalty = DamageCategory(1);
@@ -379,7 +412,9 @@ const miss_chance_type_melee = MissChanceType(3);
 const saving_throw_fort = Save(1);
 const saving_throw_reflex = Save(2);
 const saving_throw_will = Save(3);
+const saving_throw_all = Save(-1);
 
+const saving_throw_vs_all = SaveVersus(-1);
 const saving_throw_vs_invalid = SaveVersus(0);
 const saving_throw_vs_mind_spells = SaveVersus(1);
 const saving_throw_vs_poison = SaveVersus(2);
@@ -429,6 +464,7 @@ const skill_intimidate = Skill(24);
 const skill_craft_armor = Skill(25);
 const skill_craft_weapon = Skill(26);
 const skill_ride = Skill(27);
+const skill_invalid = Skill(-1);
 
 const spell_school_general = SpellSchool(0);
 const spell_school_abjuration = SpellSchool(1);
@@ -439,6 +475,7 @@ const spell_school_evocation = SpellSchool(5);
 const spell_school_illusion = SpellSchool(6);
 const spell_school_necromancy = SpellSchool(7);
 const spell_school_transmutation = SpellSchool(8);
+const spell_school_invalid = SpellSchool(-1);
 
 const equip_index_head = EquipIndex(0);
 const equip_index_chest = EquipIndex(1);
@@ -480,6 +517,12 @@ const effect_type_skill_decrease = EffectType(56);
 const effect_type_miss_chance = EffectType(75);
 const effect_type_concealment = EffectType(76);
 const effect_type_bonus_spell_of_level = EffectType(78);
+
+const ip_mighty = ItemPropertyType(45);
+const ip_on_hit_properties = ItemPropertyType(48);
+const ip_on_monster_hit = ItemPropertyType(72);
+const ip_massive_criticals = ItemPropertyType(74);
+const ip_onhitcastspell = ItemPropertyType(82);
 
 // Modifier type constants (match C++ nwn1::mod_type_* values)
 const mod_type_ability = ModifierType(0);

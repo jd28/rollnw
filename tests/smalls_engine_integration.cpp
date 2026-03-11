@@ -7,11 +7,56 @@
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/propset_populate.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/rules/combat.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <array>
+#include <chrono>
 #include <filesystem>
 
 namespace fs = std::filesystem;
+
+namespace {
+
+int resolve_cpp_base_weapon_damage_modifiers(
+    nw::Creature* attacker,
+    const nw::ObjectBase* versus,
+    nw::AttackType attack_type,
+    int multiplier)
+{
+    int total = 0;
+    auto add = [&](nw::DamageRoll roll) {
+        if (roll.type == nw::Damage::invalid()) {
+            return;
+        }
+
+        if (roll.type != nwn1::damage_type_base_weapon
+            && roll.type != nwn1::damage_type_bludgeoning
+            && roll.type != nwn1::damage_type_piercing
+            && roll.type != nwn1::damage_type_slashing) {
+            return;
+        }
+
+        if (to_bool(nw::DamageCategory::critical & roll.flags) && multiplier <= 1) {
+            return;
+        }
+
+        auto amount = nw::roll_dice(roll.roll, multiplier);
+        if (to_bool(nw::DamageCategory::penalty & roll.flags)) {
+            amount = -amount;
+        }
+
+        total += amount;
+    };
+
+    nw::kernel::resolve_modifier(attacker, nwn1::mod_type_damage, nwn1::attack_type_any, versus, add);
+    if (attack_type != nwn1::attack_type_any) {
+        nw::kernel::resolve_modifier(attacker, nwn1::mod_type_damage, attack_type, versus, add);
+    }
+    return total;
+}
+
+} // namespace
 
 class SmallsEngineIntegration : public ::testing::Test {
 protected:
@@ -1751,6 +1796,379 @@ TEST_F(SmallsEngineIntegration, Nwn1SpellFocusBonusMatchesCppReference)
     const auto cpp_after = resolve_cpp();
     EXPECT_EQ(smalls_after, 6);
     EXPECT_EQ(smalls_after, cpp_after);
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1DamageModifierAbilityOffhandAndMightyMatchCppReference)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(attacker, nullptr);
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/test_creature.utc");
+    ASSERT_NE(target, nullptr);
+
+    std::string_view source = R"(
+        import nwn1.modifier as Mod;
+
+        fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
+            return Mod.sum_damage_modifiers(attacker, target, subtype, multiplier);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_damage_modifiers_ability", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](int subtype, int multiplier) {
+        nw::Vector<nw::smalls::Value> args;
+        auto av = nw::smalls::Value::make_object(attacker->handle());
+        av.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        args.push_back(av);
+        auto tv = nw::smalls::Value::make_object(target->handle());
+        tv.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(tv);
+        args.push_back(nw::smalls::Value::make_int(subtype));
+        args.push_back(nw::smalls::Value::make_int(multiplier));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    {
+        const auto subtype = nwn1::attack_type_offhand;
+        constexpr int multiplier = 1;
+        const auto smalls = run_smalls(*subtype, multiplier);
+        const auto cpp = resolve_cpp_base_weapon_damage_modifiers(attacker, target, subtype, multiplier);
+        EXPECT_EQ(smalls, cpp);
+    }
+
+    auto* bow = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(bow, nullptr);
+    bow->baseitem = nwn1::base_item_longbow;
+    nw::ItemProperty mighty{};
+    mighty.type = *nwn1::ip_mighty;
+    mighty.cost_value = 3;
+    bow->properties.push_back(mighty);
+    ASSERT_TRUE(nwn1::equip_item(attacker, bow, nw::EquipIndex::righthand));
+
+    {
+        const auto subtype = nwn1::attack_type_onhand;
+        constexpr int multiplier = 1;
+        const auto smalls = run_smalls(*subtype, multiplier);
+        const auto cpp = resolve_cpp_base_weapon_damage_modifiers(attacker, target, subtype, multiplier);
+        EXPECT_EQ(smalls, cpp);
+    }
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1DamageModifierFavoredEnemyCriticalGateMatchesCppReference)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/rangerdexranged.utc");
+    ASSERT_NE(attacker, nullptr);
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(target, nullptr);
+
+    if (attacker->levels.level_by_class(nwn1::class_type_ranger) == 0) {
+        GTEST_SKIP() << "attacker fixture has no ranger levels";
+    }
+
+    attacker->stats.remove_feat(nwn1::feat_epic_bane_of_enemies);
+    constexpr std::array<nw::Feat, 25> favored_enemy_feats = {
+        nwn1::feat_favored_enemy_dwarf,
+        nwn1::feat_favored_enemy_elf,
+        nwn1::feat_favored_enemy_gnome,
+        nwn1::feat_favored_enemy_halfling,
+        nwn1::feat_favored_enemy_halfelf,
+        nwn1::feat_favored_enemy_halforc,
+        nwn1::feat_favored_enemy_human,
+        nwn1::feat_favored_enemy_aberration,
+        nwn1::feat_favored_enemy_animal,
+        nwn1::feat_favored_enemy_beast,
+        nwn1::feat_favored_enemy_construct,
+        nwn1::feat_favored_enemy_dragon,
+        nwn1::feat_favored_enemy_goblinoid,
+        nwn1::feat_favored_enemy_monstrous,
+        nwn1::feat_favored_enemy_orc,
+        nwn1::feat_favored_enemy_reptilian,
+        nwn1::feat_favored_enemy_elemental,
+        nwn1::feat_favored_enemy_fey,
+        nwn1::feat_favored_enemy_giant,
+        nwn1::feat_favored_enemy_magical_beast,
+        nwn1::feat_favored_enemy_outsider,
+        nwn1::feat_favored_enemy_shapechanger,
+        nwn1::feat_favored_enemy_undead,
+        nwn1::feat_favored_enemy_vermin,
+        nwn1::feat_epic_bane_of_enemies,
+    };
+    for (const auto feat : favored_enemy_feats) {
+        if (!attacker->stats.has_feat(feat)) {
+            attacker->stats.add_feat(feat);
+        }
+    }
+    attacker->stats.remove_feat(nwn1::feat_epic_bane_of_enemies);
+
+    std::string_view source = R"(
+        import nwn1.modifier as Mod;
+
+        fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
+            return Mod.sum_damage_modifiers(attacker, target, subtype, multiplier);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_damage_modifiers_favored_enemy", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](int subtype, int multiplier) {
+        nw::Vector<nw::smalls::Value> args;
+        auto av = nw::smalls::Value::make_object(attacker->handle());
+        av.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        args.push_back(av);
+        auto tv = nw::smalls::Value::make_object(target->handle());
+        tv.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(tv);
+        args.push_back(nw::smalls::Value::make_int(subtype));
+        args.push_back(nw::smalls::Value::make_int(multiplier));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    const auto subtype = nwn1::attack_type_any;
+
+    {
+        constexpr int multiplier = 1;
+        const auto smalls = run_smalls(*subtype, multiplier);
+        const auto cpp = resolve_cpp_base_weapon_damage_modifiers(attacker, target, subtype, multiplier);
+        EXPECT_EQ(smalls, 0);
+        EXPECT_EQ(smalls, cpp);
+    }
+
+    {
+        constexpr int multiplier = 2;
+        const auto smalls = run_smalls(*subtype, multiplier);
+        const auto cpp = resolve_cpp_base_weapon_damage_modifiers(attacker, target, subtype, multiplier);
+        EXPECT_EQ(smalls, cpp);
+    }
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1DamageModifierOverwhelmingCriticalActivationMatchesCppReference)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(attacker, nullptr);
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/test_creature.utc");
+    ASSERT_NE(target, nullptr);
+
+    std::string_view source = R"(
+        import nwn1.init as Init;
+
+        fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
+            return Init.damage_bonus_overwhelming_critical(attacker, target, subtype, multiplier);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_damage_overwhelming_activation", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](int subtype, int multiplier) {
+        nw::Vector<nw::smalls::Value> args;
+        auto av = nw::smalls::Value::make_object(attacker->handle());
+        av.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        args.push_back(av);
+        auto tv = nw::smalls::Value::make_object(target->handle());
+        tv.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(tv);
+        args.push_back(nw::smalls::Value::make_int(subtype));
+        args.push_back(nw::smalls::Value::make_int(multiplier));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    const auto subtype = nwn1::attack_type_unarmed;
+    constexpr int multiplier = 2;
+
+    attacker->stats.remove_feat(nwn1::feat_epic_overwhelming_critical_unarmed);
+    EXPECT_EQ(run_smalls(*subtype, multiplier), 0);
+
+    ASSERT_TRUE(attacker->stats.add_feat(nwn1::feat_epic_overwhelming_critical_unarmed));
+
+    const bool cpp_has_overwhelming = !!nw::kernel::resolve_master_feat<int>(attacker, nw::BaseItem::invalid(), nwn1::mfeat_overwhelming_crit);
+    ASSERT_TRUE(cpp_has_overwhelming);
+
+    const auto rolled = run_smalls(*subtype, multiplier);
+    EXPECT_GT(rolled, 0);
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1MassiveCriticalDamageRollFires)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(attacker, nullptr);
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/test_creature.utc");
+    ASSERT_NE(target, nullptr);
+
+    auto* weapon = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(weapon, nullptr);
+    weapon->baseitem = nwn1::base_item_longsword;
+
+    nw::ItemProperty ip{};
+    ip.type = *nwn1::ip_massive_criticals;
+    ip.cost_value = 0;
+    weapon->properties.push_back(ip);
+
+    std::string_view source = R"(
+        import nwn1.combat as Combat;
+
+        fn main(_attacker: Creature, _target: object, weapon: Item, critical_multiplier: int): int {
+            return Combat.resolve_massive_critical_damage_bonus(weapon, critical_multiplier);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_massive_critical_damage_roll", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](int critical_multiplier) {
+        nw::Vector<nw::smalls::Value> args;
+        auto av = nw::smalls::Value::make_object(attacker->handle());
+        av.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        args.push_back(av);
+        auto tv = nw::smalls::Value::make_object(target->handle());
+        tv.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(tv);
+        auto wv = nw::smalls::Value::make_object(weapon->handle());
+        wv.type_id = rt.object_subtype_for_tag(weapon->handle().type);
+        args.push_back(wv);
+        args.push_back(nw::smalls::Value::make_int(critical_multiplier));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    int chosen_cost = -1;
+    for (int cost = 0; cost <= 255; ++cost) {
+        weapon->properties[0].cost_value = static_cast<uint16_t>(cost);
+        auto value = run_smalls(2);
+        if (value > 0) {
+            chosen_cost = cost;
+            break;
+        }
+    }
+
+    ASSERT_GE(chosen_cost, 0) << "No massive critical cost value produced damage roll bonus";
+
+    weapon->properties[0].cost_value = static_cast<uint16_t>(chosen_cost);
+    EXPECT_EQ(run_smalls(1), 0);
+    EXPECT_GT(run_smalls(2), 0);
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1MassiveCriticalDamageRollBenchmarkSmoke)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(attacker, nullptr);
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/test_creature.utc");
+    ASSERT_NE(target, nullptr);
+
+    auto* weapon = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(weapon, nullptr);
+    weapon->baseitem = nwn1::base_item_longsword;
+
+    nw::ItemProperty ip{};
+    ip.type = *nwn1::ip_massive_criticals;
+    ip.cost_value = 0;
+    weapon->properties.push_back(ip);
+
+    std::string_view source = R"(
+        import nwn1.combat as Combat;
+
+        fn main(_attacker: Creature, _target: object, weapon: Item, critical_multiplier: int, iters: int): int {
+            var total = 0;
+            for (var i = 0; i < iters; i += 1) {
+                total += Combat.resolve_massive_critical_damage_bonus(weapon, critical_multiplier);
+            }
+            return total;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_massive_critical_damage_roll_bench", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto run_smalls = [&](int critical_multiplier, int iters) {
+        nw::Vector<nw::smalls::Value> args;
+        auto av = nw::smalls::Value::make_object(attacker->handle());
+        av.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        args.push_back(av);
+        auto tv = nw::smalls::Value::make_object(target->handle());
+        tv.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(tv);
+        auto wv = nw::smalls::Value::make_object(weapon->handle());
+        wv.type_id = rt.object_subtype_for_tag(weapon->handle().type);
+        args.push_back(wv);
+        args.push_back(nw::smalls::Value::make_int(critical_multiplier));
+        args.push_back(nw::smalls::Value::make_int(iters));
+        auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    int chosen_cost = -1;
+    for (int cost = 0; cost <= 255; ++cost) {
+        weapon->properties[0].cost_value = static_cast<uint16_t>(cost);
+        if (run_smalls(2, 1) > 0) {
+            chosen_cost = cost;
+            break;
+        }
+    }
+    ASSERT_GE(chosen_cost, 0) << "No massive critical cost value produced damage roll bonus";
+    weapon->properties[0].cost_value = static_cast<uint16_t>(chosen_cost);
+
+    constexpr int iters = 2000;
+    auto start = std::chrono::steady_clock::now();
+    auto total = run_smalls(2, iters);
+    auto elapsed = std::chrono::steady_clock::now() - start;
+
+    EXPECT_GT(total, 0);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    EXPECT_GE(ms, 0);
 }
 
 // == Proof-of-concept: nwn1.creature.get_ability_score with real creature ====

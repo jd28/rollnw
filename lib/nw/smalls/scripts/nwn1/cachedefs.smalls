@@ -79,3 +79,4 @@ const feat_flag_blind_fight     = 1;   // has Blind Fight feat
 const feat_flag_twf             = 2;   // has Two-Weapon Fighting feat
 const feat_flag_ambidexterity   = 4;   // has Ambidexterity feat
 const feat_flag_itwf            = 8;   // has Improved Two-Weapon Fighting feat
+const feat_flag_favored_enemy   = 16;  // has any Favored Enemy feat

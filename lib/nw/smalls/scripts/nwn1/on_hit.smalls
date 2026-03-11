@@ -1,0 +1,95 @@
+import core.array as arr;
+import core.item as item;
+from core.types import { DamageRoll };
+
+import nwn1.constants as Const;
+
+[[value_type]]
+type OnHitResult {
+    negate_hit: bool;
+    base_damage_bonus: int;
+    rolls: array!(DamageRoll);
+};
+
+type OnHitHandler {
+    tag: string;
+    property_type: int;
+    property_subtype: int;
+    payload: fn(Creature, object, Item, Const.AttackType, int, int, bool, item.ItemProperty): OnHitResult;
+};
+
+var handlers: array!(OnHitHandler) = {};
+
+fn _result(negate_hit: bool, base_damage_bonus: int): OnHitResult {
+    var rolls: array!(DamageRoll) = {};
+    var r = OnHitResult {
+        negate_hit = false,
+        base_damage_bonus = 0,
+        rolls = rolls,
+    };
+    r.negate_hit = negate_hit;
+    r.base_damage_bonus = base_damage_bonus;
+    return r;
+}
+
+fn clear_handlers() {
+    arr.clear(handlers);
+}
+
+fn has_handlers(): bool {
+    return arr.len(handlers) > 0;
+}
+
+fn register_handler(
+    tag: string,
+    property_type: Const.ItemPropertyType,
+    property_subtype: int,
+    payload: fn(Creature, object, Item, Const.AttackType, int, int, bool, item.ItemProperty): OnHitResult,
+) {
+    arr.push(handlers, OnHitHandler {
+        tag = tag,
+        property_type = property_type as int,
+        property_subtype = property_subtype,
+        payload = payload,
+    });
+}
+
+fn resolve_weapon_on_hit(
+    attacker: Creature,
+    target: object,
+    weapon: Item,
+    attack_type: Const.AttackType,
+    attack_result: int,
+    critical_multiplier: int,
+    is_ranged: bool,
+): OnHitResult {
+    var result = _result(false, 0);
+
+    var count = item.property_count(weapon);
+    for (var i = 0; i < count; i += 1) {
+        var ip = item.__get_property(weapon, i);
+        for (var h in handlers) {
+            if (h.property_type != ip.prop_type) {
+                continue;
+            }
+            if (h.property_subtype >= 0 && h.property_subtype != ip.subtype) {
+                continue;
+            }
+            var f = h.payload;
+            var partial = f(attacker, target, weapon, attack_type, attack_result, critical_multiplier, is_ranged, ip);
+            result.base_damage_bonus += partial.base_damage_bonus;
+            if (partial.negate_hit) {
+                result.negate_hit = true;
+            }
+            for (var roll in partial.rolls) {
+                arr.push(result.rolls, roll);
+            }
+        }
+    }
+
+    return result;
+}
+
+fn register_default_handlers() {
+    clear_handlers();
+}

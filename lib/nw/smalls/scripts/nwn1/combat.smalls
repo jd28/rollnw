@@ -12,6 +12,7 @@ import core.item as item;
 import nwn1.creature as NCre;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
+import nwn1.on_hit as on_hit;
 import nwn1.progression as progression;
 import nwn1.races as races;
 import core.object as Obj;
@@ -27,6 +28,7 @@ from nwn1.cachedefs import {
     slot_def_conceal_t_melee, slot_def_conceal_t_ranged,
     slot_def_miss_chance_t_melee, slot_def_miss_chance_t_ranged,
     feat_flag_blind_fight, feat_flag_twf, feat_flag_ambidexterity, feat_flag_itwf,
+    feat_flag_favored_enemy,
 };
 
 fn roll_uniform_int(min: int, max: int): int {
@@ -162,6 +164,9 @@ fn get_feat_flags(obj: Creature): int {
     }
     if (Cre.has_feat(obj, Const.feat_improved_two_weapon_fighting)) {
         flags = bit.or(flags, feat_flag_itwf);
+    }
+    if (Cre.count_feats_in_range(obj, Const.feat_favored_enemy_dwarf, Const.feat_favored_enemy_vermin) > 0) {
+        flags = bit.or(flags, feat_flag_favored_enemy);
     }
     combat.slot_values[slot_off_feat_flags] = flags;
     modifier.slot_set_valid(combat, slot_off_feat_flags);
@@ -458,7 +463,7 @@ fn resolve_attack_type(obj: Creature): Const.AttackType {
         if (combat.attacks_offhand > 0) {
             return Const.attack_type_offhand;
         }
-        return Const.AttackType(-1);
+        return Const.attack_type_invalid;
     }
 
     var onhand_base = item.get_baseitem_type(Cre.weapon_for_attack(obj, Const.attack_type_onhand));
@@ -521,7 +526,7 @@ fn resolve_attack_type_from_handle(combat: CreatureCombat, attacker: Creature): 
         if (combat.attacks_offhand > 0) {
             return Const.attack_type_offhand;
         }
-        return Const.AttackType(-1);
+        return Const.attack_type_invalid;
     }
 
     var onhand_base = item.get_baseitem_type(Cre.weapon_for_attack(attacker, Const.attack_type_onhand));
@@ -585,6 +590,37 @@ fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
     combat.equip_epoch  = C.creature_equip_version(obj);
     combat.combat_mode  = C.get_combat_mode(obj);
     return combat;
+}
+
+fn _sync_defense_round_window(attacker: Creature, target: Creature): CreatureCombat {
+    var tgt_combat = get_propset!(CreatureCombat)(target);
+    var attacker_seq = C.attack_current(attacker) + 1;
+
+    var new_window = false;
+    if (tgt_combat.defense_window_attacker != attacker) {
+        new_window = true;
+    } elif (attacker_seq == 1 && tgt_combat.defense_window_seq != 1) {
+        new_window = true;
+    }
+
+    if (new_window) {
+        tgt_combat.parry_uses = 0;
+        tgt_combat.deflect_used = 0;
+        tgt_combat.defense_window_attacker = attacker;
+    }
+
+    tgt_combat.defense_window_seq = attacker_seq;
+    return tgt_combat;
+}
+
+fn _target_parry_limit(target: Creature): int {
+    var limit = resolve_number_of_attacks_onhand(target)
+        + resolve_number_of_attacks_offhand(target)
+        + C.attacks_extra(target);
+    if (limit <= 0) {
+        return 1;
+    }
+    return limit;
 }
 
 fn resolve_critical_multiplier(obj: Creature, attack_type: Const.AttackType, versus: object): int {
@@ -794,8 +830,7 @@ fn resolve_weapon_power(obj: Creature, weapon: Item): int {
     return result;
 }
 
-fn _get_weapon_power(obj: Creature, weapon: Item, attack_type: Const.AttackType): int {
-    var combat = get_propset!(CreatureCombat)(obj);
+fn _get_weapon_power(combat: CreatureCombat, obj: Creature, weapon: Item, attack_type: Const.AttackType): int {
     if (attack_type == Const.attack_type_onhand) {
         if (!modifier.slot_valid(combat, slot_off_weapon_power_on)) {
             combat.slot_values[slot_off_weapon_power_on] = resolve_weapon_power(obj, weapon);
@@ -1049,12 +1084,38 @@ fn resolve_base_damage_type(has_bludgeoning: bool, has_piercing: bool, has_slash
     if (has_bludgeoning) {
         return Const.Damage(damage_type_bludgeoning);
     }
-    return Const.Damage(-1);
+    return Const.damage_type_invalid;
 }
 
 // Inner damage resolver: caller supplies weapon_power directly (no get_propset! needed).
 // weapon and base_item are already known at call site; damage flags fetched here.
-fn _resolve_base_damage_impl(attacker: Creature, target: object, attack_type: Const.AttackType, weapon: Item, base_item: BaseItemType, weapon_power: int, multiplier: int): DamageResult {
+fn resolve_massive_critical_damage_bonus(weapon: Item, multiplier: int): int {
+    if (multiplier <= 1) {
+        return 0;
+    }
+
+    var count = item.property_count(weapon);
+    for (var i = 0; i < count; i += 1) {
+        var ip = item.__get_property(weapon, i);
+        if (ip.prop_type != Const.ip_massive_criticals as int) {
+            continue;
+        }
+
+        var dice = item.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+        var sides = item.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+        if (dice > 0 && sides > 0) {
+            return roll_dice(dice, sides, 0, 1);
+        }
+        if (dice == 0 && sides > 0) {
+            return sides;
+        }
+        return 0;
+    }
+
+    return 0;
+}
+
+fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature, target: object, attack_type: Const.AttackType, weapon: Item, base_item: BaseItemType, weapon_power: int, multiplier: int, special_attack_bonus: int): DamageResult {
     var has_bludgeoning = C.weapon_damage_has_bludgeoning(weapon);
     var has_piercing = C.weapon_damage_has_piercing(weapon);
     var has_slashing = C.weapon_damage_has_slashing(weapon);
@@ -1070,7 +1131,77 @@ fn _resolve_base_damage_impl(attacker: Creature, target: object, attack_type: Co
         resist_remaining = 0,
     };
 
-    var base_amount = resolve_attack_base_damage(attacker, weapon, base_item, multiplier);
+    // Ability damage bonus (STR). If str_mod <= 0 the bonus is always 0:
+    // melee clamps to 0, and Mighty is capped at str_mod.
+    var str_mod = (attacker_combat.ability_scores[0] - 10) / 2;
+    var ability_dmg = 0;
+    if (str_mod > 0) {
+        if (base_item == Const.base_item_longbow
+            || base_item == Const.base_item_shortbow
+            || base_item == Const.base_item_lightcrossbow
+            || base_item == Const.base_item_heavycrossbow
+            || base_item == Const.base_item_sling
+            || base_item == Const.base_item_dart
+            || base_item == Const.base_item_shuriken
+            || base_item == Const.base_item_throwingaxe) {
+            var ip_count = item.property_count(weapon);
+            for (var ip_i = 0; ip_i < ip_count; ip_i += 1) {
+                var ip = item.__get_property(weapon, ip_i);
+                if (ip.prop_type == Const.ip_mighty as int) {
+                    ability_dmg = ip.cost_value;
+                    if (ability_dmg > str_mod) { ability_dmg = str_mod; }
+                    break;
+                }
+            }
+        } else {
+            ability_dmg = str_mod;
+            if (attack_type == Const.attack_type_offhand) {
+                ability_dmg = ability_dmg / 2;
+            } elif (attack_type == Const.attack_type_onhand) {
+                if (!modifier.slot_valid(attacker_combat, slot_off_dual_wield_on)) {
+                    ensure_dual_wield_cache(attacker_combat, attacker);
+                }
+                if (attacker_combat.slot_values[slot_off_dual_wield_on] == 0) {
+                    ability_dmg = ability_dmg + (ability_dmg / 2);
+                }
+            }
+        }
+    }
+
+    // Combat mode bonus (power attack, inline)
+    var mode_bonus = 0;
+    if (attacker_combat.combat_mode == Const.combat_mode_power_attack) { mode_bonus = 5 * multiplier; }
+    elif (attacker_combat.combat_mode == Const.combat_mode_improved_power_attack) { mode_bonus = 10 * multiplier; }
+
+    // Overwhelming critical bonus (crit path only, inline)
+    var oc_bonus = 0;
+    if (multiplier > 1 && mfeat.has_overwhelming_critical(attacker, attack_type)) {
+        var oc_dice = multiplier - 1;
+        if (oc_dice <= 0) { oc_dice = 1; }
+        oc_bonus = C.roll_dice(oc_dice, 6, 0, multiplier);
+    }
+
+    // Favored enemy bonus — gate on feat_flag_favored_enemy first to avoid native calls.
+    var fe_bonus = 0;
+    {
+        var fe_flags = modifier.slot_valid(attacker_combat, slot_off_feat_flags)
+            ? attacker_combat.slot_values[slot_off_feat_flags]
+            : get_feat_flags(attacker);
+        if (bit.and(fe_flags, feat_flag_favored_enemy) != 0 && mfeat.has_favored_enemy(attacker, target)) {
+            var ranger = Cre.get_level_by_class(attacker, Const.class_type_ranger);
+            var fe_dice = 0; var fe_sides = 0;
+            if (Cre.has_feat(attacker, Const.feat_epic_bane_of_enemies)) { fe_dice = 2; fe_sides = 6; }
+            fe_bonus = C.roll_dice(fe_dice, fe_sides, 1 + (ranger / 5), multiplier);
+        }
+    }
+
+    var base_amount = resolve_attack_base_damage(attacker, weapon, base_item, multiplier)
+        + ability_dmg * multiplier
+        + (multiplier > 1 ? resolve_massive_critical_damage_bonus(weapon, multiplier) : 0)
+        + mode_bonus
+        + fe_bonus
+        + oc_bonus
+        + special_attack_bonus;
     if (base_amount <= 0) {
         return result;
     }
@@ -1158,8 +1289,9 @@ fn _resolve_base_damage_impl(attacker: Creature, target: object, attack_type: Co
 fn resolve_attack_base_damage_result(attacker: Creature, target: object, attack_type: Const.AttackType, multiplier: int): DamageResult {
     var weapon = Cre.weapon_for_attack(attacker, attack_type);
     var base_item = item.get_baseitem_type(weapon);
-    var weapon_power = _get_weapon_power(attacker, weapon, attack_type);
-    return _resolve_base_damage_impl(attacker, target, attack_type, weapon, base_item, weapon_power, multiplier);
+    var attacker_combat = get_propset!(CreatureCombat)(attacker);
+    var weapon_power = _get_weapon_power(attacker_combat, attacker, weapon, attack_type);
+    return _resolve_base_damage_impl(attacker_combat, attacker, target, attack_type, weapon, base_item, weapon_power, multiplier, 0);
 }
 
 fn resolve_attack(attacker: Creature, target: object): AttackData {
@@ -1204,12 +1336,14 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     // Sync def context first (single get_propset! on target). Extract target's effect epoch
     // for sync_off_context_with_tgt_epoch, eliminating a redundant second propset on target.
     var target_is_creature = target is Creature;
+    var target_combat_mode = 0;  // target's combat_mode, cached to avoid extra native call for parry
     var cur_tgt_eff = 0;
     var armor_class = 0;
     var concealment = 0;
     var miss_chance_source = false;
     if (target is Creature) {
         var def_combat = modifier.sync_def_context(attacker, target, is_ranged, combat.effect_epoch);
+        target_combat_mode = def_combat.combat_mode;
         cur_tgt_eff = def_combat.effect_epoch;
         if (!modifier.slot_valid(def_combat, slot_def_ac_t_any)) {
             def_combat.slot_values[slot_def_ac_t_any] = C.attack_roll_armor_class(attacker, target);
@@ -1362,12 +1496,17 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     // Post-hit: Parry and Deflect Arrows (can turn a hit into a miss)
     if (attack_result <= attack_result_hit_by_roll) {
         // Parry: target in parry mode, not auto-success → target skill check vs DC = roll + bonus
-        if (attack_result != attack_result_hit_by_auto_success && target is Creature) {
+        // target_combat_mode cached from def_combat above — avoids a native call here.
+        if (attack_result != attack_result_hit_by_auto_success
+            && target_combat_mode == Const.combat_mode_parry
+            && target is Creature) {
             var tgt = target as Creature;
-            if (C.get_combat_mode(tgt) == Const.combat_mode_parry) {
-                if (NCre.resolve_skill_check(tgt, Const.skill_parry, attack_roll + attack_bonus, attacker)) {
-                    attack_result = attack_result_miss_by_roll;
-                }
+            var tgt_combat = _sync_defense_round_window(attacker, tgt);
+            var parry_limit = _target_parry_limit(tgt);
+            if (tgt_combat.parry_uses < parry_limit
+                && NCre.resolve_skill_check(tgt, Const.skill_parry, attack_roll + attack_bonus, attacker)) {
+                tgt_combat.parry_uses += 1;
+                attack_result = attack_result_miss_by_roll;
             }
         }
 
@@ -1375,6 +1514,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         // free hand, has Deflect Arrows feat, passes Reflex DC 20
         if (attack_result <= attack_result_hit_by_roll && is_ranged && target is Creature) {
             var tgt = target as Creature;
+            var tgt_combat = _sync_defense_round_window(attacker, tgt);
             const target_state_flatfooted = 128;
             if (bit.and(combat.target_state, target_state_flatfooted) == 0) {
                 var rh = Cre.get_equipped_item(tgt, Const.equip_index_righthand);
@@ -1382,8 +1522,11 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
                     var lh = Cre.get_equipped_item(tgt, Const.equip_index_lefthand);
                     var rh_empty = item.get_baseitem_type(rh) < 0;
                     var lh_empty = item.get_baseitem_type(lh) < 0;
-                    if ((rh_empty || lh_empty) && Cre.has_feat(tgt, Const.feat_deflect_arrows)) {
+                    if ((rh_empty || lh_empty)
+                        && tgt_combat.deflect_used == 0
+                        && Cre.has_feat(tgt, Const.feat_deflect_arrows)) {
                         if (NCre.resolve_saving_throw(tgt, Const.saving_throw_reflex, 20, attacker)) {
+                            tgt_combat.deflect_used = 1;
                             attack_result = attack_result_miss_by_roll;
                         }
                     }
@@ -1422,8 +1565,46 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         critical_multiplier = 1;
     }
 
+    var rolls: array!(DamageRoll);
+    var on_hit_base_damage_bonus = 0;
+    if (attack_result <= attack_result_hit_by_roll && on_hit.has_handlers()) {
+        var has_weapon_properties = item.property_count(weapon) > 0;
+        if (has_weapon_properties) {
+            rolls = {};
+            var on_hit_result = on_hit.resolve_weapon_on_hit(attacker, target, weapon, attack_type,
+                attack_result, critical_multiplier, is_ranged);
+            on_hit_base_damage_bonus = on_hit_result.base_damage_bonus;
+            for (var roll in on_hit_result.rolls) {
+                arr.push(rolls, roll);
+
+                if (roll.damage_type != Const.damage_type_base_weapon
+                    && roll.damage_type != Const.damage_type_bludgeoning
+                    && roll.damage_type != Const.damage_type_piercing
+                    && roll.damage_type != Const.damage_type_slashing) {
+                    continue;
+                }
+
+                if (bit.and(roll.flags as int, Const.damage_category_critical as int) != 0 && critical_multiplier <= 1) {
+                    continue;
+                }
+
+                var amount = roll_dice(roll.roll.dice, roll.roll.sides, roll.roll.bonus, 1);
+                if (bit.and(roll.flags as int, Const.damage_category_penalty as int) != 0) {
+                    amount = -amount;
+                }
+                on_hit_base_damage_bonus += amount;
+            }
+            if (on_hit_result.negate_hit) {
+                attack_result = attack_result_miss_by_roll;
+                critical_multiplier = 0;
+                on_hit_base_damage_bonus = 0;
+                arr.clear(rolls);
+            }
+        }
+    }
+
     var base_damage: DamageResult = {
-        damage_type = Const.Damage(-1),
+        damage_type = Const.damage_type_invalid,
         amount = 0,
         unblocked = 0,
         immunity = 0,
@@ -1452,12 +1633,12 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         } else {
             weapon_power = resolve_weapon_power(attacker, weapon);
         }
-        base_damage = _resolve_base_damage_impl(attacker, target, attack_type, weapon, base_item, weapon_power, critical_multiplier);
+        var special_attack_bonus = special_attack != 0 ? modifier.sum_damage_special_attack_modifiers(attacker, target, special_attack, critical_multiplier) : 0;
+        base_damage = _resolve_base_damage_impl(combat, attacker, target, attack_type, weapon, base_item,
+            weapon_power, critical_multiplier, special_attack_bonus + on_hit_base_damage_bonus);
         damage_total = base_damage.unblocked;
         arr.push(damages, base_damage);
     }
-
-    var rolls: array!(DamageRoll);
 
     var data = AttackData {
         attack_type = attack_type as int,

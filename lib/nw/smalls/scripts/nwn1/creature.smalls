@@ -1,4 +1,4 @@
-from core.creature import { CreatureStats };
+from core.creature import { CreatureStats, CreatureCombat };
 import nwn1.constants as Const;
 
 import core.combat as Comb;
@@ -19,22 +19,37 @@ const ability_effect_max = 12;
 
 // Const.Ability score: base=true returns score without temporary effects (includes
 // racial adjustments and permanent modifiers); base=false also adds effects.
-fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false): int {
+fn _compute_ability_scores(obj: Creature, combat: CreatureCombat) {
     var stats = get_propset!(CreatureStats)(obj);
-    var score = stats.abilities[ability as int];
+    for (var i = 0; i < 6; i += 1) {
+        var score = stats.abilities[i];
+        score = score + races.ability_modifier(stats.race, i);
+        score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, i, O.invalid);
+        var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, i, obj, 0, stack_sum);
+        var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, i, obj, 0, stack_sum);
+        combat.ability_scores[i] = score + Math.clamp(bonus - decrease, -12, 12);
+    }
+    combat.ability_cache_valid = true;
+    combat.ability_cache_effect_epoch = combat.effect_epoch;
+    combat.ability_cache_progression_epoch = combat.progression_epoch;
+}
 
-    // Race
-    score = score + races.ability_modifier(stats.race, ability as int);
+fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false): int {
+    if (base) {
+        var stats = get_propset!(CreatureStats)(obj);
+        var score = stats.abilities[ability as int];
+        score = score + races.ability_modifier(stats.race, ability as int);
+        score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, ability as int, O.invalid);
+        return score;
+    }
 
-    // Permanent modifiers (feats, class gains, etc.)
-    score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, ability as int, O.invalid);
-
-    if (base) { return score; }
-
-    // Effects, clamped to [-12, 12]
-    var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, ability as int, obj, 0, stack_sum);
-    var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, ability as int, obj, 0, stack_sum);
-    return score + Math.clamp(bonus - decrease, -12, 12);
+    var combat = get_propset!(CreatureCombat)(obj);
+    if (!combat.ability_cache_valid
+        || combat.ability_cache_effect_epoch != combat.effect_epoch
+        || combat.ability_cache_progression_epoch != combat.progression_epoch) {
+        _compute_ability_scores(obj, combat);
+    }
+    return combat.ability_scores[ability as int];
 }
 
 fn get_ability_modifier(obj: Creature, ability: Const.Ability, base: bool = false): int {

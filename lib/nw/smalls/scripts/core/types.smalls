@@ -15,6 +15,7 @@ type SpellSchool(int);
 type Skill(int);
 type EquipIndex(int);
 type ItemPropertyType(int);
+type RacialType(int);
 
 [[value_type]]
 type DiceRoll {

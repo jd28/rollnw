@@ -5,126 +5,99 @@ from core.creature import { CreatureStats };
 import nwn1.baseitems as baseitems;
 import nwn1.constants as Const;
 
-
-const racial_type_dwarf = 0;
-const racial_type_elf = 1;
-const racial_type_gnome = 2;
-const racial_type_halfling = 3;
-const racial_type_halfelf = 4;
-const racial_type_halforc = 5;
-const racial_type_human = 6;
-const racial_type_aberration = 7;
-const racial_type_animal = 8;
-const racial_type_beast = 9;
-const racial_type_construct = 10;
-const racial_type_dragon = 11;
-const racial_type_humanoid_goblinoid = 12;
-const racial_type_humanoid_monstrous = 13;
-const racial_type_humanoid_orc = 14;
-const racial_type_humanoid_reptilian = 15;
-const racial_type_elemental = 16;
-const racial_type_fey = 17;
-const racial_type_giant = 18;
-const racial_type_magical_beast = 19;
-const racial_type_outsider = 20;
-const racial_type_shapechanger = 23;
-const racial_type_undead = 24;
-const racial_type_vermin = 25;
-
-
 fn _base_item_for_attack(obj: Creature, attack_type: Const.AttackType): Const.BaseItemType {
     var weapon = Cre.weapon_for_attack(obj, attack_type);
     return Const.BaseItemType(item.get_baseitem_type(weapon) as int);
 }
 
-fn _favored_enemy_feat_for_race(race: int): int {
-    if (race == racial_type_dwarf) { return Const.feat_favored_enemy_dwarf as int; }
-    if (race == racial_type_elf) { return Const.feat_favored_enemy_elf as int; }
-    if (race == racial_type_gnome) { return Const.feat_favored_enemy_gnome as int; }
-    if (race == racial_type_halfling) { return Const.feat_favored_enemy_halfling as int; }
-    if (race == racial_type_halfelf) { return Const.feat_favored_enemy_halfelf as int; }
-    if (race == racial_type_halforc) { return Const.feat_favored_enemy_halforc as int; }
-    if (race == racial_type_human) { return Const.feat_favored_enemy_human as int; }
-    if (race == racial_type_aberration) { return Const.feat_favored_enemy_aberration as int; }
-    if (race == racial_type_animal) { return Const.feat_favored_enemy_animal as int; }
-    if (race == racial_type_beast) { return Const.feat_favored_enemy_beast as int; }
-    if (race == racial_type_construct) { return Const.feat_favored_enemy_construct as int; }
-    if (race == racial_type_dragon) { return Const.feat_favored_enemy_dragon as int; }
-    if (race == racial_type_humanoid_goblinoid) { return Const.feat_favored_enemy_goblinoid as int; }
-    if (race == racial_type_humanoid_monstrous) { return Const.feat_favored_enemy_monstrous as int; }
-    if (race == racial_type_humanoid_orc) { return Const.feat_favored_enemy_orc as int; }
-    if (race == racial_type_humanoid_reptilian) { return Const.feat_favored_enemy_reptilian as int; }
-    if (race == racial_type_elemental) { return Const.feat_favored_enemy_elemental as int; }
-    if (race == racial_type_fey) { return Const.feat_favored_enemy_fey as int; }
-    if (race == racial_type_giant) { return Const.feat_favored_enemy_giant as int; }
-    if (race == racial_type_magical_beast) { return Const.feat_favored_enemy_magical_beast as int; }
-    if (race == racial_type_outsider) { return Const.feat_favored_enemy_outsider as int; }
-    if (race == racial_type_shapechanger) { return Const.feat_favored_enemy_shapechanger as int; }
-    if (race == racial_type_undead) { return Const.feat_favored_enemy_undead as int; }
-    if (race == racial_type_vermin) { return Const.feat_favored_enemy_vermin as int; }
-    return -1;
+fn _favored_enemy_feat_for_race(race: Const.RacialType): Const.Feat {
+    if (race == Const.racial_type_dwarf) { return Const.feat_favored_enemy_dwarf; }
+    if (race == Const.racial_type_elf) { return Const.feat_favored_enemy_elf; }
+    if (race == Const.racial_type_gnome) { return Const.feat_favored_enemy_gnome; }
+    if (race == Const.racial_type_halfling) { return Const.feat_favored_enemy_halfling; }
+    if (race == Const.racial_type_halfelf) { return Const.feat_favored_enemy_halfelf; }
+    if (race == Const.racial_type_halforc) { return Const.feat_favored_enemy_halforc; }
+    if (race == Const.racial_type_human) { return Const.feat_favored_enemy_human; }
+    if (race == Const.racial_type_aberration) { return Const.feat_favored_enemy_aberration; }
+    if (race == Const.racial_type_animal) { return Const.feat_favored_enemy_animal; }
+    if (race == Const.racial_type_beast) { return Const.feat_favored_enemy_beast; }
+    if (race == Const.racial_type_construct) { return Const.feat_favored_enemy_construct; }
+    if (race == Const.racial_type_dragon) { return Const.feat_favored_enemy_dragon; }
+    if (race == Const.racial_type_humanoid_goblinoid) { return Const.feat_favored_enemy_goblinoid; }
+    if (race == Const.racial_type_humanoid_monstrous) { return Const.feat_favored_enemy_monstrous; }
+    if (race == Const.racial_type_humanoid_orc) { return Const.feat_favored_enemy_orc; }
+    if (race == Const.racial_type_humanoid_reptilian) { return Const.feat_favored_enemy_reptilian; }
+    if (race == Const.racial_type_elemental) { return Const.feat_favored_enemy_elemental; }
+    if (race == Const.racial_type_fey) { return Const.feat_favored_enemy_fey; }
+    if (race == Const.racial_type_giant) { return Const.feat_favored_enemy_giant; }
+    if (race == Const.racial_type_magical_beast) { return Const.feat_favored_enemy_magical_beast; }
+    if (race == Const.racial_type_outsider) { return Const.feat_favored_enemy_outsider; }
+    if (race == Const.racial_type_shapechanger) { return Const.feat_favored_enemy_shapechanger; }
+    if (race == Const.racial_type_undead) { return Const.feat_favored_enemy_undead; }
+    if (race == Const.racial_type_vermin) { return Const.feat_favored_enemy_vermin; }
+    return Const.feat_type_invalid;
 }
 
-fn _skill_focus_feat(skill: Const.Skill): int {
-    if (skill == Const.skill_animal_empathy) { return Const.feat_skill_focus_animal_empathy as int; }
-    if (skill == Const.skill_concentration) { return Const.feat_skill_focus_concentration as int; }
-    if (skill == Const.skill_disable_trap) { return Const.feat_skill_focus_disable_trap as int; }
-    if (skill == Const.skill_discipline) { return Const.feat_skill_focus_discipline as int; }
-    if (skill == Const.skill_heal) { return Const.feat_skill_focus_heal as int; }
-    if (skill == Const.skill_hide) { return Const.feat_skill_focus_hide as int; }
-    if (skill == Const.skill_listen) { return Const.feat_skill_focus_listen as int; }
-    if (skill == Const.skill_lore) { return Const.feat_skill_focus_lore as int; }
-    if (skill == Const.skill_move_silently) { return Const.feat_skill_focus_move_silently as int; }
-    if (skill == Const.skill_open_lock) { return Const.feat_skill_focus_open_lock as int; }
-    if (skill == Const.skill_parry) { return Const.feat_skill_focus_parry as int; }
-    if (skill == Const.skill_perform) { return Const.feat_skill_focus_perform as int; }
-    if (skill == Const.skill_persuade) { return Const.feat_skill_focus_persuade as int; }
-    if (skill == Const.skill_pick_pocket) { return Const.feat_skill_focus_pick_pocket as int; }
-    if (skill == Const.skill_search) { return Const.feat_skill_focus_search as int; }
-    if (skill == Const.skill_set_trap) { return Const.feat_skill_focus_set_trap as int; }
-    if (skill == Const.skill_spellcraft) { return Const.feat_skill_focus_spellcraft as int; }
-    if (skill == Const.skill_spot) { return Const.feat_skill_focus_spot as int; }
-    if (skill == Const.skill_taunt) { return Const.feat_skill_focus_taunt as int; }
-    if (skill == Const.skill_use_magic_device) { return Const.feat_skill_focus_use_magic_device as int; }
-    if (skill == Const.skill_appraise) { return Const.feat_skill_focus_appraise as int; }
-    if (skill == Const.skill_tumble) { return Const.feat_skill_focus_tumble as int; }
-    if (skill == Const.skill_craft_trap) { return Const.feat_skill_focus_craft_trap as int; }
-    if (skill == Const.skill_bluff) { return Const.feat_skill_focus_bluff as int; }
-    if (skill == Const.skill_intimidate) { return Const.feat_skill_focus_intimidate as int; }
-    if (skill == Const.skill_craft_armor) { return Const.feat_skill_focus_craft_armor as int; }
-    if (skill == Const.skill_craft_weapon) { return Const.feat_skill_focus_craft_weapon as int; }
-    return -1;
+fn _skill_focus_feat(skill: Const.Skill): Const.Feat {
+    if (skill == Const.skill_animal_empathy) { return Const.feat_skill_focus_animal_empathy; }
+    if (skill == Const.skill_concentration) { return Const.feat_skill_focus_concentration; }
+    if (skill == Const.skill_disable_trap) { return Const.feat_skill_focus_disable_trap; }
+    if (skill == Const.skill_discipline) { return Const.feat_skill_focus_discipline; }
+    if (skill == Const.skill_heal) { return Const.feat_skill_focus_heal; }
+    if (skill == Const.skill_hide) { return Const.feat_skill_focus_hide; }
+    if (skill == Const.skill_listen) { return Const.feat_skill_focus_listen; }
+    if (skill == Const.skill_lore) { return Const.feat_skill_focus_lore; }
+    if (skill == Const.skill_move_silently) { return Const.feat_skill_focus_move_silently; }
+    if (skill == Const.skill_open_lock) { return Const.feat_skill_focus_open_lock; }
+    if (skill == Const.skill_parry) { return Const.feat_skill_focus_parry; }
+    if (skill == Const.skill_perform) { return Const.feat_skill_focus_perform; }
+    if (skill == Const.skill_persuade) { return Const.feat_skill_focus_persuade; }
+    if (skill == Const.skill_pick_pocket) { return Const.feat_skill_focus_pick_pocket; }
+    if (skill == Const.skill_search) { return Const.feat_skill_focus_search; }
+    if (skill == Const.skill_set_trap) { return Const.feat_skill_focus_set_trap; }
+    if (skill == Const.skill_spellcraft) { return Const.feat_skill_focus_spellcraft; }
+    if (skill == Const.skill_spot) { return Const.feat_skill_focus_spot; }
+    if (skill == Const.skill_taunt) { return Const.feat_skill_focus_taunt; }
+    if (skill == Const.skill_use_magic_device) { return Const.feat_skill_focus_use_magic_device; }
+    if (skill == Const.skill_appraise) { return Const.feat_skill_focus_appraise; }
+    if (skill == Const.skill_tumble) { return Const.feat_skill_focus_tumble; }
+    if (skill == Const.skill_craft_trap) { return Const.feat_skill_focus_craft_trap; }
+    if (skill == Const.skill_bluff) { return Const.feat_skill_focus_bluff; }
+    if (skill == Const.skill_intimidate) { return Const.feat_skill_focus_intimidate; }
+    if (skill == Const.skill_craft_armor) { return Const.feat_skill_focus_craft_armor; }
+    if (skill == Const.skill_craft_weapon) { return Const.feat_skill_focus_craft_weapon; }
+    return Const.feat_type_invalid;
 }
 
-fn _epic_skill_focus_feat(skill: Const.Skill): int {
-    if (skill == Const.skill_animal_empathy) { return Const.feat_epic_skill_focus_animal_empathy as int; }
-    if (skill == Const.skill_concentration) { return Const.feat_epic_skill_focus_concentration as int; }
-    if (skill == Const.skill_disable_trap) { return Const.feat_epic_skill_focus_disable_trap as int; }
-    if (skill == Const.skill_discipline) { return Const.feat_epic_skill_focus_discipline as int; }
-    if (skill == Const.skill_heal) { return Const.feat_epic_skill_focus_heal as int; }
-    if (skill == Const.skill_hide) { return Const.feat_epic_skill_focus_hide as int; }
-    if (skill == Const.skill_listen) { return Const.feat_epic_skill_focus_listen as int; }
-    if (skill == Const.skill_lore) { return Const.feat_epic_skill_focus_lore as int; }
-    if (skill == Const.skill_move_silently) { return Const.feat_epic_skill_focus_move_silently as int; }
-    if (skill == Const.skill_open_lock) { return Const.feat_epic_skill_focus_open_lock as int; }
-    if (skill == Const.skill_parry) { return Const.feat_epic_skill_focus_parry as int; }
-    if (skill == Const.skill_perform) { return Const.feat_epic_skill_focus_perform as int; }
-    if (skill == Const.skill_persuade) { return Const.feat_epic_skill_focus_persuade as int; }
-    if (skill == Const.skill_pick_pocket) { return Const.feat_epic_skill_focus_pick_pocket as int; }
-    if (skill == Const.skill_search) { return Const.feat_epic_skill_focus_search as int; }
-    if (skill == Const.skill_set_trap) { return Const.feat_epic_skill_focus_set_trap as int; }
-    if (skill == Const.skill_spellcraft) { return Const.feat_epic_skill_focus_spellcraft as int; }
-    if (skill == Const.skill_spot) { return Const.feat_epic_skill_focus_spot as int; }
-    if (skill == Const.skill_taunt) { return Const.feat_epic_skill_focus_taunt as int; }
-    if (skill == Const.skill_use_magic_device) { return Const.feat_epic_skill_focus_use_magic_device as int; }
-    if (skill == Const.skill_appraise) { return Const.feat_epic_skill_focus_appraise as int; }
-    if (skill == Const.skill_tumble) { return Const.feat_epic_skill_focus_tumble as int; }
-    if (skill == Const.skill_craft_trap) { return Const.feat_epic_skill_focus_craft_trap as int; }
-    if (skill == Const.skill_bluff) { return Const.feat_epic_skill_focus_bluff as int; }
-    if (skill == Const.skill_intimidate) { return Const.feat_epic_skill_focus_intimidate as int; }
-    if (skill == Const.skill_craft_armor) { return Const.feat_epic_skill_focus_craft_armor as int; }
-    if (skill == Const.skill_craft_weapon) { return Const.feat_epic_skill_focus_craft_weapon as int; }
-    return -1;
+fn _epic_skill_focus_feat(skill: Const.Skill): Const.Feat {
+    if (skill == Const.skill_animal_empathy) { return Const.feat_epic_skill_focus_animal_empathy; }
+    if (skill == Const.skill_concentration) { return Const.feat_epic_skill_focus_concentration; }
+    if (skill == Const.skill_disable_trap) { return Const.feat_epic_skill_focus_disable_trap; }
+    if (skill == Const.skill_discipline) { return Const.feat_epic_skill_focus_discipline; }
+    if (skill == Const.skill_heal) { return Const.feat_epic_skill_focus_heal; }
+    if (skill == Const.skill_hide) { return Const.feat_epic_skill_focus_hide; }
+    if (skill == Const.skill_listen) { return Const.feat_epic_skill_focus_listen; }
+    if (skill == Const.skill_lore) { return Const.feat_epic_skill_focus_lore; }
+    if (skill == Const.skill_move_silently) { return Const.feat_epic_skill_focus_move_silently; }
+    if (skill == Const.skill_open_lock) { return Const.feat_epic_skill_focus_open_lock; }
+    if (skill == Const.skill_parry) { return Const.feat_epic_skill_focus_parry; }
+    if (skill == Const.skill_perform) { return Const.feat_epic_skill_focus_perform; }
+    if (skill == Const.skill_persuade) { return Const.feat_epic_skill_focus_persuade; }
+    if (skill == Const.skill_pick_pocket) { return Const.feat_epic_skill_focus_pick_pocket; }
+    if (skill == Const.skill_search) { return Const.feat_epic_skill_focus_search; }
+    if (skill == Const.skill_set_trap) { return Const.feat_epic_skill_focus_set_trap; }
+    if (skill == Const.skill_spellcraft) { return Const.feat_epic_skill_focus_spellcraft; }
+    if (skill == Const.skill_spot) { return Const.feat_epic_skill_focus_spot; }
+    if (skill == Const.skill_taunt) { return Const.feat_epic_skill_focus_taunt; }
+    if (skill == Const.skill_use_magic_device) { return Const.feat_epic_skill_focus_use_magic_device; }
+    if (skill == Const.skill_appraise) { return Const.feat_epic_skill_focus_appraise; }
+    if (skill == Const.skill_tumble) { return Const.feat_epic_skill_focus_tumble; }
+    if (skill == Const.skill_craft_trap) { return Const.feat_epic_skill_focus_craft_trap; }
+    if (skill == Const.skill_bluff) { return Const.feat_epic_skill_focus_bluff; }
+    if (skill == Const.skill_intimidate) { return Const.feat_epic_skill_focus_intimidate; }
+    if (skill == Const.skill_craft_armor) { return Const.feat_epic_skill_focus_craft_armor; }
+    if (skill == Const.skill_craft_weapon) { return Const.feat_epic_skill_focus_craft_weapon; }
+    return Const.feat_type_invalid;
 }
 
 fn _spell_focus_feat(school: Const.SpellSchool): int {
@@ -166,15 +139,8 @@ fn _epic_spell_focus_feat(school: Const.SpellSchool): int {
 fn skill_focus_bonus(obj: Creature, skill: Const.Skill): int {
     var result = 0;
 
-    var skill_focus = _skill_focus_feat(skill);
-    if (skill_focus >= 0 && Cre.has_feat(obj, Const.Feat(skill_focus))) {
-        result = result + 3;
-    }
-
-    var epic_skill_focus = _epic_skill_focus_feat(skill);
-    if (epic_skill_focus >= 0 && Cre.has_feat(obj, Const.Feat(epic_skill_focus))) {
-        result = result + 10;
-    }
+    if (Cre.has_feat(obj, _skill_focus_feat(skill))) { result += 3; }
+    if (Cre.has_feat(obj, _epic_skill_focus_feat(skill))) { result += 10; }
 
     return result;
 }
@@ -184,24 +150,24 @@ fn spell_focus_bonus(obj: Creature, school: Const.SpellSchool): int {
 
     var spell_focus = _spell_focus_feat(school);
     if (spell_focus >= 0 && Cre.has_feat(obj, Const.Feat(spell_focus))) {
-        result = result + 2;
+        result += 2;
     }
 
     var greater_spell_focus = _greater_spell_focus_feat(school);
     if (greater_spell_focus >= 0 && Cre.has_feat(obj, Const.Feat(greater_spell_focus))) {
-        result = result + 2;
+        result += 2;
     }
 
     var epic_spell_focus = _epic_spell_focus_feat(school);
     if (epic_spell_focus >= 0 && Cre.has_feat(obj, Const.Feat(epic_spell_focus))) {
-        result = result + 2;
+        result += 2;
     }
 
     return result;
 }
 
 fn attack_bonus_weapon_feat(obj: Creature, attack_type: Const.AttackType): int {
-    if (attack_type == Const.AttackType(-1) || attack_type == Const.attack_type_any) {
+    if (attack_type == Const.attack_type_invalid || attack_type == Const.attack_type_any) {
         return 0;
     }
 
@@ -210,43 +176,39 @@ fn attack_bonus_weapon_feat(obj: Creature, attack_type: Const.AttackType): int {
 
     if ((base_item as int) < 0) {
         if (Cre.has_feat(obj, Const.feat_weapon_focus_unarmed)) {
-            result = result + 1;
+            result += 1;
         }
         if (Cre.has_feat(obj, Const.feat_epic_weapon_focus_unarmed)) {
-            result = result + 2;
+            result += 2;
         }
         return result;
     }
 
     var focus_feat = baseitems.weapon_focus_feat(base_item);
     if (focus_feat >= 0 && Cre.has_feat(obj, Const.Feat(focus_feat))) {
-        result = result + 1;
+        result += 1;
     }
 
     var epic_focus_feat = baseitems.epic_weapon_focus_feat(base_item);
     if (epic_focus_feat >= 0 && Cre.has_feat(obj, Const.Feat(epic_focus_feat))) {
-        result = result + 2;
+        result += 2;
     }
 
     return result;
 }
 
 fn attack_bonus_favored_enemy(obj: Creature, versus: object): int {
-    if (!(versus is Creature)) {
-        return 0;
-    }
+    if (!has_favored_enemy(obj, versus)) { return 0; }
+    return Cre.has_feat(obj, Const.feat_epic_bane_of_enemies) ? 2 : 0;
+}
 
-    if (Cre.get_level_by_class(obj, Const.class_type_ranger) == 0) {
-        return 0;
-    }
+fn has_favored_enemy(obj: Creature, versus: object): bool {
+    if (!(versus is Creature)) { return false; }
+    if (Cre.get_level_by_class(obj, Const.class_type_ranger) == 0) { return false; }
 
     var vs_stats = get_propset!(CreatureStats)(versus as Creature);
-    var favored = _favored_enemy_feat_for_race(vs_stats.race);
-    if (favored < 0 || !Cre.has_feat(obj, Const.Feat(favored))) {
-        return 0;
-    }
-
-    return Cre.has_feat(obj, Const.feat_epic_bane_of_enemies) ? 2 : 0;
+    var favored = _favored_enemy_feat_for_race(Const.RacialType(vs_stats.race));
+    return favored != Const.feat_type_invalid && Cre.has_feat(obj, favored);
 }
 
 fn attack_bonus_weapon_master(obj: Creature, attack_type: Const.AttackType): int {
@@ -262,13 +224,11 @@ fn attack_bonus_weapon_master(obj: Creature, attack_type: Const.AttackType): int
         has_choice = choice_feat >= 0 && Cre.has_feat(obj, Const.Feat(choice_feat));
     }
 
-    if (!has_choice) {
-        return 0;
-    }
+    if (!has_choice) { return 0; }
 
     var result = 1;
     if (wm >= 13) {
-        result = result + (wm - 10) / 3;
+        result += (wm - 10) / 3;
     }
     return result;
 }

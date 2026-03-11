@@ -1,6 +1,7 @@
 from core.types import { BaseItemType, EquipIndex, ItemPropertyType };
 import core.effects as effects;
 import core.map as m;
+import core.object as Obj;
 
 [[native]]
 type ItemProperty {
@@ -22,8 +23,6 @@ var itemprop_generators_by_type: map!(int, fn(ItemProperty, EquipIndex): effects
 [[native]] fn __generate_default_effect(item: Item, prop_index: int, equip_index: int): effects.Effect;
 [[native]] fn __ip_cost_table_int(prop_type: int, cost_value: int, column: string): int;
 [[native]] fn __equip_index_to_attack_type(equip_index: int): int;
-
-[[native]] fn get_baseitem_type(item: Item): BaseItemType;
 
 fn set_generator_for_type(prop_type: ItemPropertyType, generator: fn(ItemProperty, EquipIndex): effects.Effect) {
     itemprop_generators_by_type[prop_type as int] = generator;
@@ -71,3 +70,8 @@ type ItemStats {
     stolen: int;
     // item properties: deferred — requires structured array representation
 };
+
+fn get_baseitem_type(item: Item): BaseItemType {
+    if (item == Obj.invalid) { return BaseItemType(-1); }
+    return BaseItemType(get_propset!(ItemStats)(item).base_item);
+}

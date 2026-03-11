@@ -30,6 +30,12 @@ type Modifier {
     meta_flags: int;
 };
 
+type DamageModifier {
+    tag: string;
+    payload: fn(Creature, object, int, int): int;
+    subtype: int;
+};
+
 type DefenseConcealData {
     concealment: int;
     miss_chance_source: bool;
@@ -44,6 +50,8 @@ var modifiers: array!(array!(fn(Creature, object, int): int)) = {};
 const cache_group_non_target = 1;
 const cache_group_target = 2;
 var attack_bonus_modifiers: array!(Modifier) = {};
+var damage_modifiers: array!(DamageModifier) = {};
+var damage_special_attack_modifiers: array!(DamageModifier) = {};
 
 // Prebuilt per-slot closure arrays. Index = slot ID from cachedefs.
 // slot_buckets[i] holds the closures that contribute to slot i's aggregate.
@@ -83,6 +91,30 @@ fn register_attack_bonus_modifier(
         payload = payload,
         subtype = subtype,
         meta_flags = meta_flags,
+    });
+}
+
+fn register_damage_modifier(
+    tag: string,
+    payload: fn(Creature, object, int, int): int,
+    subtype: int,
+) {
+    arr.push(damage_modifiers, DamageModifier {
+        tag = tag,
+        payload = payload,
+        subtype = subtype,
+    });
+}
+
+fn register_damage_special_attack_modifier(
+    tag: string,
+    payload: fn(Creature, object, int, int): int,
+    subtype: int,
+) {
+    arr.push(damage_special_attack_modifiers, DamageModifier {
+        tag = tag,
+        payload = payload,
+        subtype = subtype,
     });
 }
 
@@ -487,6 +519,42 @@ fn attack_bonus_total_effective(obj: Creature, versus: object, effective_subtype
     var total = attack_bonus_total(obj, versus, effective_subtype);
     if (effective_subtype != Const.attack_type_any as int) {
         total += attack_bonus_total(obj, versus, Const.attack_type_any as int);
+    }
+    return total;
+}
+
+fn sum_damage_modifiers(obj: Creature, versus: object, subtype: int, multiplier: int): int {
+    var total = 0;
+    for (var entry in damage_modifiers) {
+        if (entry.subtype >= 0 && entry.subtype != subtype) {
+            continue;
+        }
+        var f = entry.payload;
+        total += f(obj, versus, subtype, multiplier);
+    }
+    return total;
+}
+
+fn sum_damage_modifiers_effective(obj: Creature, versus: object, effective_subtype: int, multiplier: int): int {
+    var total = sum_damage_modifiers(obj, versus, effective_subtype, multiplier);
+    if (effective_subtype != Const.attack_type_any as int) {
+        total += sum_damage_modifiers(obj, versus, Const.attack_type_any as int, multiplier);
+    }
+    return total;
+}
+
+fn sum_damage_special_attack_modifiers(obj: Creature, versus: object, subtype: int, multiplier: int): int {
+    if (subtype == 0) {
+        return 0;
+    }
+
+    var total = 0;
+    for (var entry in damage_special_attack_modifiers) {
+        if (entry.subtype >= 0 && entry.subtype != subtype) {
+            continue;
+        }
+        var f = entry.payload;
+        total += f(obj, versus, subtype, multiplier);
     }
     return total;
 }
