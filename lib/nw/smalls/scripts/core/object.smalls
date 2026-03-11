@@ -1,10 +1,7 @@
 import core.effects as Eff;
 
-fn _invalid_object(): object {
-    var o: object;
-    return o;
-}
-const invalid: object = _invalid_object();
+[[native]] fn __invalid(): object;
+const invalid: object = __invalid();
 
 [[native]] fn apply_effect(obj: object, effect: Eff.Effect): bool;
 [[native]] fn has_effect_applied(obj: object, effect: Eff.Effect): bool;

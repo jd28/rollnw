@@ -44,10 +44,10 @@ fn process_item_properties(creature: Creature, item: Item, equip_index: EquipInd
         var ip = __get_property(item, i);
         var eff: effects.Effect;
         if (m.has(itemprop_generators_by_type, ip.prop_type)) {
-            var f = itemprop_generators_by_type[ip.prop_type];
-            if (f) {
-                eff = itemprop_generators_by_type[ip.prop_type](ip, equip_index);
-            }
+            var f: fn(ItemProperty, EquipIndex): effects.Effect = itemprop_generators_by_type[ip.prop_type];
+            eff = f(ip, equip_index);
+        } else {
+            eff = __generate_default_effect(item, i, equip_index as int);
         }
         if (__apply_item_effect(creature, item, eff)) { processed = processed + 1; }
     }
@@ -72,6 +72,6 @@ type ItemStats {
 };
 
 fn get_baseitem_type(item: Item): BaseItemType {
-    if (item == Obj.invalid) { return BaseItemType(-1); }
+    if ((item as object) == Obj.invalid) { return BaseItemType(-1); }
     return BaseItemType(get_propset!(ItemStats)(item).base_item);
 }

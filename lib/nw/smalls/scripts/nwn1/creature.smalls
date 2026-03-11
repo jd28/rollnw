@@ -25,8 +25,8 @@ fn _compute_ability_scores(obj: Creature, combat: CreatureCombat) {
         var score = stats.abilities[i];
         score = score + races.ability_modifier(stats.race, i);
         score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, i, O.invalid);
-        var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, i, obj, 0, stack_sum);
-        var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, i, obj, 0, stack_sum);
+        var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, i, O.invalid, 0, stack_sum);
+        var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, i, O.invalid, 0, stack_sum);
         combat.ability_scores[i] = score + Math.clamp(bonus - decrease, -12, 12);
     }
     combat.ability_cache_valid = true;
@@ -44,9 +44,11 @@ fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false):
     }
 
     var combat = get_propset!(CreatureCombat)(obj);
+    var effect_epoch = Comb.creature_effect_version(obj);
     if (!combat.ability_cache_valid
-        || combat.ability_cache_effect_epoch != combat.effect_epoch
+        || combat.ability_cache_effect_epoch != effect_epoch
         || combat.ability_cache_progression_epoch != combat.progression_epoch) {
+        combat.effect_epoch = effect_epoch;
         _compute_ability_scores(obj, combat);
     }
     return combat.ability_scores[ability as int];

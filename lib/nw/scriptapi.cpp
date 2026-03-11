@@ -78,18 +78,24 @@ bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy)
 
 int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
 {
-    int result = 0;
-    auto it = std::remove_if(std::begin(obj->effects()), std::end(obj->effects()),
-        [&](const nw::EffectHandle& handle) {
-            if (handle.creator == creator && nw::kernel::effects().remove(obj, handle.effect)) {
-                nw::kernel::effects().destroy(handle.effect);
-                ++result;
-                return true;
-            }
-            return false;
-        });
+    if (!obj) { return 0; }
 
-    obj->effects().erase(it, std::end(obj->effects()));
+    int result = 0;
+    nw::Vector<nw::Effect*> to_remove;
+    to_remove.reserve(obj->effects().size());
+    for (const auto& handle : obj->effects()) {
+        if (handle.creator == creator) {
+            to_remove.push_back(handle.effect);
+        }
+    }
+
+    for (auto* effect : to_remove) {
+        if (nw::kernel::effects().remove(obj, effect)) {
+            obj->effects().remove(effect);
+            nw::kernel::effects().destroy(effect);
+            ++result;
+        }
+    }
 
     return result;
 }

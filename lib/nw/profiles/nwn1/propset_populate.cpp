@@ -11,6 +11,8 @@
 
 namespace nwn1 {
 
+void populate_item_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj);
+
 // -- Helpers -----------------------------------------------------------------
 
 static const nw::smalls::StructDef* struct_def_from_tid(nw::smalls::Runtime* rt,
@@ -202,6 +204,23 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                     write_int(rt, ref, def, "size", cre->size);
                 }
             }
+        }
+    }
+
+    // Ensure carried/equipped item propsets exist before scripts query ItemStats.
+    for (const auto& equip : cre->equipment.equips) {
+        if (!equip.is<nw::Item*>()) { continue; }
+        if (auto* it = equip.as<nw::Item*>()) {
+            rt->init_object_propsets(it->handle());
+            populate_item_propsets(rt, it);
+        }
+    }
+
+    for (const auto& inv : cre->inventory.items) {
+        if (!inv.item.is<nw::Item*>()) { continue; }
+        if (auto* it = inv.item.as<nw::Item*>()) {
+            rt->init_object_propsets(it->handle());
+            populate_item_propsets(rt, it);
         }
     }
 }

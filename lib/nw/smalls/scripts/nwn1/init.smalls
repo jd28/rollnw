@@ -29,6 +29,8 @@ from nwn1.cachedefs import {
     slot_off_monk_power, slot_off_enchant_arrow,
 };
 
+var did_init = false;
+
 fn is_ranged_base_item(base_item: int): bool {
     return base_item == Const.base_item_longbow
         || base_item == Const.base_item_shortbow
@@ -215,6 +217,79 @@ fn attack_bonus_combat_mode(obj: Creature, subtype: int): int {
 
 fn attack_bonus_weapon_master(obj: Creature, subtype: int): int {
     return mfeat.attack_bonus_weapon_master(obj, Const.AttackType(subtype));
+}
+
+fn damage_bonus_ability(obj: Creature, _versus: object, subtype: int, multiplier: int): int {
+    if (multiplier <= 0 || subtype < 0 || subtype == Const.attack_type_any as int) {
+        return 0;
+    }
+
+    var str_mod = NCre.get_ability_modifier(obj, Const.ability_strength);
+    if (str_mod <= 0) {
+        return 0;
+    }
+
+    var attack_type = Const.AttackType(subtype);
+    var weapon = Cre.weapon_for_attack(obj, attack_type);
+    var base_item = Item.get_baseitem_type(weapon) as int;
+
+    if (is_ranged_base_item(base_item)) {
+        var mighty = 0;
+        var ip_count = Item.property_count(weapon);
+        for (var i = 0; i < ip_count; i += 1) {
+            var ip = Item.__get_property(weapon, i);
+            if (ip.prop_type == Const.ip_mighty as int) {
+                mighty = ip.cost_value;
+                break;
+            }
+        }
+        if (mighty > str_mod) {
+            mighty = str_mod;
+        }
+        return mighty * multiplier;
+    }
+
+    var bonus = str_mod;
+    if (attack_type == Const.attack_type_offhand) {
+        bonus = bonus / 2;
+    } elif (attack_type == Const.attack_type_onhand && !C.dual_wield_has_pair(obj)) {
+        bonus = bonus + bonus / 2;
+    }
+
+    return bonus * multiplier;
+}
+
+fn damage_bonus_favored_enemy(obj: Creature, versus: object, subtype: int, multiplier: int): int {
+    if (subtype != Const.attack_type_any as int || multiplier <= 1 || !mfeat.has_favored_enemy(obj, versus)) {
+        return 0;
+    }
+
+    var ranger_level = Cre.get_level_by_class(obj, Const.class_type_ranger);
+    if (ranger_level > 40) {
+        ranger_level = 40;
+    }
+    var dice = 0;
+    var sides = 0;
+    if (Cre.has_feat(obj, Const.feat_epic_bane_of_enemies)) {
+        dice = 2;
+        sides = 6;
+    }
+    return C.roll_dice(dice, sides, 1 + ranger_level / 5, multiplier);
+}
+
+fn damage_bonus_overwhelming_critical(obj: Creature, _versus: object, subtype: int, multiplier: int): int {
+    if (multiplier <= 1) {
+        return 0;
+    }
+    if (!mfeat.has_overwhelming_critical(obj, Const.AttackType(subtype))) {
+        return 0;
+    }
+
+    var dice = multiplier - 1;
+    if (dice <= 0) {
+        dice = 1;
+    }
+    return C.roll_dice(dice, 6, 0, multiplier);
 }
 
 fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {
@@ -413,6 +488,24 @@ fn init_modifiers() {
         },
         -1, bit.or(scope_subtype, inv_progression_epoch));
 
+    modifier.register_damage_modifier("damage_bonus_ability",
+        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+            return damage_bonus_ability(obj, vs, subtype, multiplier);
+        },
+        -1);
+
+    modifier.register_damage_modifier("damage_bonus_favored_enemy",
+        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+            return damage_bonus_favored_enemy(obj, vs, subtype, multiplier);
+        },
+        Const.attack_type_any as int);
+
+    modifier.register_damage_modifier("damage_bonus_overwhelming_critical",
+        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+            return damage_bonus_overwhelming_critical(obj, vs, subtype, multiplier);
+        },
+        -1);
+
     // == Build slot_buckets ==================================================
     i = 0;
     for (i < 28) {
@@ -432,6 +525,28 @@ fn init_modifiers() {
             arr.push(modifier.slot_buckets[slot_off_ab_nt_cweapon], ab_mod.payload);
             arr.push(modifier.slot_buckets[slot_off_ab_nt_unarmed], ab_mod.payload);
         }
+    }
+
+    // == Build slot invalidation LUTs =========================================
+    // off_clear_lut[key_bits] = bitmask of offense slots (0-27) to clear when
+    // changed_key_mask has those bits set (key_bits = changed_key_mask >> 8).
+    // def_clear_lut[key_bits] = bitmask of defense slots (6-15) to clear.
+    for (var key_bits = 0; key_bits < 128; key_bits += 1) {
+        var changed = bit.shl(key_bits, 8);
+        var off_bits = 0;
+        for (var si = 0; si < 28; si += 1) {
+            if (bit.and(modifier.slot_depends_on[si], changed) != 0) {
+                off_bits = bit.or(off_bits, bit.shl(1, si));
+            }
+        }
+        arr.push(modifier.off_clear_lut, off_bits);
+        var def_bits = 0;
+        for (var di = 6; di < 16; di += 1) {
+            if (bit.and(modifier.slot_depends_on[di], changed) != 0) {
+                def_bits = bit.or(def_bits, bit.shl(1, di));
+            }
+        }
+        arr.push(modifier.def_clear_lut, def_bits);
     }
 
     // == Hitpoints ===========================================================
@@ -523,6 +638,11 @@ fn init_modifiers() {
 }
 
 fn init() {
+    if (did_init) {
+        return;
+    }
+    did_init = true;
+
     nwn1item.register_default_generators();
     init_modifiers();
     on_hit.register_default_handlers();

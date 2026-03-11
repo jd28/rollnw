@@ -2,6 +2,7 @@
 
 #include "kernel/EventSystem.hpp"
 #include "objects/Creature.hpp"
+#include "profiles/nwn1/propset_populate.hpp"
 #include "rules/effects.hpp"
 #include "scriptapi.hpp"
 #include "smalls/runtime.hpp"
@@ -37,6 +38,8 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
     if (!obj || !item) { return 0; }
 
     auto& rt = nw::kernel::runtime();
+    nwn1::populate_item_propsets(&rt, const_cast<nw::Item*>(item));
+
     nw::Vector<nw::smalls::Value> args;
 
     auto creature_value = nw::smalls::Value::make_object(obj->handle());

@@ -81,9 +81,23 @@ bool VirtualMachine::consume_gas(uint64_t amount)
     return true;
 }
 
+void VirtualMachine::sync_pc_for_debug()
+{
+    if (frame_ptr_ && frame_ptr_->function && ip_) {
+        const auto& instrs = frame_ptr_->function->instructions;
+        if (!instrs.empty()) {
+            ptrdiff_t idx = ip_ - instrs.data();
+            if (idx >= 0 && static_cast<size_t>(idx) <= instrs.size()) {
+                frame_ptr_->pc = static_cast<uint32_t>(idx);
+            }
+        }
+    }
+}
+
 void VirtualMachine::fail(StringView msg)
 {
     if (!failed_) {
+        sync_pc_for_debug(); // Sync ip_ → frame.pc so get_stack_trace has accurate location
         failed_ = true;
         error_message_ = String(msg);
 
@@ -244,6 +258,17 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
 
     stack_top_ = base + func->register_count;
 
+    // Sync the caller's pc for accurate stack traces.
+    if (!frames_.empty() && frame_ptr_ && frame_ptr_->function && ip_) {
+        const auto& caller_instrs = frame_ptr_->function->instructions;
+        if (!caller_instrs.empty()) {
+            ptrdiff_t idx = ip_ - caller_instrs.data();
+            if (idx >= 0 && static_cast<size_t>(idx) <= caller_instrs.size()) {
+                frame_ptr_->pc = static_cast<uint32_t>(idx);
+            }
+        }
+    }
+
     CallFrame frame;
     frame.module = module;
     frame.function = func;
@@ -252,8 +277,13 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
     frame.base_register = base;
     frame.return_register = ret_reg;
     frame.open_upvalues = nullptr;
+    frame.saved_ip = ip_; // Caller's ip_ — restored by pop_frame
     frames_.push_back(frame);
     current_base_ = base;
+    frame_ptr_ = &frames_.back();
+    // Set ip_ to the callee's first instruction
+    ip_ = func->instructions.data();
+    ip_end_ = ip_ + func->instructions.size();
 }
 
 void VirtualMachine::pop_frame()
@@ -265,6 +295,15 @@ void VirtualMachine::pop_frame()
     stack_top_ = frame.base_register;
     frames_.pop_back();
     current_base_ = frames_.empty() ? 0 : frames_.back().base_register;
+    frame_ptr_ = frames_.empty() ? nullptr : &frames_.back();
+    // Restore caller's instruction pointer (saved when this frame was pushed)
+    if (!frames_.empty() && frame_ptr_->function) {
+        ip_ = frame.saved_ip;
+        ip_end_ = frame_ptr_->function->instructions.data() + frame_ptr_->function->instructions.size();
+    } else {
+        ip_ = nullptr;
+        ip_end_ = nullptr;
+    }
 }
 
 Upvalue* VirtualMachine::get_or_create_upvalue(CallFrame& frame, uint8_t reg)
@@ -801,7 +840,8 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
     static_assert(std::size(dispatch_table) == static_cast<size_t>(Opcode::_COUNT),
         "dispatch_table out of sync with Opcode enum — update both when adding opcodes");
 
-    CallFrame* frame_ptr = nullptr;
+    // frame_ptr_ is kept up-to-date by push_frame/pop_frame; alias it locally for macros.
+    CallFrame*& frame_ptr = frame_ptr_;
     Instruction _instr{};
     uint8_t _a{}, _b{}, _c{};
 
@@ -817,29 +857,28 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
 // DISPATCH() — inline fetch of the next instruction and jump to its handler.
 // Each call site produces its own indirect branch, enabling per-handler
 // prediction by the CPU's indirect branch predictor (true threaded dispatch).
-// The rare cases (failed, exhausted frame, end of function) fall back to
-// dispatch_top which loops safely.
-#define DISPATCH()                                                                           \
-    do {                                                                                     \
-        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                                       \
-        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;                 \
-        if constexpr (StepLimited) {                                                         \
-            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                                 \
-                fail("Script exceeded execution limit");                                     \
-                goto vm_exit;                                                                \
-            }                                                                                \
-            --remaining_steps_;                                                              \
-        }                                                                                    \
-        frame_ptr = &frames_.back();                                                         \
-        if (ABSL_PREDICT_FALSE(frame_ptr->pc >= frame_ptr->function->instructions.size())) { \
-            pop_frame();                                                                     \
-            goto dispatch_top;                                                               \
-        }                                                                                    \
-        _instr = frame_ptr->function->instructions[frame_ptr->pc++];                         \
-        _a = _instr.arg_a();                                                                 \
-        _b = _instr.arg_b();                                                                 \
-        _c = _instr.arg_c();                                                                 \
-        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];                         \
+// frame_ptr and ip_ are kept stable across instructions; only updated by
+// push_frame/pop_frame and branch (JMP/JMPT/JMPF) handlers.
+#define DISPATCH()                                                           \
+    do {                                                                     \
+        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                       \
+        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit; \
+        if constexpr (StepLimited) {                                         \
+            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                 \
+                fail("Script exceeded execution limit");                     \
+                goto vm_exit;                                                \
+            }                                                                \
+            --remaining_steps_;                                              \
+        }                                                                    \
+        if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {                            \
+            pop_frame();                                                     \
+            goto dispatch_top;                                               \
+        }                                                                    \
+        _instr = *ip_++;                                                     \
+        _a = _instr.arg_a();                                                 \
+        _b = _instr.arg_b();                                                 \
+        _c = _instr.arg_c();                                                 \
+        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];         \
     } while (0)
 
 // dispatch_top: entry point for initial dispatch and the pop_frame fallback.
@@ -853,12 +892,11 @@ dispatch_top:
         }
         --remaining_steps_;
     }
-    frame_ptr = &frames_.back();
-    if (ABSL_PREDICT_FALSE(frame_ptr->pc >= frame_ptr->function->instructions.size())) {
+    if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {
         pop_frame();
         goto dispatch_top;
     }
-    _instr = frame_ptr->function->instructions[frame_ptr->pc++];
+    _instr = *ip_++;
     _a = _instr.arg_a();
     _b = _instr.arg_b();
     _c = _instr.arg_c();
@@ -913,7 +951,7 @@ lbl_JMP: {
     if (off < 0 && gas_enabled_ && !consume_gas()) {
         DISPATCH();
     }
-    frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+    ip_ += off;
     DISPATCH();
 }
 
@@ -932,7 +970,7 @@ lbl_JMPT: {
     if (take_jmpt) {
         int16_t off = instr.arg_sbx();
         if (off < 0 && gas_enabled_ && !consume_gas()) { DISPATCH(); }
-        frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+        ip_ += off;
     }
     DISPATCH();
 }
@@ -952,7 +990,7 @@ lbl_JMPF: {
     if (take_jmpf) {
         int16_t off = instr.arg_sbx();
         if (off < 0 && gas_enabled_ && !consume_gas()) { DISPATCH(); }
-        frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
+        ip_ += off;
     }
     DISPATCH();
 }
@@ -1106,6 +1144,36 @@ lbl_CALLINTR: {
     uint8_t dest_reg = a;
     auto intr_id = static_cast<IntrinsicId>(b);
     uint8_t argc = c;
+    // Fast inline path for bit operations — avoids function-call overhead.
+    // BitAnd=0 .. BitShr=5 are the first 6 IntrinsicId values.
+    if (ABSL_PREDICT_TRUE(static_cast<uint16_t>(intr_id) <= static_cast<uint16_t>(IntrinsicId::BitShr))) {
+        if (intr_id == IntrinsicId::BitNot) {
+            reg(dest_reg) = Value::make_int(~reg(static_cast<uint8_t>(dest_reg + 1)).data.ival);
+        } else {
+            int32_t lhs = reg(static_cast<uint8_t>(dest_reg + 1)).data.ival;
+            int32_t rhs = reg(static_cast<uint8_t>(dest_reg + 2)).data.ival;
+            int32_t result;
+            switch (intr_id) {
+            case IntrinsicId::BitAnd:
+                result = lhs & rhs;
+                break;
+            case IntrinsicId::BitOr:
+                result = lhs | rhs;
+                break;
+            case IntrinsicId::BitXor:
+                result = lhs ^ rhs;
+                break;
+            case IntrinsicId::BitShl:
+                result = lhs << rhs;
+                break;
+            default:
+                result = lhs >> rhs;
+                break; // BitShr
+            }
+            reg(dest_reg) = Value::make_int(result);
+        }
+        DISPATCH();
+    }
     call_intrinsic(intr_id, dest_reg, argc);
     DISPATCH();
 }
@@ -1508,12 +1576,12 @@ lbl_CLOSURE: {
     bool ok = true;
 
     for (size_t w = 0; w < words; ++w) {
-        if (frame.pc >= frame.function->instructions.size()) {
+        if (ip_ >= ip_end_) {
             fail("Closure upvalue descriptor out of range");
             ok = false;
             break;
         }
-        uint32_t raw = frame.function->instructions[frame.pc++].raw;
+        uint32_t raw = (ip_++)->raw;
         for (size_t i = 0; i < 4 && upval_index < upvalue_count; ++i, ++upval_index) {
             uint8_t desc = static_cast<uint8_t>((raw >> (8 * i)) & 0xFF);
             bool is_local = (desc & 0x1) != 0;
@@ -3694,6 +3762,17 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
     const Value& lv = reg(a);
     const Value& rv = reg(b);
     bool skip = false;
+    auto skip_next_instruction = [&]() {
+#if defined(__GNUC__) || defined(__clang__)
+        if (frame_ptr_ && ip_) {
+            ++ip_;
+            return;
+        }
+#endif
+        if (!frames_.empty()) {
+            frames_.back().pc++;
+        }
+    };
 
     // Fast path: int cmp int
     if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
@@ -3719,7 +3798,7 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
         default:
             break;
         }
-        if (skip) { frames_.back().pc++; }
+        if (skip) { skip_next_instruction(); }
         return;
     }
 
@@ -3777,7 +3856,7 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
         default:
             break;
         }
-        if (skip) { frames_.back().pc++; }
+        if (skip) { skip_next_instruction(); }
         return;
     }
 
@@ -3820,7 +3899,7 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
         return;
     }
 
-    if (skip) { frames_.back().pc++; }
+    if (skip) { skip_next_instruction(); }
 }
 
 void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t argc)
@@ -4786,6 +4865,30 @@ void VirtualMachine::op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c,
     }
 }
 
+void VirtualMachine::ensure_field_offset_cache(TypeID struct_type_id, const StructDef* struct_def)
+{
+    field_offset_cache_built_.insert(struct_type_id.value);
+    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
+        const FieldDef& field = struct_def->fields[i];
+        const Type* field_type = rt_->get_type(field.type_id);
+        if (!field_type || field_type->type_kind != TK_fixed_array
+            || !field_type->type_params[0].is<TypeID>()
+            || !field_type->type_params[1].is<int32_t>()) {
+            continue;
+        }
+        TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
+        const Type* elem_type = rt_->get_type(elem_type_id);
+        if (!elem_type || elem_type->size == 0) { continue; }
+        int32_t elem_count = field_type->type_params[1].as<int32_t>();
+        if (elem_count <= 0) { continue; }
+        for (int32_t j = 0; j < elem_count; ++j) {
+            uint32_t byte_off = field.offset + static_cast<uint32_t>(j) * elem_type->size;
+            uint64_t key = (static_cast<uint64_t>(static_cast<uint32_t>(struct_type_id.value)) << 32) | byte_off;
+            field_offset_cache_.emplace(key, elem_type_id);
+        }
+    }
+}
+
 void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 {
     // These opcodes access heap-backed structs (including propsets) at a runtime-computed offset.
@@ -4821,79 +4924,53 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
         return;
     }
 
-    auto matches_opcode_type = [&](TypeID elem_type_id) {
-        switch (op) {
-        case Opcode::FIELDGETI_OFF_R:
-        case Opcode::FIELDSETI_OFF_R:
-            return elem_type_id == rt_->int_type();
-        case Opcode::FIELDGETF_OFF_R:
-        case Opcode::FIELDSETF_OFF_R:
-            return elem_type_id == rt_->float_type();
-        case Opcode::FIELDGETB_OFF_R:
-        case Opcode::FIELDSETB_OFF_R:
-            return elem_type_id == rt_->bool_type();
-        case Opcode::FIELDGETS_OFF_R:
-        case Opcode::FIELDSETS_OFF_R:
-            return elem_type_id == rt_->string_type();
-        case Opcode::FIELDGETO_OFF_R:
-        case Opcode::FIELDSETO_OFF_R:
-            return rt_->is_object_like_type(elem_type_id);
-        case Opcode::FIELDGETH_OFF_R:
-        case Opcode::FIELDSETH_OFF_R:
-            return elem_type_id != rt_->int_type()
-                && elem_type_id != rt_->float_type()
-                && elem_type_id != rt_->bool_type()
-                && elem_type_id != rt_->string_type()
-                && !rt_->is_object_like_type(elem_type_id);
-        default:
-            return false;
-        }
-    };
+    // O(1) cache lookup: build per-struct offset map on first access, then single hash probe.
+    if (!field_offset_cache_built_.contains(struct_val.type_id.value)) {
+        ensure_field_offset_cache(struct_val.type_id, struct_def);
+    }
+    uint64_t cache_key = (static_cast<uint64_t>(static_cast<uint32_t>(struct_val.type_id.value)) << 32) | effective_offset;
+    auto cache_it = field_offset_cache_.find(cache_key);
+    if (cache_it == field_offset_cache_.end()) {
+        fail("Fixed array index out of bounds");
+        return;
+    }
+    TypeID access_type_id = cache_it->second;
 
-    TypeID access_type_id = invalid_type_id;
-    bool valid_offset = false;
-    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
-        const FieldDef& field = struct_def->fields[i];
-        const Type* field_type = rt_->get_type(field.type_id);
-        if (!field_type || field_type->type_kind != TK_fixed_array
-            || !field_type->type_params[0].is<TypeID>()
-            || !field_type->type_params[1].is<int32_t>()) {
-            continue;
-        }
-
-        TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
-        const Type* elem_type = rt_->get_type(elem_type_id);
-        if (!elem_type) {
-            continue;
-        }
-
-        int32_t elem_count = field_type->type_params[1].as<int32_t>();
-        if (elem_count <= 0 || elem_type->size == 0) {
-            continue;
-        }
-
-        uint32_t start = field.offset;
-        uint64_t bytes = static_cast<uint64_t>(elem_count) * elem_type->size;
-        uint64_t end = static_cast<uint64_t>(start) + bytes;
-        if (effective_offset < start || static_cast<uint64_t>(effective_offset) >= end) {
-            continue;
-        }
-
-        uint32_t rel = effective_offset - start;
-        if (rel % elem_type->size != 0) {
-            continue;
-        }
-
-        if (!matches_opcode_type(elem_type_id)) {
-            continue;
-        }
-
-        access_type_id = elem_type_id;
-        valid_offset = true;
+    // Validate that the opcode matches the cached element type.
+    bool type_ok = false;
+    switch (op) {
+    case Opcode::FIELDGETI_OFF_R:
+    case Opcode::FIELDSETI_OFF_R:
+        type_ok = access_type_id == rt_->int_type();
+        break;
+    case Opcode::FIELDGETF_OFF_R:
+    case Opcode::FIELDSETF_OFF_R:
+        type_ok = access_type_id == rt_->float_type();
+        break;
+    case Opcode::FIELDGETB_OFF_R:
+    case Opcode::FIELDSETB_OFF_R:
+        type_ok = access_type_id == rt_->bool_type();
+        break;
+    case Opcode::FIELDGETS_OFF_R:
+    case Opcode::FIELDSETS_OFF_R:
+        type_ok = access_type_id == rt_->string_type();
+        break;
+    case Opcode::FIELDGETO_OFF_R:
+    case Opcode::FIELDSETO_OFF_R:
+        type_ok = rt_->is_object_like_type(access_type_id);
+        break;
+    case Opcode::FIELDGETH_OFF_R:
+    case Opcode::FIELDSETH_OFF_R:
+        type_ok = access_type_id != rt_->int_type()
+            && access_type_id != rt_->float_type()
+            && access_type_id != rt_->bool_type()
+            && access_type_id != rt_->string_type()
+            && !rt_->is_object_like_type(access_type_id);
+        break;
+    default:
         break;
     }
-
-    if (!valid_offset || access_type_id == invalid_type_id) {
+    if (!type_ok) {
         fail("Fixed array index out of bounds");
         return;
     }

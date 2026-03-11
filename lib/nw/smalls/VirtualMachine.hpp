@@ -29,9 +29,12 @@ struct CallFrame {
     BytecodeModule* module = nullptr; // Module this function belongs to (mutable for globals)
     const CompiledFunction* function = nullptr;
     Closure* closure = nullptr;   // Active closure (null for non-closure calls)
-    uint32_t pc = 0;              // Program counter
+    uint32_t pc = 0;              // Program counter (kept for debug/stack-trace; ip_ is authoritative in hot path)
     uint32_t base_register = 0;   // Index into global register file
     uint32_t return_register = 0; // Where to store result in caller's frame
+
+    // Caller's ip_ at the point this frame was pushed (restored by pop_frame).
+    const Instruction* saved_ip = nullptr;
 
     // Per-frame stack storage for value types
     Vector<uint8_t> stack_;
@@ -145,9 +148,25 @@ private:
     // Updated by push_frame() and pop_frame() so reg() never touches frames_.
     uint32_t current_base_ = 0;
 
+    // Stable pointer to the current (top) call frame.
+    // Updated only by push_frame() and pop_frame(); removed from DISPATCH() hot path.
+    CallFrame* frame_ptr_ = nullptr;
+
+    // Direct instruction pointer for the hot dispatch loop.
+    // Invariant: ip_ points to the NEXT instruction to execute.
+    // Updated by push_frame, pop_frame, and branch (JMP/JMPT/JMPF) handlers.
+    const Instruction* ip_ = nullptr;
+    const Instruction* ip_end_ = nullptr; // one past the last instruction of the current frame
+
     // Cached pointer to the kernel Runtime, valid for the duration of run().
     // Avoids repeated service-table scans on every opcode dispatch.
     Runtime* rt_ = nullptr;
+
+    // Per-struct offset→elem_type cache for op_field_offset_access.
+    // Key: (struct_type_id.value << 32) | byte_offset  →  elem TypeID
+    // Eliminates the O(field_count) linear scan on every propset array field read.
+    absl::flat_hash_map<uint64_t, TypeID> field_offset_cache_;
+    absl::flat_hash_set<int32_t> field_offset_cache_built_; // struct_type_id.values already cached
 
     inline Value& reg(uint8_t r)
     {
@@ -196,6 +215,13 @@ private:
     void op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c, const BytecodeModule* module);
     void op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c);
     void call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t argc);
+
+    // Builds the field-offset → elem_type cache for a struct type.
+    // Called once per struct type on first FIELDX_OFF_R access.
+    void ensure_field_offset_cache(TypeID struct_type_id, const StructDef* struct_def);
+
+    // Syncs ip_ → frame_ptr_->pc for get_stack_trace() and error reporting.
+    void sync_pc_for_debug();
 };
 
 } // namespace nw::smalls

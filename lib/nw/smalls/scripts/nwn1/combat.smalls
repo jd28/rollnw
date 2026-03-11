@@ -15,6 +15,7 @@ import nwn1.modifier as modifier;
 import nwn1.on_hit as on_hit;
 import nwn1.progression as progression;
 import nwn1.races as races;
+import nwn1.init as nwn1init;
 import core.object as Obj;
 
 from nwn1.cachedefs import {
@@ -147,6 +148,31 @@ fn ensure_feat_cache(obj: Creature): CreatureCombat {
     return combat;
 }
 
+fn get_feat_flags_from_handle(combat: CreatureCombat, obj: Creature): int {
+    if (modifier.slot_valid(combat, slot_off_feat_flags)) {
+        return combat.slot_values[slot_off_feat_flags];
+    }
+    var flags = 0;
+    if (Cre.has_feat(obj, Const.feat_blind_fight)) {
+        flags = bit.or(flags, feat_flag_blind_fight);
+    }
+    if (Cre.has_feat(obj, Const.feat_two_weapon_fighting)) {
+        flags = bit.or(flags, feat_flag_twf);
+    }
+    if (Cre.has_feat(obj, Const.feat_ambidexterity)) {
+        flags = bit.or(flags, feat_flag_ambidexterity);
+    }
+    if (Cre.has_feat(obj, Const.feat_improved_two_weapon_fighting)) {
+        flags = bit.or(flags, feat_flag_itwf);
+    }
+    if (Cre.count_feats_in_range(obj, Const.feat_favored_enemy_dwarf, Const.feat_favored_enemy_vermin) > 0) {
+        flags = bit.or(flags, feat_flag_favored_enemy);
+    }
+    combat.slot_values[slot_off_feat_flags] = flags;
+    modifier.slot_set_valid(combat, slot_off_feat_flags);
+    return flags;
+}
+
 fn get_feat_flags(obj: Creature): int {
     var combat = get_propset!(CreatureCombat)(obj);
     if (modifier.slot_valid(combat, slot_off_feat_flags)) {
@@ -183,7 +209,7 @@ fn ensure_dual_wield_cache(combat: CreatureCombat, obj: Creature) {
         var light = C.dual_wield_off_is_light(obj);
         on = light ? -4 : -6;
         off = light ? -8 : -10;
-        var feat_flags = get_feat_flags(obj);
+        var feat_flags = get_feat_flags_from_handle(combat, obj);
         if (Cre.ac_armor_base(obj) <= 3 && Cre.get_level_by_class(obj, Const.class_type_ranger) > 0) {
             on = on + 2;
             off = off + 6;
@@ -256,6 +282,8 @@ fn resolve_effective_attack_type(obj: Creature, attack_type: Const.AttackType): 
 
 // Sync offense context + slot caches, then sum via smalls modifier registry.
 fn resolve_attack_bonus(obj: Creature, attack_type: Const.AttackType, versus: object): int {
+    nwn1init.init();
+
     var weapon = Cre.weapon_for_attack(obj, attack_type);
     var base_item = item.get_baseitem_type(weapon);
 
@@ -452,7 +480,7 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
         + modifier.get_off_attack_bonus_raw(combat, obj, versus, effective_attack_type);
 
     return _resolve_attack_roll_with_inputs(obj, attack_type, versus, ab, iter, crit_threat, is_ranged,
-        combat.effect_epoch, get_feat_flags(obj));
+        combat.effect_epoch, get_feat_flags_from_handle(combat, obj));
 }
 
 fn resolve_attack_type(obj: Creature): Const.AttackType {
@@ -1184,9 +1212,7 @@ fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature
     // Favored enemy bonus — gate on feat_flag_favored_enemy first to avoid native calls.
     var fe_bonus = 0;
     {
-        var fe_flags = modifier.slot_valid(attacker_combat, slot_off_feat_flags)
-            ? attacker_combat.slot_values[slot_off_feat_flags]
-            : get_feat_flags(attacker);
+        var fe_flags = get_feat_flags_from_handle(attacker_combat, attacker);
         if (bit.and(fe_flags, feat_flag_favored_enemy) != 0 && mfeat.has_favored_enemy(attacker, target)) {
             var ranger = Cre.get_level_by_class(attacker, Const.class_type_ranger);
             var fe_dice = 0; var fe_sides = 0;
@@ -1474,7 +1500,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         }
 
         if (concealment > 0) {
-            var feat_flags = get_feat_flags(attacker);
+            var feat_flags = get_feat_flags_from_handle(combat, attacker);
             var conceal_check = C.roll_uniform_int(1, 100);
             if (conceal_check <= concealment) {
                 if (bit.and(feat_flags, feat_flag_blind_fight) != 0) {

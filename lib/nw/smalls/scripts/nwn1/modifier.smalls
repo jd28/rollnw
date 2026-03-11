@@ -62,6 +62,11 @@ var slot_buckets: array!(array!(fn(Creature, object, int): int)) = {};
 // slot_depends_on[i] is a bitmask of key_* bits; if any bit is in changed_key_mask, slot i is stale.
 var slot_depends_on: array!(int) = {};
 
+// LUTs: precomputed in init_modifiers. Index = changed_key_mask >> 8 (bits 8-14 of key_* constants).
+// Eliminates the 28-/10-iteration inner loop in every sync_*_context call that finds changes.
+var off_clear_lut: array!(int) = {};  // slots 0-27: bitmask of offense slots to clear
+var def_clear_lut: array!(int) = {};  // slots 6-15: bitmask of defense slots to clear
+
 fn get_off_effect_delta(combat: CreatureCombat, attacker: Creature, target: object, effective_subtype: Const.AttackType): int {
     var stale = target != combat.off_effect_delta_target
         || combat.off_effect_delta_self_epoch != combat.off_effect_epoch
@@ -187,6 +192,27 @@ fn rebuild_off_nt_slot(attacker: Creature, slot: int) {
     slot_set_valid(combat, slot);
 }
 
+// Same as rebuild_off_nt_slot but caller already holds the propset handle.
+fn rebuild_off_nt_slot_from_handle(combat: CreatureCombat, attacker: Creature, slot: int) {
+    var subtype = Const.attack_type_any;
+    if (slot == slot_off_ab_nt_onhand)  { subtype = Const.attack_type_onhand; }
+    elif (slot == slot_off_ab_nt_offhand) { subtype = Const.attack_type_offhand; }
+    elif (slot == slot_off_ab_nt_cweapon) { subtype = Const.attack_type_cweapon1; }
+    elif (slot == slot_off_ab_nt_unarmed) { subtype = Const.attack_type_unarmed; }
+
+    var sum = 0;
+    for (var f in slot_buckets[slot]) {
+        sum += f(attacker, Obj.invalid, subtype as int);
+    }
+    if (slot != slot_off_ab_nt_any) {
+        for (var f in slot_buckets[slot_off_ab_nt_any]) {
+            sum += f(attacker, Obj.invalid, Const.attack_type_any as int);
+        }
+    }
+    combat.slot_values[slot] = sum;
+    slot_set_valid(combat, slot);
+}
+
 fn target_effect_epoch(obj: object): int {
     if (obj is Creature) {
         var combat = get_propset!(CreatureCombat)(obj);
@@ -216,13 +242,7 @@ fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
     if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
 
     if (changed_key_mask != 0) {
-        // Build slot bits to clear for all offense slots 0-27.
-        var clear_slot_bits = 0;
-        for (var i = 0; i < 28; i += 1) {
-            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
-                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
-            }
-        }
+        var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         // Update stored context keys.
@@ -235,10 +255,10 @@ fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
 
         // Prewarm the two most common non-target AB slots (onhand/offhand).
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
         }
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_offhand);
         }
     }
 
@@ -264,12 +284,7 @@ fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, targ
     if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
 
     if (changed_key_mask != 0) {
-        var clear_slot_bits = 0;
-        for (var i = 0; i < 28; i += 1) {
-            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
-                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
-            }
-        }
+        var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         combat.off_target             = target;
@@ -280,10 +295,10 @@ fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, targ
         combat.off_progression_epoch  = cur_prog;
 
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
         }
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_offhand);
         }
     }
 
@@ -308,12 +323,7 @@ fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, t
     if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
 
     if (changed_key_mask != 0) {
-        var clear_slot_bits = 0;
-        for (var i = 0; i < 28; i += 1) {
-            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
-                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
-            }
-        }
+        var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         combat.off_target             = target;
@@ -324,10 +334,10 @@ fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, t
         combat.off_progression_epoch  = cur_prog;
 
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_onhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
         }
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
-            rebuild_off_nt_slot(attacker, slot_off_ab_nt_offhand);
+            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_offhand);
         }
     }
 
@@ -359,13 +369,7 @@ fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, atta
     if (cur_mode     != combat.def_mode_epoch)        { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
 
     if (changed_key_mask != 0) {
-        // Build slot bits to clear for defense slots 6-15.
-        var clear_slot_bits = 0;
-        for (var i = 6; i < 16; i += 1) {
-            if (bit.and(slot_depends_on[i], changed_key_mask) != 0) {
-                clear_slot_bits = bit.or(clear_slot_bits, bit.shl(1, i));
-            }
-        }
+        var clear_slot_bits = def_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         combat.def_target            = attacker;
@@ -478,7 +482,7 @@ fn get_off_attack_bonus_raw(combat: CreatureCombat, attacker: Creature, target: 
     }
 
     if (!slot_valid(combat, nt_slot)) {
-        rebuild_off_nt_slot(attacker, nt_slot);
+        rebuild_off_nt_slot_from_handle(combat, attacker, nt_slot);
     }
 
     if (!slot_valid(combat, slot_off_ab_t_any)) {

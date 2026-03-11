@@ -12,6 +12,7 @@ void register_core_object(Runtime& rt)
     }
 
     rt.module("core.object")
+        .function("__invalid", +[]() -> nw::ObjectHandle { return nw::ObjectHandle{}; })
         .function("apply_effect", +[](nw::ObjectHandle obj, nw::TypedHandle eff) -> bool {
             auto* target = nw::kernel::objects().get_object_base(obj);
             auto* effect = nw::kernel::effects().get(eff);

@@ -68,7 +68,9 @@ void register_core_item(Runtime& rt)
             auto* creature = as_creature(creature_h);
             auto* item = as_item(item_h);
             auto* eff = nw::kernel::effects().get(effect_h);
-            if (!creature || !item || !eff) { return false; }
+            if (!creature || !item || !eff) {
+                return false;
+            }
             eff->handle().creator = item->handle();
             eff->handle().category = nw::EffectCategory::item;
             nw::kernel::runtime().set_handle_ownership(effect_h, OwnershipMode::ENGINE_OWNED);
