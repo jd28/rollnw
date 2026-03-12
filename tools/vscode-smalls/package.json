@@ -1,12 +1,16 @@
 {
   "name": "vscode-smalls",
   "displayName": "Smalls",
-  "description": "Smalls language support (syntax highlighting)",
+  "description": "Smalls language support",
   "version": "0.0.1",
   "publisher": "rollnw",
+  "main": "./dist/extension.js",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "activationEvents": [
+    "onLanguage:smalls"
+  ],
   "categories": [
     "Programming Languages"
   ],
@@ -30,6 +34,44 @@
         "scopeName": "source.smalls",
         "path": "./syntaxes/smalls.tmLanguage.json"
       }
-    ]
+    ],
+    "snippets": [
+      {
+        "language": "smalls",
+        "path": "./snippets/smalls.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Smalls configuration",
+      "properties": {
+        "smalls.lsp.path": {
+          "type": "string",
+          "default": "smalls-lsp",
+          "description": "Path to the smalls-lsp executable"
+        },
+        "smalls.modulePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional module search paths"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.6",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }

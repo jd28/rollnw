@@ -20,6 +20,9 @@
     },
     {
       "include": "#types"
+    },
+    {
+      "include": "#identifiers"
     }
   ],
   "repository": {
@@ -40,7 +43,26 @@
       "patterns": [
         {
           "name": "meta.annotation.smalls",
-          "match": "\\[\\[[^\\]]+\\]\\]"
+          "begin": "\\[\\[",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.annotation.begin.smalls" }
+          },
+          "end": "\\]\\]",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.annotation.end.smalls" }
+          },
+          "patterns": [
+            {
+              "name": "entity.name.function.annotation.smalls",
+              "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+            },
+            {
+              "include": "#strings"
+            },
+            {
+              "include": "#numbers"
+            }
+          ]
         }
       ]
     },
@@ -48,7 +70,18 @@
       "patterns": [
         {
           "name": "string.quoted.double.smalls",
-          "begin": "(?:(?<=\\b)f)?\"",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.smalls",
+              "match": "\\\\(n|t|r|\\\\|\"|0)"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.fstring.smalls",
+          "begin": "\\bf\"",
           "end": "\"",
           "patterns": [
             {
@@ -58,7 +91,16 @@
             {
               "name": "meta.interpolation.smalls",
               "begin": "\\{",
-              "end": "\\}"
+              "beginCaptures": {
+                "0": { "name": "punctuation.section.interpolation.begin.smalls" }
+              },
+              "end": "\\}",
+              "endCaptures": {
+                "0": { "name": "punctuation.section.interpolation.end.smalls" }
+              },
+              "patterns": [
+                { "include": "$self" }
+              ]
             }
           ]
         }
@@ -76,7 +118,7 @@
       "patterns": [
         {
           "name": "keyword.control.smalls",
-          "match": "\\b(?:fn|type|var|const|if|else|for|return|switch|case|default|break|continue|import|from|as|is)\\b"
+          "match": "\\b(?:fn|type|var|const|if|elif|else|for|in|return|switch|case|default|break|continue|import|from|as|is)\\b"
         },
         {
           "name": "constant.language.smalls",
@@ -88,11 +130,23 @@
       "patterns": [
         {
           "name": "storage.type.builtin.smalls",
-          "match": "\\b(?:int|float|bool|string)\\b"
+          "match": "\\b(?:int|float|bool|string|void|object|vec3|Area|Creature|Item|Trigger|Placeable|Door|Waypoint|Encounter|Store|Sound|Player|Module)\\b"
         },
         {
           "name": "entity.name.type.generic.smalls",
           "match": "\\b(?:array|map)!\\b"
+        },
+        {
+          "name": "variable.other.generic-parameter.smalls",
+          "match": "\\$[A-Z]\\b"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "entity.name.function.smalls",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\()"
         }
       ]
     }
