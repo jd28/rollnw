@@ -75,7 +75,7 @@ jobs:
         run: |
           # ci-macos builds smalls-lsp as a universal (arm64 + x86_64) binary.
           lipo -info build/tools/smalls-lsp/smalls-lsp
-          lipo -verify_arch arm64 x86_64 build/tools/smalls-lsp/smalls-lsp
+          lipo build/tools/smalls-lsp/smalls-lsp -verify_arch arm64 x86_64
 
           cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-darwin-universal
 
