@@ -4,6 +4,12 @@
   "description": "Smalls language support",
   "version": "0.0.1",
   "publisher": "rollnw",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jd28/rollnw",
+    "directory": "tools/vscode-smalls"
+  },
   "main": "./dist/extension.js",
   "engines": {
     "vscode": "^1.85.0"
@@ -63,12 +69,15 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "compile": "npm run check-types && npm run bundle",
+    "bundle": "esbuild ./src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --outfile=dist/extension.js --sourcemap",
+    "watch": "npm run bundle -- --watch",
+    "check-types": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
     "@types/node": "^18.14.6",
     "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.10",
     "typescript": "^5.0.2"
   },
   "dependencies": {
