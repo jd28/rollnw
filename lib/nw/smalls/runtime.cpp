@@ -280,7 +280,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         if (!init_mod.empty()) {
             auto* init = load_module(init_mod);
             if (init && init->errors() == 0) {
-                constexpr uint64_t init_module_gas_limit = 1'000'000;
+                constexpr uint64_t init_module_gas_limit = 10'000'000;
                 execute_script(init, "init", {}, init_module_gas_limit);
             }
         }

@@ -53,7 +53,7 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
     args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(index)));
     args.push_back(nw::smalls::Value::make_bool(remove));
 
-    constexpr uint64_t item_props_gas_limit = 1'000'000;
+    constexpr uint64_t item_props_gas_limit = 10'000'000;
     auto result = rt.execute_script("core.item", "process_item_properties", args, item_props_gas_limit);
     if (result.ok()) { return result.value.data.ival; }
     LOG_F(ERROR, "[functions] process_item_properties failed: {}", result.error_message);
