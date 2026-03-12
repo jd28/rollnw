@@ -259,6 +259,11 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
     stack_top_ = base + func->register_count;
 
     // Sync the caller's pc for accurate stack traces.
+    // Only valid in the threaded-dispatch path (GCC/Clang) where ip_ is kept current by
+    // DISPATCH(). The switch-based path (MSVC) never updates ip_ during the run loop —
+    // frame.pc is the authoritative counter there. Writing stale ip_ back would reset the
+    // caller's pc to instruction 0, causing an infinite loop on every function call.
+#if defined(__GNUC__) || defined(__clang__)
     if (!frames_.empty() && frame_ptr_ && frame_ptr_->function && ip_) {
         const auto& caller_instrs = frame_ptr_->function->instructions;
         if (!caller_instrs.empty()) {
@@ -268,6 +273,7 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
             }
         }
     }
+#endif
 
     CallFrame frame;
     frame.module = module;
@@ -713,6 +719,23 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
     }
 
     return {};
+}
+
+void VirtualMachine::execute_module_init(BytecodeModule* module, uint64_t gas_limit)
+{
+    if (frames_.empty()) {
+        // Top-level call: execute normally, gas is initialized inside execute()
+        execute(module, "__init", {}, gas_limit);
+    } else {
+        // Reentrant call: save and restore gas so module __init doesn't drain parent's budget
+        bool saved_enabled = gas_enabled_;
+        uint64_t saved_remaining = remaining_gas_;
+        gas_enabled_ = (gas_limit > 0);
+        remaining_gas_ = gas_limit;
+        execute(module, "__init", {}, 0);
+        gas_enabled_ = saved_enabled;
+        remaining_gas_ = saved_remaining;
+    }
 }
 
 template <bool StepLimited>

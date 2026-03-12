@@ -530,7 +530,7 @@ bool Profile::load_rules() const
                                                                          CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
                                                                          CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
                                                                      });
-    srt.register_twoda_converter("nwn1/data/races", "racialtypes", {
+    srt.register_twoda_converter("nwn1.data.races", "racialtypes", {
                                                                        CM{"Name", "name"},
                                                                        CM{"StrAdjust", "abilities[0]"},
                                                                        CM{"DexAdjust", "abilities[1]"},

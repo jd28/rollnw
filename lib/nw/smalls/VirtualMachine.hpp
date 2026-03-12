@@ -128,6 +128,11 @@ struct VirtualMachine {
     /// Get current frame's stack data (for value-type access)
     uint8_t* current_frame_stack_data();
 
+    /// Runs a module's __init function with an isolated gas budget.
+    /// If the VM is already executing (reentrant call), the current gas state is saved and
+    /// restored afterward so module initialization never drains the parent's budget.
+    void execute_module_init(BytecodeModule* module, uint64_t gas_limit);
+
 private:
     static constexpr size_t maximum_registers = 8192;
     std::unique_ptr<Value[]> registers_;

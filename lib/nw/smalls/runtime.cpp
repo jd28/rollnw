@@ -280,7 +280,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         if (!init_mod.empty()) {
             auto* init = load_module(init_mod);
             if (init && init->errors() == 0) {
-                constexpr uint64_t init_module_gas_limit = 10'000'000;
+                constexpr uint64_t init_module_gas_limit = 100'000'000;
                 execute_script(init, "init", {}, init_module_gas_limit);
             }
         }
@@ -2023,9 +2023,12 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
         module->globals.resize(module->global_count);
     }
 
-    // Auto-run __init if present
+    // Auto-run __init if present.
+    // Uses execute_module_init so that lazily-loaded modules (triggered during another
+    // script's execution) get their own isolated gas budget rather than draining the
+    // parent script's budget.
     if (module->global_count > 0) {
-        vm_->execute(module, "__init", {}, default_gas_limit);
+        vm_->execute_module_init(module, default_gas_limit);
     }
 
     maybe_compact_script_state(script);
