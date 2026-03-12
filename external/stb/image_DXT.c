@@ -1,10 +1,10 @@
 /*
-	Jonathan Dummer
-	2007-07-31-10.32
+        Jonathan Dummer
+        2007-07-31-10.32
 
-	simple DXT compression / decompression code
+        simple DXT compression / decompression code
 
-	public domain
+        public domain
 */
 
 #include "image_DXT.h"
@@ -13,27 +13,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 /*	set this =1 if you want to use the covarince matrix method...
-	which is better than my method of using standard deviations
-	overall, except on the infintesimal chance that the power
-	method fails for finding the largest eigenvector	*/
+        which is better than my method of using standard deviations
+        overall, except on the infintesimal chance that the power
+        method fails for finding the largest eigenvector	*/
 #define USE_COV_MAT 1
 
 /********* Function Prototypes *********/
 /*
-	Takes a 4x4 block of pixels and compresses it into 8 bytes
-	in DXT1 format (color only, no alpha).  Speed is valued
-	over prettyness, at least for now.
+        Takes a 4x4 block of pixels and compresses it into 8 bytes
+        in DXT1 format (color only, no alpha).  Speed is valued
+        over prettyness, at least for now.
 */
 void compress_DDS_color_block(
     int channels,
     const unsigned char* const uncompressed,
     unsigned char compressed[8]);
 /*
-	Takes a 4x4 block of pixels and compresses the alpha
-	component it into 8 bytes for use in DXT5 DDS files.
-	Speed is valued over prettyness, at least for now.
+        Takes a 4x4 block of pixels and compresses the alpha
+        component it into 8 bytes for use in DXT5 DDS files.
+        Speed is valued over prettyness, at least for now.
 */
 void compress_DDS_alpha_block(
     const unsigned char* const uncompressed,
@@ -109,7 +108,7 @@ unsigned char* convert_image_to_DXT1(
         chan_step = 0;
     }
     /*	get the RAM for the compressed image
-		(8 bytes per 4x4 pixel block)	*/
+                (8 bytes per 4x4 pixel block)	*/
     *out_size = ((width + 3) >> 2) * ((height + 3) >> 2) * 8;
     compressed = (unsigned char*)malloc(*out_size);
     /*	go through each block	*/
@@ -178,7 +177,7 @@ unsigned char* convert_image_to_DXT5(
     /*	# channels = 1 or 3 have no alpha, 2 & 4 do have alpha	*/
     has_alpha = 1 - (channels & 1);
     /*	get the RAM for the compressed image
-		(16 bytes per 4x4 pixel block)	*/
+                (16 bytes per 4x4 pixel block)	*/
     *out_size = ((width + 3) >> 2) * ((height + 3) >> 2) * 16;
     compressed = (unsigned char*)malloc(*out_size);
     /*	go through each block	*/
@@ -264,7 +263,7 @@ void compute_color_line_STDEV(
     float sum_rr = 0.0f, sum_gg = 0.0f, sum_bb = 0.0f;
     float sum_rg = 0.0f, sum_rb = 0.0f, sum_gb = 0.0f;
     /*	calculate all data needed for the covariance matrix
-		( to compare with _rygdxt code)	*/
+                ( to compare with _rygdxt code)	*/
     for (i = 0; i < 16 * channels; i += channels) {
         sum_r += uncompressed[i + 0];
         sum_rr += uncompressed[i + 0] * uncompressed[i + 0];
@@ -293,24 +292,24 @@ void compute_color_line_STDEV(
     point[2] = sum_b;
 #if USE_COV_MAT
     /*
-		The following idea was from ryg.
-		(https://mollyrocket.com/forums/viewtopic.php?t=392)
-		The method worked great (less RMSE than mine) most of
-		the time, but had some issues handling some simple
-		boundary cases, like full green next to full red,
-		which would generate a covariance matrix like this:
+                The following idea was from ryg.
+                (https://mollyrocket.com/forums/viewtopic.php?t=392)
+                The method worked great (less RMSE than mine) most of
+                the time, but had some issues handling some simple
+                boundary cases, like full green next to full red,
+                which would generate a covariance matrix like this:
 
-		| 1  -1  0 |
-		| -1  1  0 |
-		| 0   0  0 |
+                | 1  -1  0 |
+                | -1  1  0 |
+                | 0   0  0 |
 
-		For a given starting vector, the power method can
-		generate all zeros!  So no starting with {1,1,1}
-		as I was doing!  This kind of error is still a
-		slight posibillity, but will be very rare.
-	*/
+                For a given starting vector, the power method can
+                generate all zeros!  So no starting with {1,1,1}
+                as I was doing!  This kind of error is still a
+                slight posibillity, but will be very rare.
+        */
     /*	use the covariance matrix directly
-		(1st iteration, don't use all 1.0 values!)	*/
+                (1st iteration, don't use all 1.0 values!)	*/
     sum_r = 1.0f;
     sum_g = 2.718281828f;
     sum_b = 3.141592654f;
@@ -333,7 +332,7 @@ void compute_color_line_STDEV(
     direction[2] = sum_r * sum_rb + sum_g * sum_gb + sum_b * sum_bb;
 #else
     /*	use my standard deviation method
-		(very robust, a tiny bit slower and less accurate)	*/
+                (very robust, a tiny bit slower and less accurate)	*/
     direction[0] = sqrt(sum_rr);
     direction[1] = sqrt(sum_gg);
     direction[2] = sqrt(sum_bb);
@@ -473,7 +472,7 @@ void compress_DDS_color_block(
     next_bit = 8 * 4;
     for (i = 0; i < 16; ++i) {
         /*	find the dot product of this color, to place it on the line
-			(should be [-1,1])	*/
+                        (should be [-1,1])	*/
         int next_value = 0;
         float dot_product = color_line[0] * uncompressed[i * channels + 0] + color_line[1] * uncompressed[i * channels + 1] + color_line[2] * uncompressed[i * channels + 2] - dot_offset;
         /*	map to [0,3]	*/
@@ -522,11 +521,22 @@ void compress_DDS_alpha_block(
     compressed[7] = 0;
     /*	store the all of the alpha values	*/
     next_bit = 8 * 2;
-    scale_me = 7.9999f / (a0 - a1);
+    if (a0 == a1) {
+        scale_me = 0.0f;
+    } else {
+        scale_me = 7.9999f / (a0 - a1);
+    }
     for (i = 3; i < 16 * 4; i += 4) {
         /*	convert this alpha value to a 3 bit number	*/
         int svalue;
-        int value = (int)((uncompressed[i] - a1) * scale_me);
+        int value;
+        if (a0 == a1) {
+            value = 0;
+        } else {
+            value = (int)((uncompressed[i] - a1) * scale_me);
+            if (value < 0) value = 0;
+            if (value > 7) value = 7;
+        }
         svalue = swizzle8[value & 7];
         /*	OK, store this value, start with the 1st byte	*/
         compressed[next_bit >> 3] |= svalue << (next_bit & 7);

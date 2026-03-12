@@ -150,8 +150,10 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
     // Controllers
     node->controller_data.resize(nodehead.controller_data.length);
-    memcpy(node->controller_data.data(), bytes_.data() + nodehead.controller_data.offset + 12,
-        nodehead.controller_data.length * 4);
+    if (nodehead.controller_data.length > 0) {
+        memcpy(node->controller_data.data(), bytes_.data() + nodehead.controller_data.offset + 12,
+            nodehead.controller_data.length * 4);
+    }
 
     auto off = nodehead.controller_keys.offset + 12;
     for (size_t i = 0; i < nodehead.controller_keys.length; ++i) {

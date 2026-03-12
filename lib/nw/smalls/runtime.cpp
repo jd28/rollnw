@@ -2590,7 +2590,9 @@ HeapPtr Runtime::alloc_string(StringView str)
 {
     HeapPtr backing = heap_.allocate(str.size(), 1, string_backing_id_);
     char* data = static_cast<char*>(heap_.get_ptr(backing));
-    memcpy(data, str.data(), str.size());
+    if (!str.empty()) {
+        memcpy(data, str.data(), str.size());
+    }
 
     HeapPtr repr = heap_.allocate(sizeof(StringRepr), alignof(StringRepr), string_id_);
     StringRepr* sr = static_cast<StringRepr*>(heap_.get_ptr(repr));

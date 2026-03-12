@@ -92,7 +92,7 @@ bool CreatureStats::has_feat(Feat feat) const noexcept
 
 void CreatureStats::remove_feat(Feat id)
 {
-    feats_.erase(std::remove(std::begin(feats_), std::end(feats_), id));
+    feats_.erase(std::remove(std::begin(feats_), std::end(feats_), id), std::end(feats_));
 }
 
 bool CreatureStats::set_ability_score(Ability id, int value)

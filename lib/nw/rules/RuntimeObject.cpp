@@ -51,6 +51,7 @@ TypedHandle RuntimeObjectPool::allocate_event()
     // Initialize VariantObject fields
     auto* obj = static_cast<VariantObject*>(pools_[TYPE_EVENT]->get(h));
     if (obj) {
+        new (obj) VariantObject();
         obj->handle = h;
         obj->num_ints = 6;
         obj->num_floats = 2;
@@ -106,11 +107,14 @@ void RuntimeObjectPool::destroy(TypedHandle h)
     if (obj && h.type == TYPE_EFFECT) {
         auto* effect = static_cast<Effect*>(obj);
         effect->~Effect();
-    } else if (obj && variant_layouts_[h.type].num_strings > 0) {
+    } else if (obj) {
         auto* variant = static_cast<VariantObject*>(obj);
-        for (uint16_t i = 0; i < variant->num_strings; ++i) {
-            variant->strings()[i].~String();
+        if (variant_layouts_[h.type].num_strings > 0) {
+            for (uint16_t i = 0; i < variant->num_strings; ++i) {
+                variant->strings()[i].~String();
+            }
         }
+        variant->~VariantObject();
     }
 
     // Destroy the handle in the pool
@@ -154,6 +158,7 @@ TypedHandle RuntimeObjectPool::allocate_variant(uint8_t type_id)
     const auto& layout = variant_layouts_[type_id];
     auto* obj = static_cast<VariantObject*>(pool->get(h));
     if (obj) {
+        new (obj) VariantObject();
         obj->handle = h;
         obj->num_ints = layout.num_ints;
         obj->num_floats = layout.num_floats;
