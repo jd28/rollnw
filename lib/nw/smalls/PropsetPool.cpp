@@ -14,6 +14,11 @@ namespace nw::smalls {
 
 namespace {
 
+constexpr uint32_t align_up_u32(uint32_t value, uint32_t alignment)
+{
+    return (value + alignment - 1) & ~(alignment - 1);
+}
+
 uint64_t pack_owner(ObjectHandle handle)
 {
     return handle.to_ull();
@@ -147,7 +152,9 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     pool.info.type_id = type_id;
     pool.info.def = def;
     pool.info.object_type = def->propset_object_type;
-    pool.entry_stride = static_cast<uint32_t>(sizeof(PropsetHeader)) + def->size;
+    pool.entry_stride = align_up_u32(
+        static_cast<uint32_t>(sizeof(PropsetHeader)) + def->size,
+        static_cast<uint32_t>(alignof(PropsetHeader)));
     pool.info.field_ids.reserve(def->field_count);
     for (uint32_t i = 0; i < def->field_count; ++i) {
         pool.info.field_ids.push_back(i);
