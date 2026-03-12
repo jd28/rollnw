@@ -1,0 +1,155 @@
+name: build-extension
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, ubuntu-22.04, windows-2022]
+        include:
+          - os: ubuntu-22.04
+            binary-name: smalls-lsp-linux-x64
+            preset: ci-linux
+          - os: windows-2022
+            binary-name: smalls-lsp-win32-x64.exe
+            preset: ci-windows
+          - os: macos-14
+            binary-name: smalls-lsp-darwin-universal
+            preset: ci-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: windows - install dependencies
+        if: matrix.os == 'windows-2022'
+        run: choco upgrade ninja
+
+      - name: macOS - install dependencies
+        if: matrix.os == 'macos-14'
+        run: brew install ninja
+
+      - name: linux - install gcc
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt update
+          sudo apt install gcc-13 g++-13 -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: windows - Visual Studio shell
+        if: matrix.os == 'windows-2022'
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset }} -DROLLNW_BUILD_TOOLS=ON
+
+      - name: Build
+        run: cmake --build build --target smalls-lsp --config Release
+
+      - name: Prepare Linux Binary
+        if: matrix.os == 'ubuntu-22.04'
+        run: cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-linux-x64
+
+      - name: Prepare macOS Binary
+        if: matrix.os == 'macos-14'
+        run: |
+          # ci-macos builds smalls-lsp as a universal (arm64 + x86_64) binary.
+          lipo -info build/tools/smalls-lsp/smalls-lsp
+          lipo -verify_arch arm64 x86_64 build/tools/smalls-lsp/smalls-lsp
+
+          cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-darwin-universal
+
+          # The VS Code extension resolves binaries by host arch name.
+          cp smalls-lsp-darwin-universal smalls-lsp-darwin-arm64
+          cp smalls-lsp-darwin-universal smalls-lsp-darwin-x64
+
+      - name: Prepare Windows Binary
+        if: matrix.os == 'windows-2022'
+        run: copy build\tools\smalls-lsp\smalls-lsp.exe smalls-lsp-win32-x64.exe
+
+      - name: Upload Linux Binary
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalls-lsp-linux-x64
+          path: smalls-lsp-linux-x64
+
+      - name: Upload Windows Binary
+        if: matrix.os == 'windows-2022'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalls-lsp-win32-x64.exe
+          path: smalls-lsp-win32-x64.exe
+
+      - name: Upload macOS arm64 Binary
+        if: matrix.os == 'macos-14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalls-lsp-darwin-arm64
+          path: smalls-lsp-darwin-arm64
+
+      - name: Upload macOS Universal Binary
+        if: matrix.os == 'macos-14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalls-lsp-darwin-universal
+          path: smalls-lsp-darwin-universal
+
+      - name: Upload macOS x64 Binary
+        if: matrix.os == 'macos-14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalls-lsp-darwin-x64
+          path: smalls-lsp-darwin-x64
+
+  package:
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: tools/vscode-smalls/bin
+          merge-multiple: true
+
+      - name: Set execute permissions on linux/macos binaries
+        run: chmod +x tools/vscode-smalls/bin/smalls-lsp-*
+
+      - name: Build extension
+        working-directory: tools/vscode-smalls
+        run: |
+          npm install
+          npm run compile
+          npx vsce package
+          
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-smalls
+          path: tools/vscode-smalls/*.vsix

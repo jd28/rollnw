@@ -1840,6 +1840,50 @@ void Runtime::fail(StringView msg)
     vm_->fail(msg);
 }
 
+void Runtime::evict_user_modules()
+{
+    absl::flat_hash_set<BytecodeModule*> evicted_modules;
+
+    for (auto it = modules_.begin(); it != modules_.end();) {
+        if (!it->first.starts_with("core.")) {
+            auto bytecode_it = bytecode_cache_.find(it->second);
+            if (bytecode_it != bytecode_cache_.end()) {
+                if (bytecode_it->second) {
+                    evicted_modules.insert(bytecode_it->second.get());
+                }
+                bytecode_cache_.erase(bytecode_it);
+            }
+            line_offsets_.erase(it->first);
+            it->second->~Script();
+            // Note: The memory itself is part of the arena and not individually freed here.
+            modules_.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+
+    if (!evicted_modules.empty()) {
+        for (uint32_t i = 0; i < external_functions_.size(); ++i) {
+            const auto& ext = external_functions_[i];
+            if (ext.is_native() || !evicted_modules.contains(ext.script_module)) {
+                continue;
+            }
+
+            auto name_it = external_function_names_.find(ext.qualified_name);
+            if (name_it != external_function_names_.end() && name_it->second == i) {
+                external_function_names_.erase(name_it);
+            }
+        }
+    }
+
+    instantiation_cache_.clear();
+}
+
+void Runtime::clear_user_cache()
+{
+    evict_user_modules();
+}
+
 namespace {
 
 Vector<size_t> build_line_offsets(StringView text)

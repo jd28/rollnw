@@ -329,6 +329,12 @@ struct Runtime : public nw::kernel::Service {
     void reset_error();
     void fail(StringView msg);
 
+    /// Evicts all user-authored modules from the cache (keeping core.*)
+    void evict_user_modules();
+
+    /// Clears the user cache and resets line offset tracking
+    void clear_user_cache();
+
     /// Gets or compiles bytecode for a script
     BytecodeModule* get_or_compile_module(Script* script);
 

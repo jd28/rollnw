@@ -37,6 +37,11 @@ venv
 dist/
 rollnw.egg-info/
 
+# VS Code extension artifacts
+tools/vscode-smalls/node_modules/
+tools/vscode-smalls/*.vsix
+tools/vscode-smalls/stdlib/
+
 # jupyter
 .ipynb_checkpoints
 

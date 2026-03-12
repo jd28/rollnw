@@ -1,0 +1,62 @@
+{
+	"Function Definition": {
+		"prefix": "fn",
+		"body": [
+			"fn ${1:name}(${2:params}): ${3:void} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Define a function"
+	},
+	"Struct Declaration": {
+		"prefix": "type",
+		"body": [
+			"type ${1:Name} {",
+			"\t${2:field}: ${3:int};",
+			"\t$0",
+			"};"
+		],
+		"description": "Declare a struct"
+	},
+	"Sum Type Declaration": {
+		"prefix": "sum",
+		"body": [
+			"type ${1:Result} = ${2:Ok}(${3:int}) | ${4:Err}(${5:string});"
+		],
+		"description": "Declare a sum type"
+	},
+	"For Loop": {
+		"prefix": "for",
+		"body": [
+			"for (var ${1:i} = 0; ${1:i} < ${2:10}; ${1:i} = ${1:i} + 1) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Traditional for loop"
+	},
+	"For In Loop": {
+		"prefix": "forin",
+		"body": [
+			"for (var ${1:x} in ${2:collection}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "For-each loop"
+	},
+	"If Statement": {
+		"prefix": "if",
+		"body": [
+			"if (${1:condition}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "If statement"
+	},
+	"Print": {
+		"prefix": "print",
+		"body": [
+			"print(f\"$1\");"
+		],
+		"description": "Print formatted string"
+	}
+}

@@ -173,4 +173,6 @@ endif()
 
 if(ROLLNW_BUILD_TOOLS AND PROJECT_IS_TOP_LEVEL)
 add_subdirectory(tools/smalls)
+add_subdirectory(tools/smalls-lsp)
+add_subdirectory(tools/vscode-smalls)
 endif()
