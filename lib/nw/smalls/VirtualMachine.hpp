@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace nw::smalls {
 
@@ -165,8 +167,8 @@ private:
     // Per-struct offset→elem_type cache for op_field_offset_access.
     // Key: (struct_type_id.value << 32) | byte_offset  →  elem TypeID
     // Eliminates the O(field_count) linear scan on every propset array field read.
-    absl::flat_hash_map<uint64_t, TypeID> field_offset_cache_;
-    absl::flat_hash_set<int32_t> field_offset_cache_built_; // struct_type_id.values already cached
+    std::unordered_map<uint64_t, TypeID> field_offset_cache_;
+    std::unordered_set<int32_t> field_offset_cache_built_; // struct_type_id.values already cached
 
     inline Value& reg(uint8_t r)
     {

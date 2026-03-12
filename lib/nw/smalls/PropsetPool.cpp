@@ -14,6 +14,25 @@ namespace nw::smalls {
 
 namespace {
 
+uint64_t pack_owner(ObjectHandle handle)
+{
+    return handle.to_ull();
+}
+
+ObjectHandle unpack_owner(uint64_t bits)
+{
+    ObjectHandle handle{};
+    handle.id = static_cast<ObjectID>(static_cast<uint32_t>(bits & 0xFFFFFFFFu));
+    handle.version = static_cast<uint32_t>((bits >> 32) & 0x00FFFFFFu);
+    handle.type = static_cast<ObjectType>((bits >> 56) & 0xFFu);
+    return handle;
+}
+
+uint32_t unpack_owner_id(uint64_t bits)
+{
+    return static_cast<uint32_t>(bits & 0xFFFFFFFFu);
+}
+
 bool has_annotation(const StructDef* def, StringView name)
 {
     if (!def) {
@@ -201,7 +220,7 @@ void PropsetPoolManager::free_entry(Runtime& rt, Pool& pool, uint32_t /*object_i
     }
 
     std::memset(data, 0, pool.info.def->size);
-    hdr->owner = ObjectHandle{};
+    hdr->owner_bits = 0;
     hdr->dirty_bits = 0;
     hdr->flags = 0; // Clears HDR_ALIVE and all other flags
 }
@@ -280,7 +299,7 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     uint8_t* data = entry + sizeof(PropsetHeader);
 
     if (hdr->alive()) {
-        if (hdr->owner == obj) {
+        if (unpack_owner(hdr->owner_bits) == obj) {
             // Fast path: entry is already initialized for this object
             Value out(propset_type);
             out.storage = ValueStorage::propset;
@@ -295,7 +314,7 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     std::memset(data, 0, pool->info.def->size);
     rt.initialize_zero_defaults(propset_type, data);
 
-    hdr->owner = obj;
+    hdr->owner_bits = pack_owner(obj);
     hdr->dirty_bits = 0;
     hdr->flags = PropsetHeader::HDR_ALIVE | PropsetHeader::HDR_IS_STATIC;
     if (!pool->info.unmanaged_array_offsets.empty()) {
@@ -394,7 +413,7 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
             if (ptr->value == 0) {
                 rt.initialize_zero_defaults(field_type, reinterpret_cast<uint8_t*>(ptr));
                 if (field_it != pool->info.offset_to_field.end()) {
-                    uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                    uint32_t object_id = unpack_owner_id(hdr->owner_bits);
                     bind_heap_owner(*pool, object_id, field_it->second, *ptr);
                     if (auto* gc = rt.gc()) {
                         gc->write_barrier_root(*ptr);
@@ -424,7 +443,7 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
         if (field_it != pool->info.offset_to_field.end()) {
             mark_entry_dirty(hdr, field_it->second, /*is_heap_field=*/true);
             if (out.storage == ValueStorage::heap) {
-                uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                uint32_t object_id = unpack_owner_id(hdr->owner_bits);
                 bind_heap_owner(*pool, object_id, field_it->second, out.data.hptr);
             }
             update_entry_heap_liveness(rt, *pool, hdr, data);
@@ -481,7 +500,7 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
         mark_entry_dirty(hdr, field_it->second, is_heap_field);
         if (is_heap_field) {
             HeapPtr ptr = *reinterpret_cast<HeapPtr*>(data + offset);
-            uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+            uint32_t object_id = unpack_owner_id(hdr->owner_bits);
             bind_heap_owner(*pool, object_id, field_it->second, ptr);
             if (auto* gc = rt.gc()) {
                 gc->write_barrier_root(ptr);
@@ -514,7 +533,7 @@ void PropsetPoolManager::free_object_propsets(Runtime& rt, ObjectHandle obj)
         uint8_t* entry = get_entry(pool, object_id);
         if (!entry) { continue; }
         auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
-        if (!hdr->alive() || hdr->owner != obj) { continue; }
+        if (!hdr->alive() || unpack_owner(hdr->owner_bits) != obj) { continue; }
         uint8_t* data = entry + sizeof(PropsetHeader);
         free_entry(rt, pool, object_id, hdr, data);
     }
@@ -568,8 +587,9 @@ void PropsetPoolManager::prune_invalid_owners(Runtime& rt)
                 uint8_t* entry = chunk + static_cast<size_t>(i) * pool.entry_stride;
                 auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
                 if (!hdr->alive()) { continue; }
-                if (!nw::kernel::objects().valid(hdr->owner)) {
-                    uint32_t object_id = static_cast<uint32_t>(hdr->owner.id);
+                ObjectHandle owner = unpack_owner(hdr->owner_bits);
+                if (!nw::kernel::objects().valid(owner)) {
+                    uint32_t object_id = unpack_owner_id(hdr->owner_bits);
                     uint8_t* data = entry + sizeof(PropsetHeader);
                     free_entry(rt, pool, object_id, hdr, data);
                 }

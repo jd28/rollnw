@@ -18,15 +18,13 @@ struct GCRootVisitor;
 struct Value;
 
 /// Header stored at the start of every propset entry in the chunked array.
-/// Entry layout: [PropsetHeader] [struct_data (def->size bytes)]
-/// Header size is compiler-dependent (ObjectHandle bitfields differ by ABI),
-/// but it is always 8-byte aligned and 8-byte sized multiple.
-struct alignas(8) PropsetHeader {
+/// Entry layout: [PropsetHeader (24 bytes)] [struct_data (def->size bytes)]
+/// The header is 24 bytes, keeping struct_data 8-byte aligned.
+struct PropsetHeader {
+    uint64_t owner_bits = 0; ///< Packed ObjectHandle bits (see ObjectHandle::to_ull).
     uint64_t dirty_bits = 0; ///< Per-field dirty mask; field >= 64 sets all bits.
-    ObjectHandle owner;      ///< Owning object handle; zero id = unallocated slot.
     uint8_t flags = 0;       ///< Packed booleans — see HDR_* constants.
-    static constexpr size_t kPadBytes = (8 - ((sizeof(uint64_t) + sizeof(ObjectHandle) + sizeof(uint8_t)) % 8)) % 8;
-    uint8_t _pad[kPadBytes] = {}; ///< Padding to an 8-byte boundary.
+    uint8_t _pad[7] = {};    ///< Padding to 24 bytes total.
 
     static constexpr uint8_t HDR_ALIVE = 0x01;
     static constexpr uint8_t HDR_AGGREGATE_DIRTY = 0x02;
@@ -41,8 +39,8 @@ struct alignas(8) PropsetHeader {
     bool has_unmanaged_arrays() const noexcept { return flags & HDR_HAS_UNMANAGED_ARRAYS; }
 };
 
-static_assert((sizeof(PropsetHeader) % 8) == 0, "PropsetHeader size must be a multiple of 8");
-static_assert(alignof(PropsetHeader) >= 8, "PropsetHeader must be at least 8-byte aligned");
+static_assert(sizeof(PropsetHeader) == 24, "PropsetHeader must be exactly 24 bytes");
+static_assert(alignof(PropsetHeader) == 8, "PropsetHeader must be 8-byte aligned");
 
 class PropsetPoolManager {
 public:
