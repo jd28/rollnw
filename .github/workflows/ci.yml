@@ -317,7 +317,7 @@ jobs:
 
       - name: upload fuzz artifacts (on failure)
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-artifacts
           if-no-files-found: ignore
@@ -464,7 +464,7 @@ jobs:
 
       - name: upload benchmark results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: benchmarks-canary
           if-no-files-found: warn
