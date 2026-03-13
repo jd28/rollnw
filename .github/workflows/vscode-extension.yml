@@ -79,10 +79,6 @@ jobs:
 
           cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-darwin-universal
 
-          # The VS Code extension resolves binaries by host arch name.
-          cp smalls-lsp-darwin-universal smalls-lsp-darwin-arm64
-          cp smalls-lsp-darwin-universal smalls-lsp-darwin-x64
-
       - name: Prepare Windows Binary
         if: matrix.os == 'windows-2022'
         run: copy build\tools\smalls-lsp\smalls-lsp.exe smalls-lsp-win32-x64.exe
@@ -101,26 +97,12 @@ jobs:
           name: smalls-lsp-win32-x64.exe
           path: smalls-lsp-win32-x64.exe
 
-      - name: Upload macOS arm64 Binary
-        if: matrix.os == 'macos-14'
-        uses: actions/upload-artifact@v7
-        with:
-          name: smalls-lsp-darwin-arm64
-          path: smalls-lsp-darwin-arm64
-
       - name: Upload macOS Universal Binary
         if: matrix.os == 'macos-14'
         uses: actions/upload-artifact@v7
         with:
           name: smalls-lsp-darwin-universal
           path: smalls-lsp-darwin-universal
-
-      - name: Upload macOS x64 Binary
-        if: matrix.os == 'macos-14'
-        uses: actions/upload-artifact@v7
-        with:
-          name: smalls-lsp-darwin-x64
-          path: smalls-lsp-darwin-x64
 
   package:
     needs: build-binaries
@@ -141,12 +123,71 @@ jobs:
       - name: Set execute permissions on linux/macos binaries
         run: chmod +x tools/vscode-smalls/bin/smalls-lsp-*
 
+      - name: Validate bundled binaries
+        run: |
+          set -euo pipefail
+          required=(
+            tools/vscode-smalls/bin/smalls-lsp-linux-x64
+            tools/vscode-smalls/bin/smalls-lsp-win32-x64.exe
+            tools/vscode-smalls/bin/smalls-lsp-darwin-universal
+          )
+
+          for binary in "${required[@]}"; do
+            if [ ! -f "$binary" ]; then
+              echo "Missing required binary: $binary"
+              exit 1
+            fi
+          done
+
       - name: Build extension
         working-directory: tools/vscode-smalls
         run: |
           npm ci
           npm run compile
           npx @vscode/vsce package
+
+      - name: Validate VSIX binary layout
+        run: |
+          python3 <<'PY'
+          import glob
+          import sys
+          import zipfile
+
+          matches = sorted(glob.glob('tools/vscode-smalls/*.vsix'))
+          if not matches:
+              print('No VSIX package found')
+              sys.exit(1)
+
+          with zipfile.ZipFile(matches[0]) as archive:
+              entries = set(archive.namelist())
+
+          required = {
+              'extension/bin/smalls-lsp-linux-x64',
+              'extension/bin/smalls-lsp-win32-x64.exe',
+              'extension/bin/smalls-lsp-darwin-universal',
+          }
+          forbidden = {
+              'extension/bin/smalls-lsp-darwin-arm64',
+              'extension/bin/smalls-lsp-darwin-x64',
+          }
+
+          missing = sorted(required - entries)
+          unexpected = sorted(forbidden & entries)
+
+          if missing:
+              print('VSIX missing required binaries:')
+              for item in missing:
+                  print(f'  - {item}')
+              sys.exit(1)
+
+          if unexpected:
+              print('VSIX contains unexpected binaries:')
+              for item in unexpected:
+                  print(f'  - {item}')
+              sys.exit(1)
+
+          print(f'Validated VSIX binary layout: {matches[0]}')
+          PY
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v7

@@ -21,13 +21,25 @@ export function activate(context: ExtensionContext) {
         const platform = os.platform(); // 'win32', 'linux', 'darwin'
         const arch = os.arch();         // 'x64', 'arm64'
         const ext = platform === 'win32' ? '.exe' : '';
-        const binaryName = `smalls-lsp-${platform}-${arch}${ext}`;
-        
-        const bundledPath = context.asAbsolutePath(path.join('bin', binaryName));
-        if (fs.existsSync(bundledPath)) {
-            serverPath = bundledPath;
+        const candidateBinaries: string[] = [];
+
+        if (platform === 'darwin') {
+            candidateBinaries.push('smalls-lsp-darwin-universal');
+            candidateBinaries.push(`smalls-lsp-${platform}-${arch}`);
         } else {
-            // Fallback for local development if the exact platform name isn't built
+            candidateBinaries.push(`smalls-lsp-${platform}-${arch}${ext}`);
+        }
+
+        for (const candidate of candidateBinaries) {
+            const bundledPath = context.asAbsolutePath(path.join('bin', candidate));
+            if (fs.existsSync(bundledPath)) {
+                serverPath = bundledPath;
+                break;
+            }
+        }
+
+        if (serverPath === 'smalls-lsp') {
+            // Fallback for local development if platform-specific binaries are not present
             const fallbackPath = context.asAbsolutePath(path.join('bin', `smalls-lsp${ext}`));
             if (fs.existsSync(fallbackPath)) {
                 serverPath = fallbackPath;

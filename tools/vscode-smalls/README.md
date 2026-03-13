@@ -2,6 +2,16 @@
 
 This directory contains a minimal VSCode extension that provides Smalls syntax highlighting.
 
+## Bundled language server
+
+Published VSIX packages bundle `smalls-lsp` binaries for:
+
+- Linux x64: `bin/smalls-lsp-linux-x64`
+- macOS universal: `bin/smalls-lsp-darwin-universal`
+- Windows x64: `bin/smalls-lsp-win32-x64.exe`
+
+By default, the extension uses a bundled binary when available. You can override this in settings with `smalls.lsp.path`.
+
 ## Run locally
 
 1. Open this repo in VSCode.
