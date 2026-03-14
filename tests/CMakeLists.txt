@@ -91,6 +91,7 @@ add_executable(rollnw_test
     smalls_modules.cpp
     smalls_virtual_machine.cpp
     smalls_config.cpp
+    smalls_propset_parity.cpp
     smalls_vm_reentrant.cpp
 
     util_containers.cpp

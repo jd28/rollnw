@@ -1,6 +1,10 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/profiles/nwn1/propset_gff_importer.hpp>
+#include <nw/profiles/nwn1/propset_gff_policy.hpp>
+#include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -160,3 +164,74 @@ static void BM_propset_field_write(benchmark::State& state)
     nwk::objects().destroy(creature->handle());
 }
 BENCHMARK(BM_propset_field_write);
+
+// ---------------------------------------------------------------------------
+// BM_propset_gff_import: GFF → propset import overhead (Phase 6 preview)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct PropsetImportBenchState {
+    nwn1::PropsetGffPolicyRegistry registry;
+    nwn1::PropsetGffImporter importer;
+    nw::ResourceData gff_data;
+
+    PropsetImportBenchState()
+        : registry(nwn1::make_nwn1_propset_policy_registry())
+        , importer(&nw::kernel::runtime(), &registry)
+        , gff_data(nw::ResourceData::from_file("test_data/user/development/nw_chicken.utc"))
+    {
+    }
+};
+
+PropsetImportBenchState* ensure_propset_import_state()
+{
+    static PropsetImportBenchState* state = nullptr;
+    if (state) { return state; }
+
+    // Trigger compilation of propset types by loading a script that imports them.
+    auto* script = nw::kernel::runtime().load_module_from_source(
+        "bench.propset_import_init",
+        "import core.creature as Cre;");
+    if (!script || script->errors() != 0) { return nullptr; }
+
+    auto rd = nw::ResourceData::from_file("test_data/user/development/nw_chicken.utc");
+    nw::Gff probe(rd.copy());
+    if (!probe.valid()) { return nullptr; }
+
+    state = new PropsetImportBenchState();
+    return state;
+}
+
+} // anonymous namespace
+
+static void BM_propset_gff_import(benchmark::State& state)
+{
+    auto& rt = nwk::runtime();
+    auto* s = ensure_propset_import_state();
+    if (!s || !s->gff_data.bytes.size()) {
+        state.SkipWithError("failed to set up propset import bench state");
+        return;
+    }
+
+    for (auto _ : state) {
+        auto* cre = nwk::objects().make<nw::Creature>();
+        if (!cre) {
+            state.SkipWithError("failed to allocate creature");
+            return;
+        }
+
+        nw::ResourceData rd = s->gff_data.copy();
+        nw::Gff gff(std::move(rd));
+        if (gff.valid()) {
+            nw::deserialize(cre, gff.toplevel(), nw::SerializationProfile::blueprint);
+            rt.init_object_propsets(cre->handle());
+            s->importer.import_creature(cre, gff.toplevel(),
+                nw::SerializationProfile::blueprint);
+        }
+
+        benchmark::DoNotOptimize(cre);
+        nwk::objects().destroy(cre->handle());
+    }
+}
+BENCHMARK(BM_propset_gff_import);
