@@ -22,6 +22,7 @@ add_executable(rollnw_test
 
     kernel_factions.cpp
     kernel_load_module.cpp
+    kernel_events.cpp
     kernel_models.cpp
     kernel_objects.cpp
     kernel_rules.cpp
