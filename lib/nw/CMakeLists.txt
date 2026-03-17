@@ -90,6 +90,7 @@ add_library(nw STATIC
     rules/attributes.cpp
     rules/Class.cpp
     rules/combat.cpp
+    rules/combat_scheduler.cpp
     rules/Dice.cpp
     rules/effects.cpp
     rules/feats.cpp

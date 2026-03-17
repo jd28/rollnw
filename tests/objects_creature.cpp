@@ -307,10 +307,10 @@ TEST(Creature, AttackSchedulingUsesEventTicks)
     events.set_current_tick(0);
 
     auto before = attacker->combat_info.attack_current;
-    auto delay = nwn1::resolve_attack_cooldown_ticks(attacker, 60);
+    auto delay = nw::combat::resolve_attack_cooldown_ticks(attacker, 60);
     EXPECT_GE(delay, 1u);
 
-    EXPECT_TRUE(nwn1::schedule_attack(attacker, target, 2));
+    EXPECT_TRUE(nw::combat::schedule_attack(attacker, target, 2));
     EXPECT_EQ(events.process(), 0);
 
     events.advance(1);
@@ -320,6 +320,41 @@ TEST(Creature, AttackSchedulingUsesEventTicks)
     events.advance(1);
     EXPECT_EQ(events.process(), 1);
     EXPECT_NE(attacker->combat_info.attack_current, before);
+}
+
+TEST(Creature, AutoAttackCanRetargetAndStop)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto attacker = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto target1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    auto target2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ASSERT_TRUE(attacker);
+    ASSERT_TRUE(target1);
+    ASSERT_TRUE(target2);
+
+    auto& events = nwk::events();
+    events.process_until(std::numeric_limits<uint64_t>::max());
+    events.set_current_tick(0);
+
+    EXPECT_TRUE(nw::combat::start_auto_attack(attacker, target1, 1, 60));
+    events.advance(1);
+    EXPECT_EQ(events.process(), 1);
+    auto after_first = attacker->combat_info.attack_current;
+
+    EXPECT_TRUE(nw::combat::start_auto_attack(attacker, target2, 1, 60));
+    events.advance(1);
+    EXPECT_EQ(events.process(), 1);
+    auto after_retarget = attacker->combat_info.attack_current;
+    EXPECT_NE(after_retarget, after_first);
+
+    EXPECT_TRUE(nw::combat::stop_auto_attack(attacker));
+    auto after_stop = attacker->combat_info.attack_current;
+    events.advance(60);
+    EXPECT_GE(events.process(), 0);
+    EXPECT_EQ(attacker->combat_info.attack_current, after_stop);
+    EXPECT_FALSE(nw::combat::stop_auto_attack(attacker));
 }
 
 TEST(Creature, BaseAttackBonus)

@@ -4,6 +4,7 @@
 
 #include "../../rules/Spell.hpp"
 #include "../../rules/attributes.hpp"
+#include "../../rules/combat_scheduler.hpp"
 #include "constants.hpp"
 
 namespace nw {
@@ -158,14 +159,20 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 /// any other that attacker and/or target are passed to, are passed as const.
 std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
 
-/// Computes attack cooldown in event ticks from attacks-per-round.
-/// @param round_ticks Number of ticks in one NWN1 combat round abstraction.
+/// Legacy alias for nw::combat::resolve_attack_cooldown_ticks.
 uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t round_ticks = 60);
 
-/// Schedules a one-shot attack event after delay_ticks.
+/// Legacy alias for nw::combat::schedule_attack.
 bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks);
 
-/// Resolves an attack now and schedules a follow-up attack by cooldown.
+/// Legacy alias for nw::combat::start_auto_attack.
+bool start_auto_attack(nw::Creature* attacker, nw::ObjectBase* target,
+    uint64_t initial_delay_ticks = 0, uint32_t round_ticks = 60);
+
+/// Legacy alias for nw::combat::stop_auto_attack.
+bool stop_auto_attack(nw::Creature* attacker);
+
+/// Legacy alias for nw::combat::resolve_attack_and_schedule.
 std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
     uint32_t round_ticks = 60);
 

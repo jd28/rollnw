@@ -13,6 +13,7 @@
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../resources/ResourceManager.hpp"
+#include "../../rules/combat_scheduler.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
 #include "../../smalls/runtime.hpp"
@@ -43,6 +44,8 @@ bool Profile::load_rules() const
     load_master_feats();
     load_special_attacks();
     load_qualifiers();
+
+    nw::combat::set_attack_scheduler_policy(&nwn1::resolve_attack, &nwn1::resolve_attack_cooldown_ticks);
 
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
         switch (obj->handle().type) {

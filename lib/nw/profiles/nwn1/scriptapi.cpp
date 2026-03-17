@@ -4,11 +4,9 @@
 
 #include "../../functions.hpp"
 #include "../../kernel/Config.hpp"
-#include "../../kernel/EventSystem.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Door.hpp"
-#include "../../objects/ObjectManager.hpp"
 #include "../../objects/Placeable.hpp"
 #include "../../objects/Player.hpp"
 #include "../../rules/Class.hpp"
@@ -28,32 +26,6 @@
 namespace nwn1 {
 
 namespace {
-
-struct ScheduledAttackEvent {
-    nw::ObjectHandle attacker;
-    nw::ObjectHandle target;
-};
-
-void scheduled_attack_payload_delete(void* data)
-{
-    delete static_cast<ScheduledAttackEvent*>(data);
-}
-
-void scheduled_attack_event_callback(const nw::kernel::EventHandle& ev)
-{
-    auto* payload = static_cast<ScheduledAttackEvent*>(ev.data);
-    if (!payload) {
-        return;
-    }
-
-    auto* attacker = nw::kernel::objects().get<nw::Creature>(payload->attacker);
-    auto* target = nw::kernel::objects().get_object_base(payload->target);
-    if (!attacker || !target) {
-        return;
-    }
-
-    resolve_attack(attacker, target);
-}
 
 thread_local bool in_combat_policy_dispatch = false;
 thread_local nw::Vector<nw::smalls::Value> policy_args_cache;
@@ -2197,27 +2169,24 @@ uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t ro
 
 bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks)
 {
-    if (!attacker || !target) {
-        return false;
-    }
+    return nw::combat::schedule_attack(attacker, target, delay_ticks);
+}
 
-    auto* payload = new ScheduledAttackEvent{attacker->handle(), target->handle()};
-    nw::kernel::events().add_custom(attacker->handle(), &scheduled_attack_event_callback, delay_ticks,
-        payload, &scheduled_attack_payload_delete);
-    return true;
+bool start_auto_attack(nw::Creature* attacker, nw::ObjectBase* target,
+    uint64_t initial_delay_ticks, uint32_t round_ticks)
+{
+    return nw::combat::start_auto_attack(attacker, target, initial_delay_ticks, round_ticks);
+}
+
+bool stop_auto_attack(nw::Creature* attacker)
+{
+    return nw::combat::stop_auto_attack(attacker);
 }
 
 std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
     uint32_t round_ticks)
 {
-    auto data = resolve_attack(attacker, target);
-    if (!data || !attacker || !target) {
-        return data;
-    }
-
-    auto delay = resolve_attack_cooldown_ticks(attacker, round_ticks);
-    schedule_attack(attacker, target, delay);
-    return data;
+    return nw::combat::resolve_attack_and_schedule(attacker, target, round_ticks);
 }
 
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)
