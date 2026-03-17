@@ -138,12 +138,13 @@ type CreatureCombat {
     // special_attack_ab is the AB modifier for that attack (e.g. -4 for knockdown).
     special_attack_request: int;
     special_attack_ab: int;
-    // Defense-side per-round gates (Parry uses, Deflect Arrows once/round).
+    // Defense-side per-round gates (Parry uses, Deflect Arrows once/round, Epic Dodge once/round).
     // Window keyed by current attacker and that attacker's round sequence start.
     defense_window_attacker: object;
     defense_window_seq: int;
     parry_uses: int;
     deflect_used: int;
+    epic_dodge_used: int;
     // Cached full ability scores (with race + permanent modifiers + effects).
     // Invalidated when effect_epoch or progression_epoch changes.
     ability_cache_valid: bool;

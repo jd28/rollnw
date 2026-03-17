@@ -49,6 +49,9 @@ struct CombatInfo {
     int32_t size_ab_modifier = 0;
     int32_t size_ac_modifier = 0;
 
+    /// Set to true when Epic Dodge has been used this round; cleared by prepare_attack_round.
+    bool epic_dodge_used = false;
+
     Vector<SpecialAbility> special_abilities;
 };
 

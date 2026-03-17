@@ -1815,9 +1815,10 @@ TEST_F(SmallsEngineIntegration, Nwn1DamageModifierAbilityOffhandAndMightyMatchCp
 
     std::string_view source = R"(
         import nwn1.modifier as Mod;
+        import nwn1.constants as Const;
 
         fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
-            return Mod.sum_damage_modifiers(attacker, target, subtype, multiplier);
+            return Mod.sum_damage_modifiers(attacker, target, Const.AttackType(subtype), multiplier);
         }
     )";
 
@@ -1922,9 +1923,10 @@ TEST_F(SmallsEngineIntegration, Nwn1DamageModifierFavoredEnemyCriticalGateMatche
 
     std::string_view source = R"(
         import nwn1.modifier as Mod;
+        import nwn1.constants as Const;
 
         fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
-            return Mod.sum_damage_modifiers(attacker, target, subtype, multiplier);
+            return Mod.sum_damage_modifiers(attacker, target, Const.AttackType(subtype), multiplier);
         }
     )";
 
@@ -1982,9 +1984,10 @@ TEST_F(SmallsEngineIntegration, Nwn1DamageModifierOverwhelmingCriticalActivation
 
     std::string_view source = R"(
         import nwn1.init as Init;
+        import nwn1.constants as Const;
 
         fn main(attacker: Creature, target: object, subtype: int, multiplier: int): int {
-            return Init.damage_bonus_overwhelming_critical(attacker, target, subtype, multiplier);
+            return Init.damage_bonus_overwhelming_critical(attacker, target, Const.AttackType(subtype), multiplier);
         }
     )";
 

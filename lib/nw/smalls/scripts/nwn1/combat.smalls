@@ -610,6 +610,7 @@ fn resolve_attack_type_from_handle(combat: CreatureCombat, attacker: Creature): 
 
 fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
     var combat = get_propset!(CreatureCombat)(obj);
+    var prev_attack_current = combat.attack_current;
     combat.attack_current = C.attack_current(obj);
     combat.attacks_onhand = C.attacks_onhand(obj);
     combat.attacks_offhand = C.attacks_offhand(obj);
@@ -617,6 +618,9 @@ fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
     combat.effect_epoch = C.creature_effect_version(obj);
     combat.equip_epoch  = C.creature_equip_version(obj);
     combat.combat_mode  = C.get_combat_mode(obj);
+    if (combat.attack_current == 0 && prev_attack_current != 0) {
+        combat.epic_dodge_used = 0;
+    }
     return combat;
 }
 
@@ -974,6 +978,29 @@ fn resolve_attack_base_damage(obj: Creature, weapon: Item, base_item: BaseItemTy
     return roll_dice(dice, sides, bonus) * multiplier;
 }
 
+// Compute total sneak attack dice for an attacker from class levels.
+fn compute_sneak_attack_dice(obj: Creature): int {
+    var dice = 0;
+    dice += (Cre.get_level_by_class(obj, Const.class_type_rogue) + 1) / 2;
+    dice += (Cre.get_level_by_class(obj, Const.class_type_assassin) + 1) / 2;
+    var bg = Cre.get_level_by_class(obj, Const.class_type_blackguard);
+    if (bg >= 3) { dice += (bg - 1) / 2; }
+    var sd = Cre.get_level_by_class(obj, Const.class_type_shadowdancer);
+    if (sd >= 3) { dice += 1; }
+    if (sd >= 7) { dice += 1; }
+    return dice;
+}
+
+// Returns true if the target is immune to sneak attacks (no discernible anatomy).
+fn is_sneak_attack_immune(target: Creature): bool {
+    var stats = get_propset!(CreatureStats)(target);
+    var race = stats.race;
+    return race == Const.racial_type_construct as int
+        || race == Const.racial_type_undead as int
+        || race == Const.racial_type_elemental as int
+        || race == Const.racial_type_ooze as int;
+}
+
 fn resolve_target_state(attacker: Creature, target: object): int {
     const target_state_none = 0;
     const target_state_flanked = 64;
@@ -1141,6 +1168,66 @@ fn resolve_massive_critical_damage_bonus(weapon: Item, multiplier: int): int {
     }
 
     return 0;
+}
+
+fn _make_elemental_damage_result(target: object, attacker: Creature, dmg_type: Const.Damage, amount: int, is_unblockable: bool): DamageResult {
+    var result: DamageResult = {
+        damage_type = dmg_type,
+        amount = amount,
+        unblocked = amount,
+        immunity = 0,
+        reduction = 0,
+        reduction_remaining = 0,
+        resist = 0,
+        resist_remaining = 0,
+    };
+
+    if (amount <= 0 || is_unblockable) { return result; }
+
+    var remaining = amount;
+
+    var imm_pct = C.damage_immunity_modifier_bonus(target, dmg_type, attacker)
+                + C.damage_immunity_effect_delta(target, dmg_type, attacker);
+    if (imm_pct < 0) { imm_pct = 0; }
+    if (imm_pct > 100) { imm_pct = 100; }
+    result.immunity = remaining * imm_pct / 100;
+    if (result.immunity > remaining) { result.immunity = remaining; }
+    remaining -= result.immunity;
+
+    if (remaining > 0) {
+        var res_eff = C.effect_best_damage_resistance(target, dmg_type);
+        var res_mod = C.damage_resistance_modifier_bonus(target, dmg_type, attacker);
+        var res_eff_bonus = effects.is_valid(res_eff) ? effects.get_int(res_eff, 0) : 0;
+
+        var res_amount = res_eff_bonus;
+        if (res_mod >= res_eff_bonus) { res_amount = res_mod; }
+        if (res_amount > remaining) { res_amount = remaining; }
+
+        if (res_amount > 0) {
+            if (res_mod < res_eff_bonus && effects.is_valid(res_eff)) {
+                var res_remaining = effects.get_int(res_eff, 1);
+                if (res_remaining > 0) {
+                    if (res_amount > res_remaining) { res_amount = res_remaining; }
+                    var res_next = res_remaining - res_amount;
+                    if (res_next <= 0) {
+                        Obj.remove_effect(target, res_eff);
+                    } else {
+                        effects.set_int(res_eff, 1, res_next);
+                    }
+                }
+            }
+            result.resist = res_amount;
+            remaining -= result.resist;
+            if (remaining < 0) { remaining = 0; }
+        }
+
+        if (effects.is_valid(res_eff)) {
+            result.resist_remaining = effects.get_int(res_eff, 1);
+        }
+    }
+
+    result.unblocked = remaining;
+    return result;
 }
 
 fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature, target: object, attack_type: Const.AttackType, weapon: Item, base_item: BaseItemType, weapon_power: int, multiplier: int, special_attack_bonus: int): DamageResult {
@@ -1370,32 +1457,38 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     if (target is Creature) {
         var def_combat = modifier.sync_def_context(attacker, target, is_ranged, combat.effect_epoch);
         target_combat_mode = def_combat.combat_mode;
-        cur_tgt_eff = def_combat.effect_epoch;
+        cur_tgt_eff = def_combat.def_self_effect_epoch;
         if (!modifier.slot_valid(def_combat, slot_def_ac_t_any)) {
-            def_combat.slot_values[slot_def_ac_t_any] = C.attack_roll_armor_class(attacker, target);
+            def_combat.slot_values[slot_def_ac_t_any] = modifier.compute_armor_class(target, attacker);
             modifier.slot_set_valid(def_combat, slot_def_ac_t_any);
         }
         armor_class = def_combat.slot_values[slot_def_ac_t_any];
         var conceal_slot = is_ranged ? slot_def_conceal_t_ranged : slot_def_conceal_t_melee;
         if (!modifier.slot_valid(def_combat, conceal_slot)) {
-            def_combat.slot_values[conceal_slot] = C.attack_roll_concealment(attacker, target, is_ranged);
+            var conceal_data = modifier.compute_concealment(attacker, target, is_ranged);
+            def_combat.slot_values[conceal_slot] = conceal_data.concealment;
             modifier.slot_set_valid(def_combat, conceal_slot);
+            if (conceal_data.concealment > 0) {
+                var miss_slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
+                def_combat.slot_values[miss_slot] = conceal_data.miss_chance_source ? 1 : 0;
+                modifier.slot_set_valid(def_combat, miss_slot);
+            }
         }
         concealment = def_combat.slot_values[conceal_slot];
         if (concealment > 0) {
             var miss_slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
             if (!modifier.slot_valid(def_combat, miss_slot)) {
-                def_combat.slot_values[miss_slot] = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
+                def_combat.slot_values[miss_slot] = modifier.compute_concealment(attacker, target, is_ranged).miss_chance_source ? 1 : 0;
                 modifier.slot_set_valid(def_combat, miss_slot);
             }
             miss_chance_source = def_combat.slot_values[miss_slot] != 0;
         }
     } else {
-        armor_class = C.attack_roll_armor_class(attacker, target);
-        var conceal = C.attack_roll_concealment(attacker, target, is_ranged);
-        if (conceal > 0) {
-            concealment = conceal;
-            miss_chance_source = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged);
+        armor_class = modifier.compute_armor_class(target, attacker);
+        var conceal_data = modifier.compute_concealment(attacker, target, is_ranged);
+        if (conceal_data.concealment > 0) {
+            concealment = conceal_data.concealment;
+            miss_chance_source = conceal_data.miss_chance_source;
         }
     }
 
@@ -1561,24 +1654,47 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         }
     }
 
-    // Special attack resolution (knockdown, etc.) — caller sets combat.special_attack_request;
-    // caller is responsible for prerequisite checks (feat ownership, usability).
-    // Request is consumed (cleared) here regardless of hit/miss.
+    // Epic Dodge: target's first successful hit per round is negated.
+    // Fires for both melee and ranged. Not blocked by flat-footed (it's a reaction, not DEX-based).
+    if (attack_result <= attack_result_hit_by_roll && target is Creature) {
+        var tgt = target as Creature;
+        if (Cre.has_feat(tgt, Const.feat_epic_dodge)) {
+            var tgt_combat = _sync_defense_round_window(attacker, tgt);
+            if (tgt_combat.epic_dodge_used == 0) {
+                tgt_combat.epic_dodge_used = 1;
+                attack_result = attack_result_miss_by_roll;
+            }
+        }
+    }
+
+    // Special attack resolution (knockdown, death attack, etc.) — caller sets
+    // combat.special_attack_request; request is consumed (cleared) regardless of hit/miss.
     var special_attack = 0;
+    var sneak_bonus = 0;
     var requested_special = combat.special_attack_request;
     if (requested_special != 0) {
         combat.special_attack_request = 0;
         combat.special_attack_ab = 0;
-        if (attack_result <= attack_result_hit_by_roll && !is_ranged && target is Creature) {
-            var tgt = target as Creature;
-            // Knockdown (23) allows Medium targets; Improved Knockdown (17) allows Large.
-            if (requested_special == Const.feat_knockdown || requested_special == Const.feat_improved_knockdown) {
-                var tgt_combat = get_propset!(CreatureCombat)(tgt);
-                var max_size = requested_special == Const.feat_improved_knockdown ? 4 : 3;
-                if (tgt_combat.size <= max_size) {
-                    if (!NCre.resolve_skill_check(tgt, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
-                        special_attack = requested_special;
+        if (attack_result <= attack_result_hit_by_roll) {
+            if (!is_ranged && target is Creature) {
+                var tgt = target as Creature;
+                // Knockdown (23) allows Medium targets; Improved Knockdown (17) allows Large.
+                if (requested_special == Const.feat_knockdown || requested_special == Const.feat_improved_knockdown) {
+                    var tgt_combat = get_propset!(CreatureCombat)(tgt);
+                    var max_size = requested_special == Const.feat_improved_knockdown ? 4 : 3;
+                    if (tgt_combat.size <= max_size) {
+                        if (!NCre.resolve_skill_check(tgt, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
+                            special_attack = requested_special;
+                        }
                     }
+                }
+            }
+            // Death Attack: uses assassin levels; not crit-multiplied.
+            if (requested_special == Const.special_attack_type_death_attack) {
+                var da_dice = (Cre.get_level_by_class(attacker, Const.class_type_assassin) + 1) / 2;
+                if (da_dice > 0) {
+                    sneak_bonus = roll_dice(da_dice, 6, 0, 1);
+                    special_attack = Const.special_attack_type_death_attack;
                 }
             }
         }
@@ -1589,6 +1705,23 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         critical_multiplier = resolve_critical_multiplier(attacker, attack_type, target);
     } elif (attack_result <= attack_result_hit_by_roll) {
         critical_multiplier = 1;
+    }
+
+    // Sneak Attack: eligible on flanked or flat-footed hit vs. non-immune creature.
+    // Dice are rolled here; not crit-multiplied.
+    if (special_attack == 0 && attack_result <= attack_result_hit_by_roll && target is Creature) {
+        var tgt = target as Creature;
+        const target_state_flanked   = 64;
+        const target_state_flatfooted = 128;
+        var eligible = bit.and(combat.target_state, target_state_flanked) != 0
+            || bit.and(combat.target_state, target_state_flatfooted) != 0;
+        if (eligible && !is_sneak_attack_immune(tgt)) {
+            var sneak_dice = compute_sneak_attack_dice(attacker);
+            if (sneak_dice > 0) {
+                sneak_bonus = roll_dice(sneak_dice, 6, 0, 1);
+                special_attack = Const.special_attack_type_sneak;
+            }
+        }
     }
 
     var rolls: array!(DamageRoll);
@@ -1659,11 +1792,107 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         } else {
             weapon_power = resolve_weapon_power(attacker, weapon);
         }
-        var special_attack_bonus = special_attack != 0 ? modifier.sum_damage_special_attack_modifiers(attacker, target, special_attack, critical_multiplier) : 0;
+
+        // Probe once; skip both loops entirely when no damage_increase effects are present (common case).
+        var first_di_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_increase as int, -1, 0);
+
+        // Accumulate physical damage_increase effects (added into base damage, so they flow through DR/DI/resistance).
+        var physical_effect_bonus = 0;
+        if (first_di_idx >= 0) {
+            for (var eff_idx = first_di_idx;
+                 eff_idx >= 0;
+                 eff_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_increase as int, -1, eff_idx + 1)) {
+                var eff = C.object_effect_at(attacker, eff_idx);
+                if (effects.get_type(eff) != Const.effect_type_damage_increase as int) { break; }
+                var eff_subtype = effects.get_subtype(eff);
+                var is_physical = eff_subtype == Const.damage_type_bludgeoning as int
+                    || eff_subtype == Const.damage_type_piercing as int
+                    || eff_subtype == Const.damage_type_slashing as int
+                    || eff_subtype == Const.damage_type_base_weapon as int;
+                if (is_physical) {
+                    var eff_cat = effects.get_int(eff, 3);
+                    var is_crit_only = bit.and(eff_cat, Const.damage_category_critical as int) != 0;
+                    if (!is_crit_only || critical_multiplier > 1) {
+                        var eff_amt = C.roll_dice(effects.get_int(eff, 0), effects.get_int(eff, 1), effects.get_int(eff, 2), critical_multiplier);
+                        if (bit.and(eff_cat, Const.damage_category_penalty as int) != 0) { eff_amt = -eff_amt; }
+                        physical_effect_bonus += eff_amt;
+                    }
+                }
+            }
+        }
+
+        // Accumulate physical damage_decrease effects (subtracted from base damage).
+        // Note: effect_damage_penalty() does not set a category field (no crit-only).
+        var first_dd_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_decrease as int, -1, 0);
+        if (first_dd_idx >= 0) {
+            for (var eff_idx = first_dd_idx;
+                 eff_idx >= 0;
+                 eff_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_decrease as int, -1, eff_idx + 1)) {
+                var eff = C.object_effect_at(attacker, eff_idx);
+                if (effects.get_type(eff) != Const.effect_type_damage_decrease as int) { break; }
+                var eff_subtype = effects.get_subtype(eff);
+                var is_physical = eff_subtype == Const.damage_type_bludgeoning as int
+                    || eff_subtype == Const.damage_type_piercing as int
+                    || eff_subtype == Const.damage_type_slashing as int
+                    || eff_subtype == Const.damage_type_base_weapon as int;
+                if (is_physical) {
+                    physical_effect_bonus -= C.roll_dice(effects.get_int(eff, 0), effects.get_int(eff, 1), effects.get_int(eff, 2), 1);
+                }
+            }
+        }
+
         base_damage = _resolve_base_damage_impl(combat, attacker, target, attack_type, weapon, base_item,
-            weapon_power, critical_multiplier, special_attack_bonus + on_hit_base_damage_bonus);
+            weapon_power, critical_multiplier, sneak_bonus + physical_effect_bonus + on_hit_base_damage_bonus);
         damage_total = base_damage.unblocked;
         arr.push(damages, base_damage);
+
+        // Apply elemental damage_increase effects as separate DamageResult entries.
+        if (first_di_idx >= 0) {
+            for (var eff_idx = first_di_idx;
+                 eff_idx >= 0;
+                 eff_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_increase as int, -1, eff_idx + 1)) {
+                var eff = C.object_effect_at(attacker, eff_idx);
+                if (effects.get_type(eff) != Const.effect_type_damage_increase as int) { break; }
+                var eff_subtype = effects.get_subtype(eff);
+                var is_physical = eff_subtype == Const.damage_type_bludgeoning as int
+                    || eff_subtype == Const.damage_type_piercing as int
+                    || eff_subtype == Const.damage_type_slashing as int
+                    || eff_subtype == Const.damage_type_base_weapon as int;
+                if (!is_physical) {
+                    var eff_cat = effects.get_int(eff, 3);
+                    var is_crit_only = bit.and(eff_cat, Const.damage_category_critical as int) != 0;
+                    if (!is_crit_only || critical_multiplier > 1) {
+                        var eff_amt = C.roll_dice(effects.get_int(eff, 0), effects.get_int(eff, 1), effects.get_int(eff, 2), critical_multiplier);
+                        if (bit.and(eff_cat, Const.damage_category_penalty as int) != 0) { eff_amt = -eff_amt; }
+                        var eff_unblock = bit.and(eff_cat, Const.damage_category_unblockable as int) != 0;
+                        var elem = _make_elemental_damage_result(target, attacker, Const.Damage(eff_subtype), eff_amt, eff_unblock);
+                        damage_total += elem.unblocked;
+                        arr.push(damages, elem);
+                    }
+                }
+            }
+        }
+
+        // Apply elemental damage_decrease effects as separate negative DamageResult entries.
+        if (first_dd_idx >= 0) {
+            for (var eff_idx = first_dd_idx;
+                 eff_idx >= 0;
+                 eff_idx = C.object_find_first_effect_of(attacker, Const.effect_type_damage_decrease as int, -1, eff_idx + 1)) {
+                var eff = C.object_effect_at(attacker, eff_idx);
+                if (effects.get_type(eff) != Const.effect_type_damage_decrease as int) { break; }
+                var eff_subtype = effects.get_subtype(eff);
+                var is_physical = eff_subtype == Const.damage_type_bludgeoning as int
+                    || eff_subtype == Const.damage_type_piercing as int
+                    || eff_subtype == Const.damage_type_slashing as int
+                    || eff_subtype == Const.damage_type_base_weapon as int;
+                if (!is_physical) {
+                    var eff_amt = -C.roll_dice(effects.get_int(eff, 0), effects.get_int(eff, 1), effects.get_int(eff, 2), 1);
+                    var elem = _make_elemental_damage_result(target, attacker, Const.Damage(eff_subtype), eff_amt, false);
+                    damage_total += elem.unblocked;
+                    arr.push(damages, elem);
+                }
+            }
+        }
     }
 
     var data = AttackData {

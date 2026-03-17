@@ -1,4 +1,4 @@
-from core.types import { AttackType, Damage, DamageRoll };
+from core.types import { AttackType, ArmorClass, Damage, DamageRoll, EffectType, ModifierType };
 import core.effects as effects;
 
 [[value_type]]
@@ -41,8 +41,8 @@ type AttackData {
 [[native]] fn attack_roll_concealment(obj: Creature, target: object, vs_ranged: bool): int;
 [[native]] fn attack_roll_is_miss_chance_source(obj: Creature, target: object, vs_ranged: bool): bool;
 [[native]] fn roll_uniform_int(min: int, max: int): int;
-[[native]] fn aggregate_effect_int(obj: object, effect_type: int, subtype: int, versus: object, int_index: int, stack_policy: int): int;
-[[native]] fn aggregate_modifier_int(obj: object, modifier_type: int, subtype: int, versus: object, stack_policy: int): int;
+[[native]] fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus: object, int_index: int, stack_policy: int): int;
+[[native]] fn aggregate_modifier_int(obj: object, modifier_type: ModifierType, subtype: int, versus: object, stack_policy: int): int;
 [[native]] fn weapon_critical_multiplier(obj: Creature, attack_type: AttackType): int;
 [[native]] fn weapon_critical_threat(obj: Creature, attack_type: AttackType): int;
 [[native]] fn weapon_has_keen(obj: Creature, attack_type: AttackType): bool;
@@ -78,3 +78,4 @@ type AttackData {
 [[native]] fn creature_equip_version(obj: Creature): int;
 [[native]] fn get_combat_mode(obj: Creature): int;
 [[native]] fn weapon_is_ranged(weapon: Item): bool;
+[[native]] fn get_dex_modifier_for_ac(obj: Creature): int;

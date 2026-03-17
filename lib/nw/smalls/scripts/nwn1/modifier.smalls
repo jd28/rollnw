@@ -3,8 +3,9 @@ import core.bit as bit;
 import core.combat as C;
 import core.creature as Cre;
 import core.item as item;
+import core.math as Math;
 import core.object as Obj;
-from core.creature import { CreatureCombat };
+from core.creature import { CreatureCombat, CreatureStats };
 from nwn1.cachedefs import {
     slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
     slot_off_ab_nt_unarmed, slot_off_ab_nt_any, slot_off_ab_t_any,
@@ -25,14 +26,14 @@ const NUM_MOD_TYPES = 20;
 
 type Modifier {
     tag: string;
-    payload: fn(Creature, object, int): int;
+    payload: fn(Creature, object, Const.AttackType): int;
     subtype: int;
     meta_flags: int;
 };
 
 type DamageModifier {
     tag: string;
-    payload: fn(Creature, object, int, int): int;
+    payload: fn(Creature, object, Const.AttackType, int): int;
     subtype: int;
 };
 
@@ -43,7 +44,7 @@ type DefenseConcealData {
 
 // Smalls-side permanent modifier registry.
 // Indexed by Const.ModifierType value; each entry is a list of closures for that category.
-// Closure signature: fn(obj: Creature, versus: object, subtype: int): int
+// Closure signature: fn(obj: Creature, versus: object, subtype: int): int (subtype is type-specific, not AttackType)
 var modifiers: array!(array!(fn(Creature, object, int): int)) = {};
 
 // Attack bonus uses structured modifier entries for slot-cache routing.
@@ -56,7 +57,7 @@ var damage_special_attack_modifiers: array!(DamageModifier) = {};
 // Prebuilt per-slot closure arrays. Index = slot ID from cachedefs.
 // slot_buckets[i] holds the closures that contribute to slot i's aggregate.
 // Populated by init_modifiers; queried by get_off_attack_bonus.
-var slot_buckets: array!(array!(fn(Creature, object, int): int)) = {};
+var slot_buckets: array!(array!(fn(Creature, object, Const.AttackType): int)) = {};
 
 // Per-slot dependency masks (pre-computed in init_modifiers from cachedefs key_* values).
 // slot_depends_on[i] is a bitmask of key_* bits; if any bit is in changed_key_mask, slot i is stale.
@@ -87,7 +88,7 @@ fn get_off_effect_delta(combat: CreatureCombat, attacker: Creature, target: obje
 
 fn register_attack_bonus_modifier(
     tag: string,
-    payload: fn(Creature, object, int): int,
+    payload: fn(Creature, object, Const.AttackType): int,
     subtype: int,
     meta_flags: int,
 ) {
@@ -101,7 +102,7 @@ fn register_attack_bonus_modifier(
 
 fn register_damage_modifier(
     tag: string,
-    payload: fn(Creature, object, int, int): int,
+    payload: fn(Creature, object, Const.AttackType, int): int,
     subtype: int,
 ) {
     arr.push(damage_modifiers, DamageModifier {
@@ -113,7 +114,7 @@ fn register_damage_modifier(
 
 fn register_damage_special_attack_modifier(
     tag: string,
-    payload: fn(Creature, object, int, int): int,
+    payload: fn(Creature, object, Const.AttackType, int): int,
     subtype: int,
 ) {
     arr.push(damage_special_attack_modifiers, DamageModifier {
@@ -123,10 +124,10 @@ fn register_damage_special_attack_modifier(
     });
 }
 
-fn sum_attack_bonus_modifiers(obj: Creature, versus: object, subtype: int, requested_cache_flags: int): int {
+fn sum_attack_bonus_modifiers(obj: Creature, versus: object, subtype: Const.AttackType, requested_cache_flags: int): int {
     var total = 0;
     for (var entry in attack_bonus_modifiers) {
-        if (entry.subtype >= 0 && entry.subtype != subtype) {
+        if (entry.subtype >= 0 && entry.subtype != subtype as int) {
             continue;
         }
         if (requested_cache_flags != 0 && bit.and(entry.meta_flags, requested_cache_flags) == 0) {
@@ -141,7 +142,7 @@ fn sum_attack_bonus_modifiers(obj: Creature, versus: object, subtype: int, reque
 // Sum all registered modifier closures for modifier_type with given subtype.
 fn sum_modifiers(obj: Creature, modifier_type: Const.ModifierType, subtype: int, versus: object): int {
     if (modifier_type == Const.mod_type_attack_bonus) {
-        return attack_bonus_total(obj, versus, subtype);
+        return attack_bonus_total(obj, versus, Const.AttackType(subtype));
     }
 
     const idx = modifier_type as int;
@@ -180,12 +181,12 @@ fn rebuild_off_nt_slot(attacker: Creature, slot: int) {
     var combat = get_propset!(CreatureCombat)(attacker);
     var sum = 0;
     for (var f in slot_buckets[slot]) {
-        sum += f(attacker, Obj.invalid, subtype as int);
+        sum += f(attacker, Obj.invalid, subtype);
     }
     // For subtype slots (not the any-slot itself), also fold in the any-bucket.
     if (slot != slot_off_ab_nt_any) {
         for (var f in slot_buckets[slot_off_ab_nt_any]) {
-            sum += f(attacker, Obj.invalid, Const.attack_type_any as int);
+            sum += f(attacker, Obj.invalid, Const.attack_type_any);
         }
     }
     combat.slot_values[slot] = sum;
@@ -202,11 +203,11 @@ fn rebuild_off_nt_slot_from_handle(combat: CreatureCombat, attacker: Creature, s
 
     var sum = 0;
     for (var f in slot_buckets[slot]) {
-        sum += f(attacker, Obj.invalid, subtype as int);
+        sum += f(attacker, Obj.invalid, subtype);
     }
     if (slot != slot_off_ab_nt_any) {
         for (var f in slot_buckets[slot_off_ab_nt_any]) {
-            sum += f(attacker, Obj.invalid, Const.attack_type_any as int);
+            sum += f(attacker, Obj.invalid, Const.attack_type_any);
         }
     }
     combat.slot_values[slot] = sum;
@@ -215,8 +216,7 @@ fn rebuild_off_nt_slot_from_handle(combat: CreatureCombat, attacker: Creature, s
 
 fn target_effect_epoch(obj: object): int {
     if (obj is Creature) {
-        var combat = get_propset!(CreatureCombat)(obj);
-        return combat.effect_epoch;
+        return C.creature_effect_version(obj);
     }
     return 0;
 }
@@ -227,7 +227,7 @@ fn target_effect_epoch(obj: object): int {
 fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
     var combat = get_propset!(CreatureCombat)(attacker);
 
-    var cur_self_eff  = combat.effect_epoch;
+    var cur_self_eff  = C.creature_effect_version(attacker);
     var cur_equip     = combat.equip_epoch;
     var cur_mode      = combat.combat_mode;
     var cur_prog      = combat.progression_epoch;
@@ -269,7 +269,7 @@ fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
 // (e.g. returned by sync_combat_round_state_from_native). Skips the initial
 // get_propset! call on attacker.
 fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, target: object): CreatureCombat {
-    var cur_self_eff  = combat.effect_epoch;
+    var cur_self_eff  = C.creature_effect_version(attacker);
     var cur_equip     = combat.equip_epoch;
     var cur_mode      = combat.combat_mode;
     var cur_prog      = combat.progression_epoch;
@@ -309,7 +309,7 @@ fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, targ
 // avoiding a redundant get_propset!(CreatureCombat)(target) call when the caller already
 // holds a def_combat handle for the target (e.g. from sync_def_context).
 fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, target: object, cur_tgt_eff: int): CreatureCombat {
-    var cur_self_eff  = combat.effect_epoch;
+    var cur_self_eff  = C.creature_effect_version(attacker);
     var cur_equip     = combat.equip_epoch;
     var cur_mode      = combat.combat_mode;
     var cur_prog      = combat.progression_epoch;
@@ -353,7 +353,7 @@ fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, t
 fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, attacker_effect_epoch: int = -2147483648): CreatureCombat {
     var combat = get_propset!(CreatureCombat)(target);
 
-    var cur_self_eff = combat.effect_epoch;
+    var cur_self_eff = C.creature_effect_version(target);
     var cur_equip    = combat.equip_epoch;
     var cur_mode     = combat.combat_mode;
     var cur_atk_eff = attacker_effect_epoch;
@@ -382,18 +382,117 @@ fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, atta
     return combat;
 }
 
+// Typed helpers for AC aggregation — hide ArmorClass-to-int casts from call sites.
+fn _ac_max(obj: object, eff: Const.EffectType, ac: Const.ArmorClass, vs: object): int {
+    return C.aggregate_effect_int(obj, eff, ac as int, vs, 0, Const.effect_agg_max);
+}
+fn _ac_sum(obj: object, eff: Const.EffectType, ac: Const.ArmorClass, vs: object): int {
+    return C.aggregate_effect_int(obj, eff, ac as int, vs, 0, Const.effect_agg_sum);
+}
+fn _ac_mod(obj: object, ac: Const.ArmorClass, vs: object): int {
+    return C.aggregate_modifier_int(obj, Const.mod_type_armor_class, ac as int, vs, 0);
+}
+
+// Full AC calculation for a creature target. All propset access here so get_propset! has
+// a Creature-typed argument at the call site (smalls template intrinsic requirement).
+// DEX modifier delegates to C.get_dex_modifier_for_ac which applies the armor DEX cap.
+fn _compute_ac_creature(target: Creature, attacker: object): int {
+    var combat = get_propset!(CreatureCombat)(target);
+    var stats = get_propset!(CreatureStats)(target);
+    var result = 10 + combat.size_ac_modifier + combat.ac_armor_base
+        + stats.ac_natural_bonus + combat.ac_shield_base;
+    result += C.get_dex_modifier_for_ac(target);
+    var dodge = combat.hasted != 0 ? 4 : 0;
+
+    const ac_min = -20;
+    const ac_max = 20;
+
+    // Natural AC: modifier registry + max effects.
+    var natural = _ac_mod(target, Const.ac_natural, attacker);
+    natural += Math.clamp(
+        _ac_max(target, Const.effect_type_ac_increase, Const.ac_natural, attacker)
+        - _ac_max(target, Const.effect_type_ac_decrease, Const.ac_natural, attacker),
+        ac_min, ac_max);
+
+    // Armor AC: max effects only.
+    var armor = Math.clamp(
+        _ac_max(target, Const.effect_type_ac_increase, Const.ac_armor, attacker)
+        - _ac_max(target, Const.effect_type_ac_decrease, Const.ac_armor, attacker),
+        ac_min, ac_max);
+
+    // Shield AC: max effects only.
+    var shield = Math.clamp(
+        _ac_max(target, Const.effect_type_ac_increase, Const.ac_shield, attacker)
+        - _ac_max(target, Const.effect_type_ac_decrease, Const.ac_shield, attacker),
+        ac_min, ac_max);
+
+    // Deflection AC: max effects only.
+    var deflect = Math.clamp(
+        _ac_max(target, Const.effect_type_ac_increase, Const.ac_deflection, attacker)
+        - _ac_max(target, Const.effect_type_ac_decrease, Const.ac_deflection, attacker),
+        ac_min, ac_max);
+
+    // Dodge AC: sum effects + modifier registry.
+    dodge += _ac_sum(target, Const.effect_type_ac_increase, Const.ac_dodge, attacker)
+           - _ac_sum(target, Const.effect_type_ac_decrease, Const.ac_dodge, attacker);
+    dodge += _ac_mod(target, Const.ac_dodge, attacker);
+    dodge = Math.clamp(dodge, ac_min, ac_max);
+
+    return result + natural + armor + deflect + dodge + shield;
+}
+
+// Compute armor class of target versus attacker (non-touch attack path).
+// Ports nwn1::calculate_ac_versus(target, attacker, false) to smalls.
+fn compute_armor_class(target: object, attacker: object): int {
+    if (target is Creature) {
+        return _compute_ac_creature(target, attacker);
+    }
+    return 10;
+}
+
+// Typed helper for concealment/miss-chance aggregation — hides MissChanceType-to-int cast.
+fn _conceal_max(obj: object, eff: Const.EffectType, mc: Const.MissChanceType): int {
+    return C.aggregate_effect_int(obj, eff, mc as int, Obj.invalid, 0, Const.effect_agg_max);
+}
+
+// Compute concealment and miss-chance-source for attacker vs target.
+// Ports nwn1::resolve_concealment(attacker, target, is_ranged) to smalls.
+fn compute_concealment(attacker: object, target: object, is_ranged: bool): DefenseConcealData {
+    var dir_mc = is_ranged ? Const.miss_chance_type_ranged : Const.miss_chance_type_melee;
+
+    // Miss chance effects on attacker (normal + directional).
+    var mc_normal = _conceal_max(attacker, Const.effect_type_miss_chance, Const.miss_chance_type_normal);
+    var mc_dir    = _conceal_max(attacker, Const.effect_type_miss_chance, dir_mc);
+    var miss_chance_eff = mc_normal > mc_dir ? mc_normal : mc_dir;
+
+    // Concealment modifier on target (e.g. epic self-concealment).
+    var conceal_mod = C.aggregate_modifier_int(target, Const.mod_type_concealment, -1, Obj.invalid, 0);
+
+    // Concealment effects on target (normal + directional).
+    var cc_normal = _conceal_max(target, Const.effect_type_concealment, Const.miss_chance_type_normal);
+    var cc_dir    = _conceal_max(target, Const.effect_type_concealment, dir_mc);
+    var conceal_eff = cc_normal > cc_dir ? cc_normal : cc_dir;
+
+    var conc = conceal_mod > conceal_eff ? conceal_mod : conceal_eff;
+
+    if (miss_chance_eff > conc) {
+        return { concealment = miss_chance_eff, miss_chance_source = true };
+    }
+    return { concealment = conc, miss_chance_source = false };
+}
+
 // Query the cached AC for attacker versus target. Uses slot_def_ac_t_any (9).
 // Invalidated by target change, attacker effect/equip/mode changes.
 fn get_def_armor_class(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): int {
     if (target is Creature) {
         var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
         if (!slot_valid(combat, slot_def_ac_t_any)) {
-            combat.slot_values[slot_def_ac_t_any] = C.attack_roll_armor_class(attacker, target);
+            combat.slot_values[slot_def_ac_t_any] = compute_armor_class(target, attacker);
             slot_set_valid(combat, slot_def_ac_t_any);
         }
         return combat.slot_values[slot_def_ac_t_any];
     }
-    return C.attack_roll_armor_class(attacker, target);
+    return compute_armor_class(target, attacker);
 }
 
 fn get_def_concealment(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): int {
@@ -401,12 +500,12 @@ fn get_def_concealment(attacker: Creature, target: object, is_ranged: bool, atta
         var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
         var slot = is_ranged ? slot_def_conceal_t_ranged : slot_def_conceal_t_melee;
         if (!slot_valid(combat, slot)) {
-            combat.slot_values[slot] = C.attack_roll_concealment(attacker, target, is_ranged);
+            combat.slot_values[slot] = compute_concealment(attacker, target, is_ranged).concealment;
             slot_set_valid(combat, slot);
         }
         return combat.slot_values[slot];
     }
-    return C.attack_roll_concealment(attacker, target, is_ranged);
+    return compute_concealment(attacker, target, is_ranged).concealment;
 }
 
 fn get_def_miss_chance_source(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): bool {
@@ -414,12 +513,12 @@ fn get_def_miss_chance_source(attacker: Creature, target: object, is_ranged: boo
         var combat = sync_def_context(attacker, target, is_ranged, attacker_effect_epoch);
         var slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
         if (!slot_valid(combat, slot)) {
-            combat.slot_values[slot] = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
+            combat.slot_values[slot] = compute_concealment(attacker, target, is_ranged).miss_chance_source ? 1 : 0;
             slot_set_valid(combat, slot);
         }
         return combat.slot_values[slot] != 0;
     }
-    return C.attack_roll_is_miss_chance_source(attacker, target, is_ranged);
+    return compute_concealment(attacker, target, is_ranged).miss_chance_source;
 }
 
 fn get_def_conceal_data(attacker: Creature, target: object, is_ranged: bool, attacker_effect_epoch: int = -2147483648): DefenseConcealData {
@@ -428,8 +527,15 @@ fn get_def_conceal_data(attacker: Creature, target: object, is_ranged: bool, att
 
         var conceal_slot = is_ranged ? slot_def_conceal_t_ranged : slot_def_conceal_t_melee;
         if (!slot_valid(combat, conceal_slot)) {
-            combat.slot_values[conceal_slot] = C.attack_roll_concealment(attacker, target, is_ranged);
+            var data = compute_concealment(attacker, target, is_ranged);
+            combat.slot_values[conceal_slot] = data.concealment;
             slot_set_valid(combat, conceal_slot);
+            // Prime the miss-chance-source slot at the same time to save a future call.
+            if (data.concealment > 0) {
+                var miss_slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
+                combat.slot_values[miss_slot] = data.miss_chance_source ? 1 : 0;
+                slot_set_valid(combat, miss_slot);
+            }
         }
 
         var concealment = combat.slot_values[conceal_slot];
@@ -442,7 +548,7 @@ fn get_def_conceal_data(attacker: Creature, target: object, is_ranged: bool, att
 
         var miss_slot = is_ranged ? slot_def_miss_chance_t_ranged : slot_def_miss_chance_t_melee;
         if (!slot_valid(combat, miss_slot)) {
-            combat.slot_values[miss_slot] = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged) ? 1 : 0;
+            combat.slot_values[miss_slot] = compute_concealment(attacker, target, is_ranged).miss_chance_source ? 1 : 0;
             slot_set_valid(combat, miss_slot);
         }
 
@@ -452,17 +558,7 @@ fn get_def_conceal_data(attacker: Creature, target: object, is_ranged: bool, att
         };
     }
 
-    var conceal = C.attack_roll_concealment(attacker, target, is_ranged);
-    if (conceal <= 0) {
-        return {
-            concealment = 0,
-            miss_chance_source = false,
-        };
-    }
-    return {
-        concealment = conceal,
-        miss_chance_source = C.attack_roll_is_miss_chance_source(attacker, target, is_ranged),
-    };
+    return compute_concealment(attacker, target, is_ranged);
 }
 
 // Inner variant: caller has already called sync_off_context and holds the handle.
@@ -488,7 +584,7 @@ fn get_off_attack_bonus_raw(combat: CreatureCombat, attacker: Creature, target: 
     if (!slot_valid(combat, slot_off_ab_t_any)) {
         var t_sum = 0;
         for (var f in slot_buckets[slot_off_ab_t_any]) {
-            t_sum += f(attacker, target, Const.attack_type_any as int);
+            t_sum += f(attacker, target, Const.attack_type_any);
         }
         combat.slot_values[slot_off_ab_t_any] = t_sum;
         slot_set_valid(combat, slot_off_ab_t_any);
@@ -506,31 +602,30 @@ fn get_off_attack_bonus(attacker: Creature, target: object, effective_subtype: C
     return get_off_attack_bonus_raw(combat, attacker, target, effective_subtype);
 }
 
-fn attack_bonus_non_target(obj: Creature, subtype: int): int {
+fn attack_bonus_non_target(obj: Creature, subtype: Const.AttackType): int {
     return sum_attack_bonus_modifiers(obj, Obj.invalid, subtype, cache_group_non_target);
 }
 
-fn attack_bonus_target(obj: Creature, versus: object, subtype: int): int {
+fn attack_bonus_target(obj: Creature, versus: object, subtype: Const.AttackType): int {
     return sum_attack_bonus_modifiers(obj, versus, subtype, cache_group_target);
 }
 
-fn attack_bonus_total(obj: Creature, versus: object, subtype: int): int {
-    return attack_bonus_non_target(obj, subtype)
-        + attack_bonus_target(obj, versus, subtype);
+fn attack_bonus_total(obj: Creature, versus: object, subtype: Const.AttackType): int {
+    return attack_bonus_non_target(obj, subtype) + attack_bonus_target(obj, versus, subtype);
 }
 
-fn attack_bonus_total_effective(obj: Creature, versus: object, effective_subtype: int): int {
+fn attack_bonus_total_effective(obj: Creature, versus: object, effective_subtype: Const.AttackType): int {
     var total = attack_bonus_total(obj, versus, effective_subtype);
-    if (effective_subtype != Const.attack_type_any as int) {
-        total += attack_bonus_total(obj, versus, Const.attack_type_any as int);
+    if (effective_subtype != Const.attack_type_any) {
+        total += attack_bonus_total(obj, versus, Const.attack_type_any);
     }
     return total;
 }
 
-fn sum_damage_modifiers(obj: Creature, versus: object, subtype: int, multiplier: int): int {
+fn sum_damage_modifiers(obj: Creature, versus: object, subtype: Const.AttackType, multiplier: int): int {
     var total = 0;
     for (var entry in damage_modifiers) {
-        if (entry.subtype >= 0 && entry.subtype != subtype) {
+        if (entry.subtype >= 0 && entry.subtype != subtype as int) {
             continue;
         }
         var f = entry.payload;
@@ -539,10 +634,10 @@ fn sum_damage_modifiers(obj: Creature, versus: object, subtype: int, multiplier:
     return total;
 }
 
-fn sum_damage_modifiers_effective(obj: Creature, versus: object, effective_subtype: int, multiplier: int): int {
+fn sum_damage_modifiers_effective(obj: Creature, versus: object, effective_subtype: Const.AttackType, multiplier: int): int {
     var total = sum_damage_modifiers(obj, versus, effective_subtype, multiplier);
-    if (effective_subtype != Const.attack_type_any as int) {
-        total += sum_damage_modifiers(obj, versus, Const.attack_type_any as int, multiplier);
+    if (effective_subtype != Const.attack_type_any) {
+        total += sum_damage_modifiers(obj, versus, Const.attack_type_any, multiplier);
     }
     return total;
 }
@@ -558,7 +653,7 @@ fn sum_damage_special_attack_modifiers(obj: Creature, versus: object, subtype: i
             continue;
         }
         var f = entry.payload;
-        total += f(obj, versus, subtype, multiplier);
+        total += f(obj, versus, Const.AttackType(subtype), multiplier);
     }
     return total;
 }

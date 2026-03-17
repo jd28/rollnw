@@ -158,6 +158,17 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 /// any other that attacker and/or target are passed to, are passed as const.
 std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
 
+/// Computes attack cooldown in event ticks from attacks-per-round.
+/// @param round_ticks Number of ticks in one NWN1 combat round abstraction.
+uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t round_ticks = 60);
+
+/// Schedules a one-shot attack event after delay_ticks.
+bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks);
+
+/// Resolves an attack now and schedules a follow-up attack by cooldown.
+std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
+    uint32_t round_ticks = 60);
+
 /// Resolves attack bonus
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);
 

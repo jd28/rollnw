@@ -51,12 +51,12 @@ fn is_finessable_base_item(base_item: int): bool {
         || base_item == Const.base_item_whip;
 }
 
-fn ability_attack_bonus(obj: Creature, subtype: int): int {
-    if (subtype < 0 || subtype == Const.attack_type_any as int) {
+fn ability_attack_bonus(obj: Creature, subtype: Const.AttackType): int {
+    if (subtype == Const.attack_type_any) {
         return 0;
     }
 
-    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var weapon = Cre.weapon_for_attack(obj, subtype);
     var base_item = Item.get_baseitem_type(weapon) as int;
     if (is_ranged_base_item(base_item)) {
         var modifier = NCre.get_ability_modifier(obj, Const.ability_dexterity);
@@ -79,12 +79,12 @@ fn ability_attack_bonus(obj: Creature, subtype: int): int {
     return modifier;
 }
 
-fn attack_bonus_enchant_arrow(obj: Creature, subtype: int): int {
-    if (subtype != Const.attack_type_onhand as int) {
+fn attack_bonus_enchant_arrow(obj: Creature, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_onhand) {
         return 0;
     }
 
-    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var weapon = Cre.weapon_for_attack(obj, subtype);
     var base_item = Item.get_baseitem_type(weapon) as int;
     if (base_item != Const.base_item_longbow && base_item != Const.base_item_shortbow) {
         return 0;
@@ -103,15 +103,15 @@ fn attack_bonus_enchant_arrow(obj: Creature, subtype: int): int {
     return 0;
 }
 
-fn attack_bonus_epic_prowess(obj: Creature, subtype: int): int {
-    if (subtype != Const.attack_type_any as int) { return 0; }
+fn attack_bonus_epic_prowess(obj: Creature, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_any) { return 0; }
     return Cre.has_feat(obj, Const.feat_epic_prowess) ? 1 : 0;
 }
 
-fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
-    if (subtype != Const.attack_type_onhand as int) { return 0; }
+fn attack_bonus_good_aim(obj: Creature, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_onhand) { return 0; }
 
-    var weapon = Cre.weapon_for_attack(obj, Const.AttackType(subtype));
+    var weapon = Cre.weapon_for_attack(obj, subtype);
     var base_item = Item.get_baseitem_type(weapon) as int;
     var stats = get_propset!(CreatureStats)(obj);
     var race = Const.RacialType(stats.race);
@@ -127,7 +127,7 @@ fn attack_bonus_good_aim(obj: Creature, subtype: int): int {
     return 0;
 }
 
-fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
+fn attack_bonus_target_state(obj: Creature, versus: object, subtype: Const.AttackType): int {
     const target_state_blind = 1;
     const target_state_attacker_invis = 2;
     const target_state_unseen = 4;
@@ -135,7 +135,7 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
     const target_state_flanked = 64;
     const target_state_invis = 1024;
 
-    if (subtype != Const.attack_type_any as int) {
+    if (subtype != Const.attack_type_any) {
         return 0;
     }
     if (!(versus is Creature)) {
@@ -171,8 +171,8 @@ fn attack_bonus_target_state(obj: Creature, versus: object, subtype: int): int {
     return result;
 }
 
-fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): int {
-    if (subtype != Const.attack_type_any as int) {
+fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_any) {
         return 0;
     }
     if (!(versus is Creature)) {
@@ -197,30 +197,36 @@ fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: int): in
     return 0;
 }
 
-fn attack_bonus_weapon_feat(obj: Creature, subtype: int): int {
-    return mfeat.attack_bonus_weapon_feat(obj, Const.AttackType(subtype));
+fn attack_bonus_weapon_feat(obj: Creature, subtype: Const.AttackType): int {
+    return mfeat.attack_bonus_weapon_feat(obj, subtype);
 }
 
-fn attack_bonus_favored_enemy(obj: Creature, versus: object, subtype: int): int {
-    if (subtype != Const.attack_type_any as int) {
+fn attack_bonus_favored_enemy(obj: Creature, versus: object, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_any) {
         return 0;
     }
     return mfeat.attack_bonus_favored_enemy(obj, versus);
 }
 
-fn attack_bonus_combat_mode(obj: Creature, subtype: int): int {
-    if (subtype != Const.attack_type_any as int) {
-        return 0;
-    }
-    return C.attack_bonus_mod_combat_mode(obj);
+fn attack_bonus_combat_mode(obj: Creature, subtype: Const.AttackType): int {
+    if (subtype != Const.attack_type_any) { return 0; }
+    var combat = get_propset!(CreatureCombat)(obj);
+    var mode = combat.combat_mode;
+    if (mode == Const.combat_mode_power_attack
+        || mode == Const.combat_mode_expertise) { return -5; }
+    if (mode == Const.combat_mode_improved_power_attack
+        || mode == Const.combat_mode_improved_expertise) { return -10; }
+    if (mode == Const.combat_mode_flurry_of_blows
+        || mode == Const.combat_mode_rapid_shot) { return -2; }
+    return 0;
 }
 
-fn attack_bonus_weapon_master(obj: Creature, subtype: int): int {
-    return mfeat.attack_bonus_weapon_master(obj, Const.AttackType(subtype));
+fn attack_bonus_weapon_master(obj: Creature, subtype: Const.AttackType): int {
+    return mfeat.attack_bonus_weapon_master(obj, subtype);
 }
 
-fn damage_bonus_ability(obj: Creature, _versus: object, subtype: int, multiplier: int): int {
-    if (multiplier <= 0 || subtype < 0 || subtype == Const.attack_type_any as int) {
+fn damage_bonus_ability(obj: Creature, _versus: object, subtype: Const.AttackType, multiplier: int): int {
+    if (multiplier <= 0 || subtype == Const.attack_type_any) {
         return 0;
     }
 
@@ -229,8 +235,7 @@ fn damage_bonus_ability(obj: Creature, _versus: object, subtype: int, multiplier
         return 0;
     }
 
-    var attack_type = Const.AttackType(subtype);
-    var weapon = Cre.weapon_for_attack(obj, attack_type);
+    var weapon = Cre.weapon_for_attack(obj, subtype);
     var base_item = Item.get_baseitem_type(weapon) as int;
 
     if (is_ranged_base_item(base_item)) {
@@ -250,17 +255,17 @@ fn damage_bonus_ability(obj: Creature, _versus: object, subtype: int, multiplier
     }
 
     var bonus = str_mod;
-    if (attack_type == Const.attack_type_offhand) {
+    if (subtype == Const.attack_type_offhand) {
         bonus = bonus / 2;
-    } elif (attack_type == Const.attack_type_onhand && !C.dual_wield_has_pair(obj)) {
+    } elif (subtype == Const.attack_type_onhand && !C.dual_wield_has_pair(obj)) {
         bonus = bonus + bonus / 2;
     }
 
     return bonus * multiplier;
 }
 
-fn damage_bonus_favored_enemy(obj: Creature, versus: object, subtype: int, multiplier: int): int {
-    if (subtype != Const.attack_type_any as int || multiplier <= 1 || !mfeat.has_favored_enemy(obj, versus)) {
+fn damage_bonus_favored_enemy(obj: Creature, versus: object, subtype: Const.AttackType, multiplier: int): int {
+    if (subtype != Const.attack_type_any || multiplier <= 1 || !mfeat.has_favored_enemy(obj, versus)) {
         return 0;
     }
 
@@ -277,11 +282,11 @@ fn damage_bonus_favored_enemy(obj: Creature, versus: object, subtype: int, multi
     return C.roll_dice(dice, sides, 1 + ranger_level / 5, multiplier);
 }
 
-fn damage_bonus_overwhelming_critical(obj: Creature, _versus: object, subtype: int, multiplier: int): int {
+fn damage_bonus_overwhelming_critical(obj: Creature, _versus: object, subtype: Const.AttackType, multiplier: int): int {
     if (multiplier <= 1) {
         return 0;
     }
-    if (!mfeat.has_overwhelming_critical(obj, Const.AttackType(subtype))) {
+    if (!mfeat.has_overwhelming_critical(obj, subtype)) {
         return 0;
     }
 
@@ -426,82 +431,104 @@ fn init_modifiers() {
             return stats.skills[Const.skill_tumble as int] / 5;
         });
 
+    // Expertise/Improved Expertise: +5/+10 dodge AC when mode is active.
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, _vs: object, subtype: int): int {
+            if (subtype != Const.ac_dodge as int) { return 0; }
+            var combat = get_propset!(CreatureCombat)(obj);
+            if (combat.combat_mode == Const.combat_mode_expertise) { return 5; }
+            if (combat.combat_mode == Const.combat_mode_improved_expertise) { return 10; }
+            return 0;
+        });
+
+    // Battle Training vs Giants: +4 natural AC when target is giant race.
+    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
+        fn(obj: Creature, vs: object, subtype: int): int {
+            if (subtype != Const.ac_natural as int) { return 0; }
+            if (!Cre.has_feat(obj, Const.feat_battle_training_versus_giants)) { return 0; }
+            if (vs is Creature) {
+                var vs_stats = get_propset!(CreatureStats)(vs);
+                if (vs_stats.race == Const.racial_type_giant as int) { return 4; }
+            }
+            return 0;
+        });
+
     // == Attack Bonus ========================================================
     modifier.register_attack_bonus_modifier("ability_attack_bonus",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return ability_attack_bonus(obj, subtype);
         },
         -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_enchant_arrow",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_enchant_arrow(obj, subtype);
         },
         -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_epic_prowess",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_epic_prowess(obj, subtype);
         },
         -1, bit.or(scope_attack_any, inv_progression_epoch));
 
     modifier.register_attack_bonus_modifier("attack_bonus_good_aim",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_good_aim(obj, subtype);
         },
         -1, bit.or(scope_subtype, inv_equipment_epoch));
 
     modifier.register_attack_bonus_modifier("attack_bonus_target_state",
-        fn(obj: Creature, vs: object, subtype: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
             return attack_bonus_target_state(obj, vs, subtype);
         },
         -1, bit.or(dep_target, bit.or(scope_attack_any,
                    bit.or(inv_target_change, inv_self_effect_epoch))));
 
     modifier.register_attack_bonus_modifier("attack_bonus_training_versus",
-        fn(obj: Creature, vs: object, subtype: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
             return attack_bonus_training_versus(obj, vs, subtype);
         },
         -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_weapon_feat",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_weapon_feat(obj, subtype);
         },
         -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_favored_enemy",
-        fn(obj: Creature, vs: object, subtype: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
             return attack_bonus_favored_enemy(obj, vs, subtype);
         },
         -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_combat_mode",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_combat_mode(obj, subtype);
         },
         -1, bit.or(scope_attack_any, inv_mode_epoch));
 
     modifier.register_attack_bonus_modifier("attack_bonus_weapon_master",
-        fn(obj: Creature, _vs: object, subtype: int): int {
+        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
             return attack_bonus_weapon_master(obj, subtype);
         },
         -1, bit.or(scope_subtype, inv_progression_epoch));
 
     modifier.register_damage_modifier("damage_bonus_ability",
-        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
             return damage_bonus_ability(obj, vs, subtype, multiplier);
         },
         -1);
 
     modifier.register_damage_modifier("damage_bonus_favored_enemy",
-        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
             return damage_bonus_favored_enemy(obj, vs, subtype, multiplier);
         },
         Const.attack_type_any as int);
 
     modifier.register_damage_modifier("damage_bonus_overwhelming_critical",
-        fn(obj: Creature, vs: object, subtype: int, multiplier: int): int {
+        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
             return damage_bonus_overwhelming_critical(obj, vs, subtype, multiplier);
         },
         -1);
@@ -509,7 +536,7 @@ fn init_modifiers() {
     // == Build slot_buckets ==================================================
     i = 0;
     for (i < 28) {
-        var empty_bucket: array!(fn(Creature, object, int): int);
+        var empty_bucket: array!(fn(Creature, object, Const.AttackType): int);
         arr.push(modifier.slot_buckets, empty_bucket);
         i += 1;
     }
@@ -635,6 +662,7 @@ fn init_modifiers() {
             if (Cre.has_feat(obj, Const.feat_stonecunning)) { return 2; }
             return 0;
         });
+
 }
 
 fn init() {

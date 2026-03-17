@@ -4,9 +4,11 @@
 
 #include "../../functions.hpp"
 #include "../../kernel/Config.hpp"
+#include "../../kernel/EventSystem.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Door.hpp"
+#include "../../objects/ObjectManager.hpp"
 #include "../../objects/Placeable.hpp"
 #include "../../objects/Player.hpp"
 #include "../../rules/Class.hpp"
@@ -17,6 +19,7 @@
 #include "../../smalls/runtime.hpp"
 #include "../../util/macros.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <optional>
@@ -25,6 +28,32 @@
 namespace nwn1 {
 
 namespace {
+
+struct ScheduledAttackEvent {
+    nw::ObjectHandle attacker;
+    nw::ObjectHandle target;
+};
+
+void scheduled_attack_payload_delete(void* data)
+{
+    delete static_cast<ScheduledAttackEvent*>(data);
+}
+
+void scheduled_attack_event_callback(const nw::kernel::EventHandle& ev)
+{
+    auto* payload = static_cast<ScheduledAttackEvent*>(ev.data);
+    if (!payload) {
+        return;
+    }
+
+    auto* attacker = nw::kernel::objects().get<nw::Creature>(payload->attacker);
+    auto* target = nw::kernel::objects().get_object_base(payload->target);
+    if (!attacker || !target) {
+        return;
+    }
+
+    resolve_attack(attacker, target);
+}
 
 thread_local bool in_combat_policy_dispatch = false;
 thread_local nw::Vector<nw::smalls::Value> policy_args_cache;
@@ -1365,6 +1394,8 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
     if (attacker->combat_info.attack_current >= total_attacks) {
         attacker->combat_info.attack_current = 0;
+        // New round for attacker: reset once-per-round defensive reaction state.
+        attacker->combat_info.epic_dodge_used = false;
     }
 
     std::unique_ptr<nw::AttackData> data = std::make_unique<nw::AttackData>();
@@ -1408,6 +1439,14 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
             }
         }
 
+        // Epic Dodge: target's first successful hit per round is negated.
+        if (nw::is_attack_type_hit(data->result) && target_cre
+            && !target_cre->combat_info.epic_dodge_used
+            && target_cre->stats.has_feat(feat_epic_dodge)) {
+            target_cre->combat_info.epic_dodge_used = true;
+            data->result = nw::AttackResult::miss_by_roll;
+        }
+
         // Check to make sure the hit hasn't be negated
         if (nw::is_attack_type_hit(data->result)) {
             if (data->result == nw::AttackResult::hit_by_critical) {
@@ -1418,8 +1457,6 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
             // Resolve Damage
             data->damage_total = resolve_attack_damage(attacker, target, data.get());
-
-            // Epic Dodge
         }
     }
 
@@ -1550,6 +1587,18 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
         }
 
         data->add(dmg, amt, unblock);
+    }
+
+    // Resolve damage decrease effects (penalty to attacker's damage).
+    // Note: effect_damage_penalty() does not set a category field, so no crit-only check.
+    auto it_dd = nw::find_first_effect_of(std::begin(obj->effects()), std::end(obj->effects()),
+        effect_type_damage_decrease);
+    for (; it_dd != std::end(obj->effects()) && it_dd->type == effect_type_damage_decrease; ++it_dd) {
+        if (!it_dd->effect->versus().match(vs)) { continue; }
+        auto dmg = nw::Damage::make(it_dd->subtype);
+        auto dice = nw::DiceRoll{it_dd->effect->get_int(0), it_dd->effect->get_int(1), it_dd->effect->get_int(2)};
+        auto amt = nw::roll_dice(dice);
+        data->add(dmg, -amt, false);
     }
 
     // Resolve damage modifiers
@@ -2125,6 +2174,50 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj)
     }
 
     return {onhand, offhand};
+}
+
+uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t round_ticks)
+{
+    if (!attacker) {
+        return 1;
+    }
+
+    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
+    int attacks_per_round = onhand + offhand + attacker->combat_info.attacks_extra;
+    if (attacks_per_round <= 0) {
+        attacks_per_round = 1;
+    }
+
+    if (round_ticks == 0) {
+        round_ticks = 1;
+    }
+
+    return std::max<uint32_t>(1, round_ticks / static_cast<uint32_t>(attacks_per_round));
+}
+
+bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks)
+{
+    if (!attacker || !target) {
+        return false;
+    }
+
+    auto* payload = new ScheduledAttackEvent{attacker->handle(), target->handle()};
+    nw::kernel::events().add_custom(attacker->handle(), &scheduled_attack_event_callback, delay_ticks,
+        payload, &scheduled_attack_payload_delete);
+    return true;
+}
+
+std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
+    uint32_t round_ticks)
+{
+    auto data = resolve_attack(attacker, target);
+    if (!data || !attacker || !target) {
+        return data;
+    }
+
+    auto delay = resolve_attack_cooldown_ticks(attacker, round_ticks);
+    schedule_attack(attacker, target, delay);
+    return data;
 }
 
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)

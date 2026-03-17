@@ -857,12 +857,13 @@ TEST_F(SmallsCombatParity, CacheInvalidationAttackBonusAndArmorClassTracksCpp)
     };
 
     // Warm + baseline against first target.
+    // get_def_armor_class(attacker, target) returns TARGET's AC vs attacker (defender's AC).
     EXPECT_EQ(run_ab(attacker_a, target_a), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_a));
-    EXPECT_EQ(run_cached_ac(attacker_a, target_a), nwn1::calculate_ac_versus(attacker_a, target_a, false));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_a), nwn1::calculate_ac_versus(target_a, attacker_a, false));
 
     // Target switch must invalidate both offense and defense target-sensitive cache state.
     EXPECT_EQ(run_ab(attacker_a, target_b), nwn1::resolve_attack_bonus(attacker_a, nwn1::attack_type_onhand, target_b));
-    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(attacker_a, target_b, false));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(target_b, attacker_a, false));
 
     // Attacker effect epoch change must invalidate offense caches.
     ASSERT_TRUE(nw::apply_effect(attacker_a, nwn1::effect_attack_modifier(nwn1::attack_type_any, 3)));
@@ -871,10 +872,10 @@ TEST_F(SmallsCombatParity, CacheInvalidationAttackBonusAndArmorClassTracksCpp)
 
     // Defender effect epoch change must invalidate defense cache.
     ASSERT_TRUE(nw::apply_effect(target_b, nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 4)));
-    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(attacker_a, target_b, false));
+    EXPECT_EQ(run_cached_ac(attacker_a, target_b), nwn1::calculate_ac_versus(target_b, attacker_a, false));
 
     // Defender cache tracks attacker identity; swapping attacker must not reuse stale value.
-    EXPECT_EQ(run_cached_ac(attacker_b, target_b), nwn1::calculate_ac_versus(attacker_b, target_b, false));
+    EXPECT_EQ(run_cached_ac(attacker_b, target_b), nwn1::calculate_ac_versus(target_b, attacker_b, false));
 }
 
 TEST_F(SmallsCombatParity, UnarmedDamageProfileMatchesCppReference)

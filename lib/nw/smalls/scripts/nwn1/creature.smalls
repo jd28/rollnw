@@ -25,8 +25,8 @@ fn _compute_ability_scores(obj: Creature, combat: CreatureCombat) {
         var score = stats.abilities[i];
         score = score + races.ability_modifier(stats.race, i);
         score = score + Mod.sum_modifiers(obj, Const.mod_type_ability, i, O.invalid);
-        var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase as int, i, O.invalid, 0, stack_sum);
-        var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease as int, i, O.invalid, 0, stack_sum);
+        var bonus = Comb.aggregate_effect_int(obj, Const.effect_type_ability_increase, i, O.invalid, 0, stack_sum);
+        var decrease = Comb.aggregate_effect_int(obj, Const.effect_type_ability_decrease, i, O.invalid, 0, stack_sum);
         combat.ability_scores[i] = score + Math.clamp(bonus - decrease, -12, 12);
     }
     combat.ability_cache_valid = true;
@@ -94,11 +94,11 @@ fn resolve_saving_throw(obj: Creature, save_type: Const.Save, dc: int, versus: o
     }
 
     // Permanent modifiers (feats, etc.)
-    save = save + Comb.aggregate_modifier_int(obj, Const.mod_type_save as int, save_type as int, versus, 0);
+    save = save + Comb.aggregate_modifier_int(obj, Const.mod_type_save, save_type as int, versus, 0);
 
     // Effects
-    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_increase as int, save_type as int, versus, 0, 0);
-    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_decrease as int, save_type as int, versus, 0, 0);
+    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_increase, save_type as int, versus, 0, 0);
+    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_decrease, save_type as int, versus, 0, 0);
     save = save + eff_inc - eff_dec;
 
     return save + roll >= dc;
@@ -126,11 +126,11 @@ fn get_skill_rank_full(obj: Creature, skill: Const.Skill, versus: object): int {
     }
 
     // Permanent modifiers (feats, etc.)
-    rank = rank + Comb.aggregate_modifier_int(obj, Const.mod_type_skill as int, skill as int, versus, 0);
+    rank = rank + Comb.aggregate_modifier_int(obj, Const.mod_type_skill, skill as int, versus, 0);
 
     // Effects
-    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_skill_increase as int, skill as int, versus, 0, 0);
-    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_skill_decrease as int, skill as int, versus, 0, 0);
+    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_skill_increase, skill as int, versus, 0, 0);
+    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_skill_decrease, skill as int, versus, 0, 0);
     return rank + eff_inc - eff_dec;
 }
 

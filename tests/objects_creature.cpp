@@ -20,6 +20,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
@@ -289,6 +290,36 @@ TEST(Creature, Attack)
             EXPECT_EQ(data1->damage_total, 0);
         }
     }
+}
+
+TEST(Creature, AttackSchedulingUsesEventTicks)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto attacker = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    ASSERT_TRUE(attacker);
+    ASSERT_TRUE(target);
+
+    auto& events = nwk::events();
+    events.process_until(std::numeric_limits<uint64_t>::max());
+    events.set_current_tick(0);
+
+    auto before = attacker->combat_info.attack_current;
+    auto delay = nwn1::resolve_attack_cooldown_ticks(attacker, 60);
+    EXPECT_GE(delay, 1u);
+
+    EXPECT_TRUE(nwn1::schedule_attack(attacker, target, 2));
+    EXPECT_EQ(events.process(), 0);
+
+    events.advance(1);
+    EXPECT_EQ(events.process(), 0);
+    EXPECT_EQ(attacker->combat_info.attack_current, before);
+
+    events.advance(1);
+    EXPECT_EQ(events.process(), 1);
+    EXPECT_NE(attacker->combat_info.attack_current, before);
 }
 
 TEST(Creature, BaseAttackBonus)

@@ -205,6 +205,7 @@ const racial_type_outsider = RacialType(20);
 const racial_type_shapechanger = RacialType(23);
 const racial_type_undead = RacialType(24);
 const racial_type_vermin = RacialType(25);
+const racial_type_ooze = RacialType(29);
 const racial_type_invalid = RacialType(-1);
 
 const feat_type_invalid = Feat(-1);
@@ -352,6 +353,7 @@ const feat_good_aim = Feat(250);
 const feat_prestige_defensive_awareness_2 = Feat(950);
 const feat_battle_training_versus_orcs = Feat(231);
 const feat_battle_training_versus_goblins = Feat(232);
+const feat_battle_training_versus_giants = Feat(233);
 const feat_battle_training_versus_reptilians = Feat(242);
 
 const feat_toughness = Feat(40);
@@ -374,6 +376,10 @@ const feat_improved_parry = Feat(18);
 const combat_mode_parry = 1;
 const combat_mode_power_attack = 2;
 const combat_mode_improved_power_attack = 3;
+const combat_mode_flurry_of_blows = 5;
+const combat_mode_rapid_shot = 6;
+const combat_mode_expertise = 7;
+const combat_mode_improved_expertise = 8;
 const feat_knockdown = Feat(23);
 const feat_improved_knockdown = Feat(17);
 
@@ -518,6 +524,11 @@ const effect_type_miss_chance = EffectType(75);
 const effect_type_concealment = EffectType(76);
 const effect_type_bonus_spell_of_level = EffectType(78);
 
+// Effect aggregation policies (used with C.aggregate_effect_int)
+const effect_agg_sum = 0;
+const effect_agg_max = 1;
+const effect_agg_min = 2;
+
 const ip_mighty = ItemPropertyType(45);
 const ip_on_hit_properties = ItemPropertyType(48);
 const ip_on_monster_hit = ItemPropertyType(72);
@@ -545,3 +556,10 @@ const mod_type_spell_immunity = ModifierType(16);
 const mod_type_spell_resistance = ModifierType(17);
 const mod_type_damage = ModifierType(18);
 const mod_type_damage_special_attack = ModifierType(19);
+
+// Epic Dodge
+const feat_epic_dodge = Feat(856);
+
+// Special attack subtypes (used with sum_damage_special_attack_modifiers)
+const special_attack_type_sneak = 1000;
+const special_attack_type_death_attack = 1001;

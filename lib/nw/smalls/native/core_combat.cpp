@@ -664,6 +664,12 @@ int32_t get_combat_mode(nw::ObjectHandle obj)
     return cre ? static_cast<int32_t>(*cre->combat_info.combat_mode) : -1;
 }
 
+int32_t get_dex_modifier_for_ac(nw::ObjectHandle obj)
+{
+    auto* cre = as_creature(obj);
+    return cre ? static_cast<int32_t>(nwn1::get_dex_modifier(cre)) : 0;
+}
+
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -725,6 +731,7 @@ void register_core_combat(Runtime& rt)
                 + cre->combat_info.attacks_extra;
             if (cre->combat_info.attack_current >= total_attacks) {
                 cre->combat_info.attack_current = 0;
+                cre->combat_info.epic_dodge_used = false;
             } })
         .function("attack_current", +[](nw::ObjectHandle attacker) -> int32_t {
             auto* cre = as_creature(attacker);
@@ -747,6 +754,7 @@ void register_core_combat(Runtime& rt)
         .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })
         .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
         .function("get_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return get_combat_mode(obj); })
+        .function("get_dex_modifier_for_ac", +[](nw::ObjectHandle obj) -> int32_t { return get_dex_modifier_for_ac(obj); })
         .function("weapon_is_ranged", +[](nw::ObjectHandle weapon) -> bool {
             auto* it = as_item(weapon);
             if (!it) { return false; }
