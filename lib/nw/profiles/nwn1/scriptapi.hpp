@@ -4,7 +4,6 @@
 
 #include "../../rules/Spell.hpp"
 #include "../../rules/attributes.hpp"
-#include "../../rules/combat_scheduler.hpp"
 #include "constants.hpp"
 
 namespace nw {
@@ -174,28 +173,6 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 /// any other that attacker and/or target are passed to, are passed as const.
 /// TODO: legacy heap-return API; migrate callers to nw::combat::resolve_attack.
 std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
-
-/// Legacy alias for nw::combat::resolve_attack_cooldown_ticks.
-/// TODO: remove after downstream callers migrate to nw::combat.
-uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t round_ticks = 60);
-
-/// Legacy alias for nw::combat::schedule_attack.
-/// TODO: remove after downstream callers migrate to nw::combat.
-bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks);
-
-/// Legacy alias for nw::combat::start_auto_attack.
-/// TODO: remove after downstream callers migrate to nw::combat.
-bool start_auto_attack(nw::Creature* attacker, nw::ObjectBase* target,
-    uint64_t initial_delay_ticks = 0, uint32_t round_ticks = 60);
-
-/// Legacy alias for nw::combat::stop_auto_attack.
-/// TODO: remove after downstream callers migrate to nw::combat.
-bool stop_auto_attack(nw::Creature* attacker);
-
-/// Legacy alias for nw::combat::resolve_attack_and_schedule.
-/// TODO: remove after downstream callers migrate to nw::combat.
-std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
-    uint32_t round_ticks = 60);
 
 /// Resolves attack bonus
 /// TODO: legacy compatibility; move combat math policy to profile scripts.

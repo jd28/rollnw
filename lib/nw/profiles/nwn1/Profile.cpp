@@ -36,6 +36,26 @@ bool nwn1_resolve_attack_policy(nw::Creature* attacker, nw::ObjectBase* target, 
     return true;
 }
 
+uint32_t nwn1_resolve_cooldown_policy(const nw::Creature* attacker, uint32_t round_ticks)
+{
+    if (!attacker) {
+        return 1;
+    }
+
+    auto [onhand, offhand] = nwn1::resolve_number_of_attacks(attacker);
+    int attacks_per_round = onhand + offhand + attacker->combat_info.attacks_extra;
+    if (attacks_per_round <= 0) {
+        attacks_per_round = 1;
+    }
+
+    if (round_ticks == 0) {
+        round_ticks = 1;
+    }
+
+    uint32_t cooldown = round_ticks / static_cast<uint32_t>(attacks_per_round);
+    return cooldown > 0 ? cooldown : 1;
+}
+
 } // namespace
 
 namespace nwn1 {
@@ -61,7 +81,7 @@ bool Profile::load_rules() const
     load_special_attacks();
     load_qualifiers();
 
-    nw::combat::set_attack_scheduler_policy(&nwn1_resolve_attack_policy, &nwn1::resolve_attack_cooldown_ticks);
+    nw::combat::set_attack_scheduler_policy(&nwn1_resolve_attack_policy, &nwn1_resolve_cooldown_policy);
 
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
         switch (obj->handle().type) {

@@ -2152,51 +2152,6 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj)
     return {onhand, offhand};
 }
 
-uint32_t resolve_attack_cooldown_ticks(const nw::Creature* attacker, uint32_t round_ticks)
-{
-    if (!attacker) {
-        return 1;
-    }
-
-    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
-    int attacks_per_round = onhand + offhand + attacker->combat_info.attacks_extra;
-    if (attacks_per_round <= 0) {
-        attacks_per_round = 1;
-    }
-
-    if (round_ticks == 0) {
-        round_ticks = 1;
-    }
-
-    return std::max<uint32_t>(1, round_ticks / static_cast<uint32_t>(attacks_per_round));
-}
-
-bool schedule_attack(nw::Creature* attacker, nw::ObjectBase* target, uint64_t delay_ticks)
-{
-    return nw::combat::schedule_attack(attacker, target, delay_ticks);
-}
-
-bool start_auto_attack(nw::Creature* attacker, nw::ObjectBase* target,
-    uint64_t initial_delay_ticks, uint32_t round_ticks)
-{
-    return nw::combat::start_auto_attack(attacker, target, initial_delay_ticks, round_ticks);
-}
-
-bool stop_auto_attack(nw::Creature* attacker)
-{
-    return nw::combat::stop_auto_attack(attacker);
-}
-
-std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
-    uint32_t round_ticks)
-{
-    auto out = std::make_unique<nw::AttackData>();
-    if (!nw::combat::resolve_attack_and_schedule(attacker, target, round_ticks, out.get())) {
-        return {};
-    }
-    return out;
-}
-
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)
 {
     nw::TargetState result = nw::TargetState::none;
