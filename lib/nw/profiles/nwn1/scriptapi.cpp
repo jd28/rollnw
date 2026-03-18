@@ -25,6 +25,10 @@
 
 namespace nwn1 {
 
+// Legacy compatibility implementation for nwn1::scriptapi.hpp.
+// Keep behavior stable while callers move to profile-agnostic APIs; avoid
+// adding new long-term dependencies on symbols in this namespace.
+
 namespace {
 
 thread_local bool in_combat_policy_dispatch = false;
@@ -2186,7 +2190,11 @@ bool stop_auto_attack(nw::Creature* attacker)
 std::unique_ptr<nw::AttackData> resolve_attack_and_schedule(nw::Creature* attacker, nw::ObjectBase* target,
     uint32_t round_ticks)
 {
-    return nw::combat::resolve_attack_and_schedule(attacker, target, round_ticks);
+    auto out = std::make_unique<nw::AttackData>();
+    if (!nw::combat::resolve_attack_and_schedule(attacker, target, round_ticks, out.get())) {
+        return {};
+    }
+    return out;
 }
 
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)

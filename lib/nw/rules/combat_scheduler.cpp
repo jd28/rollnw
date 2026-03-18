@@ -77,7 +77,7 @@ void scheduled_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    g_resolve_attack(attacker, target);
+    resolve_attack(attacker, target);
 }
 
 void auto_attack_event_callback(const kernel::EventHandle& ev)
@@ -104,7 +104,7 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    g_resolve_attack(attacker, target);
+    resolve_attack(attacker, target);
 
     auto delay = resolve_attack_cooldown_ticks(attacker, state->round_ticks);
     auto* next = new AutoAttackEvent{.attacker = payload->attacker, .generation = payload->generation};
@@ -129,6 +129,14 @@ void clear_attack_scheduler_policy() noexcept
 bool has_attack_scheduler_policy() noexcept
 {
     return g_resolve_attack != nullptr;
+}
+
+bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
+{
+    if (!g_resolve_attack) {
+        return false;
+    }
+    return g_resolve_attack(attacker, target, out);
 }
 
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks)
@@ -186,21 +194,16 @@ bool stop_auto_attack(Creature* attacker)
     return true;
 }
 
-std::unique_ptr<AttackData> resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
-    uint32_t round_ticks)
+bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
+    uint32_t round_ticks, AttackData* out)
 {
-    if (!g_resolve_attack) {
-        return {};
-    }
-
-    auto data = g_resolve_attack(attacker, target);
-    if (!data || !attacker || !target) {
-        return data;
+    if (!resolve_attack(attacker, target, out) || !attacker || !target) {
+        return false;
     }
 
     auto delay = resolve_attack_cooldown_ticks(attacker, round_ticks);
     schedule_attack(attacker, target, delay);
-    return data;
+    return true;
 }
 
 } // namespace nw::combat

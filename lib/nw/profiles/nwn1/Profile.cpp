@@ -22,6 +22,22 @@ namespace nwk = nw::kernel;
 
 using namespace std::literals;
 
+namespace {
+
+bool nwn1_resolve_attack_policy(nw::Creature* attacker, nw::ObjectBase* target, nw::AttackData* out)
+{
+    auto data = nwn1::resolve_attack(attacker, target);
+    if (!data) {
+        return false;
+    }
+    if (out) {
+        *out = std::move(*data);
+    }
+    return true;
+}
+
+} // namespace
+
 namespace nwn1 {
 
 void Profile::load_custom_services()
@@ -45,7 +61,7 @@ bool Profile::load_rules() const
     load_special_attacks();
     load_qualifiers();
 
-    nw::combat::set_attack_scheduler_policy(&nwn1::resolve_attack, &nwn1::resolve_attack_cooldown_ticks);
+    nw::combat::set_attack_scheduler_policy(&nwn1_resolve_attack_policy, &nwn1::resolve_attack_cooldown_ticks);
 
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
         switch (obj->handle().type) {

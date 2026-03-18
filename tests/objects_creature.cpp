@@ -9,6 +9,7 @@
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/combat.hpp>
+#include <nw/rules/combat_scheduler.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/scriptapi.hpp>
@@ -319,6 +320,21 @@ TEST(Creature, AttackSchedulingUsesEventTicks)
 
     events.advance(1);
     EXPECT_EQ(events.process(), 1);
+    EXPECT_NE(attacker->combat_info.attack_current, before);
+}
+
+TEST(Creature, CombatSchedulerCanResolveAttackWithoutAttackData)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto attacker = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto target = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
+    ASSERT_TRUE(attacker);
+    ASSERT_TRUE(target);
+
+    auto before = attacker->combat_info.attack_current;
+    EXPECT_TRUE(nw::combat::resolve_attack(attacker, target));
     EXPECT_NE(attacker->combat_info.attack_current, before);
 }
 
