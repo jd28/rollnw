@@ -72,10 +72,6 @@ int get_max_hitpoints(const nw::ObjectBase* obj);
 int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
     const nw::ObjectBase* versus = nullptr, bool base = false);
 
-/// Resolves saving throw
-bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
-    nw::SaveVersus type_vs = nw::SaveVersus::invalid(), const nw::ObjectBase* versus = nullptr);
-
 // ============================================================================
 // == Creature ================================================================
 // ============================================================================
@@ -178,11 +174,6 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 /// TODO: legacy compatibility; move combat math policy to profile scripts.
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);
 
-/// Resolves damage from an attack
-/// @return Total damage, ``data`` holds individual damage totals
-/// TODO: legacy compatibility; move combat math policy to profile scripts.
-int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
-
 /// Resolves an attack roll
 /// TODO: legacy compatibility; move combat math policy to profile scripts.
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data = nullptr);
@@ -201,9 +192,6 @@ int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, co
 
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
-
-/// Resolves damage modifiers - soak, resist, immunity
-void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
 
 /// Resolves damage immunity
 int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
@@ -265,25 +253,9 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
 int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
     nw::ObjectBase* versus = nullptr, bool base = false);
 
-/// Resolves skill check
-bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
-    nw::ObjectBase* versus = nullptr);
-
 // == Creature: Special Abilities =============================================
 // ============================================================================
 // TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Adds a special ability use
-///
-/// @ingroup Python
-/// @since 0.46
-void add_special_ability(nw::Creature* obj, nw::Spell ability, int level = 0);
-
-/// Clears all uses of a special ability
-///
-/// @ingroup Python
-/// @since 0.46
-void clear_special_ability(nw::Creature* obj, nw::Spell ability);
 
 /// Determines if a creature has a special ability
 ///
@@ -302,12 +274,6 @@ int get_special_ability_level(const nw::Creature* obj, nw::Spell ability);
 /// @ingroup Python
 /// @since 0.46
 int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability);
-
-/// Sets the caster level of a special ability, iff its a spell ability
-///
-/// @ingroup Python
-/// @since 0.46
-void set_special_ability_level(nw::Creature* obj, nw::Spell ability, int level);
 
 /// Sets the number of uses of a special ability
 ///
@@ -344,9 +310,6 @@ int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item);
 /// Gets an equipped weapon by attack type
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
 
-/// Determines if item is creature weapon
-bool is_creature_weapon(const nw::Item* item);
-
 /// Determines if item is double sided weapon
 bool is_double_sided_weapon(const nw::Item* item);
 
@@ -359,18 +322,6 @@ bool is_monk_weapon(const nw::Item* item);
 /// Determines if item is ranged weapon
 bool is_ranged_weapon(const nw::Item* item);
 
-/// Determines if item is unarmed weapon
-bool is_unarmed_weapon(const nw::Item* item);
-
-/// Determines if item is a shield
-bool is_shield(nw::BaseItem baseitem);
-
-/// Determines if item requires two hands to wield
-bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item);
-
-/// Resolves creature weapon damage
-nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon);
-
 /// Resolve unarmed base damage
 nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
 
@@ -382,12 +333,6 @@ nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem it
 // == Spells ==================================================================
 // ============================================================================
 // TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Converts metamagic index to flag
-nw::MetaMagicFlag metamagic_idx_to_flag(nw::MetaMagic idx);
-
-/// Converts metamagic flag to index
-nw::MetaMagic metamagic_flag_to_idx(nw::MetaMagicFlag flag);
 
 // ============================================================================
 // == Effects =================================================================
@@ -419,9 +364,6 @@ nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCa
 /// Creates an damage immunity effect
 /// @note Negative values create a vulnerability
 nw::Effect* effect_damage_immunity(nw::Damage type, int value);
-
-/// Creates an damage penalty effect
-nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice);
 
 /// Creates an damage reduction effect
 /// TODO: legacy compatibility; replace with profile-defined effect builders.
@@ -456,38 +398,7 @@ nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 /// TODO: legacy compatibility; replace with profile-defined itemprop builders.
 nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
 
-/// Creates armor modifier item property
-/// TODO: legacy compatibility; replace with profile-defined itemprop builders.
-nw::ItemProperty itemprop_armor_class_modifier(int value);
-
-/// Creates attack modifier item property
-/// TODO: legacy compatibility; replace with profile-defined itemprop builders.
-nw::ItemProperty itemprop_attack_modifier(int value);
-
-/// Creates bonus spell slot property
-nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level);
-
-/// Creates damage bonus item property
-/// TODO: legacy compatibility; replace with profile-defined itemprop builders.
-nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value);
-
-/// Creates enhancement modifier item property
-/// TODO: legacy compatibility; replace with profile-defined itemprop builders.
-nw::ItemProperty itemprop_enhancement_modifier(int value);
-
 /// Creates haste item property
 nw::ItemProperty itemprop_haste();
-
-/// Creates keen item property
-nw::ItemProperty itemprop_keen();
-
-/// Creates save modifier item property
-nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier);
-
-/// Creates save versus modifier item property
-nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier);
-
-/// Creates skill modifier item property
-nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 
 } // namespace nwn1

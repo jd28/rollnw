@@ -29,6 +29,18 @@ namespace nwn1 {
 // Keep behavior stable while callers move to profile-agnostic APIs; avoid
 // adding new long-term dependencies on symbols in this namespace.
 
+static bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
+    nw::SaveVersus type_vs, const nw::ObjectBase* versus);
+static bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
+    nw::ObjectBase* versus = nullptr);
+static bool is_creature_weapon(const nw::Item* item);
+static bool is_shield(nw::BaseItem baseitem);
+static bool is_unarmed_weapon(const nw::Item* item);
+
+int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
+void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
+nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon);
+
 namespace {
 
 thread_local bool in_combat_policy_dispatch = false;
@@ -81,6 +93,25 @@ struct CombatPolicyTimingData {
 };
 
 thread_local CombatPolicyTimingData combat_policy_timing;
+
+nw::MetaMagic metamagic_flag_to_idx_internal(nw::MetaMagicFlag flag)
+{
+    switch (*flag) {
+    case *metamagic_empower:
+        return metamagic_idx_empower;
+    case *metamagic_extend:
+        return metamagic_idx_extend;
+    case *metamagic_maximize:
+        return metamagic_idx_maximize;
+    case *metamagic_quicken:
+        return metamagic_idx_quicken;
+    case *metamagic_silent:
+        return metamagic_idx_silent;
+    case *metamagic_still:
+        return metamagic_idx_still;
+    }
+    return nw::MetaMagic::invalid();
+}
 
 inline uint64_t now_ns() noexcept
 {
@@ -562,7 +593,7 @@ int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_v
     return std::max(0, result + std::clamp(inc - dec, smin, smax));
 }
 
-bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
+static bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type, int dc,
     nw::SaveVersus type_vs, const nw::ObjectBase* versus)
 {
     static constexpr nw::DiceRoll d20{1, 20};
@@ -784,7 +815,7 @@ bool add_memorized_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell, n
     auto spell_level = nw::kernel::rules().classes.get_spell_level(class_, spell);
 
     if (meta != nw::metamagic_none) {
-        auto meta_info = nw::kernel::rules().metamagic.get(metamagic_flag_to_idx(meta));
+        auto meta_info = nw::kernel::rules().metamagic.get(metamagic_flag_to_idx_internal(meta));
         spell_level += meta_info->level_adjustment;
     }
 
@@ -2390,7 +2421,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
     return result + std::clamp(bonus - decrease, min, max);
 }
 
-bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::ObjectBase* versus)
+static bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::ObjectBase* versus)
 {
     static constexpr nw::DiceRoll d20{1, 20};
     auto rank = get_skill_rank(obj, skill, versus);
@@ -2402,7 +2433,7 @@ bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::O
 // == Creature: Special Abilities =============================================
 // ============================================================================
 
-void add_special_ability(nw::Creature* obj, nw::Spell ability, int level)
+static void add_special_ability(nw::Creature* obj, nw::Spell ability, int level)
 {
     ENSURE_OR_RETURN(obj, "[nwn1] add_special_ability called with invalid object");
 
@@ -2420,7 +2451,7 @@ void add_special_ability(nw::Creature* obj, nw::Spell ability, int level)
     obj->combat_info.special_abilities.push_back(abil);
 }
 
-void clear_special_ability(nw::Creature* obj, nw::Spell ability)
+static void clear_special_ability(nw::Creature* obj, nw::Spell ability)
 {
     ENSURE_OR_RETURN(obj, "[nwn1] clear_special_ability called with invalid object");
 
@@ -2492,7 +2523,7 @@ void remove_special_ability(nw::Creature* obj, nw::Spell ability)
     }
 }
 
-void set_special_ability_level(nw::Creature* obj, nw::Spell ability, int level)
+static void set_special_ability_level(nw::Creature* obj, nw::Spell ability, int level)
 {
     for (auto& it : obj->combat_info.special_abilities) {
         if (it.spell == ability) {
@@ -2655,7 +2686,7 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
         return get_equipped_item(obj, nw::EquipIndex::creature_right);
     }
 }
-bool is_creature_weapon(const nw::Item* item)
+static bool is_creature_weapon(const nw::Item* item)
 {
     if (!item) { return false; }
     return item->baseitem == base_item_cbludgweapon
@@ -2691,7 +2722,7 @@ bool is_ranged_weapon(const nw::Item* item)
     return bi ? bi->ranged : false;
 }
 
-bool is_shield(nw::BaseItem baseitem)
+static bool is_shield(nw::BaseItem baseitem)
 {
     return baseitem == base_item_smallshield
         || baseitem == base_item_largeshield
@@ -2706,7 +2737,7 @@ bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item)
     return bi->weapon_size > obj->size;
 }
 
-bool is_unarmed_weapon(const nw::Item* item)
+static bool is_unarmed_weapon(const nw::Item* item)
 {
     if (!item) { return true; }
     auto bi = item->baseitem;
@@ -2806,50 +2837,6 @@ nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem it
 }
 
 // ============================================================================
-// == Spells ==================================================================
-// ============================================================================
-
-/// Converts metamagic index to flag
-nw::MetaMagicFlag metamagic_idx_to_flag(nw::MetaMagic idx)
-{
-    switch (*idx) {
-    case *metamagic_idx_empower:
-        return metamagic_empower;
-    case *metamagic_idx_extend:
-        return metamagic_extend;
-    case *metamagic_idx_maximize:
-        return metamagic_maximize;
-    case *metamagic_idx_quicken:
-        return metamagic_quicken;
-    case *metamagic_idx_silent:
-        return metamagic_silent;
-    case *metamagic_idx_still:
-        return metamagic_still;
-    }
-    return nw::metamagic_none;
-}
-
-/// Converts metamagic flag to index
-nw::MetaMagic metamagic_flag_to_idx(nw::MetaMagicFlag flag)
-{
-    switch (*flag) {
-    case *metamagic_empower:
-        return metamagic_idx_empower;
-    case *metamagic_extend:
-        return metamagic_idx_extend;
-    case *metamagic_maximize:
-        return metamagic_idx_maximize;
-    case *metamagic_quicken:
-        return metamagic_idx_quicken;
-    case *metamagic_silent:
-        return metamagic_idx_silent;
-    case *metamagic_still:
-        return metamagic_idx_still;
-    }
-    return nw::MetaMagic::invalid();
-}
-
-// ============================================================================
 // == Effects =================================================================
 // ============================================================================
 
@@ -2934,17 +2921,6 @@ nw::Effect* effect_damage_immunity(nw::Damage type, int value)
     return eff;
 }
 
-nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice)
-{
-    if (!dice) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_damage_decrease);
-    eff->handle().subtype = *type;
-    eff->set_int(0, dice.dice);
-    eff->set_int(1, dice.sides);
-    eff->set_int(2, dice.bonus);
-    return eff;
-}
-
 nw::Effect* effect_damage_reduction(int value, int power, int max)
 {
     if (value == 0 || power <= 0) { return nullptr; }
@@ -3024,110 +3000,10 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
     return result;
 }
 
-nw::ItemProperty itemprop_armor_class_modifier(int value)
-{
-    nw::ItemProperty result;
-    if (value == 0) { return result; }
-    auto type = value > 0 ? ip_ac_bonus : ip_decreased_ac;
-    const auto def = nw::kernel::effects().ip_definition(type);
-    if (!def || !def->cost_table) { return result; }
-    value = std::clamp(value, 0, int(def->cost_table->rows()));
-
-    result.type = uint16_t(*type);
-    result.cost_value = uint16_t(value);
-    result.cost_value = uint16_t(std::abs(value));
-    return result;
-}
-
-nw::ItemProperty itemprop_attack_modifier(int value)
-{
-    nw::ItemProperty result;
-    if (value == 0) { return result; }
-    auto type = value > 0 ? ip_attack_bonus : ip_attack_penalty;
-
-    const auto def = nw::kernel::effects().ip_definition(type);
-    if (!def || !def->cost_table) { return result; }
-    value = std::clamp(value, 0, int(def->cost_table->rows()));
-
-    result.type = uint16_t(*type);
-    result.cost_value = uint16_t(std::abs(value));
-    return result;
-}
-
-nw::ItemProperty itemprop_bonus_spell_slot(nw::Class class_, int spell_level)
-{
-    nw::ItemProperty result;
-    result.type = uint16_t(*ip_bonus_spell_slot_of_level_n);
-    result.subtype = uint16_t(*class_);
-    result.cost_value = spell_level;
-    return result;
-}
-
-nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value)
-{
-    nw::ItemProperty result;
-    result.type = uint16_t(*ip_damage_bonus);
-    result.subtype = uint16_t(*type);
-    result.cost_value = uint16_t(value);
-    return result;
-}
-
-nw::ItemProperty itemprop_enhancement_modifier(int value)
-{
-    nw::ItemProperty result;
-    if (value == 0) { return result; }
-    auto type = value > 0 ? ip_enhancement_bonus : ip_enhancement_penalty;
-
-    const auto def = nw::kernel::effects().ip_definition(type);
-    if (!def || !def->cost_table) { return result; }
-    value = std::clamp(value, 0, int(def->cost_table->rows()));
-
-    result.type = uint16_t(*type);
-    result.cost_value = uint16_t(std::abs(value));
-    return result;
-}
-
 nw::ItemProperty itemprop_haste()
 {
     nw::ItemProperty result;
     result.type = uint16_t(*ip_haste);
-    return result;
-}
-
-nw::ItemProperty itemprop_keen()
-{
-    nw::ItemProperty result;
-    result.type = uint16_t(*ip_keen);
-    return result;
-}
-
-nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier)
-{
-    nw::ItemProperty result;
-    if (modifier == 0) { return result; }
-    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws);
-    result.subtype = uint16_t(*type);
-    result.cost_value = uint16_t(std::abs(modifier));
-    return result;
-}
-
-nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier)
-{
-    nw::ItemProperty result;
-    if (modifier == 0) { return result; }
-    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific);
-    result.subtype = uint16_t(*type);
-    result.cost_value = uint16_t(std::abs(modifier));
-    return result;
-}
-
-nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
-{
-    nw::ItemProperty result;
-    if (modifier == 0) { return result; }
-    result.type = uint16_t(modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier);
-    result.subtype = uint16_t(*skill);
-    result.cost_value = uint16_t(std::abs(modifier));
     return result;
 }
 
