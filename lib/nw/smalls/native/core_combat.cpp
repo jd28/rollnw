@@ -93,7 +93,7 @@ nw::Item* get_weapon_for_attack_type(nw::ObjectHandle obj, int32_t attack_type)
     if (!cre) {
         return nullptr;
     }
-    return nwn1::get_weapon_by_attack_type(cre, nw::AttackType::make(attack_type));
+    return nw::creature_get_weapon_by_attack_type(cre, nw::AttackType::make(attack_type));
 }
 
 int32_t weapon_critical_multiplier(nw::ObjectHandle obj, int32_t attack_type)
@@ -574,7 +574,7 @@ bool dual_wield_has_pair_flag(nw::ObjectHandle obj)
         return false;
     }
 
-    auto* rh = nwn1::get_equipped_item(cre, nw::EquipIndex::righthand);
+    auto* rh = nw::creature_get_equipped_item(cre, nw::EquipIndex::righthand);
     if (!rh) {
         return false;
     }
@@ -588,7 +588,7 @@ bool dual_wield_has_pair_flag(nw::ObjectHandle obj)
         return true;
     }
 
-    auto* lh = nwn1::get_equipped_item(cre, nw::EquipIndex::lefthand);
+    auto* lh = nw::creature_get_equipped_item(cre, nw::EquipIndex::lefthand);
     if (!lh) {
         return false;
     }
@@ -604,7 +604,7 @@ bool dual_wield_off_is_light_flag(nw::ObjectHandle obj)
         return false;
     }
 
-    auto* rh = nwn1::get_equipped_item(cre, nw::EquipIndex::righthand);
+    auto* rh = nw::creature_get_equipped_item(cre, nw::EquipIndex::righthand);
     if (!rh) {
         return false;
     }
@@ -618,7 +618,7 @@ bool dual_wield_off_is_light_flag(nw::ObjectHandle obj)
         return true;
     }
 
-    auto* lh = nwn1::get_equipped_item(cre, nw::EquipIndex::lefthand);
+    auto* lh = nw::creature_get_equipped_item(cre, nw::EquipIndex::lefthand);
     if (!lh) {
         return false;
     }
@@ -722,7 +722,7 @@ void register_core_combat(Runtime& rt)
                 return;
             }
 
-            auto [onhand, offhand] = nwn1::resolve_number_of_attacks(cre);
+            auto [onhand, offhand] = nw::creature_resolve_number_of_attacks(cre);
             cre->combat_info.attacks_onhand = onhand;
             cre->combat_info.attacks_offhand = offhand;
 

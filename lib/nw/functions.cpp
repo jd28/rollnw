@@ -3,6 +3,8 @@
 #include "kernel/EventSystem.hpp"
 #include "objects/Creature.hpp"
 #include "profiles/nwn1/propset_populate.hpp"
+#include "profiles/nwn1/scriptapi.hpp"
+#include "rules/combat_scheduler.hpp"
 #include "rules/effects.hpp"
 #include "scriptapi.hpp"
 #include "smalls/runtime.hpp"
@@ -58,6 +60,79 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
     if (result.ok()) { return result.value.data.ival; }
     LOG_F(ERROR, "[functions] process_item_properties failed: {}", result.error_message);
     return 0;
+}
+
+// == Combat ==================================================================
+// ============================================================================
+
+bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
+{
+    return combat::resolve_attack(attacker, target, out);
+}
+
+uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks)
+{
+    return combat::resolve_attack_cooldown_ticks(attacker, round_ticks);
+}
+
+bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks)
+{
+    return combat::schedule_attack(attacker, target, delay_ticks);
+}
+
+bool start_auto_attack(Creature* attacker, ObjectBase* target,
+    uint64_t initial_delay_ticks, uint32_t round_ticks)
+{
+    return combat::start_auto_attack(attacker, target, initial_delay_ticks, round_ticks);
+}
+
+bool stop_auto_attack(Creature* attacker)
+{
+    return combat::stop_auto_attack(attacker);
+}
+
+bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
+    uint32_t round_ticks, AttackData* out)
+{
+    return combat::resolve_attack_and_schedule(attacker, target, round_ticks, out);
+}
+
+// == Equipment ================================================================
+// ============================================================================
+
+AttackType equip_index_to_attack_type(EquipIndex equip)
+{
+    return nwn1::equip_index_to_attack_type(equip);
+}
+
+bool creature_can_equip_item(const Creature* obj, Item* item, EquipIndex slot)
+{
+    return nwn1::can_equip_item(obj, item, slot);
+}
+
+bool creature_equip_item(Creature* obj, Item* item, EquipIndex slot)
+{
+    return nwn1::equip_item(obj, item, slot);
+}
+
+Item* creature_get_equipped_item(const Creature* obj, EquipIndex slot)
+{
+    return nwn1::get_equipped_item(obj, slot);
+}
+
+Item* creature_unequip_item(Creature* obj, EquipIndex slot)
+{
+    return nwn1::unequip_item(obj, slot);
+}
+
+Item* creature_get_weapon_by_attack_type(const Creature* obj, AttackType type)
+{
+    return nwn1::get_weapon_by_attack_type(obj, type);
+}
+
+std::pair<int, int> creature_resolve_number_of_attacks(const Creature* obj)
+{
+    return nwn1::resolve_number_of_attacks(obj);
 }
 
 } // namespace nw

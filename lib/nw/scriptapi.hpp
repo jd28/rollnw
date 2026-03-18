@@ -3,6 +3,7 @@
 #include "config.hpp"
 
 #include <stdint.h>
+#include <utility>
 
 /**
  * @defgroup Python Functions with Python bindings
@@ -12,6 +13,8 @@
 namespace nw {
 
 struct Creature;
+struct AttackData;
+struct AttackType;
 struct Effect;
 struct EffectType;
 struct Feat;
@@ -21,6 +24,7 @@ struct ItemPropertyType;
 struct ObjectBase;
 struct ObjectHandle;
 enum struct ObjectType : uint8_t;
+enum struct EquipIndex : uint32_t;
 struct Resref;
 
 // ============================================================================
@@ -79,6 +83,55 @@ nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat
 
 /// Checks if an entity knows a given feat
 bool knows_feat(const nw::Creature* obj, nw::Feat feat);
+
+// ============================================================================
+// == Creature: Combat ========================================================
+// ============================================================================
+
+/// Resolves one attack using active profile combat policy.
+bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out = nullptr);
+
+/// Computes attack cooldown in scheduler ticks.
+uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks = 60);
+
+/// Schedules one delayed attack event.
+bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks);
+
+/// Starts or retargets auto-attack loop.
+bool start_auto_attack(Creature* attacker, ObjectBase* target,
+    uint64_t initial_delay_ticks = 0, uint32_t round_ticks = 60);
+
+/// Stops auto-attack loop.
+bool stop_auto_attack(Creature* attacker);
+
+/// Resolves one attack now and schedules next by cooldown.
+bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
+    uint32_t round_ticks = 60, AttackData* out = nullptr);
+
+// ============================================================================
+// == Creature: Equipment =====================================================
+// ============================================================================
+
+/// Converts equipment slot to attack type.
+AttackType equip_index_to_attack_type(EquipIndex equip);
+
+/// Determines if an item can be equipped.
+bool creature_can_equip_item(const Creature* obj, Item* item, EquipIndex slot);
+
+/// Equips an item into a slot.
+bool creature_equip_item(Creature* obj, Item* item, EquipIndex slot);
+
+/// Returns equipped item for slot.
+Item* creature_get_equipped_item(const Creature* obj, EquipIndex slot);
+
+/// Unequips item from slot.
+Item* creature_unequip_item(Creature* obj, EquipIndex slot);
+
+/// Returns weapon for attack type.
+Item* creature_get_weapon_by_attack_type(const Creature* obj, AttackType type);
+
+/// Resolves current onhand/offhand attack counts.
+std::pair<int, int> creature_resolve_number_of_attacks(const Creature* obj);
 
 // ============================================================================
 // == Item: Properties ========================================================

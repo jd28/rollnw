@@ -3,6 +3,7 @@
 #include "../../kernel/Rules.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../profiles/nwn1/scriptapi.hpp"
+#include "../../scriptapi.hpp"
 
 namespace nw::smalls {
 
@@ -86,7 +87,7 @@ void register_core_creature(Runtime& rt)
             return creature->combat_info.ac_armor_base; })
         .function("weapon_iteration_for_attack", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t {
             auto* creature = as_creature(obj);
-            return nwn1::weapon_iteration(creature, nwn1::get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type))); })
+            return nwn1::weapon_iteration(creature, nw::creature_get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type))); })
         .function("attack_sequence_index", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t {
             auto* creature = as_creature(obj);
             if (!creature) {
@@ -98,15 +99,15 @@ void register_core_creature(Runtime& rt)
             return creature->combat_info.attack_current; })
         .function("weapon_for_attack", +[](nw::ObjectHandle obj, int32_t attack_type) -> nw::ObjectHandle {
             auto* creature = as_creature(obj);
-            auto* item = nwn1::get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type));
+            auto* item = nw::creature_get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type));
             return item ? item->handle() : nw::ObjectHandle{}; })
-        .function("can_equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nwn1::can_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
-        .function("equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nwn1::equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
+        .function("can_equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::creature_can_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
+        .function("equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::creature_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
         .function("get_equipped_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nwn1::get_equipped_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
+            auto* item = nw::creature_get_equipped_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
             return item ? item->handle() : nw::ObjectHandle{}; })
         .function("unequip_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nwn1::unequip_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
+            auto* item = nw::creature_unequip_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
             return item ? item->handle() : nw::ObjectHandle{}; })
 
         // == Feats ===================================================================
@@ -151,21 +152,18 @@ void register_core_creature(Runtime& rt)
             case 2: return bonus.reflex;
             case 3: return bonus.will;
             default: return 0;
-            }
-        })
+            } })
 
         // Returns the ability governing a skill (for ability modifier contribution).
         // Returns -1 for invalid skills.
         .function("skill_key_ability", +[](int32_t skill) -> int32_t {
             auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
-            return info ? static_cast<int32_t>(*info->ability) : -1;
-        })
+            return info ? static_cast<int32_t>(*info->ability) : -1; })
 
         // Returns true if the skill can be used without training (0 ranks).
         .function("skill_is_untrained", +[](int32_t skill) -> bool {
             auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
-            return info && info->untrained;
-        })
+            return info && info->untrained; })
 
         // The end.
         .finalize();

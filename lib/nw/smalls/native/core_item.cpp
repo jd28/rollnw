@@ -105,7 +105,7 @@ void register_core_item(Runtime& rt)
                 }
             }
             return 0; })
-        .function("__equip_index_to_attack_type", +[](int32_t equip_index) -> int32_t { return *nwn1::equip_index_to_attack_type(static_cast<nw::EquipIndex>(equip_index)); })
+        .function("__equip_index_to_attack_type", +[](int32_t equip_index) -> int32_t { return *nw::equip_index_to_attack_type(static_cast<nw::EquipIndex>(equip_index)); })
 
         // The End
         .finalize();

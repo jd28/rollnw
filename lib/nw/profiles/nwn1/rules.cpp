@@ -606,8 +606,11 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
             roll.roll.bonus = get_ability_modifier(cre, ability_strength);
             if (attack_type == attack_type_offhand) {
                 roll.roll.bonus = int(roll.roll.bonus * 0.5);
-            } else if (weapon && get_relative_weapon_size(cre, weapon) > 0) { // I think this is right
-                roll.roll.bonus = int(roll.roll.bonus * 1.5);
+            } else if (weapon) {
+                auto bi = nw::kernel::rules().baseitems.get(weapon->baseitem);
+                if (bi && bi->weapon_size > cre->size) {
+                    roll.roll.bonus = int(roll.roll.bonus * 1.5);
+                }
             }
         }
     }
@@ -1244,7 +1247,7 @@ inline nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipI
     if ((type == ip_attack_bonus || type == ip_attack_penalty) && def->cost_table) {
         // Note: value will already be negative for decreased ability score.
         if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
-            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+            return effect_attack_modifier(nwn1::equip_index_to_attack_type(equip), *value);
         }
     }
     return nullptr;
@@ -1290,7 +1293,7 @@ inline nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::E
     if ((type == ip_enhancement_bonus || type == ip_enhancement_penalty) && def->cost_table) {
         // Note: value will already be negative for decreased ability score.
         if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
-            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+            return effect_attack_modifier(nwn1::equip_index_to_attack_type(equip), *value);
         }
     }
     return nullptr;

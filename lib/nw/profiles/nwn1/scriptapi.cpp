@@ -37,9 +37,9 @@ static bool is_creature_weapon(const nw::Item* item);
 static bool is_shield(nw::BaseItem baseitem);
 static bool is_unarmed_weapon(const nw::Item* item);
 
-int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
-void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
-nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon);
+static int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
+static void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
+static nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon);
 
 namespace {
 
@@ -1550,7 +1550,7 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 
-int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
+static int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
 {
     if (!obj || !versus || !data) { return 0; }
     int result = 0;
@@ -1914,7 +1914,7 @@ int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw
     return result;
 }
 
-void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
+static void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
 {
     if (!obj || !versus || !data) { return; }
     auto do_damage_resistance = [=](nw::DamageResult& dmg, int resist, nw::Effect* resist_eff) {
@@ -2744,7 +2744,7 @@ static bool is_unarmed_weapon(const nw::Item* item)
     return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(item);
 }
 
-nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon)
+static nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon)
 {
     nw::DiceRoll result;
     if (!attacker || !weapon || !is_creature_weapon(weapon)) { return result; }
