@@ -51,20 +51,37 @@ bool has_annotation(const StructDef* def, StringView name)
 
 Value read_field_value(Runtime& rt, void* ptr, TypeID type_id)
 {
+    // Unwrap newtypes to find the underlying storage type while preserving the
+    // original type_id so the returned value carries the correct (newtype) type.
+    TypeID original_type_id = type_id;
+    {
+        const Type* t = rt.get_type(type_id);
+        while (t && t->type_kind == TK_newtype && t->type_params[0].is<TypeID>()) {
+            type_id = t->type_params[0].as<TypeID>();
+            t = rt.get_type(type_id);
+        }
+    }
+
     if (type_id == rt.int_type()) {
-        return Value::make_int(*static_cast<int32_t*>(ptr));
+        Value v = Value::make_int(*static_cast<int32_t*>(ptr));
+        v.type_id = original_type_id;
+        return v;
     }
     if (type_id == rt.float_type()) {
-        return Value::make_float(*static_cast<float*>(ptr));
+        Value v = Value::make_float(*static_cast<float*>(ptr));
+        v.type_id = original_type_id;
+        return v;
     }
     if (type_id == rt.bool_type()) {
-        return Value::make_bool(*static_cast<bool*>(ptr));
+        Value v = Value::make_bool(*static_cast<bool*>(ptr));
+        v.type_id = original_type_id;
+        return v;
     }
     if (type_id == rt.string_type()) {
         return Value::make_string(*static_cast<HeapPtr*>(ptr));
     }
     if (rt.is_object_like_type(type_id)) {
-        Value v(type_id);
+        Value v(original_type_id);
         v.storage = ValueStorage::immediate;
         v.data.oval = *static_cast<ObjectHandle*>(ptr);
         return v;
@@ -72,7 +89,7 @@ Value read_field_value(Runtime& rt, void* ptr, TypeID type_id)
 
     const Type* type = rt.get_type(type_id);
     if (type && rt.type_table_.is_heap_type(type_id)) {
-        return Value::make_heap(*static_cast<HeapPtr*>(ptr), type_id);
+        return Value::make_heap(*static_cast<HeapPtr*>(ptr), original_type_id);
     }
 
     return Value{};
@@ -80,6 +97,15 @@ Value read_field_value(Runtime& rt, void* ptr, TypeID type_id)
 
 void write_field_value(Runtime& rt, void* ptr, TypeID type_id, const Value& value)
 {
+    // Unwrap newtypes to find the underlying storage type for writing raw bytes.
+    {
+        const Type* t = rt.get_type(type_id);
+        while (t && t->type_kind == TK_newtype && t->type_params[0].is<TypeID>()) {
+            type_id = t->type_params[0].as<TypeID>();
+            t = rt.get_type(type_id);
+        }
+    }
+
     if (type_id == rt.int_type()) {
         *static_cast<int32_t*>(ptr) = value.data.ival;
         return;

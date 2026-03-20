@@ -250,9 +250,10 @@ bool AstCompiler::try_materialize_export_const(Script* provider, const Export& e
     return try_value_to_export_const(value, value.type_id, out);
 }
 
-bool AstCompiler::try_emit_export_const(const ExportConstValue& exported)
+bool AstCompiler::try_emit_export_const(const ExportConstValue& exported, TypeID type_id)
 {
     uint8_t result = registers_.allocate();
+    bool emitted = false;
 
     if (const auto* v = std::get_if<int32_t>(&exported.value)) {
         if (*v >= -32768 && *v <= 32767) {
@@ -266,11 +267,8 @@ bool AstCompiler::try_emit_export_const(const ExportConstValue& exported)
             }
             emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
         }
-        result_reg_ = result;
-        return true;
-    }
-
-    if (const auto* v = std::get_if<float>(&exported.value)) {
+        emitted = true;
+    } else if (const auto* v = std::get_if<float>(&exported.value)) {
         uint32_t k_idx = add_constant_float(*v);
         if (k_idx > 65535) {
             registers_.free(result);
@@ -278,17 +276,11 @@ bool AstCompiler::try_emit_export_const(const ExportConstValue& exported)
             return false;
         }
         emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
-        result_reg_ = result;
-        return true;
-    }
-
-    if (const auto* v = std::get_if<bool>(&exported.value)) {
+        emitted = true;
+    } else if (const auto* v = std::get_if<bool>(&exported.value)) {
         emit_abc(Opcode::LOADB, result, *v ? 1 : 0, 0);
-        result_reg_ = result;
-        return true;
-    }
-
-    if (const auto* v = std::get_if<String>(&exported.value)) {
+        emitted = true;
+    } else if (const auto* v = std::get_if<String>(&exported.value)) {
         uint32_t k_idx = add_constant_string(*v);
         if (k_idx > 65535) {
             registers_.free(result);
@@ -296,12 +288,34 @@ bool AstCompiler::try_emit_export_const(const ExportConstValue& exported)
             return false;
         }
         emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
-        result_reg_ = result;
-        return true;
+        emitted = true;
     }
 
-    registers_.free(result);
-    return false;
+    if (!emitted) {
+        registers_.free(result);
+        return false;
+    }
+
+    // If the export type is a newtype, emit CAST to restore the newtype TypeID.
+    // Without this, e.g. `Feat(261)` exported from another module arrives as
+    // plain `int` instead of `Feat`.
+    if (type_id != invalid_type_id) {
+        const Type* t = runtime_->get_type(type_id);
+        if (t && t->type_kind == TK_newtype) {
+            auto it = std::find(module_->type_refs.begin(), module_->type_refs.end(), type_id);
+            uint16_t type_idx;
+            if (it == module_->type_refs.end()) {
+                type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                module_->type_refs.push_back(type_id);
+            } else {
+                type_idx = static_cast<uint16_t>(std::distance(module_->type_refs.begin(), it));
+            }
+            emit_abx(Opcode::CAST, result, type_idx);
+        }
+    }
+
+    result_reg_ = result;
+    return true;
 }
 
 bool AstCompiler::try_emit_imported_const_from_provider(StringView name, const Export& imported)
@@ -320,7 +334,7 @@ bool AstCompiler::try_emit_imported_const_from_provider(StringView name, const E
         return false;
     }
 
-    if (try_emit_export_const(provider_export->const_value)) {
+    if (try_emit_export_const(provider_export->const_value, provider_export->type_id)) {
         return true;
     }
 
@@ -329,7 +343,7 @@ bool AstCompiler::try_emit_imported_const_from_provider(StringView name, const E
         return false;
     }
 
-    return try_emit_export_const(materialized);
+    return try_emit_export_const(materialized, provider_export->type_id);
 }
 
 bool AstCompiler::compile()
@@ -398,7 +412,22 @@ bool AstCompiler::compile()
                     registers_.free(src);
                 } else {
                     uint8_t tmp = registers_.allocate();
-                    emit_abc(Opcode::LOADNIL, tmp, 0, 0);
+                    const Type* decl_type = runtime_->get_type(var->type_id_);
+                    if (decl_type && decl_type->type_kind == TK_array
+                        && decl_type->type_params[1].empty()) {
+                        // Dynamic array global without init: emit LOADI(0)+NEWARRAY (like local vars)
+                        emit_asbx(Opcode::LOADI, tmp, 0);
+                        uint16_t type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                        module_->type_refs.push_back(var->type_id_);
+                        emit_abx(Opcode::NEWARRAY, tmp, type_idx);
+                    } else if (decl_type && decl_type->type_kind == TK_map) {
+                        // Map global without init: emit NEWMAP (like local vars)
+                        uint16_t type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                        module_->type_refs.push_back(var->type_id_);
+                        emit_abx(Opcode::NEWMAP, tmp, type_idx);
+                    } else {
+                        emit_abc(Opcode::LOADNIL, tmp, 0, 0);
+                    }
                     emit_abx(Opcode::SETGLOBAL, tmp, slot);
                     registers_.free(tmp);
                 }
@@ -474,6 +503,27 @@ bool AstCompiler::compile_function(FunctionDefinition* func)
     return !failed_;
 }
 
+void AstCompiler::hydrate_module_globals()
+{
+    for (auto* decl : script_->ast().decls) {
+        if (auto* var = dynamic_cast<VarDecl*>(decl)) {
+            String name(var->identifier());
+            auto it = module_->global_slot_map.find(name);
+            if (it != module_->global_slot_map.end()) {
+                module_globals_[name] = {static_cast<uint16_t>(it->second), var->is_const_};
+            }
+        } else if (auto* dl = dynamic_cast<DeclList*>(decl)) {
+            for (auto& d : dl->decls) {
+                String name(d->identifier());
+                auto it = module_->global_slot_map.find(name);
+                if (it != module_->global_slot_map.end()) {
+                    module_globals_[name] = {static_cast<uint16_t>(it->second), d->is_const_};
+                }
+            }
+        }
+    }
+}
+
 bool AstCompiler::compile_instantiated(CompiledFunction* compiled, FunctionDefinition* func)
 {
     if (compiled) {
@@ -483,6 +533,7 @@ bool AstCompiler::compile_instantiated(CompiledFunction* compiled, FunctionDefin
     current_func_ = compiled;
     registers_.reset();
     local_vars_.clear();
+    hydrate_module_globals();
 
     for (size_t i = 0; i < func->params.size(); ++i) {
         auto* param = func->params[i];
@@ -2542,7 +2593,7 @@ void AstCompiler::visit(IdentifierExpression* expr)
         }
 
         if (imported->kind == Export::Kind::variable) {
-            if (try_emit_export_const(imported->const_value)) {
+            if (try_emit_export_const(imported->const_value, imported->type_id)) {
                 return;
             }
 
@@ -2651,10 +2702,10 @@ void AstCompiler::visit(PathExpression* expr)
                     auto pexp = provider->exports().find(rhs_name);
                     if (pexp && pexp->kind == Export::Kind::variable) {
                         // Try inline materialization first (works for int/float/bool/string consts)
-                        if (try_emit_export_const(pexp->const_value)) { return; }
+                        if (try_emit_export_const(pexp->const_value, pexp->type_id)) { return; }
                         ExportConstValue materialized;
                         if (try_materialize_export_const(provider, *pexp, materialized)) {
-                            if (try_emit_export_const(materialized)) { return; }
+                            if (try_emit_export_const(materialized, pexp->type_id)) { return; }
                         }
                         // Fall back to runtime cross-module global read
                         uint32_t ref_idx = module_->add_global_ref(exp->provider_module, rhs_name);

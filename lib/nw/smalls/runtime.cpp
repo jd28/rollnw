@@ -1195,8 +1195,11 @@ TypeID Runtime::type_check_binary_op(Token op, TypeID lhs, TypeID rhs) const
     case TokenType::GT:
     case TokenType::GTEQ:
         if ((op.type == TokenType::EQEQ || op.type == TokenType::NOTEQ)
-            && lhs == rhs
-            && (is_object_like_type(lhs) || is_handle_type(lhs))) {
+            && is_object_like_type(lhs) && is_object_like_type(rhs)) {
+            return bool_id_;
+        }
+        if ((op.type == TokenType::EQEQ || op.type == TokenType::NOTEQ)
+            && lhs == rhs && is_handle_type(lhs)) {
             return bool_id_;
         }
         if ((lhs == int_id_ || lhs == float_id_ || lhs == bool_id_)

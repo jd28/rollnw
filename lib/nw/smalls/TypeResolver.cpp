@@ -2154,6 +2154,13 @@ void TypeResolver::visit(StructDecl* decl)
                         continue;
                     }
 
+                    // Unwrap newtypes to their base type for propset field validation
+                    while (field_type && field_type->type_kind == TK_newtype
+                           && field_type->type_params[0].is<TypeID>()) {
+                        field_type = rt.get_type(field_type->type_params[0].as<TypeID>());
+                    }
+                    if (!field_type) { continue; }
+
                     bool allowed = false;
 
                     // Helper to check if primitive kind is in v1 allowlist
@@ -2163,6 +2170,10 @@ void TypeResolver::visit(StructDecl* decl)
 
                     // Helper to check if type is a POD type (no heap references)
                     auto is_pod_type = [&](const Type* t) -> bool {
+                        if (!t) return false;
+                        // Unwrap newtypes before checking
+                        while (t && t->type_kind == TK_newtype && t->type_params[0].is<TypeID>())
+                            t = rt.get_type(t->type_params[0].as<TypeID>());
                         if (!t) return false;
                         // Primitives (excluding string)
                         if (t->type_kind == TK_primitive) {
@@ -2210,6 +2221,10 @@ void TypeResolver::visit(StructDecl* decl)
                     else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
                         const Type* elem_type = rt.get_type(elem_tid);
+                        // Unwrap newtypes for element type check
+                        while (elem_type && elem_type->type_kind == TK_newtype
+                               && elem_type->type_params[0].is<TypeID>())
+                            elem_type = rt.get_type(elem_type->type_params[0].as<TypeID>());
                         if (elem_type && elem_type->type_kind == TK_primitive) {
                             allowed = is_v1_primitive(elem_type->primitive_kind);
                         }

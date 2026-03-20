@@ -4278,7 +4278,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         if (value_val.type_id != value_type) {
-            fail("map.set value type mismatch");
+            fail(fmt::format("map.set value type mismatch: map expects '{}' (id={}), got '{}' (id={})",
+                rt_->type_name(value_type), value_type.value,
+                rt_->type_name(value_val.type_id), value_val.type_id.value));
             return;
         }
         reg(dest_reg) = Value::make_bool(rt_->map_set(map_ptr, key_val, value_val));

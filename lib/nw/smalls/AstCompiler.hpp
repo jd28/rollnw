@@ -136,6 +136,9 @@ struct AstCompiler : public BaseVisitor {
     // Compile an instantiated generic function (function body only)
     bool compile_instantiated(CompiledFunction* compiled, FunctionDefinition* func);
 
+    // Populate module_globals_ from the defining module's global_slot_map (for generics)
+    void hydrate_module_globals();
+
     // Compile a lambda expression as a separate function, returns function index in module
     uint16_t compile_lambda(LambdaExpression* lambda);
 
@@ -183,7 +186,7 @@ struct AstCompiler : public BaseVisitor {
     // Constant folding helper: if expr is a compile-time constant, emit a
     // single load instruction and set result_reg_.  Returns true on success.
     bool try_emit_const(Expression* expr);
-    bool try_emit_export_const(const ExportConstValue& exported);
+    bool try_emit_export_const(const ExportConstValue& exported, TypeID type_id = invalid_type_id);
     bool try_emit_imported_const_from_provider(StringView name, const Export& imported);
     bool try_materialize_export_const(Script* provider, const Export& exp, ExportConstValue& out) const;
     bool try_value_to_export_const(const Value& value, TypeID type_id, ExportConstValue& out) const;
