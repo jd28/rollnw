@@ -1,3 +1,5 @@
+#include "lsp_text.hpp"
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/smalls/AstLocator.hpp>
 #include <nw/smalls/NullVisitor.hpp>
@@ -431,7 +433,20 @@ struct LspServer {
 
         if (method == "initialize") {
             json result = {
-                {"capabilities", {{"textDocumentSync", 1}, {"hoverProvider", true}, {"definitionProvider", true}, {"completionProvider", {{"resolveProvider", false}, {"triggerCharacters", {".", "!", "("}}}}, {"semanticTokensProvider", {{"legend", {{"tokenTypes", {"type", "enumMember", "variable", "parameter", "function", "keyword", "comment", "string", "number", "operator"}}, {"tokenModifiers", {}}}}, {"full", true}}}}}};
+                {"capabilities", {
+                    {"textDocumentSync", 1},
+                    {"hoverProvider", true},
+                    {"definitionProvider", true},
+                    {"completionProvider", {{"resolveProvider", false}, {"triggerCharacters", {".", "!", "("}}}},
+                    {"signatureHelpProvider", {{"triggerCharacters", {"(", ","}}}},
+                    {"semanticTokensProvider", {
+                        {"legend", {
+                            {"tokenTypes", {"type", "enumMember", "variable", "parameter", "function", "keyword", "comment", "string", "number", "operator"}},
+                            {"tokenModifiers", {}}
+                        }},
+                        {"full", true}
+                    }}
+                }}};
             send_response(req["id"], result);
         } else if (method == "textDocument/didOpen") {
             std::string uri = req["params"]["textDocument"]["uri"];
@@ -443,17 +458,27 @@ struct LspServer {
             std::string text = req["params"]["contentChanges"][0]["text"];
             open_buffers[uri] = text;
             publish_diagnostics(uri);
+            // Re-diagnose other open files that may import this module
+            for (const auto& [other_uri, _] : open_buffers) {
+                if (other_uri != uri) {
+                    publish_diagnostics(other_uri);
+                }
+            }
         } else if (method == "textDocument/hover") {
             handle_hover(req);
         } else if (method == "textDocument/definition") {
             handle_definition(req);
         } else if (method == "textDocument/completion") {
             handle_completion(req);
+        } else if (method == "textDocument/signatureHelp") {
+            handle_signature_help(req);
         } else if (method == "textDocument/semanticTokens/full") {
             handle_semantic_tokens(req);
         } else if (method == "workspace/didChangeWatchedFiles") {
-            // Invalidate everything on external file changes
-            nw::kernel::runtime().evict_user_modules();
+            // Invalidate everything on external file changes, then re-diagnose all open files
+            for (const auto& [uri, _] : open_buffers) {
+                publish_diagnostics(uri);
+            }
         } else if (method == "textDocument/didClose") {
             open_buffers.erase(std::string(req["params"]["textDocument"]["uri"]));
         } else if (method == "shutdown") {
@@ -477,17 +502,32 @@ struct LspServer {
             return;
         }
 
-        nw::smalls::AstLocator locator{script, "", static_cast<size_t>(line + 1), static_cast<size_t>(character)};
-        locator.visit(&script->ast());
+        std::string word;
+        auto buf_it = open_buffers.find(uri);
+        if (buf_it != open_buffers.end()) {
+            word = identifier_at(buf_it->second, line, character);
+        }
+        if (word.empty()) {
+            send_response(req["id"], nullptr);
+            return;
+        }
 
-        if (locator.found_) {
+        lsp::Symbol sym = script->locate_symbol(
+            word, static_cast<size_t>(line + 1), static_cast<size_t>(character));
+
+        // Fallback: if AstLocator couldn't resolve position, try module export table directly
+        if (!sym.decl) {
+            sym = script->locate_export(word, true);
+        }
+
+        if (sym.decl) {
             std::string content = "```smalls\n";
-            if (!locator.result_.type.empty()) {
-                content += "(" + locator.result_.type + ") ";
+            if (!sym.type.empty()) {
+                content += "(" + sym.type + ") ";
             }
-            content += std::string(locator.result_.view) + "\n```";
-            if (!locator.result_.comment.empty()) {
-                content += "\n\n---\n\n" + locator.result_.comment;
+            content += std::string(sym.view) + "\n```";
+            if (!sym.comment.empty()) {
+                content += "\n\n---\n\n" + sym.comment;
             }
 
             json result = {
@@ -512,22 +552,45 @@ struct LspServer {
             return;
         }
 
-        nw::smalls::AstLocator locator{script, "", static_cast<size_t>(line + 1), static_cast<size_t>(character)};
-        locator.visit(&script->ast());
+        std::string def_word;
+        auto def_buf_it = open_buffers.find(uri);
+        if (def_buf_it != open_buffers.end()) {
+            def_word = identifier_at(def_buf_it->second, line, character);
+        }
+        if (def_word.empty()) {
+            send_response(req["id"], nullptr);
+            return;
+        }
 
-        if (locator.found_ && locator.result_.decl) {
-            auto* decl = locator.result_.decl;
+        lsp::Symbol def_sym = script->locate_symbol(
+            def_word, static_cast<size_t>(line + 1), static_cast<size_t>(character));
+
+        if (def_sym.decl) {
+            auto* decl = def_sym.decl;
             std::string target_uri;
-            if (locator.result_.provider) {
-                std::string provider_name(locator.result_.provider->name());
+            if (def_sym.provider) {
+                std::string provider_name(def_sym.provider->name());
 
                 if (provider_name.rfind("file://", 0) == 0) {
                     target_uri = provider_name;
                 } else {
+                    // Check open buffers first
                     for (const auto& [open_uri, _] : open_buffers) {
                         if (module_name_for_uri(rt, open_uri) == provider_name) {
                             target_uri = open_uri;
                             break;
+                        }
+                    }
+                    // Fall back: resolve module name to a file path on disk
+                    if (target_uri.empty()) {
+                        auto rel = rt.module_name_to_path(provider_name);
+                        std::error_code ec;
+                        for (const auto& mp : rt.module_paths()) {
+                            auto candidate = canonical_or_normalized(mp / rel);
+                            if (std::filesystem::exists(candidate, ec)) {
+                                target_uri = path_to_uri(candidate.string());
+                                break;
+                            }
                         }
                     }
                 }
@@ -538,13 +601,41 @@ struct LspServer {
                 return;
             }
 
-            json result = {
+            send_response(req["id"], {
                 {"uri", target_uri},
-                {"range", make_lsp_range(decl->range())}};
-            send_response(req["id"], result);
+                {"range", make_lsp_range(decl->range())}});
         } else {
             send_response(req["id"], nullptr);
         }
+    }
+
+    static int symbol_kind(lsp::SymbolKind k)
+    {
+        switch (k) {
+        case lsp::SymbolKind::variable: return 6;
+        case lsp::SymbolKind::function: return 3;
+        case lsp::SymbolKind::type:     return 7;
+        case lsp::SymbolKind::param:    return 6;
+        case lsp::SymbolKind::field:    return 5;
+        default:                        return 1;
+        }
+    }
+
+    static json symbol_to_item(const lsp::Symbol& sym)
+    {
+        return {{"label", std::string(sym.decl->identifier())},
+            {"kind", symbol_kind(sym.kind)},
+            {"detail", std::string(sym.view)},
+            {"documentation", sym.comment}};
+    }
+
+    static json symbols_to_items(const nw::Vector<lsp::Symbol>& syms)
+    {
+        json result = json::array();
+        for (const auto& sym : syms) {
+            result.push_back(symbol_to_item(sym));
+        }
+        return result;
     }
 
     void handle_completion(const json& req)
@@ -557,43 +648,144 @@ struct LspServer {
         std::string module_name = module_name_for_uri(rt, uri);
         lsp::Script* script = rt.get_module(module_name);
         if (!script) {
+            std::cerr << "[completion] no module: " << module_name << std::endl;
             send_response(req["id"], json::array());
             return;
         }
+
+        // Check for dot-triggered completion via LSP context OR by peeking at the buffer.
+        // Also handle re-trigger (triggerKind:3) where cursor may be mid-word after a dot,
+        // e.g. "foo.ba|r" — scan left past the partial word to find a dot, then adjust
+        // the column so identifier_before extracts the identifier to the left of the dot.
+        bool is_dot_trigger = false;
+        int dot_col = character; // column right after the dot (adjusted if re-trigger)
+        auto buf_it = open_buffers.find(uri);
+
+        // Log trigger context
+        if (req["params"].contains("context")) {
+            const auto& ctx = req["params"]["context"];
+            int trigger_kind = ctx.value("triggerKind", 0);
+            std::string trigger_char = ctx.value("triggerCharacter", "");
+            std::cerr << "[completion] triggerKind=" << trigger_kind
+                      << " triggerChar='" << trigger_char << "'"
+                      << " line=" << line << " char=" << character
+                      << " buf=" << (buf_it != open_buffers.end() ? "found" : "MISSING")
+                      << std::endl;
+        }
+
+        if (req["params"].contains("context")) {
+            const auto& ctx = req["params"]["context"];
+            if (ctx.contains("triggerCharacter") && ctx["triggerCharacter"] == ".") {
+                is_dot_trigger = true;
+                dot_col = character;
+            }
+        }
+        if (!is_dot_trigger && buf_it != open_buffers.end()) {
+            const auto& text = buf_it->second;
+            size_t line_start = 0;
+            for (int i = 0; i < line && line_start < text.size(); ++i) {
+                auto nl = text.find('\n', line_start);
+                if (nl == std::string::npos) break;
+                line_start = nl + 1;
+            }
+            // Scan left past any partial identifier the user has typed after the dot
+            int scan = character;
+            while (scan > 0) {
+                char c = text[line_start + scan - 1];
+                if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') { --scan; }
+                else { break; }
+            }
+            // If there's a dot immediately before the partial word, it's a dot trigger
+            if (scan > 0 && line_start + scan - 1 < text.size()
+                && text[line_start + scan - 1] == '.') {
+                is_dot_trigger = true;
+                dot_col = scan; // right after the dot
+            }
+        }
+
+        if (is_dot_trigger && buf_it != open_buffers.end()) {
+            std::string needle = identifier_before(buf_it->second, line, dot_col);
+            nw::Vector<lsp::Symbol> syms;
+            std::cerr << "[completion] dot trigger: needle='" << needle
+                      << "' line=" << (line+1) << " dot_col=" << dot_col
+                      << " character=" << character << std::endl;
+            script->complete_dot(needle, static_cast<size_t>(line + 1),
+                static_cast<size_t>(character), syms, true);
+            std::cerr << "[completion] dot results: " << syms.size() << std::endl;
+            send_response(req["id"], symbols_to_items(syms));
+            return;
+        }
+
+        std::cerr << "[completion] fallthrough to complete_at: is_dot=" << is_dot_trigger
+                  << " buf=" << (buf_it != open_buffers.end() ? "found" : "MISSING") << std::endl;
 
         lsp::CompletionContext context;
         script->complete_at("", static_cast<size_t>(line + 1), static_cast<size_t>(character), context, true);
 
         json result = json::array();
         for (const auto& sym : context.completions) {
-            int kind = 1; // Text
-            switch (sym.kind) {
-            case lsp::SymbolKind::variable:
-                kind = 6;
-                break;
-            case lsp::SymbolKind::function:
-                kind = 3;
-                break;
-            case lsp::SymbolKind::type:
-                kind = 7;
-                break;
-            case lsp::SymbolKind::param:
-                kind = 6;
-                break;
-            case lsp::SymbolKind::field:
-                kind = 5;
-                break;
-            }
-
-            json item = {
-                {"label", sym.view},
-                {"kind", kind},
-                {"detail", sym.type},
-                {"documentation", sym.comment}};
-            result.push_back(item);
+            result.push_back(symbol_to_item(sym));
         }
 
         send_response(req["id"], result);
+    }
+
+    void handle_signature_help(const json& req)
+    {
+        auto& rt = nw::kernel::runtime();
+        std::string uri = req["params"]["textDocument"]["uri"];
+        int line = req["params"]["position"]["line"];
+        int character = req["params"]["position"]["character"];
+
+        std::string module_name = module_name_for_uri(rt, uri);
+        lsp::Script* script = rt.get_module(module_name);
+        if (!script) {
+            send_response(req["id"], nullptr);
+            return;
+        }
+
+        lsp::SignatureHelp sh = script->signature_help(
+            static_cast<size_t>(line + 1), static_cast<size_t>(character));
+
+        if (!sh.decl) {
+            send_response(req["id"], nullptr);
+            return;
+        }
+
+        auto* fd = dynamic_cast<const lsp::FunctionDefinition*>(sh.decl);
+        if (!fd) {
+            send_response(req["id"], nullptr);
+            return;
+        }
+
+        // Build label: name(param: type, ...) -> rettype
+        std::string label = std::string(fd->identifier_.loc.view()) + "(";
+        json parameters = json::array();
+        for (size_t i = 0; i < fd->params.size(); ++i) {
+            auto* p = fd->params[i];
+            if (!p) continue;
+            if (i > 0) label += ", ";
+            size_t param_start = label.size();
+            label += std::string(p->identifier_.loc.view());
+            if (p->type) {
+                label += ": " + std::string(rt.type_name(p->type_id_));
+            }
+            size_t param_end = label.size();
+            parameters.push_back({{"label", json::array({param_start, param_end})}});
+        }
+        label += ")";
+        if (fd->return_type) {
+            label += " -> " + std::string(rt.type_name(fd->type_id_));
+        }
+
+        json sig = {
+            {"label", label},
+            {"parameters", parameters}};
+
+        send_response(req["id"], {
+            {"signatures", json::array({sig})},
+            {"activeSignature", 0},
+            {"activeParameter", static_cast<int>(sh.active_param)}});
     }
 
     void handle_semantic_tokens(const json& req)
@@ -698,6 +890,7 @@ int main(int argc, char* argv[])
     nw::kernel::services().start();
 
     auto& rt = nw::kernel::runtime();
+    rt.set_diagnostic_config({lsp::DebugLevel::full});
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if ((arg == "-I" || arg == "--module-path") && i + 1 < argc) {

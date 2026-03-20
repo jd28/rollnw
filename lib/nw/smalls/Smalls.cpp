@@ -429,10 +429,30 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
     } else {
         auto exp = node->env_.find(needle);
         if (!exp || !exp->decl) {
-            LOG_F(INFO, "Failed to find needle declaration: {}", needle);
-            return;
+            // env lookup failed (common when file has parse errors and environments
+            // are only partially built). Fall back to searching AST imports directly,
+            // then the module export table.
+            const Declaration* fallback = nullptr;
+            for (auto* imp : ast_.imports) {
+                if (auto* alias = dynamic_cast<AliasedImportDecl*>(imp)) {
+                    if (alias->alias.loc.view() == needle) {
+                        fallback = alias;
+                        break;
+                    }
+                }
+            }
+            if (!fallback) {
+                auto sym = locate_export(needle, false);
+                fallback = sym.decl;
+            }
+            if (!fallback) {
+                LOG_F(INFO, "Failed to find needle declaration: {}", needle);
+                return;
+            }
+            decl = fallback;
+        } else {
+            decl = exp->decl;
         }
-        decl = exp->decl;
     }
 
     // Check if this is a module import - if so, return all module exports

@@ -54,7 +54,7 @@ void NameResolver::visit(AliasedImportDecl* decl)
     decl->loaded_module = nw::kernel::runtime().get_module(resource_path);
     if (!decl->loaded_module) {
         ctx.errorf(decl->alias.loc.range, "failed to load module '{}'", decl->module_path);
-        return;
+        // Still declare the alias so env_ contains it for tooling (e.g. LSP dot-completion)
     }
 
     ctx.declare_global(decl->alias.loc.view(), decl);
@@ -82,7 +82,7 @@ void NameResolver::visit(SelectiveImportDecl* decl)
     if (!decl->loaded_module) {
         ctx.errorf(decl->imported_symbols.empty() ? SourceRange{} : decl->imported_symbols[0].loc.range,
             "failed to load module '{}'", decl->module_path);
-        return;
+        return; // No module to bind symbols from; nothing to declare
     }
 
     auto module_exports = decl->loaded_module->exports();
