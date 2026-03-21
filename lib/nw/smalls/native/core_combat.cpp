@@ -9,55 +9,33 @@
 
 #include <algorithm>
 #include <limits>
-#include <vector>
 
 namespace nw::smalls {
 
 namespace {
 
-int32_t aggregate_values(const std::vector<int32_t>& values, int32_t stack_policy)
-{
-    if (values.empty()) {
-        return 0;
+struct EffectFolder {
+    int32_t policy;
+    int32_t acc = 0;   // sum / best-max / best-min / good-stack-best
+    int32_t worst = 0; // policy 3: worst (most negative) value seen
+    bool seen = false; // policy 1 and 2: first-value flag
+
+    void add(int32_t v) noexcept
+    {
+        switch (policy) {
+        default:
+        case 0: acc += v; break;
+        case 1: acc = seen ? std::max(acc, v) : v; seen = true; break;
+        case 2: acc = seen ? std::min(acc, v) : v; seen = true; break;
+        case 3:
+            if (v > acc) acc = v;
+            else if (v < worst) worst = v;
+            break;
+        }
     }
 
-    switch (stack_policy) {
-    default:
-    case 0: {
-        int32_t sum = 0;
-        for (auto value : values) {
-            sum += value;
-        }
-        return sum;
-    }
-    case 1: {
-        int32_t best = values[0];
-        for (auto value : values) {
-            best = std::max(best, value);
-        }
-        return best;
-    }
-    case 2: {
-        int32_t worst = values[0];
-        for (auto value : values) {
-            worst = std::min(worst, value);
-        }
-        return worst;
-    }
-    case 3: {
-        int32_t best = 0;
-        int32_t worst = 0;
-        for (auto value : values) {
-            if (value > best) {
-                best = value;
-            } else if (value < worst) {
-                worst = value;
-            }
-        }
-        return best + worst;
-    }
-    }
-}
+    int32_t result() const noexcept { return acc + (policy == 3 ? worst : 0); }
+};
 
 nw::Creature* as_creature(nw::ObjectHandle obj)
 {
@@ -386,69 +364,44 @@ int32_t aggregate_effect_int(nw::ObjectHandle obj, int32_t effect_type, int32_t 
     }
 
     auto type = nw::EffectType::make(effect_type);
-    std::vector<int32_t> values;
-    values.reserve(base->effects().size());
+    EffectFolder folder{stack_policy};
 
     for (const auto& ent : base->effects()) {
-        if (ent.type != type || !ent.effect) {
-            continue;
-        }
-        if (subtype >= 0 && ent.subtype != subtype) {
-            continue;
-        }
-        if (!ent.effect->versus().match(vs)) {
-            continue;
-        }
-        values.push_back(ent.effect->get_int(int_index));
+        if (ent.type != type || !ent.effect) continue;
+        if (subtype >= 0 && ent.subtype != subtype) continue;
+        if (!ent.effect->versus().match(vs)) continue;
+        folder.add(ent.effect->get_int(int_index));
     }
 
-    return aggregate_values(values, stack_policy);
+    return folder.result();
 }
 
-int32_t aggregate_modifier_int(nw::ObjectHandle obj, int32_t modifier_type, int32_t subtype,
-    nw::ObjectHandle versus, int32_t stack_policy)
+int32_t aggregate_effect_int_filtered(nw::ObjectHandle obj, int32_t effect_type, int32_t subtype,
+    nw::ObjectHandle versus, int32_t filter_int_index, int32_t filter_int_value,
+    int32_t int_index, int32_t stack_policy)
 {
     auto* base = as_object_const(obj);
-    if (!base) {
+    if (!base || int_index < 0 || filter_int_index < 0) {
         return 0;
     }
 
-    auto* vs = as_object_const(versus);
-    auto type = nw::ModifierType::make(modifier_type);
-    std::vector<int32_t> values;
-    values.reserve(16);
-    auto add = [&values](int value) {
-        values.push_back(value);
-    };
-
-    if (subtype < 0) {
-        nw::kernel::resolve_modifier(base, type, vs, add);
-    } else {
-        for (const auto& mod : nw::kernel::rules().modifiers) {
-            if (mod.type != type) {
-                continue;
-            }
-            if (mod.subtype != -1 && mod.subtype != subtype) {
-                continue;
-            }
-            nw::kernel::resolve_modifier(base, mod, add, vs, subtype);
-        }
+    nw::Versus vs;
+    if (auto* target = as_object_const(versus)) {
+        vs = target->versus_me();
     }
 
-    return aggregate_values(values, stack_policy);
-}
+    auto type = nw::EffectType::make(effect_type);
+    EffectFolder folder{stack_policy};
 
-bool weapon_power_monk_applies(nw::ObjectHandle obj, nw::ObjectHandle weapon)
-{
-    auto* cre = as_creature(obj);
-    if (!cre) {
-        return false;
+    for (const auto& ent : base->effects()) {
+        if (ent.type != type || !ent.effect) continue;
+        if (ent.subtype != subtype) continue;
+        if (!ent.effect->versus().match(vs)) continue;
+        if (ent.effect->get_int(filter_int_index) != filter_int_value) continue;
+        folder.add(ent.effect->get_int(int_index));
     }
 
-    auto* item = as_item(weapon);
-    bool is_monk_or_null = !item || nwn1::is_monk_weapon(item);
-    auto [can_use, _level] = nwn1::can_use_monk_abilities(cre);
-    return can_use && is_monk_or_null;
+    return folder.result();
 }
 
 int32_t weapon_power_item_property_bonus(nw::ObjectHandle weapon)
