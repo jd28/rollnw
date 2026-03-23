@@ -1438,7 +1438,15 @@ lbl_GETARRAY: {
                 arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
             DISPATCH();
         }
-        if (!arr->get_value(index, result, *rt_)) {
+        const Type* elem_type = rt_->get_type(arr->element_type());
+        const void* raw = arr->element_data(index);
+        if (raw && elem_type && elem_type->type_kind == TK_struct && !elem_type->contains_heap_refs) {
+            uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment,
+                arr->element_type(),
+                /*tracks_heap_refs=*/false);
+            std::memcpy(frame.stack_.data() + dst_off, raw, elem_type->size);
+            result = Value::make_stack(dst_off, arr->element_type());
+        } else if (!arr->get_value(index, result, *rt_)) {
             fail("Array access failed (index out of bounds?)");
             DISPATCH();
         }
@@ -4236,12 +4244,13 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
 
-        if (auto* struct_arr = dynamic_cast<StructArray*>(arr)) {
-            const void* src = struct_arr->element_data(idx);
+        const Type* elem_type_info = rt_->get_type(elem_type);
+        const void* raw = arr->element_data(idx);
+        if (raw && elem_type_info && elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs) {
             CallFrame& frame = frames_.back();
-            uint32_t offset = frame.stack_alloc(struct_arr->elem_size, struct_arr->elem_alignment, elem_type,
-                type_may_hold_heap_refs(rt_, elem_type));
-            std::memcpy(frame.stack_.data() + offset, src, struct_arr->elem_size);
+            uint32_t offset = frame.stack_alloc(elem_type_info->size, elem_type_info->alignment, elem_type,
+                /*tracks_heap_refs=*/false);
+            std::memcpy(frame.stack_.data() + offset, raw, elem_type_info->size);
             reg(dest_reg) = Value::make_stack(offset, elem_type);
         } else {
             Value result;

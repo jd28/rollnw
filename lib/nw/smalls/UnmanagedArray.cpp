@@ -175,16 +175,17 @@ public:
 
     bool get_value(size_t index, Value& out, const Runtime& rt) const override
     {
-        // UnmanagedArray<void> stores arbitrary structs whose layout is opaque
-        // at this level.  Reading them via the IArray* interface would require
-        // copying the raw bytes into a heap-allocated Value, which is not yet
-        // implemented.  v1 only allows primitive-typed propset arrays so this
-        // path is unreachable today; fail loudly rather than return silent
-        // garbage if it is ever reached.
-        (void)index;
-        (void)out;
-        (void)rt;
-        ENSURE_OR_RETURN_FALSE(false, "UnmanagedArray<void>::get_value not yet implemented");
+        ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
+
+        Runtime& mut_rt = const_cast<Runtime&>(rt);
+        HeapPtr ptr = mut_rt.heap_.allocate(elem_size_, elem_alignment_, elem_type_);
+        void* dst = mut_rt.heap_.get_ptr(ptr);
+        ENSURE_OR_RETURN_FALSE(dst, "UnmanagedArray<void>::get_value failed to allocate heap value");
+
+        const void* src = data_ + (index * elem_size_);
+        std::memcpy(dst, src, elem_size_);
+        out = Value::make_heap(ptr, elem_type_);
+        return true;
     }
 
     bool set_value(size_t index, const Value& v, Runtime& rt) override
@@ -211,16 +212,36 @@ IArray* create_unmanaged_array(TypeID elem_type, uint32_t initial_capacity)
 {
     const auto& rt = nw::kernel::runtime();
 
-    if (elem_type == rt.int_type()) {
-        return new UnmanagedArray<int32_t>(elem_type, initial_capacity);
-    } else if (elem_type == rt.float_type()) {
-        return new UnmanagedArray<float>(elem_type, initial_capacity);
-    } else if (elem_type == rt.bool_type()) {
-        return new UnmanagedArray<bool>(elem_type, initial_capacity);
+    TypeID declared_elem_type = elem_type;
+    const Type* elem_type_info = rt.get_type(elem_type);
+    while (elem_type_info
+        && (elem_type_info->type_kind == TK_newtype || elem_type_info->type_kind == TK_alias)
+        && elem_type_info->type_params[0].is<TypeID>()) {
+        elem_type = elem_type_info->type_params[0].as<TypeID>();
+        elem_type_info = rt.get_type(elem_type);
     }
 
-    // For POD structs, would need size/alignment from type registry
-    // Placeholder - needs Runtime integration
+    if (!elem_type_info) {
+        return nullptr;
+    }
+
+    if (elem_type_info->type_kind == TK_primitive) {
+        if (elem_type_info->primitive_kind == PK_int) {
+            return new UnmanagedArray<int32_t>(declared_elem_type, initial_capacity);
+        } else if (elem_type_info->primitive_kind == PK_float) {
+            return new UnmanagedArray<float>(declared_elem_type, initial_capacity);
+        } else if (elem_type_info->primitive_kind == PK_bool) {
+            return new UnmanagedArray<bool>(declared_elem_type, initial_capacity);
+        }
+    }
+
+    if (elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs) {
+        return new UnmanagedArray<void>(declared_elem_type,
+            elem_type_info->size,
+            elem_type_info->alignment,
+            initial_capacity);
+    }
+
     return nullptr;
 }
 

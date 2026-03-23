@@ -44,6 +44,14 @@ struct IArray {
 
     /// Resize array to n elements (zero-initializes new elements)
     virtual void resize(size_t n) = 0;
+
+    /// Optional raw element access for POD/inline storage.
+    /// Returns nullptr when unavailable.
+    virtual const void* element_data(size_t index) const
+    {
+        (void)index;
+        return nullptr;
+    }
 };
 
 /// Typed array with native storage for primitives and inline structs
@@ -128,7 +136,7 @@ struct StructArray : IArray {
     bool get_value(size_t index, Value& out, const Runtime& rt) const override;
     bool set_value(size_t index, const Value& v, Runtime& rt) override;
 
-    const void* element_data(size_t index) const
+    const void* element_data(size_t index) const override
     {
         return index < count ? buffer.data() + (index * elem_size) : nullptr;
     }

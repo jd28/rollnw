@@ -2156,7 +2156,7 @@ void TypeResolver::visit(StructDecl* decl)
 
                     // Unwrap newtypes to their base type for propset field validation
                     while (field_type && field_type->type_kind == TK_newtype
-                           && field_type->type_params[0].is<TypeID>()) {
+                        && field_type->type_params[0].is<TypeID>()) {
                         field_type = rt.get_type(field_type->type_params[0].as<TypeID>());
                     }
                     if (!field_type) { continue; }
@@ -2217,16 +2217,18 @@ void TypeResolver::visit(StructDecl* decl)
                         const Type* elem_type = rt.get_type(elem_tid);
                         allowed = is_pod_type(elem_type);
                     }
-                    // Case 4: Dynamic arrays array!(T) where T is int/float/bool
+                    // Case 4: Dynamic arrays array!(T) where T is primitive or POD struct
                     else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
                         const Type* elem_type = rt.get_type(elem_tid);
                         // Unwrap newtypes for element type check
                         while (elem_type && elem_type->type_kind == TK_newtype
-                               && elem_type->type_params[0].is<TypeID>())
+                            && elem_type->type_params[0].is<TypeID>())
                             elem_type = rt.get_type(elem_type->type_params[0].as<TypeID>());
                         if (elem_type && elem_type->type_kind == TK_primitive) {
                             allowed = is_v1_primitive(elem_type->primitive_kind);
+                        } else if (elem_type && elem_type->type_kind == TK_struct) {
+                            allowed = !elem_type->contains_heap_refs;
                         }
                     }
                     // Case 5: Object handle types (object, Creature, Item, etc.)
@@ -2237,7 +2239,7 @@ void TypeResolver::visit(StructDecl* decl)
 
                     if (!allowed) {
                         ctx.errorf(decl->range_,
-                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool)",
+                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool), and array!(POD struct with no heap refs)",
                             decl->identifier(),
                             field.name.view());
                     }
