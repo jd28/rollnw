@@ -7,11 +7,18 @@
 
 #include <absl/strings/str_cat.h>
 #include <cctype>
+#include <chrono>
 #include <cstring>
 
 namespace nw::smalls {
 
 namespace {
+
+inline uint64_t vm_profile_now_ns() noexcept
+{
+    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
+}
 
 bool type_may_hold_heap_refs(Runtime* rt, TypeID type_id)
 {
@@ -401,6 +408,9 @@ void* VirtualMachine::resolve_sum_data(const Value& sum_val, CallFrame& frame,
 void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt,
     const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
 {
+    const bool profile = rt.is_vm_profile_enabled();
+    const bool profile_timing = profile && rt.is_vm_profile_timing_enabled();
+    const uint64_t t0 = profile_timing ? vm_profile_now_ns() : 0;
     try {
         reg(dest_reg) = wrapper(&rt, args, argc);
     } catch (const std::exception& ex) {
@@ -408,17 +418,26 @@ void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, R
     } catch (...) {
         fail(absl::StrCat("Native '", func_name, "' threw unknown exception"));
     }
+    if (profile) {
+        rt.record_vm_native_call(func_name, profile_timing ? (vm_profile_now_ns() - t0) : 0);
+    }
 }
 
 void VirtualMachine::call_native_pointer(NativeFunctionPointer fn, Runtime& rt,
     const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
 {
+    const bool profile = rt.is_vm_profile_enabled();
+    const bool profile_timing = profile && rt.is_vm_profile_timing_enabled();
+    const uint64_t t0 = profile_timing ? vm_profile_now_ns() : 0;
     try {
         reg(dest_reg) = fn(&rt, args, argc);
     } catch (const std::exception& ex) {
         fail(absl::StrCat("Native '", func_name, "' threw exception: ", ex.what()));
     } catch (...) {
         fail(absl::StrCat("Native '", func_name, "' threw unknown exception"));
+    }
+    if (profile) {
+        rt.record_vm_native_call(func_name, profile_timing ? (vm_profile_now_ns() - t0) : 0);
     }
 }
 
@@ -428,6 +447,25 @@ void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
 {
     uint32_t caller_base = current_base_;
     size_t caller_frame_index = frames_.empty() ? 0 : frames_.size() - 1;
+
+    if (rt_ && rt_->is_vm_profile_enabled() && caller_frame_index < frames_.size()) {
+        const auto& caller = frames_[caller_frame_index];
+        String caller_name = caller.function ? caller.function->name : String("<unknown>");
+        uint32_t call_pc = caller.pc > 0 ? caller.pc - 1 : caller.pc;
+        if (caller.function && call_pc < caller.function->debug_locations.size()) {
+            const auto& loc = caller.function->debug_locations[call_pc];
+            caller_name = fmt::format("{}:{}:{}::{}",
+                caller.module ? caller.module->module_name : "<module>",
+                loc.range.start.line,
+                loc.range.start.column,
+                caller_name);
+        }
+
+        String callee_name = fmt::format("{}::{}",
+            target_module ? target_module->module_name : StringView("<module>"),
+            callee ? StringView(callee->name) : StringView("<unknown>"));
+        rt_->record_vm_script_call(caller_name, callee_name);
+    }
 
     push_frame(target_module, callee, dest_reg, closure);
     if (failed_) { return; }
@@ -869,6 +907,11 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
     uint8_t _a{}, _b{}, _c{};
 
     rt_ = &nw::kernel::runtime();
+    const bool vm_profile_enabled = rt_->is_vm_profile_enabled();
+    const bool vm_profile_timing = vm_profile_enabled && rt_->is_vm_profile_timing_enabled();
+    uint8_t vm_prof_last_op = 0;
+    uint64_t vm_prof_last_ts = 0;
+    bool vm_prof_has_last = false;
 
 // Handler-local aliases — valid only within the #if __GNUC__ block
 #define frame (*frame_ptr)
@@ -882,26 +925,45 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
 // prediction by the CPU's indirect branch predictor (true threaded dispatch).
 // frame_ptr and ip_ are kept stable across instructions; only updated by
 // push_frame/pop_frame and branch (JMP/JMPT/JMPF) handlers.
-#define DISPATCH()                                                           \
-    do {                                                                     \
-        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                       \
-        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit; \
-        if constexpr (StepLimited) {                                         \
-            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                 \
-                fail("Script exceeded execution limit");                     \
-                goto vm_exit;                                                \
-            }                                                                \
-            --remaining_steps_;                                              \
-        }                                                                    \
-        if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {                            \
-            pop_frame();                                                     \
-            goto dispatch_top;                                               \
-        }                                                                    \
-        _instr = *ip_++;                                                     \
-        _a = _instr.arg_a();                                                 \
-        _b = _instr.arg_b();                                                 \
-        _c = _instr.arg_c();                                                 \
-        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];         \
+#define DISPATCH()                                                                     \
+    do {                                                                               \
+        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
+            if (vm_prof_has_last) {                                                    \
+                if (vm_profile_timing) {                                               \
+                    uint64_t _vm_now = vm_profile_now_ns();                            \
+                    rt_->record_vm_opcode(vm_prof_last_op, _vm_now - vm_prof_last_ts); \
+                    vm_prof_last_ts = _vm_now;                                         \
+                } else {                                                               \
+                    rt_->record_vm_opcode(vm_prof_last_op, 0);                         \
+                }                                                                      \
+            }                                                                          \
+            vm_prof_has_last = false;                                                  \
+        }                                                                              \
+        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                                 \
+        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;           \
+        if constexpr (StepLimited) {                                                   \
+            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                           \
+                fail("Script exceeded execution limit");                               \
+                goto vm_exit;                                                          \
+            }                                                                          \
+            --remaining_steps_;                                                        \
+        }                                                                              \
+        if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {                                      \
+            pop_frame();                                                               \
+            goto dispatch_top;                                                         \
+        }                                                                              \
+        _instr = *ip_++;                                                               \
+        _a = _instr.arg_a();                                                           \
+        _b = _instr.arg_b();                                                           \
+        _c = _instr.arg_c();                                                           \
+        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
+            if (vm_profile_timing) {                                                   \
+                vm_prof_last_ts = vm_profile_now_ns();                                 \
+            }                                                                          \
+            vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());                   \
+            vm_prof_has_last = true;                                                   \
+        }                                                                              \
+        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];                   \
     } while (0)
 
 // dispatch_top: entry point for initial dispatch and the pop_frame fallback.
@@ -923,6 +985,13 @@ dispatch_top:
     _a = _instr.arg_a();
     _b = _instr.arg_b();
     _c = _instr.arg_c();
+    if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {
+        if (vm_profile_timing) {
+            vm_prof_last_ts = vm_profile_now_ns();
+        }
+        vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());
+        vm_prof_has_last = true;
+    }
     goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];
     __builtin_unreachable();
 
@@ -2201,6 +2270,10 @@ lbl_STACK_INDEXSET: {
 }
 
 vm_exit:
+    if (ABSL_PREDICT_FALSE(vm_profile_enabled) && vm_prof_has_last) {
+        rt_->record_vm_opcode(vm_prof_last_op,
+            vm_profile_timing ? (vm_profile_now_ns() - vm_prof_last_ts) : 0);
+    }
 #undef frame
 #undef instr
 #undef a

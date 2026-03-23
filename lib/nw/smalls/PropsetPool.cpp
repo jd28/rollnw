@@ -8,6 +8,7 @@
 #include "../objects/ObjectManager.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 
 namespace nw::smalls {
@@ -17,6 +18,70 @@ namespace {
 constexpr uint32_t align_up_u32(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
+}
+
+inline uint64_t propset_profile_now_ns() noexcept
+{
+    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
+}
+
+// == Thread-Local Propset Cache ==============================================
+// 16-entry direct-mapped cache for fast propset lookup in hot paths.
+// Key: (type_id << 32) | object_id
+// Each entry is cache-line sized so a single fetch covers the full entry.
+
+struct alignas(64) PropsetCacheEntry {
+    uint64_t key = 0;         // (type_id.value << 32) | object_id
+    uint32_t version = 0;     // Object version for stale detection
+    uint8_t* entry = nullptr; // Propset data pointer (header at entry[0])
+};
+
+// 16-entry cache — comfortable for 3-4 creatures × 3-4 propsets each
+thread_local PropsetCacheEntry g_propset_cache[16] = {};
+thread_local const void* g_propset_cache_owner = nullptr;
+
+inline void propset_cache_clear_all()
+{
+    for (auto& cache_entry : g_propset_cache) {
+        cache_entry.key = 0;
+        cache_entry.version = 0;
+        cache_entry.entry = nullptr;
+    }
+}
+
+// Multiplicative hash for cache indexing — better distribution than XOR for
+// small sequential IDs (type_ids and object_ids both tend to be dense).
+inline size_t propset_cache_index(TypeID type_id, ObjectHandle obj)
+{
+    auto h = static_cast<size_t>(type_id.value) * 2654435761u + static_cast<size_t>(obj.id);
+    return h & 0xF; // % 16
+}
+
+// Check if cache entry is valid for given type/object
+inline bool propset_cache_hit(const PropsetCacheEntry& cache_entry, TypeID type_id, ObjectHandle obj)
+{
+    uint64_t expected_key = (static_cast<uint64_t>(type_id.value) << 32) | static_cast<uint64_t>(obj.id);
+    return cache_entry.key == expected_key && cache_entry.version == obj.version;
+}
+
+// Update cache with new entry
+inline void propset_cache_update(size_t idx, TypeID type_id, ObjectHandle obj, uint8_t* entry)
+{
+    g_propset_cache[idx].key = (static_cast<uint64_t>(type_id.value) << 32) | static_cast<uint64_t>(obj.id);
+    g_propset_cache[idx].version = obj.version;
+    g_propset_cache[idx].entry = entry;
+}
+
+// Invalidate all cache entries for an object (called on destruction)
+inline void propset_cache_invalidate_object(ObjectHandle obj)
+{
+    for (auto& cache_entry : g_propset_cache) {
+        if ((cache_entry.key & 0xFFFFFFFFu) == static_cast<uint64_t>(obj.id)) {
+            cache_entry.key = 0;
+            cache_entry.entry = nullptr;
+        }
+    }
 }
 
 uint64_t pack_owner(ObjectHandle handle)
@@ -310,9 +375,45 @@ void PropsetPoolManager::update_entry_heap_liveness(Runtime& /*rt*/, Pool& pool,
 
 Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj)
 {
+    struct ProfileScope {
+        Runtime& rt;
+        bool enabled;
+        bool timing;
+        uint64_t start;
+        ~ProfileScope()
+        {
+            if (enabled) {
+                rt.record_propset_get_or_create(timing ? (propset_profile_now_ns() - start) : 0);
+            }
+        }
+    } profile_scope{rt, rt.is_vm_profile_enabled(), rt.is_vm_profile_timing_enabled(),
+        propset_profile_now_ns()};
+
     if (!nw::kernel::objects().valid(obj)) {
         rt.fail("get_propset: invalid object handle");
         return Value{};
+    }
+
+    // Protect against stale pointers when runtimes/pools are recreated between
+    // benchmark iterations in the same thread.
+    if (ABSL_PREDICT_FALSE(g_propset_cache_owner != this)) {
+        propset_cache_clear_all();
+        g_propset_cache_owner = this;
+    }
+
+    // Fast path: check thread-local cache first (~20-30ns vs ~150ns slow path)
+    size_t cache_idx = propset_cache_index(propset_type, obj);
+    const PropsetCacheEntry& cache_entry = g_propset_cache[cache_idx];
+    if (propset_cache_hit(cache_entry, propset_type, obj)) {
+        // Verify the entry is still alive (safety check)
+        auto* hdr = reinterpret_cast<PropsetHeader*>(cache_entry.entry);
+        if (ABSL_PREDICT_TRUE(hdr->alive())) {
+            Value out(propset_type);
+            out.storage = ValueStorage::propset;
+            out.data.propset_ptr = cache_entry.entry;
+            return out;
+        }
+        // Entry was freed, fall through to slow path
     }
 
     Pool* pool = ensure_pool(rt, propset_type);
@@ -334,6 +435,8 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     if (hdr->alive()) {
         if (unpack_owner(hdr->owner_bits) == obj) {
             // Fast path: entry is already initialized for this object
+            // Update cache and return
+            propset_cache_update(cache_idx, propset_type, obj, entry);
             Value out(propset_type);
             out.storage = ValueStorage::propset;
             out.data.propset_ptr = entry;
@@ -387,6 +490,9 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     }
 
     update_entry_heap_liveness(rt, *pool, hdr, data);
+
+    // Update cache with newly created entry
+    propset_cache_update(cache_idx, propset_type, obj, entry);
 
     Value out(propset_type);
     out.storage = ValueStorage::propset;
@@ -490,7 +596,24 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
 
 bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value)
 {
+    struct ProfileScope {
+        Runtime& rt;
+        bool enabled;
+        bool timing;
+        uint64_t start;
+        ~ProfileScope()
+        {
+            if (enabled) {
+                rt.record_propset_write_field(timing ? (propset_profile_now_ns() - start) : 0);
+            }
+        }
+    } profile_scope{rt, rt.is_vm_profile_enabled(), rt.is_vm_profile_timing_enabled(),
+        propset_profile_now_ns()};
+
     uint8_t* entry = propset_ref.data.propset_ptr;
+    if (rt.is_vm_profile_enabled()) {
+        rt.record_propset_write_field_site(propset_ref.type_id, offset);
+    }
     auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
     uint8_t* data = entry + sizeof(PropsetHeader);
 
@@ -561,6 +684,9 @@ void PropsetPoolManager::init_object_propsets(Runtime& rt, ObjectHandle obj)
 
 void PropsetPoolManager::free_object_propsets(Runtime& rt, ObjectHandle obj)
 {
+    // Invalidate cache entries for this object before freeing
+    propset_cache_invalidate_object(obj);
+
     uint32_t object_id = static_cast<uint32_t>(obj.id);
     for (auto& [_, pool] : pools_) {
         uint8_t* entry = get_entry(pool, object_id);

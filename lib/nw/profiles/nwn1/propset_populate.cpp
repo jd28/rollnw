@@ -9,6 +9,8 @@
 #include "../../smalls/runtime.hpp"
 #include "../../util/HandlePool.hpp"
 
+#include <chrono>
+
 namespace nwn1 {
 
 void populate_item_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj);
@@ -63,8 +65,32 @@ static void fill_int_array(nw::smalls::Runtime* rt, const nw::smalls::Value& ref
 
 void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
 {
+    const bool profile = rt && rt->is_vm_profile_enabled();
+    const bool timing = profile && rt->is_vm_profile_timing_enabled();
+    const uint64_t t0 = profile
+        ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+              std::chrono::steady_clock::now().time_since_epoch())
+                  .count())
+        : 0;
+
+    auto profile_done = [&]() {
+        if (profile) {
+            uint64_t dt = 0;
+            if (timing) {
+                uint64_t t1 = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch())
+                        .count());
+                dt = t1 - t0;
+            }
+            rt->record_populate_creature_propsets(dt);
+        }
+    };
+
     auto* cre = obj->as_creature();
-    if (!cre) { return; }
+    if (!cre) {
+        profile_done();
+        return;
+    }
 
     // CreatureStats
     {
