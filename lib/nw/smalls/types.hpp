@@ -60,6 +60,7 @@ struct StructDef {
     FieldDef* fields;
     const StructDecl* decl = nullptr;
     bool is_propset = false;
+    bool is_value_type = false;
     ObjectType propset_object_type = ObjectType::invalid; // invalid = unrestricted
 
     // GC support: byte offsets of HeapPtr fields for root enumeration

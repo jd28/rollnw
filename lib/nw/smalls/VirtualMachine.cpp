@@ -1,6 +1,7 @@
 #include "VirtualMachine.hpp"
 
 #include "BytecodeVerifier.hpp"
+#include "PropsetPool.hpp"
 
 #include "../kernel/Kernel.hpp"
 #include "../log.hpp"
@@ -5082,25 +5083,89 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
         return;
     }
 
+    // For [[value_type]] structs, the bytes are stored inline (POD) in the parent struct.
+    // read/write_value_field_at_offset incorrectly treats is_heap_type structs as HeapPtr refs,
+    // so we intercept here where we have access to the call frame for stack allocation.
+    auto get_inline_ptr = [&](const Value& sv, uint32_t off) -> uint8_t* {
+        if (sv.storage == ValueStorage::propset) {
+            return sv.data.propset_ptr + sizeof(PropsetHeader) + off;
+        }
+        if (sv.storage == ValueStorage::heap) {
+            void* base = rt_->heap_.get_ptr(sv.data.hptr);
+            return base ? static_cast<uint8_t*>(base) + off : nullptr;
+        }
+        return nullptr;
+    };
+
     switch (op) {
     case Opcode::FIELDGETI_OFF_R:
     case Opcode::FIELDGETF_OFF_R:
     case Opcode::FIELDGETB_OFF_R:
     case Opcode::FIELDGETS_OFF_R:
     case Opcode::FIELDGETO_OFF_R:
-    case Opcode::FIELDGETH_OFF_R:
         reg(a) = rt_->read_value_field_at_offset(struct_val, effective_offset, access_type_id);
         break;
+    case Opcode::FIELDGETH_OFF_R: {
+        const Type* access_type = rt_->get_type(access_type_id);
+        bool is_inline = false;
+        const StructDef* access_def = nullptr;
+        if (access_type && access_type->type_kind == TK_struct && access_type->type_params[0].is<StructID>()) {
+            access_def = rt_->type_table_.get(access_type->type_params[0].as<StructID>());
+            is_inline = access_def && access_def->is_value_type;
+        }
+        if (is_inline) {
+            uint8_t* src = get_inline_ptr(struct_val, effective_offset);
+            if (!src) { fail("FIELDGETH_OFF_R: null inline struct source"); return; }
+            uint32_t dst_off = frame_ptr_->stack_alloc(
+                access_type->size, access_def->alignment, access_type_id,
+                type_may_hold_heap_refs(rt_, access_type_id));
+            std::memcpy(frame_ptr_->stack_.data() + dst_off, src, access_type->size);
+            reg(a) = Value::make_stack(dst_off, access_type_id);
+        } else {
+            reg(a) = rt_->read_value_field_at_offset(struct_val, effective_offset, access_type_id);
+        }
+        break;
+    }
     case Opcode::FIELDSETI_OFF_R:
     case Opcode::FIELDSETF_OFF_R:
     case Opcode::FIELDSETB_OFF_R:
     case Opcode::FIELDSETS_OFF_R:
-    case Opcode::FIELDSETO_OFF_R:
-    case Opcode::FIELDSETH_OFF_R: {
+    case Opcode::FIELDSETO_OFF_R: {
         Value val = reg(a);
         if (!rt_->write_value_field_at_offset(struct_val, effective_offset, access_type_id, val)) {
             fail("Field write failed (type mismatch?)");
             return;
+        }
+        break;
+    }
+    case Opcode::FIELDSETH_OFF_R: {
+        Value val = reg(a);
+        const Type* access_type = rt_->get_type(access_type_id);
+        bool is_inline = false;
+        const StructDef* access_def = nullptr;
+        if (access_type && access_type->type_kind == TK_struct && access_type->type_params[0].is<StructID>()) {
+            access_def = rt_->type_table_.get(access_type->type_params[0].as<StructID>());
+            is_inline = access_def && access_def->is_value_type;
+        }
+        if (is_inline) {
+            uint8_t* dst = get_inline_ptr(struct_val, effective_offset);
+            if (!dst) { fail("FIELDSETH_OFF_R: null inline struct destination"); return; }
+            const uint8_t* src = nullptr;
+            if (val.storage == ValueStorage::stack) {
+                src = frame_ptr_->stack_.data() + val.data.stack_offset;
+            } else if (val.storage == ValueStorage::heap) {
+                src = static_cast<const uint8_t*>(rt_->heap_.get_ptr(val.data.hptr));
+            } else {
+                fail("FIELDSETH_OFF_R inline struct: source must be stack or heap");
+                return;
+            }
+            if (!src) { fail("FIELDSETH_OFF_R: null inline struct source data"); return; }
+            std::memcpy(dst, src, access_type->size);
+        } else {
+            if (!rt_->write_value_field_at_offset(struct_val, effective_offset, access_type_id, val)) {
+                fail("Field write failed (type mismatch?)");
+                return;
+            }
         }
         break;
     }
