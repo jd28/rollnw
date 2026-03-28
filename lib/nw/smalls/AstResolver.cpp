@@ -443,7 +443,7 @@ TypeID AstResolver::resolve_type(StringView type_name, SourceRange range)
     }
 
     auto type_decl = resolve(type_name, range);
-    if (type_decl) {
+    if (type_decl && !dynamic_cast<const AliasedImportDecl*>(type_decl)) {
         return type_decl->type_id_;
     }
 

@@ -2552,6 +2552,7 @@ void TypeResolver::visit(CastExpression* expr)
     expr->expr->accept(this);
     TypeID source_type = expr->expr->type_id_;
     TypeID target_type = ctx.resolve_type(expr->target_type, expr->target_type->range_);
+    expr->target_type->type_id_ = target_type;
 
     if (source_type == invalid_type_id || target_type == invalid_type_id) {
         expr->type_id_ = invalid_type_id;

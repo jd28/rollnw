@@ -1985,7 +1985,9 @@ lbl_CAST: {
         if (target_tid == rt_->object_type()) {
             valid_object_cast = true;
         } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
-            valid_object_cast = val.data.oval.type == *expected_tag;
+            // Allow casting the invalid object to any subtype (typed null).
+            valid_object_cast = val.data.oval.type == *expected_tag
+                || val.data.oval.type == nw::ObjectType::invalid;
         }
 
         if (valid_object_cast) {
@@ -3260,7 +3262,8 @@ vm_exit:
                 if (target_tid == rt_->object_type()) {
                     valid_object_cast = true;
                 } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
-                    valid_object_cast = val.data.oval.type == *expected_tag;
+                    valid_object_cast = val.data.oval.type == *expected_tag
+                        || val.data.oval.type == nw::ObjectType::invalid;
                 }
 
                 if (valid_object_cast) {
