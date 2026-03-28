@@ -1839,6 +1839,183 @@ void Runtime::reset_error()
     vm_->reset();
 }
 
+void Runtime::set_vm_profile_enabled(bool enabled) noexcept
+{
+    vm_profile_enabled_ = enabled;
+}
+
+bool Runtime::is_vm_profile_enabled() const noexcept
+{
+    return vm_profile_enabled_;
+}
+
+void Runtime::set_vm_profile_timing_enabled(bool enabled) noexcept
+{
+    vm_profile_timing_enabled_ = enabled;
+}
+
+bool Runtime::is_vm_profile_timing_enabled() const noexcept
+{
+    return vm_profile_timing_enabled_;
+}
+
+void Runtime::reset_vm_profile() noexcept
+{
+    vm_opcode_count_.fill(0);
+    vm_opcode_ns_.fill(0);
+    vm_instruction_count_ = 0;
+    vm_native_call_count_ = 0;
+    vm_native_call_ns_ = 0;
+    vm_native_hist_.clear();
+    vm_script_call_hist_.clear();
+    vm_propset_get_or_create_count_ = 0;
+    vm_propset_get_or_create_ns_ = 0;
+    vm_propset_write_field_count_ = 0;
+    vm_propset_write_field_ns_ = 0;
+    vm_propset_write_site_hist_.clear();
+    vm_populate_creature_propsets_count_ = 0;
+    vm_populate_creature_propsets_ns_ = 0;
+}
+
+VmProfileSnapshot Runtime::vm_profile_snapshot() const
+{
+    VmProfileSnapshot out;
+    out.instruction_count = vm_instruction_count_;
+    out.native_call_count = vm_native_call_count_;
+    out.native_call_ns = vm_native_call_ns_;
+    out.propset_get_or_create_count = vm_propset_get_or_create_count_;
+    out.propset_get_or_create_ns = vm_propset_get_or_create_ns_;
+    out.propset_write_field_count = vm_propset_write_field_count_;
+    out.propset_write_field_ns = vm_propset_write_field_ns_;
+    out.populate_creature_propsets_count = vm_populate_creature_propsets_count_;
+    out.populate_creature_propsets_ns = vm_populate_creature_propsets_ns_;
+
+    for (size_t i = 0; i < vm_opcode_count_.size(); ++i) {
+        if (vm_opcode_count_[i] == 0) {
+            continue;
+        }
+        out.opcodes.push_back(VmOpcodeProfileEntry{
+            .opcode = static_cast<uint8_t>(i),
+            .count = vm_opcode_count_[i],
+            .ns = vm_opcode_ns_[i],
+        });
+    }
+
+    for (const auto& [name, stats] : vm_native_hist_) {
+        out.natives.push_back(VmNativeProfileEntry{
+            .name = name,
+            .count = stats.first,
+            .ns = stats.second,
+        });
+    }
+
+    for (const auto& [edge, count] : vm_script_call_hist_) {
+        auto sep = edge.find(" -> ");
+        VmScriptCallProfileEntry entry;
+        entry.count = count;
+        if (sep != String::npos) {
+            entry.caller = edge.substr(0, sep);
+            entry.callee = edge.substr(sep + 4);
+        } else {
+            entry.caller = edge;
+        }
+        out.script_calls.push_back(std::move(entry));
+    }
+
+    for (const auto& [site, count] : vm_propset_write_site_hist_) {
+        out.propset_writes.push_back(VmPropsetWriteProfileEntry{
+            .site = site,
+            .count = count,
+        });
+    }
+
+    std::sort(out.opcodes.begin(), out.opcodes.end(),
+        [](const VmOpcodeProfileEntry& a, const VmOpcodeProfileEntry& b) {
+            return a.ns > b.ns;
+        });
+    std::sort(out.natives.begin(), out.natives.end(),
+        [](const VmNativeProfileEntry& a, const VmNativeProfileEntry& b) {
+            return a.ns > b.ns;
+        });
+    std::sort(out.script_calls.begin(), out.script_calls.end(),
+        [](const VmScriptCallProfileEntry& a, const VmScriptCallProfileEntry& b) {
+            return a.count > b.count;
+        });
+    std::sort(out.propset_writes.begin(), out.propset_writes.end(),
+        [](const VmPropsetWriteProfileEntry& a, const VmPropsetWriteProfileEntry& b) {
+            return a.count > b.count;
+        });
+
+    return out;
+}
+
+void Runtime::record_vm_opcode(uint8_t opcode, uint64_t ns) noexcept
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    ++vm_instruction_count_;
+    ++vm_opcode_count_[opcode];
+    vm_opcode_ns_[opcode] += ns;
+}
+
+void Runtime::record_vm_native_call(StringView name, uint64_t ns)
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    ++vm_native_call_count_;
+    vm_native_call_ns_ += ns;
+    auto& slot = vm_native_hist_[String(name)];
+    ++slot.first;
+    slot.second += ns;
+}
+
+void Runtime::record_vm_script_call(StringView caller, StringView callee)
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    String key = absl::StrCat(caller, " -> ", callee);
+    ++vm_script_call_hist_[std::move(key)];
+}
+
+void Runtime::record_propset_get_or_create(uint64_t ns) noexcept
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    ++vm_propset_get_or_create_count_;
+    vm_propset_get_or_create_ns_ += ns;
+}
+
+void Runtime::record_propset_write_field(uint64_t ns) noexcept
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    ++vm_propset_write_field_count_;
+    vm_propset_write_field_ns_ += ns;
+}
+
+void Runtime::record_propset_write_field_site(TypeID propset_type, uint32_t offset)
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    String key = fmt::format("{}@{}", type_name(propset_type), offset);
+    ++vm_propset_write_site_hist_[std::move(key)];
+}
+
+void Runtime::record_populate_creature_propsets(uint64_t ns) noexcept
+{
+    if (!vm_profile_enabled_) {
+        return;
+    }
+    ++vm_populate_creature_propsets_count_;
+    vm_populate_creature_propsets_ns_ += ns;
+}
+
 void Runtime::fail(StringView msg)
 {
     vm_->fail(msg);

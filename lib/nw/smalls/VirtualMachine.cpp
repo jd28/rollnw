@@ -929,15 +929,12 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
 #define DISPATCH()                                                                     \
     do {                                                                               \
         if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
+            const uint64_t _vm_now = vm_profile_timing ? vm_profile_now_ns() : 0;     \
             if (vm_prof_has_last) {                                                    \
-                if (vm_profile_timing) {                                               \
-                    uint64_t _vm_now = vm_profile_now_ns();                            \
-                    rt_->record_vm_opcode(vm_prof_last_op, _vm_now - vm_prof_last_ts); \
-                    vm_prof_last_ts = _vm_now;                                         \
-                } else {                                                               \
-                    rt_->record_vm_opcode(vm_prof_last_op, 0);                         \
-                }                                                                      \
+                rt_->record_vm_opcode(vm_prof_last_op,                                 \
+                    vm_profile_timing ? (_vm_now - vm_prof_last_ts) : 0);              \
             }                                                                          \
+            vm_prof_last_ts = _vm_now;                                                 \
             vm_prof_has_last = false;                                                  \
         }                                                                              \
         if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                                 \
@@ -958,9 +955,6 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
         _b = _instr.arg_b();                                                           \
         _c = _instr.arg_c();                                                           \
         if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
-            if (vm_profile_timing) {                                                   \
-                vm_prof_last_ts = vm_profile_now_ns();                                 \
-            }                                                                          \
             vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());                   \
             vm_prof_has_last = true;                                                   \
         }                                                                              \

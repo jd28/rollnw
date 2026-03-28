@@ -294,6 +294,47 @@ struct ExecutionResult {
     explicit operator bool() const { return !failed; }
 };
 
+struct VmOpcodeProfileEntry {
+    uint8_t opcode = 0;
+    uint64_t count = 0;
+    uint64_t ns = 0;
+};
+
+struct VmNativeProfileEntry {
+    String name;
+    uint64_t count = 0;
+    uint64_t ns = 0;
+};
+
+struct VmScriptCallProfileEntry {
+    String caller;
+    String callee;
+    uint64_t count = 0;
+};
+
+struct VmPropsetWriteProfileEntry {
+    String site;
+    uint64_t count = 0;
+};
+
+struct VmProfileSnapshot {
+    uint64_t instruction_count = 0;
+    uint64_t native_call_count = 0;
+    uint64_t native_call_ns = 0;
+
+    uint64_t propset_get_or_create_count = 0;
+    uint64_t propset_get_or_create_ns = 0;
+    uint64_t propset_write_field_count = 0;
+    uint64_t propset_write_field_ns = 0;
+    uint64_t populate_creature_propsets_count = 0;
+    uint64_t populate_creature_propsets_ns = 0;
+
+    Vector<VmOpcodeProfileEntry> opcodes;
+    Vector<VmNativeProfileEntry> natives;
+    Vector<VmScriptCallProfileEntry> script_calls;
+    Vector<VmPropsetWriteProfileEntry> propset_writes;
+};
+
 // == VM ======================================================================
 // ============================================================================
 
@@ -939,6 +980,24 @@ public:
     void free_object_propsets(ObjectHandle obj);
     void prime_propset_pools();
 
+    // -- Optional VM Profiling -----------------------------------------------
+
+    void set_vm_profile_enabled(bool enabled) noexcept;
+    bool is_vm_profile_enabled() const noexcept;
+    void set_vm_profile_timing_enabled(bool enabled) noexcept;
+    bool is_vm_profile_timing_enabled() const noexcept;
+    void reset_vm_profile() noexcept;
+    VmProfileSnapshot vm_profile_snapshot() const;
+
+    // Internal recorders used by VM/native propset plumbing.
+    void record_vm_opcode(uint8_t opcode, uint64_t ns) noexcept;
+    void record_vm_native_call(StringView name, uint64_t ns);
+    void record_vm_script_call(StringView caller, StringView callee);
+    void record_propset_get_or_create(uint64_t ns) noexcept;
+    void record_propset_write_field(uint64_t ns) noexcept;
+    void record_propset_write_field_site(TypeID propset_type, uint32_t offset);
+    void record_populate_creature_propsets(uint64_t ns) noexcept;
+
     // -- Tuple Element Access ------------------------------------------------
 
     /// Read an element value from a tuple by index (for VM opcodes and const eval)
@@ -1305,6 +1364,23 @@ private:
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;
+
+    bool vm_profile_enabled_ = false;
+    bool vm_profile_timing_enabled_ = false;
+    std::array<uint64_t, 256> vm_opcode_count_{};
+    std::array<uint64_t, 256> vm_opcode_ns_{};
+    uint64_t vm_instruction_count_ = 0;
+    uint64_t vm_native_call_count_ = 0;
+    uint64_t vm_native_call_ns_ = 0;
+    absl::flat_hash_map<String, std::pair<uint64_t, uint64_t>> vm_native_hist_;
+    absl::flat_hash_map<String, uint64_t> vm_script_call_hist_;
+    uint64_t vm_propset_get_or_create_count_ = 0;
+    uint64_t vm_propset_get_or_create_ns_ = 0;
+    uint64_t vm_propset_write_field_count_ = 0;
+    uint64_t vm_propset_write_field_ns_ = 0;
+    absl::flat_hash_map<String, uint64_t> vm_propset_write_site_hist_;
+    uint64_t vm_populate_creature_propsets_count_ = 0;
+    uint64_t vm_populate_creature_propsets_ns_ = 0;
 
     friend struct NativeStructBuilder;
     friend struct ModuleBuilder;

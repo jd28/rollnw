@@ -11,6 +11,7 @@
 #define NW_PROFILE_MSG(msg) TracyMessageL(msg)
 #define NW_PROFILE_VALUE(value) ZoneValue(value)
 #define NW_PROFILE_TEXT(text, size) ZoneText(text, size)
+#define NW_PROFILE_PLOT(name, value) TracyPlot(name, value)
 
 #define NW_PROFILE_TEXT_CSTR(cstr)                     \
     do {                                               \
@@ -34,6 +35,12 @@
 #define NW_PROFILE_MSG(msg) \
     do {                    \
         (void)(msg);        \
+    } while (0)
+
+#define NW_PROFILE_PLOT(name, value) \
+    do {                             \
+        (void)(name);                \
+        (void)(value);               \
     } while (0)
 
 #define NW_PROFILE_VALUE(value) \

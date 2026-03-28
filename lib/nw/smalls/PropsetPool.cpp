@@ -375,6 +375,8 @@ void PropsetPoolManager::update_entry_heap_liveness(Runtime& /*rt*/, Pool& pool,
 
 Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj)
 {
+    const bool _pe0 = rt.is_vm_profile_enabled();
+    const bool _pt0 = _pe0 && rt.is_vm_profile_timing_enabled();
     struct ProfileScope {
         Runtime& rt;
         bool enabled;
@@ -386,8 +388,7 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
                 rt.record_propset_get_or_create(timing ? (propset_profile_now_ns() - start) : 0);
             }
         }
-    } profile_scope{rt, rt.is_vm_profile_enabled(), rt.is_vm_profile_timing_enabled(),
-        propset_profile_now_ns()};
+    } profile_scope{rt, _pe0, _pt0, _pt0 ? propset_profile_now_ns() : 0};
 
     if (!nw::kernel::objects().valid(obj)) {
         rt.fail("get_propset: invalid object handle");
@@ -596,6 +597,8 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
 
 bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value)
 {
+    const bool _pe1 = rt.is_vm_profile_enabled();
+    const bool _pt1 = _pe1 && rt.is_vm_profile_timing_enabled();
     struct ProfileScope {
         Runtime& rt;
         bool enabled;
@@ -607,8 +610,7 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
                 rt.record_propset_write_field(timing ? (propset_profile_now_ns() - start) : 0);
             }
         }
-    } profile_scope{rt, rt.is_vm_profile_enabled(), rt.is_vm_profile_timing_enabled(),
-        propset_profile_now_ns()};
+    } profile_scope{rt, _pe1, _pt1, _pt1 ? propset_profile_now_ns() : 0};
 
     uint8_t* entry = propset_ref.data.propset_ptr;
     if (rt.is_vm_profile_enabled()) {
