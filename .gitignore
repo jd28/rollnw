@@ -10,6 +10,7 @@ ccache/
 .ccache/
 tmp/
 crash-*
+Testing/
 
 # IDEs
 .vscode/*
