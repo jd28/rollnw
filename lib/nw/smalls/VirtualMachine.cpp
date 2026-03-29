@@ -4970,30 +4970,6 @@ void VirtualMachine::op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c,
     }
 }
 
-void VirtualMachine::ensure_field_offset_cache(TypeID struct_type_id, const StructDef* struct_def)
-{
-    field_offset_cache_built_.insert(struct_type_id.value);
-    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
-        const FieldDef& field = struct_def->fields[i];
-        const Type* field_type = rt_->get_type(field.type_id);
-        if (!field_type || field_type->type_kind != TK_fixed_array
-            || !field_type->type_params[0].is<TypeID>()
-            || !field_type->type_params[1].is<int32_t>()) {
-            continue;
-        }
-        TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
-        const Type* elem_type = rt_->get_type(elem_type_id);
-        if (!elem_type || elem_type->size == 0) { continue; }
-        int32_t elem_count = field_type->type_params[1].as<int32_t>();
-        if (elem_count <= 0) { continue; }
-        for (int32_t j = 0; j < elem_count; ++j) {
-            uint32_t byte_off = field.offset + static_cast<uint32_t>(j) * elem_type->size;
-            uint64_t key = (static_cast<uint64_t>(static_cast<uint32_t>(struct_type_id.value)) << 32) | byte_off;
-            field_offset_cache_.emplace(key, elem_type_id);
-        }
-    }
-}
-
 void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c)
 {
     // These opcodes access heap-backed structs (including propsets) at a runtime-computed offset.
@@ -5029,17 +5005,35 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
         return;
     }
 
-    // O(1) cache lookup: build per-struct offset map on first access, then single hash probe.
-    if (!field_offset_cache_built_.contains(struct_val.type_id.value)) {
-        ensure_field_offset_cache(struct_val.type_id, struct_def);
+    // Linear scan over struct fields to find the fixed array containing effective_offset.
+    // Field counts are small (typically < 20), so this beats a hash lookup and avoids
+    // pre-populating O(elem_count) cache entries per array field.
+    TypeID access_type_id{};
+    bool found = false;
+    for (uint32_t i = 0; i < struct_def->field_count; ++i) {
+        const FieldDef& field = struct_def->fields[i];
+        const Type* field_type = rt_->get_type(field.type_id);
+        if (!field_type || field_type->type_kind != TK_fixed_array
+            || !field_type->type_params[0].is<TypeID>()
+            || !field_type->type_params[1].is<int32_t>()) {
+            continue;
+        }
+        TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
+        const Type* elem_type = rt_->get_type(elem_type_id);
+        if (!elem_type || elem_type->size == 0) { continue; }
+        int32_t elem_count = field_type->type_params[1].as<int32_t>();
+        if (elem_count <= 0) { continue; }
+        uint32_t field_end = field.offset + static_cast<uint32_t>(elem_count) * elem_type->size;
+        if (effective_offset < field.offset || effective_offset >= field_end) { continue; }
+        if ((effective_offset - field.offset) % elem_type->size != 0) { continue; }
+        access_type_id = elem_type_id;
+        found = true;
+        break;
     }
-    uint64_t cache_key = (static_cast<uint64_t>(static_cast<uint32_t>(struct_val.type_id.value)) << 32) | effective_offset;
-    auto cache_it = field_offset_cache_.find(cache_key);
-    if (cache_it == field_offset_cache_.end()) {
+    if (!found) {
         fail("Fixed array index out of bounds");
         return;
     }
-    TypeID access_type_id = cache_it->second;
 
     // Validate that the opcode matches the cached element type.
     bool type_ok = false;

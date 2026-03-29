@@ -2270,14 +2270,40 @@ void AstCompiler::visit(AssignExpression* expr)
             uint32_t field_idx = struct_def->field_index(last_ident->ident.loc.view());
             const FieldDef& field = struct_def->fields[field_idx];
 
-            if (is_value_type(current_type)) {
-                emit_stack_field_set(struct_reg, field.offset, field.type_id, rhs_reg);
-            } else {
-                emit_field_set(struct_reg, field.offset, field.type_id, rhs_reg);
-            }
+            uint8_t value_reg = rhs_reg;
+            if (is_compound) {
+                uint8_t current_reg = registers_.allocate();
+                if (is_value_type(current_type)) {
+                    emit_stack_field_get(current_reg, struct_reg, field.offset, field.type_id);
+                } else {
+                    emit_field_get(current_reg, struct_reg, field.offset, field.type_id);
+                }
 
-            registers_.free(struct_reg);
-            result_reg_ = rhs_reg;
+                value_reg = registers_.allocate();
+                Opcode op_code = token_to_binary_opcode(expr->op.type);
+                emit_abc(op_code, value_reg, current_reg, rhs_reg);
+
+                registers_.free(current_reg);
+                registers_.free(rhs_reg);
+
+                if (is_value_type(current_type)) {
+                    emit_stack_field_set(struct_reg, field.offset, field.type_id, value_reg);
+                } else {
+                    emit_field_set(struct_reg, field.offset, field.type_id, value_reg);
+                }
+
+                registers_.free(struct_reg);
+                result_reg_ = value_reg;
+            } else {
+                if (is_value_type(current_type)) {
+                    emit_stack_field_set(struct_reg, field.offset, field.type_id, rhs_reg);
+                } else {
+                    emit_field_set(struct_reg, field.offset, field.type_id, rhs_reg);
+                }
+
+                registers_.free(struct_reg);
+                result_reg_ = rhs_reg;
+            }
         }
     } else if (auto index = dynamic_cast<IndexExpression*>(expr->lhs)) {
         // 1. Compile target (map/array)

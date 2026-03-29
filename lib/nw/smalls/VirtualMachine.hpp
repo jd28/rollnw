@@ -6,8 +6,6 @@
 
 #include <cassert>
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace nw::smalls {
 
@@ -169,12 +167,6 @@ private:
     // Avoids repeated service-table scans on every opcode dispatch.
     Runtime* rt_ = nullptr;
 
-    // Per-struct offset→elem_type cache for op_field_offset_access.
-    // Key: (struct_type_id.value << 32) | byte_offset  →  elem TypeID
-    // Eliminates the O(field_count) linear scan on every propset array field read.
-    std::unordered_map<uint64_t, TypeID> field_offset_cache_;
-    std::unordered_set<int32_t> field_offset_cache_built_; // struct_type_id.values already cached
-
     inline Value& reg(uint8_t r)
     {
         assert(current_base_ + r < maximum_registers);
@@ -222,10 +214,6 @@ private:
     void op_field_access(Opcode op, uint8_t a, uint8_t b, uint8_t c, const BytecodeModule* module);
     void op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uint8_t c);
     void call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t argc);
-
-    // Builds the field-offset → elem_type cache for a struct type.
-    // Called once per struct type on first FIELDX_OFF_R access.
-    void ensure_field_offset_cache(TypeID struct_type_id, const StructDef* struct_def);
 
     // Syncs ip_ → frame_ptr_->pc for get_stack_trace() and error reporting.
     void sync_pc_for_debug();
