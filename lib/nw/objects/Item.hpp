@@ -70,6 +70,10 @@ struct Item : public ObjectBase {
     bool plot = false;
     bool stolen = false;
 
+    uint32_t derived_flags = 0;
+    int32_t derived_weapon_power_bonus = 0;
+    bool derived_has_keen = false;
+
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint16_t, 19> model_parts;

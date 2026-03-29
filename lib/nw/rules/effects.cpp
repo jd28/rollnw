@@ -1,13 +1,122 @@
 #include "effects.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "../kernel/TwoDACache.hpp"
+#include "../objects/ObjectBase.hpp"
+#include "../smalls/Array.hpp"
+#include "../smalls/Bytecode.hpp"
+#include "../smalls/runtime.hpp"
 #include "../util/profile.hpp"
 
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <chrono>
 
 namespace nw {
+
+namespace {
+
+void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& effects, bool is_apply,
+    nw::EffectCallbackTimingStats* timing_stats = nullptr)
+{
+    if (!obj || effects.empty()) { return; }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.get_module(nw::kernel::config().effects_policy_module());
+    if (!script) { return; }
+
+    // get_or_compile_module is O(1) when already compiled (hash map lookup).
+    auto* bytecode_module = rt.get_or_compile_module(script);
+    if (!bytecode_module) { return; }
+
+    auto* fn = bytecode_module->get_function("on_effects");
+    if (!fn) { return; }
+
+    const auto marshal_start = timing_stats ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+
+    nw::Vector<nw::smalls::Value> args;
+    auto object_value = nw::smalls::Value::make_object(obj->handle());
+    object_value.type_id = rt.object_subtype_for_tag(obj->handle().type);
+    args.push_back(object_value);
+
+    nw::Vector<nw::TypedHandle> pinned_handles;
+    pinned_handles.reserve(effects.size());
+
+    nw::Vector<nw::smalls::Value> marshaled_effects;
+    marshaled_effects.reserve(effects.size());
+    nw::smalls::TypeID effect_value_type = nw::smalls::invalid_type_id;
+
+    for (const auto* effect : effects) {
+        if (!effect) { continue; }
+        auto effect_handle = effect->handle().to_typed_handle();
+        auto effect_value = nw::smalls::detail::make_value(&rt, effect_handle);
+        if (effect_value.type_id == nw::smalls::invalid_type_id) {
+            if (timing_stats) { ++timing_stats->dropped_invalid_handles; }
+            continue;
+        }
+        if (effect_value_type == nw::smalls::invalid_type_id) {
+            effect_value_type = effect_value.type_id;
+        }
+        // Pin as ENGINE_OWNED to prevent GC from collecting the handle cell
+        // during marshaling and VM execution. Released below after execute_compiled.
+        rt.set_handle_ownership(effect_handle, nw::smalls::OwnershipMode::ENGINE_OWNED);
+        pinned_handles.push_back(effect_handle);
+        marshaled_effects.push_back(effect_value);
+    }
+
+    auto release_pins = [&]() {
+        for (const auto& h : pinned_handles) {
+            rt.set_handle_ownership(h, nw::smalls::OwnershipMode::VM_OWNED);
+        }
+    };
+
+    if (effect_value_type == nw::smalls::invalid_type_id || marshaled_effects.empty()) { return; }
+
+    auto array_ptr = rt.create_array_typed(effect_value_type, marshaled_effects.size());
+    if (!array_ptr.value) { release_pins(); return; }
+
+    auto* array = rt.get_array_typed(array_ptr);
+    if (!array) { release_pins(); return; }
+
+    for (const auto& v : marshaled_effects) { array->append_value(v, rt); }
+
+    auto* array_header = rt.heap_.get_header(array_ptr);
+    if (!array_header) { release_pins(); return; }
+
+    args.push_back(nw::smalls::Value::make_heap(array_ptr, array_header->type_id));
+    args.push_back(nw::smalls::Value::make_bool(is_apply));
+
+    if (timing_stats) {
+        timing_stats->marshal_ns += static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - marshal_start).count());
+    }
+
+    const auto dispatch_start = timing_stats ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+    auto result = rt.execute_compiled(bytecode_module, fn, args);
+
+    // For apply: keep handles ENGINE_OWNED so the GC cannot collect them while
+    // the effects remain on the object — required for the remove dispatch to
+    // read effect data (e.g. amount) from a valid handle cell.
+    // For remove: release to VM_OWNED; the effects are being torn down so the
+    // cells can be collected once the engine destroys the C++ Effect objects.
+    if (!is_apply) {
+        release_pins();
+    }
+
+    if (timing_stats) {
+        timing_stats->dispatch_ns += static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - dispatch_start).count());
+    }
+
+    if (!result.ok()) {
+        LOG_F(WARNING, "[effects] on_effects failed: {}", result.error_message);
+    }
+}
+
+} // namespace
 
 DEFINE_RULE_TYPE(EffectType);
 
@@ -168,13 +277,23 @@ EffectSystem::EffectSystem(MemoryResource* allocator)
 
 bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
-    auto [it, added] = registry_.emplace(*type, std::make_pair(std::move(apply), std::move(remove)));
-    return added;
+    return add(type, effect_object_mask_all, effect_event_none, std::move(apply), std::move(remove), false);
 }
 
-bool EffectSystem::add(ItemPropertyType type, ItemPropFunc generator)
+bool EffectSystem::add(EffectType type, uint32_t object_mask, EffectFunc apply, EffectFunc remove)
 {
-    auto [it, added] = itemprops_.emplace(*type, std::move(generator));
+    return add(type, object_mask, effect_event_none, std::move(apply), std::move(remove), false);
+}
+
+bool EffectSystem::add(EffectType type, uint32_t object_mask, uint32_t event_mask, EffectFunc apply, EffectFunc remove,
+    bool has_versus_component)
+{
+    auto [it, added] = registry_.try_emplace(*type);
+    it->second.object_mask = object_mask;
+    it->second.event_mask = event_mask;
+    it->second.has_versus_component = has_versus_component;
+    it->second.apply = std::move(apply);
+    it->second.remove = std::move(remove);
     return added;
 }
 
@@ -183,10 +302,79 @@ bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
     if (!effect) { return false; }
     auto it = registry_.find(*effect->handle().type);
     if (it == std::end(registry_)) { return false; }
-    if (it->second.first && it->second.first(obj, effect)) {
+
+    if (!obj) { return false; }
+    uint32_t obj_mask = effect_object_mask(obj->handle().type);
+    if ((it->second.object_mask & obj_mask) == 0) {
+        return false;
+    }
+
+    if (it->second.apply && it->second.apply(obj, effect)) {
+        return true;
+    }
+    if (!it->second.apply) {
         return true;
     }
     return false;
+}
+
+bool EffectSystem::apply_to(ObjectBase* obj, Effect* effect)
+{
+    if (!obj || !effect) {
+        return false;
+    }
+
+    if (!apply(obj, effect)) {
+        return false;
+    }
+
+    if (!obj->effects().add(effect)) {
+        return false;
+    }
+
+    dispatch_on_effects(obj, {effect}, true);
+
+    if (event_callback_) {
+        event_callback_(obj, effect, true);
+    }
+
+    return true;
+}
+
+size_t EffectSystem::apply_to(ObjectBase* obj, const Vector<Effect*>& effects, Vector<Effect*>* failed)
+{
+    if (!obj) {
+        if (failed) {
+            failed->insert(std::end(*failed), std::begin(effects), std::end(effects));
+        }
+        return 0;
+    }
+
+    Vector<Effect*> applied_effects;
+    applied_effects.reserve(effects.size());
+    size_t applied = 0;
+    for (auto* effect : effects) {
+        if (!effect) { continue; }
+        if (!apply(obj, effect) || !obj->effects().add(effect)) {
+            if (failed) { failed->push_back(effect); }
+            continue;
+        }
+        ++applied;
+        applied_effects.push_back(effect);
+    }
+
+    if (!applied_effects.empty()) {
+        auto* timing = callback_timing_enabled_ ? &callback_timing_stats_ : nullptr;
+        if (timing) {
+            timing->effects_scanned += effects.size();
+            timing->effects_dispatched += applied_effects.size();
+        }
+        dispatch_on_effects(obj, applied_effects, true, timing);
+        if (timing) { ++timing->batches; }
+        if (event_batch_callback_) { event_batch_callback_(obj, applied_effects, true); }
+    }
+
+    return applied;
 }
 
 Effect* EffectSystem::create(EffectType type)
@@ -334,16 +522,6 @@ void EffectSystem::initialize(kernel::ServiceInitTime time)
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
-Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const
-{
-    auto it = itemprops_.find(property.type);
-    if (it == std::end(itemprops_)) { return nullptr; }
-    if (it->second) {
-        return it->second(property, index, baseitem);
-    }
-    return nullptr;
-}
-
 const StaticTwoDA* EffectSystem::ip_cost_table(size_t table) const
 {
     if (table >= ip_cost_table_.size()) { return nullptr; }
@@ -377,16 +555,126 @@ bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
     if (!effect) { return false; }
     auto it = registry_.find(*effect->handle().type);
     if (it == std::end(registry_)) { return false; }
-    if (it->second.second && it->second.second(obj, effect)) {
+
+    if (!obj) { return false; }
+    uint32_t obj_mask = effect_object_mask(obj->handle().type);
+    if ((it->second.object_mask & obj_mask) == 0) {
+        return false;
+    }
+
+    if (it->second.remove && it->second.remove(obj, effect)) {
+        return true;
+    }
+    if (!it->second.remove) {
         return true;
     }
     return false;
 }
 
+bool EffectSystem::remove_from(ObjectBase* obj, Effect* effect)
+{
+    if (!obj || !effect) {
+        return false;
+    }
+
+    if (!remove(obj, effect)) {
+        return false;
+    }
+
+    if (!obj->effects().remove(effect)) {
+        return false;
+    }
+
+    dispatch_on_effects(obj, {effect}, false);
+
+    if (event_callback_) {
+        event_callback_(obj, effect, false);
+    }
+
+    return true;
+}
+
+size_t EffectSystem::remove_from(ObjectBase* obj, const Vector<Effect*>& effects,
+    bool destroy, Vector<Effect*>* failed)
+{
+    if (!obj) {
+        if (failed) {
+            failed->insert(std::end(*failed), std::begin(effects), std::end(effects));
+        }
+        return 0;
+    }
+
+    Vector<Effect*> removed_effects;
+    removed_effects.reserve(effects.size());
+    size_t removed = 0;
+    for (auto* effect : effects) {
+        if (!effect) { continue; }
+        if (!remove(obj, effect) || !obj->effects().remove(effect)) {
+            if (failed) { failed->push_back(effect); }
+            continue;
+        }
+        ++removed;
+        removed_effects.push_back(effect);
+    }
+
+    if (!removed_effects.empty()) {
+        auto* timing = callback_timing_enabled_ ? &callback_timing_stats_ : nullptr;
+        if (timing) {
+            timing->effects_scanned += effects.size();
+            timing->effects_dispatched += removed_effects.size();
+        }
+        dispatch_on_effects(obj, removed_effects, false, timing);
+        if (timing) { ++timing->batches; }
+        if (event_batch_callback_) { event_batch_callback_(obj, removed_effects, false); }
+    }
+
+    if (destroy) {
+        for (auto* effect : removed_effects) { this->destroy(effect); }
+    }
+
+    return removed;
+}
+
+void EffectSystem::set_event_callback(EffectEventFunc callback)
+{
+    event_callback_ = callback;
+}
+
+void EffectSystem::set_event_batch_callback(EffectBatchEventFunc callback)
+{
+    event_batch_callback_ = callback;
+}
+
+void EffectSystem::set_callback_timing_enabled(bool enabled)
+{
+    callback_timing_enabled_ = enabled;
+}
+
+void EffectSystem::reset_callback_timing()
+{
+    callback_timing_stats_ = {};
+}
+
+EffectCallbackTimingStats EffectSystem::callback_timing_stats() const
+{
+    return callback_timing_stats_;
+}
+
 nlohmann::json EffectSystem::stats() const
 {
     nlohmann::json j;
-    j["effect system"] = {};
+    j["effect system"] = {
+        {"callback_timing_enabled", callback_timing_enabled_},
+        {"callback_timing", {
+            {"filter_ns", callback_timing_stats_.filter_ns},
+            {"marshal_ns", callback_timing_stats_.marshal_ns},
+            {"dispatch_ns", callback_timing_stats_.dispatch_ns},
+            {"batches", callback_timing_stats_.batches},
+            {"effects_scanned", callback_timing_stats_.effects_scanned},
+            {"effects_dispatched", callback_timing_stats_.effects_dispatched},
+            {"dropped_invalid_handles", callback_timing_stats_.dropped_invalid_handles},
+        }},
+    };
     return j;
 }
 

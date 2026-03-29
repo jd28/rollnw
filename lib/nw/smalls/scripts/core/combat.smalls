@@ -1,4 +1,4 @@
-from core.types import { AttackType, ArmorClass, Damage, DamageRoll, EffectType, ModifierType };
+from core.types import { AttackType, ArmorClass, Damage, DamageRoll, EffectType };
 import core.effects as effects;
 
 [[value_type]]
@@ -31,51 +31,33 @@ type AttackData {
     base_damage: DamageResult;
     damages: array!(DamageResult);
     rolls: array!(DamageRoll);
+    effects_to_apply: array!(effects.Effect);
+    effects_to_remove: array!(effects.Effect);
     special_attack: int;   // 0 = none; else SpecialAttack value that triggered on this hit
 };
 
-[[native]] fn is_flanked(target: Creature, attacker: Creature): bool;
 [[native]] fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int;
-[[native]] fn attack_bonus_mod_combat_mode(obj: Creature): int;
-[[native]] fn attack_roll_armor_class(obj: Creature, versus: object): int;
-[[native]] fn attack_roll_concealment(obj: Creature, target: object, vs_ranged: bool): int;
-[[native]] fn attack_roll_is_miss_chance_source(obj: Creature, target: object, vs_ranged: bool): bool;
 [[native]] fn roll_uniform_int(min: int, max: int): int;
 [[native]] fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus: object, int_index: int, stack_policy: int): int;
-[[native]] fn aggregate_modifier_int(obj: object, modifier_type: ModifierType, subtype: int, versus: object, stack_policy: int): int;
-[[native]] fn weapon_critical_multiplier(obj: Creature, attack_type: AttackType): int;
+[[native]] fn aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: int, versus: object, filter_int_index: int, filter_int_value: int, int_index: int, stack_policy: int): int;
 [[native]] fn weapon_critical_threat(obj: Creature, attack_type: AttackType): int;
 [[native]] fn weapon_has_keen(obj: Creature, attack_type: AttackType): bool;
-[[native]] fn damage_immunity_modifier_bonus(obj: object, damage_type: Damage, versus: object): int;
 [[native]] fn damage_immunity_effect_delta(obj: object, damage_type: Damage, versus: object): int;
-[[native]] fn damage_reduction_modifier_bonus(obj: object, versus: object): int;
-[[native]] fn damage_resistance_modifier_bonus(obj: object, damage_type: Damage, versus: object): int;
 [[native]] fn object_effect_count(obj: object): int;
 [[native]] fn object_effect_at(obj: object, index: int): effects.Effect;
 [[native]] fn object_find_first_effect_of(obj: object, effect_type: int, subtype: int, start_index: int): int;
 [[native]] fn effect_best_damage_reduction(obj: object, power: int): effects.Effect;
 [[native]] fn effect_best_damage_resistance(obj: object, damage_type: Damage): effects.Effect;
-[[native]] fn weapon_power_monk_applies(obj: Creature, weapon: Item): bool;
 [[native]] fn weapon_power_item_property_bonus(weapon: Item): int;
-[[native]] fn weapon_base_damage_dice(base_item: int): int;
-[[native]] fn weapon_base_damage_sides(base_item: int): int;
-[[native]] fn weapon_base_damage_bonus(base_item: int): int;
-[[native]] fn weapon_damage_has_bludgeoning(weapon: Item): bool;
-[[native]] fn weapon_damage_has_piercing(weapon: Item): bool;
-[[native]] fn weapon_damage_has_slashing(weapon: Item): bool;
-[[native]] fn unarmed_damage_level(obj: Creature): int;
 [[native]] fn roll_dice(dice: int, sides: int, bonus: int, multiplier: int): int;
-[[native]] fn dual_wield_has_pair(obj: Creature): bool;
-[[native]] fn dual_wield_off_is_light(obj: Creature): bool;
-[[native]] fn prepare_attack_round(attacker: Creature): void;
 [[native]] fn attack_current(attacker: Creature): int;
 [[native]] fn attacks_onhand(attacker: Creature): int;
 [[native]] fn attacks_offhand(attacker: Creature): int;
 [[native]] fn attacks_extra(attacker: Creature): int;
 [[native]] fn advance_attack_round(attacker: Creature): void;
-[[native]] fn object_id(obj: object): int;
+[[native]] fn set_attack_current(attacker: Creature, value: int): void;
+[[native]] fn set_attacks_onhand(attacker: Creature, value: int): void;
+[[native]] fn set_attacks_offhand(attacker: Creature, value: int): void;
 [[native]] fn creature_effect_version(obj: Creature): int;
 [[native]] fn creature_equip_version(obj: Creature): int;
 [[native]] fn get_combat_mode(obj: Creature): int;
-[[native]] fn weapon_is_ranged(weapon: Item): bool;
-[[native]] fn get_dex_modifier_for_ac(obj: Creature): int;

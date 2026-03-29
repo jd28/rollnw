@@ -8,8 +8,11 @@
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"
 #include "ObjectManager.hpp"
+#include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
+
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -122,20 +125,46 @@ void Creature::clear()
 
 bool Creature::instantiate()
 {
+    NW_PROFILE_SCOPE_N("Creature::instantiate");
     if (instantiated_) return true;
+
+    auto t0 = std::chrono::high_resolution_clock::now();
     update_appearance(appearance.id);
+    auto t1 = std::chrono::high_resolution_clock::now();
 
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
-    size_t i = 0;
-    for (auto& equip : equipment.equips) {
-        if (equip.is<Item*>()) {
-            process_item_properties(this, equip.as<Item*>(),
-                static_cast<EquipIndex>(i), false);
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    int32_t equipment_item_count = 0;
+    int32_t item_effects_processed = 0;
+    {
+        NW_PROFILE_SCOPE_N("Creature::instantiate::item_effects");
+        size_t i = 0;
+        for (auto& equip : equipment.equips) {
+            if (equip.is<Item*>()) {
+                ++equipment_item_count;
+                item_effects_processed += process_item_properties(this, equip.as<Item*>(),
+                    static_cast<EquipIndex>(i), false);
+            }
+            ++i;
         }
-        ++i;
     }
+    auto t3 = std::chrono::high_resolution_clock::now();
 
     nw::kernel::objects().run_instantiate_callback(this);
+    auto t4 = std::chrono::high_resolution_clock::now();
+
+    auto appearance_us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    auto inv_equip_us = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    auto item_effects_us = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+    auto callback_us = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+    NW_PROFILE_PLOT("nw.creature.instantiate.appearance_us", appearance_us);
+    NW_PROFILE_PLOT("nw.creature.instantiate.inv_equip_us", inv_equip_us);
+    NW_PROFILE_PLOT("nw.creature.instantiate.item_effects_us", item_effects_us);
+    NW_PROFILE_PLOT("nw.creature.instantiate.callback_us", callback_us);
+    NW_PROFILE_PLOT("nw.creature.instantiate.equipment_items", equipment_item_count);
+    NW_PROFILE_PLOT("nw.creature.instantiate.item_effects_applied", item_effects_processed);
+
     return instantiated_;
 }
 

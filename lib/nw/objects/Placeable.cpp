@@ -1,5 +1,7 @@
 #include "Placeable.hpp"
 
+#include "ObjectManager.hpp"
+
 #include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Strings.hpp"
 #include "../serialization/Gff.hpp"
@@ -118,7 +120,9 @@ void Placeable::clear()
 bool Placeable::instantiate()
 {
     if (instantiated_) return true;
-    return instantiated_ = inventory.instantiate();
+    instantiated_ = inventory.instantiate();
+    nw::kernel::objects().run_instantiate_callback(this);
+    return instantiated_;
 }
 
 bool Placeable::save(const std::filesystem::path& path, std::string_view format)

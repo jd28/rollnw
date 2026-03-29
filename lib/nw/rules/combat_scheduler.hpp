@@ -9,14 +9,7 @@ struct ObjectBase;
 
 namespace combat {
 
-using ResolveAttackFn = bool (*)(Creature*, ObjectBase*, AttackData* out);
-using ResolveCooldownTicksFn = uint32_t (*)(const Creature*, uint32_t);
-
-void set_attack_scheduler_policy(ResolveAttackFn resolve_attack, ResolveCooldownTicksFn resolve_cooldown) noexcept;
-void clear_attack_scheduler_policy() noexcept;
-bool has_attack_scheduler_policy() noexcept;
-
-/// Resolves one attack using the active profile combat policy.
+/// Resolves one attack via nw::resolve_attack.
 bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out = nullptr);
 
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks = 60);
@@ -26,6 +19,10 @@ bool start_auto_attack(Creature* attacker, ObjectBase* target,
 bool stop_auto_attack(Creature* attacker);
 bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
     uint32_t round_ticks = 60, AttackData* out = nullptr);
+
+/// Applies/removes effect intents carried by AttackData.
+/// Returns number of effects processed.
+int commit_attack_effects(AttackData* data);
 
 } // namespace combat
 } // namespace nw

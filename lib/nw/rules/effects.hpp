@@ -155,8 +155,39 @@ enum struct EquipIndex : uint32_t;
 struct StaticTwoDA;
 
 using EffectFunc = FunctionPtr<bool(ObjectBase*, const Effect*)>;
+using EffectEventFunc = FunctionPtr<void(ObjectBase*, const Effect*, bool)>;
+using EffectBatchEventFunc = FunctionPtr<void(ObjectBase*, const Vector<Effect*>&, bool)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
-using ItemPropFunc = FunctionPtr<Effect*(const ItemProperty&, EquipIndex, BaseItem)>;
+
+constexpr uint32_t effect_object_mask_none = 0;
+constexpr uint32_t effect_object_mask_all = 0xffffffffu;
+constexpr uint32_t effect_event_none = 0;
+constexpr uint32_t effect_event_apply = 1u << 0;
+constexpr uint32_t effect_event_remove = 1u << 1;
+constexpr uint32_t effect_event_all = effect_event_apply | effect_event_remove;
+
+constexpr uint32_t effect_object_mask(ObjectType type)
+{
+    return 1u << static_cast<uint32_t>(type);
+}
+
+struct EffectTypeMetadata {
+    uint32_t object_mask = effect_object_mask_all;
+    uint32_t event_mask = effect_event_none;
+    bool has_versus_component = false;
+    EffectFunc apply;
+    EffectFunc remove;
+};
+
+struct EffectCallbackTimingStats {
+    uint64_t filter_ns = 0;
+    uint64_t marshal_ns = 0;
+    uint64_t dispatch_ns = 0;
+    uint64_t batches = 0;
+    uint64_t effects_scanned = 0;
+    uint64_t effects_dispatched = 0;
+    uint64_t dropped_invalid_handles = 0;
+};
 
 struct EffectLimits {
     std::pair<int, int> ability{-12, 12};
@@ -175,11 +206,21 @@ struct EffectSystem : public kernel::Service {
     /// Adds an effect type to the registry
     bool add(EffectType type, EffectFunc apply, EffectFunc remove);
 
-    /// Adds an item property type to the registry
-    bool add(ItemPropertyType type, ItemPropFunc generator);
+    /// Adds an effect type to the registry with object mask metadata
+    bool add(EffectType type, uint32_t object_mask, EffectFunc apply, EffectFunc remove);
+
+    /// Adds an effect type to the registry with object and event mask metadata
+    bool add(EffectType type, uint32_t object_mask, uint32_t event_mask, EffectFunc apply, EffectFunc remove,
+        bool has_versus_component = false);
 
     /// Applies an effect to an object
     bool apply(ObjectBase* obj, Effect* effect);
+
+    /// Applies and commits an effect to an object
+    bool apply_to(ObjectBase* obj, Effect* effect);
+
+    /// Applies and commits multiple effects; returns committed count
+    size_t apply_to(ObjectBase* obj, const Vector<Effect*>& effects, Vector<Effect*>* failed = nullptr);
 
     /// Creates an effect
     Effect* create(EffectType type);
@@ -190,9 +231,6 @@ struct EffectSystem : public kernel::Service {
 
     /// Destroys an effect
     void destroy(Effect* effect);
-
-    /// Generates an effect from an item property
-    Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
 
     /// Initialize effect system
     virtual void initialize(kernel::ServiceInitTime time) override;
@@ -215,6 +253,28 @@ struct EffectSystem : public kernel::Service {
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);
 
+    /// Removes and commits an effect from an object
+    bool remove_from(ObjectBase* obj, Effect* effect);
+
+    /// Removes and commits multiple effects; returns committed count
+    size_t remove_from(ObjectBase* obj, const Vector<Effect*>& effects,
+        bool destroy = false, Vector<Effect*>* failed = nullptr);
+
+    /// Sets post-commit effect event callback
+    void set_event_callback(EffectEventFunc callback);
+
+    /// Sets post-commit bulk effect event callback
+    void set_event_batch_callback(EffectBatchEventFunc callback);
+
+    /// Enables/disables callback timing capture (off by default)
+    void set_callback_timing_enabled(bool enabled);
+
+    /// Resets callback timing counters
+    void reset_callback_timing();
+
+    /// Gets callback timing counters snapshot
+    EffectCallbackTimingStats callback_timing_stats() const;
+
     /// Gets stats regarding the effect system
     nlohmann::json stats() const override;
 
@@ -222,12 +282,15 @@ struct EffectSystem : public kernel::Service {
     EffectLimits limits;
 
 private:
-    absl::flat_hash_map<int32_t, EffectPair> registry_;
-    absl::flat_hash_map<int32_t, ItemPropFunc> itemprops_;
+    absl::flat_hash_map<int32_t, EffectTypeMetadata> registry_;
     Vector<ItemPropertyDefinition> ip_definitions_;
     Vector<const StaticTwoDA*> ip_cost_table_;
     Vector<const StaticTwoDA*> ip_param_table_;
     const StaticTwoDA* itemprop_table_;
+    EffectEventFunc event_callback_;
+    EffectBatchEventFunc event_batch_callback_;
+    bool callback_timing_enabled_ = false;
+    EffectCallbackTimingStats callback_timing_stats_;
 
     RuntimeObjectPool pool_;
 };

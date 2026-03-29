@@ -3,6 +3,7 @@
 #include "../rules/effects.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../util/profile.hpp"
 #include "Creature.hpp"
 #include "Item.hpp"
 #include "ObjectManager.hpp"
@@ -28,6 +29,7 @@ void Equips::destroy()
 
 bool Equips::instantiate()
 {
+    NW_PROFILE_SCOPE_N("Equips::instantiate");
     ERRARE("[objects] instantiating creature equipment");
     int i = 0;
     for (auto& e : equips) {
@@ -35,22 +37,8 @@ bool Equips::instantiate()
             auto temp = nw::kernel::objects().load<Item>(e.as<Resref>());
             if (temp) {
                 e = temp;
-                for (const auto& ip : temp->properties) {
-                    if (auto eff = nw::kernel::effects().generate(ip,
-                            static_cast<EquipIndex>(i), temp->baseitem)) {
-                        eff->handle().creator = temp->handle();
-                        eff->handle().category = nw::EffectCategory::item;
-                        if (!nw::kernel::effects().apply(owner_, eff)) {
-                            nw::kernel::effects().destroy(eff);
-                        } else {
-                            owner_->effects().add(eff);
-                        }
-                    }
-                }
-
             } else {
-                LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
-                    e.as<Resref>());
+                LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?", e.as<Resref>());
                 e = static_cast<nw::Item*>(nullptr);
             }
         }

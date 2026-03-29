@@ -4,6 +4,8 @@
 #include "../kernel/Kernel.hpp"
 #include "../objects/Creature.hpp"
 #include "../objects/ObjectManager.hpp"
+#include "../scriptapi.hpp"
+#include "effects.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -28,9 +30,6 @@ struct AutoAttackState {
     uint32_t round_ticks = 60;
     bool active = false;
 };
-
-ResolveAttackFn g_resolve_attack = nullptr;
-ResolveCooldownTicksFn g_resolve_cooldown = nullptr;
 
 thread_local std::vector<AutoAttackState> auto_attack_states;
 
@@ -67,7 +66,7 @@ void auto_attack_payload_delete(void* data)
 void scheduled_attack_event_callback(const kernel::EventHandle& ev)
 {
     auto* payload = static_cast<ScheduledAttackEvent*>(ev.data);
-    if (!payload || !g_resolve_attack) {
+    if (!payload) {
         return;
     }
 
@@ -77,13 +76,13 @@ void scheduled_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    resolve_attack(attacker, target);
+    combat::resolve_attack(attacker, target);
 }
 
 void auto_attack_event_callback(const kernel::EventHandle& ev)
 {
     auto* payload = static_cast<AutoAttackEvent*>(ev.data);
-    if (!payload || !g_resolve_attack) {
+    if (!payload) {
         return;
     }
 
@@ -104,9 +103,9 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    resolve_attack(attacker, target);
+    combat::resolve_attack(attacker, target);
 
-    auto delay = resolve_attack_cooldown_ticks(attacker, state->round_ticks);
+    auto delay = combat::resolve_attack_cooldown_ticks(attacker, state->round_ticks);
     auto* next = new AutoAttackEvent{.attacker = payload->attacker, .generation = payload->generation};
     kernel::events().add_custom(payload->attacker, &auto_attack_event_callback, delay,
         next, &auto_attack_payload_delete);
@@ -114,42 +113,19 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
 
 } // namespace
 
-void set_attack_scheduler_policy(ResolveAttackFn resolve_attack, ResolveCooldownTicksFn resolve_cooldown) noexcept
-{
-    g_resolve_attack = resolve_attack;
-    g_resolve_cooldown = resolve_cooldown;
-}
-
-void clear_attack_scheduler_policy() noexcept
-{
-    g_resolve_attack = nullptr;
-    g_resolve_cooldown = nullptr;
-}
-
-bool has_attack_scheduler_policy() noexcept
-{
-    return g_resolve_attack != nullptr;
-}
-
 bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
 {
-    if (!g_resolve_attack) {
-        return false;
-    }
-    return g_resolve_attack(attacker, target, out);
+    return ::nw::resolve_attack(attacker, target, out);
 }
 
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks)
 {
-    if (!g_resolve_cooldown) {
-        return 1;
-    }
-    return std::max<uint32_t>(1, g_resolve_cooldown(attacker, round_ticks));
+    return ::nw::resolve_attack_cooldown_ticks(attacker, round_ticks);
 }
 
 bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks)
 {
-    if (!attacker || !target || !g_resolve_attack) {
+    if (!attacker || !target) {
         return false;
     }
 
@@ -162,7 +138,7 @@ bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_tick
 bool start_auto_attack(Creature* attacker, ObjectBase* target,
     uint64_t initial_delay_ticks, uint32_t round_ticks)
 {
-    if (!attacker || !target || !g_resolve_attack) {
+    if (!attacker || !target) {
         return false;
     }
 
@@ -197,13 +173,51 @@ bool stop_auto_attack(Creature* attacker)
 bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
     uint32_t round_ticks, AttackData* out)
 {
-    if (!resolve_attack(attacker, target, out) || !attacker || !target) {
+    if (!combat::resolve_attack(attacker, target, out) || !attacker || !target) {
         return false;
     }
 
-    auto delay = resolve_attack_cooldown_ticks(attacker, round_ticks);
-    schedule_attack(attacker, target, delay);
+    auto delay = combat::resolve_attack_cooldown_ticks(attacker, round_ticks);
+    combat::schedule_attack(attacker, target, delay);
     return true;
+}
+
+int commit_attack_effects(AttackData* data)
+{
+    if (!data || !data->target) {
+        return 0;
+    }
+
+    nw::Vector<nw::Effect*> to_apply;
+    to_apply.reserve(data->effects_to_apply.size());
+    for (auto* eff : data->effects_to_apply) {
+        if (eff) {
+            to_apply.push_back(eff);
+        }
+    }
+
+    nw::Vector<nw::Effect*> apply_failed;
+    kernel::effects().apply_to(data->target, to_apply, &apply_failed);
+    for (auto* eff : apply_failed) {
+        kernel::effects().destroy(eff);
+    }
+
+    nw::Vector<nw::Effect*> to_remove;
+    to_remove.reserve(data->effects_to_remove.size());
+    for (const auto& handle : data->effects_to_remove) {
+        auto* eff = handle.effect ? handle.effect : kernel::effects().get(handle.runtime_handle);
+        if (!eff) {
+            continue;
+        }
+
+        to_remove.push_back(eff);
+    }
+
+    kernel::effects().remove_from(data->target, to_remove, true);
+
+    data->effects_to_apply.clear();
+    data->effects_to_remove.clear();
+    return static_cast<int>(to_apply.size() + to_remove.size());
 }
 
 } // namespace nw::combat

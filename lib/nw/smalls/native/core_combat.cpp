@@ -3,16 +3,100 @@
 #include "../../functions.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
+#include "../../objects/Item.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../profiles/nwn1/scriptapi.hpp"
 #include "../../scriptapi.hpp"
 
 #include <algorithm>
-#include <limits>
 
 namespace nw::smalls {
 
 namespace {
+
+const nw::ObjectBase* as_object_const(nw::ObjectHandle obj);
+
+int32_t damage_immunity_effect_delta_uncached(const nw::ObjectBase* base, int32_t damage_type, nw::ObjectHandle versus)
+{
+    if (!base) {
+        return 0;
+    }
+
+    nw::Versus vs;
+    if (auto* target = as_object_const(versus)) {
+        vs = target->versus_me();
+    }
+
+    auto begin = std::begin(base->effects());
+    auto end = std::end(base->effects());
+    auto [eff_bonus, _bonus_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_increase,
+        damage_type, vs);
+    auto [eff_penalty, _penalty_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_decrease,
+        damage_type, vs);
+
+    return eff_bonus - eff_penalty;
+}
+
+nw::Effect* effect_best_damage_reduction_uncached(const nw::ObjectBase* base, int32_t power)
+{
+    if (!base || power <= 0) {
+        return nullptr;
+    }
+
+    auto begin = std::begin(base->effects());
+    auto end = std::end(base->effects());
+    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_reduction);
+    if (it == end) {
+        return nullptr;
+    }
+
+    nw::Effect* best_eff = nullptr;
+    int32_t best = 0;
+    int32_t best_remain = 0;
+    while (it != end && it->type == nwn1::effect_type_damage_reduction) {
+        if (it->effect) {
+            int32_t amount = it->effect->get_int(0);
+            int32_t bypass = it->effect->get_int(1);
+            int32_t remain = it->effect->get_int(2);
+            if (bypass > power && (amount > best || (amount == best && remain > best_remain))) {
+                best = amount;
+                best_remain = remain;
+                best_eff = it->effect;
+            }
+        }
+        ++it;
+    }
+
+    return best_eff;
+}
+
+nw::Effect* effect_best_damage_resistance_uncached(const nw::ObjectBase* base, int32_t damage_type)
+{
+    if (!base) { return nullptr; }
+
+    auto begin = std::begin(base->effects());
+    auto end = std::end(base->effects());
+    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_resistance);
+    if (it == end) { return nullptr; }
+
+    nw::Effect* best_eff = nullptr;
+    int32_t best = 0;
+    int32_t best_remain = 0;
+    while (it != end && it->type == nwn1::effect_type_damage_resistance) {
+        if (it->effect && it->effect->handle().subtype == damage_type) {
+            int32_t amount = it->effect->get_int(0);
+            int32_t remain = it->effect->get_int(1);
+            if (amount > best || (amount == best && remain > best_remain)) {
+                best = amount;
+                best_remain = remain;
+                best_eff = it->effect;
+            }
+        }
+        ++it;
+    }
+
+    return best_eff;
+}
 
 struct EffectFolder {
     int32_t policy;
@@ -24,12 +108,22 @@ struct EffectFolder {
     {
         switch (policy) {
         default:
-        case 0: acc += v; break;
-        case 1: acc = seen ? std::max(acc, v) : v; seen = true; break;
-        case 2: acc = seen ? std::min(acc, v) : v; seen = true; break;
+        case 0:
+            acc += v;
+            break;
+        case 1:
+            acc = seen ? std::max(acc, v) : v;
+            seen = true;
+            break;
+        case 2:
+            acc = seen ? std::min(acc, v) : v;
+            seen = true;
+            break;
         case 3:
-            if (v > acc) acc = v;
-            else if (v < worst) worst = v;
+            if (v > acc)
+                acc = v;
+            else if (v < worst)
+                worst = v;
             break;
         }
     }
@@ -68,25 +162,24 @@ nw::Item* as_item(nw::ObjectHandle obj)
 nw::Item* get_weapon_for_attack_type(nw::ObjectHandle obj, int32_t attack_type)
 {
     auto* cre = as_creature(obj);
-    if (!cre) {
+    if (!cre) { return nullptr; }
+
+    switch (attack_type) {
+    case 1:
+        return nw::get_equipped_item(cre, nw::EquipIndex::righthand);
+    case 2:
+        return nw::get_equipped_item(cre, nw::EquipIndex::lefthand);
+    case 3:
+        return nw::get_equipped_item(cre, nw::EquipIndex::arms);
+    case 4:
+        return nw::get_equipped_item(cre, nw::EquipIndex::creature_bite);
+    case 5:
+        return nw::get_equipped_item(cre, nw::EquipIndex::creature_left);
+    case 6:
+        return nw::get_equipped_item(cre, nw::EquipIndex::creature_right);
+    default:
         return nullptr;
     }
-    return nw::creature_get_weapon_by_attack_type(cre, nw::AttackType::make(attack_type));
-}
-
-int32_t weapon_critical_multiplier(nw::ObjectHandle obj, int32_t attack_type)
-{
-    auto* weapon = get_weapon_for_attack_type(obj, attack_type);
-    if (!weapon) {
-        return 2;
-    }
-
-    auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
-    if (!baseitem) {
-        return 2;
-    }
-
-    return baseitem->crit_multiplier;
 }
 
 int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus)
@@ -129,17 +222,6 @@ int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_t
     return std::clamp(bonus - decrease, min, max);
 }
 
-int32_t attack_bonus_mod_combat_mode(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) {
-        return 0;
-    }
-
-    auto cbs = nw::kernel::rules().combat_mode(cre->combat_info.combat_mode);
-    return cbs.modifier(cre->combat_info.combat_mode, nwn1::mod_type_attack_bonus, cre).as<int>();
-}
-
 int32_t weapon_critical_threat(nw::ObjectHandle obj, int32_t attack_type)
 {
     auto* weapon = get_weapon_for_attack_type(obj, attack_type);
@@ -158,22 +240,7 @@ int32_t weapon_critical_threat(nw::ObjectHandle obj, int32_t attack_type)
 bool weapon_has_keen(nw::ObjectHandle obj, int32_t attack_type)
 {
     auto* weapon = get_weapon_for_attack_type(obj, attack_type);
-    return nw::item_has_property(weapon, nwn1::ip_keen);
-}
-
-int32_t attack_roll_armor_class(nw::ObjectHandle obj, nw::ObjectHandle versus)
-{
-    return nwn1::calculate_ac_versus(as_creature(obj), as_object_const(versus), false);
-}
-
-int32_t damage_immunity_modifier_bonus(nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus)
-{
-    auto* base = as_object_const(obj);
-    if (!base) {
-        return 0;
-    }
-
-    return nw::kernel::max_modifier<int>(base, nwn1::mod_type_dmg_immunity, nw::Damage::make(damage_type), as_object_const(versus));
+    return weapon && weapon->derived_has_keen;
 }
 
 int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus)
@@ -183,37 +250,7 @@ int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, int32_t damage_type, 
         return 0;
     }
 
-    nw::Versus vs;
-    if (auto* target = as_object_const(versus)) {
-        vs = target->versus_me();
-    }
-
-    auto begin = std::begin(base->effects());
-    auto end = std::end(base->effects());
-    auto [eff_bonus, _bonus_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_increase,
-        damage_type, vs);
-    auto [eff_penalty, _penalty_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_decrease,
-        damage_type, vs);
-
-    return eff_bonus - eff_penalty;
-}
-
-int32_t damage_reduction_modifier_bonus(nw::ObjectHandle obj, nw::ObjectHandle versus)
-{
-    auto* base = as_object_const(obj);
-    if (!base) {
-        return 0;
-    }
-    return nw::kernel::sum_modifier<int>(base, nwn1::mod_type_dmg_reduction, as_object_const(versus));
-}
-
-int32_t damage_resistance_modifier_bonus(nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus)
-{
-    auto* base = as_object_const(obj);
-    if (!base) {
-        return 0;
-    }
-    return nw::kernel::max_modifier<int>(base, nwn1::mod_type_dmg_resistance, nw::Damage::make(damage_type), as_object_const(versus));
+    return damage_immunity_effect_delta_uncached(base, damage_type, versus);
 }
 
 int32_t object_effect_count(nw::ObjectHandle obj)
@@ -272,31 +309,7 @@ nw::Effect* effect_best_damage_reduction(nw::ObjectHandle obj, int32_t power)
         return nullptr;
     }
 
-    auto begin = std::begin(base->effects());
-    auto end = std::end(base->effects());
-    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_reduction);
-    if (it == end) {
-        return nullptr;
-    }
-
-    nw::Effect* best_eff = nullptr;
-    int32_t best = 0;
-    int32_t best_remain = 0;
-    while (it != end && it->type == nwn1::effect_type_damage_reduction) {
-        if (it->effect) {
-            int32_t amount = it->effect->get_int(0);
-            int32_t bypass = it->effect->get_int(1);
-            int32_t remain = it->effect->get_int(2);
-            if (bypass > power && (amount > best || (amount == best && remain > best_remain))) {
-                best = amount;
-                best_remain = remain;
-                best_eff = it->effect;
-            }
-        }
-        ++it;
-    }
-
-    return best_eff;
+    return effect_best_damage_reduction_uncached(base, power);
 }
 
 nw::Effect* effect_best_damage_resistance(nw::ObjectHandle obj, int32_t damage_type)
@@ -304,40 +317,7 @@ nw::Effect* effect_best_damage_resistance(nw::ObjectHandle obj, int32_t damage_t
     auto* base = as_object_const(obj);
     if (!base) { return nullptr; }
 
-    auto begin = std::begin(base->effects());
-    auto end = std::end(base->effects());
-    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_resistance);
-    if (it == end) { return nullptr; }
-
-    nw::Effect* best_eff = nullptr;
-    int32_t best = 0;
-    int32_t best_remain = 0;
-    while (it != end && it->type == nwn1::effect_type_damage_resistance) {
-        if (it->effect && it->effect->handle().subtype == damage_type) {
-            int32_t amount = it->effect->get_int(0);
-            int32_t remain = it->effect->get_int(1);
-            if (amount > best || (amount == best && remain > best_remain)) {
-                best = amount;
-                best_remain = remain;
-                best_eff = it->effect;
-            }
-        }
-        ++it;
-    }
-
-    return best_eff;
-}
-
-int32_t attack_roll_concealment(nw::ObjectHandle obj, nw::ObjectHandle target, bool vs_ranged)
-{
-    auto [conceal, _source] = nwn1::resolve_concealment(as_object_const(obj), as_object_const(target), vs_ranged);
-    return conceal;
-}
-
-bool attack_roll_concealment_is_miss_chance_source(nw::ObjectHandle obj, nw::ObjectHandle target, bool vs_ranged)
-{
-    auto [_conceal, source] = nwn1::resolve_concealment(as_object_const(obj), as_object_const(target), vs_ranged);
-    return source;
+    return effect_best_damage_resistance_uncached(base, damage_type);
 }
 
 int32_t roll_uniform_int(int32_t min, int32_t max)
@@ -407,191 +387,13 @@ int32_t aggregate_effect_int_filtered(nw::ObjectHandle obj, int32_t effect_type,
 int32_t weapon_power_item_property_bonus(nw::ObjectHandle weapon)
 {
     auto* item = as_item(weapon);
-    if (!item) {
-        return 0;
-    }
-
-    int32_t result = 0;
-    for (const auto& ip : item->properties) {
-        if (ip.type == *nwn1::ip_attack_bonus || ip.type == *nwn1::ip_enhancement_bonus) {
-            result = std::max(result, static_cast<int32_t>(ip.cost_value));
-        }
-    }
-    return result;
-}
-
-int32_t weapon_base_damage_dice(int32_t base_item)
-{
-    auto item = nw::BaseItem::make(base_item);
-    auto bi = nw::kernel::rules().baseitems.get(item);
-    if (!bi) {
-        return 0;
-    }
-    return bi->base_damage.dice;
-}
-
-int32_t weapon_base_damage_sides(int32_t base_item)
-{
-    auto item = nw::BaseItem::make(base_item);
-    auto bi = nw::kernel::rules().baseitems.get(item);
-    if (!bi) {
-        return 0;
-    }
-    return bi->base_damage.sides;
-}
-
-int32_t weapon_base_damage_bonus(int32_t base_item)
-{
-    auto item = nw::BaseItem::make(base_item);
-    auto bi = nw::kernel::rules().baseitems.get(item);
-    if (!bi) {
-        return 0;
-    }
-    return bi->base_damage.bonus;
+    return item ? item->derived_weapon_power_bonus : 0;
 }
 
 int32_t roll_dice_amount(int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier)
 {
     nw::DiceRoll roll{dice, sides, bonus};
     return nw::roll_dice(roll, multiplier);
-}
-
-bool weapon_damage_has_bludgeoning(nw::ObjectHandle weapon)
-{
-    auto* item = as_item(weapon);
-    if (!item) {
-        return true;
-    }
-
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) {
-        return false;
-    }
-
-    switch (bi->weapon_type) {
-    case 2:
-    case 5:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool weapon_damage_has_piercing(nw::ObjectHandle weapon)
-{
-    auto* item = as_item(weapon);
-    if (!item) {
-        return false;
-    }
-
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) {
-        return false;
-    }
-
-    switch (bi->weapon_type) {
-    case 1:
-    case 4:
-    case 5:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool weapon_damage_has_slashing(nw::ObjectHandle weapon)
-{
-    auto* item = as_item(weapon);
-    if (!item) {
-        return false;
-    }
-
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) {
-        return false;
-    }
-
-    switch (bi->weapon_type) {
-    case 3:
-    case 4:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool dual_wield_has_pair_flag(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    if (!cre) {
-        return false;
-    }
-
-    auto* rh = nw::creature_get_equipped_item(cre, nw::EquipIndex::righthand);
-    if (!rh) {
-        return false;
-    }
-
-    auto rh_bi = nw::kernel::rules().baseitems.get(rh->baseitem);
-    if (!rh_bi || !rh_bi->weapon_type) {
-        return false;
-    }
-
-    if (nwn1::is_double_sided_weapon(rh)) {
-        return true;
-    }
-
-    auto* lh = nw::creature_get_equipped_item(cre, nw::EquipIndex::lefthand);
-    if (!lh) {
-        return false;
-    }
-
-    auto lh_bi = nw::kernel::rules().baseitems.get(lh->baseitem);
-    return lh_bi && lh_bi->weapon_type;
-}
-
-bool dual_wield_off_is_light_flag(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    if (!cre) {
-        return false;
-    }
-
-    auto* rh = nw::creature_get_equipped_item(cre, nw::EquipIndex::righthand);
-    if (!rh) {
-        return false;
-    }
-
-    auto rh_bi = nw::kernel::rules().baseitems.get(rh->baseitem);
-    if (!rh_bi || !rh_bi->weapon_type) {
-        return false;
-    }
-
-    if (nwn1::is_double_sided_weapon(rh)) {
-        return true;
-    }
-
-    auto* lh = nw::creature_get_equipped_item(cre, nw::EquipIndex::lefthand);
-    if (!lh) {
-        return false;
-    }
-
-    auto lh_bi = nw::kernel::rules().baseitems.get(lh->baseitem);
-    if (!lh_bi || !lh_bi->weapon_type) {
-        return false;
-    }
-
-    return nwn1::is_light_weapon(cre, lh);
-}
-
-int32_t unarmed_damage_level(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    if (!cre) {
-        return 0;
-    }
-    auto [_can_use, level] = nwn1::can_use_monk_abilities(cre);
-    return level;
 }
 
 int32_t object_id(nw::ObjectHandle obj)
@@ -617,12 +419,6 @@ int32_t get_combat_mode(nw::ObjectHandle obj)
     return cre ? static_cast<int32_t>(*cre->combat_info.combat_mode) : -1;
 }
 
-int32_t get_dex_modifier_for_ac(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    return cre ? static_cast<int32_t>(nwn1::get_dex_modifier(cre)) : 0;
-}
-
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -632,22 +428,13 @@ void register_core_combat(Runtime& rt)
     }
 
     rt.module("core.combat")
-        .function("is_flanked", +[](nw::ObjectHandle target, nw::ObjectHandle attacker) -> bool { return nwn1::is_flanked(as_creature(target), as_creature(attacker)); })
         .function("attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, versus); })
-        .function("attack_bonus_mod_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return attack_bonus_mod_combat_mode(obj); })
-        .function("weapon_critical_multiplier", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_multiplier(obj, attack_type); })
         .function("weapon_critical_threat", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_threat(obj, attack_type); })
         .function("weapon_has_keen", +[](nw::ObjectHandle obj, int32_t attack_type) -> bool { return weapon_has_keen(obj, attack_type); })
-        .function("attack_roll_armor_class", +[](nw::ObjectHandle obj, nw::ObjectHandle versus) -> int32_t { return attack_roll_armor_class(obj, versus); })
-        .function("attack_roll_concealment", +[](nw::ObjectHandle obj, nw::ObjectHandle target, bool vs_ranged) -> int32_t { return attack_roll_concealment(obj, target, vs_ranged); })
-        .function("attack_roll_is_miss_chance_source", +[](nw::ObjectHandle obj, nw::ObjectHandle target, bool vs_ranged) -> bool { return attack_roll_concealment_is_miss_chance_source(obj, target, vs_ranged); })
         .function("roll_uniform_int", +[](int32_t min, int32_t max) -> int32_t { return roll_uniform_int(min, max); })
         .function("aggregate_effect_int", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, nw::ObjectHandle versus, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int(obj, effect_type, subtype, versus, int_index, stack_policy); })
-        .function("aggregate_modifier_int", +[](nw::ObjectHandle obj, int32_t modifier_type, int32_t subtype, nw::ObjectHandle versus, int32_t stack_policy) -> int32_t { return aggregate_modifier_int(obj, modifier_type, subtype, versus, stack_policy); })
-        .function("damage_immunity_modifier_bonus", +[](nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus) -> int32_t { return damage_immunity_modifier_bonus(obj, damage_type, versus); })
+        .function("aggregate_effect_int_filtered", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, nw::ObjectHandle versus, int32_t filter_int_index, int32_t filter_int_value, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int_filtered(obj, effect_type, subtype, versus, filter_int_index, filter_int_value, int_index, stack_policy); })
         .function("damage_immunity_effect_delta", +[](nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus) -> int32_t { return damage_immunity_effect_delta(obj, damage_type, versus); })
-        .function("damage_reduction_modifier_bonus", +[](nw::ObjectHandle obj, nw::ObjectHandle versus) -> int32_t { return damage_reduction_modifier_bonus(obj, versus); })
-        .function("damage_resistance_modifier_bonus", +[](nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus) -> int32_t { return damage_resistance_modifier_bonus(obj, damage_type, versus); })
         .function("object_effect_count", +[](nw::ObjectHandle obj) -> int32_t { return object_effect_count(obj); })
         .function("object_effect_at", +[](nw::ObjectHandle obj, int32_t index) -> nw::TypedHandle { return object_effect_at(obj, index); })
         .function("object_find_first_effect_of", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t start_index) -> int32_t { return object_find_first_effect_of(obj, effect_type, subtype, start_index); })
@@ -657,35 +444,8 @@ void register_core_combat(Runtime& rt)
         .function("effect_best_damage_resistance", +[](nw::ObjectHandle obj, int32_t damage_type) -> nw::TypedHandle {
             auto* eff = effect_best_damage_resistance(obj, damage_type);
             return eff ? eff->handle().to_typed_handle() : nw::TypedHandle{}; })
-        .function("weapon_power_monk_applies", +[](nw::ObjectHandle obj, nw::ObjectHandle weapon) -> bool { return weapon_power_monk_applies(obj, weapon); })
         .function("weapon_power_item_property_bonus", +[](nw::ObjectHandle weapon) -> int32_t { return weapon_power_item_property_bonus(weapon); })
-        .function("weapon_base_damage_dice", +[](int32_t base_item) -> int32_t { return weapon_base_damage_dice(base_item); })
-        .function("weapon_base_damage_sides", +[](int32_t base_item) -> int32_t { return weapon_base_damage_sides(base_item); })
-        .function("weapon_base_damage_bonus", +[](int32_t base_item) -> int32_t { return weapon_base_damage_bonus(base_item); })
-        .function("weapon_damage_has_bludgeoning", +[](nw::ObjectHandle weapon) -> bool { return weapon_damage_has_bludgeoning(weapon); })
-        .function("weapon_damage_has_piercing", +[](nw::ObjectHandle weapon) -> bool { return weapon_damage_has_piercing(weapon); })
-        .function("weapon_damage_has_slashing", +[](nw::ObjectHandle weapon) -> bool { return weapon_damage_has_slashing(weapon); })
-        .function("unarmed_damage_level", +[](nw::ObjectHandle obj) -> int32_t { return unarmed_damage_level(obj); })
         .function("roll_dice", +[](int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier) -> int32_t { return roll_dice_amount(dice, sides, bonus, multiplier); })
-        .function("dual_wield_has_pair", +[](nw::ObjectHandle obj) -> bool { return dual_wield_has_pair_flag(obj); })
-        .function("dual_wield_off_is_light", +[](nw::ObjectHandle obj) -> bool { return dual_wield_off_is_light_flag(obj); })
-        .function("prepare_attack_round", +[](nw::ObjectHandle attacker) {
-            auto* cre = as_creature(attacker);
-            if (!cre) {
-                return;
-            }
-
-            auto [onhand, offhand] = nw::creature_resolve_number_of_attacks(cre);
-            cre->combat_info.attacks_onhand = onhand;
-            cre->combat_info.attacks_offhand = offhand;
-
-            int total_attacks = cre->combat_info.attacks_onhand
-                + cre->combat_info.attacks_offhand
-                + cre->combat_info.attacks_extra;
-            if (cre->combat_info.attack_current >= total_attacks) {
-                cre->combat_info.attack_current = 0;
-                cre->combat_info.epic_dodge_used = false;
-            } })
         .function("attack_current", +[](nw::ObjectHandle attacker) -> int32_t {
             auto* cre = as_creature(attacker);
             return cre ? cre->combat_info.attack_current : 0; })
@@ -703,16 +463,24 @@ void register_core_combat(Runtime& rt)
             if (cre) {
                 ++cre->combat_info.attack_current;
             } })
-        .function("object_id", +[](nw::ObjectHandle obj) -> int32_t { return object_id(obj); })
+        .function("set_attack_current", +[](nw::ObjectHandle attacker, int32_t value) {
+            auto* cre = as_creature(attacker);
+            if (cre) {
+                cre->combat_info.attack_current = value;
+            } })
+        .function("set_attacks_onhand", +[](nw::ObjectHandle attacker, int32_t value) {
+            auto* cre = as_creature(attacker);
+            if (cre) {
+                cre->combat_info.attacks_onhand = value;
+            } })
+        .function("set_attacks_offhand", +[](nw::ObjectHandle attacker, int32_t value) {
+            auto* cre = as_creature(attacker);
+            if (cre) {
+                cre->combat_info.attacks_offhand = value;
+            } })
         .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })
         .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
         .function("get_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return get_combat_mode(obj); })
-        .function("get_dex_modifier_for_ac", +[](nw::ObjectHandle obj) -> int32_t { return get_dex_modifier_for_ac(obj); })
-        .function("weapon_is_ranged", +[](nw::ObjectHandle weapon) -> bool {
-            auto* it = as_item(weapon);
-            if (!it) { return false; }
-            auto bi = nw::kernel::rules().baseitems.get(it->baseitem);
-            return bi && bi->ranged; })
         .finalize();
 }
 

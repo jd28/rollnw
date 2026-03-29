@@ -1,9 +1,12 @@
 #include "Item.hpp"
 
+#include "ObjectManager.hpp"
+
 #include "../formats/Plt.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/Strings.hpp"
 #include "../kernel/TwoDACache.hpp"
+#include "../profiles/nwn1/constants.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
@@ -14,6 +17,39 @@
 namespace fs = std::filesystem;
 
 namespace nw {
+
+namespace {
+
+constexpr uint32_t item_feature_on_hit_properties = 1u << 0;
+
+void rebuild_item_derived_flags(Item* item)
+{
+    if (!item) {
+        return;
+    }
+
+    item->derived_flags = 0;
+    item->derived_weapon_power_bonus = 0;
+    item->derived_has_keen = false;
+    for (const auto& ip : item->properties) {
+        if (ip.type == *nwn1::ip_on_hit_properties
+            || ip.type == *nwn1::ip_on_monster_hit
+            || ip.type == *nwn1::ip_onhitcastspell) {
+            item->derived_flags |= item_feature_on_hit_properties;
+        }
+
+        if (ip.type == *nwn1::ip_keen) {
+            item->derived_has_keen = true;
+        }
+
+        if ((ip.type == *nwn1::ip_attack_bonus || ip.type == *nwn1::ip_enhancement_bonus)
+            && static_cast<int32_t>(ip.cost_value) > item->derived_weapon_power_bonus) {
+            item->derived_weapon_power_bonus = static_cast<int32_t>(ip.cost_value);
+        }
+    }
+}
+
+} // namespace
 
 Item::Item()
     : Item(nw::kernel::global_allocator())
@@ -38,8 +74,12 @@ Item::Item(nw::MemoryResource* allocator)
 void Item::clear()
 {
     inventory.destroy();
+    properties.clear();
     instantiated_ = false;
     inventory.owner = nullptr;
+    derived_flags = 0;
+    derived_weapon_power_bonus = 0;
+    derived_has_keen = false;
 
     model_colors.fill(0);
     model_parts.fill(0);
@@ -67,6 +107,7 @@ bool Item::instantiate()
         }
     }
 
+    nw::kernel::objects().run_instantiate_callback(this);
     return instantiated_;
 }
 
@@ -277,6 +318,7 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
             obj->properties.push_back(ip);
         }
     }
+    rebuild_item_derived_flags(obj);
 
     archive.get_to("Cost", obj->cost);
     archive.get_to("AddCost", obj->additional_cost);
@@ -588,6 +630,7 @@ bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile 
             }
             obj->properties.push_back(ip);
         }
+        rebuild_item_derived_flags(obj);
 
         archive.at("cost").get_to(obj->cost);
         archive.at("additional_cost").get_to(obj->additional_cost);
