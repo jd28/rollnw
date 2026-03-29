@@ -1,4 +1,5 @@
 from core.types import { BaseItemType, EquipIndex, ItemPropertyType };
+import core.array as arr;
 import core.effects as effects;
 import core.map as m;
 import core.object as Obj;
@@ -15,14 +16,21 @@ type ItemProperty {
 
 var itemprop_generators_by_type: map!(int, fn(ItemProperty, EquipIndex): effects.Effect) = {};
 
+fn _noop_on_equip(_creature: Creature, _equipped: Item, _slot: EquipIndex) {}
+fn _noop_on_unequip(_creature: Creature, _removed: Item, _slot: EquipIndex) {}
+
+var on_equip_callback: fn(Creature, Item, EquipIndex) = _noop_on_equip;
+var on_unequip_callback: fn(Creature, Item, EquipIndex) = _noop_on_unequip;
+
 [[native]] fn property_count(item: Item): int;
+[[native]] fn has_on_hit_properties(item: Item): bool;
+[[native]] fn has_property(item: Item, prop_type: int): bool;
 [[native]] fn clear_properties(item: Item);
 [[native]] fn __get_property(item: Item, index: int): ItemProperty;
 [[native]] fn __apply_item_effect(creature: Creature, item: Item, effect: effects.Effect): bool;
 [[native]] fn __remove_item_effects(creature: Creature, item: Item): int;
-[[native]] fn __generate_default_effect(item: Item, prop_index: int, equip_index: int): effects.Effect;
 [[native]] fn __ip_cost_table_int(prop_type: int, cost_value: int, column: string): int;
-[[native]] fn __equip_index_to_attack_type(equip_index: int): int;
+[[native]] fn __sync_item_propset(item: Item);
 
 fn set_generator_for_type(prop_type: ItemPropertyType, generator: fn(ItemProperty, EquipIndex): effects.Effect) {
     itemprop_generators_by_type[prop_type as int] = generator;
@@ -36,18 +44,37 @@ fn clear_generators() {
     m.clear(itemprop_generators_by_type);
 }
 
+fn set_on_equip_callback(cb: fn(Creature, Item, EquipIndex)) {
+    on_equip_callback = cb;
+}
+
+fn set_on_unequip_callback(cb: fn(Creature, Item, EquipIndex)) {
+    on_unequip_callback = cb;
+}
+
+fn _dispatch_on_equip(creature: Creature, equipped: Item, slot: EquipIndex) {
+    var f = on_equip_callback;
+    f(creature, equipped, slot);
+}
+
+fn _dispatch_on_unequip(creature: Creature, removed: Item, slot: EquipIndex) {
+    var f = on_unequip_callback;
+    f(creature, removed, slot);
+}
+
 fn process_item_properties(creature: Creature, item: Item, equip_index: EquipIndex, remove: bool): int {
     if (remove) { return __remove_item_effects(creature, item); }
-    var count = property_count(item);
+    var stats = get_propset!(ItemStats)(item);
+    var count = arr.len(stats.item_properties);
     var processed = 0;
     for (var i = 0; i < count; i = i + 1) {
-        var ip = __get_property(item, i);
+        var ip = stats.item_properties[i];
         var eff: effects.Effect;
         if (m.has(itemprop_generators_by_type, ip.prop_type)) {
             var f: fn(ItemProperty, EquipIndex): effects.Effect = itemprop_generators_by_type[ip.prop_type];
             eff = f(ip, equip_index);
         } else {
-            eff = __generate_default_effect(item, i, equip_index as int);
+            continue;
         }
         if (__apply_item_effect(creature, item, eff)) { processed = processed + 1; }
     }
@@ -60,6 +87,13 @@ fn process_item_properties(creature: Creature, item: Item, equip_index: EquipInd
 [[propset(Item)]]
 type ItemStats {
     base_item: int;
+    armor_id: int;
+    armor_dex_bonus: int;
+    armor_dex_bonus_valid: int;
+    armor_ac_bonus: int;
+    armor_ac_bonus_valid: int;
+    item_properties: array!(ItemProperty);
+    has_on_hit: int;
     cost: int;
     cost_additional: int;
     stack_size: int;
@@ -68,10 +102,9 @@ type ItemStats {
     identified: int;
     plot: int;
     stolen: int;
-    // item properties: deferred — requires structured array representation
 };
 
 fn get_baseitem_type(item: Item): BaseItemType {
-    if ((item as object) == Obj.invalid) { return BaseItemType(-1); }
+    if (item == Obj.invalid) { return BaseItemType(-1); }
     return BaseItemType(get_propset!(ItemStats)(item).base_item);
 }

@@ -1,5 +1,6 @@
 #include "../stdlib.hpp"
 
+#include "../../kernel/Kernel.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../scriptapi.hpp"
 

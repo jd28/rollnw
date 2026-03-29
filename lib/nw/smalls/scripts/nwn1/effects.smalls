@@ -1,8 +1,117 @@
 import core.effects as eff;
+from core.creature import { CreatureCombat, CreatureHealth };
+from core.creature import { CreatureCombatCache };
 
 from core.math import { abs, clamp };
+from core.types import { ObjectMask };
 
 import nwn1.constants as Const;
+import nwn1.modifier as modifier;
+
+const effect_event_none = 0;
+const effect_event_apply = 1;
+const effect_event_remove = 2;
+const effect_event_apply_remove = 3;
+
+fn _register_effect_type(effect_type: Const.EffectType, object_mask: ObjectMask, event_mask: int,
+    has_versus_component: bool = false) {
+    eff.register_type_metadata(effect_type as int, object_mask as int, event_mask, 0, 0, has_versus_component);
+}
+
+fn register_effect_types() {
+    _register_effect_type(Const.effect_type_ability_increase, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_ability_decrease, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_ac_increase, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_ac_decrease, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_attack_increase, Const.object_mask_creature, effect_event_none, true);
+    _register_effect_type(Const.effect_type_attack_decrease, Const.object_mask_creature, effect_event_none, true);
+
+    _register_effect_type(Const.effect_type_bonus_spell_of_level, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_concealment, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_damage_increase, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_damage_decrease, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_damage_immunity_increase, Const.object_mask_all, effect_event_apply_remove, true);
+    _register_effect_type(Const.effect_type_damage_immunity_decrease, Const.object_mask_all, effect_event_apply_remove, true);
+    _register_effect_type(Const.effect_type_damage_reduction, Const.object_mask_all, effect_event_apply_remove, true);
+    _register_effect_type(Const.effect_type_damage_resistance, Const.object_mask_all, effect_event_apply_remove, true);
+
+    _register_effect_type(Const.effect_type_haste, Const.object_mask_creature, effect_event_apply_remove);
+    _register_effect_type(Const.effect_type_temporary_hitpoints, Const.object_mask_creature, effect_event_apply_remove);
+
+    _register_effect_type(Const.effect_type_miss_chance, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_saving_throw_increase, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_saving_throw_decrease, Const.object_mask_creature, effect_event_none);
+
+    _register_effect_type(Const.effect_type_skill_increase, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_skill_decrease, Const.object_mask_creature, effect_event_none);
+}
+
+fn _on_haste_effect(cre: Creature, is_apply: bool) {
+    var combat = get_propset!(CreatureCombat)(cre);
+    if (is_apply) {
+        if (combat.hasted == 0) {
+            combat.attacks_extra += 1;
+        }
+        combat.hasted += 1;
+        return;
+    }
+
+    if (combat.hasted > 0) {
+        combat.hasted -= 1;
+    }
+    if (combat.hasted == 0) {
+        combat.attacks_extra -= 1;
+    }
+}
+
+fn _on_temp_hitpoints_effect(cre: Creature, effect: eff.Effect, is_apply: bool) {
+    var amount = eff.get_int(effect, 0);
+    if (amount <= 0) { return; }
+
+    var health = get_propset!(CreatureHealth)(cre);
+    if (is_apply) {
+        health.hp_current += amount;
+        health.hp_temp += amount;
+        return;
+    }
+
+    health.hp_current -= amount;
+    health.hp_temp -= amount;
+}
+
+fn on_effects(obj: object, effects_batch: array!(eff.Effect), is_apply: bool) {
+    switch (obj) {
+        case Creature(cre): {
+            for (var effect in effects_batch) {
+                var effect_type = eff.get_type(effect);
+                if (effect_type == Const.effect_type_haste as int) {
+                    _on_haste_effect(cre, is_apply);
+                } elif (effect_type == Const.effect_type_temporary_hitpoints as int) {
+                    _on_temp_hitpoints_effect(cre, effect, is_apply);
+                } elif (effect_type == Const.effect_type_damage_immunity_increase as int
+                    || effect_type == Const.effect_type_damage_immunity_decrease as int) {
+                    // Immunity cache invalidated
+                    modifier.refresh_defense_cache(cre);
+                } elif (effect_type == Const.effect_type_damage_resistance as int) {
+                    // Resistance effects don't cache values - just invalidate if we were caching
+                    // Currently resistance values are queried fresh during combat
+                    modifier.refresh_defense_cache(cre);
+                } elif (effect_type == Const.effect_type_damage_reduction as int) {
+                    // DR effects don't cache values - queried fresh during combat
+                    modifier.refresh_defense_cache(cre);
+                }
+            }
+        }
+        default: {
+        }
+    }
+}
 
 fn ability_modifier(ability: Const.Ability, modifier: int): eff.Effect {
     if (modifier == 0) { return eff.invalid(); }

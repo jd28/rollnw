@@ -1,0 +1,159 @@
+import core.array as arr;
+
+type CombatModeCallbacks {
+    attack_bonus_modifier: fn(Creature): int;
+    damage_bonus_modifier: fn(Creature, int): int;
+    armor_class_modifier: fn(Creature): int;
+    can_use: fn(Creature): bool;
+    apply: fn(Creature);
+    remove: fn(Creature);
+};
+
+type CombatModeEntry {
+    mode: int;
+    callbacks: CombatModeCallbacks;
+};
+
+var registered_modes: array!(CombatModeEntry) = {};
+
+fn _attack_bonus_none(_obj: Creature): int {
+    return 0;
+}
+
+fn _damage_bonus_none(_obj: Creature, _multiplier: int): int {
+    return 0;
+}
+
+fn _armor_class_none(_obj: Creature): int {
+    return 0;
+}
+
+fn _can_use_always(_obj: Creature): bool {
+    return true;
+}
+
+fn _apply_none(_obj: Creature) {
+}
+
+fn _remove_none(_obj: Creature) {
+}
+
+fn _find_mode_entry(mode: int): int {
+    for (var i = 0; i < arr.len(registered_modes); i += 1) {
+        var entry = arr.get(registered_modes, i);
+        if (entry.mode == mode) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+fn register_combat_mode(
+    modes: array!(int),
+    attack_bonus_modifier: fn(Creature): int,
+    damage_bonus_modifier: fn(Creature, int): int,
+    armor_class_modifier: fn(Creature): int,
+    can_use: fn(Creature): bool,
+    apply: fn(Creature),
+    remove: fn(Creature),
+) {
+    for (var mode in modes) {
+        var mode_idx = mode;
+        if (mode_idx < 0) {
+            continue;
+        }
+
+        var callbacks = CombatModeCallbacks {
+            attack_bonus_modifier = attack_bonus_modifier,
+            damage_bonus_modifier = damage_bonus_modifier,
+            armor_class_modifier = armor_class_modifier,
+            can_use = can_use,
+            apply = apply,
+            remove = remove,
+        };
+
+        var idx = _find_mode_entry(mode_idx);
+        if (idx >= 0) {
+            var entry = arr.get(registered_modes, idx);
+            entry.callbacks = callbacks;
+            arr.set(registered_modes, idx, entry);
+        } else {
+            arr.push(registered_modes, CombatModeEntry {
+                mode = mode_idx,
+                callbacks = callbacks,
+            });
+        }
+    }
+}
+
+fn attack_bonus_modifier(mode: int, obj: Creature): int {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return 0;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.attack_bonus_modifier;
+    if (!f) {
+        return 0;
+    }
+    return f(obj);
+}
+
+fn damage_bonus_modifier(mode: int, obj: Creature, multiplier: int): int {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return 0;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.damage_bonus_modifier;
+    if (!f) {
+        return 0;
+    }
+    return f(obj, multiplier);
+}
+
+fn armor_class_modifier(mode: int, obj: Creature): int {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return 0;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.armor_class_modifier;
+    if (!f) {
+        return 0;
+    }
+    return f(obj);
+}
+
+fn can_use(mode: int, obj: Creature): bool {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return true;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.can_use;
+    if (!f) {
+        return true;
+    }
+    return f(obj);
+}
+
+fn apply(mode: int, obj: Creature) {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.apply;
+    if (!f) {
+        return;
+    }
+    f(obj);
+}
+
+fn remove(mode: int, obj: Creature) {
+    var idx = _find_mode_entry(mode);
+    if (idx < 0) {
+        return;
+    }
+    var f = arr.get(registered_modes, idx).callbacks.remove;
+    if (!f) {
+        return;
+    }
+    f(obj);
+}

@@ -1,0 +1,55 @@
+from nwn1.rules import { ClassEntry };
+from core.types import { Class, Ability, Save };
+
+import core.array as Array;
+
+var _loaded = false;
+var _classes: array!(ClassEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _classes = load_config!(ClassEntry)("nwn1.data.classes");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_classes);
+}
+
+fn exists(class_id: Class): bool {
+    _ensure_loaded();
+    var index = class_id as int;
+    return index >= 0 && index < Array.len(_classes);
+}
+
+// Returns the spellcasting ability for a class.
+// Returns Ability(-1) for non-caster or invalid classes.
+fn caster_ability(class_id: Class): Ability {
+    if (!exists(class_id)) {
+        return Ability(-1);
+    }
+    var entry = Array.get(_classes, class_id as int);
+    if (!entry.spellcaster) {
+        return Ability(-1);
+    }
+    return Ability(entry.caster_ability);
+}
+
+// Returns the class save progression bonus for (class_id, level, save_type).
+// save_type: Save(1)=Fort Save(2)=Reflex Save(3)=Will
+fn save_bonus(class_id: Class, level: int, save_type: Save): int {
+    if (!exists(class_id) || level < 1 || level > 40) {
+        return 0;
+    }
+    var entry = Array.get(_classes, class_id as int);
+    var idx = level - 1;
+    switch (save_type as int) {
+        case 1: { return entry.fort_saves[idx]; }
+        case 2: { return entry.reflex_saves[idx]; }
+        case 3: { return entry.will_saves[idx]; }
+        default: { return 0; }
+    }
+}

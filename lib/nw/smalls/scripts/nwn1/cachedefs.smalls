@@ -73,6 +73,9 @@ const slot_off_weapon_power_on  = 24;  // weapon power: onhand
 const slot_off_weapon_power_off = 25;  // weapon power: offhand
 const slot_off_monk_power       = 26;  // monk ki strike power level
 const slot_off_enchant_arrow    = 27;  // arcane archer enchant arrow bonus
+const slot_off_attack_type_mask = 28;  // weapon availability mask for resolve_attack_type
+const slot_off_damage_mask_on   = 29;  // physical damage type flags: onhand
+const slot_off_damage_mask_off  = 30;  // physical damage type flags: offhand
 
 // Bit flags for slot_off_feat_flags
 const feat_flag_blind_fight     = 1;   // has Blind Fight feat

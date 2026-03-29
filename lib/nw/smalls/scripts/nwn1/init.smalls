@@ -4,18 +4,27 @@ import core.combat as C;
 import core.creature as Cre;
 import core.item as Item;
 import core.object as Obj;
+import core.effects as effects;
 from core.creature import { CreatureCombat, CreatureStats };
+from core.types import { BaseItemType };
 
 import nwn1.creature as NCre;
+import nwn1.combat_modes as combat_modes;
+import nwn1.effects as nwn1effects;
 import nwn1.item as nwn1item;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
 import nwn1.on_hit as on_hit;
+import nwn1.special_attack as special_attack;
 import nwn1.constants as Const;
 
 from nwn1.cachedefs import {
     slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
     slot_off_ab_nt_unarmed, slot_off_ab_nt_any, slot_off_ab_t_any,
+    slot_def_ac_nt_base, slot_def_ac_nt_mode_size, slot_def_ac_nt_misc,
+    slot_def_ac_t_any, slot_def_ac_t_melee, slot_def_ac_t_ranged,
+    slot_def_conceal_t_melee, slot_def_conceal_t_ranged,
+    slot_def_miss_chance_t_melee, slot_def_miss_chance_t_ranged,
     dep_target, scope_subtype, scope_attack_any,
     inv_target_change, inv_self_effect_epoch,
     inv_equipment_epoch, inv_progression_epoch, inv_mode_epoch,
@@ -27,104 +36,14 @@ from nwn1.cachedefs import {
     slot_off_weapon_iter_on, slot_off_weapon_iter_off,
     slot_off_weapon_power_on, slot_off_weapon_power_off,
     slot_off_monk_power, slot_off_enchant_arrow,
+    slot_off_attack_type_mask, slot_off_damage_mask_on, slot_off_damage_mask_off,
 };
 
 var did_init = false;
 
-fn is_ranged_base_item(base_item: int): bool {
-    return base_item == Const.base_item_longbow
-        || base_item == Const.base_item_shortbow
-        || base_item == Const.base_item_lightcrossbow
-        || base_item == Const.base_item_heavycrossbow
-        || base_item == Const.base_item_sling
-        || base_item == Const.base_item_dart
-        || base_item == Const.base_item_shuriken
-        || base_item == Const.base_item_throwingaxe;
-}
-
-fn is_finessable_base_item(base_item: int): bool {
-    return base_item == Const.base_item_dagger
-        || base_item == Const.base_item_rapier
-        || base_item == Const.base_item_shortsword
-        || base_item == Const.base_item_kama
-        || base_item == Const.base_item_kukri
-        || base_item == Const.base_item_whip;
-}
-
-fn ability_attack_bonus(obj: Creature, subtype: Const.AttackType): int {
-    if (subtype == Const.attack_type_any) {
-        return 0;
-    }
-
-    var weapon = Cre.weapon_for_attack(obj, subtype);
-    var base_item = Item.get_baseitem_type(weapon) as int;
-    if (is_ranged_base_item(base_item)) {
-        var modifier = NCre.get_ability_modifier(obj, Const.ability_dexterity);
-        if (Cre.has_feat(obj, Const.feat_zen_archery)) {
-            var wisdom_mod = NCre.get_ability_modifier(obj, Const.ability_wisdom);
-            if (wisdom_mod > modifier) {
-                modifier = wisdom_mod;
-            }
-        }
-        return modifier;
-    }
-
-    var modifier = NCre.get_ability_modifier(obj, Const.ability_strength);
-    if (Cre.has_feat(obj, Const.feat_weapon_finesse) && is_finessable_base_item(base_item)) {
-        var dex_mod = NCre.get_ability_modifier(obj, Const.ability_dexterity);
-        if (dex_mod > modifier) {
-            modifier = dex_mod;
-        }
-    }
-    return modifier;
-}
-
-fn attack_bonus_enchant_arrow(obj: Creature, subtype: Const.AttackType): int {
-    if (subtype != Const.attack_type_onhand) {
-        return 0;
-    }
-
-    var weapon = Cre.weapon_for_attack(obj, subtype);
-    var base_item = Item.get_baseitem_type(weapon) as int;
-    if (base_item != Const.base_item_longbow && base_item != Const.base_item_shortbow) {
-        return 0;
-    }
-
-    var feat = Cre.highest_feat_in_range(obj, Const.feat_prestige_enchant_arrow_6, Const.feat_prestige_enchant_arrow_20);
-    if ((feat as int) >= 0) {
-        return feat as int - Const.feat_prestige_enchant_arrow_6 as int + 6;
-    }
-
-    feat = Cre.highest_feat_in_range(obj, Const.feat_prestige_enchant_arrow_1, Const.feat_prestige_enchant_arrow_5);
-    if ((feat as int) >= 0) {
-        return feat as int - Const.feat_prestige_enchant_arrow_1 as int + 1;
-    }
-
-    return 0;
-}
-
 fn attack_bonus_epic_prowess(obj: Creature, subtype: Const.AttackType): int {
     if (subtype != Const.attack_type_any) { return 0; }
     return Cre.has_feat(obj, Const.feat_epic_prowess) ? 1 : 0;
-}
-
-fn attack_bonus_good_aim(obj: Creature, subtype: Const.AttackType): int {
-    if (subtype != Const.attack_type_onhand) { return 0; }
-
-    var weapon = Cre.weapon_for_attack(obj, subtype);
-    var base_item = Item.get_baseitem_type(weapon) as int;
-    var stats = get_propset!(CreatureStats)(obj);
-    var race = Const.RacialType(stats.race);
-
-    if (race == Const.racial_type_halfling && base_item == Const.base_item_sling) {
-        return 1;
-    }
-
-    if (is_ranged_base_item(base_item) && Cre.has_feat(obj, Const.feat_good_aim)) {
-        return 1;
-    }
-
-    return 0;
 }
 
 fn attack_bonus_target_state(obj: Creature, versus: object, subtype: Const.AttackType): int {
@@ -197,104 +116,234 @@ fn attack_bonus_training_versus(obj: Creature, versus: object, subtype: Const.At
     return 0;
 }
 
-fn attack_bonus_weapon_feat(obj: Creature, subtype: Const.AttackType): int {
-    return mfeat.attack_bonus_weapon_feat(obj, subtype);
-}
-
 fn attack_bonus_favored_enemy(obj: Creature, versus: object, subtype: Const.AttackType): int {
-    if (subtype != Const.attack_type_any) {
-        return 0;
+    if (subtype != Const.attack_type_any || !(versus is Creature)) { return 0; }
+    const ranger = Cre.get_level_by_class(obj, Const.class_type_ranger);
+    if (ranger == 0) { return 0; }
+
+    const ps = get_propset!(CreatureStats)(versus as Creature);
+    const check = mfeat.resolve(obj, Const.mfeat_favored_enemy, Const.RacialType(ps.race));
+
+    var result = 0;
+    if (check > 0) {
+        result = 1 + ranger / 5;
+        if(Cre.has_feat(obj, Const.feat_epic_bane_of_enemies)) {
+            result += 2;
+        }
     }
-    return mfeat.attack_bonus_favored_enemy(obj, versus);
+    return result;
 }
 
 fn attack_bonus_combat_mode(obj: Creature, subtype: Const.AttackType): int {
     if (subtype != Const.attack_type_any) { return 0; }
     var combat = get_propset!(CreatureCombat)(obj);
-    var mode = combat.combat_mode;
-    if (mode == Const.combat_mode_power_attack
-        || mode == Const.combat_mode_expertise) { return -5; }
-    if (mode == Const.combat_mode_improved_power_attack
-        || mode == Const.combat_mode_improved_expertise) { return -10; }
-    if (mode == Const.combat_mode_flurry_of_blows
-        || mode == Const.combat_mode_rapid_shot) { return -2; }
+    return combat_modes.attack_bonus_modifier(combat.combat_mode, obj);
+}
+
+// Wrapper functions to match register_attack_bonus_modifier signature
+fn _ab_epic_prowess(obj: Creature, _vs: object, subtype: Const.AttackType): int {
+    return attack_bonus_epic_prowess(obj, subtype);
+}
+
+fn _ab_combat_mode(obj: Creature, _vs: object, subtype: Const.AttackType): int {
+    return attack_bonus_combat_mode(obj, subtype);
+}
+
+fn _mode_damage_none(_obj: Creature, _multiplier: int): int {
     return 0;
 }
 
-fn attack_bonus_weapon_master(obj: Creature, subtype: Const.AttackType): int {
-    return mfeat.attack_bonus_weapon_master(obj, subtype);
+fn _mode_ac_none(_obj: Creature): int {
+    return 0;
 }
 
-fn damage_bonus_ability(obj: Creature, _versus: object, subtype: Const.AttackType, multiplier: int): int {
-    if (multiplier <= 0 || subtype == Const.attack_type_any) {
-        return 0;
-    }
-
-    var str_mod = NCre.get_ability_modifier(obj, Const.ability_strength);
-    if (str_mod <= 0) {
-        return 0;
-    }
-
-    var weapon = Cre.weapon_for_attack(obj, subtype);
-    var base_item = Item.get_baseitem_type(weapon) as int;
-
-    if (is_ranged_base_item(base_item)) {
-        var mighty = 0;
-        var ip_count = Item.property_count(weapon);
-        for (var i = 0; i < ip_count; i += 1) {
-            var ip = Item.__get_property(weapon, i);
-            if (ip.prop_type == Const.ip_mighty as int) {
-                mighty = ip.cost_value;
-                break;
-            }
-        }
-        if (mighty > str_mod) {
-            mighty = str_mod;
-        }
-        return mighty * multiplier;
-    }
-
-    var bonus = str_mod;
-    if (subtype == Const.attack_type_offhand) {
-        bonus = bonus / 2;
-    } elif (subtype == Const.attack_type_onhand && !C.dual_wield_has_pair(obj)) {
-        bonus = bonus + bonus / 2;
-    }
-
-    return bonus * multiplier;
+fn _mode_can_use_always(_obj: Creature): bool {
+    return true;
 }
 
-fn damage_bonus_favored_enemy(obj: Creature, versus: object, subtype: Const.AttackType, multiplier: int): int {
-    if (subtype != Const.attack_type_any || multiplier <= 1 || !mfeat.has_favored_enemy(obj, versus)) {
-        return 0;
-    }
-
-    var ranger_level = Cre.get_level_by_class(obj, Const.class_type_ranger);
-    if (ranger_level > 40) {
-        ranger_level = 40;
-    }
-    var dice = 0;
-    var sides = 0;
-    if (Cre.has_feat(obj, Const.feat_epic_bane_of_enemies)) {
-        dice = 2;
-        sides = 6;
-    }
-    return C.roll_dice(dice, sides, 1 + ranger_level / 5, multiplier);
+fn _mode_apply_none(_obj: Creature) {
 }
 
-fn damage_bonus_overwhelming_critical(obj: Creature, _versus: object, subtype: Const.AttackType, multiplier: int): int {
-    if (multiplier <= 1) {
-        return 0;
-    }
-    if (!mfeat.has_overwhelming_critical(obj, subtype)) {
-        return 0;
-    }
+fn _mode_remove_none(_obj: Creature) {
+}
 
-    var dice = multiplier - 1;
-    if (dice <= 0) {
-        dice = 1;
+fn _mode_bonus_minus_2(_obj: Creature): int {
+    return -2;
+}
+
+fn _mode_bonus_minus_5(_obj: Creature): int {
+    return -5;
+}
+
+fn _mode_bonus_minus_10(_obj: Creature): int {
+    return -10;
+}
+
+fn _mode_ac_plus_5(_obj: Creature): int {
+    return 5;
+}
+
+fn _mode_ac_plus_10(_obj: Creature): int {
+    return 10;
+}
+
+fn _mode_damage_plus_5(_obj: Creature, multiplier: int): int {
+    return 5 * multiplier;
+}
+
+fn _mode_damage_plus_10(_obj: Creature, multiplier: int): int {
+    return 10 * multiplier;
+}
+
+fn _is_monk_weapon_base_item(base_item: BaseItemType): bool {
+    if (base_item == Const.base_item_invalid) {
+        return true;
     }
-    return C.roll_dice(dice, 6, 0, multiplier);
+    return base_item == Const.base_item_kama
+        || base_item == Const.base_item_quarterstaff
+        || base_item == Const.base_item_shuriken
+        || base_item == Const.base_item_gloves
+        || base_item == Const.base_item_bracer;
+}
+
+fn _is_ranged_weapon_base_item(base_item: BaseItemType): bool {
+    return base_item == Const.base_item_longbow
+        || base_item == Const.base_item_shortbow
+        || base_item == Const.base_item_lightcrossbow
+        || base_item == Const.base_item_heavycrossbow
+        || base_item == Const.base_item_sling
+        || base_item == Const.base_item_dart
+        || base_item == Const.base_item_shuriken
+        || base_item == Const.base_item_throwingaxe;
+}
+
+fn _mode_can_use_flurry(obj: Creature): bool {
+    var rh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_righthand));
+    var lh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_lefthand));
+    return _is_monk_weapon_base_item(rh) && _is_monk_weapon_base_item(lh);
+}
+
+fn _mode_can_use_rapid_shot(obj: Creature): bool {
+    var rh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_righthand));
+    return _is_ranged_weapon_base_item(rh);
+}
+
+fn _register_combat_mode(
+    mode: int,
+    attack_bonus_modifier: fn(Creature): int,
+    damage_bonus_modifier: fn(Creature, int): int,
+    armor_class_modifier: fn(Creature): int,
+    can_use: fn(Creature): bool,
+    apply: fn(Creature),
+    remove: fn(Creature),
+) {
+    var modes: array!(int) = {};
+    arr.push(modes, mode);
+    combat_modes.register_combat_mode(
+        modes,
+        attack_bonus_modifier,
+        damage_bonus_modifier,
+        armor_class_modifier,
+        can_use,
+        apply,
+        remove);
+}
+
+fn _special_attack_damage_none(_obj: Creature, _target: object, _multiplier: int): int {
+    return 0;
+}
+
+fn _special_attack_impact_none(_obj: Creature, _target: object): effects.Effect {
+    return effects.invalid();
+}
+
+fn _special_attack_can_use_good(_obj: Creature, target: object): bool {
+    if (target is Creature) {
+        var stats = get_propset!(CreatureStats)(target);
+        return stats.good_evil > 50;
+    }
+    return false;
+}
+
+fn _special_attack_can_use_evil(_obj: Creature, target: object): bool {
+    if (target is Creature) {
+        var stats = get_propset!(CreatureStats)(target);
+        return stats.good_evil < 50;
+    }
+    return false;
+}
+
+fn _special_attack_ab_smite_good(obj: Creature, _target: object): int {
+    var level = Cre.get_level_by_class(obj, Const.class_type_blackguard);
+    if (level <= 0) {
+        return 0;
+    }
+    return NCre.get_ability_score(obj, Const.ability_charisma);
+}
+
+fn _special_attack_ab_smite_evil(obj: Creature, _target: object): int {
+    var level = Cre.get_level_by_class(obj, Const.class_type_paladin)
+        + Cre.get_level_by_class(obj, Const.class_type_divinechampion);
+    if (level <= 0) {
+        return 0;
+    }
+    return NCre.get_ability_score(obj, Const.ability_charisma);
+}
+
+fn _register_special_attack(
+    attack_type_id: int,
+    attack_bonus_modifier: fn(Creature, object): int,
+    damage_bonus_modifier: fn(Creature, object, int): int,
+    usable: fn(Creature, object): bool,
+    impact: fn(Creature, object): effects.Effect,
+) {
+    var attack_types: array!(int) = {};
+    arr.push(attack_types, attack_type_id);
+    special_attack.register_special_attack(
+        attack_types,
+        attack_bonus_modifier,
+        damage_bonus_modifier,
+        usable,
+        impact);
+}
+
+fn init_special_attacks() {
+    _register_special_attack(
+        Const.special_attack_smite_good,
+        _special_attack_ab_smite_good,
+        _special_attack_damage_none,
+        _special_attack_can_use_good,
+        _special_attack_impact_none);
+
+    _register_special_attack(
+        Const.special_attack_smite_evil,
+        _special_attack_ab_smite_evil,
+        _special_attack_damage_none,
+        _special_attack_can_use_evil,
+        _special_attack_impact_none);
+}
+
+fn init_combat_modes() {
+    _register_combat_mode(Const.combat_mode_expertise,
+        _mode_bonus_minus_5, _mode_damage_none, _mode_ac_plus_5,
+        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+    _register_combat_mode(Const.combat_mode_improved_expertise,
+        _mode_bonus_minus_10, _mode_damage_none, _mode_ac_plus_10,
+        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+
+    _register_combat_mode(Const.combat_mode_power_attack,
+        _mode_bonus_minus_5, _mode_damage_plus_5, _mode_ac_none,
+        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+    _register_combat_mode(Const.combat_mode_improved_power_attack,
+        _mode_bonus_minus_10, _mode_damage_plus_10, _mode_ac_none,
+        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+
+    _register_combat_mode(Const.combat_mode_flurry_of_blows,
+        _mode_bonus_minus_2, _mode_damage_none, _mode_ac_none,
+        _mode_can_use_flurry, _mode_apply_none, _mode_remove_none);
+    _register_combat_mode(Const.combat_mode_rapid_shot,
+        _mode_bonus_minus_2, _mode_damage_none, _mode_ac_none,
+        _mode_can_use_rapid_shot, _mode_apply_none, _mode_remove_none);
 }
 
 fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {
@@ -335,207 +384,252 @@ fn epic_great_ability(obj: Creature, _vs: object, subtype: int): int {
     return 0;
 }
 
+const NUM_SLOTS = 31;
+
+type SlotPayload {
+    slot: int;
+    mask: int;
+};
+
+// Slot dependency definitions - single source of truth for slot_depends_on initialization
+// Each entry maps a slot constant to its invalidation mask
+const SLOT_DEPENDENCIES: array!(SlotPayload) = {
+    // Offense slots: non-target dependent (0-4)
+    {slot = slot_off_ab_nt_onhand,  mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch))},
+    {slot = slot_off_ab_nt_offhand, mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch))},
+    {slot = slot_off_ab_nt_cweapon, mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch))},
+    {slot = slot_off_ab_nt_unarmed, mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch))},
+    {slot = slot_off_ab_nt_any,     mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch))},
+    // Offense slots: target dependent (5)
+    {slot = slot_off_ab_t_any,      mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    // Defense slots (6-15)
+    {slot = slot_def_ac_nt_base,      mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_def_ac_nt_mode_size, mask = bit.or(key_mode_epoch, key_progression_epoch)},
+    {slot = slot_def_ac_nt_misc,      mask = bit.or(key_self_effect_epoch, key_progression_epoch)},
+    {slot = slot_def_ac_t_any,        mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_ac_t_melee,      mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_ac_t_ranged,     mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_conceal_t_melee,      mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_conceal_t_ranged,     mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_miss_chance_t_melee,  mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    {slot = slot_def_miss_chance_t_ranged, mask = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch))},
+    // Per-round stable offense caches (16-27): invalidated by equipment or progression only
+    {slot = slot_off_bab,              mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_feat_flags,       mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_dual_wield_on,    mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_dual_wield_off,   mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_crit_threat_on,   mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_crit_threat_off,  mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_weapon_iter_on,   mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_weapon_iter_off,  mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_weapon_power_on,  mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_weapon_power_off, mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_monk_power,       mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_enchant_arrow,    mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_attack_type_mask, mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_damage_mask_on,   mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+    {slot = slot_off_damage_mask_off,  mask = bit.or(key_equipment_epoch, key_progression_epoch)},
+};
+
+// == Armor Class Modifiers =================================================
+fn ac_modifier_dragon_disciple_natural(obj: Creature, _vs: object, subtype: int): int {
+    var level = Cre.get_level_by_class(obj, Const.class_type_dragon_disciple);
+    if (level >= 10) {
+        return (level / 5) + 2;
+    } elif (level >= 8) {
+        return 3;
+    } elif (level >= 5) {
+        return 2;
+    } elif (level >= 1) {
+        return 1;
+    }
+    return 0;
+}
+
+fn ac_modifier_pale_master_natural(obj: Creature, _vs: object, subtype: int): int {
+    var pm_level = Cre.get_level_by_class(obj, Const.class_type_pale_master);
+    if (pm_level > 0) {
+        return ((pm_level / 4) + 1) * 2;
+    }
+    return 0;
+}
+
+fn ac_modifier_epic_armor_skin(obj: Creature, _vs: object, subtype: int): int {
+    if (Cre.has_feat(obj, Const.feat_epic_armor_skin)) { return 2; }
+    return 0;
+}
+
+fn ac_modifier_tumble_dodge(obj: Creature, _vs: object, subtype: int): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.skills[Const.skill_tumble as int] / 5;
+}
+
+fn ac_modifier_combat_mode_dodge(obj: Creature, _vs: object, subtype: int): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    return combat_modes.armor_class_modifier(combat.combat_mode, obj);
+}
+
+fn ac_modifier_training_vs_giants(obj: Creature, vs: object, subtype: int): int {
+    if (!Cre.has_feat(obj, Const.feat_battle_training_versus_giants)) { return 0; }
+    if (vs is Creature) {
+        var vs_stats = get_propset!(CreatureStats)(vs);
+        if (vs_stats.race == Const.racial_type_giant as int) { return 4; }
+    }
+    return 0;
+}
+
+// == Concealment Modifiers =================================================
+fn concealment_modifier_epic_self(obj: Creature, _vs: object, _subtype: int): int {
+    var nth = Cre.highest_feat_in_range(obj, Const.feat_epic_self_concealment_10, Const.feat_epic_self_concealment_50);
+    if (nth as int >= 0) {
+        return ((nth as int) - (Const.feat_epic_self_concealment_10 as int) + 1) * 10;
+    }
+    return 0;
+}
+
+// == Hitpoints Modifiers ===================================================
+fn hp_modifier_toughness(obj: Creature, _vs: object, _subtype: int): int {
+    if (Cre.has_feat(obj, Const.feat_toughness)) {
+        return Cre.get_total_levels(obj);
+    }
+    return 0;
+}
+
+fn hp_modifier_epic_toughness(obj: Creature, _vs: object, _subtype: int): int {
+    return Cre.count_feats_in_range(obj, Const.feat_epic_toughness_1, Const.feat_epic_toughness_10) * 20;
+}
+
+// == Damage Reduction Modifiers =============================================
+fn dr_modifier_barbarian(obj: Creature, _vs: object, _subtype: int): int {
+    var barb = Cre.get_level_by_class(obj, Const.class_type_barbarian);
+    if (barb > 10) {
+        return 1 + (barb - 10) / 3;
+    }
+    return 0;
+}
+
+fn dr_modifier_dwarven_defender(obj: Creature, _vs: object, _subtype: int): int {
+    var dd = Cre.get_level_by_class(obj, Const.class_type_dwarven_defender);
+    if (dd > 0) {
+        return 3 + ((dd - 6) / 4 * 3);
+    }
+    return 0;
+}
+
+fn dr_modifier_epic(obj: Creature, _vs: object, _subtype: int): int {
+    if (Cre.has_feat(obj, Const.feat_epic_damage_reduction_9)) { return 9; }
+    elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_6)) { return 6; }
+    elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_3)) { return 3; }
+    return 0;
+}
+
+// == Damage Resistance Modifiers ============================================
+fn resistance_modifier_energy(obj: Creature, _vs: object, subtype: int): int {
+    var start = -1;
+    var stop = -1;
+    var base_feat = -1;
+    if (subtype == Const.damage_type_acid as int) {
+        start = Const.feat_epic_energy_resistance_acid_1 as int;
+        stop = Const.feat_epic_energy_resistance_acid_10 as int;
+        base_feat = Const.feat_resist_energy_acid as int;
+    } elif (subtype == Const.damage_type_cold as int) {
+        start = Const.feat_epic_energy_resistance_cold_1 as int;
+        stop = Const.feat_epic_energy_resistance_cold_10 as int;
+        base_feat = Const.feat_resist_energy_cold as int;
+    } elif (subtype == Const.damage_type_electrical as int) {
+        start = Const.feat_epic_energy_resistance_electrical_1 as int;
+        stop = Const.feat_epic_energy_resistance_electrical_10 as int;
+        base_feat = Const.feat_resist_energy_electrical as int;
+    } elif (subtype == Const.damage_type_fire as int) {
+        start = Const.feat_epic_energy_resistance_fire_1 as int;
+        stop = Const.feat_epic_energy_resistance_fire_10 as int;
+        base_feat = Const.feat_resist_energy_fire as int;
+    } elif (subtype == Const.damage_type_sonic as int) {
+        start = Const.feat_epic_energy_resistance_sonic_1 as int;
+        stop = Const.feat_epic_energy_resistance_sonic_10 as int;
+        base_feat = Const.feat_resist_energy_sonic as int;
+    } else {
+        return 0;
+    }
+    var nth = Cre.highest_feat_in_range(obj, Const.Feat(start), Const.Feat(stop));
+    if (nth as int >= 0) {
+        return ((nth as int) - start + 1) * 10;
+    } elif (Cre.has_feat(obj, Const.Feat(base_feat))) {
+        return 5;
+    }
+    return 0;
+}
+
+// == Ability Modifiers =====================================================
+fn ability_modifier_epic_great(obj: Creature, _vs: object, subtype: int): int {
+    return epic_great_ability(obj, _vs, subtype);
+}
+
+fn ability_modifier_dragon_disciple(obj: Creature, _vs: object, subtype: int): int {
+    return dragon_disciple_ability(obj, _vs, subtype);
+}
+
+// == Skill Modifiers =======================================================
+fn skill_modifier_stonecunning_search(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_search as int) { return 0; }
+    if (Cre.has_feat(obj, Const.feat_stonecunning)) { return 2; }
+    return 0;
+}
+
 fn init_modifiers() {
-    // Pre-fill with empty inner arrays, one slot per mod_type
-    var i = 0;
-    for (i < modifier.NUM_MOD_TYPES) {
-        var empty: array!(fn(Creature, object, int): int);
-        arr.push(modifier.modifiers, empty);
-        i += 1;
+    // == Slot system: slot_depends_on ========================================
+    // Initialize from SLOT_DEPENDENCIES table (single source of truth)
+    for (var def in SLOT_DEPENDENCIES) {
+        arr.push(modifier.slot_depends_on, def.mask);
     }
 
-    // == Slot system: slot_depends_on ========================================
-    var off_nt_mask = bit.or(key_equipment_epoch, bit.or(key_progression_epoch, key_mode_epoch));
-    var off_t_mask  = bit.or(key_target_id, bit.or(key_self_effect_epoch, key_target_effect_epoch));
-    var perm_mask   = bit.or(key_equipment_epoch, key_progression_epoch);
-    // slot_depends_on: push 28 values in slot order (0-27)
-    arr.push(modifier.slot_depends_on, off_nt_mask);  // 0: slot_off_ab_nt_onhand
-    arr.push(modifier.slot_depends_on, off_nt_mask);  // 1: slot_off_ab_nt_offhand
-    arr.push(modifier.slot_depends_on, off_nt_mask);  // 2: slot_off_ab_nt_cweapon
-    arr.push(modifier.slot_depends_on, off_nt_mask);  // 3: slot_off_ab_nt_unarmed
-    arr.push(modifier.slot_depends_on, off_nt_mask);  // 4: slot_off_ab_nt_any
-    arr.push(modifier.slot_depends_on, off_t_mask);   // 5: slot_off_ab_t_any
-    arr.push(modifier.slot_depends_on, bit.or(key_equipment_epoch, key_progression_epoch));   // 6: slot_def_ac_nt_base
-    arr.push(modifier.slot_depends_on, bit.or(key_mode_epoch, key_progression_epoch));         // 7: slot_def_ac_nt_mode_size
-    arr.push(modifier.slot_depends_on, bit.or(key_self_effect_epoch, key_progression_epoch));  // 8: slot_def_ac_nt_misc
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 9:  slot_def_ac_t_any
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 10: slot_def_ac_t_melee
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 11: slot_def_ac_t_ranged
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 12: slot_def_conceal_t_melee
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 13: slot_def_conceal_t_ranged
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 14: slot_def_miss_chance_t_melee
-    arr.push(modifier.slot_depends_on, off_t_mask);  // 15: slot_def_miss_chance_t_ranged
-    // Per-round stable offense caches (16-27): invalidated by equipment or progression.
-    // Since neither changes mid-combat in NWN1, these are effectively permanent once built.
-    arr.push(modifier.slot_depends_on, perm_mask);   // 16: slot_off_bab
-    arr.push(modifier.slot_depends_on, perm_mask);   // 17: slot_off_feat_flags
-    arr.push(modifier.slot_depends_on, perm_mask);   // 18: slot_off_dual_wield_on
-    arr.push(modifier.slot_depends_on, perm_mask);   // 19: slot_off_dual_wield_off
-    arr.push(modifier.slot_depends_on, perm_mask);   // 20: slot_off_crit_threat_on
-    arr.push(modifier.slot_depends_on, perm_mask);   // 21: slot_off_crit_threat_off
-    arr.push(modifier.slot_depends_on, perm_mask);   // 22: slot_off_weapon_iter_on
-    arr.push(modifier.slot_depends_on, perm_mask);   // 23: slot_off_weapon_iter_off
-    arr.push(modifier.slot_depends_on, perm_mask);   // 24: slot_off_weapon_power_on
-    arr.push(modifier.slot_depends_on, perm_mask);   // 25: slot_off_weapon_power_off
-    arr.push(modifier.slot_depends_on, perm_mask);   // 26: slot_off_monk_power
-    arr.push(modifier.slot_depends_on, perm_mask);   // 27: slot_off_enchant_arrow
+    // Runtime assertion: ensure SLOT_DEPENDENCIES count matches expected slots
+    if (arr.len(modifier.slot_depends_on) != NUM_SLOTS) {
+        panic(f"Slot dependency count mismatch: expected {NUM_SLOTS} but got {arr.len(modifier.slot_depends_on)}");
+    }
 
     // == Ability =============================================================
-    arr.push(modifier.modifiers[Const.mod_type_ability as int],
-        fn(obj: Creature, vs: object, subtype: int): int {
-            return epic_great_ability(obj, vs, subtype);
-        });
-    arr.push(modifier.modifiers[Const.mod_type_ability as int],
-        fn(obj: Creature, vs: object, subtype: int): int {
-            return dragon_disciple_ability(obj, vs, subtype);
-        });
+    modifier.register_modifier(Const.mod_type_ability, "epic_great_ability", ability_modifier_epic_great, -1);
+    modifier.register_modifier(Const.mod_type_ability, "dragon_disciple_ability", ability_modifier_dragon_disciple, -1);
 
     // == Armor Class =========================================================
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.ac_natural as int) { return 0; }
-            var level = Cre.get_level_by_class(obj, Const.class_type_dragon_disciple);
-            if (level >= 10) {
-                return (level / 5) + 2;
-            } elif (level >= 8) {
-                return 3;
-            } elif (level >= 5) {
-                return 2;
-            } elif (level >= 1) {
-                return 1;
-            }
-            return 0;
-        });
+    modifier.register_modifier(Const.mod_type_armor_class, "dragon_disciple_natural", ac_modifier_dragon_disciple_natural, Const.ac_natural as int);
+    modifier.register_modifier(Const.mod_type_armor_class, "pale_master_natural", ac_modifier_pale_master_natural, Const.ac_natural as int);
+    modifier.register_modifier(Const.mod_type_armor_class, "epic_armor_skin", ac_modifier_epic_armor_skin, Const.ac_natural as int);
+    modifier.register_modifier(Const.mod_type_armor_class, "tumble_dodge", ac_modifier_tumble_dodge, Const.ac_dodge as int);
+    modifier.register_modifier(Const.mod_type_armor_class, "combat_mode_dodge", ac_modifier_combat_mode_dodge, Const.ac_dodge as int);
+    modifier.register_modifier(Const.mod_type_armor_class, "training_vs_giants", ac_modifier_training_vs_giants, Const.ac_natural as int);
 
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.ac_natural as int) { return 0; }
-            var pm_level = Cre.get_level_by_class(obj, Const.class_type_pale_master);
-            if (pm_level > 0) {
-                return ((pm_level / 4) + 1) * 2;
-            }
-            return 0;
-        });
-
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.ac_natural as int) { return 0; }
-            if (Cre.has_feat(obj, Const.feat_epic_armor_skin)) { return 2; }
-            return 0;
-        });
-
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.ac_dodge as int) { return 0; }
-            var stats = get_propset!(CreatureStats)(obj);
-            return stats.skills[Const.skill_tumble as int] / 5;
-        });
-
-    // Expertise/Improved Expertise: +5/+10 dodge AC when mode is active.
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.ac_dodge as int) { return 0; }
-            var combat = get_propset!(CreatureCombat)(obj);
-            if (combat.combat_mode == Const.combat_mode_expertise) { return 5; }
-            if (combat.combat_mode == Const.combat_mode_improved_expertise) { return 10; }
-            return 0;
-        });
-
-    // Battle Training vs Giants: +4 natural AC when target is giant race.
-    arr.push(modifier.modifiers[Const.mod_type_armor_class as int],
-        fn(obj: Creature, vs: object, subtype: int): int {
-            if (subtype != Const.ac_natural as int) { return 0; }
-            if (!Cre.has_feat(obj, Const.feat_battle_training_versus_giants)) { return 0; }
-            if (vs is Creature) {
-                var vs_stats = get_propset!(CreatureStats)(vs);
-                if (vs_stats.race == Const.racial_type_giant as int) { return 4; }
-            }
-            return 0;
-        });
+    // == Concealment =========================================================
+    modifier.register_modifier(Const.mod_type_concealment, "epic_self_concealment", concealment_modifier_epic_self, -1);
 
     // == Attack Bonus ========================================================
-    modifier.register_attack_bonus_modifier("ability_attack_bonus",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return ability_attack_bonus(obj, subtype);
-        },
-        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
-
-    modifier.register_attack_bonus_modifier("attack_bonus_enchant_arrow",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_enchant_arrow(obj, subtype);
-        },
-        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
-
     modifier.register_attack_bonus_modifier("attack_bonus_epic_prowess",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_epic_prowess(obj, subtype);
-        },
-        -1, bit.or(scope_attack_any, inv_progression_epoch));
+        _ab_epic_prowess, -1,
+        bit.or(scope_attack_any, inv_progression_epoch));
 
-    modifier.register_attack_bonus_modifier("attack_bonus_good_aim",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_good_aim(obj, subtype);
-        },
-        -1, bit.or(scope_subtype, inv_equipment_epoch));
-
+    // Target-sensitive AB modifiers already have correct signature
     modifier.register_attack_bonus_modifier("attack_bonus_target_state",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_target_state(obj, vs, subtype);
-        },
-        -1, bit.or(dep_target, bit.or(scope_attack_any,
+        attack_bonus_target_state, -1,
+        bit.or(dep_target, bit.or(scope_attack_any,
                    bit.or(inv_target_change, inv_self_effect_epoch))));
 
     modifier.register_attack_bonus_modifier("attack_bonus_training_versus",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_training_versus(obj, vs, subtype);
-        },
-        -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
-
-    modifier.register_attack_bonus_modifier("attack_bonus_weapon_feat",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_weapon_feat(obj, subtype);
-        },
-        -1, bit.or(scope_subtype, bit.or(inv_progression_epoch, inv_equipment_epoch)));
+        attack_bonus_training_versus, -1,
+        bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_favored_enemy",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_favored_enemy(obj, vs, subtype);
-        },
-        -1, bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
+        attack_bonus_favored_enemy, -1,
+        bit.or(dep_target, bit.or(scope_attack_any, inv_target_change)));
 
     modifier.register_attack_bonus_modifier("attack_bonus_combat_mode",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_combat_mode(obj, subtype);
-        },
-        -1, bit.or(scope_attack_any, inv_mode_epoch));
+        _ab_combat_mode, -1,
+        bit.or(scope_attack_any, inv_mode_epoch));
 
-    modifier.register_attack_bonus_modifier("attack_bonus_weapon_master",
-        fn(obj: Creature, _vs: object, subtype: Const.AttackType): int {
-            return attack_bonus_weapon_master(obj, subtype);
-        },
-        -1, bit.or(scope_subtype, inv_progression_epoch));
-
-    modifier.register_damage_modifier("damage_bonus_ability",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
-            return damage_bonus_ability(obj, vs, subtype, multiplier);
-        },
-        -1);
-
-    modifier.register_damage_modifier("damage_bonus_favored_enemy",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
-            return damage_bonus_favored_enemy(obj, vs, subtype, multiplier);
-        },
-        Const.attack_type_any as int);
-
-    modifier.register_damage_modifier("damage_bonus_overwhelming_critical",
-        fn(obj: Creature, vs: object, subtype: Const.AttackType, multiplier: int): int {
-            return damage_bonus_overwhelming_critical(obj, vs, subtype, multiplier);
-        },
-        -1);
-
-    // == Build slot_buckets ==================================================
-    i = 0;
-    for (i < 28) {
+    // == Build slot_buckets (only for AB slots 0-5) ==========================
+    const NUM_AB_SLOTS = 6;
+    var i = 0;
+    for (i < NUM_AB_SLOTS) {
         var empty_bucket: array!(fn(Creature, object, Const.AttackType): int);
         arr.push(modifier.slot_buckets, empty_bucket);
         i += 1;
@@ -555,13 +649,13 @@ fn init_modifiers() {
     }
 
     // == Build slot invalidation LUTs =========================================
-    // off_clear_lut[key_bits] = bitmask of offense slots (0-27) to clear when
+    // off_clear_lut[key_bits] = bitmask of offense slots (0-5) to clear when
     // changed_key_mask has those bits set (key_bits = changed_key_mask >> 8).
     // def_clear_lut[key_bits] = bitmask of defense slots (6-15) to clear.
     for (var key_bits = 0; key_bits < 128; key_bits += 1) {
         var changed = bit.shl(key_bits, 8);
         var off_bits = 0;
-        for (var si = 0; si < 28; si += 1) {
+        for (var si = 0; si < NUM_AB_SLOTS; si += 1) {
             if (bit.and(modifier.slot_depends_on[si], changed) != 0) {
                 off_bits = bit.or(off_bits, bit.shl(1, si));
             }
@@ -577,101 +671,169 @@ fn init_modifiers() {
     }
 
     // == Hitpoints ===========================================================
-    arr.push(modifier.modifiers[Const.mod_type_hitpoints as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            if (Cre.has_feat(obj, Const.feat_toughness)) {
-                return Cre.get_total_levels(obj);
-            }
-            return 0;
-        });
-
-    arr.push(modifier.modifiers[Const.mod_type_hitpoints as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            return Cre.count_feats_in_range(obj, Const.feat_epic_toughness_1, Const.feat_epic_toughness_10) * 20;
-        });
+    modifier.register_modifier(Const.mod_type_hitpoints, "toughness", hp_modifier_toughness, -1);
+    modifier.register_modifier(Const.mod_type_hitpoints, "epic_toughness", hp_modifier_epic_toughness, -1);
 
     // == Damage Reduction ====================================================
-    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            var barb = Cre.get_level_by_class(obj, Const.class_type_barbarian);
-            if (barb > 10) {
-                return 1 + (barb - 10) / 3;
-            }
-            return 0;
-        });
-
-    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            var dd = Cre.get_level_by_class(obj, Const.class_type_dwarven_defender);
-            if (dd > 0) {
-                return 3 + ((dd - 6) / 4 * 3);
-            }
-            return 0;
-        });
-
-    arr.push(modifier.modifiers[Const.mod_type_dmg_reduction as int],
-        fn(obj: Creature, _vs: object, _subtype: int): int {
-            if (Cre.has_feat(obj, Const.feat_epic_damage_reduction_9)) { return 9; }
-            elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_6)) { return 6; }
-            elif (Cre.has_feat(obj, Const.feat_epic_damage_reduction_3)) { return 3; }
-            return 0;
-        });
+    modifier.register_modifier(Const.mod_type_dmg_reduction, "barbarian", dr_modifier_barbarian, -1);
+    modifier.register_modifier(Const.mod_type_dmg_reduction, "dwarven_defender", dr_modifier_dwarven_defender, -1);
+    modifier.register_modifier(Const.mod_type_dmg_reduction, "epic", dr_modifier_epic, -1);
 
     // == Damage Resistance ===================================================
-    arr.push(modifier.modifiers[Const.mod_type_dmg_resistance as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            var start = -1;
-            var stop = -1;
-            var base_feat = -1;
-            if (subtype == Const.damage_type_acid as int) {
-                start = Const.feat_epic_energy_resistance_acid_1 as int;
-                stop = Const.feat_epic_energy_resistance_acid_10 as int;
-                base_feat = Const.feat_resist_energy_acid as int;
-            } elif (subtype == Const.damage_type_cold as int) {
-                start = Const.feat_epic_energy_resistance_cold_1 as int;
-                stop = Const.feat_epic_energy_resistance_cold_10 as int;
-                base_feat = Const.feat_resist_energy_cold as int;
-            } elif (subtype == Const.damage_type_electrical as int) {
-                start = Const.feat_epic_energy_resistance_electrical_1 as int;
-                stop = Const.feat_epic_energy_resistance_electrical_10 as int;
-                base_feat = Const.feat_resist_energy_electrical as int;
-            } elif (subtype == Const.damage_type_fire as int) {
-                start = Const.feat_epic_energy_resistance_fire_1 as int;
-                stop = Const.feat_epic_energy_resistance_fire_10 as int;
-                base_feat = Const.feat_resist_energy_fire as int;
-            } elif (subtype == Const.damage_type_sonic as int) {
-                start = Const.feat_epic_energy_resistance_sonic_1 as int;
-                stop = Const.feat_epic_energy_resistance_sonic_10 as int;
-                base_feat = Const.feat_resist_energy_sonic as int;
-            } else {
-                return 0;
-            }
-            var nth = Cre.highest_feat_in_range(obj, Const.Feat(start), Const.Feat(stop));
-            if (nth as int >= 0) {
-                return ((nth as int) - start + 1) * 10;
-            } elif (Cre.has_feat(obj, Const.Feat(base_feat))) {
-                return 5;
-            }
-            return 0;
-        });
+    modifier.register_modifier(Const.mod_type_dmg_resistance, "energy", resistance_modifier_energy, -1);
 
     // == Skills ==============================================================
-    arr.push(modifier.modifiers[Const.mod_type_skill as int],
-        fn(obj: Creature, _vs: object, subtype: int): int {
-            if (subtype != Const.skill_search as int) { return 0; }
-            if (Cre.has_feat(obj, Const.feat_stonecunning)) { return 2; }
-            return 0;
-        });
+    modifier.register_modifier(Const.mod_type_skill, "stonecunning_search", skill_modifier_stonecunning_search, Const.skill_search as int);
+
+}
+
+fn init_master_feats() {
+    // Favored enemy by target race
+    mfeat.set_bonus(Const.mfeat_favored_enemy, 1);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_dwarf, Const.feat_favored_enemy_dwarf);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_elf, Const.feat_favored_enemy_elf);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_gnome, Const.feat_favored_enemy_gnome);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_halfling, Const.feat_favored_enemy_halfling);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_halfelf, Const.feat_favored_enemy_halfelf);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_halforc, Const.feat_favored_enemy_halforc);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_human, Const.feat_favored_enemy_human);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_aberration, Const.feat_favored_enemy_aberration);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_animal, Const.feat_favored_enemy_animal);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_beast, Const.feat_favored_enemy_beast);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_construct, Const.feat_favored_enemy_construct);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_dragon, Const.feat_favored_enemy_dragon);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_humanoid_goblinoid, Const.feat_favored_enemy_goblinoid);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_humanoid_monstrous, Const.feat_favored_enemy_monstrous);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_humanoid_orc, Const.feat_favored_enemy_orc);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_humanoid_reptilian, Const.feat_favored_enemy_reptilian);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_elemental, Const.feat_favored_enemy_elemental);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_fey, Const.feat_favored_enemy_fey);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_giant, Const.feat_favored_enemy_giant);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_magical_beast, Const.feat_favored_enemy_magical_beast);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_outsider, Const.feat_favored_enemy_outsider);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_shapechanger, Const.feat_favored_enemy_shapechanger);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_undead, Const.feat_favored_enemy_undead);
+    mfeat.add(Const.mfeat_favored_enemy, Const.racial_type_vermin, Const.feat_favored_enemy_vermin);
+
+    // Skill focus and epic skill focus by skill
+    mfeat.set_bonus(Const.mfeat_skill_focus, 3);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_animal_empathy, Const.feat_skill_focus_animal_empathy);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_concentration, Const.feat_skill_focus_concentration);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_disable_trap, Const.feat_skill_focus_disable_trap);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_discipline, Const.feat_skill_focus_discipline);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_heal, Const.feat_skill_focus_heal);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_hide, Const.feat_skill_focus_hide);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_listen, Const.feat_skill_focus_listen);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_lore, Const.feat_skill_focus_lore);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_move_silently, Const.feat_skill_focus_move_silently);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_open_lock, Const.feat_skill_focus_open_lock);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_parry, Const.feat_skill_focus_parry);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_perform, Const.feat_skill_focus_perform);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_persuade, Const.feat_skill_focus_persuade);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_pick_pocket, Const.feat_skill_focus_pick_pocket);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_search, Const.feat_skill_focus_search);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_set_trap, Const.feat_skill_focus_set_trap);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_spellcraft, Const.feat_skill_focus_spellcraft);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_spot, Const.feat_skill_focus_spot);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_taunt, Const.feat_skill_focus_taunt);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_use_magic_device, Const.feat_skill_focus_use_magic_device);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_appraise, Const.feat_skill_focus_appraise);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_tumble, Const.feat_skill_focus_tumble);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_craft_trap, Const.feat_skill_focus_craft_trap);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_bluff, Const.feat_skill_focus_bluff);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_intimidate, Const.feat_skill_focus_intimidate);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_craft_armor, Const.feat_skill_focus_craft_armor);
+    mfeat.add(Const.mfeat_skill_focus, Const.skill_craft_weapon, Const.feat_skill_focus_craft_weapon);
+
+    mfeat.set_bonus(Const.mfeat_skill_focus_epic, 10);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_animal_empathy, Const.feat_epic_skill_focus_animal_empathy);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_concentration, Const.feat_epic_skill_focus_concentration);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_disable_trap, Const.feat_epic_skill_focus_disable_trap);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_discipline, Const.feat_epic_skill_focus_discipline);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_heal, Const.feat_epic_skill_focus_heal);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_hide, Const.feat_epic_skill_focus_hide);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_listen, Const.feat_epic_skill_focus_listen);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_lore, Const.feat_epic_skill_focus_lore);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_move_silently, Const.feat_epic_skill_focus_move_silently);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_open_lock, Const.feat_epic_skill_focus_open_lock);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_parry, Const.feat_epic_skill_focus_parry);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_perform, Const.feat_epic_skill_focus_perform);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_persuade, Const.feat_epic_skill_focus_persuade);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_pick_pocket, Const.feat_epic_skill_focus_pick_pocket);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_search, Const.feat_epic_skill_focus_search);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_set_trap, Const.feat_epic_skill_focus_set_trap);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_spellcraft, Const.feat_epic_skill_focus_spellcraft);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_spot, Const.feat_epic_skill_focus_spot);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_taunt, Const.feat_epic_skill_focus_taunt);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_use_magic_device, Const.feat_epic_skill_focus_use_magic_device);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_appraise, Const.feat_epic_skill_focus_appraise);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_tumble, Const.feat_epic_skill_focus_tumble);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_craft_trap, Const.feat_epic_skill_focus_craft_trap);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_bluff, Const.feat_epic_skill_focus_bluff);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_intimidate, Const.feat_epic_skill_focus_intimidate);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_craft_armor, Const.feat_epic_skill_focus_craft_armor);
+    mfeat.add(Const.mfeat_skill_focus_epic, Const.skill_craft_weapon, Const.feat_epic_skill_focus_craft_weapon);
+
+    // Spell focus tiers by school
+    mfeat.set_bonus(Const.mfeat_spell_focus, 2);
+    mfeat.set_bonus(Const.mfeat_spell_focus_greater, 2);
+    mfeat.set_bonus(Const.mfeat_spell_focus_epic, 2);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_abjuration, Const.feat_spell_focus_abjuration);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_conjuration, Const.feat_spell_focus_conjuration);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_divination, Const.feat_spell_focus_divination);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_enchantment, Const.feat_spell_focus_enchantment);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_evocation, Const.feat_spell_focus_evocation);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_illusion, Const.feat_spell_focus_illusion);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_necromancy, Const.feat_spell_focus_necromancy);
+    mfeat.add(Const.mfeat_spell_focus, Const.spell_school_transmutation, Const.feat_spell_focus_transmutation);
+
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_abjuration, Const.feat_greater_spell_focus_abjuration);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_conjuration, Const.feat_greater_spell_focus_conjuration);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_divination, Const.feat_greater_spell_focus_divination);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_enchantment, Const.feat_greater_spell_focus_enchantment);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_evocation, Const.feat_greater_spell_focus_evocation);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_illusion, Const.feat_greater_spell_focus_illusion);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_necromancy, Const.feat_greater_spell_focus_necromancy);
+    mfeat.add(Const.mfeat_spell_focus_greater, Const.spell_school_transmutation, Const.feat_greater_spell_focus_transmutation);
+
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_abjuration, Const.feat_epic_spell_focus_abjuration);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_conjuration, Const.feat_epic_spell_focus_conjuration);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_divination, Const.feat_epic_spell_focus_divination);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_enchantment, Const.feat_epic_spell_focus_enchantment);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_evocation, Const.feat_epic_spell_focus_evocation);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_illusion, Const.feat_epic_spell_focus_illusion);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_necromancy, Const.feat_epic_spell_focus_necromancy);
+    mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_transmutation, Const.feat_epic_spell_focus_transmutation);
+
+    mfeat.set_bonus(Const.mfeat_weapon_focus, 1);
+    mfeat.set_bonus(Const.mfeat_weapon_focus_epic, 2);
+    mfeat.set_bonus(Const.mfeat_weapon_spec, 2);
+    mfeat.set_bonus(Const.mfeat_weapon_spec_epic, 4);
+    // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
+    // and damage rolls will need to be included in ModifierResult
+    mfeat.set_bonus(Const.mfeat_devastating_crit, 1);
+    mfeat.set_bonus(Const.mfeat_improved_crit, 1);
+    mfeat.set_bonus(Const.mfeat_overwhelming_crit, 1);
+    mfeat.set_bonus(Const.mfeat_weapon_of_choice, 1);
+
+    mfeat.add(Const.mfeat_weapon_focus, BaseItemType(-1), Const.feat_weapon_focus_unarmed);
+    mfeat.add(Const.mfeat_weapon_focus_epic, BaseItemType(-1), Const.feat_epic_weapon_focus_unarmed);
+    mfeat.add(Const.mfeat_weapon_spec, BaseItemType(-1), Const.feat_weapon_specialization_unarmed);
+    mfeat.add(Const.mfeat_weapon_spec_epic, BaseItemType(-1), Const.feat_epic_devastating_critical_unarmed);
+    mfeat.add(Const.mfeat_devastating_crit, BaseItemType(-1), Const.feat_epic_devastating_critical_unarmed);
+    mfeat.add(Const.mfeat_improved_crit, BaseItemType(-1), Const.feat_improved_critical_unarmed);
+    mfeat.add(Const.mfeat_overwhelming_crit, BaseItemType(-1), Const.feat_epic_overwhelming_critical_unarmed);
 
 }
 
 fn init() {
-    if (did_init) {
-        return;
-    }
+    if (did_init) { return; }
     did_init = true;
 
+    nwn1effects.register_effect_types();
     nwn1item.register_default_generators();
+    init_combat_modes();
+    init_special_attacks();
     init_modifiers();
-    on_hit.register_default_handlers();
+    init_master_feats();
 }

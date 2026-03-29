@@ -6,10 +6,12 @@ from core.types import {
     Class,
     Damage,
     DamageCategory,
+    ObjectMask,
     EffectType,
     Feat,
     MissChanceType,
     ModifierType,
+    ObjectType,
     RacialType,
     Save,
     SaveVersus,
@@ -43,6 +45,7 @@ const attack_type_invalid = AttackType(-1);
 
 const creature_size_medium = 3;
 
+const base_item_invalid = BaseItemType(-1);
 const base_item_shortsword = BaseItemType(0);
 const base_item_longsword = BaseItemType(1);
 const base_item_battleaxe = BaseItemType(2);
@@ -303,6 +306,8 @@ const feat_epic_energy_resistance_electrical_1 = Feat(563);
 const feat_epic_energy_resistance_electrical_10 = Feat(572);
 const feat_epic_energy_resistance_sonic_1 = Feat(573);
 const feat_epic_energy_resistance_sonic_10 = Feat(582);
+const feat_epic_self_concealment_10 = Feat(748);
+const feat_epic_self_concealment_50 = Feat(752);
 const feat_epic_skill_focus_animal_empathy = Feat(587);
 const feat_epic_skill_focus_appraise = Feat(588);
 const feat_epic_skill_focus_concentration = Feat(589);
@@ -529,6 +534,8 @@ const effect_agg_sum = 0;
 const effect_agg_max = 1;
 const effect_agg_min = 2;
 
+const ip_attack_bonus = ItemPropertyType(56);
+const ip_enhancement_bonus = ItemPropertyType(6);
 const ip_mighty = ItemPropertyType(45);
 const ip_on_hit_properties = ItemPropertyType(48);
 const ip_on_monster_hit = ItemPropertyType(72);
@@ -561,5 +568,56 @@ const mod_type_damage_special_attack = ModifierType(19);
 const feat_epic_dodge = Feat(856);
 
 // Special attack subtypes (used with sum_damage_special_attack_modifiers)
+const special_attack_smite_evil = 301;
+const special_attack_smite_good = 472;
 const special_attack_type_sneak = 1000;
 const special_attack_type_death_attack = 1001;
+
+// Master Feat types
+type MasterFeat(int);
+
+const mfeat_improved_crit = MasterFeat(0);
+const mfeat_weapon_focus = MasterFeat(1);
+const mfeat_weapon_spec = MasterFeat(2);
+const mfeat_spell_focus = MasterFeat(3);
+const mfeat_skill_focus = MasterFeat(4);
+const mfeat_favored_enemy = MasterFeat(5);
+const mfeat_spell_focus_greater = MasterFeat(6);
+const mfeat_arcane_defense = MasterFeat(7);
+const mfeat_resist_energy = MasterFeat(8);
+const mfeat_weapon_of_choice = MasterFeat(9);
+const mfeat_weapon_focus_epic = MasterFeat(10);
+const mfeat_weapon_spec_epic = MasterFeat(11);
+const mfeat_overwhelming_crit = MasterFeat(12);
+const mfeat_devastating_crit = MasterFeat(13);
+const mfeat_epic_spell = MasterFeat(14);
+const mfeat_skill_focus_epic = MasterFeat(15);
+const mfeat_spell_focus_epic = MasterFeat(16);
+const mfeat_resist_energy_epic = MasterFeat(17);
+
+// == ObjectType ==============================================================
+
+const object_type_invalid = ObjectType(0);
+const object_type_gui = ObjectType(1);
+const object_type_tile = ObjectType(2);
+const object_type_module = ObjectType(3);
+const object_type_area = ObjectType(4);
+const object_type_creature = ObjectType(5);
+const object_type_item = ObjectType(6);
+const object_type_trigger = ObjectType(7);
+const object_type_projectile = ObjectType(8);
+const object_type_placeable = ObjectType(9);
+const object_type_door = ObjectType(10);
+const object_type_areaofeffect = ObjectType(11);
+const object_type_waypoint = ObjectType(12);
+const object_type_encounter = ObjectType(13);
+const object_type_store = ObjectType(14);
+const object_type_portal = ObjectType(15);
+const object_type_sound = ObjectType(16);
+const object_type_player = ObjectType(17);
+
+// == ObjectMask ========================================================
+
+const object_mask_none = ObjectMask(0);
+const object_mask_all = ObjectMask(-1);
+const object_mask_creature = ObjectMask(32); // 1 << object_type_creature(5)

@@ -1,4 +1,6 @@
 [[native]] fn get_hp(obj: Placeable): int;
+
+// Test
 [[native]] fn get_hp_current(obj: Placeable): int;
 [[native]] fn has_inventory(obj: Placeable): bool;
 
@@ -9,6 +11,9 @@
 type PlaceableState {
     hp: int;
     hp_current: int;
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
     hardness: int;
     locked: int;
     plot: int;

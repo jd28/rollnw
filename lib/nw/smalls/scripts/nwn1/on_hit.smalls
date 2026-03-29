@@ -64,10 +64,9 @@ fn resolve_weapon_on_hit(
     is_ranged: bool,
 ): OnHitResult {
     var result = _result(false, 0);
+    var stats = get_propset!(item.ItemStats)(weapon);
 
-    var count = item.property_count(weapon);
-    for (var i = 0; i < count; i += 1) {
-        var ip = item.__get_property(weapon, i);
+    for (var ip in stats.item_properties) {
         for (var h in handlers) {
             if (h.property_type != ip.prop_type) {
                 continue;
@@ -90,6 +89,48 @@ fn resolve_weapon_on_hit(
     return result;
 }
 
+fn _stub_on_hit_properties(
+    _attacker: Creature,
+    _target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    _ip: item.ItemProperty,
+): OnHitResult {
+    return _result(false, 0);
+}
+
+fn _stub_on_monster_hit(
+    _attacker: Creature,
+    _target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    _ip: item.ItemProperty,
+): OnHitResult {
+    return _result(false, 0);
+}
+
+fn _stub_on_hit_cast_spell(
+    _attacker: Creature,
+    _target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    _ip: item.ItemProperty,
+): OnHitResult {
+    return _result(false, 0);
+}
+
 fn register_default_handlers() {
     clear_handlers();
+    register_handler("stub_on_hit_properties", Const.ip_on_hit_properties, -1, _stub_on_hit_properties);
+    register_handler("stub_on_monster_hit", Const.ip_on_monster_hit, -1, _stub_on_monster_hit);
+    register_handler("stub_on_hit_cast_spell", Const.ip_onhitcastspell, -1, _stub_on_hit_cast_spell);
 }

@@ -1,4 +1,6 @@
 type Ability(int);
+type ObjectMask(int);
+type ObjectType(int);
 type ArmorClass(int);
 type AttackType(int);
 type BaseItemType(int);
@@ -11,6 +13,7 @@ type MissChanceType(int);
 type ModifierType(int);
 type Save(int);
 type SaveVersus(int);
+type Spell(int);
 type SpellSchool(int);
 type Skill(int);
 type EquipIndex(int);

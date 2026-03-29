@@ -1,0 +1,43 @@
+from nwn1.rules import { SkillEntry };
+from core.types import { Skill, Ability };
+
+import core.array as Array;
+
+var _loaded = false;
+var _skills: array!(SkillEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _skills = load_config!(SkillEntry)("nwn1.data.skills");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_skills);
+}
+
+fn exists(skill: Skill): bool {
+    _ensure_loaded();
+    var index = skill as int;
+    return index >= 0 && index < Array.len(_skills);
+}
+
+// Returns the ability governing the skill's modifier contribution.
+// Returns Ability(-1) for invalid skills or skills with no governing ability.
+fn key_ability(skill: Skill): Ability {
+    if (!exists(skill)) {
+        return Ability(-1);
+    }
+    return Ability(Array.get(_skills, skill as int).ability);
+}
+
+// Returns true if the skill can be used with 0 ranks.
+fn is_untrained(skill: Skill): bool {
+    if (!exists(skill)) {
+        return false;
+    }
+    return Array.get(_skills, skill as int).untrained;
+}

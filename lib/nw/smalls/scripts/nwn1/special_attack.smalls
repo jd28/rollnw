@@ -1,0 +1,141 @@
+import core.array as arr;
+import core.map as map;
+import core.effects as effects;
+import nwn1.constants as Const;
+from nwn1.modifier import { DamageModifier };
+
+type SpecialAttackCallbacks {
+    attack_bonus_modifier: fn(Creature, object): int;
+    damage_bonus_modifier: fn(Creature, object, int): int;
+    usable: fn(Creature, object): bool;
+    impact: fn(Creature, object): effects.Effect;
+};
+
+var registered_special_attacks: map!(int, SpecialAttackCallbacks) = {};
+
+// Damage modifiers for special attacks, pre-partitioned by subtype.
+var damage_sa_modifiers_any: array!(DamageModifier) = {};
+var damage_sa_modifiers_specific: array!(DamageModifier) = {};
+var damage_sa_modifiers_specific_keys: array!(int) = {};
+
+fn _attack_bonus_none(_obj: Creature, _target: object): int {
+    return 0;
+}
+
+fn _damage_bonus_none(_obj: Creature, _target: object, _multiplier: int): int {
+    return 0;
+}
+
+fn _usable_always(_obj: Creature, _target: object): bool {
+    return true;
+}
+
+fn _impact_none(_obj: Creature, _target: object): effects.Effect {
+    return effects.invalid();
+}
+
+fn register_special_attack(
+    attack_types: array!(int),
+    attack_bonus_modifier: fn(Creature, object): int,
+    damage_bonus_modifier: fn(Creature, object, int): int,
+    usable: fn(Creature, object): bool,
+    impact: fn(Creature, object): effects.Effect,
+) {
+    for (var attack_type_id in attack_types) {
+        if (attack_type_id <= 0) {
+            continue;
+        }
+
+        var callbacks = SpecialAttackCallbacks {
+            attack_bonus_modifier = attack_bonus_modifier,
+            damage_bonus_modifier = damage_bonus_modifier,
+            usable = usable,
+            impact = impact,
+        };
+
+        map.set(registered_special_attacks, attack_type_id, callbacks);
+    }
+}
+
+fn attack_bonus_modifier(attack_type_id: int, obj: Creature, target: object): int {
+    if (!map.has(registered_special_attacks, attack_type_id)) {
+        return 0;
+    }
+    var f = map.get(registered_special_attacks, attack_type_id).attack_bonus_modifier;
+    if (!f) {
+        return 0;
+    }
+    return f(obj, target);
+}
+
+fn damage_bonus_modifier(attack_type_id: int, obj: Creature, target: object, multiplier: int): int {
+    if (!map.has(registered_special_attacks, attack_type_id)) {
+        return 0;
+    }
+    var f = map.get(registered_special_attacks, attack_type_id).damage_bonus_modifier;
+    if (!f) {
+        return 0;
+    }
+    return f(obj, target, multiplier);
+}
+
+fn usable(attack_type_id: int, obj: Creature, target: object): bool {
+    if (!map.has(registered_special_attacks, attack_type_id)) {
+        return true;
+    }
+    var f = map.get(registered_special_attacks, attack_type_id).usable;
+    if (!f) {
+        return true;
+    }
+    return f(obj, target);
+}
+
+fn impact(attack_type_id: int, obj: Creature, target: object): effects.Effect {
+    if (!map.has(registered_special_attacks, attack_type_id)) {
+        return effects.invalid();
+    }
+    var f = map.get(registered_special_attacks, attack_type_id).impact;
+    if (!f) {
+        return effects.invalid();
+    }
+    return f(obj, target);
+}
+
+fn register_damage_special_attack_modifier(
+    tag: string,
+    payload: fn(Creature, object, Const.AttackType, int): int,
+    subtype: int,
+) {
+    if (subtype < 0) {
+        arr.push(damage_sa_modifiers_any, DamageModifier {
+            tag = tag,
+            payload = payload,
+            subtype = -1,
+        });
+    } else {
+        arr.push(damage_sa_modifiers_specific, DamageModifier {
+            tag = tag,
+            payload = payload,
+            subtype = subtype,
+        });
+        arr.push(damage_sa_modifiers_specific_keys, subtype);
+    }
+}
+
+fn sum_damage_special_attack_modifiers(obj: Creature, versus: object, subtype: int, multiplier: int): int {
+    if (subtype == 0) {
+        return 0;
+    }
+    var total = 0;
+    for (var entry in damage_sa_modifiers_any) {
+        var f = entry.payload;
+        total += f(obj, versus, Const.AttackType(subtype), multiplier);
+    }
+    for (var ki = 0; ki < arr.len(damage_sa_modifiers_specific_keys); ki += 1) {
+        if (damage_sa_modifiers_specific_keys[ki] == subtype) {
+            var f = damage_sa_modifiers_specific[ki].payload;
+            total += f(obj, versus, Const.AttackType(subtype), multiplier);
+        }
+    }
+    return total;
+}

@@ -1,7 +1,7 @@
 import nwn1.constants as Const;
 
-
 import core.item as base;
+import core.object as O;
 import core.effects as effects;
 import nwn1.effects as nwn1eff;
 
@@ -22,6 +22,16 @@ const ip_skill_bonus                          = Const.ItemPropertyType(52);
 const ip_attack_bonus                         = Const.ItemPropertyType(56);
 const ip_attack_penalty                       = Const.ItemPropertyType(60);
 
+fn equip_index_to_attack_type(equip_index: Const.EquipIndex): Const.AttackType {
+    if (equip_index == Const.equip_index_righthand) { return Const.attack_type_onhand; }
+    if (equip_index == Const.equip_index_lefthand) { return Const.attack_type_offhand; }
+    if (equip_index == Const.equip_index_arms) { return Const.attack_type_unarmed; }
+    if (equip_index == Const.equip_index_creature_bite) { return Const.attack_type_cweapon1; }
+    if (equip_index == Const.equip_index_creature_left) { return Const.attack_type_cweapon2; }
+    if (equip_index == Const.equip_index_creature_right) { return Const.attack_type_cweapon3; }
+    return Const.attack_type_any;
+}
+
 fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
     return nwn1eff.ability_modifier(Const.Ability(ip.subtype), value);
@@ -29,13 +39,13 @@ fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): eff
 
 fn ip_gen_attack_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): effects.Effect {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    var attack = Const.AttackType(base.__equip_index_to_attack_type(equip_index as int));
+    var attack = equip_index_to_attack_type(equip_index);
     return nwn1eff.attack_modifier(attack, value);
 }
 
 fn ip_gen_enhancement_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): effects.Effect {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    var attack = Const.AttackType(base.__equip_index_to_attack_type(equip_index as int));
+    var attack = equip_index_to_attack_type(equip_index);
     return nwn1eff.attack_modifier(attack, value);
 }
 
@@ -95,4 +105,30 @@ fn is_creature_weapon(it: Item): bool {
         || bt == Const.base_item_cpiercweapon
         || bt == Const.base_item_cslashweapon
         || bt == Const.base_item_cslshprcweap;
+}
+
+fn is_shield(base_item: int): bool {
+    return base_item == Const.base_item_smallshield as int
+        || base_item == Const.base_item_largeshield as int
+        || base_item == Const.base_item_towershield as int;
+}
+
+fn calculate_item_ac(obj: Item): int {
+    if ((obj as object) == O.invalid) {
+        return 0;
+    }
+
+    var stats = get_propset!(base.ItemStats)(obj);
+    // Preserve legacy C++ parity for now: shields explicitly return 0.
+    if (is_shield(stats.base_item)) {
+        return 0;
+    }
+
+    if (stats.base_item == Const.base_item_armor as int
+        && stats.armor_id != -1
+        && stats.armor_ac_bonus_valid != 0) {
+        return stats.armor_ac_bonus;
+    }
+
+    return 0;
 }

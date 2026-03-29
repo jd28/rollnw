@@ -7,12 +7,24 @@ type StrRef(int);
 [[value_type]]
 type ClassEntry {
     [[index]]
+    id:             int;
+    name:           StrRef;
+    hit_die:        int;
+    attack_table:   int;
+    spellcaster:    bool;
+    caster_ability: int;    // 0=STR 1=DEX 2=CON 3=INT 4=WIS 5=CHA, -1=none
+    fort_saves:     int[40]; // indexed by level-1 (row 0 = level 1)
+    reflex_saves:   int[40];
+    will_saves:     int[40];
+};
+
+[[value_type]]
+type SpellEntry {
+    [[index]]
     id:           int;
-    name:         StrRef;
-    hit_die:      int;
-    attack_table: int;
-    saves_table:  int;
-    spellcaster:  bool;
+    innate_level: int;      // -1 if invalid
+    school:       int;      // SpellSchool int, -1=none
+    user_type:    int;
 };
 
 [[value_type]]
@@ -37,6 +49,7 @@ type BaseItemEntry {
     crit_multiplier:                       int;
     weapon_type:                           int;
     ranged:                                bool;
+    weapon_size:                           int;
     weapon_focus_feat:                     int;
     epic_weapon_focus_feat:                int;
     weapon_specialization_feat:            int;
@@ -56,4 +69,14 @@ type RaceEntry {
     abilities:   int[6];
     cr_modifier: float;
     player_race: bool;
+};
+
+[[value_type]]
+type SkillEntry {
+    [[index]]
+    id:                 int;
+    name:               StrRef;
+    untrained:          bool;
+    ability:            int;    // 0=STR 1=DEX 2=CON 3=INT 4=WIS 5=CHA, -1=none
+    armor_check_penalty:bool;
 };

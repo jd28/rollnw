@@ -1,0 +1,99 @@
+import core.combat as Comb;
+import core.creature as Cre;
+import core.math as Math;
+import core.object as O;
+from core.door import { DoorState };
+from core.placeable import { PlaceableState };
+
+import nwn1.classes as Classes;
+import nwn1.constants as Const;
+import nwn1.creature as NCre;
+
+const stack_sum = 0;
+
+fn _innate_save(obj: object, save_type: Const.Save): int {
+    switch (obj) {
+        case Creature(cre): {
+            return NCre.get_saving_throw(cre, save_type);
+        }
+        case Door(door): {
+            var state = get_propset!(DoorState)(door);
+            switch (save_type as int) {
+                case 1: { return state.save_fort; }
+                case 2: { return state.save_reflex; }
+                case 3: { return state.save_will; }
+                default: { return 0; }
+            }
+        }
+        case Placeable(placeable): {
+            var state = get_propset!(PlaceableState)(placeable);
+            switch (save_type as int) {
+                case 1: { return state.save_fort; }
+                case 2: { return state.save_reflex; }
+                case 3: { return state.save_will; }
+                default: { return 0; }
+            }
+        }
+        default: { return 0; }
+    }
+}
+
+fn _class_save_bonus(obj: Creature, save_type: Const.Save): int {
+    var result = 0;
+    var class_count = Cre.get_class_count(obj);
+    for (var i = 0; i < class_count; i += 1) {
+        result += Classes.save_bonus(
+            Cre.get_class_at(obj, i),
+            Cre.get_class_levels_at(obj, i),
+            save_type);
+    }
+    return result;
+}
+
+fn _effect_delta(obj: object, save_type: Const.Save, save_vs: Const.SaveVersus, versus: object): int {
+    var inc = 0;
+    var dec = 0;
+    const save_filter = save_vs as int;
+    const save_type_sub = save_type as int;
+    const save_all_sub = Const.saving_throw_all as int;
+
+    inc += Comb.aggregate_effect_int_filtered(obj, Const.effect_type_saving_throw_increase,
+        save_type_sub, versus, 1, save_filter, 0, stack_sum);
+
+    inc += Comb.aggregate_effect_int_filtered(obj, Const.effect_type_saving_throw_increase,
+        save_all_sub, versus, 1, save_filter, 0, stack_sum);
+
+    dec += Comb.aggregate_effect_int_filtered(obj, Const.effect_type_saving_throw_decrease,
+        save_type_sub, versus, 1, save_filter, 0, stack_sum);
+
+    dec += Comb.aggregate_effect_int_filtered(obj, Const.effect_type_saving_throw_decrease,
+        save_all_sub, versus, 1, save_filter, 0, stack_sum);
+
+    return Math.clamp(inc - dec, -20, 20);
+}
+
+fn get_saving_throw(obj: object, save_type: Const.Save, save_vs: Const.SaveVersus, versus: object, base: bool): int {
+    var result = _innate_save(obj, save_type);
+
+    if (obj is Creature) {
+        result += _class_save_bonus(obj, save_type);
+    }
+
+    if (base) {
+        return Math.max(0, result);
+    }
+
+    result += _effect_delta(obj, save_type, save_vs, versus);
+    return Math.max(0, result);
+}
+
+fn resolve_saving_throw(obj: object, save_type: Const.Save, dc: int,
+    save_vs: Const.SaveVersus, versus: object): bool {
+    var roll = Comb.roll_uniform_int(1, 20);
+    if (roll == 1) { return false; }
+    if (roll == 20) { return true; }
+
+    dc = Math.clamp(dc, 1, 255);
+    var save = get_saving_throw(obj, save_type, save_vs, versus, false);
+    return roll + save >= dc;
+}

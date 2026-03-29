@@ -1,11 +1,18 @@
-from core.creature import { CreatureStats, CreatureCombat };
+from core.creature import { CreatureStats, CreatureCombat, SpecialAbility };
+from core.types import { BaseItemType, Class, Spell };
 import nwn1.constants as Const;
 
+import core.array as arr;
 import core.combat as Comb;
 import core.creature as Cre;
+import core.item as Item;
 import core.object as O;
+import nwn1.master_feats as mfeat;
 import nwn1.modifier as Mod;
+import nwn1.classes as Classes;
 import nwn1.races as races;
+import nwn1.skills as Skills;
+import nwn1.spells as Spells;
 import core.math as Math;
 
 const stack_sum = 0;
@@ -44,11 +51,13 @@ fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false):
     }
 
     var combat = get_propset!(CreatureCombat)(obj);
+    var progression_epoch = Cre.progression_version(obj);
     var effect_epoch = Comb.creature_effect_version(obj);
     if (!combat.ability_cache_valid
         || combat.ability_cache_effect_epoch != effect_epoch
-        || combat.ability_cache_progression_epoch != combat.progression_epoch) {
+        || combat.ability_cache_progression_epoch != progression_epoch) {
         combat.effect_epoch = effect_epoch;
+        combat.progression_epoch = progression_epoch;
         _compute_ability_scores(obj, combat);
     }
     return combat.ability_scores[ability as int];
@@ -56,6 +65,82 @@ fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false):
 
 fn get_ability_modifier(obj: Creature, ability: Const.Ability, base: bool = false): int {
     return (get_ability_score(obj, ability, base) - 10) / 2;
+}
+
+fn get_spell_dc(obj: Creature, class_: Class, spell: Spell): int {
+    var caster_ability = Classes.caster_ability(class_);
+    var innate_level = Spells.innate_level(spell);
+    var school = Spells.school(spell);
+    if ((caster_ability as int) < 0 || innate_level < 0 || (school as int) < 0) {
+        return 0;
+    }
+
+    var result = 10 + innate_level;
+    result = result + get_ability_modifier(obj, caster_ability);
+    result = result + mfeat.resolve(obj, Const.mfeat_spell_focus, school);
+    result = result + mfeat.resolve(obj, Const.mfeat_spell_focus_greater, school);
+    result = result + mfeat.resolve(obj, Const.mfeat_spell_focus_epic, school);
+    return result;
+}
+
+fn get_monk_ability_level(obj: Creature): int {
+    return Cre.get_level_by_class(obj, Const.class_type_monk);
+}
+
+fn _is_monk_weapon_base_item(base_item: BaseItemType): bool {
+    if (base_item == Const.base_item_invalid) {
+        return true;
+    }
+
+    return base_item == Const.base_item_kama
+        || base_item == Const.base_item_quarterstaff
+        || base_item == Const.base_item_shuriken
+        || base_item == Const.base_item_gloves
+        || base_item == Const.base_item_bracer;
+}
+
+fn weapon_for_attack(obj: Creature, attack_type: Const.AttackType): Item {
+    var attack = attack_type as int;
+    if (attack == Const.attack_type_onhand) { return Cre.get_equipped_item(obj, Const.equip_index_righthand); }
+    if (attack == Const.attack_type_offhand) { return Cre.get_equipped_item(obj, Const.equip_index_lefthand); }
+    if (attack == Const.attack_type_unarmed) { return Cre.get_equipped_item(obj, Const.equip_index_arms); }
+    if (attack == Const.attack_type_cweapon1) { return Cre.get_equipped_item(obj, Const.equip_index_creature_bite); }
+    if (attack == Const.attack_type_cweapon2) { return Cre.get_equipped_item(obj, Const.equip_index_creature_left); }
+    if (attack == Const.attack_type_cweapon3) { return Cre.get_equipped_item(obj, Const.equip_index_creature_right); }
+    return O.invalid as Item;
+}
+
+fn attack_sequence_index(obj: Creature, attack_type: Const.AttackType): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    if (attack_type == Const.attack_type_offhand) {
+        return combat.attack_current - combat.attacks_onhand - combat.attacks_extra;
+    }
+    return combat.attack_current;
+}
+
+fn weapon_iteration_for_attack(obj: Creature, attack_type: Const.AttackType): int {
+    var weapon = weapon_for_attack(obj, attack_type);
+    var base_item = Item.get_baseitem_type(weapon);
+    if (get_monk_ability_level(obj) > 0 && _is_monk_weapon_base_item(base_item)) {
+        return 3;
+    }
+    return 5;
+}
+
+fn ac_armor_base(obj: Creature): int {
+    return get_propset!(CreatureCombat)(obj).ac_armor_base;
+}
+
+fn get_dex_modifier(obj: Creature): int {
+    var result = get_ability_modifier(obj, Const.ability_dexterity);
+    var chest = Cre.get_equipped_item(obj, Const.equip_index_chest);
+    if (chest == O.invalid) { return result; }
+
+    var stats = get_propset!(Item.ItemStats)(chest);
+    if (stats.armor_id != -1 && stats.armor_dex_bonus_valid != 0) {
+        return Math.min(result, stats.armor_dex_bonus);
+    }
+    return result;
 }
 
 // == Saving throws ===========================================================
@@ -74,36 +159,6 @@ fn get_saving_throw(obj: Creature, save_type: Const.Save): int {
     return 0;
 }
 
-// Full saving throw roll: roll 1d20; 1=auto-fail, 20=auto-pass; else save+roll >= dc.
-// Includes: innate save, ability modifier, class progression bonuses, modifiers, effects.
-fn resolve_saving_throw(obj: Creature, save_type: Const.Save, dc: int, versus: object): bool {
-    var roll = Comb.roll_uniform_int(1, 20);
-    if (roll == 1) { return false; }
-    if (roll == 20) { return true; }
-
-    // Innate save + ability modifier
-    var save = get_saving_throw(obj, save_type);
-
-    // Class progression save bonuses
-    var class_count = Cre.get_class_count(obj);
-    for (var i = 0; i < class_count; i += 1) {
-        save = save + Cre.class_save_bonus(
-            Cre.get_class_at(obj, i),
-            Cre.get_class_levels_at(obj, i),
-            save_type);
-    }
-
-    // Permanent modifiers (feats, etc.)
-    save = save + Comb.aggregate_modifier_int(obj, Const.mod_type_save, save_type as int, versus, 0);
-
-    // Effects
-    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_increase, save_type as int, versus, 0, 0);
-    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_saving_throw_decrease, save_type as int, versus, 0, 0);
-    save = save + eff_inc - eff_dec;
-
-    return save + roll >= dc;
-}
-
 // == Skills ==================================================================
 // ============================================================================
 
@@ -117,21 +172,23 @@ fn get_skill_rank(obj: Creature, skill: Const.Skill): int {
 // + permanent modifiers + effects.
 fn get_skill_rank_full(obj: Creature, skill: Const.Skill, versus: object): int {
     var rank = get_skill_rank(obj, skill);
-
-    if (rank > 0 || Cre.skill_is_untrained(skill)) {
-        var ability = Cre.skill_key_ability(skill);
-        if (ability as int >= 0) {
-            rank = rank + get_ability_modifier(obj, ability);
+    if (rank > 0 || Skills.is_untrained(skill)) {
+        const ability = Skills.key_ability(skill);
+        if ((ability as int) >= 0) {
+            rank += get_ability_modifier(obj, ability);
         }
     }
 
-    // Permanent modifiers (feats, etc.)
-    rank = rank + Comb.aggregate_modifier_int(obj, Const.mod_type_skill, skill as int, versus, 0);
+    // Master feats + permanent modifiers (feats, etc.)
+    rank += mfeat.resolve(obj, Const.mfeat_skill_focus, skill);
+    rank += mfeat.resolve(obj, Const.mfeat_skill_focus_epic, skill);
+    rank += Mod.sum_modifiers(obj, Const.mod_type_skill, skill as int, versus);
 
     // Effects
-    var eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_skill_increase, skill as int, versus, 0, 0);
-    var eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_skill_decrease, skill as int, versus, 0, 0);
-    return rank + eff_inc - eff_dec;
+    const eff_inc = Comb.aggregate_effect_int(obj, Const.effect_type_skill_increase, skill as int, versus, 0, 0);
+    const eff_dec = Comb.aggregate_effect_int(obj, Const.effect_type_skill_decrease, skill as int, versus, 0, 0);
+
+    return rank + Math.clamp(eff_inc - eff_dec, -20, 20);
 }
 
 // Skill check: rank + 20 < dc => impossible; else rank + d20 >= dc => success.
@@ -139,4 +196,66 @@ fn resolve_skill_check(obj: Creature, skill: Const.Skill, dc: int, versus: objec
     var rank = get_skill_rank_full(obj, skill, versus);
     if (rank + 20 < dc) { return false; }
     return rank + Comb.roll_uniform_int(1, 20) >= dc;
+}
+
+// == Special Abilities =======================================================
+// ============================================================================
+
+fn _sa_find(stats: CreatureStats, spell: Spell): int {
+    var i = 0;
+    var n = arr.len(stats.special_abilities);
+    for (i < n) {
+        if (arr.get(stats.special_abilities, i).spell == spell) { return i; }
+        i = i + 1;
+    }
+    return -1;
+}
+
+fn _sa_swap_pop(stats: CreatureStats, idx: int) {
+    var last = arr.len(stats.special_abilities) - 1;
+    if (idx != last) {
+        arr.set(stats.special_abilities, idx, arr.get(stats.special_abilities, last));
+    }
+    arr.pop(stats.special_abilities);
+}
+
+fn has_special_ability(obj: Creature, spell: Spell): bool {
+    var stats = get_propset!(CreatureStats)(obj);
+    return _sa_find(stats, spell) >= 0;
+}
+
+fn get_special_ability(obj: Creature, spell: Spell): SpecialAbility {
+    var stats = get_propset!(CreatureStats)(obj);
+    var idx = _sa_find(stats, spell);
+    if (idx >= 0) {
+        return arr.get(stats.special_abilities, idx);
+    }
+    return SpecialAbility { spell = spell, uses = 0, level = 0 };
+}
+
+fn remove_special_ability(obj: Creature, spell: Spell) {
+    var stats = get_propset!(CreatureStats)(obj);
+    var idx = _sa_find(stats, spell);
+    if (idx < 0) { return; }
+    _sa_swap_pop(stats, idx);
+}
+
+fn set_special_ability(obj: Creature, sa: SpecialAbility) {
+    var stats = get_propset!(CreatureStats)(obj);
+    var idx = _sa_find(stats, sa.spell);
+    if (sa.uses <= 0) {
+        if (idx >= 0) {
+            _sa_swap_pop(stats, idx);
+        }
+        return;
+    }
+    var eff_level = sa.level;
+    if (Spells.user_type(sa.spell) == 1 && eff_level < 1) { eff_level = 1; }
+    var clamped = Math.clamp(eff_level, 0, 15);
+    var entry = SpecialAbility { spell = sa.spell, uses = 1, level = clamped };
+    if (idx >= 0) {
+        arr.set(stats.special_abilities, idx, entry);
+    } else {
+        arr.push(stats.special_abilities, entry);
+    }
 }

@@ -1,5 +1,5 @@
 from nwn1.rules import { BaseItemEntry };
-from core.types import { BaseItemType };
+from core.types import { BaseItemType, DiceRoll };
 
 import core.array as Array;
 
@@ -50,6 +50,24 @@ fn weapon_type(base_item: BaseItemType): int {
     return entry.weapon_type;
 }
 
+fn is_weapon(base_item: BaseItemType): bool {
+    _ensure_loaded();
+    var index = base_item as int;
+    if (index < 0 || index >= Array.len(_baseitems)) {
+        return false;
+    }
+    var entry = Array.get(_baseitems, index);
+    return entry.weapon_type > 0;
+}
+
+fn weapon_size(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return 0;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.weapon_size;
+}
+
 fn crit_threat(base_item: BaseItemType): int {
     if (!exists(base_item)) {
         return 0;
@@ -64,6 +82,53 @@ fn crit_multiplier(base_item: BaseItemType): int {
     }
     var entry = Array.get(_baseitems, base_item as int);
     return entry.crit_multiplier;
+}
+
+fn base_damage_roll(base_item: BaseItemType): DiceRoll {
+    if (!exists(base_item)) {
+        return DiceRoll{0, 0, 0};
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return DiceRoll{entry.damage_num, entry.damage_die, 0};
+}
+
+fn damage_has_bludgeoning(base_item: BaseItemType): bool {
+    _ensure_loaded();
+    var index = base_item as int;
+    if (index < 0) {
+        return true;
+    }
+    if (index >= Array.len(_baseitems)) {
+        return false;
+    }
+    var wt = Array.get(_baseitems, index).weapon_type;
+    return wt == 2 || wt == 5;
+}
+
+fn damage_has_piercing(base_item: BaseItemType): bool {
+    _ensure_loaded();
+    var index = base_item as int;
+    if (index < 0) {
+        return false;
+    }
+    if (index >= Array.len(_baseitems)) {
+        return false;
+    }
+    var wt = Array.get(_baseitems, index).weapon_type;
+    return wt == 1 || wt == 4 || wt == 5;
+}
+
+fn damage_has_slashing(base_item: BaseItemType): bool {
+    _ensure_loaded();
+    var index = base_item as int;
+    if (index < 0) {
+        return false;
+    }
+    if (index >= Array.len(_baseitems)) {
+        return false;
+    }
+    var wt = Array.get(_baseitems, index).weapon_type;
+    return wt == 3 || wt == 4;
 }
 
 fn weapon_focus_feat(base_item: BaseItemType): int {

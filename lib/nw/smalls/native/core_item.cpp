@@ -1,7 +1,11 @@
 #include "../stdlib.hpp"
 
 #include "../../formats/StaticTwoDA.hpp"
+#include "../../kernel/Kernel.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../objects/Item.hpp"
 #include "../../objects/ObjectManager.hpp"
+#include "../../profiles/nwn1/propset_populate.hpp"
 #include "../../profiles/nwn1/scriptapi.hpp"
 #include "../../rules/effects.hpp"
 #include "../../rules/items.hpp"
@@ -10,6 +14,8 @@
 namespace nw::smalls {
 
 namespace {
+
+constexpr uint32_t item_feature_on_hit_properties = 1u << 0;
 
 struct ScriptItemProperty {
     int32_t prop_type;
@@ -54,7 +60,18 @@ void register_core_item(Runtime& rt)
         .function("clear_properties", +[](nw::ObjectHandle item) {
             auto* it = as_item(item);
             if (!it) {  return; }
-            it->properties.clear(); })
+            it->properties.clear();
+            it->derived_flags = 0;
+            it->derived_weapon_power_bonus = 0;
+            it->derived_has_keen = false; })
+        .function("has_on_hit_properties", +[](nw::ObjectHandle item) -> bool {
+            auto* it = as_item(item);
+            if (!it) { return false; }
+            return (it->derived_flags & item_feature_on_hit_properties) != 0; })
+        .function("has_property", +[](nw::ObjectHandle item, int32_t prop_type) -> bool {
+            auto* it = as_item(item);
+            if (!it) { return false; }
+            return nw::item_has_property(it, nw::ItemPropertyType::make(prop_type)); })
         .function("__get_property", +[](nw::ObjectHandle item, int32_t index) -> ScriptItemProperty {
             auto* it = as_item(item);
             if (!it || index < 0 || static_cast<size_t>(index) >= it->properties.size()) {
@@ -84,17 +101,6 @@ void register_core_item(Runtime& rt)
             auto* item = as_item(item_h);
             if (!creature || !item) { return 0; }
             return remove_effects_by(creature, item->handle()); })
-        .function("__generate_default_effect", +[](nw::ObjectHandle item_h, int32_t prop_index, int32_t equip_index) -> nw::TypedHandle {
-            auto* item = as_item(item_h);
-            if (!item || prop_index < 0 || static_cast<size_t>(prop_index) >= item->properties.size()) {
-                return {};
-            }
-            auto* eff = nw::kernel::effects().generate(
-                item->properties[static_cast<size_t>(prop_index)],
-                static_cast<nw::EquipIndex>(equip_index),
-                item->baseitem);
-            if (!eff) { return {}; }
-            return eff->handle().to_typed_handle(); })
         .function("__ip_cost_table_int", +[](int32_t prop_type, int32_t cost_value, Value column_val) -> int32_t {
             auto& r = nw::kernel::runtime();
             StringView col = r.get_string_view(column_val.data.hptr);
@@ -105,7 +111,12 @@ void register_core_item(Runtime& rt)
                 }
             }
             return 0; })
-        .function("__equip_index_to_attack_type", +[](int32_t equip_index) -> int32_t { return *nw::equip_index_to_attack_type(static_cast<nw::EquipIndex>(equip_index)); })
+        .function("__sync_item_propset", +[](nw::ObjectHandle item_h) {
+            auto* item = as_item(item_h);
+            if (!item) { return; }
+            auto& rt = nw::kernel::runtime();
+            rt.init_object_propsets(item->handle());
+            nwn1::populate_item_propsets(&rt, item); })
 
         // The End
         .finalize();

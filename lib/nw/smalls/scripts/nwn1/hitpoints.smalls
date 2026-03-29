@@ -1,0 +1,57 @@
+import core.creature as Cre;
+import core.math as Math;
+import core.object as O;
+from core.creature import { CreatureHealth };
+from core.door import { DoorState };
+from core.placeable import { PlaceableState };
+
+import nwn1.constants as Const;
+import nwn1.creature as NCre;
+import nwn1.modifier as Mod;
+
+fn get_current_hitpoints(obj: object): int {
+    switch (obj) {
+        // Preserve legacy behavior: ObjectType::player path was not handled here.
+        case Player(_): {
+            return 0;
+        }
+        case Creature(cre): {
+            var hp = get_propset!(CreatureHealth)(cre).hp_current;
+            var hp_max = get_max_hitpoints(cre);
+            if (hp > hp_max) { return hp_max; }
+            return hp;
+        }
+        case Door(door): {
+            return get_propset!(DoorState)(door).hp_current;
+        }
+        case Placeable(placeable): {
+            return get_propset!(PlaceableState)(placeable).hp_current;
+        }
+        default: {
+            return 0;
+        }
+    }
+}
+
+fn get_max_hitpoints(obj: object): int {
+    switch (obj) {
+        case Creature(cre): {
+            var health = get_propset!(CreatureHealth)(cre);
+            var base = health.hp_base_for_max;
+            var con = NCre.get_ability_modifier(cre, Const.ability_constitution);
+            var modifiers = Mod.sum_modifiers(cre, Const.mod_type_hitpoints, -1, O.invalid);
+            var temp = health.hp_temp;
+            var levels = Cre.get_total_levels(cre);
+            return Math.max(1, base + con * levels + modifiers + temp);
+        }
+        case Door(door): {
+            return Math.max(1, get_propset!(DoorState)(door).hp);
+        }
+        case Placeable(placeable): {
+            return Math.max(1, get_propset!(PlaceableState)(placeable).hp);
+        }
+        default: {
+            return 1;
+        }
+    }
+}

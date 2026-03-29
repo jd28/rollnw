@@ -13,6 +13,9 @@
 type DoorState {
     hp: int;
     hp_current: int;
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
     hardness: int;
     locked: int;
     lock_dc: int;

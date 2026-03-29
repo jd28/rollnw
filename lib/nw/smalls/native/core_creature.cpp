@@ -1,8 +1,8 @@
 #include "../runtime.hpp"
 
 #include "../../kernel/Rules.hpp"
+#include "../../objects/CombatInfo.hpp"
 #include "../../objects/ObjectManager.hpp"
-#include "../../profiles/nwn1/scriptapi.hpp"
 #include "../../scriptapi.hpp"
 
 namespace nw::smalls {
@@ -39,6 +39,23 @@ void register_core_creature(Runtime& rt)
         .function("get_total_levels", +[](nw::ObjectHandle obj) -> int32_t {
             auto* creature = as_creature(obj);
             return creature ? creature->levels.level() : 0; })
+        .function("progression_version", +[](nw::ObjectHandle obj) -> int32_t {
+            auto* creature = as_creature(obj);
+            if (!creature) {
+                return 0;
+            }
+
+            uint32_t v = static_cast<uint32_t>(creature->levels.level());
+            v = (v * 16777619u) ^ static_cast<uint32_t>(creature->stats.feats().size());
+            for (const auto& ent : creature->levels.entries) {
+                if (ent.id == nw::Class::invalid()) {
+                    break;
+                }
+                v = (v * 16777619u) ^ static_cast<uint32_t>(*ent.id);
+                v = (v * 16777619u) ^ static_cast<uint32_t>(ent.level);
+            }
+
+            return static_cast<int32_t>(v); })
         .function("get_level_by_class", +[](nw::ObjectHandle obj, int32_t class_type) -> int32_t {
             auto* creature = as_creature(obj);
             if (!creature) {
@@ -79,36 +96,24 @@ void register_core_creature(Runtime& rt)
                 return -1;
             }
             return int32_t(pos); })
-        .function("ac_armor_base", +[](nw::ObjectHandle obj) -> int32_t {
-            auto* creature = as_creature(obj);
-            if (!creature) {
-                return 0;
-            }
-            return creature->combat_info.ac_armor_base; })
-        .function("weapon_iteration_for_attack", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t {
-            auto* creature = as_creature(obj);
-            return nwn1::weapon_iteration(creature, nw::creature_get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type))); })
-        .function("attack_sequence_index", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t {
-            auto* creature = as_creature(obj);
-            if (!creature) {
-                return 0;
-            }
-            if (nw::AttackType::make(attack_type) == nwn1::attack_type_offhand) {
-                return creature->combat_info.attack_current - creature->combat_info.attacks_onhand - creature->combat_info.attacks_extra;
-            }
-            return creature->combat_info.attack_current; })
-        .function("weapon_for_attack", +[](nw::ObjectHandle obj, int32_t attack_type) -> nw::ObjectHandle {
-            auto* creature = as_creature(obj);
-            auto* item = nw::creature_get_weapon_by_attack_type(creature, nw::AttackType::make(attack_type));
-            return item ? item->handle() : nw::ObjectHandle{}; })
-        .function("can_equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::creature_can_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
-        .function("equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::creature_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
+        .function("can_equip_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::can_equip_item(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
+        .function("equip_item_in_slot", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::equip_item_in_slot(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
         .function("get_equipped_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nw::creature_get_equipped_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
+            auto* item = nw::get_equipped_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
             return item ? item->handle() : nw::ObjectHandle{}; })
-        .function("unequip_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nw::creature_unequip_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
+        .function("unequip_item_in_slot", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
+            auto* item = nw::unequip_item_in_slot(as_creature(creature), static_cast<nw::EquipIndex>(slot));
             return item ? item->handle() : nw::ObjectHandle{}; })
+        .function("inventory_add_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item) -> bool {
+            auto* cre = as_creature(creature);
+            auto* it = as_item(item);
+            if (!cre || !it) { return false; }
+            return cre->inventory.add_item(it); })
+        .function("inventory_remove_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item) -> bool {
+            auto* cre = as_creature(creature);
+            auto* it = as_item(item);
+            if (!cre || !it) { return false; }
+            return cre->inventory.remove_item(it); })
 
         // == Feats ===================================================================
         // ============================================================================
@@ -141,29 +146,6 @@ void register_core_creature(Runtime& rt)
                 if (*(*it) >= start) return *(*it) - start + 1;
             }
             return 0; })
-
-        // Returns the class progression save bonus for a given save type.
-        // save_type: 1=Fort, 2=Reflex, 3=Will
-        .function("class_save_bonus", +[](int32_t class_id, int32_t level, int32_t save_type) -> int32_t {
-            auto bonus = nw::kernel::rules().classes.get_class_save_bonus(
-                nw::Class::make(class_id), static_cast<size_t>(level));
-            switch (save_type) {
-            case 1: return bonus.fort;
-            case 2: return bonus.reflex;
-            case 3: return bonus.will;
-            default: return 0;
-            } })
-
-        // Returns the ability governing a skill (for ability modifier contribution).
-        // Returns -1 for invalid skills.
-        .function("skill_key_ability", +[](int32_t skill) -> int32_t {
-            auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
-            return info ? static_cast<int32_t>(*info->ability) : -1; })
-
-        // Returns true if the skill can be used without training (0 ranks).
-        .function("skill_is_untrained", +[](int32_t skill) -> bool {
-            auto info = nw::kernel::rules().skills.get(nw::Skill::make(skill));
-            return info && info->untrained; })
 
         // The end.
         .finalize();

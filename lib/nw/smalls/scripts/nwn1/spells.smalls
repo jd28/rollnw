@@ -1,0 +1,50 @@
+from nwn1.rules import { SpellEntry };
+from core.types import { Spell, SpellSchool };
+
+import core.array as Array;
+
+var _loaded = false;
+var _spells: array!(SpellEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _spells = load_config!(SpellEntry)("nwn1.data.spells");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_spells);
+}
+
+fn exists(spell: Spell): bool {
+    _ensure_loaded();
+    var index = spell as int;
+    return index >= 0 && index < Array.len(_spells);
+}
+
+// Returns the innate level of the spell, or -1 if invalid.
+fn innate_level(spell: Spell): int {
+    if (!exists(spell)) {
+        return -1;
+    }
+    return Array.get(_spells, spell as int).innate_level;
+}
+
+// Returns the spell school, or SpellSchool(-1) if invalid.
+fn school(spell: Spell): SpellSchool {
+    if (!exists(spell)) {
+        return SpellSchool(-1);
+    }
+    return SpellSchool(Array.get(_spells, spell as int).school);
+}
+
+// Returns the user_type field of a spell (0 if invalid).
+fn user_type(spell: Spell): int {
+    if (!exists(spell)) {
+        return 0;
+    }
+    return Array.get(_spells, spell as int).user_type;
+}

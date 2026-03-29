@@ -1,19 +1,71 @@
-from core.types import { Ability, AttackType, Class, EquipIndex, Feat, Save, Skill };
+from core.types import { Ability, Class, EquipIndex, Feat, Save, Skill, Spell, SpellSchool };
+import core.item as item;
+import core.object as Obj;
 
 [[native]] fn get_total_levels(obj: Creature): int;
+[[native]] fn progression_version(obj: Creature): int;
 [[native]] fn get_level_by_class(obj: Creature, class_type: Class): int;
 [[native]] fn get_class_count(obj: Creature): int;
 [[native]] fn get_class_at(obj: Creature, index: int): Class;
 [[native]] fn get_class_levels_at(obj: Creature, index: int): int;
 [[native]] fn get_levelup_class_position(obj: Creature, level_index: int): int;
-[[native]] fn ac_armor_base(obj: Creature): int;
-[[native]] fn weapon_iteration_for_attack(obj: Creature, attack_type: AttackType): int;
-[[native]] fn attack_sequence_index(obj: Creature, attack_type: AttackType): int;
-[[native]] fn weapon_for_attack(obj: Creature, attack_type: AttackType): Item;
 [[native]] fn can_equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
-[[native]] fn equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
+[[native]] fn equip_item_in_slot(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn get_equipped_item(creature: Creature, slot: EquipIndex): Item;
-[[native]] fn unequip_item(creature: Creature, slot: EquipIndex): Item;
+[[native]] fn unequip_item_in_slot(creature: Creature, slot: EquipIndex): Item;
+[[native]] fn inventory_add_item(creature: Creature, item: Item): bool;
+[[native]] fn inventory_remove_item(creature: Creature, item: Item): bool;
+
+fn equip_item(creature: Creature, equipped: Item, slot: EquipIndex): bool {
+    if (equipped == Obj.invalid) {
+        return false;
+    }
+
+    if (!can_equip_item(creature, equipped, slot)) {
+        return false;
+    }
+
+    var current = get_equipped_item(creature, slot);
+
+    if (current != Obj.invalid) {
+        var old_item = unequip_item(creature, slot);
+        if (old_item == Obj.invalid) {
+            return false;
+        }
+    }
+
+    if (!inventory_remove_item(creature, equipped)) {
+        // Tolerate direct world/container equips for now.
+    }
+
+    if (!equip_item_in_slot(creature, equipped, slot)) {
+        inventory_add_item(creature, equipped);
+        return false;
+    }
+
+    item.process_item_properties(creature, equipped, slot, false);
+    item._dispatch_on_equip(creature, equipped, slot);
+    return true;
+}
+
+fn unequip_item(creature: Creature, slot: EquipIndex): Item {
+    var removed = unequip_item_in_slot(creature, slot);
+    if (removed == Obj.invalid) {
+        return Obj.invalid as Item;
+    }
+
+    item.process_item_properties(creature, removed, slot, true);
+    if (!inventory_add_item(creature, removed)) {
+        // Fail-and-revert for now; future policy may drop to ground.
+        if (equip_item_in_slot(creature, removed, slot)) {
+            item.process_item_properties(creature, removed, slot, false);
+        }
+        return Obj.invalid as Item;
+    }
+
+    item._dispatch_on_unequip(creature, removed, slot);
+    return removed;
+}
 
 // == Feats ===================================================================
 // ============================================================================
@@ -31,16 +83,15 @@ from core.types import { Ability, AttackType, Class, EquipIndex, Feat, Save, Ski
 // == Rules data accessors ====================================================
 // ============================================================================
 
-// Returns the class progression save bonus for (class_id, class_level, save_type).
-// save_type: Save(1)=Fort, Save(2)=Reflex, Save(3)=Will
-[[native]] fn class_save_bonus(class_id: Class, level: int, save_type: Save): int;
+// == Special Abilities =======================================================
+// ============================================================================
 
-// Returns the ability that governs a skill (for the ability modifier contribution).
-// Returns Ability(-1) for invalid skills.
-[[native]] fn skill_key_ability(skill: Skill): Ability;
-
-// Returns true if the skill can be used untrained (0 ranks).
-[[native]] fn skill_is_untrained(skill: Skill): bool;
+[[value_type]]
+type SpecialAbility {
+    spell: Spell;
+    uses: int;     // 1 if present, 0 if not
+    level: int;
+};
 
 // == Propsets ================================================================
 // ============================================================================
@@ -70,12 +121,14 @@ type CreatureStats {
     plot: int;
     chunk_death: int;
     bodybag: int;
+    special_abilities: array!(SpecialAbility);
 };
 
 // Vital state — changes in combat, persisted to disk
 [[propset(Creature)]]
 type CreatureHealth {
     hp: int;
+    hp_base_for_max: int;
     hp_current: int;
     hp_max: int;
     hp_temp: int;
@@ -90,6 +143,21 @@ type CreatureLevels {
     class_levels: int[8];   // Level count per slot
     xp: int;
     walkrate: int;
+};
+
+[[value_type]]
+type CombatWeapon {
+    ab_ability: int;     // attack bonus from ability score (STR, or DEX via weapon finesse)
+    ab_mod: int;         // weapon attack bonus (enhancement/attack bonus IP + weapon feats)
+    dmg_ability: int;    // damage bonus from ability score
+    iter: int;           // iteration penalty factor
+    power: int;          // weapon power for DR bypass
+    base_dice: int;      // base weapon damage dice count
+    base_sides: int;     // base weapon damage die sides
+    base_bonus: int;     // base weapon damage bonus
+    base_dmg_flags: int; // damage type bitmask (bludgeoning/piercing/slashing)
+    crit_range: int;     // critical threat range
+    crit_mult: int;      // critical multiplier
 };
 
 // Transient combat state — resets between sessions, not persisted
@@ -151,4 +219,66 @@ type CreatureCombat {
     ability_cache_effect_epoch: int;
     ability_cache_progression_epoch: int;
     ability_scores: int[6];
+
+    weapons: CombatWeapon[7];
+};
+
+// Combat cache - precomputed values for fast attack resolution.
+// Invalidated when effect/progression/equip/mode epochs change.
+[[propset(Creature)]]
+type CreatureCombatCache {
+    // === OFFENSE ===
+    ab_onhand: int;
+    ab_offhand: int;
+    ab_cweapon: int;
+    ab_unarmed: int;
+    ab_target: int;
+
+    ab_nt_cache_valid: int;
+    ab_nt_effect_epoch: int;
+    ab_nt_progression_epoch: int;
+    ab_nt_equip_epoch: int;
+    ab_nt_mode_epoch: int;
+
+    base_attack_bonus: int;
+    feat_flags: int;
+    dual_wield_penalty_on: int;
+    dual_wield_penalty_off: int;
+    monk_power_bonus: int;
+    enchant_arrow_bonus: int;
+
+    off_effect_epoch: int;
+    off_progression_epoch: int;
+    off_equip_epoch: int;
+    off_mode_epoch: int;
+
+    base_dice: int;
+    base_sides: int;
+    base_bonus: int;
+
+    crit_threat: int;
+    crit_mult: int;
+    weapon_power: int;
+
+    // === DEFENSE ===
+    // Note: Best resistance/DR effects are queried fresh during combat
+    // Cache is invalidated via defense_epoch when these effects change
+    immune_slashing: int;
+    immune_piercing: int;
+    immune_bludgeoning: int;
+    immune_fire: int;
+    immune_cold: int;
+    immune_electrical: int;
+    immune_acid: int;
+    immune_sonic: int;
+    immune_divine: int;
+    immune_magical: int;
+    immune_positive: int;
+    immune_negative: int;
+
+    // === INVALIDATION EPOCHS ===
+    effect_epoch: int;
+    progression_epoch: int;
+    equip_epoch: int;
+    mode_epoch: int;
 };
