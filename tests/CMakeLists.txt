@@ -13,6 +13,7 @@ add_custom_target(copy-files2 ALL
 # Need .cpp extension for ctest
 add_executable(rollnw_test
     main.cpp
+    nwn1_test_builders.cpp
 
     formats_dialog.cpp
     formats_faction.cpp
@@ -59,7 +60,6 @@ add_executable(rollnw_test
     rules_random.cpp
     rules_requirement.cpp
     rules_runtime_object.cpp
-    rules_modifier.cpp
 
     script_nss.cpp
 
@@ -69,7 +69,6 @@ add_executable(rollnw_test
     smalls_bytecode.cpp
     smalls_bytecode_verifier.cpp
     smalls_compiler.cpp
-    smalls_combat_parity.cpp
     smalls_gc.cpp
     smalls_diagnostics.cpp
     smalls_lexer.cpp
@@ -85,6 +84,7 @@ add_executable(rollnw_test
     smalls_resolver_array.cpp
     smalls_resolver_types.cpp
     smalls_lsp.cpp
+    smalls_lsp_text.cpp
     smalls_runtime.cpp
     smalls_const_eval.cpp
     smalls_corpus.cpp
@@ -107,6 +107,7 @@ add_dependencies(rollnw_test copy-files2)
 
 target_include_directories(rollnw_test PRIVATE
     ../lib
+    ../tools/smalls-lsp
 )
 
 target_link_libraries(rollnw_test PRIVATE

@@ -76,6 +76,7 @@ add_library(nw STATIC
     profiles/nwn1/propset_gff_exporter.cpp
     profiles/nwn1/propset_populate.cpp
     profiles/nwn1/rules.cpp
+    profiles/nwn1/scriptbridge.cpp
     profiles/nwn1/scriptapi.cpp
 
     resources/assets.cpp
