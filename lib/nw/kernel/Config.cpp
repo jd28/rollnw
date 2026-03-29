@@ -49,6 +49,11 @@ const std::string& Config::combat_policy_module() const noexcept
     return options_.combat_policy_module;
 }
 
+const std::string& Config::effects_policy_module() const noexcept
+{
+    return options_.effects_policy_module;
+}
+
 const std::string& Config::init_module() const noexcept
 {
     return options_.init_module;

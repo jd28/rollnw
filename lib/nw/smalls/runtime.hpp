@@ -954,6 +954,13 @@ public:
     struct TwoDAColumnMapping {
         String column; // 2da column name, e.g. "HitDie"
         String field;  // smalls struct field name, e.g. "hit_die"
+        /// Optional case-insensitive string→int enum map. When non-empty, the column is
+        /// read as a string and looked up here; unrecognized values produce -1.
+        Vector<std::pair<String, int32_t>> string_enum;
+        /// Optional secondary 2DA loader. When non-empty, `column` names a 2DA resource;
+        /// that 2DA is loaded and each row fills one element of the listed fixed-array fields.
+        /// `field` is unused in this mode. Maps secondary_column → primary_fixed_array_field.
+        Vector<std::pair<String, String>> secondary_columns;
     };
 
     /// Registered converter for a config-array path: read from a .2da instead of .smalls files.

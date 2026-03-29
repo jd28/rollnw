@@ -12,6 +12,7 @@ struct ConfigOptions {
     bool include_user = true;    ///< Load User files, note: if false, value overrides ``include_nwsync``
     std::string profile = "nwn1";
     std::string combat_policy_module = "nwn1.combat";
+    std::string effects_policy_module = "nwn1.effects";
     std::string init_module = "nwn1.init";
 };
 
@@ -34,6 +35,9 @@ struct Config {
 
     /// Gets configured combat policy module path
     const std::string& combat_policy_module() const noexcept;
+
+    /// Gets configured effects policy module path
+    const std::string& effects_policy_module() const noexcept;
 
     /// Gets configured init module path
     const std::string& init_module() const noexcept;

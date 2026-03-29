@@ -2772,8 +2772,9 @@ void AstCompiler::visit(PathExpression* expr)
         const FieldDef& field = struct_def->fields[field_idx];
 
         // Check if this is a fixed array field that might be indexed
+        // Only use short-circuit for heap structs - value types need the field to be extracted first
         const Type* field_type = runtime_->get_type(field.type_id);
-        if (allow_fixed_array_short_circuit_ && field_type && field_type->type_kind == TK_fixed_array && field_type->type_params[0].is<TypeID>() && field_type->type_params[1].is<int32_t>()) {
+        if (allow_fixed_array_short_circuit_ && !is_value_type(current_type) && field_type && field_type->type_kind == TK_fixed_array && field_type->type_params[0].is<TypeID>() && field_type->type_params[1].is<int32_t>()) {
             // This is a fixed array field - set up info for potential direct indexing
             TypeID elem_type_id = field_type->type_params[0].as<TypeID>();
             const Type* elem_type = runtime_->get_type(elem_type_id);
@@ -2783,7 +2784,7 @@ void AstCompiler::visit(PathExpression* expr)
                 pending_fixed_array_field_.elem_size = elem_type->size;
                 pending_fixed_array_field_.array_size = field_type->type_params[1].as<int32_t>();
                 pending_fixed_array_field_.elem_type_id = elem_type_id;
-                pending_fixed_array_field_.is_heap_struct = !is_value_type(current_type);
+                pending_fixed_array_field_.is_heap_struct = true;
                 pending_fixed_array_field_.active = true;
                 // Don't emit field access - leave it for IndexExpression to handle directly
                 current_type = field.type_id;

@@ -1,10 +1,12 @@
 #include "propset_populate.hpp"
 
+#include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../objects/Door.hpp"
 #include "../../objects/Item.hpp"
 #include "../../objects/ObjectBase.hpp"
 #include "../../objects/Placeable.hpp"
+#include "../../objects/Player.hpp"
 #include "../../smalls/Array.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/HandlePool.hpp"
@@ -16,6 +18,8 @@ namespace nwn1 {
 void populate_item_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj);
 
 // -- Helpers -----------------------------------------------------------------
+
+static constexpr uint32_t item_feature_on_hit_properties = 1u << 0;
 
 static const nw::smalls::StructDef* struct_def_from_tid(nw::smalls::Runtime* rt,
     nw::smalls::TypeID tid)
@@ -58,6 +62,71 @@ static void fill_int_array(nw::smalls::Runtime* rt, const nw::smalls::Value& ref
     if (!arr) { return; }
     for (const auto& elem : container) {
         arr->append_value(nw::smalls::Value::make_int(proj(elem)), *rt);
+    }
+}
+
+static void fill_item_property_array(nw::smalls::Runtime* rt, const nw::smalls::Value& ref,
+    const nw::smalls::StructDef* def, const char* name, const nw::Vector<nw::ItemProperty>& properties)
+{
+    uint32_t idx = def->field_index(name);
+    if (idx == UINT32_MAX) { return; }
+
+    nw::smalls::TypeID field_type = def->fields[idx].type_id;
+    nw::smalls::Value arr_val = rt->read_value_field_at_offset(ref, def->fields[idx].offset, field_type);
+    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
+    nw::smalls::IArray* arr = rt->object_pool().get_unmanaged_array(h);
+    if (!arr) { return; }
+
+    arr->clear();
+
+    nw::smalls::TypeID ip_tid = rt->type_id("core.item.ItemProperty", false);
+    if (ip_tid == nw::smalls::invalid_type_id) { return; }
+    const nw::smalls::Type* ip_type = rt->get_type(ip_tid);
+    const nw::smalls::StructDef* ip_def = struct_def_from_tid(rt, ip_tid);
+    if (!ip_type || !ip_def) { return; }
+
+    nw::smalls::HeapPtr ip_ptr = rt->heap_.allocate(ip_type->size, ip_type->alignment, ip_tid);
+    nw::smalls::Value ip_val = nw::smalls::Value::make_heap(ip_ptr, ip_tid);
+    for (const auto& ip : properties) {
+        write_int(rt, ip_val, ip_def, "prop_type", static_cast<int32_t>(ip.type));
+        write_int(rt, ip_val, ip_def, "subtype", static_cast<int32_t>(ip.subtype));
+        write_int(rt, ip_val, ip_def, "cost_table", static_cast<int32_t>(ip.cost_table));
+        write_int(rt, ip_val, ip_def, "cost_value", static_cast<int32_t>(ip.cost_value));
+        write_int(rt, ip_val, ip_def, "param_table", static_cast<int32_t>(ip.param_table));
+        write_int(rt, ip_val, ip_def, "param_value", static_cast<int32_t>(ip.param_value));
+        arr->append_value(ip_val, *rt);
+    }
+}
+
+static void fill_special_ability_array(nw::smalls::Runtime* rt, const nw::smalls::Value& ref,
+    const nw::smalls::StructDef* def, const nw::Creature* cre)
+{
+    uint32_t idx = def->field_index("special_abilities");
+    if (idx == UINT32_MAX) { return; }
+
+    nw::smalls::TypeID field_type = def->fields[idx].type_id;
+    nw::smalls::Value arr_val = rt->read_value_field_at_offset(ref, def->fields[idx].offset, field_type);
+    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
+    nw::smalls::IArray* arr = rt->object_pool().get_unmanaged_array(h);
+    if (!arr) { return; }
+
+    arr->clear();
+
+    if (cre->combat_info.special_abilities.empty()) { return; }
+
+    nw::smalls::TypeID sa_tid = rt->type_id("core.creature.SpecialAbility", false);
+    if (sa_tid == nw::smalls::invalid_type_id) { return; }
+    const nw::smalls::Type* sa_type = rt->get_type(sa_tid);
+    const nw::smalls::StructDef* sa_def = struct_def_from_tid(rt, sa_tid);
+    if (!sa_type || !sa_def) { return; }
+
+    nw::smalls::HeapPtr sa_ptr = rt->heap_.allocate(sa_type->size, sa_type->alignment, sa_tid);
+    nw::smalls::Value sa_val = nw::smalls::Value::make_heap(sa_ptr, sa_tid);
+    for (const auto& e : cre->combat_info.special_abilities) {
+        write_int(rt, sa_val, sa_def, "spell", static_cast<int32_t>(*e.spell));
+        write_int(rt, sa_val, sa_def, "uses", 1);
+        write_int(rt, sa_val, sa_def, "level", static_cast<int32_t>(e.level));
+        arr->append_value(sa_val, *rt);
     }
 }
 
@@ -139,6 +208,7 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
                     write_int(rt, ref, def, "plot", cre->plot ? 1 : 0);
                     write_int(rt, ref, def, "chunk_death", cre->chunk_death);
                     write_int(rt, ref, def, "bodybag", cre->bodybag);
+                    fill_special_ability_array(rt, ref, def, cre);
                 }
             }
         }
@@ -152,7 +222,16 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
             if (ref.type_id != nw::smalls::invalid_type_id) {
                 const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
                 if (def) {
+                    int32_t hp_base_for_max = cre->hp;
+                    if (auto* player = obj->as_player()) {
+                        hp_base_for_max = 0;
+                        for (const auto& lu : player->history.entries) {
+                            hp_base_for_max += lu.hitpoints;
+                        }
+                    }
+
                     write_int(rt, ref, def, "hp", cre->hp);
+                    write_int(rt, ref, def, "hp_base_for_max", hp_base_for_max);
                     write_int(rt, ref, def, "hp_current", cre->hp_current);
                     write_int(rt, ref, def, "hp_max", cre->hp_max);
                     write_int(rt, ref, def, "hp_temp", cre->hp_temp);
@@ -249,6 +328,8 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
             populate_item_propsets(rt, it);
         }
     }
+
+    profile_done();
 }
 
 // -- Item --------------------------------------------------------------------
@@ -267,7 +348,32 @@ void populate_item_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
     const nw::smalls::StructDef* def = struct_def_from_tid(rt, tid);
     if (!def) { return; }
 
+    int32_t armor_dex_bonus = 0;
+    int32_t armor_dex_bonus_valid = 0;
+    int32_t armor_ac_bonus = 0;
+    int32_t armor_ac_bonus_valid = 0;
+    if (item->armor_id != -1) {
+        auto& tda = nw::kernel::twodas();
+        if (auto armor = tda.get("armor")) {
+            if (auto result = armor->get<int32_t>(item->armor_id, "DEXBONUS")) {
+                armor_dex_bonus = *result;
+                armor_dex_bonus_valid = 1;
+            }
+            if (auto result = armor->get<int32_t>(item->armor_id, "ACBONUS")) {
+                armor_ac_bonus = *result;
+                armor_ac_bonus_valid = 1;
+            }
+        }
+    }
+
     write_int(rt, ref, def, "base_item", *item->baseitem);
+    write_int(rt, ref, def, "armor_id", item->armor_id);
+    write_int(rt, ref, def, "armor_dex_bonus", armor_dex_bonus);
+    write_int(rt, ref, def, "armor_dex_bonus_valid", armor_dex_bonus_valid);
+    write_int(rt, ref, def, "armor_ac_bonus", armor_ac_bonus);
+    write_int(rt, ref, def, "armor_ac_bonus_valid", armor_ac_bonus_valid);
+    fill_item_property_array(rt, ref, def, "item_properties", item->properties);
+    write_int(rt, ref, def, "has_on_hit", (item->derived_flags & item_feature_on_hit_properties) != 0 ? 1 : 0);
     write_int(rt, ref, def, "cost", static_cast<int32_t>(item->cost));
     write_int(rt, ref, def, "cost_additional", static_cast<int32_t>(item->additional_cost));
     write_int(rt, ref, def, "stack_size", item->stacksize);
@@ -296,6 +402,9 @@ void populate_door_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
 
     write_int(rt, ref, def, "hp", door->hp);
     write_int(rt, ref, def, "hp_current", door->hp_current);
+    write_int(rt, ref, def, "save_fort", door->saves.fort);
+    write_int(rt, ref, def, "save_reflex", door->saves.reflex);
+    write_int(rt, ref, def, "save_will", door->saves.will);
     write_int(rt, ref, def, "hardness", door->hardness);
     write_int(rt, ref, def, "locked", door->lock.locked ? 1 : 0);
     write_int(rt, ref, def, "lock_dc", door->lock.lock_dc);
@@ -323,6 +432,9 @@ void populate_placeable_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
 
     write_int(rt, ref, def, "hp", plc->hp);
     write_int(rt, ref, def, "hp_current", plc->hp_current);
+    write_int(rt, ref, def, "save_fort", plc->saves.fort);
+    write_int(rt, ref, def, "save_reflex", plc->saves.reflex);
+    write_int(rt, ref, def, "save_will", plc->saves.will);
     write_int(rt, ref, def, "hardness", plc->hardness);
     write_int(rt, ref, def, "locked", plc->lock.locked ? 1 : 0);
     write_int(rt, ref, def, "plot", plc->plot ? 1 : 0);

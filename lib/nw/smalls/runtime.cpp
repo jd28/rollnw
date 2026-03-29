@@ -5833,6 +5833,61 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
 
         // Write each mapped column into the corresponding field
         for (const auto& m : conv.mappings) {
+            // Handle secondary 2DA loading (column names a 2DA resource; rows fill fixed arrays)
+            if (!m.secondary_columns.empty()) {
+                StringView table_name;
+                if (!tda.get_to(i, m.column, table_name) || table_name.empty() || table_name == "****") {
+                    continue;
+                }
+                StaticTwoDA sec{kernel::resman().demand({String(table_name), ResourceType::twoda})};
+                if (!sec.is_valid()) continue;
+                size_t sec_nrows = sec.rows();
+
+                for (const auto& [sec_col, prim_field] : m.secondary_columns) {
+                    uint32_t fidx = def->field_index(prim_field);
+                    if (fidx == UINT32_MAX) continue;
+                    const FieldDef& fd = def->fields[fidx];
+
+                    TypeID arr_type = fd.type_id;
+                    const Type* arr_ftype = get_type(arr_type);
+                    while (arr_ftype && (arr_ftype->type_kind == TK_newtype || arr_ftype->type_kind == TK_alias)) {
+                        TypeID next = arr_ftype->type_params[0].as<TypeID>();
+                        if (next == invalid_type_id || next == arr_type) break;
+                        arr_type = next;
+                        arr_ftype = get_type(arr_type);
+                    }
+                    if (!arr_ftype || arr_ftype->type_kind != TK_fixed_array
+                        || !arr_ftype->type_params[0].is<TypeID>()
+                        || !arr_ftype->type_params[1].is<int32_t>()) continue;
+
+                    TypeID elem_type = arr_ftype->type_params[0].as<TypeID>();
+                    int32_t fixed_size = arr_ftype->type_params[1].as<int32_t>();
+                    const Type* elem_obj = get_type(elem_type);
+                    while (elem_obj && (elem_obj->type_kind == TK_newtype || elem_obj->type_kind == TK_alias)) {
+                        TypeID next = elem_obj->type_params[0].as<TypeID>();
+                        if (next == invalid_type_id || next == elem_type) break;
+                        elem_type = next;
+                        elem_obj = get_type(elem_type);
+                    }
+                    if (!elem_obj || elem_obj->type_kind != TK_primitive) continue;
+
+                    uint8_t* fptr = data + fd.offset;
+                    for (size_t j = 0; j < sec_nrows && j < (size_t)fixed_size; ++j) {
+                        uint8_t* eptr = fptr + j * elem_obj->size;
+                        if (elem_type == int_type()) {
+                            int32_t v = 0;
+                            sec.get_to(j, sec_col, v);
+                            *reinterpret_cast<int32_t*>(eptr) = v;
+                        } else if (elem_type == float_type()) {
+                            float v = 0.f;
+                            sec.get_to(j, sec_col, v);
+                            *reinterpret_cast<float*>(eptr) = v;
+                        }
+                    }
+                }
+                continue;
+            }
+
             StringView field_name = m.field;
             int32_t fixed_index = -1;
 
@@ -5922,9 +5977,19 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
             if (!ftype || ftype->type_kind != TK_primitive) continue;
 
             if (field_type == int_type()) {
-                int32_t v = 0;
-                tda.get_to(i, m.column, v);
-                *reinterpret_cast<int32_t*>(fptr) = v;
+                if (!m.string_enum.empty()) {
+                    StringView sv;
+                    tda.get_to(i, m.column, sv);
+                    int32_t v = -1;
+                    for (const auto& [k, kv] : m.string_enum) {
+                        if (nw::string::icmp(k, sv)) { v = kv; break; }
+                    }
+                    *reinterpret_cast<int32_t*>(fptr) = v;
+                } else {
+                    int32_t v = 0;
+                    tda.get_to(i, m.column, v);
+                    *reinterpret_cast<int32_t*>(fptr) = v;
+                }
             } else if (field_type == float_type()) {
                 float v = 0.f;
                 tda.get_to(i, m.column, v);

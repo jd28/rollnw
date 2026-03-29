@@ -29,9 +29,6 @@ struct Rules : public Service {
     /// Initializes rules system
     virtual void initialize(ServiceInitTime time) override;
 
-    /// Gets combat mode functions
-    [[nodiscard]] CombatModeFuncs combat_mode(CombatMode mode);
-
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
 
@@ -41,17 +38,8 @@ struct Rules : public Service {
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
-    /// Registers a combat mode callbacks
-    void register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes);
-
-    /// Registers a special attack callbacks
-    void register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs);
-
     /// Sets a qualifier for a particular requirement type
     void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
-
-    /// Gets special attack functions
-    [[nodiscard]] SpecialAttackFuncs special_attack(SpecialAttack type);
 
     /// Get service stats
     nlohmann::json stats() const override;
@@ -64,8 +52,6 @@ struct Rules : public Service {
     SpellArray spells;
     SpellSchoolArray spellschools;
     SkillArray skills;
-    MasterFeatRegistry master_feats;
-    ModifierRegistry modifiers;
     PhenotypeArray phenotypes;
     AppearanceArray appearances;
     PlaceableArray placeables;
@@ -73,8 +59,6 @@ struct Rules : public Service {
 
 private:
     std::array<bool (*)(const Qualifier&, const ObjectBase*), 256> qualifiers_;
-    std::array<CombatModeFuncs, 32> combat_modes_;
-    absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
     size_t maximum_spell_levels_ = 10;
 };
 
@@ -186,298 +170,6 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
 
     cb(std::get<0>(output));
     return true;
-}
-
-/**
- * @brief Calculates all modifiers of `type` versus an object
- * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus, Callback cb)
- * @tparam Callback Modifier callback function
- */
-template <typename Callback>
-bool resolve_modifier(const ObjectBase* obj, const ModifierType type,
-    const ObjectBase* versus, Callback cb)
-{
-    auto end = std::cend(rules().modifiers);
-    auto it = detail::find_first_modifier_of(std::cbegin(rules().modifiers), end, type, -1);
-    while (it != end && it->type == type) {
-        if (!resolve_modifier(obj, *it, cb, versus, -1)) return false;
-        ++it;
-    }
-    return true;
-}
-
-/**
- * @brief Calculates all modifiers of `type`
- * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, Callback cb)
- * @tparam Callback Modifier callback function
- */
-template <typename Callback>
-bool resolve_modifier(const ObjectBase* obj, const ModifierType type, Callback cb)
-{
-    return resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb);
-}
-
-/**
- * @brief Calculates all modifiers of a `type` and `subtype` versus another object
- * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus, Callback cb)
- * @tparam U is some rule subtype
- * @tparam Callback Modifier callback function
- */
-template <typename SubType, typename Callback>
-bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    const ObjectBase* versus, Callback cb)
-{
-    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    ModifierRegistry::const_iterator it = std::cbegin(rules().modifiers);
-    auto end = std::cend(rules().modifiers);
-    if (subtype != SubType::invalid()) {
-        it = detail::find_first_modifier_of(it, end, type);
-        while (it != end && it->type == type && it->subtype == -1) {
-            if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
-            ++it;
-        }
-    }
-
-    it = detail::find_first_modifier_of(it, end, type, *subtype);
-    while (it != std::cend(rules().modifiers) && it->type == type && it->subtype == *subtype) {
-        if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
-        ++it;
-    }
-    return true;
-}
-
-/**
- * @brief Calculates all modifiers of a `type` and `subtype`
- * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, Callback cb)
- * @tparam U is some rule subtype
- * @tparam Callback Modifier callback function
- */
-template <typename SubType, typename Callback>
-bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    Callback cb)
-{
-    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    return resolve_modifier(obj, type, subtype, nullptr, cb);
-}
-
-/**
- * @brief Maxes all modifiers of `type` versus an object
- * @overload max_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus)
- * @tparam T
- */
-template <typename T>
-T max_modifier(const ObjectBase* obj, const ModifierType type,
-    const ObjectBase* versus)
-{
-    T result{};
-    auto cb = [&result](const T value) { result = std::max(result, value); };
-    resolve_modifier(obj, type, versus, cb);
-    return result;
-}
-
-/**
- * @brief Maxes all modifiers of `type`
- * @overload max_modifier(const ObjectBase* obj, const ModifierType type)
- * @tparam T
- */
-template <typename T>
-T max_modifier(const ObjectBase* obj, const ModifierType type)
-{
-    T result{};
-    auto cb = [&result](const T value) { result = std::max(result, value); };
-    if (!resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb)) { return T{}; }
-    return result;
-}
-
-/**
- * @brief Maxes all modifiers of a `type` and `subtype` versus another object
- * @overload max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus)
- * @tparam T
- * @tparam U is some rule subtype
- */
-template <typename T, typename SubType>
-T max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    const ObjectBase* versus)
-{
-    T result{};
-    auto cb = [&result](const T value) { result = std::max(result, value); };
-    if (!resolve_modifier(obj, type, subtype, versus, cb)) { return T{}; }
-    return result;
-}
-
-/**
- * @brief Maxes all modifiers of a `type` and `subtype`
- * @overload max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
- * @tparam T
- * @tparam U is some rule subtype
- */
-template <typename T, typename SubType>
-T max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
-{
-    T result{};
-    auto cb = [&result](const T value) { result = std::max(result, value); };
-    if (!resolve_modifier(obj, type, subtype, cb)) { return T{}; }
-    return result;
-}
-
-/**
- * @brief Sums all modifiers of `type` versus an object
- * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus)
- * @tparam T
- */
-template <typename T>
-T sum_modifier(const ObjectBase* obj, const ObjectBase* versus, const ModifierType type)
-{
-    T result{};
-    auto cb = [&result](const T value) { result += value; };
-    resolve_modifier(obj, type, versus, cb);
-    return result;
-}
-
-/**
- * @brief Sums all modifiers of `type`
- * @overload sum_modifier(const ObjectBase* obj, const ModifierType type)
- * @tparam T
- */
-template <typename T>
-T sum_modifier(const ObjectBase* obj, const ModifierType type)
-{
-    T result{};
-    auto cb = [&result](const T value) { result += value; };
-    if (!resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb)) { return T{}; }
-    return result;
-}
-
-/**
- * @brief Sums all modifiers of a `type` and `subtype` versus another object
- * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus)
- * @tparam T
- * @tparam U is some rule subtype
- */
-template <typename T, typename SubType>
-T sum_modifier(const ObjectBase* obj, const ObjectBase* versus, const ModifierType type, SubType subtype)
-{
-    T result{};
-    auto cb = [&result](const T value) { result += value; };
-    if (!resolve_modifier(obj, type, subtype, versus, cb)) { return T{}; }
-    return result;
-}
-
-/**
- * @brief Sums all modifiers of a `type` and `subtype`
- * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
- * @tparam T
- * @tparam U is some rule subtype
- */
-template <typename T, typename SubType>
-T sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
-{
-    T result{};
-    auto cb = [&result](const T value) { result += value; };
-    if (!resolve_modifier(obj, type, subtype, cb)) { return T{}; }
-    return result;
-}
-
-// == Master Feats ============================================================
-// ============================================================================
-
-/**
- * @brief Resolves an arbitrary number of master feats
- *
- * @tparam T Return type
- * @tparam U Rule type
- * @tparam Callback Callback type should be ``void(T)``
- * @tparam Args MasterFeat...
- * @param obj Creature object
- * @param type Rule value
- * @param cb This parameter will be called with any valid master feat bonus as a parameter.
- * @param mfeats As many master feats as needed
- */
-template <typename T, typename U, typename Callback, typename... Args>
-void resolve_master_feats(const Creature* obj, U type, Callback cb, Args... mfeats)
-{
-    static_assert(is_rule_type<U>::value, "only rule types allowed");
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
-        "result type can only be int or float");
-
-    if (!obj) { return; }
-
-    std::array<T, sizeof...(Args)> result{};
-    std::array<MasterFeat, sizeof...(Args)> mfs{mfeats...};
-    std::sort(std::begin(mfs), std::end(mfs));
-
-    auto it = std::begin(rules().master_feats.entries());
-    auto end = std::end(rules().master_feats.entries());
-    size_t i = 0;
-
-    for (auto mf : mfs) {
-        MasterFeatEntry mfe{mf, *type, Feat::invalid()};
-        const auto& mf_bonus = rules().master_feats.get_bonus(mf);
-        if (mf_bonus.empty()) { continue; }
-
-        it = std::lower_bound(it, end, mfe);
-        if (it == end) { break; }
-
-        while (it != end && it->type == *type) {
-            if (obj->stats.has_feat(it->feat)) {
-                if (mf_bonus.template is<T>()) {
-                    result[i] = mf_bonus.template as<T>();
-                } else if (mf_bonus.template is<ModifierFunction>()) {
-                    auto res = mf_bonus.template as<ModifierFunction>()(obj, nullptr, -1);
-                    if (res.template is<T>()) {
-                        result[i] = res.template as<T>();
-                    }
-                }
-                break;
-            }
-            ++it;
-        }
-        ++i;
-    }
-    for (const auto& value : result) {
-        cb(value);
-    }
-}
-
-/**
- * @brief Resolves a master feat bonus
- *
- * @tparam T Return type
- * @tparam U Rule type
- * @param obj Creature object
- * @param type Rule value
- * @param mfeat Master feat
- */
-template <typename T, typename U>
-T resolve_master_feat(const Creature* obj, U type, MasterFeat mfeat)
-{
-    T result{};
-    resolve_master_feats<T>(
-        obj, type,
-        [&result](T val) { result = val; },
-        mfeat);
-    return result;
-}
-
-/**
- * @brief Sum master feat bonus
- *
- * @tparam T Return type
- * @tparam U Rule type
- * @tparam Args MasterFeat...
- * @param obj Creature object
- * @param type Rule value
- * @param mfeats ``MasterFeat``s
- */
-template <typename T, typename U, typename... MasterFeats>
-T sum_master_feats(const Creature* obj, U type, MasterFeats... mfeats)
-{
-    T result{};
-    resolve_master_feats<T>(
-        obj, type,
-        [&result](T val) { result += val; },
-        mfeats...);
-    return result;
 }
 
 } // namespace nw::kernel

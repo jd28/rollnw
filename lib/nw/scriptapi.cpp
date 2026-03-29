@@ -4,9 +4,11 @@
 #include "functions.hpp"
 #include "kernel/Rules.hpp"
 #include "kernel/Strings.hpp"
+#include "kernel/TwoDACache.hpp"
 #include "objects/Creature.hpp"
 #include "objects/Item.hpp"
 #include "objects/ObjectManager.hpp"
+#include "profiles/nwn1/scriptbridge.hpp"
 #include "rules/effects.hpp"
 
 namespace nw {
@@ -50,11 +52,7 @@ void destroy_object(ObjectBase* obj)
 bool apply_effect(nw::ObjectBase* obj, nw::Effect* effect)
 {
     if (!obj || !effect) { return false; }
-    if (nw::kernel::effects().apply(obj, effect)) {
-        obj->effects().add(effect);
-        return true;
-    }
-    return false;
+    return nw::kernel::effects().apply_to(obj, effect);
 }
 
 bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype)
@@ -68,8 +66,7 @@ bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype)
 
 bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy)
 {
-    if (nw::kernel::effects().remove(obj, effect)) {
-        obj->effects().remove(effect);
+    if (nw::kernel::effects().remove_from(obj, effect)) {
         if (destroy) { nw::kernel::effects().destroy(effect); }
         return true;
     }
@@ -80,7 +77,6 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
 {
     if (!obj) { return 0; }
 
-    int result = 0;
     nw::Vector<nw::Effect*> to_remove;
     to_remove.reserve(obj->effects().size());
     for (const auto& handle : obj->effects()) {
@@ -89,15 +85,7 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
         }
     }
 
-    for (auto* effect : to_remove) {
-        if (nw::kernel::effects().remove(obj, effect)) {
-            obj->effects().remove(effect);
-            nw::kernel::effects().destroy(effect);
-            ++result;
-        }
-    }
-
-    return result;
+    return static_cast<int>(nw::kernel::effects().remove_from(obj, to_remove, true));
 }
 
 // ============================================================================
@@ -190,6 +178,69 @@ nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat
         --e;
     }
     return nw::Feat::invalid();
+}
+
+// ============================================================================
+// == Creature: Equips ========================================================
+// ============================================================================
+
+bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
+{
+    if (!obj || !item) { return false; }
+
+    auto baseitem = nw::kernel::rules().baseitems.get(item->baseitem);
+    if (!baseitem) { return false; }
+
+    if (!nw::kernel::rules().meets_requirement(baseitem->feat_requirement, obj)) {
+        return false;
+    }
+
+    auto flag = 1u << size_t(slot);
+    return baseitem->equipable_slots & flag;
+}
+
+bool equip_item_in_slot(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
+{
+    if (!obj || !item) { return false; }
+    if (!can_equip_item(obj, item, slot)) { return false; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    if (it.is<nw::Item*>() && it.as<nw::Item*>() == item) {
+        return true;
+    }
+
+    nw::unequip_item_in_slot(obj, slot);
+    obj->equipment.equips[size_t(slot)] = item;
+    ++obj->equipment.equip_version;
+    return true;
+}
+
+nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
+{
+    nw::Item* result = nullptr;
+    if (!obj) { return result; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    if (it.is<nw::Item*>()) {
+        result = it.as<nw::Item*>();
+    }
+    return result;
+}
+
+nw::Item* unequip_item_in_slot(nw::Creature* obj, nw::EquipIndex slot)
+{
+    nw::Item* result = nullptr;
+    if (!obj) { return result; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    if (it.is<nw::Item*>()) {
+        result = it.as<nw::Item*>();
+        if (!result) { return result; }
+
+        it = nullptr;
+        ++obj->equipment.equip_version;
+    }
+    return result;
 }
 
 // ============================================================================

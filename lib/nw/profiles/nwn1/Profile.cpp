@@ -17,46 +17,11 @@
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
 #include "../../smalls/runtime.hpp"
+#include "../../util/profile.hpp"
 
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
-
-namespace {
-
-bool nwn1_resolve_attack_policy(nw::Creature* attacker, nw::ObjectBase* target, nw::AttackData* out)
-{
-    auto data = nwn1::resolve_attack(attacker, target);
-    if (!data) {
-        return false;
-    }
-    if (out) {
-        *out = std::move(*data);
-    }
-    return true;
-}
-
-uint32_t nwn1_resolve_cooldown_policy(const nw::Creature* attacker, uint32_t round_ticks)
-{
-    if (!attacker) {
-        return 1;
-    }
-
-    auto [onhand, offhand] = nwn1::resolve_number_of_attacks(attacker);
-    int attacks_per_round = onhand + offhand + attacker->combat_info.attacks_extra;
-    if (attacks_per_round <= 0) {
-        attacks_per_round = 1;
-    }
-
-    if (round_ticks == 0) {
-        round_ticks = 1;
-    }
-
-    uint32_t cooldown = round_ticks / static_cast<uint32_t>(attacks_per_round);
-    return cooldown > 0 ? cooldown : 1;
-}
-
-} // namespace
 
 namespace nwn1 {
 
@@ -69,48 +34,52 @@ bool Profile::load_rules() const
 {
     LOG_F(INFO, "[nwn1] loading rules...");
 
-    // == Load Effects ========================================================
-    load_effects();
-    load_itemprop_generators();
-
     // == Load Rules ==========================================================
 
-    load_combat_modes();
-    load_modifiers();
-    load_master_feats();
-    load_special_attacks();
     load_qualifiers();
 
-    nw::combat::set_attack_scheduler_policy(&nwn1_resolve_attack_policy, &nwn1_resolve_cooldown_policy);
-
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
-        switch (obj->handle().type) {
-        default:
-            break;
-        case nw::ObjectType::creature: {
-            auto cre = obj->as_creature();
-            cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
-            recompute_all_availabe_spell_slots(cre);
-        } break;
-        }
-
+        NW_PROFILE_SCOPE_N("nwn1::instantiate_callback");
         auto& rt = nw::kernel::runtime();
-        rt.init_object_propsets(obj->handle());
+        {
+            NW_PROFILE_SCOPE_N("nwn1::init_object_propsets");
+            rt.init_object_propsets(obj->handle());
+        }
         switch (obj->handle().type) {
         default:
             break;
         case nw::ObjectType::creature:
-            nwn1::populate_creature_propsets(&rt, obj);
+            {
+                NW_PROFILE_SCOPE_N("nwn1::populate_creature_propsets");
+                nwn1::populate_creature_propsets(&rt, obj);
+            }
             break;
         case nw::ObjectType::item:
-            nwn1::populate_item_propsets(&rt, obj);
+            {
+                NW_PROFILE_SCOPE_N("nwn1::populate_item_propsets");
+                nwn1::populate_item_propsets(&rt, obj);
+            }
             break;
         case nw::ObjectType::door:
-            nwn1::populate_door_propsets(&rt, obj);
+            {
+                NW_PROFILE_SCOPE_N("nwn1::populate_door_propsets");
+                nwn1::populate_door_propsets(&rt, obj);
+            }
             break;
         case nw::ObjectType::placeable:
-            nwn1::populate_placeable_propsets(&rt, obj);
+            {
+                NW_PROFILE_SCOPE_N("nwn1::populate_placeable_propsets");
+                nwn1::populate_placeable_propsets(&rt, obj);
+            }
             break;
+        }
+
+        if (obj->handle().type == nw::ObjectType::creature) {
+            NW_PROFILE_SCOPE_N("nwn1::creature_post_instantiate");
+            auto* cre = obj->as_creature();
+            cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
+            recompute_all_availabe_spell_slots(cre);
+            refresh_combat_weapon_cache(cre);
         }
     });
 
@@ -147,44 +116,9 @@ bool Profile::load_rules() const
 
     // BaseItems
     auto& baseitem_array = nw::kernel::rules().baseitems;
-    auto& mfr = nw::kernel::rules().master_feats;
     if (baseitems.is_valid()) {
         for (size_t i = 0; i < baseitems.rows(); ++i) {
             auto& info = baseitem_array.entries.emplace_back(baseitems.row(i));
-            if (info.valid()) {
-                if (baseitems.get_to(i, "WeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_weapon_focus, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "EpicWeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_weapon_focus_epic, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "WeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_weapon_spec, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "EpicWeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_weapon_spec_epic, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "WeaponImprovedCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_improved_crit, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "EpicWeaponOverwhelmingCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_overwhelming_crit, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "EpicWeaponDevastatingCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_devastating_crit, nw::Feat::make(temp_int));
-                }
-                if (baseitems.get_to(i, "WeaponOfChoiceFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
-                        mfeat_weapon_of_choice, nw::Feat::make(temp_int));
-                }
-            }
         }
     } else {
         throw std::runtime_error("rules: failed to load 'baseitems.2da'");
@@ -542,9 +476,36 @@ bool Profile::load_rules() const
                                                                      CM{"STRING_REF", "name"},
                                                                      CM{"HitDie", "hit_die"},
                                                                      CM{"AttackBonusTable", "attack_table"},
-                                                                     CM{"SavingThrowTable", "saves_table"},
                                                                      CM{"SpellCaster", "spellcaster"},
+                                                                     CM{"SpellcastingAbil", "caster_ability", {
+                                                                                                                  {"str", 0},
+                                                                                                                  {"dex", 1},
+                                                                                                                  {"con", 2},
+                                                                                                                  {"int", 3},
+                                                                                                                  {"wis", 4},
+                                                                                                                  {"cha", 5},
+                                                                                                              }},
+                                                                     CM{"SavingThrowTable", "", {}, {
+                                                                                                       {"FortSave", "fort_saves"},
+                                                                                                       {"RefSave", "reflex_saves"},
+                                                                                                       {"WillSave", "will_saves"},
+                                                                                                   }},
                                                                  });
+    srt.register_twoda_converter("nwn1.data.spells", "spells", {
+                                                                    CM{"Innate", "innate_level"},
+                                                                    CM{"UserType", "user_type"},
+                                                                    CM{"School", "school", {
+                                                                                               {"G", 0},
+                                                                                               {"A", 1},
+                                                                                               {"C", 2},
+                                                                                               {"D", 3},
+                                                                                               {"E", 4},
+                                                                                               {"V", 5},
+                                                                                               {"I", 6},
+                                                                                               {"N", 7},
+                                                                                               {"T", 8},
+                                                                                           }},
+                                                                });
     srt.register_twoda_converter("nwn1.data.feats", "feat", {
                                                                 CM{"FEAT", "name"},
                                                                 CM{"MINLEVELCLASS", "min_level"},
@@ -569,6 +530,19 @@ bool Profile::load_rules() const
                                                                          CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
                                                                          CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
                                                                      });
+    srt.register_twoda_converter("nwn1.data.skills", "skills", {
+                                                                      CM{"Name", "name"},
+                                                                      CM{"Untrained", "untrained"},
+                                                                      CM{"KeyAbility", "ability", {
+                                                                                                      {"str", 0},
+                                                                                                      {"dex", 1},
+                                                                                                      {"con", 2},
+                                                                                                      {"int", 3},
+                                                                                                      {"wis", 4},
+                                                                                                      {"cha", 5},
+                                                                                                  }},
+                                                                      CM{"ArmorCheckPenalty", "armor_check_penalty"},
+                                                                  });
     srt.register_twoda_converter("nwn1.data.races", "racialtypes", {
                                                                        CM{"Name", "name"},
                                                                        CM{"StrAdjust", "abilities[0]"},

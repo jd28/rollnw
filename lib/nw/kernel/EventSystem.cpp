@@ -2,6 +2,7 @@
 
 #include "../objects/ObjectManager.hpp"
 #include "../rules/effects.hpp"
+#include "../scriptapi.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -126,7 +127,7 @@ int EventSystem::process()
                 break;
             }
 
-            if (!object || !effects().apply(object, eff)) {
+            if (!object || !nw::apply_effect(object, eff)) {
                 effects().destroy(eff);
             }
         } break;
@@ -138,7 +139,7 @@ int EventSystem::process()
                 break;
             }
 
-            if (!object || effects().remove(object, eff)) {
+            if (!object || nw::remove_effect(object, eff, false)) {
                 effects().destroy(eff);
             }
         } break;

@@ -14,6 +14,9 @@
 #include "../objects/Store.hpp"
 #include "../objects/Trigger.hpp"
 #include "../objects/Waypoint.hpp"
+#include "../util/profile.hpp"
+
+#include <chrono>
 
 namespace nw {
 
@@ -256,13 +259,34 @@ nw::Player* ObjectManager::load_player(StringView cdkey, StringView resref)
     return obj;
 }
 
-Area* ObjectManager::make_area(Resref area)
+Area* ObjectManager::make_area(Resref area, ObjectManager::AreaLoadProfile* profile)
 {
+    NW_PROFILE_SCOPE_N("ObjectManager::make_area");
+    auto t0 = std::chrono::high_resolution_clock::now();
     Gff are{kernel::resman().demand({area, ResourceType::are})};
     Gff git{kernel::resman().demand({area, ResourceType::git})};
     Gff gic{kernel::resman().demand({area, ResourceType::gic})};
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     Area* obj = make<Area>();
+
     deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    if (profile) {
+        profile->demand_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        profile->deserialize_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        profile->creatures += static_cast<uint32_t>(obj->creatures.size());
+        profile->doors += static_cast<uint32_t>(obj->doors.size());
+        profile->encounters += static_cast<uint32_t>(obj->encounters.size());
+        profile->items += static_cast<uint32_t>(obj->items.size());
+        profile->placeables += static_cast<uint32_t>(obj->placeables.size());
+        profile->sounds += static_cast<uint32_t>(obj->sounds.size());
+        profile->stores += static_cast<uint32_t>(obj->stores.size());
+        profile->triggers += static_cast<uint32_t>(obj->triggers.size());
+        profile->waypoints += static_cast<uint32_t>(obj->waypoints.size());
+    }
+
     return obj;
 }
 

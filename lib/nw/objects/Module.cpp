@@ -5,8 +5,12 @@
 #include "../serialization/GffBuilder.hpp"
 #include "Area.hpp"
 #include "ObjectManager.hpp"
+#include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <array>
 
 namespace nw {
 
@@ -110,16 +114,53 @@ void Module::clear()
 
 bool Module::instantiate()
 {
+    NW_PROFILE_SCOPE_N("Module::instantiate");
     if (instantiated_) { return true; }
 
     auto start = std::chrono::high_resolution_clock::now();
+
+    int64_t area_make_ms = 0;
+    int64_t area_instantiate_ms = 0;
+    int64_t slowest_area_ms = -1;
+    Resref slowest_area;
+    static constexpr size_t top_area_count = 3;
+    std::array<std::pair<int64_t, Resref>, top_area_count> top_slowest_areas{};
+    for (auto& it : top_slowest_areas) {
+        it.first = -1;
+    }
+    ObjectManager::AreaLoadProfile profile{};
 
     auto& area_list = areas.as<Vector<Resref>>();
     Vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
-        auto a = nw::kernel::objects().make_area(area);
+        auto t0 = std::chrono::high_resolution_clock::now();
+        auto a = nw::kernel::objects().make_area(area, &profile);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        area_make_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+
+        auto t2 = std::chrono::high_resolution_clock::now();
         a->instantiate();
+        auto t3 = std::chrono::high_resolution_clock::now();
+        area_instantiate_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count();
+
+        auto total_area_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t0).count();
+        if (total_area_ms > slowest_area_ms) {
+            slowest_area_ms = total_area_ms;
+            slowest_area = area;
+        }
+
+        if (total_area_ms > top_slowest_areas.back().first) {
+            top_slowest_areas.back() = {total_area_ms, area};
+            for (size_t i = top_area_count - 1; i > 0; --i) {
+                if (top_slowest_areas[i].first > top_slowest_areas[i - 1].first) {
+                    std::swap(top_slowest_areas[i], top_slowest_areas[i - 1]);
+                } else {
+                    break;
+                }
+            }
+        }
+
         area_objects.push_back(a);
     }
     areas = std::move(area_objects);
@@ -127,6 +168,25 @@ bool Module::instantiate()
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     LOG_F(INFO, "kernel: instantiated module: {} areas in {}ms", area_count(),
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+
+    NW_PROFILE_PLOT("nw.module.instantiate.area_make_ms", area_make_ms);
+    NW_PROFILE_PLOT("nw.module.instantiate.area_demand_ms", profile.demand_ms);
+    NW_PROFILE_PLOT("nw.module.instantiate.area_deserialize_ms", profile.deserialize_ms);
+    NW_PROFILE_PLOT("nw.module.instantiate.area_instantiate_ms", area_instantiate_ms);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.creatures", profile.creatures);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.doors", profile.doors);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.encounters", profile.encounters);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.items", profile.items);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.placeables", profile.placeables);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.sounds", profile.sounds);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.stores", profile.stores);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.triggers", profile.triggers);
+    NW_PROFILE_PLOT("nw.module.instantiate.objects.waypoints", profile.waypoints);
+    NW_PROFILE_PLOT("nw.module.instantiate.slowest_area_ms", std::max<int64_t>(0, slowest_area_ms));
+    NW_PROFILE_TEXT(slowest_area.view().data(), slowest_area.view().size());
+    NW_PROFILE_PLOT("nw.module.instantiate.top1_ms", std::max<int64_t>(0, top_slowest_areas[0].first));
+    NW_PROFILE_PLOT("nw.module.instantiate.top2_ms", std::max<int64_t>(0, top_slowest_areas[1].first));
+    NW_PROFILE_PLOT("nw.module.instantiate.top3_ms", std::max<int64_t>(0, top_slowest_areas[2].first));
 
     instantiated_ = true;
     return true;

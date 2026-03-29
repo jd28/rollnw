@@ -23,8 +23,6 @@ Rules::Rules(MemoryResource* scope)
     , spells{allocator()}
     , spellschools{allocator()}
     , skills{allocator()}
-    , master_feats{allocator()}
-    , modifiers{allocator()}
     , phenotypes{allocator()}
     , appearances{allocator()}
     , placeables{allocator()}
@@ -53,11 +51,6 @@ void Rules::initialize(ServiceInitTime time)
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
-CombatModeFuncs Rules::combat_mode(CombatMode mode)
-{
-    return combat_modes_[mode.idx()];
-}
-
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
     if (qual.type.idx() >= qualifiers_.size()) {
@@ -81,26 +74,9 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
     return true;
 }
 
-void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes)
-{
-    for (auto mode : modes) {
-        combat_modes_[mode.idx()] = callbacks;
-    }
-}
-
-void Rules::register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs)
-{
-    special_attacks_[*type] = funcs;
-}
-
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))
 {
     if (qualifier) { qualifiers_[type.idx()] = qualifier; };
-}
-
-SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
-{
-    return special_attacks_[*type];
 }
 
 nlohmann::json Rules::stats() const

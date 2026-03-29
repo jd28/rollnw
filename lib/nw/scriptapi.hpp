@@ -14,7 +14,6 @@ namespace nw {
 
 struct Creature;
 struct AttackData;
-struct AttackType;
 struct Effect;
 struct EffectType;
 struct Feat;
@@ -65,6 +64,23 @@ bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy = true)
 int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
 // ============================================================================
+// == Creature: Equips ========================================================
+// ============================================================================
+
+/// Determines if an item can be equipped
+bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
+
+/// Equip an item in a slot (slot pointer update only).
+bool equip_item_in_slot(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
+
+/// Gets an equipped item
+/// TODO: legacy compatibility; move equip policy to profile scripts.
+nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
+
+/// Unequip item from slot (slot pointer update only).
+nw::Item* unequip_item_in_slot(nw::Creature* obj, nw::EquipIndex slot);
+
+// ============================================================================
 // == Creature: Feats =========================================================
 // ============================================================================
 
@@ -108,30 +124,8 @@ bool stop_auto_attack(Creature* attacker);
 bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
     uint32_t round_ticks = 60, AttackData* out = nullptr);
 
-// ============================================================================
-// == Creature: Equipment =====================================================
-// ============================================================================
-
-/// Converts equipment slot to attack type.
-AttackType equip_index_to_attack_type(EquipIndex equip);
-
-/// Determines if an item can be equipped.
-bool creature_can_equip_item(const Creature* obj, Item* item, EquipIndex slot);
-
-/// Equips an item into a slot.
-bool creature_equip_item(Creature* obj, Item* item, EquipIndex slot);
-
-/// Returns equipped item for slot.
-Item* creature_get_equipped_item(const Creature* obj, EquipIndex slot);
-
-/// Unequips item from slot.
-Item* creature_unequip_item(Creature* obj, EquipIndex slot);
-
-/// Returns weapon for attack type.
-Item* creature_get_weapon_by_attack_type(const Creature* obj, AttackType type);
-
-/// Resolves current onhand/offhand attack counts.
-std::pair<int, int> creature_resolve_number_of_attacks(const Creature* obj);
+/// Commits queued effect intents produced by resolve_attack.
+int commit_attack_effects(AttackData* data);
 
 // ============================================================================
 // == Item: Properties ========================================================

@@ -5,6 +5,7 @@
 #include "../../rules/Spell.hpp"
 #include "../../rules/attributes.hpp"
 #include "constants.hpp"
+#include "scriptbridge.hpp"
 
 namespace nw {
 enum struct AttackResult;
@@ -42,63 +43,40 @@ struct CombatPolicyTimingSnapshot {
     uint64_t iterations = 0;
 };
 
+struct CombatResolveTimingSnapshot {
+    uint64_t prepare_ns = 0;
+    uint64_t policy_call_ns = 0;
+    uint64_t decode_ns = 0;
+    uint64_t marshal_ns = 0;
+    uint64_t total_ns = 0;
+    uint64_t iterations = 0;
+};
+
 void set_combat_policy_timing_enabled(bool enabled) noexcept;
 void reset_combat_policy_timing() noexcept;
 CombatPolicyTimingSnapshot combat_policy_timing_snapshot() noexcept;
+bool is_combat_policy_timing_enabled() noexcept;
+void record_combat_policy_timing(uint64_t policy_ns, uint64_t decode_ns, uint64_t fallback_ns = 0) noexcept;
 
-// ============================================================================
-// == Object ==================================================================
-// ============================================================================
+void set_combat_resolve_timing_enabled(bool enabled) noexcept;
+void reset_combat_resolve_timing() noexcept;
+CombatResolveTimingSnapshot combat_resolve_timing_snapshot() noexcept;
+bool is_combat_resolve_timing_enabled() noexcept;
+void record_combat_resolve_timing(uint64_t prepare_ns, uint64_t policy_ns, uint64_t decode_ns,
+    uint64_t marshal_ns, uint64_t total_ns) noexcept;
 
-// == Object: Effects =========================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-// == Object: Hit Points ======================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Gets objects current hitpoints
-int get_current_hitpoints(const nw::ObjectBase* obj);
-
-/// Gets objects maximum hit points.
-int get_max_hitpoints(const nw::ObjectBase* obj);
-
-// == Object: Saves ============================================================
-// =============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Determines saving throw
-int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
-    const nw::ObjectBase* versus = nullptr, bool base = false);
-
-// ============================================================================
-// == Creature ================================================================
-// ============================================================================
+/// Calculates a creatures challenge rating
+/// @warning This is currently only an approximation of what the toolset calculates. It can be off by a bit
+/// @ingroup Python
+/// @since 0.46
+float calculate_challenge_rating(const nw::Creature* obj);
 
 // == Creature: Abilities =====================================================
 // ============================================================================
 // TODO: legacy compatibility; remove after migration to script/data APIs.
 
-/// Gets creatures ability score
-int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = false);
-
 /// Gets creatures ability modifier
 int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base = false);
-
-/// Gets creatures dexterity modifier as modified by armor, etc.
-int get_dex_modifier(const nw::Creature* obj);
-
-// == Creature: Armor Class ===================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Calculate Armor Class versus another object
-/// TODO: legacy compatibility; move AC policy to profile scripts.
-int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus, bool is_touch_attack);
-
-/// Calculates the armor class of a piece of armor
-int calculate_item_ac(const nw::Item* obj);
 
 // == Creature: Casting =======================================================
 // ============================================================================
@@ -141,151 +119,12 @@ void recompute_all_availabe_spell_slots(nw::Creature* obj);
 /// Removes a known spell and any preparations thereof.
 void remove_known_spell(nw::Creature* obj, nw::Class class_, nw::Spell spell);
 
-// == Creature: Classes =======================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Determines if monk class abilities are usable and monk class level
-std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj);
-
 // == Creature: Combat ========================================================
 // ============================================================================
-// TODO: legacy compatibility; prefer nw::combat for new code.
+// TODO: legacy compatibility
 
 /// Calculates base attack bonus
 int base_attack_bonus(const nw::Creature* obj);
-
-/// Calculates a creatures challenge rating
-/// @warning This is currently only an approximation of what the toolset calculates. It can be off by a bit
-/// @ingroup Python
-/// @since 0.46
-float calculate_challenge_rating(const nw::Creature* obj);
-
-/// Determine if creature is flanked by an attacker
-bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
-
-/// Resolves an attack
-/// @note All transient book keeping is done at the toplevel of this function,
-/// any other that attacker and/or target are passed to, are passed as const.
-/// TODO: legacy heap-return API; migrate callers to nw::combat::resolve_attack.
-std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
-
-/// Resolves attack bonus
-/// TODO: legacy compatibility; move combat math policy to profile scripts.
-int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);
-
-/// Resolves an attack roll
-/// TODO: legacy compatibility; move combat math policy to profile scripts.
-nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data = nullptr);
-
-/// Resolves attack type
-/// TODO: legacy compatibility; move combat math policy to profile scripts.
-nw::AttackType resolve_attack_type(const nw::Creature* obj);
-
-/// Resolves an concealment - i.e. the highest of concealment and miss chance
-/// @return Concealment amount, bool that if ``true`` is from attacking creature i.e miss chance,
-/// if ``false`` from target object i.e. concealment
-std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged = false);
-
-/// Resolves critical multiplier
-int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs = nullptr);
-
-/// Resolves critical threat range.
-int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
-
-/// Resolves damage immunity
-int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
-
-/// Resolves damage reduction
-std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus = nullptr);
-
-/// Resolves damage resistance
-std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
-
-/// Resolves dual-wield penalty
-std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj);
-
-/// Resolves iteration penalty
-int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type);
-
-/// Resolves number of attacks
-std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);
-
-/// Resolve target state
-nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);
-
-/// Resolve weapon base damage flags
-nw::DamageFlag resolve_weapon_damage_flags(const nw::Item* weapon);
-
-/// Resolves weapon power
-int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon);
-
-/// Determines if a weapon is finessable
-bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
-
-/// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
-int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
-
-// == Creature: Equips ========================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Determines if an item can be equipped
-bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
-
-/// Equip an item
-/// TODO: legacy compatibility; move equip policy to profile scripts.
-bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
-
-/// Gets an equipped item
-/// TODO: legacy compatibility; move equip policy to profile scripts.
-nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
-
-/// Unequips an item
-/// TODO: legacy compatibility; move equip policy to profile scripts.
-nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
-
-// == Creature: Skills ========================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Determines creatures skill rank
-int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
-    nw::ObjectBase* versus = nullptr, bool base = false);
-
-// == Creature: Special Abilities =============================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Determines if a creature has a special ability
-///
-/// @ingroup Python
-/// @since 0.46
-bool get_has_special_ability(const nw::Creature* obj, nw::Spell ability);
-
-/// Determines caster level a special ability
-///
-/// @ingroup Python
-/// @since 0.46
-int get_special_ability_level(const nw::Creature* obj, nw::Spell ability);
-
-/// Determines how many uses a creature has of a special ability
-///
-/// @ingroup Python
-/// @since 0.46
-int get_special_ability_uses(const nw::Creature* obj, nw::Spell ability);
-
-/// Sets the number of uses of a special ability
-///
-/// @ingroup Python
-/// @since 0.46
-void set_special_ability_uses(nw::Creature* obj, nw::Spell ability, int uses, int level = 0);
-
-/// Removes a special ability use
-///
-/// @ingroup Python
-/// @since 0.46
-void remove_special_ability(nw::Creature* obj, nw::Spell ability);
 
 // == Items ===================================================================
 // ============================================================================
@@ -295,110 +134,5 @@ void remove_special_ability(nw::Creature* obj, nw::Spell ability);
 /// @ingroup Python
 /// @since 0.46
 int calculate_item_value(const nw::Item* item);
-
-// == Weapons =================================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Converts an equip index to an attack type
-nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
-
-/// Gets relative weapon size
-/// @note May or may not be what the game does
-int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item);
-
-/// Gets an equipped weapon by attack type
-nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
-
-/// Determines if item is double sided weapon
-bool is_double_sided_weapon(const nw::Item* item);
-
-/// Determines if item is a light weapon
-bool is_light_weapon(const nw::Creature* obj, const nw::Item* item);
-
-/// Determines if item is monk weapon
-bool is_monk_weapon(const nw::Item* item);
-
-/// Determines if item is ranged weapon
-bool is_ranged_weapon(const nw::Item* item);
-
-/// Resolve unarmed base damage
-nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
-
-/// Resolve weapon base damage
-/// @note Includes specialization and arcane archer bonuses
-nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
-
-// ============================================================================
-// == Spells ==================================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-// ============================================================================
-// == Effects =================================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Creates an ability modifier effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
-
-/// Creates an armor class modifier effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier);
-
-/// Creates an attack modifier effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
-
-/// Creates an bonus spell slot effect
-nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level);
-
-/// Creates concealment effect
-nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
-
-/// Creates an damage bonus effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCategory cat = nw::DamageCategory::none);
-
-/// Creates an damage immunity effect
-/// @note Negative values create a vulnerability
-nw::Effect* effect_damage_immunity(nw::Damage type, int value);
-
-/// Creates an damage reduction effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_damage_reduction(int value, int power, int max = 0);
-
-/// Creates an damage resistance effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max = 0);
-
-/// Creates a haste effect
-nw::Effect* effect_haste();
-
-/// Creates temporary hitpoints effect
-/// TODO: legacy compatibility; replace with profile-defined effect builders.
-nw::Effect* effect_hitpoints_temporary(int amount);
-
-/// Creates miss chance effect
-nw::Effect* effect_miss_chance(int value, nw::MissChanceType type = miss_chance_type_normal);
-
-/// Creates an skill modifier effect
-nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs = nw::SaveVersus::invalid());
-
-/// Creates an skill modifier effect
-nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
-
-// ============================================================================
-// == Item Properties =========================================================
-// ============================================================================
-// TODO: legacy compatibility; remove after migration to script/data APIs.
-
-/// Creates ability modifier item property
-/// TODO: legacy compatibility; replace with profile-defined itemprop builders.
-nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
-
-/// Creates haste item property
-nw::ItemProperty itemprop_haste();
 
 } // namespace nwn1

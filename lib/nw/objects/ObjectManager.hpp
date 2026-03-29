@@ -144,8 +144,22 @@ struct ObjectManager : public kernel::Service {
     template <typename T>
     T* make();
 
+    struct AreaLoadProfile {
+        int64_t demand_ms = 0;
+        int64_t deserialize_ms = 0;
+        uint32_t creatures = 0;
+        uint32_t doors = 0;
+        uint32_t encounters = 0;
+        uint32_t items = 0;
+        uint32_t placeables = 0;
+        uint32_t sounds = 0;
+        uint32_t stores = 0;
+        uint32_t triggers = 0;
+        uint32_t waypoints = 0;
+    };
+
     /// Creates an area object
-    Area* make_area(Resref area);
+    Area* make_area(Resref area, AreaLoadProfile* profile = nullptr);
 
     /// Creates a module object
     /// @warning: `nw::kernel::resman().load_module(...)` **must** be called before this.
