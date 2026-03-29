@@ -9,6 +9,7 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/scriptapi.hpp>
 
 #include <filesystem>
 
@@ -47,7 +48,7 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_EQ(*ent3->appearance.id, 6);
     EXPECT_EQ(ent3->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(ent3->soundset, 171);
-    EXPECT_TRUE(nwn1::get_equipped_item(ent3, nw::EquipIndex::chest));
+    EXPECT_TRUE(nw::get_equipped_item(ent3, nw::EquipIndex::chest));
     EXPECT_EQ(ent3->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(ent3->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(ent3->combat_info.special_abilities[0].spell, nw::Spell::make(120));

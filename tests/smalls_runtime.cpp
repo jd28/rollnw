@@ -746,3 +746,31 @@ TEST_F(SmallsRuntime, PreludeFunctionsInExpressions)
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 10);
 }
+
+TEST_F(SmallsRuntime, GenericFunctionCanAccessModuleGlobal)
+{
+    auto& rt = nw::kernel::runtime();
+
+    // Generic function body references a module-level var.
+    // The return type is concrete (int) so the type resolver doesn't choke on $T.
+    std::string_view source = R"(
+        var magic: int = 42;
+
+        fn get_magic_for(x: $T): int {
+            return magic;
+        }
+
+        fn main(): int {
+            return get_magic_for(0);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.generic_module_global", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 42);
+}

@@ -18,6 +18,7 @@
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
+#include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -26,6 +27,7 @@
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
 
+#include <cstdlib>
 #include <random>
 
 // Note the resources loaded here should be default NWN resources distributed in the game install
@@ -35,6 +37,19 @@ namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
+
+static nw::ItemProperty make_itemprop_ability_modifier(nw::Ability ability, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) {
+        return result;
+    }
+
+    result.type = static_cast<uint16_t>(modifier > 0 ? *nwn1::ip_ability_bonus : *nwn1::ip_decreased_ability_score);
+    result.subtype = static_cast<uint16_t>(*ability);
+    result.cost_value = static_cast<uint16_t>(std::abs(modifier));
+    return result;
+}
 
 static fs::path resolve_stdlib_module_path(const char* argv0, std::string_view module)
 {
@@ -58,6 +73,32 @@ static fs::path resolve_stdlib_module_path(const char* argv0, std::string_view m
     }
 
     return cwd_candidate;
+}
+
+static void set_benchmark_working_directory(const char* argv0)
+{
+    std::error_code ec;
+    if (!argv0 || argv0[0] == '\0') {
+        return;
+    }
+
+    fs::path exe_path = fs::absolute(fs::path(argv0), ec);
+    if (ec) {
+        return;
+    }
+
+    fs::path exe_dir = fs::weakly_canonical(exe_path, ec).parent_path();
+    if (ec) {
+        return;
+    }
+
+    fs::path test_data = exe_dir / "test_data";
+    fs::path stdlib = exe_dir / "stdlib";
+    if (fs::exists(test_data, ec) && fs::is_directory(test_data, ec)
+        && fs::exists(stdlib, ec) && fs::is_directory(stdlib, ec)) {
+        ec.clear();
+        fs::current_path(exe_dir, ec);
+    }
 }
 
 static void BM_parse_feat_2da_static(benchmark::State& state)
@@ -161,35 +202,18 @@ static void BM_creature_to_gff_instance(benchmark::State& state)
 }
 BENCHMARK(BM_creature_to_gff_instance);
 
-static void BM_creature_modifier_simple(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->levels.entries[0].id = nwn1::class_type_pale_master;
-    ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
-
-    for (auto _ : state) {
-        int out = 0;
-        nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
-            [&out](int value) { out += value; });
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_creature_modifier_complex(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->levels.entries[0].id = nwn1::class_type_pale_master;
-    ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
-
-    for (auto _ : state) {
-        int out = 0;
-        nwk::resolve_modifier(ent, nwn1::mod_type_hitpoints,
-            [&out](int value) { out += value; });
-        benchmark::DoNotOptimize(out);
-    }
-}
-
 static void BM_creature_get_skill_rank(benchmark::State& state)
+{
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
+    ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
+    for (auto _ : state) {
+        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_get_skill_rank_smalls(benchmark::State& state)
 {
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
@@ -211,12 +235,13 @@ static void BM_creature_ability_score(benchmark::State& state)
     }
 }
 
-static void BM_creature_armor_class(benchmark::State& state)
+static void BM_creature_ability_score_smalls(benchmark::State& state)
 {
-    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
+    ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
     for (auto _ : state) {
-        auto out = nwn1::calculate_ac_versus(obj, vs, false);
+        auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
         benchmark::DoNotOptimize(out);
     }
 }
@@ -298,28 +323,6 @@ static void BM_resources_resman_contains(benchmark::State& state)
 }
 BENCHMARK(BM_resources_resman_contains);
 
-static void BM_rules_master_feat(benchmark::State& state)
-{
-    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    for (auto _ : state) {
-        int out = nw::kernel::sum_master_feats<int>(
-            obj, nwn1::base_item_scimitar,
-            nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_rules_modifier(benchmark::State& state)
-{
-    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    for (auto _ : state) {
-        int modifier = 0;
-        nw::kernel::resolve_modifier(obj, nwn1::mod_type_attack_bonus, nwn1::attack_type_onhand, nullptr,
-            [&modifier](int value) { modifier += value; });
-        benchmark::DoNotOptimize(modifier);
-    }
-}
-
 static void BM_load_module(benchmark::State& state)
 {
     for (auto _ : state) {
@@ -338,20 +341,17 @@ static void BM_start_service(benchmark::State& state)
     }
 }
 // BENCHMARK(BM_start_service);
-BENCHMARK(BM_creature_modifier_simple);
-BENCHMARK(BM_creature_modifier_complex);
+
 BENCHMARK(BM_creature_get_skill_rank);
+BENCHMARK(BM_creature_get_skill_rank_smalls);
 BENCHMARK(BM_creature_ability_score);
-BENCHMARK(BM_creature_armor_class);
+BENCHMARK(BM_creature_ability_score_smalls);
 
 BENCHMARK(BM_script_lex);
 BENCHMARK(BM_script_parse);
 BENCHMARK(BM_script_resolve);
 
 // BENCHMARK(BM_model_parse);
-
-BENCHMARK(BM_rules_master_feat);
-BENCHMARK(BM_rules_modifier);
 
 static void BM_itemprop_smalls_process(benchmark::State& state)
 {
@@ -367,8 +367,8 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     }
 
     item->baseitem = nwn1::base_item_gloves;
-    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
-    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(1), 2));
+    item->properties.push_back(make_itemprop_ability_modifier(nw::Ability::make(0), 2));
+    item->properties.push_back(make_itemprop_ability_modifier(nw::Ability::make(1), 2));
 
     // Prime the smalls lazy generator init before benchmarking
     nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
@@ -403,39 +403,119 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
 }
 BENCHMARK(BM_itemprop_smalls_process);
 
-static void BM_itemprop_cpp_generate(benchmark::State& state)
+static void BM_nwn1_equip_unequip_high_level(benchmark::State& state)
 {
-    auto* creature = nwk::objects().make<nw::Creature>();
-    if (!creature) {
-        state.SkipWithError("failed to create creature");
-        return;
-    }
-    auto* item = nwk::objects().make<nw::Item>();
-    if (!item) {
-        state.SkipWithError("failed to create item");
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
         return;
     }
 
-    item->baseitem = nwn1::base_item_gloves;
-    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(0), 2));
-    item->properties.push_back(nwn1::itemprop_ability_modifier(nw::Ability::make(1), 2));
+    auto* creature = nwk::objects().load_file<nw::Creature>("test_data/user/development/test_creature.utc");
+    auto* item = nwk::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    if (!creature || !item || !creature->instantiate()) {
+        nwk::unload_module();
+        state.SkipWithError("failed to load/instantiate benchmark creature/item");
+        return;
+    }
+
+    if (nw::get_equipped_item(creature, nw::EquipIndex::chest)) {
+        nw::unequip_item_in_slot(creature, nw::EquipIndex::chest);
+    }
+
+    if (!nwn1::equip_item(creature, item, nw::EquipIndex::chest)) {
+        nwk::unload_module();
+        state.SkipWithError("failed to warm up equip_item benchmark");
+        return;
+    }
+
+    if (nwn1::unequip_item(creature, nw::EquipIndex::chest) != item) {
+        nwk::unload_module();
+        state.SkipWithError("failed to warm up unequip_item benchmark");
+        return;
+    }
+
+    auto& rt = nwk::runtime();
+    auto* gc = rt.gc();
+    rt.clear_non_vm_owned_handle_registry();
+    rt.prune_stale_handle_registry();
+    size_t iters = 0;
 
     for (auto _ : state) {
-        for (const auto& ip : item->properties) {
-            auto* eff = nw::kernel::effects().generate(ip, nw::EquipIndex::arms, item->baseitem);
-            if (eff) {
-                eff->handle().creator = item->handle();
-                eff->handle().category = nw::EffectCategory::item;
-                nw::apply_effect(creature, eff);
-            }
+        bool equipped = nwn1::equip_item(creature, item, nw::EquipIndex::chest);
+        auto* removed = nwn1::unequip_item(creature, nw::EquipIndex::chest);
+        benchmark::DoNotOptimize(equipped);
+        benchmark::DoNotOptimize(removed);
+
+        if (!equipped || removed != item) {
+            state.SkipWithError("equip/unequip benchmark iteration failed");
+            break;
         }
-        nw::remove_effects_by(creature, item->handle());
+
+        ++iters;
+        if (gc && (iters % 1024) == 0) {
+            state.PauseTiming();
+            gc->collect_minor();
+            rt.clear_non_vm_owned_handle_registry();
+            rt.prune_stale_handle_registry();
+            state.ResumeTiming();
+        }
     }
 
-    nwk::objects().destroy(item->handle());
-    nwk::objects().destroy(creature->handle());
+    state.SetItemsProcessed(state.iterations() * 2);
+
+    if (nw::get_equipped_item(creature, nw::EquipIndex::chest)) {
+        nwn1::unequip_item(creature, nw::EquipIndex::chest);
+    }
+
+    if (gc) {
+        gc->collect_minor();
+    }
+
+    nwk::unload_module();
 }
-BENCHMARK(BM_itemprop_cpp_generate);
+BENCHMARK(BM_nwn1_equip_unequip_high_level);
+
+static void BM_smalls_bridge_noop(benchmark::State& state)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    if (!module) {
+        state.SkipWithError("failed to load benchmark module");
+        return;
+    }
+
+    auto& rt = nwk::runtime();
+    auto* script = rt.load_module_from_source("bench.noop", R"(
+fn noop(): int {
+    return 1;
+}
+)");
+    if (!script) {
+        nwk::unload_module();
+        state.SkipWithError("failed to compile bench.noop module");
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto warmup = nwn1::bridge::call_nwn1_module_int("bench.noop", "noop", args);
+    if (!warmup || *warmup != 1) {
+        nwk::unload_module();
+        state.SkipWithError("failed to warm up smalls bridge noop benchmark");
+        return;
+    }
+
+    for (auto _ : state) {
+        auto out = nwn1::bridge::call_nwn1_module_int("bench.noop", "noop", args);
+        benchmark::DoNotOptimize(out);
+        if (!out) {
+            state.SkipWithError("smalls bridge noop call failed");
+            break;
+        }
+    }
+
+    nwk::unload_module();
+}
+BENCHMARK(BM_smalls_bridge_noop);
 
 static void BM_kernel_object_lookup(benchmark::State& state)
 {
@@ -465,6 +545,7 @@ BENCHMARK(BM_kernel_object_lookup);
 
 int main(int argc, char** argv)
 {
+    set_benchmark_working_directory(argc > 0 ? argv[0] : nullptr);
     nw::init_logger(argc, argv);
     nwk::config().initialize();
     nwk::services().start();

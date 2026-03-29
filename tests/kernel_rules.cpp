@@ -52,27 +52,6 @@ TEST(KernelRules, Classes)
     EXPECT_EQ(req->main.size(), 4);
 }
 
-TEST(KernelRules, MasterFeats)
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(mod);
-
-    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    EXPECT_TRUE(obj);
-
-    int result = nw::kernel::sum_master_feats<int>(
-        obj, nwn1::base_item_scimitar,
-        nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
-
-    EXPECT_EQ(result, 3);
-
-    int result2 = nw::kernel::sum_master_feats<int>(
-        obj, nwn1::base_item_gloves,
-        nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
-
-    EXPECT_EQ(result2, 0);
-}
-
 TEST(KernelRules, SpellSchools)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

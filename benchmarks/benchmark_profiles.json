@@ -1,17 +1,9 @@
 {
   "benchmarks": {
-    "BM_creature_attack_direct_cpp_module_context": {"domain": "cpp", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context": {"domain": "smalls", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_case_drorry": {"domain": "cpp", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry": {"domain": "smalls", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_case_dexweapfin": {"domain": "cpp", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_case_dexweapfin": {"domain": "smalls", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_case_drorry_magic": {"domain": "cpp", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry_magic": {"domain": "smalls", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_effect_stack/0": {"domain": "cpp", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_effect_stack/5": {"domain": "cpp", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_effect_stack/10": {"domain": "cpp", "group": "combat"},
-    "BM_creature_attack_direct_cpp_module_context_effect_stack/20": {"domain": "cpp", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/0": {"domain": "smalls", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/5": {"domain": "smalls", "group": "combat"},
     "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/10": {"domain": "smalls", "group": "combat"},
@@ -22,8 +14,6 @@
     "BM_smalls_attack_phase_roll": {"domain": "smalls", "group": "combat"},
     "BM_smalls_attack_phase_bonus": {"domain": "smalls", "group": "combat"},
     "BM_smalls_attack_phase_base_damage_result": {"domain": "smalls", "group": "combat"},
-    "BM_creature_attack_bonus": {"domain": "cpp", "group": "combat"},
-    "BM_creature_attack_roll": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/0": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/8": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/32": {"domain": "cpp", "group": "combat"},
@@ -40,6 +30,15 @@
     "BM_smalls_damage_resistance_scan/8": {"domain": "smalls", "group": "combat"},
     "BM_smalls_damage_resistance_scan/32": {"domain": "smalls", "group": "combat"},
     "BM_smalls_damage_resistance_scan/128": {"domain": "smalls", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/10/0": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/10/1": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/10/2": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/100/0": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/100/1": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/100/2": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/1000/0": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/1000/1": {"domain": "cpp", "group": "combat"},
+    "BM_effect_batch_callback_pipeline/1000/2": {"domain": "cpp", "group": "combat"},
     "BM_smalls_execute": {"domain": "smalls", "group": "runtime"},
     "BM_vm_int_arith_loop": {"domain": "smalls", "group": "runtime"},
     "BM_vm_call_loop": {"domain": "smalls", "group": "runtime"},
@@ -56,13 +55,9 @@
   "profiles": {
     "bench-pr": {
       "hard": [
-        "BM_creature_attack_direct_cpp_module_context",
         "BM_creature_attack_direct_nwn1_combat_module_context",
-        "BM_creature_attack_direct_cpp_module_context_case_drorry",
         "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry",
-        "BM_creature_attack_direct_cpp_module_context_case_dexweapfin",
         "BM_creature_attack_direct_nwn1_combat_module_context_case_dexweapfin",
-        "BM_creature_attack_direct_cpp_module_context_case_drorry_magic",
         "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry_magic",
         "BM_creature_attack_policy_minimal_timing_split",
         "BM_creature_attack_policy_full_timing_split",
@@ -103,7 +98,6 @@
     },
     "bench-nightly": {
       "hard": [
-        "BM_creature_attack_direct_cpp_module_context",
         "BM_creature_attack_direct_nwn1_combat_module_context",
         "BM_creature_attack_policy_full_timing_split",
         "BM_smalls_attack_decompose_full_attack_data",
@@ -114,10 +108,6 @@
         "BM_script_resolve"
       ],
       "advisory": [
-        "BM_creature_attack_direct_cpp_module_context_effect_stack/0",
-        "BM_creature_attack_direct_cpp_module_context_effect_stack/5",
-        "BM_creature_attack_direct_cpp_module_context_effect_stack/10",
-        "BM_creature_attack_direct_cpp_module_context_effect_stack/20",
         "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/0",
         "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/5",
         "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/10",
@@ -138,8 +128,6 @@
         "BM_smalls_damage_resistance_scan/8",
         "BM_smalls_damage_resistance_scan/32",
         "BM_smalls_damage_resistance_scan/128",
-        "BM_creature_attack_bonus",
-        "BM_creature_attack_roll",
         "BM_smalls_gc_minor",
         "BM_smalls_gc_major",
         "BM_load_module"
@@ -164,14 +152,6 @@
     }
   },
   "pairs": [
-    {"name": "attack_context", "cpp": "BM_creature_attack_direct_cpp_module_context", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context"},
-    {"name": "attack_case_drorry", "cpp": "BM_creature_attack_direct_cpp_module_context_case_drorry", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry"},
-    {"name": "attack_case_dexweapfin", "cpp": "BM_creature_attack_direct_cpp_module_context_case_dexweapfin", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_case_dexweapfin"},
-    {"name": "attack_case_drorry_magic", "cpp": "BM_creature_attack_direct_cpp_module_context_case_drorry_magic", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry_magic"},
-    {"name": "attack_effect_stack_0", "cpp": "BM_creature_attack_direct_cpp_module_context_effect_stack/0", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/0"},
-    {"name": "attack_effect_stack_5", "cpp": "BM_creature_attack_direct_cpp_module_context_effect_stack/5", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/5"},
-    {"name": "attack_effect_stack_10", "cpp": "BM_creature_attack_direct_cpp_module_context_effect_stack/10", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/10"},
-    {"name": "attack_effect_stack_20", "cpp": "BM_creature_attack_direct_cpp_module_context_effect_stack/20", "smalls": "BM_creature_attack_direct_nwn1_combat_module_context_effect_stack/20"},
     {"name": "itemprop_generate", "cpp": "BM_itemprop_cpp_generate", "smalls": "BM_itemprop_smalls_process"}
   ]
 }

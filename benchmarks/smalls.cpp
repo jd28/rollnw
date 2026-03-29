@@ -1,6 +1,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Memory.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/propset_populate.hpp>
 #include <nw/profiles/nwn1/scriptapi.hpp>
@@ -14,6 +15,9 @@
 
 #include <benchmark/benchmark.h>
 
+#include "../tests/nwn1_test_builders.hpp"
+
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
@@ -513,6 +517,29 @@ static nw::Creature* make_bench_creature()
     return cre;
 }
 
+static nw::Item* make_bench_item_with_properties(int count)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    if (!item) { return nullptr; }
+
+    count = std::max(1, count);
+    item->properties.reserve(static_cast<size_t>(count));
+    for (int i = 0; i < count; ++i) {
+        nw::ItemProperty ip{};
+        ip.type = static_cast<uint16_t>(48 + (i % 8));
+        ip.subtype = static_cast<uint16_t>(i % 4);
+        ip.cost_value = static_cast<uint16_t>((i % 6) + 1);
+        ip.cost_table = static_cast<uint8_t>(i % 3);
+        item->properties.push_back(ip);
+    }
+
+    auto& rt = nw::kernel::runtime();
+    rt.free_object_propsets(item->handle());
+    rt.init_object_propsets(item->handle());
+    nwn1::populate_item_propsets(&rt, item);
+    return item;
+}
+
 // Closure dispatch loop: iterates all registered mod_type_ability closures for
 // a bare creature. Measures the for-loop + closure-call overhead in sum_modifiers
 // with 2 registered closures (class_stat_gain stub + epic_great_ability).
@@ -621,6 +648,219 @@ fn bench(obj: Creature): int {
 }
 BENCHMARK(BM_modifier_get_ability_score);
 
+static void BM_item_property_iter_native(benchmark::State& state)
+{
+    auto* item = make_bench_item_with_properties(static_cast<int>(state.range(0)));
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.item_property_iter_native", R"(
+import core.item as Item;
+
+fn bench(item: Item): int {
+    var sum = 0;
+    var count = Item.property_count(item);
+    for (var i = 0; i < count; i += 1) {
+        var ip = Item.__get_property(item, i);
+        sum += ip.prop_type + ip.cost_value;
+    }
+    return sum;
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile native property iteration benchmark script");
+        nw::kernel::objects().destroy(item->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_val = nw::smalls::Value::make_object(item->handle());
+    item_val.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_val);
+
+    rt.execute_script(script, "bench", args);
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) { gc->collect_minor(); }
+    nw::kernel::objects().destroy(item->handle());
+}
+BENCHMARK(BM_item_property_iter_native)->Arg(4)->Arg(8)->Arg(16);
+
+static void BM_item_property_iter_propset(benchmark::State& state)
+{
+    auto* item = make_bench_item_with_properties(static_cast<int>(state.range(0)));
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.item_property_iter_propset", R"(
+import core.item as Item;
+
+fn bench(item: Item): int {
+    var sum = 0;
+    var stats = get_propset!(Item.ItemStats)(item);
+    for (var ip in stats.item_properties) {
+        sum += ip.prop_type + ip.cost_value;
+    }
+    return sum;
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile propset property iteration benchmark script");
+        nw::kernel::objects().destroy(item->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_val = nw::smalls::Value::make_object(item->handle());
+    item_val.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_val);
+
+    rt.execute_script(script, "bench", args);
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) { gc->collect_minor(); }
+    nw::kernel::objects().destroy(item->handle());
+}
+BENCHMARK(BM_item_property_iter_propset)->Arg(4)->Arg(8)->Arg(16);
+
+static void BM_item_has_property_cpp(benchmark::State& state)
+{
+    auto* item = make_bench_item_with_properties(static_cast<int>(state.range(0)));
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.item_has_property_cpp", R"(
+import core.item as Item;
+
+fn bench(item: Item): int {
+    return Item.has_property(item, 999) ? 1 : 0;
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile item has_property cpp benchmark script");
+        nw::kernel::objects().destroy(item->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_val = nw::smalls::Value::make_object(item->handle());
+    item_val.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_val);
+
+    rt.execute_script(script, "bench", args);
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) { gc->collect_minor(); }
+    nw::kernel::objects().destroy(item->handle());
+}
+BENCHMARK(BM_item_has_property_cpp)->Arg(4)->Arg(8)->Arg(16)->Arg(32);
+
+static void BM_item_has_property_smalls(benchmark::State& state)
+{
+    auto* item = make_bench_item_with_properties(static_cast<int>(state.range(0)));
+    if (!item) {
+        state.SkipWithError("failed to create item");
+        return;
+    }
+
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("bench.item_has_property_smalls", R"(
+import core.item as Item;
+
+fn has_prop_smalls(item: Item, prop_type: int): bool {
+    var stats = get_propset!(Item.ItemStats)(item);
+    for (var ip in stats.item_properties) {
+        if (ip.prop_type == prop_type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn bench(item: Item): int {
+    return has_prop_smalls(item, 999) ? 1 : 0;
+}
+)");
+
+    if (!script || script->errors() != 0) {
+        state.SkipWithError("failed to compile item has_property smalls benchmark script");
+        nw::kernel::objects().destroy(item->handle());
+        return;
+    }
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_val = nw::smalls::Value::make_object(item->handle());
+    item_val.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_val);
+
+    rt.execute_script(script, "bench", args);
+
+    auto* gc = rt.gc();
+    size_t iters = 0;
+    for (auto _ : state) {
+        auto res = rt.execute_script(script, "bench", args);
+        benchmark::DoNotOptimize(res);
+        if (gc && ++iters >= 1024) {
+            state.PauseTiming();
+            gc->collect_minor();
+            state.ResumeTiming();
+            iters = 0;
+        }
+    }
+
+    if (gc) { gc->collect_minor(); }
+    nw::kernel::objects().destroy(item->handle());
+}
+BENCHMARK(BM_item_has_property_smalls)->Arg(4)->Arg(8)->Arg(16)->Arg(32);
+
 static void BM_smalls_damage_reduction_scan(benchmark::State& state)
 {
     auto* target = make_bench_creature();
@@ -634,7 +874,6 @@ static void BM_smalls_damage_reduction_scan(benchmark::State& state)
     for (int i = 0; i < count; ++i) {
         nw::apply_effect(target, nwn1::effect_damage_reduction(5 + (i % 4), 10 + (i % 3), 0));
         nw::apply_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 2 + (i % 3), 0));
-        nw::apply_effect(target, nwn1::effect_concealment(10 + (i % 3) * 5));
     }
 
     auto& rt = nw::kernel::runtime();

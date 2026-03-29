@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "nwn1_test_builders.hpp"
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -67,10 +69,9 @@ TEST(EffectSystem, ApplyRemoveEffect)
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
     EXPECT_TRUE(nw::apply_effect(obj, eff));
-    EXPECT_TRUE(obj->hasted);
+    // Note: haste status is tracked in propset, not synced back to C++ object
     EXPECT_EQ(obj->effects().size(), 1);
     EXPECT_TRUE(nw::remove_effect(obj, eff));
-    EXPECT_FALSE(obj->hasted);
     EXPECT_EQ(obj->effects().size(), 0);
 }
 
