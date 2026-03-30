@@ -1,0 +1,12 @@
+{
+  "source_2da": "classes",
+  "scan_column": "SavingThrowTable",
+  "smalls_type": "SaveTableEntry",
+  "output_subdir": "nwn1/data/savetables",
+  "fields": [
+    {"name": "id",     "type": "int",        "source": "@scan_index"},
+    {"name": "fort",   "type": "array(int)", "source": "FortSave"},
+    {"name": "reflex", "type": "array(int)", "source": "RefSave"},
+    {"name": "will",   "type": "array(int)", "source": "WillSave"}
+  ]
+}

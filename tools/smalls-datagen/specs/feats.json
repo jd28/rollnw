@@ -1,0 +1,19 @@
+{
+  "source_2da": "feat",
+  "smalls_type": "FeatEntry",
+  "output_subdir": "nwn1/data/feats",
+  "valid_column": "FEAT",
+  "filename_source": "@strref:FEAT",
+  "valid_strref_column": "FEAT",
+  "fields": [
+    {"name": "id",        "type": "int",    "source": "@row_index"},
+    {"name": "name",      "type": "StrRef", "source": "FEAT"},
+    {"name": "min_level", "type": "int",    "source": null,          "default": "0"},
+    {"name": "max_cr",    "type": "float",  "source": "MAXCR",       "default": "0.0"},
+    {"name": "passive",   "type": "bool",   "source": null,          "default": "false"},
+    {"name": "uses",      "type": "int",    "source": "USESPERDAY",  "default": "0"},
+    {"name": "epic",      "type": "bool",   "source": "PreReqEpic",  "default": "false"},
+    {"name": "master",    "type": "int",    "source": "MASTERFEAT",  "default": "-1"},
+    {"name": "successor", "type": "int",    "source": "SUCCESSOR",   "default": "-1"}
+  ]
+}

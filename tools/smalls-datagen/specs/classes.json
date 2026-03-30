@@ -1,0 +1,18 @@
+{
+  "source_2da": "classes",
+  "smalls_type": "ClassEntry",
+  "output_subdir": "nwn1/data/classes",
+  "valid_column": "label",
+  "filename_source": "@strref:Name",
+  "valid_strref_column": "Name",
+  "fields": [
+    {"name": "id",             "type": "int",    "source": "@row_index"},
+    {"name": "name",           "type": "StrRef", "source": "Name"},
+    {"name": "hit_die",        "type": "int",    "source": "HitDie",            "default": "6"},
+    {"name": "saves_table",    "type": "int",    "source": "@scan_ref:SavingThrowTable:savetables",  "default": "0"},
+    {"name": "attack_table",   "type": "int",    "source": "@scan_ref:AttackBonusTable:attacktables", "default": "0"},
+    {"name": "spellcaster",    "type": "bool",   "source": "SpellCaster",       "default": "false"},
+    {"name": "caster_ability", "type": "int",    "source": "SpellcastingAbil",  "default": "-1",
+      "enum": {"str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5}}
+  ]
+}

@@ -1,0 +1,89 @@
+from nwn1.rules import { FeatEntry };
+from core.types import { Feat };
+import core.array as Array;
+
+var _loaded = false;
+var _feats: array!(FeatEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _feats = load_config!(FeatEntry)("nwn1.data.feats");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_feats);
+}
+
+fn exists(feat: Feat): bool {
+    _ensure_loaded();
+    var index = feat as int;
+    return index >= 0 && index < Array.len(_feats);
+}
+
+fn name_strref(feat: Feat): StrRef {
+    if (!exists(feat)) {
+        return StrRef(-1);
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.name;
+}
+
+fn uses_per_day(feat: Feat): int {
+    if (!exists(feat)) {
+        return 0;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.uses;
+}
+
+fn is_epic(feat: Feat): bool {
+    if (!exists(feat)) {
+        return false;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.epic;
+}
+
+fn master_feat(feat: Feat): int {
+    if (!exists(feat)) {
+        return -1;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.master;
+}
+
+fn successor(feat: Feat): int {
+    if (!exists(feat)) {
+        return -1;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.successor;
+}
+
+fn min_level(feat: Feat): int {
+    if (!exists(feat)) {
+        return 0;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.min_level;
+}
+
+fn max_cr(feat: Feat): float {
+    if (!exists(feat)) {
+        return 0.0;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.max_cr;
+}
+
+fn is_passive(feat: Feat): bool {
+    if (!exists(feat)) {
+        return false;
+    }
+    var entry = Array.get(_feats, feat as int);
+    return entry.passive;
+}

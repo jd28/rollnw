@@ -1,0 +1,46 @@
+from nwn1.rules import { SaveTableEntry };
+from core.types import { Save };
+import core.array as Array;
+
+var _loaded = false;
+var _tables: array!(SaveTableEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _tables = load_config!(SaveTableEntry)("nwn1.data.savetables");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_tables);
+}
+
+// Returns the save bonus for a progression table at a given level.
+// save_type: Save(1)=Fort Save(2)=Reflex Save(3)=Will
+// Returns 0 for out-of-range table_id, level, or save_type.
+fn save_bonus(table_id: int, level: int, save_type: Save): int {
+    _ensure_loaded();
+    if (table_id < 0 || table_id >= Array.len(_tables) || level < 1) {
+        return 0;
+    }
+    var table = Array.get(_tables, table_id);
+    var idx = level - 1;
+    switch (save_type as int) {
+        case 1: {
+            if (idx >= Array.len(table.fort)) { return 0; }
+            return Array.get(table.fort, idx);
+        }
+        case 2: {
+            if (idx >= Array.len(table.reflex)) { return 0; }
+            return Array.get(table.reflex, idx);
+        }
+        case 3: {
+            if (idx >= Array.len(table.will)) { return 0; }
+            return Array.get(table.will, idx);
+        }
+        default: { return 0; }
+    }
+}

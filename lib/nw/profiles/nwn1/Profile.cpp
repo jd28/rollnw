@@ -16,8 +16,11 @@
 #include "../../rules/combat_scheduler.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
+#include "../../kernel/TwoDACache.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/profile.hpp"
+
+#include <map>
 
 namespace nwk = nw::kernel;
 
@@ -472,10 +475,36 @@ bool Profile::load_rules() const
     // Register 2da-based converters for smalls load_config! paths
     using CM = nw::smalls::Runtime::TwoDAColumnMapping;
     auto& srt = nw::kernel::runtime();
+
+    // Scan classes.2da for unique SavingThrowTable and AttackBonusTable values
+    // and assign stable integer IDs (sorted alphabetically for consistency with datagen).
+    nw::Vector<std::pair<nw::String, int32_t>> save_table_enum;
+    nw::Vector<std::pair<nw::String, int32_t>> atk_table_enum;
+    {
+        auto* cls_tda = nw::kernel::twodas().get("classes");
+        if (cls_tda) {
+            std::map<std::string, int32_t> save_map, atk_map;
+            for (size_t i = 0; i < cls_tda->rows(); ++i) {
+                nw::String tbl;
+                if (cls_tda->get_to(i, "SavingThrowTable", tbl) && !tbl.empty()) {
+                    save_map.emplace(tbl, 0);
+                }
+                if (cls_tda->get_to(i, "AttackBonusTable", tbl) && !tbl.empty()) {
+                    atk_map.emplace(tbl, 0);
+                }
+            }
+            int32_t id = 0;
+            for (auto& [name, _] : save_map) { save_table_enum.push_back({name, id++}); }
+            id = 0;
+            for (auto& [name, _] : atk_map) { atk_table_enum.push_back({name, id++}); }
+        }
+    }
+
     srt.register_twoda_converter("nwn1.data.classes", "classes", {
                                                                      CM{"STRING_REF", "name"},
                                                                      CM{"HitDie", "hit_die"},
-                                                                     CM{"AttackBonusTable", "attack_table"},
+                                                                     CM{"SavingThrowTable", "saves_table", save_table_enum},
+                                                                     CM{"AttackBonusTable", "attack_table", atk_table_enum},
                                                                      CM{"SpellCaster", "spellcaster"},
                                                                      CM{"SpellcastingAbil", "caster_ability", {
                                                                                                                   {"str", 0},
@@ -485,11 +514,6 @@ bool Profile::load_rules() const
                                                                                                                   {"wis", 4},
                                                                                                                   {"cha", 5},
                                                                                                               }},
-                                                                     CM{"SavingThrowTable", "", {}, {
-                                                                                                       {"FortSave", "fort_saves"},
-                                                                                                       {"RefSave", "reflex_saves"},
-                                                                                                       {"WillSave", "will_saves"},
-                                                                                                   }},
                                                                  });
     srt.register_twoda_converter("nwn1.data.spells", "spells", {
                                                                     CM{"Innate", "innate_level"},
@@ -511,6 +535,10 @@ bool Profile::load_rules() const
                                                                 CM{"MINLEVELCLASS", "min_level"},
                                                                 CM{"MAXCR", "max_cr"},
                                                                 CM{"PASSIVE", "passive"},
+                                                                CM{"USESPERDAY", "uses"},
+                                                                CM{"PreReqEpic", "epic"},
+                                                                CM{"MASTERFEAT", "master"},
+                                                                CM{"SUCCESSOR", "successor"},
                                                             });
     srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
                                                                          CM{"Name", "name"},

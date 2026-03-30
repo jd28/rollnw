@@ -1,0 +1,16 @@
+{
+  "source_2da": "skills",
+  "smalls_type": "SkillEntry",
+  "output_subdir": "nwn1/data/skills",
+  "valid_column": "label",
+  "filename_source": "@strref:Name",
+  "valid_strref_column": "Name",
+  "fields": [
+    {"name": "id",                  "type": "int",   "source": "@row_index"},
+    {"name": "name",                "type": "StrRef","source": "Name"},
+    {"name": "untrained",           "type": "bool",  "source": "Untrained",       "default": "false"},
+    {"name": "ability",             "type": "int",   "source": "KeyAbility",      "default": "-1",
+      "enum": {"str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5}},
+    {"name": "armor_check_penalty", "type": "bool",  "source": "ArmorCheckPenalty", "default": "false"}
+  ]
+}

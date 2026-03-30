@@ -1,0 +1,10 @@
+{
+  "source_2da": "classes",
+  "scan_column": "AttackBonusTable",
+  "smalls_type": "AttackTableEntry",
+  "output_subdir": "nwn1/data/attacktables",
+  "fields": [
+    {"name": "id",      "type": "int",        "source": "@scan_index"},
+    {"name": "bonuses", "type": "array(int)", "source": "BAB"}
+  ]
+}

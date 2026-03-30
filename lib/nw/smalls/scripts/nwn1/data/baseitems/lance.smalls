@@ -1,0 +1,20 @@
+BaseItemEntry {
+    id = 92,
+    name = StrRef(111697),
+    stack_size = 1,
+    damage_num = 1,
+    damage_die = 0,
+    crit_threat = 1,
+    crit_multiplier = 3,
+    weapon_type = 1,
+    ranged = false,
+    weapon_size = 2,
+    weapon_focus_feat = -1,
+    epic_weapon_focus_feat = -1,
+    weapon_specialization_feat = -1,
+    epic_weapon_specialization_feat = -1,
+    weapon_improved_critical_feat = -1,
+    epic_weapon_overwhelming_critical_feat = -1,
+    epic_weapon_devastating_critical_feat = -1,
+    weapon_of_choice_feat = -1
+}

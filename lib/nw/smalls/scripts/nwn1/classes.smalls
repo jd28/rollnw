@@ -1,7 +1,8 @@
 from nwn1.rules import { ClassEntry };
 from core.types import { Class, Ability, Save };
-
 import core.array as Array;
+import nwn1.savetables as SaveTables;
+import nwn1.attacktables as AttackTables;
 
 var _loaded = false;
 var _classes: array!(ClassEntry);
@@ -41,15 +42,18 @@ fn caster_ability(class_id: Class): Ability {
 // Returns the class save progression bonus for (class_id, level, save_type).
 // save_type: Save(1)=Fort Save(2)=Reflex Save(3)=Will
 fn save_bonus(class_id: Class, level: int, save_type: Save): int {
-    if (!exists(class_id) || level < 1 || level > 40) {
+    if (!exists(class_id) || level < 1) {
         return 0;
     }
     var entry = Array.get(_classes, class_id as int);
-    var idx = level - 1;
-    switch (save_type as int) {
-        case 1: { return entry.fort_saves[idx]; }
-        case 2: { return entry.reflex_saves[idx]; }
-        case 3: { return entry.will_saves[idx]; }
-        default: { return 0; }
+    return SaveTables.save_bonus(entry.saves_table, level, save_type);
+}
+
+// Returns the base attack bonus for a class at a given level.
+fn attack_bonus(class_id: Class, level: int): int {
+    if (!exists(class_id) || level < 1) {
+        return 0;
     }
+    var entry = Array.get(_classes, class_id as int);
+    return AttackTables.bonus(entry.attack_table, level);
 }

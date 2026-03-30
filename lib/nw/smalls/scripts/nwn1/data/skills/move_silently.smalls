@@ -1,0 +1,7 @@
+SkillEntry {
+    id = 8,
+    name = StrRef(277),
+    untrained = true,
+    ability = 1,
+    armor_check_penalty = true
+}

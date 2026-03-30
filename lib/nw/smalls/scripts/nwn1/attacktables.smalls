@@ -1,0 +1,31 @@
+from nwn1.rules import { AttackTableEntry };
+import core.array as Array;
+
+var _loaded = false;
+var _tables: array!(AttackTableEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _tables = load_config!(AttackTableEntry)("nwn1.data.attacktables");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_tables);
+}
+
+// Returns the base attack bonus for a progression table at a given level.
+// Returns 0 for out-of-range table_id or level.
+fn bonus(table_id: int, level: int): int {
+    _ensure_loaded();
+    if (table_id < 0 || table_id >= Array.len(_tables) || level < 1) {
+        return 0;
+    }
+    var table = Array.get(_tables, table_id);
+    var idx = level - 1;
+    if (idx >= Array.len(table.bonuses)) { return 0; }
+    return Array.get(table.bonuses, idx);
+}

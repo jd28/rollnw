@@ -1,0 +1,16 @@
+{
+  "source_2da": "racialtypes",
+  "smalls_type": "RaceEntry",
+  "output_subdir": "nwn1/data/races",
+  "valid_column": "Name",
+  "filename_source": "@strref:Name",
+  "valid_strref_column": "Name",
+  "fields": [
+    {"name": "id",          "type": "int",     "source": "@row_index"},
+    {"name": "name",        "type": "StrRef",  "source": "Name"},
+    {"name": "size",        "type": "int",     "source": null,                "default": "3"},
+    {"name": "abilities",   "type": "int[6]",  "source": "@array:StrAdjust,DexAdjust,ConAdjust,IntAdjust,WisAdjust,ChaAdjust"},
+    {"name": "cr_modifier", "type": "float",   "source": "CRModifier",        "default": "0.0"},
+    {"name": "player_race", "type": "bool",    "source": "PlayerRace",        "default": "false"}
+  ]
+}

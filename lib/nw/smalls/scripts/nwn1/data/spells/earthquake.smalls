@@ -1,0 +1,6 @@
+SpellEntry {
+    id = 426,
+    innate_level = 8,
+    school = 5,
+    user_type = 1
+}

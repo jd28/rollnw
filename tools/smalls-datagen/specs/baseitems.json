@@ -1,0 +1,28 @@
+{
+  "source_2da": "baseitems",
+  "smalls_type": "BaseItemEntry",
+  "output_subdir": "nwn1/data/baseitems",
+  "valid_column": "label",
+  "filename_source": "@strref:Name",
+  "valid_strref_column": "Name",
+  "fields": [
+    {"name": "id",                                     "type": "int",    "source": "@row_index"},
+    {"name": "name",                                   "type": "StrRef", "source": "Name"},
+    {"name": "stack_size",                             "type": "int",    "source": "Stacking",                        "default": "1"},
+    {"name": "damage_num",                             "type": "int",    "source": "NumDice",                         "default": "0"},
+    {"name": "damage_die",                             "type": "int",    "source": "DieToRoll",                       "default": "0"},
+    {"name": "crit_threat",                            "type": "int",    "source": "CritThreat",                      "default": "0"},
+    {"name": "crit_multiplier",                        "type": "int",    "source": "CritHitMult",                     "default": "0"},
+    {"name": "weapon_type",                            "type": "int",    "source": "WeaponType",                      "default": "0"},
+    {"name": "ranged",                                 "type": "bool",   "source": "RangedWeapon",                    "default": "false"},
+    {"name": "weapon_size",                            "type": "int",    "source": "WeaponSize",                      "default": "0"},
+    {"name": "weapon_focus_feat",                      "type": "int",    "source": "WeaponFocusFeat",                 "default": "-1"},
+    {"name": "epic_weapon_focus_feat",                 "type": "int",    "source": "EpicWeaponFocusFeat",             "default": "-1"},
+    {"name": "weapon_specialization_feat",             "type": "int",    "source": "WeaponSpecializationFeat",        "default": "-1"},
+    {"name": "epic_weapon_specialization_feat",        "type": "int",    "source": "EpicWeaponSpecializationFeat",    "default": "-1"},
+    {"name": "weapon_improved_critical_feat",          "type": "int",    "source": "WeaponImprovedCriticalFeat",      "default": "-1"},
+    {"name": "epic_weapon_overwhelming_critical_feat", "type": "int",    "source": "EpicWeaponOverwhelmingCriticalFeat", "default": "-1"},
+    {"name": "epic_weapon_devastating_critical_feat",  "type": "int",    "source": "EpicWeaponDevastatingCriticalFeat",  "default": "-1"},
+    {"name": "weapon_of_choice_feat",                  "type": "int",    "source": "WeaponOfChoiceFeat",              "default": "-1"}
+  ]
+}

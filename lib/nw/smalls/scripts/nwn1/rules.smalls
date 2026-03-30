@@ -10,12 +10,29 @@ type ClassEntry {
     id:             int;
     name:           StrRef;
     hit_die:        int;
-    attack_table:   int;
+    saves_table:    int;    // index into SaveTableEntry array
+    attack_table:   int;    // index into AttackTableEntry array
     spellcaster:    bool;
     caster_ability: int;    // 0=STR 1=DEX 2=CON 3=INT 4=WIS 5=CHA, -1=none
-    fort_saves:     int[40]; // indexed by level-1 (row 0 = level 1)
-    reflex_saves:   int[40];
-    will_saves:     int[40];
+};
+
+// Shared save progression table. Each entry holds one progression
+// (e.g. "high saves" or "low saves") for all three save types.
+// Indexed by ClassEntry.saves_table.
+type SaveTableEntry {
+    [[index]]
+    id:     int;
+    fort:   array!(int);  // indexed by level-1
+    reflex: array!(int);
+    will:   array!(int);
+};
+
+// Shared attack bonus (BAB) progression table.
+// Indexed by ClassEntry.attack_table.
+type AttackTableEntry {
+    [[index]]
+    id:      int;
+    bonuses: array!(int);  // indexed by level-1
 };
 
 [[value_type]]
@@ -32,9 +49,13 @@ type FeatEntry {
     [[index]]
     id:        int;
     name:      StrRef;
-    min_level: int;
-    max_cr:    float;
-    passive:   bool;
+    min_level: int;    // 0 = no requirement
+    max_cr:    float;  // MAXCR (0.0 = no limit)
+    passive:   bool;   // smalls-side annotation (default false)
+    uses:      int;    // USESPERDAY (0 = unlimited)
+    epic:      bool;   // PreReqEpic
+    master:    int;    // MASTERFEAT (-1 = none)
+    successor: int;    // SUCCESSOR (-1 = none)
 };
 
 [[value_type]]

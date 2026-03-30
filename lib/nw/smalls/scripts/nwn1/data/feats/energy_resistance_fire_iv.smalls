@@ -1,0 +1,11 @@
+FeatEntry {
+    id = 556,
+    name = StrRef(3995),
+    min_level = 0,
+    max_cr = 0.0,
+    passive = false,
+    uses = 0,
+    epic = true,
+    master = 17,
+    successor = 557
+}

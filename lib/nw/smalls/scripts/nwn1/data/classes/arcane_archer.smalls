@@ -1,0 +1,9 @@
+ClassEntry {
+    id = 29,
+    name = StrRef(9003),
+    hit_die = 8,
+    saves_table = 11,
+    attack_table = 0,
+    spellcaster = false,
+    caster_ability = -1
+}
