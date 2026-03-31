@@ -2568,6 +2568,13 @@ void TypeResolver::visit(CastExpression* expr)
         return;
     }
 
+    if (source_type == target_type) {
+        ctx.warnf(expr->range_, "redundant cast: value is already '{}'", source_type);
+        expr->type_id_ = target_type;
+        expr->is_const_ = expr->expr->is_const_;
+        return;
+    }
+
     const Type* source_info = rt.get_type(source_type);
     const Type* target_info = rt.get_type(target_type);
     if (!source_info || !target_info) {

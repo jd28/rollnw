@@ -1961,6 +1961,7 @@ fn test() {
 
     EXPECT_NO_THROW(script.resolve());
     EXPECT_EQ(script.errors(), 0);
+    EXPECT_EQ(script.warnings(), 0u);
 
     auto* func = dynamic_cast<nw::smalls::FunctionDefinition*>(script.ast().decls[0]);
     ASSERT_NE(func, nullptr);
