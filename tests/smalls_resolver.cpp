@@ -1649,7 +1649,7 @@ TEST_F(SmallsResolver, OpaqueTypeWithoutNativeError)
 TEST_F(SmallsResolver, NativeFunctionDeclValid)
 {
     // Register a native module with matching functions
-    nw::kernel::runtime().module("test").function("get_id", +[](int32_t x) -> int32_t { return x; }).function("set_value", +[](int32_t, float) -> void {}).finalize();
+    nw::kernel::runtime().module("test").function("get_id", +[](int32_t x) -> int32_t { return x; }).function("set_value", +[](int32_t, float) -> void { }).finalize();
 
     auto script = make_script(R"(
 [[native]] fn get_id(x: int): int;
@@ -2270,4 +2270,57 @@ TEST_F(SmallsResolver, MutableCopyOfConstStructFieldAssignOk)
     EXPECT_NO_THROW(script.parse());
     EXPECT_NO_THROW(script.resolve());
     EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, NewtypeSwitchOnInt)
+{
+    auto script = make_script(R"(
+type HP(int);
+fn test(hp: HP): int {
+    switch (hp) {
+    case 0:
+        return -1;
+    default:
+        return 1;
+    }
+}
+    )"sv);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, NewtypeSwitchOnString)
+{
+    auto script = make_script(R"(
+type Tag(string);
+fn test(t: Tag): int {
+    switch (t) {
+    case "foo":
+        return 1;
+    default:
+        return 0;
+    }
+}
+    )"sv);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, SameTypeCastWarns)
+{
+    auto script = make_script(R"(
+fn test(): int {
+    var x: int = 5;
+    return x as int;
+}
+    )"sv);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_GT(script.warnings(), 0u);
 }

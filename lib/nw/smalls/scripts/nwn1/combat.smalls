@@ -2416,11 +2416,10 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         if (attack_result != attack_result_hit_by_auto_success
             && target_combat_mode == Const.combat_mode_parry
             && target is Creature) {
-            var tgt = target as Creature;
-            var tgt_combat = _sync_defense_round_window(attacker, tgt);
-            var parry_limit = _target_parry_limit(tgt);
+            var tgt_combat = _sync_defense_round_window(attacker, target);
+            var parry_limit = _target_parry_limit(target);
             if (tgt_combat.parry_uses < parry_limit
-                && NCre.resolve_skill_check(tgt, Const.skill_parry, attack_roll + attack_bonus, attacker)) {
+                && NCre.resolve_skill_check(target, Const.skill_parry, attack_roll + attack_bonus, attacker)) {
                 tgt_combat.parry_uses += 1;
                 attack_result = attack_result_miss_by_roll;
             }
@@ -2429,20 +2428,19 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         // Deflect Arrows: ranged, target not flat-footed, no ranged weapon in righthand,
         // free hand, has Deflect Arrows feat, passes Reflex DC 20
         if (attack_result <= attack_result_hit_by_roll && is_ranged && target is Creature) {
-            var tgt = target as Creature;
-            var tgt_combat = _sync_defense_round_window(attacker, tgt);
+            var tgt_combat = _sync_defense_round_window(attacker, target);
             const target_state_flatfooted = 128;
             if (bit.and(combat.target_state, target_state_flatfooted) == 0) {
-                var rh = Cre.get_equipped_item(tgt, Const.equip_index_righthand);
+                var rh = Cre.get_equipped_item(target, Const.equip_index_righthand);
                 if (!baseitems.ranged(item.get_baseitem_type(rh))) {
-                    var lh = Cre.get_equipped_item(tgt, Const.equip_index_lefthand);
+                    var lh = Cre.get_equipped_item(target, Const.equip_index_lefthand);
                     var rh_empty = item.get_baseitem_type(rh) == Const.base_item_invalid;
                     var lh_empty = item.get_baseitem_type(lh) == Const.base_item_invalid;
                     if ((rh_empty || lh_empty)
                         && tgt_combat.deflect_used == 0
-                        && Cre.has_feat(tgt, Const.feat_deflect_arrows)) {
+                        && Cre.has_feat(target, Const.feat_deflect_arrows)) {
                         if (saving_throws.resolve_saving_throw(
-                            tgt,
+                            target,
                             Const.saving_throw_reflex,
                             20,
                             Const.saving_throw_vs_invalid,
@@ -2459,9 +2457,8 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     // Epic Dodge: target's first successful hit per round is negated.
     // Fires for both melee and ranged. Not blocked by flat-footed (it's a reaction, not DEX-based).
     if (attack_result <= attack_result_hit_by_roll && target is Creature) {
-        var tgt = target as Creature;
-        if (Cre.has_feat(tgt, Const.feat_epic_dodge)) {
-            var tgt_combat = _sync_defense_round_window(attacker, tgt);
+        if (Cre.has_feat(target, Const.feat_epic_dodge)) {
+            var tgt_combat = _sync_defense_round_window(attacker, target);
             if (tgt_combat.epic_dodge_used == 0) {
                 tgt_combat.epic_dodge_used = 1;
                 attack_result = attack_result_miss_by_roll;
@@ -2480,13 +2477,12 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         combat.special_attack_ab = 0;
         if (special_attack.usable(requested_special, attacker, target) && attack_result <= attack_result_hit_by_roll) {
             if (!is_ranged && target is Creature) {
-                var tgt = target as Creature;
                 // Knockdown (23) allows Medium targets; Improved Knockdown (17) allows Large.
                 if (requested_special == Const.feat_knockdown || requested_special == Const.feat_improved_knockdown) {
-                    var tgt_combat = get_propset!(CreatureCombat)(tgt);
+                    var tgt_combat = get_propset!(CreatureCombat)(target);
                     var max_size = requested_special == Const.feat_improved_knockdown ? 4 : 3;
                     if (tgt_combat.size <= max_size) {
-                        if (!NCre.resolve_skill_check(tgt, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
+                        if (!NCre.resolve_skill_check(target, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
                             special_attack_type = requested_special;
                         }
                     }
@@ -2525,12 +2521,11 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     // Sneak Attack: eligible on flanked or flat-footed hit vs. non-immune creature.
     // Dice are rolled here; not crit-multiplied.
     if (special_attack_type == 0 && attack_result <= attack_result_hit_by_roll && target is Creature) {
-        var tgt = target as Creature;
         const target_state_flanked   = 64;
         const target_state_flatfooted = 128;
         var eligible = bit.and(combat.target_state, target_state_flanked) != 0
             || bit.and(combat.target_state, target_state_flatfooted) != 0;
-        if (eligible && !is_sneak_attack_immune(tgt)) {
+        if (eligible && !is_sneak_attack_immune(target)) {
             var sneak_dice = compute_sneak_attack_dice(attacker);
             if (sneak_dice > 0) {
                 special_attack_bonus = roll_dice(sneak_dice, 6, 0, 1);

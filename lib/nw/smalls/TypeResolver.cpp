@@ -3510,7 +3510,17 @@ void TypeResolver::visit(LabelStatement* stmt)
     stmt->expr->accept(this);
 
     auto& rt = nw::kernel::runtime();
-    if (stmt->expr->type_id_ != rt.int_type() && stmt->expr->type_id_ != rt.string_type()) {
+    TypeID base_type = stmt->expr->type_id_;
+    {
+        const Type* t = rt.get_type(base_type);
+        while (t && t->type_kind == TK_newtype && !t->type_params.empty()) {
+            TypeID wrapped = t->type_params[0].as<TypeID>();
+            if (wrapped == invalid_type_id || wrapped == base_type) break;
+            base_type = wrapped;
+            t = rt.get_type(base_type);
+        }
+    }
+    if (base_type != rt.int_type() && base_type != rt.string_type()) {
         ctx.errorf(stmt->expr->range_, "could not convert value to integer or string");
     }
 }
@@ -3531,12 +3541,23 @@ void TypeResolver::visit(SwitchStatement* stmt)
 
     stmt->target->accept(this);
     auto& rt = nw::kernel::runtime();
+
+    TypeID base_type = stmt->target->type_id_;
+    {
+        const Type* t = rt.get_type(base_type);
+        while (t && t->type_kind == TK_newtype && !t->type_params.empty()) {
+            TypeID wrapped = t->type_params[0].as<TypeID>();
+            if (wrapped == invalid_type_id || wrapped == base_type) break;
+            base_type = wrapped;
+            t = rt.get_type(base_type);
+        }
+    }
+
     if (is_expression_sumtype(stmt->target)) {
         resolve_sumtype_switch(*this, stmt);
     } else if (rt.is_object_like_type(stmt->target->type_id_)) {
         resolve_object_switch(*this, stmt);
-    } else if (stmt->target->type_id_ == rt.int_type()
-        || stmt->target->type_id_ == rt.string_type()) {
+    } else if (base_type == rt.int_type() || base_type == rt.string_type()) {
         resolve_basic_switch(*this, stmt);
     } else {
         ctx.errorf(stmt->target->range_, "switch quantity must be an integer, string, sum type, or object");
