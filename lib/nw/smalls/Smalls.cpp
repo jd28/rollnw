@@ -260,9 +260,11 @@ Script::Script(const std::filesystem::path& filename, Context* ctx)
 
 Script::Script(StringView name, StringView script, Context* ctx)
     : ctx_{ctx}
-    , text_{script}
     , ast_(ctx_)
 {
+    // Own the source text so Script lifetime is independent of the caller's buffer.
+    data_.bytes = ByteArray{reinterpret_cast<const uint8_t*>(script.data()), script.size()};
+    text_ = data_.bytes.string_view();
     CHECK_F(!!ctx_, "[script] invalid script context");
     CHECK_F(!name.empty(), "[script] script name cannot be empty");
 
@@ -502,22 +504,35 @@ Context* Script::ctx() const
     return ctx_;
 }
 
+const Script* Script::provider_for_decl(const Declaration* decl) const noexcept
+{
+    if (!decl) { return this; }
+    auto it = decl_providers_.find(decl);
+    return it != decl_providers_.end() ? it->second : this;
+}
+
 Symbol Script::declaration_to_symbol(const Declaration* decl) const
 {
     Symbol result;
     result.decl = decl;
-    result.comment = ast().find_comment(decl->range_.start.line);
+    const Script* owner = provider_for_decl(decl);
+    result.comment = owner->ast().find_comment(decl->range_.start.line);
     result.type = nw::kernel::runtime().type_name(decl->type_id_);
-    result.provider = this;
-    result.view = view_from_range(decl->range_);
+    result.provider = owner;
+    result.view = owner->view_from_range(decl->range_);
 
     if (dynamic_cast<const StructDecl*>(decl)
         || dynamic_cast<const TypeAlias*>(decl)
-        || dynamic_cast<const NewtypeDecl*>(decl)) {
+        || dynamic_cast<const NewtypeDecl*>(decl)
+        || dynamic_cast<const SumDecl*>(decl)) {
         result.kind = SymbolKind::type;
     } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
         result.kind = SymbolKind::function;
-        result.view = view_from_range(fd->range_selection_);
+        result.view = owner->view_from_range(fd->range_selection_);
+    } else if (auto alias = dynamic_cast<const AliasedImportDecl*>(decl)) {
+        result.kind = SymbolKind::module;
+        result.type = "module";
+        result.view = alias->alias.loc.view();
     } else {
         result.kind = SymbolKind::variable;
     }
@@ -648,6 +663,7 @@ void Script::resolve()
         AstResolver resolver{this, ctx_};
         resolver.resolve(&ast_);
         symbol_table_ = resolver.symbol_table();
+        decl_providers_ = resolver.decl_providers_;
 
         immer::map<String, Export> enriched;
         for (const auto& [name, exp] : symbol_table_) {

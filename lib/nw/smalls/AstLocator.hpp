@@ -142,14 +142,40 @@ struct AstLocator : public BaseVisitor {
         }
     }
 
-    virtual void visit(SumDecl*) override
+    virtual void visit(SumDecl* decl) override
     {
-        // TODO: Implement in Phase 9 (LSP Support)
+        if (decl->range_.end < pos_) { last_seen_decl = decl; }
+
+        if (decl->type && decl->type->name && contains_position(decl->type->name->range_, pos_)) {
+            result_ = parent_->declaration_to_symbol(decl);
+            result_.kind = SymbolKind::type;
+            found_ = true;
+            return;
+        }
+
+        for (auto* v : decl->variants) {
+            if (v) { v->accept(this); }
+            if (found_) { return; }
+        }
     }
 
-    virtual void visit(VariantDecl*) override
+    virtual void visit(VariantDecl* decl) override
     {
-        // TODO: Implement in Phase 9 (LSP Support)
+        if (!contains_position(decl->range_, pos_)) { return; }
+
+        if (contains_position(decl->identifier_.loc.range, pos_)) {
+            result_.decl = nullptr;
+            result_.kind = SymbolKind::type;
+            result_.view = decl->identifier_.loc.view();
+            if (decl->payload && decl->payload->type_id_ != invalid_type_id) {
+                result_.type = String(nw::kernel::runtime().type_name(decl->payload->type_id_));
+            }
+            result_.provider = parent_;
+            found_ = true;
+            return;
+        }
+
+        if (decl->payload) { decl->payload->accept(this); }
     }
 
     virtual void visit(OpaqueTypeDecl* decl) override
@@ -168,7 +194,6 @@ struct AstLocator : public BaseVisitor {
         // Check if clicking on the alias identifier
         if (contains_position(decl->alias.loc.range, pos_)) {
             result_ = parent_->declaration_to_symbol(decl);
-            result_.kind = SymbolKind::variable; // Treat imports as variables
             found_ = true;
         }
     }
@@ -281,15 +306,25 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(PathExpression* expr) override
     {
-        for (auto* part : expr->parts) {
-            if (part) { part->accept(this); }
-            if (found_) { return; }
-        }
-
-        if (expr->parts.size() < 2) {
+        // For multi-part paths, only visit the HEAD (first part) via env_ lookup.
+        // Visiting tail parts through accept() risks env_ false-positives: e.g. a local
+        // variable named "x" would shadow a struct field in "p.x". Tail resolution is
+        // handled below by PathExpression's own module/struct logic.
+        if (expr->parts.size() >= 2) {
+            auto* head = expr->parts[0];
+            if (head && contains_position(head->range_, pos_)) {
+                head->accept(this);
+                return;
+            }
+        } else {
+            for (auto* part : expr->parts) {
+                if (part) { part->accept(this); }
+                if (found_) { return; }
+            }
             return;
         }
 
+        // Cursor is on a tail part — currently only the last identifier is resolved.
         auto* last_ident = dynamic_cast<IdentifierExpression*>(expr->parts.back());
         if (!last_ident
             || last_ident->ident.loc.view() != symbol_
@@ -345,9 +380,26 @@ struct AstLocator : public BaseVisitor {
                 path = expr;
                 auto vd = struct_def->decl->locate_member_decl(symbol_);
                 if (vd) {
-                    result_ = parent_->declaration_to_symbol(vd);
+                    // Find the script that owns this struct definition so that
+                    // view_from_range uses the correct source text (cross-module fix).
+                    const Script* field_script = parent_;
+                    for (auto* imp : parent_->ast().imports) {
+                        if (auto* alias = dynamic_cast<AliasedImportDecl*>(imp)) {
+                            if (!alias->loaded_module) { continue; }
+                            for (auto* d : alias->loaded_module->ast().decls) {
+                                if (d == struct_def->decl) { field_script = alias->loaded_module; break; }
+                            }
+                        } else if (auto* sel = dynamic_cast<SelectiveImportDecl*>(imp)) {
+                            if (!sel->loaded_module) { continue; }
+                            for (auto* d : sel->loaded_module->ast().decls) {
+                                if (d == struct_def->decl) { field_script = sel->loaded_module; break; }
+                            }
+                        }
+                        if (field_script != parent_) { break; }
+                    }
+                    result_ = field_script->declaration_to_symbol(vd);
                     result_.kind = SymbolKind::field;
-                    result_.view = parent_->view_from_range(vd->range_selection_);
+                    result_.provider = field_script;
                     found_ = true;
                 }
             }
@@ -420,9 +472,24 @@ struct AstLocator : public BaseVisitor {
                     if (struct_def && struct_def->decl) {
                         auto vd = struct_def->decl->locate_member_decl(symbol_);
                         if (vd) {
-                            result_ = parent_->declaration_to_symbol(vd);
+                            const Script* field_script = parent_;
+                            for (auto* imp : parent_->ast().imports) {
+                                if (auto* alias = dynamic_cast<AliasedImportDecl*>(imp)) {
+                                    if (!alias->loaded_module) { continue; }
+                                    for (auto* d : alias->loaded_module->ast().decls) {
+                                        if (d == struct_def->decl) { field_script = alias->loaded_module; break; }
+                                    }
+                                } else if (auto* sel = dynamic_cast<SelectiveImportDecl*>(imp)) {
+                                    if (!sel->loaded_module) { continue; }
+                                    for (auto* d : sel->loaded_module->ast().decls) {
+                                        if (d == struct_def->decl) { field_script = sel->loaded_module; break; }
+                                    }
+                                }
+                                if (field_script != parent_) { break; }
+                            }
+                            result_ = field_script->declaration_to_symbol(vd);
                             result_.kind = SymbolKind::field;
-                            result_.view = parent_->view_from_range(vd->range_selection_);
+                            result_.provider = field_script;
                             result_.node = expr;
                             found_ = true;
                             return;
@@ -438,12 +505,11 @@ struct AstLocator : public BaseVisitor {
                 found_ = true;
                 return;
             }
-        }
 
-        if (!found_) {
-            auto export_symbol = parent_->locate_export(symbol_, false);
-            if (export_symbol.decl) {
-                result_ = export_symbol;
+            // Fallback: decl-less exports (natives, intrinsics)
+            auto export_sym = parent_->locate_export(symbol_, false);
+            if (export_sym.decl || !export_sym.view.empty()) {
+                result_ = export_sym;
                 result_.node = expr;
                 found_ = true;
             }

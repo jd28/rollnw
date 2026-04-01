@@ -83,6 +83,7 @@ enum struct SymbolKind {
     type,
     param,
     field,
+    module,
 };
 
 /// Info regarding a particular symbol somewhere in a source file
@@ -175,6 +176,10 @@ struct Script {
     /// @note Declaration must be in script
     Symbol declaration_to_symbol(const Declaration* decl) const;
 
+    /// Returns the script that owns decl (which may differ from this when decl
+    /// was imported from another module).  Falls back to this if unknown.
+    const Script* provider_for_decl(const Declaration* decl) const noexcept;
+
     /// Converts exported symbol metadata to symbol.
     Symbol export_to_symbol(StringView name, const Export& exp) const;
 
@@ -239,6 +244,7 @@ private:
     StringView text_;
     Ast ast_;
     immer::map<String, Export> symbol_table_;
+    absl::flat_hash_map<const Declaration*, Script*> decl_providers_;
     Vector<String> dependency_paths_;
     Vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;

@@ -372,6 +372,15 @@ struct SemanticTokenVisitor : public nw::smalls::NullVisitor {
 struct LspServer {
     std::map<std::string, std::string> open_buffers;
 
+    lsp::Script* get_or_load_module(lsp::Runtime& rt, const std::string& module_name,
+                                    const std::string& uri)
+    {
+        if (auto* s = rt.get_module(module_name)) return s;
+        auto it = open_buffers.find(uri);
+        if (it == open_buffers.end()) return nullptr;
+        return rt.load_module_from_source(module_name, it->second);
+    }
+
     void run()
     {
 #ifdef _WIN32
@@ -496,7 +505,7 @@ struct LspServer {
         int character = req["params"]["position"]["character"];
 
         std::string module_name = module_name_for_uri(rt, uri);
-        lsp::Script* script = rt.get_module(module_name);
+        lsp::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             send_response(req["id"], nullptr);
             return;
@@ -516,16 +525,49 @@ struct LspServer {
             word, static_cast<size_t>(line + 1), static_cast<size_t>(character));
 
         // Fallback: if AstLocator couldn't resolve position, try module export table directly
-        if (!sym.decl) {
+        if (!sym.decl && sym.view.empty()) {
             sym = script->locate_export(word, true);
         }
 
-        if (sym.decl) {
+        if (sym.decl || !sym.view.empty()) {
             std::string content = "```smalls\n";
-            if (!sym.type.empty()) {
-                content += "(" + sym.type + ") ";
+
+            // For functions with a declaration, build a full signature with parameter names.
+            auto* alias_imp = sym.decl ? dynamic_cast<const lsp::AliasedImportDecl*>(sym.decl) : nullptr;
+            auto* fd = sym.decl ? dynamic_cast<const lsp::FunctionDefinition*>(sym.decl) : nullptr;
+            if (alias_imp) {
+                content += "module ";
+                content += alias_imp->alias.loc.view();
+                content += " = \"";
+                content += alias_imp->module_path;
+                content += "\"";
+            } else if (fd) {
+                content += "fn ";
+                content += fd->identifier_.loc.view();
+                content += "(";
+                for (size_t i = 0; i < fd->params.size(); ++i) {
+                    if (i > 0) content += ", ";
+                    auto* p = fd->params[i];
+                    if (!p) continue;
+                    content += p->identifier_.loc.view();
+                    if (p->type_id_ != lsp::invalid_type_id) {
+                        content += ": ";
+                        content += rt.type_name(p->type_id_);
+                    }
+                }
+                content += ")";
+                if (fd->return_type && fd->type_id_ != lsp::invalid_type_id) {
+                    content += " -> ";
+                    content += rt.type_name(fd->type_id_);
+                }
+            } else {
+                if (!sym.type.empty()) {
+                    content += "(" + sym.type + ") ";
+                }
+                content += std::string(sym.view);
             }
-            content += std::string(sym.view) + "\n```";
+
+            content += "\n```";
             if (!sym.comment.empty()) {
                 content += "\n\n---\n\n" + sym.comment;
             }
@@ -546,7 +588,7 @@ struct LspServer {
         int character = req["params"]["position"]["character"];
 
         std::string module_name = module_name_for_uri(rt, uri);
-        lsp::Script* script = rt.get_module(module_name);
+        lsp::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             send_response(req["id"], nullptr);
             return;
@@ -646,7 +688,7 @@ struct LspServer {
         int character = req["params"]["position"]["character"];
 
         std::string module_name = module_name_for_uri(rt, uri);
-        lsp::Script* script = rt.get_module(module_name);
+        lsp::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             std::cerr << "[completion] no module: " << module_name << std::endl;
             send_response(req["id"], json::array());
@@ -738,7 +780,7 @@ struct LspServer {
         int character = req["params"]["position"]["character"];
 
         std::string module_name = module_name_for_uri(rt, uri);
-        lsp::Script* script = rt.get_module(module_name);
+        lsp::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             send_response(req["id"], nullptr);
             return;
@@ -794,7 +836,7 @@ struct LspServer {
         std::string uri = req["params"]["textDocument"]["uri"];
 
         std::string module_name = module_name_for_uri(rt, uri);
-        lsp::Script* script = rt.get_module(module_name);
+        lsp::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             send_response(req["id"], {{"data", json::array()}});
             return;
@@ -874,10 +916,22 @@ struct LspServer {
             lsp_diags.push_back(lsp_diag);
         }
 
+        // Suppress false positives for config data files (no imports, no decls, but has errors)
+        bool looks_like_config_file = script->ast().imports.empty()
+            && script->ast().decls.empty()
+            && !script->diagnostics().empty();
+        if (looks_like_config_file) {
+            send_notification("textDocument/publishDiagnostics",
+                {{"uri", uri}, {"diagnostics", json::array()}});
+            send_notification("workspace/semanticTokens/refresh", json::object());
+            return;
+        }
+
         json params = {
             {"uri", uri},
             {"diagnostics", lsp_diags}};
         send_notification("textDocument/publishDiagnostics", params);
+        send_notification("workspace/semanticTokens/refresh", json::object());
     }
 };
 

@@ -689,7 +689,8 @@ const p = Point { x = 1, y = 2 };)"sv);
     auto symbol = script.locate_symbol("x", 6, 19);
     EXPECT_NE(symbol.decl, nullptr);
     EXPECT_EQ(symbol.kind, nw::smalls::SymbolKind::field);
-    EXPECT_EQ(symbol.view, "x");
+    // view is the full field declaration from source
+    EXPECT_EQ(symbol.view, "x: int;");
 }
 
 TEST_F(SmallsLSP, StructLiteralGotoDefinitionTypeName)
@@ -749,7 +750,7 @@ fn test() {
     // Click on "math" in the import statement - line 1, column 24
     auto symbol = script.locate_symbol("math", 1, 24);
     EXPECT_NE(symbol.decl, nullptr);
-    EXPECT_EQ(symbol.kind, nw::smalls::SymbolKind::variable); // Imports treated as variables
+    EXPECT_EQ(symbol.kind, nw::smalls::SymbolKind::module);
 }
 
 TEST_F(SmallsLSP, LocateSelectiveImportSymbol)
@@ -816,7 +817,7 @@ fn create_transform(): types.Transform {
     // Click on "types" in "types.Transform" - line 3, column 23
     auto alias_symbol = script.locate_symbol("types", 3, 23);
     EXPECT_NE(alias_symbol.decl, nullptr);
-    EXPECT_EQ(alias_symbol.kind, nw::smalls::SymbolKind::variable); // Import
+    EXPECT_EQ(alias_symbol.kind, nw::smalls::SymbolKind::module);
 
     // Click on "Transform" in "types.Transform" - line 3, column 29
     auto type_symbol = script.locate_symbol("Transform", 3, 29);
@@ -854,7 +855,7 @@ fn test() {
     // Click on "ent" in "ent.Entity" - line 4, column 16
     auto alias_symbol = script.locate_symbol("ent", 4, 16);
     EXPECT_NE(alias_symbol.decl, nullptr);
-    EXPECT_EQ(alias_symbol.kind, nw::smalls::SymbolKind::variable);
+    EXPECT_EQ(alias_symbol.kind, nw::smalls::SymbolKind::module);
 
     // Click on "Entity" in "ent.Entity" - line 4, column 20
     auto type_symbol = script.locate_symbol("Entity", 4, 20);
@@ -953,4 +954,176 @@ fn test() {
         }
     }
     EXPECT_TRUE(has_color);
+}
+
+// ============================================================================
+// Hover Quality Tests
+// ============================================================================
+
+TEST_F(SmallsLSP, HoverFunctionSignatureView)
+{
+    auto script = make_script(R"(fn add(x: int, y: int): int {
+    return x + y;
+}
+
+fn main(): int {
+    return add(1, 2);
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    // Hover on "add" at the call site — should resolve to the function declaration
+    auto sym = script.locate_symbol("add", 6, 11);
+    EXPECT_NE(sym.decl, nullptr);
+    EXPECT_EQ(sym.kind, nw::smalls::SymbolKind::function);
+    // decl is a FunctionDefinition — the hover handler uses it to build a full signature
+    EXPECT_NE(dynamic_cast<const nw::smalls::FunctionDefinition*>(sym.decl), nullptr);
+    // type is the return type
+    EXPECT_EQ(sym.type, "int");
+}
+
+TEST_F(SmallsLSP, HoverPathRHSNotShadowedByLocalVar)
+{
+    auto script = make_script(R"(type Point {
+    x: int;
+    y: int;
+};
+
+fn test() {
+    var x: int = 99;
+    var p: Point;
+    var val = p.x;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    // Hover on "x" in "p.x" — must return field, NOT the local variable "x"
+    auto sym = script.locate_symbol("x", 9, 16);
+    EXPECT_NE(sym.decl, nullptr);
+    EXPECT_EQ(sym.kind, nw::smalls::SymbolKind::field);
+}
+
+TEST_F(SmallsLSP, HoverModuleMemberRHS)
+{
+    auto& runtime = nw::kernel::runtime();
+
+    auto* math_mod = runtime.load_module_from_source("test/lsp/hover_math", R"(
+fn add(a: int, b: int): int {
+    return a + b;
+}
+)");
+    ASSERT_NE(math_mod, nullptr);
+    EXPECT_EQ(math_mod->errors(), 0);
+
+    auto script = make_script(R"(import test.lsp.hover_math as m;
+
+fn test(): int {
+    return m.add(1, 2);
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    // Hover on "add" (RHS of path) — should resolve to the imported module's function
+    auto sym = script.locate_symbol("add", 4, 13);
+    EXPECT_NE(sym.decl, nullptr);
+    EXPECT_EQ(sym.kind, nw::smalls::SymbolKind::function);
+    EXPECT_EQ(sym.provider, math_mod);
+    // The decl is a FunctionDefinition from the imported module
+    EXPECT_NE(dynamic_cast<const nw::smalls::FunctionDefinition*>(sym.decl), nullptr);
+}
+
+// Tests that AstLocator locate_export fallback is inside contains_position
+// and accepts symbols with non-empty view (for natives/exports without decl).
+TEST_F(SmallsLSP, LocateSymbolViaExportFallback)
+{
+    auto script = make_script(R"(fn helper(): int {
+    return 42;
+}
+
+fn test(): int {
+    return helper();
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    // Locate "helper" at the call site — should find it via env or export fallback
+    auto sym = script.locate_symbol("helper", 6, 11);
+    EXPECT_NE(sym.decl, nullptr);
+    EXPECT_FALSE(sym.view.empty());
+
+    // locate_export for a function returns a symbol with non-empty view
+    auto exp = script.locate_export("helper", false);
+    EXPECT_NE(exp.decl, nullptr);
+    EXPECT_FALSE(exp.view.empty());
+}
+
+// Hover on a selectively-imported symbol (from X import Y) should resolve to
+// the owning module's declaration and return a valid (non-garbage) view.
+TEST_F(SmallsLSP, HoverSelectiveImportViewFromCorrectScript)
+{
+    auto& runtime = nw::kernel::runtime();
+
+    auto* lib = runtime.load_module_from_source("test/lsp/hover_sel_lib", R"(
+fn compute(n: int): int {
+    return n * 2;
+}
+)");
+    ASSERT_NE(lib, nullptr);
+    EXPECT_EQ(lib->errors(), 0);
+
+    auto script = make_script(R"(from test.lsp.hover_sel_lib import { compute };
+
+fn test(): int {
+    return compute(5);
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    // Hover on "compute" at the call site. The decl lives in the lib module.
+    // provider_for_decl must return the lib module so view_from_range uses
+    // the correct source text (not garbage from the current script).
+    auto sym = script.locate_symbol("compute", 4, 11);
+    EXPECT_NE(sym.decl, nullptr);
+    EXPECT_EQ(sym.kind, nw::smalls::SymbolKind::function);
+    EXPECT_EQ(sym.provider, lib);
+    // view should be "compute" (the function name token from the lib source)
+    EXPECT_EQ(sym.view, "compute");
+}
+
+// Tests that locate_export returns non-empty view for a symbol
+// even when decl-less (as happens for native functions after discard).
+TEST_F(SmallsLSP, LocateExportViewNonEmpty)
+{
+    // After discard_ast, decl pointers are cleared but the export table is preserved.
+    // Export::view is derived from the export name, so it should be non-empty.
+    auto script = make_script(R"(fn my_func(): int {
+    return 1;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    script.discard_ast();
+
+    // After discard, decl is null but the export name (view) is still accessible
+    auto sym = script.locate_export("my_func", false);
+    EXPECT_EQ(sym.decl, nullptr);    // decl was cleared
+    EXPECT_FALSE(sym.view.empty());  // view (name) should still be non-empty
 }
