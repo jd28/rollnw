@@ -375,10 +375,15 @@ struct LspServer {
     lsp::Script* get_or_load_module(lsp::Runtime& rt, const std::string& module_name,
                                     const std::string& uri)
     {
-        if (auto* s = rt.get_module(module_name)) return s;
+        // For files open in the editor always go through load_module_from_source:
+        // it returns the cached module if still present, otherwise compiles from
+        // the buffer.  Never fall back to rt.get_module for open files because
+        // that would load a stale on-disk version after evict_user_modules().
         auto it = open_buffers.find(uri);
-        if (it == open_buffers.end()) return nullptr;
-        return rt.load_module_from_source(module_name, it->second);
+        if (it != open_buffers.end()) {
+            return rt.load_module_from_source(module_name, it->second);
+        }
+        return rt.get_module(module_name);
     }
 
     void run()
