@@ -224,7 +224,7 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         for (int i = 0; i < arr_size; ++i) {
             if (i > 0) out << ", ";
             int val = 0;
-            if ((size_t)i < nrows) sec->get_to(i, subcol, val);
+            if (static_cast<size_t>(i) < nrows) sec->get_to(i, subcol, val);
             out << val;
         }
         out << "}";

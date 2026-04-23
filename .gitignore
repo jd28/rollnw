@@ -17,6 +17,7 @@ Testing/
 !.vscode/extensions.json
 .clion/
 CMakeLists.txt.user
+imgui.ini
 .kdev4/
 *.kdev4
 .cache
@@ -52,7 +53,10 @@ tools/vscode-smalls/stdlib/
 .aider/
 conductor/
 .gemini
+.codex
 
 # NWN
 nwn/
 nwnee*
+!lib/nw/render/nwn/
+!lib/nw/render/nwn/**

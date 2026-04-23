@@ -228,7 +228,9 @@ struct ControllerType {
     static constexpr uint32_t spawn_type = 501;    // dunno, value is random
     static constexpr uint32_t random = 502;        // dunno, value is random
     static constexpr uint32_t inherit = 503;       // dunno, value is random
-    static constexpr uint32_t inherit_local = 503; // dunno, value is random
+    static constexpr uint32_t inherit_local = 504; // dunno, value is random
+    static constexpr uint32_t inherit_part = 505;  // dunno, value is random
+    static constexpr uint32_t inheritvel = 506;    // dunno, value is random
 
     // Meshes
 

@@ -1,0 +1,225 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn1_creature_corpus",
+  "description": "Representative NWN1 creature previews used to validate assembled creature rendering, animation selection, and non-humanoid model loading.",
+  "entries": [
+    {
+      "id": "creature_test_player_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/test_creature.utc",
+      "animation": "cpause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "equipment"
+      ],
+      "notes": "Baseline local player-style creature assembly."
+    },
+    {
+      "id": "creature_drorry_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/drorry.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "local_fixture"
+      ],
+      "notes": "Humanoid local fixture with authored appearance data."
+    },
+    {
+      "id": "creature_wizard_pm_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/wizard_pm.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "robe_candidate"
+      ],
+      "notes": "Spellcaster-oriented fixture for assembly and animation checks."
+    },
+    {
+      "id": "creature_lentiane_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/lentiane.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "npc_fixture"
+      ],
+      "notes": "Authored humanoid NPC fixture for local assembly coverage."
+    },
+    {
+      "id": "creature_rangerdexranged_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/rangerdexranged.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "ranged_loadout"
+      ],
+      "notes": "Ranger fixture for ranged gear and attachment coverage."
+    },
+    {
+      "id": "creature_dexweapfin_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/dexweapfin.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "weapon_focus"
+      ],
+      "notes": "Dexterity-focused humanoid fixture for weapon model assembly checks."
+    },
+    {
+      "id": "creature_sorcrdd_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/sorcrdd.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "rdd_parts"
+      ],
+      "notes": "Sorcerer RDD fixture for body-part and creature-feature assembly."
+    },
+    {
+      "id": "creature_pl_agent_001_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/pl_agent_001.utc",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "npc_fixture"
+      ],
+      "notes": "Local humanoid NPC fixture with alternate appearance setup."
+    },
+    {
+      "id": "creature_nw_chicken_default",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/nw_chicken.utc",
+      "category": [
+        "animal",
+        "non_humanoid"
+      ],
+      "notes": "Simple non-humanoid UTC fixture."
+    },
+    {
+      "id": "creature_testclericpc1_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/testclericpc1.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "cleric"
+      ],
+      "notes": "Servervault cleric PC for wearable and shield-capable assembly coverage."
+    },
+    {
+      "id": "creature_testwizardpc1_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/testwizardpc1.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "robe_candidate"
+      ],
+      "notes": "Servervault wizard PC for robe and caster assembly coverage."
+    },
+    {
+      "id": "creature_damienoneknife_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/damienoneknife.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "melee_loadout"
+      ],
+      "notes": "Servervault melee PC for one-weapon handheld assembly coverage."
+    },
+    {
+      "id": "creature_testmonkpc_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/testmonkpc.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "monk"
+      ],
+      "notes": "Servervault monk PC for unarmed and low-armor assembly coverage."
+    },
+    {
+      "id": "creature_testbardrddpc1_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/testbardrddpc1.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "rdd_parts"
+      ],
+      "notes": "Servervault bard RDD PC for mixed wearable and creature-feature coverage."
+    },
+    {
+      "id": "creature_testsorcpc1_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/servervault/CDKEY/testsorcpc1.bic",
+      "animation": "pause1",
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "sorcerer"
+      ],
+      "notes": "Servervault sorcerer PC for alternate caster assembly coverage."
+    },
+    {
+      "id": "creature_mindflayer_cspecial",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/c_mindflayer.mdl",
+      "animation": "cspecial",
+      "category": [
+        "monster",
+        "particle_driven",
+        "special_animation"
+      ],
+      "notes": "Monster model with animation-driven particle behavior."
+    },
+    {
+      "id": "creature_satyr_default",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/c_satyr.mdl",
+      "category": [
+        "monster",
+        "non_humanoid"
+      ],
+      "notes": "Baseline monster model coverage without assembled UTC data."
+    },
+    {
+      "id": "creature_bodak_pause1",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/c_bodak.mdl",
+      "animation": "pause1",
+      "category": [
+        "monster",
+        "undead",
+        "non_humanoid"
+      ],
+      "notes": "Undead creature model fixture with explicit idle animation coverage."
+    }
+  ]
+}

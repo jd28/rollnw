@@ -13,6 +13,7 @@ add_library(nw STATIC
     formats/Palette.cpp
     formats/Plt.cpp
     formats/StaticTwoDA.cpp
+    formats/Txi.cpp
     formats/TwoDA.cpp
 
     i18n/conversion.cpp
@@ -34,6 +35,11 @@ add_library(nw STATIC
     model/Mdl.cpp
     model/MdlTextParser.cpp
     model/MdlBinaryParser.cpp
+    model/mdl_particle_import.cpp
+
+    render/particle_compile.cpp
+    render/particle_json.cpp
+    render/particle_system.cpp
 
     # Objects
     objects/Area.cpp

@@ -287,7 +287,7 @@ static void BM_script_resolve(benchmark::State& state)
     state.SetBytesProcessed(state.iterations() * bytes);
 }
 
-static void BM_model_parse(benchmark::State& state)
+[[maybe_unused]] static void BM_model_parse(benchmark::State& state)
 {
     std::error_code ec;
     const auto file_size = fs::file_size("test_data/user/development/alt_dfa19.mdl", ec);
@@ -333,7 +333,7 @@ static void BM_load_module(benchmark::State& state)
 }
 BENCHMARK(BM_load_module);
 
-static void BM_start_service(benchmark::State& state)
+[[maybe_unused]] static void BM_start_service(benchmark::State& state)
 {
     for (auto _ : state) {
         nwk::services().shutdown();

@@ -1,0 +1,57 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn1_item_corpus",
+  "description": "Representative NWN1 item previews used to validate standalone item model loading across weapons, shields, projectiles, and wearable equipment.",
+  "entries": [
+    {
+      "id": "item_wduersc004",
+      "kind": "item",
+      "input": "tests/test_data/user/development/wduersc004.uti",
+      "category": [
+        "weapon",
+        "standalone_item"
+      ],
+      "notes": "Baseline local weapon preview."
+    },
+    {
+      "id": "item_pl_aleu_shuriken",
+      "kind": "item",
+      "input": "tests/test_data/user/development/pl_aleu_shuriken.uti",
+      "category": [
+        "projectile_weapon",
+        "small_item"
+      ],
+      "notes": "Thrown weapon coverage."
+    },
+    {
+      "id": "item_it_crewpsp015",
+      "kind": "item",
+      "input": "tests/test_data/user/development/it_crewpsp015.uti",
+      "category": [
+        "equipment",
+        "handheld"
+      ],
+      "notes": "General handheld equipment preview."
+    },
+    {
+      "id": "item_handwish",
+      "kind": "item",
+      "input": "tests/test_data/user/development/handwish.uti",
+      "category": [
+        "equipment",
+        "wearable_candidate"
+      ],
+      "notes": "Wearable-oriented item fixture."
+    },
+    {
+      "id": "item_pl_slam_1d2",
+      "kind": "item",
+      "input": "tests/test_data/user/development/pl_slam_1d2.uti",
+      "category": [
+        "weapon",
+        "melee_candidate"
+      ],
+      "notes": "Alternate item coverage for mesh and attachment rules."
+    }
+  ]
+}

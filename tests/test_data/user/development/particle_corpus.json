@@ -1,0 +1,176 @@
+{
+  "$type": "ParticleCorpus",
+  "name": "nwn1_particle_corpus",
+  "description": "Representative NWN1 particle models and local fixtures used to validate particle import, runtime behavior, and rendering.",
+  "entries": [
+    {
+      "id": "torch_basic",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/it_torch_000.mdl",
+      "view_input": "it_torch_000",
+      "category": [
+        "continuous",
+        "sprite",
+        "sprite_sheet",
+        "alpha",
+        "additive"
+      ],
+      "notes": "Baseline smoke and flame emitter coverage."
+    },
+    {
+      "id": "door_linked_bezier",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/T_Door21.mdl",
+      "view_input": "T_Door21",
+      "animation": "closed",
+      "category": [
+        "linked",
+        "bezier",
+        "door",
+        "lightning_like"
+      ],
+      "notes": "Primary linked-chain targeted door effect used for real renderer checks."
+    },
+    {
+      "id": "mindflayer_gravity",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/c_mindflayer.mdl",
+      "view_input": "c_mindflayer",
+      "animation": "cspecial",
+      "category": [
+        "gravity_targeted",
+        "linked",
+        "animation_driven",
+        "inherit_part_candidate"
+      ],
+      "notes": "Animation-driven gravity emitters. Use cspecial; idle states appear dormant."
+    },
+    {
+      "id": "explosion_flash",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/vwp_flash_whiblu.mdl",
+      "view_input": "vwp_flash_whiblu",
+      "category": [
+        "event_burst",
+        "explosion",
+        "stretched",
+        "additive"
+      ],
+      "notes": "Simple explosion burst coverage."
+    },
+    {
+      "id": "detonate_fixture",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/vfx_detonate_test.mdl",
+      "animation": "impact",
+      "category": [
+        "event_burst",
+        "detonate",
+        "force_event_zero"
+      ],
+      "notes": "Synthetic detonate event fixture used by importer/runtime tests."
+    },
+    {
+      "id": "lightning_fixture",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/vfx_lightning_test.mdl",
+      "category": [
+        "beam_lightning",
+        "synthetic"
+      ],
+      "notes": "Minimal lightning kernel fixture."
+    },
+    {
+      "id": "spawn_motion_fixture",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/vfx_spawn_motion_test.mdl",
+      "animation": "impact",
+      "category": [
+        "keyed_spawn_motion",
+        "velocitykey",
+        "masskey",
+        "particleRotkey",
+        "lifeExpkey",
+        "spreadkey"
+      ],
+      "notes": "Synthetic keyed spawn-time motion coverage."
+    },
+    {
+      "id": "midcurve_fixture",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/vfx_midcurve_test.mdl",
+      "category": [
+        "three_stage_curves",
+        "over_life"
+      ],
+      "notes": "Synthetic three-stage over-life color/size/alpha coverage."
+    },
+    {
+      "id": "candle_collision_force",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/plc_cndl02.mdl",
+      "view_input": "plc_cndl02",
+      "category": [
+        "bounce",
+        "force_event",
+        "detonate",
+        "placeable"
+      ],
+      "notes": "Real fixture with bounce and nonzero blast radius/length."
+    },
+    {
+      "id": "palm_collision_force",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/plc_palm02.mdl",
+      "view_input": "plc_palm02",
+      "category": [
+        "bounce",
+        "force_event",
+        "detonate",
+        "placeable"
+      ],
+      "notes": "Real fixture with bounce and nonzero blast radius/length."
+    },
+    {
+      "id": "bridge_sprite_sheet_bounce",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/fx_step_stbrdg.mdl",
+      "category": [
+        "sprite_sheet",
+        "keyed_sheet",
+        "bounce"
+      ],
+      "notes": "Keyed sprite-sheet and bounce controller coverage."
+    },
+    {
+      "id": "griffon_flag_force",
+      "source": "local_fixture",
+      "input": "tests/test_data/user/development/dag_grifflag03.mdl",
+      "category": [
+        "bounce",
+        "force_event"
+      ],
+      "notes": "Additional real fixture with nonzero blast and bounce."
+    },
+    {
+      "id": "vim_rayflame",
+      "source": "external_corpus",
+      "input": "/home/josh/Downloads/1.86.8193.34.1 Decompiled Models (One Folder)/vim_rayflame.mdl",
+      "category": [
+        "inherit_part_candidate",
+        "linked"
+      ],
+      "notes": "Candidate asset for proving inherit_part semantics."
+    },
+    {
+      "id": "vim_ruin",
+      "source": "external_corpus",
+      "input": "/home/josh/Downloads/1.86.8193.34.1 Decompiled Models (One Folder)/vim_ruin.mdl",
+      "category": [
+        "inherit_part_candidate",
+        "motion_blur"
+      ],
+      "notes": "Strong candidate asset for proving inherit_part / stretched semantics."
+    }
+  ]
+}

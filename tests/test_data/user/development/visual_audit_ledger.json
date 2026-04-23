@@ -1,0 +1,1431 @@
+{
+  "$type": "VisualAuditLedger",
+  "description": "Tracked corpus-backed visual audit status across NWN asset families.",
+  "entries": [
+    {
+      "accepted_difference": false,
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "corpus_name": "nwn1_oc_prelude_area_corpus",
+      "corpus_path": "./tests/test_data/user/development/area_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "area_prelude_m0q1a",
+      "input": "m0q1a",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/areas-prelude",
+      "last_run_at_utc": "2026-04-28T17:18:48Z",
+      "last_run_manifest": "./tmp/visual-audit/areas-prelude/manifest.json",
+      "module_path": "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm",
+      "notes": "Prelude area seed captured from shipped OC content.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "corpus_name": "nwn1_oc_prelude_area_corpus",
+      "corpus_path": "./tests/test_data/user/development/area_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "area_prelude_m0q1b",
+      "input": "m0q1b",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/areas-prelude",
+      "last_run_at_utc": "2026-04-28T17:18:48Z",
+      "last_run_manifest": "./tmp/visual-audit/areas-prelude/manifest.json",
+      "module_path": "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm",
+      "notes": "Prelude area seed captured from shipped OC content.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "corpus_name": "nwn1_oc_prelude_area_corpus",
+      "corpus_path": "./tests/test_data/user/development/area_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "area_prelude_m0q1c",
+      "input": "m0q1c",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/areas-prelude",
+      "last_run_at_utc": "2026-04-28T17:18:48Z",
+      "last_run_manifest": "./tmp/visual-audit/areas-prelude/manifest.json",
+      "module_path": "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm",
+      "notes": "Prelude area seed captured from shipped OC content.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "corpus_name": "nwn1_oc_prelude_area_corpus",
+      "corpus_path": "./tests/test_data/user/development/area_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "area_prelude_m0q1d",
+      "input": "m0q1d",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/areas-prelude",
+      "last_run_at_utc": "2026-04-28T17:18:48Z",
+      "last_run_manifest": "./tmp/visual-audit/areas-prelude/manifest.json",
+      "module_path": "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm",
+      "notes": "Prelude area seed captured from shipped OC content.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "corpus_name": "nwn1_oc_prelude_area_corpus",
+      "corpus_path": "./tests/test_data/user/development/area_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "area_prelude_m0q1e",
+      "input": "m0q1e",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/areas-prelude",
+      "last_run_at_utc": "2026-04-28T17:18:48Z",
+      "last_run_manifest": "./tmp/visual-audit/areas-prelude/manifest.json",
+      "module_path": "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm",
+      "notes": "Prelude area seed captured from shipped OC content.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "monster",
+        "undead",
+        "non_humanoid"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_bodak_pause1",
+      "input": "tests/test_data/user/development/c_bodak.mdl",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Undead creature model fixture with explicit idle animation coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "melee_loadout"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_damienoneknife_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/damienoneknife.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault melee PC for one-weapon handheld assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "weapon_focus"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_dexweapfin_pause1",
+      "input": "tests/test_data/user/development/dexweapfin.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Dexterity-focused humanoid fixture for weapon model assembly checks.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "local_fixture"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_drorry_pause1",
+      "input": "tests/test_data/user/development/drorry.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Humanoid local fixture with authored appearance data.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "npc_fixture"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_lentiane_pause1",
+      "input": "tests/test_data/user/development/lentiane.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Authored humanoid NPC fixture for local assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "monster",
+        "particle_driven",
+        "special_animation"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_mindflayer_cspecial",
+      "input": "tests/test_data/user/development/c_mindflayer.mdl",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Monster model with animation-driven particle behavior.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "animal",
+        "non_humanoid"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_nw_chicken_default",
+      "input": "tests/test_data/user/development/nw_chicken.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Simple non-humanoid UTC fixture.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "npc_fixture"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_pl_agent_001_pause1",
+      "input": "tests/test_data/user/development/pl_agent_001.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Local humanoid NPC fixture with alternate appearance setup.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "ranged_loadout"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_rangerdexranged_pause1",
+      "input": "tests/test_data/user/development/rangerdexranged.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Ranger fixture for ranged gear and attachment coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "monster",
+        "non_humanoid"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_satyr_default",
+      "input": "tests/test_data/user/development/c_satyr.mdl",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Baseline monster model coverage without assembled UTC data.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "rdd_parts"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_sorcrdd_pause1",
+      "input": "tests/test_data/user/development/sorcrdd.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Sorcerer RDD fixture for body-part and creature-feature assembly.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "equipment"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_test_player_pause1",
+      "input": "tests/test_data/user/development/test_creature.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Baseline local player-style creature assembly.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "rdd_parts"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_testbardrddpc1_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/testbardrddpc1.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault bard RDD PC for mixed wearable and creature-feature coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "cleric"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_testclericpc1_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/testclericpc1.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault cleric PC for wearable and shield-capable assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "monk"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_testmonkpc_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/testmonkpc.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault monk PC for unarmed and low-armor assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "sorcerer"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_testsorcpc1_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/testsorcpc1.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault sorcerer PC for alternate caster assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "player_bic",
+        "robe_candidate"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_testwizardpc1_pause1",
+      "input": "tests/test_data/user/servervault/CDKEY/testwizardpc1.bic",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Servervault wizard PC for robe and caster assembly coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "humanoid",
+        "assembled",
+        "robe_candidate"
+      ],
+      "corpus_name": "nwn1_creature_corpus",
+      "corpus_path": "./tests/test_data/user/development/creature_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "creature_wizard_pm_pause1",
+      "input": "tests/test_data/user/development/wizard_pm.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/creatures",
+      "last_run_at_utc": "2026-04-28T17:18:26Z",
+      "last_run_manifest": "./tmp/visual-audit/creatures/manifest.json",
+      "module_path": "",
+      "notes": "Spellcaster-oriented fixture for assembly and animation checks.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "equipment",
+        "wearable_candidate"
+      ],
+      "corpus_name": "nwn1_item_corpus",
+      "corpus_path": "./tests/test_data/user/development/item_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "item_handwish",
+      "input": "tests/test_data/user/development/handwish.uti",
+      "issue": "",
+      "kind": "item",
+      "last_output_dir": "./tmp/visual-audit/items",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/items/manifest.json",
+      "module_path": "",
+      "notes": "Wearable-oriented item fixture.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "equipment",
+        "handheld"
+      ],
+      "corpus_name": "nwn1_item_corpus",
+      "corpus_path": "./tests/test_data/user/development/item_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "item_it_crewpsp015",
+      "input": "tests/test_data/user/development/it_crewpsp015.uti",
+      "issue": "",
+      "kind": "item",
+      "last_output_dir": "./tmp/visual-audit/items",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/items/manifest.json",
+      "module_path": "",
+      "notes": "General handheld equipment preview.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "projectile_weapon",
+        "small_item"
+      ],
+      "corpus_name": "nwn1_item_corpus",
+      "corpus_path": "./tests/test_data/user/development/item_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "item_pl_aleu_shuriken",
+      "input": "tests/test_data/user/development/pl_aleu_shuriken.uti",
+      "issue": "",
+      "kind": "item",
+      "last_output_dir": "./tmp/visual-audit/items",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/items/manifest.json",
+      "module_path": "",
+      "notes": "Thrown weapon coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "weapon",
+        "melee_candidate"
+      ],
+      "corpus_name": "nwn1_item_corpus",
+      "corpus_path": "./tests/test_data/user/development/item_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "item_pl_slam_1d2",
+      "input": "tests/test_data/user/development/pl_slam_1d2.uti",
+      "issue": "",
+      "kind": "item",
+      "last_output_dir": "./tmp/visual-audit/items",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/items/manifest.json",
+      "module_path": "",
+      "notes": "Alternate item coverage for mesh and attachment rules.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "weapon",
+        "standalone_item"
+      ],
+      "corpus_name": "nwn1_item_corpus",
+      "corpus_path": "./tests/test_data/user/development/item_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "item_wduersc004",
+      "input": "tests/test_data/user/development/wduersc004.uti",
+      "issue": "",
+      "kind": "item",
+      "last_output_dir": "./tmp/visual-audit/items",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/items/manifest.json",
+      "module_path": "",
+      "notes": "Baseline local weapon preview.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "monster",
+        "nwn_mdl"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_c_bodak",
+      "input": "tests/test_data/user/development/c_bodak.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Direct creature model coverage without UTC assembly.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "gltf",
+        "skinned"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_cesium_man_glb",
+      "input": "tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Skinned glTF baseline.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "gltf",
+        "pbr"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_damaged_helmet_glb",
+      "input": "tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Static glTF material baseline.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "gltf",
+        "material_validation"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_metal_rough_spheres_glb",
+      "input": "tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Modern material and lighting coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "placeable",
+        "nwn_mdl"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_plc_fish01",
+      "input": "tests/test_data/user/development/plc_fish01.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Simple NWN placeable model coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "door",
+        "nwn_mdl"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_tds_udoor_04",
+      "input": "tests/test_data/user/development/tds_udoor_04.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Door model coverage.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "tile",
+        "nwn_resref"
+      ],
+      "corpus_name": "nwn1_model_corpus",
+      "corpus_path": "./tests/test_data/user/development/model_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "model_tin01_o20_01",
+      "input": "tin01_o20_01",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/models",
+      "last_run_at_utc": "2026-04-28T17:18:35Z",
+      "last_run_manifest": "./tmp/visual-audit/models/manifest.json",
+      "module_path": "",
+      "notes": "Interior tile coverage using a shipped NWN tileset model.",
+      "outputs": [
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "cone",
+        "hand_conjure",
+        "timing"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_010_burning_hands",
+      "input": "10",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Baseline fire cone with shared conjure-to-cast sequencing.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "cone",
+        "head_visual_remap",
+        "timing"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_025_cone_of_cold",
+      "input": "25",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Conjure source uses head visual data remapped to hand placement.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "ground_conjure",
+        "cast_visual",
+        "negative"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_030_create_undead",
+      "input": "30",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Ground-rooted conjure followed by a separate outbound cast visual.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "ground_conjure",
+        "cast_visual",
+        "holy"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_040_dismissal",
+      "input": "40",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Ground conjure plus point-cast holy visual without a projectile step.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "mind_effect",
+        "projectile",
+        "hand_conjure"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_045_dominate_person",
+      "input": "45",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Mind-affecting conjure-to-projectile sequence on the standard LOS projectile path.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "projectile",
+        "homing",
+        "impact_family"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_058_fireball",
+      "input": "58",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Projectile spell with conjure and projectile phases.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "head_conjure",
+        "projectile",
+        "ground_effect"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_066_grease",
+      "input": "66",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Head conjure plus projectile delivery into a ground-focused effect.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "line_projectile",
+        "hand_conjure",
+        "castout"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_075_gust_of_wind",
+      "input": "75",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Hand conjure into a linear projectile with castout delivery.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "head_conjure",
+        "mind_effect",
+        "projectile"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_095_lesser_mind_blank",
+      "input": "95",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Head-anchored conjure feeding into a standard projectile chain.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "missile",
+        "cast_visual",
+        "force_like"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_107_magic_missile",
+      "input": "107",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Classic conjure-to-cast missile coverage with a distinct cast visual.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "projectile",
+        "homing",
+        "acid"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_115_melfs_acid_arrow",
+      "input": "115",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Projectile coverage with a distinct conjure/cast/projectile chain.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "holy",
+        "projectile",
+        "hand_conjure"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_156_searing_light",
+      "input": "156",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Holy hand-conjure projectile coverage with the shared LOS projectile asset.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "head_conjure",
+        "source_anchor_remap",
+        "odd_school"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_170_sphere_of_chaos",
+      "input": "170",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Head conjure sequence whose source visual carries a specific emitter source-anchor remap.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "head_conjure",
+        "projectile",
+        "castup"
+      ],
+      "corpus_name": "nwn1_spell_corpus",
+      "corpus_path": "./tests/test_data/user/development/spell_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "spell_190_wail_of_the_banshee",
+      "input": "190",
+      "issue": "",
+      "kind": "spell",
+      "last_output_dir": "./tmp/visual-audit/spells",
+      "last_run_at_utc": "2026-04-28T17:18:06Z",
+      "last_run_manifest": "./tmp/visual-audit/spells/manifest.json",
+      "module_path": "",
+      "notes": "Late-game head conjure projectile path using a castup caster animation.",
+      "outputs": [
+        "live.json",
+        "preview.png",
+        "preview.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    }
+  ],
+  "name": "nwn1_visual_audit_ledger",
+  "updated_at_utc": "2026-04-28T17:18:48Z",
+  "version": 1
+}

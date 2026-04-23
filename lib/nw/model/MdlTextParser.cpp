@@ -597,6 +597,29 @@ bool TextParser::parse_node(Geometry* geometry)
             }
             if (!parse_controller(node.get(), tk, ctype)) return false;
             continue;
+        } else if (string::endswith(tk, "key") && (node->type & NodeFlags::emitter)) {
+            uint32_t keyed_emitter_ctype = 0;
+            if (string::icmp(controller_tk, "spawnType")) {
+                keyed_emitter_ctype = ControllerType::spawn_type;
+            } else if (string::icmp(controller_tk, "random")) {
+                keyed_emitter_ctype = ControllerType::random;
+            } else if (string::icmp(controller_tk, "inherit")) {
+                keyed_emitter_ctype = ControllerType::inherit;
+            } else if (string::icmp(controller_tk, "inheritvel")) {
+                keyed_emitter_ctype = ControllerType::inheritvel;
+            } else if (string::icmp(controller_tk, "inherit_local")) {
+                keyed_emitter_ctype = ControllerType::inherit_local;
+            } else if (string::icmp(controller_tk, "inherit_part")) {
+                keyed_emitter_ctype = ControllerType::inherit_part;
+            }
+
+            if (keyed_emitter_ctype != 0) {
+                if (!parse_controller(node.get(), tk, keyed_emitter_ctype)) return false;
+                continue;
+            }
+
+            if (!parse_controller(node.get(), tk, 0)) return false;
+            continue;
         }
 
         if (icmp(tk, "parent")) {

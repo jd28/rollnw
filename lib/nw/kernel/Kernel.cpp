@@ -238,7 +238,11 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
 
     {
         NW_PROFILE_SCOPE_N("kernel.load_module.resman_load_module");
-        resman().load_module(path);
+        if (!resman().load_module(path)) {
+            services().module_loading_ = false;
+            services().module_loaded_ = false;
+            return nullptr;
+        }
     }
 
     Module* mod = nullptr;

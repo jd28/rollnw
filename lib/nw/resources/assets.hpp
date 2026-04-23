@@ -38,6 +38,7 @@ struct ResourceType {
 
         // Custom - rollnw specific types
         smalls = 0xFFFF - 100,
+        hlsl = 0xFFFF - 101,
 
         bmp = 1,
         mve = 2,
@@ -235,6 +236,7 @@ struct ResourceType {
         // Custom types
         if (string::icmp(ext, "json")) return json;
         if (string::icmp(ext, "smalls")) return smalls;
+        if (string::icmp(ext, "hlsl")) return hlsl;
 
         return invalid;
     }
@@ -434,6 +436,8 @@ struct ResourceType {
             return "json";
         case smalls:
             return "smalls";
+        case hlsl:
+            return "hlsl";
         }
     }
 

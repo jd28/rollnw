@@ -1,0 +1,87 @@
+#MAXMODEL ASCII
+newmodel vfx_detonate_test
+setsupermodel vfx_detonate_test NULL
+classification effect
+setanimationscale 1
+
+beginmodelgeom vfx_detonate_test
+node dummy root
+  parent NULL
+endnode
+node emitter blast
+  parent root
+  p2p 0
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 0
+  random 0
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Explosion
+  render Normal
+  blend Lighten
+  texture spark
+  xgrid 1
+  ygrid 1
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0 0
+  orientation 0 0 0 0
+  colorStart 1 1 1
+  colorEnd 1 1 1
+  alphaStart 1
+  alphaEnd 1
+  sizeStart 0.2
+  sizeEnd 0.2
+  frameStart 0
+  frameEnd 0
+  birthrate 10
+  lifeExp 3
+  mass 0
+  spread 0
+  particleRot 0
+  velocity 0
+  randvel 0
+  fps 0
+  xsize 0
+  ysize 0
+  bounce_co 0
+  blurlength 0
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  detonate
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+endmodelgeom vfx_detonate_test
+
+newanim impact vfx_detonate_test
+  length 1.0
+  transtime 0
+  animroot root
+  event 0.0 detonate
+  event 0.5 detonate
+  event 0.5 detonate
+node dummy root
+  parent NULL
+endnode
+node emitter blast
+  parent root
+endnode
+doneanim impact vfx_detonate_test
+
+donemodel vfx_detonate_test

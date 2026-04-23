@@ -1,0 +1,78 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn1_model_corpus",
+  "description": "Representative NWN1 and glTF model previews used to validate direct model loading across creatures, placeables, tiles, doors, and modern renderer assets.",
+  "entries": [
+    {
+      "id": "model_plc_fish01",
+      "kind": "model",
+      "input": "tests/test_data/user/development/plc_fish01.mdl",
+      "category": [
+        "placeable",
+        "nwn_mdl"
+      ],
+      "notes": "Simple NWN placeable model coverage."
+    },
+    {
+      "id": "model_tds_udoor_04",
+      "kind": "model",
+      "input": "tests/test_data/user/development/tds_udoor_04.mdl",
+      "category": [
+        "door",
+        "nwn_mdl"
+      ],
+      "notes": "Door model coverage."
+    },
+    {
+      "id": "model_tin01_o20_01",
+      "kind": "model",
+      "input": "tin01_o20_01",
+      "category": [
+        "tile",
+        "nwn_resref"
+      ],
+      "notes": "Interior tile coverage using a shipped NWN tileset model."
+    },
+    {
+      "id": "model_c_bodak",
+      "kind": "model",
+      "input": "tests/test_data/user/development/c_bodak.mdl",
+      "animation": "pause1",
+      "category": [
+        "monster",
+        "nwn_mdl"
+      ],
+      "notes": "Direct creature model coverage without UTC assembly."
+    },
+    {
+      "id": "model_damaged_helmet_glb",
+      "kind": "model",
+      "input": "tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+      "category": [
+        "gltf",
+        "pbr"
+      ],
+      "notes": "Static glTF material baseline."
+    },
+    {
+      "id": "model_cesium_man_glb",
+      "kind": "model",
+      "input": "tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb",
+      "category": [
+        "gltf",
+        "skinned"
+      ],
+      "notes": "Skinned glTF baseline."
+    },
+    {
+      "id": "model_metal_rough_spheres_glb",
+      "kind": "model",
+      "input": "tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",
+      "category": [
+        "gltf",
+        "material_validation"
+      ],
+      "notes": "Modern material and lighting coverage."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[submodule "external/SDL"]
+	path = external/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "external/lightweightvk"]
+	path = external/lightweightvk
+	url = https://github.com/corporateshark/lightweightvk
+[submodule "external/glslang"]
+	path = external/glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "external/SPIRV-Reflect"]
+	path = external/SPIRV-Reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git

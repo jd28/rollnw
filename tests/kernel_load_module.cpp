@@ -49,6 +49,12 @@ TEST(Kernel, LoadModuleZip)
     EXPECT_TRUE(cre);
 }
 
+TEST(Kernel, LoadMissingModule)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/does_not_exist.mod");
+    EXPECT_FALSE(mod);
+}
+
 TEST(Kernel, LoadModuleWithScaled)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/transforms.mod");

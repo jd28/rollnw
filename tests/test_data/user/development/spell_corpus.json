@@ -1,0 +1,189 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn1_spell_corpus",
+  "description": "Representative NWN1 spell sequence captures used to validate conjure/cast/projectile timing, anchor placement, and live particle behavior.",
+  "entries": [
+    {
+      "id": "spell_010_burning_hands",
+      "kind": "spell",
+      "input": "10",
+      "view": "front",
+      "frame": 46,
+      "category": [
+        "cone",
+        "hand_conjure",
+        "timing"
+      ],
+      "notes": "Baseline fire cone with shared conjure-to-cast sequencing."
+    },
+    {
+      "id": "spell_025_cone_of_cold",
+      "kind": "spell",
+      "input": "25",
+      "view": "front",
+      "frame": 74,
+      "category": [
+        "cone",
+        "head_visual_remap",
+        "timing"
+      ],
+      "notes": "Conjure source uses head visual data remapped to hand placement."
+    },
+    {
+      "id": "spell_058_fireball",
+      "kind": "spell",
+      "input": "58",
+      "view": "front",
+      "frame": 62,
+      "category": [
+        "projectile",
+        "homing",
+        "impact_family"
+      ],
+      "notes": "Projectile spell with conjure and projectile phases."
+    },
+    {
+      "id": "spell_066_grease",
+      "kind": "spell",
+      "input": "66",
+      "view": "front",
+      "frame": 54,
+      "category": [
+        "head_conjure",
+        "projectile",
+        "ground_effect"
+      ],
+      "notes": "Head conjure plus projectile delivery into a ground-focused effect."
+    },
+    {
+      "id": "spell_107_magic_missile",
+      "kind": "spell",
+      "input": "107",
+      "view": "front",
+      "frame": 40,
+      "category": [
+        "missile",
+        "cast_visual",
+        "force_like"
+      ],
+      "notes": "Classic conjure-to-cast missile coverage with a distinct cast visual."
+    },
+    {
+      "id": "spell_115_melfs_acid_arrow",
+      "kind": "spell",
+      "input": "115",
+      "view": "front",
+      "frame": 62,
+      "category": [
+        "projectile",
+        "homing",
+        "acid"
+      ],
+      "notes": "Projectile coverage with a distinct conjure/cast/projectile chain."
+    },
+    {
+      "id": "spell_030_create_undead",
+      "kind": "spell",
+      "input": "30",
+      "view": "front",
+      "frame": 56,
+      "category": [
+        "ground_conjure",
+        "cast_visual",
+        "negative"
+      ],
+      "notes": "Ground-rooted conjure followed by a separate outbound cast visual."
+    },
+    {
+      "id": "spell_040_dismissal",
+      "kind": "spell",
+      "input": "40",
+      "view": "front",
+      "frame": 56,
+      "category": [
+        "ground_conjure",
+        "cast_visual",
+        "holy"
+      ],
+      "notes": "Ground conjure plus point-cast holy visual without a projectile step."
+    },
+    {
+      "id": "spell_045_dominate_person",
+      "kind": "spell",
+      "input": "45",
+      "view": "front",
+      "frame": 50,
+      "category": [
+        "mind_effect",
+        "projectile",
+        "hand_conjure"
+      ],
+      "notes": "Mind-affecting conjure-to-projectile sequence on the standard LOS projectile path."
+    },
+    {
+      "id": "spell_075_gust_of_wind",
+      "kind": "spell",
+      "input": "75",
+      "view": "front",
+      "frame": 52,
+      "category": [
+        "line_projectile",
+        "hand_conjure",
+        "castout"
+      ],
+      "notes": "Hand conjure into a linear projectile with castout delivery."
+    },
+    {
+      "id": "spell_095_lesser_mind_blank",
+      "kind": "spell",
+      "input": "95",
+      "view": "front",
+      "frame": 52,
+      "category": [
+        "head_conjure",
+        "mind_effect",
+        "projectile"
+      ],
+      "notes": "Head-anchored conjure feeding into a standard projectile chain."
+    },
+    {
+      "id": "spell_156_searing_light",
+      "kind": "spell",
+      "input": "156",
+      "view": "front",
+      "frame": 52,
+      "category": [
+        "holy",
+        "projectile",
+        "hand_conjure"
+      ],
+      "notes": "Holy hand-conjure projectile coverage with the shared LOS projectile asset."
+    },
+    {
+      "id": "spell_170_sphere_of_chaos",
+      "kind": "spell",
+      "input": "170",
+      "view": "front",
+      "frame": 56,
+      "category": [
+        "head_conjure",
+        "source_anchor_remap",
+        "odd_school"
+      ],
+      "notes": "Head conjure sequence whose source visual carries a specific emitter source-anchor remap."
+    },
+    {
+      "id": "spell_190_wail_of_the_banshee",
+      "kind": "spell",
+      "input": "190",
+      "view": "front",
+      "frame": 58,
+      "category": [
+        "head_conjure",
+        "projectile",
+        "castup"
+      ],
+      "notes": "Late-game head conjure projectile path using a castup caster animation."
+    }
+  ]
+}

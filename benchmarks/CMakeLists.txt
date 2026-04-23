@@ -9,6 +9,7 @@ add_custom_target(copy-benchmark-files ALL
 add_executable(rollnw_benchmark
     combat.cpp
     main.cpp
+    particles.cpp
     propset.cpp
     smalls.cpp
     unmanaged_array.cpp

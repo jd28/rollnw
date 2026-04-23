@@ -1,0 +1,82 @@
+#MAXMODEL ASCII
+# model: vfx_lightning_test
+filedependancy vfx_lightning_test.max
+newmodel vfx_lightning_test
+setsupermodel vfx_lightning_test NULL
+classification effect
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom vfx_lightning_test
+node dummy vfx_lightning_test
+  parent NULL
+endnode
+node emitter beam01
+  parent vfx_lightning_test
+  p2p 1
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 0
+  random 1
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Lightning
+  render Normal
+  blend Lighten
+  texture fxpa_lightning2
+  xgrid 2
+  ygrid 2
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0 0
+  orientation 0 0 0 0
+  colorStart 1 1 1
+  colorEnd 1 1 1
+  alphaStart 1
+  alphaEnd 1
+  sizeStart 1
+  sizeEnd 1
+  sizeStart_y 0
+  sizeEnd_y 0
+  frameStart 0
+  frameEnd 3
+  birthrate 5
+  lifeExp 0.1
+  mass 0
+  spread 0
+  particleRot 0
+  velocity 0
+  randvel 0
+  fps 8
+  xsize 0
+  ysize 0
+  bounce_co 0
+  blurlength 0
+  lightningDelay 0.1
+  lightningRadius 0.25
+  lightningSubDiv 6
+  lightningScale 0.5
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+node reference ref01
+  parent beam01
+  position 0 0 2
+  orientation 0 0 1 -1.5708
+  refModel fx_ref
+  reattachable 0
+endnode
+endmodelgeom vfx_lightning_test
+donemodel vfx_lightning_test

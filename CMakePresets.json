@@ -65,6 +65,21 @@
             ]
         },
         {
+            "name": "linux-renderer-dev",
+            "inherits": [
+                "linux-dev"
+            ],
+            "displayName": "Linux Renderer Dev",
+            "description": "Linux development build with renderer tools enabled",
+            "binaryDir": "${sourceDir}/build-renderer",
+            "cacheVariables": {
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "ci-codeql",
             "inherits": "linux",
             "displayName": "ci-codeql",
@@ -183,6 +198,82 @@
             }
         },
         {
+            "name": "ci-linux-renderer",
+            "inherits": "linux",
+            "displayName": "ci-linux-renderer",
+            "description": "Linux renderer build for headless mudl coverage",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-renderer",
+            "cacheVariables": {
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_MUDL": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
+        },
+        {
+            "name": "ci-linux-tools-package",
+            "inherits": "linux",
+            "displayName": "ci-linux-tools-package",
+            "description": "Linux tools package build with mudl and CLI tools",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build-ci-linux-tools-package",
+            "cacheVariables": {
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_MUDL": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "SDL_SHARED": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "SDL_STATIC": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "ci-coverage-docs",
             "inherits": "linux",
             "displayName": "ci-coverage-docs",
@@ -290,6 +381,76 @@
             }
         },
         {
+            "name": "ci-windows-renderer",
+            "inherits": "windows",
+            "generator": "Ninja",
+            "displayName": "windows renderer ci build",
+            "description": "Windows renderer build for mudl compile coverage",
+            "binaryDir": "${sourceDir}/build-ci-windows-renderer",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_MUDL": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
+        },
+        {
+            "name": "ci-windows-tools-package",
+            "inherits": "windows",
+            "generator": "Ninja",
+            "displayName": "windows tools package build",
+            "description": "Windows tools package build with mudl and CLI tools",
+            "binaryDir": "${sourceDir}/build-ci-windows-tools-package",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_MUDL": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "SDL_SHARED": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "SDL_STATIC": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "macos",
             "inherits": "linux",
             "displayName": "macOS default configuration",
@@ -356,6 +517,14 @@
         {
             "name": "ci-linux-clang-bench",
             "configurePreset": "ci-linux-clang-bench"
+        },
+        {
+            "name": "linux-renderer-dev",
+            "configurePreset": "linux-renderer-dev"
+        },
+        {
+            "name": "ci-linux-renderer",
+            "configurePreset": "ci-linux-renderer"
         }
     ],
     "testPresets": [

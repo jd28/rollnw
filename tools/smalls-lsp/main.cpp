@@ -670,7 +670,7 @@ struct LspServer {
 
     static json symbol_to_item(const lsp::Symbol& sym)
     {
-        return {{"label", std::string(sym.decl->identifier())},
+        return {{"label", sym.decl->identifier()},
             {"kind", symbol_kind(sym.kind)},
             {"detail", std::string(sym.view)},
             {"documentation", sym.comment}};

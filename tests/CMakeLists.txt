@@ -38,6 +38,7 @@ add_executable(rollnw_test
     legacy_tlk.cpp
 
     model_parse.cpp
+    model_particles.cpp
 
     objects_area.cpp
     objects_creature.cpp
@@ -60,6 +61,8 @@ add_executable(rollnw_test
     rules_random.cpp
     rules_requirement.cpp
     rules_runtime_object.cpp
+
+    render_particles.cpp
 
     script_nss.cpp
 
@@ -101,6 +104,7 @@ add_executable(rollnw_test
     util_memory.cpp
     util_string.cpp
     util_tokenizer.cpp
+    formats_txi.cpp
 )
 
 add_dependencies(rollnw_test copy-files2)

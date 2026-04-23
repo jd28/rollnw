@@ -1,0 +1,72 @@
+#MAXMODEL ASCII
+newmodel vfx_start_end_only_test
+setsupermodel vfx_start_end_only_test NULL
+classification effect
+setanimationscale 1
+
+beginmodelgeom vfx_start_end_only_test
+node dummy root
+  parent NULL
+endnode
+node emitter puff
+  parent root
+  p2p 0
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 0
+  random 0
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Fountain
+  render Normal
+  blend Normal
+  texture fxpa_smoke01
+  xgrid 1
+  ygrid 1
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0 0
+  orientation 0 0 0 0
+  colorStart 0 0 0
+  colorEnd 1 1 1
+  alphaStart 0
+  alphaEnd 1
+  sizeStart 1
+  sizeEnd 3
+  sizeStart_y 1
+  sizeEnd_y 3
+  frameStart 0
+  frameEnd 0
+  birthrate 4
+  lifeExp 1
+  mass 0
+  spread 0
+  particleRot 0
+  velocity 0
+  randvel 0
+  fps 0
+  xsize 0
+  ysize 0
+  bounce_co 0
+  blurlength 0
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+endmodelgeom vfx_start_end_only_test
+donemodel vfx_start_end_only_test

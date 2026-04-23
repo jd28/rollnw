@@ -12,15 +12,17 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 
 ## Features
 
-- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for easily adding, overriding, expanding, or removing any rule and reasonable performance
-- A [combat engine](https://github.com/jd28/rollnw/blob/main/lib/nw/api/combat.cpp) built on the above that's nearing being able to simulate melee battles.
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties. Loading objects from resman or the filesystem is whether in GFF or JSON format is transparent.
 - A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
 - An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [arclight](https://github.com/jd28/arclight) project for some model viewing.
+- [`nw::gfx`](./lib/nw/gfx/README.md), a thin Vulkan-focused rendering layer for renderer experiments and headless graphics validation.
+- [`mudl`](./tools/mudl/README.md), a renderer-backed NWN model viewer and headless capture tool used to validate dynamic creature assembly, attachments, and material/tint behavior.
+- Renderer design notes in [`lib/nw/render/docs`](./lib/nw/render/docs), including the [particle system overview](./lib/nw/render/docs/particle_system.md).
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
 - Smalls is a statically-typed scripting language designed for NWN tooling. It replaces NWScript with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](lib/nw/smalls/docs/index.md) for a language spec.
+- The beginnings of a novel rules system and combat engine built on smalls.
 
 ## Goals
 

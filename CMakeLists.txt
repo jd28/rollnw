@@ -16,6 +16,8 @@ option(ROLLNW_BUILD_FUZZERS "Build libFuzzer targets" OFF)
 option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 option(ROLLNW_BUILD_WITH_MIMALLOC "Build with mimalloc" OFF)
 option(ROLLNW_BUILD_TOOLS "Build CLI tools" OFF)
+option(ROLLNW_BUILD_RENDERER "Build SDL3 + Vulkan renderer tools" OFF)
+option(ROLLNW_BUILD_MUDL "Build mudl viewer application" OFF)
 option(ROLLNW_ENABLE_TRACY "Enable Tracy profiling" OFF)
 option(ROLLNW_TRACY_ON_DEMAND "Enable Tracy on-demand profiling" ON)
 
@@ -31,6 +33,19 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-fvisibility=hidden)
 endif()
+
+function(rollnw_silence_target_warnings)
+  foreach(target IN LISTS ARGN)
+    if(TARGET ${target})
+      target_compile_options(${target} PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:$<$<C_COMPILER_ID:GNU,Clang>:-w>>
+        $<$<COMPILE_LANGUAGE:CXX>:$<$<CXX_COMPILER_ID:GNU,Clang>:-w>>
+        $<$<COMPILE_LANGUAGE:C>:$<$<C_COMPILER_ID:MSVC>:/w>>
+        $<$<COMPILE_LANGUAGE:CXX>:$<$<CXX_COMPILER_ID:MSVC>:/w>>
+      )
+    endif()
+  endforeach()
+endfunction()
 
 if(MSVC)
     add_definitions(
@@ -110,9 +125,11 @@ add_subdirectory(external/immer EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/inih EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/libiconv EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/OffsetAllocator EXCLUDE_FROM_ALL SYSTEM)
+rollnw_silence_target_warnings(fzy)
 
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2 EXCLUDE_FROM_ALL SYSTEM)
+rollnw_silence_target_warnings(sqlite3)
 
 set(ZLIB_LINK_LIBRARY_NAME zlibstatic)
 add_library(ZLIB::ZLIB ALIAS zlibstatic)
@@ -121,6 +138,7 @@ include_directories(SYSTEM external/libzip-1.11.3/lib)
 
 add_subdirectory(external/nowide EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/stb EXCLUDE_FROM_ALL SYSTEM)
+rollnw_silence_target_warnings(stb_image)
 
 if(ROLLNW_ENABLE_TRACY)
   set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
@@ -141,6 +159,15 @@ set(ZSTD_BUILD_CONTRIB OFF)
 add_subdirectory(external/zstd-1.5.6/build/cmake EXCLUDE_FROM_ALL SYSTEM)
 
 add_subdirectory(lib/nw)
+
+if(ROLLNW_BUILD_RENDERER)
+add_subdirectory(external/SDL EXCLUDE_FROM_ALL SYSTEM)
+add_subdirectory(lib/nw/gfx)
+add_subdirectory(lib/nw/render)
+if(ROLLNW_BUILD_MUDL AND PROJECT_IS_TOP_LEVEL)
+add_subdirectory(tools/mudl)
+endif()
+endif()
 
 if (ROLLNW_BUILD_TESTS)
 set(INSTALL_GTEST OFF)

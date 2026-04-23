@@ -280,6 +280,21 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryEmitterNode::s_sizeof);
 
         auto n = static_cast<EmitterNode*>(node.get());
+        n->deadspace = data.dead_space;
+        n->blastradius = data.blast_radius;
+        n->blastlength = data.blast_lenght;
+        n->xgrid = data.x_grid;
+        n->ygrid = data.y_grid;
+        n->spawntype = static_cast<int32_t>(data.space_type);
+        n->update = detail::to_string(data.update);
+        n->render = detail::to_string(data.render);
+        n->blend = detail::to_string(data.blend);
+        n->texture = detail::to_string(data.texture);
+        n->chunkname = detail::to_string(data.chunk_name);
+        n->twosidedtex = data.twosided_texture;
+        n->loop = data.loop;
+        n->renderorder = data.render_order;
+        n->flags = data.flags;
     } else if (node->type == NodeType::light) {
         detail::MdlBinaryLightNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryLightNode::s_sizeof);

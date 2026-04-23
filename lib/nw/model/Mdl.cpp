@@ -63,10 +63,6 @@ const std::unordered_map<StringView, std::pair<uint32_t, uint32_t>> ControllerTy
     {"sizeMid", {ControllerType::SizeMid, NodeFlags::emitter}},
     {"sizeMid_y", {ControllerType::SizeMid_Y, NodeFlags::emitter}},
     {"lockAxes", {ControllerType::lock_axes, NodeFlags::emitter}},
-    {"spawnType", {ControllerType::spawn_type, NodeFlags::emitter}},
-    {"random", {ControllerType::random, NodeFlags::emitter}},
-    {"inherit", {ControllerType::inherit, NodeFlags::emitter}},
-    {"inherit_local", {ControllerType::inherit_local, NodeFlags::emitter}},
     // Meshes
     {"selfillumcolor", {ControllerType::SelfIllumColor, NodeFlags::mesh}},
     {"alpha", {ControllerType::Alpha, NodeFlags::mesh | NodeFlags::emitter}},
@@ -179,14 +175,6 @@ std::pair<uint32_t, uint32_t> ControllerType::lookup(StringView cont)
         return {ControllerType::SizeMid_Y, NodeFlags::emitter};
     } else if (string::icmp(cont, "lockAxes")) {
         return {ControllerType::lock_axes, NodeFlags::emitter};
-    } else if (string::icmp(cont, "spawnType")) {
-        return {ControllerType::spawn_type, NodeFlags::emitter};
-    } else if (string::icmp(cont, "random")) {
-        return {ControllerType::random, NodeFlags::emitter};
-    } else if (string::icmp(cont, "inherit")) {
-        return {ControllerType::inherit, NodeFlags::emitter};
-    } else if (string::icmp(cont, "inherit_local")) {
-        return {ControllerType::inherit_local, NodeFlags::emitter};
     }
     // Meshes
     else if (string::icmp(cont, "selfillumcolor")) {

@@ -1,0 +1,57 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn1_oc_prelude_area_corpus",
+  "description": "Seed OC campaign area corpus. Run this corpus with --module pointing at the shipped Prelude.nwm campaign module.",
+  "entries": [
+    {
+      "id": "area_prelude_m0q1a",
+      "kind": "area",
+      "input": "m0q1a",
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "notes": "Prelude area seed captured from shipped OC content."
+    },
+    {
+      "id": "area_prelude_m0q1b",
+      "kind": "area",
+      "input": "m0q1b",
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "notes": "Prelude area seed captured from shipped OC content."
+    },
+    {
+      "id": "area_prelude_m0q1c",
+      "kind": "area",
+      "input": "m0q1c",
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "notes": "Prelude area seed captured from shipped OC content."
+    },
+    {
+      "id": "area_prelude_m0q1d",
+      "kind": "area",
+      "input": "m0q1d",
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "notes": "Prelude area seed captured from shipped OC content."
+    },
+    {
+      "id": "area_prelude_m0q1e",
+      "kind": "area",
+      "input": "m0q1e",
+      "category": [
+        "oc_campaign",
+        "prelude"
+      ],
+      "notes": "Prelude area seed captured from shipped OC content."
+    }
+  ]
+}

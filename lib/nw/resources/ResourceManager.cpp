@@ -94,7 +94,9 @@ bool ResourceManager::load_module(std::filesystem::path path)
         if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
             auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
             module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
-        } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
+        } else if (fs::exists(path)
+            && (string::icmp(path_to_string(path.extension()), ".mod")
+                || string::icmp(path_to_string(path.extension()), ".nwm"))) {
             auto ptr = allocator()->allocate(sizeof(StaticErf), alignof(StaticErf));
             module_ = make_unique_container(new (ptr) StaticErf(path, allocator()));
         } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
