@@ -114,7 +114,7 @@ private:
 /// Embeds type information like ObjectHandle does
 struct TypedHandle {
     uint32_t id : 32 = 0;         // Pool index
-    uint8_t type : 8 = 0;         // Object type (1=Effect, 2=Event, etc.)
+    uint32_t type : 8 = 0;        // Object type (1=Effect, 2=Event, etc.)
     uint32_t generation : 24 = 0; // Anti-ABA
 
     bool operator==(const TypedHandle&) const = default;
@@ -140,6 +140,11 @@ struct TypedHandle {
 
     bool is_valid() const noexcept { return *this != TypedHandle{}; }
 };
+
+static_assert(sizeof(TypedHandle) == sizeof(uint64_t),
+    "TypedHandle must remain 64-bit for VM and propset storage");
+static_assert(alignof(TypedHandle) <= alignof(uint64_t),
+    "TypedHandle alignment must be compatible with uint64_t storage");
 
 template <typename H>
 H AbslHashValue(H h, const TypedHandle& handle)

@@ -25,7 +25,7 @@ void to_json(nlohmann::json& j, ObjectID id);
 // ============================================================================
 
 /// Object types
-enum struct ObjectType : uint8_t {
+enum struct ObjectType : uint32_t {
     invalid = 0,
     gui = 1,
     tile = 2,
@@ -76,5 +76,10 @@ struct ObjectHandle {
     uint64_t to_ull() const noexcept;
     static ObjectHandle from_ull(uint64_t value) noexcept;
 };
+
+static_assert(sizeof(ObjectHandle) == sizeof(uint64_t),
+    "ObjectHandle must remain 64-bit for VM and serialized handle storage");
+static_assert(alignof(ObjectHandle) <= alignof(uint64_t),
+    "ObjectHandle alignment must be compatible with uint64_t storage");
 
 } // namespace nw

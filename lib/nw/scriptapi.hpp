@@ -22,7 +22,7 @@ struct ItemProperty;
 struct ItemPropertyType;
 struct ObjectBase;
 struct ObjectHandle;
-enum struct ObjectType : uint8_t;
+enum struct ObjectType : uint32_t;
 enum struct EquipIndex : uint32_t;
 struct Resref;
 
