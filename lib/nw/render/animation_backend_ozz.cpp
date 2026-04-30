@@ -10,9 +10,11 @@
 #include <ozz/animation/runtime/skeleton.h>
 
 #include <ozz/base/containers/vector.h>
-#include <ozz/base/maths/soa_transform.h>
 #include <ozz/base/maths/simd_math.h>
+#include <ozz/base/maths/soa_transform.h>
 
+
+#include <array>
 #include <cassert>
 #include <memory>
 #include <vector>
@@ -234,16 +236,16 @@ public:
         std::array<float, 4> tx{}, ty{}, tz{}, qx{}, qy{}, qz{}, qw{}, sx{}, sy{}, sz{};
         for (size_t soa_index = 0; soa_index < needed; ++soa_index) {
             const auto& soa = locals_scratch_[soa_index];
-            ozz::math::StorePtrU(soa.translation.x, tx.data());
-            ozz::math::StorePtrU(soa.translation.y, ty.data());
-            ozz::math::StorePtrU(soa.translation.z, tz.data());
-            ozz::math::StorePtrU(soa.rotation.x, qx.data());
-            ozz::math::StorePtrU(soa.rotation.y, qy.data());
-            ozz::math::StorePtrU(soa.rotation.z, qz.data());
-            ozz::math::StorePtrU(soa.rotation.w, qw.data());
-            ozz::math::StorePtrU(soa.scale.x, sx.data());
-            ozz::math::StorePtrU(soa.scale.y, sy.data());
-            ozz::math::StorePtrU(soa.scale.z, sz.data());
+            ozz::math::StorePtrU(soa.translation.x, &tx[0]);
+            ozz::math::StorePtrU(soa.translation.y, &ty[0]);
+            ozz::math::StorePtrU(soa.translation.z, &tz[0]);
+            ozz::math::StorePtrU(soa.rotation.x, &qx[0]);
+            ozz::math::StorePtrU(soa.rotation.y, &qy[0]);
+            ozz::math::StorePtrU(soa.rotation.z, &qz[0]);
+            ozz::math::StorePtrU(soa.rotation.w, &qw[0]);
+            ozz::math::StorePtrU(soa.scale.x, &sx[0]);
+            ozz::math::StorePtrU(soa.scale.y, &sy[0]);
+            ozz::math::StorePtrU(soa.scale.z, &sz[0]);
             for (size_t lane = 0; lane < 4; ++lane) {
                 const size_t runtime_joint = soa_index * 4 + lane;
                 if (runtime_joint >= runtime_to_original.size()) break;
@@ -259,7 +261,7 @@ public:
 
 private:
     std::vector<Skeleton> skeletons_;
-    std::vector<uint32_t> clip_skeletons_;   // per clip: which skeleton index it targets
+    std::vector<uint32_t> clip_skeletons_; // per clip: which skeleton index it targets
     std::vector<ozz::animation::Skeleton> runtime_skeletons_;
     std::vector<std::vector<int32_t>> runtime_to_original_;
     std::vector<std::vector<int32_t>> original_to_runtime_;

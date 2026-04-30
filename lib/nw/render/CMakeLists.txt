@@ -104,6 +104,9 @@ set(ozz_build_data OFF CACHE BOOL "" FORCE)
 set(ozz_build_samples OFF CACHE BOOL "" FORCE)
 set(ozz_build_howtos OFF CACHE BOOL "" FORCE)
 set(ozz_build_tests OFF CACHE BOOL "" FORCE)
+if(MSVC)
+    set(ozz_build_msvc_rt_dll ON CACHE BOOL "" FORCE)
+endif()
 add_subdirectory("${ROLLNW_OZZ_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/ozz" EXCLUDE_FROM_ALL)
 
 add_library(nw-render-ozz STATIC
