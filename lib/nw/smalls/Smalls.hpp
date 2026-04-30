@@ -130,6 +130,7 @@ struct Script {
     explicit Script(const std::filesystem::path& filename, Context* ctx);
     Script(StringView name, StringView script, Context* ctx);
     explicit Script(ResourceData data, Context* ctx);
+    ~Script();
 
     /// Add diagnostic to script
     void add_diagnostic(Diagnostic diagnostic);

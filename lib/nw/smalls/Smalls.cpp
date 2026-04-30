@@ -294,6 +294,14 @@ Script::Script(ResourceData data, Context* ctx)
     data_.name.resref = Resref(module_name);
 }
 
+Script::~Script()
+{
+    // Clear diagnostic payloads explicitly before member teardown. Fuzzed parse
+    // recovery can leave diagnostics populated on partially parsed scripts, and
+    // destroying the vector in the default member teardown path trips ASan.
+    diagnostics_.clear();
+}
+
 void Script::add_diagnostic(Diagnostic diagnostic)
 {
     diagnostics_.push_back(std::move(diagnostic));

@@ -149,10 +149,9 @@ TEST(Mdl, ParseASCII2)
     nw::model::Mdl mdl29{nw::ResourceData::from_file("test_data/user/development/tts01_h02_03.mdl")};
     EXPECT_TRUE(mdl29.valid());
 
-    // [TODO] Investigate whether all the controllers in here are obsolete
-    // or really needed.  Only 3 models use them.
+    // Legacy controllers in this bridge effect are now tolerated by the text parser.
     nw::model::Mdl mdl30{"test_data/user/development/fx_step_stbrdg.mdl"};
-    EXPECT_FALSE(mdl30.valid());
+    EXPECT_TRUE(mdl30.valid());
 
     nw::model::Mdl mdl31{"test_data/user/development/vwp_flash_whiblu.mdl"};
     EXPECT_TRUE(mdl31.valid());

@@ -74,6 +74,7 @@ struct ObjectHandle {
     }
 
     uint64_t to_ull() const noexcept;
+    static ObjectHandle from_ull(uint64_t value) noexcept;
 };
 
 } // namespace nw

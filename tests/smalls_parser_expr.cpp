@@ -228,6 +228,27 @@ TEST_F(SmallsParser, FStringRejectsTrailingTokensInInterpolation)
     EXPECT_TRUE(found_expected);
 }
 
+TEST_F(SmallsParser, FStringRejectsUnmatchedInterpolationBrace)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var s = f"bad {x";
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+
+    bool found_expected = false;
+    for (const auto& diag : script.diagnostics()) {
+        if (diag.message.find("Unmatched braces in f-string") != std::string::npos) {
+            found_expected = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_expected);
+}
+
 TEST_F(SmallsParser, AssignmentExpression)
 {
     auto script = make_script(R"(

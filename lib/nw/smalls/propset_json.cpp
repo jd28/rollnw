@@ -197,9 +197,7 @@ bool PropsetJsonSerializer::deserialize(const nlohmann::json& j,
         if (rt_->is_object_like_type(fd.type_id)) {
             if (jv.is_number_unsigned() || jv.is_number_integer()) {
                 uint64_t raw = jv.get<uint64_t>();
-                nw::ObjectHandle oh;
-                static_assert(sizeof(oh) == sizeof(raw));
-                std::memcpy(&oh, &raw, sizeof(raw));
+                nw::ObjectHandle oh = nw::ObjectHandle::from_ull(raw);
                 rt_->write_value_field_at_offset(ref, fd.offset, fd.type_id,
                     Value::make_object(oh));
             } else { ok = false; }

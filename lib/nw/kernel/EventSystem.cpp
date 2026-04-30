@@ -112,7 +112,8 @@ int EventSystem::process()
 {
     int processed = 0;
     while (!queue_.empty() && queue_.top().tick <= current_tick_) {
-        auto& ev = queue_.top();
+        auto ev = queue_.top();
+        queue_.pop();
 
         auto* object = ev.object == ObjectHandle{}
             ? nullptr
@@ -154,7 +155,6 @@ int EventSystem::process()
             ev.data_deleter(ev.data);
         }
 
-        queue_.pop();
         ++processed;
     }
     return processed;

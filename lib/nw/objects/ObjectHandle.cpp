@@ -38,4 +38,13 @@ uint64_t ObjectHandle::to_ull() const noexcept
     return (static_cast<uint64_t>(type) << 56) | (static_cast<uint64_t>(version) << 32) | static_cast<uint64_t>(id);
 }
 
+ObjectHandle ObjectHandle::from_ull(uint64_t value) noexcept
+{
+    ObjectHandle handle{};
+    handle.id = static_cast<ObjectID>(static_cast<uint32_t>(value & 0xffffffffu));
+    handle.version = static_cast<uint32_t>((value >> 32) & 0x00ffffffu);
+    handle.type = static_cast<ObjectType>((value >> 56) & 0xffu);
+    return handle;
+}
+
 } // namespace nw

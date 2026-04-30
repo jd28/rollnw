@@ -525,6 +525,18 @@
         {
             "name": "ci-linux-renderer",
             "configurePreset": "ci-linux-renderer"
+        },
+        {
+            "name": "ci-windows",
+            "configurePreset": "ci-windows"
+        },
+        {
+            "name": "ci-windows-renderer",
+            "configurePreset": "ci-windows-renderer"
+        },
+        {
+            "name": "ci-windows-tools-package",
+            "configurePreset": "ci-windows-tools-package"
         }
     ],
     "testPresets": [
