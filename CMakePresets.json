@@ -491,6 +491,27 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "ci-macos-tools-package",
+            "inherits": "macos",
+            "displayName": "macOS tools package build",
+            "description": "macOS CLI tools package build without GUI renderer tools",
+            "binaryDir": "${sourceDir}/build-ci-macos-tools-package",
+            "cacheVariables": {
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
         }
     ],
     "buildPresets": [
@@ -525,6 +546,14 @@
         {
             "name": "ci-linux-renderer",
             "configurePreset": "ci-linux-renderer"
+        },
+        {
+            "name": "ci-linux-tools-package",
+            "configurePreset": "ci-linux-tools-package"
+        },
+        {
+            "name": "ci-macos-tools-package",
+            "configurePreset": "ci-macos-tools-package"
         },
         {
             "name": "ci-windows",

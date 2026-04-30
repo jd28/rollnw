@@ -204,3 +204,16 @@ add_subdirectory(tools/smalls-lsp)
 add_subdirectory(tools/smalls-datagen)
 add_subdirectory(tools/vscode-smalls)
 endif()
+
+if(PROJECT_IS_TOP_LEVEL)
+install(FILES LICENSE README.md DESTINATION .)
+
+set(CPACK_PACKAGE_VENDOR "rollNW")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "rollNW tools and runtime")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/jd28/rollnw")
+set(CPACK_MONOLITHIC_INSTALL ON)
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+
+include(CPack)
+endif()

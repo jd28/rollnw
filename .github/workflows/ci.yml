@@ -510,7 +510,8 @@ jobs:
           ccache -s
 
   linux-tools-package:
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
     runs-on: ubuntu-22.04
     name: Linux Tools Package
     permissions:
@@ -532,7 +533,7 @@ jobs:
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols
+          sudo apt-get install -y ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
@@ -563,19 +564,18 @@ jobs:
         run: |
           cmake --build --preset ci-linux-tools-package --target mudl smalls smalls-lsp smalls-datagen
 
-      - name: linux - assemble package
+      - name: linux - package install tree
         env:
           PACKAGE_VERSION: ${{ github.ref_name }}
         run: |
+          ARCHIVE_DIR="${{ github.workspace }}/tmp/release"
           PACKAGE_ROOT="rollnw-tools-linux-x64-${PACKAGE_VERSION}"
-          STAGE_ROOT="${{ github.workspace }}/tmp/package/${PACKAGE_ROOT}"
-          ARCHIVE_PATH="${{ github.workspace }}/tmp/release/${PACKAGE_ROOT}.tar.gz"
-          rm -rf "$STAGE_ROOT"
-          mkdir -p "$STAGE_ROOT" "${{ github.workspace }}/tmp/release"
-          cmake --install build-ci-linux-tools-package --prefix "$STAGE_ROOT"
-          cp LICENSE "$STAGE_ROOT/"
-          cp README.md "$STAGE_ROOT/"
-          tar -C "${{ github.workspace }}/tmp/package" -czf "$ARCHIVE_PATH" "$PACKAGE_ROOT"
+          mkdir -p "$ARCHIVE_DIR"
+          cpack -G TGZ \
+            -B "$ARCHIVE_DIR" \
+            -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
+            --config build-ci-linux-tools-package/CPackConfig.cmake
+          ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
           echo "PACKAGE_ARCHIVE=$ARCHIVE_PATH" >> $GITHUB_ENV
 
       - name: upload linux tools artifact
@@ -585,18 +585,13 @@ jobs:
           if-no-files-found: error
           path: ${{ env.PACKAGE_ARCHIVE }}
 
-      - name: attach linux tools release asset
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.PACKAGE_ARCHIVE }}
-
       - name: ccache stats
         run: |
           ccache -s
 
   windows-tools-package:
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
     runs-on: windows-2022
     name: Windows Tools Package
     permissions:
@@ -648,23 +643,20 @@ jobs:
         run: |
           cmake --build --preset ci-windows-tools-package --target mudl smalls smalls-lsp smalls-datagen
 
-      - name: windows - assemble package
+      - name: windows - package install tree
         env:
           PACKAGE_VERSION: ${{ github.ref_name }}
         shell: pwsh
         run: |
           $packageRoot = "rollnw-tools-windows-x64-$env:PACKAGE_VERSION"
-          $stageRoot = Join-Path "${{ github.workspace }}" "tmp/package/$packageRoot"
           $releaseDir = Join-Path "${{ github.workspace }}" "tmp/release"
           $archivePath = Join-Path $releaseDir "$packageRoot.zip"
-          if (Test-Path $stageRoot) { Remove-Item -Recurse -Force $stageRoot }
-          New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
           New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-          cmake --install build-ci-windows-tools-package --prefix $stageRoot
-          Copy-Item LICENSE $stageRoot
-          Copy-Item README.md $stageRoot
           if (Test-Path $archivePath) { Remove-Item -Force $archivePath }
-          Compress-Archive -Path $stageRoot -DestinationPath $archivePath
+          cpack -G ZIP `
+            -B $releaseDir `
+            -D "CPACK_PACKAGE_FILE_NAME=$packageRoot" `
+            --config build-ci-windows-tools-package/CPackConfig.cmake
           "PACKAGE_ARCHIVE=$archivePath" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: upload windows tools artifact
@@ -674,15 +666,124 @@ jobs:
           if-no-files-found: error
           path: ${{ env.PACKAGE_ARCHIVE }}
 
-      - name: attach windows tools release asset
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+      - name: ccache stats
+        run: |
+          ccache -s
+
+  macos-tools-package:
+    needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
+    runs-on: macos-14
+    name: macOS Tools Package
+    permissions:
+      contents: write
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: macOS - install dependencies
+        env:
+          HOMEBREW_NO_ANALYTICS: "ON"
+          HOMEBREW_NO_AUTO_UPDATE: "ON"
+          HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
+          HOMEBREW_NO_INSTALL_CLEANUP: "ON"
+        run: |
+          brew install --force --overwrite pkg-config automake ninja libtool zlib ccache
+
+      - uses: actions/checkout@v6
         with:
-          files: ${{ env.PACKAGE_ARCHIVE }}
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: macOS - cache ccache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: macos-14-tools-package-ccache-${{ env.DATE }}
+          restore-keys: |
+            macos-14-tools-package-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+          export PATH="/usr/local/opt/ccache/libexec:$PATH"
+          echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          mkdir -p "$HOST_CCACHE_DIR"
+
+      - name: macOS - configure tools package
+        run: |
+          cmake --preset ci-macos-tools-package
+
+      - name: macOS - build tools package
+        run: |
+          cmake --build --preset ci-macos-tools-package --target smalls smalls-lsp smalls-datagen
+
+      - name: macOS - package install tree
+        env:
+          PACKAGE_VERSION: ${{ github.ref_name }}
+        run: |
+          ARCHIVE_DIR="${{ github.workspace }}/tmp/release"
+          PACKAGE_ROOT="rollnw-tools-macos-universal-${PACKAGE_VERSION}"
+          mkdir -p "$ARCHIVE_DIR"
+          cpack -G TGZ \
+            -B "$ARCHIVE_DIR" \
+            -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
+            --config build-ci-macos-tools-package/CPackConfig.cmake
+          ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
+          echo "PACKAGE_ARCHIVE=$ARCHIVE_PATH" >> $GITHUB_ENV
+
+      - name: upload macOS tools artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-tools-package
+          if-no-files-found: error
+          path: ${{ env.PACKAGE_ARCHIVE }}
 
       - name: ccache stats
         run: |
           ccache -s
+
+  release-packages:
+    needs: [linux-tools-package, windows-tools-package, macos-tools-package]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-22.04
+    name: Release Packages
+    permissions:
+      contents: write
+    steps:
+      - name: download linux tools artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: linux-tools-package
+          path: tmp/release/linux
+
+      - name: download windows tools artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: windows-tools-package
+          path: tmp/release/windows
+
+      - name: download macOS tools artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-tools-package
+          path: tmp/release/macos
+
+      - name: attach consolidated release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tmp/release/linux/*
+            tmp/release/windows/*
+            tmp/release/macos/*
 
   linux-clang-benchmark-canary:
     runs-on: ubuntu-22.04
