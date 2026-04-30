@@ -30,6 +30,7 @@ target_include_directories(nw-gfx PUBLIC
     ${CMAKE_SOURCE_DIR}/lib/nw/gfx
     ${CMAKE_SOURCE_DIR}/external/glslang
     ${CMAKE_SOURCE_DIR}/external/SPIRV-Reflect
+    ${CMAKE_SOURCE_DIR}/external/SDL/src/video/khronos
 )
 
 # Mark RmlUi headers as SYSTEM to suppress warnings from external code
