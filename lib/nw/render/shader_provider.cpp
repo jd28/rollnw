@@ -5,6 +5,13 @@
 #include <filesystem>
 
 #ifdef NW_RENDER_HAS_DXC
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <unknwn.h>
+#endif
 #if __has_include(<dxc/dxcapi.h>)
 #include <dxc/dxcapi.h>
 #elif __has_include(<dxcapi.h>)
