@@ -760,6 +760,8 @@
 </li>
       <li><a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfo10CombatInfoER10CombatInfo">nw::CombatInfo::CombatInfo (C++ function)</a>, <a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfo10CombatInfoERR10CombatInfo">[1]</a>, <a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfo10CombatInfoEv">[2]</a>
 </li>
+      <li><a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfo15epic_dodge_usedE">nw::CombatInfo::epic_dodge_used (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfo9from_jsonERKN8nlohmann4jsonE">nw::CombatInfo::from_json (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfoaSER10CombatInfo">nw::CombatInfo::operator= (C++ function)</a>, <a href="api/struct/nw__CombatInfo.html#_CPPv4N2nw10CombatInfoaSERR10CombatInfo">[1]</a>
@@ -829,6 +831,8 @@
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE">nw::ConfigOptions (C++ struct)</a>
 </li>
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions20combat_policy_moduleE">nw::ConfigOptions::combat_policy_module (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions21effects_policy_moduleE">nw::ConfigOptions::effects_policy_module (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions15include_installE">nw::ConfigOptions::include_install (C++ member)</a>
 </li>
@@ -2270,6 +2274,12 @@
 </li>
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item6cursedE">nw::Item::cursed (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item13derived_flagsE">nw::Item::derived_flags (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item16derived_has_keenE">nw::Item::derived_has_keen (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item26derived_weapon_power_bonusE">nw::Item::derived_weapon_power_bonus (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item11descriptionE">nw::Item::description (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item14description_idE">nw::Item::description_id (C++ member)</a>
@@ -2464,6 +2474,8 @@
 </li>
       <li><a href="api/struct/nw__kernel__Config.html#_CPPv4N2nw6kernel6Config6ConfigEv">nw::kernel::Config::Config (C++ function)</a>
 </li>
+      <li><a href="api/struct/nw__kernel__Config.html#_CPPv4NK2nw6kernel6Config21effects_policy_moduleEv">nw::kernel::Config::effects_policy_module (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__kernel__Config.html#_CPPv4NK2nw6kernel6Config11init_moduleEv">nw::kernel::Config::init_module (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Config.html#_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions">nw::kernel::Config::initialize (C++ function)</a>
@@ -2492,23 +2504,41 @@
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystemE">nw::kernel::EventSystem (C++ struct)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv">nw::kernel::EventSystem::add (C++ function)</a>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem3addE9EventType12ObjectHandlePv">nw::kernel::EventSystem::add (C++ function)</a>, <a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv">[1]</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6add_atE9EventType12ObjectHandle8uint64_tPv">nw::kernel::EventSystem::add_at (C++ function)</a>, <a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6add_atE9EventTypeP10ObjectBase8uint64_tPv">[1]</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem10add_customE12ObjectHandle13EventCallback8uint64_tPv16EventDataDeleter">nw::kernel::EventSystem::add_custom (C++ function)</a>, <a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem10add_customEP10ObjectBase13EventCallback8uint64_tPv16EventDataDeleter">[1]</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6add_inE9EventType12ObjectHandle8uint64_tPv">nw::kernel::EventSystem::add_in (C++ function)</a>, <a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6add_inE9EventTypeP10ObjectBase8uint64_tPv">[1]</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem7advanceE8uint64_t">nw::kernel::EventSystem::advance (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4NK2nw6kernel11EventSystem9allocatorEv">nw::kernel::EventSystem::allocator (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4NK2nw6kernel11EventSystem12current_tickEv">nw::kernel::EventSystem::current_tick (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem11EventSystemEP14MemoryResource">nw::kernel::EventSystem::EventSystem (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime">nw::kernel::EventSystem::initialize (C++ function)</a>
 </li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4NK2nw6kernel11EventSystem7pendingEv">nw::kernel::EventSystem::pending (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem7processEv">nw::kernel::EventSystem::process (C++ function)</a>
 </li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem13process_untilE8uint64_t">nw::kernel::EventSystem::process_until (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6queue_E">nw::kernel::EventSystem::queue_ (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem16set_current_tickE8uint64_t">nw::kernel::EventSystem::set_current_tick (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4NK2nw6kernel11EventSystem5statsEv">nw::kernel::EventSystem::stats (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4I0EN2nw6kernel11EventSystem7storageE">nw::kernel::EventSystem::storage (C++ type)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem10type_indexE">nw::kernel::EventSystem::type_index (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystemD0Ev">nw::kernel::EventSystem::~EventSystem (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystemE">nw::kernel::FactionSystem (C++ struct)</a>
 </li>
@@ -2536,8 +2566,6 @@
 </li>
       <li><a href="api/function/nw__kernel__load_module.html#_CPPv4N2nw6kernel11load_moduleERKNSt10filesystem4pathEb">nw::kernel::load_module (C++ function)</a>
 </li>
-      <li><a href="api/function/nw__kernel__max_modifier.html#_CPPv4I00EN2nw6kernel12max_modifierE1TPK10ObjectBaseK12ModifierType7SubType">nw::kernel::max_modifier (C++ function)</a>, <a href="api/function/nw__kernel__max_modifier.html#_CPPv4I00EN2nw6kernel12max_modifierE1TPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase">[1]</a>, <a href="api/function/nw__kernel__max_modifier.html#_CPPv4I0EN2nw6kernel12max_modifierE1TPK10ObjectBaseK12ModifierType">[2]</a>, <a href="api/function/nw__kernel__max_modifier.html#_CPPv4I0EN2nw6kernel12max_modifierE1TPK10ObjectBaseK12ModifierTypePK10ObjectBase">[3]</a>
-</li>
       <li><a href="api/struct/nw__kernel__ModelCache.html#_CPPv4N2nw6kernel10ModelCacheE">nw::kernel::ModelCache (C++ struct)</a>
 </li>
       <li><a href="api/struct/nw__kernel__ModelCache.html#_CPPv4NK2nw6kernel10ModelCache9allocatorEv">nw::kernel::ModelCache::allocator (C++ function)</a>
@@ -2562,11 +2590,7 @@
 </li>
       <li><a href="api/function/nw__kernel__resman.html#_CPPv4N2nw6kernel6resmanEv">nw::kernel::resman (C++ function)</a>
 </li>
-      <li><a href="api/function/nw__kernel__resolve_master_feat.html#_CPPv4I00EN2nw6kernel19resolve_master_featE1TPK8Creature1U10MasterFeat">nw::kernel::resolve_master_feat (C++ function)</a>
-</li>
-      <li><a href="api/function/nw__kernel__resolve_master_feats.html#_CPPv4I000DpEN2nw6kernel20resolve_master_featsEvPK8Creature1U8CallbackDp4Args">nw::kernel::resolve_master_feats (C++ function)</a>
-</li>
-      <li><a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I00EN2nw6kernel16resolve_modifierEbPK10ObjectBaseK12ModifierType7SubType8Callback">nw::kernel::resolve_modifier (C++ function)</a>, <a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I00EN2nw6kernel16resolve_modifierEbPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback">[1]</a>, <a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I0EN2nw6kernel16resolve_modifierEbPK10ObjectBaseK12ModifierType8Callback">[2]</a>, <a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I0EN2nw6kernel16resolve_modifierEbPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback">[3]</a>, <a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I0EN2nw6kernel16resolve_modifierEbPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t">[4]</a>
+      <li><a href="api/function/nw__kernel__resolve_modifier.html#_CPPv4I0EN2nw6kernel16resolve_modifierEbPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t">nw::kernel::resolve_modifier (C++ function)</a>
 </li>
       <li><a href="api/function/nw__kernel__rules.html#_CPPv4N2nw6kernel5rulesEv">nw::kernel::rules (C++ function)</a>
 </li>
@@ -2580,13 +2604,9 @@
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules7classesE">nw::kernel::Rules::classes (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules11combat_modeE10CombatMode">nw::kernel::Rules::combat_mode (C++ function)</a>
-</li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules5featsE">nw::kernel::Rules::feats (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules10initializeE15ServiceInitTime">nw::kernel::Rules::initialize (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules12master_featsE">nw::kernel::Rules::master_feats (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase">nw::kernel::Rules::match (C++ function)</a>
 </li>
@@ -2596,25 +2616,17 @@
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules9metamagicE">nw::kernel::Rules::metamagic (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules9modifiersE">nw::kernel::Rules::modifiers (C++ member)</a>
-</li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules10phenotypesE">nw::kernel::Rules::phenotypes (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules10placeablesE">nw::kernel::Rules::placeables (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules5racesE">nw::kernel::Rules::races (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE">nw::kernel::Rules::register_combat_mode (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules23register_special_attackE13SpecialAttack18SpecialAttackFuncs">nw::kernel::Rules::register_special_attack (C++ function)</a>
-</li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules5RulesEP14MemoryResource">nw::kernel::Rules::Rules (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules13set_qualifierE7ReqTypePFbRK9QualifierPK10ObjectBaseE">nw::kernel::Rules::set_qualifier (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules6skillsE">nw::kernel::Rules::skills (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules14special_attackE13SpecialAttack">nw::kernel::Rules::special_attack (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules6spellsE">nw::kernel::Rules::spells (C++ member)</a>
 </li>
@@ -2705,10 +2717,6 @@
       <li><a href="api/struct/nw__kernel__Strings.html#_CPPv4N2nw6kernel7Strings17unload_custom_tlkEv">nw::kernel::Strings::unload_custom_tlk (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Strings.html#_CPPv4N2nw6kernel7StringsD0Ev">nw::kernel::Strings::~Strings (C++ function)</a>
-</li>
-      <li><a href="api/function/nw__kernel__sum_master_feats.html#_CPPv4I00DpEN2nw6kernel16sum_master_featsE1TPK8Creature1UDp11MasterFeats">nw::kernel::sum_master_feats (C++ function)</a>
-</li>
-      <li><a href="api/function/nw__kernel__sum_modifier.html#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType">nw::kernel::sum_modifier (C++ function)</a>, <a href="api/function/nw__kernel__sum_modifier.html#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType">[1]</a>
 </li>
       <li><a href="api/function/nw__kernel__unload_module.html#_CPPv4N2nw6kernel13unload_moduleEv">nw::kernel::unload_module (C++ function)</a>
 </li>
@@ -3256,6 +3264,10 @@
 </li>
       <li><a href="api/struct/nw__model__ControllerType.html#_CPPv4N2nw5model14ControllerType13inherit_localE">nw::model::ControllerType::inherit_local (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__model__ControllerType.html#_CPPv4N2nw5model14ControllerType12inherit_partE">nw::model::ControllerType::inherit_part (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__model__ControllerType.html#_CPPv4N2nw5model14ControllerType10inheritvelE">nw::model::ControllerType::inheritvel (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__model__ControllerType.html#_CPPv4N2nw5model14ControllerType7LifeExpE">nw::model::ControllerType::LifeExp (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__ControllerType.html#_CPPv4N2nw5model14ControllerType14LightningDelayE">nw::model::ControllerType::LightningDelay (C++ member)</a>
@@ -3718,6 +3730,8 @@
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType5patchE">nw::model::NodeType::patch (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType9referenceE">nw::model::NodeType::reference (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType4skinE">nw::model::NodeType::skin (C++ member)</a>
@@ -3748,8 +3762,6 @@
 </li>
       <li><a href="api/struct/nw__model__PatchNode.html#_CPPv4N2nw5model9PatchNode4typeE">nw::model::PatchNode::type (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__ReferenceNode.html#_CPPv4N2nw5model13ReferenceNodeE">nw::model::ReferenceNode (C++ struct)</a>
 </li>
       <li><a href="api/struct/nw__model__ReferenceNode.html#_CPPv4N2nw5model13ReferenceNode19add_controller_dataE10StringView8uint32_t6VectorIfE6VectorIfEii">nw::model::ReferenceNode::add_controller_data (C++ function)</a>
@@ -4903,6 +4915,8 @@
       <li><a href="api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3guiE">nw::ResourceType::type::gui (C++ enumerator)</a>
 </li>
       <li><a href="api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3hakE">nw::ResourceType::type::hak (C++ enumerator)</a>
+</li>
+      <li><a href="api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceType4type4hlslE">nw::ResourceType::type::hlsl (C++ enumerator)</a>
 </li>
       <li><a href="api/struct/nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3idsE">nw::ResourceType::type::ids (C++ enumerator)</a>
 </li>
@@ -7300,20 +7314,6 @@
 </li>
       <li><a href="api/function/nwn1__base_attack_bonus.html#_CPPv4N4nwn117base_attack_bonusEPKN2nw8CreatureE">nwn1::base_attack_bonus (C++ function)</a>
 </li>
-      <li><a href="api/function/nwn1__effect_ability_modifier.html#_CPPv4N4nwn123effect_ability_modifierEN2nw7AbilityEi">nwn1::effect_ability_modifier (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_armor_class_modifier.html#_CPPv4N4nwn127effect_armor_class_modifierEN2nw10ArmorClassEi">nwn1::effect_armor_class_modifier (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_attack_modifier.html#_CPPv4N4nwn122effect_attack_modifierEN2nw10AttackTypeEi">nwn1::effect_attack_modifier (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_concealment.html#_CPPv4N4nwn118effect_concealmentEiN2nw14MissChanceTypeE">nwn1::effect_concealment (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_haste.html#_CPPv4N4nwn112effect_hasteEv">nwn1::effect_haste (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_miss_chance.html#_CPPv4N4nwn118effect_miss_chanceEiN2nw14MissChanceTypeE">nwn1::effect_miss_chance (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__effect_skill_modifier.html#_CPPv4N4nwn121effect_skill_modifierEN2nw5SkillEi">nwn1::effect_skill_modifier (C++ function)</a>
-</li>
       <li><a href="api/function/nwn1__get_abiltiy_modifier.html#_CPPv4N4nwn120get_ability_modifierEPKN2nw8CreatureEN2nw7AbilityEb">nwn1::get_ability_modifier (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__get_abiltiy_score.html#_CPPv4N4nwn117get_ability_scoreEPKN2nw8CreatureEN2nw7AbilityEb">nwn1::get_ability_score (C++ function)</a>
@@ -7328,11 +7328,7 @@
 </li>
       <li><a href="api/function/nwn1__get_spell_dc.html#_CPPv4N4nwn112get_spell_dcEPKN2nw8CreatureEN2nw5ClassEN2nw5SpellE">nwn1::get_spell_dc (C++ function)</a>
 </li>
-      <li><a href="api/function/nwn1__get_weapon_by_attack_type.html#_CPPv4N4nwn125get_weapon_by_attack_typeEPKN2nw8CreatureEN2nw10AttackTypeE">nwn1::get_weapon_by_attack_type (C++ function)</a>
-</li>
       <li><a href="api/function/nwn1__is_creature_weapon.html#_CPPv4N4nwn118is_creature_weaponEPKN2nw4ItemE">nwn1::is_creature_weapon (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__is_ranged_weapon.html#_CPPv4N4nwn116is_ranged_weaponEPKN2nw4ItemE">nwn1::is_ranged_weapon (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__is_shield.html#_CPPv4N4nwn19is_shieldEN2nw8BaseItemE">nwn1::is_shield (C++ function)</a>
 </li>
@@ -7348,45 +7344,13 @@
 </li>
       <li><a href="api/struct/nwn1__Profile.html#_CPPv4N4nwn17ProfileD0Ev">nwn1::Profile::~Profile (C++ function)</a>
 </li>
-      <li><a href="api/function/nwn1__resolve_attack.html#_CPPv4N4nwn114resolve_attackEPN2nw8CreatureEPN2nw10ObjectBaseE">nwn1::resolve_attack (C++ function)</a>, <a href="api/function/nwn1__resolve_attack_damage.html#_CPPv4N4nwn114resolve_attackEPN2nw8CreatureEPN2nw10ObjectBaseE">[1]</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_attack_bonus.html#_CPPv4N4nwn120resolve_attack_bonusEPKN2nw8CreatureEN2nw10AttackTypeEPKN2nw10ObjectBaseE">nwn1::resolve_attack_bonus (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_attack_roll.html#_CPPv4N4nwn119resolve_attack_rollEPKN2nw8CreatureEN2nw10AttackTypeEPKN2nw10ObjectBaseEPN2nw10AttackDataE">nwn1::resolve_attack_roll (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_attack_type.html#_CPPv4N4nwn119resolve_attack_typeEPKN2nw8CreatureE">nwn1::resolve_attack_type (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_concealment.html#_CPPv4N4nwn119resolve_concealmentEPKN2nw10ObjectBaseEPKN2nw10ObjectBaseEb">nwn1::resolve_concealment (C++ function)</a>
-</li>
       <li><a href="api/function/nwn1__resolve_creature_damage.html#_CPPv4N4nwn123resolve_creature_damageEPKN2nw8CreatureEPN2nw4ItemE">nwn1::resolve_creature_damage (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_critical_multiplier.html#_CPPv4N4nwn127resolve_critical_multiplierEPKN2nw8CreatureEN2nw10AttackTypeEPKN2nw10ObjectBaseE">nwn1::resolve_critical_multiplier (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_critical_threat.html#_CPPv4N4nwn123resolve_critical_threatEPKN2nw8CreatureEN2nw10AttackTypeE">nwn1::resolve_critical_threat (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_damage_modifiers.html#_CPPv4N4nwn124resolve_damage_modifiersEPKN2nw8CreatureEPKN2nw10ObjectBaseEPN2nw10AttackDataE">nwn1::resolve_damage_modifiers (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_dual_wield_penalty.html#_CPPv4N4nwn126resolve_dual_wield_penaltyEPKN2nw8CreatureE">nwn1::resolve_dual_wield_penalty (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_iteration_penalty.html#_CPPv4N4nwn125resolve_iteration_penaltyEPKN2nw8CreatureEN2nw10AttackTypeE">nwn1::resolve_iteration_penalty (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_number_of_attacks.html#_CPPv4N4nwn125resolve_number_of_attacksEPKN2nw8CreatureE">nwn1::resolve_number_of_attacks (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__resolve_saving_throw.html#_CPPv4N4nwn120resolve_saving_throwEPKN2nw10ObjectBaseEN2nw4SaveEiN2nw10SaveVersusEPKN2nw10ObjectBaseE">nwn1::resolve_saving_throw (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__resolve_skill_check.html#_CPPv4N4nwn119resolve_skill_checkEPKN2nw8CreatureEN2nw5SkillEiPN2nw10ObjectBaseE">nwn1::resolve_skill_check (C++ function)</a>
 </li>
-      <li><a href="api/function/nwn1__resolve_unarmed_damage.html#_CPPv4N4nwn122resolve_unarmed_damageEPKN2nw8CreatureE">nwn1::resolve_unarmed_damage (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_weapon_damage.html#_CPPv4N4nwn121resolve_weapon_damageEPKN2nw8CreatureEN2nw8BaseItemE">nwn1::resolve_weapon_damage (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__resolve_weapon_damage_flags.html#_CPPv4N4nwn127resolve_weapon_damage_flagsEPKN2nw4ItemE">nwn1::resolve_weapon_damage_flags (C++ function)</a>
-</li>
       <li><a href="api/function/nwn1__saving_throw.html#_CPPv4N4nwn112saving_throwEPKN2nw10ObjectBaseEN2nw4SaveEN2nw10SaveVersusEPKN2nw10ObjectBaseEb">nwn1::saving_throw (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__weapon_is_finessable.html#_CPPv4N4nwn120weapon_is_finessableEPKN2nw8CreatureEPN2nw4ItemE">nwn1::weapon_is_finessable (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__weapon_iteration.html#_CPPv4N4nwn116weapon_iterationEPKN2nw8CreatureEPKN2nw4ItemE">nwn1::weapon_iteration (C++ function)</a>
 </li>
   </ul></td>
 </tr></table>
