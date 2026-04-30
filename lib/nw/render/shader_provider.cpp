@@ -5,7 +5,13 @@
 #include <filesystem>
 
 #ifdef NW_RENDER_HAS_DXC
+#if __has_include(<dxc/dxcapi.h>)
 #include <dxc/dxcapi.h>
+#elif __has_include(<dxcapi.h>)
+#include <dxcapi.h>
+#else
+#error "DXC headers not found"
+#endif
 #endif
 
 namespace nw::render {

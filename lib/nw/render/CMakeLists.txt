@@ -30,7 +30,17 @@ if(WIN32)
         set(DXC_ARCH x86)
     endif()
 
-    target_include_directories(nw-render SYSTEM PRIVATE ${dxc_prebuilt_SOURCE_DIR}/include)
+    find_path(DXC_INCLUDE_DIR
+        NAMES dxc/dxcapi.h dxcapi.h
+        PATHS
+            ${dxc_prebuilt_SOURCE_DIR}/include
+            ${dxc_prebuilt_SOURCE_DIR}/inc
+        NO_DEFAULT_PATH)
+    if(NOT DXC_INCLUDE_DIR)
+        message(FATAL_ERROR "nw-render: DXC headers not found in prebuilt package")
+    endif()
+
+    target_include_directories(nw-render SYSTEM PRIVATE ${DXC_INCLUDE_DIR})
     target_link_libraries(nw-render PUBLIC ${dxc_prebuilt_SOURCE_DIR}/lib/${DXC_ARCH}/dxcompiler.lib)
     target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_DXC=1)
     set(ROLLNW_DXC_RUNTIME_LIBS
@@ -63,7 +73,17 @@ elseif(UNIX)
         FetchContent_Populate(dxc_prebuilt)
     endif()
 
-    target_include_directories(nw-render SYSTEM PRIVATE ${dxc_prebuilt_SOURCE_DIR}/include)
+    find_path(DXC_INCLUDE_DIR
+        NAMES dxc/dxcapi.h dxcapi.h
+        PATHS
+            ${dxc_prebuilt_SOURCE_DIR}/include
+            ${dxc_prebuilt_SOURCE_DIR}/inc
+        NO_DEFAULT_PATH)
+    if(NOT DXC_INCLUDE_DIR)
+        message(FATAL_ERROR "nw-render: DXC headers not found in prebuilt package")
+    endif()
+
+    target_include_directories(nw-render SYSTEM PRIVATE ${DXC_INCLUDE_DIR})
     target_link_libraries(nw-render PUBLIC ${dxc_prebuilt_SOURCE_DIR}/lib/libdxcompiler.so)
     target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_DXC=1)
     set(ROLLNW_DXC_RUNTIME_LIBS
