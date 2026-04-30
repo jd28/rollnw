@@ -4,6 +4,8 @@ build/
 build_debug/
 build-doc/
 build-*/
+!external/ozz-animation-0.16.0/build-utils/
+!external/ozz-animation-0.16.0/build-utils/**
 vcpkg/
 vcpkg_installed/
 ccache/

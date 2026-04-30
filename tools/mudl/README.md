@@ -59,7 +59,6 @@ mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
 mudl ./tests/test_data/renderer/DamagedHelmet/glTF/DamagedHelmet.gltf
 mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
 mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
-mudl /home/josh/Downloads/glTF-Sample-Assets-main/Models/Fox/glTF-Binary/Fox.glb
 
 # Spell and VFX preview
 mudl spell 115
@@ -108,7 +107,7 @@ mudl corpus ./tests/test_data/user/development/creature_corpus.json \
 
 # Run the seeded OC Prelude area corpus
 mudl corpus ./tests/test_data/user/development/area_corpus.json \
-  --module "/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwm/Prelude.nwm" \
+  --module "$NWN_ROOT/data/nwm/Prelude.nwm" \
   --output ./tmp/visual-audit/areas-prelude
 
 # Model stats
@@ -139,15 +138,15 @@ plus one `.json` per numbered frame.
 `"$type": "ParticleEffect"`. This is the source-neutral authoring path for particle work in `mudl`:
 
 The checked-in particle coverage corpus lives at:
-- [tests/test_data/user/development/particle_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/particle_corpus.json)
+- [tests/test_data/user/development/particle_corpus.json](../../tests/test_data/user/development/particle_corpus.json)
 
 The initial checked-in visual corpora for broader asset review live at:
-- [tests/test_data/user/development/spell_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/spell_corpus.json)
-- [tests/test_data/user/development/creature_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/creature_corpus.json)
-- [tests/test_data/user/development/item_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/item_corpus.json)
-- [tests/test_data/user/development/model_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/model_corpus.json)
-- [tests/test_data/user/development/area_corpus.json](/home/josh/projects/rollnw/tests/test_data/user/development/area_corpus.json)
-- [tests/test_data/user/development/visual_audit_ledger.json](/home/josh/projects/rollnw/tests/test_data/user/development/visual_audit_ledger.json)
+- [tests/test_data/user/development/spell_corpus.json](../../tests/test_data/user/development/spell_corpus.json)
+- [tests/test_data/user/development/creature_corpus.json](../../tests/test_data/user/development/creature_corpus.json)
+- [tests/test_data/user/development/item_corpus.json](../../tests/test_data/user/development/item_corpus.json)
+- [tests/test_data/user/development/model_corpus.json](../../tests/test_data/user/development/model_corpus.json)
+- [tests/test_data/user/development/area_corpus.json](../../tests/test_data/user/development/area_corpus.json)
+- [tests/test_data/user/development/visual_audit_ledger.json](../../tests/test_data/user/development/visual_audit_ledger.json)
 
 `mudl corpus --ledger <path>` updates a persistent audit ledger from the current run while preserving
 human review fields such as ownership, issue linkage, disposition, and review notes.
@@ -314,7 +313,6 @@ Current graphics regression models:
 - `DamagedHelmet.glb`: static glTF / PBR baseline
 - `CesiumMan.glb`: skinned glTF bind-pose baseline
 - `MetalRoughSpheres.glb`: glTF metallic/roughness material baseline
-- `Fox.glb`: animated glTF playback baseline
 
 Suggested checks:
 
@@ -330,7 +328,6 @@ mudl screenshot ttd01_a04_03 ./out/ttd01_a04_03.png
 mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
 mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
 mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
-mudl /home/josh/Downloads/glTF-Sample-Assets-main/Models/Fox/glTF-Binary/Fox.glb
 ```
 
 ## Build

@@ -68,9 +68,9 @@ jobs:
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt update
-          sudo apt install gcc-13 g++-13 ccache -y
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo apt install gcc-15 g++-15 ccache -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - uses: actions/checkout@v6
         with:
@@ -355,10 +355,11 @@ jobs:
 
       - name: linux - install dependencies
         run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y ninja-build gcc-13 g++-13 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo apt-get install -y ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - name: linux - cache ccache
         uses: actions/cache@v5
@@ -529,10 +530,11 @@ jobs:
 
       - name: linux - install dependencies
         run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y ninja-build gcc-13 g++-13 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo apt-get install -y ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - name: linux - cache ccache
         uses: actions/cache@v5

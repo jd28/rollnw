@@ -17,7 +17,7 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
 - An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [arclight](https://github.com/jd28/arclight) project for some model viewing.
 - [`nw::gfx`](./lib/nw/gfx/README.md), a thin Vulkan-focused rendering layer for renderer experiments and headless graphics validation.
-- [`mudl`](./tools/mudl/README.md), a renderer-backed NWN model viewer and headless capture tool used to validate dynamic creature assembly, attachments, and material/tint behavior.
+- [`mudl`](./tools/mudl/README.md), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, and glTF/PBR rendering.
 - Renderer design notes in [`lib/nw/render/docs`](./lib/nw/render/docs), including the [particle system overview](./lib/nw/render/docs/particle_system.md).
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
