@@ -16,18 +16,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04, windows-2022]
         include:
           - os: ubuntu-22.04
+            platform_name: Linux
+            compiler_name: GCC
             binary-name: smalls-lsp-linux-x64
             preset: ci-linux
           - os: windows-2022
+            platform_name: Windows
+            compiler_name: MSVC
             binary-name: smalls-lsp-win32-x64.exe
             preset: ci-windows
           - os: macos-14
+            platform_name: macOS
+            compiler_name: AppleClang
             binary-name: smalls-lsp-darwin-universal
             preset: ci-macos
     runs-on: ${{ matrix.os }}
+    name: ${{ matrix.platform_name }} ${{ matrix.compiler_name }} VS Code Binary
     steps:
       - uses: actions/checkout@v6
         with:
@@ -107,6 +113,7 @@ jobs:
   package:
     needs: build-binaries
     runs-on: ubuntu-latest
+    name: Linux Node VSIX Package
     steps:
       - uses: actions/checkout@v6
 

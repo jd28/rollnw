@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on:
   push:
@@ -30,9 +30,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04, windows-2022]
+        include:
+          - os: macos-14
+            platform_name: macOS
+            compiler_name: AppleClang
+          - os: ubuntu-22.04
+            platform_name: Linux
+            compiler_name: GCC
+          - os: windows-2022
+            platform_name: Windows
+            compiler_name: MSVC
     runs-on: ${{ matrix.os }}
-    name: Build ${{ matrix.os }}
+    name: ${{ matrix.platform_name }} ${{ matrix.compiler_name }} Tests
 
     steps:
       - name: Get current date
@@ -226,7 +235,7 @@ jobs:
 
   linux-clang-asan-ubsan:
     runs-on: ubuntu-22.04
-    name: Linux Clang ASan+UBSan
+    name: Linux Clang Sanitizers
     steps:
       - name: Get current date
         run: |
@@ -286,7 +295,7 @@ jobs:
 
   linux-clang-fuzz-smoke:
     runs-on: ubuntu-22.04
-    name: Linux Clang Fuzz Smoke (Placeholder)
+    name: Linux Clang Fuzz Smoke
     steps:
       - name: Get current date
         run: |
@@ -339,7 +348,7 @@ jobs:
 
   linux-renderer-headless:
     runs-on: ubuntu-22.04
-    name: Linux Renderer Headless
+    name: Linux GCC Renderer Smoke
     steps:
       - name: Get current date
         run: |
@@ -431,7 +440,7 @@ jobs:
 
   windows-renderer-mudl:
     runs-on: windows-2022
-    name: Windows Renderer Mudl
+    name: Windows MSVC Renderer Smoke
     steps:
       - name: Get current date
         run: |
@@ -513,7 +522,7 @@ jobs:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
     runs-on: ubuntu-22.04
-    name: Linux Tools Package
+    name: Linux GCC Tools Package
     permissions:
       contents: write
     steps:
@@ -593,7 +602,7 @@ jobs:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
     runs-on: windows-2022
-    name: Windows Tools Package
+    name: Windows MSVC Tools Package
     permissions:
       contents: write
     steps:
@@ -674,7 +683,7 @@ jobs:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
     runs-on: macos-14
-    name: macOS Tools Package
+    name: macOS AppleClang Tools Package
     permissions:
       contents: write
     steps:
@@ -787,7 +796,7 @@ jobs:
 
   linux-clang-benchmark-canary:
     runs-on: ubuntu-22.04
-    name: Linux Clang Benchmark Canary (Non-blocking)
+    name: Linux Clang Benchmark Canary
     continue-on-error: true
     steps:
       - name: Get current date

@@ -39,7 +39,7 @@ jobs:
       buildDir: "${{ github.workspace }}/build/"
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
-    name: Analyze
+    name: Linux GCC CodeQL
     runs-on: ubuntu-latest
     permissions:
       actions: read

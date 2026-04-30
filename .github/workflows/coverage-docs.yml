@@ -1,4 +1,4 @@
-name: coverage-docs
+name: Coverage Docs
 on:
   push:
     branches: [main]
@@ -20,7 +20,7 @@ jobs:
       CI_GITHUB_ACTIONS: "1"
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
-    name: build on linux
+    name: Linux GCC Coverage Docs
     runs-on: ubuntu-latest
 
     steps:
