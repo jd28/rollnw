@@ -55,8 +55,8 @@ elseif(APPLE)
     endif()
 elseif(UNIX)
     FetchContent_Declare(dxc_prebuilt
-        URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/linux_dxc_2026_02_20.x86_64.tar.gz
-        URL_HASH SHA256=a1d3e3b5e1c5685b3eb27d5e8890e41d87df45def05112a2d6f1a63a931f7d60
+        URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz
+        URL_HASH SHA256=b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
     FetchContent_GetProperties(dxc_prebuilt)
     if(NOT dxc_prebuilt_POPULATED)
