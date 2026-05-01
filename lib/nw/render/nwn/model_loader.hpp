@@ -174,6 +174,11 @@ struct ModelInstance {
     int32_t nwn_clip_index_ = -1;
     std::unordered_map<std::string, uint32_t> nwn_clip_name_to_index_;
     std::vector<int32_t> joint_to_source_node_; // joint_idx → source_node_idx in mdl
+    std::vector<Node*> joint_target_nodes_;
+    const nw::model::Mdl* nwn_skeleton_source_ = nullptr;
+    std::vector<uint8_t> nwn_clip_has_translation_;
+    std::vector<uint8_t> nwn_clip_has_rotation_;
+    std::vector<uint8_t> nwn_clip_has_scale_;
 
     // Find node by name (for animation)
     Node* find(std::string_view name);
@@ -204,7 +209,7 @@ struct ModelInstance {
 private:
     Node* load_node(const nw::model::Node* node, Node* parent);
     void capture_bind_pose();
-    void build_ozz_data();
+    void build_ozz_data(const nw::model::Mdl* skeleton_source = nullptr);
 };
 
 // Loader class

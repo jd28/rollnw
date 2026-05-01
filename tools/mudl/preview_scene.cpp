@@ -112,7 +112,14 @@ namespace {
 
 bool model_has_animation(const nw::model::Mdl& mdl, std::string_view animation)
 {
-    return mdl.model.find_animation(animation) != nullptr;
+    const auto* current = &mdl;
+    while (current) {
+        if (current->model.find_animation(animation) != nullptr) {
+            return true;
+        }
+        current = current->model.supermodel.get();
+    }
+    return false;
 }
 
 std::string_view find_first_animation(const nw::model::Mdl& mdl, std::initializer_list<std::string_view> names)
@@ -373,7 +380,7 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
 void PreviewScene::update(int32_t dt_ms)
 {
     for (auto& model : models) {
-        if (!model->scene_animation_enabled || !model->render_enabled) {
+        if (!model->scene_animation_enabled) {
             continue;
         }
         model->update(dt_ms);
@@ -569,61 +576,10 @@ void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
     }
 }
 
-static void log_body_parts(const nw::BodyParts& body_parts)
-{
-    LOG_F(INFO,
-        "body parts belt={} bicep_l={} bicep_r={} foot_l={} foot_r={} forearm_l={} forearm_r={} hand_l={} hand_r={} head={} neck={} pelvis={} shin_l={} shin_r={} shoulder_l={} shoulder_r={} thigh_l={} thigh_r={} torso={}",
-        body_parts.belt,
-        body_parts.bicep_left,
-        body_parts.bicep_right,
-        body_parts.foot_left,
-        body_parts.foot_right,
-        body_parts.forearm_left,
-        body_parts.forearm_right,
-        body_parts.hand_left,
-        body_parts.hand_right,
-        body_parts.head,
-        body_parts.neck,
-        body_parts.pelvis,
-        body_parts.shin_left,
-        body_parts.shin_right,
-        body_parts.shoulder_left,
-        body_parts.shoulder_right,
-        body_parts.thigh_left,
-        body_parts.thigh_right,
-        body_parts.torso);
-}
-
-static void log_body_part_transition(const nw::BodyParts& raw, const nw::BodyParts& effective)
-{
-    LOG_F(INFO,
-        "effective body parts belt={} bicep_l={} bicep_r={} foot_l={} foot_r={} forearm_l={} forearm_r={} hand_l={} hand_r={} head={} neck={} pelvis={} shin_l={} shin_r={} shoulder_l={} shoulder_r={} thigh_l={} thigh_r={} torso={}",
-        effective.belt,
-        effective.bicep_left,
-        effective.bicep_right,
-        effective.foot_left,
-        effective.foot_right,
-        effective.forearm_left,
-        effective.forearm_right,
-        effective.hand_left,
-        effective.hand_right,
-        effective.head,
-        effective.neck,
-        effective.pelvis,
-        effective.shin_left,
-        effective.shin_right,
-        effective.shoulder_left,
-        effective.shoulder_right,
-        effective.thigh_left,
-        effective.thigh_right,
-        effective.torso);
-    (void)raw;
-}
-
 static uint16_t resolve_body_part_value(uint16_t value, uint16_t mirror_value)
 {
     if (value == 255) {
-        return mirror_value != 0 && mirror_value != 255 ? mirror_value : 1;
+        return mirror_value != 0 && mirror_value != 255 ? mirror_value : 0;
     }
     return value;
 }
@@ -1024,6 +980,12 @@ static void maybe_add_model(PreviewScene& scene, std::unique_ptr<ModelInstance> 
     }
 }
 
+static void make_static_scene_attachment(ModelInstance& model)
+{
+    model.scene_animation_enabled = false;
+    model.accepts_external_animation_source = false;
+}
+
 static void set_scene_animation_source(PreviewScene& scene, const nw::model::Mdl* source)
 {
     if (!source) {
@@ -1166,16 +1128,12 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
     }
 
     const char sex = gender == 1 ? 'f' : 'm';
-    auto raw_body_parts = body_parts;
     body_parts = normalized_body_parts(body_parts);
-    log_body_parts(raw_body_parts);
-    log_body_part_transition(raw_body_parts, body_parts);
     std::unique_ptr<ModelInstance> base_rig;
     if (app->model_type == "P") {
         // Experimental NWN humanoid preview assembly stays isolated here on purpose.
         auto base_rig_resref = resolve_creature_base_rig(*app, race, sex);
         if (base_rig_resref) {
-            LOG_F(INFO, "dynamic creature base rig -> {}", *base_rig_resref);
             base_rig = load_model_with_plt(renderer, *base_rig_resref, &plt_colors);
         }
         if (base_rig) {
@@ -1216,6 +1174,7 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
             auto model_part = body_parts.*(part.field);
             nw::PltColors part_colors = plt_colors;
             bool prefer_mirrored_part_model = false;
+            auto anchor = anchor_name_for_part(part.token);
             const uint16_t robe_part = chest_item && chest_item->model_type == nw::ItemModelType::armor
                 ? static_cast<uint16_t>(chest_item->model_parts[nw::ItemModelParts::armor_robe])
                 : 0;
@@ -1266,11 +1225,11 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
             }
 
             if (part_resref) {
-                LOG_F(INFO, "dynamic creature part {} id={} -> {}", part.token, model_part, *part_resref);
                 auto model = load_model_with_plt(renderer, *part_resref, &part_colors);
                 if (model && placement_context) {
-                    auto anchor = anchor_name_for_part(part.token);
                     if (!anchor.empty()) {
+                        make_static_scene_attachment(*model);
+                        model->anchor_uses_root_bind_offset = false;
                         model->set_transform_anchor(placement_context, anchor);
                     }
                 }
@@ -1283,10 +1242,11 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
             if (robe_part > 0) {
                 auto robe_colors = chest_item->part_to_plt_colors(nw::ItemModelParts::armor_robe);
                 if (auto robe_resref = resolve_creature_part_model(sex, race, phenotype, {"robe"}, robe_part)) {
-                    LOG_F(INFO, "dynamic creature robe id={} -> {}", robe_part, *robe_resref);
                     auto robe = load_model_with_plt(renderer, *robe_resref, &robe_colors);
-                    if (robe && placement_context && placement_context->mdl_) {
-                        robe->set_transform_anchor(placement_context, placement_context->mdl_->model.name);
+                    if (robe && placement_context) {
+                        make_static_scene_attachment(*robe);
+                        robe->anchor_uses_root_bind_offset = false;
+                        robe->set_transform_anchor(placement_context, "torso_g");
                     }
                     maybe_add_model(*scene, std::move(robe));
                 }
@@ -1303,13 +1263,12 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
         auto* tda = nw::kernel::twodas().get(table_name);
         std::string model_name;
         if (tda && tda->get_to(row, "MODEL", model_name) && model_name != "c_nulltail") {
-            LOG_F(INFO, "dynamic creature attachment {} -> {}", table_name, model_name);
             auto anchor = anchor_name_for_attachment(table_name);
             auto source_anchor = source_anchor_name_for_attachment(table_name);
             auto model = load_model_with_plt(renderer, model_name, &plt_colors);
             auto* placement_context = scene->models.empty() ? nullptr : scene->models.front().get();
             if (model && placement_context && !anchor.empty()) {
-                model->accepts_external_animation_source = false;
+                make_static_scene_attachment(*model);
                 if (table_name == std::string_view{"wingmodel"}) {
                     for (const auto& node : model->nodes_) {
                         const auto* orig = node->orig_;
@@ -1344,7 +1303,11 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
             auto cloak_colors = cloak_item->part_to_plt_colors(nw::ItemModelParts::model1);
             if (auto cloak_resref = resolve_creature_part_model(sex, race, phenotype, {"cloak"}, static_cast<uint16_t>(cloak_model))) {
                 LOG_F(INFO, "dynamic creature cloak -> {}", *cloak_resref);
-                maybe_add_model(*scene, load_model_with_plt(renderer, *cloak_resref, &cloak_colors));
+                auto cloak = load_model_with_plt(renderer, *cloak_resref, &cloak_colors);
+                if (cloak) {
+                    make_static_scene_attachment(*cloak);
+                }
+                maybe_add_model(*scene, std::move(cloak));
             }
         }
     }
@@ -1366,6 +1329,9 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(Renderer& rende
     if (!scene->models.empty()) {
         auto* animation_context = scene->models.front().get();
         auto* source = animation_context ? animation_context->mdl_ : nullptr;
+        if (source && source->model.supermodel) {
+            source = source->model.supermodel.get();
+        }
         set_scene_animation_source(*scene, source);
     }
     return scene;

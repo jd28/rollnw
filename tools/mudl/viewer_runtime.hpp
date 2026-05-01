@@ -26,6 +26,7 @@ void set_vfx_sequence_time(AppState& state, int time_ms, bool stop_after_seek = 
 bool has_area_day_night_controls(const AppState& state);
 bool supports_gltf_animation_controls(const AppState& state);
 bool supports_vfx_sequence_controls(const AppState& state);
+bool scene_uses_shared_nwn_animation_source(const PreviewScene& scene);
 void set_area_day_night_elapsed_seconds(AppState& state, float elapsed_seconds, bool log_transition = false);
 void reset_area_day_night_cycle(AppState& state);
 void reload_current_scene(AppState& state);

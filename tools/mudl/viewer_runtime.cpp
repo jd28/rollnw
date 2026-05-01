@@ -764,6 +764,30 @@ void apply_gltf_preview_tuning(AppState& state, const PreviewScene& scene)
 
 } // namespace
 
+bool scene_uses_shared_nwn_animation_source(const PreviewScene& scene)
+{
+    const nw::model::Mdl* shared_source = nullptr;
+    bool saw_animatable = false;
+    for (const auto& model : scene.models) {
+        if (!model || !model->scene_animation_enabled) {
+            continue;
+        }
+
+        const auto* source = model->animation_source_ ? model->animation_source_ : model->mdl_;
+        if (!source) {
+            continue;
+        }
+
+        if (!shared_source) {
+            shared_source = source;
+        } else if (shared_source != source) {
+            return false;
+        }
+        saw_animatable = true;
+    }
+    return saw_animatable;
+}
+
 bool has_area_day_night_controls(const AppState& state)
 {
     return supports_area_day_night_controls_impl(state);
@@ -1017,8 +1041,17 @@ bool select_model_animation(AppState& state, size_t model_index, std::string_vie
         return false;
     }
 
-    model->anim_cursor_ = 0;
-    if (!model->load_animation(animation_name)) {
+    bool loaded = false;
+    for (auto& candidate : state.current_scene->models) {
+        if (!candidate || !candidate->scene_animation_enabled) {
+            continue;
+        }
+
+        candidate->anim_cursor_ = 0;
+        loaded = candidate->load_animation(animation_name) || loaded;
+    }
+
+    if (!loaded) {
         return false;
     }
 

@@ -646,35 +646,66 @@ void build_animation_controls(AppState& state)
         if (!state.vfx_sequence_steps.empty()) {
             ImGui::TextUnformatted("NWN scene animations are driven by the active VFX sequence.");
         } else {
-            for (size_t model_index = 0; model_index < state.model_animation_names.size()
-                    && model_index < state.current_scene->models.size();
-                ++model_index) {
-                const auto& names = state.model_animation_names[model_index];
-                const auto& model = state.current_scene->models[model_index];
-                if (names.empty() || !model || !model->scene_animation_enabled) {
-                    continue;
-                }
-
-                ImGui::PushID(static_cast<int>(model_index));
-                if (state.current_scene->models.size() > 1) {
-                    ImGui::Text("Model %zu: %s", model_index, scene_model_label(*model, model_index).c_str());
-                }
-
-                const char* current_animation = model->anim_ ? model->anim_->name.c_str() : "<none>";
-                const char* combo_label = "##nwn_animation";
-                if (ImGui::BeginCombo(combo_label, current_animation)) {
-                    for (const auto& name : names) {
-                        const bool selected = model->anim_ && name == model->anim_->name.c_str();
-                        if (ImGui::Selectable(name.c_str(), selected)) {
-                            select_model_animation(state, model_index, name);
-                        }
-                        if (selected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
+            const bool shared_source = state.current_scene
+                && scene_uses_shared_nwn_animation_source(*state.current_scene);
+            if (shared_source) {
+                size_t shared_model_index = state.current_scene->models.size();
+                for (size_t model_index = 0; model_index < state.model_animation_names.size()
+                        && model_index < state.current_scene->models.size();
+                    ++model_index) {
+                    const auto& names = state.model_animation_names[model_index];
+                    const auto& model = state.current_scene->models[model_index];
+                    if (names.empty() || !model || !model->scene_animation_enabled) {
+                        continue;
                     }
-                    ImGui::EndCombo();
+
+                    shared_model_index = model_index;
+                    const char* current_animation = model->anim_ ? model->anim_->name.c_str() : "<none>";
+                    if (ImGui::BeginCombo("NWN animation", current_animation)) {
+                        for (const auto& name : names) {
+                            const bool selected = model->anim_ && name == model->anim_->name.c_str();
+                            if (ImGui::Selectable(name.c_str(), selected)) {
+                                select_model_animation(state, shared_model_index, name);
+                            }
+                            if (selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                    break;
                 }
-                ImGui::PopID();
+            } else {
+                for (size_t model_index = 0; model_index < state.model_animation_names.size()
+                        && model_index < state.current_scene->models.size();
+                    ++model_index) {
+                    const auto& names = state.model_animation_names[model_index];
+                    const auto& model = state.current_scene->models[model_index];
+                    if (names.empty() || !model || !model->scene_animation_enabled) {
+                        continue;
+                    }
+
+                    ImGui::PushID(static_cast<int>(model_index));
+                    if (state.current_scene->models.size() > 1) {
+                        ImGui::Text("Model %zu: %s", model_index, scene_model_label(*model, model_index).c_str());
+                    }
+
+                    const char* current_animation = model->anim_ ? model->anim_->name.c_str() : "<none>";
+                    const char* combo_label = "##nwn_animation";
+                    if (ImGui::BeginCombo(combo_label, current_animation)) {
+                        for (const auto& name : names) {
+                            const bool selected = model->anim_ && name == model->anim_->name.c_str();
+                            if (ImGui::Selectable(name.c_str(), selected)) {
+                                select_model_animation(state, model_index, name);
+                            }
+                            if (selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                    ImGui::PopID();
+                }
             }
         }
     }

@@ -550,14 +550,17 @@ jobs:
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-linux-tools-package/CPackConfig.cmake
           ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
-          echo "PACKAGE_ARCHIVE=$ARCHIVE_PATH" >> $GITHUB_ENV
+          ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
+          mkdir -p "$ARTIFACT_DIR"
+          tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
       - name: upload linux tools artifact
         uses: actions/upload-artifact@v7
         with:
           name: linux-tools-package
           if-no-files-found: error
-          path: ${{ env.PACKAGE_ARCHIVE }}
+          path: ${{ env.PACKAGE_ARTIFACT }}
 
       - name: ccache stats
         run: |
@@ -631,14 +634,17 @@ jobs:
             -B $releaseDir `
             -D "CPACK_PACKAGE_FILE_NAME=$packageRoot" `
             --config build-ci-windows-tools-package/CPackConfig.cmake
-          "PACKAGE_ARCHIVE=$archivePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $artifactDir = Join-Path "${{ github.workspace }}" "tmp/artifacts"
+          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
+          Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
+          "PACKAGE_ARTIFACT=$artifactDir" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: upload windows tools artifact
         uses: actions/upload-artifact@v7
         with:
           name: windows-tools-package
           if-no-files-found: error
-          path: ${{ env.PACKAGE_ARCHIVE }}
+          path: ${{ env.PACKAGE_ARTIFACT }}
 
       - name: ccache stats
         run: |
@@ -712,14 +718,17 @@ jobs:
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-macos-tools-package/CPackConfig.cmake
           ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
-          echo "PACKAGE_ARCHIVE=$ARCHIVE_PATH" >> $GITHUB_ENV
+          ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
+          mkdir -p "$ARTIFACT_DIR"
+          tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
       - name: upload macOS tools artifact
         uses: actions/upload-artifact@v7
         with:
           name: macos-tools-package
           if-no-files-found: error
-          path: ${{ env.PACKAGE_ARCHIVE }}
+          path: ${{ env.PACKAGE_ARTIFACT }}
 
       - name: ccache stats
         run: |
@@ -751,13 +760,25 @@ jobs:
           name: macos-tools-package
           path: tmp/release/macos
 
+      - name: pack release assets
+        env:
+          PACKAGE_VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p tmp/release/assets
+
+          LINUX_PACKAGE="rollnw-tools-linux-x64-${PACKAGE_VERSION}"
+          WINDOWS_PACKAGE="rollnw-tools-windows-x64-${PACKAGE_VERSION}"
+          MACOS_PACKAGE="rollnw-tools-macos-universal-${PACKAGE_VERSION}"
+
+          tar -C tmp/release/linux -czf "tmp/release/assets/${LINUX_PACKAGE}.tar.gz" "$LINUX_PACKAGE"
+          (cd tmp/release/windows && zip -qr "${{ github.workspace }}/tmp/release/assets/${WINDOWS_PACKAGE}.zip" "$WINDOWS_PACKAGE")
+          tar -C tmp/release/macos -czf "tmp/release/assets/${MACOS_PACKAGE}.tar.gz" "$MACOS_PACKAGE"
+
       - name: attach consolidated release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            tmp/release/linux/*
-            tmp/release/windows/*
-            tmp/release/macos/*
+            tmp/release/assets/*
 
   linux-clang-benchmark-canary:
     runs-on: ubuntu-22.04

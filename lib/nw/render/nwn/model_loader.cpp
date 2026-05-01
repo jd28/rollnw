@@ -263,6 +263,14 @@ bool use_modern_dangly_mode()
     return g_dangly_mode == DanglyMode::modern;
 }
 
+nw::render::Transform node_bind_local_transform(const Node& node)
+{
+    if (node.parent_) {
+        return nw::render::Transform::from_matrix(glm::inverse(node.parent_->bind_pose_) * node.bind_pose_);
+    }
+    return nw::render::Transform::from_matrix(node.bind_pose_);
+}
+
 std::string ascii_lower(std::string_view value)
 {
     std::string result;
@@ -1362,16 +1370,40 @@ void ModelInstance::capture_bind_pose()
     }
 }
 
-void ModelInstance::build_ozz_data()
+void ModelInstance::build_ozz_data(const nwm::Mdl* skeleton_source)
 {
     if (nodes_.empty()) return;
 
-    nwn_backend_ = nw::render::make_animation_backend(nw::render::AnimationBackendKind::ozz);
-    nwn_skeleton_ = build_nwn_skeleton(*this, joint_to_source_node_);
-    if (nwn_skeleton_.joints.empty() || !nwn_backend_->build_skeleton(0, nwn_skeleton_)) {
-        nwn_backend_.reset();
+    skeleton_source = skeleton_source ? skeleton_source : mdl_;
+    if (!skeleton_source) {
         return;
     }
+
+    nwn_backend_ = nw::render::make_animation_backend(nw::render::AnimationBackendKind::ozz);
+    if (skeleton_source == mdl_) {
+        nwn_skeleton_ = build_nwn_skeleton(*this, joint_to_source_node_);
+    } else {
+        nwn_skeleton_ = build_nwn_skeleton(*skeleton_source, joint_to_source_node_, skeleton_source->model.name);
+    }
+    if (nwn_skeleton_.joints.empty() || !nwn_backend_->build_skeleton(0, nwn_skeleton_)) {
+        nwn_backend_.reset();
+        joint_target_nodes_.clear();
+        nwn_skeleton_source_ = nullptr;
+        return;
+    }
+    joint_target_nodes_.clear();
+    joint_target_nodes_.reserve(nwn_skeleton_.joints.size());
+    for (const auto& joint : nwn_skeleton_.joints) {
+        joint_target_nodes_.push_back(find(joint.name));
+    }
+    nwn_skeleton_source_ = skeleton_source;
+    nwn_clips_.clear();
+    nwn_pose_ = {};
+    nwn_clip_index_ = -1;
+    nwn_clip_name_to_index_.clear();
+    nwn_clip_has_translation_.clear();
+    nwn_clip_has_rotation_.clear();
+    nwn_clip_has_scale_.clear();
     LOG_F(INFO, "NWN animation backend: ozz ({} nodes)", nwn_skeleton_.joints.size());
 }
 
@@ -1455,10 +1487,36 @@ bool ModelInstance::load_animation(std::string_view name)
         m = m->model.supermodel.get();
     }
     if (anim_) {
+        const nwm::Mdl* skeleton_source = animation_source_ ? animation_source_ : mdl_;
+        if (!nwn_backend_ || nwn_skeleton_source_ != skeleton_source) {
+            build_ozz_data(skeleton_source);
+        }
         LOG_F(INFO, "Loaded animation: {}", name);
 
         const char* backend_name = "custom";
         if (nwn_backend_) {
+            nwn_clip_has_translation_.assign(nwn_skeleton_.joints.size(), 0);
+            nwn_clip_has_rotation_.assign(nwn_skeleton_.joints.size(), 0);
+            nwn_clip_has_scale_.assign(nwn_skeleton_.joints.size(), 0);
+            std::unordered_map<std::string_view, uint32_t> name_to_joint;
+            name_to_joint.reserve(nwn_skeleton_.joints.size());
+            for (uint32_t ji = 0; ji < static_cast<uint32_t>(nwn_skeleton_.joints.size()); ++ji) {
+                name_to_joint[nwn_skeleton_.joints[ji].name] = ji;
+            }
+            for (const auto& anim_node_ptr : anim_->nodes) {
+                if (!anim_node_ptr) {
+                    continue;
+                }
+                auto it = name_to_joint.find(std::string_view(anim_node_ptr->name));
+                if (it == name_to_joint.end()) {
+                    continue;
+                }
+                const auto ji = it->second;
+                nwn_clip_has_translation_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Position, true).key ? 1 : 0;
+                nwn_clip_has_rotation_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Orientation, true).key ? 1 : 0;
+                nwn_clip_has_scale_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Scale, true).key ? 1 : 0;
+            }
+
             const std::string name_str(name);
             auto it = nwn_clip_name_to_index_.find(name_str);
             if (it != nwn_clip_name_to_index_.end()) {
@@ -1544,13 +1602,27 @@ void ModelInstance::update(int32_t dt_ms)
         if (nwn_backend_ && nwn_clip_index_ >= 0) {
             const float time_s = time_ms / 1000.0f;
             if (nwn_backend_->sample(static_cast<uint32_t>(nwn_clip_index_), time_s, nwn_pose_, true)) {
-                for (size_t ji = 0; ji < joint_to_source_node_.size(); ++ji) {
-                    Node* bone = node_from_source_index(joint_to_source_node_[ji]);
+                const bool cross_skeleton = nwn_skeleton_source_ && nwn_skeleton_source_ != mdl_;
+                for (size_t ji = 0; ji < joint_target_nodes_.size(); ++ji) {
+                    Node* bone = joint_target_nodes_[ji];
                     if (!bone) continue;
                     const auto& local = nwn_pose_.local[ji];
-                    bone->position_ = local.translation;
-                    bone->rotation_ = local.rotation;
-                    bone->scale_ = local.scale;
+                    if (cross_skeleton) {
+                        const auto bind_local = node_bind_local_transform(*bone);
+                        bone->position_ = (ji < nwn_clip_has_translation_.size() && nwn_clip_has_translation_[ji])
+                            ? local.translation
+                            : bind_local.translation;
+                        bone->rotation_ = (ji < nwn_clip_has_rotation_.size() && nwn_clip_has_rotation_[ji])
+                            ? local.rotation
+                            : bind_local.rotation;
+                        bone->scale_ = (ji < nwn_clip_has_scale_.size() && nwn_clip_has_scale_[ji])
+                            ? local.scale
+                            : bind_local.scale;
+                    } else {
+                        bone->position_ = local.translation;
+                        bone->rotation_ = local.rotation;
+                        bone->scale_ = local.scale;
+                    }
                     bone->has_transform_ = true;
                 }
                 ozz_sampled = true;
