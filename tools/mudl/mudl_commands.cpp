@@ -1887,15 +1887,15 @@ void print_node_tree(const nw::model::Node* node, size_t depth)
 
 } // namespace
 
-int run_nwn_animation_smoke_command(std::string_view module_path)
+int run_nwn_animation_smoke_command(std::string_view module_path, std::string_view user_path)
 {
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return 1;
     }
 
     static constexpr std::array<NwnAnimationSmokeCase, 2> smoke_cases{{
-        {"c_aribeth", "legacy static NWN animation path"},
-        {"c_drgshad", "legacy skinned NWN animation path"},
+        {"c_bodak", "server asset supermodel animation path"},
+        {"c_mindflayer", "server asset skinned animation path"},
     }};
 
     bool ok = true;
@@ -1912,14 +1912,14 @@ int run_nwn_animation_smoke_command(std::string_view module_path)
 }
 
 int run_dump_command(std::string_view resref, const std::filesystem::path& output_dir,
-    std::string_view module_path)
+    std::string_view module_path, std::string_view user_path)
 {
     if (resref.empty()) {
         print_usage();
         return 1;
     }
 
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return 1;
     }
 
@@ -1999,14 +1999,14 @@ int run_dump_command(std::string_view resref, const std::filesystem::path& outpu
     return ok && missing_count == 0 ? 0 : 1;
 }
 
-int run_stats_command(std::string_view resref, std::string_view module_path)
+int run_stats_command(std::string_view resref, std::string_view module_path, std::string_view user_path)
 {
     if (resref.empty()) {
         print_usage();
         return 1;
     }
 
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return 1;
     }
 
@@ -2082,14 +2082,14 @@ int run_stats_command(std::string_view resref, std::string_view module_path)
 }
 
 int run_texture_command(std::string_view resref, const std::filesystem::path& output_path,
-    std::string_view module_path)
+    std::string_view module_path, std::string_view user_path)
 {
     if (resref.empty() || output_path.empty()) {
         print_usage();
         return 1;
     }
 
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return 1;
     }
 

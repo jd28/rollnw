@@ -24,14 +24,14 @@
       "notes": "Door model coverage."
     },
     {
-      "id": "model_tin01_o20_01",
+      "id": "model_tni01_k02_01",
       "kind": "model",
-      "input": "tin01_o20_01",
+      "input": "tests/test_data/user/development/tni01_k02_01.mdl",
       "category": [
         "tile",
-        "nwn_resref"
+        "nwn_mdl"
       ],
-      "notes": "Interior tile coverage using a shipped NWN tileset model."
+      "notes": "Interior tile coverage using a checked-in NWN tileset model."
     },
     {
       "id": "model_c_bodak",

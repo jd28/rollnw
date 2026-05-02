@@ -51,6 +51,7 @@ mudl help
 Most commands accept these:
 
 - `--module <path>`: load a module container (`.mod`, module directory, or zip) before resolving resources. Use this when the model, textures, or override assets live inside a specific module.
+- `--user <path>`: use an explicit NWN user directory root for development/override resources. CI should use `--user ./tests/test_data/user`.
 - `--animation <name>`: override the default animation for interactive/headless model previews.
 - `--dangly-scale <value>`: exaggerate or reduce dangly motion for tuning.
 - `--dangly-mode legacy|modern`: choose the dangly simulation mode.
@@ -188,24 +189,28 @@ mudl particle-export it_torch_000 ./out/it_torch_000.json
 ### Visual corpus and smoke tests
 
 ```text
-mudl corpus <corpus.json> [--output <dir>] [--limit <n>] [--filter <tag>] [--ledger <path>]
-mudl nwn-animation-smoke
+mudl corpus <corpus.json> [--output <dir>] [--user <path>] [--limit <n>] [--filter <tag>] [--ledger <path>]
+mudl nwn-animation-smoke [--user <path>]
 mudl compute-smoke
 ```
 
 ```bash
 # Run a checked-in corpus and collect per-entry outputs
-mudl corpus ./tests/test_data/user/development/spell_corpus.json --output ./tmp/visual-audit/spells
+mudl corpus ./tests/test_data/user/development/spell_corpus.json \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/spells
 
 # Run a corpus and update the checked-in visual audit ledger
 mudl corpus ./tests/test_data/user/development/creature_corpus.json \
+  --user ./tests/test_data/user \
   --output ./tmp/visual-audit/creatures \
   --ledger ./tests/test_data/user/development/visual_audit_ledger.json
 
-# Run the seeded OC Prelude area corpus
+# Run the checked-in DockerDemo area corpus through the test user directory
 mudl corpus ./tests/test_data/user/development/area_corpus.json \
-  --module "$NWN_ROOT/data/nwm/Prelude.nwm" \
-  --output ./tmp/visual-audit/areas-prelude
+  --module ./tests/test_data/user/modules/DockerDemo.mod \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/areas
 
 # Renderer smoke test
 mudl compute-smoke --validate

@@ -84,12 +84,12 @@ struct VfxSequence {
     float source_target_distance = 0.0f;
 };
 
-int run_nwn_animation_smoke_command(std::string_view module_path);
+int run_nwn_animation_smoke_command(std::string_view module_path, std::string_view user_path);
 int run_dump_command(std::string_view resref, const std::filesystem::path& output_dir,
-    std::string_view module_path);
-int run_stats_command(std::string_view resref, std::string_view module_path);
+    std::string_view module_path, std::string_view user_path);
+int run_stats_command(std::string_view resref, std::string_view module_path, std::string_view user_path);
 int run_texture_command(std::string_view resref, const std::filesystem::path& output_path,
-    std::string_view module_path);
+    std::string_view module_path, std::string_view user_path);
 std::optional<VfxSequence> resolve_spell_sequence(std::string_view spell_id);
 std::optional<std::string> resolve_vfx_source(std::string_view query, std::string_view stage = {});
 std::optional<VfxSequence> resolve_vfx_sequence(std::string_view query);

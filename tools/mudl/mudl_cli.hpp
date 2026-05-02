@@ -40,6 +40,7 @@ struct ParsedArgs {
     std::string corpus_path;
     std::string corpus_ledger_path;
     std::string module_path;
+    std::string user_path;
     std::string live_export_output_path;
     bool enable_validation = false;
     bool show_debug_overlay = false;

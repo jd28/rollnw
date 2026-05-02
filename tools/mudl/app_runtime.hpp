@@ -782,7 +782,8 @@ inline void vfx_sequence_update_runtime(AppState& state, int32_t dt_ms)
 }
 
 bool init_graphics(AppState& state, SDL_Window* window);
-bool init_kernel_services(std::string_view module_path = {}, nw::Module** loaded_module = nullptr);
+bool init_kernel_services(
+    std::string_view module_path = {}, std::string_view user_path = {}, nw::Module** loaded_module = nullptr);
 bool init_render_runtime(AppState& state);
 bool ensure_gltf_ibl_textures(AppState& state);
 bool command_is_headless(std::string_view command);

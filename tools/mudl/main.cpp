@@ -33,9 +33,9 @@ using nw::render::nwn::set_dangly_mode;
 
 static constexpr std::string_view kSmokeTestModel = "c_aribeth";
 
-static int run_kernel_command(std::string_view module_path, const std::function<int()>& fn)
+static int run_kernel_command(std::string_view module_path, std::string_view user_path, const std::function<int()>& fn)
 {
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return 1;
     }
     const int rc = fn();
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     LOG_F(INFO, "mudl starting...");
 
     if (args.command == "particle-preview") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             return run_particle_preview_command(args.initial_model, args.screenshot_path,
                 args.particle_preview_time, args.particle_preview_view, args.animation_override,
                 args.particle_preview_metadata);
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     }
 
     if (args.command == "particle-preview-frames") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             return run_particle_preview_frames_command(args.initial_model, args.output_dir,
                 args.particle_preview_duration, args.particle_preview_fps, args.particle_preview_view,
                 args.animation_override, args.particle_preview_metadata);
@@ -91,13 +91,13 @@ int main(int argc, char* argv[])
     }
 
     if (args.command == "particle-export") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             return run_particle_export_command(args.initial_model, args.screenshot_path, args.animation_override);
         });
     }
 
     if (args.command == "spell-export") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             auto sequence = resolve_spell_sequence(args.initial_model);
             if (!sequence) {
                 LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
     }
 
     if (args.command == "spell-export-live") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             auto sequence = resolve_spell_sequence(args.initial_model);
             if (!sequence) {
                 LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
     }
 
     if (args.command == "spell-preview-live") {
-        return run_kernel_command(args.module_path, [&] {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
             auto sequence = resolve_spell_sequence(args.initial_model);
             if (!sequence) {
                 LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
@@ -134,20 +134,20 @@ int main(int argc, char* argv[])
 
     if (args.command == "corpus") {
         return run_visual_corpus_command(args.corpus_path, args.output_dir,
-            args.module_path, args.corpus_limit, args.corpus_filter, args.corpus_ledger_path);
+            args.module_path, args.user_path, args.corpus_limit, args.corpus_filter, args.corpus_ledger_path);
     }
 
     if (args.command == "dump") {
-        return run_dump_command(args.initial_model, args.output_dir, args.module_path);
+        return run_dump_command(args.initial_model, args.output_dir, args.module_path, args.user_path);
     } else if (args.command == "stats") {
-        return run_stats_command(args.initial_model, args.module_path);
+        return run_stats_command(args.initial_model, args.module_path, args.user_path);
     } else if (args.command == "area" && !args.area_dump_module_path.empty()) {
         return run_area_dump_command(args.area_dump_module_path, args.area_dump_output_path,
-            args.area_dump_skip_existing, args.area_dump_limit, args.show_debug_overlay);
+            args.user_path, args.area_dump_skip_existing, args.area_dump_limit, args.show_debug_overlay);
     } else if (args.command == "texture") {
-        return run_texture_command(args.initial_model, args.texture_output_path, args.module_path);
+        return run_texture_command(args.initial_model, args.texture_output_path, args.module_path, args.user_path);
     } else if (args.command == "nwn-animation-smoke") {
-        return run_nwn_animation_smoke_command(args.module_path);
+        return run_nwn_animation_smoke_command(args.module_path, args.user_path);
     }
 
     const bool headless_command = command_is_headless(args.command)
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
     state.camera->set_aspect_ratio(1280.0f / 720.0f);
     if (window) { init_imgui(state, window); }
 
-    if (!init_kernel_services(args.module_path)) {
+    if (!init_kernel_services(args.module_path, args.user_path)) {
         shutdown_graphics(state);
         if (window) { SDL_DestroyWindow(window); }
         return 1;

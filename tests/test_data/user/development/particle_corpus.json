@@ -155,7 +155,7 @@
     {
       "id": "vim_rayflame",
       "source": "external_corpus",
-      "input": "/home/josh/Downloads/1.86.8193.34.1 Decompiled Models (One Folder)/vim_rayflame.mdl",
+      "input": "tests/test_data/user/development/vim_rayflame.mdl",
       "category": [
         "inherit_part_candidate",
         "linked"
@@ -165,7 +165,7 @@
     {
       "id": "vim_ruin",
       "source": "external_corpus",
-      "input": "/home/josh/Downloads/1.86.8193.34.1 Decompiled Models (One Folder)/vim_ruin.mdl",
+      "input": "tests/test_data/user/development/vim_ruin.mdl",
       "category": [
         "inherit_part_candidate",
         "motion_blur"

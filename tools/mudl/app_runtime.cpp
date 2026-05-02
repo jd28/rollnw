@@ -694,20 +694,28 @@ void register_shader_resources()
 
 } // namespace
 
-bool init_kernel_services(std::string_view module_path, nw::Module** loaded_module)
+bool init_kernel_services(std::string_view module_path, std::string_view user_path, nw::Module** loaded_module)
 {
     auto install_info = nw::probe_nwn_install(nw::GameVersion::vEE);
     if (install_info.install.empty()) {
         install_info = nw::probe_nwn_install(nw::GameVersion::v1_69);
     }
 
-    if (install_info.install.empty()) {
+    if (install_info.install.empty() && user_path.empty()) {
         LOG_F(ERROR, "Could not find NWN installation. Set NWN_ROOT environment variable.");
         return false;
     }
 
-    LOG_F(INFO, "Found NWN install: {}", install_info.install);
-    nw::kernel::config().set_paths(install_info.install, install_info.user);
+    const std::filesystem::path user_dir = user_path.empty() ? install_info.user : std::filesystem::path{user_path};
+    if (install_info.install.empty()) {
+        LOG_F(INFO, "Using explicit NWN user directory without install root: {}", user_dir);
+    } else {
+        LOG_F(INFO, "Found NWN install: {}", install_info.install);
+        if (!user_path.empty()) {
+            LOG_F(INFO, "Using explicit NWN user directory: {}", user_dir);
+        }
+    }
+    nw::kernel::config().set_paths(install_info.install, user_dir);
     register_shader_resources();
 
     if (!module_path.empty()) {

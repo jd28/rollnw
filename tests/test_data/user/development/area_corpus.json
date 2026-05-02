@@ -1,57 +1,17 @@
 {
   "$type": "VisualCorpus",
-  "name": "nwn1_oc_prelude_area_corpus",
-  "description": "Seed OC campaign area corpus. Run this corpus with --module pointing at the shipped Prelude.nwm campaign module.",
+  "name": "nwn1_dockerdemo_area_corpus",
+  "description": "Checked-in DockerDemo module area corpus for CI and local smoke coverage. Run with --module ./tests/test_data/user/modules/DockerDemo.mod --user ./tests/test_data/user.",
   "entries": [
     {
-      "id": "area_prelude_m0q1a",
+      "id": "area_dockerdemo_start",
       "kind": "area",
-      "input": "m0q1a",
+      "input": "start",
       "category": [
-        "oc_campaign",
-        "prelude"
+        "dockerdemo",
+        "area"
       ],
-      "notes": "Prelude area seed captured from shipped OC content."
-    },
-    {
-      "id": "area_prelude_m0q1b",
-      "kind": "area",
-      "input": "m0q1b",
-      "category": [
-        "oc_campaign",
-        "prelude"
-      ],
-      "notes": "Prelude area seed captured from shipped OC content."
-    },
-    {
-      "id": "area_prelude_m0q1c",
-      "kind": "area",
-      "input": "m0q1c",
-      "category": [
-        "oc_campaign",
-        "prelude"
-      ],
-      "notes": "Prelude area seed captured from shipped OC content."
-    },
-    {
-      "id": "area_prelude_m0q1d",
-      "kind": "area",
-      "input": "m0q1d",
-      "category": [
-        "oc_campaign",
-        "prelude"
-      ],
-      "notes": "Prelude area seed captured from shipped OC content."
-    },
-    {
-      "id": "area_prelude_m0q1e",
-      "kind": "area",
-      "input": "m0q1e",
-      "category": [
-        "oc_campaign",
-        "prelude"
-      ],
-      "notes": "Prelude area seed captured from shipped OC content."
+      "notes": "Area fixture from the checked-in DockerDemo.mod module."
     }
   ]
 }

@@ -1553,19 +1553,8 @@ void set_vfx_sequence_time(AppState& state, int time_ms, bool stop_after_seek)
 }
 
 int run_area_dump_command(const std::filesystem::path& module_path, const std::filesystem::path& output_dir,
-    bool skip_existing, size_t limit, bool show_debug_overlay)
+    std::string_view user_path, bool skip_existing, size_t limit, bool show_debug_overlay)
 {
-    auto install_info = nw::probe_nwn_install(nw::GameVersion::vEE);
-    if (install_info.install.empty()) {
-        install_info = nw::probe_nwn_install(nw::GameVersion::v1_69);
-    }
-    if (install_info.install.empty()) {
-        LOG_F(ERROR, "Could not find NWN installation. Set NWN_ROOT environment variable.");
-        return 1;
-    }
-
-    nw::kernel::config().set_paths(install_info.install, install_info.user);
-
     AppState state{};
     state.screenshot_delay_frames = 2;
     state.show_debug_overlay = show_debug_overlay;
@@ -1586,7 +1575,7 @@ int run_area_dump_command(const std::filesystem::path& module_path, const std::f
     state.camera->set_aspect_ratio(1280.0f / 720.0f);
 
     nw::Module* module = nullptr;
-    if (!init_kernel_services(module_path.string(), &module)) {
+    if (!init_kernel_services(module_path.string(), user_path, &module)) {
         shutdown_graphics(state);
         SDL_Quit();
         return 1;

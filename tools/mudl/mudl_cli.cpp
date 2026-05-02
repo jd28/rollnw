@@ -36,6 +36,7 @@ void print_usage()
               << "\nturntable writes numbered PNG frames for external tools like ffmpeg.\n"
               << "--validate enables Vulkan validation layers (slow, useful for debugging).\n"
               << "--debug enables the optional debug grid overlay.\n"
+              << "--user <path> sets the NWN user directory root for development/override assets.\n"
               << "Press F5 in the viewer to reload shaders and rebuild render pipelines.\n"
               << "Exterior areas with a day/night cycle run through a full 60 second sun/moon loop in the viewer.\n"
               << "Area lighting controls are available in the debug panel.\n"
@@ -270,6 +271,8 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             out.output_dir = argv[++i];
         } else if (arg == "--module" && i + 1 < argc) {
             out.module_path = argv[++i];
+        } else if (arg == "--user" && i + 1 < argc) {
+            out.user_path = argv[++i];
         } else if (arg == "--limit" && i + 1 < argc && out.command == "corpus") {
             out.corpus_limit = static_cast<size_t>(std::max(0, std::atoi(argv[++i])));
         } else if (arg == "--filter" && i + 1 < argc && out.command == "corpus") {

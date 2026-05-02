@@ -307,9 +307,9 @@ bool visual_corpus_entry_matches_filter(const VisualCorpusEntry& entry, std::str
     return false;
 }
 
-bool initialize_kernel_session(KernelSession& session, std::string_view module_path)
+bool initialize_kernel_session(KernelSession& session, std::string_view module_path, std::string_view user_path)
 {
-    if (!init_kernel_services(module_path)) {
+    if (!init_kernel_services(module_path, user_path)) {
         return false;
     }
     session.initialized = true;
@@ -588,7 +588,8 @@ bool update_visual_audit_ledger(const std::filesystem::path& ledger_path, const 
 } // namespace
 
 int run_visual_corpus_command(const std::filesystem::path& corpus_path, const std::filesystem::path& output_dir,
-    std::string_view module_path, size_t limit, std::string_view filter, const std::filesystem::path& ledger_path)
+    std::string_view module_path, std::string_view user_path, size_t limit, std::string_view filter,
+    const std::filesystem::path& ledger_path)
 {
     auto corpus = load_visual_corpus(corpus_path);
     if (!corpus) {
@@ -604,7 +605,7 @@ int run_visual_corpus_command(const std::filesystem::path& corpus_path, const st
     }
 
     KernelSession kernel_session;
-    if (!initialize_kernel_session(kernel_session, module_path)) {
+    if (!initialize_kernel_session(kernel_session, module_path, user_path)) {
         return 1;
     }
 
@@ -626,6 +627,7 @@ int run_visual_corpus_command(const std::filesystem::path& corpus_path, const st
         {"name", corpus->name},
         {"description", corpus->description},
         {"module_path", std::string(module_path)},
+        {"user_path", std::string(user_path)},
         {"filter", std::string(filter)},
         {"entries", json::array()},
     };

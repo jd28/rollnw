@@ -38,7 +38,7 @@ The system is split into four layers.
 
 ### 1. Authoring IR
 
-The authoring layer is defined in [particle_def.hpp](/home/josh/projects/rollnw/lib/nw/render/particle_def.hpp).
+The authoring layer is defined in [particle_def.hpp](../particle_def.hpp).
 
 Representative types:
 
@@ -79,7 +79,7 @@ This is the contract other sources should target, not the NWN importer surface.
 
 ### 2. Compiled Effect
 
-The compile boundary is defined in [particle_compile.hpp](/home/josh/projects/rollnw/lib/nw/render/particle_compile.hpp).
+The compile boundary is defined in [particle_compile.hpp](../particle_compile.hpp).
 
 Representative types:
 
@@ -128,7 +128,7 @@ These matter because they allow the runtime to do less work and carry less memor
 
 ### 3. Runtime Instance
 
-The live runtime state is defined in [particle_system.hpp](/home/josh/projects/rollnw/lib/nw/render/particle_system.hpp).
+The live runtime state is defined in [particle_system.hpp](../particle_system.hpp).
 
 Representative types:
 
@@ -170,7 +170,7 @@ This is why the system is not just "SoA everywhere." It is intentionally partiti
 
 ### 4. Render Packets
 
-Render output is defined in [particle_render.hpp](/home/josh/projects/rollnw/lib/nw/render/particle_render.hpp).
+Render output is defined in [particle_render.hpp](../particle_render.hpp).
 
 Representative types:
 
@@ -264,8 +264,8 @@ This is a clearer and more portable model than preserving NWN’s raw flag vocab
 
 The NWN lowering layer lives outside the renderer in the model code:
 
-- [mdl_particle_import.hpp](/home/josh/projects/rollnw/lib/nw/model/mdl_particle_import.hpp)
-- [mdl_particle_import.cpp](/home/josh/projects/rollnw/lib/nw/model/mdl_particle_import.cpp)
+- [mdl_particle_import.hpp](../../model/mdl_particle_import.hpp)
+- [mdl_particle_import.cpp](../../model/mdl_particle_import.cpp)
 
 It translates NWN MDL emitters into `ParticleEffectDef`.
 
@@ -337,8 +337,8 @@ The system already covers the major NWN families:
 
 The source-neutral serialization layer is defined in:
 
-- [particle_json.hpp](/home/josh/projects/rollnw/lib/nw/render/particle_json.hpp)
-- [particle_json.cpp](/home/josh/projects/rollnw/lib/nw/render/particle_json.cpp)
+- [particle_json.hpp](../particle_json.hpp)
+- [particle_json.cpp](../particle_json.cpp)
 
 This allows `ParticleEffectDef` to be loaded and saved independently of NWN.
 

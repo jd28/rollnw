@@ -1,0 +1,169 @@
+#MAXMODEL ASCII
+# model: vim_rayflame
+filedependancy vim_rayflame.max
+newmodel vim_rayflame
+setsupermodel vim_rayflame NULL
+classification effect
+setanimationscale 1
+#MAXGEOM  ASCII
+beginmodelgeom vim_rayflame
+node dummy vim_rayflame
+  parent NULL
+  #part-number 0
+endnode
+node emitter mainBeam
+  parent vim_rayflame
+  #part-number 1
+  p2p 1
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 0
+  random 0
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 1
+  renderorder 0
+  spawntype 0
+  update Fountain
+  render Linked
+  blend Lighten
+  texture fxpa_flame
+  xgrid 1
+  ygrid 1
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0.204552993 0
+  orientation 0 0 0 0
+  colorStart 1 1 1
+  colorEnd 1 1 1
+  alphaStart 1
+  alphaEnd 1
+  sizeStart 0.0299999993
+  sizeEnd 0.25
+  sizeStart_y 0
+  sizeEnd_y 0
+  frameStart 0
+  frameEnd 0
+  birthrate 10
+  lifeExp 1
+  mass 0
+  spread 0
+  particleRot 0
+  velocity 0
+  randvel 0
+  fps 0
+  xsize 0
+  ysize 0
+  bounce_co 0
+  blurlength 10
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0.5
+  drag 0
+  grav 0
+  threshold 0
+endnode
+node reference OmenRef03
+  parent mainBeam
+  #part-number 2
+  refModel fx_ref
+  reattachable 1
+  position -0.00129215 5.9971199 0
+  orientation 0 0 0 0
+endnode
+node emitter handbal
+  parent vim_rayflame
+  #part-number 3
+  p2p 0
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 0
+  random 0
+  inherit 1
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Fountain
+  render Normal
+  blend Lighten
+  texture fxpa_flare
+  xgrid 1
+  ygrid 1
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0.204552993 0
+  orientation 0 0 0 0
+  colorStart 1 0.517647028 0
+  colorEnd 1 0.752941012 0
+  alphaStart 1
+  alphaEnd 0
+  sizeStart 0.25
+  sizeEnd 0
+  sizeStart_y 0
+  sizeEnd_y 0
+  frameStart 0
+  frameEnd 0
+  birthrate 20
+  lifeExp 0.699999988
+  mass 0.200000003
+  spread 6.28318977
+  particleRot 0
+  velocity 0
+  randvel 0.100000001
+  fps 0
+  xsize 0
+  ysize 0
+  bounce_co 0
+  blurlength 10
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+endmodelgeom vim_rayflame
+
+#MAXANIM ASCII
+newanim impact vim_rayflame
+  length 0
+  transtime 0
+  animroot vim_rayflame
+node dummy vim_rayflame
+  parent NULL
+  #part-number 0
+endnode
+node emitter mainBeam
+  parent vim_rayflame
+  #part-number 1
+endnode
+node dummy OmenRef03
+  parent mainBeam
+  #part-number 2
+endnode
+node emitter handbal
+  parent vim_rayflame
+  #part-number 3
+endnode
+doneanim impact vim_rayflame
+
+donemodel vim_rayflame

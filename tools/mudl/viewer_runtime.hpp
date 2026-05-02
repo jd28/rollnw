@@ -33,6 +33,6 @@ void reload_current_scene(AppState& state);
 bool select_model_animation(AppState& state, size_t model_index, std::string_view animation_name);
 void set_gltf_animation_clip(AppState& state, uint32_t clip_index);
 int run_area_dump_command(const std::filesystem::path& module_path, const std::filesystem::path& output_dir,
-    bool skip_existing, size_t limit, bool show_debug_overlay);
+    std::string_view user_path, bool skip_existing, size_t limit, bool show_debug_overlay);
 
 } // namespace mudl
