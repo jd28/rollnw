@@ -124,14 +124,21 @@ mudl area --dump ./mymodule.mod --output ./out/areas --skip-existing --limit 50 
 
 ```text
 mudl stats <resref>
+mudl dump <resref> [--output <dir>]
 mudl texture <resref> <path>
 ```
 
 ```bash
 mudl stats c_aribeth
+mudl dump c_aribeth --output ./out/c_aribeth-assets
 mudl stats c_aribeth --module ./mymodule.mod
 mudl texture plc_archtarg plc_archtarg_d.png
 ```
+
+`mudl dump` writes a self-contained resource closure for a model preview, including the model,
+supermodels, reference models, mesh/emitter/light textures, TXI files, MTR files, and texture
+references found inside TXI/MTR text. A `manifest.json` records copied and missing resources plus
+the model node or secondary file that referenced each asset.
 
 ### Spells and VFX
 

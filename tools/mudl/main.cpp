@@ -137,7 +137,9 @@ int main(int argc, char* argv[])
             args.module_path, args.corpus_limit, args.corpus_filter, args.corpus_ledger_path);
     }
 
-    if (args.command == "stats") {
+    if (args.command == "dump") {
+        return run_dump_command(args.initial_model, args.output_dir, args.module_path);
+    } else if (args.command == "stats") {
         return run_stats_command(args.initial_model, args.module_path);
     } else if (args.command == "area" && !args.area_dump_module_path.empty()) {
         return run_area_dump_command(args.area_dump_module_path, args.area_dump_output_path,

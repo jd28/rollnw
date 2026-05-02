@@ -17,6 +17,7 @@ void print_usage()
               << "  mudl spell-preview-live <spells.2da rowid> <path> [--module <path>] [--frame <count>] [--view front|top|side] [--metadata]\n"
               << "  mudl vfx <spell|resref|VFX_*|effect.json> [--stage proj|cast|conj|impact|duration|cessation] [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
               << "  mudl corpus <path/to/corpus.json> [--output <dir>] [--module <path>] [--limit <count>] [--filter <tag>] [--ledger <path>]\n"
+              << "  mudl dump <resref> [--output <dir>] [--module <path>]\n"
               << "  mudl stats <resref> [--module <path>]\n"
               << "  mudl texture <resref> <output_path> [--module <path>]\n"
               << "  mudl area <area_resref> [--module <path>] [--debug] [--validate]\n"
@@ -52,6 +53,7 @@ bool is_subcommand(std::string_view command)
         || command == "spell-preview-live"
         || command == "vfx"
         || command == "corpus"
+        || command == "dump"
         || command == "stats"
         || command == "texture"
         || command == "area"
@@ -91,6 +93,8 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         } else if (out.command == "vfx") {
             arg_start = 3;
         } else if (out.command == "corpus") {
+            arg_start = 3;
+        } else if (out.command == "dump") {
             arg_start = 3;
         } else if (out.command == "stats") {
             arg_start = 3;
@@ -164,6 +168,12 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             return 1;
         }
         out.corpus_path = argv[2];
+    } else if (out.command == "dump") {
+        if (argc < 3) {
+            print_usage();
+            return 1;
+        }
+        out.initial_model = argv[2];
     } else if (out.command == "stats") {
         if (argc < 3) {
             print_usage();

@@ -19,20 +19,27 @@
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace mudl {
 namespace {
 
+using json = nlohmann::json;
 using nw::render::nwn::build_nwn_clip;
 using nw::render::nwn::build_nwn_skeleton;
 
@@ -66,6 +73,22 @@ struct StatsReport {
     size_t max_skin_bones = 0;
     std::map<std::string, size_t> node_type_counts;
     std::map<std::string, TextureInfo> textures;
+};
+
+struct DumpResource {
+    nw::Resource resource;
+    std::set<std::string> origins;
+    bool copied = false;
+    bool missing = false;
+    size_t bytes = 0;
+};
+
+struct DumpReport {
+    std::map<std::string, DumpResource> resources;
+    std::vector<nw::Resource> scan_queue;
+    std::set<std::string> scanned_text_resources;
+    std::set<std::string> scanned_models;
+    std::set<std::string> scanned_model_visuals;
 };
 
 enum class VfxLookupStage {
@@ -1333,6 +1356,413 @@ std::string mesh_texture_name(const nw::model::TrimeshNode& node)
     return {};
 }
 
+std::string resource_key(const nw::Resource& resource)
+{
+    return resource.resref.string() + "." + std::string(nw::ResourceType::to_string(resource.type));
+}
+
+bool is_null_resource_name(std::string_view name)
+{
+    return name.empty()
+        || nw::string::icmp(name, "null")
+        || nw::string::icmp(name, "none")
+        || nw::string::icmp(name, "****");
+}
+
+std::string clean_resource_token(std::string_view token)
+{
+    while (!token.empty() && (token.front() == '"' || token.front() == '\'')) {
+        token.remove_prefix(1);
+    }
+    while (!token.empty() && (token.back() == '"' || token.back() == '\'' || token.back() == ',' || token.back() == ';')) {
+        token.remove_suffix(1);
+    }
+
+    std::string cleaned{token};
+    std::replace(cleaned.begin(), cleaned.end(), '\\', '/');
+    auto slash = cleaned.find_last_of('/');
+    if (slash != std::string::npos) {
+        cleaned = cleaned.substr(slash + 1);
+    }
+    return cleaned;
+}
+
+bool looks_like_resref_token(std::string_view token)
+{
+    if (token.empty() || token.size() > 64) {
+        return false;
+    }
+
+    bool has_alpha = false;
+    for (char ch : token) {
+        const auto uch = static_cast<unsigned char>(ch);
+        if (std::isalpha(uch)) {
+            has_alpha = true;
+        }
+        if (!std::isalnum(uch) && ch != '_' && ch != '-' && ch != '.') {
+            return false;
+        }
+    }
+    return has_alpha;
+}
+
+bool resource_exists(const nw::Resource& resource)
+{
+    return nw::kernel::resman().contains(resource);
+}
+
+void add_dump_resource(DumpReport& report, nw::Resource resource, std::string origin)
+{
+    if (!resource.valid()) {
+        return;
+    }
+
+    auto key = resource_key(resource);
+    auto [it, inserted] = report.resources.emplace(key, DumpResource{});
+    if (inserted) {
+        it->second.resource = resource;
+    }
+    it->second.origins.insert(std::move(origin));
+
+    if (resource.type == nw::ResourceType::txi || resource.type == nw::ResourceType::mtr) {
+        report.scan_queue.push_back(resource);
+    }
+}
+
+void add_existing_or_missing_resource(DumpReport& report, nw::Resource resource, std::string origin)
+{
+    if (!resource.valid()) {
+        return;
+    }
+
+    add_dump_resource(report, resource, std::move(origin));
+    if (!resource_exists(resource)) {
+        report.resources[resource_key(resource)].missing = true;
+    }
+}
+
+void add_texture_family(DumpReport& report, std::string_view raw_name, std::string origin)
+{
+    const auto cleaned = clean_resource_token(raw_name);
+    if (is_null_resource_name(cleaned) || !looks_like_resref_token(cleaned)) {
+        return;
+    }
+
+    const std::filesystem::path path{cleaned};
+    const auto ext = path.extension().string();
+    if (!ext.empty()) {
+        auto type = nw::ResourceType::from_extension(ext);
+        const auto stem = path.stem().string();
+        if (type != nw::ResourceType::invalid && !is_null_resource_name(stem)) {
+            add_existing_or_missing_resource(report, {stem, type}, std::move(origin));
+        }
+        return;
+    }
+
+    static constexpr std::array texture_types{
+        nw::ResourceType::dds,
+        nw::ResourceType::tga,
+        nw::ResourceType::plt,
+    };
+
+    bool found_texture = false;
+    for (auto type : texture_types) {
+        nw::Resource texture{cleaned, type};
+        if (resource_exists(texture)) {
+            add_dump_resource(report, texture, origin);
+            found_texture = true;
+        }
+    }
+
+    nw::Resource txi{cleaned, nw::ResourceType::txi};
+    if (resource_exists(txi)) {
+        add_dump_resource(report, txi, origin);
+    }
+
+    nw::Resource shd{cleaned, nw::ResourceType::shd};
+    if (resource_exists(shd)) {
+        add_dump_resource(report, shd, origin);
+    }
+
+    if (!found_texture && !resource_exists(txi)) {
+        add_existing_or_missing_resource(report, {cleaned, nw::ResourceType::dds}, std::move(origin));
+    }
+}
+
+void add_material_resource(DumpReport& report, std::string_view raw_name, std::string origin)
+{
+    const auto cleaned = clean_resource_token(raw_name);
+    if (is_null_resource_name(cleaned) || !looks_like_resref_token(cleaned)) {
+        return;
+    }
+
+    const std::filesystem::path path{cleaned};
+    if (!path.extension().empty()) {
+        const auto type = nw::ResourceType::from_extension(path.extension().string());
+        if (type == nw::ResourceType::mtr) {
+            add_existing_or_missing_resource(report, {path.stem().string(), type}, std::move(origin));
+        }
+        return;
+    }
+
+    nw::Resource material{cleaned, nw::ResourceType::mtr};
+    if (resource_exists(material)) {
+        add_dump_resource(report, material, std::move(origin));
+    }
+}
+
+void add_existing_text_resource_reference(DumpReport& report, std::string_view raw_name, std::string origin)
+{
+    const auto cleaned = clean_resource_token(raw_name);
+    if (is_null_resource_name(cleaned) || !looks_like_resref_token(cleaned)) {
+        return;
+    }
+
+    const std::filesystem::path path{cleaned};
+    if (!path.extension().empty()) {
+        const auto type = nw::ResourceType::from_extension(path.extension().string());
+        const auto stem = path.stem().string();
+        nw::Resource resource{stem, type};
+        if (resource.valid() && resource_exists(resource)) {
+            add_dump_resource(report, resource, std::move(origin));
+        }
+        return;
+    }
+
+    static constexpr std::array resource_types{
+        nw::ResourceType::dds,
+        nw::ResourceType::tga,
+        nw::ResourceType::plt,
+        nw::ResourceType::txi,
+        nw::ResourceType::mtr,
+        nw::ResourceType::shd,
+    };
+    for (auto type : resource_types) {
+        nw::Resource resource{cleaned, type};
+        if (resource_exists(resource)) {
+            add_dump_resource(report, resource, origin);
+        }
+    }
+}
+
+std::vector<std::string> tokenize_dependency_text(std::string_view text)
+{
+    std::vector<std::string> tokens;
+    std::string current;
+    bool in_comment = false;
+
+    for (size_t i = 0; i < text.size(); ++i) {
+        const char ch = text[i];
+        if (in_comment) {
+            if (ch == '\n' || ch == '\r') {
+                in_comment = false;
+            }
+            continue;
+        }
+        if (ch == '#' || (ch == '/' && i + 1 < text.size() && text[i + 1] == '/')) {
+            if (!current.empty()) {
+                tokens.push_back(std::move(current));
+                current.clear();
+            }
+            in_comment = true;
+            continue;
+        }
+        if (std::isspace(static_cast<unsigned char>(ch))) {
+            if (!current.empty()) {
+                tokens.push_back(std::move(current));
+                current.clear();
+            }
+            continue;
+        }
+        current.push_back(ch);
+    }
+
+    if (!current.empty()) {
+        tokens.push_back(std::move(current));
+    }
+    return tokens;
+}
+
+bool dependency_key_may_reference_texture(std::string_view key)
+{
+    std::string lowered{key};
+    nw::string::tolower(&lowered);
+    return lowered.find("texture") != std::string::npos
+        || lowered.find("map") != std::string::npos
+        || lowered.find("normal") != std::string::npos
+        || lowered.find("bump") != std::string::npos
+        || lowered.find("rough") != std::string::npos
+        || lowered.find("metal") != std::string::npos
+        || lowered.find("spec") != std::string::npos
+        || lowered.find("height") != std::string::npos
+        || lowered.find("emissive") != std::string::npos;
+}
+
+void scan_text_dependency_resource(DumpReport& report, const nw::Resource& resource)
+{
+    const auto key = resource_key(resource);
+    if (report.scanned_text_resources.contains(key) || !resource_exists(resource)) {
+        return;
+    }
+    report.scanned_text_resources.insert(key);
+
+    auto data = nw::kernel::resman().demand(resource);
+    const auto tokens = tokenize_dependency_text(data.bytes.string_view());
+    for (const auto& token : tokens) {
+        add_existing_text_resource_reference(report, token, key);
+    }
+    for (size_t i = 0; i + 1 < tokens.size(); ++i) {
+        const auto& key_token = tokens[i];
+        const auto& value_token = tokens[i + 1];
+        if (dependency_key_may_reference_texture(key_token)) {
+            add_texture_family(report, value_token, key);
+        }
+        if (nw::string::icmp(key_token, "material")
+            || nw::string::icmp(key_token, "materialname")) {
+            add_material_resource(report, value_token, key);
+        }
+    }
+}
+
+void scan_node_dump_dependencies(DumpReport& report, const nw::model::Node* node, std::string_view model_name)
+{
+    if (!node) {
+        return;
+    }
+
+    const auto origin = std::string(model_name) + ":" + std::string(node->name);
+    if (auto trimesh = dynamic_cast<const nw::model::TrimeshNode*>(node)) {
+        add_texture_family(report, mesh_texture_name(*trimesh), origin);
+        for (const auto& texture : trimesh->textures) {
+            add_texture_family(report, texture, origin);
+        }
+        add_material_resource(report, trimesh->materialname, origin);
+    } else if (auto emitter = dynamic_cast<const nw::model::EmitterNode*>(node)) {
+        add_texture_family(report, emitter->texture, origin);
+    } else if (auto light = dynamic_cast<const nw::model::LightNode*>(node)) {
+        for (const auto& texture : light->textures) {
+            add_texture_family(report, texture, origin);
+        }
+    } else if (auto reference = dynamic_cast<const nw::model::ReferenceNode*>(node)) {
+        if (!is_null_resource_name(reference->refmodel)) {
+            add_existing_or_missing_resource(report, {reference->refmodel, nw::ResourceType::mdl}, origin);
+        }
+    }
+
+    for (const auto* child : node->children) {
+        scan_node_dump_dependencies(report, child, model_name);
+    }
+}
+
+void scan_model_dump_dependencies(DumpReport& report, std::string_view resref, bool scan_visual_assets = true)
+{
+    if (is_null_resource_name(resref)) {
+        return;
+    }
+
+    const std::string model_name{resref};
+    const bool first_model_scan = report.scanned_models.insert(model_name).second;
+    add_existing_or_missing_resource(report, {resref, nw::ResourceType::mdl}, "model");
+
+    if (!first_model_scan && (!scan_visual_assets || report.scanned_model_visuals.contains(model_name))) {
+        return;
+    }
+
+    auto* mdl = nw::kernel::models().load(resref);
+    if (!mdl || !mdl->valid()) {
+        report.resources[resource_key({resref, nw::ResourceType::mdl})].missing = true;
+        return;
+    }
+
+    if (first_model_scan && !is_null_resource_name(mdl->model.supermodel_name)) {
+        scan_model_dump_dependencies(report, mdl->model.supermodel_name, false);
+    }
+
+    if (!scan_visual_assets || !report.scanned_model_visuals.insert(model_name).second) {
+        return;
+    }
+
+    for (const auto& node : mdl->model.nodes) {
+        if (node && !node->parent) {
+            scan_node_dump_dependencies(report, node.get(), resref);
+        }
+    }
+
+    std::vector<std::string> referenced_models;
+    for (const auto& [_, item] : report.resources) {
+        if (item.resource.type == nw::ResourceType::mdl && !item.missing) {
+            const auto name = item.resource.resref.string();
+            if (!report.scanned_models.contains(name)) {
+                referenced_models.push_back(name);
+            }
+        }
+    }
+    for (const auto& name : referenced_models) {
+        scan_model_dump_dependencies(report, name);
+    }
+}
+
+std::filesystem::path dump_output_root(std::string_view resref, const std::filesystem::path& output_dir)
+{
+    if (output_dir == "." || output_dir.empty()) {
+        return std::filesystem::path{"dump"} / std::string(resref);
+    }
+    return output_dir;
+}
+
+bool write_text_file(const std::filesystem::path& path, std::string_view text)
+{
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(), ec);
+    if (ec) {
+        LOG_F(ERROR, "Failed to create output directory '{}': {}", path.parent_path().string(), ec.message());
+        return false;
+    }
+
+    std::ofstream out(path);
+    if (!out.is_open()) {
+        return false;
+    }
+    out << text;
+    return static_cast<bool>(out);
+}
+
+std::filesystem::path dump_resource_path(const std::filesystem::path& root, const nw::Resource& resource)
+{
+    return root / std::string(nw::ResourceType::to_string(resource.type)) / resource.filename();
+}
+
+json dump_manifest_json(std::string_view root_resref, const DumpReport& report)
+{
+    json resources = json::array();
+    size_t missing_count = 0;
+    size_t copied_count = 0;
+    for (const auto& [_, item] : report.resources) {
+        json origins = json::array();
+        for (const auto& origin : item.origins) {
+            origins.push_back(origin);
+        }
+        resources.push_back({
+            {"resource", item.resource.filename()},
+            {"resref", item.resource.resref.string()},
+            {"type", std::string(nw::ResourceType::to_string(item.resource.type))},
+            {"status", item.missing ? "missing" : (item.copied ? "copied" : "present")},
+            {"bytes", item.bytes},
+            {"origins", origins},
+        });
+        missing_count += item.missing ? 1u : 0u;
+        copied_count += item.copied ? 1u : 0u;
+    }
+
+    return {
+        {"root", std::string(root_resref)},
+        {"resource_count", report.resources.size()},
+        {"copied_count", copied_count},
+        {"missing_count", missing_count},
+        {"resources", resources},
+    };
+}
+
 size_t mesh_vertex_count(const nw::model::TrimeshNode& node)
 {
     if (auto skin = dynamic_cast<const nw::model::SkinNode*>(&node)) {
@@ -1479,6 +1909,94 @@ int run_nwn_animation_smoke_command(std::string_view module_path)
         return 0;
     }
     return 1;
+}
+
+int run_dump_command(std::string_view resref, const std::filesystem::path& output_dir,
+    std::string_view module_path)
+{
+    if (resref.empty()) {
+        print_usage();
+        return 1;
+    }
+
+    if (!init_kernel_services(module_path)) {
+        return 1;
+    }
+
+    auto shutdown = [] { nw::kernel::services().shutdown(); };
+    DumpReport report;
+    scan_model_dump_dependencies(report, resref);
+
+    for (size_t i = 0; i < report.scan_queue.size(); ++i) {
+        scan_text_dependency_resource(report, report.scan_queue[i]);
+    }
+
+    const auto root = dump_output_root(resref, output_dir);
+    std::error_code ec;
+    std::filesystem::create_directories(root, ec);
+    if (ec) {
+        LOG_F(ERROR, "Failed to create dump directory '{}': {}", root.string(), ec.message());
+        shutdown();
+        return 1;
+    }
+
+    bool ok = true;
+    for (auto& [_, item] : report.resources) {
+        if (item.missing) {
+            continue;
+        }
+        auto data = nw::kernel::resman().demand(item.resource);
+        if (data.bytes.size() == 0) {
+            item.missing = true;
+            ok = false;
+            continue;
+        }
+
+        const auto path = dump_resource_path(root, item.resource);
+        std::filesystem::create_directories(path.parent_path(), ec);
+        if (ec) {
+            LOG_F(ERROR, "Failed to create resource dump directory '{}': {}", path.parent_path().string(), ec.message());
+            ok = false;
+            continue;
+        }
+        if (!data.bytes.write_to(path)) {
+            LOG_F(ERROR, "Failed to write resource dump '{}'", path.string());
+            ok = false;
+            continue;
+        }
+        item.copied = true;
+        item.bytes = data.bytes.size();
+    }
+
+    const auto manifest = dump_manifest_json(resref, report);
+    if (!write_text_file(root / "manifest.json", manifest.dump(2))) {
+        LOG_F(ERROR, "Failed to write dump manifest '{}'", (root / "manifest.json").string());
+        ok = false;
+    }
+
+    size_t missing_count = 0;
+    size_t copied_count = 0;
+    for (const auto& [_, item] : report.resources) {
+        missing_count += item.missing ? 1u : 0u;
+        copied_count += item.copied ? 1u : 0u;
+    }
+
+    std::cout << "dump: " << resref << '\n';
+    std::cout << "output: " << root.string() << '\n';
+    std::cout << "resources: " << report.resources.size()
+              << " copied=" << copied_count
+              << " missing=" << missing_count << '\n';
+    if (missing_count != 0) {
+        std::cout << "missing:\n";
+        for (const auto& [_, item] : report.resources) {
+            if (item.missing) {
+                std::cout << "  " << item.resource.filename() << '\n';
+            }
+        }
+    }
+
+    shutdown();
+    return ok && missing_count == 0 ? 0 : 1;
 }
 
 int run_stats_command(std::string_view resref, std::string_view module_path)

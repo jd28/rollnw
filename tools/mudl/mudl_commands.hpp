@@ -85,6 +85,8 @@ struct VfxSequence {
 };
 
 int run_nwn_animation_smoke_command(std::string_view module_path);
+int run_dump_command(std::string_view resref, const std::filesystem::path& output_dir,
+    std::string_view module_path);
 int run_stats_command(std::string_view resref, std::string_view module_path);
 int run_texture_command(std::string_view resref, const std::filesystem::path& output_path,
     std::string_view module_path);
