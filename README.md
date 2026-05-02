@@ -6,39 +6,41 @@
 
 # rollNW
 
-rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info, or open an IDE in browser in the quickstart section below.
+rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
 
-**This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
+**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN library cross section of the project. Current work is reframing the codebase as a foundation for an authored RPG toolset/game, with `nw::gfx` as the low-level graphics layer, `lib/nw/render` and `mudl` for renderer-backed asset validation, Smalls as the rule/script authoring path, and networking/runtime services as part of the long-term foundation. Until there is a real release, assume APIs and subsystem boundaries can move.
 
 ## Features
 
-- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties. Loading objects from resman or the filesystem is whether in GFF or JSON format is transparent.
-- A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
-- Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
-- An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [arclight](https://github.com/jd28/arclight) project for some model viewing.
-- [`nw::gfx`](./lib/nw/gfx/README.md), a thin Vulkan-focused rendering layer for renderer experiments and headless graphics validation.
-- [`mudl`](./tools/mudl/README.md), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, and glTF/PBR rendering.
-- Renderer design notes in [`lib/nw/render/docs`](./lib/nw/render/docs), including the [particle system overview](./lib/nw/render/docs/particle_system.md).
-- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
-- An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
-- Smalls is a statically-typed scripting language designed for NWN tooling. It replaces NWScript with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](lib/nw/smalls/docs/index.md) for a language spec.
+- Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](lib/nw/smalls/docs/index.md) for a language spec.
 - The beginnings of a novel rules system and combat engine built on smalls.
+- [`nw::gfx`](./lib/nw/gfx/README.md), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
+- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.
+- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
+- Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
+- An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
+- A recursive descent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html). This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
+
+## Tools
+
+- [`mudl`](./tools/mudl/README.md), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes in [`lib/nw/render/docs`](./lib/nw/render/docs), including the [particle system overview](./lib/nw/render/docs/particle_system.md).
 
 ## Goals
 
-- aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
-- focuses on usage, instead of doing things the Aurora Engine Way.
+- aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN.
+- keeps current implementation focused on practical foundations first: rules, content formats, renderer validation, authoring workflows, and the services a playable toolset/game will need.
+- focuses on authoring and usage, instead of doing things the Aurora Engine Way.
 - follows [utf8 everywhere](https://utf8everywhere.org/).
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
 ## Building / Installing
 
-The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}-dev[-{build tool}][-python][-debug]`. In debug presets, build files are written to `build-debug`, otherwise `build`. In the python presets, python bindings will be built, otherwise only tests and benchmarks are built. On macOS and Linux, ninja is always to the build tool of choice so it is omitted. On windows the default build tool is Visual Studio 2022.
+The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}-dev[-{build tool}][-debug]`. In debug presets, build files are written to `build-debug`, otherwise `build`. On macOS and Linux, ninja is always to the build tool of choice so it is omitted. On windows the default build tool is Visual Studio 2022.
 
 Examples:
 ```
-$ cmake --preset=linux-dev-python
+$ cmake --preset=linux-dev
 $ cmake --preset=macos-dev-debug
 $ cmake --preset=windows-dev-vs2019-debug
 $ cmake --preset=windows-dev
@@ -63,10 +65,6 @@ To run ctest:
 $ ctest --preset=default
 ```
 
-## Bindings
-
-* [Python](https://github.com/jd28/rollnw-py)
-
 ## History
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The answer to that was pretty positive: a decade ahead, at least, of nwscript.
@@ -77,9 +75,10 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 - [abseil](https://abseil.io/) - Foundational
 - [GoogleTest](https://github.com/google/googletest) - Testing
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
+- [Vulkan](https://www.vulkan.org/), [Dear ImGui](https://github.com/ocornut/imgui) - Graphics and tool UI
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
 - [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
-- [doxygen](https://doxygen.nl/), [sphinx](https://www.sphinx-doc.org/en/master/), [breathe](https://breathe.readthedocs.io/en/latest/) - documentation
+- [sphinx](https://www.sphinx-doc.org/en/master/) - documentation

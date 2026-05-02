@@ -1,17 +1,29 @@
-|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status| |pypi|
+|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status|
 
 rollNW
 ======
 
-rollNW is an homage to Neverwinter Nights in C++ and Python.
+rollNW is an homage to Neverwinter Nights in C++. It started
+as reusable NWN infrastructure and is broadening toward support for a
+modern authored RPG toolset/game: content formats, rules, scripting,
+rendering validation, networking foundations, and the runtime services
+needed to make those pieces authorable and playable.
 
 See the `docs <https://rollnw.readthedocs.io/en/latest/>`__ and
 `tests <https://github.com/jd28/rollnw/tree/main/tests>`__ for more info,
 or open an IDE in browser in the quickstart section below.
 
-**This library is a work-in-progress. There will be serious refactoring
-and until there is a real release, it should be assumed the library is
-in flux.**
+.. warning::
+
+   rollNW is in active transition. Older docs and APIs may show a
+   narrower NWN library cross section of the project. Current work is
+   reframing the codebase as a foundation for an authored RPG
+   toolset/game,
+   with ``nw::gfx`` as the low-level graphics layer, ``lib/nw/render``
+   and ``mudl`` for renderer-backed asset validation, and Smalls as the
+   rule/script authoring path. Networking and runtime services are part
+   of the long-term foundation. Until there is a real release, assume
+   APIs and subsystem boundaries can move.
 
 -----------------------------------------
 
@@ -22,21 +34,24 @@ features
   easily adding, overriding, expanding, or removing any rule and reasonable performance
 - A `combat engine <https://github.com/jd28/rollnw/blob/main/api/combat.cpp>`__ that's very
   nearing being able to simulate melee battles.
-- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties.  They are still missing some new EE things.  Player Characters are read only, for now.
-- A recursive decent `NWScript Parser <https://rollnw.readthedocs.io/en/latest/structure/script.html>`__
+- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.
+- A recursive descent `NWScript Parser <https://rollnw.readthedocs.io/en/latest/structure/script.html>`__. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
 - Implementations of pretty much every `NWN File Format <https://rollnw.readthedocs.io/en/latest/structure/formats.html>`__
-- An binary and ASCII `Model Parser <https://rollnw.readthedocs.io/en/latest/structure/model.html>`__.  See also the `mudl <https://github.com/jd28/mudl>`__ model viewer side project.
+- A binary and ASCII `Model Parser <https://rollnw.readthedocs.io/en/latest/structure/model.html>`__.
+- ``nw::gfx``, ``lib/nw/render``, and ``mudl`` form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's `Localization System <https://rollnw.readthedocs.io/en/latest/structure/i18n.html>`__ focused
   on utf8 everywhere.
+- Smalls is the active rules/script transition path for modern embedded tooling and rule experiments.
 
 -----------------------------------------
 
 goals
 -----
 
--  aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
--  focuses on usage, instead of doing things the Aurora Engine Way.
+-  aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN.
+-  keeps current implementation focused on practical foundations first: rules, content formats, renderer validation, authoring workflows, and the services a playable toolset/game will need.
+-  focuses on authoring and usage, instead of doing things the Aurora Engine Way.
 -  follows `utf8 everywhere <https://utf8everywhere.org/>`__.
 -  hews as close to `C++ Core
    Guidelines <https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`__
@@ -92,6 +107,8 @@ Credits
 -  `abseil <https://abseil.io/>`__ - Foundational
 -  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics
+-  `Vulkan <https://www.vulkan.org/>`__,
+   `Dear ImGui <https://github.com/ocornut/imgui>`__ - Graphics and tool UI
 -  `loguru <https://github.com/emilk/loguru>`__,
    `fmt <https://github.com/fmtlib/fmt>`__ - Logging
 -  `stbi_image <https://github.com/nothings/stb>`__,
@@ -102,8 +119,7 @@ Credits
 -  `toml++ <https://github.com/marzer/tomlplusplus/>`__ - For settings.tml
 -  `libiconv <https://www.gnu.org/software/libiconv/>`__,
    `boost::nowide <https://github.com/boostorg/nowide>`__ - i18n, string conversion
-- `doxygen <https://doxygen.nl/>`__, `sphinx <https://www.sphinx-doc.org/en/master/>`__,
-  `breathe <https://breathe.readthedocs.io/en/latest/>`__ - documentation
+- `sphinx <https://www.sphinx-doc.org/en/master/>`__ - documentation
 
 
 .. |License: MIT| image:: https://img.shields.io/badge/License-MIT-yellow.svg
@@ -118,9 +134,6 @@ Credits
    :target: https://gitpod.io/#https://github.com/jd28/rollnw
 .. |Documentation Status| image:: https://readthedocs.org/projects/rollnw/badge/?version=latest
     :target: https://rollnw.readthedocs.io/en/latest/?badge=latest
-.. |pypi| image:: https://badge.fury.io/py/rollnw.svg
-    :target: https://badge.fury.io/py/rollnw
-
 .. toctree::
   :caption: getting started
   :maxdepth: 1
@@ -142,13 +155,3 @@ Credits
   structure/rules
   structure/script
   structure/serialization
-
-.. toctree::
-  :caption: c++ api
-  :maxdepth: 1
-
-  api/classlist
-  api/definelist
-  api/enumlist
-  api/functionlist
-  api/typedeflist

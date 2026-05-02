@@ -1,7 +1,0 @@
-defines
-=======
-
-.. toctree::
-   :glob:
-
-   define/*

@@ -4,6 +4,10 @@
 
 It is not a game engine, scene graph, material system, or editor framework.
 
+## Project Status
+
+`nw::gfx` is the active low-level graphics foundation for rollNW renderer work and future authored-toolset/game viewports. Higher-level validation currently lives in `lib/nw/render` and `tools/mudl`; older project docs may still describe rollNW as if graphics were out of scope. Read those older statements as historical context, not current direction.
+
 ## What It Is For
 
 - Creating devices and swapchains
