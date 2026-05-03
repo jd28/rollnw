@@ -13,7 +13,6 @@ target_include_directories(mudl-imgui SYSTEM PUBLIC
 )
 
 target_include_directories(mudl-imgui SYSTEM PUBLIC
-    ${CMAKE_SOURCE_DIR}/external/SDL3/include
     ${CMAKE_SOURCE_DIR}/lib/nw/gfx/backends/vulkan
 )
 
@@ -59,7 +58,6 @@ target_include_directories(mudl PRIVATE
 target_include_directories(mudl SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/external
     ${CMAKE_SOURCE_DIR}/external/glm
-    ${CMAKE_SOURCE_DIR}/external/SDL3/include
 )
 
 target_link_libraries(mudl PRIVATE
@@ -96,6 +94,18 @@ add_custom_command(TARGET mudl POST_BUILD
         $<TARGET_FILE_DIR:mudl>/shaders
 )
 
+if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
+    add_custom_command(TARGET mudl POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3-shared>
+            $<TARGET_FILE_DIR:mudl>
+    )
+endif()
+
 # Install
 install(TARGETS mudl RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/render/shaders/ DESTINATION bin/shaders)
+
+if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
+    install(FILES $<TARGET_FILE:SDL3::SDL3-shared> DESTINATION bin)
+endif()

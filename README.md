@@ -8,7 +8,7 @@
 
 rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
 
-**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN library cross section of the project. Current work is reframing the codebase as a foundation for an authored RPG toolset/game, with `nw::gfx` as the low-level graphics layer, `lib/nw/render` and `mudl` for renderer-backed asset validation, Smalls as the rule/script authoring path, and networking/runtime services as part of the long-term foundation. Until there is a real release, assume APIs and subsystem boundaries can move.
+**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Until there is a real release, assume APIs and subsystem boundaries can move.
 
 ## Features
 
@@ -27,8 +27,7 @@ rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN inf
 
 ## Goals
 
-- aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN.
-- keeps current implementation focused on practical foundations first: rules, content formats, renderer validation, authoring workflows, and the services a playable toolset/game will need.
+- aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN, with current effort on the practical pieces (rules, content formats, renderer validation, authoring workflows) a playable toolset/game will need.
 - focuses on authoring and usage, instead of doing things the Aurora Engine Way.
 - follows [utf8 everywhere](https://utf8everywhere.org/).
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.

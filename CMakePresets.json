@@ -263,13 +263,9 @@
                     "type": "BOOL",
                     "value": "OFF"
                 },
-                "SDL_SHARED": {
+                "ROLLNW_USE_SYSTEM_SDL": {
                     "type": "BOOL",
                     "value": "OFF"
-                },
-                "SDL_STATIC": {
-                    "type": "BOOL",
-                    "value": "ON"
                 }
             }
         },
@@ -440,13 +436,17 @@
                     "type": "BOOL",
                     "value": "OFF"
                 },
-                "SDL_SHARED": {
+                "ROLLNW_USE_SYSTEM_SDL": {
                     "type": "BOOL",
                     "value": "OFF"
                 },
-                "SDL_STATIC": {
+                "SDL_SHARED": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "SDL_STATIC": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         },
