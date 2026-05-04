@@ -549,7 +549,12 @@ jobs:
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-linux-tools-package/CPackConfig.cmake
-          ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
+          mapfile -t ARCHIVES < <(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz')
+          if [ "${#ARCHIVES[@]}" -ne 1 ]; then
+            echo "Expected one TGZ package in $ARCHIVE_DIR, found ${#ARCHIVES[@]}" >&2
+            exit 1
+          fi
+          ARCHIVE_PATH="${ARCHIVES[0]}"
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
@@ -627,13 +632,17 @@ jobs:
         run: |
           $packageRoot = "rollnw-tools-windows-x64-$env:PACKAGE_VERSION"
           $releaseDir = Join-Path "${{ github.workspace }}" "tmp/release"
-          $archivePath = Join-Path $releaseDir "$packageRoot.zip"
           New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-          if (Test-Path $archivePath) { Remove-Item -Force $archivePath }
+          Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $releaseDir "*.zip")
           cpack -G ZIP `
             -B $releaseDir `
             -D "CPACK_PACKAGE_FILE_NAME=$packageRoot" `
             --config build-ci-windows-tools-package/CPackConfig.cmake
+          $archives = @(Get-ChildItem -Path $releaseDir -Filter "*.zip" -File)
+          if ($archives.Count -ne 1) {
+            throw "Expected one ZIP package in $releaseDir, found $($archives.Count)."
+          }
+          $archivePath = $archives[0].FullName
           $artifactDir = Join-Path "${{ github.workspace }}" "tmp/artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
           Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
@@ -717,7 +726,12 @@ jobs:
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-macos-tools-package/CPackConfig.cmake
-          ARCHIVE_PATH="$ARCHIVE_DIR/${PACKAGE_ROOT}.tar.gz"
+          mapfile -t ARCHIVES < <(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz')
+          if [ "${#ARCHIVES[@]}" -ne 1 ]; then
+            echo "Expected one TGZ package in $ARCHIVE_DIR, found ${#ARCHIVES[@]}" >&2
+            exit 1
+          fi
+          ARCHIVE_PATH="${ARCHIVES[0]}"
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
