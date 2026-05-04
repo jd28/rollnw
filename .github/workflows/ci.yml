@@ -743,19 +743,19 @@ jobs:
       contents: write
     steps:
       - name: download linux tools artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: linux-tools-package
           path: tmp/release/linux
 
       - name: download windows tools artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: windows-tools-package
           path: tmp/release/windows
 
       - name: download macOS tools artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: macos-tools-package
           path: tmp/release/macos
