@@ -549,12 +549,12 @@ jobs:
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-linux-tools-package/CPackConfig.cmake
-          mapfile -t ARCHIVES < <(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz')
-          if [ "${#ARCHIVES[@]}" -ne 1 ]; then
-            echo "Expected one TGZ package in $ARCHIVE_DIR, found ${#ARCHIVES[@]}" >&2
+          ARCHIVE_COUNT="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' | wc -l | tr -d ' ')"
+          if [ "$ARCHIVE_COUNT" -ne 1 ]; then
+            echo "Expected one TGZ package in $ARCHIVE_DIR, found $ARCHIVE_COUNT" >&2
             exit 1
           fi
-          ARCHIVE_PATH="${ARCHIVES[0]}"
+          ARCHIVE_PATH="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
@@ -726,12 +726,12 @@ jobs:
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
             --config build-ci-macos-tools-package/CPackConfig.cmake
-          mapfile -t ARCHIVES < <(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz')
-          if [ "${#ARCHIVES[@]}" -ne 1 ]; then
-            echo "Expected one TGZ package in $ARCHIVE_DIR, found ${#ARCHIVES[@]}" >&2
+          ARCHIVE_COUNT="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' | wc -l | tr -d ' ')"
+          if [ "$ARCHIVE_COUNT" -ne 1 ]; then
+            echo "Expected one TGZ package in $ARCHIVE_DIR, found $ARCHIVE_COUNT" >&2
             exit 1
           fi
-          ARCHIVE_PATH="${ARCHIVES[0]}"
+          ARCHIVE_PATH="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
