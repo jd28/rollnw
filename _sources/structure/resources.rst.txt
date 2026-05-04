@@ -9,8 +9,6 @@ The resources module provides access to the file system and resources stored in 
 Unlike Neverwinter Nights 1 or 2 a resref is not a fixed character array. It's simply a wrapper around an interned string.
 The constraint on its length is 4096.
 
-This is not exposed to Python, in Python a resref maps directly to a ``str``, i.e. "nw_chicken".
-
 :cpp:struct:`nw::ResourceType`
 ------------------------------
 
@@ -32,8 +30,6 @@ that aligns with the available image types.
 Resources are referred to by a :cpp:struct:`nw::Resource`, which is just a
 :cpp:struct:`nw::Resref` and :cpp:struct:`nw::ResourceType` pair.
 
-This is not exposed to Python, in Python one can referrer to an asset as a filename, i.e. "nw_chicken.utc".
-
 -------------------------------------------------------------------------------
 
 :cpp:struct:`nw::Container`
@@ -41,7 +37,7 @@ This is not exposed to Python, in Python one can referrer to an asset as a filen
 
 Containers in rollnw are designed around the performance of the resource manager and are not for direct use. Classes that inherit the ``nw::Container`` interface are expected to be thread-safe.
 
-The built in containers ``nw::StaticDirectory``, ``nw::StaticErf``, ``nw::StaticKey``, and ``nw::StaticZip`` are all static and immutable and after construction proceed with the assumption that the underlying files **do not** change. They are not exposed to Python.
+The built in containers ``nw::StaticDirectory``, ``nw::StaticErf``, ``nw::StaticKey``, and ``nw::StaticZip`` are all static and immutable and after construction proceed with the assumption that the underlying files **do not** change.
 
 Support for nwsync was removed since it is not applicable to module/persistant world development, nor do I see it as having any
 'future tense', i.e., a hypothetical NWN3 *would not* use nwsync.
@@ -66,32 +62,21 @@ that needn't be compatible with NWN(:EE).
 :cpp:struct:`nw::Erf`
 ---------------------
 
-A dynamic implementation of the Erf file format, which is also exposed to Python:
+A dynamic implementation of the Erf file format:
 
 **Example - Load an Erf and Print Contents**
 
-.. tabs::
+.. code:: cpp
 
-    .. code-tab:: python
-
-        import rollnw
-
-        erf = rollnw.Erf("tests/test_data/user/hak/hak_with_description.hak")
-        print(erf.name(), erf.size())
-        for rd in erf.all():
-            print(rd.name.filename(), rd.size)
-
-    .. code-tab:: cpp
-
-        #include <nw/resources/Erf.hpp>
-        // ...
-        Erf e("MyModule.mod");
-        if (e.valid()) {
-            std::cout << fmt::format("{} has {} resources", e.name(), e.size()) << "\n";
-            for (const auto& rd : e.all()) {
-                std::cout << fmt::format("File: {}, Size: {}", rd.name.filename(), rd.size) << "\n";
-            }
+    #include <nw/resources/Erf.hpp>
+    // ...
+    Erf e("MyModule.mod");
+    if (e.valid()) {
+        std::cout << fmt::format("{} has {} resources", e.name(), e.size()) << "\n";
+        for (const auto& rd : e.all()) {
+            std::cout << fmt::format("File: {}, Size: {}", rd.name.filename(), rd.size) << "\n";
         }
+    }
 
 
 
@@ -102,25 +87,13 @@ The global resource mananger is available by calling ``nw::kernel::resman()``.
 
 **Example - Demanding a resource from resman**
 
-.. tabs::
+.. code:: cpp
 
-    .. code-tab:: python
-
-        import rollnw
-
-        rollnw.kernel.start()
-        assert rollnw.kernel.resman().contains('nw_chicken.utc')
-        data = rollnw.kernel.resman().demand('nw_chicken.utc')
-        assert len(data.bytes)
-
-
-    .. code-tab:: cpp
-
-        nw::kernel::start();
-        // Assumes that NWN root directory was found.
-        if (nw::kernel::resman().contains({"nw_chicken"sv, nw::ResourceType::utc})) {
-            auto utc = nw::kernel::resman().demand({"nw_chicken"sv, nw::ResourceType::utc});
-            // Do something with this chicken.
-        }
+    nw::kernel::start();
+    // Assumes that NWN root directory was found.
+    if (nw::kernel::resman().contains({"nw_chicken"sv, nw::ResourceType::utc})) {
+        auto utc = nw::kernel::resman().demand({"nw_chicken"sv, nw::ResourceType::utc});
+        // Do something with this chicken.
+    }
 
 -------------------------------------------------------------------------------

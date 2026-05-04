@@ -17,7 +17,6 @@
       <script src="../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -77,14 +76,6 @@
 <li class="toctree-l1"><a class="reference internal" href="script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -131,23 +122,12 @@ handle must match what is in the object array.</p>
 <h2>kernel service<a class="headerlink" href="#kernel-service" title="Link to this heading"></a></h2>
 <p>Any object that is loaded via the Objects service, belongs to the service and must be deleted through it.</p>
 <p><strong>Example - Loading and Deleting a Creature</strong></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
-
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-<span class="n">obj</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">objects</span><span class="p">()</span><span class="o">.</span><span class="n">creature</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">objects</span><span class="p">()</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">handle</span><span class="p">())</span>
-<span class="c1"># After this point accessing obj is undefined behavior and its handle if stored elsewhere</span>
-<span class="c1"># will no longer be valid</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">destroy</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">handle</span><span class="p">());</span>
 <span class="c1">// After this point accessing obj is undefined behavior and its handle if stored elsewhere</span>
 <span class="c1">// will no longer be valid</span>
 </pre></div>
 </div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="area">
@@ -155,19 +135,9 @@ handle must match what is in the object array.</p>
 </section>
 <section id="creature">
 <h2>creature<a class="headerlink" href="#creature" title="Link to this heading"></a></h2>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rollnw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Creature</span>
-
-<span class="c1"># The file can also be rollnw JSON format, it doesn&#39;t matter.</span>
-<span class="n">cre</span> <span class="o">=</span> <span class="n">Creature</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">==</span> <span class="s2">&quot;nw_c2_default5&quot;</span><span class="p">:</span>
-   <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">=</span> <span class="s2">&quot;nw_shakenbake&quot;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <section id="door">
 <h2>door<a class="headerlink" href="#door" title="Link to this heading"></a></h2>

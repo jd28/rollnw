@@ -71,14 +71,6 @@
 <li class="toctree-l1"><a class="reference internal" href="script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -106,6 +98,14 @@
              
   <section id="rules">
 <h1>rules<a class="headerlink" href="#rules" title="Link to this heading"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This page describes the older C++ rules/modifier cross section. The
+rules work is in transition toward an authored RPG toolset/game: existing
+C++ rule services remain useful, but active experimentation is moving
+toward Smalls so rules can be expressed, tested, and embedded with
+less hardcoded C++ policy.</p>
+</div>
 <p>The <code class="docutils literal notranslate"><span class="pre">Rules</span></code> module presents some difficulties in the sense that if one
 was to sit down and design a system capable of expressing relatively
 arbitrary sets of rules and modifiers, it probably would not look much
@@ -162,7 +162,7 @@ armor class:</p>
 </pre></div>
 </div>
 </dd>
-<dt><strong>Flag</strong></dt><dd><p><a class="reference internal" href="../api/struct/nw__RuleFlag.html#_CPPv4I0_6size_tEN2nw8RuleFlagE" title="nw::RuleFlag"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::RuleFlag</span></code></a> provides a mechanism for making flags out of rule types.</p>
+<dt><strong>Flag</strong></dt><dd><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::RuleFlag</span></code> provides a mechanism for making flags out of rule types.</p>
 </dd>
 </dl>
 </section>
@@ -171,7 +171,7 @@ armor class:</p>
 <h2>Modifiers<a class="headerlink" href="#modifiers" title="Link to this heading"></a></h2>
 <p>The foundation of the modifier system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.  It builds
 on the following abstractions to provide a dynamic, modifiable, queryable system.  Modifiers are stored
-in a global table in <a class="reference internal" href="../api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5RulesE" title="nw::kernel::Rules"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::kernel::Rules</span></code></a>. Note that Master Feat modifiers are special cased
+in a global table in <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::kernel::Rules</span></code>. Note that Master Feat modifiers are special cased
 below.</p>
 <p>The approach here is inspired by <a class="reference external" href="https://github.com/jd28/Solstice">Solstice</a> and Orth’s NWNX:EE plugins
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Race">Race</a>,
@@ -192,7 +192,7 @@ is the modifier input, it is called and its result is the output</p>
 <p>The output is then passed to a callback provided to one of the <code class="docutils literal notranslate"><span class="pre">nw::kernel::resolve_modifier</span></code>
 function overloads.</p>
 <p>The meaning of these outputs are determined by the modifier type.  The number of output parameters is limited
-to one.  They currently have to be integer, floating point types, or <a class="reference internal" href="../api/struct/nw__DamageRoll.html#_CPPv4N2nw10DamageRollE" title="nw::DamageRoll"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::DamageRoll</span></code></a>.</p>
+to one.  They currently have to be integer, floating point types, or <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::DamageRoll</span></code>.</p>
 <p>In most cases using <code class="docutils literal notranslate"><span class="pre">nw::kernel::sum_modifier</span></code> or <code class="docutils literal notranslate"><span class="pre">nw::kernel::max_modifier</span></code> can avoid having to deal
 with passing callbacks.</p>
 </dd>
@@ -246,7 +246,7 @@ with passing callbacks.</p>
 <hr class="docutils" />
 <section id="master-feats">
 <h2>Master Feats<a class="headerlink" href="#master-feats" title="Link to this heading"></a></h2>
-<p>Master feats and associated bonuses are set in the <a class="reference internal" href="../api/struct/nw__MasterFeatRegistry.html#_CPPv4N2nw18MasterFeatRegistryE" title="nw::MasterFeatRegistry"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::MasterFeatRegistry</span></code></a>.  The master
+<p>Master feats and associated bonuses are set in the <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::MasterFeatRegistry</span></code>.  The master
 feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
 to that skill.</p>
 <p><strong>Example - (Epic) Skill Focus: Discipline</strong></p>

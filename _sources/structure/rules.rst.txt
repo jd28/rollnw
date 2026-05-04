@@ -1,6 +1,14 @@
 rules
 =====
 
+.. warning::
+
+   This page describes the older C++ rules/modifier cross section. The
+   rules work is in transition toward an authored RPG toolset/game: existing
+   C++ rule services remain useful, but active experimentation is moving
+   toward Smalls so rules can be expressed, tested, and embedded with
+   less hardcoded C++ policy.
+
 The ``Rules`` module presents some difficulties in the sense that if one
 was to sit down and design a system capable of expressing relatively
 arbitrary sets of rules and modifiers, it probably would not look much

@@ -17,7 +17,6 @@
       <script src="../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -62,14 +61,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../structure/script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../structure/serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -98,19 +89,17 @@
   <section id="using">
 <h1>using<a class="headerlink" href="#using" title="Link to this heading"></a></h1>
 <p>While the library is far from done, basic usage would be as follows.</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>rollnw
-</pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>These examples show the stable kernel/module-loading cross section.
+The broader project is moving toward infrastructure for an authored
+RPG toolset/game. Graphics validation and tool-facing rendering live
+around <code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code>, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>, and <code class="docutils literal notranslate"><span class="pre">mudl</span></code>, while rule/script
+authoring is moving toward Smalls. Networking and runtime services
+are part of the long-term foundation. Treat older examples as
+orientation rather than an API stability promise.</p>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
-
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-<span class="n">mod</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">load_module</span><span class="p">(</span><span class="s2">&quot;mymodule.mod&quot;</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">area</span> <span class="ow">in</span> <span class="n">mod</span><span class="p">:</span>
-    <span class="c1"># Do neat things</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/log.hpp&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span>
@@ -119,8 +108,8 @@
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">init_logger</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Say this application is specific to 1.69.</span>
-<span class="w">    </span><span class="c1">// This must be set before the initialize call below.  The default is NWN:EE, so in that case,</span>
-<span class="w">    </span><span class="c1">// ``set_version`` need not be called.. NOTE: THIS also controls which profile is loaded..</span>
+<span class="w">    </span><span class="c1">// This must be set before the initialize call below. The default is NWN:EE, so in that case,</span>
+<span class="w">    </span><span class="c1">// ``set_version`` need not be called. This also controls which profile is loaded.</span>
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">set_version</span><span class="p">(</span><span class="n">GameVersion</span><span class="o">::</span><span class="n">v1_69</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Sets config for the system, paths, version, etc.</span>
@@ -139,7 +128,6 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-</div></div>
 </section>
 
 

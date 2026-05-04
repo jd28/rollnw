@@ -17,7 +17,6 @@
       <script src="../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -75,14 +74,6 @@
 <li class="toctree-l1"><a class="reference internal" href="script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -127,23 +118,7 @@ the implementations of all of them.</p>
 <p>The 2da parser is one of the more optimized parts of the library.  It can parse ~300MBps and all
 default 2das in under half of a second.</p>
 <p><strong>Example - Load a TwoDA</strong>:</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /usr/bin/env python</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">rollnw</span><span class="w"> </span><span class="kn">import</span> <span class="n">TwoDA</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-
-
-<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;.2da&#39;</span><span class="p">:</span>
-        <span class="n">tda</span> <span class="o">=</span> <span class="n">TwoDA</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tda</span><span class="o">.</span><span class="n">valid</span><span class="p">():</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed parsing: </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">continue</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">tda</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">TwoDA</span><span class="w"> </span><span class="n">feat</span><span class="p">(</span><span class="s">&quot;feat.2da&quot;</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">TwoDA</span><span class="w"> </span><span class="n">feat</span><span class="p">(</span><span class="s">&quot;feat.2da&quot;</span><span class="p">);</span>
 <span class="k">if</span><span class="p">(</span><span class="n">feat</span><span class="p">.</span><span class="n">is_valid</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;feat.2da has {} rows&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">feat</span><span class="p">.</span><span class="n">rows</span><span class="p">())</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="o">*</span><span class="n">feat</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
@@ -151,7 +126,6 @@ default 2das in under half of a second.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="gff">
@@ -176,34 +150,18 @@ default 2das in under half of a second.</p>
 this has no goal of being any kind of useful conversion library.</p>
 <p>bmp, gif, jpg, png, tga are supported thanks to <a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>.
 dds (standard &amp; bioware) is supported thanks to <a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a>.</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rollnw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
-<span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="s2">&quot;my_texture.dds&quot;</span><span class="p">)</span> <span class="c1"># Can be Bioware DDS or standard</span>
-<span class="n">img</span><span class="o">.</span><span class="n">write_to</span><span class="p">(</span><span class="s2">&quot;my_texture.png&quot;</span><span class="p">)</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="ini">
 <h2>ini<a class="headerlink" href="#ini" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-2-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rollnw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ini</span>
-<span class="n">ini</span> <span class="o">=</span> <span class="n">Ini</span><span class="p">(</span><span class="s2">&quot;userpatch.ini&quot;</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">ini</span><span class="o">.</span><span class="n">get_str</span><span class="p">(</span><span class="s2">&quot;Patch/PatchFile000&quot;</span><span class="p">):</span>
-    <span class="c1"># User has patch files defined</span>
-    <span class="k">pass</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="json">
@@ -220,59 +178,39 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 <section id="mtr">
 <h2>mtr<a class="headerlink" href="#mtr" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-3-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-3-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-3-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-3-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-3-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-3-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-3-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-3-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="set">
 <h2>set<a class="headerlink" href="#set" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-4-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-4-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-4-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-4-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-4-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-4-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-4-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-4-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="ssf">
 <h2>ssf<a class="headerlink" href="#ssf" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-5-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-5-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-5-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-5-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-5-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-5-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-5-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-5-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 <hr class="docutils" />
 <section id="tml">
 <h2>tml<a class="headerlink" href="#tml" title="Link to this heading"></a></h2>
-<p><strong>Status</strong>: read/write (c++), unsupported (python)</p>
+<p><strong>Status</strong>: read/write</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a>.</p>
 </section>
 <section id="txi">
 <h2>txi<a class="headerlink" href="#txi" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-6-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-6-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-6-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-6-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-6-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-6-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-6-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-6-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
-</pre></div>
-</div>
-</div></div>
 </section>
 </section>
 

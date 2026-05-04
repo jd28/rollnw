@@ -1,10 +1,12 @@
 model
 =====
 
-As mentioned elsewhere, the goal of this library is not to render graphics, but maybe?  Loading NWN models is
-for the purpose of conversion or in some other asset pipeline.
+Loading NWN models still matters for conversion and asset-pipeline work, but
+renderer-backed validation is now an active part of rollNW through ``nw::gfx``,
+``lib/nw/render``, and ``mudl``.
 
-See the `mudl <https://github.com/jd28/mudl>`__ model viewer side project for work on a NWN model viewer.
+See ``tools/mudl`` for the current NWN model, spell, VFX, particle, and
+glTF/PBR viewer and headless capture path.
 
 ASCII Models
 ------------
@@ -23,20 +25,6 @@ It's hard to tell what's right and what's wrong until there is more rendering ex
 Examples
 --------
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        #! /usr/bin/env python
-
-        from rollnw.model import Mdl
-        import os
-
-        mdl = Mdl.from_file("my_ascii_model.mdl")
-        if not mdl.valid():
-            print(f"failed parsing: {f}")
-        print(mdl.supermodel_name)
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO

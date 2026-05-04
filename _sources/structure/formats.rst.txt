@@ -25,32 +25,14 @@ default 2das in under half of a second.
 
 **Example - Load a TwoDA**:
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        #! /usr/bin/env python
-
-        from rollnw import TwoDA
-        import os
-
-
-        for f in os.listdir():
-            if os.path.isfile(f) and os.path.splitext(f)[1].lower() == '.2da':
-                tda = TwoDA(f)
-                if not tda.valid():
-                    print(f"failed parsing: {f}")
-                    continue
-                print(tda[0][0])
-
-    .. code-tab:: c++
-
-        nw::TwoDA feat("feat.2da");
-        if(feat.is_valid()) {
-            std::cout << fmt::format("feat.2da has {} rows", feat.rows()) << "\n";
-            std::cout << *feat.get<std::string_view>(4, 0) << "\n";
-            std::cout << *feat.get<int32_t>(0, "FEAT") << "\n";
-        }
+    nw::TwoDA feat("feat.2da");
+    if(feat.is_valid()) {
+        std::cout << fmt::format("feat.2da has {} rows", feat.rows()) << "\n";
+        std::cout << *feat.get<std::string_view>(4, 0) << "\n";
+        std::cout << *feat.get<int32_t>(0, "FEAT") << "\n";
+    }
 
 -------------------------------------------------------------------------------
 
@@ -81,17 +63,9 @@ this has no goal of being any kind of useful conversion library.
 bmp, gif, jpg, png, tga are supported thanks to `stbi_image <https://github.com/nothings/stb>`__.
 dds (standard & bioware) is supported thanks to `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__.
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        from rollnw import Image
-        img = Image("my_texture.dds") # Can be Bioware DDS or standard
-        img.write_to("my_texture.png")
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO
 
 -------------------------------------------------------------------------------
 
@@ -102,19 +76,9 @@ ini
 
 Supported thanks to `inih <https://github.com/benhoyt/inih>`__
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        from rollnw import Ini
-        ini = Ini("userpatch.ini")
-        if ini.get_str("Patch/PatchFile000"):
-            # User has patch files defined
-            pass
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO
 
 -------------------------------------------------------------------------------
 
@@ -139,15 +103,9 @@ mtr
 
 **Status**: unsupported
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        # TODO
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO
 
 -------------------------------------------------------------------------------
 
@@ -158,15 +116,9 @@ set
 
 Supported thanks to `inih <https://github.com/benhoyt/inih>`__
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        # TODO
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO
 
 -------------------------------------------------------------------------------
 
@@ -175,22 +127,16 @@ ssf
 
 **Status**: unsupported
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        # TODO
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO
 
 -------------------------------------------------------------------------------
 
 tml
 ---
 
-**Status**: read/write (c++), unsupported (python)
+**Status**: read/write
 
 Supported thanks to `toml++ <https://github.com/marzer/tomlplusplus/>`__.
 
@@ -199,12 +145,6 @@ txi
 
 **Status**: unsupported
 
-.. tabs::
+.. code-block:: c++
 
-    .. code-tab:: python
-
-        # TODO
-
-    .. code-tab:: c++
-
-        // TODO
+    // TODO

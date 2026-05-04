@@ -17,7 +17,6 @@
       <script src="../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -68,14 +67,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -103,49 +94,19 @@
              
   <section id="script">
 <h1>script<a class="headerlink" href="#script" title="Link to this heading"></a></h1>
-<p>The script module provides a lexer, recursive decent parser, and type-checker for NWScript.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>In the case of the <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/api_python/rollnw_script.html">Python API</a>,
-the interface to the AST is read only.</p>
+<p>The script module provides a lexer, recursive descent parser, and type-checker for NWScript.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This page documents the NWScript compatibility parser. That parser is
+still useful for reading and analyzing existing NWN content, but it is
+not the only scripting direction in rollNW anymore. New rule and
+scripting work for authored RPG toolsets/games is moving through Smalls under
+<code class="docutils literal notranslate"><span class="pre">lib/nw/smalls</span></code>.</p>
 </div>
 <section id="examples">
 <h2>examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
 <p><strong>Basic Loading</strong></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rollnw.script</span><span class="w"> </span><span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">Context</span>
-
-<span class="c1"># Start kernel, if you want to load game assets</span>
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-<span class="c1"># Create a context and to add include path, pass them into the Context constructor</span>
-<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">([</span><span class="s2">&quot;includes/&quot;</span><span class="p">])</span>
-
-<span class="c1"># Load the script from a file</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
-
-<span class="c1"># Parse</span>
-<span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
-
-<span class="c1"># Preprocessing</span>
-<span class="n">nss</span><span class="o">.</span><span class="n">process_includes</span><span class="p">()</span>
-
-<span class="c1"># Now all dependencies are available</span>
-<span class="n">deps</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">dependencies</span><span class="p">()</span>
-
-<span class="c1"># Ast resolution and type-checking</span>
-<span class="n">nss</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-
-<span class="c1"># Load a script from string</span>
-<span class="n">nss2</span> <span class="o">=</span> <span class="n">Nss</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="s2">&quot;void test_function(string s, int b);&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
-
-<span class="c1"># To get any old script in the the context&#39;s resman use ``get``.  Note this</span>
-<span class="c1"># parses and resolves the script, nothing further processing is needed.</span>
-<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
 
 <span class="c1">// Start the kernel, if you want to load game assets</span>
@@ -153,46 +114,25 @@ the interface to the AST is read only.</p>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;path/to/myscript.nss&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">()};</span>
 
 <span class="c1">// Parse</span>
 <span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
 
 <span class="c1">// Preprocessing</span>
-<span class="n">nss</span><span class="p">.</span><span class="n">process_includes</span><span class="p">()</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">process_includes</span><span class="p">();</span>
 <span class="c1">// Now all dependencies are available</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">deps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nss</span><span class="p">.</span><span class="n">dependencies</span><span class="p">()</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">deps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nss</span><span class="p">.</span><span class="n">dependencies</span><span class="p">();</span>
 
 <span class="c1">// Ast resolution and type-checking</span>
-<span class="n">nss</span><span class="p">.</span><span class="n">resolve</span><span class="p">()</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">resolve</span><span class="p">();</span>
 </pre></div>
 </div>
-</div></div>
 <hr class="docutils" />
 <p><strong>Iterating Top-Level Declarations</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">rollnw</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rollnw.script</span><span class="w"> </span><span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">,</span> <span class="n">Context</span>
-
-<span class="c1"># Start kernel, if you want to load game assets</span>
-<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-<span class="c1"># Create a context..</span>
-<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
-
-<span class="c1"># The default command script is &quot;nwsscript&quot;</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">command_script</span><span class="p">()</span>
-
-<span class="c1"># Iterate toplevel declarations and look for function declarations</span>
-<span class="c1"># This is all functions WITHOUT bodies.</span>
-<span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">nss</span><span class="o">.</span><span class="n">ast</span><span class="p">():</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decl</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">):</span>
-        <span class="c1"># the identifier is token for now..</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
-
-<span class="c1"># Or if you know what you&#39;re looking for.. the result is a rollnw.script.Symbol</span>
-<span class="n">int_to_string</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">locate_export</span><span class="p">(</span><span class="s2">&quot;IntToString&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-</pre></div>
-</div>
+<p>The parser exposes top-level declarations through the C++ AST. Use
+<code class="docutils literal notranslate"><span class="pre">nw::script::Nss</span></code> and its resolved AST when tooling needs to inspect
+function declarations, includes, or dependencies.</p>
 </section>
 <section id="performance">
 <h2>performance<a class="headerlink" href="#performance" title="Link to this heading"></a></h2>

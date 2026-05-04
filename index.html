@@ -60,14 +60,6 @@
 <li class="toctree-l1"><a class="reference internal" href="structure/script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/typedeflist.html">typedefs</a></li>
-</ul>
 
         </div>
       </div>
@@ -93,16 +85,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Aci"><img alt="ci" src="https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a> <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/rollnw/badge/?version=latest" /></a> <a class="reference external" href="https://badge.fury.io/py/rollnw"><img alt="pypi" src="https://badge.fury.io/py/rollnw.svg" /></a></p>
+  <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Aci"><img alt="ci" src="https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a> <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/rollnw/badge/?version=latest" /></a></p>
 <section id="rollnw">
 <h1>rollNW<a class="headerlink" href="#rollnw" title="Link to this heading"></a></h1>
-<p>rollNW is an homage to Neverwinter Nights in C++ and Python.</p>
+<p>rollNW is an homage to Neverwinter Nights in C++. It started
+as reusable NWN infrastructure and is broadening toward support for a
+modern authored RPG toolset/game: content formats, rules, scripting,
+rendering validation, networking foundations, and the runtime services
+needed to make those pieces authorable and playable.</p>
 <p>See the <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/">docs</a> and
 <a class="reference external" href="https://github.com/jd28/rollnw/tree/main/tests">tests</a> for more info,
 or open an IDE in browser in the quickstart section below.</p>
-<p><strong>This library is a work-in-progress. There will be serious refactoring
-and until there is a real release, it should be assumed the library is
-in flux.</strong></p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>rollNW is in active transition. Older docs and APIs may show a
+narrower NWN library cross section of the project. Current work is
+reframing the codebase as a foundation for an authored RPG
+toolset/game,
+with <code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code> as the low-level graphics layer, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>
+and <code class="docutils literal notranslate"><span class="pre">mudl</span></code> for renderer-backed asset validation, and Smalls as the
+rule/script authoring path. Networking and runtime services are part
+of the long-term foundation. Until there is a real release, assume
+APIs and subsystem boundaries can move.</p>
+</div>
 <hr class="docutils" />
 <section id="features">
 <h2>features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
@@ -111,21 +116,24 @@ in flux.</strong></p>
 easily adding, overriding, expanding, or removing any rule and reasonable performance</p></li>
 <li><p>A <a class="reference external" href="https://github.com/jd28/rollnw/blob/main/api/combat.cpp">combat engine</a> that’s very
 nearing being able to simulate melee battles.</p></li>
-<li><p>Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties.  They are still missing some new EE things.  Player Characters are read only, for now.</p></li>
-<li><p>A recursive decent <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/script.html">NWScript Parser</a></p></li>
+<li><p>Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.</p></li>
+<li><p>A recursive descent <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/script.html">NWScript Parser</a>. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.</p></li>
 <li><p>Implementations of pretty much every <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/formats.html">NWN File Format</a></p></li>
-<li><p>An binary and ASCII <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/model.html">Model Parser</a>.  See also the <a class="reference external" href="https://github.com/jd28/mudl">mudl</a> model viewer side project.</p></li>
+<li><p>A binary and ASCII <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/model.html">Model Parser</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code>, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>, and <code class="docutils literal notranslate"><span class="pre">mudl</span></code> form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.</p></li>
 <li><p>A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.</p></li>
 <li><p>An implementation of NWN’s <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/i18n.html">Localization System</a> focused
 on utf8 everywhere.</p></li>
+<li><p>Smalls is the active rules/script transition path for modern embedded tooling and rule experiments.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
 <section id="goals">
 <h2>goals<a class="headerlink" href="#goals" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>aims to implement an RPG engine inspired by NWN, excluding graphics and networking.</p></li>
-<li><p>focuses on usage, instead of doing things the Aurora Engine Way.</p></li>
+<li><p>aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN.</p></li>
+<li><p>keeps current implementation focused on practical foundations first: rules, content formats, renderer validation, authoring workflows, and the services a playable toolset/game will need.</p></li>
+<li><p>focuses on authoring and usage, instead of doing things the Aurora Engine Way.</p></li>
 <li><p>follows <a class="reference external" href="https://utf8everywhere.org/">utf8 everywhere</a>.</p></li>
 <li><p>hews as close to <a class="reference external" href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core
 Guidelines</a>
@@ -175,6 +183,8 @@ plugins, scripting, and a built-in console.</p></li>
 <li><p><a class="reference external" href="https://abseil.io/">abseil</a> - Foundational</p></li>
 <li><p><a class="reference external" href="https://github.com/catchorg/Catch2">Catch2</a> - Testing</p></li>
 <li><p><a class="reference external" href="https://www.opengl.org/sdk/libs/GLM/">glm</a> - Mathematics</p></li>
+<li><p><a class="reference external" href="https://www.vulkan.org/">Vulkan</a>,
+<a class="reference external" href="https://github.com/ocornut/imgui">Dear ImGui</a> - Graphics and tool UI</p></li>
 <li><p><a class="reference external" href="https://github.com/emilk/loguru">loguru</a>,
 <a class="reference external" href="https://github.com/fmtlib/fmt">fmt</a> - Logging</p></li>
 <li><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>,
@@ -185,8 +195,7 @@ plugins, scripting, and a built-in console.</p></li>
 <li><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a> - For settings.tml</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/libiconv/">libiconv</a>,
 <a class="reference external" href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string conversion</p></li>
-<li><p><a class="reference external" href="https://doxygen.nl/">doxygen</a>, <a class="reference external" href="https://www.sphinx-doc.org/en/master/">sphinx</a>,
-<a class="reference external" href="https://breathe.readthedocs.io/en/latest/">breathe</a> - documentation</p></li>
+<li><p><a class="reference external" href="https://www.sphinx-doc.org/en/master/">sphinx</a> - documentation</p></li>
 </ul>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
@@ -208,16 +217,6 @@ plugins, scripting, and a built-in console.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
-</ul>
-</div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="api/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/definelist.html">defines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/enumlist.html">enums</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/functionlist.html">functions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/typedeflist.html">typedefs</a></li>
 </ul>
 </div>
 </section>
