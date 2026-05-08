@@ -789,7 +789,7 @@ jobs:
           tar -C tmp/release/macos -czf "tmp/release/assets/${MACOS_PACKAGE}.tar.gz" "$MACOS_PACKAGE"
 
       - name: attach consolidated release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             tmp/release/assets/*
