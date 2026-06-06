@@ -30,22 +30,6 @@ namespace nwn1 {
 
 namespace {
 
-void register_race_twoda_config_converter()
-{
-    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
-    nw::kernel::runtime().register_twoda_converter("nwn1.data.races", "racialtypes", {
-                                                                                         CM{"Name", "name"},
-                                                                                         CM{"StrAdjust", "abilities[0]"},
-                                                                                         CM{"DexAdjust", "abilities[1]"},
-                                                                                         CM{"ConAdjust", "abilities[2]"},
-                                                                                         CM{"IntAdjust", "abilities[3]"},
-                                                                                         CM{"WisAdjust", "abilities[4]"},
-                                                                                         CM{"ChaAdjust", "abilities[5]"},
-                                                                                         CM{"CRModifier", "cr_modifier"},
-                                                                                         CM{"PlayerRace", "player_race"},
-                                                                                     });
-}
-
 void register_twoda_config_converters()
 {
     // Register 2da-based converters for smalls load_config! paths before any
@@ -148,7 +132,6 @@ void register_twoda_config_converters()
                                                                                                   }},
                                                                       CM{"ArmorCheckPenalty", "armor_check_penalty"},
                                                                   });
-    register_race_twoda_config_converter();
 }
 
 } // namespace
@@ -156,7 +139,6 @@ void register_twoda_config_converters()
 void Profile::load_custom_services()
 {
     nw::kernel::runtime().add_module_path(std::filesystem::path("stdlib") / "nwn1");
-    register_race_twoda_config_converter();
 }
 
 bool Profile::load_rules() const
