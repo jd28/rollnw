@@ -279,10 +279,13 @@ PaletteTreeNode* read_child(Palette& parent, const GffStruct st)
             st.get_to("ID", node->id);
             parent.node_map_.insert({node->id, node});
         }
-        size_t list_size = st["LIST"].size();
+
+        if (!st.has_field("LIST")) { return node; }
+        const auto children = st["LIST"];
+        size_t list_size = children.size();
         node->children.reserve(list_size);
         for (size_t i = 0; i < list_size; ++i) {
-            node->children.push_back(read_child(parent, st["LIST"][i]));
+            node->children.push_back(read_child(parent, children[i]));
         }
     }
 

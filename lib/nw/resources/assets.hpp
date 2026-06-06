@@ -39,6 +39,8 @@ struct ResourceType {
         // Custom - rollnw specific types
         smalls = 0xFFFF - 100,
         hlsl = 0xFFFF - 101,
+        rml = 0xFFFF - 102,
+        rcss = 0xFFFF - 103,
 
         bmp = 1,
         mve = 2,
@@ -237,6 +239,8 @@ struct ResourceType {
         if (string::icmp(ext, "json")) return json;
         if (string::icmp(ext, "smalls")) return smalls;
         if (string::icmp(ext, "hlsl")) return hlsl;
+        if (string::icmp(ext, "rml")) return rml;
+        if (string::icmp(ext, "rcss")) return rcss;
 
         return invalid;
     }
@@ -438,6 +442,10 @@ struct ResourceType {
             return "smalls";
         case hlsl:
             return "hlsl";
+        case rml:
+            return "rml";
+        case rcss:
+            return "rcss";
         }
     }
 

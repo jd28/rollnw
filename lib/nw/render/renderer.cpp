@@ -264,18 +264,21 @@ bool Renderer::StorageFrameArena::reset(nw::gfx::Context* ctx, uint64_t new_fram
 {
     constexpr size_t kBoneArenaInitialSize = 4 * 1024 * 1024;
 
-    for (size_t i = 1; i < blocks.size(); ++i) {
-        if (blocks[i].buffer.valid()) nw::gfx::destroy_buffer(blocks[i].buffer);
-    }
-    if (blocks.size() > 1) blocks.resize(1);
-
     frame_id = new_frame_id;
+    for (auto& block : blocks) {
+        block.offset = 0;
+    }
 
-    const size_t old_cap = blocks.empty() ? 0 : blocks[0].capacity;
+    auto largest = std::max_element(blocks.begin(), blocks.end(),
+        [](const StorageBlock& lhs, const StorageBlock& rhs) {
+            return lhs.capacity < rhs.capacity;
+        });
+    if (largest != blocks.end()) {
+        std::iter_swap(largest, blocks.end() - 1);
+    }
+
+    const size_t old_cap = blocks.empty() ? 0 : blocks.back().capacity;
     if (old_cap < min_capacity) {
-        if (!blocks.empty() && blocks[0].buffer.valid()) nw::gfx::destroy_buffer(blocks[0].buffer);
-        blocks.clear();
-
         const size_t new_cap = std::max(min_capacity, std::max(kBoneArenaInitialSize, old_cap * 2));
         nw::gfx::BufferDesc desc{};
         desc.size = new_cap;
@@ -293,8 +296,6 @@ bool Renderer::StorageFrameArena::reset(nw::gfx::Context* ctx, uint64_t new_fram
             return false;
         }
         blocks.push_back({buf, mapped, new_cap, 0});
-    } else {
-        blocks[0].offset = 0;
     }
     return true;
 }

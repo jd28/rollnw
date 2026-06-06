@@ -3,13 +3,18 @@ import nwn1.constants as Const;
 
 import core.array as Array;
 
-var _races: array!(RaceEntry) = load_config!(RaceEntry)("nwn1/data/races");
+var _races: array!(RaceEntry) = load_config!(RaceEntry)("nwn1.data.races");
 
 fn size(race_id: int): int {
     if (race_id < 0 || race_id >= Array.len(_races)) {
         return Const.creature_size_medium;
     }
-    return _races[race_id].size;
+    var entry = _races[race_id];
+    var size = entry.size;
+    if (size <= 0) {
+        return Const.creature_size_medium;
+    }
+    return size;
 }
 
 fn ability_modifier(race_id: int, ability: int): int {

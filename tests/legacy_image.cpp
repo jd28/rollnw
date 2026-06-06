@@ -48,9 +48,17 @@ TEST(Image, TGA)
     nw::Image tga{"test_data/user/development/qfpp_001_L.tga"};
     EXPECT_TRUE(tga.valid());
     EXPECT_FALSE(tga.is_bio_dds());
+    EXPECT_EQ(tga.width(), 128u);
+    EXPECT_EQ(tga.height(), 256u);
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.dds"));
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.png"));
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.tga"));
+
+    nw::Image generated_dds{"tmp/qfpp_001_L.dds"};
+    EXPECT_TRUE(generated_dds.valid());
+    EXPECT_FALSE(generated_dds.is_bio_dds());
+    EXPECT_EQ(generated_dds.width(), 128u);
+    EXPECT_EQ(generated_dds.height(), 256u);
 }
 
 TEST(Image, BMP)

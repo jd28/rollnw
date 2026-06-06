@@ -9,6 +9,7 @@
 #include <nw/kernel/ModelCache.hpp>
 #include <nw/log.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/util/error_context.hpp>
 #include <nw/util/string.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,6 +31,13 @@ namespace {
 
 float g_dangly_debug_scale = 1.0f;
 DanglyMode g_dangly_mode = DanglyMode::legacy;
+
+void log_error_context()
+{
+    if (nw::error_context_stack) {
+        LOG_F(ERROR, "\n{}", nw::get_error_context());
+    }
+}
 
 Vertex convert_vertex(const nwm::Vertex& vertex)
 {
@@ -1543,11 +1551,12 @@ bool ModelInstance::load_animation(std::string_view name)
 glm::mat4 ModelInstance::root_transform() const
 {
     auto base = placement_transform_;
-    if (this->local_scale_ != 1.0f) {
-        base = base * glm::scale(glm::mat4(1.0f), glm::vec3(this->local_scale_));
-    }
+    const bool has_local_scale = this->local_scale_ != 1.0f;
+    const glm::mat4 local_scale = has_local_scale
+        ? glm::scale(glm::mat4(1.0f), glm::vec3(this->local_scale_))
+        : glm::mat4(1.0f);
     if (!transform_context_ || transform_anchor_.empty()) {
-        return base;
+        return has_local_scale ? base * local_scale : base;
     }
 
     auto* anchor = transform_context_->find(transform_anchor_);
@@ -1570,6 +1579,11 @@ glm::mat4 ModelInstance::root_transform() const
         anchor_transform = glm::translate(glm::mat4(1.0f), anchor_world) * glm::mat4_cast(root_rotation) * base;
     } else if (anchor) {
         anchor_transform = anchor_transform * anchor->get_transform();
+    }
+
+    // Scale the attached model, not the destination anchor translation.
+    if (has_local_scale) {
+        anchor_transform = anchor_transform * local_scale;
     }
 
     if (this->anchor_uses_root_bind_offset && !nodes_.empty()) {
@@ -1802,12 +1816,14 @@ std::unique_ptr<ModelInstance> ModelLoader::load(std::string_view resref, std::s
     auto* mdl = nw::kernel::models().load(resref);
     if (!mdl) {
         LOG_F(ERROR, "Failed to load model: {}", resref);
+        log_error_context();
         return nullptr;
     }
 
     auto model = load(mdl, root_name);
     if (!model) {
         LOG_F(ERROR, "Failed to load model: {}", resref);
+        log_error_context();
     }
     return model;
 }

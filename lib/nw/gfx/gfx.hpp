@@ -127,6 +127,16 @@ void destroy_context(Context* ctx);
 bool resize_context(Context* ctx, uint32_t width, uint32_t height);
 void wait_idle(Context* ctx);
 
+struct FrameInfo {
+    uint32_t frame_index = 0;
+    uint64_t frame_id = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    bool headless = false;
+    bool drawable = false;
+};
+
+bool get_frame_info(Context* ctx, FrameInfo& out) noexcept;
 CommandList* begin_frame(Context* ctx); // returns nullptr if frame cannot begin (e.g. swapchain out of date)
 void end_frame(Context* ctx);
 bool capture_screenshot(Context* ctx, CommandList* cmd, const char* path);
@@ -203,6 +213,11 @@ struct TextureDesc {
 };
 
 using BindlessTextureIndex = uint32_t;
+
+enum class TextureFilter {
+    Linear,
+    Nearest,
+};
 
 struct TextureMipData {
     const void* data = nullptr;
@@ -336,7 +351,12 @@ Handle<Pipeline> create_pipeline(Context* ctx, const PipelineDesc& desc);
 Handle<Pipeline> create_compute_pipeline(Context* ctx, const ComputePipelineDesc& desc);
 void destroy_pipeline(Context* ctx, Handle<Pipeline> handle);
 
-void cmd_begin_render(CommandList* cmd, Handle<RenderTarget> target);
+enum class RenderLoadOp {
+    clear,
+    load,
+};
+
+void cmd_begin_render(CommandList* cmd, Handle<RenderTarget> target, RenderLoadOp color_load_op = RenderLoadOp::clear);
 void cmd_end_render(CommandList* cmd);
 
 void cmd_bind_pipeline(CommandList* cmd, Handle<Pipeline> pipeline);
@@ -346,7 +366,10 @@ void cmd_bind_index_buffer(CommandList* cmd, Handle<Buffer> buffer, uint32_t ind
 void cmd_set_viewport(CommandList* cmd, float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
 void cmd_set_scissor(CommandList* cmd, int32_t x, int32_t y, uint32_t width, uint32_t height);
 void cmd_set_stencil_ref(CommandList* cmd, uint8_t ref);
-void cmd_bind_uniform_texture(CommandList* cmd, Handle<Pipeline> pipeline, Handle<Buffer> uniform, Handle<Texture> texture = {});
+void cmd_bind_uniform_texture(CommandList* cmd, Handle<Pipeline> pipeline, Handle<Buffer> uniform,
+    Handle<Texture> texture = {}, TextureFilter filter = TextureFilter::Linear);
+void cmd_bind_uniform_texture(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniform,
+    Handle<Texture> texture = {}, TextureFilter filter = TextureFilter::Linear);
 void cmd_bind_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms,
     StorageSpan storage0 = {}, StorageSpan storage1 = {}, const UniformSpan& uniforms2 = {});
 void cmd_bind_compute_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms = {}, Handle<Buffer> storage = {});

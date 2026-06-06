@@ -3,9 +3,12 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/util/error_context.hpp>
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
+#include <string_view>
 #include <vector>
 
 namespace nw::render::nwn {
@@ -23,30 +26,49 @@ uint32_t full_mip_count(uint32_t width, uint32_t height)
     return levels;
 }
 
-void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, size_t pixel_count, bool premultiply)
+// NWN image textures need row-origin compensation for renderer sampling. Raw
+// PLT data is sampled by layer/color in the shader and keeps its native rows.
+void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t height,
+    bool premultiply, bool flip_rows)
 {
-    for (size_t i = 0; i < pixel_count; ++i) {
-        const uint8_t a = src[i * 4 + 3];
-        if (premultiply) {
-            dst[i * 4 + 0] = static_cast<uint8_t>((uint16_t(src[i * 4 + 0]) * a + 127) / 255);
-            dst[i * 4 + 1] = static_cast<uint8_t>((uint16_t(src[i * 4 + 1]) * a + 127) / 255);
-            dst[i * 4 + 2] = static_cast<uint8_t>((uint16_t(src[i * 4 + 2]) * a + 127) / 255);
-        } else {
-            dst[i * 4 + 0] = src[i * 4 + 0];
-            dst[i * 4 + 1] = src[i * 4 + 1];
-            dst[i * 4 + 2] = src[i * 4 + 2];
+    const size_t row_bytes = static_cast<size_t>(width) * 4;
+    for (uint32_t y = 0; y < height; ++y) {
+        const size_t src_y = flip_rows ? height - 1 - y : y;
+        const size_t src_row = static_cast<size_t>(src_y) * row_bytes;
+        const size_t dst_row = static_cast<size_t>(y) * row_bytes;
+        for (uint32_t x = 0; x < width; ++x) {
+            const size_t src_i = src_row + static_cast<size_t>(x) * 4;
+            const size_t dst_i = dst_row + static_cast<size_t>(x) * 4;
+            const uint8_t a = src[src_i + 3];
+            if (premultiply) {
+                dst[dst_i + 0] = static_cast<uint8_t>((uint16_t(src[src_i + 0]) * a + 127) / 255);
+                dst[dst_i + 1] = static_cast<uint8_t>((uint16_t(src[src_i + 1]) * a + 127) / 255);
+                dst[dst_i + 2] = static_cast<uint8_t>((uint16_t(src[src_i + 2]) * a + 127) / 255);
+            } else {
+                dst[dst_i + 0] = src[src_i + 0];
+                dst[dst_i + 1] = src[src_i + 1];
+                dst[dst_i + 2] = src[src_i + 2];
+            }
+            dst[dst_i + 3] = a;
         }
-        dst[i * 4 + 3] = a;
     }
 }
 
-void expand_rgb_to_rgba(uint8_t* dst, const uint8_t* src, size_t pixel_count)
+void expand_rgb_to_rgba(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t height)
 {
-    for (size_t i = 0; i < pixel_count; ++i) {
-        dst[i * 4 + 0] = src[i * 3 + 0];
-        dst[i * 4 + 1] = src[i * 3 + 1];
-        dst[i * 4 + 2] = src[i * 3 + 2];
-        dst[i * 4 + 3] = 255;
+    const size_t src_row_bytes = static_cast<size_t>(width) * 3;
+    const size_t dst_row_bytes = static_cast<size_t>(width) * 4;
+    for (uint32_t y = 0; y < height; ++y) {
+        const size_t src_row = static_cast<size_t>(height - 1 - y) * src_row_bytes;
+        const size_t dst_row = static_cast<size_t>(y) * dst_row_bytes;
+        for (uint32_t x = 0; x < width; ++x) {
+            const size_t src_i = src_row + static_cast<size_t>(x) * 3;
+            const size_t dst_i = dst_row + static_cast<size_t>(x) * 4;
+            dst[dst_i + 0] = src[src_i + 0];
+            dst[dst_i + 1] = src[src_i + 1];
+            dst[dst_i + 2] = src[src_i + 2];
+            dst[dst_i + 3] = 255;
+        }
     }
 }
 
@@ -69,6 +91,19 @@ std::string alpha_cache_key(const std::string& name, bool premultiply_alpha)
 std::string raw_plt_cache_key(const std::string& name)
 {
     return name + "#rawplt";
+}
+
+void log_warning_error_context()
+{
+    if (nw::error_context_stack) {
+        LOG_F(WARNING, "\n{}", nw::get_error_context());
+    }
+}
+
+nw::ResourceData demand_texture_image_data(const std::string& name)
+{
+    ERRARE("[render] loading texture '{}' (search order: dds, tga)", std::string_view{name});
+    return nw::kernel::resman().demand_in_order(nw::Resref{name}, {nw::ResourceType::dds, nw::ResourceType::tga});
 }
 
 } // namespace
@@ -97,9 +132,19 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
         return it->second;
     }
 
-    auto* image = nw::kernel::resman().texture(nw::Resref(name));
-    if (!image || !image->valid()) {
-        LOG_F(WARNING, "Texture not found: {}", name);
+    ERRARE("[render] loading texture '{}' (premultiply_alpha={})", std::string_view{name}, premultiply_alpha);
+    auto data = demand_texture_image_data(name);
+    if (data.bytes.size() == 0) {
+        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name, name, name);
+        log_warning_error_context();
+        texture_cache_[cache_key] = fallback_texture;
+        return fallback_texture;
+    }
+
+    auto image = std::make_unique<nw::Image>(std::move(data), true);
+    if (!image->valid()) {
+        LOG_F(WARNING, "Texture failed to load: {} (using fallback)", name);
+        log_warning_error_context();
         texture_cache_[cache_key] = fallback_texture;
         return fallback_texture;
     }
@@ -118,14 +163,15 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
     const size_t pixel_count = static_cast<size_t>(image->width()) * image->height();
     if (image->channels() == 4) {
         std::vector<uint8_t> rgba(pixel_count * 4);
-        copy_rgba_pixels(rgba.data(), image->data(), pixel_count, premultiply_alpha);
+        copy_rgba_pixels(rgba.data(), image->data(), image->width(), image->height(), premultiply_alpha, true);
         nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
     } else if (image->channels() == 3) {
         std::vector<uint8_t> rgba(pixel_count * 4);
-        expand_rgb_to_rgba(rgba.data(), image->data(), pixel_count);
+        expand_rgb_to_rgba(rgba.data(), image->data(), image->width(), image->height());
         nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
     } else {
         LOG_F(WARNING, "Texture {} has unsupported {} channels", name, image->channels());
+        log_warning_error_context();
         nw::gfx::destroy_texture(ctx_, texture);
         texture_cache_[cache_key] = fallback_texture;
         return fallback_texture;
@@ -149,6 +195,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
         return it->second;
     }
 
+    ERRARE("[render] loading PLT texture '{}'", std::string_view{name});
     auto plt_data = nw::kernel::resman().demand({nw::Resref{name}, nw::ResourceType::plt});
     nw::Plt plt{std::move(plt_data)};
     if (!plt.valid()) {
@@ -174,7 +221,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
 
     const size_t pixel_count = static_cast<size_t>(image.width()) * image.height();
     std::vector<uint8_t> rgba(pixel_count * 4);
-    copy_rgba_pixels(rgba.data(), image.data(), pixel_count, premultiply_alpha);
+    copy_rgba_pixels(rgba.data(), image.data(), image.width(), image.height(), premultiply_alpha, false);
     nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
     texture_cache_[cache_key] = texture;
     return texture;
@@ -191,9 +238,11 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_raw_plt_texture(
         return it->second;
     }
 
+    ERRARE("[render] loading raw PLT texture '{}'", std::string_view{name});
     auto plt_data = nw::kernel::resman().demand({nw::Resref{name}, nw::ResourceType::plt});
     nw::Plt plt{std::move(plt_data)};
     if (!plt.valid()) {
+        log_warning_error_context();
         return {};
     }
 
@@ -232,7 +281,13 @@ const nw::Image* RenderAssetCache::get_or_load_source_image(const std::string& n
         return it->second && it->second->valid() ? it->second.get() : nullptr;
     }
 
-    auto image = std::unique_ptr<nw::Image>{nw::kernel::resman().texture(nw::Resref{name})};
+    auto data = demand_texture_image_data(name);
+    if (data.bytes.size() == 0) {
+        image_cache_[name] = nullptr;
+        return nullptr;
+    }
+
+    auto image = std::make_unique<nw::Image>(std::move(data), true);
     const auto* result = image && image->valid() ? image.get() : nullptr;
     image_cache_[name] = std::move(image);
     return result;

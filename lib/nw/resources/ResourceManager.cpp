@@ -14,8 +14,11 @@
 #include <nlohmann/json.hpp>
 
 #include <chrono>
+#include <exception>
 #include <filesystem>
+#include <fstream>
 #include <memory>
+#include <optional>
 
 namespace fs = std::filesystem;
 using namespace std::literals;
@@ -37,6 +40,54 @@ inline unique_container make_unique_container(Container* c)
 {
     ContainerDeleter del{c->allocator()};
     return unique_container{c, del};
+}
+
+String format_search_roots(const Vector<fs::path>& roots)
+{
+    if (roots.empty()) {
+        return "<none>";
+    }
+
+    String result;
+    for (size_t i = 0; i < roots.size(); ++i) {
+        if (i != 0) {
+            result += ", ";
+        }
+        result += roots[i].string();
+    }
+    return result;
+}
+
+std::optional<fs::path> arclight_module_directory(const fs::path& path)
+{
+    if (!fs::is_directory(path)) {
+        return std::nullopt;
+    }
+
+    const fs::path manifest_path = path / "arclight.json";
+    if (!fs::exists(manifest_path)) {
+        return std::nullopt;
+    }
+
+    try {
+        std::ifstream input{manifest_path};
+        nlohmann::json manifest;
+        input >> manifest;
+        if (!manifest.is_object()
+            || manifest.value("format", "") != "arclight.module"
+            || !manifest.contains("module")) {
+            return std::nullopt;
+        }
+
+        const fs::path module_path = path / manifest.value("module", std::string{});
+        if (fs::exists(module_path)) {
+            return module_path.parent_path();
+        }
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+
+    return std::nullopt;
 }
 
 ResourceManager::ResourceManager(MemoryResource* scope, const ResourceManager* parent)
@@ -91,9 +142,12 @@ bool ResourceManager::load_module(std::filesystem::path path)
 
     {
         NW_PROFILE_SCOPE_N("resman.load_module.resolve_container");
-        if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
+        if (fs::is_directory(path) && (fs::exists(path / "module.ifo") || fs::exists(path / "module.ifo.json"))) {
             auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
             module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
+        } else if (const auto arclight_module_dir = arclight_module_directory(path)) {
+            auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
+            module_ = make_unique_container(new (ptr) StaticDirectory(*arclight_module_dir, allocator()));
         } else if (fs::exists(path)
             && (string::icmp(path_to_string(path.extension()), ".mod")
                 || string::icmp(path_to_string(path.extension()), ".nwm"))) {
@@ -118,23 +172,46 @@ bool ResourceManager::load_module(std::filesystem::path path)
     return true;
 }
 
-void ResourceManager::load_module_haks(const Vector<String>& haks)
+size_t ResourceManager::load_module_haks(const Vector<String>& haks)
+{
+    Vector<fs::path> roots;
+    roots.push_back(kernel::config().user_path() / "hak");
+    return load_module_haks(haks, roots);
+}
+
+size_t ResourceManager::load_module_haks(const Vector<String>& haks, const Vector<fs::path>& roots)
 {
     NW_PROFILE_SCOPE_N("resman.load_module_haks");
     NW_PROFILE_VALUE(haks.size());
 
     auto start = std::chrono::high_resolution_clock::now();
 
+    size_t loaded = 0;
     for (const auto& h : haks) {
-        if (auto c = resolve_container(kernel::config().user_path() / "hak", h, allocator())) {
-            module_haks_.push_back(make_unique_container(c));
+        bool found = false;
+        for (const auto& root : roots) {
+            if (auto* raw = resolve_container(root, h, allocator())) {
+                auto container = make_unique_container(raw);
+                if (container->valid()) {
+                    module_haks_.push_back(std::move(container));
+                    ++loaded;
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!found) {
+            LOG_F(WARNING, "resman: missing module hak '{}' (searched: {})",
+                h, format_search_roots(roots));
         }
     }
     update_container_search();
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    LOG_F(INFO, "    ... loaded {} module haks ({}ms)", haks.size(),
+    LOG_F(INFO, "    ... loaded {} of {} module haks ({}ms)", loaded, haks.size(),
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    return loaded;
 }
 
 nlohmann::json ResourceManager::stats() const

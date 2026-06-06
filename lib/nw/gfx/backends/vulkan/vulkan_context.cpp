@@ -1280,7 +1280,7 @@ static bool upload_texture_pixels_mips(
     return true;
 }
 
-void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target)
+void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderLoadOp color_load_op)
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     auto* ctx = cmd ? cmd->context : nullptr;
@@ -1354,9 +1354,11 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target)
         color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         color_attachment.imageView = view;
         color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        color_attachment.loadOp = rt->desc.color[0].clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        color_attachment.loadOp = (color_load_op == RenderLoadOp::load || !rt->desc.color[0].clear)
+            ? VK_ATTACHMENT_LOAD_OP_LOAD
+            : VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        color_attachment.clearValue.color = {{0.16f, 0.22f, 0.34f, 1.0f}};
+        color_attachment.clearValue.color = {{0.24f, 0.30f, 0.42f, 1.0f}};
     }
 
     const VkImageView render_depth_view = use_swapchain_color
@@ -1551,7 +1553,7 @@ static void bind_descriptor_buffers(VulkanCommandList* cmd)
 static void bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipeline,
     const VulkanBuffer* uniform, uint32_t uniform_offset, uint32_t uniform_size,
     const StorageSpan& storage0, const StorageSpan& storage1, const VulkanImage* texture,
-    const VulkanBuffer* uniform2, uint32_t uniform2_offset, uint32_t uniform2_size)
+    TextureFilter texture_filter, const VulkanBuffer* uniform2, uint32_t uniform2_offset, uint32_t uniform2_size)
 {
     auto* ctx = cmd ? cmd->context : nullptr;
     if (!cmd || !ctx || !pipeline) {
@@ -1687,7 +1689,7 @@ static void bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
             ring_offset = tex_offset + align_up(pipeline->texture_set_size, alignment);
 
             VkDescriptorImageInfo img_info{};
-            img_info.sampler = ctx->linear_sampler;
+            img_info.sampler = texture_filter == TextureFilter::Nearest ? ctx->nearest_sampler : ctx->linear_sampler;
             img_info.imageView = texture->view;
             img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -1715,7 +1717,8 @@ static void bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     }
 }
 
-void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, Handle<Buffer> uniform_h, Handle<Texture> texture_h)
+void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, Handle<Buffer> uniform_h,
+    Handle<Texture> texture_h, TextureFilter filter)
 {
     NW_PROFILE_SCOPE_N("nw::gfx::cmd_bind_uniform_texture");
 
@@ -1727,7 +1730,25 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     }
 
     auto* tex = cmd->context->texture_pool_.get(texture_h);
-    bind_pipeline_resources(cmd, pipeline, uniform, 0, static_cast<uint32_t>(uniform->size), {}, {}, tex, nullptr, 0, 0);
+    bind_pipeline_resources(cmd, pipeline, uniform, 0, static_cast<uint32_t>(uniform->size), {}, {}, tex,
+        filter, nullptr, 0, 0);
+}
+
+void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const UniformSpan& uniforms,
+    Handle<Texture> texture_h, TextureFilter filter)
+{
+    NW_PROFILE_SCOPE_N("nw::gfx::cmd_bind_uniform_texture(span)");
+
+    auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
+    auto* pipeline = g_pipeline_pool.get(pipeline_h);
+    auto* uniform = g_buffer_pool.get(uniforms.buffer);
+    if (!cmd || !pipeline || !uniform) {
+        return;
+    }
+
+    auto* tex = cmd->context->texture_pool_.get(texture_h);
+    bind_pipeline_resources(cmd, pipeline, uniform, uniforms.offset, uniforms.size, {}, {}, tex,
+        filter, nullptr, 0, 0);
 }
 
 void cmd_bind_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const UniformSpan& uniforms,
@@ -1744,7 +1765,7 @@ void cmd_bind_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const
     }
 
     bind_pipeline_resources(cmd, pipeline, uniform, uniforms.offset, uniforms.size, storage0, storage1, nullptr,
-        uniform2, uniforms2.offset, uniforms2.size);
+        TextureFilter::Linear, uniform2, uniforms2.offset, uniforms2.size);
 }
 
 void cmd_bind_compute_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const UniformSpan& uniforms, Handle<Buffer> storage_h)
@@ -1758,7 +1779,8 @@ void cmd_bind_compute_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_
     }
 
     bind_pipeline_resources(cmd, pipeline, uniform, uniforms.offset, uniforms.size,
-        storage_h.valid() ? StorageSpan{storage_h} : StorageSpan{}, {}, nullptr, nullptr, 0, 0);
+        storage_h.valid() ? StorageSpan{storage_h} : StorageSpan{}, {}, nullptr,
+        TextureFilter::Linear, nullptr, 0, 0);
 }
 
 void cmd_draw(CommandList* cmd_ptr, uint32_t vertex_count, uint32_t instance_count)
@@ -2106,6 +2128,11 @@ Context* create_context(Core* core, const ContextDesc& desc)
     sampler_info.maxLod = VK_LOD_CLAMP_NONE;
     VK_CHECK(vkCreateSampler(device, &sampler_info, nullptr, &ctx->linear_sampler));
 
+    sampler_info.magFilter = VK_FILTER_NEAREST;
+    sampler_info.minFilter = VK_FILTER_NEAREST;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    VK_CHECK(vkCreateSampler(device, &sampler_info, nullptr, &ctx->nearest_sampler));
+
     VkDescriptorSetLayoutBinding bindless_bindings[2]{};
     bindless_bindings[0].binding = 2;
     bindless_bindings[0].descriptorCount = ctx->bindless_texture_capacity;
@@ -2175,6 +2202,9 @@ void destroy_context(Context* ctx_ptr)
     if (ctx->linear_sampler != VK_NULL_HANDLE) {
         vkDestroySampler(device, ctx->linear_sampler, nullptr);
     }
+    if (ctx->nearest_sampler != VK_NULL_HANDLE) {
+        vkDestroySampler(device, ctx->nearest_sampler, nullptr);
+    }
     if (ctx->bindless_texture_layout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, ctx->bindless_texture_layout, nullptr);
         ctx->bindless_texture_layout = VK_NULL_HANDLE;
@@ -2202,6 +2232,23 @@ void wait_idle(Context* ctx_ptr)
         return;
     }
     vkDeviceWaitIdle(ctx->core->device);
+}
+
+bool get_frame_info(Context* ctx_ptr, FrameInfo& out) noexcept
+{
+    const auto* ctx = as_vulkan(ctx_ptr);
+    if (!ctx) {
+        out = FrameInfo{};
+        return false;
+    }
+
+    out.frame_index = ctx->frame_index;
+    out.frame_id = ctx->frame_id;
+    out.width = ctx->width;
+    out.height = ctx->height;
+    out.headless = ctx->headless;
+    out.drawable = ctx->headless || ctx->current_image_index < ctx->swapchain_image_count;
+    return true;
 }
 
 bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)

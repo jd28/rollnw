@@ -1,6 +1,7 @@
 #include "Image.hpp"
 
 #include "../log.hpp"
+#include "../util/error_context.hpp"
 #include "../util/platform.hpp"
 #include "../util/string.hpp"
 #include "../util/templates.hpp"
@@ -11,25 +12,48 @@
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
+#include <limits>
 #include <memory>
 
 namespace fs = std::filesystem;
 
 namespace nw {
 
-Image::Image(const std::filesystem::path& filename)
+namespace {
+
+void log_image_load_failure(const ResourceData& data, StringView reason)
+{
+    if (error_context_stack) {
+        LOG_F(ERROR, "\n{}", get_error_context());
+    }
+
+    const auto filename = data.name.valid() ? data.name.filename() : String{"<unknown>"};
+    LOG_F(ERROR, "Failed to load image '{}' (type={}, bytes={}): {}",
+        filename, ResourceType::to_string(data.name.type), data.bytes.size(), reason);
+}
+
+} // namespace
+
+Image::Image(const std::filesystem::path& filename, bool log_errors)
     : data_{ResourceData::from_file(filename)}
     , bytes_{nullptr}
+    , log_errors_{log_errors}
 {
+    const auto path = path_to_string(filename);
+    ERRARE("[image] loading file '{}'", StringView{path});
     is_dds_ = data_.name.type == ResourceType::dds;
     is_loaded_ = parse();
 }
 
-Image::Image(ResourceData data)
+Image::Image(ResourceData data, bool log_errors)
     : data_{std::move(data)}
     , bytes_{nullptr}
     , is_dds_(data_.name.type == ResourceType::dds)
+    , log_errors_{log_errors}
 {
+    const auto filename = data_.name.valid() ? data_.name.filename() : String{"<unknown>"};
+    ERRARE("[image] decoding resource '{}' (type {}, {} bytes)",
+        StringView{filename}, ResourceType::to_string(data_.name.type), data_.bytes.size());
     is_loaded_ = parse();
 }
 
@@ -168,7 +192,12 @@ bool Image::parse()
             &width, &height, &channels, 0);
 
         if (!bytes_) {
-            LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
+            if (log_errors_) {
+                auto* stbi_reason = stbi_failure_reason();
+                const auto reason = fmt::format("stb_image decoder failed: {}",
+                    stbi_reason ? stbi_reason : "unknown stb_image error");
+                log_image_load_failure(data_, reason);
+            }
             result = false;
         } else {
             width_ = to_u32(width);
@@ -206,7 +235,13 @@ void stbi_decode_DXT_color_block(
 bool Image::parse_dds()
 {
     uint32_t magic;
-    data_.bytes.read_at(0, &magic, 4);
+    if (data_.bytes.size() < sizeof(magic)) {
+        if (log_errors_) {
+            log_image_load_failure(data_, "DDS header is truncated");
+        }
+        return false;
+    }
+    memcpy(&magic, data_.bytes.data(), sizeof(magic));
 
     if (magic != 0x20534444) {
         is_bio_dds_ = true;
@@ -222,28 +257,56 @@ bool Image::parse_bioware()
     // what's here is copy paste from stbi/soil2
 
     size_t off = 0;
-    data_.bytes.read_at(off, &bioware_header, sizeof(detail::BiowareDdsHeader));
+    if (data_.bytes.size() < sizeof(detail::BiowareDdsHeader)) {
+        if (log_errors_) {
+            log_image_load_failure(data_, "Bioware DDS header is truncated");
+        }
+        return false;
+    }
+
+    memcpy(&bioware_header, data_.bytes.data() + off, sizeof(detail::BiowareDdsHeader));
     channels_ = bioware_header.colors;
     width_ = bioware_header.width;
     height_ = bioware_header.height;
     off += sizeof(detail::BiowareDdsHeader);
 
-    if (channels_ != 3 && channels_ != 4)
+    if (channels_ != 3 && channels_ != 4) {
+        if (log_errors_) {
+            const auto reason = fmt::format(
+                "Bioware DDS has unsupported channel count {} (expected 3 or 4)", channels_);
+            log_image_load_failure(data_, reason);
+        }
         return false;
+    }
+
+    const size_t block_pitch = (width_ + 3) >> 2;
+    const size_t block_rows = (height_ + 3) >> 2;
+    const size_t num_blocks = block_pitch * block_rows;
+    const size_t bytes_per_block = channels_ == 4 ? 16 : 8;
+    const bool expected_size_overflow = num_blocks > (std::numeric_limits<size_t>::max() - off) / bytes_per_block;
+    const size_t expected_size = expected_size_overflow
+        ? std::numeric_limits<size_t>::max()
+        : off + num_blocks * bytes_per_block;
+    if (expected_size_overflow || data_.bytes.size() < expected_size) {
+        if (log_errors_) {
+            const auto reason = fmt::format(
+                "Bioware DDS pixel data is truncated (expected at least {} bytes)", expected_size);
+            log_image_load_failure(data_, reason);
+        }
+        return false;
+    }
 
     bytes_ = reinterpret_cast<uint8_t*>(malloc(4ull * height_ * width_));
 
-    int block_pitch = (width_ + 3) >> 2;
-    int num_blocks = block_pitch * ((height_ + 3) >> 2);
     stbi_uc block[16 * 4];
     stbi_uc compressed[8];
 
     //	now read and decode all the blocks
-    for (int i = 0; i < num_blocks; ++i) {
+    for (size_t i = 0; i < num_blocks; ++i) {
         //	where are we?
         int bx, by, bw = 4, bh = 4;
-        int ref_x = 4 * (i % block_pitch);
-        int ref_y = 4 * (i / block_pitch);
+        int ref_x = static_cast<int>(4 * (i % block_pitch));
+        int ref_y = static_cast<int>(4 * (i / block_pitch));
         //	get the next block's worth of compressed data, and decompress it
 
         if (channels_ == 4) {
@@ -299,10 +362,15 @@ bool Image::parse_dxt()
 
     stbi_set_flip_vertically_on_load(false);
     bytes_ = stbi_load_from_memory(data_.bytes.data(), static_cast<int>(data_.bytes.size()),
-        &height, &width, &channels, 0);
+        &width, &height, &channels, 0);
 
     if (bytes_ == nullptr) {
-        LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
+        if (log_errors_) {
+            auto* stbi_reason = stbi_failure_reason();
+            const auto reason = fmt::format("DDS decoder failed: {}",
+                stbi_reason ? stbi_reason : "unknown stb_image error");
+            log_image_load_failure(data_, reason);
+        }
         return false;
     }
 

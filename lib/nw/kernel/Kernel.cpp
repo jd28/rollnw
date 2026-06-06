@@ -6,6 +6,7 @@
 #include "../rules/effects.hpp"
 #include "../smalls/runtime.hpp"
 #include "../util/profile.hpp"
+#include "../util/string.hpp"
 #include "EventSystem.hpp"
 #include "FactionSystem.hpp"
 #include "ModelCache.hpp"
@@ -14,7 +15,11 @@
 #include "TilesetRegistry.hpp"
 #include "TwoDACache.hpp"
 
+#include <optional>
+
 namespace nw::kernel {
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -53,6 +58,79 @@ void profile_service_init(ServiceEntry& entry, ServiceInitTime time)
         break;
     }
     entry.service->initialize(time);
+}
+
+Vector<fs::path> dependency_roots_or_default(const Vector<fs::path>& roots, const char* directory)
+{
+    if (!roots.empty()) {
+        return roots;
+    }
+
+    Vector<fs::path> result;
+    result.push_back(config().user_path() / directory);
+    return result;
+}
+
+String format_search_roots(const Vector<fs::path>& roots)
+{
+    if (roots.empty()) {
+        return "<none>";
+    }
+
+    String result;
+    for (size_t i = 0; i < roots.size(); ++i) {
+        if (i != 0) {
+            result += ", ";
+        }
+        result += roots[i].string();
+    }
+    return result;
+}
+
+std::optional<fs::path> find_existing_path(const fs::path& path)
+{
+    std::error_code ec;
+    if (fs::exists(path, ec)) {
+        return path;
+    }
+
+    const fs::path parent = path.parent_path().empty() ? fs::path{"."} : path.parent_path();
+    if (!fs::is_directory(parent, ec)) {
+        return std::nullopt;
+    }
+
+    const auto filename = path.filename().string();
+    fs::directory_iterator it{parent, ec};
+    if (ec) {
+        return std::nullopt;
+    }
+
+    for (const fs::directory_iterator end; it != end; it.increment(ec)) {
+        if (ec) {
+            return std::nullopt;
+        }
+        if (string::icmp(it->path().filename().string(), filename)) {
+            return it->path();
+        }
+    }
+
+    return std::nullopt;
+}
+
+fs::path resolve_custom_tlk_path(const String& tlk, const Vector<fs::path>& roots)
+{
+    fs::path filename{tlk};
+    if (filename.extension().empty()) {
+        filename += ".tlk";
+    }
+
+    for (const auto& root : roots) {
+        if (const auto candidate = find_existing_path(root / filename)) {
+            return *candidate;
+        }
+    }
+
+    return {};
 }
 
 } // namespace
@@ -208,7 +286,17 @@ Services& services()
     return s_services;
 }
 
-Module* load_module(const std::filesystem::path& path, bool instantiate)
+ModuleLoadOptions module_load_options_for_project(const fs::path& project_dir)
+{
+    ModuleLoadOptions result;
+    result.hak_roots.push_back(project_dir / "hak");
+    result.hak_roots.push_back(config().user_path() / "hak");
+    result.tlk_roots.push_back(project_dir / "tlk");
+    result.tlk_roots.push_back(config().user_path() / "tlk");
+    return result;
+}
+
+Module* load_module(const std::filesystem::path& path, bool instantiate, const ModuleLoadOptions& options)
 {
     NW_PROFILE_SCOPE_N("kernel.load_module");
     auto load_path = path.string();
@@ -254,13 +342,20 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
 
     if (mod->haks.size()) {
         NW_PROFILE_SCOPE_N("kernel.load_module.load_haks");
-        nw::kernel::resman().load_module_haks(mod->haks);
+        const auto hak_roots = dependency_roots_or_default(options.hak_roots, "hak");
+        nw::kernel::resman().load_module_haks(mod->haks, hak_roots);
     }
 
     if (mod->tlk.size()) {
         NW_PROFILE_SCOPE_N("kernel.load_module.load_custom_tlk");
-        auto path = nw::kernel::config().user_path() / "tlk";
-        nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
+        const auto tlk_roots = dependency_roots_or_default(options.tlk_roots, "tlk");
+        const auto tlk_path = resolve_custom_tlk_path(mod->tlk, tlk_roots);
+        if (!tlk_path.empty()) {
+            nw::kernel::strings().load_custom_tlk(tlk_path);
+        } else {
+            LOG_F(WARNING, "kernel: missing custom tlk '{}' (searched: {})",
+                mod->tlk, format_search_roots(tlk_roots));
+        }
     }
 
     {

@@ -69,6 +69,7 @@ ResourceData StaticErf::demand(const ContainerKey* key) const
     if (!k) { return {}; }
 
     ResourceData result = read(k);
+    result.name = k->name;
     return result;
 }
 

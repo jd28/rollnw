@@ -247,6 +247,7 @@ struct VulkanContext {
     VkDeviceSize bindless_sampler_binding_offset = 0;
 
     VkSampler linear_sampler = VK_NULL_HANDLE;
+    VkSampler nearest_sampler = VK_NULL_HANDLE;
 
     // Default RT (headless)
     Handle<RenderTarget> default_render_target;

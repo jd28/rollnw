@@ -423,13 +423,15 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
     }
 
     if (obj->model_type == ItemModelType::layered
+        || obj->model_type == ItemModelType::composite
         || obj->model_type == ItemModelType::armor) {
-        archive.get_to("Cloth1Color", obj->model_colors[ItemColors::cloth1]);
-        archive.get_to("Cloth2Color", obj->model_colors[ItemColors::cloth2]);
-        archive.get_to("Leather1Color", obj->model_colors[ItemColors::leather1]);
-        archive.get_to("Leather2Color", obj->model_colors[ItemColors::leather2]);
-        archive.get_to("Metal1Color", obj->model_colors[ItemColors::metal1]);
-        archive.get_to("Metal2Color", obj->model_colors[ItemColors::metal2]);
+        const bool require_model_colors = obj->model_type != ItemModelType::composite;
+        archive.get_to("Cloth1Color", obj->model_colors[ItemColors::cloth1], require_model_colors);
+        archive.get_to("Cloth2Color", obj->model_colors[ItemColors::cloth2], require_model_colors);
+        archive.get_to("Leather1Color", obj->model_colors[ItemColors::leather1], require_model_colors);
+        archive.get_to("Leather2Color", obj->model_colors[ItemColors::leather2], require_model_colors);
+        archive.get_to("Metal1Color", obj->model_colors[ItemColors::metal1], require_model_colors);
+        archive.get_to("Metal2Color", obj->model_colors[ItemColors::metal2], require_model_colors);
     }
 
     if (profile == SerializationProfile::instance) {
@@ -552,8 +554,18 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
         archive.add_field("xModelPart1", obj->model_parts[ItemModelParts::model1]);
     }
 
+    bool composite_has_model_colors = false;
+    if (obj->model_type == ItemModelType::composite) {
+        for (auto color : obj->model_colors) {
+            if (color != 0) {
+                composite_has_model_colors = true;
+                break;
+            }
+        }
+    }
     if (obj->model_type == ItemModelType::layered
-        || obj->model_type == ItemModelType::armor) {
+        || obj->model_type == ItemModelType::armor
+        || composite_has_model_colors) {
         archive.add_field("Cloth1Color", obj->model_colors[ItemColors::cloth1]);
         archive.add_field("Cloth2Color", obj->model_colors[ItemColors::cloth2]);
         archive.add_field("Leather1Color", obj->model_colors[ItemColors::leather1]);

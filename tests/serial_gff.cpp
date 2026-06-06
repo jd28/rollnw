@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include <fstream>
+#include <utility>
 
 using namespace std::literals;
 
@@ -31,6 +32,16 @@ TEST(Gff, Validation)
 
     EXPECT_TRUE(top[0].valid());
     EXPECT_EQ(top[0].name(), "Deity");
+}
+
+TEST(Gff, ParseErrorMessage)
+{
+    nw::ResourceData data;
+    data.name = {"bad"sv, nw::ResourceType::utc};
+
+    nw::Gff g{std::move(data)};
+    EXPECT_FALSE(g.valid());
+    EXPECT_NE(g.error().find("header out of bounds"), std::string::npos);
 }
 
 TEST(Gff, Lists)

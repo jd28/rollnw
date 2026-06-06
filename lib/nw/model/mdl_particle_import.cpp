@@ -180,6 +180,12 @@ float sanitize_percent(float value, float fallback)
     return std::clamp(value, 0.0f, 1.0f);
 }
 
+float sanitize_emission_rate(float value)
+{
+    if (!std::isfinite(value)) { return 0.0f; }
+    return std::max(value, 0.0f);
+}
+
 std::array<float, 3> over_life_percentages(const EmitterNode& emitter)
 {
     float start = sanitize_percent(scalar_or(emitter, ControllerType::PercentStart, 0.0f), 0.0f);
@@ -260,17 +266,17 @@ void maybe_import_birthrate_curve(
         out.rate_over_time.keys.clear();
         const size_t count = std::min(value.time.size(), value.data.size());
         for (size_t i = 0; i < count; ++i) {
-            out.rate_over_time.keys.push_back({value.time[i], value.data[i]});
+            out.rate_over_time.keys.push_back({value.time[i], sanitize_emission_rate(value.data[i])});
         }
         return true;
     });
 }
 
-float peak_scalar_curve(const ParticleCurveF32& curve, float fallback)
+float peak_emission_rate_curve(const ParticleCurveF32& curve, float fallback)
 {
-    float result = fallback;
+    float result = sanitize_emission_rate(fallback);
     for (const auto& key : curve.keys) {
-        result = std::max(result, key.value);
+        result = std::max(result, sanitize_emission_rate(key.value));
     }
     return result;
 }
@@ -454,7 +460,7 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         out.name = emitter.name.c_str();
         out.emission.mode = map_emission_mode(emitter, result);
         out.emission.metric = emitter.spawntype == 1 ? ParticleSpawnMetric::per_distance : ParticleSpawnMetric::per_second;
-        out.emission.rate = scalar_or(emitter, ControllerType::BirthRate, 0.0f);
+        out.emission.rate = sanitize_emission_rate(scalar_or(emitter, ControllerType::BirthRate, 0.0f));
         maybe_import_birthrate_curve(mdl, emitter, animation_name, fallback_all_animations, out.emission);
         out.emission.looping = emitter.loop != 0 || out.emission.mode != ParticleEmissionMode::single_shot;
         out.region.size = {
@@ -558,13 +564,13 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         if (out.emission.mode == ParticleEmissionMode::beam_continuous) {
             out.max_particles = 1;
         } else if (out.emission.mode == ParticleEmissionMode::event_burst) {
-            const float peak_emission_rate = peak_scalar_curve(out.emission.rate_over_time, out.emission.rate);
+            const float peak_emission_rate = peak_emission_rate_curve(out.emission.rate_over_time, out.emission.rate);
             const float burst_lifetime = std::max(out.initial.lifetime.max, 1.0f);
             out.max_particles = std::max<uint32_t>(
                 static_cast<uint32_t>(peak_emission_rate * burst_lifetime + 1.0f),
                 std::max<uint32_t>(static_cast<uint32_t>(peak_emission_rate), 1u));
         } else {
-            const float peak_emission_rate = peak_scalar_curve(out.emission.rate_over_time, out.emission.rate);
+            const float peak_emission_rate = peak_emission_rate_curve(out.emission.rate_over_time, out.emission.rate);
             const float lifetime_budget = out.emission.trigger_on_effect_events
                 ? out.initial.lifetime.max
                 : std::max(out.initial.lifetime.max, 1.0f);
@@ -620,7 +626,7 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         for (auto& emitter : result.effect.emitters) {
             if (emitter.emission.mode != ParticleEmissionMode::event_burst) { continue; }
 
-            const float peak_emission_rate = peak_scalar_curve(emitter.emission.rate_over_time, emitter.emission.rate);
+            const float peak_emission_rate = peak_emission_rate_curve(emitter.emission.rate_over_time, emitter.emission.rate);
             const float burst_lifetime = std::max(emitter.initial.lifetime.max, 1.0f);
             const uint32_t estimated = static_cast<uint32_t>(peak_emission_rate * burst_rate * burst_lifetime + 1.0f);
             emitter.max_particles = std::max(emitter.max_particles, std::max<uint32_t>(estimated, 1u));

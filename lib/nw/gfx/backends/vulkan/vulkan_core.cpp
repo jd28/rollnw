@@ -204,6 +204,7 @@ VkDevice create_logical_device(VulkanCore* vk)
     vk->features_13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     vk->features_13.dynamicRendering = VK_TRUE;
     vk->features_13.synchronization2 = VK_TRUE;
+    vk->features_13.shaderDemoteToHelperInvocation = VK_TRUE;
     device_features2.pNext = &vk->features_13;
 
     // Enable Vulkan 1.2 features required by VMA allocator flags.

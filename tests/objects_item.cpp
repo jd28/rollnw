@@ -27,6 +27,52 @@ TEST(Item, Colors)
     EXPECT_EQ(plt_colors.data[nw::plt_layer_metal2], 25);
 }
 
+TEST(Item, GffDeserializeCompositeColors)
+{
+    nw::GffBuilder out{nw::Item::serial_id};
+    out.top.add_field("TemplateResRef", nw::Resref{"testbow"})
+        .add_field("LocalizedName", nw::LocString{})
+        .add_field("Tag", nw::String{"testbow"})
+        .add_field("Comment", nw::String{})
+        .add_field("PaletteID", uint8_t{0})
+        .add_field("Description", nw::LocString{})
+        .add_field("DescIdentified", nw::LocString{})
+        .add_field("Cost", uint32_t{0})
+        .add_field("AddCost", uint32_t{0})
+        .add_field("BaseItem", int32_t{8})
+        .add_field("StackSize", uint16_t{1})
+        .add_field("Charges", uint8_t{0})
+        .add_field("Identified", uint8_t{1})
+        .add_field("Plot", uint8_t{0})
+        .add_field("Stolen", uint8_t{0})
+        .add_field("ModelPart1", uint8_t{1})
+        .add_field("ModelPart2", uint8_t{2})
+        .add_field("ModelPart3", uint8_t{3})
+        .add_field("Cloth1Color", uint8_t{11})
+        .add_field("Cloth2Color", uint8_t{12})
+        .add_field("Leather1Color", uint8_t{13})
+        .add_field("Leather2Color", uint8_t{14})
+        .add_field("Metal1Color", uint8_t{15})
+        .add_field("Metal2Color", uint8_t{16});
+    out.top.add_list("PropertiesList");
+    out.build();
+    ASSERT_TRUE(out.write_to("tmp/composite_colors.uti"));
+
+    nw::Gff gff{"tmp/composite_colors.uti"};
+    ASSERT_TRUE(gff.valid());
+
+    nw::Item item;
+    ASSERT_TRUE(nw::deserialize(&item, gff.toplevel(), nw::SerializationProfile::blueprint));
+    EXPECT_EQ(item.model_type, nw::ItemModelType::composite);
+    auto plt_colors = item.model_to_plt_colors();
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_cloth1], 11);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_cloth2], 12);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_leather1], 13);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_leather2], 14);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_metal1], 15);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_metal2], 16);
+}
+
 TEST(Item, GffDeserializeArmor)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");

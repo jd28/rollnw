@@ -11,6 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <fstream>
+
 using namespace nw;
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -173,6 +175,28 @@ TEST(StaticDirectory, WithPackageJson)
     EXPECT_TRUE(rm.contains({"hak_with_package_json/test/cloth028"sv, nw::ResourceType::uti}));
 }
 
+TEST(StaticDirectory, AuthoredJsonKeepsResourceType)
+{
+    const std::filesystem::path root{"tmp/static_directory_authored_json"};
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root / "blueprints" / "creatures");
+    std::ofstream{root / "blueprints" / "creatures" / "goblin.utc.json"} << R"({"$type":"UTC"})";
+
+    StaticDirectory d(root);
+    ASSERT_TRUE(d.valid());
+
+    nw::ResourceManager rm(nw::kernel::global_allocator());
+    ASSERT_TRUE(rm.add_custom_container(&d, false));
+    rm.build_registry();
+
+    EXPECT_TRUE(rm.contains({"goblin"sv, nw::ResourceType::utc}));
+    EXPECT_FALSE(rm.contains({"goblin.utc"sv, nw::ResourceType::json}));
+
+    auto data = rm.demand({"goblin"sv, nw::ResourceType::utc});
+    EXPECT_EQ(data.name, (Resource{"goblin"sv, nw::ResourceType::utc}));
+    EXPECT_EQ(data.bytes.string_view(), R"({"$type":"UTC"})");
+}
+
 // == StaticErf ===============================================================
 // ============================================================================
 
@@ -192,8 +216,19 @@ TEST(StaticErf, demand)
 {
     StaticErf e("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(e.valid());
-    // auto data = e.demand({"module"sv, ResourceType::ifo});
-    // EXPECT_TRUE(data.bytes.size() > 0);
+
+    const auto module = Resource{"module"sv, ResourceType::ifo};
+    const ContainerKey* module_key = nullptr;
+    e.visit([&](Resource res, const ContainerKey* key) {
+        if (res == module) {
+            module_key = key;
+        }
+    });
+
+    ASSERT_NE(module_key, nullptr);
+    auto data = e.demand(module_key);
+    EXPECT_EQ(data.name, module);
+    EXPECT_TRUE(data.bytes.size() > 0);
 }
 
 // == StaticKey ===============================================================
@@ -297,6 +332,24 @@ TEST(Resource, FromPath)
     std::filesystem::path p6{"test/test_this_is_too_long_for_resref_of_32_chars.ini"};
     auto r6 = Resource::from_path(p6);
     EXPECT_TRUE(r6.valid());
+
+    std::filesystem::path p7{"module.ifo.json"};
+    auto r7 = Resource::from_path(p7);
+    EXPECT_TRUE(r7.valid());
+    EXPECT_EQ(r7.resref.view(), "module");
+    EXPECT_EQ(r7.type, ResourceType::ifo);
+
+    std::filesystem::path p8{"blueprints/creatures/goblin.utc.json"};
+    auto r8 = Resource::from_path(p8);
+    EXPECT_TRUE(r8.valid());
+    EXPECT_EQ(r8.resref.view(), "goblin");
+    EXPECT_EQ(r8.type, ResourceType::utc);
+
+    std::filesystem::path p9{"hak_with_package_json/test/cloth028.uti.json"};
+    auto r9 = Resource::from_path(p9, true);
+    EXPECT_TRUE(r9.valid());
+    EXPECT_EQ(r9.resref.view(), "hak_with_package_json/test/cloth028");
+    EXPECT_EQ(r9.type, ResourceType::uti);
 }
 
 TEST(Resource, FromFilename)
@@ -321,6 +374,18 @@ TEST(Resource, FromFilename)
     std::string p6{"test_this_is_too_long_for_resref_of_32_chars.ini"};
     auto r6 = Resource::from_filename(p6);
     EXPECT_TRUE(r6.valid());
+
+    std::string p7{"module.ifo.json"};
+    auto r7 = Resource::from_filename(p7);
+    EXPECT_TRUE(r7.valid());
+    EXPECT_EQ(r7.resref.view(), "module");
+    EXPECT_EQ(r7.type, ResourceType::ifo);
+
+    std::string p8{"hak_with_package_json/test/cloth028.uti.json"};
+    auto r8 = Resource::from_filename(p8);
+    EXPECT_TRUE(r8.valid());
+    EXPECT_EQ(r8.resref.view(), "hak_with_package_json/test/cloth028");
+    EXPECT_EQ(r8.type, ResourceType::uti);
 }
 
 TEST(Resource, Resref)
@@ -363,9 +428,13 @@ TEST(ResourceType, Conversion)
 {
     EXPECT_EQ(ResourceType::from_extension("2da"), ResourceType::twoda);
     EXPECT_EQ(ResourceType::from_extension(".2da"), ResourceType::twoda);
+    EXPECT_EQ(ResourceType::from_extension("rml"), ResourceType::rml);
+    EXPECT_EQ(ResourceType::from_extension(".rcss"), ResourceType::rcss);
     EXPECT_EQ(ResourceType::from_extension("xxx"), ResourceType::invalid);
 
     EXPECT_EQ(ResourceType::to_string(ResourceType::txi), "txi"s);
+    EXPECT_EQ(ResourceType::to_string(ResourceType::rml), "rml"s);
+    EXPECT_EQ(ResourceType::to_string(ResourceType::rcss), "rcss"s);
 }
 
 // == ResourceManager =========================================================
@@ -401,6 +470,78 @@ TEST(KernelResources, LoadModule)
 {
     auto rm = new nw::ResourceManager{nwk::global_allocator()};
     EXPECT_TRUE(rm->load_module("test_data/user/modules/DockerDemo.mod"));
+    delete rm;
+}
+
+TEST(KernelResources, LoadModuleHaksUsesDefaultUserRoot)
+{
+    auto rm = new nw::ResourceManager{nwk::global_allocator()};
+    nw::Vector<nw::String> haks{"hak_with_description"};
+    EXPECT_EQ(rm->load_module_haks(haks), 1);
+    rm->build_registry();
+
+    auto data = rm->demand({"build"sv, nw::ResourceType::txt});
+    EXPECT_GT(data.bytes.size(), 0);
+    delete rm;
+}
+
+TEST(KernelResources, LoadModuleHaksUsesSearchRootsInOrder)
+{
+    const fs::path root = "tmp/resman_hak_roots";
+    fs::remove_all(root);
+    fs::create_directories(root / "local");
+    fs::create_directories(root / "fallback" / "project_dep");
+    fs::copy_file("test_data/user/hak/hak_with_description.hak",
+        root / "local" / "project_dep.hak",
+        fs::copy_options::overwrite_existing);
+    {
+        std::ofstream out{root / "fallback" / "project_dep" / "build.txt"};
+        ASSERT_TRUE(out);
+        out << "fallback\n";
+    }
+
+    auto rm = new nw::ResourceManager{nwk::global_allocator()};
+    nw::Vector<nw::String> haks{"project_dep"};
+    nw::Vector<fs::path> roots{root / "local", root / "fallback"};
+    EXPECT_EQ(rm->load_module_haks(haks, roots), 1);
+    rm->build_registry();
+
+    auto data = rm->demand({"build"sv, nw::ResourceType::txt});
+    ASSERT_GT(data.bytes.size(), 0);
+    EXPECT_NE(data.bytes.string_view(), "fallback\n");
+    delete rm;
+}
+
+TEST(KernelResources, LoadModuleHaksAcceptsExtensionAndCaseVariants)
+{
+    const fs::path root = "tmp/resman_hak_extension_case";
+    fs::remove_all(root);
+    fs::create_directories(root);
+    fs::copy_file("test_data/user/hak/hak_with_description.hak",
+        root / "Project_Dep.HAK",
+        fs::copy_options::overwrite_existing);
+
+    auto rm = new nw::ResourceManager{nwk::global_allocator()};
+    nw::Vector<nw::String> haks{"project_dep.hak"};
+    nw::Vector<fs::path> roots{root};
+    EXPECT_EQ(rm->load_module_haks(haks, roots), 1);
+    rm->build_registry();
+
+    auto data = rm->demand({"build"sv, nw::ResourceType::txt});
+    EXPECT_GT(data.bytes.size(), 0);
+    delete rm;
+}
+
+TEST(KernelResources, LoadModuleHaksReportsMissing)
+{
+    const fs::path root = "tmp/resman_missing_hak_roots";
+    fs::remove_all(root);
+    fs::create_directories(root);
+
+    auto rm = new nw::ResourceManager{nwk::global_allocator()};
+    nw::Vector<nw::String> haks{"does_not_exist"};
+    nw::Vector<fs::path> roots{root};
+    EXPECT_EQ(rm->load_module_haks(haks, roots), 0);
     delete rm;
 }
 

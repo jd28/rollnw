@@ -305,6 +305,29 @@ TEST(RenderParticles, TickEnforcesPerEmitterParticleCap)
     EXPECT_EQ(system.live_particles_per_emitter[1], 4u);
 }
 
+TEST(RenderParticles, TickClampsNegativeEmissionRate)
+{
+    ParticleEffectDef effect;
+    effect.materials.push_back(ParticleMaterialDef{});
+
+    ParticleEmitterDef emitter;
+    emitter.render.material = 0;
+    emitter.emission.mode = ParticleEmissionMode::continuous;
+    emitter.emission.metric = ParticleSpawnMetric::per_second;
+    emitter.emission.rate = -430.0f;
+    emitter.initial.lifetime = {1.0f, 1.0f};
+    emitter.max_particles = 8;
+    effect.emitters.push_back(emitter);
+
+    auto compiled = compile_particle_effect(effect).effect;
+    auto system = create_particle_system(compiled);
+
+    tick_particle_system(system, 1.0f);
+
+    EXPECT_TRUE(system.particles.core.age.empty());
+    EXPECT_EQ(system.live_particles_per_emitter[0], 0u);
+}
+
 TEST(RenderParticles, TickHandlesEmittersWithoutCompiledMaterials)
 {
     ParticleEffectDef effect;

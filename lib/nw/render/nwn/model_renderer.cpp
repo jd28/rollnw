@@ -228,7 +228,8 @@ static void draw_shadow_mesh_item(ModelRenderContext& render_ctx, nw::gfx::Comma
         nw::gfx::cmd_bind_pipeline(cmd, pipeline);
         nw::gfx::cmd_bind_vertex_buffer(cmd, mesh->vertices, static_cast<uint32_t>(vertex_stride));
         nw::gfx::cmd_bind_index_buffer(cmd, mesh->indices, sizeof(uint16_t));
-        nw::gfx::cmd_bind_resources(cmd, pipeline, uniforms, bone_span);
+        nw::gfx::cmd_bind_resources(cmd, pipeline, uniforms,
+            nw::gfx::StorageSpan{render_ctx.gpu->plt_palette_buffer()}, bone_span);
         nw::gfx::cmd_draw_indexed(cmd, mesh->index_count);
         return;
     }

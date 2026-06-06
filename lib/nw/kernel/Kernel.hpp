@@ -7,6 +7,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
+#include <filesystem>
 #include <typeindex>
 
 namespace nw {
@@ -23,6 +24,11 @@ struct Runtime;
 }
 
 namespace kernel {
+
+struct ModuleLoadOptions {
+    Vector<std::filesystem::path> hak_roots;
+    Vector<std::filesystem::path> tlk_roots;
+};
 
 /// Guides services on load order.
 enum struct ServiceInitTime {
@@ -102,7 +108,7 @@ struct Services {
 
     friend GlobalMemory* global_allocator();
     friend void set_game_profile(GameProfile*);
-    friend Module* load_module(const std::filesystem::path& path, bool instantiate);
+    friend Module* load_module(const std::filesystem::path& path, bool instantiate, const ModuleLoadOptions& options);
     friend nlohmann::json stats();
     friend void unload_module();
 
@@ -177,10 +183,15 @@ EffectSystem& effects();
 /// Gets services
 [[nodiscard]] Services& services();
 
+/// Builds module dependency roots for an Arclight-style project directory.
+[[nodiscard]] ModuleLoadOptions module_load_options_for_project(const std::filesystem::path& project_dir);
+
 /// Loads a module
 /// If instantiate is false, no areas are loaded and Service::initialize at ``module_post_instantiation``
 /// is not called.
-[[nodiscard]] Module* load_module(const std::filesystem::path& path, bool instantiate = true);
+[[nodiscard]] Module* load_module(const std::filesystem::path& path,
+    bool instantiate = true,
+    const ModuleLoadOptions& options = {});
 
 /// Logs service stats
 nlohmann::json stats();

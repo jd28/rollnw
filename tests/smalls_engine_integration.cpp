@@ -1589,6 +1589,10 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
         fn main(race_id: int, ability: int): int {
             return races.ability_modifier(race_id, ability);
         }
+
+        fn race_size(race_id: int): int {
+            return races.size(race_id);
+        }
     )";
 
     auto* script = rt.load_module_from_source("test.load_config_races", source);
@@ -1610,6 +1614,14 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
             EXPECT_EQ(result.value.data.ival, race_entries[race].ability_modifiers[ability])
                 << "race=" << race << " ability=" << ability;
         }
+
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(race));
+
+        auto size_result = rt.execute_script(script, "race_size", args);
+        ASSERT_TRUE(size_result.ok()) << size_result.error_message;
+        EXPECT_EQ(size_result.value.data.ival, nwn1::creature_size_medium)
+            << "race=" << race;
     }
 }
 

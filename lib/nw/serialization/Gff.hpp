@@ -15,6 +15,7 @@
 #include <cstring>
 #include <filesystem>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace nw {
@@ -103,6 +104,10 @@ struct Gff {
     Gff() = default;
     explicit Gff(const std::filesystem::path& file, nw::LanguageID lang = nw::LanguageID::english);
     explicit Gff(ResourceData data, nw::LanguageID lang = nw::LanguageID::english);
+    Gff(const Gff&) = delete;
+    Gff(Gff&&) = delete;
+    Gff& operator=(const Gff&) = delete;
+    Gff& operator=(Gff&&) = delete;
 
     /// Get the toplevel struct
     GffStruct toplevel() const;
@@ -112,6 +117,9 @@ struct Gff {
 
     /// Get if Gff file successfully parsed
     bool valid() const;
+
+    /// Parse error message when ``valid()`` is false.
+    const std::string& error() const noexcept { return error_; }
 
     /// Get the Gff Version
     StringView version() const { return valid() && head_ ? StringView{head_->version, 4} : StringView{}; }
@@ -134,9 +142,11 @@ private:
     std::vector<GffFieldEntry> fields_storage_;
     std::vector<uint32_t> field_indices_storage_;
     std::vector<uint32_t> list_indices_storage_;
+    std::string error_;
     bool is_loaded_ = false;
     nw::LanguageID lang_ = nw::LanguageID::english;
 
+    bool fail(std::string message);
     bool parse();
 };
 

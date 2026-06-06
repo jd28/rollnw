@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 namespace nw {
 
@@ -42,19 +43,24 @@ size_t GffField::size() const
         return 0;
     }
 
+    if (entry_->type != SerializationType::list) {
+        return 0;
+    }
+
     if (entry_->data_or_offset % 4 != 0) {
         LOG_F(ERROR, "invalid non-word-aligned list index offset: {}", entry_->data_or_offset);
         return {};
     }
 
     if (entry_->data_or_offset + 4 > parent_->head_->list_idx_count) {
-        LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
+        LOG_F(ERROR, "invalid list index: {} in {}.{}",
+            entry_->data_or_offset,
+            parent_->data_.name.filename(),
+            name());
         return {};
     }
 
-    return entry_->type == SerializationType::list
-        ? parent_->list_indices_[entry_->data_or_offset / 4] // This a byte offset into list indices, not an index
-        : 0;                                                 // itself.
+    return parent_->list_indices_[entry_->data_or_offset / 4]; // This is a byte offset into list indices, not an index.
 }
 
 SerializationType::type GffField::type() const
@@ -74,13 +80,20 @@ GffStruct GffField::operator[](size_t index) const
         return {};
     }
 
+    if (entry_->type != SerializationType::list) {
+        return {};
+    }
+
     if (entry_->data_or_offset % 4 != 0) {
         LOG_F(ERROR, "invalid non-word-aligned list index offset: {}", entry_->data_or_offset);
         return {};
     }
 
     if (entry_->data_or_offset + 4 > parent_->head_->list_idx_count) {
-        LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
+        LOG_F(ERROR, "invalid list index: {} in {}.{}",
+            entry_->data_or_offset,
+            parent_->data_.name.filename(),
+            name());
         return {};
     }
 
@@ -217,24 +230,31 @@ bool Gff::valid() const
     return is_loaded_;
 }
 
-#define CHECK_OFF(cond)                                              \
-    do {                                                             \
-        if (!(cond)) {                                               \
-            LOG_F(ERROR, "Corrupt GFF: {}", ROLLNW_STRINGIFY(cond)); \
-            return false;                                            \
-        }                                                            \
+bool Gff::fail(std::string message)
+{
+    error_ = std::move(message);
+    LOG_F(ERROR, "{}", error_);
+    return false;
+}
+
+#define CHECK_OFF(cond)                                           \
+    do {                                                          \
+        if (!(cond)) {                                            \
+            return fail("Corrupt GFF: " ROLLNW_STRINGIFY(cond)); \
+        }                                                         \
     } while (0)
 
 bool Gff::parse()
 {
+    error_.clear();
+
     auto in_bounds = [size = data_.bytes.size()](size_t offset, size_t bytes) {
         if (offset > size) { return false; }
         return bytes <= (size - offset);
     };
 
     if (!in_bounds(0, sizeof(GffHeader))) {
-        LOG_F(ERROR, "Corrupt GFF: header out of bounds");
-        return false;
+        return fail("Corrupt GFF: header out of bounds");
     }
 
     std::memcpy(&header_storage_, data_.bytes.data(), sizeof(GffHeader));

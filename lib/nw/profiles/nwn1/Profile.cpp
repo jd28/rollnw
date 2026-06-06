@@ -28,14 +28,141 @@ using namespace std::literals;
 
 namespace nwn1 {
 
+namespace {
+
+void register_race_twoda_config_converter()
+{
+    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
+    nw::kernel::runtime().register_twoda_converter("nwn1.data.races", "racialtypes", {
+                                                                                         CM{"Name", "name"},
+                                                                                         CM{"StrAdjust", "abilities[0]"},
+                                                                                         CM{"DexAdjust", "abilities[1]"},
+                                                                                         CM{"ConAdjust", "abilities[2]"},
+                                                                                         CM{"IntAdjust", "abilities[3]"},
+                                                                                         CM{"WisAdjust", "abilities[4]"},
+                                                                                         CM{"ChaAdjust", "abilities[5]"},
+                                                                                         CM{"CRModifier", "cr_modifier"},
+                                                                                         CM{"PlayerRace", "player_race"},
+                                                                                     });
+}
+
+void register_twoda_config_converters()
+{
+    // Register 2da-based converters for smalls load_config! paths before any
+    // object callbacks can force scripts to load these modules.
+    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
+    auto& srt = nw::kernel::runtime();
+
+    // Scan classes.2da for unique SavingThrowTable and AttackBonusTable values
+    // and assign stable integer IDs (sorted alphabetically for consistency with datagen).
+    nw::Vector<std::pair<nw::String, int32_t>> save_table_enum;
+    nw::Vector<std::pair<nw::String, int32_t>> atk_table_enum;
+    {
+        auto* cls_tda = nw::kernel::twodas().get("classes");
+        if (cls_tda) {
+            std::map<std::string, int32_t> save_map, atk_map;
+            for (size_t i = 0; i < cls_tda->rows(); ++i) {
+                nw::String tbl;
+                if (cls_tda->get_to(i, "SavingThrowTable", tbl) && !tbl.empty()) {
+                    save_map.emplace(tbl, 0);
+                }
+                if (cls_tda->get_to(i, "AttackBonusTable", tbl) && !tbl.empty()) {
+                    atk_map.emplace(tbl, 0);
+                }
+            }
+            int32_t id = 0;
+            for (auto& [name, _] : save_map) { save_table_enum.push_back({name, id++}); }
+            id = 0;
+            for (auto& [name, _] : atk_map) { atk_table_enum.push_back({name, id++}); }
+        }
+    }
+
+    srt.register_twoda_converter("nwn1.data.classes", "classes", {
+                                                                     CM{"STRING_REF", "name"},
+                                                                     CM{"HitDie", "hit_die"},
+                                                                     CM{"SavingThrowTable", "saves_table", save_table_enum},
+                                                                     CM{"AttackBonusTable", "attack_table", atk_table_enum},
+                                                                     CM{"SpellCaster", "spellcaster"},
+                                                                     CM{"SpellcastingAbil", "caster_ability", {
+                                                                                                                  {"str", 0},
+                                                                                                                  {"dex", 1},
+                                                                                                                  {"con", 2},
+                                                                                                                  {"int", 3},
+                                                                                                                  {"wis", 4},
+                                                                                                                  {"cha", 5},
+                                                                                                              }},
+                                                                 });
+    srt.register_twoda_converter("nwn1.data.spells", "spells", {
+                                                                    CM{"Innate", "innate_level"},
+                                                                    CM{"UserType", "user_type"},
+                                                                    CM{"School", "school", {
+                                                                                               {"G", 0},
+                                                                                               {"A", 1},
+                                                                                               {"C", 2},
+                                                                                               {"D", 3},
+                                                                                               {"E", 4},
+                                                                                               {"V", 5},
+                                                                                               {"I", 6},
+                                                                                               {"N", 7},
+                                                                                               {"T", 8},
+                                                                                           }},
+                                                                });
+    srt.register_twoda_converter("nwn1.data.feats", "feat", {
+                                                                CM{"FEAT", "name"},
+                                                                CM{"MINLEVELCLASS", "min_level"},
+                                                                CM{"MAXCR", "max_cr"},
+                                                                CM{"PASSIVE", "passive"},
+                                                                CM{"USESPERDAY", "uses"},
+                                                                CM{"PreReqEpic", "epic"},
+                                                                CM{"MASTERFEAT", "master"},
+                                                                CM{"SUCCESSOR", "successor"},
+                                                            });
+    srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
+                                                                         CM{"Name", "name"},
+                                                                         CM{"Stacking", "stack_size"},
+                                                                         CM{"NumDice", "damage_num"},
+                                                                         CM{"DieToRoll", "damage_die"},
+                                                                         CM{"CritThreat", "crit_threat"},
+                                                                         CM{"CritHitMult", "crit_multiplier"},
+                                                                         CM{"WeaponType", "weapon_type"},
+                                                                         CM{"RangedWeapon", "ranged"},
+                                                                         CM{"WeaponFocusFeat", "weapon_focus_feat"},
+                                                                         CM{"EpicWeaponFocusFeat", "epic_weapon_focus_feat"},
+                                                                         CM{"WeaponSpecializationFeat", "weapon_specialization_feat"},
+                                                                         CM{"EpicWeaponSpecializationFeat", "epic_weapon_specialization_feat"},
+                                                                         CM{"WeaponImprovedCriticalFeat", "weapon_improved_critical_feat"},
+                                                                         CM{"EpicWeaponOverwhelmingCriticalFeat", "epic_weapon_overwhelming_critical_feat"},
+                                                                         CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
+                                                                         CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
+                                                                     });
+    srt.register_twoda_converter("nwn1.data.skills", "skills", {
+                                                                      CM{"Name", "name"},
+                                                                      CM{"Untrained", "untrained"},
+                                                                      CM{"KeyAbility", "ability", {
+                                                                                                      {"str", 0},
+                                                                                                      {"dex", 1},
+                                                                                                      {"con", 2},
+                                                                                                      {"int", 3},
+                                                                                                      {"wis", 4},
+                                                                                                      {"cha", 5},
+                                                                                                  }},
+                                                                      CM{"ArmorCheckPenalty", "armor_check_penalty"},
+                                                                  });
+    register_race_twoda_config_converter();
+}
+
+} // namespace
+
 void Profile::load_custom_services()
 {
     nw::kernel::runtime().add_module_path(std::filesystem::path("stdlib") / "nwn1");
+    register_race_twoda_config_converter();
 }
 
 bool Profile::load_rules() const
 {
     LOG_F(INFO, "[nwn1] loading rules...");
+    register_twoda_config_converters();
 
     // == Load Rules ==========================================================
 
@@ -471,117 +598,6 @@ bool Profile::load_rules() const
             }
         }
     }
-
-    // Register 2da-based converters for smalls load_config! paths
-    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
-    auto& srt = nw::kernel::runtime();
-
-    // Scan classes.2da for unique SavingThrowTable and AttackBonusTable values
-    // and assign stable integer IDs (sorted alphabetically for consistency with datagen).
-    nw::Vector<std::pair<nw::String, int32_t>> save_table_enum;
-    nw::Vector<std::pair<nw::String, int32_t>> atk_table_enum;
-    {
-        auto* cls_tda = nw::kernel::twodas().get("classes");
-        if (cls_tda) {
-            std::map<std::string, int32_t> save_map, atk_map;
-            for (size_t i = 0; i < cls_tda->rows(); ++i) {
-                nw::String tbl;
-                if (cls_tda->get_to(i, "SavingThrowTable", tbl) && !tbl.empty()) {
-                    save_map.emplace(tbl, 0);
-                }
-                if (cls_tda->get_to(i, "AttackBonusTable", tbl) && !tbl.empty()) {
-                    atk_map.emplace(tbl, 0);
-                }
-            }
-            int32_t id = 0;
-            for (auto& [name, _] : save_map) { save_table_enum.push_back({name, id++}); }
-            id = 0;
-            for (auto& [name, _] : atk_map) { atk_table_enum.push_back({name, id++}); }
-        }
-    }
-
-    srt.register_twoda_converter("nwn1.data.classes", "classes", {
-                                                                     CM{"STRING_REF", "name"},
-                                                                     CM{"HitDie", "hit_die"},
-                                                                     CM{"SavingThrowTable", "saves_table", save_table_enum},
-                                                                     CM{"AttackBonusTable", "attack_table", atk_table_enum},
-                                                                     CM{"SpellCaster", "spellcaster"},
-                                                                     CM{"SpellcastingAbil", "caster_ability", {
-                                                                                                                  {"str", 0},
-                                                                                                                  {"dex", 1},
-                                                                                                                  {"con", 2},
-                                                                                                                  {"int", 3},
-                                                                                                                  {"wis", 4},
-                                                                                                                  {"cha", 5},
-                                                                                                              }},
-                                                                 });
-    srt.register_twoda_converter("nwn1.data.spells", "spells", {
-                                                                    CM{"Innate", "innate_level"},
-                                                                    CM{"UserType", "user_type"},
-                                                                    CM{"School", "school", {
-                                                                                               {"G", 0},
-                                                                                               {"A", 1},
-                                                                                               {"C", 2},
-                                                                                               {"D", 3},
-                                                                                               {"E", 4},
-                                                                                               {"V", 5},
-                                                                                               {"I", 6},
-                                                                                               {"N", 7},
-                                                                                               {"T", 8},
-                                                                                           }},
-                                                                });
-    srt.register_twoda_converter("nwn1.data.feats", "feat", {
-                                                                CM{"FEAT", "name"},
-                                                                CM{"MINLEVELCLASS", "min_level"},
-                                                                CM{"MAXCR", "max_cr"},
-                                                                CM{"PASSIVE", "passive"},
-                                                                CM{"USESPERDAY", "uses"},
-                                                                CM{"PreReqEpic", "epic"},
-                                                                CM{"MASTERFEAT", "master"},
-                                                                CM{"SUCCESSOR", "successor"},
-                                                            });
-    srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
-                                                                         CM{"Name", "name"},
-                                                                         CM{"Stacking", "stack_size"},
-                                                                         CM{"NumDice", "damage_num"},
-                                                                         CM{"DieToRoll", "damage_die"},
-                                                                         CM{"CritThreat", "crit_threat"},
-                                                                         CM{"CritHitMult", "crit_multiplier"},
-                                                                         CM{"WeaponType", "weapon_type"},
-                                                                         CM{"RangedWeapon", "ranged"},
-                                                                         CM{"WeaponFocusFeat", "weapon_focus_feat"},
-                                                                         CM{"EpicWeaponFocusFeat", "epic_weapon_focus_feat"},
-                                                                         CM{"WeaponSpecializationFeat", "weapon_specialization_feat"},
-                                                                         CM{"EpicWeaponSpecializationFeat", "epic_weapon_specialization_feat"},
-                                                                         CM{"WeaponImprovedCriticalFeat", "weapon_improved_critical_feat"},
-                                                                         CM{"EpicWeaponOverwhelmingCriticalFeat", "epic_weapon_overwhelming_critical_feat"},
-                                                                         CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
-                                                                         CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
-                                                                     });
-    srt.register_twoda_converter("nwn1.data.skills", "skills", {
-                                                                      CM{"Name", "name"},
-                                                                      CM{"Untrained", "untrained"},
-                                                                      CM{"KeyAbility", "ability", {
-                                                                                                      {"str", 0},
-                                                                                                      {"dex", 1},
-                                                                                                      {"con", 2},
-                                                                                                      {"int", 3},
-                                                                                                      {"wis", 4},
-                                                                                                      {"cha", 5},
-                                                                                                  }},
-                                                                      CM{"ArmorCheckPenalty", "armor_check_penalty"},
-                                                                  });
-    srt.register_twoda_converter("nwn1.data.races", "racialtypes", {
-                                                                       CM{"Name", "name"},
-                                                                       CM{"StrAdjust", "abilities[0]"},
-                                                                       CM{"DexAdjust", "abilities[1]"},
-                                                                       CM{"ConAdjust", "abilities[2]"},
-                                                                       CM{"IntAdjust", "abilities[3]"},
-                                                                       CM{"WisAdjust", "abilities[4]"},
-                                                                       CM{"ChaAdjust", "abilities[5]"},
-                                                                       CM{"CRModifier", "cr_modifier"},
-                                                                       CM{"PlayerRace", "player_race"},
-                                                                   });
 
     return true;
 }

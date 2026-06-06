@@ -96,6 +96,16 @@ Resource::Resource(StringView resref_, ResourceType::type type_) noexcept
 
 Resource Resource::from_filename(StringView filename)
 {
+    String full_filename{filename};
+    String suffix = complete_file_suffix(full_filename);
+    if (string::endswith(suffix, ".json")) {
+        suffix.resize(suffix.size() - 5);
+        const auto authored_type = ResourceType::from_extension(suffix);
+        if (authored_type != ResourceType::invalid) {
+            return Resource{filename.substr(0, filename.size() - suffix.size() - 5), authored_type};
+        }
+    }
+
     auto it = filename.find('.');
     if (it != String::npos) {
         return Resource{filename.substr(0, it), ResourceType::from_extension(filename.substr(it))};
@@ -105,19 +115,28 @@ Resource Resource::from_filename(StringView filename)
 
 Resource Resource::from_path(const std::filesystem::path& path, bool preserve_path)
 {
-    String ext = path_to_string(path.extension());
+    auto resource_path = path;
+    String ext = path_to_string(resource_path.extension());
+    auto type = ResourceType::from_extension(ext);
+    resource_path.replace_extension();
+
+    if (type == ResourceType::json) {
+        const auto authored_type = ResourceType::from_extension(path_to_string(resource_path.extension()));
+        if (authored_type != ResourceType::invalid) {
+            type = authored_type;
+            resource_path.replace_extension();
+        }
+    }
 
     String resref;
     if (preserve_path) {
-        std::filesystem::path without_ext = path;
-        without_ext.replace_extension();
-        resref = path_to_string(without_ext);
+        resref = path_to_string(resource_path);
         std::replace(resref.begin(), resref.end(), '\\', '/');
     } else {
-        resref = path_to_string(path.stem());
+        resref = path_to_string(resource_path.filename());
     }
 
-    return {resref, ResourceType::from_extension(ext)};
+    return {resref, type};
 }
 
 bool Resource::valid() const noexcept

@@ -22,8 +22,8 @@ struct PltColors;
 struct Image {
     Image() = default;
     explicit Image(const Plt& plt, const PltColors& colors);
-    explicit Image(const std::filesystem::path& filename);
-    explicit Image(ResourceData data);
+    explicit Image(const std::filesystem::path& filename, bool log_errors = true);
+    explicit Image(ResourceData data, bool log_errors = true);
 
     Image(Image&& other);
     Image(const Image& other) = delete;
@@ -65,6 +65,7 @@ private:
     uint32_t width_ = 0;
     bool is_dds_ = false;
     bool is_bio_dds_ = false;
+    bool log_errors_ = true;
 
     bool parse();
     bool parse_dds();

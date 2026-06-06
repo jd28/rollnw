@@ -65,6 +65,12 @@ bool should_disable_random_sheet_start_for_additive_flare(
     return true;
 }
 
+float sanitize_emission_rate(float value)
+{
+    if (!std::isfinite(value)) { return 0.0f; }
+    return std::max(value, 0.0f);
+}
+
 glm::vec3 spawn_position(ParticleEmitterState& state, const CompiledParticleEmitter& emitter, const glm::vec3& base_position)
 {
     glm::vec3 position = base_position;
@@ -1017,7 +1023,7 @@ void build_particle_tick_order(const ParticleCoreStorage& core, std::vector<uint
 
 float single_shot_repeat_interval(const CompiledParticleEmitter& emitter, const ParticleEmitterState& state)
 {
-    const float emission_rate = std::max(0.0f, eval_keyed_scalar_track(emitter.emission_rate_track, state.time));
+    const float emission_rate = sanitize_emission_rate(eval_keyed_scalar_track(emitter.emission_rate_track, state.time));
     if (emission_rate > 0.0f) {
         return 1.0f / emission_rate;
     }
@@ -1099,6 +1105,9 @@ ReservedParticleRange reserve_spawn_range(ParticleSystemInstance& system, uint16
     auto& core = system.particles.core;
     const auto& emitter = system.effect->emitters[emitter_id];
     auto& live_particles = system.live_particles_per_emitter;
+    if (core.age.size() >= system.effect->max_particles_total || live_particles[emitter_id] >= emitter.max_particles) {
+        return {.begin = core.age.size(), .count = 0};
+    }
     const uint32_t available_total =
         static_cast<uint32_t>(std::min<size_t>(std::numeric_limits<uint32_t>::max(), system.effect->max_particles_total - core.age.size()));
     const uint32_t available_emitter = emitter.max_particles - live_particles[emitter_id];
@@ -1202,7 +1211,7 @@ void spawn_continuous_particles(ParticleSystemInstance& system, uint16_t emitter
     const auto simulation_space = effective_simulation_space(emitter);
     const bool emit_in_current_emitter_space = (simulation_space == ParticleSimulationSpace::local
         || simulation_space == ParticleSimulationSpace::emitter_attached);
-    float emission_rate = eval_keyed_scalar_track(emitter.emission_rate_track, state.time);
+    const float emission_rate = sanitize_emission_rate(eval_keyed_scalar_track(emitter.emission_rate_track, state.time));
 
     if (emitter.emission.metric == ParticleSpawnMetric::per_second) {
         state.spawn_accumulator += emission_rate * dt;
@@ -1483,7 +1492,7 @@ void spawn_pending_bursts(ParticleSystemInstance& system, uint16_t emitter_id, c
     auto& state = system.emitters[emitter_id];
     if (state.pending_bursts == 0) { return; }
 
-    const float emission_rate = eval_keyed_scalar_track(emitter.emission_rate_track, state.time);
+    const float emission_rate = sanitize_emission_rate(eval_keyed_scalar_track(emitter.emission_rate_track, state.time));
     const float particles_per_burst_f = emitter.emission.trigger_on_effect_events
         ? emission_rate * std::max(emitter.emission.effect_event_period, 0.0f)
         : emission_rate;

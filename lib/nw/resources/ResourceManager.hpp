@@ -69,8 +69,11 @@ struct ResourceManager final : public kernel::Service {
     /// Loads container resources for a module
     bool load_module(std::filesystem::path path);
 
-    /// Loads module haks
-    void load_module_haks(const Vector<String>& haks);
+    /// Loads module haks from the configured user hak directory.
+    size_t load_module_haks(const Vector<String>& haks);
+
+    /// Loads module haks from the given search roots in order.
+    size_t load_module_haks(const Vector<String>& haks, const Vector<std::filesystem::path>& roots);
 
     /// Logs service metrics
     nlohmann::json stats() const override;

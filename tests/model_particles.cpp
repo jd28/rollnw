@@ -353,6 +353,24 @@ TEST(ModelParticles, ImportSpawnAnimatedSpriteSheetCurves)
     EXPECT_FALSE(emitter->spawn_over_time.sheet_random_start.keys.empty());
 }
 
+TEST(ModelParticles, ImportNegativeBirthrateClampsParticleBudget)
+{
+    nw::model::Mdl mdl{"../tests/test_data/user/development/fx_step_stbrdg.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto import = nw::model::import_particle_effect(mdl, {}, false);
+    ASSERT_EQ(import.effect.emitters.size(), 1u);
+
+    const auto& emitter = import.effect.emitters.front();
+    EXPECT_FLOAT_EQ(emitter.emission.rate, 0.0f);
+    EXPECT_LE(emitter.max_particles, 2u);
+
+    auto compiled = nw::render::compile_particle_effect(import.effect).effect;
+    EXPECT_LE(compiled.max_particles_total, 2u);
+    auto system = nw::render::create_particle_system(compiled);
+    EXPECT_LE(system.particles.core.position.capacity(), 2u);
+}
+
 TEST(ModelParticles, ImportThreeStageOverLifeCurves)
 {
     nw::model::Mdl mdl{"../tests/test_data/user/development/vfx_midcurve_test.mdl"};
