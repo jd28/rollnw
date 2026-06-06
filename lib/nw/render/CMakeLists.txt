@@ -19,10 +19,7 @@ if(WIN32)
         URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip
         URL_HASH SHA256=a1e89031421cf3c1fca6627766ab3020ca4f962ac7e2caa7fab2b33a8436151e
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    FetchContent_GetProperties(dxc_prebuilt)
-    if(NOT dxc_prebuilt_POPULATED)
-        FetchContent_Populate(dxc_prebuilt)
-    endif()
+    FetchContent_MakeAvailable(dxc_prebuilt)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set(DXC_ARCH x64)
@@ -68,10 +65,7 @@ elseif(UNIX)
         URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz
         URL_HASH SHA256=b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    FetchContent_GetProperties(dxc_prebuilt)
-    if(NOT dxc_prebuilt_POPULATED)
-        FetchContent_Populate(dxc_prebuilt)
-    endif()
+    FetchContent_MakeAvailable(dxc_prebuilt)
 
     find_path(DXC_INCLUDE_DIR
         NAMES dxc/dxcapi.h dxcapi.h
@@ -130,3 +124,20 @@ add_library(nw-render-gltf STATIC
 target_include_directories(nw-render-gltf PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 target_include_directories(nw-render-gltf SYSTEM PUBLIC ${ROLLNW_CGLTF_DIR})
 target_link_libraries(nw-render-gltf PUBLIC nw-render)
+
+add_library(nw-render-viewer STATIC
+    viewer/camera.cpp
+    viewer/device.cpp
+    viewer/preview_object.cpp
+    viewer/preview_plt.cpp
+    viewer/preview_scene.cpp
+    viewer/renderer.cpp
+    viewer/session.cpp)
+target_include_directories(nw-render-viewer PUBLIC ${CMAKE_SOURCE_DIR}/lib)
+target_include_directories(nw-render-viewer SYSTEM PUBLIC
+    ${CMAKE_SOURCE_DIR}/external
+    ${CMAKE_SOURCE_DIR}/external/glm)
+target_link_libraries(nw-render-viewer PUBLIC
+    nw-render
+    nw-render-gltf
+    nw-render-nwn)
