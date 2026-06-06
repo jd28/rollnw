@@ -35,17 +35,12 @@ target_link_libraries(mudl-imgui PUBLIC
 add_executable(mudl
     main.cpp
     app_runtime.cpp
-    camera.cpp
     imgui_runtime.cpp
     mudl_cli.cpp
     mudl_commands.cpp
     particle_tools.cpp
     progfx.cpp
     stock_spell_fx.cpp
-    preview_object.cpp
-    preview_plt.cpp
-    preview_scene.cpp
-    renderer.cpp
     visual_corpus.cpp
     viewer_runtime.cpp
 )
@@ -69,6 +64,7 @@ target_link_libraries(mudl PRIVATE
     nw-render-gltf
     nw-render-nwn
     nw-render-ozz
+    nw-render-viewer
 )
 
 if(UNIX)

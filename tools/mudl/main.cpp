@@ -2,12 +2,10 @@
 // Main entry point
 
 #include "app_runtime.hpp"
-#include "camera.hpp"
 #include "imgui_runtime.hpp"
 #include "mudl_cli.hpp"
 #include "mudl_commands.hpp"
 #include "particle_tools.hpp"
-#include "renderer.hpp"
 #include "visual_corpus.hpp"
 #include "viewer_runtime.hpp"
 
@@ -15,12 +13,18 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
 #include <nw/render/nwn/model_loader.hpp>
+#include <nw/render/viewer/camera.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/viewer/renderer.hpp>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <nlohmann/json.hpp>
+
 #include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
@@ -32,6 +36,55 @@ using nw::render::nwn::set_dangly_debug_scale;
 using nw::render::nwn::set_dangly_mode;
 
 static constexpr std::string_view kSmokeTestModel = "c_aribeth";
+
+static nlohmann::json load_report_json(const nw::render::viewer::PreviewLoadReport& report)
+{
+    nlohmann::json resources = nlohmann::json::array();
+    for (const auto& resource : report.resources) {
+        resources.push_back({
+            {"resource", resource.resource.filename()},
+            {"resref", resource.resource.resref.string()},
+            {"type", std::string(nw::ResourceType::to_string(resource.resource.type))},
+            {"status", std::string(nw::render::viewer::preview_load_resource_status_label(resource.status))},
+            {"origins", resource.origins},
+        });
+    }
+
+    nlohmann::json particles = nlohmann::json::array();
+    for (const auto& particle : report.particles) {
+        particles.push_back({
+            {"owner", particle.owner},
+            {"emitter_count", particle.emitter_count},
+            {"max_particles_total", particle.max_particles_total},
+            {"import_warning_count", particle.import_warning_count},
+            {"compile_warning_count", particle.compile_warning_count},
+            {"effect_event_count", particle.effect_event_count},
+        });
+    }
+
+    nlohmann::json events = nlohmann::json::array();
+    for (const auto& event : report.events) {
+        events.push_back({
+            {"severity", std::string(nw::render::viewer::preview_load_event_severity_label(event.severity))},
+            {"category", event.category},
+            {"message", event.message},
+        });
+    }
+
+    return {
+        {"source", report.source},
+        {"kind", report.kind},
+        {"model_count", report.model_names.size()},
+        {"models", report.model_names},
+        {"resource_count", report.resources.size()},
+        {"missing_resource_count", report.missing_resource_count()},
+        {"warning_count", report.warning_count()},
+        {"error_count", report.error_count()},
+        {"resources", std::move(resources)},
+        {"particles", std::move(particles)},
+        {"events", std::move(events)},
+    };
+}
 
 static int run_kernel_command(std::string_view module_path, std::string_view user_path, const std::function<int()>& fn)
 {
@@ -73,6 +126,14 @@ int main(int argc, char* argv[])
     }
 
     LOG_F(INFO, "mudl starting...");
+
+    if (args.command == "report") {
+        return run_kernel_command(args.module_path, args.user_path, [&] {
+            const auto report = nw::render::viewer::build_preview_load_report(args.initial_model, args.animation_override);
+            std::cout << load_report_json(report).dump(2) << '\n' << std::flush;
+            return report.error_count() == 0 ? 0 : 1;
+        });
+    }
 
     if (args.command == "particle-preview") {
         return run_kernel_command(args.module_path, args.user_path, [&] {
@@ -183,7 +244,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    state.camera = std::make_unique<Camera>();
+    state.camera = std::make_unique<nw::render::viewer::Camera>();
     state.camera->set_aspect_ratio(1280.0f / 720.0f);
     if (window) { init_imgui(state, window); }
 
@@ -232,7 +293,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    state.renderer = std::make_unique<Renderer>(state.gfx_context);
+    state.renderer = std::make_unique<nw::render::viewer::Renderer>(state.gfx_context);
     if (!state.renderer->initialize(state.shader_provider.get())) {
         LOG_F(ERROR, "Failed to initialize renderer");
         state.renderer.reset();

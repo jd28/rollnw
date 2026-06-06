@@ -91,7 +91,7 @@ bool is_ring_emitter_name(const std::string& name)
     return name.rfind("ring", 0) == 0;
 }
 
-bool set_emitter_visibility_by_name_prefix(SceneParticleSystem& scene_particles, bool prefix_visible)
+bool set_emitter_visibility_by_name_prefix(nw::render::viewer::SceneParticleSystem& scene_particles, bool prefix_visible)
 {
     bool changed = false;
     const size_t count = std::min(
@@ -108,7 +108,7 @@ bool set_emitter_visibility_by_name_prefix(SceneParticleSystem& scene_particles,
     return changed;
 }
 
-bool set_all_emitters_visible(SceneParticleSystem& scene_particles, bool visible)
+bool set_all_emitters_visible(nw::render::viewer::SceneParticleSystem& scene_particles, bool visible)
 {
     bool changed = false;
     for (auto& emitter_visible : scene_particles.system.emitter_visible) {
@@ -344,7 +344,7 @@ struct EmitterLiveSummary {
     glm::vec3 max_position{std::numeric_limits<float>::lowest()};
 };
 
-std::vector<EmitterLiveSummary> summarize_emitters(const SceneParticleSystem& scene_particles)
+std::vector<EmitterLiveSummary> summarize_emitters(const nw::render::viewer::SceneParticleSystem& scene_particles)
 {
     std::vector<EmitterLiveSummary> result(scene_particles.system.emitters.size());
     const auto& core = scene_particles.system.particles.core;
@@ -364,7 +364,7 @@ std::vector<EmitterLiveSummary> summarize_emitters(const SceneParticleSystem& sc
     return result;
 }
 
-std::string packet_emitter_summary(const SceneParticleSystem& scene_particles, const nw::render::ParticleRenderPacket& packet)
+std::string packet_emitter_summary(const nw::render::viewer::SceneParticleSystem& scene_particles, const nw::render::ParticleRenderPacket& packet)
 {
     const auto emitter_count = scene_particles.system.emitters.size();
     std::vector<bool> seen(emitter_count, false);
@@ -390,7 +390,94 @@ std::string packet_emitter_summary(const SceneParticleSystem& scene_particles, c
     return result.empty() ? "<none>" : result;
 }
 
-void build_particle_packet_controls(const SceneParticleSystem& scene_particles, size_t system_index)
+std::string join_load_report_origins(const std::vector<std::string>& origins)
+{
+    std::string result;
+    for (size_t i = 0; i < origins.size(); ++i) {
+        if (i != 0) {
+            result += ", ";
+        }
+        result += origins[i];
+    }
+    return result.empty() ? "<none>" : result;
+}
+
+void build_load_report_debug(const nw::render::viewer::PreviewLoadReport& report)
+{
+    if (report.source.empty() && report.kind.empty()) {
+        return;
+    }
+
+    const size_t missing_resources = report.missing_resource_count();
+    const size_t warnings = report.warning_count();
+    const size_t errors = report.error_count();
+    const std::string label = "Load report"
+        + std::string(missing_resources > 0 ? " (missing resources)" : "");
+    if (!ImGui::CollapsingHeader(label.c_str())) {
+        return;
+    }
+
+    ImGui::Text("Source: %s", report.source.empty() ? "<none>" : report.source.c_str());
+    ImGui::Text("Kind: %s", report.kind.empty() ? "<none>" : report.kind.c_str());
+    ImGui::Text("Models: %zu  Resources: %zu  Missing: %zu  Warnings: %zu  Errors: %zu",
+        report.model_names.size(),
+        report.resources.size(),
+        missing_resources,
+        warnings,
+        errors);
+
+    if (!report.model_names.empty() && ImGui::TreeNode("Models##load_report_models")) {
+        for (const auto& model : report.model_names) {
+            ImGui::BulletText("%s", model.c_str());
+        }
+        ImGui::TreePop();
+    }
+
+    if (missing_resources > 0 && ImGui::TreeNode("Missing resources##load_report_missing")) {
+        for (const auto& resource : report.resources) {
+            if (resource.status != nw::render::viewer::PreviewLoadResourceStatus::missing) {
+                continue;
+            }
+            const auto filename = resource.resource.filename();
+            const auto origins = join_load_report_origins(resource.origins);
+            ImGui::BulletText("%s  from %s", filename.c_str(), origins.c_str());
+        }
+        ImGui::TreePop();
+    }
+
+    if (!report.particles.empty() && ImGui::TreeNode("Particle systems##load_report_particles")) {
+        for (const auto& particles : report.particles) {
+            ImGui::BulletText("%s: emitters=%zu max_particles=%u import_warnings=%zu compile_warnings=%zu events=%zu",
+                particles.owner.c_str(),
+                particles.emitter_count,
+                particles.max_particles_total,
+                particles.import_warning_count,
+                particles.compile_warning_count,
+                particles.effect_event_count);
+        }
+        ImGui::TreePop();
+    }
+
+    if (!report.events.empty() && ImGui::TreeNode("Events##load_report_events")) {
+        for (const auto& event : report.events) {
+            const std::string severity{nw::render::viewer::preview_load_event_severity_label(event.severity)};
+            ImGui::BulletText("[%s] %s: %s", severity.c_str(), event.category.c_str(), event.message.c_str());
+        }
+        ImGui::TreePop();
+    }
+
+    if (!report.resources.empty() && ImGui::TreeNode("All resources##load_report_resources")) {
+        for (const auto& resource : report.resources) {
+            const auto filename = resource.resource.filename();
+            const std::string status{nw::render::viewer::preview_load_resource_status_label(resource.status)};
+            const auto origins = join_load_report_origins(resource.origins);
+            ImGui::BulletText("[%s] %s  from %s", status.c_str(), filename.c_str(), origins.c_str());
+        }
+        ImGui::TreePop();
+    }
+}
+
+void build_particle_packet_controls(const nw::render::viewer::SceneParticleSystem& scene_particles, size_t system_index)
 {
     const auto packets = scene_particles.system.render_packets.span();
     const std::string header = "Render packets (" + std::to_string(packets.size()) + ")##packets_" + std::to_string(system_index);
@@ -439,7 +526,7 @@ void build_particle_packet_controls(const SceneParticleSystem& scene_particles, 
     ImGui::TreePop();
 }
 
-bool build_particle_emitter_controls(SceneParticleSystem& scene_particles, size_t system_index)
+bool build_particle_emitter_controls(nw::render::viewer::SceneParticleSystem& scene_particles, size_t system_index)
 {
     bool visibility_changed = false;
     const auto summaries = summarize_emitters(scene_particles);
@@ -543,7 +630,7 @@ bool build_particle_emitter_controls(SceneParticleSystem& scene_particles, size_
     return visibility_changed;
 }
 
-void build_particle_system_debug(SceneParticleSystem& scene_particles, size_t system_index)
+void build_particle_system_debug(nw::render::viewer::SceneParticleSystem& scene_particles, size_t system_index)
 {
     const size_t emitter_count = scene_particles.system.emitters.size();
     const size_t live_particles = scene_particles.system.particles.core.position.size();
@@ -895,6 +982,7 @@ void build_debug_window(AppState& state)
         if (has_area_day_night_controls(state)) {
             ImGui::Text("Area autoplay: %s", state.area_day_night_autoplay ? "enabled" : "disabled");
         }
+        build_load_report_debug(state.current_scene->load_report);
         build_animation_controls(state);
         for (size_t system_index = 0; system_index < state.current_scene->particles.size(); ++system_index) {
             build_particle_system_debug(state.current_scene->particles[system_index], system_index);

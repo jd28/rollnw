@@ -36,6 +36,9 @@ mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
 # Inspect model stats
 mudl stats c_aribeth
 
+# Print the viewer load report as JSON
+mudl report c_halaster
+
 # Headless screenshot
 mudl screenshot c_aribeth ./out/c_aribeth.png
 
@@ -125,15 +128,24 @@ mudl area --dump ./mymodule.mod --output ./out/areas --skip-existing --limit 50 
 
 ```text
 mudl stats <resref>
+mudl report <resref|path>
 mudl dump <resref> [--output <dir>]
 mudl texture <resref> <path>
 ```
 
 ```bash
 mudl stats c_aribeth
+mudl report c_halaster
+mudl report ./shared/blueprints/creatures/pl_bernard.utc.json --module ./mymodule.mod
 mudl dump c_aribeth --output ./out/c_aribeth-assets
 mudl stats c_aribeth --module ./mymodule.mod
 mudl texture plc_archtarg plc_archtarg_d.png
+```
+
+`mudl report` resolves the NWN preview dependency graph without starting the renderer and writes the load report to stdout as JSON. It includes the preview source and kind, loaded model names, referenced resources, missing resources with model/node origins, particle emitter counts, particle caps, and report events. Supermodels are reported as MDL dependencies, but their mesh textures/materials are not treated as loaded preview resources. Redirect stdout to capture it cleanly:
+
+```bash
+mudl report c_halaster > ./out/c_halaster-report.json
 ```
 
 `mudl dump` writes a self-contained resource closure for a model preview, including the model,

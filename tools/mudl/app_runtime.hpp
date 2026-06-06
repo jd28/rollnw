@@ -1,9 +1,10 @@
 #pragma once
 
-#include "camera.hpp"
 #include "mudl_commands.hpp"
-#include "preview_scene.hpp"
-#include "renderer.hpp"
+
+#include <nw/render/viewer/camera.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/viewer/renderer.hpp>
 
 #include <nw/gfx/gfx.hpp>
 #include <nw/render/animation_backend.hpp>
@@ -85,12 +86,12 @@ struct AppState {
     bool gltf_ibl_enabled = false;
 
     // Rendering
-    std::unique_ptr<Renderer> renderer;
+    std::unique_ptr<nw::render::viewer::Renderer> renderer;
     std::unique_ptr<nw::render::ShaderProvider> shader_provider;
-    std::unique_ptr<Camera> camera;
+    std::unique_ptr<nw::render::viewer::Camera> camera;
 
     // Model
-    std::unique_ptr<PreviewScene> current_scene;
+    std::unique_ptr<nw::render::viewer::PreviewScene> current_scene;
     std::vector<std::unique_ptr<nw::render::AnimationBackend>> gltf_animation_backends;
     std::vector<nw::render::Pose> gltf_poses;
     std::vector<std::vector<std::string>> model_animation_names;
@@ -176,7 +177,7 @@ inline glm::mat4 sequence_placement(const glm::vec3& position, const glm::quat& 
     return glm::translate(glm::mat4{1.0f}, position) * glm::toMat4(rotation);
 }
 
-inline glm::vec3 vfx_sequence_anchor_world_position(const ModelInstance& model, std::string_view anchor)
+inline glm::vec3 vfx_sequence_anchor_world_position(const nw::render::viewer::ModelInstance& model, std::string_view anchor)
 {
     if (anchor.empty()) {
         return glm::vec3(model.root_transform()[3]);
@@ -187,14 +188,14 @@ inline glm::vec3 vfx_sequence_anchor_world_position(const ModelInstance& model, 
     return glm::vec3(model.root_transform()[3]);
 }
 
-inline void vfx_sequence_prime_model_animation(ModelInstance& model)
+inline void vfx_sequence_prime_model_animation(nw::render::viewer::ModelInstance& model)
 {
     model.anim_cursor_ = 0;
     model.update(0);
 }
 
 inline glm::vec3 vfx_sequence_sample_anchor_world_position(
-    ModelInstance& model, std::string_view animation, std::string_view anchor)
+    nw::render::viewer::ModelInstance& model, std::string_view animation, std::string_view anchor)
 {
     if (!animation.empty()) {
         model.load_animation(animation);
@@ -204,7 +205,7 @@ inline glm::vec3 vfx_sequence_sample_anchor_world_position(
 }
 
 inline bool vfx_sequence_load_preferred_model_animation(
-    ModelInstance& model, std::string_view override_animation = {}, std::string_view step_animation = {})
+    nw::render::viewer::ModelInstance& model, std::string_view override_animation = {}, std::string_view step_animation = {})
 {
     if (!override_animation.empty() && model.load_animation(override_animation)) {
         return true;
@@ -214,8 +215,8 @@ inline bool vfx_sequence_load_preferred_model_animation(
     }
 
     if (model.mdl_) {
-        const auto animation = preferred_model_animation_name(
-            *model.mdl_, PreferredModelAnimationContext::sequence_effect);
+        const auto animation = nw::render::viewer::preferred_model_animation_name(
+            *model.mdl_, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
         if (!animation.empty()) {
             return model.load_animation(animation);
         }
@@ -224,7 +225,7 @@ inline bool vfx_sequence_load_preferred_model_animation(
     return false;
 }
 
-inline std::optional<glm::vec3> vfx_sequence_authored_axis(const PreviewScene& scene, const ModelInstance& model)
+inline std::optional<glm::vec3> vfx_sequence_authored_axis(const nw::render::viewer::PreviewScene& scene, const nw::render::viewer::ModelInstance& model)
 {
     glm::vec3 fallback_axis{0.0f};
     bool have_fallback_axis = false;
@@ -403,7 +404,7 @@ inline glm::quat vfx_sequence_projectile_rotation(
     return glm::normalize(glm::rotation(step.authored_axis, desired));
 }
 
-inline glm::vec3 vfx_sequence_projectile_root_position(const ModelInstance& model,
+inline glm::vec3 vfx_sequence_projectile_root_position(const nw::render::viewer::ModelInstance& model,
     const AppState::VfxSequencePlaybackStep& step, float t, uint32_t loop_seed)
 {
     const glm::vec3 source_position = vfx_sequence_projectile_position(step, t, loop_seed);
@@ -428,7 +429,7 @@ inline glm::vec3 vfx_sequence_projectile_root_position(const ModelInstance& mode
 }
 
 inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
-    const PreviewScene& scene, const ModelInstance& model)
+    const nw::render::viewer::PreviewScene& scene, const nw::render::viewer::ModelInstance& model)
 {
     for (const auto& scene_particles : scene.particles) {
         if (scene_particles.owner != &model) {
@@ -443,7 +444,7 @@ inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
     return VfxProjectileTransportKind::moving_root;
 }
 
-inline glm::vec3 vfx_sequence_resolve_target_point(const ModelInstance* target, const glm::vec3& fallback,
+inline glm::vec3 vfx_sequence_resolve_target_point(const nw::render::viewer::ModelInstance* target, const glm::vec3& fallback,
     VfxTargetPointKind kind, std::string_view anchor = {})
 {
     if (!target || kind == VfxTargetPointKind::none || kind == VfxTargetPointKind::point) {
@@ -475,7 +476,7 @@ inline glm::vec3 vfx_sequence_resolve_target_point(const ModelInstance* target, 
     return fallback;
 }
 
-inline void vfx_sequence_apply_playback_step(PreviewScene& scene, ModelInstance& model,
+inline void vfx_sequence_apply_playback_step(nw::render::viewer::PreviewScene& scene, nw::render::viewer::ModelInstance& model,
     const AppState::VfxSequencePlaybackStep& step, uint32_t loop_seed, int time_ms)
 {
     model.local_scale_ = step.scale;
@@ -509,12 +510,12 @@ struct VfxSequenceSceneLayout {
     float distance = kVfxSequenceDefaultDistance;
     glm::vec3 source_pos{0.0f};
     glm::vec3 target_root_pos{0.0f};
-    ModelInstance* caster = nullptr;
-    ModelInstance* target = nullptr;
+    nw::render::viewer::ModelInstance* caster = nullptr;
+    nw::render::viewer::ModelInstance* target = nullptr;
 };
 
 inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
-    AppState& state, PreviewScene& scene, const VfxSequence& sequence, std::string_view animation_override = {})
+    AppState& state, nw::render::viewer::PreviewScene& scene, const VfxSequence& sequence, std::string_view animation_override = {})
 {
     VfxSequenceSceneLayout layout;
     layout.use_source_target_layout = sequence.source_target_layout;
@@ -547,7 +548,7 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
             if (layout.target->mdl_) {
                 vfx_sequence_load_preferred_model_animation(
                     *layout.target, {},
-                    preferred_model_animation_name(*layout.target->mdl_, PreferredModelAnimationContext::hold));
+                    nw::render::viewer::preferred_model_animation_name(*layout.target->mdl_, nw::render::viewer::PreferredModelAnimationContext::hold));
             }
             vfx_sequence_prime_model_animation(*layout.target);
             actor_model_count = 2;

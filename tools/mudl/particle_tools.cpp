@@ -2,7 +2,7 @@
 
 #include "viewer_runtime.hpp"
 
-#include "preview_plt.hpp"
+#include <nw/render/viewer/preview_plt.hpp>
 
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Plt.hpp>
@@ -416,7 +416,7 @@ json make_particle_preview_frame_json(const ParticlePreviewAsset& asset,
     return result;
 }
 
-json make_scene_particle_frame_json(const SceneParticleSystem& scene_particles, int frame_index, float time_seconds)
+json make_scene_particle_frame_json(const nw::render::viewer::SceneParticleSystem& scene_particles, int frame_index, float time_seconds)
 {
     std::vector<uint32_t> live_by_emitter(scene_particles.system.emitters.size(), 0);
     std::vector<glm::vec3> min_by_emitter(scene_particles.system.emitters.size(), glm::vec3{std::numeric_limits<float>::max()});
@@ -562,11 +562,11 @@ void update_live_vfx_sequence(AppState& state, int32_t dt_ms)
     vfx_sequence_update_runtime(state, dt_ms);
 }
 
-std::unique_ptr<PreviewScene> build_live_spell_scene(AppState& state, const VfxSequence& sequence)
+std::unique_ptr<nw::render::viewer::PreviewScene> build_live_spell_scene(AppState& state, const VfxSequence& sequence)
 {
     vfx_sequence_clear_state(state);
 
-    auto scene = std::make_unique<PreviewScene>();
+    auto scene = std::make_unique<nw::render::viewer::PreviewScene>();
     if (sequence.use_spell_actors) {
         if (auto caster = nw::render::nwn::load_model(kVfxSequenceCasterModel)) {
             scene->add(std::move(caster));
@@ -1184,8 +1184,8 @@ bool load_particle_preview_asset(const std::string& model_spec, std::string_view
 
     auto particle_animation = animation_name;
     if (particle_animation.empty()) {
-        particle_animation = preferred_model_animation_name(
-            *out.mdl, PreferredModelAnimationContext::particle_preview);
+        particle_animation = nw::render::viewer::preferred_model_animation_name(
+            *out.mdl, nw::render::viewer::PreferredModelAnimationContext::particle_preview);
     }
 
     out.animation_name = std::string{particle_animation};
@@ -1213,7 +1213,7 @@ const nw::Image* particle_preview_material_image(ParticlePreviewAsset& asset, ui
     const auto& material = asset.import.effect.materials[material_id];
     if (material.texture.empty() || material.texture == "null") { return nullptr; }
 
-    const std::string resolved = preferred_plt_bitmap(asset.import.effect.name, material.texture);
+    const std::string resolved = nw::render::viewer::preferred_plt_bitmap(asset.import.effect.name, material.texture);
     cache.image.reset(nw::kernel::resman().texture(nw::Resref(resolved)));
     if (cache.image && cache.image->valid()) {
         return cache.image.get();
@@ -1477,7 +1477,7 @@ bool write_particle_preview_frame(ParticlePreviewAsset& asset,
     return true;
 }
 
-ParticlePreviewBounds spell_preview_compute_bounds(const PreviewScene& scene, ParticlePreviewView view)
+ParticlePreviewBounds spell_preview_compute_bounds(const nw::render::viewer::PreviewScene& scene, ParticlePreviewView view)
 {
     ParticlePreviewBounds bounds;
     for (const auto& scene_particles : scene.particles) {
@@ -1508,7 +1508,7 @@ ParticlePreviewBounds spell_preview_compute_bounds(const PreviewScene& scene, Pa
 }
 
 ParticlePreviewAsset* spell_preview_asset_for_particles(
-    std::vector<ParticlePreviewAsset>& assets, const SceneParticleSystem& scene_particles)
+    std::vector<ParticlePreviewAsset>& assets, const nw::render::viewer::SceneParticleSystem& scene_particles)
 {
     const auto owner_name = scene_particles.owner && scene_particles.owner->mdl_
         ? std::string_view(scene_particles.owner->mdl_->model.name)
@@ -1521,7 +1521,7 @@ ParticlePreviewAsset* spell_preview_asset_for_particles(
     return nullptr;
 }
 
-bool write_spell_preview_live_frame(std::vector<ParticlePreviewAsset>& assets, const PreviewScene& scene,
+bool write_spell_preview_live_frame(std::vector<ParticlePreviewAsset>& assets, const nw::render::viewer::PreviewScene& scene,
     const std::filesystem::path& out_path, ParticlePreviewView view)
 {
     const auto bounds = spell_preview_compute_bounds(scene, view);

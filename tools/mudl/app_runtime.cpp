@@ -798,7 +798,7 @@ bool command_is_headless(std::string_view command)
 {
     return command == "frames" || command == "screenshot" || command == "turntable"
         || command == "compute-smoke" || command == "nwn-animation-smoke"
-        || command == "area-screenshot";
+        || command == "area-screenshot" || command == "report";
 }
 
 void shutdown_graphics(AppState& state)
@@ -851,7 +851,7 @@ bool reload_renderer_runtime(AppState& state)
         return false;
     }
 
-    state.renderer = std::make_unique<Renderer>(state.gfx_context);
+    state.renderer = std::make_unique<nw::render::viewer::Renderer>(state.gfx_context);
     if (!state.renderer->initialize(state.shader_provider.get())) {
         LOG_F(ERROR, "Failed to rebuild mudl renderer after shader reload");
         state.renderer.reset();

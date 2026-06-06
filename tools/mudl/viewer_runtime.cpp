@@ -1,12 +1,12 @@
 #include "viewer_runtime.hpp"
 
 #include "imgui_runtime.hpp"
-#include "preview_scene.hpp"
 
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Module.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
 #include <nw/util/game_install.hpp>
 
 #include <SDL3/SDL.h>
@@ -34,13 +34,13 @@ static constexpr float kAreaViewerScrubStepSeconds = 3.0f;
 static constexpr int32_t kVfxSequenceStepMs = 33;
 static constexpr uint32_t kShadowMapResolution = 2048;
 static constexpr float kShadowMaxDistance = 120.0f;
-bool should_tick_area_day_night(const PreviewScene& scene);
-void fit_area_navigation_camera(Camera& camera, const Bounds& bounds);
+bool should_tick_area_day_night(const nw::render::viewer::PreviewScene& scene);
+void fit_area_navigation_camera(nw::render::viewer::Camera& camera, const nw::render::viewer::Bounds& bounds);
 
-void fit_static_model_camera(Camera& camera, const Bounds& bounds)
+void fit_static_model_camera(nw::render::viewer::Camera& camera, const nw::render::viewer::Bounds& bounds)
 {
     const float radius = std::max(bounds.radius(), 1.0f);
-    camera.set_orbit_view(bounds.center(), radius * 2.25f, -90.0f, 12.0f, Camera::ProjectionMode::perspective);
+    camera.set_orbit_view(bounds.center(), radius * 2.25f, -90.0f, 12.0f, nw::render::viewer::Camera::ProjectionMode::perspective);
 }
 
 glm::vec3 srgb8_to_linear(uint32_t packed)
@@ -97,7 +97,7 @@ glm::vec3 celestial_direction(float azimuth, float height)
     return glm::normalize(dir);
 }
 
-float viewer_area_cycle_time(const AppState& state, const PreviewScene& scene)
+float viewer_area_cycle_time(const AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
     if (!scene.is_area || scene.area_weather.day_night_cycle == 0) {
         return scene.area_weather.is_night ? 0.75f : 0.25f;
@@ -112,7 +112,7 @@ float twilight_weighted_cycle_time(float cycle_t)
         * std::sin(cycle_t * 4.0f * glm::pi<float>());
 }
 
-float initial_area_cycle_elapsed(const PreviewScene& scene)
+float initial_area_cycle_elapsed(const nw::render::viewer::PreviewScene& scene)
 {
     return scene.area_weather.is_night
         ? kAreaViewerDayNightCycleSeconds * 0.75f
@@ -168,7 +168,7 @@ bool supports_vfx_sequence_controls_impl(const AppState& state)
     return state.current_scene && !state.vfx_sequence_steps.empty() && state.vfx_sequence_loop_ms > 0;
 }
 
-std::vector<std::string> collect_model_animation_names(const ModelInstance& model)
+std::vector<std::string> collect_model_animation_names(const nw::render::viewer::ModelInstance& model)
 {
     std::vector<std::string> result;
     if (!model.scene_animation_enabled) {
@@ -287,104 +287,6 @@ void rebuild_scene_animation_state(AppState& state)
     rebuild_gltf_animation_backends(state);
 }
 
-int32_t compute_particle_prime_ms(const PreviewScene& scene, bool explicit_animation)
-{
-    auto first_effect_event_ms = [](const auto& events) -> std::optional<int32_t> {
-        if (events.empty()) {
-            return std::nullopt;
-        }
-        return std::max(0, static_cast<int32_t>(std::ceil(events.front().time * 1000.0f)));
-    };
-
-    auto first_positive_track_key = [](const auto& keys) -> const nw::render::ParticleCurveKeyF32* {
-        for (const auto& key : keys) {
-            if (key.value > 0.0f) {
-                return &key;
-            }
-        }
-        return nullptr;
-    };
-
-    if (explicit_animation) {
-        int32_t prime_ms = 16;
-        for (const auto& scene_particles : scene.particles) {
-            const auto effect_event_ms = first_effect_event_ms(scene_particles.import.effect_events);
-            const auto count = std::min(scene_particles.compiled.effect.emitters.size(), scene_particles.import.effect.emitters.size());
-            for (size_t i = 0; i < count; ++i) {
-                const auto& emitter = scene_particles.compiled.effect.emitters[i];
-                const auto& authored = scene_particles.import.effect.emitters[i];
-                int32_t activation_ms = 0;
-
-                if (emitter.emission.mode == nw::render::ParticleEmissionMode::event_burst
-                    || emitter.emission.trigger_on_effect_events) {
-                    if (effect_event_ms) {
-                        activation_ms = *effect_event_ms;
-                    }
-                } else if (const auto* active_key = first_positive_track_key(emitter.emission_rate_track.keys)) {
-                    activation_ms = std::max(0, static_cast<int32_t>(std::ceil(active_key->time * 1000.0f)));
-                }
-
-                float visible_rate = emitter.emission.rate;
-                if (const auto* active_key = first_positive_track_key(emitter.emission_rate_track.keys)) {
-                    visible_rate = active_key->value;
-                }
-
-                int32_t settle_ms = 33;
-                if (emitter.emission.mode == nw::render::ParticleEmissionMode::continuous
-                    && emitter.emission.metric == nw::render::ParticleSpawnMetric::per_second
-                    && visible_rate > 0.0f) {
-                    const int32_t interval_ms = static_cast<int32_t>(std::ceil(1000.0f / visible_rate));
-                    const float lifetime = std::max(authored.initial.lifetime.min, authored.initial.lifetime.max);
-                    const int32_t lifetime_ms = static_cast<int32_t>(std::ceil(std::max(0.0f, lifetime) * 1000.0f * 0.25f));
-                    settle_ms = std::max({150, interval_ms + 16, lifetime_ms});
-                }
-
-                prime_ms = std::max(prime_ms, activation_ms + settle_ms);
-            }
-        }
-        return std::min(prime_ms, 3000);
-    }
-
-    int32_t prime_ms = 250;
-    bool has_fade_in_continuous = false;
-    for (const auto& scene_particles : scene.particles) {
-        const auto count = std::min(scene_particles.compiled.effect.emitters.size(), scene_particles.import.effect.emitters.size());
-        for (size_t i = 0; i < count; ++i) {
-            const auto& emitter = scene_particles.compiled.effect.emitters[i];
-            const auto& authored = scene_particles.import.effect.emitters[i];
-            if (emitter.emission.mode != nw::render::ParticleEmissionMode::continuous) {
-                continue;
-            }
-            if (emitter.emission.metric != nw::render::ParticleSpawnMetric::per_second) {
-                continue;
-            }
-
-            float rate = emitter.emission.rate;
-            if (!emitter.emission_rate_track.keys.empty()) {
-                rate = emitter.emission_rate_track.keys.front().value;
-            }
-            if (rate <= 0.0f) {
-                continue;
-            }
-
-            const int32_t interval_ms = static_cast<int32_t>(std::ceil(1000.0f / rate));
-            const float lifetime = std::max(authored.initial.lifetime.min, authored.initial.lifetime.max);
-            bool fades_in_over_life = false;
-            if (!authored.over_life.alpha.keys.empty()) {
-                const float alpha_start = authored.over_life.alpha.keys.front().value;
-                const float alpha_end = authored.over_life.alpha.keys.back().value;
-                fades_in_over_life = alpha_end > alpha_start + 1.0e-4f;
-            }
-            has_fade_in_continuous = has_fade_in_continuous || fades_in_over_life;
-            const float settle_lifetime = fades_in_over_life ? lifetime * 0.75f : lifetime * 0.5f;
-            const int32_t visible_settle_ms = static_cast<int32_t>(std::ceil(std::max(0.0f, settle_lifetime) * 1000.0f));
-            prime_ms = std::max(prime_ms, std::max(interval_ms + 16, visible_settle_ms));
-        }
-    }
-
-    return std::min(prime_ms, has_fade_in_continuous ? 3000 : 1500);
-}
-
 struct AreaCycleWeights {
     float cycle_t = 0.25f;
     float orbit_angle = glm::half_pi<float>();
@@ -395,7 +297,7 @@ struct AreaCycleWeights {
     float dusk_strength = 0.0f;
 };
 
-AreaCycleWeights resolve_area_cycle_weights(const AppState& state, const PreviewScene& scene)
+AreaCycleWeights resolve_area_cycle_weights(const AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
     AreaCycleWeights result{};
     result.cycle_t = twilight_weighted_cycle_time(viewer_area_cycle_time(state, scene));
@@ -409,9 +311,9 @@ AreaCycleWeights resolve_area_cycle_weights(const AppState& state, const Preview
     return result;
 }
 
-Lighting gltf_preview_lighting()
+nw::render::viewer::Lighting gltf_preview_lighting()
 {
-    Lighting result{};
+    nw::render::viewer::Lighting result{};
     result.key_intensity = 0.0f;
     result.fill_intensity = 0.0f;
     result.rim_intensity = 0.0f;
@@ -419,13 +321,17 @@ Lighting gltf_preview_lighting()
     return result;
 }
 
-Lighting resolve_scene_lighting(const AppState& state, const PreviewScene& scene)
+nw::render::viewer::Lighting resolve_scene_lighting(const AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
     if (!scene.static_models.empty()) {
         return gltf_preview_lighting();
     }
 
-    if (!scene.is_area || (scene.area_flags & nw::AreaFlags::interior) != nw::AreaFlags::none) {
+    if (!scene.is_area) {
+        return nw::render::viewer::studio_preview_lighting();
+    }
+
+    if ((scene.area_flags & nw::AreaFlags::interior) != nw::AreaFlags::none) {
         return {};
     }
 
@@ -438,7 +344,7 @@ Lighting resolve_scene_lighting(const AppState& state, const PreviewScene& scene
     const float key_azimuth = cycle.azimuth + cycle.moon_weight * glm::pi<float>();
     const float key_height = cycle.moon_weight * std::max(-cycle.sun_height, 0.1f) + cycle.sun_weight * std::max(cycle.sun_height, 0.12f);
 
-    Lighting result{};
+    nw::render::viewer::Lighting result{};
     result.key_direction = celestial_direction(key_azimuth, key_height);
     result.key_color = mix_vec3(
         authored_light_color(scene.area_weather.color_moon_diffuse, glm::vec3{0.48f, 0.56f, 0.72f}),
@@ -462,7 +368,7 @@ Lighting resolve_scene_lighting(const AppState& state, const PreviewScene& scene
     return result;
 }
 
-SceneFog resolve_scene_fog(const AppState& state, const PreviewScene& scene)
+nw::render::viewer::SceneFog resolve_scene_fog(const AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
     if (!state.show_authored_area_fog) {
         return {};
@@ -492,7 +398,7 @@ SceneFog resolve_scene_fog(const AppState& state, const PreviewScene& scene)
     const float authored_amount = moon_amount + (sun_amount - moon_amount) * cycle.sun_weight;
     const float preview_amount = authored_amount > 0.0f ? authored_amount : 0.18f;
 
-    SceneFog result{};
+    nw::render::viewer::SceneFog result{};
     result.enabled = true;
     result.color = mix_vec3(moon_color, sun_color, cycle.sun_weight);
     result.amount = preview_amount;
@@ -501,15 +407,15 @@ SceneFog resolve_scene_fog(const AppState& state, const PreviewScene& scene)
     return result;
 }
 
-LightingSpace resolve_scene_lighting_space(const PreviewScene& scene)
+nw::render::viewer::LightingSpace resolve_scene_lighting_space(const nw::render::viewer::PreviewScene& scene)
 {
     if (scene.is_area && (scene.area_flags & nw::AreaFlags::interior) == nw::AreaFlags::none) {
-        return LightingSpace::world_space;
+        return nw::render::viewer::LightingSpace::world_space;
     }
-    return LightingSpace::camera_relative;
+    return nw::render::viewer::LightingSpace::camera_relative;
 }
 
-std::array<glm::vec3, 8> bounds_corners_world(const Bounds& bounds)
+std::array<glm::vec3, 8> bounds_corners_world(const nw::render::viewer::Bounds& bounds)
 {
     std::array<glm::vec3, 8> corners{};
     size_t index = 0;
@@ -589,9 +495,9 @@ glm::mat4 fit_shadow_matrix(const std::array<glm::vec3, 8>& corners, const glm::
     return glm::orthoRH_ZO(mins.x, maxs.x, mins.y, maxs.y, -maxs.z, -mins.z) * light_view;
 }
 
-SceneShadow resolve_scene_shadow(const RenderContext& ctx, const Bounds& bounds)
+nw::render::viewer::SceneShadow resolve_scene_shadow(const nw::render::viewer::RenderContext& ctx, const nw::render::viewer::Bounds& bounds)
 {
-    if (ctx.lighting_space != LightingSpace::world_space) {
+    if (ctx.lighting_space != nw::render::viewer::LightingSpace::world_space) {
         return {};
     }
 
@@ -601,7 +507,7 @@ SceneShadow resolve_scene_shadow(const RenderContext& ctx, const Bounds& bounds)
         return {};
     }
 
-    SceneShadow result{};
+    nw::render::viewer::SceneShadow result{};
     result.enabled = true;
     result.strength = 0.85f;
 
@@ -610,11 +516,11 @@ SceneShadow resolve_scene_shadow(const RenderContext& ctx, const Bounds& bounds)
     const float shadow_distance = std::min(ctx.camera_far_plane,
         ctx.orthographic_camera ? kShadowMaxDistance * 1.5f : kShadowMaxDistance);
     const float shadow_ratio = std::clamp(shadow_distance / std::max(ctx.camera_far_plane, 1.0e-4f), 0.0f, 1.0f);
-    const std::array<float, kShadowCascadeCount> split_ratios = ctx.orthographic_camera
-        ? std::array<float, kShadowCascadeCount>{0.22f, 0.55f, 1.0f}
-        : std::array<float, kShadowCascadeCount>{0.10f, 0.32f, 1.0f};
+    const std::array<float, nw::render::viewer::kShadowCascadeCount> split_ratios = ctx.orthographic_camera
+        ? std::array<float, nw::render::viewer::kShadowCascadeCount>{0.22f, 0.55f, 1.0f}
+        : std::array<float, nw::render::viewer::kShadowCascadeCount>{0.10f, 0.32f, 1.0f};
     float prev_ratio = 0.0f;
-    for (size_t i = 0; i < kShadowCascadeCount; ++i) {
+    for (size_t i = 0; i < nw::render::viewer::kShadowCascadeCount; ++i) {
         const float far_ratio = split_ratios[i] * shadow_ratio;
         result.split_distances[i] = shadow_distance * split_ratios[i];
         auto corners = slice_frustum_corners(frustum_corners, prev_ratio, far_ratio);
@@ -622,12 +528,12 @@ SceneShadow resolve_scene_shadow(const RenderContext& ctx, const Bounds& bounds)
         prev_ratio = far_ratio;
     }
 
-    result.world_to_shadow[kShadowCascadeCount - 1] = fit_shadow_matrix(bounds_corners_world(bounds), light_dir,
+    result.world_to_shadow[nw::render::viewer::kShadowCascadeCount - 1] = fit_shadow_matrix(bounds_corners_world(bounds), light_dir,
         std::max(bounds.radius() * 2.5f, 80.0f));
     return result;
 }
 
-bool should_tick_area_day_night(const PreviewScene& scene)
+bool should_tick_area_day_night(const nw::render::viewer::PreviewScene& scene)
 {
     return scene.is_area
         && (scene.area_flags & nw::AreaFlags::interior) == nw::AreaFlags::none
@@ -649,7 +555,7 @@ void update_area_day_night(AppState& state, float dt)
     set_area_day_night_elapsed(state, state.area_day_night_elapsed + std::max(dt, 0.0f), true);
 }
 
-std::pair<float, float> camera_clip_planes(const Camera& camera, const Bounds& bounds)
+std::pair<float, float> camera_clip_planes(const nw::render::viewer::Camera& camera, const nw::render::viewer::Bounds& bounds)
 {
     if (!camera.is_orthographic()) {
         const auto center = bounds.center();
@@ -745,13 +651,13 @@ void advance_scene_playback(AppState& state, int32_t dt_ms, bool force_step)
     }
 }
 
-void fit_area_navigation_camera(Camera& camera, const Bounds& bounds)
+void fit_area_navigation_camera(nw::render::viewer::Camera& camera, const nw::render::viewer::Bounds& bounds)
 {
     camera.fit_to_bounds(bounds);
-    camera.set_free_view(camera.get_position(), camera.get_target(), Camera::ProjectionMode::perspective);
+    camera.set_free_view(camera.get_position(), camera.get_target(), nw::render::viewer::Camera::ProjectionMode::perspective);
 }
 
-void apply_gltf_preview_tuning(AppState& state, const PreviewScene& scene)
+void apply_gltf_preview_tuning(AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
     if (!scene.static_models.empty()) {
         state.gltf_ibl_strength = 0.80f;
@@ -764,7 +670,7 @@ void apply_gltf_preview_tuning(AppState& state, const PreviewScene& scene)
 
 } // namespace
 
-bool scene_uses_shared_nwn_animation_source(const PreviewScene& scene)
+bool scene_uses_shared_nwn_animation_source(const nw::render::viewer::PreviewScene& scene)
 {
     const nw::model::Mdl* shared_source = nullptr;
     bool saw_animatable = false;
@@ -824,7 +730,7 @@ void load_model(AppState& state, std::string_view resref)
     state.loaded_scene_source = std::string{resref};
     state.loaded_vfx_sequence.reset();
 
-    state.current_scene = load_preview_scene(*state.renderer, resref);
+    state.current_scene = nw::render::viewer::load_preview_scene(*state.renderer, resref);
     rebuild_scene_animation_state(state);
 
     if (state.current_scene) {
@@ -852,7 +758,7 @@ void load_model(AppState& state, std::string_view resref)
             };
             try_scene_animation(state.animation_override);
             if (const auto* mdl = state.current_scene->models.front()->mdl_) {
-                try_scene_animation(preferred_model_animation_name(*mdl, PreferredModelAnimationContext::hold));
+                try_scene_animation(nw::render::viewer::preferred_model_animation_name(*mdl, nw::render::viewer::PreferredModelAnimationContext::hold));
             }
             try_scene_animation("default");
             try_scene_animation("on");
@@ -866,7 +772,7 @@ void load_model(AppState& state, std::string_view resref)
             state.current_scene->update(33);
         }
         if (!state.current_scene->particles.empty()) {
-            const int32_t particle_prime_ms = compute_particle_prime_ms(*state.current_scene, !state.animation_override.empty());
+            const int32_t particle_prime_ms = nw::render::viewer::compute_particle_prime_ms(*state.current_scene, !state.animation_override.empty());
             state.current_scene->update(particle_prime_ms);
             size_t live_particles = 0;
             for (const auto& scene_particles : state.current_scene->particles) {
@@ -917,7 +823,7 @@ void load_vfx_sequence(AppState& state, const VfxSequence& sequence)
         sources.push_back(step.source);
     }
 
-    state.current_scene = load_preview_scene(*state.renderer, sources);
+    state.current_scene = nw::render::viewer::load_preview_scene(*state.renderer, sources);
     rebuild_scene_animation_state(state);
     if (!state.current_scene) {
         LOG_F(ERROR, "Failed to load VFX sequence: {}", sequence.label);
@@ -949,7 +855,7 @@ void load_vfx_sequence(AppState& state, const VfxSequence& sequence)
             const glm::vec3 center = 0.5f * (layout.source_pos + camera_target_pos) + glm::vec3{0.0f, 0.0f, 1.2f};
             state.camera->set_fov(45.0f);
             state.camera->set_orbit_view(
-                center, layout.distance * 1.18f, -90.0f, 20.0f, Camera::ProjectionMode::perspective);
+                center, layout.distance * 1.18f, -90.0f, 20.0f, nw::render::viewer::Camera::ProjectionMode::perspective);
         } else {
             state.camera->set_fov(60.0f);
             state.camera->fit_to_bounds(state.current_scene->current_bounds());
@@ -975,7 +881,7 @@ void load_area(AppState& state, std::string_view resref)
     state.loaded_scene_source = std::string{resref};
     state.loaded_vfx_sequence.reset();
 
-    state.current_scene = load_area_scene(*state.renderer, resref);
+    state.current_scene = nw::render::viewer::load_area_scene(*state.renderer, resref);
     rebuild_scene_animation_state(state);
     if (state.current_scene) {
         LOG_F(INFO, "Area loaded: {} vertices, {} indices",
@@ -1058,7 +964,7 @@ bool select_model_animation(AppState& state, size_t model_index, std::string_vie
     state.current_scene->update(0);
     if (!state.current_scene->particles.empty()) {
         state.current_scene->rebuild_particles();
-        const int32_t particle_prime_ms = compute_particle_prime_ms(*state.current_scene, true);
+        const int32_t particle_prime_ms = nw::render::viewer::compute_particle_prime_ms(*state.current_scene, true);
         state.current_scene->update(particle_prime_ms);
 
         size_t live_particles = 0;
@@ -1414,7 +1320,7 @@ void render_frame(AppState& state)
         const auto clip_planes = camera_clip_planes(*state.camera, bounds);
         state.camera->set_near_far(clip_planes.first, clip_planes.second);
 
-        RenderContext ctx{};
+        nw::render::viewer::RenderContext ctx{};
         ctx.view = state.camera->get_view_matrix();
         ctx.projection = state.camera->get_projection_matrix();
         ctx.camera_position = state.camera->get_position();
@@ -1439,7 +1345,7 @@ void render_frame(AppState& state)
         if (ctx.shadow.enabled && state.renderer->shadow_pipeline_ready()
             && state.renderer->ensure_shadow_resources(kShadowMapResolution)) {
             nw::gfx::cmd_end_render(cmd);
-            for (uint32_t cascade = 0; cascade < kShadowCascadeCount; ++cascade) {
+            for (uint32_t cascade = 0; cascade < nw::render::viewer::kShadowCascadeCount; ++cascade) {
                 ctx.shadow.depth_textures[cascade] = state.renderer->shadow_depth_texture(cascade);
                 nw::gfx::cmd_begin_render(cmd, state.renderer->shadow_render_target(cascade));
                 nw::gfx::cmd_set_viewport(cmd, 0.0f, 0.0f,
@@ -1491,7 +1397,7 @@ void render_frame(AppState& state)
                     }
                 }
             }
-            state.renderer->render_static_model(cmd, *model, ctx, RenderPassSelection::all,
+            state.renderer->render_static_model(cmd, *model, ctx, nw::render::viewer::RenderPassSelection::all,
                 skin_matrices.empty() ? nullptr : &skin_matrices);
         }
         state.renderer->render_particles(cmd, *state.current_scene, ctx);
@@ -1571,7 +1477,7 @@ int run_area_dump_command(const std::filesystem::path& module_path, const std::f
         return 1;
     }
 
-    state.camera = std::make_unique<Camera>();
+    state.camera = std::make_unique<nw::render::viewer::Camera>();
     state.camera->set_aspect_ratio(1280.0f / 720.0f);
 
     nw::Module* module = nullptr;
@@ -1588,7 +1494,7 @@ int run_area_dump_command(const std::filesystem::path& module_path, const std::f
         return 1;
     }
 
-    state.renderer = std::make_unique<Renderer>(state.gfx_context);
+    state.renderer = std::make_unique<nw::render::viewer::Renderer>(state.gfx_context);
     if (!state.renderer->initialize(state.shader_provider.get())) {
         state.renderer.reset();
         state.shader_provider.reset();

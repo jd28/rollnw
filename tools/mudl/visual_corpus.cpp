@@ -4,11 +4,11 @@
 #include "mudl_cli.hpp"
 #include "mudl_commands.hpp"
 #include "particle_tools.hpp"
-#include "renderer.hpp"
 #include "viewer_runtime.hpp"
 
 #include <nw/log.hpp>
 #include <nw/render/nwn/model_loader.hpp>
+#include <nw/render/viewer/renderer.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -331,7 +331,7 @@ bool initialize_headless_viewer_session(HeadlessViewerSession& session)
     }
     session.graphics_initialized = true;
 
-    session.state.camera = std::make_unique<Camera>();
+    session.state.camera = std::make_unique<nw::render::viewer::Camera>();
     session.state.camera->set_aspect_ratio(1280.0f / 720.0f);
 
     if (!init_render_runtime(session.state)) {
@@ -340,7 +340,7 @@ bool initialize_headless_viewer_session(HeadlessViewerSession& session)
     }
     session.render_runtime_initialized = true;
 
-    session.state.renderer = std::make_unique<Renderer>(session.state.gfx_context);
+    session.state.renderer = std::make_unique<nw::render::viewer::Renderer>(session.state.gfx_context);
     if (!session.state.renderer->initialize(session.state.shader_provider.get())) {
         LOG_F(ERROR, "Failed to initialize renderer");
         session.state.renderer.reset();

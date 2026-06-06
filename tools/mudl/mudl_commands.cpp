@@ -2,8 +2,6 @@
 
 #include "app_runtime.hpp"
 #include "mudl_cli.hpp"
-#include "preview_plt.hpp"
-#include "preview_scene.hpp"
 #include "progfx.hpp"
 #include "stock_spell_fx.hpp"
 
@@ -16,6 +14,8 @@
 #include <nw/model/mdl_particle_import.hpp>
 #include <nw/render/animation_backend.hpp>
 #include <nw/render/nwn/nwn_animation.hpp>
+#include <nw/render/viewer/preview_plt.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
 
@@ -129,8 +129,8 @@ int estimate_burst_step_duration_ms(std::string_view model_spec, int authored_ms
         return authored_ms;
     }
 
-    const auto animation_name = preferred_model_animation_name(
-        *mdl, PreferredModelAnimationContext::sequence_effect);
+    const auto animation_name = nw::render::viewer::preferred_model_animation_name(
+        *mdl, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
     const auto import = nw::model::import_particle_effect(*mdl, animation_name, false);
 
     float max_lifetime_s = 0.0f;
@@ -165,8 +165,8 @@ std::optional<int> preferred_model_animation_duration_ms(std::string_view model_
         return std::nullopt;
     }
 
-    const auto animation_name = preferred_model_animation_name(
-        *mdl, PreferredModelAnimationContext::sequence_effect);
+    const auto animation_name = nw::render::viewer::preferred_model_animation_name(
+        *mdl, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
     if (animation_name.empty()) {
         return std::nullopt;
     }
@@ -515,8 +515,8 @@ std::string preferred_effect_source_anchor(std::string_view model_spec)
         return {};
     }
 
-    const auto animation_name = preferred_model_animation_name(
-        *mdl, PreferredModelAnimationContext::sequence_effect);
+    const auto animation_name = nw::render::viewer::preferred_model_animation_name(
+        *mdl, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
     const auto import = nw::model::import_particle_effect(*mdl, animation_name, false);
     for (const auto& init : import.emitter_inits) {
         if (!init.emitter_node_name.empty()) {
@@ -2094,7 +2094,7 @@ int run_texture_command(std::string_view resref, const std::filesystem::path& ou
     }
 
     auto shutdown = [] { nw::kernel::services().shutdown(); };
-    auto resolved = preferred_plt_bitmap(resref, resref);
+    auto resolved = nw::render::viewer::preferred_plt_bitmap(resref, resref);
     if (resolved == resref && resref.size() >= 4 && resref[0] == 'p'
         && (resref[1] == 'm' || resref[1] == 'f') && resref[2] != 'h') {
         resolved = std::string(resref);
