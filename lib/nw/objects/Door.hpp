@@ -84,6 +84,20 @@ struct Door : public ObjectBase {
     bool instantiated_ = true;
 };
 
+struct DoorModelReference {
+    Resref model;
+    String error;
+    StringView table;
+    StringView column;
+    StringView selector;
+    uint32_t row = 0;
+    bool generic = false;
+
+    bool valid() const noexcept { return !model.empty(); }
+};
+
+DoorModelReference resolve_door_model(const Door& door);
+
 // == Door - Serialization - Gff ==============================================
 // ============================================================================
 

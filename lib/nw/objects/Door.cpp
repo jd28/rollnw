@@ -1,15 +1,33 @@
 #include "Door.hpp"
 
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Strings.hpp"
+#include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"
+#include "../util/string.hpp"
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
+
+#include <string_view>
 
 namespace fs = std::filesystem;
 
 namespace nw {
+
+namespace {
+
+bool is_null_door_model_name(std::string_view name)
+{
+    return name.empty()
+        || nw::string::icmp(name, "null")
+        || nw::string::icmp(name, "none")
+        || nw::string::icmp(name, "****");
+}
+
+} // namespace
 
 // == DoorScripts =============================================================
 // ============================================================================
@@ -99,6 +117,44 @@ String Door::get_name_from_file(const std::filesystem::path& path)
     }
 
     result = nw::kernel::strings().get(l1);
+    return result;
+}
+
+DoorModelReference resolve_door_model(const Door& door)
+{
+    DoorModelReference result;
+    result.generic = door.appearance == 0;
+    result.table = result.generic ? StringView{"genericdoors"} : StringView{"doortypes"};
+    result.column = result.generic ? StringView{"ModelName"} : StringView{"Model"};
+    result.selector = result.generic ? StringView{"generic type"} : StringView{"appearance"};
+    result.row = result.generic ? door.generic_type : door.appearance;
+
+    auto* table = nw::kernel::twodas().get(result.table);
+    if (!table) {
+        result.error = fmt::format("could not load {}.2da", result.table);
+        return result;
+    }
+
+    if (result.row >= table->rows()) {
+        result.error = fmt::format("{} {} is outside {}.2da ({} rows)",
+            result.selector,
+            result.row,
+            result.table,
+            table->rows());
+        return result;
+    }
+
+    String model_name;
+    if (!table->get_to(result.row, result.column, model_name, false) || is_null_door_model_name(model_name)) {
+        result.error = fmt::format("{} {} has no {} in {}.2da",
+            result.selector,
+            result.row,
+            result.column,
+            result.table);
+        return result;
+    }
+
+    result.model = Resref{model_name};
     return result;
 }
 

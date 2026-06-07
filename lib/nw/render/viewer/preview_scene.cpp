@@ -2103,25 +2103,25 @@ static std::unique_ptr<PreviewScene> load_item_scene(Renderer& renderer, const s
 static std::unique_ptr<PreviewScene> load_blueprint_model_scene(Renderer& renderer,
     const std::filesystem::path& path,
     std::string_view preview_type,
-    uint32_t appearance,
+    std::string_view lookup_context,
     std::string_view model_resref)
 {
     const auto path_text = path.string();
-    ERRARE("[viewer] loading {} preview '{}' appearance {}",
+    ERRARE("[viewer] loading {} preview '{}' {}",
         preview_type,
         std::string_view{path_text},
-        appearance);
+        lookup_context);
 
     if (model_resref.empty()) {
-        LOG_F(ERROR, "{} preview '{}' appearance {} has no model",
-            preview_type, path.string(), appearance);
+        LOG_F(ERROR, "{} preview '{}' {} has no model",
+            preview_type, path.string(), lookup_context);
         log_preview_error_context();
         return {};
     }
 
     if (!nw::kernel::resman().contains({nw::Resref{model_resref}, nw::ResourceType::mdl})) {
-        LOG_F(ERROR, "{} preview '{}' model '{}' for appearance {} was not found",
-            preview_type, path.string(), model_resref, appearance);
+        LOG_F(ERROR, "{} preview '{}' model '{}' for {} was not found",
+            preview_type, path.string(), model_resref, lookup_context);
         log_preview_error_context();
         return {};
     }
@@ -2130,8 +2130,8 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(Renderer& render
     ERRARE("[viewer] resolving {} preview model '{}'", preview_type, model_resref);
     maybe_add_model(*scene, load_model_with_plt(renderer, model_resref));
     if (scene->models.empty()) {
-        LOG_F(ERROR, "{} preview '{}' failed to load model '{}' for appearance {}",
-            preview_type, path.string(), model_resref, appearance);
+        LOG_F(ERROR, "{} preview '{}' failed to load model '{}' for {}",
+            preview_type, path.string(), model_resref, lookup_context);
         log_preview_error_context();
         return {};
     }
@@ -2139,31 +2139,21 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(Renderer& render
     return scene;
 }
 
-static std::optional<std::string> resolve_door_model_resref(const nw::Door& door,
+static std::optional<nw::DoorModelReference> resolve_door_model_reference(const nw::Door& door,
     const std::filesystem::path& path)
 {
-    auto* genericdoors = nw::kernel::twodas().get("genericdoors");
-    if (!genericdoors) {
-        LOG_F(ERROR, "Door preview '{}' could not load genericdoors.2da", path.string());
+    auto lookup = nw::resolve_door_model(door);
+    if (!lookup.valid()) {
+        LOG_F(ERROR, "Door preview '{}': {}", path.string(), lookup.error);
         log_preview_error_context();
         return {};
     }
+    return lookup;
+}
 
-    if (door.appearance >= genericdoors->rows()) {
-        LOG_F(ERROR, "Door preview '{}' appearance {} is outside genericdoors.2da ({} rows)",
-            path.string(), door.appearance, genericdoors->rows());
-        log_preview_error_context();
-        return {};
-    }
-
-    std::string model_name;
-    if (!genericdoors->get_to(door.appearance, "ModelName", model_name, false) || model_name.empty()) {
-        LOG_F(ERROR, "Door preview '{}' appearance {} has no ModelName in genericdoors.2da",
-            path.string(), door.appearance);
-        log_preview_error_context();
-        return {};
-    }
-    return model_name;
+static std::string door_model_lookup_context(const nw::DoorModelReference& lookup)
+{
+    return fmt::format("{} {} in {}.2da", lookup.selector, lookup.row, lookup.table);
 }
 
 static std::unique_ptr<PreviewScene> load_door_scene(Renderer& renderer, const std::filesystem::path& path)
@@ -2176,12 +2166,13 @@ static std::unique_ptr<PreviewScene> load_door_scene(Renderer& renderer, const s
         return {};
     }
 
-    auto model_resref = resolve_door_model_resref(door, path);
-    if (!model_resref) {
+    auto model_ref = resolve_door_model_reference(door, path);
+    if (!model_ref) {
         return {};
     }
 
-    return load_blueprint_model_scene(renderer, path, "Door", door.appearance, *model_resref);
+    return load_blueprint_model_scene(renderer, path, "Door",
+        door_model_lookup_context(*model_ref), model_ref->model.view());
 }
 
 static std::unique_ptr<PreviewScene> load_placeable_scene(Renderer& renderer, const std::filesystem::path& path)
@@ -2210,7 +2201,8 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(Renderer& renderer, co
         return {};
     }
 
-    return load_blueprint_model_scene(renderer, path, "Placeable", placeable.appearance, info->model.view());
+    const auto lookup_context = fmt::format("appearance {}", placeable.appearance);
+    return load_blueprint_model_scene(renderer, path, "Placeable", lookup_context, info->model.view());
 }
 
 static void add_source_resource(PreviewLoadReportBuilder& builder, const std::filesystem::path& path)
@@ -2776,9 +2768,9 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
             report.kind = "Door";
             nw::Door door;
             if (load_door_from_file(path, door)) {
-                if (auto model_resref = resolve_door_model_resref(door, path)) {
-                    add_report_model(report, builder, scanned_models, *model_resref,
-                        fmt::format("{}:appearance:{}", path.string(), door.appearance), animation_name);
+                if (auto model_ref = resolve_door_model_reference(door, path)) {
+                    add_report_model(report, builder, scanned_models, model_ref->model.view(),
+                        fmt::format("{}:{}", path.string(), door_model_lookup_context(*model_ref)), animation_name);
                 }
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
