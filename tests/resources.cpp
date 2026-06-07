@@ -532,6 +532,26 @@ TEST(KernelResources, LoadModuleHaksAcceptsExtensionAndCaseVariants)
     delete rm;
 }
 
+TEST(KernelResources, LoadModuleHaksAcceptsVersionDotsWithoutExtension)
+{
+    const fs::path root = "tmp/resman_hak_version_dots";
+    fs::remove_all(root);
+    fs::create_directories(root);
+    fs::copy_file("test_data/user/hak/hak_with_description.hak",
+        root / "project_pack_v2.2.hak",
+        fs::copy_options::overwrite_existing);
+
+    auto rm = new nw::ResourceManager{nwk::global_allocator()};
+    nw::Vector<nw::String> haks{"project_pack_v2.2"};
+    nw::Vector<fs::path> roots{root};
+    EXPECT_EQ(rm->load_module_haks(haks, roots), 1);
+    rm->build_registry();
+
+    auto data = rm->demand({"build"sv, nw::ResourceType::txt});
+    EXPECT_GT(data.bytes.size(), 0);
+    delete rm;
+}
+
 TEST(KernelResources, LoadModuleHaksReportsMissing)
 {
     const fs::path root = "tmp/resman_missing_hak_roots";

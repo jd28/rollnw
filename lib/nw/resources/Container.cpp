@@ -5,6 +5,7 @@
 #include "StaticKey.hpp"
 #include "StaticZip.hpp"
 
+#include "../util/platform.hpp"
 #include "../util/string.hpp"
 
 #include <array>
@@ -70,6 +71,16 @@ Container* make_container(const fs::path& path, nw::MemoryResource* allocator)
     return nullptr;
 }
 
+bool is_container_extension(const fs::path& path)
+{
+    const auto ext = path_to_string(path.extension());
+    return string::icmp(ext, ".hak")
+        || string::icmp(ext, ".erf")
+        || string::icmp(ext, ".mod")
+        || string::icmp(ext, ".zip")
+        || string::icmp(ext, ".key");
+}
+
 } // namespace
 
 Container::Container(nw::MemoryResource* allocator)
@@ -94,7 +105,7 @@ Container* resolve_container(const std::filesystem::path& p, const String& name,
         p / (name + ".zip"),
         p / (name + ".key"),
     };
-    const size_t count = label.extension().empty() ? candidates.size() : 1;
+    const size_t count = is_container_extension(label) ? 1 : candidates.size();
 
     for (size_t i = 0; i < count; ++i) {
         if (const auto path = find_existing_path(candidates[i])) {
