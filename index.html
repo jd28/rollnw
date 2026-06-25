@@ -52,7 +52,6 @@
 <li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
@@ -118,7 +117,8 @@ nearing being able to simulate melee battles.</p></li>
 <li><p>Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.</p></li>
 <li><p>A recursive descent <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/script.html">NWScript Parser</a>. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.</p></li>
 <li><p>Implementations of pretty much every <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/formats.html">NWN File Format</a></p></li>
-<li><p>A binary and ASCII <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/model.html">Model Parser</a>.</p></li>
+<li><p>NWN and glTF model rendering docs now live with the renderer code in
+<a class="reference external" href="https://github.com/jd28/rollnw/tree/main/lib/nw/render">lib/nw/render</a>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code>, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>, and <code class="docutils literal notranslate"><span class="pre">mudl</span></code> form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.</p></li>
 <li><p>A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.</p></li>
 <li><p>An implementation of NWN’s <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/i18n.html">Localization System</a> focused
@@ -210,7 +210,6 @@ plugins, scripting, and a built-in console.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
