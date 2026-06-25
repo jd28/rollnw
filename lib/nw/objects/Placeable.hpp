@@ -18,10 +18,10 @@ struct PlaceableInfo {
     String label;
     uint32_t name = 0xFFFFFFFF;
     nw::Resref model;
-    //  LightColor
-    //  LightOffsetX
-    //  LightOffsetY
-    //  LightOffsetZ
+    int32_t light_color = -1;
+    float light_offset_x = 0.0f;
+    float light_offset_y = 0.0f;
+    float light_offset_z = 0.0f;
     //  SoundAppType
     //  ShadowSize
     //  BodyBag
@@ -32,6 +32,7 @@ struct PlaceableInfo {
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;
 
+    bool has_light() const noexcept { return light_color >= 0; }
     bool valid() const noexcept { return name != 0xFFFFFFFF || !label.empty(); }
 };
 
@@ -117,6 +118,8 @@ struct Placeable : public ObjectBase {
     bool plot = 0;
     bool static_ = false;
     bool useable = false;
+
+    int32_t light_color = -1;
 
     bool instantiated_ = false;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "renderer.hpp"
+#include "preview_render_resources.hpp"
+#include "scene_debug.hpp"
 #include "session.hpp"
 
 #include <nw/render/shader_provider.hpp>
@@ -31,9 +32,9 @@ public:
     void shutdown();
     bool reload_shaders();
 
-    [[nodiscard]] bool initialized() const noexcept { return renderer_ != nullptr; }
-    [[nodiscard]] Renderer* renderer() noexcept { return renderer_.get(); }
-    [[nodiscard]] const Renderer* renderer() const noexcept { return renderer_.get(); }
+    [[nodiscard]] bool initialized() const noexcept { return preview_resources_ != nullptr; }
+    [[nodiscard]] PreviewRenderResources* preview_resources() noexcept { return preview_resources_.get(); }
+    [[nodiscard]] const PreviewRenderResources* preview_resources() const noexcept { return preview_resources_.get(); }
     [[nodiscard]] nw::render::ShaderProvider* shader_provider() noexcept { return shader_provider_.get(); }
     [[nodiscard]] const nw::render::ShaderProvider* shader_provider() const noexcept { return shader_provider_.get(); }
 
@@ -45,7 +46,8 @@ private:
     nw::gfx::Context* context_ = nullptr;
     nw::ResourceManager* resman_ = nullptr;
     std::unique_ptr<nw::render::ShaderProvider> shader_provider_;
-    std::unique_ptr<Renderer> renderer_;
+    std::unique_ptr<PreviewRenderResources> preview_resources_;
+    std::unique_ptr<SceneDebugRenderer> debug_renderer_;
 };
 
 } // namespace nw::render::viewer

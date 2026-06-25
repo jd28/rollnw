@@ -15,11 +15,11 @@ Status legend: ✅ Implemented · ⚠️ Partial (parsed but not fully applied) 
 | NWN Field | NWN Values | rollnw Field | rollnw Type | Status |
 |---|---|---|---|---|
 | `update` | Fountain / Single / Explosion / Lightning | `emission.mode` | `ParticleEmissionMode` | ✅ |
-| `render` | normal / linked / billboard_to_local_z / billboard_to_world_z / aligned_to_world_z / aligned_to_particle_dir / motion_blur | `render.mode` | `ParticleRenderMode` | ✅ (see note 1) |
+| `render` | normal / linked / billboard_to_local_z / billboard_to_world_z / aligned_to_world_z / aligned_to_particle_dir / motion_blur | `render.mode` | `ParticleRenderMode` | ✅ |
 | `blend` | normal / punch-through / lighten | material blend | `ParticleBlendMode` | ✅ |
 | `spawntype` | 0 = per_second / 1 = per_distance (trail) | `emission.metric` | `ParticleSpawnMetric` | ✅ |
 
-> **Note 1:** `billboard_to_local_z` falls through to standard camera-billboard behavior. Every other render mode is implemented.
+> **Note:** Non-targeted additive `Linked` emitters with broad rectangular spawn regions are lowered to `billboard_world_z` when their authored data matches the soft-volume policy described below.
 
 ### Emitter Parameters
 
@@ -46,11 +46,11 @@ Status legend: ✅ Implemented · ⚠️ Partial (parsed but not fully applied) 
 | `lifeExp` | seconds | `initial.lifetime` | Animatable; particle removed at expiry | ✅ |
 | `mass` | float | `initial.mass` | Positive = gravity pulls down; negative = particle rises | ✅ |
 | `spread` | degrees [0–360] | `initial.spread_radians` | Converted to radians; 360 = spherical emission | ✅ |
-| `particleRot` | rotations/sec | `initial.rotation_rate` | Screen-space for billboard modes | ✅ |
+| `particleRot` | rotations/sec | `initial.rotation_rate` | Sprite rotation in the active billboard plane. `aligned_to_world_z` applies this as axial rotation around world Z so vertical shaft slices stay upright. | ✅ |
 | `velocity` | m/s | `initial.speed` | Base initial speed | ✅ |
-| `randvel` | m/s | `initial.speed` (range) | ±range added to base velocity | ✅ |
+| `randvel` | m/s | `initial.speed` (range) | Random range from `velocity` to `velocity + randvel` | ✅ |
 | `bounce_co` | float | `collision.bounce_coefficient` | Only active when `Bounce` flag is set | ✅ |
-| `blurlength` | float | `render.blur_length` | `motion_blur` render mode only; scales streak length relative to particle size | ✅ |
+| `blurlength` | float | `render.blur_length` | `motion_blur` streak length; does not resize `billboard_to_local_z` footprints | ✅ |
 | `loop` | bool | `emission.looping` | `Single` update type: repeat emission | ✅ |
 | `bounce` | bool | `collision.bounce` | Simulated against walkmesh; no visual feedback in mudl | ❌ |
 | `m_isTinted` | bool | `render.tint_to_scene_ambient` | Tints particle colors to scene ambient light | ✅ |
@@ -65,7 +65,7 @@ Status legend: ✅ Implemented · ⚠️ Partial (parsed but not fully applied) 
 | `twosidedtex` | bool | `materials[].double_sided` | Parsed; GPU pipeline does not yet use it | ⚠️ |
 | `xgrid` / `ygrid` | int | `materials[].sheet.columns/rows` | Sprite atlas grid dimensions | ✅ |
 | `fps` | float | `materials[].sheet.frames_per_second` | | ✅ |
-| `frameStart` / `frameEnd` | int (0-based) | `materials[].sheet.frame_begin/end` | A 4×4 texture has frames 0–15 | ✅ |
+| `frameStart` / `frameEnd` | int (0-based) | `materials[].sheet.frame_begin/end` | Absolute atlas frame indices; a 4×4 texture has frames 0–15 | ✅ |
 | `random` | bool | `materials[].sheet.random_start` | Randomizes starting frame per particle | ✅ |
 | `chunkName` | string (≤16 chars) | `materials[].mesh` | Overrides texture; selects `mesh_basic` kernel | ✅ |
 
@@ -97,10 +97,11 @@ What you should see on screen for each combination:
 
 | Update | Render | Expected Screen Result |
 |---|---|---|
-| Fountain | normal | Steady stream of camera-facing quads from the spawn region |
-| Fountain | linked | Continuous ribbon connecting living particles; quads stretch where particles are sparse |
-| Fountain | billboard_to_world_z | Quads lie flat, face upward (parallel to ground); good for pools, auras |
-| Fountain | aligned_to_world_z | Quads face sideways (perpendicular to ground); good for rings, halos |
+| Fountain | normal | Steady stream of camera-facing quads from the spawn region. Exception: stationary additive sheets with broad rectangular spawn regions lower to `billboard_to_local_z` so the authored local plane stays fixed instead of turning into a camera-facing slab. |
+| Fountain | linked | Continuous ribbon connecting living particles; quads stretch where particles are sparse. Exception: non-targeted additive emitters with broad rectangular spawn regions lower to `billboard_world_z` soft ground cards. |
+| Fountain | billboard_to_local_z | Quads render in the emitter's local XY plane with local Z as the plane normal; attached particles keep their authored local rect/velocity motion while `particleRot` spins the sprite in that local plane |
+| Fountain | billboard_to_world_z | Quads lie flat in the world XY plane with stable world axes; good for pools, auras |
+| Fountain | aligned_to_world_z | Quads face sideways (perpendicular to ground) with world Z locked as the vertical axis; good for shafts, rings, halos |
 | Fountain | aligned_to_particle_dir | Quads rotate to face their emit direction; `deadspace` would cull camera-facing ones (not yet applied) |
 | Fountain | motion_blur | Quads stretched along velocity; `blurlength` scales the particle's longitudinal size rather than adding world-space length from speed |
 | Single | normal | One particle emitted once; loops if `loop = 1` |
@@ -111,9 +112,9 @@ What you should see on screen for each combination:
 
 | NWN `blend` | rollnw `ParticleBlendMode` | GPU Pipeline | Visual Character |
 |---|---|---|---|
-| `normal` | `alpha` | `particle_transparent_pipeline_` | Standard alpha compositing; suitable for textured particles with an alpha channel (smoke, chunks) |
-| `punch-through` | `cutout` | `particle_cutout_pipeline_` | Hard-edge cutout: pixels below 0.5 alpha are discarded; no semi-transparency |
-| `lighten` | `additive` | `particle_additive_pipeline_` | Additive blend; black pixels are transparent; creates glow/magic feel; white adds brightness |
+| `normal` | `alpha` | `ParticleRenderer` transparent pipeline | Standard alpha compositing; suitable for textured particles with an alpha channel (smoke, chunks) |
+| `punch-through` | `cutout` | `ParticleRenderer` cutout pipeline | Hard-edge cutout: pixels below 0.5 alpha are discarded; no semi-transparency |
+| `lighten` | `additive` | `ParticleRenderer` additive pipeline | Additive blend; black pixels are transparent; creates glow/magic feel; white adds brightness |
 
 **Practical heuristic:** If the texture has a black background and uses lightness to define shape (fire, sparks, magic), use `lighten`. If the texture has an explicit alpha channel (smoke puff, debris), use `normal`. For leaves or hard-edged decals, use `punch-through`.
 
@@ -195,6 +196,27 @@ alphaStart X → alphaEnd 0
 
 **Expected:** Expanding, fading puffs that rise from the emitter. `random 1` means each puff shows a different noise frame. `mass < 0` gives upward buoyancy; `randVel` adds subtle variance. Puffs diffuse visually as they scale up and fade out. `twosidedtex` is parsed but not yet GPU-applied — if the puff rotates edge-on it may vanish (currently not a practical issue since these are camera-facing).
 
+### Local-Z Ripple / Swirl (e.g., wmgst_t_051 spin02)
+
+```
+update      Fountain
+render      billboard_to_local_z
+blend       Lighten
+texture     fxpa_ripple      (xgrid 2, ygrid 2)
+inherit     1
+xsize 4     ysize 4          (small local XY spawn region)
+birthrate   10
+lifeExp     2
+velocity    0   randvel 0.04
+particleRot 5
+blurlength  10
+mass        0
+```
+
+**Runtime mapping:** The emitter's local XY axes define the quad plane and local Z is the plane normal. Attached/local particles keep the authored local rect spawn and velocity motion; `particleRot` rotates each sprite in that local plane. For `wmgst_t_051 spin02`, the visible spiral comes from absolute atlas frame 1 of `fxpa_ripple` on large 0.6m quads, not from rewriting particle centers into a synthetic spiral. `blurlength` is parsed but does not resize `billboard_to_local_z` effects.
+
+**Expected:** A circular additive ripple disk that stays anchored to the item/socket orientation. The ripple texture spins in the authored local plane; particles should not grow into a wide cloud or orbit as independent center points.
+
 ### Detonation Burst
 
 ```
@@ -257,6 +279,22 @@ sizeStart / sizeEnd       ribbon width over particle lifetime
 
 **Expected:** Full-height ribbon spanning from emitter to reference node. The kink shape changes each spawn due to random lateral spawn offset. `random 1` on the sprite sheet gives each new particle a different texture frame → flickering lightning character. Additive blend (`Lighten`) makes it glow. Bolt reshapes every `lifeExp` seconds.
 
+### Linked Broad Rect / Ground Mist (e.g., tnp_gmist)
+
+```
+update    Fountain
+render    Linked
+blend     Lighten
+p2p 0
+xsize / ysize             broad rectangular spawn region
+lifeExp                   >= 1 second
+velocity + randvel        <= 1 m/s
+```
+
+**Import model:** This legacy NWN pattern uses `Linked`, but the authored intent is a volume of soft cards, not a ribbon. rollnw lowers it to `billboard_world_z` when the emitter is non-targeted, non-lightning, additive, broad rectangular, continuous, long-lived, and low-speed. Targeted `Linked` emitters (`p2p 1`) still use the linked-chain renderer.
+
+**Expected:** Low, soft additive ground mist with overlapping horizontal cards. It should not draw connected ribbons between particles.
+
 ### Wind Burst (e.g., vff_pulswind)
 
 ```
@@ -279,7 +317,7 @@ mass      0                       (no gravity drift)
 velocity  (low, or 0 for static)
 ```
 
-**Expected:** `billboard_to_world_z` — quads flat on ground plane, always face camera-up; circular disc appearance when `spread = 360`. `aligned_to_world_z` — quads perpendicular to ground; suitable for vertical ring/halo effects.
+**Expected:** `billboard_to_world_z` — quads flat on the ground plane with stable world-space axes; circular disc appearance when `spread = 360`. `aligned_to_world_z` — quads perpendicular to ground with world Z locked as the vertical axis; suitable for vertical shaft/ring/halo effects.
 
 ---
 
@@ -287,7 +325,6 @@ velocity  (low, or 0 for static)
 
 | Gap | Affected Fields | Impact |
 |---|---|---|
-| `billboard_to_local_z` falls through to camera-billboard | `render billboard_to_local_z` | Particles that should stay face-forward relative to emitter instead always face camera; most noticeable when emitter tilts |
 | `twosidedtex` not applied to GPU pipeline | `twosidedtex 1` | Particles may disappear when camera views them edge-on; only matters for non-billboard modes |
 | `deadspace` not lowered to authoring IR | `deadspace` on `aligned_to_particle_dir` | Camera-facing particles in the dead zone are not culled; slightly more particles visible than NWN would show |
 | `bounce`, `splat`, `affectedByWind` simulation-only | corresponding flags | Effects exist in simulation but mudl provides no visual confirmation |

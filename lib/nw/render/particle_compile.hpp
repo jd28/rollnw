@@ -68,6 +68,7 @@ struct CompiledParticleMaterial {
 
 struct CompiledParticleEmitter {
     CompiledParticleKernel kernel = CompiledParticleKernel::sprite_basic;
+    ParticleEmitterAttachmentDef attachment;
     ParticleEmissionDef emission;
     ParticleSpawnRegion region;
     ParticleSimulationSpace simulation_space = ParticleSimulationSpace::world;

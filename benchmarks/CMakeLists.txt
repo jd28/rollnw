@@ -29,6 +29,14 @@ target_link_libraries(rollnw_benchmark PRIVATE
 
 add_dependencies(rollnw_benchmark copy-benchmark-files)
 
+if(TARGET nw-render-nwn)
+    target_sources(rollnw_benchmark PRIVATE
+        render_nwn.cpp
+    )
+    target_link_libraries(rollnw_benchmark PRIVATE
+        nw-render-nwn)
+endif()
+
 install(TARGETS rollnw_benchmark
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

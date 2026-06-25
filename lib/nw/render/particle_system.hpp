@@ -1,5 +1,6 @@
 #pragma once
 
+#include "particle_attachment.hpp"
 #include "particle_compile.hpp"
 #include "particle_render.hpp"
 
@@ -117,6 +118,8 @@ struct ParticleSystemInstance {
     const CompiledParticleEffect* effect = nullptr;
     ParticleStorage particles;
     std::vector<ParticleEmitterState> emitters;
+    std::vector<ParticleEmitterAttachmentBinding> emitter_attachments;
+    std::vector<ParticleEmitterAttachmentFrame> emitter_attachment_frames;
     std::vector<uint32_t> live_particles_per_emitter;
     std::vector<uint8_t> emitter_visible;
     ParticleRenderPacketList render_packets;
@@ -128,11 +131,14 @@ struct ParticleSystemInstance {
 };
 
 ParticleSystemInstance create_particle_system(const CompiledParticleEffect& effect);
+void apply_particle_attachment_defaults(ParticleSystemInstance& system);
 void kill_particle(ParticleSystemInstance& system, size_t particle_index);
 void trigger_particle_emitter(ParticleSystemInstance& system, uint16_t emitter_id, uint32_t burst_count = 1);
 void tick_particle_system(ParticleSystemInstance& system, float dt, const ParticleExternalForces& forces = {});
 void tick_particle_system(ParticleSystemInstance& system, float dt, const ParticleSimulationContext& context);
 std::span<const ParticleRenderPacket> build_particle_render_packets(ParticleSystemInstance& system);
+std::span<const uint32_t> particle_render_packet_indices(
+    const ParticleSystemInstance& system, const ParticleRenderPacket& packet) noexcept;
 std::span<const ParticleForceEvent> get_particle_force_events(const ParticleSystemInstance& system);
 
 } // namespace nw::render

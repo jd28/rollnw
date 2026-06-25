@@ -2,6 +2,11 @@
 
 #include "../util/profile.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+#include <xsimd/xsimd.hpp>
+
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -756,17 +761,15 @@ auto eval_track_keys(const std::vector<Key>& keys, float time, Mixer mix)
     const auto& last = keys.back();
     if (time >= last.time) { return last.value; }
 
-    for (size_t i = 0; i + 1 < keys.size(); ++i) {
-        const auto& a = keys[i];
-        const auto& b = keys[i + 1];
-        if (time >= b.time) { continue; }
-        if (b.time <= a.time) { return a.value; }
+    const auto upper = std::upper_bound(keys.begin(), keys.end(), time, [](float lhs, const Key& rhs) {
+        return lhs < rhs.time;
+    });
+    const auto& a = *(upper - 1);
+    const auto& b = *upper;
+    if (b.time <= a.time) { return a.value; }
 
-        const float alpha = (time - a.time) / (b.time - a.time);
-        return mix(a.value, b.value, alpha);
-    }
-
-    return last.value;
+    const float alpha = (time - a.time) / (b.time - a.time);
+    return mix(a.value, b.value, alpha);
 }
 
 float eval_scalar_track(const CompiledParticleScalarTrack& track, float t)
@@ -811,6 +814,156 @@ float eval_path_progress(float normalized_age, float age, float transition_facto
 {
     if (transition_factor <= 0.0f) { return normalized_age; }
     return std::clamp(age / transition_factor, 0.0f, 1.0f);
+}
+
+struct SimdScalarTrack {
+    float begin = 0.0f;
+    float end = 0.0f;
+    bool linear = false;
+};
+
+struct BasicParticleSimdUpdate {
+    SimdScalarTrack size_x;
+    SimdScalarTrack size_y;
+    bool update_size = false;
+    bool spawn_size_x_lerp = false;
+    bool spawn_size_y_lerp = false;
+};
+
+bool make_simd_scalar_track(const CompiledParticleScalarTrack& track, SimdScalarTrack& out)
+{
+    if (track.keys.size() == 1) {
+        out = SimdScalarTrack{.begin = track.keys.front().value, .end = track.keys.front().value};
+        return true;
+    }
+
+    if (track.keys.size() == 2 && track.keys[0].time == 0.0f && track.keys[1].time == 1.0f) {
+        out = SimdScalarTrack{.begin = track.keys[0].value, .end = track.keys[1].value, .linear = true};
+        return true;
+    }
+
+    return false;
+}
+
+// This fast path is deliberately narrow. Particle order can group an emitter
+// without making storage contiguous, and attached/colliding particles need
+// per-particle side effects that belong on the scalar path.
+bool make_basic_particle_simd_update(const CompiledParticleEmitter& emitter,
+    const ParticleSimulationContext& context, BasicParticleSimdUpdate& out)
+{
+    if (effective_simulation_space(emitter) != ParticleSimulationSpace::world) { return false; }
+    if (emitter.affected_by_wind) { return false; }
+    if (context.collision && emitter.collision.enabled) { return false; }
+
+    constexpr uint32_t unsupported_update_features = CompiledParticleFeature::update_color
+        | CompiledParticleFeature::update_rotation
+        | CompiledParticleFeature::update_frame;
+    if ((emitter.features & unsupported_update_features) != 0) { return false; }
+
+    BasicParticleSimdUpdate result;
+    result.update_size = (emitter.features & CompiledParticleFeature::update_size) != 0;
+    result.spawn_size_x_lerp = (emitter.features & CompiledParticleFeature::spawn_size_x_lerp) != 0;
+    result.spawn_size_y_lerp = (emitter.features & CompiledParticleFeature::spawn_size_y_lerp) != 0;
+
+    if (result.update_size) {
+        if (!result.spawn_size_x_lerp && !make_simd_scalar_track(emitter.size_x_track, result.size_x)) {
+            return false;
+        }
+        if (!result.spawn_size_y_lerp && !make_simd_scalar_track(emitter.size_y_track, result.size_y)) {
+            return false;
+        }
+    }
+
+    out = result;
+    return true;
+}
+
+bool particle_order_is_contiguous(std::span<const uint32_t> order, uint32_t begin, uint32_t end, size_t& first)
+{
+    if (begin >= end) { return false; }
+    first = order[begin];
+    for (uint32_t i = begin + 1; i < end; ++i) {
+        if (order[i] != first + static_cast<size_t>(i - begin)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void store_simd_track(std::vector<float>& values, size_t offset, xsimd::batch<float> normalized_age,
+    const SimdScalarTrack& track)
+{
+    using batch_type = xsimd::batch<float>;
+    const batch_type result = track.linear
+        ? batch_type::broadcast(track.begin) + (batch_type::broadcast(track.end - track.begin) * normalized_age)
+        : batch_type::broadcast(track.begin);
+    result.store_unaligned(values.data() + offset);
+}
+
+void store_simd_lerp(std::vector<float>& values, std::span<const float> begin_values, std::span<const float> end_values,
+    size_t offset, xsimd::batch<float> normalized_age)
+{
+    using batch_type = xsimd::batch<float>;
+    const batch_type begin = xsimd::load_unaligned(begin_values.data() + offset);
+    const batch_type end = xsimd::load_unaligned(end_values.data() + offset);
+    (begin + (end - begin) * normalized_age).store_unaligned(values.data() + offset);
+}
+
+void update_basic_particles_simd(ParticleCoreStorage& core, const BasicParticleSimdUpdate& update,
+    size_t first, size_t count, float dt)
+{
+    using batch_type = xsimd::batch<float>;
+    const size_t end = first + count;
+    const size_t batch_size = batch_type::size;
+    const size_t simd_end = first + ((count / batch_size) * batch_size);
+    const batch_type dt_batch = batch_type::broadcast(dt);
+    const batch_type min_lifetime = batch_type::broadcast(1.0e-6f);
+    const batch_type zero = batch_type::broadcast(0.0f);
+    const batch_type one = batch_type::broadcast(1.0f);
+
+    size_t i = first;
+    for (; i < simd_end; i += batch_size) {
+        const batch_type age = xsimd::load_unaligned(core.age.data() + i) + dt_batch;
+        const batch_type lifetime = xsimd::max(xsimd::load_unaligned(core.lifetime.data() + i), min_lifetime);
+        const batch_type normalized_age = xsimd::min(xsimd::max(age / lifetime, zero), one);
+
+        age.store_unaligned(core.age.data() + i);
+        normalized_age.store_unaligned(core.normalized_age.data() + i);
+
+        if (update.update_size) {
+            if (update.spawn_size_x_lerp) {
+                store_simd_lerp(core.size_x, core.size_x_begin, core.size_x_end, i, normalized_age);
+            } else {
+                store_simd_track(core.size_x, i, normalized_age, update.size_x);
+            }
+            if (update.spawn_size_y_lerp) {
+                store_simd_lerp(core.size_y, core.size_y_begin, core.size_y_end, i, normalized_age);
+            } else {
+                store_simd_track(core.size_y, i, normalized_age, update.size_y);
+            }
+        }
+    }
+
+    for (; i < end; ++i) {
+        core.age[i] += dt;
+        const float lifetime = std::max(core.lifetime[i], 1.0e-6f);
+        const float normalized_age = std::clamp(core.age[i] / lifetime, 0.0f, 1.0f);
+        core.normalized_age[i] = normalized_age;
+
+        if (update.update_size) {
+            core.size_x[i] = update.spawn_size_x_lerp
+                ? std::lerp(core.size_x_begin[i], core.size_x_end[i], normalized_age)
+                : (update.size_x.linear ? std::lerp(update.size_x.begin, update.size_x.end, normalized_age) : update.size_x.begin);
+            core.size_y[i] = update.spawn_size_y_lerp
+                ? std::lerp(core.size_y_begin[i], core.size_y_end[i], normalized_age)
+                : (update.size_y.linear ? std::lerp(update.size_y.begin, update.size_y.end, normalized_age) : update.size_y.begin);
+        }
+    }
+
+    for (i = first; i < end; ++i) {
+        core.velocity[i].z -= core.mass[i] * dt;
+        core.position[i] += core.velocity[i] * dt;
+    }
 }
 
 void update_particle_presentation(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
@@ -1275,15 +1428,14 @@ uint64_t render_sort_key(const CompiledParticleEffect& effect, const ParticleCor
     return group_key | chain_key;
 }
 
-void sort_particles_for_render(const CompiledParticleEffect& effect, ParticleStorage& particles,
-    std::vector<uint32_t>& order, std::vector<uint32_t>& target, std::vector<uint64_t>& keys)
+void sort_particles_for_render(const CompiledParticleEffect& effect, const ParticleStorage& particles,
+    std::vector<uint32_t>& order, std::vector<uint64_t>& keys)
 {
     NW_PROFILE_SCOPE_N("sort_particles_for_render");
-    auto& core = particles.core;
+    const auto& core = particles.core;
     const size_t count = core.age.size();
 
     order.resize(count);
-    target.resize(count);
     keys.resize(count);
     std::iota(order.begin(), order.end(), uint32_t{0});
     for (size_t i = 0; i < count; ++i) {
@@ -1293,18 +1445,6 @@ void sort_particles_for_render(const CompiledParticleEffect& effect, ParticleSto
     std::stable_sort(order.begin(), order.end(), [&](uint32_t lhs, uint32_t rhs) {
         return keys[lhs] < keys[rhs];
     });
-
-    for (uint32_t new_pos = 0; new_pos < count; ++new_pos) {
-        target[order[new_pos]] = new_pos;
-    }
-
-    for (uint32_t i = 0; i < count; ++i) {
-        while (target[i] != i) {
-            const uint32_t j = target[i];
-            swap_particle(particles, i, j);
-            std::swap(target[i], target[j]);
-        }
-    }
 }
 
 ParticleRenderPath build_render_path(const ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
@@ -1444,6 +1584,32 @@ ParticleSystemInstance create_particle_system(const CompiledParticleEffect& effe
     return result;
 }
 
+void apply_particle_attachment_defaults(ParticleSystemInstance& system)
+{
+    if (!system.effect) { return; }
+
+    const size_t count = std::min(system.effect->emitters.size(), system.emitters.size());
+    for (size_t i = 0; i < count; ++i) {
+        const auto& attachment = system.effect->emitters[i].attachment;
+        auto& emitter = system.emitters[i];
+        if (attachment.has_default_transform) {
+            emitter.world_transform = attachment.default_transform;
+            emitter.prev_world_pos = glm::vec3(attachment.default_transform[3]);
+        } else if (attachment.has_default_position) {
+            emitter.world_transform = glm::translate(glm::mat4{1.0f}, attachment.default_position);
+            emitter.prev_world_pos = attachment.default_position;
+            if (attachment.has_default_orientation) {
+                emitter.world_transform *= glm::mat4_cast(attachment.default_orientation);
+            }
+        } else if (attachment.has_default_orientation) {
+            emitter.world_transform = glm::mat4_cast(attachment.default_orientation);
+        }
+        if (attachment.has_default_target_offset) {
+            emitter.target_point = attachment.default_target_offset;
+        }
+    }
+}
+
 void kill_particle(ParticleSystemInstance& system, size_t particle_index)
 {
     auto& particles = system.particles;
@@ -1497,7 +1663,7 @@ void spawn_pending_bursts(ParticleSystemInstance& system, uint16_t emitter_id, c
         ? emission_rate * std::max(emitter.emission.effect_event_period, 0.0f)
         : emission_rate;
     const uint32_t particles_per_burst =
-        std::max<uint32_t>(1u, static_cast<uint32_t>(std::lround(std::max(0.0f, particles_per_burst_f))));
+        static_cast<uint32_t>(std::lround(std::max(0.0f, particles_per_burst_f)));
     const auto range = reserve_spawn_range(system, emitter_id, state.pending_bursts * particles_per_burst);
     size_t write = range.begin;
     for (uint32_t burst = 0; burst < state.pending_bursts; ++burst) {
@@ -1663,7 +1829,6 @@ void tick_particle_system(ParticleSystemInstance& system, float dt, const Partic
                         particles.beams.update_accumulator[i] = 0.0f;
                     }
                     core.position[i] = 0.5f * (particles.beams.source_position[i] + particles.beams.target_position[i]);
-                    core.age[i] = 0.0f;
                     update_particle_presentation(system, emitter, emitter_state, i);
                 }
                 break;
@@ -1691,6 +1856,15 @@ void tick_particle_system(ParticleSystemInstance& system, float dt, const Partic
             case CompiledParticleKernel::mesh_basic:
             case CompiledParticleKernel::sprite_basic_constant:
             case CompiledParticleKernel::sprite_basic:
+                if (BasicParticleSimdUpdate simd_update;
+                    make_basic_particle_simd_update(emitter, context, simd_update)) {
+                    size_t first = 0;
+                    if (particle_order_is_contiguous(system.sort_order, begin, end, first)) {
+                        update_basic_particles_simd(core, simd_update, first, end - begin, dt);
+                        break;
+                    }
+                }
+
                 for (uint32_t order_index = begin; order_index < end; ++order_index) {
                     const size_t i = system.sort_order[order_index];
                     core.age[i] += dt;
@@ -1721,17 +1895,27 @@ std::span<const ParticleRenderPacket> build_particle_render_packets(ParticleSyst
     auto& core = system.particles.core;
     if (core.age.empty()) { return system.render_packets.span(); }
 
-    sort_particles_for_render(*system.effect, system.particles, system.sort_order, system.sort_target, system.sort_keys);
+    sort_particles_for_render(*system.effect, system.particles, system.sort_order, system.sort_keys);
 
     size_t begin = 0;
-    while (begin < core.age.size()) {
-        const auto material = core.material_id[begin];
-        const auto emitter_id = core.emitter_id[begin];
+    while (begin < system.sort_order.size()) {
+        const size_t first_particle = system.sort_order[begin];
+        if (first_particle >= core.age.size()) {
+            ++begin;
+            continue;
+        }
+
+        const auto material = core.material_id[first_particle];
+        const auto emitter_id = core.emitter_id[first_particle];
         size_t end = begin + 1;
 
-        while (end < core.age.size()
-            && core.material_id[end] == material
-            && compatible_packet_state(system, material, emitter_id, core.emitter_id[end])) {
+        while (end < system.sort_order.size()) {
+            const size_t particle_index = system.sort_order[end];
+            if (particle_index >= core.age.size()
+                || core.material_id[particle_index] != material
+                || !compatible_packet_state(system, material, emitter_id, core.emitter_id[particle_index])) {
+                break;
+            }
             ++end;
         }
 
@@ -1752,7 +1936,11 @@ std::span<const ParticleRenderPacket> build_particle_render_packets(ParticleSyst
         bool uniform_frame = (emitter.features & CompiledParticleFeature::update_frame) == 0;
         bool uniform_rotation = (emitter.features & CompiledParticleFeature::update_rotation) == 0;
         for (size_t i = begin + 1; i < end; ++i) {
-            const auto packet_emitter_id = core.emitter_id[i];
+            const size_t particle_index = system.sort_order[i];
+            if (particle_index >= core.age.size()) {
+                continue;
+            }
+            const auto packet_emitter_id = core.emitter_id[particle_index];
             if (packet_emitter_id >= system.effect->emitters.size()) {
                 continue;
             }
@@ -1775,7 +1963,7 @@ std::span<const ParticleRenderPacket> build_particle_render_packets(ParticleSyst
             .count = static_cast<uint32_t>(end - begin),
             .blend = blend,
             .sheet = packet_sheet,
-            .path = build_render_path(system, emitter_id, begin),
+            .path = build_render_path(system, emitter_id, first_particle),
             .double_sided = double_sided,
             .transparent = blend != ParticleBlendMode::cutout,
             .sort_back_to_front = blend == ParticleBlendMode::alpha && emitter.render.mode != ParticleRenderMode::linked_chain,
@@ -1797,6 +1985,17 @@ std::span<const ParticleRenderPacket> build_particle_render_packets(ParticleSyst
 
     NW_PROFILE_PLOT("particles/render_packets/count", static_cast<double>(packets.size()));
     return system.render_packets.span();
+}
+
+std::span<const uint32_t> particle_render_packet_indices(
+    const ParticleSystemInstance& system, const ParticleRenderPacket& packet) noexcept
+{
+    const size_t begin = packet.begin;
+    if (begin >= system.sort_order.size()) { return {}; }
+
+    const size_t available = system.sort_order.size() - begin;
+    const size_t count = std::min<size_t>(packet.count, available);
+    return {system.sort_order.data() + begin, count};
 }
 
 std::span<const ParticleForceEvent> get_particle_force_events(const ParticleSystemInstance& system)

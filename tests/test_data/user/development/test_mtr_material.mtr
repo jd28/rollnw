@@ -1,0 +1,12 @@
+mtr style
+customshaderVS vslit_sm_nm
+customshaderFS fslit_sm_nm
+
+texture0 test_mtr_diffuse
+transparency 1
+twosided 1
+roughness 0.32
+specular 0.04 0.08 0.12
+parameter float Specularity 0.18
+alphacutoff 0.42
+parameter float3 selfillumcolor 0.10 0.20 0.30

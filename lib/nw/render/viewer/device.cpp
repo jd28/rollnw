@@ -35,7 +35,7 @@ ViewerDevice::~ViewerDevice()
 
 bool ViewerDevice::initialize(const ViewerDeviceOptions& options)
 {
-    if (renderer_) {
+    if (preview_resources_) {
         return true;
     }
     if (!context_ || !resman_) {
@@ -60,10 +60,17 @@ bool ViewerDevice::initialize(const ViewerDeviceOptions& options)
     auto* service = ensure_render_service();
     service->configure(context_, shader_provider_.get());
 
-    renderer_ = std::make_unique<Renderer>(context_);
-    if (!renderer_->initialize(shader_provider_.get())) {
-        renderer_.reset();
-        LOG_F(ERROR, "Viewer device: failed to initialize viewer renderer");
+    preview_resources_ = std::make_unique<PreviewRenderResources>(context_);
+    if (!preview_resources_->initialize(shader_provider_.get())) {
+        preview_resources_.reset();
+        LOG_F(ERROR, "Viewer device: failed to initialize preview render resources");
+        return false;
+    }
+    debug_renderer_ = std::make_unique<SceneDebugRenderer>(context_);
+    if (!debug_renderer_->initialize(*shader_provider_)) {
+        debug_renderer_.reset();
+        preview_resources_.reset();
+        LOG_F(ERROR, "Viewer device: failed to initialize scene debug renderer");
         return false;
     }
 
@@ -76,7 +83,8 @@ void ViewerDevice::shutdown()
         nw::gfx::wait_idle(context_);
     }
 
-    renderer_.reset();
+    debug_renderer_.reset();
+    preview_resources_.reset();
     if (auto* service = nw::kernel::services().get_mut<nw::render::RenderService>()) {
         service->shutdown_renderer();
     }
@@ -97,17 +105,25 @@ bool ViewerDevice::reload_shaders()
     }
 
     nw::gfx::wait_idle(context_);
-    renderer_.reset();
+    debug_renderer_.reset();
+    preview_resources_.reset();
 
     if (!service->reload_shaders()) {
         LOG_F(ERROR, "Viewer device: failed to reload render service shaders");
         return false;
     }
 
-    renderer_ = std::make_unique<Renderer>(context_);
-    if (!renderer_->initialize(shader_provider_.get())) {
-        renderer_.reset();
-        LOG_F(ERROR, "Viewer device: failed to rebuild viewer renderer after shader reload");
+    preview_resources_ = std::make_unique<PreviewRenderResources>(context_);
+    if (!preview_resources_->initialize(shader_provider_.get())) {
+        preview_resources_.reset();
+        LOG_F(ERROR, "Viewer device: failed to rebuild preview render resources after shader reload");
+        return false;
+    }
+    debug_renderer_ = std::make_unique<SceneDebugRenderer>(context_);
+    if (!debug_renderer_->initialize(*shader_provider_)) {
+        debug_renderer_.reset();
+        preview_resources_.reset();
+        LOG_F(ERROR, "Viewer device: failed to rebuild scene debug renderer after shader reload");
         return false;
     }
 
@@ -116,10 +132,10 @@ bool ViewerDevice::reload_shaders()
 
 std::unique_ptr<ViewerSession> ViewerDevice::make_session()
 {
-    if (!renderer_) {
+    if (!preview_resources_) {
         return {};
     }
-    return std::make_unique<ViewerSession>(*renderer_);
+    return std::make_unique<ViewerSession>(*preview_resources_, debug_renderer_.get());
 }
 
 bool ViewerDevice::register_shader_roots(const std::vector<std::filesystem::path>& shader_roots)

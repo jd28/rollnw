@@ -1,0 +1,4 @@
+renderhint NormalAndSpecMapped
+texture1 preserved_normal
+texture2 preserved_specular
+texture3 preserved_roughness

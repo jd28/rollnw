@@ -24,13 +24,36 @@ bool keys_are_constant(const std::vector<Key>& keys)
     return true;
 }
 
+template <typename Key>
+std::vector<Key> sorted_keys(const std::vector<Key>& keys)
+{
+    std::vector<Key> result = keys;
+    std::stable_sort(result.begin(), result.end(), [](const Key& lhs, const Key& rhs) {
+        return lhs.time < rhs.time;
+    });
+    return result;
+}
+
+template <typename Key, typename Value>
+Value keyed_end_value_or(const std::vector<Key>& keys, const Value& fallback)
+{
+    if (keys.empty()) {
+        return fallback;
+    }
+
+    auto it = std::max_element(keys.begin(), keys.end(), [](const Key& lhs, const Key& rhs) {
+        return lhs.time < rhs.time;
+    });
+    return it->value;
+}
+
 CompiledParticleScalarTrack compile_scalar_track(const ParticleCurveF32& curve, float default_value)
 {
     if (curve.keys.empty()) {
         return {.keys = {{0.0f, default_value}}};
     }
 
-    return {.keys = curve.keys};
+    return {.keys = sorted_keys(curve.keys)};
 }
 
 CompiledParticleColorTrack compile_color_track(const ParticleGradient& gradient, const glm::vec4& default_value)
@@ -39,7 +62,7 @@ CompiledParticleColorTrack compile_color_track(const ParticleGradient& gradient,
         return {.keys = {{0.0f, default_value}}};
     }
 
-    return {.keys = gradient.keys};
+    return {.keys = sorted_keys(gradient.keys)};
 }
 
 uint32_t compile_features(const ParticleEmitterDef& emitter, const ParticleMaterialDef* material);
@@ -50,7 +73,7 @@ CompiledParticleKeyedScalarTrack compile_keyed_scalar_track(const ParticleCurveF
         return {.keys = {{0.0f, fallback}}};
     }
 
-    return {.keys = curve.keys};
+    return {.keys = sorted_keys(curve.keys)};
 }
 
 CompiledParticleKeyedColorTrack compile_keyed_color_track(const ParticleGradient& gradient, const glm::vec4& fallback)
@@ -59,7 +82,7 @@ CompiledParticleKeyedColorTrack compile_keyed_color_track(const ParticleGradient
         return {.keys = {{0.0f, fallback}}};
     }
 
-    return {.keys = gradient.keys};
+    return {.keys = sorted_keys(gradient.keys)};
 }
 
 CompiledParticleKernel classify_kernel(const ParticleEmitterDef& emitter, const ParticleMaterialDef* material)
@@ -241,6 +264,7 @@ ParticleCompileResult compile_particle_effect(const ParticleEffectDef& def)
         auto& out = result.effect.emitters.emplace_back();
         NW_PROFILE_TEXT_CSTR(emitter.name.c_str());
 
+        out.attachment = emitter.attachment;
         out.emission = emitter.emission;
         out.region = emitter.region;
         out.simulation_space = emitter.simulation_space;
@@ -282,10 +306,15 @@ ParticleCompileResult compile_particle_effect(const ParticleEffectDef& def)
         }
 
         out.max_particles = emitter.max_particles;
+        if (out.max_particles == 0) {
+            result.warnings.push_back(
+                {static_cast<uint32_t>(i), "max_particles is 0; emitter will not spawn particles"});
+        }
         out.emission_rate_track = compile_keyed_scalar_track(emitter.emission.rate_over_time, emitter.emission.rate);
         out.alpha_start_track = compile_keyed_scalar_track(emitter.spawn_over_time.alpha_start, emitter.initial.color.a);
-        out.alpha_end_track = compile_keyed_scalar_track(emitter.spawn_over_time.alpha_end,
-            emitter.over_life.alpha.keys.empty() ? emitter.initial.color.a : emitter.over_life.alpha.keys.back().value);
+        out.alpha_end_track = compile_keyed_scalar_track(
+            emitter.spawn_over_time.alpha_end,
+            keyed_end_value_or(emitter.over_life.alpha.keys, emitter.initial.color.a));
         out.lifetime_track = compile_keyed_scalar_track(emitter.spawn_over_time.lifetime, emitter.initial.lifetime.min);
         out.speed_track = compile_keyed_scalar_track(emitter.spawn_over_time.speed, emitter.initial.speed.min);
         out.speed_random_track = compile_keyed_scalar_track(
@@ -303,14 +332,17 @@ ParticleCompileResult compile_particle_effect(const ParticleEffectDef& def)
         out.sheet_random_start_track = compile_keyed_scalar_track(
             emitter.spawn_over_time.sheet_random_start, base_sheet.random_start ? 1.0f : 0.0f);
         out.size_start_x_track = compile_keyed_scalar_track(emitter.spawn_over_time.size_start_x, emitter.initial.size_x.min);
-        out.size_end_x_track = compile_keyed_scalar_track(emitter.spawn_over_time.size_end_x,
-            emitter.over_life.size_x.keys.empty() ? emitter.initial.size_x.min : emitter.over_life.size_x.keys.back().value);
+        out.size_end_x_track = compile_keyed_scalar_track(
+            emitter.spawn_over_time.size_end_x,
+            keyed_end_value_or(emitter.over_life.size_x.keys, emitter.initial.size_x.min));
         out.size_start_y_track = compile_keyed_scalar_track(emitter.spawn_over_time.size_start_y, emitter.initial.size_y.min);
-        out.size_end_y_track = compile_keyed_scalar_track(emitter.spawn_over_time.size_end_y,
-            emitter.over_life.size_y.keys.empty() ? emitter.initial.size_y.min : emitter.over_life.size_y.keys.back().value);
+        out.size_end_y_track = compile_keyed_scalar_track(
+            emitter.spawn_over_time.size_end_y,
+            keyed_end_value_or(emitter.over_life.size_y.keys, emitter.initial.size_y.min));
         out.color_start_track = compile_keyed_color_track(emitter.spawn_over_time.color_start, emitter.initial.color);
-        out.color_end_track = compile_keyed_color_track(emitter.spawn_over_time.color_end,
-            emitter.over_life.color.keys.empty() ? emitter.initial.color : emitter.over_life.color.keys.back().value);
+        out.color_end_track = compile_keyed_color_track(
+            emitter.spawn_over_time.color_end,
+            keyed_end_value_or(emitter.over_life.color.keys, emitter.initial.color));
         out.alpha_track = compile_scalar_track(emitter.over_life.alpha, emitter.initial.color.a);
         out.size_x_track = compile_scalar_track(emitter.over_life.size_x, emitter.initial.size_x.min);
         out.size_y_track = compile_scalar_track(emitter.over_life.size_y, emitter.initial.size_y.min);

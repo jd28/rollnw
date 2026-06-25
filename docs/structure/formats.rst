@@ -94,7 +94,9 @@ Supported thanks to `nholmann_json <https://github.com/nlohmann/json>`__
 mdl
 ---
 
-See `model docs <https://rollnw.readthedocs.io/en/latest/structure/model.html>`__
+MDL parsing is still part of the NWN compatibility layer. Renderer-facing model
+conversion notes now live with the renderer code:
+`lib/nw/render <https://github.com/jd28/rollnw/tree/main/lib/nw/render>`__.
 
 -------------------------------------------------------------------------------
 

@@ -29,6 +29,8 @@ struct ParticleRenderPacket {
     ParticleRenderMode mode = ParticleRenderMode::billboard;
     ParticleRenderSemantic semantic = ParticleRenderSemantic::none;
     uint32_t material = 0;
+    // Offset/count into ParticleSystemInstance::sort_order for this frame.
+    // The particle SoA storage remains in simulation order.
     uint32_t begin = 0;
     uint32_t count = 0;
     ParticleBlendMode blend = ParticleBlendMode::alpha;

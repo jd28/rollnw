@@ -59,7 +59,10 @@ bool deserialize(Location& self, const GffStruct gff, SerializationProfile profi
                 && gff.get_to("PositionZ", self.position[2], false))
         || (gff.get_to("XPosition", self.position[0], false)
             && gff.get_to("YPosition", self.position[1], false)
-            && gff.get_to("ZPosition", self.position[2], false));
+            && gff.get_to("ZPosition", self.position[2], false))
+        || (gff.get_to("X", self.position[0], false)
+            && gff.get_to("Y", self.position[1], false)
+            && gff.get_to("Z", self.position[2], false));
 
     if (gff.has_field("Bearing")) {
         float rad;

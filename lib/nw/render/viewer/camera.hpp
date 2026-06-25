@@ -35,6 +35,7 @@ public:
     void pan(float delta_right, float delta_up);
     void zoom(float zoom_factor);
     void set_area_overview(const nw::render::Bounds& bounds);
+    void set_area_gameplay_view(const nw::render::Bounds& bounds, float fov_degrees = 65.0f);
     void set_area_overview_xy(const glm::vec2& center, const glm::vec2& size, float base_z = 0.0f);
     void set_area_navigation_target(const glm::vec3& target);
     void move_forward(float amount, bool planar = false);
@@ -51,6 +52,7 @@ public:
     glm::vec3 get_forward() const;
     float near_plane() const { return near_plane_; }
     float far_plane() const { return far_plane_; }
+    float fov_degrees() const { return fov_; }
     ProjectionMode projection_mode() const { return projection_mode_; }
     bool is_orthographic() const { return projection_mode_ == ProjectionMode::orthographic; }
     float pan_units_per_pixel(float viewport_height_pixels) const;

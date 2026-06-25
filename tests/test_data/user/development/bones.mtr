@@ -1,0 +1,8 @@
+// Renderhint
+renderhint normalandspecmapped
+
+// Textures
+texture0 bones
+texture1 bones_n
+texture2 bones_s
+texture3 bones_r

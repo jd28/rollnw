@@ -39,6 +39,10 @@ add_executable(rollnw_test
 
     model_parse.cpp
     model_particles.cpp
+    ../tools/mudl/benchmark_report.cpp
+    ../tools/mudl/mudl_cli.cpp
+    mudl_benchmark_report.cpp
+    mudl_cli.cpp
 
     objects_area.cpp
     objects_creature.cpp
@@ -109,8 +113,58 @@ add_executable(rollnw_test
 
 add_dependencies(rollnw_test copy-files2)
 
+set_target_properties(rollnw_test PROPERTIES
+    INSTALL_RPATH "$ORIGIN"
+)
+
+if(UNIX)
+    set_target_properties(rollnw_test PROPERTIES
+        BUILD_RPATH_USE_ORIGIN TRUE
+    )
+endif()
+
+
+if(TARGET nw-render-nwn)
+    target_sources(rollnw_test PRIVATE
+        render_asset_cache.cpp
+        render_model_instance.cpp
+        render_model_loader.cpp
+    )
+    target_link_libraries(rollnw_test PRIVATE
+        nw-render-nwn)
+endif()
+
+if(TARGET nw-render)
+    target_sources(rollnw_test PRIVATE
+        render_gfx_bindless.cpp
+        render_frame_storage_arena.cpp
+        render_model_asset.cpp
+        render_pipeline_cache.cpp
+        render_shader_includes.cpp
+    )
+    target_link_libraries(rollnw_test PRIVATE
+        nw-render)
+endif()
+
+if(TARGET nw-render-viewer)
+    target_sources(rollnw_test PRIVATE
+        mudl_app_runtime.cpp
+        render_gltf_import.cpp
+        render_prepared_model_draws.cpp
+        render_preview_model_animation.cpp
+        render_forward_plus.cpp
+        render_viewer_prepared_draws.cpp
+        render_viewer_particles.cpp
+        render_viewer_lighting.cpp
+    )
+    target_link_libraries(rollnw_test PRIVATE
+        nw-render-viewer)
+endif()
+
 target_include_directories(rollnw_test PRIVATE
     ../lib
+    ../lib/nw
+    ../tools/mudl
     ../tools/smalls-lsp
 )
 

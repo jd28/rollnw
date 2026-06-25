@@ -90,6 +90,33 @@ bool parse_tokens(Tokenizer& tokens, StringView name, String& out)
     return false;
 }
 
+bool parse_line_tokens(Tokenizer& tokens, StringView name, String& out)
+{
+    auto tk = tokens.next();
+    if (is_newline(tk)) {
+        out = "";
+        tokens.put_back(tk);
+        return true;
+    } else if (tk.empty()) {
+        LOG_F(ERROR, "{}: Failed to parse line string, line: {}", name, tokens.line());
+        return false;
+    }
+
+    out = String(tk);
+    while (true) {
+        tk = tokens.next();
+        if (tk.empty()) { break; }
+        if (is_newline(tk)) {
+            tokens.put_back(tk);
+            break;
+        }
+        out += " ";
+        out += String(tk);
+    }
+    string::tolower(&out);
+    return true;
+}
+
 bool parse_tokens(Tokenizer& tokens, StringView name, int32_t& out)
 {
     auto tk = tokens.next();
@@ -646,7 +673,13 @@ bool TextParser::parse_node(Geometry* geometry)
             TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
 
             PARSE_DATA(beaming, n)
-            PARSE_DATA(bitmap, n)
+            if (icmp(tk, "bitmap")) {
+                if (!parse_line_tokens(tokens_, tk, n->bitmap)) {
+                    return false;
+                } else {
+                    continue;
+                }
+            }
             PARSE_DATA(bmax, n)
             PARSE_DATA(bmin, n)
 

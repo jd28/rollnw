@@ -7,8 +7,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include <fstream>
 #include <cstring>
+#include <fstream>
 #include <sstream>
 
 namespace {
@@ -462,7 +462,13 @@ TEST(ModelParticles, ImportGravityTargetedEmitter)
     EXPECT_FLOAT_EQ(match.first->targeting.gravity, 3.0f);
     EXPECT_GT(match.first->targeting.drag, 0.0f);
     EXPECT_FALSE(match.second->emitter_node_name.empty());
+    ASSERT_NE(match.second->emitter_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
+    ASSERT_LT(match.second->emitter_source_node_index, mdl.model.nodes.size());
+    EXPECT_EQ(mdl.model.nodes[match.second->emitter_source_node_index]->name, match.second->emitter_node_name);
     EXPECT_FALSE(match.second->target_node_name.empty());
+    ASSERT_NE(match.second->target_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
+    ASSERT_LT(match.second->target_source_node_index, mdl.model.nodes.size());
+    EXPECT_EQ(mdl.model.nodes[match.second->target_source_node_index]->name, match.second->target_node_name);
     EXPECT_TRUE(match.second->has_default_target_offset);
     EXPECT_GT(match.second->default_target_offset.z, 0.0f);
 }
@@ -518,8 +524,60 @@ TEST(ModelParticles, ImportBezierTargetedEmitter)
     EXPECT_EQ(match.first->simulation_space, nw::render::ParticleSimulationSpace::spawn_attached);
     EXPECT_EQ(match.first->render.mode, nw::render::ParticleRenderMode::linked_chain);
     EXPECT_FLOAT_EQ(match.first->targeting.transition_factor, 1.0f);
+    ASSERT_NE(match.second->emitter_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
+    ASSERT_LT(match.second->emitter_source_node_index, mdl.model.nodes.size());
+    EXPECT_EQ(mdl.model.nodes[match.second->emitter_source_node_index]->name, match.second->emitter_node_name);
+    ASSERT_NE(match.second->target_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
+    ASSERT_LT(match.second->target_source_node_index, mdl.model.nodes.size());
+    EXPECT_EQ(mdl.model.nodes[match.second->target_source_node_index]->name, match.second->target_node_name);
     EXPECT_TRUE(match.second->has_default_target_offset);
     EXPECT_LT(match.second->default_target_offset.z, 0.0f);
+}
+
+TEST(ModelParticles, ImportNonTargetedLinkedMistAsWorldBillboard)
+{
+    nw::model::Mdl mdl{"../tests/test_data/user/development/vfx_linked_mist_test.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nw::model::import_particle_effect(mdl);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+
+    const auto& emitter = result.effect.emitters[0];
+    ASSERT_LT(emitter.render.material, result.effect.materials.size());
+    EXPECT_EQ(emitter.targeting.mode, nw::render::ParticleTargetingMode::none);
+    EXPECT_EQ(emitter.render.mode, nw::render::ParticleRenderMode::billboard_world_z);
+    EXPECT_EQ(result.effect.materials[emitter.render.material].blend, nw::render::ParticleBlendMode::additive);
+}
+
+TEST(ModelParticles, ImportStationaryNormalRectAuraAsLocalPlane)
+{
+    nw::model::Mdl mdl{"../tests/test_data/user/development/vfx_normal_rect_aura_test.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nw::model::import_particle_effect(mdl);
+
+    const auto* aura = [&]() -> const nw::render::ParticleEmitterDef* {
+        for (const auto& emitter : result.effect.emitters) {
+            if (emitter.name == "portal_aura") return &emitter;
+        }
+        return nullptr;
+    }();
+    const auto* spark = [&]() -> const nw::render::ParticleEmitterDef* {
+        for (const auto& emitter : result.effect.emitters) {
+            if (emitter.name == "plain_spark") return &emitter;
+        }
+        return nullptr;
+    }();
+
+    ASSERT_NE(aura, nullptr);
+    ASSERT_NE(spark, nullptr);
+    EXPECT_EQ(aura->render.mode, nw::render::ParticleRenderMode::billboard_local_z);
+    EXPECT_EQ(aura->region.type, nw::render::ParticleSpawnRegionType::rect);
+    EXPECT_FLOAT_EQ(aura->region.size.x, 26.0f);
+    EXPECT_FLOAT_EQ(aura->region.size.y, 41.0f);
+    ASSERT_LT(aura->render.material, result.effect.materials.size());
+    EXPECT_EQ(result.effect.materials[aura->render.material].blend, nw::render::ParticleBlendMode::additive);
+    EXPECT_EQ(spark->render.mode, nw::render::ParticleRenderMode::billboard);
 }
 
 TEST(ModelParticles, ParseEmitterFlags)
@@ -586,6 +644,8 @@ TEST(ModelParticles, ImportLightningEmitter)
     EXPECT_FLOAT_EQ(emitter.beam.jitter_radius, 0.25f);
     EXPECT_FLOAT_EQ(emitter.beam.noise_scale, 0.5f);
     EXPECT_EQ(emitter.beam.subdivisions, 6u);
+    EXPECT_NE(result.emitter_inits[0].emitter_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
+    EXPECT_NE(result.emitter_inits[0].target_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
     EXPECT_TRUE(result.emitter_inits[0].has_default_target_offset);
     EXPECT_FLOAT_EQ(result.emitter_inits[0].default_target_offset.z, 2.0f);
 }
@@ -701,7 +761,8 @@ TEST(ModelParticles, CorpusLocalFixturesCompileAndCreateSystems)
         auto system = nw::render::create_particle_system(compiled.effect);
         EXPECT_EQ(system.emitters.size(), compiled.effect.emitters.size()) << id << " -> " << input;
         EXPECT_GE(system.particles.core.position.capacity(),
-            static_cast<size_t>(compiled.effect.max_particles_total)) << id << " -> " << input;
+            static_cast<size_t>(compiled.effect.max_particles_total))
+            << id << " -> " << input;
     }
 }
 
@@ -737,7 +798,8 @@ TEST(ModelParticles, CorpusLocalFixturesTickAndBuildPackets)
             nw::render::tick_particle_system(system, 0.016f);
             auto packets = nw::render::build_particle_render_packets(system);
             (void)packets;
-        }) << id << " -> " << input;
+        }) << id
+           << " -> " << input;
     }
 }
 

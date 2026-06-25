@@ -1,5 +1,8 @@
 #include "camera.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace nw::render::viewer {
 
 namespace {
@@ -149,6 +152,42 @@ void Camera::set_area_overview(const nw::render::Bounds& bounds)
     free_yaw_ = 0.0f;
     free_pitch_ = -89.0f;
     update_vectors();
+}
+
+void Camera::set_area_gameplay_view(const nw::render::Bounds& bounds, float fov_degrees)
+{
+    const glm::vec3 extents = bounds.max - bounds.min;
+    const glm::vec3 center = bounds.center();
+    const float planar_extent = std::max(std::max(extents.x, extents.y), 20.0f);
+    const float eye_height = std::max(4.0f, std::min(8.0f, std::max(extents.z * 0.15f, 4.0f)));
+    const float eye_z = std::max(bounds.min.z + eye_height, center.z + 2.0f);
+
+    const glm::vec3 position{
+        bounds.min.x + extents.x * 0.18f,
+        bounds.min.y + extents.y * 0.18f,
+        eye_z,
+    };
+
+    glm::vec2 direction{
+        center.x - position.x,
+        center.y - position.y,
+    };
+    if (glm::dot(direction, direction) < 1.0e-5f) {
+        direction = {1.0f, 0.25f};
+    }
+    direction = glm::normalize(direction);
+
+    const float look_distance = std::min(std::max(planar_extent * 0.22f, 35.0f), 90.0f);
+    const glm::vec3 target{
+        position.x + direction.x * look_distance,
+        position.y + direction.y * look_distance,
+        eye_z - 0.5f,
+    };
+
+    if (fov_degrees > 0.0f) {
+        set_fov(fov_degrees);
+    }
+    set_free_view(position, target, Camera::ProjectionMode::perspective);
 }
 
 void Camera::set_area_overview_xy(const glm::vec2& center, const glm::vec2& size, float base_z)

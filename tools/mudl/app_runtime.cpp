@@ -15,10 +15,11 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/packing.hpp>
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -27,9 +28,6 @@
 namespace mudl {
 
 namespace {
-
-static constexpr std::string_view kMudlGltfEnvironmentPath
-    = "tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx";
 
 struct KtxHeader {
     uint32_t endianness = 0;
@@ -64,7 +62,18 @@ uint16_t read_u16_le(const uint8_t* bytes)
 std::optional<KtxHeader> parse_ktx_header(const std::vector<uint8_t>& bytes)
 {
     static constexpr std::array<uint8_t, 12> kKtxMagic{
-        0xab, 0x4b, 0x54, 0x58, 0x20, 0x31, 0x31, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a,
+        0xab,
+        0x4b,
+        0x54,
+        0x58,
+        0x20,
+        0x31,
+        0x31,
+        0xbb,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
     };
 
     if (bytes.size() < 64 || !std::equal(kKtxMagic.begin(), kKtxMagic.end(), bytes.begin())) {
@@ -128,12 +137,30 @@ glm::vec2 cubemap_face_uv(uint32_t face, const glm::vec3& dir)
     float tc = 0.0f;
 
     switch (face) {
-    case 0u: sc = -dir.z / ad.x; tc = -dir.y / ad.x; break;
-    case 1u: sc =  dir.z / ad.x; tc = -dir.y / ad.x; break;
-    case 2u: sc =  dir.x / ad.y; tc =  dir.z / ad.y; break;
-    case 3u: sc =  dir.x / ad.y; tc = -dir.z / ad.y; break;
-    case 4u: sc =  dir.x / ad.z; tc = -dir.y / ad.z; break;
-    default: sc = -dir.x / ad.z; tc = -dir.y / ad.z; break;
+    case 0u:
+        sc = -dir.z / ad.x;
+        tc = -dir.y / ad.x;
+        break;
+    case 1u:
+        sc = dir.z / ad.x;
+        tc = -dir.y / ad.x;
+        break;
+    case 2u:
+        sc = dir.x / ad.y;
+        tc = dir.z / ad.y;
+        break;
+    case 3u:
+        sc = dir.x / ad.y;
+        tc = -dir.z / ad.y;
+        break;
+    case 4u:
+        sc = dir.x / ad.z;
+        tc = -dir.y / ad.z;
+        break;
+    default:
+        sc = -dir.x / ad.z;
+        tc = -dir.y / ad.z;
+        break;
     }
 
     return glm::clamp(glm::vec2{sc, tc} * 0.5f + 0.5f, glm::vec2{0.0f}, glm::vec2{1.0f});
@@ -237,11 +264,7 @@ HdrLatLongImage downsample_latlong_image(const HdrLatLongImage& image)
             const auto load = [&](uint32_t px, uint32_t py) {
                 return image.pixels[static_cast<size_t>(py) * image.width + px];
             };
-            result.pixels[static_cast<size_t>(y) * result.width + x] = 0.25f * (
-                load(src_x0, src_y0)
-                + load(src_x1, src_y0)
-                + load(src_x0, src_y1)
-                + load(src_x1, src_y1));
+            result.pixels[static_cast<size_t>(y) * result.width + x] = 0.25f * (load(src_x0, src_y0) + load(src_x1, src_y0) + load(src_x0, src_y1) + load(src_x1, src_y1));
         }
     }
 
@@ -395,14 +418,14 @@ std::optional<HdrLatLongImage> load_ktx_environment_base(std::string_view path)
 
     std::ifstream input(env_path, std::ios::binary);
     if (!input) {
-        LOG_F(WARNING, "Failed to open glTF environment: {}", env_path.string());
+        LOG_F(WARNING, "Failed to open static PBR environment: {}", env_path.string());
         return std::nullopt;
     }
 
     std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
     const auto header = parse_ktx_header(bytes);
     if (!header) {
-        LOG_F(WARNING, "Invalid KTX header for glTF environment: {}", env_path.string());
+        LOG_F(WARNING, "Invalid KTX header for static PBR environment: {}", env_path.string());
         return std::nullopt;
     }
 
@@ -464,7 +487,8 @@ std::optional<HdrLatLongImage> load_ktx_environment_base(std::string_view path)
         }
     }
 
-    LOG_F(INFO, "Loaded glTF environment: {} ({}x{})", env_path.string(), header->pixel_width, header->pixel_height);
+    LOG_F(INFO, "Loaded static PBR environment: {} ({}x{})",
+        env_path.string(), header->pixel_width, header->pixel_height);
     return env;
 }
 
@@ -504,8 +528,8 @@ std::vector<std::vector<uint16_t>> generate_specular_prefilter_mips(
     for (uint32_t level = 0; level < levels; ++level) {
         const float roughness = levels > 1u ? static_cast<float>(level) / static_cast<float>(levels - 1u) : 0.0f;
         const uint32_t sample_count = roughness < 0.10f ? 2048u
-            : roughness < 0.35f                          ? 1024u
-                                                         : 512u;
+            : roughness < 0.35f                         ? 1024u
+                                                        : 512u;
         std::vector<glm::vec4> pixels(static_cast<size_t>(mip_width) * mip_height, glm::vec4{0.0f});
 
         for (uint32_t y = 0; y < mip_height; ++y) {
@@ -628,9 +652,17 @@ nw::gfx::Handle<nw::gfx::Texture> create_rgba16f_mip_texture(
     return texture;
 }
 
-bool load_gltf_ibl_textures(AppState& state)
+std::string effective_static_pbr_environment_path(const AppState& state)
 {
-    const auto env = load_ktx_environment_base(kMudlGltfEnvironmentPath);
+    return state.static_pbr_environment_path.empty()
+        ? std::string{kDefaultStaticPbrEnvironmentPath}
+        : state.static_pbr_environment_path;
+}
+
+bool load_static_pbr_ibl_textures(AppState& state)
+{
+    const std::string environment_path = effective_static_pbr_environment_path(state);
+    const auto env = load_ktx_environment_base(environment_path);
     if (!env) {
         return false;
     }
@@ -647,7 +679,7 @@ bool load_gltf_ibl_textures(AppState& state)
 
     auto diffuse_texture = create_rgba16f_texture(state.gfx_context, kDiffuseWidth, kDiffuseHeight, diffuse_pixels);
     if (!diffuse_texture.valid()) {
-        LOG_F(WARNING, "Failed to create glTF irradiance texture");
+        LOG_F(WARNING, "Failed to create static PBR irradiance texture");
         return false;
     }
 
@@ -655,7 +687,7 @@ bool load_gltf_ibl_textures(AppState& state)
         state.gfx_context, kSpecularWidth, kSpecularHeight, specular_mips);
     if (!specular_texture.valid()) {
         nw::gfx::destroy_texture(state.gfx_context, diffuse_texture);
-        LOG_F(WARNING, "Failed to create glTF specular prefilter texture");
+        LOG_F(WARNING, "Failed to create static PBR specular prefilter texture");
         return false;
     }
 
@@ -663,17 +695,31 @@ bool load_gltf_ibl_textures(AppState& state)
     if (!brdf_texture.valid()) {
         nw::gfx::destroy_texture(state.gfx_context, diffuse_texture);
         nw::gfx::destroy_texture(state.gfx_context, specular_texture);
-        LOG_F(WARNING, "Failed to create glTF BRDF LUT texture");
+        LOG_F(WARNING, "Failed to create static PBR BRDF LUT texture");
         return false;
     }
 
-    state.gltf_ibl_diffuse_texture = diffuse_texture;
-    state.gltf_ibl_diffuse_texture_index = nw::gfx::get_bindless_texture_index(state.gfx_context, diffuse_texture);
-    state.gltf_ibl_specular_texture = specular_texture;
-    state.gltf_ibl_specular_texture_index = nw::gfx::get_bindless_texture_index(state.gfx_context, specular_texture);
-    state.gltf_brdf_lut_texture = brdf_texture;
-    state.gltf_brdf_lut_texture_index = nw::gfx::get_bindless_texture_index(state.gfx_context, brdf_texture);
-    state.gltf_ibl_enabled = true;
+    const auto diffuse_index = nw::gfx::get_bindless_texture_index(state.gfx_context, diffuse_texture);
+    const auto specular_index = nw::gfx::get_bindless_texture_index(state.gfx_context, specular_texture);
+    const auto brdf_index = nw::gfx::get_bindless_texture_index(state.gfx_context, brdf_texture);
+    if (!nw::gfx::bindless_texture_index_valid(diffuse_index)
+        || !nw::gfx::bindless_texture_index_valid(specular_index)
+        || !nw::gfx::bindless_texture_index_valid(brdf_index)) {
+        nw::gfx::destroy_texture(state.gfx_context, diffuse_texture);
+        nw::gfx::destroy_texture(state.gfx_context, specular_texture);
+        nw::gfx::destroy_texture(state.gfx_context, brdf_texture);
+        LOG_F(WARNING, "Failed to bind static PBR IBL textures");
+        return false;
+    }
+
+    state.static_pbr_ibl_diffuse_texture = diffuse_texture;
+    state.static_pbr_ibl_diffuse_texture_index = diffuse_index;
+    state.static_pbr_ibl_specular_texture = specular_texture;
+    state.static_pbr_ibl_specular_texture_index = specular_index;
+    state.static_pbr_brdf_lut_texture = brdf_texture;
+    state.static_pbr_brdf_lut_texture_index = brdf_index;
+    state.static_pbr_ibl_enabled = true;
+    state.static_pbr_ibl_loaded_environment_path = environment_path;
     return true;
 }
 
@@ -750,19 +796,86 @@ bool init_render_runtime(AppState& state)
     return true;
 }
 
-bool ensure_gltf_ibl_textures(AppState& state)
+void reset_viewer_renderers(AppState& state)
 {
-    if (state.gltf_ibl_enabled) {
-        return true;
-    }
-    if (!state.gfx_context) {
-        LOG_F(WARNING, "Cannot initialize glTF IBL textures without a graphics context");
+    state.debug_renderer.reset();
+    state.preview_resources.reset();
+}
+
+bool init_viewer_renderers(AppState& state)
+{
+    if (!state.gfx_context || !state.shader_provider) {
+        LOG_F(ERROR, "Cannot initialize viewer renderers before render runtime is initialized");
         return false;
     }
 
-    LOG_F(INFO, "Initializing glTF IBL textures");
-    if (!load_gltf_ibl_textures(state)) {
-        LOG_F(WARNING, "Failed to initialize glTF IBL textures");
+    reset_viewer_renderers(state);
+
+    state.preview_resources = std::make_unique<nw::render::viewer::PreviewRenderResources>(state.gfx_context);
+    if (!state.preview_resources->initialize(state.shader_provider.get())) {
+        LOG_F(ERROR, "Failed to initialize preview render resources");
+        reset_viewer_renderers(state);
+        return false;
+    }
+
+    state.debug_renderer = std::make_unique<nw::render::viewer::SceneDebugRenderer>(state.gfx_context);
+    if (!state.debug_renderer->initialize(*state.shader_provider)) {
+        LOG_F(ERROR, "Failed to initialize scene debug renderer");
+        reset_viewer_renderers(state);
+        return false;
+    }
+
+    return true;
+}
+
+void clear_static_pbr_ibl_textures(AppState& state)
+{
+    if (!state.gfx_context) {
+        state.static_pbr_ibl_enabled = false;
+        state.static_pbr_ibl_loaded_environment_path.clear();
+        state.static_pbr_ibl_diffuse_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        state.static_pbr_ibl_specular_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        state.static_pbr_brdf_lut_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        state.static_pbr_ibl_diffuse_texture = {};
+        state.static_pbr_ibl_specular_texture = {};
+        state.static_pbr_brdf_lut_texture = {};
+        return;
+    }
+
+    const auto destroy_static_pbr_texture = [&](auto& texture, auto& index) {
+        if (texture.valid()) {
+            nw::gfx::destroy_texture(state.gfx_context, texture);
+        }
+        texture = {};
+        index = nw::gfx::kInvalidBindlessTextureIndex;
+    };
+
+    destroy_static_pbr_texture(state.static_pbr_ibl_diffuse_texture, state.static_pbr_ibl_diffuse_texture_index);
+    destroy_static_pbr_texture(state.static_pbr_ibl_specular_texture, state.static_pbr_ibl_specular_texture_index);
+    destroy_static_pbr_texture(state.static_pbr_brdf_lut_texture, state.static_pbr_brdf_lut_texture_index);
+    state.static_pbr_ibl_enabled = false;
+    state.static_pbr_ibl_loaded_environment_path.clear();
+}
+
+bool ensure_static_pbr_ibl_textures(AppState& state)
+{
+    const std::string environment_path = effective_static_pbr_environment_path(state);
+    if (!state.static_pbr_ibl_requested) {
+        clear_static_pbr_ibl_textures(state);
+        return true;
+    }
+    if (state.static_pbr_ibl_enabled && state.static_pbr_ibl_loaded_environment_path == environment_path) {
+        return true;
+    }
+    if (!state.gfx_context) {
+        LOG_F(WARNING, "Cannot initialize static PBR IBL textures without a graphics context");
+        return false;
+    }
+
+    clear_static_pbr_ibl_textures(state);
+    LOG_F(INFO, "Initializing static PBR IBL textures");
+    if (!load_static_pbr_ibl_textures(state)) {
+        LOG_F(WARNING, "Failed to initialize static PBR IBL textures");
         return false;
     }
     return true;
@@ -798,24 +911,15 @@ bool command_is_headless(std::string_view command)
 {
     return command == "frames" || command == "screenshot" || command == "turntable"
         || command == "compute-smoke" || command == "nwn-animation-smoke"
-        || command == "area-screenshot" || command == "report";
+        || command == "area-screenshot" || command == "area-benchmark" || command == "area-sweep"
+        || command == "report";
 }
 
 void shutdown_graphics(AppState& state)
 {
+    reset_viewer_renderers(state);
     if (state.gfx_context) {
-        const auto destroy_gltf_texture = [&](auto& texture, auto& index) {
-            if (texture.valid()) {
-                nw::gfx::destroy_texture(state.gfx_context, texture);
-                texture = {};
-                index = 0;
-            }
-        };
-
-        destroy_gltf_texture(state.gltf_ibl_diffuse_texture, state.gltf_ibl_diffuse_texture_index);
-        destroy_gltf_texture(state.gltf_ibl_specular_texture, state.gltf_ibl_specular_texture_index);
-        destroy_gltf_texture(state.gltf_brdf_lut_texture, state.gltf_brdf_lut_texture_index);
-        state.gltf_ibl_enabled = false;
+        clear_static_pbr_ibl_textures(state);
     }
     if (auto* render_service = nw::kernel::services().get_mut<nw::render::RenderService>()) {
         render_service->shutdown_renderer();
@@ -844,17 +948,17 @@ bool reload_renderer_runtime(AppState& state)
     }
 
     nw::gfx::wait_idle(state.gfx_context);
-    state.renderer.reset();
+    state.current_scene.reset();
+    state.forward_plus_frame.clear();
+    reset_viewer_renderers(state);
 
     if (!render_service->reload_shaders()) {
         LOG_F(ERROR, "Failed to reload render service shaders");
         return false;
     }
 
-    state.renderer = std::make_unique<nw::render::viewer::Renderer>(state.gfx_context);
-    if (!state.renderer->initialize(state.shader_provider.get())) {
-        LOG_F(ERROR, "Failed to rebuild mudl renderer after shader reload");
-        state.renderer.reset();
+    if (!init_viewer_renderers(state)) {
+        LOG_F(ERROR, "Failed to rebuild mudl render runtime after shader reload");
         return false;
     }
 
@@ -882,25 +986,71 @@ bool run_compute_smoke(AppState& state)
     nw::gfx::ComputePipelineDesc pipeline_desc{};
     pipeline_desc.cs = shader;
     pipeline_desc.uses_uniforms = false;
-    pipeline_desc.uses_storage_buffer = false;
+    pipeline_desc.storage_buffer_count = 2;
     auto pipeline = nw::gfx::create_compute_pipeline(state.gfx_context, pipeline_desc);
     if (!pipeline.valid()) {
         LOG_F(ERROR, "Failed to create compute smoke pipeline");
         return false;
     }
 
+    const auto make_storage = [&](nw::gfx::Handle<nw::gfx::Buffer>& out) -> bool {
+        nw::gfx::BufferDesc desc{};
+        desc.size = sizeof(uint32_t);
+        desc.usage = nw::gfx::BufferUsage::Storage;
+        desc.cpu_visible = true;
+        out = nw::gfx::create_buffer(state.gfx_context, desc);
+        if (!out.valid()) return false;
+        if (void* mapped = nw::gfx::map_buffer(out)) {
+            uint32_t zero = 0;
+            std::memcpy(mapped, &zero, sizeof(zero));
+            return true;
+        }
+        return false;
+    };
+    nw::gfx::Handle<nw::gfx::Buffer> out0, out1;
+    if (!make_storage(out0) || !make_storage(out1)) {
+        LOG_F(ERROR, "Failed to create compute smoke storage buffers");
+        nw::gfx::destroy_pipeline(state.gfx_context, pipeline);
+        return false;
+    }
+
     auto* cmd = nw::gfx::begin_frame(state.gfx_context);
     if (!cmd) {
+        nw::gfx::destroy_buffer(out0);
+        nw::gfx::destroy_buffer(out1);
         nw::gfx::destroy_pipeline(state.gfx_context, pipeline);
         LOG_F(ERROR, "Failed to begin frame for compute smoke");
         return false;
     }
 
     nw::gfx::cmd_bind_pipeline(cmd, pipeline);
+    nw::gfx::cmd_bind_compute_resources(cmd, pipeline, {},
+        nw::gfx::StorageSpan{out0}, nw::gfx::StorageSpan{out1});
     nw::gfx::cmd_dispatch(cmd, 1, 1, 1);
+    nw::gfx::cmd_barrier_compute_to_graphics(cmd);
     nw::gfx::end_frame(state.gfx_context);
+    nw::gfx::wait_idle(state.gfx_context);
+
+    uint32_t value0 = 0;
+    uint32_t value1 = 0;
+    if (void* mapped0 = nw::gfx::map_buffer(out0)) {
+        std::memcpy(&value0, mapped0, sizeof(value0));
+    }
+    if (void* mapped1 = nw::gfx::map_buffer(out1)) {
+        std::memcpy(&value1, mapped1, sizeof(value1));
+    }
+    nw::gfx::destroy_buffer(out0);
+    nw::gfx::destroy_buffer(out1);
     nw::gfx::destroy_pipeline(state.gfx_context, pipeline);
-    LOG_F(INFO, "Compute smoke dispatch succeeded");
+
+    const bool ok = value0 == 0x1234u && value1 == 0x5678u;
+    if (!ok) {
+        LOG_F(ERROR, "Compute smoke readback mismatch: out0=0x{:x} out1=0x{:x} (expected 0x1234, 0x5678)",
+            value0, value1);
+        return false;
+    }
+    LOG_F(INFO, "Compute smoke multi-storage dispatch + readback succeeded (out0=0x{:x} out1=0x{:x})",
+        value0, value1);
     return true;
 }
 

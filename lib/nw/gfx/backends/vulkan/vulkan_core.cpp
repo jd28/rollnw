@@ -52,6 +52,23 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data)
 {
+    auto* vk = static_cast<VulkanCore*>(user_data);
+    const bool validation_message = (type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) != 0;
+    if (vk && validation_message) {
+        const char* message = callback_data && callback_data->pMessage ? callback_data->pMessage : "";
+        if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            ++vk->validation_report.error_count;
+            if (vk->validation_report.first_error.empty()) {
+                vk->validation_report.first_error = message;
+            }
+        } else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            ++vk->validation_report.warning_count;
+            if (vk->validation_report.first_warning.empty()) {
+                vk->validation_report.first_warning = message;
+            }
+        }
+    }
+
     const char* type_str = "";
     if (type & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) type_str = "GENERAL";
     if (type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) type_str = "VALIDATION";
@@ -149,6 +166,7 @@ VkInstance create_instance(VulkanCore* vk, const CoreConfig& desc)
             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debug_create_info.pfnUserCallback = debug_callback;
+        debug_create_info.pUserData = vk;
 
         create_info.pNext = &debug_create_info;
 
@@ -181,6 +199,7 @@ VkDevice create_logical_device(VulkanCore* vk)
     for (uint32_t i = 0; i < queue_family_count; ++i) {
         if (queue_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             vk->graphics_queue_family = i;
+            vk->graphics_queue_timestamp_valid_bits = queue_props[i].timestampValidBits;
             found_graphics_queue = true;
             break;
         }
@@ -200,6 +219,20 @@ VkDevice create_logical_device(VulkanCore* vk)
     VkPhysicalDeviceFeatures2 device_features2{};
     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+    VkPhysicalDeviceFeatures supported_core_features{};
+    vkGetPhysicalDeviceFeatures(vk->physical_device, &supported_core_features);
+    if (!supported_core_features.multiDrawIndirect || !supported_core_features.drawIndirectFirstInstance) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Selected Vulkan physical device does not support required indirect draw features "
+            "(multiDrawIndirect=%d, drawIndirectFirstInstance=%d)",
+            static_cast<int>(supported_core_features.multiDrawIndirect),
+            static_cast<int>(supported_core_features.drawIndirectFirstInstance));
+        return VK_NULL_HANDLE;
+    }
+
+    device_features2.features.multiDrawIndirect = VK_TRUE;
+    device_features2.features.drawIndirectFirstInstance = VK_TRUE;
+
     // Enable Vulkan 1.3 features
     vk->features_13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     vk->features_13.dynamicRendering = VK_TRUE;
@@ -216,6 +249,7 @@ VkDevice create_logical_device(VulkanCore* vk)
     vk->features_12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     vk->features_12.descriptorBindingPartiallyBound = VK_TRUE;
     vk->features_12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    vk->features_12.drawIndirectCount = VK_TRUE; // vkCmdDrawIndexedIndirectCount (GPU-driven draw counts)
 
     // Enable descriptor buffer extension (bindless-first descriptor model).
     static VkPhysicalDeviceDescriptorBufferFeaturesEXT desc_buffer_features{};
@@ -243,6 +277,7 @@ VkDevice create_logical_device(VulkanCore* vk)
     props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     props2.pNext = &vk->descriptor_buffer_props;
     vkGetPhysicalDeviceProperties2(vk->physical_device, &props2);
+    vk->properties = props2.properties;
 
     return device;
 }
@@ -322,6 +357,22 @@ void destroy_core(Core* core)
     }
 
     delete vk;
+}
+
+void reset_validation_report(Core* core)
+{
+    if (!core) {
+        return;
+    }
+    as_vulkan(core)->validation_report = {};
+}
+
+ValidationReport validation_report(Core* core)
+{
+    if (!core) {
+        return {};
+    }
+    return as_vulkan(core)->validation_report;
 }
 
 } // namespace nw::gfx

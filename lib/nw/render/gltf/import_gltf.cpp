@@ -47,9 +47,23 @@ struct LoadedImage {
     std::vector<uint8_t> pixels;
 };
 
+struct SurfaceTextureImport {
+    nw::gfx::BindlessTextureIndex index = nw::gfx::kInvalidBindlessTextureIndex;
+    bool material_uses_fallback = false;
+};
+
 uint32_t pack_u8x4(uint32_t x, uint32_t y, uint32_t z, uint32_t w)
 {
     return (x & 0xffu) | ((y & 0xffu) << 8u) | ((z & 0xffu) << 16u) | ((w & 0xffu) << 24u);
+}
+
+uint32_t pack_skin_joint_indices(const std::vector<cgltf_uint>& joints)
+{
+    return pack_u8x4(
+        nw::render::clamp_model_skin_joint_index(static_cast<uint32_t>(joints[0])),
+        nw::render::clamp_model_skin_joint_index(static_cast<uint32_t>(joints[1])),
+        nw::render::clamp_model_skin_joint_index(static_cast<uint32_t>(joints[2])),
+        nw::render::clamp_model_skin_joint_index(static_cast<uint32_t>(joints[3])));
 }
 
 std::array<uint8_t, 4> pack_weights(const std::array<float, 4>& weights)
@@ -71,6 +85,33 @@ std::array<uint8_t, 4> pack_weights(const std::array<float, 4>& weights)
         packed[0] = static_cast<uint8_t>(std::clamp(static_cast<int>(packed[0]) + delta, 0, 255));
     }
     return packed;
+}
+
+bool skin_accessors_supported_by_renderer(
+    const cgltf_accessor* joints_acc, const cgltf_accessor* weights_acc, cgltf_size vertex_count, size_t skin_joint_count)
+{
+    if (!joints_acc || !weights_acc || joints_acc->count < vertex_count || weights_acc->count < vertex_count
+        || !nw::render::model_skin_bone_count_supported(skin_joint_count)) {
+        return false;
+    }
+
+    std::vector<cgltf_uint> joint_values(4);
+    std::vector<float> weight_values(4);
+    for (cgltf_size i = 0; i < vertex_count; ++i) {
+        if (!cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4)) {
+            return false;
+        }
+        if (!cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4)) {
+            return false;
+        }
+        for (cgltf_uint joint : joint_values) {
+            const uint32_t joint_index = static_cast<uint32_t>(joint);
+            if (joint_index > nw::render::kModelMaxSkinBoneIndex || joint_index >= skin_joint_count) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 uint32_t full_mip_count(uint32_t width, uint32_t height)
@@ -116,8 +157,9 @@ void expand_bounds(nw::render::Bounds& bounds, const glm::vec3& pos, bool& first
     bounds.max = glm::max(bounds.max, pos);
 }
 
+template <typename Model>
 void import_node_hierarchy(const cgltf_data* data, const cgltf_node* node, int32_t parent_index,
-    const glm::mat4& parent_world, nw::render::RenderModel& model)
+    const glm::mat4& parent_world, Model& model)
 {
     const int32_t node_index = static_cast<int32_t>(node - data->nodes);
     if (node_index < 0) return;
@@ -132,28 +174,39 @@ void import_node_hierarchy(const cgltf_data* data, const cgltf_node* node, int32
     }
 }
 
-void import_skins(const cgltf_data* data, nw::render::RenderModel& model)
+template <typename Model>
+void import_skins(const cgltf_data* data, Model& model)
 {
     model.skins.reserve(data->skins_count);
     std::vector<float> values(16);
     for (cgltf_size i = 0; i < data->skins_count; ++i) {
         const auto& src = data->skins[i];
         nw::render::Skin skin{};
+        skin.skeleton = static_cast<uint32_t>(i);
         skin.joints.reserve(src.joints_count);
         skin.inverse_bind_matrices.reserve(src.joints_count);
+        bool warned_inverse_bind_read = false;
         for (cgltf_size j = 0; j < src.joints_count; ++j) {
             int32_t joint_index = static_cast<int32_t>(src.joints[j] - data->nodes);
             skin.joints.push_back(joint_index);
             glm::mat4 ibm{1.0f};
-            if (src.inverse_bind_matrices) {
-                cgltf_accessor_read_float(src.inverse_bind_matrices, j, values.data(), 16);
+            if (src.inverse_bind_matrices
+                && j < src.inverse_bind_matrices->count
+                && cgltf_accessor_read_float(src.inverse_bind_matrices, j, values.data(), 16)) {
                 for (int col = 0; col < 4; ++col) {
                     for (int row = 0; row < 4; ++row) {
                         ibm[col][row] = values[col * 4 + row];
                     }
                 }
-            } else if (joint_index >= 0 && static_cast<size_t>(joint_index) < model.nodes.size()) {
-                ibm = glm::inverse(model.nodes[joint_index].world_transform);
+            } else {
+                if (src.inverse_bind_matrices && !warned_inverse_bind_read) {
+                    LOG_F(WARNING, "glTF '{}': skin {} inverse bind matrices could not be read; falling back to node transforms",
+                        model.name, i);
+                    warned_inverse_bind_read = true;
+                }
+                if (joint_index >= 0 && static_cast<size_t>(joint_index) < model.nodes.size()) {
+                    ibm = glm::inverse(model.nodes[joint_index].world_transform);
+                }
             }
             skin.inverse_bind_matrices.push_back(ibm);
         }
@@ -161,7 +214,8 @@ void import_skins(const cgltf_data* data, nw::render::RenderModel& model)
     }
 }
 
-void build_skeletons(const cgltf_data* data, nw::render::RenderModel& model)
+template <typename Model>
+void build_skeletons(const cgltf_data* data, Model& model)
 {
     model.skeletons.reserve(model.skins.size());
     for (const auto& skin : model.skins) {
@@ -217,7 +271,8 @@ nw::render::InterpolationMode map_interpolation(cgltf_interpolation_type interpo
     }
 }
 
-void import_animations(const cgltf_data* data, nw::render::RenderModel& model)
+template <typename Model>
+void import_animations(const cgltf_data* data, Model& model)
 {
     model.animations.clear();
     if (model.skeletons.empty()) return;
@@ -250,42 +305,99 @@ void import_animations(const cgltf_data* data, nw::render::RenderModel& model)
                 auto it = node_to_joint.find(node_index);
                 if (it == node_to_joint.end()) continue;
 
-                auto& track = clip.tracks[it->second];
                 auto mode = map_interpolation(channel.sampler->interpolation);
+                if (channel.sampler->output->count != channel.sampler->input->count) {
+                    LOG_F(WARNING, "glTF '{}': animation '{}' channel {} input/output key counts differ; skipping channel",
+                        model.name, clip.name, channel_index);
+                    continue;
+                }
+
                 times.resize(channel.sampler->input->count);
+                bool times_ok = true;
+                float channel_duration = 0.0f;
                 for (cgltf_size i = 0; i < channel.sampler->input->count; ++i) {
-                    cgltf_accessor_read_float(channel.sampler->input, i, &times[i], 1);
-                    clip.duration = std::max(clip.duration, times[i]);
+                    if (!cgltf_accessor_read_float(channel.sampler->input, i, &times[i], 1)) {
+                        times_ok = false;
+                        break;
+                    }
+                    channel_duration = std::max(channel_duration, times[i]);
+                }
+                if (!times_ok) {
+                    LOG_F(WARNING, "glTF '{}': animation '{}' channel {} input times could not be read; skipping channel",
+                        model.name, clip.name, channel_index);
+                    continue;
                 }
 
                 switch (channel.target_path) {
-                case cgltf_animation_path_type_translation:
+                case cgltf_animation_path_type_translation: {
+                    std::vector<nw::render::Keyframe<glm::vec3>> translations;
+                    translations.reserve(times.size());
+                    bool values_ok = true;
+                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
+                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3)) {
+                            values_ok = false;
+                            break;
+                        }
+                        translations.push_back({times[i], glm::vec3(values[0], values[1], values[2])});
+                    }
+                    if (!values_ok) {
+                        LOG_F(WARNING, "glTF '{}': animation '{}' channel {} translations could not be read; skipping channel",
+                            model.name, clip.name, channel_index);
+                        break;
+                    }
+                    auto& track = clip.tracks[it->second];
                     track.translation_mode = mode;
-                    track.translations.reserve(times.size());
-                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3);
-                        track.translations.push_back({times[i], glm::vec3(values[0], values[1], values[2])});
-                    }
+                    track.translations = std::move(translations);
+                    clip.duration = std::max(clip.duration, channel_duration);
                     used = true;
                     break;
-                case cgltf_animation_path_type_rotation:
+                }
+                case cgltf_animation_path_type_rotation: {
+                    std::vector<nw::render::Keyframe<glm::quat>> rotations;
+                    rotations.reserve(times.size());
+                    bool values_ok = true;
+                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
+                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 4)) {
+                            values_ok = false;
+                            break;
+                        }
+                        rotations.push_back({times[i], glm::normalize(glm::quat(values[3], values[0], values[1], values[2]))});
+                    }
+                    if (!values_ok) {
+                        LOG_F(WARNING, "glTF '{}': animation '{}' channel {} rotations could not be read; skipping channel",
+                            model.name, clip.name, channel_index);
+                        break;
+                    }
+                    auto& track = clip.tracks[it->second];
                     track.rotation_mode = mode;
-                    track.rotations.reserve(times.size());
-                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 4);
-                        track.rotations.push_back({times[i], glm::normalize(glm::quat(values[3], values[0], values[1], values[2]))});
-                    }
+                    track.rotations = std::move(rotations);
+                    clip.duration = std::max(clip.duration, channel_duration);
                     used = true;
                     break;
-                case cgltf_animation_path_type_scale:
+                }
+                case cgltf_animation_path_type_scale: {
+                    std::vector<nw::render::Keyframe<glm::vec3>> scales;
+                    scales.reserve(times.size());
+                    bool values_ok = true;
+                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
+                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3)) {
+                            values_ok = false;
+                            break;
+                        }
+                        scales.push_back({times[i], glm::vec3(values[0], values[1], values[2])});
+                    }
+                    if (!values_ok) {
+                        LOG_F(WARNING, "glTF '{}': animation '{}' channel {} scales could not be read; skipping channel",
+                            model.name, clip.name, channel_index);
+                        break;
+                    }
+                    auto& track = clip.tracks[it->second];
                     track.scale_mode = mode;
-                    track.scales.reserve(times.size());
-                    for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3);
-                        track.scales.push_back({times[i], glm::vec3(values[0], values[1], values[2])});
-                    }
+                    track.scales = std::move(scales);
+                    clip.duration = std::max(clip.duration, channel_duration);
                     used = true;
                     break;
+                }
                 default:
                     break;
                 }
@@ -380,26 +492,6 @@ TextureHandle load_image(nw::gfx::Context* ctx, const cgltf_image* image,
     return {};
 }
 
-bool create_buffer_from_bytes(nw::gfx::Context* ctx, const void* data, size_t size, nw::gfx::BufferUsage usage,
-    nw::gfx::Handle<nw::gfx::Buffer>& out)
-{
-    nw::gfx::BufferDesc desc{};
-    desc.size = size;
-    desc.usage = usage;
-    desc.cpu_visible = true;
-    out = nw::gfx::create_buffer(ctx, desc);
-    if (!out.valid()) return false;
-    void* mapped = nw::gfx::map_buffer(out);
-    if (!mapped) {
-        nw::gfx::destroy_buffer(out);
-        out = {};
-        return false;
-    }
-    std::memcpy(mapped, data, size);
-    nw::gfx::unmap_buffer(out);
-    return true;
-}
-
 void generate_flat_normals(std::vector<nw::render::Vertex>& vertices, const std::vector<uint32_t>& indices)
 {
     for (auto& v : vertices)
@@ -475,10 +567,17 @@ nw::gfx::BindlessTextureIndex lookup_texture_index(
 {
     if (!tex) return fallback;
     auto it = tex_map.find(TextureKey{tex, format});
-    return it != tex_map.end() ? it->second : fallback;
+    return it != tex_map.end() && nw::gfx::bindless_texture_index_valid(it->second) ? it->second : fallback;
 }
 
-nw::gfx::BindlessTextureIndex create_surface_texture(const cgltf_material* mat, const std::filesystem::path& base_dir,
+bool texture_reference_uses_fallback(
+    const std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash>& tex_map,
+    const cgltf_texture* tex, nw::gfx::Fmt format)
+{
+    return tex && !tex_map.contains(TextureKey{tex, format});
+}
+
+SurfaceTextureImport create_surface_texture(const cgltf_material* mat, const std::filesystem::path& base_dir,
     nw::render::RenderModel& model, const ImportGltfDesc& desc)
 {
     const cgltf_texture* mr_tex = mat && mat->pbr_metallic_roughness.metallic_roughness_texture.texture
@@ -486,19 +585,20 @@ nw::gfx::BindlessTextureIndex create_surface_texture(const cgltf_material* mat, 
         : nullptr;
     const cgltf_texture* ao_tex = mat && mat->occlusion_texture.texture ? mat->occlusion_texture.texture : nullptr;
     if (!mr_tex && !ao_tex) {
-        return desc.fallback_surface;
+        return SurfaceTextureImport{.index = desc.fallback_surface};
     }
 
     LoadedImage mr = mr_tex ? load_image_pixels(mr_tex->image, base_dir) : LoadedImage{};
     LoadedImage ao = ao_tex ? load_image_pixels(ao_tex->image, base_dir) : LoadedImage{};
+    const bool source_payload_missing = (mr_tex && mr.pixels.empty()) || (ao_tex && ao.pixels.empty());
 
     int width = mr.width ? mr.width : ao.width;
     int height = mr.height ? mr.height : ao.height;
     if (width <= 0 || height <= 0) {
-        return desc.fallback_surface;
+        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
     }
     if ((mr.width && (mr.width != width || mr.height != height)) || (ao.width && (ao.width != width || ao.height != height))) {
-        return desc.fallback_surface;
+        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
     }
 
     std::vector<uint8_t> pixels(static_cast<size_t>(width) * height * 4, 255);
@@ -516,16 +616,24 @@ nw::gfx::BindlessTextureIndex create_surface_texture(const cgltf_material* mat, 
     desc_tex.format = nw::gfx::Fmt::RGBA8;
     auto handle = nw::gfx::create_texture(desc.ctx, desc_tex);
     if (!handle.valid()) {
-        return desc.fallback_surface;
+        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
     }
     nw::gfx::upload_texture_rgba8(desc.ctx, handle, pixels.data(), pixels.size());
+    const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+    if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
+        nw::gfx::destroy_texture(desc.ctx, handle);
+        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
+    }
     model.textures.push_back(handle);
-    return nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+    return SurfaceTextureImport{
+        .index = texture_index,
+        .material_uses_fallback = source_payload_missing,
+    };
 }
 
 nw::render::Material import_material(const cgltf_material* mat,
     const std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash>& tex_map,
-    const ImportGltfDesc& desc, nw::gfx::BindlessTextureIndex surface_index)
+    const ImportGltfDesc& desc, const SurfaceTextureImport& surface)
 {
     nw::render::Material m{};
     if (!mat) {
@@ -546,8 +654,12 @@ nw::render::Material import_material(const cgltf_material* mat,
 
     m.albedo_index = lookup_texture_index(tex_map, pbr.base_color_texture.texture, nw::gfx::Fmt::RGBA8Srgb, desc.fallback_albedo);
     m.normal_index = lookup_texture_index(tex_map, mat->normal_texture.texture, nw::gfx::Fmt::RGBA8, desc.fallback_normal);
-    m.surface_index = surface_index;
+    m.surface_index = surface.index;
     m.emissive_index = lookup_texture_index(tex_map, mat->emissive_texture.texture, nw::gfx::Fmt::RGBA8Srgb, desc.fallback_emissive);
+    m.material_uses_fallback = texture_reference_uses_fallback(tex_map, pbr.base_color_texture.texture, nw::gfx::Fmt::RGBA8Srgb)
+        || texture_reference_uses_fallback(tex_map, mat->normal_texture.texture, nw::gfx::Fmt::RGBA8)
+        || texture_reference_uses_fallback(tex_map, mat->emissive_texture.texture, nw::gfx::Fmt::RGBA8Srgb)
+        || surface.material_uses_fallback;
 
     switch (mat->alpha_mode) {
     case cgltf_alpha_mode_mask:
@@ -565,21 +677,126 @@ nw::render::Material import_material(const cgltf_material* mat,
     return m;
 }
 
+nw::render::Material import_model_asset_material(const cgltf_material* mat)
+{
+    nw::render::Material m{};
+    if (!mat) {
+        return m;
+    }
+
+    const auto& pbr = mat->pbr_metallic_roughness;
+    m.albedo = glm::vec4(pbr.base_color_factor[0], pbr.base_color_factor[1], pbr.base_color_factor[2], pbr.base_color_factor[3]);
+    m.roughness = pbr.roughness_factor;
+    m.metallic = pbr.metallic_factor;
+    m.emissive = glm::vec3(mat->emissive_factor[0], mat->emissive_factor[1], mat->emissive_factor[2]);
+    m.normal_scale = mat->normal_texture.scale;
+    m.occlusion_strength = mat->occlusion_texture.scale;
+
+    switch (mat->alpha_mode) {
+    case cgltf_alpha_mode_mask:
+        m.alpha_mode = nw::render::MaterialMode::cutout;
+        break;
+    case cgltf_alpha_mode_blend:
+        m.alpha_mode = nw::render::MaterialMode::transparent;
+        break;
+    default:
+        m.alpha_mode = nw::render::MaterialMode::opaque;
+        break;
+    }
+    m.alpha_cutoff = mat->alpha_cutoff;
+    m.double_sided = mat->double_sided;
+    return m;
+}
+
+uint32_t import_model_asset_texture_source(const cgltf_texture* texture,
+    const std::filesystem::path& base_dir,
+    std::unordered_map<const cgltf_image*, uint32_t>& image_map,
+    nw::render::ModelAsset& asset)
+{
+    if (!texture || !texture->image) {
+        return nw::render::kInvalidModelAssetTextureSourceIndex;
+    }
+
+    const cgltf_image* image = texture->image;
+    auto it = image_map.find(image);
+    if (it != image_map.end()) {
+        return it->second;
+    }
+
+    nw::render::ModelAssetTextureSource source{};
+    if (image->buffer_view && image->buffer_view->buffer && image->buffer_view->buffer->data) {
+        const auto* data = static_cast<const uint8_t*>(image->buffer_view->buffer->data) + image->buffer_view->offset;
+        source.kind = nw::render::ModelAssetTextureSourceKind::encoded_bytes;
+        source.encoded_bytes.assign(data, data + image->buffer_view->size);
+    } else if (image->uri) {
+        source.kind = nw::render::ModelAssetTextureSourceKind::external_file;
+        source.path = (base_dir / image->uri).string();
+    } else {
+        return nw::render::kInvalidModelAssetTextureSourceIndex;
+    }
+
+    if (asset.texture_sources.size() >= nw::render::kInvalidModelAssetTextureSourceIndex) {
+        return nw::render::kInvalidModelAssetTextureSourceIndex;
+    }
+
+    const uint32_t index = static_cast<uint32_t>(asset.texture_sources.size());
+    asset.texture_sources.push_back(std::move(source));
+    image_map[image] = index;
+    return index;
+}
+
+nw::render::ModelAssetMaterialTextureSources import_model_asset_material_texture_sources(
+    const cgltf_material* mat,
+    const std::filesystem::path& base_dir,
+    std::unordered_map<const cgltf_image*, uint32_t>& image_map,
+    nw::render::ModelAsset& asset)
+{
+    nw::render::ModelAssetMaterialTextureSources sources{};
+    if (!mat) {
+        return sources;
+    }
+
+    sources.albedo = import_model_asset_texture_source(
+        mat->pbr_metallic_roughness.base_color_texture.texture, base_dir, image_map, asset);
+    sources.normal = import_model_asset_texture_source(mat->normal_texture.texture, base_dir, image_map, asset);
+    sources.metallic_roughness = import_model_asset_texture_source(
+        mat->pbr_metallic_roughness.metallic_roughness_texture.texture, base_dir, image_map, asset);
+    sources.occlusion = import_model_asset_texture_source(mat->occlusion_texture.texture, base_dir, image_map, asset);
+    sources.emissive = import_model_asset_texture_source(mat->emissive_texture.texture, base_dir, image_map, asset);
+    return sources;
+}
+
 bool read_indices(const cgltf_accessor* accessor, std::vector<uint32_t>& out)
 {
     if (!accessor) return false;
     out.resize(accessor->count);
-    for (cgltf_size i = 0; i < accessor->count; ++i) {
-        out[i] = static_cast<uint32_t>(cgltf_accessor_read_index(accessor, i));
+    const cgltf_size read_count = cgltf_accessor_unpack_indices(accessor, out.data(), sizeof(uint32_t), accessor->count);
+    if (read_count != accessor->count) {
+        out.clear();
+        return false;
     }
     return true;
 }
 
-void import_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
-    const glm::mat4& world,
-    const ImportGltfDesc& desc, nw::render::RenderModel& model)
+bool indices_reference_vertices(const std::vector<uint32_t>& indices, size_t vertex_count) noexcept
 {
-    if (primitive.type != cgltf_primitive_type_triangles) return;
+    for (const uint32_t index : indices) {
+        if (index >= vertex_count) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
+    const glm::mat4& world,
+    const std::vector<nw::render::Skin>& skins,
+    const std::vector<nw::render::Node>& nodes,
+    const std::string& model_name,
+    size_t primitive_index,
+    nw::render::ModelAssetPrimitive& out)
+{
+    if (primitive.type != cgltf_primitive_type_triangles) return false;
 
     const cgltf_accessor* pos_acc = nullptr;
     const cgltf_accessor* norm_acc = nullptr;
@@ -612,34 +829,83 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
             break;
         }
     }
-    if (!pos_acc) return;
+    if (!pos_acc || pos_acc->count == 0) return false;
+    if (norm_acc && norm_acc->count < pos_acc->count) {
+        LOG_F(WARNING, "glTF '{}': primitive {} normal accessor is shorter than positions; generating normals",
+            model_name, primitive_index);
+        norm_acc = nullptr;
+    }
+    if (uv_acc && uv_acc->count < pos_acc->count) {
+        LOG_F(WARNING, "glTF '{}': primitive {} texcoord accessor is shorter than positions; using default texcoords",
+            model_name, primitive_index);
+        uv_acc = nullptr;
+    }
+    if (tan_acc && tan_acc->count < pos_acc->count) {
+        LOG_F(WARNING, "glTF '{}': primitive {} tangent accessor is shorter than positions; regenerating tangents",
+            model_name, primitive_index);
+        tan_acc = nullptr;
+    }
 
     std::vector<nw::render::Vertex> vertices(pos_acc->count);
     std::vector<float> values(4);
     for (cgltf_size i = 0; i < pos_acc->count; ++i) {
-        cgltf_accessor_read_float(pos_acc, i, values.data(), 3);
+        if (!cgltf_accessor_read_float(pos_acc, i, values.data(), 3)) {
+            LOG_F(WARNING, "glTF '{}': primitive {} positions could not be read; dropping primitive",
+                model_name, primitive_index);
+            return false;
+        }
         vertices[i].position = glm::vec3(values[0], values[1], values[2]);
         if (norm_acc) {
-            cgltf_accessor_read_float(norm_acc, i, values.data(), 3);
-            vertices[i].normal = glm::vec3(values[0], values[1], values[2]);
+            if (!cgltf_accessor_read_float(norm_acc, i, values.data(), 3)) {
+                LOG_F(WARNING, "glTF '{}': primitive {} normals could not be read; generating normals",
+                    model_name, primitive_index);
+                norm_acc = nullptr;
+            } else {
+                vertices[i].normal = glm::vec3(values[0], values[1], values[2]);
+            }
         }
         if (uv_acc) {
-            cgltf_accessor_read_float(uv_acc, i, values.data(), 2);
-            vertices[i].texcoord = glm::vec2(values[0], values[1]);
+            if (!cgltf_accessor_read_float(uv_acc, i, values.data(), 2)) {
+                LOG_F(WARNING, "glTF '{}': primitive {} texcoords could not be read; using default texcoords",
+                    model_name, primitive_index);
+                for (auto& vertex : vertices) {
+                    vertex.texcoord = {};
+                }
+                uv_acc = nullptr;
+            } else {
+                vertices[i].texcoord = glm::vec2(values[0], values[1]);
+            }
         }
         if (tan_acc) {
-            cgltf_accessor_read_float(tan_acc, i, values.data(), 4);
-            vertices[i].tangent = glm::vec4(values[0], values[1], values[2], values[3]);
+            if (!cgltf_accessor_read_float(tan_acc, i, values.data(), 4)) {
+                LOG_F(WARNING, "glTF '{}': primitive {} tangents could not be read; regenerating tangents",
+                    model_name, primitive_index);
+                tan_acc = nullptr;
+            } else {
+                vertices[i].tangent = glm::vec4(values[0], values[1], values[2], values[3]);
+            }
         }
     }
 
     std::vector<uint32_t> indices;
     if (primitive.indices) {
-        read_indices(primitive.indices, indices);
+        if (!read_indices(primitive.indices, indices)) {
+            LOG_F(WARNING, "glTF '{}': primitive {} indices could not be read; dropping primitive",
+                model_name, primitive_index);
+            return false;
+        }
     } else {
         indices.resize(vertices.size());
-        for (uint32_t i = 0; i < indices.size(); ++i)
-            indices[i] = i;
+        for (size_t i = 0; i < indices.size(); ++i)
+            indices[i] = static_cast<uint32_t>(i);
+    }
+    if (indices.empty()) {
+        return false;
+    }
+    if (!indices_reference_vertices(indices, vertices.size())) {
+        LOG_F(WARNING, "glTF '{}': primitive {} index references a missing vertex; dropping primitive",
+            model_name, primitive_index);
+        return false;
     }
 
     if (!norm_acc) {
@@ -654,20 +920,37 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
         }
     }
 
-    nw::render::Primitive out{};
     out.transform = world;
     out.skin = skin_index;
     out.node = node_index;
     out.skinned = joints_acc && weights_acc && skin_index != std::numeric_limits<uint32_t>::max();
+    if (out.skinned) {
+        const size_t skin_joint_count = skin_index < skins.size() ? skins[skin_index].joints.size() : 0;
+        const bool skin_supported = skin_index < skins.size()
+            && skin_accessors_supported_by_renderer(joints_acc, weights_acc, pos_acc->count, skin_joint_count);
+        if (!skin_supported) {
+            LOG_F(WARNING,
+                "glTF '{}': primitive {} skin {} has unsupported or unreadable skin attributes; importing primitive as static bind pose",
+                model_name,
+                primitive_index,
+                skin_index);
+            out.skinned = false;
+            out.skin = std::numeric_limits<uint32_t>::max();
+        }
+    }
     bool first = true;
     std::vector<cgltf_uint> joint_values(4);
     std::vector<float> weight_values(4);
     for (cgltf_size i = 0; i < pos_acc->count; ++i) {
         glm::vec3 world_pos{0.0f};
-        if (out.skinned && skin_index < model.skins.size()) {
-            const auto& skin = model.skins[skin_index];
-            cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4);
-            cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4);
+        if (out.skinned && skin_index < skins.size()) {
+            const auto& skin = skins[skin_index];
+            if (!cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4)
+                || !cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4)) {
+                LOG_F(WARNING, "glTF '{}': primitive {} skin attributes could not be read; dropping primitive",
+                    model_name, primitive_index);
+                return false;
+            }
             float weight_sum = weight_values[0] + weight_values[1] + weight_values[2] + weight_values[3];
             if (weight_sum <= 1.0e-6f) {
                 weight_values[0] = 1.0f;
@@ -680,8 +963,8 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
                 const uint32_t slot = static_cast<uint32_t>(joint_values[static_cast<size_t>(lane)]);
                 if (slot >= skin.joints.size() || slot >= skin.inverse_bind_matrices.size()) continue;
                 const int32_t joint = skin.joints[slot];
-                if (joint < 0 || static_cast<size_t>(joint) >= model.nodes.size()) continue;
-                glm::vec4 transformed = model.nodes[static_cast<size_t>(joint)].world_transform
+                if (joint < 0 || static_cast<size_t>(joint) >= nodes.size()) continue;
+                glm::vec4 transformed = nodes[static_cast<size_t>(joint)].world_transform
                     * skin.inverse_bind_matrices[slot] * glm::vec4(vertices[i].position, 1.0f);
                 world_pos += glm::vec3(transformed) * weight;
             }
@@ -691,68 +974,87 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
         expand_bounds(out.bounds, world_pos, first);
     }
 
-    std::vector<uint16_t> indices16;
-    const void* index_data = nullptr;
-    size_t index_bytes = 0;
-    if (vertices.size() <= std::numeric_limits<uint16_t>::max()) {
-        indices16.resize(indices.size());
-        for (size_t i = 0; i < indices.size(); ++i)
-            indices16[i] = static_cast<uint16_t>(indices[i]);
-        out.index_stride = 2;
-        index_data = indices16.data();
-        index_bytes = indices16.size() * sizeof(uint16_t);
-    } else {
-        out.index_stride = 4;
-        index_data = indices.data();
-        index_bytes = indices.size() * sizeof(uint32_t);
-    }
-
-    bool buffer_ok = false;
     if (out.skinned) {
-        std::vector<nw::render::SkinnedVertex> skinned_vertices(vertices.size());
+        out.skinned_vertices.resize(vertices.size());
         for (cgltf_size i = 0; i < pos_acc->count; ++i) {
-            skinned_vertices[i].position = vertices[i].position;
-            skinned_vertices[i].normal = vertices[i].normal;
-            skinned_vertices[i].texcoord = vertices[i].texcoord;
-            skinned_vertices[i].tangent = vertices[i].tangent;
-            cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4);
-            cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4);
+            out.skinned_vertices[i].position = vertices[i].position;
+            out.skinned_vertices[i].normal = vertices[i].normal;
+            out.skinned_vertices[i].texcoord = vertices[i].texcoord;
+            out.skinned_vertices[i].tangent = vertices[i].tangent;
+            if (!cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4)
+                || !cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4)) {
+                LOG_F(WARNING, "glTF '{}': primitive {} skin attributes could not be read; dropping primitive",
+                    model_name, primitive_index);
+                return false;
+            }
             auto packed_weights = pack_weights({weight_values[0], weight_values[1], weight_values[2], weight_values[3]});
-            skinned_vertices[i].joint_indices = pack_u8x4(
-                std::min<uint32_t>(joint_values[0], 255),
-                std::min<uint32_t>(joint_values[1], 255),
-                std::min<uint32_t>(joint_values[2], 255),
-                std::min<uint32_t>(joint_values[3], 255));
-            skinned_vertices[i].joint_weights = pack_u8x4(
+            out.skinned_vertices[i].joint_indices = pack_skin_joint_indices(joint_values);
+            out.skinned_vertices[i].joint_weights = pack_u8x4(
                 packed_weights[0], packed_weights[1], packed_weights[2], packed_weights[3]);
         }
-
-        buffer_ok = create_buffer_from_bytes(desc.ctx, skinned_vertices.data(), skinned_vertices.size() * sizeof(nw::render::SkinnedVertex),
-                        nw::gfx::BufferUsage::Vertex, out.vertices)
-            && create_buffer_from_bytes(desc.ctx, index_data, index_bytes, nw::gfx::BufferUsage::Index, out.indices);
     } else {
-        buffer_ok = create_buffer_from_bytes(desc.ctx, vertices.data(), vertices.size() * sizeof(nw::render::Vertex), nw::gfx::BufferUsage::Vertex, out.vertices)
-            && create_buffer_from_bytes(desc.ctx, index_data, index_bytes, nw::gfx::BufferUsage::Index, out.indices);
+        out.vertices = std::move(vertices);
     }
 
-    if (!buffer_ok) {
+    out.indices = std::move(indices);
+    out.material = material_index;
+    return true;
+}
+
+void import_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
+    const glm::mat4& world,
+    const ImportGltfDesc& desc, nw::render::RenderModel& model)
+{
+    nw::render::ModelAssetPrimitive decoded{};
+    if (!decode_model_asset_primitive(primitive,
+            material_index,
+            skin_index,
+            node_index,
+            world,
+            model.skins,
+            model.nodes,
+            model.name,
+            model.primitives.size(),
+            decoded)) {
         return;
     }
 
-    out.index_count = static_cast<uint32_t>(indices.size());
-    out.vertex_count = static_cast<uint32_t>(vertices.size());
-    out.material = material_index;
+    nw::render::Primitive out{};
+    if (!nw::render::upload_model_asset_primitive(desc.ctx, decoded, out)) {
+        LOG_F(WARNING, "glTF '{}': primitive {} GPU upload failed; dropping primitive",
+            model.name, model.primitives.size());
+        return;
+    }
     model.primitives.push_back(out);
 }
 
-void walk_node(const cgltf_data* data, const cgltf_node* node, const glm::mat4& parent,
-    const ImportGltfDesc& desc, nw::render::RenderModel& model)
+void import_model_asset_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
+    const glm::mat4& world, nw::render::ModelAsset& asset)
+{
+    nw::render::ModelAssetPrimitive out{};
+    if (decode_model_asset_primitive(primitive,
+            material_index,
+            skin_index,
+            node_index,
+            world,
+            asset.skins,
+            asset.nodes,
+            asset.name,
+            asset.primitives.size(),
+            out)) {
+        asset.primitives.push_back(std::move(out));
+    }
+}
+
+template <typename ImportPrimitiveFn>
+void walk_node_primitives(const cgltf_data* data, const cgltf_node* node, const glm::mat4& parent,
+    size_t material_count, ImportPrimitiveFn& import_primitive_fn)
 {
     glm::mat4 world = parent * load_matrix(node);
     if (node->mesh) {
         for (cgltf_size i = 0; i < node->mesh->primitives_count; ++i) {
             uint32_t material_index = 0;
-            if (node->mesh->primitives[i].material && !model.materials.empty()) {
+            if (node->mesh->primitives[i].material && material_count != 0) {
                 material_index = static_cast<uint32_t>(node->mesh->primitives[i].material - data->materials);
             }
             const int32_t node_index = static_cast<int32_t>(node - data->nodes);
@@ -760,15 +1062,172 @@ void walk_node(const cgltf_data* data, const cgltf_node* node, const glm::mat4& 
             if (node->skin) {
                 skin_index = static_cast<uint32_t>(node->skin - data->skins);
             }
-            import_primitive(node->mesh->primitives[i], material_index, skin_index, node_index, world, desc, model);
+            import_primitive_fn(node->mesh->primitives[i], material_index, skin_index, node_index, world);
         }
     }
     for (cgltf_size i = 0; i < node->children_count; ++i) {
-        walk_node(data, node->children[i], world, desc, model);
+        walk_node_primitives(data, node->children[i], world, material_count, import_primitive_fn);
+    }
+}
+
+template <typename Model>
+void expand_model_bounds_from_skin_joints(Model& model)
+{
+    bool joint_first_bound = model.primitives.empty();
+    for (const auto& skin : model.skins) {
+        for (const auto joint : skin.joints) {
+            if (joint < 0 || static_cast<size_t>(joint) >= model.nodes.size()) {
+                continue;
+            }
+            glm::vec3 world_pos = glm::vec3(model.nodes[static_cast<size_t>(joint)].world_transform[3]);
+            expand_bounds(model.bounds, world_pos, joint_first_bound);
+        }
+    }
+}
+
+template <typename Model>
+void merge_model_primitive_bounds(Model& model)
+{
+    bool first_bound = model.skins.empty();
+    for (const auto& prim : model.primitives) {
+        if (first_bound) {
+            model.bounds = prim.bounds;
+            first_bound = false;
+        } else {
+            model.bounds.min = glm::min(model.bounds.min, prim.bounds.min);
+            model.bounds.max = glm::max(model.bounds.max, prim.bounds.max);
+        }
     }
 }
 
 } // namespace
+
+std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::filesystem::path& path)
+{
+    if (path.empty()) return {};
+
+    cgltf_options options{};
+    cgltf_data* data = nullptr;
+    if (cgltf_parse_file(&options, path.string().c_str(), &data) != cgltf_result_success || !data) {
+        LOG_F(ERROR, "Failed to parse glTF: {}", path.string());
+        return {};
+    }
+
+    auto cleanup = [&]() {
+        if (data) cgltf_free(data);
+    };
+
+    if (cgltf_validate(data) != cgltf_result_success) {
+        LOG_F(ERROR, "Invalid glTF: {}", path.string());
+        cleanup();
+        return {};
+    }
+
+    if (cgltf_load_buffers(&options, data, path.string().c_str()) != cgltf_result_success) {
+        LOG_F(ERROR, "Failed to load glTF buffers: {}", path.string());
+        cleanup();
+        return {};
+    }
+
+    auto asset = std::make_unique<nw::render::ModelAsset>();
+    asset->source_kind = nw::render::ModelAssetSourceKind::gltf;
+    asset->name = path.filename().string();
+    asset->nodes.resize(data->nodes_count);
+
+    std::unordered_map<const cgltf_image*, uint32_t> image_map;
+    const auto base_dir = path.parent_path();
+    asset->materials.reserve(data->materials_count > 0 ? data->materials_count : 1);
+    asset->material_texture_sources.reserve(data->materials_count > 0 ? data->materials_count : 1);
+    if (data->materials_count == 0) {
+        asset->materials.push_back(import_model_asset_material(nullptr));
+        asset->material_texture_sources.push_back(nw::render::ModelAssetMaterialTextureSources{});
+    } else {
+        for (cgltf_size i = 0; i < data->materials_count; ++i) {
+            asset->materials.push_back(import_model_asset_material(&data->materials[i]));
+            asset->material_texture_sources.push_back(
+                import_model_asset_material_texture_sources(&data->materials[i], base_dir, image_map, *asset));
+        }
+    }
+
+    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
+        const cgltf_scene* scene = &data->scenes[i];
+        if (data->scene && scene != data->scene) continue;
+        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
+            import_node_hierarchy(data, scene->nodes[j], -1, kGltfToMudl, *asset);
+        }
+    }
+
+    import_skins(data, *asset);
+    build_skeletons(data, *asset);
+    import_animations(data, *asset);
+    expand_model_bounds_from_skin_joints(*asset);
+
+    auto import_asset_primitive = [&](const cgltf_primitive& primitive,
+                                      uint32_t material_index,
+                                      uint32_t skin_index,
+                                      int32_t node_index,
+                                      const glm::mat4& world) {
+        import_model_asset_primitive(primitive, material_index, skin_index, node_index, world, *asset);
+    };
+
+    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
+        const cgltf_scene* scene = &data->scenes[i];
+        if (data->scene && scene != data->scene) continue;
+        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
+            walk_node_primitives(data, scene->nodes[j], kGltfToMudl, asset->materials.size(), import_asset_primitive);
+        }
+    }
+
+    merge_model_primitive_bounds(*asset);
+    asset->shadow = nw::render::summarize_model_asset_shadows(*asset);
+    cleanup();
+
+    if (asset->primitives.empty()) {
+        return {};
+    }
+    const auto validation = nw::render::validate_model_asset(*asset);
+    if (!validation.passed()) {
+        LOG_F(ERROR,
+            "glTF '{}': decoded ModelAsset failed validation: primitives={} invalid={} invalid_asset_rows={} invalid_material_texture_bindings={}",
+            asset->name,
+            validation.primitive_count,
+            validation.invalid_primitive_count(),
+            validation.invalid_asset_row_count(),
+            validation.invalid_material_texture_binding_count);
+        return {};
+    }
+    return asset;
+}
+
+GltfRenderModelImportResult import_gltf_render_model_from_asset(
+    const std::filesystem::path& path,
+    const ImportGltfDesc& desc)
+{
+    GltfRenderModelImportResult result{};
+
+    auto asset = import_gltf_model_asset(path);
+    if (!asset) {
+        return result;
+    }
+    result.asset_imported = true;
+
+    auto uploaded = nw::render::upload_model_asset(*asset, desc.ctx);
+    result.geometry_upload_stats = uploaded.stats;
+    if (!uploaded.model) {
+        return result;
+    }
+
+    nw::render::ModelAssetTextureUploadDesc texture_upload{};
+    texture_upload.ctx = desc.ctx;
+    texture_upload.fallback_albedo = desc.fallback_albedo;
+    texture_upload.fallback_normal = desc.fallback_normal;
+    texture_upload.fallback_surface = desc.fallback_surface;
+    texture_upload.fallback_emissive = desc.fallback_emissive;
+    result.texture_upload_stats = nw::render::upload_model_asset_material_textures(
+        *asset, texture_upload, *uploaded.model);
+    result.model = std::move(uploaded.model);
+    return result;
+}
 
 std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path& path, const ImportGltfDesc& desc)
 {
@@ -784,6 +1243,12 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
     auto cleanup = [&]() {
         if (data) cgltf_free(data);
     };
+
+    if (cgltf_validate(data) != cgltf_result_success) {
+        LOG_F(ERROR, "Invalid glTF: {}", path.string());
+        cleanup();
+        return {};
+    }
 
     if (cgltf_load_buffers(&options, data, path.string().c_str()) != cgltf_result_success) {
         LOG_F(ERROR, "Failed to load glTF buffers: {}", path.string());
@@ -803,8 +1268,13 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
         if (tex_map.contains(key)) return;
         auto handle = load_image(desc.ctx, texture->image, base_dir, fmt);
         if (handle.valid()) {
+            const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+            if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
+                nw::gfx::destroy_texture(desc.ctx, handle);
+                return;
+            }
             model->textures.push_back(handle);
-            tex_map[key] = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+            tex_map[key] = texture_index;
         }
     };
 
@@ -821,8 +1291,13 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
             const auto& texture = data->textures[i];
             auto handle = load_image(desc.ctx, texture.image, base_dir, nw::gfx::Fmt::RGBA8Srgb);
             if (handle.valid()) {
+                const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+                if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
+                    nw::gfx::destroy_texture(desc.ctx, handle);
+                    continue;
+                }
                 model->textures.push_back(handle);
-                tex_map[TextureKey{&texture, nw::gfx::Fmt::RGBA8Srgb}] = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
+                tex_map[TextureKey{&texture, nw::gfx::Fmt::RGBA8Srgb}] = texture_index;
             }
         }
     }
@@ -837,8 +1312,8 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
         model->materials.push_back(material);
     } else {
         for (cgltf_size i = 0; i < data->materials_count; ++i) {
-            auto surface_index = create_surface_texture(&data->materials[i], base_dir, *model, desc);
-            model->materials.push_back(import_material(&data->materials[i], tex_map, desc, surface_index));
+            const auto surface = create_surface_texture(&data->materials[i], base_dir, *model, desc);
+            model->materials.push_back(import_material(&data->materials[i], tex_map, desc, surface));
         }
     }
 
@@ -858,36 +1333,27 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
     // especially when the asset carries authoring-space root transforms (for example CesiumMan's
     // Z_UP / Armature chain). Expand the model bounds by retained joint world positions so camera
     // fitting uses a sane envelope for skinned assets.
-    bool joint_first_bound = model->primitives.empty();
-    for (const auto& skin : model->skins) {
-        for (const auto joint : skin.joints) {
-            if (joint < 0 || static_cast<size_t>(joint) >= model->nodes.size()) {
-                continue;
-            }
-            glm::vec3 world_pos = glm::vec3(model->nodes[static_cast<size_t>(joint)].world_transform[3]);
-            expand_bounds(model->bounds, world_pos, joint_first_bound);
-        }
-    }
+    expand_model_bounds_from_skin_joints(*model);
+
+    auto import_render_primitive = [&](const cgltf_primitive& primitive,
+                                       uint32_t material_index,
+                                       uint32_t skin_index,
+                                       int32_t node_index,
+                                       const glm::mat4& world) {
+        import_primitive(primitive, material_index, skin_index, node_index, world, desc, *model);
+    };
 
     for (cgltf_size i = 0; i < data->scenes_count; ++i) {
         const cgltf_scene* scene = &data->scenes[i];
         if (data->scene && scene != data->scene) continue;
         for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
-            walk_node(data, scene->nodes[j], kGltfToMudl, desc, *model);
+            walk_node_primitives(data, scene->nodes[j], kGltfToMudl, model->materials.size(), import_render_primitive);
         }
     }
 
     // Merge primitive bounds into any existing joint-expanded bounds.
-    bool first_bound = model->skins.empty();
-    for (const auto& prim : model->primitives) {
-        if (first_bound) {
-            model->bounds = prim.bounds;
-            first_bound = false;
-        } else {
-            model->bounds.min = glm::min(model->bounds.min, prim.bounds.min);
-            model->bounds.max = glm::max(model->bounds.max, prim.bounds.max);
-        }
-    }
+    merge_model_primitive_bounds(*model);
+    model->shadow = nw::render::summarize_render_model_shadows(*model);
 
     cleanup();
     if (model->primitives.empty()) {

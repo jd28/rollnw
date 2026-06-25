@@ -84,10 +84,29 @@ struct VfxSequence {
     float source_target_distance = 0.0f;
 };
 
+enum class AreaBenchmarkCameraMode {
+    fit,
+    gameplay,
+    custom,
+};
+
+enum class AreaBenchmarkVisibilityMode {
+    radius,
+    view_cone,
+};
+
+struct AreaBenchmarkCameraOptions {
+    AreaBenchmarkCameraMode mode = AreaBenchmarkCameraMode::fit;
+    std::optional<glm::vec3> position;
+    std::optional<glm::vec3> target;
+    float fov_degrees = 0.0f;
+};
+
 int run_nwn_animation_smoke_command(std::string_view module_path, std::string_view user_path);
 int run_dump_command(std::string_view resref, const std::filesystem::path& output_dir,
     std::string_view module_path, std::string_view user_path);
 int run_stats_command(std::string_view resref, std::string_view module_path, std::string_view user_path);
+int run_area_lights_command(std::string_view area_resref, std::string_view module_path, std::string_view user_path);
 int run_texture_command(std::string_view resref, const std::filesystem::path& output_path,
     std::string_view module_path, std::string_view user_path);
 std::optional<VfxSequence> resolve_spell_sequence(std::string_view spell_id);

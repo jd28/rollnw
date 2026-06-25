@@ -867,6 +867,224 @@
     {
       "accepted_difference": false,
       "category": [
+        "area",
+        "pbr",
+        "local_lights",
+        "nwn_materials"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_area_dockerdemo_start",
+      "input": "start",
+      "issue": "",
+      "kind": "area",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "Checked-in area fixture for area lighting and local-light material response.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "creature",
+        "pbr",
+        "plt",
+        "equipment"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_creature_player_equipment",
+      "input": "tests/test_data/user/development/test_creature.utc",
+      "issue": "",
+      "kind": "creature",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "Assembled creature fixture covering character tinting and equipped material interaction.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "gltf",
+        "pbr",
+        "metal_roughness",
+        "reference_asset"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_damaged_helmet_glb",
+      "input": "tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "Static glTF baseline with authored metallic-roughness textures.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "gltf",
+        "pbr",
+        "material_spheres",
+        "rough_metal"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_metal_rough_spheres_glb",
+      "input": "tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "Material-sphere grid for checking roughness and metal response before tuning real assets.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "metal",
+        "diffuse_specular"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_nwn_griffon_flag_metal",
+      "input": "tests/test_data/user/development/dag_grifflag03.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "NWN fixture using tno01_metal01 for material mapping checks.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "metal",
+        "specular",
+        "vfx"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_nwn_torch_metal",
+      "input": "tests/test_data/user/development/it_torch_000.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "NWN model with authored specular/shininess values, a metal texture, and flame emitters.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "tile",
+        "water"
+      ],
+      "corpus_name": "pbr_convergence_corpus",
+      "corpus_path": "./tests/test_data/user/development/pbr_corpus.json",
+      "detail": "",
+      "disposition": "open",
+      "id": "pbr_nwn_water_tile",
+      "input": "tests/test_data/user/development/tno01_b90_03.mdl",
+      "issue": "",
+      "kind": "model",
+      "last_output_dir": "./tmp/visual-audit/pbr",
+      "last_run_at_utc": "2026-06-18T15:59:02Z",
+      "last_run_manifest": "./tmp/visual-audit/pbr/manifest.json",
+      "module_path": "./tests/test_data/user/modules/DockerDemo.mod",
+      "notes": "Tile fixture with water-textured geometry for pre-change water/material screenshots.",
+      "outputs": [
+        "preview.png",
+        "preview.json",
+        "status.json"
+      ],
+      "owner": "",
+      "result": "pass",
+      "review_notes": "",
+      "review_state": "unreviewed"
+    },
+    {
+      "accepted_difference": false,
+      "category": [
         "cone",
         "hand_conjure",
         "timing"
@@ -1286,6 +1504,6 @@
     }
   ],
   "name": "nwn1_visual_audit_ledger",
-  "updated_at_utc": "2026-04-28T17:18:48Z",
+  "updated_at_utc": "2026-06-18T15:59:02Z",
   "version": 1
 }

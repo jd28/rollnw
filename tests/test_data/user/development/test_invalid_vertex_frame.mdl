@@ -1,0 +1,45 @@
+#MAXMODEL ASCII
+newmodel test_invalid_vertex_frame
+setsupermodel test_invalid_vertex_frame NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_invalid_vertex_frame
+    node dummy test_invalid_vertex_frame
+        parent NULL
+    endnode
+    node trimesh mesh01
+        parent test_invalid_vertex_frame
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap null
+        texture0 null
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        normals 3
+            0 0 0
+            0 0 0
+            0 0 0
+        tangents 3
+            0 0 0 0
+            0 0 0 0
+            0 0 0 0
+    endnode
+endmodelgeom test_invalid_vertex_frame
+donemodel test_invalid_vertex_frame

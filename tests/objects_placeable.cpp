@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/serialization/GffBuilder.hpp>
@@ -25,6 +26,22 @@ TEST(Placeable, GffDeserialize)
     EXPECT_TRUE(!ent->plot);
     EXPECT_TRUE(ent->static_);
     EXPECT_TRUE(!ent->useable);
+}
+
+TEST(PlaceableInfo, ParsesLightFields)
+{
+    nw::StaticTwoDA placeables{fs::path("test_data/user/development/placeables.2da")};
+    ASSERT_TRUE(placeables.is_valid());
+
+    nw::PlaceableInfo brazier{placeables.row(57)};
+    EXPECT_TRUE(brazier.has_light());
+    EXPECT_EQ(brazier.light_color, 6);
+    EXPECT_FLOAT_EQ(brazier.light_offset_x, 0.003989f);
+    EXPECT_FLOAT_EQ(brazier.light_offset_y, 0.010825f);
+    EXPECT_FLOAT_EQ(brazier.light_offset_z, 0.874821f);
+
+    nw::PlaceableInfo armoire{placeables.row(0)};
+    EXPECT_FALSE(armoire.has_light());
 }
 
 TEST(Placeable, JsonRoundTrip)

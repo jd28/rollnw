@@ -1,45 +1,24 @@
 // PBR pixel shader — GGX Cook-Torrance, 3-point studio lighting.
-// SceneConstants layout must match renderer.hpp exactly.
 // SurfaceConstants layout must match nw::render::SurfaceConstants exactly.
 
 Texture2D<float4> g_textures[] : register(t2, space1);
 SamplerState g_sampler : register(s3, space1);
 
-cbuffer SceneConstants : register(b1) {
-    float4x4 view;
-    float4x4 projection;
-    float4x4 model;
-    float4x4 normal_matrix;
-    uint texture_index;      uint alpha_cutout; float alpha_cutout_threshold; float _pad_tex;
-    float2 color_key_rg;     float color_key_b; float color_key_threshold;
-    float4 pad_alpha;
-    float4 camera_pos;
-    float4 ambient;
-    float4 key_dir_intensity;
-    float4 key_color;
-    float4 fill_dir_intensity;
-    float4 fill_color;
-    float4 rim_dir_intensity;
-    float4 rim_color;
-    float4 fog_color;
-    float2 fog_range;
-    float fog_amount;
-    uint fog_enabled;
-    uint plt_enabled;         uint ibl_diffuse_texture_index; uint ibl_specular_texture_index; uint ibl_brdf_lut_texture_index;
-    uint4 plt_colors0;
-    uint4 plt_colors1;
-    uint4 plt_colors2;
-};
+#include "scene_constants.inc.hlsl"
+#include "plt_palette.inc.hlsl"
+#include "forward_plus.inc.hlsl"
+#include "scene_shadow.inc.hlsl"
 
 cbuffer SurfaceConstants : register(b4) {
     float4 sc_albedo;
     float  sc_roughness;
     float  sc_metallic;
+    float  sc_specular_strength;
     float  sc_normal_scale;
     float  sc_occlusion_strength;
     float  sc_ibl_strength;
     float  sc_exposure;
-    float2 sc_pad0;
+    float  sc_pad0;
     float4 sc_emissive;
     uint   sc_albedo_index;
     uint   sc_normal_index;
@@ -48,7 +27,10 @@ cbuffer SurfaceConstants : register(b4) {
     uint   sc_alpha_mode;
     float  sc_alpha_cutoff;
     uint   sc_double_sided;
-    uint   sc_pad1;
+    uint   sc_plt_enabled;
+    uint4  sc_plt_colors0;
+    uint4  sc_plt_colors1;
+    uint4  sc_plt_colors2;
 };
 
 struct PSInput {
@@ -59,6 +41,7 @@ struct PSInput {
     float3 view_dir   : TEXCOORD3;
     float3 tangent    : TEXCOORD4;
     float3 bitangent  : TEXCOORD5;
+    float view_depth   : TEXCOORD6;
 };
 
 static const float PI = 3.14159265358979;
@@ -129,24 +112,94 @@ float3 F_Schlick(float VdotH, float3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
 }
 
-float3 env_brdf_approx(float3 F0, float roughness, float NdotV)
+float2 env_brdf_ab_approx(float roughness, float NdotV)
 {
     float4 c0 = float4(-1.0, -0.0275, -0.572, 0.022);
     float4 c1 = float4(1.0, 0.0425, 1.04, -0.04);
     float4 r = roughness * c0 + c1;
     float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
-    float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
-    return F0 * AB.x + AB.y;
+    return float2(-1.04, 1.04) * a004 + r.zw;
 }
 
-float2 sample_brdf_lut(float NdotV, float roughness)
+float2 env_brdf_terms(float NdotV, float roughness)
 {
     if (ibl_brdf_lut_texture_index == 0u) {
-        return float2(-1.0, -1.0);
+        return env_brdf_ab_approx(roughness, NdotV);
     }
 
-    return g_textures[NonUniformResourceIndex(ibl_brdf_lut_texture_index)].SampleLevel(
+    float2 brdf = g_textures[NonUniformResourceIndex(ibl_brdf_lut_texture_index)].SampleLevel(
         g_sampler, float2(saturate(NdotV), saturate(roughness)), 0.0).rg;
+    return brdf.x >= 0.0 ? brdf : env_brdf_ab_approx(roughness, NdotV);
+}
+
+uint plt_selected_color(uint layer, uint4 colors0, uint4 colors1, uint4 colors2) {
+    switch (layer) {
+    case 0: return colors0.x;
+    case 1: return colors0.y;
+    case 2: return colors0.z;
+    case 3: return colors0.w;
+    case 4: return colors1.x;
+    case 5: return colors1.y;
+    case 6: return colors1.z;
+    case 7: return colors1.w;
+    case 8: return colors2.x;
+    case 9: return colors2.y;
+    default: return 0;
+    }
+}
+
+float4 unpack_rgba8(uint value) {
+    return float4(
+        float(value & 0xffu),
+        float((value >> 8u) & 0xffu),
+        float((value >> 16u) & 0xffu),
+        float((value >> 24u) & 0xffu)) / 255.0;
+}
+
+float3 srgb_to_linear(float3 color) {
+    float3 low = color / 12.92;
+    float3 high = pow((color + 0.055) / 1.055, 2.4);
+    return lerp(low, high, step(float3(0.04045, 0.04045, 0.04045), color));
+}
+
+float4 sample_plt(float2 texcoord, uint texture_idx, uint4 colors0, uint4 colors1, uint4 colors2) {
+    uint tex_idx = NonUniformResourceIndex(texture_idx);
+    uint width = 0;
+    uint height = 0;
+    g_textures[tex_idx].GetDimensions(width, height);
+    if (width == 0 || height == 0) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    uint2 pixel = min(uint2(texcoord * float2(width, height)), uint2(width - 1, height - 1));
+    float4 raw = g_textures[tex_idx].Load(int3(pixel, 0));
+    uint color = (uint)round(saturate(raw.x) * 255.0);
+    uint layer = (uint)round(saturate(raw.y) * 255.0);
+    if (color == 255u || layer >= 10u) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    uint palette_width = plt_palette_width(layer);
+    uint palette_height = plt_palette_height(layer);
+    uint row = plt_selected_color(layer, colors0, colors1, colors2);
+    if (palette_width == 0u || palette_height == 0u || row >= palette_height) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
+    color = min(color, palette_width - 1u);
+    float4 palette_color = unpack_rgba8(plt_palette_color(layer, row, color));
+    palette_color.rgb = srgb_to_linear(palette_color.rgb);
+    return palette_color;
+}
+
+float3 rough_metal_energy_compensation(float3 F0, float roughness, float metallic, float2 brdf)
+{
+    float single_scatter_energy = saturate(brdf.x + brdf.y);
+    float missing_energy = saturate(1.0 - single_scatter_energy);
+    float rough_metal_weight = metallic * smoothstep(0.35, 1.0, roughness);
+    float3 fresnel_average = F0 + (1.0 - F0) * (1.0 / 21.0);
+    float3 denom = max(float3(1.0, 1.0, 1.0) - missing_energy * fresnel_average,
+        float3(1.0e-4, 1.0e-4, 1.0e-4));
+    return rough_metal_weight * (missing_energy * fresnel_average / denom);
 }
 
 float3 eval_env_diffuse(float3 N, float3 albedo_lin, float occlusion, float metallic) {
@@ -159,11 +212,10 @@ float3 eval_env_specular(float3 N, float3 V, float3 F0, float roughness, float m
     float3 env = sample_env_specular(R, roughness);
 
     float NdotV = max(dot(N, V), 1e-4);
-    float2 brdf = sample_brdf_lut(NdotV, roughness);
-    float3 env_brdf = brdf.x >= 0.0
-        ? (F0 * brdf.x + brdf.y)
-        : env_brdf_approx(F0, roughness, NdotV);
-    return env * env_brdf * occlusion * sc_ibl_strength;
+    float2 brdf = env_brdf_terms(NdotV, roughness);
+    float3 single_scatter = F0 * brdf.x + brdf.y;
+    float3 multi_scatter = rough_metal_energy_compensation(F0, roughness, metallic, brdf);
+    return env * (single_scatter + multi_scatter) * occlusion * sc_ibl_strength;
 }
 
 float3 eval_light(float3 N, float3 V, float3 L,
@@ -184,6 +236,49 @@ float3 eval_light(float3 N, float3 V, float3 L,
     float3 kd = (1.0 - F) * (1.0 - metallic);
 
     return (kd * albedo_lin / PI + specular) * light_color * intensity * NdotL;
+}
+
+void accumulate_local_light_pbr(
+    inout float3 Lo,
+    float3 world_pos,
+    float3 N,
+    float3 V,
+    float3 albedo_lin,
+    float3 F0,
+    float a,
+    float metallic,
+    float4 pos_radius,
+    float4 color_intensity,
+    float4 light_params)
+{
+    bool ambient_local_light = light_params.x >= 0.5;
+    float radius = max(pos_radius.w, 1.0e-3);
+    float3 light_delta = pos_radius.xyz - world_pos;
+    if (ambient_local_light) {
+        light_delta.z *= saturate(light_params.y);
+    }
+
+    float dist_sq = dot(light_delta, light_delta);
+    float radius_sq = radius * radius;
+    if (dist_sq >= radius_sq) {
+        return;
+    }
+
+    float falloff = saturate(dist_sq / radius_sq);
+    float attenuation = saturate(1.0 - falloff);
+    attenuation *= attenuation;
+    float intensity = color_intensity.w * attenuation;
+    float3 L = light_delta * rsqrt(max(dist_sq, 1.0e-5));
+    uint shadow_slot_plus_one = (uint)(light_params.z + 0.5);
+    if (shadow_slot_plus_one > 0) {
+        intensity *= scene_local_shadow_visibility(shadow_slot_plus_one - 1, world_pos, N, L);
+    }
+    if (ambient_local_light) {
+        Lo += albedo_lin * color_intensity.xyz * intensity * (1.0 - metallic);
+        return;
+    }
+
+    Lo += eval_light(N, V, L, color_intensity.xyz, intensity, albedo_lin, F0, a, metallic);
 }
 
 float3 tonemap_aces_fitted(float3 color)
@@ -213,7 +308,9 @@ float4 main(PSInput input) : SV_Target {
     normal_sample.z = sqrt(saturate(1.0 - dot(normal_sample.xy, normal_sample.xy)));
     float3 N = normalize(normal_sample.x * T + normal_sample.y * B + normal_sample.z * geom_N);
 
-    float4 albedo_sample = g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, input.texcoord) * sc_albedo;
+    float4 albedo_sample = sc_plt_enabled != 0u
+        ? sample_plt(input.texcoord, sc_albedo_index, sc_plt_colors0, sc_plt_colors1, sc_plt_colors2) * sc_albedo
+        : g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, input.texcoord) * sc_albedo;
     if (sc_alpha_mode == 1u) clip(albedo_sample.a - sc_alpha_cutoff);
     float3 albedo_lin = albedo_sample.rgb;
 
@@ -223,12 +320,30 @@ float4 main(PSInput input) : SV_Target {
     float a = roughness * roughness;
     float m = sc_metallic * surface_sample.b;
     float3 emissive_sample = g_textures[NonUniformResourceIndex(sc_emissive_index)].Sample(g_sampler, input.texcoord).rgb;
+    float scene_distance = length(input.view_dir);
 
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo_lin, m);
+    float dielectric_f0 = 0.04 * saturate(sc_specular_strength);
+    float3 F0 = lerp(float3(dielectric_f0, dielectric_f0, dielectric_f0), albedo_lin, m);
     float3 Lo = (float3)0;
-    Lo += eval_light(N, V, normalize(-key_dir_intensity.xyz), key_color.xyz, key_dir_intensity.w, albedo_lin, F0, a, m);
+    float3 L_key = normalize(-key_dir_intensity.xyz);
+    float key_shadow = scene_shadow_visibility(input.world_pos, N, L_key, scene_distance);
+    Lo += eval_light(N, V, L_key, key_color.xyz, key_dir_intensity.w * key_shadow, albedo_lin, F0, a, m);
     Lo += eval_light(N, V, normalize(-fill_dir_intensity.xyz), fill_color.xyz, fill_dir_intensity.w, albedo_lin, F0, a, m);
     Lo += eval_light(N, V, normalize(-rim_dir_intensity.xyz), rim_color.xyz, rim_dir_intensity.w, albedo_lin, F0, a, m);
+
+    if (forward_plus_enabled()) {
+        const ForwardPlusLightRange light_range = forward_plus_light_range(input.position, input.view_depth);
+        [loop]
+        for (uint i = 0; i < light_range.count; ++i) {
+            ForwardPlusLightData light;
+            if (!forward_plus_load_light(light_range, i, light)) {
+                continue;
+            }
+            accumulate_local_light_pbr(
+                Lo, input.world_pos, N, V, albedo_lin, F0, a, m,
+                light.position_radius, light.color_intensity, light.params);
+        }
+    }
 
     float3 env_diffuse = eval_env_diffuse(N, albedo_lin, occlusion, m);
     float3 env_specular = eval_env_specular(N, V, F0, roughness, m, occlusion);
@@ -236,7 +351,6 @@ float4 main(PSInput input) : SV_Target {
     float3 final_color = ambient_diffuse + env_diffuse + env_specular + Lo + sc_emissive.rgb * emissive_sample;
 
     if (fog_enabled != 0) {
-        float scene_distance = length(input.view_dir);
         float fog_start = min(fog_range.x, fog_range.y);
         float fog_end = max(fog_range.x, fog_range.y);
         float fog_dist = max(scene_distance - fog_start, 0.0);
@@ -250,6 +364,11 @@ float4 main(PSInput input) : SV_Target {
     final_color *= sc_exposure;
     final_color = tonemap_aces_fitted(final_color);
     final_color = pow(saturate(final_color), 1.0 / 2.2);
+    if (scene_shadow_debug_mode != 0) {
+        float3 debug_color = scene_shadow_cascade_debug_color(scene_shadow_cascade_index(scene_distance));
+        final_color = lerp(final_color, debug_color, 0.65);
+    }
+    final_color = forward_plus_apply_debug(final_color, input.position, input.view_depth, 0.72);
 
     float out_alpha = sc_alpha_mode == 2u ? albedo_sample.a : 1.0;
     return float4(final_color, out_alpha);

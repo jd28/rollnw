@@ -37,7 +37,8 @@ features
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.
 - A recursive descent `NWScript Parser <https://rollnw.readthedocs.io/en/latest/structure/script.html>`__. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
 - Implementations of pretty much every `NWN File Format <https://rollnw.readthedocs.io/en/latest/structure/formats.html>`__
-- A binary and ASCII `Model Parser <https://rollnw.readthedocs.io/en/latest/structure/model.html>`__.
+- NWN and glTF model rendering docs now live with the renderer code in
+  `lib/nw/render <https://github.com/jd28/rollnw/tree/main/lib/nw/render>`__.
 - ``nw::gfx``, ``lib/nw/render``, and ``mudl`` form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's `Localization System <https://rollnw.readthedocs.io/en/latest/structure/i18n.html>`__ focused
@@ -149,7 +150,6 @@ Credits
   structure/formats
   structure/i18n
   structure/kernel
-  structure/model
   structure/objects
   structure/resources
   structure/rules

@@ -1,16 +1,20 @@
 #pragma once
 
-#include "../render/particle_system.hpp"
 #include "../render/particle_def.hpp"
+#include "../render/particle_system.hpp"
 #include "Mdl.hpp"
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
 
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
 namespace nw::model {
+
+inline constexpr uint32_t kInvalidParticleImportNodeIndex = std::numeric_limits<uint32_t>::max();
 
 struct ParticleImportWarning {
     std::string emitter;
@@ -20,6 +24,7 @@ struct ParticleImportWarning {
 
 struct ParticleImportEmitterInit {
     uint32_t emitter = 0;
+    uint32_t emitter_source_node_index = kInvalidParticleImportNodeIndex;
     std::string emitter_node_name;
     bool has_default_transform = false;
     glm::mat4 default_transform{1.0f};
@@ -27,6 +32,7 @@ struct ParticleImportEmitterInit {
     glm::vec3 default_position{0.0f};
     bool has_default_orientation = false;
     glm::quat default_orientation{1.0f, 0.0f, 0.0f, 0.0f};
+    uint32_t target_source_node_index = kInvalidParticleImportNodeIndex;
     std::string target_node_name;
     bool has_default_target_offset = false;
     glm::vec3 default_target_offset{0.0f};

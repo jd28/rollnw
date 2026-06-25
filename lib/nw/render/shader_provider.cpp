@@ -2,7 +2,10 @@
 
 #include <nw/log.hpp>
 
+#include <fmt/format.h>
+
 #include <filesystem>
+#include <unordered_set>
 
 #ifdef NW_RENDER_HAS_DXC
 #if defined(_WIN32)
@@ -22,6 +25,83 @@
 #endif
 
 namespace nw::render {
+
+namespace {
+
+constexpr int max_include_depth = 8;
+
+// Returns the include filename if the line is `#include "file"`, otherwise nullopt.
+std::optional<std::string_view> parse_include_line(std::string_view line)
+{
+    size_t pos = line.find_first_not_of(" \t");
+    if (pos == std::string_view::npos || line[pos] != '#') { return {}; }
+    constexpr std::string_view directive = "#include";
+    if (line.compare(pos, directive.size(), directive) != 0) { return {}; }
+    const size_t open = line.find('"', pos + directive.size());
+    if (open == std::string_view::npos) { return {}; }
+    const size_t close = line.find('"', open + 1);
+    if (close == std::string_view::npos) { return {}; }
+    return line.substr(open + 1, close - open - 1);
+}
+
+bool expand_includes_impl(std::string_view source, std::string_view source_name,
+    const ShaderIncludeResolver& resolver, int depth,
+    std::unordered_set<std::string>& seen, std::string& out)
+{
+    if (depth > max_include_depth) {
+        LOG_F(ERROR, "shader include depth limit exceeded in: {}", source_name);
+        return false;
+    }
+
+    size_t line_no = 0;
+    size_t start = 0;
+    while (start <= source.size()) {
+        size_t end = source.find('\n', start);
+        std::string_view line = source.substr(start,
+            end == std::string_view::npos ? std::string_view::npos : end - start);
+        ++line_no;
+
+        if (auto include = parse_include_line(line)) {
+            const std::string filename{*include};
+            if (seen.insert(filename).second) {
+                auto content = resolver(filename);
+                if (!content) {
+                    LOG_F(ERROR, "failed to resolve shader include \"{}\" in: {}", filename, source_name);
+                    return false;
+                }
+                out += fmt::format("#line 1 \"{}\"\n", filename);
+                if (!expand_includes_impl(*content, filename, resolver, depth + 1, seen, out)) {
+                    return false;
+                }
+                if (!out.empty() && out.back() != '\n') { out += '\n'; }
+                out += fmt::format("#line {} \"{}\"\n", line_no + 1, source_name);
+            }
+        } else {
+            out += line;
+            if (end != std::string_view::npos) { out += '\n'; }
+        }
+
+        if (end == std::string_view::npos) { break; }
+        start = end + 1;
+    }
+    return true;
+}
+
+} // namespace
+
+std::optional<std::string> expand_shader_includes(
+    std::string_view source,
+    std::string_view source_name,
+    const ShaderIncludeResolver& resolver)
+{
+    std::string out;
+    out.reserve(source.size());
+    std::unordered_set<std::string> seen;
+    if (!expand_includes_impl(source, source_name, resolver, 0, seen, out)) {
+        return {};
+    }
+    return out;
+}
 
 ShaderProvider::ShaderProvider(nw::gfx::Context* ctx, nw::ResourceManager* resources)
     : ctx_(ctx)
@@ -109,9 +189,22 @@ nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::load_and_compile(const std::str
     }
 
     const auto source_view = data.bytes.string_view();
-    const std::string source{source_view.data(), source_view.size()};
+    auto source = expand_shader_includes(source_view, name,
+        [this](std::string_view filename) -> std::optional<std::string> {
+            const auto res = nw::Resource::from_path(std::filesystem::path{filename});
+            if (!res.valid() || res.type != nw::ResourceType::hlsl) { return {}; }
+            auto bytes = resources_->demand(res);
+            if (!bytes.bytes.size()) { return {}; }
+            const auto view = bytes.bytes.string_view();
+            return std::string{view.data(), view.size()};
+        });
+    if (!source) {
+        LOG_F(ERROR, "Failed to expand shader includes for: {}", name);
+        return {};
+    }
+
     const wchar_t* profile = is_vertex ? L"vs_6_0" : (is_pixel ? L"ps_6_0" : L"cs_6_0");
-    return compile_hlsl(name, source, profile);
+    return compile_hlsl(name, *source, profile);
 }
 
 nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::compile_hlsl(

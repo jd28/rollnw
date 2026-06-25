@@ -136,6 +136,51 @@ ParticleTargetingMode map_targeting_mode(const EmitterNode& emitter)
     return ParticleTargetingMode::point_gravity;
 }
 
+bool is_large_authored_rect_region(glm::vec2 size) noexcept
+{
+    if (!std::isfinite(size.x) || !std::isfinite(size.y)) { return false; }
+
+    const float width = std::abs(size.x);
+    const float height = std::abs(size.y);
+    return std::min(width, height) >= 8.0f && std::max(width, height) >= 16.0f;
+}
+
+bool should_lower_linked_rect_to_world_plane(const EmitterNode& emitter, const ParticleEmitterDef& out, const ParticleMaterialDef& material)
+{
+    if (!string::icmp(emitter.render, "linked")) { return false; }
+    if ((emitter.flags & EmitterFlag::P2P) != 0) { return false; }
+    if (string::icmp(emitter.update, "lightning")) { return false; }
+    if (out.targeting.mode != ParticleTargetingMode::none) { return false; }
+    if (out.emission.mode != ParticleEmissionMode::continuous) { return false; }
+    if (out.emission.metric != ParticleSpawnMetric::per_second) { return false; }
+    if (out.region.type != ParticleSpawnRegionType::rect) { return false; }
+    if (!is_large_authored_rect_region(out.region.size)) { return false; }
+    if (material.blend != ParticleBlendMode::additive) { return false; }
+    if (!material.mesh.empty()) { return false; }
+    if (out.initial.lifetime.max < 1.0f) { return false; }
+    if (out.initial.speed.max > 1.0f) { return false; }
+    return true;
+}
+
+bool should_lower_stationary_normal_rect_to_local_plane(
+    const EmitterNode& emitter, const ParticleEmitterDef& out, const ParticleMaterialDef& material)
+{
+    if (!string::icmp(emitter.render, "normal")) { return false; }
+    if ((emitter.flags & EmitterFlag::P2P) != 0) { return false; }
+    if (out.targeting.mode != ParticleTargetingMode::none) { return false; }
+    if (out.emission.mode != ParticleEmissionMode::continuous) { return false; }
+    if (out.emission.metric != ParticleSpawnMetric::per_second) { return false; }
+    if (out.region.type != ParticleSpawnRegionType::rect) { return false; }
+    if (!is_large_authored_rect_region(out.region.size)) { return false; }
+    if (material.blend != ParticleBlendMode::additive) { return false; }
+    if (!material.mesh.empty()) { return false; }
+    if (out.emission.rate <= 0.0f) { return false; }
+    if (out.initial.speed.max > 1.0e-6f) { return false; }
+    if (std::abs(out.initial.spread_radians) > 1.0e-6f) { return false; }
+    if (out.initial.velocity_inheritance > 1.0e-6f) { return false; }
+    return true;
+}
+
 uint32_t get_or_add_material(const ParticleMaterialDef& material, ParticleEffectDef& effect)
 {
     for (size_t i = 0; i < effect.materials.size(); ++i) {
@@ -221,14 +266,28 @@ bool is_explosion_emitter(const EmitterNode& emitter)
     return string::icmp(emitter.update, "explosion");
 }
 
-std::optional<glm::vec3> find_reference_target_position(const EmitterNode& emitter)
+uint32_t source_node_index_for(const Mdl& mdl, const Node* source) noexcept
+{
+    if (!source) {
+        return kInvalidParticleImportNodeIndex;
+    }
+
+    for (size_t i = 0; i < mdl.model.nodes.size(); ++i) {
+        if (mdl.model.nodes[i].get() == source) {
+            return i >= kInvalidParticleImportNodeIndex ? kInvalidParticleImportNodeIndex : static_cast<uint32_t>(i);
+        }
+    }
+    return kInvalidParticleImportNodeIndex;
+}
+
+const Node* find_reference_target_node(const EmitterNode& emitter) noexcept
 {
     for (const auto* child : emitter.children) {
         if (!child || child->type != NodeType::reference) { continue; }
-        return glm::vec3(node_model_transform(*child)[3]);
+        return child;
     }
 
-    return std::nullopt;
+    return nullptr;
 }
 
 template <typename F>
@@ -334,15 +393,15 @@ void maybe_import_scalar_spawn_curve(
     ParticleCurveF32& out)
 {
     visit_matching_animation_nodes(mdl, emitter, animation_name, fallback_all_animations, [&](const Node& anim_node) {
-            auto value = anim_node.get_controller(controller);
-            if (!value.key || value.time.empty() || value.data.empty()) { return false; }
-            out.keys.clear();
-            const size_t count = std::min(value.time.size(), value.data.size());
-            for (size_t i = 0; i < count; ++i) {
-                out.keys.push_back({value.time[i], value.data[i]});
-            }
-            return true;
-        });
+        auto value = anim_node.get_controller(controller);
+        if (!value.key || value.time.empty() || value.data.empty()) { return false; }
+        out.keys.clear();
+        const size_t count = std::min(value.time.size(), value.data.size());
+        for (size_t i = 0; i < count; ++i) {
+            out.keys.push_back({value.time[i], value.data[i]});
+        }
+        return true;
+    });
 }
 
 void collect_animation_effect_events(const Animation& animation, const Mdl& mdl, std::map<float, uint32_t>& grouped)
@@ -381,7 +440,8 @@ void collect_animation_effect_events(const Animation& animation, const Mdl& mdl,
     }
 }
 
-float maybe_import_effect_events(const Mdl& mdl, StringView animation_name, ParticleImportResult& result)
+float maybe_import_effect_events(
+    const Mdl& mdl, StringView animation_name, bool fallback_all_animations, ParticleImportResult& result)
 {
     std::map<float, uint32_t> grouped;
     float event_length = 0.0f;
@@ -390,6 +450,8 @@ float maybe_import_effect_events(const Mdl& mdl, StringView animation_name, Part
         collect_animation_effect_events(*anim, mdl, grouped);
         event_length = anim->length;
     } else if (!animation_name.empty()) {
+        return 0.0f;
+    } else if (!fallback_all_animations) {
         return 0.0f;
     } else {
         for (const auto& anim : mdl.model.animations) {
@@ -411,18 +473,18 @@ void maybe_import_color_spawn_curve(
     ParticleGradient& out)
 {
     visit_matching_animation_nodes(mdl, emitter, animation_name, fallback_all_animations, [&](const Node& anim_node) {
-            auto value = anim_node.get_controller(controller);
-            if (!value.key || value.time.empty() || value.data.size() < 3) { return false; }
-            out.keys.clear();
-            const size_t count = std::min(value.time.size(), value.data.size() / 3);
-            for (size_t i = 0; i < count; ++i) {
-                out.keys.push_back({
-                    value.time[i],
-                    glm::vec4{value.data[i * 3 + 0], value.data[i * 3 + 1], value.data[i * 3 + 2], 1.0f},
-                });
-            }
-            return true;
-        });
+        auto value = anim_node.get_controller(controller);
+        if (!value.key || value.time.empty() || value.data.size() < 3) { return false; }
+        out.keys.clear();
+        const size_t count = std::min(value.time.size(), value.data.size() / 3);
+        for (size_t i = 0; i < count; ++i) {
+            out.keys.push_back({
+                value.time[i],
+                glm::vec4{value.data[i * 3 + 0], value.data[i * 3 + 1], value.data[i * 3 + 2], 1.0f},
+            });
+        }
+        return true;
+    });
 }
 
 } // namespace
@@ -436,10 +498,11 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         result.warnings.push_back({"", "animation", "requested animation was not found; falling back to all animations"});
     }
 
-    const float effect_event_length = maybe_import_effect_events(mdl, animation_name, result);
+    const float effect_event_length = maybe_import_effect_events(mdl, animation_name, fallback_all_animations, result);
     const float effect_event_period = estimate_effect_event_period(result.effect_events);
 
-    for (const auto& node_ptr : mdl.model.nodes) {
+    for (size_t source_node_index = 0; source_node_index < mdl.model.nodes.size(); ++source_node_index) {
+        const auto& node_ptr = mdl.model.nodes[source_node_index];
         if (!node_ptr || node_ptr->type != NodeType::emitter) { continue; }
 
         const auto& emitter = static_cast<const EmitterNode&>(*node_ptr);
@@ -546,6 +609,10 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
             out.render.mode = ParticleRenderMode::beam;
         } else if (!material.mesh.empty()) {
             out.render.mode = ParticleRenderMode::mesh;
+        } else if (should_lower_linked_rect_to_world_plane(emitter, out, material)) {
+            out.render.mode = ParticleRenderMode::billboard_world_z;
+        } else if (should_lower_stationary_normal_rect_to_local_plane(emitter, out, material)) {
+            out.render.mode = ParticleRenderMode::billboard_local_z;
         }
         out.render.opacity_scale = emitter.opacity == 0.0f ? 1.0f : emitter.opacity;
         out.render.blur_length = scalar_or(emitter, ControllerType::BlurLength, 0.0f);
@@ -588,31 +655,47 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
             });
         }
 
-        const uint32_t emitter_index = static_cast<uint32_t>(result.effect.emitters.size());
-        result.effect.emitters.push_back(std::move(out));
-
-        ParticleImportEmitterInit init;
-        init.emitter = emitter_index;
-        init.emitter_node_name = emitter.name.c_str();
-        init.has_default_transform = true;
-        init.default_transform = node_model_transform(emitter);
-        init.has_default_position = true;
-        init.default_position = glm::vec3(init.default_transform[3]);
-        init.has_default_orientation = true;
-        init.default_orientation = quat_or(emitter, ControllerType::Orientation);
-        if (result.effect.emitters.back().targeting.mode != ParticleTargetingMode::none) {
-            if (auto target_offset = find_reference_target_position(emitter)) {
-                init.has_default_target_offset = true;
-                init.default_target_offset = *target_offset;
-                for (const auto* child : emitter.children) {
-                    if (!child || child->type != NodeType::reference) { continue; }
-                    init.target_node_name = child->name.c_str();
-                    break;
-                }
+        out.attachment.emitter_source_node_index = source_node_index >= kInvalidParticleImportNodeIndex
+            ? kInvalidParticleImportNodeIndex
+            : static_cast<uint32_t>(source_node_index);
+        out.attachment.emitter_attachment_point = out.attachment.emitter_source_node_index;
+        out.attachment.emitter_node_name = emitter.name.c_str();
+        out.attachment.has_default_transform = true;
+        out.attachment.default_transform = node_model_transform(emitter);
+        out.attachment.has_default_position = true;
+        out.attachment.default_position = glm::vec3(out.attachment.default_transform[3]);
+        out.attachment.has_default_orientation = true;
+        out.attachment.default_orientation = quat_or(emitter, ControllerType::Orientation);
+        if (out.targeting.mode != ParticleTargetingMode::none) {
+            if (const auto* target_node = find_reference_target_node(emitter)) {
+                out.attachment.has_default_target_offset = true;
+                out.attachment.default_target_offset = glm::vec3(node_model_transform(*target_node)[3]);
+                out.attachment.target_source_node_index = source_node_index_for(mdl, target_node);
+                out.attachment.target_attachment_point = out.attachment.target_source_node_index;
+                out.attachment.target_node_name = target_node->name.c_str();
             } else {
                 result.warnings.push_back({emitter.name.c_str(), "reference", "targeted emitter is missing a reference child"});
             }
         }
+
+        const uint32_t emitter_index = static_cast<uint32_t>(result.effect.emitters.size());
+        result.effect.emitters.push_back(std::move(out));
+
+        const auto& attachment = result.effect.emitters.back().attachment;
+        ParticleImportEmitterInit init;
+        init.emitter = emitter_index;
+        init.emitter_source_node_index = attachment.emitter_source_node_index;
+        init.emitter_node_name = attachment.emitter_node_name;
+        init.has_default_transform = attachment.has_default_transform;
+        init.default_transform = attachment.default_transform;
+        init.has_default_position = attachment.has_default_position;
+        init.default_position = attachment.default_position;
+        init.has_default_orientation = attachment.has_default_orientation;
+        init.default_orientation = attachment.default_orientation;
+        init.target_source_node_index = attachment.target_source_node_index;
+        init.target_node_name = attachment.target_node_name;
+        init.has_default_target_offset = attachment.has_default_target_offset;
+        init.default_target_offset = attachment.default_target_offset;
         result.emitter_inits.push_back(init);
     }
 

@@ -1,0 +1,122 @@
+{
+  "$type": "VisualCorpus",
+  "name": "pbr_convergence_corpus",
+  "description": "Focused renderer baseline for Stage 2 PBR convergence. Run with --module ./tests/test_data/user/modules/DockerDemo.mod --user ./tests/test_data/user so the area and NWN fixture entries resolve consistently.",
+  "entries": [
+    {
+      "id": "pbr_damaged_helmet_glb",
+      "kind": "model",
+      "input": "tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+      "category": [
+        "gltf",
+        "pbr",
+        "metal_roughness",
+        "reference_asset"
+      ],
+      "notes": "Static glTF baseline with authored metallic-roughness textures."
+    },
+    {
+      "id": "pbr_metal_rough_spheres_glb",
+      "kind": "model",
+      "input": "tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",
+      "category": [
+        "gltf",
+        "pbr",
+        "material_spheres",
+        "rough_metal"
+      ],
+      "static_pbr_environment": {
+        "environment_path": "tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx"
+      },
+      "camera": {
+        "mode": "orbit",
+        "target": [
+          -0.06237173,
+          1.6000001,
+          -0.2779019
+        ],
+        "radius": 11.0,
+        "yaw": -90.0,
+        "pitch": 12.0,
+        "fov": 60.0
+      },
+      "notes": "Material-sphere grid for checking roughness and metal response before tuning real assets."
+    },
+    {
+      "id": "pbr_nwn_torch_metal",
+      "kind": "model",
+      "input": "tests/test_data/user/development/it_torch_000.mdl",
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "metal",
+        "specular",
+        "vfx"
+      ],
+      "notes": "NWN model with authored specular/shininess values, a metal texture, and flame emitters."
+    },
+    {
+      "id": "pbr_nwn_griffon_flag_metal",
+      "kind": "model",
+      "input": "tests/test_data/user/development/dag_grifflag03.mdl",
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "metal",
+        "diffuse_specular"
+      ],
+      "notes": "NWN fixture using tno01_metal01 for material mapping checks."
+    },
+    {
+      "id": "pbr_nwn_water_tile",
+      "kind": "model",
+      "input": "tests/test_data/user/development/tno01_b90_03.mdl",
+      "category": [
+        "nwn_mdl",
+        "pbr",
+        "tile",
+        "water"
+      ],
+      "notes": "Tile fixture with water-textured geometry for pre-change water/material screenshots."
+    },
+    {
+      "id": "pbr_creature_player_equipment",
+      "kind": "creature",
+      "input": "tests/test_data/user/development/test_creature.utc",
+      "animation": "cpause1",
+      "category": [
+        "creature",
+        "pbr",
+        "plt",
+        "equipment"
+      ],
+      "notes": "Assembled creature fixture covering character tinting and equipped material interaction."
+    },
+    {
+      "id": "pbr_area_dockerdemo_start",
+      "kind": "area",
+      "input": "start",
+      "category": [
+        "area",
+        "pbr",
+        "local_lights",
+        "nwn_materials"
+      ],
+      "camera": {
+        "mode": "free",
+        "position": [
+          20.0,
+          12.0,
+          2.0
+        ],
+        "target": [
+          20.0,
+          30.0,
+          1.5
+        ],
+        "fov": 60.0
+      },
+      "notes": "Checked-in area fixture for area lighting and local-light material response."
+    }
+  ]
+}

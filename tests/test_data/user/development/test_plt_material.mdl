@@ -1,0 +1,36 @@
+#MAXMODEL ASCII
+newmodel test_plt_material
+setsupermodel test_plt_material NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_plt_material
+    node dummy test_plt_material
+        parent NULL
+    endnode
+    node trimesh mesh01
+        parent test_plt_material
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap pmh0_head001
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom test_plt_material
+donemodel test_plt_material

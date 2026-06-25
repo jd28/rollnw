@@ -15,6 +15,7 @@
 #include <nw/render/nwn/model_loader.hpp>
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_json.hpp>
+#include <nw/render/particle_renderer.hpp>
 #include <nw/render/particle_system.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
@@ -863,10 +864,9 @@ void particle_preview_draw_sheet_sprite(std::vector<uint8_t>& rgba, int width, i
         return;
     }
 
-    const uint16_t clamped = static_cast<uint16_t>(std::clamp<uint32_t>(frame, frame_begin, frame_end));
-    const uint16_t local = static_cast<uint16_t>(clamped - frame_begin);
-    const uint16_t col = static_cast<uint16_t>(local % cols);
-    const uint16_t row = static_cast<uint16_t>(std::min<uint16_t>(local / cols, rows - 1));
+    const auto frame_rect = nw::render::particle_sprite_sheet_frame_rect(sheet, frame, image);
+    const uint16_t col = frame_rect.column;
+    const uint16_t row = frame_rect.row;
     const float col_t = cols > 1 ? static_cast<float>(col) / static_cast<float>(cols - 1) : 0.5f;
     const float row_t = rows > 1 ? static_cast<float>(row) / static_cast<float>(rows - 1) : 0.5f;
 
@@ -883,10 +883,10 @@ void particle_preview_draw_sheet_sprite(std::vector<uint8_t>& rgba, int width, i
     const float inv_ry = radius_y > 1.0e-6f ? 1.0f / radius_y : 1.0f;
 
     if (image && image->valid()) {
-        const float frame_u0 = static_cast<float>(col) / static_cast<float>(cols);
-        const float frame_u1 = static_cast<float>(col + 1u) / static_cast<float>(cols);
-        const float frame_v0 = static_cast<float>(row) / static_cast<float>(rows);
-        const float frame_v1 = static_cast<float>(row + 1u) / static_cast<float>(rows);
+        const float frame_u0 = frame_rect.u0;
+        const float frame_u1 = frame_rect.u1;
+        const float frame_v0 = frame_rect.v0;
+        const float frame_v1 = frame_rect.v1;
 
         for (int y = min_y; y <= max_y; ++y) {
             for (int x = min_x; x <= max_x; ++x) {
@@ -930,7 +930,8 @@ void particle_preview_draw_sheet_sprite(std::vector<uint8_t>& rgba, int width, i
             const float band_x = std::abs(dx + 0.55f - col_t * 1.1f);
             const float band_y = std::abs(dy - 0.55f + row_t * 1.1f);
             const float notch_mask = (dx > 0.0f && dy > 0.0f && band_x < notch && band_y < notch) ? 0.35f : 1.0f;
-            const float stripe = 0.82f + 0.18f * std::sin((dx + dy + static_cast<float>(local)) * 7.0f);
+            const float frame_phase = static_cast<float>(frame_rect.row * cols + frame_rect.column);
+            const float stripe = 0.82f + 0.18f * std::sin((dx + dy + frame_phase) * 7.0f);
             const float falloff = std::pow(1.0f - d2, 1.35f) * notch_mask * stripe;
             const glm::vec4 sample{color.r, color.g, color.b, color.a * falloff};
             if (additive) {
@@ -1717,7 +1718,8 @@ int run_spell_export_command(const VfxSequence& sequence, std::string_view spell
 int run_spell_export_live_command(AppState& state, const VfxSequence& sequence, std::string_view spell_id,
     const std::filesystem::path& out_path)
 {
-    state.current_scene = build_live_spell_scene(state, sequence);
+    auto scene = build_live_spell_scene(state, sequence);
+    replace_current_scene_after_gpu_idle(state, std::move(scene));
     if (!state.current_scene) {
         LOG_F(ERROR, "Failed to load live spell sequence '{}'", sequence.label);
         return 1;
@@ -1868,7 +1870,8 @@ int run_spell_preview_live_command(AppState& state, const VfxSequence& sequence,
         assets.push_back(std::move(asset));
     }
 
-    state.current_scene = build_live_spell_scene(state, sequence);
+    auto scene = build_live_spell_scene(state, sequence);
+    replace_current_scene_after_gpu_idle(state, std::move(scene));
     if (!state.current_scene) {
         LOG_F(ERROR, "Failed to load live spell preview '{}'", sequence.label);
         return 1;

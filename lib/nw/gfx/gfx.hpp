@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 namespace nw::gfx {
@@ -56,7 +58,7 @@ struct Pool {
             gen = storage_[idx].gen;
         } else {
             idx = static_cast<uint16_t>(storage_.size());
-            auto& payload = storage_.emplace_back(ImplPayload{
+            storage_.emplace_back(ImplPayload{
                 .value = std::forward<Impl>(impl),
                 .gen = 1,
                 .free_list_next = 0xFFFF,
@@ -101,8 +103,17 @@ struct CoreConfig {
     bool enable_validation = true;
 };
 
+struct ValidationReport {
+    uint64_t warning_count = 0;
+    uint64_t error_count = 0;
+    std::string first_warning;
+    std::string first_error;
+};
+
 Core* create_core(const CoreConfig& desc);
 void destroy_core(Core* core);
+void reset_validation_report(Core* core);
+ValidationReport validation_report(Core* core);
 
 // ============================================================================
 // == Context =================================================================
@@ -136,7 +147,47 @@ struct FrameInfo {
     bool drawable = false;
 };
 
+struct CommandStats {
+    uint64_t render_pass_count = 0;
+    uint64_t pipeline_bind_count = 0;
+    uint64_t pipeline_bind_skipped_count = 0;
+    uint64_t vertex_buffer_bind_count = 0;
+    uint64_t vertex_buffer_bind_skipped_count = 0;
+    uint64_t index_buffer_bind_count = 0;
+    uint64_t index_buffer_bind_skipped_count = 0;
+    uint64_t resource_bind_count = 0;
+    uint64_t resource_bind_skipped_count = 0;
+    uint64_t descriptor_buffer_bind_count = 0;
+    uint64_t descriptor_buffer_bind_skipped_count = 0;
+    uint64_t draw_count = 0;
+    uint64_t indexed_draw_count = 0;
+    uint64_t nonindexed_draw_count = 0;
+    uint64_t indirect_draw_call_count = 0;
+    uint64_t draw_instance_count = 0;
+    uint64_t draw_index_count = 0;
+    uint64_t draw_vertex_count = 0;
+    uint64_t dispatch_count = 0;
+    uint64_t uniform_allocation_count = 0;
+    uint64_t uniform_allocation_bytes = 0;
+    uint64_t vertex_allocation_count = 0;
+    uint64_t vertex_allocation_bytes = 0;
+};
+
+struct GpuTimerScope {
+    uint32_t index = UINT32_MAX;
+
+    [[nodiscard]] constexpr bool valid() const noexcept { return index != UINT32_MAX; }
+};
+
+struct GpuTimerResult {
+    const char* label = nullptr;
+    float seconds = 0.0f;
+    bool available = false;
+};
+
 bool get_frame_info(Context* ctx, FrameInfo& out) noexcept;
+bool get_command_stats(CommandList* cmd, CommandStats& out) noexcept;
+bool get_completed_gpu_timer_results(Context* ctx, std::vector<GpuTimerResult>& out) noexcept;
 CommandList* begin_frame(Context* ctx); // returns nullptr if frame cannot begin (e.g. swapchain out of date)
 void end_frame(Context* ctx);
 bool capture_screenshot(Context* ctx, CommandList* cmd, const char* path);
@@ -147,7 +198,8 @@ enum class BufferUsage {
     Uniform,
     Storage,
     TransferSrc,
-    TransferDst
+    TransferDst,
+    Indirect
 };
 
 struct BufferDesc {
@@ -188,6 +240,40 @@ struct StorageSpan {
     }
 };
 
+struct IndexedIndirectDrawCommand {
+    uint32_t index_count = 0;
+    uint32_t instance_count = 0;
+    uint32_t first_index = 0;
+    int32_t vertex_offset = 0;
+    uint32_t first_instance = 0;
+};
+
+struct IndexedIndirectDrawStats {
+    uint64_t index_count = 0;
+    uint64_t instance_count = 0;
+};
+
+struct IndirectDrawSpan {
+    Handle<Buffer> buffer;
+    uint32_t offset = 0;
+    uint32_t size = 0;
+
+    IndirectDrawSpan() = default;
+    IndirectDrawSpan(Handle<Buffer> buffer_) noexcept
+        : buffer(buffer_)
+    {
+    }
+    IndirectDrawSpan(Handle<Buffer> buffer_, uint32_t offset_, uint32_t size_) noexcept
+        : buffer(buffer_)
+        , offset(offset_)
+        , size(size_)
+    {
+    }
+};
+
+static_assert(std::is_standard_layout_v<IndexedIndirectDrawCommand>);
+static_assert(sizeof(IndexedIndirectDrawCommand) == 20);
+
 Handle<Buffer> create_buffer(Context* ctx, const BufferDesc& desc);
 void* map_buffer(Handle<Buffer> buffer);
 void unmap_buffer(Handle<Buffer> buffer);
@@ -213,6 +299,14 @@ struct TextureDesc {
 };
 
 using BindlessTextureIndex = uint32_t;
+inline constexpr BindlessTextureIndex kInvalidBindlessTextureIndex = 0;
+
+// Bindless sampled-texture slot 0 is reserved as the shader-visible "no texture"
+// sentinel. Backends allocate real sampled texture slots from 1 upward.
+[[nodiscard]] constexpr bool bindless_texture_index_valid(BindlessTextureIndex index) noexcept
+{
+    return index != kInvalidBindlessTextureIndex;
+}
 
 enum class TextureFilter {
     Linear,
@@ -267,6 +361,8 @@ struct VertexAttribute {
     uint32_t location; // shader input location
     uint32_t offset;   // byte offset within the vertex struct
     VertexFormat format;
+
+    bool operator==(const VertexAttribute&) const = default;
 };
 
 enum class StencilOp {
@@ -310,6 +406,7 @@ struct PipelineDesc {
     // Depth state
     bool depth_test = true;
     bool depth_write = true;
+    CompareOp depth_compare = CompareOp::Less;
 
     // Stencil state (disabled by default)
     bool stencil_test = false;
@@ -336,15 +433,19 @@ struct PipelineDesc {
     // vertex_stride must be set alongside vertex_attributes.
     std::vector<VertexAttribute> vertex_attributes = {};
     uint32_t vertex_stride = 0;
+
+    bool operator==(const PipelineDesc&) const = default;
 };
 
 struct ComputePipelineDesc {
     Handle<Shader> cs;
 
-    // Resource model. Defaults preserve a simple uniform-only path and allow
-    // one optional storage buffer for compute experimentation.
+    // Resource model. Defaults preserve a simple uniform-only path. Storage slots map
+    // to the same registers as graphics pipelines (t2, t3, t5, t6, t7), so a buffer can
+    // be written by compute (as RWStructuredBuffer) and read by a draw at the same slot.
     bool uses_uniforms = true;
     bool uses_storage_buffer = false;
+    uint8_t storage_buffer_count = 0;
 };
 
 Handle<Pipeline> create_pipeline(Context* ctx, const PipelineDesc& desc);
@@ -358,6 +459,8 @@ enum class RenderLoadOp {
 
 void cmd_begin_render(CommandList* cmd, Handle<RenderTarget> target, RenderLoadOp color_load_op = RenderLoadOp::clear);
 void cmd_end_render(CommandList* cmd);
+GpuTimerScope cmd_begin_gpu_timer(CommandList* cmd, const char* label);
+void cmd_end_gpu_timer(CommandList* cmd, GpuTimerScope scope);
 
 void cmd_bind_pipeline(CommandList* cmd, Handle<Pipeline> pipeline);
 void cmd_bind_vertex_buffer(CommandList* cmd, Handle<Buffer> buffer, uint32_t stride);
@@ -370,13 +473,32 @@ void cmd_bind_uniform_texture(CommandList* cmd, Handle<Pipeline> pipeline, Handl
     Handle<Texture> texture = {}, TextureFilter filter = TextureFilter::Linear);
 void cmd_bind_uniform_texture(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniform,
     Handle<Texture> texture = {}, TextureFilter filter = TextureFilter::Linear);
+// Graphics storage slots map to shader storage registers t2, t3, t5, t6, t7.
+// Register b4 is reserved for the optional secondary uniform span.
 void cmd_bind_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms,
     StorageSpan storage0 = {}, StorageSpan storage1 = {}, const UniformSpan& uniforms2 = {});
-void cmd_bind_compute_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms = {}, Handle<Buffer> storage = {});
+void cmd_bind_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms,
+    StorageSpan storage0, StorageSpan storage1, StorageSpan storage2, StorageSpan storage3, StorageSpan storage4,
+    const UniformSpan& uniforms2);
+void cmd_bind_compute_resources(CommandList* cmd, Handle<Pipeline> pipeline, const UniformSpan& uniforms = {},
+    StorageSpan storage0 = {}, StorageSpan storage1 = {}, StorageSpan storage2 = {}, StorageSpan storage3 = {},
+    StorageSpan storage4 = {});
 
 void cmd_draw(CommandList* cmd, uint32_t vertex_count, uint32_t instance_count = 1);
 void cmd_draw_indexed(CommandList* cmd, uint32_t index_count, uint32_t instance_count = 1);
+void cmd_draw_indexed_base_instance(CommandList* cmd, uint32_t index_count, uint32_t first_instance,
+    uint32_t instance_count = 1);
+void cmd_draw_indexed_indirect(CommandList* cmd, IndirectDrawSpan commands, uint32_t draw_count,
+    uint32_t stride = sizeof(IndexedIndirectDrawCommand), IndexedIndirectDrawStats stats = {});
+// GPU-driven draw count: the number of commands to execute is read from count_buffer (a uint32
+// at count_buffer.offset), clamped to max_draw_count. For a GPU cull/compaction pass that writes
+// both the commands and the count.
+void cmd_draw_indexed_indirect_count(CommandList* cmd, IndirectDrawSpan commands, StorageSpan count_buffer,
+    uint32_t max_draw_count, uint32_t stride = sizeof(IndexedIndirectDrawCommand));
 void cmd_dispatch(CommandList* cmd, uint32_t group_count_x, uint32_t group_count_y = 1, uint32_t group_count_z = 1);
+// Make compute storage-buffer writes visible to subsequent draws (vertex/fragment shader
+// reads and indirect-command reads) within the same command list.
+void cmd_barrier_compute_to_graphics(CommandList* cmd);
 
 UniformSpan allocate_uniform_span(Context* ctx, uint32_t size, uint32_t alignment = 256);
 VertexSpan allocate_vertex_span(Context* ctx, uint32_t size, uint32_t alignment = 16);

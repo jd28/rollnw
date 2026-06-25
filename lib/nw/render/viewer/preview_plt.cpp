@@ -10,7 +10,7 @@
 namespace nw::render::viewer {
 namespace {
 
-std::unique_ptr<ModelInstance> load_local_model(Renderer& renderer, const std::filesystem::path& path,
+std::unique_ptr<ModelInstance> load_local_model(PreviewRenderResources& resources, const std::filesystem::path& path,
     std::string_view root_name)
 {
     const auto path_text = path.string();
@@ -21,7 +21,7 @@ std::unique_ptr<ModelInstance> load_local_model(Renderer& renderer, const std::f
         return nullptr;
     }
 
-    ModelLoader loader(renderer.context());
+    ModelLoader loader(resources.context());
     auto model = loader.load(owned_mdl.get(), root_name);
     if (!model) {
         return nullptr;
@@ -67,7 +67,7 @@ nw::PltColors creature_plt_colors(const nw::CreatureAppearance& appearance)
     return result;
 }
 
-void apply_plt_to_model(Renderer& renderer, ModelInstance& model, const nw::PltColors& colors,
+void apply_plt_to_model(PreviewRenderResources& resources, ModelInstance& model, const nw::PltColors& colors,
     std::string_view model_resref)
 {
     for (auto& node : model.nodes_) {
@@ -82,18 +82,18 @@ void apply_plt_to_model(Renderer& renderer, ModelInstance& model, const nw::PltC
         mesh->bitmap_name = bitmap_name;
         mesh->plt_colors = colors;
         mesh->uses_plt = true;
-        mesh->texture = renderer.get_or_load_raw_plt_texture(mesh->bitmap_name);
+        mesh->texture = resources.get_or_load_raw_plt_texture(mesh->bitmap_name);
         if (mesh->texture.valid()) {
-            mesh->texture_index = nw::gfx::get_bindless_texture_index(renderer.context(), mesh->texture);
+            mesh->texture_index = nw::gfx::get_bindless_texture_index(resources.context(), mesh->texture);
         } else {
             mesh->uses_plt = false;
-            mesh->texture = renderer.get_or_load_texture(mesh->bitmap_name, colors, mesh->material_mode == MaterialMode::transparent);
-            mesh->texture_index = nw::gfx::get_bindless_texture_index(renderer.context(), mesh->texture);
+            mesh->texture = resources.get_or_load_texture(mesh->bitmap_name, colors, mesh->material_mode == MaterialMode::transparent);
+            mesh->texture_index = nw::gfx::get_bindless_texture_index(resources.context(), mesh->texture);
         }
     }
 }
 
-std::unique_ptr<ModelInstance> load_model_with_plt(Renderer& renderer, std::string_view resref,
+std::unique_ptr<ModelInstance> load_model_with_plt(PreviewRenderResources& resources, std::string_view resref,
     const nw::PltColors* colors, std::string_view root_name)
 {
     ERRARE("[viewer] loading model '{}'", resref);
@@ -106,13 +106,13 @@ std::unique_ptr<ModelInstance> load_model_with_plt(Renderer& renderer, std::stri
     std::unique_ptr<ModelInstance> model;
     if (ext == ".mdl" && std::filesystem::exists(source_path)) {
         model_resref = source_path.stem().string();
-        model = load_local_model(renderer, source_path, root_name);
+        model = load_local_model(resources, source_path, root_name);
     } else {
-        ModelLoader loader(renderer.context());
+        ModelLoader loader(resources.context());
         model = loader.load(resref, root_name);
     }
     if (model && colors) {
-        apply_plt_to_model(renderer, *model, *colors, model_resref);
+        apply_plt_to_model(resources, *model, *colors, model_resref);
     }
     return model;
 }

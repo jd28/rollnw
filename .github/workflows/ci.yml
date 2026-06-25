@@ -346,71 +346,7 @@ jobs:
         run: |
           ccache -s
 
-  linux-renderer-headless:
-    runs-on: ubuntu-22.04
-    name: Linux GCC Renderer Build
-    steps:
-      - name: Get current date
-        run: |
-          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: 3.29.4
-
-      - name: linux - install dependencies
-        run: |
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
-
-      - name: linux - cache ccache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ github.workspace }}/.ccache/
-          key: ubuntu-22.04-renderer-ccache-${{ env.DATE }}
-          restore-keys: |
-            ubuntu-22.04-renderer-ccache-
-
-      - name: setup ccache
-        run: |
-          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
-          ccache --set-config=max_size=5G
-          ccache --set-config=compression=true
-
-      - name: linux - cache nwn
-        id: cache-nwn
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ github.workspace }}/nwn/
-          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
-
-      - name: linux - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/ci/ensure_nwn.sh
-
-      - name: linux - configure renderer
-        run: |
-          cmake --preset ci-linux-renderer
-
-      - name: linux - build mudl
-        run: |
-          cmake --build --preset ci-linux-renderer --target mudl
-
-      - name: ccache stats
-        run: |
-          ccache -s
-
-  windows-renderer-mudl:
+  windows-renderer-tools:
     runs-on: windows-2022
     name: Windows MSVC Renderer Build
     steps:
@@ -475,7 +411,7 @@ jobs:
         run: |
           cmake --preset ci-windows-renderer
 
-      - name: windows - build mudl
+      - name: windows - build renderer tools
         run: |
           cmake --build --preset ci-windows-renderer --target mudl
 
@@ -942,6 +878,89 @@ jobs:
             tmp/bench/baseline-bench-pr.json
             tmp/bench/compare-bench-pr.txt
             tmp/bench/compare-bench-pr.json
+
+      - name: ccache stats
+        run: |
+          ccache -s
+
+  linux-renderer-headless:
+    runs-on: ubuntu-22.04
+    name: Linux Renderer Headless
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: linux - install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-13 g++-13 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols xvfb xauth
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+
+      - name: linux - cache ccache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ubuntu-22.04-renderer-ccache-${{ env.DATE }}
+          restore-keys: |
+            ubuntu-22.04-renderer-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: linux - cache nwn
+        id: cache-nwn
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/nwn/
+          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+
+      - name: linux - download nwn
+        if: steps.cache-nwn.outputs.cache-hit != 'true'
+        run: |
+          ./scripts/ci/ensure_nwn.sh
+
+      - name: linux - configure renderer
+        run: |
+          cmake --preset ci-linux-renderer
+
+      - name: linux - build renderer tools
+        run: |
+          cmake --build --preset ci-linux-renderer --target mudl
+
+      - name: linux - headless graphics smoke
+        run: |
+          ./build-ci-linux-renderer/tools/mudl/mudl stats c_aribeth
+          ./build-ci-linux-renderer/tools/mudl/mudl stats c_drgshad
+          ./build-ci-linux-renderer/tools/mudl/mudl stats plc_archtarg
+          ./build-ci-linux-renderer/tools/mudl/mudl stats ttd01_a04_03
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot c_drgshad ./build-ci-linux-renderer/c_drgshad.png
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot plc_archtarg ./build-ci-linux-renderer/plc_archtarg.png
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot ttd01_a04_03 ./build-ci-linux-renderer/ttd01_a04_03.png
+
+      - name: upload renderer artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: renderer-headless-artifacts
+          if-no-files-found: error
+          path: |
+            build-ci-linux-renderer/c_drgshad.png
+            build-ci-linux-renderer/plc_archtarg.png
+            build-ci-linux-renderer/ttd01_a04_03.png
 
       - name: ccache stats
         run: |

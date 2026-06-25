@@ -35,6 +35,7 @@ target_link_libraries(mudl-imgui PUBLIC
 add_executable(mudl
     main.cpp
     app_runtime.cpp
+    benchmark_report.cpp
     imgui_runtime.cpp
     mudl_cli.cpp
     mudl_commands.cpp
@@ -83,12 +84,24 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(mudl PRIVATE dl pthread)
 endif()
 
-# Copy shaders to build directory
-add_custom_command(TARGET mudl POST_BUILD
+# Copy shaders to build directory. Keep this as a dependency target so editing
+# only HLSL updates the runtime shader copies even when the executable is current.
+file(GLOB MUDL_RENDER_SHADER_FILES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/lib/nw/render/shaders/*.hlsl"
+)
+set(MUDL_SHADER_COPY_STAMP "${CMAKE_CURRENT_BINARY_DIR}/mudl_shaders.stamp")
+add_custom_command(
+    OUTPUT "${MUDL_SHADER_COPY_STAMP}"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/lib/nw/render/shaders
         $<TARGET_FILE_DIR:mudl>/shaders
+    COMMAND ${CMAKE_COMMAND} -E touch
+        "${MUDL_SHADER_COPY_STAMP}"
+    DEPENDS ${MUDL_RENDER_SHADER_FILES}
+    VERBATIM
 )
+add_custom_target(mudl-copy-shaders DEPENDS "${MUDL_SHADER_COPY_STAMP}")
+add_dependencies(mudl mudl-copy-shaders)
 
 if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET mudl POST_BUILD

@@ -1,0 +1,73 @@
+#MAXMODEL ASCII
+newmodel vfx_linked_mist_test
+setsupermodel vfx_linked_mist_test NULL
+classification effect
+setanimationscale 1
+
+beginmodelgeom vfx_linked_mist_test
+node dummy root
+  parent NULL
+endnode
+node emitter mist
+  parent root
+  p2p 0
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 1
+  bounce 0
+  random 1
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Fountain
+  render Linked
+  blend Lighten
+  texture fxpa_smoke01a
+  xgrid 4
+  ygrid 4
+  loop 1
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0 0
+  orientation 1 0 0 -3.14159
+  colorStart 0.5 0.6 0.8
+  colorEnd 0.6 0.7 0.9
+  alphaStart 0
+  alphaEnd 0.5
+  sizeStart 0.5
+  sizeEnd 0.25
+  sizeStart_y 0
+  sizeEnd_y 0
+  frameStart 0
+  frameEnd 15
+  birthrate 6
+  lifeExp 4
+  mass 0
+  spread 6.28318
+  particleRot 0
+  velocity 0.3
+  randvel 0
+  fps 0
+  xsize 1000
+  ysize 200
+  bounce_co 0
+  blurlength 10
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+endmodelgeom vfx_linked_mist_test
+
+donemodel vfx_linked_mist_test

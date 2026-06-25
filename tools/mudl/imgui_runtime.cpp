@@ -3,16 +3,17 @@
 #include "app_runtime.hpp"
 #include "viewer_runtime.hpp"
 
-#include <imgui.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
 
-#include <nw/gfx/native_vulkan.hpp>
-#include <nw/log.hpp>
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <nw/gfx/native_vulkan.hpp>
+#include <nw/log.hpp>
+#include <nw/render/particle_system.hpp>
 #include <string>
 #include <vector>
 
@@ -53,8 +54,7 @@ bool ensure_vulkan_backend(AppState& state, nw::gfx::CommandList* cmd)
     init_info.ImageCount = 2;
     init_info.UseDynamicRendering = true;
     init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+    init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
     init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
     const VkFormat color_format = static_cast<VkFormat>(frame.swapchain_format);
     init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &color_format;
@@ -125,13 +125,20 @@ const char* particle_kernel_label(nw::render::CompiledParticleKernel kernel)
 {
     using Kernel = nw::render::CompiledParticleKernel;
     switch (kernel) {
-    case Kernel::sprite_basic_constant: return "sprite_basic_constant";
-    case Kernel::sprite_basic: return "sprite_basic";
-    case Kernel::sprite_target_gravity: return "sprite_target_gravity";
-    case Kernel::sprite_target_bezier: return "sprite_target_bezier";
-    case Kernel::linked_chain: return "linked_chain";
-    case Kernel::beam_lightning: return "beam_lightning";
-    case Kernel::mesh_basic: return "mesh_basic";
+    case Kernel::sprite_basic_constant:
+        return "sprite_basic_constant";
+    case Kernel::sprite_basic:
+        return "sprite_basic";
+    case Kernel::sprite_target_gravity:
+        return "sprite_target_gravity";
+    case Kernel::sprite_target_bezier:
+        return "sprite_target_bezier";
+    case Kernel::linked_chain:
+        return "linked_chain";
+    case Kernel::beam_lightning:
+        return "beam_lightning";
+    case Kernel::mesh_basic:
+        return "mesh_basic";
     }
     return "unknown";
 }
@@ -140,15 +147,24 @@ const char* particle_render_mode_label(nw::render::ParticleRenderMode mode)
 {
     using Mode = nw::render::ParticleRenderMode;
     switch (mode) {
-    case Mode::billboard: return "billboard";
-    case Mode::billboard_local_z: return "billboard_local_z";
-    case Mode::billboard_world_z: return "billboard_world_z";
-    case Mode::aligned_world_z: return "aligned_world_z";
-    case Mode::velocity_aligned: return "velocity_aligned";
-    case Mode::stretched: return "stretched";
-    case Mode::linked_chain: return "linked_chain";
-    case Mode::beam: return "beam";
-    case Mode::mesh: return "mesh";
+    case Mode::billboard:
+        return "billboard";
+    case Mode::billboard_local_z:
+        return "billboard_local_z";
+    case Mode::billboard_world_z:
+        return "billboard_world_z";
+    case Mode::aligned_world_z:
+        return "aligned_world_z";
+    case Mode::velocity_aligned:
+        return "velocity_aligned";
+    case Mode::stretched:
+        return "stretched";
+    case Mode::linked_chain:
+        return "linked_chain";
+    case Mode::beam:
+        return "beam";
+    case Mode::mesh:
+        return "mesh";
     }
     return "unknown";
 }
@@ -157,9 +173,12 @@ const char* particle_blend_mode_label(nw::render::ParticleBlendMode mode)
 {
     using Mode = nw::render::ParticleBlendMode;
     switch (mode) {
-    case Mode::alpha: return "alpha";
-    case Mode::cutout: return "cutout";
-    case Mode::additive: return "additive";
+    case Mode::alpha:
+        return "alpha";
+    case Mode::cutout:
+        return "cutout";
+    case Mode::additive:
+        return "additive";
     }
     return "unknown";
 }
@@ -168,10 +187,14 @@ const char* particle_emission_mode_label(nw::render::ParticleEmissionMode mode)
 {
     using Mode = nw::render::ParticleEmissionMode;
     switch (mode) {
-    case Mode::continuous: return "continuous";
-    case Mode::single_shot: return "single_shot";
-    case Mode::event_burst: return "event_burst";
-    case Mode::beam_continuous: return "beam_continuous";
+    case Mode::continuous:
+        return "continuous";
+    case Mode::single_shot:
+        return "single_shot";
+    case Mode::event_burst:
+        return "event_burst";
+    case Mode::beam_continuous:
+        return "beam_continuous";
     }
     return "unknown";
 }
@@ -180,8 +203,10 @@ const char* particle_spawn_metric_label(nw::render::ParticleSpawnMetric metric)
 {
     using Metric = nw::render::ParticleSpawnMetric;
     switch (metric) {
-    case Metric::per_second: return "per_second";
-    case Metric::per_distance: return "per_distance";
+    case Metric::per_second:
+        return "per_second";
+    case Metric::per_distance:
+        return "per_distance";
     }
     return "unknown";
 }
@@ -190,10 +215,14 @@ const char* particle_simulation_space_label(nw::render::ParticleSimulationSpace 
 {
     using Space = nw::render::ParticleSimulationSpace;
     switch (space) {
-    case Space::world: return "world";
-    case Space::local: return "local";
-    case Space::emitter_attached: return "emitter_attached";
-    case Space::spawn_attached: return "spawn_attached";
+    case Space::world:
+        return "world";
+    case Space::local:
+        return "local";
+    case Space::emitter_attached:
+        return "emitter_attached";
+    case Space::spawn_attached:
+        return "spawn_attached";
     }
     return "unknown";
 }
@@ -202,10 +231,14 @@ const char* particle_targeting_mode_label(nw::render::ParticleTargetingMode mode
 {
     using Mode = nw::render::ParticleTargetingMode;
     switch (mode) {
-    case Mode::none: return "none";
-    case Mode::point_gravity: return "point_gravity";
-    case Mode::point_bezier: return "point_bezier";
-    case Mode::beam_lightning: return "beam_lightning";
+    case Mode::none:
+        return "none";
+    case Mode::point_gravity:
+        return "point_gravity";
+    case Mode::point_bezier:
+        return "point_bezier";
+    case Mode::beam_lightning:
+        return "beam_lightning";
     }
     return "unknown";
 }
@@ -214,9 +247,12 @@ const char* particle_path_kind_label(nw::render::ParticleRenderPathKind kind)
 {
     using Kind = nw::render::ParticleRenderPathKind;
     switch (kind) {
-    case Kind::none: return "none";
-    case Kind::bezier: return "bezier";
-    case Kind::beam: return "beam";
+    case Kind::none:
+        return "none";
+    case Kind::bezier:
+        return "bezier";
+    case Kind::beam:
+        return "beam";
     }
     return "unknown";
 }
@@ -224,10 +260,14 @@ const char* particle_path_kind_label(nw::render::ParticleRenderPathKind kind)
 const char* sequence_step_kind_label(VfxSequenceStepKind kind)
 {
     switch (kind) {
-    case VfxSequenceStepKind::model: return "model";
-    case VfxSequenceStepKind::attached_model: return "attached_model";
-    case VfxSequenceStepKind::beam: return "beam";
-    case VfxSequenceStepKind::projectile: return "projectile";
+    case VfxSequenceStepKind::model:
+        return "model";
+    case VfxSequenceStepKind::attached_model:
+        return "attached_model";
+    case VfxSequenceStepKind::beam:
+        return "beam";
+    case VfxSequenceStepKind::projectile:
+        return "projectile";
     }
     return "unknown";
 }
@@ -235,20 +275,34 @@ const char* sequence_step_kind_label(VfxSequenceStepKind kind)
 const char* sequence_projectile_path_label(VfxProjectilePathKind kind)
 {
     switch (kind) {
-    case VfxProjectilePathKind::default_path: return "default";
-    case VfxProjectilePathKind::homing: return "homing";
-    case VfxProjectilePathKind::ballistic: return "ballistic";
-    case VfxProjectilePathKind::high_ballistic: return "high_ballistic";
-    case VfxProjectilePathKind::burst_up: return "burst_up";
-    case VfxProjectilePathKind::accelerating: return "accelerating";
-    case VfxProjectilePathKind::spiral: return "spiral";
-    case VfxProjectilePathKind::linked: return "linked";
-    case VfxProjectilePathKind::bounce: return "bounce";
-    case VfxProjectilePathKind::burst: return "burst";
-    case VfxProjectilePathKind::linked_burst_up: return "linked_burst_up";
-    case VfxProjectilePathKind::triple_ballistic_hit: return "triple_ballistic_hit";
-    case VfxProjectilePathKind::triple_ballistic_miss: return "triple_ballistic_miss";
-    case VfxProjectilePathKind::double_ballistic: return "double_ballistic";
+    case VfxProjectilePathKind::default_path:
+        return "default";
+    case VfxProjectilePathKind::homing:
+        return "homing";
+    case VfxProjectilePathKind::ballistic:
+        return "ballistic";
+    case VfxProjectilePathKind::high_ballistic:
+        return "high_ballistic";
+    case VfxProjectilePathKind::burst_up:
+        return "burst_up";
+    case VfxProjectilePathKind::accelerating:
+        return "accelerating";
+    case VfxProjectilePathKind::spiral:
+        return "spiral";
+    case VfxProjectilePathKind::linked:
+        return "linked";
+    case VfxProjectilePathKind::bounce:
+        return "bounce";
+    case VfxProjectilePathKind::burst:
+        return "burst";
+    case VfxProjectilePathKind::linked_burst_up:
+        return "linked_burst_up";
+    case VfxProjectilePathKind::triple_ballistic_hit:
+        return "triple_ballistic_hit";
+    case VfxProjectilePathKind::triple_ballistic_miss:
+        return "triple_ballistic_miss";
+    case VfxProjectilePathKind::double_ballistic:
+        return "double_ballistic";
     }
     return "unknown";
 }
@@ -256,9 +310,12 @@ const char* sequence_projectile_path_label(VfxProjectilePathKind kind)
 const char* sequence_projectile_orientation_label(VfxProjectileOrientationKind kind)
 {
     switch (kind) {
-    case VfxProjectileOrientationKind::none: return "none";
-    case VfxProjectileOrientationKind::target: return "target";
-    case VfxProjectileOrientationKind::path: return "path";
+    case VfxProjectileOrientationKind::none:
+        return "none";
+    case VfxProjectileOrientationKind::target:
+        return "target";
+    case VfxProjectileOrientationKind::path:
+        return "path";
     }
     return "unknown";
 }
@@ -266,9 +323,12 @@ const char* sequence_projectile_orientation_label(VfxProjectileOrientationKind k
 const char* sequence_projectile_transport_label(VfxProjectileTransportKind kind)
 {
     switch (kind) {
-    case VfxProjectileTransportKind::none: return "none";
-    case VfxProjectileTransportKind::moving_root: return "moving_root";
-    case VfxProjectileTransportKind::source_rooted_target_point: return "source_rooted_target_point";
+    case VfxProjectileTransportKind::none:
+        return "none";
+    case VfxProjectileTransportKind::moving_root:
+        return "moving_root";
+    case VfxProjectileTransportKind::source_rooted_target_point:
+        return "source_rooted_target_point";
     }
     return "unknown";
 }
@@ -370,10 +430,9 @@ std::string packet_emitter_summary(const nw::render::viewer::SceneParticleSystem
     std::vector<bool> seen(emitter_count, false);
     std::string result;
     const auto& core = scene_particles.system.particles.core;
-    for (uint32_t n = 0; n < packet.count; ++n) {
-        const size_t particle_index = packet.begin + n;
+    for (const uint32_t particle_index : nw::render::particle_render_packet_indices(scene_particles.system, packet)) {
         if (particle_index >= core.emitter_id.size()) {
-            break;
+            continue;
         }
         const auto emitter_id = core.emitter_id[particle_index];
         if (emitter_id >= emitter_count || seen[emitter_id]) {
@@ -400,6 +459,81 @@ std::string join_load_report_origins(const std::vector<std::string>& origins)
         result += origins[i];
     }
     return result.empty() ? "<none>" : result;
+}
+
+void build_runtime_model_report_debug(const AppState& state)
+{
+    if (!state.current_scene) {
+        return;
+    }
+
+    const auto reports = nw::render::viewer::build_preview_runtime_model_reports(
+        *state.current_scene,
+        &state.prepared_model_surfaces);
+    if (reports.models.empty()) {
+        return;
+    }
+
+    if (!ImGui::TreeNode("RenderModel runtime##render_model_runtime_report")) {
+        return;
+    }
+
+    ImGui::Text("models=%zu skinned=%zu animated=%zu enabled=%zu backend=%zu skin_rows=%zu particles=%zu emitters=%zu live_particles=%zu",
+        reports.render_model_count,
+        reports.skinned_model_count,
+        reports.animated_model_count,
+        reports.animation_enabled_model_count,
+        reports.animation_backend_ready_model_count,
+        reports.skin_matrix_row_count,
+        reports.scene_particle_system_count,
+        reports.scene_particle_emitter_count,
+        reports.scene_particle_live_particle_count);
+    if (reports.prepared_skin_table_available) {
+        const auto& skin_table = reports.prepared_skin_table_stats;
+        ImGui::Text("prepared skin table: skinned_surfaces=%u assigned=%u entries=%u matrices=%u bind_pose=%u invalid_skin=%u",
+            skin_table.render_model_skinned_surface_count,
+            skin_table.assigned_surface_count,
+            skin_table.table_entry_count,
+            skin_table.matrix_count,
+            skin_table.bind_pose_fallback_surface_count,
+            skin_table.invalid_skin_index_count);
+    }
+
+    for (const auto& model : reports.models) {
+        const char* clip_name = model.selected_clip_name.empty() ? "<none>" : model.selected_clip_name.c_str();
+        ImGui::BulletText(
+            "%s: visible=%d inst=%d handle=%d prim=%zu skin_prim=%zu skins=%zu skels=%zu anims=%zu "
+            "clip=%u '%s' time=%.3f enabled=%d backend=%d skin_rows=%zu",
+            model.owner.c_str(),
+            model.visible ? 1 : 0,
+            model.instance_present ? 1 : 0,
+            model.instance_handle_valid ? 1 : 0,
+            model.primitive_count,
+            model.skinned_primitive_count,
+            model.skin_count,
+            model.skeleton_count,
+            model.animation_count,
+            model.selected_clip_index,
+            clip_name,
+            static_cast<double>(model.clip_time),
+            model.animation_enabled ? 1 : 0,
+            model.animation_backend_ready ? 1 : 0,
+            model.skin_matrix_row_count);
+        if (model.particle_system_count > 0 || model.scene_particle_system_count > 0) {
+            ImGui::Indent();
+            ImGui::Text("particles: asset=%zu scene=%zu emitters=%zu active_emitters=%zu max=%u events=%zu live=%zu",
+                model.particle_system_count,
+                model.scene_particle_system_count,
+                model.scene_particle_emitter_count,
+                model.scene_particle_active_emitter_count,
+                model.scene_particle_max_particles_total,
+                model.scene_particle_event_count,
+                model.scene_particle_live_particle_count);
+            ImGui::Unindent();
+        }
+    }
+
+    ImGui::TreePop();
 }
 
 void build_load_report_debug(const nw::render::viewer::PreviewLoadReport& report)
@@ -454,6 +588,79 @@ void build_load_report_debug(const nw::render::viewer::PreviewLoadReport& report
                 particles.import_warning_count,
                 particles.compile_warning_count,
                 particles.effect_event_count);
+        }
+        ImGui::TreePop();
+    }
+
+    if (!report.geometries.empty() && ImGui::TreeNode("Geometry##load_report_geometry")) {
+        for (const auto& geometry : report.geometries) {
+            ImGui::BulletText(
+                "%s: primitives=%zu static=%zu skinned=%zu deformed=%zu shadow=%zu vertices=%zu indices=%zu",
+                geometry.owner.c_str(),
+                geometry.primitive_count,
+                geometry.static_primitive_count,
+                geometry.skinned_primitive_count,
+                geometry.deformed_primitive_count,
+                geometry.shadow_caster_count,
+                geometry.vertex_count,
+                geometry.index_count);
+            ImGui::Indent();
+            ImGui::Text("nodes=%zu sockets=%zu skins=%zu skeletons=%zu animations=%zu deformers=%zu particles=%zu",
+                geometry.node_count,
+                geometry.socket_count,
+                geometry.skin_count,
+                geometry.skeleton_count,
+                geometry.animation_count,
+                geometry.deformer_count,
+                geometry.particle_system_count);
+            ImGui::Text("repairs: normals=%zu tangents=%zu  skipped: empty=%zu skin=%zu primitive_overflows=%zu",
+                geometry.normal_repair_count,
+                geometry.tangent_repair_count,
+                geometry.skipped_empty_mesh_count,
+                geometry.skipped_skin_mesh_count,
+                geometry.primitive_overflow_count);
+            ImGui::Unindent();
+        }
+        ImGui::TreePop();
+    }
+
+    if (!report.materials.empty() && ImGui::TreeNode("Materials##load_report_materials")) {
+        for (const auto& materials : report.materials) {
+            ImGui::BulletText(
+                "%s: materials=%zu fallback=%zu plt_albedo=%zu plt_enabled=%zu emissive=%zu double_sided=%zu "
+                "opaque=%zu cutout=%zu transparent=%zu water=%zu unknown_alpha=%zu",
+                materials.owner.c_str(),
+                materials.material_count,
+                materials.fallback_material_count,
+                materials.plt_albedo_count,
+                materials.plt_enabled_count,
+                materials.emissive_material_count,
+                materials.double_sided_count,
+                materials.opaque_count,
+                materials.cutout_count,
+                materials.transparent_count,
+                materials.water_count,
+                materials.unknown_alpha_mode_count);
+            ImGui::Indent();
+            ImGui::Text("sources: albedo=%zu normal=%zu surface=%zu emissive=%zu",
+                materials.albedo_source_count,
+                materials.normal_source_count,
+                materials.surface_source_count,
+                materials.emissive_source_count);
+            ImGui::Text("bound: albedo=%zu normal=%zu surface=%zu emissive=%zu",
+                materials.albedo_bound_count,
+                materials.normal_bound_count,
+                materials.surface_bound_count,
+                materials.emissive_bound_count);
+            ImGui::Text("roughness %.3f..%.3f  specular %.3f..%.3f  normal_scale %.3f..%.3f  invalid_scalars=%zu",
+                static_cast<double>(materials.roughness_min),
+                static_cast<double>(materials.roughness_max),
+                static_cast<double>(materials.specular_strength_min),
+                static_cast<double>(materials.specular_strength_max),
+                static_cast<double>(materials.normal_scale_min),
+                static_cast<double>(materials.normal_scale_max),
+                materials.invalid_scalar_count);
+            ImGui::Unindent();
         }
         ImGui::TreePop();
     }
@@ -738,7 +945,7 @@ void build_animation_controls(AppState& state)
             if (shared_source) {
                 size_t shared_model_index = state.current_scene->models.size();
                 for (size_t model_index = 0; model_index < state.model_animation_names.size()
-                        && model_index < state.current_scene->models.size();
+                    && model_index < state.current_scene->models.size();
                     ++model_index) {
                     const auto& names = state.model_animation_names[model_index];
                     const auto& model = state.current_scene->models[model_index];
@@ -764,7 +971,7 @@ void build_animation_controls(AppState& state)
                 }
             } else {
                 for (size_t model_index = 0; model_index < state.model_animation_names.size()
-                        && model_index < state.current_scene->models.size();
+                    && model_index < state.current_scene->models.size();
                     ++model_index) {
                     const auto& names = state.model_animation_names[model_index];
                     const auto& model = state.current_scene->models[model_index];
@@ -802,11 +1009,11 @@ void build_animation_controls(AppState& state)
             ImGui::Separator();
         }
         if (state.current_scene->static_models.size() > 1) {
-            ImGui::TextUnformatted("glTF clip selection is shared by clip index across animated static models.");
+            ImGui::TextUnformatted("RenderModel clip selection is shared by clip index across animated static models.");
         }
 
         for (size_t model_index = 0; model_index < state.gltf_animation_names.size()
-                && model_index < state.current_scene->static_models.size();
+            && model_index < state.current_scene->static_models.size();
             ++model_index) {
             const auto& names = state.gltf_animation_names[model_index];
             const auto& model = state.current_scene->static_models[model_index];
@@ -816,11 +1023,11 @@ void build_animation_controls(AppState& state)
 
             ImGui::PushID(static_cast<int>(1000 + model_index));
             if (state.current_scene->static_models.size() > 1) {
-                ImGui::Text("glTF model %zu: %s", model_index, model->name.c_str());
+                ImGui::Text("RenderModel %zu: %s", model_index, model->name.c_str());
             }
 
             const size_t active_index = state.gltf_animation_clip % names.size();
-            const char* combo_label = state.current_scene->static_models.size() > 1 ? "Clip" : "glTF clip";
+            const char* combo_label = state.current_scene->static_models.size() > 1 ? "Clip" : "RenderModel clip";
             if (ImGui::BeginCombo(combo_label, names[active_index].c_str())) {
                 for (size_t clip_index = 0; clip_index < names.size(); ++clip_index) {
                     const bool selected = clip_index == active_index;
@@ -862,6 +1069,35 @@ void build_rendering_controls(AppState& state)
     if (state.current_scene && state.current_scene->is_area) {
         ImGui::Checkbox("Authored fog", &state.show_authored_area_fog);
 
+        ImGui::Checkbox("Forward+", &state.forward_plus_policy.enabled);
+        ImGui::Checkbox("Forward+ auto config", &state.forward_plus_policy.auto_configure_area);
+        if (!state.forward_plus_policy.auto_configure_area) {
+            int tile_size = static_cast<int>(state.forward_plus_policy.config.tile_size);
+            int depth_slices = static_cast<int>(state.forward_plus_policy.config.depth_slices);
+            int max_lights = static_cast<int>(state.forward_plus_policy.config.max_lights_per_cluster);
+            if (ImGui::SliderInt("Forward+ tile", &tile_size, 8, 128)) {
+                state.forward_plus_policy.config.tile_size = static_cast<uint32_t>(std::max(tile_size, 1));
+            }
+            if (ImGui::SliderInt("Forward+ depth", &depth_slices, 1, 32)) {
+                state.forward_plus_policy.config.depth_slices = static_cast<uint32_t>(std::max(depth_slices, 1));
+            }
+            if (ImGui::SliderInt("Forward+ max lights", &max_lights, 1, 512)) {
+                state.forward_plus_policy.config.max_lights_per_cluster = static_cast<uint32_t>(std::max(max_lights, 1));
+            }
+        }
+
+        static constexpr std::array<const char*, 3> kForwardPlusDebugModes{{
+            "Off",
+            "Cluster lights",
+            "Depth slices",
+        }};
+        int forward_plus_debug_mode = static_cast<int>(state.forward_plus_policy.debug_mode);
+        if (ImGui::Combo("Forward+ debug", &forward_plus_debug_mode, kForwardPlusDebugModes.data(),
+                static_cast<int>(kForwardPlusDebugModes.size()))) {
+            state.forward_plus_policy.debug_mode = static_cast<nw::render::ForwardPlusDebugMode>(
+                std::clamp(forward_plus_debug_mode, 0, static_cast<int>(kForwardPlusDebugModes.size()) - 1));
+        }
+
         static constexpr std::array<const char*, 2> kShadowDebugModes{{
             "Off",
             "Cascades",
@@ -902,8 +1138,8 @@ void build_rendering_controls(AppState& state)
     }
 
     if (has_gltf_models) {
-        ImGui::SliderFloat("glTF IBL", &state.gltf_ibl_strength, 0.0f, 4.0f, "%.2f");
-        ImGui::SliderFloat("glTF exposure", &state.gltf_exposure, 0.1f, 10.0f, "%.2f");
+        ImGui::SliderFloat("Static PBR IBL", &state.static_pbr_ibl_strength, 0.0f, 4.0f, "%.2f");
+        ImGui::SliderFloat("Static PBR exposure", &state.static_pbr_exposure, 0.1f, 10.0f, "%.2f");
     }
 }
 
@@ -953,7 +1189,9 @@ void build_debug_window(AppState& state)
 
     if (state.current_scene) {
         ImGui::Separator();
-        ImGui::Text("Models: %zu", state.current_scene->models.size());
+        ImGui::Text("Models: legacy %zu  static %zu",
+            state.current_scene->models.size(),
+            state.current_scene->static_models.size());
         ImGui::Text("Particles: %zu", state.current_scene->particles.size());
         ImGui::Text("Scene playback: %s", state.scene_playing ? "playing" : "paused");
         if (ImGui::Button(state.scene_playing ? "Pause scene" : "Resume scene")) {
@@ -977,18 +1215,43 @@ void build_debug_window(AppState& state)
             ImGui::Text("VFX autoplay: %s", state.vfx_sequence_autoplay ? "enabled" : "disabled");
         }
         if (supports_gltf_animation_controls(state)) {
-            ImGui::Text("glTF autoplay: %s", state.gltf_animation_autoplay ? "enabled" : "disabled");
+            ImGui::Text("RenderModel autoplay: %s", state.gltf_animation_autoplay ? "enabled" : "disabled");
         }
         if (has_area_day_night_controls(state)) {
             ImGui::Text("Area autoplay: %s", state.area_day_night_autoplay ? "enabled" : "disabled");
         }
         build_load_report_debug(state.current_scene->load_report);
+        build_runtime_model_report_debug(state);
         build_animation_controls(state);
         for (size_t system_index = 0; system_index < state.current_scene->particles.size(); ++system_index) {
             build_particle_system_debug(state.current_scene->particles[system_index], system_index);
         }
     }
 
+    ImGui::End();
+}
+
+void build_fps_overlay()
+{
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImGuiIO& io = ImGui::GetIO();
+    const float fps = io.Framerate;
+    const float frame_ms = fps > 0.0f ? 1000.0f / fps : 0.0f;
+    const ImVec2 padding{12.0f, 10.0f};
+    ImGui::SetNextWindowPos(
+        ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - padding.x, viewport->WorkPos.y + padding.y),
+        ImGuiCond_Always,
+        ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.35f);
+    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+        | ImGuiWindowFlags_AlwaysAutoResize
+        | ImGuiWindowFlags_NoSavedSettings
+        | ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoNav
+        | ImGuiWindowFlags_NoInputs;
+    if (ImGui::Begin("fps overlay", nullptr, flags)) {
+        ImGui::Text("%.1f FPS  %.2f ms", static_cast<double>(fps), static_cast<double>(frame_ms));
+    }
     ImGui::End();
 }
 
@@ -1065,6 +1328,7 @@ void imgui_prepare_frame(AppState& state, nw::gfx::CommandList* cmd)
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+    build_fps_overlay();
     build_debug_window(state);
 }
 

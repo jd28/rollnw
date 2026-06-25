@@ -1,8 +1,12 @@
 #pragma once
 
+#include "model_attachment.hpp"
+
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -200,8 +204,30 @@ struct ParticleEmissionDef {
     float effect_event_period = 0.0f;
 };
 
+struct ParticleEmitterAttachmentDef {
+    // Common runtime attachment points are scene/model-owned indices into the
+    // ModelInstance attachment transform cache. During the NWN bridge phase the
+    // importer maps source-node indices 1:1 into this space; source-node names
+    // and indices remain legacy fallback data, not the runtime owner.
+    ModelAttachmentPointIndex emitter_attachment_point = kInvalidModelAttachmentPointIndex;
+    uint32_t emitter_source_node_index = std::numeric_limits<uint32_t>::max();
+    std::string emitter_node_name;
+    bool has_default_transform = false;
+    glm::mat4 default_transform{1.0f};
+    bool has_default_position = false;
+    glm::vec3 default_position{0.0f};
+    bool has_default_orientation = false;
+    glm::quat default_orientation{1.0f, 0.0f, 0.0f, 0.0f};
+    ModelAttachmentPointIndex target_attachment_point = kInvalidModelAttachmentPointIndex;
+    uint32_t target_source_node_index = std::numeric_limits<uint32_t>::max();
+    std::string target_node_name;
+    bool has_default_target_offset = false;
+    glm::vec3 default_target_offset{0.0f};
+};
+
 struct ParticleEmitterDef {
     std::string name;
+    ParticleEmitterAttachmentDef attachment;
     ParticleEmissionDef emission;
     ParticleSpawnRegion region;
     ParticleSimulationSpace simulation_space = ParticleSimulationSpace::world;

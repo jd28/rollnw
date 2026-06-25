@@ -3,11 +3,24 @@
 #include <nw/gfx/gfx.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 namespace nw::render {
+
+using ShaderIncludeResolver = std::function<std::optional<std::string>(std::string_view filename)>;
+
+/// Expands `#include "file"` lines by splicing in resolved content, wrapped in
+/// #line directives so compiler diagnostics point at the original files. Each
+/// include is spliced at most once per expansion. Returns nullopt if an include
+/// cannot be resolved or nesting exceeds the depth limit.
+std::optional<std::string> expand_shader_includes(
+    std::string_view source,
+    std::string_view source_name,
+    const ShaderIncludeResolver& resolver);
 
 class ShaderProvider {
 public:

@@ -12,7 +12,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
+#include <array>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 #define GFX_CHECK(cond, ...)                                         \
@@ -97,6 +99,8 @@ struct VulkanCore {
     VkPhysicalDeviceVulkan12Features features_12{};
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{};
     VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_props{};
+    uint32_t graphics_queue_timestamp_valid_bits = 0;
+    ValidationReport validation_report{};
 
     std::vector<const char*> enabled_device_extensions;
     std::vector<const char*> enabled_instance_extensions;
@@ -157,7 +161,7 @@ struct VulkanPipeline {
     VkDeviceSize set0_size = 0;
     VkDeviceSize set0_uniform_offset = 0;
     VkDeviceSize set0_uniform2_offset = 0;
-    VkDeviceSize set0_storage_offsets[2] = {};
+    VkDeviceSize set0_storage_offsets[5] = {};
     VkDeviceSize texture_set_size = 0;
     VkDeviceSize texture_binding_offset = 0;
     VkDeviceSize sampler_binding_offset = 0;
@@ -168,6 +172,15 @@ extern Pool<Pipeline, VulkanPipeline> g_pipeline_pool;
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 16;
+constexpr uint32_t MAX_GPU_TIMERS_PER_FRAME = 64;
+constexpr uint32_t MAX_GPU_TIMESTAMP_QUERIES_PER_FRAME = MAX_GPU_TIMERS_PER_FRAME * 2;
+
+struct VulkanGpuTimerRecord {
+    const char* label = nullptr;
+    uint32_t start_query = 0;
+    uint32_t end_query = 0;
+    bool ended = false;
+};
 
 struct VulkanCommandList {
     VkCommandPool pool = VK_NULL_HANDLE;
@@ -175,6 +188,28 @@ struct VulkanCommandList {
     VulkanContext* context = nullptr;
     uint32_t pool_index = 0;
     Handle<RenderTarget> current_render_target;
+    CommandStats stats{};
+    Handle<Pipeline> bound_pipeline;
+    uint32_t timestamp_query_count = 0;
+    uint32_t gpu_timer_count = 0;
+    std::array<VulkanGpuTimerRecord, MAX_GPU_TIMERS_PER_FRAME> gpu_timers{};
+    Handle<Buffer> bound_vertex_buffer;
+    uint32_t bound_vertex_stride = 0;
+    uint32_t bound_vertex_offset = 0;
+    Handle<Buffer> bound_index_buffer;
+    uint32_t bound_index_size = 0;
+    bool descriptor_buffers_bound = false;
+    struct BoundResources {
+        Handle<Pipeline> pipeline;
+        UniformSpan uniforms;
+        StorageSpan storages[5];
+        UniformSpan uniforms2;
+        Handle<Texture> texture;
+        TextureFilter texture_filter = TextureFilter::Linear;
+        bool compute = false;
+        bool valid = false;
+    };
+    BoundResources bound_resources;
     bool recording = false;
     bool in_render_pass = false;
     bool rendered = false;
@@ -184,6 +219,7 @@ struct PerFrame {
     VulkanCommandList cmds;
     VkSemaphore image_acquired = VK_NULL_HANDLE; // signaled by swapchain when image is ready to render into
     VkFence in_flight = VK_NULL_HANDLE;
+    VkQueryPool timestamp_query_pool = VK_NULL_HANDLE;
 };
 
 struct VulkanContext {
@@ -233,6 +269,11 @@ struct VulkanContext {
     VkDeviceAddress vertex_ring_addr[MAX_FRAMES_IN_FLIGHT] = {};
     VkDeviceSize vertex_ring_offset[MAX_FRAMES_IN_FLIGHT] = {};
     Handle<Buffer> vertex_ring_handle[MAX_FRAMES_IN_FLIGHT];
+    CommandStats frame_stats{};
+    bool gpu_timers_supported = false;
+    float gpu_timestamp_period_ns = 0.0f;
+    std::vector<GpuTimerResult> completed_gpu_timer_results;
+    std::vector<uint64_t> timestamp_query_results;
 
     VkBuffer bindless_texture_table = VK_NULL_HANDLE;
     VmaAllocation bindless_texture_table_alloc = VK_NULL_HANDLE;
@@ -286,9 +327,25 @@ inline void begin_command_buffer(VulkanContext* ctx, uint32_t frame_index)
     frame.cmds.context = ctx;
     frame.cmds.pool_index = frame_index;
     frame.cmds.current_render_target = {};
+    frame.cmds.stats = {};
+    frame.cmds.bound_pipeline = {};
+    frame.cmds.timestamp_query_count = 0;
+    frame.cmds.gpu_timer_count = 0;
+    frame.cmds.gpu_timers = {};
+    frame.cmds.bound_vertex_buffer = {};
+    frame.cmds.bound_vertex_stride = 0;
+    frame.cmds.bound_vertex_offset = 0;
+    frame.cmds.bound_index_buffer = {};
+    frame.cmds.bound_index_size = 0;
+    frame.cmds.descriptor_buffers_bound = false;
+    frame.cmds.bound_resources = {};
     frame.cmds.recording = true;
     frame.cmds.in_render_pass = false;
     frame.cmds.rendered = false;
+
+    if (ctx->gpu_timers_supported && frame.timestamp_query_pool != VK_NULL_HANDLE) {
+        vkCmdResetQueryPool(frame.cmds.buffer, frame.timestamp_query_pool, 0, MAX_GPU_TIMESTAMP_QUERIES_PER_FRAME);
+    }
 }
 
 } // namespace nw::gfx

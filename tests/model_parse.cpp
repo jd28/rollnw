@@ -122,7 +122,11 @@ TEST(Mdl, ParseASCII2)
     EXPECT_TRUE(mdl20.valid());
 
     nw::model::Mdl mdl21{"test_data/user/development/tbw01_c09_01.mdl"};
-    EXPECT_FALSE(mdl21.valid()); // Weird bitmap value
+    EXPECT_TRUE(mdl21.valid());
+    auto walkmesh_node = mdl21.model.find(std::regex("Plane77", std::regex_constants::icase));
+    ASSERT_TRUE(walkmesh_node);
+    ASSERT_TRUE(walkmesh_node->type & nw::model::NodeFlags::mesh);
+    EXPECT_EQ(static_cast<nw::model::TrimeshNode*>(walkmesh_node)->bitmap, "walkmesh - obscuring");
 
     nw::model::Mdl mdl22{"test_data/user/development/fx_lanshard3.mdl"};
     EXPECT_TRUE(mdl22.valid());

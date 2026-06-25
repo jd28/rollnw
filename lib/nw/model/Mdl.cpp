@@ -301,6 +301,8 @@ SkinNode::SkinNode(String name_)
 TrimeshNode::TrimeshNode(String name_, uint32_t type_)
     : Node(std::move(name_), type_)
     , diffuse{0.8, 0.8, 0.8}
+    , shininess{10.0f}
+    , specular{0.0f}
 {
 }
 

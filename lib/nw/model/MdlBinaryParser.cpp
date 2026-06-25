@@ -300,6 +300,14 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryLightNode::s_sizeof);
 
         auto n = static_cast<LightNode*>(node.get());
+        n->flareradius = data.flare_radius;
+        n->lightpriority = data.priority;
+        n->ambientonly = static_cast<int32_t>(data.ambient_only);
+        n->dynamic = data.dynamic_type != 0;
+        n->affectdynamic = data.affect_dynamic;
+        n->shadow = data.shadow;
+        n->generateflare = data.generate_flare;
+        n->fadinglight = data.fading;
     } else if (node->type == NodeType::aabb) {
         detail::MdlBinaryAABBNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAABBNode::s_sizeof);

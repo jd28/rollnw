@@ -353,7 +353,7 @@ struct LightNode : public Node {
     int32_t lensflares{0}; // dunno, maybe obsolete?
     float flareradius{0.0f};
     float multiplier{0.0f};
-    glm::vec3 color;
+    glm::vec3 color{0.0f};
     Vector<float> flaresizes;
     Vector<float> flarepositions;
     Vector<glm::vec3> flarecolorshifts;

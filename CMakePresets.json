@@ -70,10 +70,35 @@
                 "linux-dev"
             ],
             "displayName": "Linux Renderer Dev",
-            "description": "Linux development build with renderer tools enabled",
+            "description": "Linux development build with SDL3 + Vulkan renderer tools",
             "binaryDir": "${sourceDir}/build-renderer",
             "cacheVariables": {
                 "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "linux-renderer-dev-debug",
+            "inherits": [
+                "dev-debug",
+                "linux-renderer-dev"
+            ],
+            "displayName": "Linux Renderer Dev Debug",
+            "description": "Debug Linux development build with SDL3 + Vulkan renderer tools",
+            "binaryDir": "${sourceDir}/build-renderer-debug"
+        },
+        {
+            "name": "linux-renderer-tracy",
+            "inherits": [
+                "linux-renderer-dev"
+            ],
+            "displayName": "Linux Renderer Tracy",
+            "description": "Linux renderer tools build with Tracy profiling enabled",
+            "binaryDir": "${sourceDir}/build-renderer-tracy",
+            "cacheVariables": {
+                "ROLLNW_ENABLE_TRACY": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -213,10 +238,6 @@
                     "type": "BOOL",
                     "value": "ON"
                 },
-                "ROLLNW_BUILD_MUDL": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
@@ -244,10 +265,6 @@
             "binaryDir": "${sourceDir}/build-ci-linux-tools-package",
             "cacheVariables": {
                 "ROLLNW_BUILD_RENDERER": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
-                "ROLLNW_BUILD_MUDL": {
                     "type": "BOOL",
                     "value": "ON"
                 },
@@ -339,6 +356,31 @@
             ]
         },
         {
+            "name": "windows-renderer-dev",
+            "inherits": [
+                "windows-dev"
+            ],
+            "displayName": "Windows Renderer Dev",
+            "description": "Windows development build with SDL3 + Vulkan renderer tools",
+            "binaryDir": "${sourceDir}/build-renderer-windows",
+            "cacheVariables": {
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "windows-renderer-dev-debug",
+            "inherits": [
+                "dev-debug",
+                "windows-renderer-dev"
+            ],
+            "displayName": "Windows Renderer Dev Debug",
+            "description": "Debug Windows development build with SDL3 + Vulkan renderer tools",
+            "binaryDir": "${sourceDir}/build-renderer-windows-debug"
+        },
+        {
             "name": "windows-ninja-dev",
             "inherits": "windows-dev",
             "generator": "Ninja"
@@ -389,10 +431,6 @@
                     "type": "BOOL",
                     "value": "ON"
                 },
-                "ROLLNW_BUILD_MUDL": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "OFF"
@@ -417,10 +455,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "ROLLNW_BUILD_RENDERER": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
-                "ROLLNW_BUILD_MUDL": {
                     "type": "BOOL",
                     "value": "ON"
                 },
@@ -544,8 +578,24 @@
             "configurePreset": "linux-renderer-dev"
         },
         {
+            "name": "linux-renderer-dev-debug",
+            "configurePreset": "linux-renderer-dev-debug"
+        },
+        {
+            "name": "linux-renderer-tracy",
+            "configurePreset": "linux-renderer-tracy"
+        },
+        {
             "name": "ci-linux-renderer",
             "configurePreset": "ci-linux-renderer"
+        },
+        {
+            "name": "windows-renderer-dev",
+            "configurePreset": "windows-renderer-dev"
+        },
+        {
+            "name": "windows-renderer-dev-debug",
+            "configurePreset": "windows-renderer-dev-debug"
         },
         {
             "name": "ci-linux-tools-package",

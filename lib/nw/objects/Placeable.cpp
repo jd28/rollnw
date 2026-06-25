@@ -22,6 +22,10 @@ PlaceableInfo::PlaceableInfo(const TwoDARowView& tda)
     if (tda.get_to("ModelName", temp)) {
         model = nw::Resref{temp};
     }
+    tda.get_to("LightColor", light_color);
+    tda.get_to("LightOffsetX", light_offset_x);
+    tda.get_to("LightOffsetY", light_offset_y);
+    tda.get_to("LightOffsetZ", light_offset_z);
     tda.get_to("Static", static_);
 }
 
@@ -113,6 +117,7 @@ void Placeable::clear()
     plot = 0;
     static_ = false;
     useable = false;
+    light_color = -1;
 
     instantiated_ = false;
 }
@@ -263,6 +268,9 @@ bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile 
     archive.get_to("Plot", obj->plot);
     archive.get_to("Static", obj->static_);
     archive.get_to("Useable", obj->useable);
+    if (!archive.get_to("LightColor", obj->light_color)) {
+        obj->light_color = -1;
+    }
 
     if (profile == SerializationProfile::instance) {
         auto field = archive["VisTransformList"];
@@ -402,6 +410,7 @@ bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationPro
         archive.at("plot").get_to(obj->plot);
         archive.at("static").get_to(obj->static_);
         archive.at("useable").get_to(obj->useable);
+        archive.at("light_color").get_to(obj->light_color);
 
         if (profile == SerializationProfile::instance) {
             auto it = archive.find("visual_transforms");
@@ -451,6 +460,7 @@ bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfi
     archive["hardness"] = obj->hardness;
     archive["interruptable"] = obj->interruptable;
     archive["plot"] = obj->plot;
+    archive["light_color"] = obj->light_color;
 
     if (profile == SerializationProfile::instance) {
         archive["visual_transforms"] = nlohmann::json::array();

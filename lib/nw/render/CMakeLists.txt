@@ -6,9 +6,22 @@ if(NOT EXISTS "${ROLLNW_CGLTF_DIR}/cgltf.h")
 endif()
 
 add_library(nw-render STATIC
-    renderer.cpp
+    fog_renderer.cpp
+    forward_plus_renderer.cpp
+    frame_storage_arena.cpp
+    model_asset.cpp
+    local_shadow_renderer.cpp
+    model_gpu_backend_common.cpp
+    model_instance_attachment.cpp
+    nwn/model_gpu_backend.cpp
+    model_renderer.cpp
+    model_pipeline_desc.cpp
+    pipeline_cache.cpp
+    particle_renderer.cpp
+    shadow_renderer.cpp
     shader_provider.cpp
-    render_service.cpp)
+    render_service.cpp
+    texture_decode.cpp)
 target_include_directories(nw-render PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 target_link_libraries(nw-render PUBLIC nw nw-gfx)
 
@@ -105,14 +118,14 @@ add_subdirectory("${ROLLNW_OZZ_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/ozz" EXCLUDE_F
 
 add_library(nw-render-ozz STATIC
     animation_backend.cpp
-    animation_backend_ozz.cpp)
+    animation_backend_ozz.cpp
+    model_instance_animation.cpp)
 target_include_directories(nw-render-ozz PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 target_link_libraries(nw-render-ozz PUBLIC nw-render ozz_base ozz_animation ozz_animation_offline)
 
 add_library(nw-render-nwn STATIC
     nwn/model_loader.cpp
     nwn/model_renderer.cpp
-    nwn/model_gpu_backend.cpp
     nwn/render_asset_cache.cpp
     nwn/nwn_animation.cpp)
 target_include_directories(nw-render-nwn PUBLIC ${CMAKE_SOURCE_DIR}/lib)
@@ -126,13 +139,21 @@ target_include_directories(nw-render-gltf SYSTEM PUBLIC ${ROLLNW_CGLTF_DIR})
 target_link_libraries(nw-render-gltf PUBLIC nw-render)
 
 add_library(nw-render-viewer STATIC
+    viewer/area_render_scene.cpp
+    viewer/area_lighting.cpp
     viewer/camera.cpp
     viewer/device.cpp
     viewer/preview_object.cpp
     viewer/preview_plt.cpp
+    viewer/preview_model_animation.cpp
+    viewer/preview_model_draws.cpp
     viewer/preview_scene.cpp
-    viewer/renderer.cpp
-    viewer/session.cpp)
+    viewer/preview_render_resources.cpp
+    viewer/scene_debug.cpp
+    viewer/scene_particles.cpp
+    viewer/scene_shadow.cpp
+    viewer/session.cpp
+    viewer/tile_light.cpp)
 target_include_directories(nw-render-viewer PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 target_include_directories(nw-render-viewer SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/external
