@@ -17,31 +17,6 @@ namespace nw::render {
 
 class ShaderProvider;
 
-struct ParticleBillboardAxes {
-    glm::vec3 right{1.0f, 0.0f, 0.0f};
-    glm::vec3 up{0.0f, 0.0f, 1.0f};
-};
-
-struct ParticleSpriteFrameRect {
-    float u0 = 0.0f;
-    float v0 = 0.0f;
-    float u1 = 1.0f;
-    float v1 = 1.0f;
-    uint16_t column = 0;
-    uint16_t row = 0;
-};
-
-[[nodiscard]] ParticleSpriteFrameRect particle_sprite_sheet_frame_rect(
-    const ParticleSpriteSheet& sheet, uint16_t frame, const nw::Image* source_image = nullptr,
-    bool flip_rows = false) noexcept;
-
-[[nodiscard]] ParticleBillboardAxes resolve_particle_billboard_axes(const RenderContext& ctx,
-    const ParticleSystemInstance& system, const ParticleRenderPacket& packet, uint32_t particle_index,
-    const ParticleBillboardAxes& fallback) noexcept;
-
-[[nodiscard]] ParticleBillboardAxes particle_billboard_sprite_axes(
-    ParticleRenderMode mode, const ParticleBillboardAxes& axes, float rotation) noexcept;
-
 class ParticleResourceProvider {
 public:
     virtual ~ParticleResourceProvider() = default;

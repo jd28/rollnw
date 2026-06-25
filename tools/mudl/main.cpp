@@ -35,11 +35,51 @@
 
 namespace mudl {
 
-using nw::render::nwn::DanglyMode;
 using nw::render::nwn::set_dangly_debug_scale;
 using nw::render::nwn::set_dangly_mode;
 
 static constexpr std::string_view kSmokeTestModel = "c_aribeth";
+
+static nw::render::ForwardPlusDebugMode to_render_forward_plus_debug_mode(ForwardPlusDebugMode mode) noexcept
+{
+    switch (mode) {
+    case ForwardPlusDebugMode::cluster_light_count:
+        return nw::render::ForwardPlusDebugMode::cluster_light_count;
+    case ForwardPlusDebugMode::depth_slice:
+        return nw::render::ForwardPlusDebugMode::depth_slice;
+    case ForwardPlusDebugMode::off:
+    default:
+        return nw::render::ForwardPlusDebugMode::off;
+    }
+}
+
+static nw::render::viewer::ForwardPlusConfig to_render_forward_plus_config(const ForwardPlusConfig& config) noexcept
+{
+    return nw::render::viewer::ForwardPlusConfig{
+        .tile_size = config.tile_size,
+        .depth_slices = config.depth_slices,
+        .max_lights_per_cluster = config.max_lights_per_cluster,
+    };
+}
+
+static nw::render::viewer::ForwardPlusRenderPolicy to_render_forward_plus_policy(
+    const ForwardPlusRenderPolicy& policy) noexcept
+{
+    return nw::render::viewer::ForwardPlusRenderPolicy{
+        .enabled = policy.enabled,
+        .auto_configure_area = policy.auto_configure_area,
+        .gpu_culling = policy.gpu_culling,
+        .config = to_render_forward_plus_config(policy.config),
+        .debug_mode = to_render_forward_plus_debug_mode(policy.debug_mode),
+    };
+}
+
+static nw::render::nwn::DanglyMode to_render_dangly_mode(DanglyMode mode) noexcept
+{
+    return mode == DanglyMode::modern
+        ? nw::render::nwn::DanglyMode::modern
+        : nw::render::nwn::DanglyMode::legacy;
+}
 
 static nlohmann::json load_report_json(const nw::render::viewer::PreviewLoadReport& report)
 {
@@ -179,7 +219,7 @@ static void configure_app_state(AppState& state, const ParsedArgs& args)
     }
     state.static_pbr_ibl_requested = args.pbr_ibl_enabled;
     state.dangly_scale = args.dangly_scale;
-    state.dangly_mode = args.dangly_mode;
+    state.dangly_mode = to_render_dangly_mode(args.dangly_mode);
     state.preview_scene_load_options = nw::render::viewer::default_preview_scene_load_options();
     if (args.legacy_nwn_model_path) {
         state.preview_scene_load_options.nwn_model_path = nw::render::viewer::NwnModelPreviewPath::legacy;
@@ -423,12 +463,13 @@ int main(int argc, char* argv[])
     set_dangly_mode(state.dangly_mode);
 
     if (args.command == "area-benchmark") {
+        const auto forward_plus_policy = to_render_forward_plus_policy(args.benchmark_forward_plus_policy);
         const int rc = run_area_benchmark_command(state, args.initial_model,
             args.module_path, args.user_path,
             args.benchmark_frames, args.benchmark_warmup_frames,
             args.benchmark_lights_enabled, args.benchmark_shadows_enabled,
             args.benchmark_local_shadows_enabled, args.show_debug_overlay,
-            args.benchmark_forward_plus_policy,
+            forward_plus_policy,
             args.benchmark_camera, args.benchmark_area_time_seconds, args.benchmark_visible_tile_radius,
             args.benchmark_visibility_mode, args.benchmark_visible_tile_cone_half_angle,
             args.benchmark_output_path, args.benchmark_screenshot_path);
@@ -441,12 +482,13 @@ int main(int argc, char* argv[])
     }
 
     if (args.command == "area-sweep") {
+        const auto forward_plus_policy = to_render_forward_plus_policy(args.benchmark_forward_plus_policy);
         const int rc = run_area_sweep_command(state, args.initial_model,
             args.module_path, args.user_path,
             args.benchmark_frames, args.benchmark_warmup_frames,
             args.area_sweep_limit, args.area_sweep_variants,
             args.benchmark_local_shadows_enabled, args.show_debug_overlay,
-            args.benchmark_forward_plus_policy,
+            forward_plus_policy,
             args.benchmark_output_path);
         reset_viewer_renderers(state);
         state.shader_provider.reset();

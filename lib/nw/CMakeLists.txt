@@ -39,6 +39,7 @@ add_library(nw STATIC
 
     render/particle_compile.cpp
     render/particle_json.cpp
+    render/particle_render.cpp
     render/particle_system.cpp
 
     # Objects

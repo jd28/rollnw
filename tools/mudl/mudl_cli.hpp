@@ -2,9 +2,7 @@
 
 #include "mudl_commands.hpp"
 
-#include <nw/render/nwn/model_loader.hpp>
-#include <nw/render/viewer/forward_plus.hpp>
-
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -20,6 +18,31 @@ enum class ParticlePreviewView {
 
 struct ParticlePreviewMetadataOptions {
     bool write = false;
+};
+
+enum class ForwardPlusDebugMode {
+    off,
+    cluster_light_count,
+    depth_slice,
+};
+
+struct ForwardPlusConfig {
+    uint32_t tile_size = 64;
+    uint32_t depth_slices = 8;
+    uint32_t max_lights_per_cluster = 128;
+};
+
+struct ForwardPlusRenderPolicy {
+    bool enabled = true;
+    bool auto_configure_area = true;
+    bool gpu_culling = true;
+    ForwardPlusConfig config{};
+    ForwardPlusDebugMode debug_mode = ForwardPlusDebugMode::off;
+};
+
+enum class DanglyMode {
+    legacy,
+    modern,
 };
 
 struct ParsedArgs {
@@ -57,7 +80,7 @@ struct ParsedArgs {
     bool benchmark_lights_enabled = true;
     bool benchmark_shadows_enabled = true;
     bool benchmark_local_shadows_enabled = true;
-    nw::render::viewer::ForwardPlusRenderPolicy benchmark_forward_plus_policy;
+    ForwardPlusRenderPolicy benchmark_forward_plus_policy;
     AreaBenchmarkCameraOptions benchmark_camera;
     size_t corpus_limit = 0;
     int benchmark_frames = 60;
@@ -69,7 +92,7 @@ struct ParsedArgs {
     std::optional<float> benchmark_area_time_seconds;
     AreaBenchmarkVisibilityMode benchmark_visibility_mode = AreaBenchmarkVisibilityMode::radius;
     float dangly_scale = 1.0f;
-    nw::render::nwn::DanglyMode dangly_mode = nw::render::nwn::DanglyMode::legacy;
+    DanglyMode dangly_mode = DanglyMode::legacy;
     float particle_preview_time = 1.0f;
     float particle_preview_duration = 1.0f;
     int particle_preview_fps = 24;

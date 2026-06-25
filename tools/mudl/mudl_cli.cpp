@@ -68,7 +68,7 @@ std::optional<uint32_t> parse_positive_u32(const char*& cursor)
     return static_cast<uint32_t>(value);
 }
 
-std::optional<nw::render::viewer::ForwardPlusConfig> parse_forward_plus_config_argument(const char* text)
+std::optional<ForwardPlusConfig> parse_forward_plus_config_argument(const char* text)
 {
     if (!text) {
         return std::nullopt;
@@ -103,7 +103,7 @@ std::optional<nw::render::viewer::ForwardPlusConfig> parse_forward_plus_config_a
         return std::nullopt;
     }
 
-    return nw::render::viewer::ForwardPlusConfig{
+    return ForwardPlusConfig{
         .tile_size = *tile_size,
         .depth_slices = *depth_slices,
         .max_lights_per_cluster = max_lights_per_cluster,
@@ -124,16 +124,16 @@ std::optional<AreaBenchmarkCameraMode> parse_area_benchmark_camera_mode(std::str
     return std::nullopt;
 }
 
-std::optional<nw::render::ForwardPlusDebugMode> parse_forward_plus_debug_mode(std::string_view value)
+std::optional<ForwardPlusDebugMode> parse_forward_plus_debug_mode(std::string_view value)
 {
     if (value == "off") {
-        return nw::render::ForwardPlusDebugMode::off;
+        return ForwardPlusDebugMode::off;
     }
     if (value == "cluster-lights" || value == "clusters" || value == "lights") {
-        return nw::render::ForwardPlusDebugMode::cluster_light_count;
+        return ForwardPlusDebugMode::cluster_light_count;
     }
     if (value == "depth-slices" || value == "depth" || value == "slices") {
-        return nw::render::ForwardPlusDebugMode::depth_slice;
+        return ForwardPlusDebugMode::depth_slice;
     }
     return std::nullopt;
 }
@@ -646,7 +646,7 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             out.dangly_scale = std::max(0.0f, std::strtof(argv[++i], nullptr));
         } else if (arg == "--dangly-mode" && i + 1 < argc) {
             const std::string mode = argv[++i];
-            out.dangly_mode = mode == "modern" ? nw::render::nwn::DanglyMode::modern : nw::render::nwn::DanglyMode::legacy;
+            out.dangly_mode = mode == "modern" ? DanglyMode::modern : DanglyMode::legacy;
         } else if (arg == "--time" && i + 1 < argc && out.command == "particle-preview") {
             out.particle_preview_time = std::max(0.0f, std::strtof(argv[++i], nullptr));
         } else if (arg == "--duration" && i + 1 < argc && out.command == "particle-preview-frames") {

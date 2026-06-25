@@ -4,7 +4,7 @@
 
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_json.hpp>
-#include <nw/render/particle_renderer.hpp>
+#include <nw/render/particle_render.hpp>
 #include <nw/render/particle_system.hpp>
 
 #include <algorithm>
@@ -1994,10 +1994,8 @@ TEST(RenderParticles, BillboardLocalZUsesEmitterLocalPlane)
     const auto indices = particle_render_packet_indices(system, packets[0]);
     ASSERT_FALSE(indices.empty());
 
-    RenderContext ctx{};
-    ctx.camera_position = glm::vec3{0.0f, 10.0f, 0.0f};
-    ctx.camera_target = glm::vec3{0.0f};
-    const ParticleBillboardAxes axes = resolve_particle_billboard_axes(ctx, system, packets[0], indices.front(),
+    ParticleBillboardView view{.camera_position = glm::vec3{0.0f, 10.0f, 0.0f}};
+    const ParticleBillboardAxes axes = resolve_particle_billboard_axes(view, system, packets[0], indices.front(),
         ParticleBillboardAxes{.right = glm::vec3{-1.0f, 0.0f, 0.0f}, .up = glm::vec3{0.0f, 0.0f, 1.0f}});
     const glm::vec3 normal = glm::normalize(glm::cross(axes.right, axes.up));
 
@@ -2005,8 +2003,8 @@ TEST(RenderParticles, BillboardLocalZUsesEmitterLocalPlane)
     EXPECT_NEAR(std::abs(glm::dot(axes.up, glm::vec3{0.0f, 1.0f, 0.0f})), 1.0f, 1.0e-5f);
     EXPECT_NEAR(std::abs(glm::dot(normal, glm::vec3{1.0f, 0.0f, 0.0f})), 1.0f, 1.0e-5f);
 
-    ctx.camera_position = glm::vec3{0.0f, -10.0f, 5.0f};
-    const ParticleBillboardAxes moved_camera_axes = resolve_particle_billboard_axes(ctx, system, packets[0],
+    view.camera_position = glm::vec3{0.0f, -10.0f, 5.0f};
+    const ParticleBillboardAxes moved_camera_axes = resolve_particle_billboard_axes(view, system, packets[0],
         indices.front(), ParticleBillboardAxes{.right = glm::vec3{-1.0f, 0.0f, 0.0f}, .up = glm::vec3{0.0f, 0.0f, 1.0f}});
     const glm::vec3 moved_camera_normal = glm::normalize(glm::cross(moved_camera_axes.right, moved_camera_axes.up));
     EXPECT_NEAR(std::abs(glm::dot(moved_camera_normal, normal)), 1.0f, 1.0e-5f);
@@ -2039,10 +2037,8 @@ TEST(RenderParticles, BillboardWorldZUsesStableWorldPlane)
     const auto indices = particle_render_packet_indices(system, packets[0]);
     ASSERT_FALSE(indices.empty());
 
-    RenderContext ctx{};
-    ctx.camera_position = glm::vec3{4.0f, 8.0f, 3.0f};
-    ctx.camera_target = glm::vec3{0.0f};
-    const ParticleBillboardAxes axes = resolve_particle_billboard_axes(ctx, system, packets[0], indices.front(),
+    ParticleBillboardView view{.camera_position = glm::vec3{4.0f, 8.0f, 3.0f}};
+    const ParticleBillboardAxes axes = resolve_particle_billboard_axes(view, system, packets[0], indices.front(),
         ParticleBillboardAxes{.right = glm::vec3{-1.0f, 0.0f, 0.0f}, .up = glm::vec3{0.0f, 0.0f, 1.0f}});
     const glm::vec3 normal = glm::normalize(glm::cross(axes.right, axes.up));
 
@@ -2050,8 +2046,8 @@ TEST(RenderParticles, BillboardWorldZUsesStableWorldPlane)
     EXPECT_NEAR(glm::dot(axes.up, glm::vec3{0.0f, 1.0f, 0.0f}), 1.0f, 1.0e-5f);
     EXPECT_NEAR(glm::dot(normal, glm::vec3{0.0f, 0.0f, 1.0f}), 1.0f, 1.0e-5f);
 
-    ctx.camera_position = glm::vec3{-8.0f, -4.0f, 6.0f};
-    const ParticleBillboardAxes moved_camera_axes = resolve_particle_billboard_axes(ctx, system, packets[0],
+    view.camera_position = glm::vec3{-8.0f, -4.0f, 6.0f};
+    const ParticleBillboardAxes moved_camera_axes = resolve_particle_billboard_axes(view, system, packets[0],
         indices.front(), ParticleBillboardAxes{.right = glm::vec3{-1.0f, 0.0f, 0.0f}, .up = glm::vec3{0.0f, 0.0f, 1.0f}});
     EXPECT_NEAR(glm::dot(moved_camera_axes.right, axes.right), 1.0f, 1.0e-5f);
     EXPECT_NEAR(glm::dot(moved_camera_axes.up, axes.up), 1.0f, 1.0e-5f);
