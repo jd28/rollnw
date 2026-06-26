@@ -2788,6 +2788,47 @@ static float appearance_helmet_scale(const nw::StaticTwoDA* appearance_tda, nw::
     return scale;
 }
 
+NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
+    const nw::StaticTwoDA* appearance_tda,
+    nw::Appearance appearance_id)
+{
+    NwnAppearanceHandItemVisualPolicy result;
+    if (!appearance_tda
+        || appearance_id == nw::Appearance::invalid()
+        || appearance_id.idx() >= appearance_tda->rows()) {
+        return result;
+    }
+
+    int32_t has_arms = 1;
+    if (appearance_tda->get_to(*appearance_id, "HASARMS", has_arms, false) && has_arms == 0) {
+        result.visible = false;
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_no_arms;
+        return result;
+    }
+
+    const size_t weapon_scale_column = appearance_tda->column_index("WEAPONSCALE");
+    if (weapon_scale_column == nw::StaticTwoDA::npos) {
+        return result;
+    }
+
+    nw::StringView raw_scale;
+    if (!appearance_tda->get_to(*appearance_id, weapon_scale_column, raw_scale)) {
+        result.visible = false;
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_null_weapon_scale;
+        return result;
+    }
+
+    const auto scale = nw::string::from<float>(raw_scale);
+    if (!scale || !std::isfinite(*scale) || *scale <= 0.0f) {
+        result.visible = false;
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_invalid_weapon_scale;
+        return result;
+    }
+
+    result.scale = *scale;
+    return result;
+}
+
 static std::string_view robe_hide_column(std::string_view token)
 {
     if (token == "belt") {
@@ -3682,6 +3723,7 @@ static bool add_dynamic_creature_scene_models(
     }
     const float wing_tail_scale = appearance_wing_tail_scale(appearance_tda, appearance_id);
     const float helmet_scale = appearance_helmet_scale(appearance_tda, appearance_id, gender);
+    const auto hand_item_policy = resolve_nwn_appearance_hand_item_visual_policy(appearance_tda, appearance_id);
 
     std::string race;
     appearance_tda->get_to(*appearance_id, "RACE", race);
@@ -3812,12 +3854,14 @@ static bool add_dynamic_creature_scene_models(
             scene, resources, "wingmodel", wings, wing_tail_scale, plt_colors, origin, load_events);
         const bool loaded_tail = add_render_model_creature_attachment(
             scene, resources, "tailmodel", tail, wing_tail_scale, plt_colors, origin, load_events);
-        const bool loaded_righthand = !righthand_item
+        const bool loaded_righthand = !hand_item_policy.visible
+            || !righthand_item
             || add_render_model_equipped_item_model(
-                scene, resources, *righthand_item, nw::EquipIndex::righthand, 0u, 1.0f, load_events, &plt_colors);
-        const bool loaded_lefthand = !lefthand_item
+                scene, resources, *righthand_item, nw::EquipIndex::righthand, 0u, hand_item_policy.scale, load_events, &plt_colors);
+        const bool loaded_lefthand = !hand_item_policy.visible
+            || !lefthand_item
             || add_render_model_equipped_item_model(
-                scene, resources, *lefthand_item, nw::EquipIndex::lefthand, 0u, 1.0f, load_events, &plt_colors);
+                scene, resources, *lefthand_item, nw::EquipIndex::lefthand, 0u, hand_item_policy.scale, load_events, &plt_colors);
         const bool loaded_head = !head_item
             || add_render_model_equipped_item_model(
                 scene, resources, *head_item, nw::EquipIndex::head, 0u, helmet_scale, load_events, &plt_colors);
@@ -3939,11 +3983,13 @@ static bool add_dynamic_creature_scene_models(
     const uint32_t placement_model_index = scene.models.empty()
         ? std::numeric_limits<uint32_t>::max()
         : 0u;
-    if (righthand_item) {
-        add_equipped_item_model(scene, resources, *righthand_item, nw::EquipIndex::righthand, placement_model_index, 1.0f, &plt_colors);
+    if (righthand_item && hand_item_policy.visible) {
+        add_equipped_item_model(
+            scene, resources, *righthand_item, nw::EquipIndex::righthand, placement_model_index, hand_item_policy.scale, &plt_colors);
     }
-    if (lefthand_item) {
-        add_equipped_item_model(scene, resources, *lefthand_item, nw::EquipIndex::lefthand, placement_model_index, 1.0f, &plt_colors);
+    if (lefthand_item && hand_item_policy.visible) {
+        add_equipped_item_model(
+            scene, resources, *lefthand_item, nw::EquipIndex::lefthand, placement_model_index, hand_item_policy.scale, &plt_colors);
     }
     if (head_item) {
         add_equipped_item_model(scene, resources, *head_item, nw::EquipIndex::head, placement_model_index, helmet_scale, &plt_colors);

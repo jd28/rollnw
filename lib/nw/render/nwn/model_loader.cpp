@@ -53,10 +53,35 @@ std::string_view nwn_equipped_item_socket_alias(std::string_view source_name) no
     return {};
 }
 
-bool model_asset_socket_name_exists(const nw::render::ModelAsset& asset, std::string_view name) noexcept
+bool model_socket_name_exists(
+    const std::vector<nw::render::ModelSocket>& sockets,
+    std::string_view name) noexcept
 {
-    return std::any_of(asset.sockets.begin(), asset.sockets.end(), [name](const auto& socket) {
+    return std::any_of(sockets.begin(), sockets.end(), [name](const auto& socket) {
         return nw::string::icmp(socket.name, name);
+    });
+}
+
+void append_model_socket_if_missing(
+    std::vector<nw::render::ModelSocket>& sockets,
+    size_t source_node_index,
+    size_t source_node_count,
+    const glm::mat4& local_transform,
+    const glm::mat4& bind_transform,
+    std::string_view name)
+{
+    if (name.empty()
+        || source_node_index >= source_node_count
+        || source_node_index >= nw::render::kInvalidModelNodeIndex
+        || model_socket_name_exists(sockets, name)) {
+        return;
+    }
+
+    sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = static_cast<uint32_t>(source_node_index),
+        .local_transform = local_transform,
+        .bind_transform = bind_transform,
+        .name = std::string(name),
     });
 }
 
@@ -65,19 +90,34 @@ void append_model_asset_socket_if_missing(
     size_t source_node_index,
     std::string_view name)
 {
-    if (name.empty()
-        || source_node_index >= asset.nodes.size()
-        || source_node_index >= nw::render::kInvalidModelNodeIndex
-        || model_asset_socket_name_exists(asset, name)) {
+    if (source_node_index >= asset.nodes.size()) {
         return;
     }
 
-    asset.sockets.push_back(nw::render::ModelSocket{
-        .source_node_index = static_cast<uint32_t>(source_node_index),
-        .local_transform = asset.nodes[source_node_index].local_transform,
-        .bind_transform = asset.nodes[source_node_index].world_transform,
-        .name = std::string(name),
-    });
+    const auto& node = asset.nodes[source_node_index];
+    append_model_socket_if_missing(
+        asset.sockets,
+        source_node_index,
+        asset.nodes.size(),
+        node.local_transform,
+        node.world_transform,
+        name);
+}
+
+void append_sidecar_socket_if_missing(
+    std::vector<nw::render::ModelSocket>& sockets,
+    const Node& node,
+    size_t source_node_index,
+    size_t source_node_count,
+    std::string_view name)
+{
+    append_model_socket_if_missing(
+        sockets,
+        source_node_index,
+        source_node_count,
+        node.get_local_transform(),
+        node.bind_pose_,
+        name);
 }
 
 void log_error_context()
@@ -3358,17 +3398,28 @@ void ModelInstance::build_socket_records()
     sockets_.reserve(source_nodes_.size());
     for (size_t i = 0; i < source_nodes_.size(); ++i) {
         const auto* node = source_nodes_[i];
-        if (!node || !node->orig_ || node->orig_->type != nwm::NodeType::dummy || node->orig_->name.empty()
-            || i >= nw::render::kInvalidModelNodeIndex) {
+        if (!node || !node->orig_ || node->orig_->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
             continue;
         }
 
-        sockets_.push_back(nw::render::ModelSocket{
-            .source_node_index = static_cast<uint32_t>(i),
-            .local_transform = node->get_local_transform(),
-            .bind_transform = node->bind_pose_,
-            .name = std::string(node->orig_->name),
-        });
+        if (node->orig_->type == nwm::NodeType::dummy) {
+            append_sidecar_socket_if_missing(
+                sockets_,
+                *node,
+                i,
+                source_nodes_.size(),
+                std::string_view{node->orig_->name});
+        }
+
+        // NWN source compatibility only: some single-body creature MDLs use
+        // mesh nodes as equipped item anchors. Lower that authoring quirk into
+        // socket rows at load time so runtime attachment code consumes indices.
+        append_sidecar_socket_if_missing(
+            sockets_,
+            *node,
+            i,
+            source_nodes_.size(),
+            nwn_equipped_item_socket_alias(node->orig_->name));
     }
 }
 

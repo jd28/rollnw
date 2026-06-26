@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -9,6 +10,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/render/viewer/device.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
 
@@ -170,6 +172,60 @@ std::vector<std::string> item_model_resrefs_for_test(const nw::Item& item)
 }
 
 } // namespace
+
+TEST(RenderViewerPreparedDraws, NwnAppearanceHandItemPolicyReadsWeaponScaleAndArms)
+{
+    namespace viewer = nw::render::viewer;
+
+    nw::StaticTwoDA appearance{std::string_view{R"(2DA V2.0
+
+LABEL WEAPONSCALE HASARMS
+0 Visible 1.55 1
+1 NullScale **** 1
+2 NoArms 2.30 0
+3 InvalidScale -0.1 1
+)"}};
+    ASSERT_TRUE(appearance.is_valid());
+
+    const auto visible = viewer::resolve_nwn_appearance_hand_item_visual_policy(
+        &appearance, nw::Appearance::make(0));
+    EXPECT_TRUE(visible.visible);
+    EXPECT_FLOAT_EQ(visible.scale, 1.55f);
+    EXPECT_EQ(visible.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::visible);
+
+    const auto null_scale = viewer::resolve_nwn_appearance_hand_item_visual_policy(
+        &appearance, nw::Appearance::make(1));
+    EXPECT_FALSE(null_scale.visible);
+    EXPECT_EQ(null_scale.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::hidden_null_weapon_scale);
+
+    const auto no_arms = viewer::resolve_nwn_appearance_hand_item_visual_policy(
+        &appearance, nw::Appearance::make(2));
+    EXPECT_FALSE(no_arms.visible);
+    EXPECT_EQ(no_arms.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::hidden_no_arms);
+
+    const auto invalid_scale = viewer::resolve_nwn_appearance_hand_item_visual_policy(
+        &appearance, nw::Appearance::make(3));
+    EXPECT_FALSE(invalid_scale.visible);
+    EXPECT_EQ(invalid_scale.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::hidden_invalid_weapon_scale);
+}
+
+TEST(RenderViewerPreparedDraws, NwnAppearanceHandItemPolicyMissingWeaponScaleKeepsCurrentBehavior)
+{
+    namespace viewer = nw::render::viewer;
+
+    nw::StaticTwoDA appearance{std::string_view{R"(2DA V2.0
+
+LABEL HASARMS
+0 NoColumn 1
+)"}};
+    ASSERT_TRUE(appearance.is_valid());
+
+    const auto policy = viewer::resolve_nwn_appearance_hand_item_visual_policy(
+        &appearance, nw::Appearance::make(0));
+    EXPECT_TRUE(policy.visible);
+    EXPECT_FLOAT_EQ(policy.scale, 1.0f);
+    EXPECT_EQ(policy.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::visible);
+}
 
 TEST(RenderViewerPreparedDraws, LoadReportIncludesStaticRenderModelNames)
 {

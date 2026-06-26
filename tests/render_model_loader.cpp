@@ -6,6 +6,7 @@
 #include <nw/render/model_instance_animation.hpp>
 #include <nw/render/nwn/model_loader.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/util/string.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -14,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <string_view>
 
 namespace {
 
@@ -396,6 +398,70 @@ TEST(RenderModelLoader, ExtractsDummyNodesAsSocketRecords)
     EXPECT_EQ(model->socket_index("missing_socket"), nw::render::kInvalidModelNodeIndex);
     EXPECT_FLOAT_EQ(socket->local_transform[0][0], 1.0f);
     EXPECT_FLOAT_EQ(socket->bind_transform[0][0], 1.0f);
+}
+
+TEST(RenderModelLoader, MeshHandAnchorsImportAsSocketAliases)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::Mdl mdl{"test_data/user/development/test_mesh_socket_alias.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    nwn::ModelLoader loader{nullptr};
+    auto model = loader.load(&mdl);
+    ASSERT_TRUE(model);
+
+    ASSERT_EQ(model->sockets().size(), 3u);
+    EXPECT_EQ(model->socket_index("rhand_g"), nw::render::kInvalidModelNodeIndex);
+    EXPECT_EQ(model->socket_index("lhand_g"), nw::render::kInvalidModelNodeIndex);
+
+    const uint32_t right_index = model->socket_index("rhand");
+    const uint32_t left_index = model->socket_index("lhand");
+    ASSERT_NE(right_index, nw::render::kInvalidModelNodeIndex);
+    ASSERT_NE(left_index, nw::render::kInvalidModelNodeIndex);
+
+    const auto* right_socket = model->socket(right_index);
+    const auto* left_socket = model->socket(left_index);
+    ASSERT_NE(right_socket, nullptr);
+    ASSERT_NE(left_socket, nullptr);
+    ASSERT_LT(right_socket->source_node_index, model->source_nodes_.size());
+    ASSERT_LT(left_socket->source_node_index, model->source_nodes_.size());
+
+    const auto* right_node = model->socket_node(right_index);
+    const auto* left_node = model->socket_node(left_index);
+    ASSERT_NE(right_node, nullptr);
+    ASSERT_NE(left_node, nullptr);
+    ASSERT_NE(right_node->orig_, nullptr);
+    ASSERT_NE(left_node->orig_, nullptr);
+    EXPECT_EQ(right_node->orig_->name, "rhand_g");
+    EXPECT_EQ(left_node->orig_->name, "lhand_g");
+    EXPECT_FLOAT_EQ(right_socket->local_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(right_socket->bind_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(left_socket->local_transform[0][0], 0.75f);
+    EXPECT_FLOAT_EQ(left_socket->bind_transform[0][0], 0.75f);
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    const auto& asset = *result.asset;
+
+    auto find_asset_socket = [&](std::string_view name) -> const nw::render::ModelSocket* {
+        const auto it = std::find_if(asset.sockets.begin(), asset.sockets.end(), [name](const auto& socket) {
+            return nw::string::icmp(socket.name, name);
+        });
+        return it == asset.sockets.end() ? nullptr : &*it;
+    };
+
+    ASSERT_EQ(asset.sockets.size(), 3u);
+    const auto* asset_right_socket = find_asset_socket("rhand");
+    const auto* asset_left_socket = find_asset_socket("lhand");
+    ASSERT_NE(asset_right_socket, nullptr);
+    ASSERT_NE(asset_left_socket, nullptr);
+    EXPECT_EQ(asset_right_socket->source_node_index, right_socket->source_node_index);
+    EXPECT_EQ(asset_left_socket->source_node_index, left_socket->source_node_index);
+    EXPECT_FLOAT_EQ(asset_right_socket->local_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(asset_right_socket->bind_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(asset_left_socket->local_transform[0][0], 0.75f);
+    EXPECT_FLOAT_EQ(asset_left_socket->bind_transform[0][0], 0.75f);
 }
 
 TEST(RenderModelLoader, ImportsStaticNwnModelAssetPayloads)

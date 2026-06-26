@@ -1,0 +1,63 @@
+#MAXMODEL ASCII
+newmodel test_mesh_socket_alias
+setsupermodel test_mesh_socket_alias NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_mesh_socket_alias
+    node dummy test_mesh_socket_alias
+        parent NULL
+    endnode
+    node trimesh rhand_g
+        parent test_mesh_socket_alias
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap null
+        texture0 null
+        alpha 1
+        scale 1.5
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+    node trimesh lhand_g
+        parent test_mesh_socket_alias
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap null
+        texture0 null
+        alpha 1
+        scale 0.75
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            0 1 0
+            0 0 1
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom test_mesh_socket_alias
+donemodel test_mesh_socket_alias

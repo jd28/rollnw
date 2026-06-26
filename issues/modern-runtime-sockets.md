@@ -25,8 +25,12 @@ legacy node tree itself.
 - `nw::render::ModelSocket` is the common socket record. It stores a stable
   source/runtime node index, local transform, bind transform, and name.
 - `nw::render::nwn::ModelInstance` builds `sockets_` once after load by scanning
-  source nodes and keeping named NWN dummy nodes. Lookup by name returns a socket
-  index for setup/debug paths; runtime users should carry that index.
+  source nodes and keeping named NWN dummy nodes plus NWN mesh-backed hand anchor
+  aliases lowered into socket rows. Lookup by name returns a socket index for
+  setup/debug paths; runtime users should carry that index.
+- glTF has no strict socket/marker mapping yet. Modern glTF assets should not be
+  assumed to use NWN dummy-node or bone names until a separate authoring contract
+  defines how nodes, bones, and extras map into `ModelSocket` rows.
 - NWN sidecar transform anchors resolve destination/source socket indices in
   `set_transform_anchor`; per-frame root transform evaluation uses those indices
   before falling back to legacy name lookup.

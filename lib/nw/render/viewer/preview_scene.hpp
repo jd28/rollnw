@@ -23,6 +23,11 @@
 
 #include <glm/glm.hpp>
 
+namespace nw {
+struct Appearance;
+struct StaticTwoDA;
+}
+
 namespace nw::render::viewer {
 
 using nw::render::gltf::ImportGltfDesc;
@@ -51,6 +56,26 @@ struct PreviewSceneLoadOptions {
     // into explicit common data.
     NwnModelPreviewPath nwn_model_path = NwnModelPreviewPath::render_model;
 };
+
+enum class NwnAppearanceHandItemVisualPolicyReason : uint8_t {
+    visible,
+    hidden_no_arms,
+    hidden_null_weapon_scale,
+    hidden_invalid_weapon_scale,
+};
+
+struct NwnAppearanceHandItemVisualPolicy {
+    bool visible = true;
+    float scale = 1.0f;
+    NwnAppearanceHandItemVisualPolicyReason reason = NwnAppearanceHandItemVisualPolicyReason::visible;
+};
+
+// NWN appearance rows use WEAPONSCALE/HASARMS as held-item visual policy. This
+// applies to both hand slots: right-hand weapons and left-hand shields/offhand
+// items are either both hidden or both scaled by the appearance value.
+NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
+    const nw::StaticTwoDA* appearance_tda,
+    nw::Appearance appearance_id);
 
 enum class PreviewLoadResourceStatus {
     found,
