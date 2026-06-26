@@ -3,6 +3,9 @@
 *.plt binary
 *.tga binary
 
+# Models
+*.mdl binary
+
 # Gffs
 *.are binary
 *.bic binary
@@ -22,3 +25,4 @@
 
 # Github
 tests/test_data/user/development/** -linguist-detectable
+tests/test_data/renderer/nwn_dump_user/development/** -linguist-detectable

@@ -1,0 +1,8 @@
+# Specify an environment map for static geometry.
+# Dynamic geometry uses the environment map provided on
+# the model.
+#
+# Default is no environment map
+
+envmaptexture TTR01__ref01
+alphamean 0.364

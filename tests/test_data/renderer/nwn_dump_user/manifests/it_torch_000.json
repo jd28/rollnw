@@ -1,0 +1,98 @@
+{
+  "copied_count": 9,
+  "missing_count": 0,
+  "resource_count": 9,
+  "resources": [
+    {
+      "bytes": 49196,
+      "origins": [
+        "it_torch_000:flame02"
+      ],
+      "resource": "fxpa_flame00.tga",
+      "resref": "fxpa_flame00",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 32,
+      "origins": [
+        "it_torch_000:flame02"
+      ],
+      "resource": "fxpa_flame00.txi",
+      "resref": "fxpa_flame00",
+      "status": "copied",
+      "type": "txi"
+    },
+    {
+      "bytes": 65580,
+      "origins": [
+        "it_torch_000:emmiter_smoke"
+      ],
+      "resource": "fxpa_smoke01.tga",
+      "resref": "fxpa_smoke01",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 32,
+      "origins": [
+        "it_torch_000:emmiter_smoke"
+      ],
+      "resource": "fxpa_smoke01.txi",
+      "resref": "fxpa_smoke01",
+      "status": "copied",
+      "type": "txi"
+    },
+    {
+      "bytes": 15856,
+      "origins": [
+        "model"
+      ],
+      "resource": "it_torch_000.mdl",
+      "resref": "it_torch_000",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 43724,
+      "origins": [
+        "w_metal_tex.txi"
+      ],
+      "resource": "ttr01__ref01.dds",
+      "resref": "ttr01__ref01",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 12368,
+      "origins": [
+        "w_metal_tex.txi"
+      ],
+      "resource": "ttr01__ref01.tga",
+      "resref": "ttr01__ref01",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 262188,
+      "origins": [
+        "it_torch_000:mesh02"
+      ],
+      "resource": "w_metal_tex.tga",
+      "resref": "w_metal_tex",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 205,
+      "origins": [
+        "it_torch_000:mesh02"
+      ],
+      "resource": "w_metal_tex.txi",
+      "resref": "w_metal_tex",
+      "status": "copied",
+      "type": "txi"
+    }
+  ],
+  "root": "it_torch_000"
+}

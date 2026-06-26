@@ -1,0 +1,108 @@
+{
+  "copied_count": 9,
+  "missing_count": 0,
+  "resource_count": 9,
+  "resources": [
+    {
+      "bytes": 716,
+      "origins": [
+        "ttd01_a04_03:line152",
+        "ttd01_a04_03:object162",
+        "ttd01_a04_03:object607"
+      ],
+      "resource": "black.dds",
+      "resref": "black",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 272,
+      "origins": [
+        "ttd01_a04_03:line152",
+        "ttd01_a04_03:object162",
+        "ttd01_a04_03:object607"
+      ],
+      "resource": "black.tga",
+      "resref": "black",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 30934,
+      "origins": [
+        "model"
+      ],
+      "resource": "ttd01_a04_03.mdl",
+      "resref": "ttd01_a04_03",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 174796,
+      "origins": [
+        "ttd01_a04_03:mesh188",
+        "ttd01_a04_03:object153"
+      ],
+      "resource": "ttd01_cliff01.dds",
+      "resref": "ttd01_cliff01",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 12386,
+      "origins": [
+        "ttd01_a04_03:mesh188",
+        "ttd01_a04_03:object153"
+      ],
+      "resource": "ttd01_cliff01.tga",
+      "resref": "ttd01_cliff01",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 174796,
+      "origins": [
+        "ttd01_a04_03:line77",
+        "ttd01_a04_03:rocksh07"
+      ],
+      "resource": "ttd01_cliff02.dds",
+      "resref": "ttd01_cliff02",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 12386,
+      "origins": [
+        "ttd01_a04_03:line77",
+        "ttd01_a04_03:rocksh07"
+      ],
+      "resource": "ttd01_cliff02.tga",
+      "resref": "ttd01_cliff02",
+      "status": "copied",
+      "type": "tga"
+    },
+    {
+      "bytes": 174796,
+      "origins": [
+        "ttd01_a04_03:object159",
+        "ttd01_a04_03:object160"
+      ],
+      "resource": "ttd01_floor01.dds",
+      "resref": "ttd01_floor01",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 12386,
+      "origins": [
+        "ttd01_a04_03:object159",
+        "ttd01_a04_03:object160"
+      ],
+      "resource": "ttd01_floor01.tga",
+      "resref": "ttd01_floor01",
+      "status": "copied",
+      "type": "tga"
+    }
+  ],
+  "root": "ttd01_a04_03"
+}

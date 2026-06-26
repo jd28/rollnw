@@ -952,13 +952,13 @@ jobs:
 
       - name: linux - headless graphics smoke
         run: |
-          ./build-ci-linux-renderer/tools/mudl/mudl stats c_aribeth
-          ./build-ci-linux-renderer/tools/mudl/mudl stats c_drgshad
-          ./build-ci-linux-renderer/tools/mudl/mudl stats plc_archtarg
-          ./build-ci-linux-renderer/tools/mudl/mudl stats ttd01_a04_03
-          ./build-ci-linux-renderer/tools/mudl/mudl screenshot c_drgshad ./build-ci-linux-renderer/c_drgshad.png
-          ./build-ci-linux-renderer/tools/mudl/mudl screenshot plc_archtarg ./build-ci-linux-renderer/plc_archtarg.png
-          ./build-ci-linux-renderer/tools/mudl/mudl screenshot ttd01_a04_03 ./build-ci-linux-renderer/ttd01_a04_03.png
+          ./build-ci-linux-renderer/tools/mudl/mudl stats c_aribeth --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl stats c_drgshad --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl stats it_torch_000 --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl stats ttd01_a04_03 --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot c_drgshad ./build-ci-linux-renderer/c_drgshad.png --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot it_torch_000 ./build-ci-linux-renderer/it_torch_000.png --user tests/test_data/renderer/nwn_dump_user
+          ./build-ci-linux-renderer/tools/mudl/mudl screenshot ttd01_a04_03 ./build-ci-linux-renderer/ttd01_a04_03.png --user tests/test_data/renderer/nwn_dump_user
 
       - name: upload renderer artifacts
         uses: actions/upload-artifact@v7
@@ -967,7 +967,7 @@ jobs:
           if-no-files-found: error
           path: |
             build-ci-linux-renderer/c_drgshad.png
-            build-ci-linux-renderer/plc_archtarg.png
+            build-ci-linux-renderer/it_torch_000.png
             build-ci-linux-renderer/ttd01_a04_03.png
 
       - name: ccache stats

@@ -1,0 +1,132 @@
+{
+  "copied_count": 9,
+  "missing_count": 0,
+  "resource_count": 9,
+  "resources": [
+    {
+      "bytes": 5990990,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_ba.mdl",
+      "resref": "a_ba",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 200504,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_ba_casts.mdl",
+      "resref": "a_ba_casts",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 97311,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_ba_custom.mdl",
+      "resref": "a_ba_custom",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 530376,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_ba_med_weap.mdl",
+      "resref": "a_ba_med_weap",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 402644,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_ba_non_combat.mdl",
+      "resref": "a_ba_non_combat",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 1951016,
+      "origins": [
+        "model"
+      ],
+      "resource": "a_fa.mdl",
+      "resref": "a_fa",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 349572,
+      "origins": [
+        "c_aribeth:head_g",
+        "c_aribeth:lbicep_g",
+        "c_aribeth:lfoot_g",
+        "c_aribeth:lforearm_g",
+        "c_aribeth:lhand_g",
+        "c_aribeth:lshin_g",
+        "c_aribeth:lshoulder_g",
+        "c_aribeth:lthigh_g",
+        "c_aribeth:neck_g",
+        "c_aribeth:pelvis_g",
+        "c_aribeth:rbicep_g",
+        "c_aribeth:rfoot_g",
+        "c_aribeth:rforearm_g",
+        "c_aribeth:rhand_g",
+        "c_aribeth:rshin_g",
+        "c_aribeth:rshoulder_g",
+        "c_aribeth:rthigh_g",
+        "c_aribeth:torso_g"
+      ],
+      "resource": "c_aribeth.dds",
+      "resref": "c_aribeth",
+      "status": "copied",
+      "type": "dds"
+    },
+    {
+      "bytes": 132556,
+      "origins": [
+        "model"
+      ],
+      "resource": "c_aribeth.mdl",
+      "resref": "c_aribeth",
+      "status": "copied",
+      "type": "mdl"
+    },
+    {
+      "bytes": 65616,
+      "origins": [
+        "c_aribeth:head_g",
+        "c_aribeth:lbicep_g",
+        "c_aribeth:lfoot_g",
+        "c_aribeth:lforearm_g",
+        "c_aribeth:lhand_g",
+        "c_aribeth:lshin_g",
+        "c_aribeth:lshoulder_g",
+        "c_aribeth:lthigh_g",
+        "c_aribeth:neck_g",
+        "c_aribeth:pelvis_g",
+        "c_aribeth:rbicep_g",
+        "c_aribeth:rfoot_g",
+        "c_aribeth:rforearm_g",
+        "c_aribeth:rhand_g",
+        "c_aribeth:rshin_g",
+        "c_aribeth:rshoulder_g",
+        "c_aribeth:rthigh_g",
+        "c_aribeth:torso_g"
+      ],
+      "resource": "c_aribeth.tga",
+      "resref": "c_aribeth",
+      "status": "copied",
+      "type": "tga"
+    }
+  ],
+  "root": "c_aribeth"
+}

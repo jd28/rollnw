@@ -447,25 +447,30 @@ These controls apply to exterior area previews with `day_night_cycle` enabled.
 
 Current graphics regression models:
 
-- `c_aribeth`: humanoid character baseline
-- `c_drgshad`: skinned creature with wing skinning
-- `plc_archtarg`: placeable with emitters
-- `ttd01_a04_03`: tile with static meshes, lights, and an aabb node
+- `c_aribeth`: dumped NWN humanoid character baseline
+- `c_drgshad`: dumped NWN skinned creature with wing skinning
+- `it_torch_000`: dumped NWN placeable with emitters
+- `ttd01_a04_03`: dumped NWN tile with static meshes, lights, and an aabb node
 - `DamagedHelmet.glb`: static glTF / PBR baseline
 - `CesiumMan.glb`: skinned glTF bind-pose baseline
 - `MetalRoughSpheres.glb`: glTF metallic/roughness material baseline
 
+The dumped NWN fixtures live under `tests/test_data/renderer/nwn_dump_user`.
+Use that directory as the explicit NWN user root so the model, texture, and
+TXI bytes are served from committed test data while the install root only
+provides bootstrap rules and base tables.
+
 Suggested checks:
 
 ```bash
-mudl stats c_aribeth
-mudl stats c_drgshad
-mudl stats plc_archtarg
-mudl stats ttd01_a04_03
+mudl stats c_aribeth --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats c_drgshad --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats it_torch_000 --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats ttd01_a04_03 --user ./tests/test_data/renderer/nwn_dump_user
 
-mudl screenshot c_drgshad ./out/c_drgshad.png
-mudl screenshot plc_archtarg ./out/plc_archtarg.png
-mudl screenshot ttd01_a04_03 ./out/ttd01_a04_03.png
+mudl screenshot c_drgshad ./out/c_drgshad.png --user ./tests/test_data/renderer/nwn_dump_user
+mudl screenshot it_torch_000 ./out/it_torch_000.png --user ./tests/test_data/renderer/nwn_dump_user
+mudl screenshot ttd01_a04_03 ./out/ttd01_a04_03.png --user ./tests/test_data/renderer/nwn_dump_user
 mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
 mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
 mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
