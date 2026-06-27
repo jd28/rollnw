@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prepared Model Draws - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a class="active" href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/prepared_model_draws.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="prepared-model-draw-protocol">Prepared Model Draw Protocol</h1>
+<p>This document describes the current renderer-facing model frame protocol. The
+exact field layout lives in <code>lib/nw/render/model_draw.hpp</code>; this note explains
+what the records mean, who owns them, and where invalid data is dropped.</p>
+<p>The protocol is not a scene graph and not a material database. It is a batch
+transform from scene-owned model instance handles to flat draw records that
+renderer passes can sort, filter, validate, and submit.</p>
+<h2 id="frame-transform">Frame Transform</h2>
+<p>The common path is:</p>
+<pre><code class="language-text">ModelInstanceHandle span
+  -&gt; PreparedModelDrawList
+  -&gt; PreparedModelDrawRangeList
+  -&gt; PreparedModelSurfaceDrawList
+  -&gt; sorted PreparedModelSurfaceDraw span
+  -&gt; RenderModel skin table
+  -&gt; backend submission adapters
+</code></pre>
+<p><code>PreparedModelDrawList</code> is collected from stable instance handles. It owns a
+flat <code>draws</code> array and one offset table entry per input handle plus a terminal
+offset. Hidden, stale, missing, or non-emitting inputs repeat the previous
+offset so handle order stays stable without creating dummy draw records.</p>
+<p><code>PreparedModelDrawRangeList</code> turns those offsets into non-empty ranges. Each
+range must contain draws with one instance handle, one instance kind, one
+payload kind, and one source model index. Mixed ranges are dropped and counted.</p>
+<p><code>PreparedModelSurfaceDrawList</code> flattens valid ranges into one renderer-facing
+surface stream. <code>PreparedModelSurfaceDraw</code> is the smallest common model draw
+command. It carries:</p>
+<ul>
+<li>stable instance and source indices</li>
+<li>payload kind: <code>render_model</code> or <code>nwn_legacy</code></li>
+<li>source draw, material, skin, and material override indices</li>
+<li>material mode and material payload class</li>
+<li>skinned flag, skin table index, transform, normal matrix, bounds, and shadow
+  eligibility</li>
+</ul>
+<p>Surface draws carry indices and small value data. They do not carry raw source
+pointers, material payload pointers, or skin matrices.</p>
+<h2 id="sorting-and-passes">Sorting And Passes</h2>
+<p>The flat surface stream is sorted in place by
+<code>sort_prepared_model_surface_draws_by_pass</code>. The current ordering partitions by
+material pass, payload kind, skinned state, source model, material, override,
+skin, range, source draw, and handle index.</p>
+<p>Pass consumers take spans into that sorted array with
+<code>prepared_model_surface_draws_for_pass_indices</code>:</p>
+<ul>
+<li>opaque and cutout: pass indices <code>[0, 2)</code></li>
+<li>water: pass indices <code>[2, 3)</code></li>
+<li>transparent: pass indices <code>[3, 4)</code></li>
+<li>all: the full span</li>
+</ul>
+<p>This keeps pass partitioning as views into one array. The owner of the array is
+responsible for keeping it alive while those spans are used.</p>
+<h2 id="skin-matrix-binding">Skin Matrix Binding</h2>
+<p>Skin matrices are not stored in surface draws.</p>
+<p><code>collect_prepared_render_model_skin_tables</code> scans the mutable surface array and
+builds <code>PreparedRenderModelSkinTable</code> for RenderModel surfaces only. The table
+owns frame-local contiguous matrix storage and range records. A skinned surface
+uses <code>skin_table_index</code> to refer to one range.</p>
+<p>Invalid, stale, unsupported, or bind-pose-fallback surfaces keep
+<code>skin_table_index == kInvalidPreparedModelDrawIndex</code> and are counted in table
+stats. The renderer path must handle that as an explicit fallback or drop, not
+as undefined GPU state.</p>
+<h2 id="submission-adapters">Submission Adapters</h2>
+<p>RenderModel and NWN legacy payloads share the surface stream but submit through
+different adapters.</p>
+<p>For <code>render_model</code> payloads:</p>
+<ul>
+<li><code>collect_prepared_render_model_surface_runs</code> groups contiguous RenderModel
+  surfaces by <code>instance_source_index</code>.</li>
+<li><code>PreparedRenderModelSurfacePacketList</code> validates the source primitive,
+  material index, material payload, material mode, skin index, and material
+  override before submission.</li>
+<li><code>render_prepared_render_model_surfaces</code> submits the valid packet through the
+  common <code>ModelRenderContext</code>.</li>
+<li>Viewer adapters call <code>render_prepared_render_model_surface_draws</code>, which
+  accepts only the common <code>ModelRenderContext</code>.</li>
+</ul>
+<p>For <code>nwn_legacy</code> payloads:</p>
+<ul>
+<li><code>PreviewPreparedModelDraws</code> keeps the common draw list and a sidecar array of
+  <code>nwn::PreparedDrawItem</code>.</li>
+<li><code>collect_nwn_legacy_prepared_surface_draw_items</code> maps common surfaces back to
+  sidecar draw items.</li>
+<li>Viewer adapters call <code>render_prepared_nwn_legacy_surface_draws</code>, which
+  accepts only <code>nwn::ModelRenderContext</code>.</li>
+<li>The sidecar still owns legacy-only details such as PLT payloads, legacy
+  material quirks, and the prepared NWN mesh payload used by the compatibility
+  renderer.</li>
+</ul>
+<p>The common stream decides visibility, pass grouping, transforms, and shadow
+eligibility. The legacy adapter supplies only the data that has not yet been
+lowered into common records.</p>
+<h2 id="error-policy">Error Policy</h2>
+<p>Boundary policy is drop-and-count. Invalid data should stop at the boundary
+where it is detected and increment a stats counter.</p>
+<p>Current counted cases include:</p>
+<ul>
+<li>stale model instance handles</li>
+<li>hidden or missing model instances</li>
+<li>missing source assets</li>
+<li>invalid draw offsets and mixed draw ranges</li>
+<li>invalid source model, primitive, material, skin, or override indices</li>
+<li>material payload mismatches</li>
+<li>missing or invalid NWN sidecar draw payloads</li>
+<li>invalid skin matrix ranges</li>
+<li>unsupported or invalid material modes</li>
+</ul>
+<p>No renderer pass should infer policy from model names, texture names, or node
+names. Source-specific behavior must be lowered into explicit common fields or
+kept in a sidecar adapter with a counted fallback.</p>
+<h2 id="ownership-and-lifetime">Ownership And Lifetime</h2>
+<p><code>PreviewScene</code> owns model instances, source model arrays, material overrides,
+and NWN sidecar data for the viewer/tool path.</p>
+<p><code>PreviewPreparedModelDraws</code> owns the frame common draw list, range list, and NWN
+prepared sidecar draw array.</p>
+<p><code>PreparedModelSurfaceDrawList</code> owns the frame surface stream and RenderModel
+skin table. Spans returned from pass helpers, run collectors, and packet lists
+borrow from this list and must not outlive it.</p>
+<p><code>ModelRenderContext</code> and <code>nwn::ModelRenderContext</code> own renderer submission
+state. They do not own the scene instances or the frame draw stream.</p>
+<h2 id="current-follow-ups">Current Follow-Ups</h2>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NWN Emitter Map - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a class="active" href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/nwn_emitter_map.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="nwn-aurora-emitter-rollnw-particle-system-map">NWN Aurora Emitter → rollnw Particle System Map</h1>
+<p>This document is a companion to <a href="particle_system.html">particle_system.md</a>. It maps every Aurora Emitter field to its rollnw equivalent, states the expected visual outcome for common configurations, and documents known gaps.</p>
+<p><strong>How to use this document:</strong> Given an MDL emitter node, look up each field in the tables below to find the rollnw authoring IR field it maps to, then consult the visual outcomes sections to predict what should appear on screen.</p>
+<p>Status legend: ✅ Implemented · ⚠️ Partial (parsed but not fully applied) · ❌ Not in renderer (simulation only or no-op) · 🚫 Deferred</p>
+<hr>
+<h2 id="field-mapping">Field Mapping</h2>
+<h3 id="emitter-style">Emitter Style</h3>
+<table>
+<thead>
+<tr>
+<th>NWN Field</th>
+<th>NWN Values</th>
+<th>rollnw Field</th>
+<th>rollnw Type</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>update</code></td>
+<td>Fountain / Single / Explosion / Lightning</td>
+<td><code>emission.mode</code></td>
+<td><code>ParticleEmissionMode</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>render</code></td>
+<td>normal / linked / billboard_to_local_z / billboard_to_world_z / aligned_to_world_z / aligned_to_particle_dir / motion_blur</td>
+<td><code>render.mode</code></td>
+<td><code>ParticleRenderMode</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>blend</code></td>
+<td>normal / punch-through / lighten</td>
+<td>material blend</td>
+<td><code>ParticleBlendMode</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>spawntype</code></td>
+<td>0 = per_second / 1 = per_distance (trail)</td>
+<td><code>emission.metric</code></td>
+<td><code>ParticleSpawnMetric</code></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Non-targeted additive <code>Linked</code> emitters with broad rectangular spawn regions are lowered to <code>billboard_world_z</code> when their authored data matches the soft-volume policy described below.</p>
+</blockquote>
+<h3 id="emitter-parameters">Emitter Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>NWN Field</th>
+<th>NWN Unit</th>
+<th>rollnw Field</th>
+<th>Notes</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xsize</code>, <code>ysize</code></td>
+<td>cm</td>
+<td><code>region.size</code> (stored in cm)</td>
+<td>Converted ×0.01 to meters at spawn time; 0,0 = point emitter; for linked-chain P2P these also control the initial kink displacement (see cookbook)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>renderorder</code></td>
+<td>short int</td>
+<td><code>render.sort_order</code></td>
+<td>Higher = drawn on top</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>threshold</code></td>
+<td>meters</td>
+<td><code>targeting.kill_radius</code></td>
+<td>P2P gravity: particle destroyed inside radius</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>combinetime</code></td>
+<td>seconds</td>
+<td><code>targeting.transition_factor</code></td>
+<td>P2P bezier: path traversal time</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>deadspace</code></td>
+<td>degrees</td>
+<td>—</td>
+<td><code>aligned_to_particle_dir</code> dead zone; parsed to <code>EmitterNode</code>, not lowered to authoring IR</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><code>inherit</code></td>
+<td>bool</td>
+<td><code>simulation_space = emitter_attached</code></td>
+<td>Particles follow emitter translation and direction</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>inherit_local</code></td>
+<td>bool</td>
+<td><code>simulation_space = spawn_attached</code></td>
+<td>Particles stay at world position of their spawn point</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>inheritvel</code></td>
+<td>bool</td>
+<td><code>initial.velocity_inheritance</code></td>
+<td>Fraction of emitter velocity added to particle initial speed</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>inherit_part</code></td>
+<td>bool</td>
+<td>—</td>
+<td>No proven reproducible behavior; intentionally deferred</td>
+<td>🚫</td>
+</tr>
+</tbody>
+</table>
+<h3 id="emitter-particles">Emitter Particles</h3>
+<table>
+<thead>
+<tr>
+<th>NWN Field</th>
+<th>NWN Unit</th>
+<th>rollnw Field</th>
+<th>Notes</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>colorStart</code> / <code>colorEnd</code></td>
+<td>vec3 [0–1]</td>
+<td><code>over_life.color</code></td>
+<td>3-stage: start / mid / end; mid driven by <code>ColorMid</code> + <code>PercentMid</code> controllers</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>alphaStart</code> / <code>alphaEnd</code></td>
+<td>float [0–1]</td>
+<td><code>over_life.alpha</code></td>
+<td>Multiplied by texture alpha channel if present</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>sizeStart</code> / <code>sizeEnd</code></td>
+<td>float (meters)</td>
+<td><code>over_life.size_x/y</code></td>
+<td><code>sizeStart_Y</code> / <code>sizeEnd_Y</code> fall back to X value when zero</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>birthrate</code></td>
+<td>particles/sec</td>
+<td><code>emission.rate</code></td>
+<td>Animatable via <code>BirthRate</code> controller keys</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>lifeExp</code></td>
+<td>seconds</td>
+<td><code>initial.lifetime</code></td>
+<td>Animatable; particle removed at expiry</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>mass</code></td>
+<td>float</td>
+<td><code>initial.mass</code></td>
+<td>Positive = gravity pulls down; negative = particle rises</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>spread</code></td>
+<td>degrees [0–360]</td>
+<td><code>initial.spread_radians</code></td>
+<td>Converted to radians; 360 = spherical emission</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>particleRot</code></td>
+<td>rotations/sec</td>
+<td><code>initial.rotation_rate</code></td>
+<td>Sprite rotation in the active billboard plane. <code>aligned_to_world_z</code> applies this as axial rotation around world Z so vertical shaft slices stay upright.</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>velocity</code></td>
+<td>m/s</td>
+<td><code>initial.speed</code></td>
+<td>Base initial speed</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>randvel</code></td>
+<td>m/s</td>
+<td><code>initial.speed</code> (range)</td>
+<td>Random range from <code>velocity</code> to <code>velocity + randvel</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>bounce_co</code></td>
+<td>float</td>
+<td><code>collision.bounce_coefficient</code></td>
+<td>Only active when <code>Bounce</code> flag is set</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>blurlength</code></td>
+<td>float</td>
+<td><code>render.blur_length</code></td>
+<td><code>motion_blur</code> streak length; does not resize <code>billboard_to_local_z</code> footprints</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>loop</code></td>
+<td>bool</td>
+<td><code>emission.looping</code></td>
+<td><code>Single</code> update type: repeat emission</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>bounce</code></td>
+<td>bool</td>
+<td><code>collision.bounce</code></td>
+<td>Simulated against walkmesh; no visual feedback in mudl</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>m_isTinted</code></td>
+<td>bool</td>
+<td><code>render.tint_to_scene_ambient</code></td>
+<td>Tints particle colors to scene ambient light</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>splat</code></td>
+<td>bool</td>
+<td><code>collision.splat</code></td>
+<td>Simulation only; no visual feedback</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>affectedByWind</code></td>
+<td>bool</td>
+<td><code>affected_by_wind</code></td>
+<td>Wind forces applied in simulation; not visualized</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<h3 id="texture-chunk">Texture / Chunk</h3>
+<table>
+<thead>
+<tr>
+<th>NWN Field</th>
+<th>NWN Type</th>
+<th>rollnw Field</th>
+<th>Notes</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>texture</code></td>
+<td>string (≤16 chars)</td>
+<td><code>materials[].texture</code></td>
+<td>Set to <code>NULL</code> when using <code>chunkName</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>twosidedtex</code></td>
+<td>bool</td>
+<td><code>materials[].double_sided</code></td>
+<td>Parsed; GPU pipeline does not yet use it</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><code>xgrid</code> / <code>ygrid</code></td>
+<td>int</td>
+<td><code>materials[].sheet.columns/rows</code></td>
+<td>Sprite atlas grid dimensions</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>fps</code></td>
+<td>float</td>
+<td><code>materials[].sheet.frames_per_second</code></td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>frameStart</code> / <code>frameEnd</code></td>
+<td>int (0-based)</td>
+<td><code>materials[].sheet.frame_begin/end</code></td>
+<td>Absolute atlas frame indices; a 4×4 texture has frames 0–15</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>random</code></td>
+<td>bool</td>
+<td><code>materials[].sheet.random_start</code></td>
+<td>Randomizes starting frame per particle</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>chunkName</code></td>
+<td>string (≤16 chars)</td>
+<td><code>materials[].mesh</code></td>
+<td>Overrides texture; selects <code>mesh_basic</code> kernel</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="emitter-advanced">Emitter Advanced</h3>
+<table>
+<thead>
+<tr>
+<th>NWN Field</th>
+<th>NWN Type</th>
+<th>rollnw Field</th>
+<th>Notes</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lightningDelay</code></td>
+<td>float</td>
+<td><code>beam.update_interval</code></td>
+<td>How often the beam shape is re-randomized</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>lightningRadius</code></td>
+<td>float</td>
+<td><code>beam.jitter_radius</code></td>
+<td>Peak lateral displacement per subdivision</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>subdivision</code></td>
+<td>int</td>
+<td><code>beam.subdivisions</code></td>
+<td>Number of jitter segments along the beam</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>lightningScale</code></td>
+<td>float</td>
+<td><code>beam.noise_scale</code></td>
+<td>Maximum fluctuation amplitude per subdivision</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>blastRadius</code></td>
+<td>float</td>
+<td><code>force_event.radius</code></td>
+<td>Wind burst: affected radius</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>blastLength</code></td>
+<td>float</td>
+<td><code>force_event.length</code></td>
+<td>Wind burst: duration</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td>float [0–1]</td>
+<td><code>render.opacity_scale</code></td>
+<td>Motion blur opacity multiplier</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>p2p</code></td>
+<td>bool</td>
+<td><code>targeting.mode != none</code></td>
+<td>Requires a <code>node reference</code> child; will warn if absent</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>p2p_sel</code></td>
+<td>0=gravity / 1=bezier</td>
+<td><code>targeting.mode</code></td>
+<td><code>point_gravity</code> or <code>point_bezier</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>p2p_bezier2</code></td>
+<td>float</td>
+<td><code>targeting.source_tangent</code></td>
+<td>SRC tangent: arc length for first half of path</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>p2p_bezier3</code></td>
+<td>float</td>
+<td><code>targeting.target_tangent</code></td>
+<td>TRG tangent: arc length for second half of path</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>grav</code></td>
+<td>float</td>
+<td><code>targeting.gravity</code></td>
+<td>Acceleration (m/s²) toward reference node</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>drag</code></td>
+<td>float</td>
+<td><code>targeting.drag</code></td>
+<td>Slingshot coefficient: particles overshoot then return</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="expected-visual-outcomes">Expected Visual Outcomes</h2>
+<h3 id="update-render-matrix">Update × Render Matrix</h3>
+<p>What you should see on screen for each combination:</p>
+<table>
+<thead>
+<tr>
+<th>Update</th>
+<th>Render</th>
+<th>Expected Screen Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fountain</td>
+<td>normal</td>
+<td>Steady stream of camera-facing quads from the spawn region. Exception: stationary additive sheets with broad rectangular spawn regions and inherited/local simulation lower to <code>billboard_to_local_z</code> so the authored local plane stays fixed instead of turning into a camera-facing slab. World-space <code>normal</code> rect emitters stay camera-facing.</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>linked</td>
+<td>Continuous ribbon connecting living particles; quads stretch where particles are sparse. Exception: non-targeted additive emitters with broad rectangular spawn regions lower to <code>billboard_world_z</code> soft ground cards.</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>billboard_to_local_z</td>
+<td>Quads render in the emitter's local XY plane with local Z as the plane normal; attached particles keep their authored local rect/velocity motion while <code>particleRot</code> spins the sprite in that local plane</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>billboard_to_world_z</td>
+<td>Quads lie flat in the world XY plane with stable world axes; good for pools, auras</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>aligned_to_world_z</td>
+<td>Quads face sideways (perpendicular to ground) with world Z locked as the vertical axis; good for shafts, rings, halos</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>aligned_to_particle_dir</td>
+<td>Quads rotate to face their emit direction; <code>deadspace</code> would cull camera-facing ones (not yet applied)</td>
+</tr>
+<tr>
+<td>Fountain</td>
+<td>motion_blur</td>
+<td>Quads stretched along velocity; <code>blurlength</code> scales the particle's longitudinal size rather than adding world-space length from speed</td>
+</tr>
+<tr>
+<td>Single</td>
+<td>normal</td>
+<td>One particle emitted once; loops if <code>loop = 1</code></td>
+</tr>
+<tr>
+<td>Explosion</td>
+<td>normal</td>
+<td>No particles until a <code>detonate</code> animation event fires; then <code>birthrate</code> particles burst simultaneously</td>
+</tr>
+<tr>
+<td>Lightning</td>
+<td>(beam internally)</td>
+<td>Jittered polyline from emitter to reference node; re-randomized at each <code>lightningDelay</code> interval</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blend-mode">Blend Mode</h3>
+<table>
+<thead>
+<tr>
+<th>NWN <code>blend</code></th>
+<th>rollnw <code>ParticleBlendMode</code></th>
+<th>GPU Pipeline</th>
+<th>Visual Character</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>normal</code></td>
+<td><code>alpha</code></td>
+<td><code>ParticleRenderer</code> transparent pipeline</td>
+<td>Standard alpha compositing; suitable for textured particles with an alpha channel (smoke, chunks)</td>
+</tr>
+<tr>
+<td><code>punch-through</code></td>
+<td><code>cutout</code></td>
+<td><code>ParticleRenderer</code> cutout pipeline</td>
+<td>Hard-edge cutout: pixels below 0.5 alpha are discarded; no semi-transparency</td>
+</tr>
+<tr>
+<td><code>lighten</code></td>
+<td><code>additive</code></td>
+<td><code>ParticleRenderer</code> additive pipeline</td>
+<td>Additive blend; black pixels are transparent; creates glow/magic feel; white adds brightness</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Practical heuristic:</strong> If the texture has a black background and uses lightness to define shape (fire, sparks, magic), use <code>lighten</code>. If the texture has an explicit alpha channel (smoke puff, debris), use <code>normal</code>. For leaves or hard-edged decals, use <code>punch-through</code>.</p>
+<h3 id="p2p-reference-node-direction-convention">P2P Reference Node Direction Convention</h3>
+<p>P2P reference node <strong>offsets are inverted</strong> relative to intuition. The engine pulls particles <em>toward</em> the reference position but defines "toward" backward:</p>
+<ul>
+<li>A reference at offset <code>(0 0 0.63)</code> above the emitter pulls particles <strong>downward</strong> (toward –Z in world space).</li>
+<li>A reference at offset <code>(0 0 -0.63)</code> pulls particles <strong>upward</strong>.</li>
+</ul>
+<p>When debugging P2P effects, always verify the observed direction of particle flow against the sign of the reference node's offset. This is a NWN engine convention, not a rollnw quirk.</p>
+<hr>
+<h2 id="common-pattern-cookbook">Common Pattern Cookbook</h2>
+<p>For each of MerricksDad's canonical emitter patterns, the key fields and expected screen result:</p>
+<h3 id="basic-puff-eg-vim_magblue-magic-missile-impact">Basic Puff (e.g., vim_magblue — magic missile impact)</h3>
+<pre><code>update    Explosion
+render    Normal
+blend     Lighten
+texture   fxpa_flare    (single frame: xgrid 1, ygrid 1)
+xsize 0   ysize 0       (point emitter)
+colorStart 1 1 1 → colorEnd 0.36 0.76 1.0
+alphaStart 1 → alphaEnd 0
+sizeStart 0.5 → sizeEnd 0.07
+birthrate 70   lifeExp 1
+</code></pre>
+<p><strong>Expected:</strong> On <code>detonate</code> event — camera-facing colored flash that shrinks and fades over 1 second. Additive blending means the center appears brightest; edges fall off. Nothing visible between detonate events.</p>
+<h3 id="animated-puff-flame-eg-vim_exp2flame">Animated Puff / Flame (e.g., vim_exp2flame)</h3>
+<pre><code>update    Fountain
+render    Normal
+blend     Lighten
+texture   fxpa_firebb   (xgrid 4, ygrid 4, frameStart 0, frameEnd 15, fps 16)
+xsize 60  ysize 50
+inherit 1
+birthrate 30   lifeExp 1
+mass (negative or zero)
+</code></pre>
+<p><strong>Expected:</strong> Continuous animated quads rising from a 60×50 cm base; each quad cycles through the 4×4 sprite sheet over its lifetime. <code>inherit 1</code> makes the flames follow the emitter when it moves. Particles always face camera.</p>
+<h3 id="chunks-eg-vim_destruct-goredebris">Chunks (e.g., vim_destruct — gore/debris)</h3>
+<pre><code>update    Fountain
+render    Normal
+blend     Normal
+texture   NULL
+chunkName Red_M_Giblet
+spread    6.28          (360°, all directions)
+velocity  5   randvel 1
+particleRot 1.5
+birthrate (driven by animation keys, bursts near 100 then drops to 0)
+lifeExp   4
+</code></pre>
+<p><strong>Expected:</strong> 3D mesh instances launched in every direction from a point. Each chunk has a random-ish trajectory and tumbles (particleRot). Normal blend because they are opaque lit geometry.</p>
+<h3 id="trail-of-smoke-eg-it_torch_000">Trail of Smoke (e.g., it_torch_000)</h3>
+<pre><code>update    Fountain
+render    Normal
+blend     Normal
+texture   fxpa_smoke01  (xgrid 4, ygrid 4, random 1, fps 30)
+mass      -0.2          (rises)
+velocity  0   randVel 0.2
+sizeStart 0 → sizeEnd 2
+alphaStart X → alphaEnd 0
+</code></pre>
+<p><strong>Expected:</strong> Expanding, fading puffs that rise from the emitter. <code>random 1</code> means each puff shows a different noise frame. <code>mass &lt; 0</code> gives upward buoyancy; <code>randVel</code> adds subtle variance. Puffs diffuse visually as they scale up and fade out. <code>twosidedtex</code> is parsed but not yet GPU-applied — if the puff rotates edge-on it may vanish (currently not a practical issue since these are camera-facing).</p>
+<h3 id="local-z-ripple-swirl-eg-wmgst_t_051-spin02">Local-Z Ripple / Swirl (e.g., wmgst_t_051 spin02)</h3>
+<pre><code>update      Fountain
+render      billboard_to_local_z
+blend       Lighten
+texture     fxpa_ripple      (xgrid 2, ygrid 2)
+inherit     1
+xsize 4     ysize 4          (small local XY spawn region)
+birthrate   10
+lifeExp     2
+velocity    0   randvel 0.04
+particleRot 5
+blurlength  10
+mass        0
+</code></pre>
+<p><strong>Runtime mapping:</strong> The emitter's local XY axes define the quad plane and local Z is the plane normal. Attached/local particles keep the authored local rect spawn and velocity motion; <code>particleRot</code> rotates each sprite in that local plane. For <code>wmgst_t_051 spin02</code>, the visible spiral comes from absolute atlas frame 1 of <code>fxpa_ripple</code> on large 0.6m quads, not from rewriting particle centers into a synthetic spiral. <code>blurlength</code> is parsed but does not resize <code>billboard_to_local_z</code> effects.</p>
+<p><strong>Expected:</strong> A circular additive ripple disk that stays anchored to the item/socket orientation. The ripple texture spins in the authored local plane; particles should not grow into a wide cloud or orbit as independent center points.</p>
+<h3 id="detonation-burst">Detonation Burst</h3>
+<pre><code>update    Explosion
+event     &lt;time&gt; detonate    (in the animation sequence)
+</code></pre>
+<p><strong>Expected:</strong> All <code>Explosion</code>-mode emitters in the model fire simultaneously when the <code>detonate</code> animation event fires. Using multiple <code>detonate</code> entries in one sequence triggers multiple bursts. Set <code>birthrate = 0</code> on specific emitters to suppress them on a given detonate pass.</p>
+<h3 id="lightning-p2p-beam">Lightning (P2P Beam)</h3>
+<pre><code>update    Lightning
+lightningDelay    (re-randomize interval)
+lightningRadius   (lateral jitter amplitude)
+subdivision       (number of segments)
+lightningScale    (per-segment max offset)
+node reference &lt;name&gt;    (child of the emitter node)
+</code></pre>
+<p><strong>Expected:</strong> Animated jittered polyline from the emitter to the reference child node. Shape re-randomizes at each <code>lightningDelay</code> interval. More subdivisions = more jagged. Larger <code>lightningRadius</code> = more chaotic spread. End-fade applied via sine function.</p>
+<h3 id="p2p-gravity-vortex-eg-vff_comvortex-implosion">P2P Gravity Vortex (e.g., vff_comvortex — Implosion)</h3>
+<pre><code>update    Fountain
+render    Normal
+blend     Normal
+p2p 1     p2p_sel 0     (gravity type)
+xsize 1000  ysize 1000  (wide spawn plane)
+chunkName Fx_Rockchunksml
+grav      2             (pull acceleration)
+drag      1             (slingshot past then return)
+threshold 1.5           (destroy within 1.5m of reference)
+spread    0.175         (≈10°, mostly perpendicular to plane)
+node reference &lt;name&gt;   (target singularity)
+</code></pre>
+<p><strong>Expected:</strong> Chunks spawn across the wide plane, drift toward the reference node with increasing speed, overshoot slightly (<code>drag</code>), curve back, and are destroyed when they enter the <code>threshold</code> radius. The reference node's position is inverted — if offset is <code>(0 0 0.63)</code>, particles converge downward.</p>
+<h3 id="linked-chain-lightning-curtain-eg-t_door21-ground_lightning-vps_tentacle">Linked Chain / Lightning Curtain (e.g., T_Door21 ground_lightning, vps_tentacle)</h3>
+<pre><code>render    Linked
+p2p 1     p2p_sel 1     (Bezier)
+combinetime               controls kink traversal speed (see below)
+lifeExp                   particle lifetime; kink travels (lifeExp/combinetime) fraction of path
+xsize / ysize             spawn region; lateral spread provides initial kink displacement
+sizeStart / sizeEnd       ribbon width over particle lifetime
+</code></pre>
+<p><strong>Rendering model:</strong> The ribbon is drawn <strong>source (emitter position, fixed) → particle (animated kink) → target (reference node, fixed)</strong>. Both endpoints are anchors. The kink is a per-particle waypoint that starts at the particle's <strong>spawn position</strong> and traverses toward the target at rate <code>path_t = age / combinetime</code>. Because <code>xsize</code>/<code>ysize</code> give each spawn a lateral offset within the emitter's local XY plane, the kink starts off the emitter→target axis and converges toward the target as the particle ages. This off-axis starting position is the source of the visible V-kink and zigzag character. When the particle dies, a new one spawns at a fresh random position, instantly resetting the kink shape.</p>
+<p><strong><code>xsize</code> and <code>ysize</code> on linked-chain emitters</strong> define the spawn region that provides the initial kink displacement — they are not the ribbon width (that is <code>sizeStart</code>). Large values give extreme initial kinks; zero gives a point spawn at the emitter with no off-axis bend. The emitter's local orientation determines which world axis the spread falls on.</p>
+<p><strong><code>combinetime</code> effect on kink convergence:</strong>
+- Small <code>combinetime</code> relative to <code>lifeExp</code> (e.g., <code>combinetime 0.11</code>, <code>lifeExp 0.1</code>): kink reaches 91% of path before death → spends most of its life near the target end, nearly converged. Bolt starts wide/kinked and snaps toward straight quickly.
+- Large <code>combinetime</code> relative to <code>lifeExp</code> (e.g., <code>combinetime 1.0</code>, <code>lifeExp 0.1</code>): kink only travels 10% of path before death → stays close to its spawn position the whole time.
+- In both cases the bolt spans <strong>full height end-to-end</strong> (source → kink → target). <code>combinetime</code> does not affect bolt height, only how far the kink has converged when the particle dies.</p>
+<p><strong>Expected:</strong> Full-height ribbon spanning from emitter to reference node. The kink shape changes each spawn due to random lateral spawn offset. <code>random 1</code> on the sprite sheet gives each new particle a different texture frame → flickering lightning character. Additive blend (<code>Lighten</code>) makes it glow. Bolt reshapes every <code>lifeExp</code> seconds.</p>
+<h3 id="linked-broad-rect-ground-mist-eg-tnp_gmist">Linked Broad Rect / Ground Mist (e.g., tnp_gmist)</h3>
+<pre><code>update    Fountain
+render    Linked
+blend     Lighten
+p2p 0
+xsize / ysize             broad rectangular spawn region
+lifeExp                   &gt;= 1 second
+velocity + randvel        &lt;= 1 m/s
+</code></pre>
+<p><strong>Import model:</strong> This legacy NWN pattern uses <code>Linked</code>, but the authored intent is a volume of soft cards, not a ribbon. rollnw lowers it to <code>billboard_world_z</code> when the emitter is non-targeted, non-lightning, additive, broad rectangular, continuous, long-lived, and low-speed. Targeted <code>Linked</code> emitters (<code>p2p 1</code>) still use the linked-chain renderer.</p>
+<p><strong>Expected:</strong> Low, soft additive ground mist with overlapping horizontal cards. It should not draw connected ribbons between particles.</p>
+<h3 id="wind-burst-eg-vff_pulswind">Wind Burst (e.g., vff_pulswind)</h3>
+<pre><code>update    Explosion
+texture   NULL
+blastRadius 15
+blastLength 1.2
+</code></pre>
+<p><strong>Expected:</strong> Invisible emitter — no particles drawn. On <code>detonate</code>, pushes a force event outward in <code>blastRadius</code>. Affects particles with <code>affectedByWind = 1</code> and animesh dangly objects. No visual representation in mudl; only observable through secondary effects on other particles.</p>
+<h3 id="ground-aura-flat-ring">Ground Aura / Flat Ring</h3>
+<pre><code>render    billboard_to_world_z    (quads lie flat, face up)
+   or
+render    aligned_to_world_z      (quads face sideways, ring-like)
+spread    180–360                 (wide horizontal emission)
+mass      0                       (no gravity drift)
+velocity  (low, or 0 for static)
+</code></pre>
+<p><strong>Expected:</strong> <code>billboard_to_world_z</code> — quads flat on the ground plane with stable world-space axes; circular disc appearance when <code>spread = 360</code>. <code>aligned_to_world_z</code> — quads perpendicular to ground with world Z locked as the vertical axis; suitable for vertical shaft/ring/halo effects.</p>
+<hr>
+<h2 id="known-gaps-summary">Known Gaps Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Affected Fields</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>twosidedtex</code> not applied to GPU pipeline</td>
+<td><code>twosidedtex 1</code></td>
+<td>Particles may disappear when camera views them edge-on; only matters for non-billboard modes</td>
+</tr>
+<tr>
+<td><code>deadspace</code> not lowered to authoring IR</td>
+<td><code>deadspace</code> on <code>aligned_to_particle_dir</code></td>
+<td>Camera-facing particles in the dead zone are not culled; slightly more particles visible than NWN would show</td>
+</tr>
+<tr>
+<td><code>bounce</code>, <code>splat</code>, <code>affectedByWind</code> simulation-only</td>
+<td>corresponding flags</td>
+<td>Effects exist in simulation but mudl provides no visual confirmation</td>
+</tr>
+<tr>
+<td><code>inherit_part</code> deferred</td>
+<td><code>inherit_part</code> flag</td>
+<td>No implementation; a warning is emitted; NWN behavior not yet established</td>
+</tr>
+</tbody>
+</table>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

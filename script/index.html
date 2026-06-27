@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NWScript Parser - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a class="active" href="index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/docs/script.md">Source</a></div>
+      <aside class="notice notice-transitional"><span class="notice-label">transitional</span><p>NWScript parsing remains compatibility tooling. New scripting and rules work should start with Smalls.</p></aside>
+      <article class="content">
+<h1 id="nwscript-parser">NWScript Parser</h1>
+<p>The script module provides NWScript compatibility tooling: a lexer, recursive
+descent parser, include processing, AST resolution, and type checking.</p>
+<p>New scripting and rules work for authored RPG toolsets should start with
+<a href="../smalls/index.html">Smalls</a>. The NWScript parser remains useful for
+reading, analyzing, and migrating existing NWN content.</p>
+<h2 id="basic-loading">Basic Loading</h2>
+<pre><code class="language-cpp">#include &lt;nw/kernel/Kernel.hpp&gt;
+#include &lt;nw/script/Nss.hpp&gt;
+
+nw::kernel::config().initialize();
+nw::kernel::services().start();
+
+auto ctx = std::make_unique&lt;nw::script::Context&gt;();
+nw::script::Nss nss{fs::path(&quot;path/to/myscript.nss&quot;), ctx.get()};
+
+nss.parse();
+nss.process_includes();
+auto deps = nss.dependencies();
+nss.resolve();
+</code></pre>
+<h2 id="top-level-declarations">Top-Level Declarations</h2>
+<p>Tooling can inspect declarations through the resolved AST exposed by
+<code>nw::script::Nss</code>. That path is intended for compatibility analysis, dependency
+tracking, migration tools, and other uses that need to understand NWScript
+source without executing it.</p>
+<h2 id="notes">Notes</h2>
+<p>The older docs recorded parser throughput observations from a specific 2015
+MacBook Pro. Those numbers are not repeated here as current performance claims;
+measure with the current parser and input corpus before using throughput as a
+design constraint.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

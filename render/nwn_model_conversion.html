@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NWN Model Conversion - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a class="active" href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/nwn_model_conversion.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="nwn-model-conversion">NWN Model Conversion</h1>
+<p>NWN MDL is both a source asset format and a compatibility runtime input. The
+modern renderer path only wants the source asset part. The bridge keeps the
+legacy sidecar alive for behavior that has not yet been lowered into explicit
+common data.</p>
+<h2 id="current-entry-points">Current Entry Points</h2>
+<ul>
+<li><code>nw::render::nwn::ModelInstance</code> loads and owns the legacy NWN node tree,
+  legacy meshes, PLT/source texture policy, emitter quirks, dangly execution,
+  anchor lookup, and compatibility animation behavior.</li>
+<li><code>nw::render::nwn::import_nwn_model_asset(mdl)</code> lowers the source MDL into
+  <code>ModelAsset</code>.</li>
+<li><code>nw::render::nwn::import_nwn_render_model_from_asset(mdl, texture_upload)</code>
+  lowers through <code>ModelAsset</code>, uploads geometry/textures, and returns a
+  <code>RenderModel</code>.</li>
+</ul>
+<p>The default static NWN preview path uses <code>ModelAsset -&gt; RenderModel</code> where it is
+safe. Compatibility paths stay available for parity and unresolved quirks.</p>
+<h2 id="data-flow">Data Flow</h2>
+<pre><code class="language-text">NWN MDL / MTR / TXI / PLT / emitter data
+  -&gt; nwn::ModelInstance sidecar
+     source node tree
+     legacy draw payloads
+     compatibility animation and anchors
+  -&gt; import_nwn_model_asset
+     ModelAsset nodes
+     materials and texture source records
+     primitives
+     sockets
+     deformers
+     skins / skeletons / animation clips where supported
+     particle systems
+     shadow summary
+  -&gt; validate_model_asset
+  -&gt; upload_model_asset
+  -&gt; RenderModel
+  -&gt; common ModelInstance runtime record
+  -&gt; PreparedModelDraw / PreparedModelSurfaceDraw
+  -&gt; PBR renderer or bridge adapter
+</code></pre>
+<p>The sidecar is not the desired modern runtime shape. It is the source and
+compatibility owner during the bridge.</p>
+<h2 id="lowered-common-data">Lowered Common Data</h2>
+<table>
+<thead>
+<tr>
+<th>NWN data</th>
+<th>Common data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>trimesh / danglymesh geometry</td>
+<td><code>ModelAssetPrimitive</code></td>
+</tr>
+<tr>
+<td>render material classification</td>
+<td><code>MaterialMode</code></td>
+</tr>
+<tr>
+<td>diffuse, normal, roughness, emissive sources</td>
+<td><code>ModelAssetTextureSource</code></td>
+</tr>
+<tr>
+<td>conservative PBR factors</td>
+<td><code>Material</code></td>
+</tr>
+<tr>
+<td>dummy nodes / anchors</td>
+<td><code>ModelSocket</code></td>
+</tr>
+<tr>
+<td>supported skin meshes</td>
+<td><code>Skin</code>, <code>Skeleton</code>, <code>SkinnedVertex</code></td>
+</tr>
+<tr>
+<td>supported animation clips</td>
+<td><code>AnimationClip</code></td>
+</tr>
+<tr>
+<td>emitter nodes</td>
+<td><code>ModelAssetParticleSystem</code> / particle IR</td>
+</tr>
+<tr>
+<td>dangly intent</td>
+<td><code>ModelDeformer</code> records</td>
+</tr>
+<tr>
+<td>primitive shadow eligibility</td>
+<td><code>ModelShadowSummary</code> and primitive flags</td>
+</tr>
+</tbody>
+</table>
+<p>The common records carry renderer intent. They do not carry source-format
+decisions by name.</p>
+<h2 id="what-stays-in-the-nwn-sidecar">What Stays In The NWN Sidecar</h2>
+<p>These remain sidecar-owned until explicit common contracts replace them:</p>
+<ul>
+<li>humanoid body-part and equipment assembly policy</li>
+<li>legacy PLT rendering and resource-cache policy</li>
+<li>legacy emitter quirks not yet represented by the particle IR</li>
+<li>CPU dangly deformation parity/debug path</li>
+<li>anchor lookup fallback and source MDL node tree</li>
+<li>area static batching compatibility payloads</li>
+</ul>
+<p>When a sidecar payload is missing at a bridge boundary, the path should drop,
+count, or apply an explicit material fallback before Vulkan submission.</p>
+<h2 id="materials">Materials</h2>
+<p>NWN diffuse-era material data is lowered conservatively:</p>
+<ul>
+<li>material pass classification becomes <code>MaterialMode</code>.</li>
+<li>source texture references become <code>ModelAssetTextureSource</code> rows.</li>
+<li>authored MTR roughness/texture data is used when present.</li>
+<li>diffuse-only meshes use a neutral roughness policy rather than translating
+  fixed-function shininess directly into PBR.</li>
+<li>PLT metadata can be represented in common <code>Material</code>, but legacy PLT behavior
+  still needs sidecar compatibility until the production policy is final.</li>
+</ul>
+<p>Material calibration is still open; do not tune shader behavior by model or
+texture name.</p>
+<h2 id="skinning-and-animation">Skinning And Animation</h2>
+<p>Supported NWN skin meshes lower to common skinned primitives only when their
+joint data fits the renderer's packed skinning contract and resolves against the
+same source hierarchy. Unsupported or malformed rows are skipped and counted.</p>
+<p>Animation clips lower into common clips when they can be represented by the
+production backend. Clips from the loaded model and its supermodel chain are
+imported against the loaded model's common skeleton keyed by source-node rows.
+Missing node tracks stay at bind/static pose during sampling. <code>c_aribeth</code>
+coverage verifies inherited <code>pause1</code> sampling against the legacy sidecar for
+rigid primitive node rows. Zero-duration clips remain an explicit open issue
+rather than an importer guess.</p>
+<h2 id="sockets-and-attachments">Sockets And Attachments</h2>
+<p>NWN dummy nodes and anchors are useful source data. The modern representation is
+a socket table addressed by stable indices. Bridge code still keeps source-node
+names and sidecar lookup as fallback payload while attachments, particles, and
+VFX move toward cached socket indices.</p>
+<h2 id="particles-and-emitters">Particles And Emitters</h2>
+<p>NWN emitter nodes lower into source-neutral particle definitions and compiled
+particle effects. The field-by-field map is maintained in
+<a href="nwn_emitter_map.html">nwn_emitter_map.md</a>. Runtime particle systems should use
+common owner handles and attachment bindings instead of sidecar pointers.</p>
+<h2 id="deformers">Deformers</h2>
+<p>NWN dangly meshes contain useful deformation intent, but CPU vertex mutation is
+not the production target. The bridge records deformer intent beside common
+model data. Foliage/card-like meshes lower to <code>vertex_shader_sway</code> intent.
+Non-foliage legacy spring meshes lower to <code>secondary_motion_chain</code> intent but
+currently render as static source geometry on the common RenderModel path with
+the <code>nwn_render_model_static_deformer</code> warning. The accepted bridge policy is
+to keep those assets on the modern path and not carry NWN-style per-frame CPU
+vertex rewrites forward.</p>
+<h2 id="area-records">Area Records</h2>
+<p>Area records now carry <code>ModelInstanceKind</code>, scene source indices, common
+instance handles, visible RenderModel batches, and common prepared-surface
+indices for color and shadow submission. Area static material/depth/shadow
+bridges still materialize temporary NWN sidecar payload spans at the legacy
+renderer boundary, but record identity and visibility are common data. The
+remaining area work is static/dynamic traversal collapse and eventual sidecar
+fallback removal, not more record-protocol migration.</p>
+<h2 id="diagnostics">Diagnostics</h2>
+<p><code>NwnModelAssetImportStats</code>, <code>ModelAssetValidationStats</code>,
+<code>ModelAssetUploadStats</code>, and texture upload stats are the boundary reports.
+They should explain dropped, skipped, unsupported, repaired, or fallback rows.</p>
+<p>Do not silently bake out failures. The eventual offline compiler needs these
+same diagnostics.</p>
+<h2 id="related-issues">Related Issues</h2>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/modern-runtime-sockets.md">Modern Runtime Sockets And Attachments</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-modern-pbr-material-calibration.md">NWN Modern PBR Material Calibration</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

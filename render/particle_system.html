@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Particle System - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a class="active" href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/particle_system.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="particle-system">Particle System</h1>
+<h2 id="purpose">Purpose</h2>
+<p>This document describes the particle system in <code>lib/nw/render</code>:</p>
+<ul>
+<li>what the neutral particle model is</li>
+<li>how it is compiled and executed</li>
+<li>how it relates to NWN1 MDL emitters</li>
+<li>where <code>mudl</code> fits into the workflow</li>
+</ul>
+<p>The core rule is simple:</p>
+<ul>
+<li>NWN emitter nodes are an input dialect</li>
+<li>the runtime architecture is renderer-neutral and source-neutral</li>
+<li>NWN lowers into that runtime through translation, not by defining it</li>
+</ul>
+<p>This is intentional. The goal is a particle system that can express NWN1 effects closely enough to author from, while still being clean, cache-friendly, and extensible enough for modern authoring.</p>
+<h2 id="design-goals">Design Goals</h2>
+<ul>
+<li>Keep the public particle model independent of NWN.</li>
+<li>Keep the runtime dense and branch-light.</li>
+<li>Separate authored data from compiled data from live state.</li>
+<li>Support the major NWN particle families without leaking NWN field names into the runtime.</li>
+<li>Make <code>mudl</code> useful both as a debugger and as the staging area for a real renderer and future designer.</li>
+</ul>
+<h2 id="non-goals">Non-Goals</h2>
+<ul>
+<li>Bit-for-bit emulation of every obscure NWN renderer quirk.</li>
+<li>Per-particle handles or object identity.</li>
+<li>A generic graph-based VFX system as the starting point.</li>
+<li>Letting importer quirks define the core runtime.</li>
+</ul>
+<h2 id="layering">Layering</h2>
+<p>The system is split into four layers.</p>
+<h3 id="1-authoring-ir">1. Authoring IR</h3>
+<p>The authoring layer is defined in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_def.hpp">particle_def.hpp</a>.</p>
+<p>Representative types:</p>
+<ul>
+<li><code>ParticleEffectDef</code></li>
+<li><code>ParticleEmitterDef</code></li>
+<li><code>ParticleMaterialDef</code></li>
+<li><code>ParticleEmissionDef</code></li>
+<li><code>ParticleInitialStateDef</code></li>
+<li><code>ParticleSpawnOverTimeDef</code></li>
+<li><code>ParticleOverLifeDef</code></li>
+<li><code>ParticleTargetingDef</code></li>
+<li><code>ParticleBeamDef</code></li>
+<li><code>ParticleRenderDef</code></li>
+</ul>
+<p>This layer is descriptive. It is readable, serializable, and intentionally source-neutral.</p>
+<p>Key ideas:</p>
+<ul>
+<li>emitters describe capabilities, not source-format fields</li>
+<li>materials describe sprite or mesh-backed particles</li>
+<li>targeting and beam behavior are explicit first-class concepts</li>
+<li>attachment semantics are explicit in <code>ParticleSimulationSpace</code></li>
+</ul>
+<p>The main enums are:</p>
+<ul>
+<li><code>ParticleEmissionMode</code>
+  <code>continuous</code>, <code>single_shot</code>, <code>event_burst</code>, <code>beam_continuous</code></li>
+<li><code>ParticleSpawnMetric</code>
+  <code>per_second</code>, <code>per_distance</code></li>
+<li><code>ParticleSimulationSpace</code>
+  <code>world</code>, <code>local</code>, <code>emitter_attached</code>, <code>spawn_attached</code></li>
+<li><code>ParticleRenderMode</code>
+  <code>billboard</code>, <code>billboard_local_z</code>, <code>billboard_world_z</code>, <code>aligned_world_z</code>, <code>velocity_aligned</code>, <code>stretched</code>, <code>linked_chain</code>, <code>beam</code>, <code>mesh</code></li>
+<li><code>ParticleTargetingMode</code>
+  <code>none</code>, <code>point_gravity</code>, <code>point_bezier</code>, <code>beam_lightning</code></li>
+</ul>
+<p>This is the contract other sources should target, not the NWN importer surface.</p>
+<h3 id="2-compiled-effect">2. Compiled Effect</h3>
+<p>The compile boundary is defined in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_compile.hpp">particle_compile.hpp</a>.</p>
+<p>Representative types:</p>
+<ul>
+<li><code>CompiledParticleEffect</code></li>
+<li><code>CompiledParticleEmitter</code></li>
+<li><code>CompiledParticleMaterial</code></li>
+<li><code>ParticleCompileResult</code></li>
+</ul>
+<p>This is the most important performance seam in the system.</p>
+<p>The compiler takes the readable authored model and converts it into a smaller set of executable forms:</p>
+<ul>
+<li>classifies emitters into finite kernels</li>
+<li>compiles keyed curves and gradients into runtime-friendly tracks</li>
+<li>derives feature flags for work that can be skipped entirely</li>
+<li>derives effect-level storage flags so unused sidecars do not exist</li>
+<li>computes total capacity budgets</li>
+</ul>
+<p>Current kernels:</p>
+<ul>
+<li><code>sprite_basic_constant</code></li>
+<li><code>sprite_basic</code></li>
+<li><code>sprite_target_gravity</code></li>
+<li><code>sprite_target_bezier</code></li>
+<li><code>linked_chain</code></li>
+<li><code>beam_lightning</code></li>
+<li><code>mesh_basic</code></li>
+</ul>
+<p><strong><code>linked_chain</code> + <code>point_bezier</code> targeting note:</strong>
+Each particle's position is a kink waypoint in the ribbon. For <code>point_bezier</code> targeting the kink starts at the <strong>spawn position</strong> and traverses toward the reference node target at rate <code>age / transition_factor</code>, using the per-particle bezier sidecar. The spawn position carries the lateral offset from the emitter's <code>xsize</code>/<code>ysize</code> region — that off-axis displacement is what creates the visible V-kink shape. The ribbon always spans the full emitter→target distance; <code>transition_factor</code> (<code>combinetime</code>) controls only how far the kink has traveled along the bolt when the particle dies, not the bolt height. This is distinct from <code>sprite_target_bezier</code>, where each particle travels its own independent path from spawn to target without forming a ribbon.</p>
+<p>Current compile-time feature flags:</p>
+<ul>
+<li><code>CompiledParticleFeature::update_size</code></li>
+<li><code>CompiledParticleFeature::update_color</code></li>
+<li><code>CompiledParticleFeature::update_rotation</code></li>
+<li><code>CompiledParticleFeature::update_frame</code></li>
+</ul>
+<p>Current compile-time storage flags:</p>
+<ul>
+<li><code>CompiledParticleStorage::bezier</code></li>
+<li><code>CompiledParticleStorage::beams</code></li>
+<li><code>CompiledParticleStorage::attachment</code></li>
+</ul>
+<p>These matter because they allow the runtime to do less work and carry less memory when an effect does not need a feature.</p>
+<h3 id="3-runtime-instance">3. Runtime Instance</h3>
+<p>The live runtime state is defined in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_system.hpp">particle_system.hpp</a>.</p>
+<p>Representative types:</p>
+<ul>
+<li><code>ParticleSystemInstance</code></li>
+<li><code>ParticleEmitterState</code></li>
+<li><code>ParticleStorage</code></li>
+<li><code>ParticleCoreStorage</code></li>
+<li><code>ParticleBezierStorage</code></li>
+<li><code>ParticleBeamStorage</code></li>
+<li><code>ParticleAttachmentStorage</code></li>
+</ul>
+<p>The hot path uses dense storage. Particles are anonymous rows in contiguous arrays. They do not have stable public identities.</p>
+<p>Core streams include:</p>
+<ul>
+<li><code>position</code></li>
+<li><code>velocity</code></li>
+<li><code>age</code></li>
+<li><code>lifetime</code></li>
+<li><code>mass</code></li>
+<li><code>size_x</code></li>
+<li><code>size_y</code></li>
+<li><code>rotation</code></li>
+<li><code>rotation_rate</code></li>
+<li><code>frame</code></li>
+<li><code>frame_offset</code></li>
+<li><code>color_rgba8</code></li>
+<li><code>normalized_age</code></li>
+<li><code>emitter_id</code></li>
+<li><code>material_id</code></li>
+</ul>
+<p>Sidecars exist only when the compiled effect says they are needed:</p>
+<ul>
+<li>bezier data</li>
+<li>beam data</li>
+<li>attachment data</li>
+</ul>
+<p>This is why the system is not just "SoA everywhere." It is intentionally partitioned so uncommon kernels do not widen the default hot path.</p>
+<h3 id="4-render-packets">4. Render Packets</h3>
+<p>Render output is defined in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_render.hpp">particle_render.hpp</a>.</p>
+<p>Representative types:</p>
+<ul>
+<li><code>ParticleRenderPacket</code></li>
+<li><code>ParticleRenderPacketList</code></li>
+<li><code>ParticleRenderPath</code></li>
+</ul>
+<p>Simulation does not render directly out of the storage layout. Instead it builds packets with semantic information:</p>
+<ul>
+<li>material id</li>
+<li>blend mode</li>
+<li>sprite-sheet metadata</li>
+<li>ordering flags</li>
+<li>path payloads for bezier and beam-like emitters</li>
+<li>packet-level uniformity hints such as <code>uniform_color</code></li>
+</ul>
+<p>This allows the renderer and debugger to consume particle intent without reverse-engineering raw storage.</p>
+<h2 id="runtime-flow">Runtime Flow</h2>
+<p>The normal flow is:</p>
+<ol>
+<li>Author or import a <code>ParticleEffectDef</code>.</li>
+<li>Compile it with <code>compile_particle_effect(...)</code>.</li>
+<li>Create a <code>ParticleSystemInstance</code> with <code>create_particle_system(...)</code>.</li>
+<li>Advance it with <code>tick_particle_system(...)</code>.</li>
+<li>Produce render packets with <code>build_particle_render_packets(...)</code>.</li>
+</ol>
+<p>At tick time the runtime does, broadly:</p>
+<ol>
+<li>update emitter state</li>
+<li>accumulate spawn counts</li>
+<li>spawn into dense arrays</li>
+<li>run the kernel-specific update path</li>
+<li>remove dead particles with dense compaction / swap behavior</li>
+<li>rebuild render packets on the cold side</li>
+</ol>
+<p>Important runtime properties:</p>
+<ul>
+<li>no per-particle heap allocation</li>
+<li>no per-particle handles</li>
+<li>dense live arrays</li>
+<li>work skipping driven by compile-time features</li>
+<li>storage narrowing driven by compile-time storage flags</li>
+</ul>
+<h2 id="curves-and-time-domains">Curves And Time Domains</h2>
+<p>The system distinguishes three kinds of authored time:</p>
+<ul>
+<li>emitter-time
+  for example <code>rate_over_time</code></li>
+<li>spawn-time sampled values
+  for example animated size/color/alpha at the moment of spawn</li>
+<li>over-life values
+  for example alpha fade, size growth, and color shift over normalized particle lifetime</li>
+</ul>
+<p>This matters for NWN because MDL emitters use all three patterns:</p>
+<ul>
+<li>keyed birthrate over animation time</li>
+<li>animated spawn values</li>
+<li>start/mid/end over-life behavior</li>
+</ul>
+<p>The neutral model expresses these as:</p>
+<ul>
+<li><code>ParticleEmissionDef::rate_over_time</code></li>
+<li><code>ParticleSpawnOverTimeDef</code></li>
+<li><code>ParticleOverLifeDef</code></li>
+</ul>
+<p>The compiler then turns those into keyed tracks and feature flags that the runtime can evaluate cheaply.</p>
+<h2 id="attachment-semantics">Attachment Semantics</h2>
+<p>NWN has several finicky inheritance flags. In the neutral system these become explicit simulation-space or spawn-velocity behavior.</p>
+<p>Current simulation spaces:</p>
+<ul>
+<li><code>world</code>
+  particles simulate freely in world space</li>
+<li><code>local</code>
+  particles remain relative to the emitter transform</li>
+<li><code>emitter_attached</code>
+  particles move with emitter translation</li>
+<li><code>spawn_attached</code>
+  particles remain anchored to their spawn origin</li>
+</ul>
+<p>Initial emitter motion can also be folded into particle velocity through <code>velocity_inheritance</code>.</p>
+<p>This is a clearer and more portable model than preserving NWN’s raw flag vocabulary.</p>
+<h2 id="nwn-mapping">NWN Mapping</h2>
+<p>The NWN lowering layer lives outside the renderer in the model code:</p>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/model/mdl_particle_import.hpp">mdl_particle_import.hpp</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/model/mdl_particle_import.cpp">mdl_particle_import.cpp</a></li>
+</ul>
+<p>It translates NWN MDL emitters into <code>ParticleEffectDef</code>.</p>
+<p>Important mappings:</p>
+<ul>
+<li><code>update</code>
+  lowers to <code>ParticleEmissionMode</code></li>
+<li><code>spawntype</code>
+  lowers to <code>ParticleSpawnMetric</code></li>
+<li><code>xsize</code> / <code>ysize</code>
+  lower to <code>ParticleSpawnRegion</code></li>
+<li><code>inherit</code>, <code>inherit_local</code>, <code>inheritvel</code>
+  lower to simulation-space and velocity-inheritance semantics</li>
+<li><code>render</code>
+  lowers to <code>ParticleRenderMode</code></li>
+<li><code>texture</code>, <code>chunkName</code>, <code>blend</code>, <code>xgrid</code>, <code>ygrid</code>, <code>fps</code>, <code>random</code>
+  lower to <code>ParticleMaterialDef</code> and <code>ParticleSpriteSheet</code></li>
+<li><code>birthrate</code>, <code>lifeExp</code>, <code>velocity</code>, <code>randvel</code>, <code>spread</code>, <code>mass</code>
+  lower to neutral initial/emission values</li>
+<li><code>p2p</code>, <code>p2p_sel</code>, tangents, gravity, drag, threshold
+  lower to <code>ParticleTargetingDef</code></li>
+<li>lightning fields
+  lower to <code>ParticleBeamDef</code></li>
+</ul>
+<p>The importer also emits warnings for unsupported or lossy cases rather than leaking NWN-specific terms into the runtime.</p>
+<h3 id="deferred-nwn-flags">Deferred NWN Flags</h3>
+<p>Some NWN emitter flags are intentionally deferred rather than guessed.</p>
+<ul>
+<li><code>inherit_part</code>
+  This flag appears in shipped content and is tracked by the corpus, but current validation has not yet produced a clear, reproducible runtime-visible behavior that justifies a neutral lowering. Candidate assets such as <code>c_mindflayer</code> and <code>vim_ruin</code> are useful for investigation, but not yet enough to prove a specific implementation. The current policy is:</li>
+<li>keep it importer-visible</li>
+<li>emit a warning</li>
+<li>
+<p>do not invent runtime semantics until a real asset demonstrates a clear authored effect</p>
+</li>
+<li>
+<p>scene-coupled behavior beyond the current simulation context
+  The runtime now has explicit seams for external forces, force events, and collision queries. Additional scene-dependent NWN behavior should be added through those neutral seams, not by passing engine/world state directly through the hot path.</p>
+</li>
+</ul>
+<p>That is the intended ownership boundary:</p>
+<ul>
+<li><code>lib/nw/model</code> understands NWN emitters</li>
+<li><code>lib/nw/render</code> understands particles</li>
+</ul>
+<h2 id="what-close-to-nwn-means">What "Close To NWN" Means</h2>
+<p>The goal is not exact engine archaeology. The goal is:</p>
+<ul>
+<li>close enough that imported NWN effects land near the authored intent</li>
+<li>predictable enough that an author can finish the last bit in the neutral system</li>
+</ul>
+<p>That is why some behavior is normalized rather than reproduced as a direct engine quirk.</p>
+<p>The system already covers the major NWN families:</p>
+<ul>
+<li>ordinary billboard sprites</li>
+<li>sprite-sheet animation</li>
+<li>continuous and burst emission</li>
+<li>per-distance trails</li>
+<li>chunk/mesh particles</li>
+<li>linked chains</li>
+<li>gravity targeting</li>
+<li>bezier targeting</li>
+<li>lightning / beam-like emitters</li>
+<li>keyed birthrate and spawn animation</li>
+<li>three-stage over-life behavior</li>
+</ul>
+<h2 id="json-and-native-assets">JSON And Native Assets</h2>
+<p>The source-neutral serialization layer is defined in:</p>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_json.hpp">particle_json.hpp</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/particle_json.cpp">particle_json.cpp</a></li>
+</ul>
+<p>This allows <code>ParticleEffectDef</code> to be loaded and saved independently of NWN.</p>
+<p>This is important for the broader plan:</p>
+<ul>
+<li>NWN import can generate a close starting point</li>
+<li>authors can save and edit neutral particle assets directly</li>
+<li>future particle design tools can target the same schema</li>
+</ul>
+<p>In <code>mudl</code>, native particle JSON can already be loaded directly through:</p>
+<pre><code class="language-bash">mudl view ./tests/test_data/user/development/particle_basic.json
+</code></pre>
+<p>That is the beginning of the native authoring path.</p>
+<h2 id="mudls-role"><code>mudl</code>'s Role</h2>
+<p><code>mudl</code> is not the particle runtime. It is the staging area around it.</p>
+<p>Today it already serves three useful roles:</p>
+<ul>
+<li>importer validation</li>
+<li>runtime/debug visualization</li>
+<li>renderer staging for real NWN particle presentation</li>
+</ul>
+<p>It can:</p>
+<ul>
+<li>preview imported NWN particle effects</li>
+<li>preview native particle JSON assets</li>
+<li>show frame sequences and metadata for particle debugging</li>
+<li>exercise the real render path against actual NWN models</li>
+</ul>
+<p>This is deliberate. The same neutral particle runtime should be usable by:</p>
+<ul>
+<li>NWN import</li>
+<li><code>mudl</code></li>
+<li>future authoring tools</li>
+<li>non-NWN formats</li>
+</ul>
+<h2 id="performance-strategy">Performance Strategy</h2>
+<p>The main performance principle is:</p>
+<ul>
+<li>spend complexity in the compile step</li>
+<li>keep the runtime tight</li>
+</ul>
+<p>Concretely, the current system does that by:</p>
+<ul>
+<li>compiling emitters into finite kernels</li>
+<li>deriving per-emitter feature flags</li>
+<li>deriving per-effect storage flags</li>
+<li>skipping unnecessary per-particle updates</li>
+<li>using dense storage and anonymous particle rows</li>
+<li>keeping render packet generation on the cold side</li>
+</ul>
+<p>The current implementation already avoids a large class of waste:</p>
+<ul>
+<li>constant emitters do not update size/color/rotation/frame every tick</li>
+<li>effects that do not use bezier/beam/attachment data do not allocate those sidecars</li>
+<li>packet consumers can use uniformity hints instead of re-deriving constant values per particle</li>
+</ul>
+<p>This is also where future SIMD work should attach. If <code>xsimd</code> is introduced for particle updates, it should be applied to already-specialized kernels and narrow streams, not to a bloated universal update loop.</p>
+<h2 id="current-state">Current State</h2>
+<p>Architecturally, the system has crossed the risky part.</p>
+<p>What exists today:</p>
+<ul>
+<li>neutral particle defs</li>
+<li>compiled effect layer</li>
+<li>dense runtime state</li>
+<li>semantic render packets</li>
+<li>NWN importer</li>
+<li>particle JSON serialization</li>
+<li><code>mudl</code> preview/debug integration</li>
+<li><code>mudl</code> real render integration for particle effects</li>
+</ul>
+<p>What is still expected to evolve:</p>
+<ul>
+<li>more compile-time specialization</li>
+<li>narrower runtime streams where profitable</li>
+<li>higher-fidelity real rendering for the remaining tricky NWN effects</li>
+<li>the authoring/designer layer on top of the neutral particle defs</li>
+</ul>
+<h2 id="decision-rule">Decision Rule</h2>
+<p>When choosing where logic belongs, the rule is:</p>
+<ul>
+<li>if it requires knowing NWN, it belongs in the importer</li>
+<li>if it is about generic particle behavior, it belongs in the renderer particle system</li>
+<li>if it is about inspection, staging, or authoring UX, it belongs around the runtime, not inside it</li>
+</ul>
+<p>That rule is what keeps the system clean while still letting NWN be a first-class source.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>glTF Rendering - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a class="active" href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/gltf.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="gltf-conversion">glTF Conversion</h1>
+<p>glTF is the cleanest current source path into the common renderer data. It does
+not define a separate runtime renderer path; it lowers into <code>ModelAsset</code>, uploads
+to <code>RenderModel</code>, and then renders through the same prepared surface protocol as
+other common models.</p>
+<h2 id="entry-points">Entry Points</h2>
+<ul>
+<li><code>nw::render::gltf::import_gltf_model_asset(path)</code> decodes glTF into a
+  CPU-side <code>ModelAsset</code> without requiring a graphics context.</li>
+<li><code>nw::render::gltf::import_gltf_render_model_from_asset(path, desc)</code> decodes
+  through <code>ModelAsset</code>, uploads geometry and textures, and returns a
+  <code>RenderModel</code>.</li>
+<li><code>nw::render::gltf::import_gltf(path, desc)</code> is the older direct importer kept
+  for focused importer tests, not for viewer or mudl preview routing.</li>
+</ul>
+<p>The viewer and mudl preview path is <code>ModelAsset -&gt; RenderModel</code>; there is no
+runtime glTF preview switch.</p>
+<h2 id="data-flow">Data Flow</h2>
+<pre><code class="language-text">.gltf / .glb
+  -&gt; cgltf parse
+  -&gt; ModelAsset
+     materials
+     texture source table
+     primitives
+     nodes
+     skins / skeletons
+     animation clips
+     bounds and shadow summary
+  -&gt; validate_model_asset
+  -&gt; upload_model_asset
+  -&gt; upload_model_asset_material_textures
+  -&gt; RenderModel
+  -&gt; ModelInstance
+  -&gt; PreparedModelDraw / PreparedModelSurfaceDraw
+  -&gt; PBR renderer
+</code></pre>
+<h2 id="modelasset-mapping">ModelAsset Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>glTF data</th>
+<th>Common data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mesh primitives</td>
+<td><code>ModelAssetPrimitive</code> rows</td>
+</tr>
+<tr>
+<td>positions, normals, UVs, tangents</td>
+<td><code>Vertex</code> or <code>SkinnedVertex</code> streams</td>
+</tr>
+<tr>
+<td>indices</td>
+<td><code>ModelAssetPrimitive::indices</code></td>
+</tr>
+<tr>
+<td>node hierarchy</td>
+<td><code>Node</code> rows and primitive node indices</td>
+</tr>
+<tr>
+<td>PBR metallic-roughness material</td>
+<td><code>Material</code></td>
+</tr>
+<tr>
+<td>base color / normal / metallic-roughness / occlusion / emissive textures</td>
+<td><code>ModelAssetTextureSource</code> plus <code>ModelAssetMaterialTextureSources</code></td>
+</tr>
+<tr>
+<td>skins</td>
+<td><code>Skin</code>, <code>Skeleton</code>, skinned primitive payloads</td>
+</tr>
+<tr>
+<td>animations</td>
+<td><code>AnimationClip</code> tracks</td>
+</tr>
+<tr>
+<td>material alpha mode</td>
+<td><code>MaterialMode</code></td>
+</tr>
+</tbody>
+</table>
+<p>The source texture table stores file paths or encoded bytes. GPU texture handles
+are not created until upload.</p>
+<h2 id="materials-and-textures">Materials And Textures</h2>
+<p>glTF PBR material values map directly into <code>Material</code>:</p>
+<ul>
+<li>base color factor and texture become albedo.</li>
+<li>metallic and roughness factors plus texture data become the common surface
+  texture path.</li>
+<li>normal, occlusion, and emissive values map to their matching fields.</li>
+<li>alpha mode maps to opaque, cutout, or transparent.</li>
+</ul>
+<p><code>upload_model_asset_material_textures</code> packs metallic-roughness and occlusion
+source data into the renderer's ORM-style surface texture and binds fallback
+textures when a role is missing.</p>
+<h2 id="skinning-and-animation">Skinning And Animation</h2>
+<p>Skinned glTF primitives become <code>SkinnedVertex</code> streams and <code>Skin</code> rows when the
+joint data fits the renderer skinning contract. The shader contract currently
+supports at most <code>kModelMaxSkinBones</code> matrices per skin; out-of-contract skin
+data is rejected or falls back before it reaches GPU submission.</p>
+<p>Animation clips compile into the common animation structures. Runtime playback
+state lives on <code>ModelInstance</code>, and Ozz is the production animation backend.
+Reference sampling remains a debug fallback.</p>
+<h2 id="runtime-submission">Runtime Submission</h2>
+<p>Once uploaded, glTF-origin models are no longer special:</p>
+<ol>
+<li>Scene code owns a <code>ModelInstanceHandle</code>.</li>
+<li>The model draw collector validates handles and emits <code>PreparedModelDraw</code>
+   rows.</li>
+<li>Surface collection flattens draw ranges into <code>PreparedModelSurfaceDraw</code>.</li>
+<li><code>render_prepared_render_model_surface_draws</code> submits PBR surfaces through
+   <code>ModelRenderContext</code>.</li>
+</ol>
+<p>The renderer should not branch on "glTF" at draw time.</p>
+<h2 id="validation-and-fallbacks">Validation And Fallbacks</h2>
+<p><code>validate_model_asset</code> counts invalid primitive/material/skin/animation rows
+before upload. Upload stats then count geometry and texture upload failures.</p>
+<p>Out-of-range or unsupported data should be rejected, dropped, or counted at the
+conversion/upload boundary. It should not reach Vulkan submission as undefined
+state.</p>
+<h2 id="related-issues">Related Issues</h2>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

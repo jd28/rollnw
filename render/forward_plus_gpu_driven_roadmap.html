@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forward+ GPU-Driven Roadmap - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a class="active" href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/forward_plus_gpu_driven_roadmap.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="forward-completion-gpu-driven-rendering-roadmap">Forward+ completion &amp; GPU-driven rendering roadmap</h1>
+<p>Scope: <code>lib/nw/render/</code>.</p>
+<p>This is the execution plan for (1) finishing the Forward+ renderer, (2) reducing
+accidental complexity in the render layer, and (3) positioning the area path for
+GPU-driven rendering. It is sequenced so each phase reuses the infrastructure of
+the prior one, and so the low-risk simplifications land before the large changes
+that would otherwise have to touch the duplicated code.</p>
+<h2 id="status-updated-2026-06-18">Status (updated 2026-06-18)</h2>
+<p><strong>Completion snapshot:</strong> the renderer infrastructure work is mostly complete. A1
+(Forward+ API collapse), A2 (arena unification), B1 (<code>cmd_draw_indexed_indirect_count</code>
++ <code>drawIndirectCount</code>), B2 (compute storage + compute-&gt;graphics barrier), C1
+(depth pre-pass), C3 (froxel AABB culling), renderer unification, D2 (static
+geometry mega-buffer), C4 (local-light shadows), A3 (pipeline descriptor cache +
+semantic pipeline keys), and most of A4 (normal matrix caching) are done.</p>
+<p><strong>Forward+ GPU cull default:</strong> Forward+ itself is the default local-light path,
+and C2's GPU gather variant (<code>ForwardPlusRenderPolicy::gpu_culling</code>) is now the
+default policy. <code>mudl area-benchmark</code> / <code>mudl area-sweep</code> can force the CPU
+reference path with <code>--no-forward-plus-gpu-cull</code>; the viewer can do the same with
+<code>ROLLNW_VIEWER_FORWARD_PLUS_GPU_CULL=0</code>. The GPU path writes the same cluster
+buffers the shaders consume, with compute owning per-cluster light membership.
+C3 replaced the earlier screen-rect culler with view-space froxel AABB tests.</p>
+<p><strong>Remaining high-value work:</strong> C4 shadow projection policy is bounded but modest;
+revisit only if a target scene needs stronger radial point-light shadows. Stage 2
+PBR convergence is complete: the pinned corpus covers glTF PBR, NWN
+specular/shininess, PLT/equipment, water, MTR sidecars, and area local-light
+material response.</p>
+<p><strong>Parked by measurement:</strong> the D-series GPU-driven area submission work is not
+the current bottleneck. <code>AreaRenderScene::build_static_geometry</code> already puts
+static area geometry in one VB + one IB, so an area opaque pass is already a
+small number of indirect draw calls over thousands of source mesh draws. The last
+recorded <code>ms_4city</code> gameplay-camera numbers were: <code>area_prepare</code> (frustum cull +
+visible set + indirect build) = <strong>0.026 ms</strong>, <code>forward_plus_prepare</code> = <strong>0.042 ms</strong>,
+and whole CPU <code>setup</code> = <strong>0.218 ms</strong>. D1/D3/D4 should stay parked until a real
+scene makes area CPU prepare material again.</p>
+<h2 id="where-we-are-today">Where we are today</h2>
+<p>The renderer is now unified around <code>nwn/model_renderer.cpp</code> +
+<code>nwn/model_gpu_backend.cpp</code>. Static area rendering uses batched indirect draws,
+bindless textures, per-draw <code>PreparedStaticDrawConstants</code> indexed by
+<code>SV_InstanceID</code>, and cached indirect/static draw data. glTF/static PBR preview
+uses the same renderer family rather than a separate <code>RenderModelRenderer</code>.</p>
+<p>Key facts that shape the remaining plan:</p>
+<ul>
+<li><strong>Depth pre-pass exists and is viewer-enabled by default</strong> unless
+  <code>ROLLNW_VIEWER_DEPTH_PREPASS</code> disables it.</li>
+<li><strong>Compute and indirect-count plumbing exists</strong> in gfx and Vulkan, including
+  <code>cmd_draw_indexed_indirect_count</code>, <code>cmd_dispatch</code>, and the explicit
+  compute-&gt;graphics barrier.</li>
+<li><strong>Forward+ GPU culling is default-on.</strong> The GPU path now builds
+  cluster membership in compute with froxel-AABB light tests.</li>
+<li><strong>Per-instance area data is still CPU-authored per frame/cache refresh</strong>, but
+  the measured cost is currently too small to justify moving D1/D3 ahead of PBR
+  and Forward+ quality work.</li>
+<li><strong>Normal matrices are cached in the NWN per-draw paths.</strong> Remaining normal
+  matrix cleanup, if any, is a narrow preview/glTF audit rather than a broad hot
+  path issue.</li>
+</ul>
+<h2 id="dependency-graph">Dependency graph</h2>
+<pre><code>A (simplify)  ──────────────┐  (A1/A2/A3 done; A4 mostly done)
+                            │
+B1 indirect-count (gfx) ────┼──────────────► D3 GPU cull+submit (parked)
+B2 compute scaffolding ─────┼──► C2 GPU light cull (done; default)
+                            │
+C1 depth pre-pass ──────────┴──► C2 ──► C3 froxel AABB cull (done)
+                                         C4 local-light shadows (implemented; bounded)
+
+D1 persistent instance buffers ─┐
+D2 static mega vtx/idx buffer ──┴──► D3 GPU cull + DrawIndexedIndirectCount ──► D4 HiZ occlusion
+            (done)                    (parked by measurement)                    (later)
+</code></pre>
+<p>Current recommended order: keep C4 as a visual-quality follow-up only. Leave
+D1/D3/D4 parked until an area benchmark shows CPU prepare cost is material.</p>
+<h2 id="validation-strategy-applies-to-every-phase">Validation strategy (applies to every phase)</h2>
+<ul>
+<li><strong>Screenshot parity</strong>: render the same area/object before and after via
+  <code>ViewerSession</code> screenshots; diff. No visual change for A/B/D phases; intentional
+  (correct) change only for C phases.</li>
+<li><strong>Benchmarks</strong>: the existing <code>mudl</code> area benchmark baseline + validation sweep
+  (see recent commits "mudl area benchmark baseline helper", "mudl area validation
+  sweep"). Record CPU prepare time and frame time per phase.</li>
+<li><strong>GPU timers</strong>: <code>ScopedGpuTimer</code> + <code>get_completed_gpu_timer_results</code> — add a scope
+  per new pass (depth prepass, cluster build, light cull, gpu cull).</li>
+<li><strong>CommandStats</strong>: assert <code>draw_count</code> / <code>indirect_draw_call_count</code> /
+  <code>dispatch_count</code> move in the expected direction.</li>
+<li><strong>Forward+ debug HUD</strong>: <code>ForwardPlusDebugMode::cluster_light_count</code> /
+  <code>depth_slice</code> to eyeball cluster occupancy and catch regressions in the GPU cull.</li>
+</ul>
+<hr>
+<h2 id="workstream-a-consolidation">Workstream A — Consolidation</h2>
+<p>Pure simplification. A1, A2, and A3 are done; the NWN side of A4 is done, with
+only a narrow glTF/static preview normal-matrix audit remaining.</p>
+<h3 id="a1-collapse-the-forward-api-surface">A1. Collapse the Forward+ API surface</h3>
+<p><strong>Status: done.</strong>
+<strong>Problem.</strong> Every operation exists as a free function <em>and</em> a thin member that
+forwards to it, <em>and</em> again as span / non-span overloads, wired with a <code>friend</code>
+(<code>forward_plus_renderer.hpp:65-155</code>, <code>.cpp:628-706</code>). ~8 public entry points for
+one operation.
+<strong>Change.</strong> One method each: <code>prepare(frame, cmd, ctx, viewport, light_indices, policy)</code>
+where an <strong>empty <code>std::span</code> means "all lights"</strong> (drop the <code>use_light_indices</code>
+bool). Keep members (the renderer owns the arenas); delete the free functions and
+the <code>friend</code>.
+<strong>Files.</strong> <code>forward_plus_renderer.hpp/.cpp</code>; update callers in <code>viewer/session.cpp</code>
+(the two <code>prepare_render_context</code> call sites).
+<strong>Validation.</strong> Screenshot parity; ~150 fewer lines.</p>
+<h3 id="a2-unify-the-frame-arena-allocators">A2. Unify the frame arena allocators</h3>
+<p><strong>Status: done.</strong>
+<strong>Problem.</strong> <code>FrameStorageArena</code> (<code>frame_storage_arena.*</code>) and
+<code>ModelGpuBackend::FrameArena</code> (<code>model_gpu_backend.hpp:79</code>) are the same
+double-buffered mapped-storage allocator implemented twice.
+<strong>Change.</strong> Keep one — the gpu-backend version generalizes (it parameterizes
+<code>BufferUsage</code> for indirect buffers). Promote it to <code>frame_storage_arena.*</code>, delete
+the other. <code>ForwardPlusRenderer</code> and <code>ModelGpuBackend</code> use the shared type.
+<strong>Files.</strong> <code>frame_storage_arena.*</code>, <code>model_gpu_backend.*</code>, <code>forward_plus_renderer.*</code>.</p>
+<h3 id="a3-pipeline-cache-keyed-by-descriptor">A3. Pipeline cache keyed by descriptor</h3>
+<p><strong>Status: done.</strong>
+<strong>Problem.</strong> <code>ModelGpuBackend</code> holds ~20 named pipeline handles
+(<code>model_gpu_backend.hpp</code>) — a hand-built combinatorial matrix of
+{static,batched,skinned,PBR} × {opaque,cutout,transparent,water} ×
+{onscreen,offscreen} × {shadow}, each created and destroyed explicitly.
+<strong>Implemented change.</strong> Added <code>PipelineCache</code> keyed by <code>PipelineDesc</code>, centralized
+reusable descriptor construction in <code>model_pipeline_desc.*</code>, and replaced the
+public named getter matrix with <code>ModelPipelineKey { mesh_kind, material, target,
+pass }</code> → <code>Handle&lt;Pipeline&gt;</code>. Internal slots remain as the backend's compact
+storage/indexing detail.
+<strong>Files.</strong> <code>pipeline_cache.*</code>, <code>model_pipeline_desc.*</code>,
+<code>nwn/model_gpu_backend.*</code>, <code>nwn/model_renderer.cpp</code>, <code>viewer/scene_shadow.cpp</code>.
+<strong>Validation.</strong> <code>nw-render-nwn</code> and <code>mudl</code> build cleanly; screenshot parity is
+still the runtime check for any future pipeline-family edits.</p>
+<h3 id="a4-cache-normal-matrices-in-the-per-draw-paths">A4. Cache normal matrices in the per-draw paths</h3>
+<p><strong>Status: mostly done.</strong> NWN meshes cache normal matrices by model/root transform
+revision. Remaining work is only an audit of any glTF/static preview primitive path
+that still computes <code>transpose(inverse(transform))</code> per draw.
+<strong>Files.</strong> <code>nwn/model_loader.*</code>, <code>nwn/model_renderer.cpp</code>.</p>
+<hr>
+<h2 id="workstream-b-gpu-infrastructure-enabling">Workstream B — GPU infrastructure (enabling)</h2>
+<h3 id="b1-cmd_draw_indexed_indirect_count-in-gfx">B1. <code>cmd_draw_indexed_indirect_count</code> in gfx</h3>
+<p><strong>Status: done.</strong>
+<strong>Why.</strong> GPU-driven culling produces the draw count on the GPU; D3 needs a submit
+path that reads that count without a CPU round trip.
+<strong>Implemented change.</strong> Added <code>cmd_draw_indexed_indirect_count(cmd, commands, count_buffer,
+count_offset, max_draw_count, stride)</code> backed by <code>vkCmdDrawIndexedIndirectCount</code>
+(already loaded). The count buffer uses <code>StorageSpan</code>, and the Vulkan context enables
+the <code>drawIndirectCount</code> feature.
+<strong>Files.</strong> <code>gfx.hpp</code>, <code>backends/vulkan/vulkan_context.cpp</code>.</p>
+<h3 id="b2-compute-pass-scaffolding-sync-conventions">B2. Compute pass scaffolding + sync conventions</h3>
+<p><strong>Status: done.</strong>
+<strong>Why.</strong> Renderer compute passes need a clear compute-write -&gt; graphics-read sync
+contract.
+<strong>Implemented change.</strong> Added the storage/dispatch path and an explicit
+compute-&gt;graphics barrier used by the Forward+ GPU cull path.
+<strong>Files.</strong> <code>gfx.hpp</code>, <code>vulkan_context.cpp</code>, Forward+ compute shader path.
+<strong>Risk.</strong> Synchronization bugs are still the main risk for future compute passes;
+validate new passes with fixed-scene parity and validation layers.</p>
+<hr>
+<h2 id="workstream-c-finish-forward">Workstream C — Finish Forward+</h2>
+<h3 id="c1-depth-pre-pass">C1. Depth pre-pass</h3>
+<p><strong>Status: done.</strong>
+<strong>Why.</strong> Tight per-froxel depth bounds for clustering, and kills opaque overdraw of
+the expensive PBR+light loop.
+<strong>Implemented change.</strong> Depth-only pass before opaque, reusing the batched static geometry with
+a depth-only pipeline (templates already exist: shadow depth-only +
+<code>static_offscreen</code> pipelines). Then set the main opaque pass to depth-compare
+<code>EQUAL</code>/<code>LESS_EQUAL</code> with depth-write off (or keep <code>LESS</code> and just benefit from
+early-Z — measure both). Add a <code>ScopedGpuTimer("depth_prepass")</code>.
+<strong>Files.</strong> <code>nwn/model_gpu_backend.*</code> (depth-only pipeline via A3 cache),
+<code>viewer/session.cpp</code> (pass ordering, in <code>render()</code>), <code>viewer/area_render_scene.*</code>.
+<strong>Validation.</strong> Screenshot parity (depth prepass must not change color output);
+record opaque GPU time before/after in overdraw-heavy areas.</p>
+<h3 id="c2-gpu-light-culling-the-defining-forward-piece">C2. GPU light culling (the defining Forward+ piece)</h3>
+<p><strong>Status: implemented / GPU default.</strong> Forward+ local-light binning defaults to
+the GPU path. It uploads filtered light data, dispatches
+<code>forward_plus_cull.cs.hlsl</code>, and lets compute write the cluster headers and
+fixed-stride cluster light index buffer consumed by the lighting shaders.
+<strong>Why.</strong> Move per-cluster light membership out of CPU scatter/re-upload while
+keeping the CPU implementation as a reference/fallback path.
+<strong>Current shape.</strong> The compute pass reconstructs each cluster's view-space
+froxel AABB from the inverse projection and tests local-light spheres against
+that AABB. The GPU path reports index buffer capacity separately from actual
+occupied indices because it does not read the cluster buffers back to the CPU.
+<strong>Files.</strong> <code>forward_plus_cull.cs.hlsl</code>; <code>forward_plus_renderer.cpp</code>
+(dispatch + buffer mgmt, replaces CPU-produced light bounds for the GPU path);
+<code>render_context.hpp</code> consumption is unchanged.
+<strong>Validation.</strong> Fixed-scene <code>mudl area-benchmark</code> parity was run with
+<code>--forward-plus-gpu-cull</code> / <code>--no-forward-plus-gpu-cull</code>. No-debug screenshots
+matched byte-for-byte on <code>alue_bandithideo</code> and <code>aleu_beetlecave</code>; <code>aleu_welcome</code>
+and <code>aleu_pathtoprov</code> differed by only 3 and 9 pixels respectively at 1280x720.
+A 10-area minimal sweep from The Awakening passed on both CPU and GPU paths with
+zero validation warnings/errors. Track <code>forward_plus_prepare</code>, <code>gpu_culling_frames</code>,
+<code>cluster_light_index_capacity</code>, and GPU timer <code>forward_plus_cull</code>.</p>
+<h3 id="c3-froxel-aabb-culling-refinement">C3. Froxel AABB culling refinement</h3>
+<p><strong>Status: done.</strong>
+<strong>Why.</strong> Replace the conservative screen-rect + light-radius depth-range scatter
+with true sphere-vs-cluster-AABB tests now that froxel AABBs exist (C1/C2).
+Expected effect: tighter light lists and lower per-pixel light loop work; verify
+with cluster occupancy and GPU timer data.
+<strong>Implemented change.</strong> <code>ForwardPlusCullParams</code> now carries the inverse
+projection. <code>forward_plus_cull.cs.hlsl</code> reconstructs each cluster's near/far
+view-space corners, builds a cluster AABB, and uses sphere-vs-AABB intersection
+for light membership.
+<strong>Files.</strong> <code>forward_plus_renderer.*</code>; <code>forward_plus_cull.cs.hlsl</code>.
+<strong>Validation.</strong> DXC standalone compile passed. Focused <code>RenderForwardPlus.*</code> and
+mudl GPU-cull CLI tests passed. On <code>ms_icecave_001</code> at 1280x720, CPU and GPU
+no-debug screenshots matched byte-for-byte. CPU reference: 960 clusters, 48
+lights, 2076 cluster-light indices, <code>forward_plus_prepare</code> 0.0080 ms avg. GPU
+path: <code>gpu_culling_frames</code> 1.0, fixed-stride capacity 122880, <code>forward_plus_cull</code>
+0.0136 ms avg, <code>forward_plus_prepare</code> 0.0015 ms avg.</p>
+<h3 id="c4-local-light-shadows">C4. Local-light shadows</h3>
+<p><strong>Status: implemented; projection quality is bounded by design.</strong> Static prepared
+shadow draws are now culled per local-light ortho frustum before submission.
+Area scenes select from the visible/contributing light set when available, then
+rank candidates by energy plus camera-target relevance.
+<strong>Why.</strong> Forward+ point/area lights need their own shadow visibility instead of
+only relying on directional cascades.</p>
+<p><strong>Design (the part that avoids the NWN:EE "aura of shadows"):</strong> the aura is <em>not</em>
+a count problem — it's a weighting bug. Physically, N lights cast N shadows, but
+each shadow only darkens <em>that light's</em> contribution to a pixel; the other lights
+still fill it in, so shadows self-balance to one dominant soft shadow + faint
+others. So the rule is: <strong>each shadow attenuates only its own light's term in
+<code>accumulate_local_light</code></strong> (multiply that light's <code>color*intensity*attenuation</code> by
+its shadow visibility), never the whole surface. Get that right and 4 casters look
+natural; get it wrong (shadow the total) and you get the aura.</p>
+<p><strong>Budget / selection:</strong> top-K≈4 by visible light importance (intensity × radius,
+weighted toward the camera target), with authored <code>casts_shadow</code> treated as a
+priority boost rather than a hard gate. K is a <em>cost</em> cap, not an aesthetic one.
+<strong>Projection:</strong> current
+implementation uses one orthographic top-down depth map per caster; dual-paraboloid
+or cube maps remain deferred.</p>
+<p><strong>Status: implemented (2026-06-15).</strong> End-to-end: selection → slot → depth map →
+per-light shader weighting. Pieces:
+1. <strong>Selection</strong> — <code>resolve_local_shadows</code> (<code>viewer/scene_shadow.cpp</code>): top-K
+   (<code>kLocalShadowCount = 4</code>) lights by importance (<code>intensity × radius</code>, weighted
+   toward the camera target), writes <code>LocalLight::shadow_slot</code>. Area rendering
+   passes the filtered visible-light index list so off-screen area lights do not
+   steal slots from contributing lights.
+   Selection is <strong>importance-based, not flag-gated</strong>: NWN tile/lantern lights almost
+   never set the authored <code>casts_shadow</code> flag, so requiring it meant nothing ever
+   cast. <code>casts_shadow</code> is now a priority <em>boost</em>; the brightest lights cast.
+2. <strong>Projection</strong> — <strong>orthographic top-down from just above the light</strong> (<code>+0.25</code> lift),
+   ortho box <code>[-r,r]²</code>. Two corrections over the original perspective-cone sketch:
+   (a) a perspective cone from the low, wide-radius tile light covered only a tiny
+   patch directly under it; the ortho box keeps the whole illuminated disk in-frustum.
+   (b) The eye must sit <em>at</em> the light, not high above the room — an eye lifted a full
+   radius captured ceilings/rafters above the light and cast dramatic but <strong>spurious</strong>
+   beam shadows the light itself never sees. Eye-at-light limits casters to geometry
+   actually below the lamp.
+3. <strong><code>LocalShadowRenderer</code></strong> (<code>local_shadow_renderer.*</code>): K separate D32F maps
+   (one bindless <code>Texture2D</code> per slot — the bindless table is <code>Texture2D[]</code>, so a
+   layered atlas wouldn't fit). Area static casters render via the batched
+   <code>render_prepared_shadow_draws</code> path (their geometry is in the static mega-buffer,
+   <strong>not</strong> per-<code>ModelInstance</code> — <code>render_shadow_model_instance</code> draws nothing for
+   them); dynamic/preview models use the per-model path.
+4. <strong>GPU</strong> — <code>ForwardPlusLightGpu.params.z = slot + 1</code> (0 = none); the local maps'
+   matrices + bindless indices ride in the existing <code>ShadowConstants</code> cbuffer
+   (extended, b4 — avoids a new positional binding) via <code>upload_shadow_uniforms</code>.
+5. <strong>Shader</strong> — <code>local_shadow_visibility</code> in <code>shadow.inc.hlsl</code> samples the receiver
+   at its unoffset world position; <code>accumulate_local_light</code> (<code>render_pbr.ps</code>,
+   <code>render_pbr_batched.ps</code>) multiplies <strong>only that light's term</strong> — <strong>including
+   the ambient-contribution branch</strong> (see below).</p>
+<p><strong>Key finding — shadow the ambient-contribution term.</strong> The first cut shadowed only
+the <em>diffuse</em> local term and produced almost nothing on real NWN interiors. Measured
+on <code>prov_clothier</code>: zeroing every diffuse local light changes mean frame luminance
+20.8 → 20.5 (~nothing), while zeroing the <em>ambient-contribution</em> local lights changes
+it 20.8 → 1.0 — i.e. NWN interiors are lit ~entirely through the ambient-contribution
+path (a soft, vertical-flattened point light), not the diffuse path. So for an occluder
+to cast anything, that path must be shadowable. It now is, still per-light (each lamp
+shadows only its own term, others fill in → no aura). Result: real, localized object
+shadows under furniture, no ceiling artifacts, no acne.</p>
+<p><strong>Follow-up harness (2026-06-18).</strong> <code>mudl area-benchmark</code> and <code>area-sweep</code> can
+disable only local-light shadow maps with <code>--no-local-shadows</code>, while keeping
+directional shadows and Forward+ unchanged. Benchmark JSON now reports
+<code>local_shadow</code> CPU timing, local-shadow draw counts, selected caster-light count,
+submitted/cull counts, and <code>local_shadows_rendered</code>. The harness proved the old
+receiver normal/slope bias erased visible local-shadow occlusion in <code>prov_clothier</code>
+(AE 0 despite populated shadow maps); slot ids and frustum coverage were verified
+with shader probes. The fix keeps the receiver sample unoffset and limits area
+slot selection to visible/contributing lights when the area cache provides them.</p>
+<p><strong>Still-open follow-up.</strong> Shadows are correct but modest. A single ortho map per
+lamp gives straight-down, not radial, shadows. Also note that the static glTF PBR
+preview shader currently does not bind local-shadow state because its b4 cbuffer is
+occupied by <code>SurfaceConstants</code>; add a separate protocol only if glTF scenes need
+Forward+ local-shadow parity.</p>
+<hr>
+<h2 id="workstream-p-pbr-quality-convergence">Workstream P — PBR quality convergence</h2>
+<p><strong>Status: done.</strong> The renderer has a pinned PBR corpus + ledger, explicit static
+PBR environment policy, per-entry static PBR environment overrides,
+rough-metal compensation, NWN specular/shininess mapping, PLT/equipment coverage,
+water coverage, and limited NWN:EE <code>.mtr</code> sidecars mapped into the existing
+renderer material protocol. glTF metallic-roughness pipelines exist and use
+reference IBL for static PBR previews; NWN models and areas use scene-authored
+lighting.</p>
+<p><strong>Why.</strong> The visible gap was material quality, not draw submission. The common
+cases validated are metal/roughness glTF assets, NWN opaque/cutout materials,
+water, PLT-tinted materials, MTR sidecars, and interiors dominated by authored
+local lights.</p>
+<p><strong>Change.</strong>
+1. Added explicit static PBR environment policy. Static PBR scenes use
+   <code>reference_ibl</code> with <code>mudl --pbr-environment &lt;ktx&gt;</code> source selection and
+   <code>--no-pbr-ibl</code> for fast shader-fallback runs; NWN models and areas use
+   <code>scene_authored</code> so area weather, wind, water, fog, and day/night lighting are
+   not coupled to generated glTF-style IBL.
+   <code>mudl corpus</code> entries can now pin <code>static_pbr_environment.environment_path</code>
+   and <code>ibl_requested</code> per asset; real sky/background rendering remains separate
+   from this static PBR reference-lighting path.
+2. Added rough-metal environment energy compensation; still verify against the
+   material-sphere corpus before tuning real assets further.
+3. Mapped NWN specular/shininess into the legacy PBR shader constants and kept
+   diffuse/emissive/alpha/PLT behavior on the existing renderer material fields.
+4. Added limited NWN:EE <code>.mtr</code> handling where assets provide material sidecars:
+   resolve them through <code>materialname</code>, <code>texture0</code>, or <code>bitmap</code>; apply
+   <code>renderhint</code>, diffuse overrides, and renderer-relevant scalar/color fields;
+   and map normal/specular/roughness/emissive texture slots into the legacy
+   material constants instead of recreating arbitrary EE shader behavior.
+   <code>parameter float Specularity</code> maps to legacy specular strength, and
+   <code>transparency</code> / <code>twosided</code> flags map to the existing transparent pass and
+   two-sided lighting path. MDL <code>texture0</code> now has precedence over <code>bitmap</code>
+   for the base diffuse texture; MTR sidecars that omit <code>texture0</code> preserve
+   the MDL diffuse/PLT base texture while still supplying normal/specular/
+   roughness maps. Custom EE shaders, height maps, and full metallic mapping
+   remain out of scope until real assets require them.
+5. Recorded fixed screenshots with
+   <code>tests/test_data/user/development/pbr_corpus.json</code> before changing defaults.
+   This covers representative glTF assets, NWN metal/specular fixtures,
+   PLT/equipment, water-textured tile geometry, and an area local-light case.
+   The 2026-06-18 full-IBL run updated
+   <code>tests/test_data/user/development/visual_audit_ledger.json</code>; two full
+   <code>/tmp</code> runs were byte-identical across PNG and JSON outputs.
+   Added per-entry <code>mudl corpus</code> camera overrides and pinned the material-sphere
+   and area local-light entries to useful diagnostic frames before renderer
+   defaults are tuned against them.
+6. Closed Stage 2 with two full corpus runs on 2026-06-18:
+   <code>/tmp/rollnw-pbr-stage2</code> and <code>/tmp/rollnw-pbr-stage2-repeat</code>. Both processed
+   7 entries with 0 failures / 0 unsupported, and <code>diff -qr</code> reported identical
+   PNG and JSON outputs.</p>
+<p><strong>Validation.</strong> Stage completion is gated by the pinned screenshot corpus:
+<code>./build/tools/mudl/mudl corpus tests/test_data/user/development/pbr_corpus.json
+--output &lt;dir&gt; --module ./tests/test_data/user/modules/DockerDemo.mod --user
+./tests/test_data/user --ledger &lt;ledger.json&gt;</code>. Use the material-sphere reference
+scene for any future material tuning. No new environment passes were added during
+closure, so there are no new GPU timer claims.</p>
+<hr>
+<h2 id="workstream-d-gpu-driven-submission">Workstream D — GPU-driven submission</h2>
+<h3 id="d1-persistent-gpu-instance-buffers">D1. Persistent GPU instance buffers</h3>
+<p><strong>Status: parked by measurement.</strong>
+<strong>Why.</strong> Per-draw <code>PreparedStaticDrawConstants</code> is re-packed CPU-side every frame
+and cached by signature (<code>refresh_prepared_static_draw_data</code>,
+<code>allocate_static_draw_data</code> + memcpy). GPU-driven culling needs instance
+transforms / bounds / material indices to live in <strong>persistent</strong> GPU buffers,
+updated only on change.
+<strong>Change.</strong> Promote the per-frame draw-data arena to a persistent buffer with
+delta updates keyed on the existing signature; upload per-instance bounds alongside
+(from <code>area_render_scene::bounds()</code>). The packing shape is already correct — change
+the lifetime and the producer.
+<strong>Files.</strong> <code>nwn/model_gpu_backend.*</code>, <code>viewer/area_render_scene.*</code>.</p>
+<h3 id="d2-single-static-vertexindex-mega-buffer">D2. Single static vertex/index mega-buffer</h3>
+<p><strong>Status: done.</strong> <code>AreaRenderScene::build_static_geometry</code> builds shared static
+vertex/index buffers for area geometry and stores per-draw offsets for batched
+indirect rendering.
+<strong>Why.</strong> <code>build_prepared_indirect_draw_commands</code> already <strong>bails when draws span
+multiple vertex/index buffers</strong> (<code>model_renderer.cpp</code> ~line 628) — batched indirect
+already assumes shared geometry buffers. If all static area geometry lived in one
+VB/IB addressed by <code>vertex_offset</code>/<code>first_index</code>, a single multidraw covers a whole
+pass and the per-geometry-group rebinds disappear.
+<strong>Change.</strong> Sub-allocate static geometry into one big VB and one big IB at load /
+area-build time; store <code>vertex_offset</code>/<code>first_index</code> per mesh (already in
+<code>PreparedDrawGeometry</code>).
+<strong>Files.</strong> model upload (<code>nwn/model_loader.cpp</code> / asset cache),
+<code>viewer/area_render_scene.*</code>.</p>
+<h3 id="d3-gpu-frustum-cull-indirect-command-build">D3. GPU frustum cull + indirect command build</h3>
+<p><strong>Status: parked by measurement.</strong>
+<strong>Why.</strong> Move <code>build_prepared_indirect_draw_commands</code> (CPU,
+<code>model_renderer.cpp:594</code>) to compute: read per-instance bounds (D1), test the
+frustum, append <code>IndexedIndirectDrawCommand</code>s via an atomic counter, feed the count
+buffer consumed by <code>cmd_draw_indexed_indirect_count</code> (B1). CPU cull stays as the
+low-end fallback.
+<strong>Files.</strong> new <code>shaders/area_cull.cs.hlsl</code>; <code>nwn/model_renderer.*</code>,
+<code>viewer/area_render_scene.*</code>. Depends on B1 + D1 + D2.
+<strong>Validation.</strong> Visible-set parity vs CPU cull (compare emitted command counts);
+track area CPU prepare before/after on scenes large enough to make the current path
+material.</p>
+<h3 id="d4-hiz-two-phase-occlusion-later">D4. HiZ two-phase occlusion (later)</h3>
+<p><strong>Status: later / not justified yet.</strong> Only worth it once D1-D3 land and scenes are
+dense enough to be occlusion-bound.
+Build a HiZ pyramid from the depth prepass (C1); two-phase cull in the D3 compute.</p>
+<hr>
+<h2 id="next-steps">Next steps</h2>
+<ol>
+<li><strong>C4 shadow follow-up</strong> — revisit projection only if top-down local shadows are
+   not strong enough for a target scene; otherwise leave the bounded K=4 ortho
+   path alone.</li>
+</ol>
+<p>D1/D3/D4 stay parked until benchmarks show the area CPU prepare path is worth
+moving to GPU.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mudl - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a class="active" href="index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/tools/mudl/README.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="mudl">mudl</h1>
+<p><code>mudl</code> is a model viewer and headless capture tool for NWN assets plus glTF 2.0 / PBR content, including skinned and animated glTF playback.</p>
+<p>It is the main tooling consumer of <a href="../render/index.html"><code>nw::render</code></a>
+and its <code>lib/nw/render/viewer</code> preview layer. <code>mudl</code> drives real renderer
+paths against real assets; reusable renderer protocols stay in <code>nw::render</code>,
+with <code>nw::gfx</code> underneath as the low-level graphics API boundary.</p>
+<p>It is useful for:
+- interactive model inspection
+- quick asset stats and hierarchy inspection
+- deterministic screenshot capture
+- deterministic turntable frame generation for downstream tooling</p>
+<p><img alt="c_aribeth turntable" src="../assets/tools/mudl/readme-assets/c_aribeth-turntable.gif"></p>
+<h2 id="build">Build</h2>
+<p>Requires:
+- <code>ROLLNW_BUILD_RENDERER=ON</code>
+- DXC runtime binaries via GitHub releases on Linux/Windows, or a system install on macOS</p>
+<pre><code class="language-bash">cmake --preset linux-renderer-dev
+cmake --build --preset linux-renderer-dev --target mudl
+</code></pre>
+<h2 id="quickstart">Quickstart</h2>
+<pre><code class="language-bash"># Launch the interactive viewer
+mudl
+
+# Open a stock NWN model
+mudl c_aribeth
+
+# Open a glTF asset
+mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+
+# Inspect model stats
+mudl stats c_aribeth
+
+# Print the viewer load report as JSON
+mudl report c_halaster
+
+# Headless screenshot
+mudl screenshot c_aribeth ./out/c_aribeth.png
+
+# Headless turntable image sequence
+mudl turntable c_aribeth 36 --output ./out/c_aribeth
+# Without --output, frames go to ./c_aribeth-turntable/
+
+# Print the full command list
+mudl help
+</code></pre>
+<h2 id="common-flags">Common flags</h2>
+<p>Most commands accept these:</p>
+<ul>
+<li><code>--module &lt;path&gt;</code>: load a module container (<code>.mod</code>, module directory, or zip) before resolving resources. Use this when the model, textures, or override assets live inside a specific module.</li>
+<li><code>--user &lt;path&gt;</code>: use an explicit NWN user directory root for development/override resources. CI should use <code>--user ./tests/test_data/user</code>.</li>
+<li><code>--animation &lt;name&gt;</code>: override the default animation for interactive/headless model previews.</li>
+<li><code>--pbr-environment &lt;ktx&gt;</code>: select the HDR KTX source used by the static PBR <code>reference_ibl</code> policy.</li>
+<li><code>--no-pbr-ibl</code>: skip generated static PBR IBL textures and use shader fallback lighting.</li>
+<li><code>--dangly-scale &lt;value&gt;</code>: exaggerate or reduce dangly motion for tuning.</li>
+<li><code>--dangly-mode legacy|modern</code>: choose the dangly simulation mode.</li>
+<li><code>--validate</code>: enable Vulkan validation layers.</li>
+<li><code>--debug</code>: enable the optional debug grid overlay.</li>
+</ul>
+<p>Command-specific flags are listed inline below.</p>
+<h2 id="commands">Commands</h2>
+<h3 id="interactive-viewer">Interactive viewer</h3>
+<pre><code class="language-text">mudl [&lt;resref&gt;]
+mudl &lt;path/to/model.gltf|model.glb&gt;
+mudl view [&lt;resref&gt;|model.gltf|model.glb|effect.json]
+mudl creature &lt;resref&gt;
+mudl item &lt;resref&gt;
+mudl area &lt;resref&gt;
+</code></pre>
+<p><code>mudl view</code> also opens a native particle asset directly when the input is a JSON file with <code>"$type": "ParticleEffect"</code> — this is the source-neutral authoring path for particle work.</p>
+<pre><code class="language-bash">mudl
+mudl c_aribeth
+mudl view c_aribeth
+mudl view ./tests/test_data/user/development/particle_basic.json
+
+# Static or skinned glTF / glb preview
+mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
+mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
+
+# Creature and item previews
+mudl creature c_aribeth --animation pause1
+mudl item nw_it_mpotion001
+
+# Interactive area viewer
+mudl area ttr01
+</code></pre>
+<h3 id="headless-capture">Headless capture</h3>
+<pre><code class="language-text">mudl screenshot &lt;resref&gt; &lt;path&gt;
+mudl turntable &lt;resref&gt; [frames] [--output &lt;dir&gt;]
+mudl frames &lt;count&gt; [&lt;resref&gt;]
+mudl area-screenshot &lt;resref&gt; &lt;path&gt;
+mudl area-benchmark &lt;resref&gt; [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius &lt;tiles&gt;] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot &lt;path&gt;]
+mudl area-sweep &lt;resref|area-list.txt&gt; [--frames &lt;count&gt;] [--warmup &lt;count&gt;] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--validate] [--json &lt;path&gt;]
+mudl area --dump &lt;module-path&gt; [--output &lt;path&gt;] [--skip-existing] [--limit &lt;n&gt;]
+</code></pre>
+<p>Forward+ is enabled by default for local lights. Use <code>--no-forward-plus</code> only for
+fallback or comparison captures. GPU gather is the default Forward+ path;
+<code>--no-forward-plus-gpu-cull</code> forces the CPU reference path for parity runs.</p>
+<pre><code class="language-bash"># Single headless screenshot
+mudl screenshot c_aribeth ./out/c_aribeth.png
+
+# Turntable image sequence
+mudl turntable c_aribeth 36 --output ./out/c_aribeth
+# Defaults to ./c_aribeth-turntable/ when --output is omitted
+
+# Render a fixed number of frames
+mudl frames 36 c_aribeth
+
+# Headless area screenshot
+mudl area-screenshot ttr01 ./out/ttr01.png
+
+# Headless area render benchmark from a gameplay-style camera
+mudl area-benchmark ms_4city --camera gameplay --json ./out/ms_4city.json
+
+# Compare the same fixed camera without local-light shadow maps
+mudl area-benchmark ms_4city --camera gameplay --no-local-shadows --json ./out/ms_4city-no-local-shadows.json
+
+# Simulate a game/PVS visibility mask around the camera tile
+mudl area-benchmark ms_4city --camera gameplay --visible-tile-radius 2 --json ./out/ms_4city-near.json
+
+# Capture a Forward+ cluster light-count heatmap after the benchmark
+mudl area-benchmark ms_4city --camera gameplay --forward-plus-debug cluster-lights --screenshot ./out/ms_4city-fplus.png --json ./out/ms_4city-fplus.json
+
+# Run the GPU Forward+ gather path explicitly for CPU/GPU parity captures
+mudl area-benchmark ms_4city --camera gameplay --forward-plus-gpu-cull --forward-plus-debug cluster-lights --json ./out/ms_4city-fplus-gpu.json
+
+# Compare a fixed Forward+ cluster layout against the automatic area config
+mudl area-benchmark ms_4city --camera gameplay --forward-plus-config 32,4,64 --json ./out/ms_4city-fplus-fixed.json
+
+# Run a validation sweep over area renderer variants
+mudl area-sweep ms_4city --module ../the_awakening --frames 1 --variants default --validate --json ./out/ms_4city-sweep.json
+
+# Run validation plus an area benchmark matrix and summary report
+tools/mudl/area_benchmark_baseline.py ms_4city --module ../the_awakening --out-dir ./out/ms_4city-baseline --quiet
+
+# Dump every area in a module to screenshots
+mudl area --dump ./mymodule.mod --output ./out/areas --skip-existing --limit 50 --debug
+</code></pre>
+<h3 id="inspection">Inspection</h3>
+<pre><code class="language-text">mudl stats &lt;resref&gt;
+mudl report &lt;resref|path&gt;
+mudl dump &lt;resref&gt; [--output &lt;dir&gt;]
+mudl texture &lt;resref&gt; &lt;path&gt;
+</code></pre>
+<pre><code class="language-bash">mudl stats c_aribeth
+mudl report c_halaster
+mudl report ./shared/blueprints/creatures/pl_bernard.utc.json --module ./mymodule.mod
+mudl dump c_aribeth --output ./out/c_aribeth-assets
+mudl stats c_aribeth --module ./mymodule.mod
+mudl texture plc_archtarg plc_archtarg_d.png
+</code></pre>
+<p><code>mudl report</code> resolves the NWN preview dependency graph without starting the renderer and writes the load report to stdout as JSON. It includes the preview source and kind, loaded model names, referenced resources, missing resources with model/node origins, particle emitter counts, particle caps, and report events. Supermodels are reported as MDL dependencies, but their mesh textures/materials are not treated as loaded preview resources. Redirect stdout to capture it cleanly:</p>
+<pre><code class="language-bash">mudl report c_halaster &gt; ./out/c_halaster-report.json
+</code></pre>
+<p><code>mudl dump</code> writes a self-contained resource closure for a model preview, including the model,
+supermodels, reference models, mesh/emitter/light textures, TXI files, MTR files, and texture
+references found inside TXI/MTR text. A <code>manifest.json</code> records copied and missing resources plus
+the model node or secondary file that referenced each asset.</p>
+<h3 id="spells-and-vfx">Spells and VFX</h3>
+<pre><code class="language-text">mudl spell &lt;spells.2da rowid&gt;
+mudl spell-export &lt;spells.2da rowid&gt; &lt;path&gt;
+mudl spell-export-live &lt;spells.2da rowid&gt; &lt;path&gt;
+mudl spell-preview-live &lt;spells.2da rowid&gt; &lt;path&gt; [--frame &lt;count&gt;] [--view front|top|side] [--metadata]
+mudl vfx &lt;spell|resref|VFX_*|effect.json&gt; [--stage proj|cast|conj|impact|duration|cessation]
+</code></pre>
+<pre><code class="language-bash">mudl spell 115
+mudl spell-export 115 ./out/spell115.json
+mudl spell-export-live 115 ./out/spell115-live.json
+mudl spell-preview-live 115 ./out/spell115-preview.png --frame 24 --metadata
+
+mudl vfx VFX_IMP_MIRV
+mudl vfx Fireball --stage impact
+mudl vfx ./tests/test_data/user/development/particle_basic.json
+</code></pre>
+<h3 id="particles">Particles</h3>
+<pre><code class="language-text">mudl particle-preview &lt;mdl-path|resref&gt; &lt;out.png&gt; [--time &lt;seconds&gt;] [--view front|top|side] [--metadata]
+mudl particle-preview-frames &lt;mdl-path|resref&gt; &lt;out-dir&gt; [--duration &lt;seconds&gt;] [--fps &lt;n&gt;] [--view front|top|side] [--metadata]
+mudl particle-export &lt;mdl-path|resref&gt; &lt;effect.json&gt;
+</code></pre>
+<p><code>--metadata</code> writes JSON companion files with emitter/kernel/warning state. <code>particle-preview</code> writes a sibling <code>.json</code> next to the PNG; <code>particle-preview-frames</code> writes <code>preview.json</code> plus one <code>.json</code> per numbered frame.</p>
+<pre><code class="language-bash"># Preview from a local MDL file
+mudl particle-preview ./tests/test_data/user/development/vfx_lightning_test.mdl ./out/lightning.png --time 0.25 --metadata
+
+# Preview from an NWN model resref
+mudl particle-preview c_mindflayer ./out/c_mindflayer-particles.png --time 1.0 --view front --animation cspecial
+
+# Frame sequence
+mudl particle-preview-frames it_torch_000 ./out/torch-particles --duration 1.5 --fps 24 --view front --metadata
+
+# Export an NWN particle effect into the native particle JSON format
+mudl particle-export it_torch_000 ./out/it_torch_000.json
+</code></pre>
+<h3 id="visual-corpus-and-smoke-tests">Visual corpus and smoke tests</h3>
+<pre><code class="language-text">mudl corpus &lt;corpus.json&gt; [--output &lt;dir&gt;] [--user &lt;path&gt;] [--pbr-environment &lt;ktx&gt;] [--no-pbr-ibl] [--limit &lt;n&gt;] [--filter &lt;tag&gt;] [--ledger &lt;path&gt;]
+mudl nwn-animation-smoke [--user &lt;path&gt;]
+mudl compute-smoke
+</code></pre>
+<pre><code class="language-bash"># Run a checked-in corpus and collect per-entry outputs
+mudl corpus ./tests/test_data/user/development/spell_corpus.json \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/spells
+
+# Run a corpus and update the checked-in visual audit ledger
+mudl corpus ./tests/test_data/user/development/creature_corpus.json \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/creatures \
+  --ledger ./tests/test_data/user/development/visual_audit_ledger.json
+
+# Run the checked-in DockerDemo area corpus through the test user directory
+mudl corpus ./tests/test_data/user/development/area_corpus.json \
+  --module ./tests/test_data/user/modules/DockerDemo.mod \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/areas
+
+# Run the Stage 2 PBR convergence baseline with static PBR reference IBL enabled
+mudl corpus ./tests/test_data/user/development/pbr_corpus.json \
+  --module ./tests/test_data/user/modules/DockerDemo.mod \
+  --user ./tests/test_data/user \
+  --output ./tmp/visual-audit/pbr \
+  --ledger ./tests/test_data/user/development/visual_audit_ledger.json
+
+# Renderer smoke test
+mudl compute-smoke --validate
+</code></pre>
+<p><code>mudl corpus --ledger &lt;path&gt;</code> updates a persistent audit ledger from the current run while preserving human review fields such as ownership, issue linkage, disposition, and review notes.</p>
+<p>Viewer corpus entries may include a <code>camera</code> object when auto-fit is not a useful
+diagnostic frame. Supported modes are <code>orbit</code>, <code>free</code>, and <code>area_gameplay</code>.
+Use three-number arrays for <code>position</code> and <code>target</code>; <code>orbit</code> also requires a
+positive <code>radius</code> plus optional <code>yaw</code>, <code>pitch</code>, and <code>fov</code>.</p>
+<p>Static PBR corpus entries may include a <code>static_pbr_environment</code> object to pin
+their reference lighting independently of the command line:</p>
+<pre><code class="language-json">&quot;static_pbr_environment&quot;: {
+  &quot;environment_path&quot;: &quot;tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx&quot;,
+  &quot;ibl_requested&quot;: true
+}
+</code></pre>
+<p>Both fields are optional. Missing fields inherit <code>--pbr-environment</code> and
+<code>--no-pbr-ibl</code>; malformed paths or non-boolean <code>ibl_requested</code> values fail the
+corpus load.</p>
+<p>Checked-in corpora:
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/particle_corpus.json">particle_corpus.json</a> — canonical list of representative NWN particle models, required animations, and behavior classes when validating importer/runtime/render changes
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/spell_corpus.json">spell_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/creature_corpus.json">creature_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/item_corpus.json">item_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/model_corpus.json">model_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/pbr_corpus.json">pbr_corpus.json</a> — focused Stage 2 PBR baseline covering glTF metal/roughness,
+  NWN metal/specular fixtures, PLT/equipment, water-textured geometry, and an area local-light case
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/area_corpus.json">area_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/visual_audit_ledger.json">visual_audit_ledger.json</a></p>
+<p>NWN MDL import gets you close, and native particle JSON gives you something clean to tune from there:</p>
+<pre><code class="language-bash">mudl view ./tests/test_data/user/development/particle_basic.json
+</code></pre>
+<h2 id="output">Output</h2>
+<p><code>mudl</code> stops at deterministic frame generation. It does not own GIF or video encoding — that belongs in external tools like <code>ffmpeg</code> or build scripts that consume the generated PNGs.</p>
+<pre><code class="language-bash"># Generate a 36-frame turntable sequence
+mudl turntable c_aribeth 36 --output ./out/c_aribeth
+# Or omit --output to write ./c_aribeth-turntable/%04d.png
+
+# GIF via ffmpeg
+ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -vf palettegen ./out/c_aribeth-palette.png
+ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -i ./out/c_aribeth-palette.png -lavfi paletteuse ./out/c_aribeth.gif
+
+# MP4 via ffmpeg
+ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -pix_fmt yuv420p ./out/c_aribeth.mp4
+</code></pre>
+<h2 id="viewer-controls">Viewer Controls</h2>
+<h3 id="general-viewer">General viewer</h3>
+<ul>
+<li><code>Left-drag</code>: orbit</li>
+<li><code>Middle-drag</code>: pan</li>
+<li><code>Mouse wheel</code>: zoom</li>
+<li><code>F</code>: frame model to bounds</li>
+<li><code>W</code> / <code>S</code> or <code>Up</code> / <code>Down</code>: pitch orbit</li>
+<li><code>A</code> / <code>D</code> or <code>Left</code> / <code>Right</code>: yaw orbit</li>
+<li><code>Q</code> / <code>E</code>: zoom out / in</li>
+<li><code>P</code>: pause / resume the whole scene</li>
+<li><code>.</code>: step the whole scene by 33 ms</li>
+<li><code>/</code>: reset the whole scene</li>
+<li><code>F5</code>: reload shaders and rebuild render pipelines</li>
+<li><code>Tab</code>: cycle glTF animation clips</li>
+<li><code>[</code> / <code>]</code>: scrub glTF animation time when an animated glTF is loaded</li>
+<li><code>Space</code>: toggle autoplay for the active subsystem</li>
+<li><code>J</code> / <code>K</code>: decrease / increase static PBR IBL strength</li>
+<li><code>N</code> / <code>M</code>: decrease / increase static PBR exposure</li>
+<li><code>Shift</code>: faster keyboard step</li>
+<li><code>Esc</code>: exit viewer</li>
+</ul>
+<h3 id="area-viewer">Area viewer</h3>
+<ul>
+<li><code>Left-drag</code>: free-look yaw / pitch</li>
+<li><code>Middle-drag</code>: pan</li>
+<li><code>Mouse wheel</code>: move forward / backward in perspective, zoom in orthographic overview</li>
+<li><code>F</code>: frame area to bounds</li>
+<li><code>W</code> / <code>S</code>: move forward / backward</li>
+<li><code>A</code> / <code>D</code>: move left / right</li>
+<li><code>Left</code> / <code>Right</code>: yaw</li>
+<li><code>Up</code> / <code>Down</code>: move up / down</li>
+<li><code>Ctrl</code> + <code>Up</code> / <code>Down</code>: pitch</li>
+<li><code>Q</code> / <code>E</code>: zoom out / in</li>
+<li><code>Shift</code>: faster keyboard step</li>
+<li><code>Esc</code>: exit viewer</li>
+</ul>
+<h3 id="area-lighting">Area lighting</h3>
+<p>These controls apply to exterior area previews with <code>day_night_cycle</code> enabled.</p>
+<ul>
+<li><code>Space</code>: toggle day/night autoplay</li>
+<li><code>[</code> / <code>]</code>: scrub backward / forward through time of day</li>
+<li><code>\</code>: reset the cycle to the area's authored starting phase</li>
+<li><code>G</code>: toggle authored area fog on / off</li>
+<li><code>H</code>: toggle shadow cascade debug view</li>
+</ul>
+<h3 id="spell-vfx">Spell / VFX</h3>
+<ul>
+<li><code>Space</code>: toggle sequence autoplay</li>
+<li><code>P</code>: pause / resume the whole scene</li>
+<li><code>.</code>: step the scene by 33 ms</li>
+<li><code>/</code>: reset the scene to time 0</li>
+<li>Debug panel support includes:
+  <code>Sequence time</code> scrubbing, active-step inspection, per-step source / target metadata, and emitter isolation controls such as <code>Only ring</code> / <code>Hide ring</code></li>
+</ul>
+<h2 id="features">Features</h2>
+<ul>
+<li>bindless sampled-texture rendering path</li>
+<li>per-draw uniform suballocation</li>
+<li>static and skinned mesh rendering paths</li>
+<li>static glTF 2.0 / PBR render path</li>
+<li>bind-pose skinned glTF render path</li>
+<li>glTF animation clip import and playback</li>
+<li>animated glTF playback now prefers the <code>Ozz</code> backend with a custom runtime fallback</li>
+<li>3-point studio lighting for model and interior previews</li>
+<li>world-space exterior area lighting driven by area weather metadata</li>
+<li>smooth accelerated 45 second exterior day/night preview cycle</li>
+<li>cascaded directional shadows for area lighting</li>
+<li>camera auto-fit to world-space bounds</li>
+<li>interactive orbit/pan/zoom viewer controls</li>
+<li>unified scene pause / stop / reset / single-step controls</li>
+<li>spell and VFX sequence playback, export, and live preview tooling</li>
+<li>typed <code>progfx</code> lowering for programmable FX work in <code>mudl</code></li>
+<li>interactive area navigation and lighting time controls</li>
+<li>headless screenshot capture</li>
+<li>headless area render benchmarks with deterministic overview, gameplay, or custom cameras</li>
+<li>Forward+ policy controls and cluster heatmap screenshots from the area benchmark path</li>
+<li>headless turntable frame output</li>
+<li>model hierarchy, geometry, and texture stats</li>
+</ul>
+<h2 id="reference">Reference</h2>
+<h3 id="lighting-notes">Lighting notes</h3>
+<ul>
+<li>Exterior areas use a stable world-space outdoor lighting rig instead of camera-relative studio lighting.</li>
+<li>Interior areas keep the viewer's studio-style lighting.</li>
+<li>Exterior areas with <code>day_night_cycle</code> enabled run through a full 45 second preview loop.</li>
+<li>Outdoor lighting uses authored <code>.are</code> sun/moon ambient and diffuse colors when present, with viewer fallbacks for missing or unusable values.</li>
+<li>Static PBR previews use the <code>reference_ibl</code> policy and split-sum IBL with:</li>
+<li>HDR environment input</li>
+<li>diffuse irradiance</li>
+<li>GGX-prefiltered specular environment mips</li>
+<li>BRDF LUT integration</li>
+<li>NWN models and areas use the <code>scene_authored</code> policy: area weather, wind,
+  water, fog, and day/night lighting drive the scene instead of generated IBL.</li>
+<li>Static PBR previews expose viewer dials for the reference IBL path:</li>
+<li><code>J</code> / <code>K</code>: decrease / increase static PBR IBL strength</li>
+<li><code>N</code> / <code>M</code>: decrease / increase static PBR exposure</li>
+<li>The default static PBR reference environment is
+  <code>tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx</code>; override it with <code>--pbr-environment &lt;ktx&gt;</code> for reproducible comparisons against another lighting source. Use <code>--no-pbr-ibl</code> for faster tool runs that do not need generated environment lighting.</li>
+</ul>
+<h3 id="gltf-notes">glTF notes</h3>
+<ul>
+<li><code>mudl</code> currently supports static <code>.gltf</code> / <code>.glb</code>, skinned glTF rendering, and imported glTF animation playback.</li>
+<li>The v1 static glTF path flattens node transforms into per-primitive world transforms.</li>
+<li>The current skinned glTF path retains the minimum node/skin data needed for bind-pose skinning and animation playback.</li>
+<li>The current animated glTF path runs through the renderer-owned animation runtime and prefers the <code>Ozz</code> backend for sampling.</li>
+<li>Current material support is focused on:</li>
+<li>base color</li>
+<li>normal</li>
+<li>metallic-roughness</li>
+<li>emissive</li>
+<li>occlusion merged into the runtime ORM/surface texture at import time</li>
+<li>Current non-goals for the glTF path:</li>
+<li>morph targets</li>
+<li>exact Khronos Sample Viewer parity</li>
+</ul>
+<h3 id="regression-set">Regression set</h3>
+<p>Current graphics regression models:</p>
+<ul>
+<li><code>c_aribeth</code>: dumped NWN humanoid character baseline</li>
+<li><code>c_drgshad</code>: dumped NWN skinned creature with wing skinning</li>
+<li><code>it_torch_000</code>: dumped NWN placeable with emitters</li>
+<li><code>ttd01_a04_03</code>: dumped NWN tile with static meshes, lights, and an aabb node</li>
+<li><code>DamagedHelmet.glb</code>: static glTF / PBR baseline</li>
+<li><code>CesiumMan.glb</code>: skinned glTF bind-pose baseline</li>
+<li><code>MetalRoughSpheres.glb</code>: glTF metallic/roughness material baseline</li>
+</ul>
+<p>The dumped NWN fixtures live under <code>tests/test_data/renderer/nwn_dump_user</code>.
+Use that directory as the explicit NWN user root so the model, texture, and
+TXI bytes are served from committed test data while the install root only
+provides bootstrap rules and base tables.</p>
+<p>Suggested checks:</p>
+<pre><code class="language-bash">mudl stats c_aribeth --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats c_drgshad --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats it_torch_000 --user ./tests/test_data/renderer/nwn_dump_user
+mudl stats ttd01_a04_03 --user ./tests/test_data/renderer/nwn_dump_user
+
+mudl screenshot c_drgshad ./out/c_drgshad.png --user ./tests/test_data/renderer/nwn_dump_user
+mudl screenshot it_torch_000 ./out/it_torch_000.png --user ./tests/test_data/renderer/nwn_dump_user
+mudl screenshot ttd01_a04_03 ./out/ttd01_a04_03.png --user ./tests/test_data/renderer/nwn_dump_user
+mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
+mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
+</code></pre>
+<h2 id="design-notes">Design notes</h2>
+<ul>
+<li><code>mudl</code> is a consumer of <code>nw::render</code> and <code>lib/nw/render/viewer</code>, not a renderer framework.</li>
+<li>Headless capture is built in because it is part of rendering validation.</li>
+<li>Encoding stays outside the tool — <code>mudl</code> produces PNGs; <code>ffmpeg</code> and friends turn those into GIFs or videos.</li>
+<li>NWN assets still come first, but glTF / PBR is now the primary modern material path for renderer validation.</li>
+<li>Longer-term NWN1 preview/model compatibility notes live with the reusable renderer docs, especially <a href="../render/nwn_model_conversion.html">NWN model conversion</a> and the <a href="../render/nwn_emitter_map.html">NWN emitter map</a>, not under the <code>mudl</code> app.</li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

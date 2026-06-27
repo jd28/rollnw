@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nw::gfx - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a class="active" href="index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/gfx/README.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="nwgfx">nw::gfx</h1>
+<p><code>nw::gfx</code> is a thin rendering abstraction and Vulkan utility layer.</p>
+<p>It is not a game engine, scene graph, material system, or editor framework.</p>
+<h2 id="project-status">Project Status</h2>
+<p><code>nw::gfx</code> is the active low-level graphics foundation for rollNW renderer work and future authored-toolset/game viewports. Higher-level validation currently lives in <code>lib/nw/render</code> and <code>tools/mudl</code>; older project docs may still describe rollNW as if graphics were out of scope. Read those older statements as historical context, not current direction.</p>
+<h2 id="what-it-is-for">What It Is For</h2>
+<ul>
+<li>Creating devices and swapchains</li>
+<li>Managing GPU resources such as buffers, textures, render targets, shaders, and pipelines</li>
+<li>Recording and submitting command lists</li>
+<li>Exposing low-level rendering primitives with explicit ownership and lifetimes</li>
+<li>Providing backend escape hatches when higher layers need direct Vulkan access</li>
+</ul>
+<h2 id="what-it-is-not-for">What It Is Not For</h2>
+<ul>
+<li>Scene graphs, entity systems, gameplay logic, or runtime policy</li>
+<li>Asset pipeline decisions, editor state, or tool-specific UI behavior</li>
+<li>Material databases or content authoring abstractions</li>
+<li>Hiding lifetimes behind implicit global behavior</li>
+<li>Turning backend helpers into a framework with engine-level policy</li>
+</ul>
+<h2 id="design-principles">Design Principles</h2>
+<ul>
+<li>Thin layer first. Keep APIs close to the underlying GPU model.</li>
+<li>Explicit ownership. Resources, command submission, and synchronization should stay easy to reason about.</li>
+<li>Low ceremony. Prefer small descriptors and direct calls over large abstraction stacks.</li>
+<li>Validation-clean behavior. Favor correctness around resize, present/acquire, resource transitions, and shutdown.</li>
+<li>Escape hatches matter. Callers should still be able to reach raw backend handles when they need to.</li>
+<li>Bindless-first direction. Prefer resource models that scale to many textures and draw calls without per-draw descriptor churn.</li>
+</ul>
+<h2 id="bindless-direction">Bindless Direction</h2>
+<p><code>nw::gfx</code> is moving toward a bindless-first resource model.</p>
+<p>Current direction:</p>
+<ul>
+<li>descriptor-buffer-backed Vulkan backend</li>
+<li>bindless sampled texture indexing</li>
+<li>per-frame uniform suballocation for per-draw constants</li>
+<li>pipeline flags that opt into resource models instead of hard-coding one path</li>
+</ul>
+<p>This does not mean every resource class is fully bindless yet, but it does mean new work should avoid doubling down on one-resource-per-draw designs when a scalable bindless path is the better fit.</p>
+<h2 id="review-checklist">Review Checklist</h2>
+<ul>
+<li>Does this strengthen <code>nw::gfx</code> as the long-term foundation for the renderer without pulling higher-level game policy into it?</li>
+<li>Does this avoid encoding product, editor, or gameplay policy?</li>
+<li>Does this keep ownership and lifetime explicit?</li>
+<li>Does this preserve debuggability and low overhead?</li>
+<li>Does this move the API toward scalable resource binding instead of away from it?</li>
+<li>Can callers still reach raw backend handles when required?</li>
+</ul>
+<p>If a change fails these checks, it likely belongs outside <code>lib/nw/gfx</code>.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

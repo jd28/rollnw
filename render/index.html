@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nw::render - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a class="active" href="index.html">nw::render</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/README.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="nwrender">nw::render</h1>
+<p><code>nw::render</code> is the renderer-facing data and submission layer above
+<a href="../gfx/index.html"><code>nw::gfx</code></a>.</p>
+<p>It is not a scene graph, gameplay system, editor framework, or source-format
+owner. It turns explicit runtime data into GPU work through <code>nw::gfx</code> command
+lists and backend resources.</p>
+<h2 id="the-short-version">The Short Version</h2>
+<p>The current renderer path is:</p>
+<pre><code class="language-text">source assets
+  -&gt; common CPU records
+     ModelAsset, ParticleEffectDef, sockets, deformers, animation clips
+  -&gt; runtime/upload records
+     RenderModel, CompiledParticleEffect, ModelInstance, material overrides
+  -&gt; frame records
+     PreparedModelDraw, PreparedModelSurfaceDraw, particle packets, light lists
+  -&gt; renderer passes
+     model, particle, shadow, Forward+, fog
+  -&gt; nw::gfx
+     buffers, textures, pipelines, command lists, swapchain
+</code></pre>
+<p>The common case is source-neutral runtime data. glTF and NWN are inputs to that
+data, not renderer policy. NWN compatibility still exists where the common
+runtime does not yet own equivalent data.</p>
+<h2 id="relationship-to-nwgfx">Relationship To nw::gfx</h2>
+<p><code>nw::gfx</code> owns the low-level graphics API boundary:</p>
+<ul>
+<li>devices, swapchains, buffers, textures, render targets</li>
+<li>shader and pipeline handles</li>
+<li>command recording and submission</li>
+<li>bindless texture indices and backend escape hatches</li>
+</ul>
+<p><code>nw::render</code> owns renderer meaning:</p>
+<ul>
+<li>model, material, animation, particle, light, shadow, and fog records</li>
+<li>GPU backend resources needed by renderer passes</li>
+<li>source-neutral frame protocols such as prepared model surface draws</li>
+<li>compatibility adapters for NWN sidecar data while bridge work is in progress</li>
+</ul>
+<p>If a change needs to know about models, particles, PLT, shadows, Forward+, or
+viewer scene data, it belongs in <code>nw::render</code> or above. If it only manages GPU
+resources and command submission, it belongs in <code>nw::gfx</code>.</p>
+<h2 id="main-runtime-pieces">Main Runtime Pieces</h2>
+<h3 id="renderservice">RenderService</h3>
+<p><code>RenderService</code> owns renderer singletons for the current graphics context:</p>
+<ul>
+<li><code>ModelGpuBackend</code></li>
+<li><code>ForwardPlusRenderer</code></li>
+<li><code>ShadowRenderer</code></li>
+<li><code>LocalShadowRenderer</code></li>
+<li><code>ParticleRenderer</code></li>
+<li><code>FogRenderer</code></li>
+<li>NWN compatibility GPU resources and render asset cache</li>
+</ul>
+<p>It returns two model contexts:</p>
+<ul>
+<li><code>ModelRenderContext</code>: common <code>RenderModel</code> / PBR submission context.</li>
+<li><code>nwn::ModelRenderContext</code>: NWN sidecar compatibility context.</li>
+</ul>
+<p>New common renderer code should use <code>ModelRenderContext</code> unless it actually
+needs NWN sidecar payloads.</p>
+<h3 id="model-data">Model Data</h3>
+<p>The modern model path centers on these records:</p>
+<ul>
+<li><code>ModelAsset</code>: CPU-side source-neutral model data before GPU upload.</li>
+<li><code>RenderModel</code>: uploaded model data and GPU handles.</li>
+<li><code>ModelInstance</code>: scene/runtime placement, visibility, animation state,
+  bounds, material overrides, and shadow summary.</li>
+<li><code>ModelInstanceHandle</code>: stable scene-owned handle with generation checking.</li>
+<li><code>PreparedModelDraw</code>: flat validated draw record collected from handles.</li>
+<li><code>PreparedModelSurfaceDraw</code>: smallest renderer-facing model surface command.</li>
+</ul>
+<p><code>PreparedModelSurfaceDraw</code> is the shared frame protocol. It carries source kind,
+source indices, pass/material data, transforms, skin index, bounds, and
+shadow-caster state. The array is sorted in place by pass/material needs.</p>
+<p>The renderer should not infer behavior from model, texture, or node names.
+Source-specific quirks should be lowered into explicit common records or kept in
+a compatibility sidecar with counters.</p>
+<h3 id="particles">Particles</h3>
+<p>The particle system is source-neutral:</p>
+<ul>
+<li>authoring data: <code>ParticleEffectDef</code></li>
+<li>compiled data: <code>CompiledParticleEffect</code></li>
+<li>runtime data: <code>ParticleSystemInstance</code></li>
+<li>render data: <code>ParticleRenderPacketList</code></li>
+</ul>
+<p>NWN emitters are imported into this protocol. The emitter field map lives in
+<a href="nwn_emitter_map.html">docs/nwn_emitter_map.md</a>, and the particle architecture
+overview lives in <a href="particle_system.html">docs/particle_system.md</a>.</p>
+<h3 id="lighting-shadows-and-fog">Lighting, Shadows, And Fog</h3>
+<p><code>RenderContext</code> carries per-frame camera, viewport, lighting, shadow, and
+Forward+ data. Area/viewer code prepares visible light lists and shadow caster
+sets before renderer passes consume them.</p>
+<p>Forward+ local light clustering, shadow rendering, local shadow maps, and fog
+are renderer services. <code>nw::gfx</code> only sees their buffers, textures, pipelines,
+and commands.</p>
+<h3 id="viewer-layer">Viewer Layer</h3>
+<p><code>lib/nw/render/viewer</code> is the preview/tooling bridge used by <code>mudl</code> and renderer
+tests. It owns preview-scene assembly, area visibility records, particle-owner
+binding, debug drawing, screenshots, and parity toggles.</p>
+<p>The viewer is not the production scene graph. It is where source adapters and
+common renderer contracts are exercised against real NWN/glTF data until a
+compiled runtime asset path exists.</p>
+<h2 id="source-conversion-notes">Source Conversion Notes</h2>
+<ul>
+<li><a href="gltf.html">docs/gltf.md</a>: glTF to <code>ModelAsset</code> / <code>RenderModel</code>.</li>
+<li><a href="nwn_model_conversion.html">docs/nwn_model_conversion.md</a>: NWN MDL to
+  common model data plus compatibility sidecars.</li>
+<li><a href="nwn_emitter_map.html">docs/nwn_emitter_map.md</a>: NWN emitter fields to the
+  neutral particle system.</li>
+</ul>
+<h2 id="existing-detailed-docs">Existing Detailed Docs</h2>
+<ul>
+<li><a href="prepared_model_draws.html">docs/prepared_model_draws.md</a></li>
+<li><a href="particle_system.html">docs/particle_system.md</a></li>
+<li><a href="forward_plus_gpu_driven_roadmap.html">docs/forward_plus_gpu_driven_roadmap.md</a></li>
+</ul>
+<h2 id="open-issues">Open Issues</h2>
+<ul>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/modern-runtime-sockets.md">Modern Runtime Sockets And Attachments</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-modern-pbr-material-calibration.md">NWN Modern PBR Material Calibration</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-lifecycle.md">Render Asset Cache Lifecycle</a></li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

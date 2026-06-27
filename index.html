@@ -1,253 +1,116 @@
-
-
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>rollNW &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-
-  
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="building" href="gs/building.html" /> 
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rollNW - rollNW</title>
+  <link rel="stylesheet" href="_static/site.css">
 </head>
-
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="#" class="icon icon-home">
-            rollNW
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="gs/building.html">building</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gs/using.html">using</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gs/differences.html">differences</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">structure</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/script.html">script</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
-</ul>
-
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">rollNW</a>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a class="active" href="index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="smalls/index.html">Smalls</a>
+<a href="smalls/spec.html">Smalls Language Spec</a>
+<a href="smalls/propset-architecture.html">Propset Architecture</a>
+<a href="rules/index.html">Rules</a>
+<a href="script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="gfx/index.html">nw::gfx</a>
+<a href="render/index.html">nw::render</a>
+<a href="render/gltf.html">glTF Rendering</a>
+<a href="render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="render/particle_system.html">Particle System</a>
+<a href="render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="mudl/index.html">mudl</a>
       </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">rollNW</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Aci"><img alt="ci" src="https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a> <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/rollnw/badge/?version=latest" /></a></p>
-<section id="rollnw">
-<h1>rollNW<a class="headerlink" href="#rollnw" title="Link to this heading"></a></h1>
-<p>rollNW is an homage to Neverwinter Nights in C++. It started
-as reusable NWN infrastructure and is broadening toward support for a
-modern authored RPG toolset/game: content formats, rules, scripting,
-rendering validation, networking foundations, and the runtime services
-needed to make those pieces authorable and playable.</p>
-<p>See the <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/">docs</a> and
-<a class="reference external" href="https://github.com/jd28/rollnw/tree/main/tests">tests</a> for more info,
-or open an IDE in browser in the quickstart section below.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>rollNW is in active transition. Older docs and APIs may show a
-narrower NWN library cross section of the project. Current work is
-reframing the codebase as a foundation for an authored RPG
-toolset/game,
-with <code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code> as the low-level graphics layer, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>
-and <code class="docutils literal notranslate"><span class="pre">mudl</span></code> for renderer-backed asset validation, and Smalls as the
-rule/script authoring path. Networking and runtime services are part
-of the long-term foundation. Until there is a real release, assume
-APIs and subsystem boundaries can move.</p>
-</div>
-<hr class="docutils" />
-<section id="features">
-<h2>features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>The beginnings of a novel <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/rules.html">Rules System</a> designed for
-easily adding, overriding, expanding, or removing any rule and reasonable performance</p></li>
-<li><p>A <a class="reference external" href="https://github.com/jd28/rollnw/blob/main/api/combat.cpp">combat engine</a> that’s very
-nearing being able to simulate melee battles.</p></li>
-<li><p>Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.</p></li>
-<li><p>A recursive descent <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/script.html">NWScript Parser</a>. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.</p></li>
-<li><p>Implementations of pretty much every <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/formats.html">NWN File Format</a></p></li>
-<li><p>NWN and glTF model rendering docs now live with the renderer code in
-<a class="reference external" href="https://github.com/jd28/rollnw/tree/main/lib/nw/render">lib/nw/render</a>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nw::gfx</span></code>, <code class="docutils literal notranslate"><span class="pre">lib/nw/render</span></code>, and <code class="docutils literal notranslate"><span class="pre">mudl</span></code> form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.</p></li>
-<li><p>A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.</p></li>
-<li><p>An implementation of NWN’s <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/i18n.html">Localization System</a> focused
-on utf8 everywhere.</p></li>
-<li><p>Smalls is the active rules/script transition path for modern embedded tooling and rule experiments.</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="goals">
-<h2>goals<a class="headerlink" href="#goals" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN.</p></li>
-<li><p>keeps current implementation focused on practical foundations first: rules, content formats, renderer validation, authoring workflows, and the services a playable toolset/game will need.</p></li>
-<li><p>focuses on authoring and usage, instead of doing things the Aurora Engine Way.</p></li>
-<li><p>follows <a class="reference external" href="https://utf8everywhere.org/">utf8 everywhere</a>.</p></li>
-<li><p>hews as close to <a class="reference external" href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core
-Guidelines</a>
-as possible.</p></li>
-<li><p>aims to be as easily bindable as possible to other languages. I.e.
-only library specific or STL types at API boundaries.</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="quickstart-open-vs-code-in-your-browser">
-<h2>quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Link to this heading"></a></h2>
-<p><a class="reference external" href="https://gitpod.io/#https://github.com/jd28/rollnw"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg" /></a></p>
-<p><a class="reference external" href="https://github.com/features/codespaces">Github Codespaces</a> is
-available to those in the beta.</p>
-</section>
-<hr class="docutils" />
-<section id="history">
-<h2>History<a class="headerlink" href="#history" title="Link to this heading"></a></h2>
-<p>A lot of what’s here was written in the 2011-2015 range as part of
-personal minimalist toolset, modernized and with new EE stuff added. In
-some sense, it’s a work of historical fiction - it’s what I’d have
-suggested at the start of NWN:EE: get the game and the community on the
-same set of libraries. Similarly to an older project that asked <a class="reference external" href="https://solstice.readthedocs.io/en/latest/">“what
-if Bioware had stuck with Lua?”</a>. The answer to
-that was pretty positive: a decade ahead, at least, of nwscript.</p>
-</section>
-<hr class="docutils" />
-<section id="moonshots">
-<h2>Moonshots<a class="headerlink" href="#moonshots" title="Link to this heading"></a></h2>
-<p>You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
-question why, it’s but to do and die and learn and maybe make neat
-things. In that spirit, here is a list of crazy projects that this
-library hopes to facilitate and that all fly in the face of “WHY?”.</p>
-<ul class="simple">
-<li><p>A nwscript <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language
-Server</a></p></li>
-<li><p>A modern, cross-platform nwexplorer.</p></li>
-<li><p>And, of course, the ever elusive open source NWN Toolset, with
-plugins, scripting, and a built-in console.</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="credits">
-<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a> - The game itself</p></li>
-<li><p><a class="reference external" href="https://abseil.io/">abseil</a> - Foundational</p></li>
-<li><p><a class="reference external" href="https://github.com/catchorg/Catch2">Catch2</a> - Testing</p></li>
-<li><p><a class="reference external" href="https://www.opengl.org/sdk/libs/GLM/">glm</a> - Mathematics</p></li>
-<li><p><a class="reference external" href="https://www.vulkan.org/">Vulkan</a>,
-<a class="reference external" href="https://github.com/ocornut/imgui">Dear ImGui</a> - Graphics and tool UI</p></li>
-<li><p><a class="reference external" href="https://github.com/emilk/loguru">loguru</a>,
-<a class="reference external" href="https://github.com/fmtlib/fmt">fmt</a> - Logging</p></li>
-<li><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>,
-<a class="reference external" href="https://github.com/virusman/nwnexplorer">NWNExplorer</a>,
-<a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a> - Image/Texture loading.</p></li>
-<li><p><a class="reference external" href="https://github.com/benhoyt/inih">inih</a> - INI, SET parsing</p></li>
-<li><p><a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a> - JSON</p></li>
-<li><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a> - For settings.tml</p></li>
-<li><p><a class="reference external" href="https://www.gnu.org/software/libiconv/">libiconv</a>,
-<a class="reference external" href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string conversion</p></li>
-<li><p><a class="reference external" href="https://www.sphinx-doc.org/en/master/">sphinx</a> - documentation</p></li>
-</ul>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/README.md">Source</a></div>
+      <aside class="notice notice-transitional"><span class="notice-label">transitional</span><p>rollNW is in active transition. Older docs and APIs may show a narrower NWN-library view of the project.</p></aside>
+      <article class="content">
+<p><a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+<a href="https://github.com/jd28/rollnw/actions?query=workflow%3Aci"><img alt="ci" src="https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg"></a>
+<a href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg"></a>
+<a href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU"></a></p>
+<h1 id="rollnw">rollNW</h1>
+<p>rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the <a href="https://jd28.github.io/rollnw/">docs</a> and <a href="https://github.com/jd28/rollnw/tree/main/tests">tests</a> for more info. Opening an IDE is going to get the most current view.</p>
+<p><strong>Transition warning:</strong> rollNW is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Until there is a real release, assume APIs and subsystem boundaries can move.</p>
+<h2 id="features">Features</h2>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="gs/building.html">building</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gs/using.html">using</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gs/differences.html">differences</a></li>
+<li>Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the <a href="https://jd28.github.io/rollnw/smalls/">docs</a> for a language spec.</li>
+<li>The beginnings of a novel rules system and combat engine built on Smalls.</li>
+<li><a href="https://jd28.github.io/rollnw/gfx/"><code>nw::gfx</code></a>, a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.</li>
+<li><a href="https://jd28.github.io/rollnw/render/"><code>nw::render</code></a>, the 3D renderer built on <code>nw::gfx</code>: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.</li>
+<li>Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON. See the <a href="https://jd28.github.io/rollnw/objects/">legacy object notes</a> for runtime handle/loading context.</li>
+<li>A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.</li>
+<li>Implementations of pretty much every NWN file format</li>
+<li>An implementation of NWN's localization system focused on utf8 everywhere.</li>
+<li>A recursive descent <a href="https://jd28.github.io/rollnw/script/">NWScript Parser</a>. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.</li>
 </ul>
-</div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<h2 id="tools">Tools</h2>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/script.html">script</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
+<li><a href="https://jd28.github.io/rollnw/mudl/"><code>mudl</code></a>, a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the <a href="https://jd28.github.io/rollnw/render/">renderer docs</a>, including the <a href="https://jd28.github.io/rollnw/render/particle_system.html">particle system overview</a>.</li>
 </ul>
-</div>
-</section>
-</section>
-
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="gs/building.html" class="btn btn-neutral float-right" title="building" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright .</p>
+<h2 id="goals">Goals</h2>
+<ul>
+<li>aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN, with current effort on the practical pieces (rules, content formats, renderer validation, authoring workflows) a playable toolset/game will need.</li>
+<li>focuses on authoring and usage, instead of doing things the Aurora Engine Way.</li>
+<li>follows <a href="https://utf8everywhere.org/">utf8 everywhere</a>.</li>
+<li>hews as close to <a href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core Guidelines</a> as possible.</li>
+<li>aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.</li>
+</ul>
+<h2 id="graphics-layer-guardrails">Graphics Layer Guardrails</h2>
+<p><code>lib/nw/gfx</code> is intentionally a thin rendering abstraction and Vulkan utility layer, not a game engine framework. See the <a href="https://jd28.github.io/rollnw/gfx/">gfx docs</a>.</p>
+<h2 id="building-installing">Building / Installing</h2>
+<p>The library uses <a href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a> as its build system. The naming convention for non-ci presets is <code>{platform}[-renderer][-{build tool}]-dev[-debug]</code>. Renderer presets build the platform's supported graphics tools; macOS does not currently have renderer presets because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.</p>
+<p>Examples:</p>
+<pre><code>$ cmake --preset=linux-dev
+$ cmake --preset=linux-renderer-dev
+$ cmake --preset=macos-dev-debug
+$ cmake --preset=windows-vs2019-dev-debug
+$ cmake --preset=windows-renderer-dev
+$ cmake --preset=windows-dev
+</code></pre>
+<p>Once your configuration is done, everything is the same between platforms. To build:</p>
+<pre><code>$ cmake --build --preset=default
+$ cmake --build --preset=debug
+</code></pre>
+<p>To install all binaries and test data to local <code>bin</code> dir (build or build-debug):</p>
+<pre><code>$ cmake --install build --prefix=.
+$ cd bin
+$ ./rollnw_benchmark
+</code></pre>
+<p>To run ctest:</p>
+<pre><code>$ ctest --preset=default
+</code></pre>
+<h2 id="history">History</h2>
+<p>A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries. Similarly to an older project that asked what if Bioware had stuck with Lua? The answer to that was pretty positive: a decade ahead, at least, of nwscript.</p>
+<h2 id="credits">Credits</h2>
+<ul>
+<li><a href="https://bioware.com">Bioware</a>, <a href="https://beamdog.com">Beamdog</a> - The game itself</li>
+<li><a href="https://abseil.io/">abseil</a> - Foundational</li>
+<li><a href="https://github.com/google/googletest">GoogleTest</a> - Testing</li>
+<li><a href="https://www.opengl.org/sdk/libs/GLM/">glm</a> - Mathematics</li>
+<li><a href="https://www.vulkan.org/">Vulkan</a>, <a href="https://github.com/ocornut/imgui">Dear ImGui</a> - Graphics and tool UI</li>
+<li><a href="https://github.com/emilk/loguru">loguru</a>, <a href="https://github.com/fmtlib/fmt">fmt</a> - Logging</li>
+<li><a href="https://github.com/nothings/stb">stbi_image</a>, <a href="https://github.com/virusman/nwnexplorer">NWNExplorer</a>, <a href="https://github.com/SpartanJ/SOIL2/">SOIL2</a> - Image/Texture loading.</li>
+<li><a href="https://github.com/benhoyt/inih">inih</a> - INI, SET parsing</li>
+<li><a href="https://github.com/nlohmann/json">nholmann_json</a> - JSON</li>
+<li><a href="https://www.gnu.org/software/libiconv/">libiconv</a>, <a href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string conversion</li>
+<li><a href="https://python-markdown.github.io/">Python-Markdown</a> - documentation rendering</li>
+</ul>
+      </article>
+    </main>
   </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
 </body>
 </html>

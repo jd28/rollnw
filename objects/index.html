@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Objects - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a class="active" href="index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/docs/objects.md">Source</a></div>
+      <aside class="notice notice-legacy"><span class="notice-label">legacy</span><p>Object handles and loading remain useful runtime context. New game-data direction is Smalls propsets.</p></aside>
+      <article class="content">
+<h1 id="objects">Objects</h1>
+<p>This page preserves the still-useful runtime object context from the older
+Sphinx docs. It is not the future game-data model. New authored game data should
+move through <a href="../smalls/propset-architecture.html">Smalls propsets</a>, with
+engine systems owning only the native arrays they need for their hot paths.</p>
+<h2 id="runtime-handles">Runtime Handles</h2>
+<p><code>ObjectID</code> is an index into the object storage, not a one-to-one permanent
+identity for a game object.</p>
+<p><code>ObjectHandle</code> identifies a specific live object slot. It combines the object
+id, object type, and a 16-bit version. A handle is valid only when all of those
+fields still match the object array.</p>
+<p><code>ObjectBase</code> is the shared base for loaded runtime objects.</p>
+<h2 id="kernel-service">Kernel Service</h2>
+<p>Objects loaded through the kernel object service belong to that service and must
+be destroyed through it.</p>
+<pre><code class="language-cpp">auto obj = nw::kernel::objects().load&lt;nw::Creature&gt;(fs::path(&quot;a/path/to/nw_chicken.utc&quot;));
+nw::kernel::objects().destroy(obj-&gt;handle());
+</code></pre>
+<p>After destroy, direct access to the object pointer is invalid and any stored
+handle no longer resolves to that object version.</p>
+<h2 id="current-boundary">Current Boundary</h2>
+<p>The compatibility object layer still loads NWN blueprints and area instances
+from GFF or JSON through resman or the filesystem. That is useful for toolset
+loading, renderer previews, and migration. Rules and game-data ownership should
+not grow around these object classes when a Smalls propset or native subsystem
+array is the simpler explicit data owner.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

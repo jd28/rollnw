@@ -1,0 +1,1900 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smalls Language Spec - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="index.html">Smalls</a>
+<a class="active" href="spec.html">Smalls Language Spec</a>
+<a href="propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/spec.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="smalls-language-design-document">Smalls Language Design Document</h1>
+<p><strong>Version</strong>: 0.9.0
+<strong>Last Updated</strong>: 2026-02-09</p>
+<p>This document mixes language contracts and current implementation notes. It is a work-in-progress.</p>
+<h2 id="i-vision-philosophy">I. Vision &amp; Philosophy</h2>
+<p>Smalls is a statically-typed language for implementing RPG rulesets, combining a modern type system with zero-overhead C++ interop.</p>
+<h3 id="goals-philosophies">Goals &amp; Philosophies</h3>
+<ul>
+<li><strong>Modern type system</strong> — sum types, pattern matching, newtype wrappers, generics</li>
+<li><strong>Zero-overhead C++ interop</strong> — script types map directly to C++ memory layouts</li>
+<li><strong>Simple, streamlined syntax</strong></li>
+<li><strong>Fast compilation</strong> — optimized for hot-reloading</li>
+<li><strong>Zero Is Initialization</strong> — All types are initialized to zero, i.e. <code>memset(blob, sizeof(Type), 0)</code>.</li>
+<li><strong>Config &amp; Serialization Are Struct Literals</strong> — Why have separate file formats (TOML, ini, JSON, etc) when there's already a parser for struct literals?</li>
+<li><strong>Bytecode as an Implementation Detail</strong> — no bytecode exposure</li>
+<li><strong>Single-Threaded Execution</strong> — Each script runs on a single thread. No concurrent access to VM state. Engine manages threading externally.</li>
+</ul>
+<h3 id="language-contracts-vs-implementation-details">Language Contracts vs Implementation Details</h3>
+<p>Scripts can rely on these <strong>language contracts</strong>:
+- <strong>Type semantics</strong>: Memory layouts, field ordering, alignment rules
+- <strong>Value type guarantees</strong>: <code>[[value_type]]</code> structs and <code>T[N]</code> arrays are stack-allocatable with C-compatible layout
+- <strong>Module semantics</strong>: Import resolution, namespace scoping, circular dependency detection
+- <strong>Operator behavior</strong>: Defined semantics for all operators on all types
+- <strong>Sum type layout</strong>: Tag + payload structure, pattern matching exhaustiveness</p>
+<p>These are <strong>implementation details</strong> controlled by the engine:
+- <strong>GC scheduling</strong>: When minor/major collections occur (allocation-triggered GC is advisory, not contractual)
+- <strong>GC thresholds</strong>: <code>GCConfig</code> values are tuning parameters, not guarantees
+- <strong>Gas/limits</strong>: Resource limits configured per-execution (default-on, can be disabled)
+- <strong>Debug hooks</strong>: <code>gc_collect()</code>, tracing, profiling APIs are for testing/debugging only
+- <strong>Bytecode format</strong>: Internal representation may change between versions
+- <strong>Register allocation</strong>: Compiler internals, not observable from scripts</p>
+<h3 id="system-limits">System Limits</h3>
+<p>Practical constraints to prevent resource exhaustion and ensure predictable behavior:</p>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VM Registers (per frame)</td>
+<td>256</td>
+<td>VM opcodes address registers with 8-bit indices</td>
+</tr>
+<tr>
+<td>VM Register Stack (total)</td>
+<td>8192</td>
+<td>Global register file backing all call frames</td>
+</tr>
+<tr>
+<td>Max Call Depth</td>
+<td>64</td>
+<td>Prevent stack overflow from infinite recursion</td>
+</tr>
+<tr>
+<td>Max String Length</td>
+<td>TBD</td>
+<td>Prevent memory exhaustion from large strings</td>
+</tr>
+<tr>
+<td>Max Array Size</td>
+<td>TBD</td>
+<td>Prevent memory exhaustion from large arrays</td>
+</tr>
+<tr>
+<td>Gas Limit</td>
+<td>Default 100k, 0=unlimited</td>
+<td>Prevent infinite loops and runaway scripts</td>
+</tr>
+<tr>
+<td>Max Struct Fields</td>
+<td>TBD</td>
+<td>Keep type metadata manageable</td>
+</tr>
+<tr>
+<td>Max Generic Nesting</td>
+<td>TBD</td>
+<td>Prevent <code>map!(map!(map!(...)))</code> pathological cases</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes</strong>:
+- TBD limits will be determined during implementation based on practical needs
+- Gas metering is enabled by default per execution; pass <code>gas_limit=0</code> for unlimited
+- Gas is decremented on backward jumps and function calls; exhaustion fails with "Script exceeded execution limit"
+- Limits enforced at compile-time where possible, runtime otherwise
+- Engine can override limits for trusted scripts if needed</p>
+<p><strong>GC Control Policy</strong>:
+- The <strong>engine</strong> is responsible for scheduling garbage collection, not scripts
+- Allocation may trigger minor/major GC based on <code>GCConfig</code> thresholds, but this is advisory
+- <code>gc-&gt;collect_minor()</code> / <code>gc-&gt;collect_major()</code> are <strong>test/debug APIs only</strong>, not part of the scripting surface
+- Scripts must treat GC as opaque; correctness cannot depend on when collections occur</p>
+<h4 id="implementation">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/runtime.cpp</code> — registers <code>core.prelude.gc_collect</code>
+- <code>lib/nw/smalls/scripts/core/prelude.smalls</code> — declares the <code>core.prelude</code> API surface (<code>[[native]] fn ...</code>)
+- <code>lib/nw/smalls/GarbageCollector.cpp</code> — implements <code>collect_minor()</code> / <code>collect_major()</code></p>
+<hr>
+<h2 id="ii-type-system">II. Type System</h2>
+<h3 id="builtin-types">Builtin Types</h3>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>C++ Equivalent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int</code></td>
+<td><code>int32_t</code></td>
+<td>Fixed-size integer</td>
+</tr>
+<tr>
+<td><code>float</code></td>
+<td><code>float</code></td>
+<td>32-bit float</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td><code>bool</code></td>
+<td>Boolean</td>
+</tr>
+</tbody>
+</table>
+<h3 id="type-definitions-forms">Type Definitions &amp; Forms</h3>
+<pre><code class="language-go">// Type alias (different name for abbreviation, documentation, etc)
+type Gold = int;
+
+// Type alias with generics
+type StringMap = map!(string, string);
+type IntList = array!(int);
+
+// Newtype (distinct type at compile-time, same representation at runtime)
+type Feat(int);
+
+// Product type (struct) - note: semicolon-delimited members
+type Point {
+    x: float;
+    y: float;
+};
+
+// Multiple identifiers with same type
+type Point3D {
+    x, y, z: float;
+};
+
+// Tuple - anonymous product type with structural equality
+(int, float, string)
+
+// Sum type (tagged union / algebraic data type)
+type Result = Ok(int) | Err(string);
+
+// Sum type with unit variants
+type Color = Red | Green | Blue;
+
+// Opaque types - not declared in scripts, registered from C++ engine code
+</code></pre>
+<h3 id="struct-types">Struct Types</h3>
+<h4 id="member-syntax">Member Syntax</h4>
+<ul>
+<li><strong>Separator</strong>: Required semicolons (<code>;</code>) after each member declaration</li>
+<li><strong>Multiple identifiers</strong>: Supported — <code>x, y, z: Type;</code> expands to multiple fields</li>
+<li><strong>Type annotation</strong>: Uses colon syntax — <code>name: Type;</code></li>
+</ul>
+<h4 id="brace-initialization">Brace Initialization</h4>
+<p>Three forms supported for aggregate type initialization (structs, arrays, maps):</p>
+<ol>
+<li><strong>Named field syntax</strong>: <code>{ field = value, field2 = value2 }</code></li>
+<li>Fields can appear in any order</li>
+<li>Uninitialized fields default to zero</li>
+<li>Example: <code>Point { y = 2.0, x = 1.0 }</code></li>
+<li><strong>Positional syntax</strong>: <code>{ value1, value2, value3 }</code></li>
+<li>If initializing a struct: Values must match field declaration order, all fields not provided default to zero.</li>
+<li>Example: <code>Point { 1.0, 2.0 }</code> or <code>{ 1.0, 2.0 }</code> in places type can be inferred.</li>
+<li>This syntax is also used to initialize array types.</li>
+<li><strong>Key/Value syntax</strong>: <code>{ key1: value1, key2: value2 }</code></li>
+<li>Used only in constructing mapping types, hashtables, etc.</li>
+</ol>
+<p><strong>Note</strong>: Trailing commas are allowed in all three syntax forms.</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-go">type Point { x, y: float; };
+type Color { r, g, b, a: float; };
+
+// Named field initialization
+const p1 = Point { x = 1.0, y = 2.0 };
+const p2 = Point { y = 3.0, x = 4.0 };  // Order doesn't matter
+
+// Positional initialization
+const p3 = Point { 1.0, 2.0 };
+const c1 = Color { 1.0, 0.5, 0.0, 1.0 };
+
+// Mixed with nested structs
+type Line { start, end: Point; };
+const line = Line {
+    start = { 0.0, 0.0 },
+    end = { 10.0, 10.0 }
+};
+</code></pre>
+<h3 id="newtype-wrappers">Newtype Wrappers</h3>
+<p>Newtypes create distinct types at compile-time while sharing the same runtime representation as their underlying type. This provides type safety without runtime overhead:</p>
+<pre><code class="language-go">type HP(int);
+type Gold(int);
+
+fn damage_creature(creature: object, amount: HP) { ... }
+fn buy_item(cost: Gold) { ... }
+
+var health: HP = HP(100);
+var money: Gold = Gold(50);
+
+damage_creature(obj, health);  // ✓ Correct
+damage_creature(obj, money);   // ✗ Compile error: Gold is not HP
+buy_item(health);              // ✗ Compile error: HP is not Gold
+</code></pre>
+<p><strong>Key properties</strong>:
+- <strong>Distinct at compile-time</strong>: <code>Feat(1)</code> and <code>Gold(1)</code> are different types
+- <strong>Identical at runtime</strong>: Both stored as <code>int32_t</code>, no wrapper overhead
+- <strong>Explicit construction</strong>: Must wrap value: <code>Feat(42)</code>, not just <code>42</code> (casts to newtype are rejected)
+- <strong>Explicit unwrapping</strong>: Access underlying value with cast: <code>(feat as int)</code>
+- <strong>Type safety</strong>: Prevents accidental mixing of semantically different values</p>
+<h4 id="implementation_1">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstResolver.hpp</code> — resolves newtype declarations
+- <code>lib/nw/smalls/types.hpp</code> — <code>TK_newtype</code> type kind</p>
+<h3 id="sum-types-pattern-matching">Sum Types &amp; Pattern Matching</h3>
+<p>Sum types (also known as tagged unions or algebraic data types) allow a value to be one of several variants. Each variant can optionally carry payload data.</p>
+<h4 id="sum-type-declaration">Sum Type Declaration</h4>
+<pre><code class="language-go">// Simple enum-style (unit variants)
+type Color = Red | Green | Blue;
+
+// Variants with payloads
+type Result = Ok(int) | Err(string);
+
+// Mixed variants (some with payloads, some without)
+type Option = Some(int) | None;
+
+// Multiple payload types (tuple syntax)
+type Shape = Circle(float) | Rectangle(float, float) | Point;
+</code></pre>
+<p><strong>Key features</strong>:
+- Pipe-separated variant list: <code>Variant1 | Variant2 | ...</code>
+- Unit variants have no payload: <code>Red</code>, <code>None</code>
+- Single payload: <code>Ok(int)</code>, <code>Circle(float)</code>
+- Multiple payloads use tuple syntax: <code>Rectangle(float, float)</code>
+- Nominal typing: Each sum type declaration creates a distinct type</p>
+<h4 id="variant-construction">Variant Construction</h4>
+<p>Variants are constructed using qualified access (Rust-style). Variants are members of their sum type's namespace:</p>
+<pre><code class="language-go">type Result = Ok(int) | Err(string);
+type Color = Red | Green | Blue;
+
+// Payload variants - use qualified call syntax
+var r: Result = Result.Ok(42);
+var e: Result = Result.Err(&quot;something failed&quot;);
+
+// Unit variants - use qualified member access
+var c: Color = Color.Red;
+</code></pre>
+<p><strong>With modules</strong>:</p>
+<pre><code class="language-go">from core.errors import { Result };
+var r: Result = Result.Ok(42);  // Qualified access
+
+import core.errors as err;
+var r: err.Result = err.Result.Ok(42);
+</code></pre>
+<p><strong>Type aliases do not create variant namespaces</strong>:</p>
+<pre><code class="language-go">type Result = Ok(int) | Err(string);
+type MyResult = Result;  // Just another name for Result
+var r: MyResult = Result.Ok(42); // ✓ Use original type name
+// NOT: MyResult.Ok(42) - aliases don't have their own variants
+</code></pre>
+<p><strong>Construction rules</strong>:
+- Payload variants: <code>TypeName.VariantName(args)</code> — CallExpression with arguments
+- Unit variants: <code>TypeName.VariantName</code> — DotExpression with no call
+- Argument types must match variant payload (single type or tuple)
+- Variants are members of the sum type namespace (prevents naming conflicts)</p>
+<p><strong>Generic sum constructors</strong>:
+- Payload variants can infer type arguments from argument types
+- Unit variants require an expected type context (e.g., a variable annotation or function return type)</p>
+<h4 id="pattern-matching">Pattern Matching</h4>
+<p>Pattern matching on sum types is done via <code>switch</code> statements:</p>
+<pre><code class="language-go">type Result = Ok(int) | Err(string);
+
+fn process(r: Result): int {
+    switch (r) {
+        case Ok(value):
+            return value;
+        case Err(msg):
+            return -1;
+    }
+}
+</code></pre>
+<p><strong>Pattern syntax</strong>:
+- <strong>Unit variant</strong>: <code>case VariantName:</code> — Matches variant with no payload
+- <strong>Single binding</strong>: <code>case Ok(x):</code> — Binds payload to variable <code>x</code>
+- <strong>Multiple bindings</strong>: <code>case Rectangle(w, h):</code> — Binds tuple elements to <code>w</code> and <code>h</code>
+- <strong>Guard expression</strong>: <code>case Ok(x) if x &gt; 0:</code> — Additional condition on binding</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-go">// Unit variants
+type Color = Red | Green | Blue;
+fn describe_color(c: Color): string {
+    switch (c) {
+        case Red:   return &quot;red&quot;;
+        case Green: return &quot;green&quot;;
+        case Blue:  return &quot;blue&quot;;
+    }
+}
+
+// Single payload with bindings
+type Option = Some(int) | None;
+fn unwrap_or(opt: Option, or_value: int): int {
+    switch (opt) {
+        case Some(value): return value;
+        case None:        return or_value;
+    }
+}
+
+// Multiple payloads (tuple destructuring)
+type Shape = Circle(float) | Rectangle(float, float) | Point;
+fn area(s: Shape): float {
+    switch (s) {
+        case Circle(radius):        return 3.14 * radius * radius;
+        case Rectangle(width, height): return width * height;
+        case Point:                  return 0.0;
+    }
+}
+
+// Guard expressions
+type Result = Ok(int) | Err(string);
+fn get_positive(r: Result): int {
+    switch (r) {
+        case Ok(x) if x &gt; 0: return x;
+        case Ok(x):           return 0;
+        default:               return -1;
+    }
+}
+</code></pre>
+<p><strong>Type checking &amp; validation</strong>:
+- Variant names must exist in the sum type
+- Binding count must match payload type (1 for single, N for tuple)
+- Bindings are automatically typed based on payload
+- Guard expressions must be boolean
+- <strong>Exhaustiveness checking</strong>: Compiler errors if not all variants are covered (unless <code>default</code> is present)</p>
+<p><strong>Switch semantics</strong>:
+- <strong>No implicit fallthrough</strong>: Unlike C/C++, cases do not fall through. Each case is independent and execution exits the switch after the case body completes. This applies to all switch types (int, string, sum types).
+- <code>break</code> statements are unnecessary (but allowed for compatibility)</p>
+<p><strong>Memory layout</strong>: C-compatible tag + union structure. Tag is <code>uint32_t</code> at offset 0. Union for payloads aligned after tag. <code>SumDef</code> stores <code>payload_offset</code>, <code>variant_count</code>, and per-variant info (<code>name</code>, <code>payload_type</code>). The <code>contains_heap_refs</code> flag is <code>true</code> if ANY variant has a heap-referencing payload.</p>
+<p><strong>Initialization enforcement</strong>: Sum type variables must have an initializer at the declaration site — <code>var x: MySum</code> without a variant expression is a compile error. The compiler always emits <code>SUMINIT</code> immediately after <code>NEWSUM</code>, so a zero-filled but uninitialized sum cannot appear in valid compiled code. As a secondary defense, the <code>SUMGETTAG</code> handler validates the tag against <code>variant_count</code> and calls <code>fail()</code> if it is out of range, catching memory corruption or compiler bugs.</p>
+<p><strong><em>See [VII.Type-Specific Tracing]</em></strong></p>
+<h4 id="implementation_2">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>NEWSUM</code>, <code>SUMINIT</code>, <code>SUMGETTAG</code>, <code>SUMGETPAYLOAD</code> opcodes
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>alloc_sum</code>, <code>write_sum_tag/payload</code>, <code>read_sum_tag/payload</code>
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — variant construction and pattern match dispatch
+- <code>lib/nw/smalls/Validator.hpp</code> — exhaustiveness checking</p>
+<p><strong>Opcodes</strong>:
+- <code>NEWSUM rA, Bx</code> — Allocates sum value on heap, stores pointer in rA. Bx is type index.
+- <code>SUMINIT rA, B, C</code> — Sets tag (B) and payload (rC) for sum in rA. C=255 means no payload (unit variant).
+- <code>SUMGETTAG rA, rB, _</code> — Extracts tag value from sum in rB, stores in rA.
+- <code>SUMGETPAYLOAD rA, rB, C</code> — Extracts payload from sum in rB for variant index C, stores in rA.</p>
+<h3 id="tuple-types">Tuple Types</h3>
+<p>Tuples are anonymous product types with structural equality. The primary use case is <strong>multiple return values</strong>.</p>
+<p><strong>Structural Typing</strong>: Tuple types are compared by structure, not by name:
+- <code>(int, int)</code> in module A is the same type as <code>(int, int)</code> in module B
+- Tuples with identical element types are deduplicated at runtime</p>
+<p><strong>Multiple Return Values</strong>:</p>
+<pre><code class="language-go">fn swap(x: int, y: int): (int, int) {
+    return y, x;  // Implicit tuple creation
+}
+</code></pre>
+<p><strong>Tuple Destructuring</strong>:</p>
+<pre><code class="language-go">fn test() {
+    var a, b = swap(1, 2);  // Declaration destructuring
+    a, b = swap(b, a);      // Assignment destructuring
+}
+</code></pre>
+<p><strong>Tuple Indexing</strong>:</p>
+<pre><code class="language-go">fn test() {
+    var tuple = (42, 3.14, &quot;hello&quot;);
+    var x = tuple[0];  // x: int = 42
+    var y = tuple[1];  // y: float = 3.14
+    var z = tuple[2];  // z: string = &quot;hello&quot;
+}
+</code></pre>
+<p><strong>Key Features</strong>:
+- Destructuring in declarations and assignments
+- Index access with <code>[N]</code> syntax where N is a compile-time constant
+- Variable count must match tuple element count in destructuring
+- Bounds checking at compile-time
+- Works with both <code>var</code> and <code>const</code> declarations</p>
+<h4 id="implementation_3">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/types.hpp</code> — <code>TupleDef</code> (size, alignment, element_count, element_types[], offsets[])
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>NEWTUPLE</code>, <code>GETTUPLE</code> opcodes
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — tuple construction and destructuring</p>
+<h3 id="function-types-closures">Function Types &amp; Closures</h3>
+<p>Functions are first-class values with explicit function types and lexical closures.</p>
+<p><strong>Function type syntax</strong>:
+- <code>fn(int, string): bool</code>
+- <code>fn(int, string)</code> (implicit <code>void</code> return)</p>
+<p><strong>Lambda syntax</strong>:</p>
+<pre><code class="language-go">fn(x: int): int { return x + 1; }
+fn(x: int) { print(x); } // void return inferred
+</code></pre>
+<p><strong>Return type inference</strong>:
+- If the return type is omitted, the compiler infers it from <code>return</code> statements
+- No returns → <code>void</code>
+- Multiple returns must agree on a compatible type</p>
+<p><strong>Closure semantics</strong>:
+- Lexical capture by reference (Lua-style upvalues)
+- Mutations in a closure update the captured variable
+- Closures share upvalues when capturing the same variable
+- Upvalues close when the owning frame exits (return or error unwind)</p>
+<h4 id="implementation_4">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>CLOSURE</code>, <code>GETUPVAL</code>, <code>SETUPVAL</code>, <code>CLOSEUPVALS</code>, <code>CALLCLOSURE</code> opcodes
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>Upvalue</code> struct, <code>ClosureObject</code>
+- <code>lib/nw/smalls/AstCompiler.hpp</code> — <code>compile_lambda()</code>, upvalue index management</p>
+<h3 id="generics">Generics</h3>
+<p><strong>Status</strong>: Complete — Full support for generic functions with type inference and on-demand monomorphization.</p>
+<p>Smalls supports <strong>lightweight monomorphization</strong> for generic functions — think <strong>type-safe C macros</strong>. Use <code>$T</code> syntax for type parameters that get inferred at call sites and specialized at compile-time.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-go">// Just use $T in the signature - no explicit type parameter list needed
+fn max(a: $T, b: $T): $T {
+    return a &gt; b ? a : b;
+}
+
+// Multiple type parameters
+fn map(arr: array!($T), f: fn($T): $U): array!($U) {
+    var result: array!($U);
+    for (var item in arr) {
+        result.append(f(item));
+    }
+    return result;
+}
+</code></pre>
+<p><strong>Key Design Principles</strong>:
+1. <strong>Structural typing</strong> — Type parameters constrained by usage (duck typing), not explicit bounds
+2. <strong>Monomorphization</strong> — Compiler generates specialized version for each concrete type usage
+3. <strong>Compile-time only</strong> — No runtime type parameters or vtables
+4. <strong>Full type inference</strong> — Type arguments deduced from call site, no manual specification needed
+5. <strong>Zero ceremony</strong> — No explicit type parameter lists, just use <code>$T</code> inline</p>
+<p><strong>How It Works</strong>:
+1. Parser sees <code>$T</code> in signature — marks function as generic
+2. At call site <code>max(10, 20)</code>, compiler infers <code>$T = int</code> from arguments
+3. Clones function AST and replaces all <code>$T</code> → <code>int</code>
+4. Type-checks specialized version (does <code>int</code> support <code>&gt;</code>? yes)
+5. Compiles specialized bytecode as <code>max_int</code>
+6. Caches by <code>(func_name, [type_args])</code> — reused for future <code>max(int, int)</code> calls</p>
+<p><strong>Call Site Examples</strong>:</p>
+<pre><code class="language-go">var x = max(10, 20);              // $T inferred as int
+var y = max(1.5, 2.5);            // $T inferred as float
+var squared = map(nums, fn(x) { return x * x; });  // $T = int, $U = int
+</code></pre>
+<p><strong>Type Parameter Rules</strong>:
+- <code>$T</code>, <code>$U</code>, <code>$V</code>, etc. — Single uppercase letter prefixed with <code>$</code>
+- Scoped to function declaration (not visible outside)
+- Can appear in parameter types, return type, and function body
+- Inferred from call site arguments — no manual specification</p>
+<p><strong>Generic Types (Structs/Sum Types)</strong>:</p>
+<p>Smalls supports generic struct and sum type definitions using explicit type parameter syntax:</p>
+<pre><code class="language-go">// Generic struct
+type Pair!($A, $B) {
+    first: $A;
+    second: $B;
+};
+
+// Generic sum type
+type Option!($T) = Some($T) | None;
+
+// Usage - explicit type arguments required
+var pair: Pair!(int, string) = { 42, &quot;hello&quot; };
+</code></pre>
+<p><strong>Limitations</strong>:
+- Monomorphization increases binary size (one copy per type combination)
+- Compile-time only (no dynamic dispatch or runtime generics)
+- Function type parameters must be fully inferrable from arguments
+- Type parameters for generic types usually require explicit specification at usage
+- Sum variant constructors can infer type arguments from payloads or the expected type
+- No <code>where $T: Comparable</code> syntax (structural typing only)
+- No explicit instantiation for functions (type arguments always inferred)</p>
+<h4 id="implementation_5">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstResolver.hpp</code> — <code>get_or_instantiate_type()</code>, type substitution maps
+- <code>lib/nw/smalls/AstCompiler.hpp</code> — <code>compile_instantiated()</code>, generic function compilation
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>get_or_instantiate()</code> for specialized function skeletons</p>
+<p><strong>Key data structures</strong>:
+- <code>AstResolver::type_substitutions_</code> — maps <code>$T</code> names to concrete TypeIDs during instantiation
+- <code>CallExpression::inferred_type_args_</code> — stores inferred type arguments at call sites</p>
+<h3 id="arrays-maps">Arrays &amp; Maps</h3>
+<p>Smalls has two distinct array forms with different semantics:</p>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Category</th>
+<th>Storage</th>
+<th>Resizable</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array!(T)</code></td>
+<td>Dynamic array</td>
+<td>Heap object (HeapPtr)</td>
+<td>Yes</td>
+<td>Collections, lists</td>
+</tr>
+<tr>
+<td><code>T[N]</code></td>
+<td>Fixed array</td>
+<td>Value type (inline)</td>
+<td>No</td>
+<td>Vectors, matrices, buffers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Dynamic Arrays</strong> (<code>array!(T)</code>):</p>
+<pre><code class="language-smalls">fn process_nearby_objects(center: vec3, radius: float) {
+    var nearby: array!(object) = {};  // VM heap allocation
+    for (var x in nearby) {
+        // ... process ...
+    }
+}
+</code></pre>
+<p>Properties:
+- Heap-allocated, GC-managed
+- Resizable via <code>push</code>, <code>pop</code>, <code>resize</code>
+- Stored as HeapPtr (4 bytes inline)
+- Element storage: TypedArray for primitives, StructArray for value-type structs</p>
+<p><strong>Fixed Arrays</strong> (<code>T[N]</code>):</p>
+<pre><code class="language-smalls">[[value_type]]
+type Matrix3x3 {
+    data: float[9];  // 36 bytes inline
+};
+
+fn test() {
+    var buffer: int[256];  // 1024 bytes on stack
+    buffer[0] = 42;
+}
+</code></pre>
+<p>Properties:
+- Value type with C-compatible layout
+- Inline storage (no indirection)
+- Stack-allocatable, struct-embeddable
+- Size known at compile time: <code>sizeof(T) * N</code></p>
+<p><strong>Contract</strong>:
+- <code>array!(T)</code> is the resizable heap collection.
+- <code>T[N]</code> is the fixed-size inline value type.</p>
+<p><strong><em>See [VII.Write Barriers]</em></strong></p>
+<p><strong>Maps</strong> (<code>map!(K, V)</code>):</p>
+<pre><code class="language-smalls">var scores: map!(string, int) = {&quot;alice&quot;: 100, &quot;bob&quot;: 85};
+</code></pre>
+<p>Properties:
+- Heap-allocated hash table
+- Keys are policy-restricted to <code>int</code>, <code>string</code>, and newtypes over <code>int</code>/<code>string</code>
+- <code>float</code> and <code>bool</code> are never valid map keys
+- Iteration order is unspecified</p>
+<h4 id="implementation_6">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstResolver.cpp</code> — resolves fixed arrays (<code>T[N]</code>) and computes layout metadata
+- <code>lib/nw/smalls/types.hpp</code> — type kinds and <code>contains_heap_refs</code>
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>NEWARRAY</code>, <code>GETARRAY</code>, <code>SETARRAY</code>, <code>NEWMAP</code>, <code>MAPGET</code>, <code>MAPSET</code> opcodes</p>
+<h3 id="strings">Strings</h3>
+<p>Strings in Smalls are heap-allocated, immutable sequences of characters.</p>
+<p><strong>Representation</strong>: Strings are stored as <code>StringRepr</code> objects on the <code>ScriptHeap</code>. Each <code>StringRepr</code> contains a backing buffer pointer, offset, and length — enabling zero-copy substrings (views into existing string data).</p>
+<p><strong>Script-side</strong>: The <code>string</code> type is a 4-byte <code>HeapPtr</code> — a handle into the script heap.</p>
+<p><strong>Interning</strong>: The empty string is interned (single canonical instance). All string operations return new strings rather than mutating existing ones.</p>
+<p><strong>Native interop</strong>: <code>ScriptString</code> is a 4-byte POD struct wrapping a <code>HeapPtr</code>, used for string fields in native structs. Access the string contents via <code>ScriptString::view(rt)</code>.</p>
+<h4 id="implementation_7">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>StringRepr</code>, <code>ScriptString</code>, <code>alloc_string()</code>, <code>get_string_view()</code>
+- <code>lib/nw/smalls/Intrinsics.hpp</code> — all <code>String*</code> intrinsic IDs</p>
+<p><strong>Key data structures</strong>:
+- <code>StringRepr::backing</code> — HeapPtr to backing buffer
+- <code>StringRepr::offset</code>, <code>StringRepr::length</code> — substring view into backing</p>
+<h3 id="f-strings">F-Strings</h3>
+<p>F-strings provide string interpolation with embedded expressions.</p>
+<p><strong>Syntax</strong>: <code>f"text {expr} more text"</code></p>
+<p>Expressions inside <code>{...}</code> are evaluated and converted to strings. For user-defined types, the <code>[[operator(str)]]</code> function is called for conversion.</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-go">var name = &quot;World&quot;;
+var greeting = f&quot;Hello, {name}!&quot;;      // &quot;Hello, World!&quot;
+
+var x = 42;
+var msg = f&quot;The answer is {x}&quot;;        // &quot;The answer is 42&quot;
+
+var p = Point { 1.0, 2.0 };
+var desc = f&quot;Position: {p}&quot;;           // Calls [[operator(str)]] on Point
+</code></pre>
+<p><strong>Supported interpolation types</strong>:
+- <code>int</code> — converted via integer-to-string
+- <code>float</code> — converted via float-to-string
+- <code>bool</code> — converted to <code>"true"</code> or <code>"false"</code>
+- <code>string</code> — inserted directly
+- User types — requires <code>[[operator(str)]]</code> to be defined</p>
+<p>F-strings are also foldable at compile time by the constant evaluator when all interpolated expressions are constant.</p>
+<p><strong><em>See [III.Operator Aliasing]</em></strong> for the <code>str</code> operator that enables f-string support for user types.</p>
+<h4 id="implementation_8">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Lexer.hpp</code> — tokenizes <code>f"..."</code> strings, splits into parts and expression spans
+- <code>lib/nw/smalls/AstConstEvaluator.hpp</code> — constant folds f-strings with known-value expressions
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — emits string concatenation for runtime f-strings</p>
+<h3 id="memory-layout-value-types">Memory Layout &amp; Value Types</h3>
+<p><strong>Memory Layout</strong>: Matches C++ rules — fields aligned to natural alignment, padding inserted, total size aligned to strictest member. Field order preserved.</p>
+<h4 id="value-type-attribute">Value Type Attribute</h4>
+<p>The <code>[[value_type]]</code> attribute guarantees a struct has C-compatible memory layout, enabling stack allocation and predictable memory representation.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-go">[[value_type]]
+type Vector {
+    x, y, z: float;
+};
+</code></pre>
+<p><strong>What it guarantees</strong>:
+- Fields laid out sequentially in memory (no reordering)
+- Natural alignment for each field
+- Padding inserted to maintain alignment
+- Total size aligned to strictest member
+- Identical memory layout to equivalent C struct</p>
+<p><strong>Stack allocation</strong>:</p>
+<pre><code class="language-go">[[value_type]]
+type Point { x, y: float; };
+
+fn test() {
+    var p: Point;  // Stack-allocated, not heap
+    var grid: Point[10];  // Array of 10 Points on stack
+}
+</code></pre>
+<p><strong>Restrictions</strong>:
+- Can contain heap types (strings, arrays) as HeapPtr fields
+- No virtual methods or runtime polymorphism</p>
+<p><strong>Contrast with heap types</strong>:
+- Regular structs: Heap-allocated, GC-managed
+- <code>[[value_type]]</code> structs: Can be stack or heap allocated
+- Fixed arrays (<code>T[N]</code>): Always value types, same guarantees</p>
+<h4 id="value-type-abi">Value-Type ABI</h4>
+<p>Value types use a distinct calling convention from heap types. The runtime tracks this via <code>ValueStorage</code> (<code>immediate</code>, <code>stack</code>, <code>heap</code>).</p>
+<p><strong>Storage Rules</strong>:
+- <strong>Primitives</strong> (<code>int</code>, <code>float</code>, <code>bool</code>): <code>immediate</code> — stored directly in Value union
+- <strong>Value-type structs</strong> (<code>[[value_type]]</code>): <code>stack</code> — stored in per-frame stack buffer
+- <strong>Fixed arrays</strong> (<code>T[N]</code>): <code>stack</code> — stored in per-frame stack buffer
+- <strong>Heap types</strong> (strings, <code>array!(T)</code>, <code>map!(K,V)</code>, closures): <code>heap</code> — HeapPtr in Value</p>
+<p><strong>Frame Stack Allocation</strong>: Each <code>CallFrame</code> maintains a separate <code>stack_</code> buffer for value-type locals. When a value-type variable is declared: <code>stack_alloc(size, alignment, type_id)</code> allocates space, data is copied into the stack buffer, <code>Value::make_stack(offset, type_id)</code> creates a reference, and <code>stack_layout_</code> records the slot for GC tracing.</p>
+<p><strong>Function Returns</strong>: Value types are returned by copying into caller's frame stack. Heap types return HeapPtr (no copy). The caller allocates stack space before the call for value-type returns.</p>
+<p><strong>GC Integration</strong>: Frame stack roots are enumerated via <code>CallFrame::enumerate_stack_roots()</code>, which uses <code>Runtime::scan_value_heap_refs()</code> to find any HeapPtr fields within value-type data.</p>
+<p><strong><em>See [VII.Memory Management]</em></strong></p>
+<h4 id="native-struct-layout">Native Struct Layout</h4>
+<ul>
+<li>Native modules must have a corresponding script module with the same path</li>
+<li>Script module uses <code>[[native]]</code> attribute to declare types and functions</li>
+<li>Compiler validates script declarations against registered C++ interface</li>
+<li>Type names are automatically qualified with module path (e.g., <code>"Position"</code> → <code>"core.effects.Position"</code>)</li>
+<li><strong>Native structs</strong> (<code>native_struct&lt;T&gt;()</code>) validate field names, offsets, and types</li>
+<li>Supported field types: <code>int</code>, <code>float</code>, <code>bool</code>, <code>vec3</code>, <code>object</code> (ObjectHandle), <code>ScriptString</code> (string), <code>ScriptClosure</code> (function types)</li>
+<li>Field order, padding, and alignment must match exactly</li>
+<li>Config structs use <code>[[native]]</code> for zero-copy access — the heap struct IS the C++ struct</li>
+<li><strong>Value types</strong> (<code>value_type&lt;T&gt;()</code>) only validate size and alignment</li>
+</ul>
+<h4 id="implementation_9">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>STACK_ALLOC</code>, <code>STACK_COPY</code>, <code>STACK_FIELDGET/SET</code> opcodes
+- <code>lib/nw/smalls/VirtualMachine.hpp</code> — call frames and stack root enumeration
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>ValueStorage</code> enum, <code>Value</code> struct</p>
+<h3 id="cast-type-test-expressions">Cast &amp; Type Test Expressions</h3>
+<p>Smalls provides <code>as</code> for casting and <code>is</code> for type testing.</p>
+<p><strong>Cast expressions</strong> (<code>expr as Type</code>):</p>
+<pre><code class="language-go">var x: int = 42;
+var f: float = x as float;      // int → float
+var n: int = 3.14 as int;       // float → int (truncates)
+var b: bool = 1 as bool;        // int → bool
+var i: int = true as int;       // bool → int
+
+// Newtype unwrapping
+type Feat(int);
+var feat = Feat(42);
+var raw: int = feat as int;     // Unwrap newtype
+</code></pre>
+<p><strong>Supported casts</strong>:
+- <code>int</code> ↔ <code>float</code> — numeric conversion (float→int truncates)
+- <code>int</code> ↔ <code>bool</code> — zero/nonzero conversion
+- Newtype ↔ underlying type — wrapping/unwrapping</p>
+<p><strong>Type test expressions</strong> (<code>expr is Type</code>):</p>
+<pre><code class="language-go">var val: int = 42;
+var check = val is int;    // true
+var check2 = val is float; // false
+</code></pre>
+<p>Both <code>as</code> and <code>is</code> are foldable at compile time by the constant evaluator when the operand is constant.</p>
+<h4 id="implementation_10">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstConstEvaluator.hpp</code> — constant folds casts and type tests
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — emits <code>CAST</code> and <code>IS</code> opcodes</p>
+<p><strong>Opcodes</strong>:
+- <code>CAST rA, Bx</code> — cast value in rA to type at index Bx
+- <code>IS rA, Bx</code> — test if value in rA is type at index Bx, stores bool</p>
+<h3 id="default-values-nullability">Default Values &amp; Nullability</h3>
+<p>This section complements <strong>Zero Is Initialization</strong> in [I. Vision &amp; Philosophy] and the type-specific sections in [II. Type System].</p>
+<h4 id="zerodefault-values">Zero/default values</h4>
+<p><strong>HeapPtr(0) semantics (single rule):</strong> <code>HeapPtr(0)</code> is a null sentinel. It is only a stable language value for nullable closures (<code>fn(...)</code>). For non-nullable heap categories (<code>string</code>, <code>array!(T)</code>, <code>map!(K,V)</code>), zero-initialized storage is eagerly materialized to concrete empty values by the runtime/compiler default-initialization path.</p>
+<p>Materialization occurs during default-initialization of locals/fields (compiler or runtime), before the value becomes observable by script code.</p>
+<p>Unless noted otherwise, values are zero-initialized recursively.</p>
+<table>
+<thead>
+<tr>
+<th>Type category</th>
+<th>Default value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int</code>, <code>float</code>, <code>bool</code></td>
+<td><code>0</code>, <code>0.0</code>, <code>false</code></td>
+<td>Primitive zero values</td>
+</tr>
+<tr>
+<td>Newtypes (<code>type HP(int)</code>)</td>
+<td>underlying zero</td>
+<td>Same runtime representation as underlying type</td>
+</tr>
+<tr>
+<td><code>string</code></td>
+<td><code>""</code></td>
+<td>Materialized empty string value (not nullable); see [II.Strings]</td>
+</tr>
+<tr>
+<td><code>array!(T)</code></td>
+<td>empty array</td>
+<td>Materialized empty array value (not nullable); see [II.Arrays &amp; Maps]</td>
+</tr>
+<tr>
+<td><code>map!(K,V)</code></td>
+<td>empty map</td>
+<td>Materialized empty map value (not nullable); see [II.Arrays &amp; Maps]</td>
+</tr>
+<tr>
+<td><code>T[N]</code></td>
+<td>all elements zero</td>
+<td>Fixed-size value type</td>
+</tr>
+<tr>
+<td>Structs / tuples</td>
+<td>fields/elements zeroed</td>
+<td>Recursive zero-initialization</td>
+</tr>
+<tr>
+<td>Sum types</td>
+<td>no implicit default variant</td>
+<td>Declaration requires explicit initializer; see [II.Sum Types &amp; Pattern Matching]</td>
+</tr>
+<tr>
+<td>Closures (<code>fn(...)</code>)</td>
+<td>null closure value (<code>HeapPtr(0)</code>)</td>
+<td>Only nullable category</td>
+</tr>
+</tbody>
+</table>
+<h4 id="nullability-policy">Nullability policy</h4>
+<p>Smalls supports <strong>nullable closures only</strong>.</p>
+<ul>
+<li><code>string</code> is not nullable; use <code>""</code> for "no text"</li>
+<li><code>array!(T)</code> is not nullable; use empty array</li>
+<li><code>map!(K,V)</code> is not nullable; use empty map</li>
+<li><code>fn(...)</code> is nullable; <code>HeapPtr(0)</code> represents "no callback"</li>
+</ul>
+<p>This preserves predictable zero-initialization while allowing optional callback wiring.</p>
+<h4 id="nullempty-testing">Null/empty testing</h4>
+<p>Use closure truthiness to test whether a callback is present:</p>
+<pre><code class="language-smalls">if (!on_hit) {
+    // no callback
+}
+</code></pre>
+<p>You can also use positive checks:</p>
+<pre><code class="language-smalls">if (on_hit) {
+    on_hit(target);
+}
+</code></pre>
+<p>Use <code>is</code> only for type tests (<code>expr is Type</code>), as defined in [II.Cast &amp; Type Test Expressions]; <code>is</code> is not a null/empty-check operator.</p>
+<hr>
+<h2 id="iii-language-features">III. Language Features</h2>
+<h3 id="variables-constants">Variables &amp; Constants</h3>
+<ul>
+<li><strong>Pattern</strong>: Follows Go-style syntax — <code>var/const identifier_list [: Type] [= expr_list] ;</code></li>
+<li><strong>Type annotation</strong>: Optional if initializer is present</li>
+<li><strong>Multiple identifiers</strong>: Supported — <code>var x, y, z: int;</code> or <code>var x, y = 1, 2;</code></li>
+<li><strong>Initializers</strong>: Must match identifier count if provided</li>
+<li><strong>Examples</strong>:</li>
+<li><code>var x: int;</code> — Variable with type</li>
+<li><code>var x = 42;</code> — Variable with type inference</li>
+<li><code>var x: int = 42;</code> — Variable with both type and initializer</li>
+<li><code>var x, y, z: int;</code> — Multiple variables with same type</li>
+<li><code>var x, y = 1, 2;</code> — Multiple variables with separate initializers</li>
+<li><code>const PI = 3.14;</code> — Constant (initializer required)</li>
+</ul>
+<h3 id="conditional-ternary-expressions">Conditional (Ternary) Expressions</h3>
+<p>Smalls supports C-style conditional (ternary) expressions:</p>
+<pre><code class="language-go">var result = condition ? true_value : false_value;
+</code></pre>
+<p>The condition is evaluated first. If truthy, the true branch is evaluated and returned; otherwise the false branch. Both branches must produce compatible types. Conditional expressions are foldable at compile time when the condition is constant.</p>
+<pre><code class="language-go">var x = 10;
+var abs_x = x &gt;= 0 ? x : -x;
+var label = score &gt; 90 ? &quot;A&quot; : score &gt; 80 ? &quot;B&quot; : &quot;C&quot;;  // Nesting supported
+</code></pre>
+<h4 id="implementation_11">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Parser.hpp</code> — <code>parse_expr_conditional()</code>
+- <code>lib/nw/smalls/AstConstEvaluator.hpp</code> — constant folds ternary with known condition
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — emits <code>JMPF</code> + branch bytecode</p>
+<h3 id="control-flow">Control Flow</h3>
+<h4 id="ifelse-statements">If/Else Statements</h4>
+<pre><code class="language-go">if (condition) {
+    // then block (braces required)
+}
+
+if (condition) {
+    // then block
+} else {
+    // else block (braces required)
+}
+
+if (condition) {
+    // first branch
+} else if (other_condition) {
+    // second branch
+} else {
+    // final branch
+}
+</code></pre>
+<ul>
+<li>Block braces <code>{}</code> are always required</li>
+<li>Condition expressions must be in parentheses</li>
+</ul>
+<h4 id="for-loops">For Loops</h4>
+<p>Three forms (Go-style):</p>
+<ol>
+<li><strong>Infinite loop</strong> — <code>for { ... }</code> — loops until break/return</li>
+<li><strong>While-style loop</strong> — <code>for (condition) { ... }</code> — checked before each iteration</li>
+<li><strong>C-style loop</strong> — <code>for (init; condition; increment) { ... }</code> — traditional three-part form</li>
+</ol>
+<pre><code class="language-go">for {
+    if (done) { break; }
+}
+
+for (i &lt; 10) {
+    i = i + 1;
+}
+
+for (var i = 0; i &lt; 10; i = i + 1) {
+    print(i);
+}
+</code></pre>
+<ul>
+<li>Block braces <code>{}</code> always required</li>
+<li>Loop variables declared in init are scoped to the loop</li>
+<li><code>break</code> and <code>continue</code> supported</li>
+</ul>
+<h4 id="for-each-loops">For-Each Loops</h4>
+<p><strong>Array iteration</strong> — Single binding receives element values:</p>
+<pre><code class="language-go">var nums: array!(int) = {1, 2, 3, 4, 5};
+for (var x in nums) {
+    print(x);  // x is int, inferred from array element type
+}
+</code></pre>
+<p><strong>Map iteration</strong> — Two bindings receive key-value pairs:</p>
+<pre><code class="language-go">var scores: map!(string, int) = {&quot;alice&quot;: 100, &quot;bob&quot;: 85};
+for (var key, value in scores) {
+    print(key);    // key is string
+    print(value);  // value is int
+}
+</code></pre>
+<ul>
+<li>Type inference: Binding types inferred from collection</li>
+<li><code>break</code> and <code>continue</code> supported</li>
+<li>Iteration order: arrays iterate in index order; maps iterate in unspecified order</li>
+</ul>
+<h4 id="pattern-matching-switch">Pattern Matching Switch</h4>
+<p><strong><em>See [II.Sum Types &amp; Pattern Matching]</em></strong> for full pattern matching documentation.</p>
+<p>Pattern matching on sum types is accessed through <code>switch</code> statements with <code>case VariantName(bindings):</code> syntax. This section covers the type layout; the switch dispatch and binding mechanics are documented alongside sum types.</p>
+<h3 id="operator-aliasing">Operator Aliasing</h3>
+<p>Operator aliasing allows user-defined types to participate in operators and language features through attribute-annotated free functions.</p>
+<h4 id="why-operator-aliasing">Why Operator Aliasing?</h4>
+<p>Beyond syntactic convenience, operator aliasing provides <strong>extensibility</strong>:
+- User types can define string conversion for f-strings
+- User types can define mathematical operators
+- User types integrate with language features seamlessly</p>
+<h4 id="syntax">Syntax</h4>
+<p><strong>Basic Binary Operator:</strong></p>
+<pre><code class="language-go">type Point { x, y: float; };
+
+[[operator(plus)]]
+fn add(a: Point, b: Point): Point {
+    return Point { a.x + b.x, a.y + b.y };
+}
+
+var p3 = p1 + p2;  // Calls add(p1, p2)
+</code></pre>
+<p><strong>Unary Operator:</strong></p>
+<pre><code class="language-go">[[operator(minus)]]
+fn negate(p: Point): Point {
+    return Point { -p.x, -p.y };
+}
+
+var p2 = -p1;  // Calls negate(p1)
+</code></pre>
+<p><strong>Commutative Operators:</strong></p>
+<p>By default, operators only work in the exact order written. Use <code>commutative</code> to handle both orderings:</p>
+<pre><code class="language-go">[[operator(times, commutative)]]
+fn scale(p: Point, s: float): Point {
+    return Point { p.x * s, p.y * s };
+}
+
+var r1 = p * 2.0;  // Calls scale(p, 2.0)
+var r2 = 2.0 * p;  // Calls scale(p, 2.0) with swapped arguments
+</code></pre>
+<p><strong>String Conversion:</strong></p>
+<p>The <code>str</code> operator enables custom string conversion for user types:</p>
+<pre><code class="language-go">[[operator(str)]]
+fn point_to_string(p: Point): string {
+    return &quot;Point(&quot; + str(p.x) + &quot;, &quot; + str(p.y) + &quot;)&quot;;
+}
+
+var msg = f&quot;Location: {p}&quot;;  // Calls point_to_string(p)
+var s = str(p);               // &quot;Point(1.0, 2.0)&quot;
+</code></pre>
+<p><strong><em>See [III.Modules (core.string)]</em></strong> for string intrinsics.</p>
+<h4 id="key-rules">Key Rules</h4>
+<ol>
+<li><strong>Default behavior</strong>: Operators only work in the exact parameter order written</li>
+<li><strong>Type inference</strong>: Parameter and return types inferred from function signature</li>
+<li><strong>Arity from parameters</strong>: 1 parameter = unary, 2 parameters = binary</li>
+<li><strong>No duplicates</strong>: Error if same operator+types registered twice</li>
+<li><strong>Explicit commutativity</strong>: Use <code>commutative</code> attribute to handle both argument orderings</li>
+</ol>
+<h4 id="important-operators">Important Operators</h4>
+<p><strong>Essential</strong> (needed for language features):
+- <code>str</code> — String conversion (for f-strings, debug output)
+- <code>hash</code> — Hash function (for hash maps, sets)
+- <code>eq</code> (==) — Equality (foundational comparison)
+- <code>lt</code> (&lt;) — Less-than (foundational ordering)</p>
+<p><strong>Useful</strong> (math):
+- <code>plus</code> (+), <code>minus</code> (-), <code>times</code> (*), <code>div</code> (/) — Arithmetic operators</p>
+<p><strong>Note</strong>: Other comparison operators (&gt;, &gt;=, !=, &lt;=) are synthesized from <code>eq</code> and <code>lt</code> at the type checking level.</p>
+<p><strong>Note</strong>: Bitwise operators are not language operators; use intrinsic functions from <code>core.bit</code> (e.g., <code>bit.and(a, b)</code>).</p>
+<h4 id="synthesized-comparisons">Synthesized Comparisons</h4>
+<p>Given <code>eq</code> and/or <code>lt</code>, the compiler synthesizes the remaining comparison operators:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Synthesized from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!=</code></td>
+<td><code>eq</code></td>
+</tr>
+<tr>
+<td><code>&gt;</code></td>
+<td><code>lt(b, a)</code></td>
+</tr>
+<tr>
+<td><code>&lt;=</code></td>
+<td><code>lt(a, b) \|\| eq(a, b)</code></td>
+</tr>
+<tr>
+<td><code>&gt;=</code></td>
+<td><code>lt(b, a) \|\| eq(a, b)</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>!=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code> are never aliased directly; they are always derived.</p>
+<h4 id="default-structural-operators">Default Structural Operators</h4>
+<p>Struct, sum, and array types automatically receive default structural operators (<code>eq</code>, <code>lt</code>, <code>hash</code>) when their contents recursively support the specific operator — no explicit <code>[[operator(...)]]</code> annotation required.</p>
+<p><strong>Eligibility</strong>: A type is eligible for a default operator if its contents recursively support that operator. Specifically:
+- Primitives (<code>int</code>, <code>float</code>, <code>bool</code>) and <code>string</code> are eligible for default <code>eq</code> and <code>lt</code>
+- Primitives <code>int</code>, <code>bool</code>, and <code>string</code> are eligible for default <code>hash</code>; <code>float</code> is not default-hashable
+- A struct is eligible for an operator if all its fields are eligible for that operator (checked after explicit aliases are registered, so struct-of-struct dependencies work)
+- A sum type is eligible for an operator if all variant payloads are eligible for that operator (unit variants with no payload are always eligible)
+- A dynamic array type (<code>array!(T)</code>) is eligible for an operator if its element type <code>T</code> is eligible for that operator
+- A fixed array type (<code>T[N]</code>) follows the same recursive eligibility rule as other value aggregates
+- Maps, closures, and handles are <strong>not</strong> eligible for any default operator</p>
+<p>Because default <code>hash</code> is recursive, any type that contains a <code>float</code> anywhere in its structure (field, payload, or array element) does not receive a default hash.</p>
+<p><strong>Semantics</strong>:
+- <strong>Struct <code>eq</code></strong>: field-by-field equality in declaration order; returns <code>true</code> iff all fields compare equal
+- <strong>Struct <code>lt</code></strong>: lexicographic ordering in declaration order; first differing field determines the result
+- <strong>Struct <code>hash</code></strong>: combines per-field hashes using XXH3 streaming
+- <strong>Sum <code>eq</code></strong>: compares variant tags first; if tags match and the variant has a payload, compares payloads
+- <strong>Sum <code>lt</code></strong>: compares by tag order first (declaration order); if tags match, compares payloads
+- <strong>Sum <code>hash</code></strong>: hashes the tag, then the payload (if any), via XXH3 streaming
+- <strong>Array <code>eq</code></strong>: element-by-element equality; arrays of different length are never equal
+- <strong>Array <code>lt</code></strong>: lexicographic; shorter prefix-equal arrays are less than longer ones
+- <strong>Array <code>hash</code></strong>: hashes the length, then each element, via XXH3 streaming</p>
+<h4 id="map-key-policy">Map Key Policy</h4>
+<p>Map key eligibility is policy-based (not just operator availability).</p>
+<ul>
+<li>Allowed key categories: <code>int</code>, <code>string</code>, and newtypes whose underlying type is <code>int</code> or <code>string</code></li>
+<li>Disallowed key categories: <code>float</code>, <code>bool</code>, handles (<code>object</code>/typed handles), arrays, maps, functions/closures, structs, sums, and newtypes over disallowed categories</li>
+</ul>
+<p>This keeps map keys intentionally narrow while preserving semantic-ID ergonomics (<code>type FeatId(int)</code>) without broadening to general user-defined keys. Richer custom/default hashing is still valuable for non-map hashed collections (for example, a future <code>hash_set</code>).</p>
+<p><strong>Newtype keys</strong>: Newtypes whose underlying type is <code>int</code>/<code>string</code> are permitted as map keys. Newtype key types are not interchangeable with their underlying type or with other newtypes; the key type must match the map's <code>K</code> exactly.</p>
+<p><strong>Operator precedence</strong>: Explicit <code>[[operator(... )]]</code> definitions take precedence over default structural operators.
+<strong>Note</strong>: Operator availability does not expand map-key eligibility; map keys remain restricted by the allowlist policy.</p>
+<p><strong>Constraints</strong>:
+- Explicit <code>[[operator(lt)]]</code> requires explicit <code>[[operator(eq)]]</code> — custom ordering must pair with custom equality.
+- Explicit <code>[[operator(hash)]]</code> requires explicit <code>[[operator(eq)]]</code> — custom hash must pair with custom equality.
+- Default <code>hash</code> is <strong>not</strong> synthesized when a type has an explicit <code>[[operator(eq)]]</code>. If you define custom equality, structural hash may not satisfy <code>a == b → hash(a) == hash(b)</code>, so you must provide an explicit <code>[[operator(hash)]]</code> as well.
+- Explicit <code>[[operator(hash)]]</code> remains allowed for float-containing types and other user-defined types, but this does not make them valid <code>map</code> keys unless the type is <code>int</code>/<code>string</code> or a newtype over <code>int</code>/<code>string</code>.
+- Default structural operators always form a consistent triple: default <code>eq</code>, <code>lt</code>, and <code>hash</code> are all field-by-field and mutually consistent.</p>
+<h4 id="implementation_12">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstResolver.hpp</code> — detects and registers operator aliases; <code>sync_operator_alias_summaries()</code> propagates defaults to the Validator
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — emits <code>CALLEXT</code> directly to operator functions for user types
+- <code>lib/nw/smalls/runtime.hpp</code> — operator registry; <code>register_default_struct_operators()</code> for the synthesis pass</p>
+<p><strong>Key data structures</strong>:
+- <code>AstResolver::operator_alias_summary_</code> — tracks which operators each type has defined (eq, hash, lt)
+- <code>Runtime::operator_alias_info_</code> — runtime mirror of the above; updated by both explicit and default registration
+- <code>Runtime::native_hash_ops_</code> — maps <code>TypeID</code> to a native C++ hash executor for default hash implementations</p>
+<h3 id="modules-imports">Modules &amp; Imports</h3>
+<p>Enable cross-file references with two import styles: aliased and selective.</p>
+<h4 id="import-syntax">Import Syntax</h4>
+<p><strong>Aliased Import</strong> — Import a module with an explicit alias:</p>
+<pre><code class="language-go">import core.math.vector as vec;
+var p: vec.Vector;
+</code></pre>
+<p><strong>Selective Import</strong> — Import specific symbols directly:</p>
+<pre><code class="language-go">from core.math.vector import { Vector, Point };
+var p: Vector;
+</code></pre>
+<h4 id="design-principles">Design Principles</h4>
+<ul>
+<li><strong>Module paths</strong> are dot-separated (e.g., <code>core.math.vector</code>) and map to file paths</li>
+<li><strong>Imports are declarations</strong> — They participate in normal scoping like variables and types</li>
+<li><strong>Scoped imports</strong> — Can be declared at any scope (global, function-local, etc.)</li>
+<li><strong>Everything exported by default</strong> — All top-level declarations are visible to importers (initially)</li>
+<li><strong>C++ modules are supplemental</strong> — Native modules provide interfaces that script modules link to via <code>[[native]]</code> declarations</li>
+<li><strong>Qualified types</strong> — Use imported types via alias: <code>vec.Vector</code> where <code>vec</code> is the alias</li>
+</ul>
+<h4 id="intrinsic-functions">Intrinsic Functions</h4>
+<p>Intrinsics are module-scoped functions declared with <code>[[intrinsic("name")]]</code> and accessed through imports like any other function. Intrinsic declarations have no body and cannot be combined with <code>[[native]]</code>.</p>
+<pre><code class="language-go">// core/bit.smalls
+[[intrinsic(&quot;bit_and&quot;)]] fn and(a: int, b: int): int;
+[[intrinsic(&quot;bit_or&quot;)]] fn or(a: int, b: int): int;
+[[intrinsic(&quot;bit_not&quot;)]] fn not(a: int): int;
+</code></pre>
+<p><strong>Complete intrinsic list</strong> (from <code>Intrinsics.hpp</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Intrinsic ID</th>
+<th>Script Name</th>
+<th>Signature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>core.bit</code></td>
+<td><code>bit_and</code></td>
+<td><code>and(a, b: int): int</code></td>
+<td>Bitwise AND</td>
+</tr>
+<tr>
+<td></td>
+<td><code>bit_or</code></td>
+<td><code>or(a, b: int): int</code></td>
+<td>Bitwise OR</td>
+</tr>
+<tr>
+<td></td>
+<td><code>bit_xor</code></td>
+<td><code>xor(a, b: int): int</code></td>
+<td>Bitwise XOR</td>
+</tr>
+<tr>
+<td></td>
+<td><code>bit_not</code></td>
+<td><code>not(a: int): int</code></td>
+<td>Bitwise NOT</td>
+</tr>
+<tr>
+<td></td>
+<td><code>bit_shl</code></td>
+<td><code>shl(a, b: int): int</code></td>
+<td>Shift left</td>
+</tr>
+<tr>
+<td></td>
+<td><code>bit_shr</code></td>
+<td><code>shr(a, b: int): int</code></td>
+<td>Shift right</td>
+</tr>
+<tr>
+<td><code>core.array</code></td>
+<td><code>array_push</code></td>
+<td><code>push(a: array!($T), v: $T)</code></td>
+<td>Append element</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_pop</code></td>
+<td><code>pop(a: array!($T)): $T</code></td>
+<td>Remove and return last</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_len</code></td>
+<td><code>len(a: array!($T)): int</code></td>
+<td>Element count</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_get</code></td>
+<td><code>get(a: array!($T), i: int): $T</code></td>
+<td>Get element at index</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_set</code></td>
+<td><code>set(a: array!($T), i: int, v: $T)</code></td>
+<td>Set element at index</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_clear</code></td>
+<td><code>clear(a: array!($T))</code></td>
+<td>Remove all elements</td>
+</tr>
+<tr>
+<td></td>
+<td><code>array_reserve</code></td>
+<td><code>reserve(a: array!($T), n: int)</code></td>
+<td>Pre-allocate capacity</td>
+</tr>
+<tr>
+<td><code>core.map</code></td>
+<td><code>map_get</code></td>
+<td><code>get(m: map!($K,$V), key: $K): $V</code></td>
+<td>Get value by key</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_set</code></td>
+<td><code>set(m: map!($K,$V), key: $K, val: $V): bool</code></td>
+<td>Set key-value pair</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_len</code></td>
+<td><code>len(m: map!($K,$V)): int</code></td>
+<td>Entry count</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_has</code></td>
+<td><code>has(m: map!($K,$V), key: $K): bool</code></td>
+<td>Check key existence</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_remove</code></td>
+<td><code>remove(m: map!($K,$V), key: $K): bool</code></td>
+<td>Remove entry by key</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_clear</code></td>
+<td><code>clear(m: map!($K,$V))</code></td>
+<td>Remove all entries</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_iter_begin</code></td>
+<td><code>iter_begin(m: map!($K,$V)): int</code></td>
+<td>Begin iteration</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_iter_next</code></td>
+<td><code>iter_next(m: map!($K,$V), it: int): int</code></td>
+<td>Advance iterator</td>
+</tr>
+<tr>
+<td></td>
+<td><code>map_iter_end</code></td>
+<td><code>iter_end(m: map!($K,$V), it: int): bool</code></td>
+<td>Check iterator end</td>
+</tr>
+<tr>
+<td><code>core.string</code></td>
+<td><code>string_len</code></td>
+<td><code>len(s: string): int</code></td>
+<td>String length</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_substr</code></td>
+<td><code>substr(s: string, start, len: int): string</code></td>
+<td>Substring</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_char_at</code></td>
+<td><code>char_at(s: string, i: int): int</code></td>
+<td>Character at index</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_find</code></td>
+<td><code>find(haystack, needle: string): int</code></td>
+<td>Find substring</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_contains</code></td>
+<td><code>contains(s, substr: string): bool</code></td>
+<td>Contains substring</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_starts_with</code></td>
+<td><code>starts_with(s, prefix: string): bool</code></td>
+<td>Prefix check</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_ends_with</code></td>
+<td><code>ends_with(s, suffix: string): bool</code></td>
+<td>Suffix check</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_to_upper</code></td>
+<td><code>upper(s: string): string</code></td>
+<td>Uppercase</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_to_lower</code></td>
+<td><code>lower(s: string): string</code></td>
+<td>Lowercase</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_trim</code></td>
+<td><code>trim(s: string): string</code></td>
+<td>Trim whitespace</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_replace</code></td>
+<td><code>replace(s, from, to: string): string</code></td>
+<td>Replace occurrences</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_split</code></td>
+<td><code>split(s, delim: string): array!(string)</code></td>
+<td>Split by delimiter</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_join</code></td>
+<td><code>join(parts: array!(string), sep: string): string</code></td>
+<td>Join with separator</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_concat</code></td>
+<td><code>concat(a, b: string): string</code></td>
+<td>Concatenate</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_append</code></td>
+<td><code>append(s, suffix: string): string</code></td>
+<td>Append string</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_insert</code></td>
+<td><code>insert(s: string, pos: int, sub: string): string</code></td>
+<td>Insert at position</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_reverse</code></td>
+<td><code>reverse(s: string): string</code></td>
+<td>Reverse string</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_from_char_code</code></td>
+<td><code>from_char_code(code: int): string</code></td>
+<td>Char code to string</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_to_int</code></td>
+<td><code>to_int(s: string): int</code></td>
+<td>Parse integer</td>
+</tr>
+<tr>
+<td></td>
+<td><code>string_to_float</code></td>
+<td><code>to_float(s: string): float</code></td>
+<td>Parse float</td>
+</tr>
+</tbody>
+</table>
+<p>The resolver validates intrinsic names and signatures, and the compiler emits intrinsic call opcodes. Runtime errors (bounds, empty pop) abort script execution.</p>
+<h4 id="module-resolution">Module Resolution</h4>
+<ol>
+<li>Convert module path to file path: <code>core.math.vector</code> → <code>core/math/vector.smalls</code></li>
+<li>Load and parse the module from the resource manager (searching all configured module paths)</li>
+<li>During resolution, imports trigger recursive module loading</li>
+<li>If the module contains <code>[[native]]</code> declarations, validate against registered C++ module interfaces</li>
+<li>If the module contains <code>[[intrinsic]]</code> declarations, validate intrinsic ids and names</li>
+<li>Cache loaded modules to avoid re-parsing</li>
+</ol>
+<h4 id="module-search-paths-and-packages">Module Search Paths and Packages</h4>
+<p>The runtime loads modules from a list of filesystem directories registered via <code>Runtime::add_module_path(path)</code>.</p>
+<ul>
+<li><strong>Package directories</strong>: A module path directory may contain a <code>package.json</code> file. If present, the directory name becomes a top-level namespace prefix ("package") for all modules under it.</li>
+<li>Example: module path <code>.../scripts/core/</code> with <code>package.json</code> causes <code>core/math.smalls</code> to resolve as module <code>core.math</code>.</li>
+<li><strong>Non-package directories</strong>: If <code>package.json</code> is absent, resources are rooted directly under the directory.</li>
+</ul>
+<p><strong>Shipped stdlib layout</strong> (file-based modules):
+- <code>lib/nw/smalls/scripts/core/</code> — standard library modules under the <code>core.*</code> namespace
+- <code>lib/nw/smalls/scripts/tests/</code> — script test suite under the <code>tests.*</code> namespace</p>
+<p><code>core.prelude</code> and <code>core.test</code> are shipped as script modules that link against native interfaces registered by the runtime.</p>
+<h4 id="circular-dependency-detection">Circular Dependency Detection</h4>
+<p>The runtime maintains a loading stack to detect circular dependencies:
+- Before loading a module, checks if it's already in the loading stack
+- If found, reports the full dependency cycle and fails to load</p>
+<h4 id="module-scope-variables">Module-Scope Variables</h4>
+<p>Modules can declare <code>var</code> and <code>const</code> at the top level. These are stored in per-module global slots and initialized by a synthesized <code>__init</code> function that runs automatically when the module is first compiled.</p>
+<pre><code class="language-go">var counter = 0;
+const MAX_RETRIES = 3;
+
+fn increment(): int {
+    counter = counter + 1;
+    return counter;
+}
+</code></pre>
+<p><strong>Key properties</strong>:
+- Module globals are private to the module (not importable across modules)
+- Functions access them via <code>GETGLOBAL</code>/<code>SETGLOBAL</code> opcodes
+- Assignment to <code>const</code> variables is a compile error
+- Lambdas access module globals via opcodes, not upvalue capture
+- Module globals are enumerated as GC roots</p>
+<h4 id="future-considerations">Future Considerations</h4>
+<ul>
+<li>Explicit export control (currently everything is exported)</li>
+</ul>
+<hr>
+<h2 id="iv-data-engine-integration">IV. Data &amp; Engine Integration</h2>
+<h3 id="config-serialization">Config &amp; Serialization</h3>
+<p>Following the philosophy "Config &amp; Serialization Are Struct Literals", Smalls uses bare struct literal syntax as the primary data format. Each <code>.smalls</code> config file contains a single struct literal:</p>
+<pre><code class="language-smalls">// fireball.smalls
+SpellInfo {
+    name = &quot;Fireball&quot;,
+    school = SpellSchool.Evocation,
+    innate_level = 3,
+    on_impact = fn(caster: object, loc: Location) {
+        apply_area_damage(loc, roll_dice(6, caster_level(caster)), DamageType.Fire);
+    },
+}
+</code></pre>
+<p><strong>C++ API</strong>: Types are registered via <code>ModuleBuilder</code>, then configs loaded with <code>load_config&lt;T&gt;()</code>:</p>
+<pre><code class="language-cpp">auto* spell = rt.load_config&lt;SpellInfo&gt;(&quot;fireball&quot;, &quot;game_types&quot;);
+</code></pre>
+<p><strong><em>See [IV.Native Interfaces]</em></strong> for the Registration API used to define config types.</p>
+<p><strong>Implementation details</strong>:
+- Config prelude types use <code>[[native]]</code> so the smalls heap struct has identical layout to the C++ struct
+- <code>load_config&lt;T&gt;</code> wraps the file content as <code>var __config = &lt;content&gt;;</code>, loads it as a throwaway module, then returns a direct pointer into the script heap (zero-copy)
+- The HeapPtr is rooted in <code>config_roots_</code> so GC doesn't collect it
+- <code>ScriptString</code> is a 4-byte POD wrapping a HeapPtr; access via <code>ScriptString::view(rt)</code>
+- <code>ScriptClosure</code> is a 4-byte POD wrapping a HeapPtr for storing function references in native structs; invoke via <code>Runtime::call_closure()</code></p>
+<p><strong>Benefits</strong>:
+- No separate serialization format needed (no TOML, JSON, XML parsers)
+- Type-safe — validated at compile time
+- Same syntax as code — one language to learn
+- Closures in config files enable data-driven behavior (e.g. spell effects, AI actions)</p>
+<h4 id="implementation_13">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>load_config&lt;T&gt;()</code>, <code>ScriptString</code>, <code>ScriptClosure</code>
+- <code>lib/nw/smalls/ConfigArena.hpp</code> — config root management</p>
+<h3 id="property-sets">Property Sets</h3>
+<p>Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.</p>
+<pre><code class="language-smalls">[[propset]]
+type CreatureStats {
+    hp, max_hp: int;
+    str, dex, con, int, wis, cha: int;
+    level: int;
+    xp: int;
+};
+
+[[propset]]
+type Position {
+    x, y, z: float;
+    area_id: int;
+};
+</code></pre>
+<p><strong>Key Characteristics</strong>:
+- <strong>Schema in script</strong> — Data layout defined using Smalls type system
+- <strong>Memory in engine</strong> — Object manager allocates components in contiguous chunks for cache efficiency
+- <strong>C++-compatible layout</strong> — Memory matches C struct layout for zero-overhead access</p>
+<h4 id="property-sets-v1-contract-normative">Property Sets: v1 Contract (Normative)</h4>
+<p><strong>Contract (v1)</strong>: <code>[[propset]]</code> storage is <strong>not GC-rooted</strong>.
+To keep propsets invisible to GC, propset fields MUST NOT store <code>HeapPtr</code> values.</p>
+<p><strong>Allowed Field Forms (v1)</strong>:
+| Field form | Allowed | Storage | Reassignable | Indexable |
+|---|---:|---|---:|---|
+| <code>int</code>, <code>float</code>, <code>bool</code> | Yes | Inline POD bytes | Yes | N/A |
+| <code>int[N]</code>, <code>float[N]</code>, <code>bool[N]</code> (N &gt; 0) | Yes | Inline POD bytes | Yes | Yes (variable index) |
+| <code>[[value_type]]</code> struct (no heap references) | Yes | Inline POD bytes | Yes | N/A |
+| <code>T[N]</code> where T is <code>[[value_type]]</code> POD struct | Yes | Inline POD bytes | Yes | Yes (variable index) |
+| <code>array!(int\|float\|bool)</code> | Yes | Inline <code>TypedHandle</code> to unmanaged <code>IArray</code> | No | Yes (via IArray API) |
+| All other forms | <strong>No</strong> | N/A | N/A | N/A |</p>
+<p><strong>Explicitly Rejected</strong>:
+- <code>string</code> (requires GC pointer)
+- <code>array!(string)</code> or <code>array!(non-primitive)</code>
+- <code>map!(...)</code>, <code>tuple</code>, <code>sum</code>, <code>function</code>
+- Any heap-backed handle type
+- Regular structs (not marked <code>[[value_type]]</code>)
+- <code>[[value_type]]</code> structs containing heap references (strings, arrays, maps, etc.)</p>
+<p><strong>Lifecycle Rules</strong>:
+1. Propset-owned unmanaged arrays are created by engine/runtime and destroyed deterministically when the owning object is destroyed.
+2. Script aliases to those arrays become stale after owner destruction; operations fail with a deterministic runtime error.
+3. Because propset storage has no GC pointers in v1, propset slots are excluded from GC root enumeration.</p>
+<p><strong>Fixed Array Semantics</strong>:
+- Fixed arrays <code>T[N]</code> in propsets are stored inline (contiguous POD bytes) matching C struct layout.
+- Full indexing supported: both constant (<code>arr[0]</code>) and variable (<code>arr[i]</code>) indices.
+- Bounds checking enforced at runtime; out-of-bounds access fails deterministically.
+- Assignment to array field replaces the entire inline array (not element-by-element).</p>
+<p><strong>Dynamic Array Semantics</strong>:
+- Dynamic array fields <code>array!(T)</code> are non-reassignable; the field binding is immutable.
+- Mutation is via IArray API (<code>push</code>, <code>set</code>, <code>clear</code>, etc.).
+- Direct assignment (<code>ps.arr = other_arr</code>) is a compile-time error.</p>
+<h4 id="native-property-sets">Native Property Sets</h4>
+<p>For engine-managed data or functionality not yet in script, native property sets use bridge functions:</p>
+<pre><code class="language-smalls">[[native]] fn has_feat(obj: object, feat: Feat): bool;
+[[native]] fn add_feat(obj: object, feat: Feat);
+</code></pre>
+<p><strong>Native vs Script Property Sets</strong>:
+- <strong>Native propsets</strong> — Always exist for engine systems (physics, rendering, pathfinding)
+- <strong>Script propsets</strong> — Gameplay data (stats, skills, etc.)
+- <strong>Bridge pattern</strong> — Native functions provide interface to native propsets</p>
+<h3 id="native-interfaces">Native Interfaces</h3>
+<p>Native interfaces bind C++ code to scripts for RPG game scripting. This is <strong>not a general-purpose binding library</strong>. Native interfaces are not modules in themselves — there is always a script module (of the same name) which "links" and is validated against the native interface.</p>
+<h4 id="design-philosophy">Design Philosophy</h4>
+<ul>
+<li><strong>Constrained scope</strong> — Only expose what's needed for RPG game scripting</li>
+<li><strong>Purpose-built</strong> — Not trying to be pybind11 or handle arbitrary C++ code</li>
+<li><strong>Types bend to the binder</strong> — C++ APIs should adapt to the binding system, not vice versa</li>
+<li><strong>Keep it simple</strong> — Generational handles + ownership modes + mark-sweep GC</li>
+</ul>
+<h4 id="handle-system">Handle System</h4>
+<p>Native types use <strong>generational handles</strong> to reference C++ objects without copying. <code>TypedHandle</code> is a 64-bit generational index with embedded type (32-bit id, 8-bit type tag, 24-bit generation). The generation prevents ABA problems — stale handles are detected, not reused.</p>
+<p>Typed handle wrappers (e.g., <code>EffectHandle</code>) provide type safety and metadata at the C++ API boundary, converting to <code>TypedHandle</code> for engine lookups.</p>
+<p><strong>Heap Layout</strong>: Handle values on the VM heap are just <code>[ObjectHeader | TypedHandle]</code>.</p>
+<p><strong>Runtime Registry</strong>: A <code>HandleEntry</code> per engine handle tracks <code>vm_value</code> (HeapPtr) and <code>OwnershipMode</code> (VM_OWNED, ENGINE_OWNED, BORROWED).</p>
+<p><strong>Key APIs</strong>:
+- <code>alloc_handle(TypeID)</code> — allocate typed handle cell on VM heap
+- <code>intern_handle(TypedHandle, OwnershipMode)</code> — get or create heap cell, set ownership
+- <code>enumerate_handle_roots(visitor)</code> — root ENGINE_OWNED/BORROWED handle cells during GC marking
+- <code>register_handle_destructor(TypeID, callback)</code> — invoked when VM_OWNED handle is swept</p>
+<p><strong>Key properties</strong>:
+- Script-visible handle values are just <code>TypedHandle</code> stored on the VM heap
+- Handles never reused (generation prevents ABA problem)
+- No raw pointers passed to scripts — only handles</p>
+<p><strong><em>See [VII.GC Integration Points]</em></strong></p>
+<h4 id="registration-api">Registration API</h4>
+<p><strong>C++ Side</strong> — Register native module interface:</p>
+<pre><code class="language-cpp">ModuleBuilder mb(&amp;runtime, &quot;core.effects&quot;);
+mb.value_type&lt;glm::vec3&gt;(&quot;vec3&quot;);
+mb.native_struct&lt;Position&gt;(&quot;Position&quot;)
+    .field(&quot;x&quot;, &amp;Position::x)
+    .field(&quot;y&quot;, &amp;Position::y)
+    .field(&quot;z&quot;, &amp;Position::z);
+mb.handle_type(&quot;Effect&quot;, RuntimeObjectPool::TYPE_EFFECT);
+mb.function(&quot;create_damage&quot;, &amp;create_damage_effect);
+mb.finalize();
+</code></pre>
+<p><strong>Script Side</strong> — Link to native module with <code>[[native]]</code> declarations:</p>
+<pre><code class="language-go">// core/effects.smalls
+[[native]] type Position { x, y, z: float; };
+[[native]] type Effect;
+
+[[native]] fn create_damage(amount: int): Effect;
+[[native]] fn apply(effect: Effect): void;
+
+// Can mix native and script-side code
+fn create_and_apply_damage(amount: int) {
+    const dmg = create_damage(amount);
+    apply(dmg);
+}
+</code></pre>
+<ul>
+<li>Function signatures must match exactly (parameter count, types, return type)</li>
+<li>Script modules can mix native declarations with regular script code</li>
+<li>Handle types are opaque references</li>
+</ul>
+<p><strong>Ownership modes</strong>:
+- <strong>VM_OWNED</strong> — Created by scripts, can be GC'd (e.g., <code>create_effect()</code>)
+- <strong>ENGINE_OWNED</strong> — Engine manages lifetime, never GC'd (e.g., GameObject)
+- <strong>BORROWED</strong> — Temporary reference, never GC'd (e.g., iterator)</p>
+<h4 id="implementation_14">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>TypedHandle</code>, <code>HandleEntry</code>, <code>intern_handle()</code>, <code>alloc_handle()</code>
+- <code>lib/nw/smalls/runtime.cpp</code> — <code>ModuleBuilder</code>, registration API</p>
+<hr>
+<h2 id="v-compilation-pipeline">V. Compilation Pipeline</h2>
+<h3 id="pipeline-overview">Pipeline Overview</h3>
+<p>Smalls compiles scripts through a multi-stage pipeline:</p>
+<pre><code>Source → Lexer → Parser → Resolver → Compiler → Bytecode → [Verifier]
+         │         │         │            │          │           │
+       Tokens    AST    Typed AST    BytecodeModule  │    Validation
+                                     (instructions,  │    (optional)
+                                      constants,     │
+                                      functions)     │
+                                                     ↓
+                                              VirtualMachine
+</code></pre>
+<p>Each stage is a separate component with well-defined inputs and outputs. The pipeline is designed for fast compilation (important for hot-reloading).</p>
+<h3 id="lexer-parser">Lexer &amp; Parser</h3>
+<p>The <strong>Lexer</strong> (<code>Lexer.hpp</code>) performs tokenization: converts source text into a stream of <code>Token</code> values. It handles string literals, f-string splitting, numeric literals, identifiers, keywords, operators, and comments. It builds a <code>line_map</code> for source location tracking.</p>
+<p>The <strong>Parser</strong> (<code>Parser.hpp</code>) performs recursive-descent parsing: converts the token stream into an AST (<code>Ast</code>). It handles all expression precedence levels (from assignment down to primary), all statement forms (blocks, if/else, for, foreach, switch), and all declarations (functions, structs, sum types, newtypes, imports, variables). The parser has a configurable error limit (default 20) and synchronization for error recovery.</p>
+<h4 id="implementation_15">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/Lexer.hpp</code> — <code>Lexer</code> struct, tokenization
+- <code>lib/nw/smalls/Parser.hpp</code> — <code>Parser</code> struct, recursive-descent parsing
+- <code>lib/nw/smalls/Ast.hpp</code> — AST node types
+- <code>lib/nw/smalls/Token.hpp</code> — <code>Token</code>, <code>TokenType</code> definitions</p>
+<h3 id="semantic-analysis-resolver">Semantic Analysis (Resolver)</h3>
+<p>The resolver (<code>AstResolver</code>) orchestrates three phases that transform a raw AST into a fully typed, validated AST:</p>
+<p><strong>Phase 1: Name Resolution</strong> (<code>NameResolver</code>):
+- Resolves <code>import</code> and <code>from ... import</code> declarations
+- Triggers recursive loading of dependent modules
+- Populates scope with imported symbols</p>
+<p><strong>Phase 2: Type Resolution</strong> (<code>TypeResolver</code>):
+- Resolves type annotations to <code>TypeID</code> values
+- Performs type inference (variable initializers, return types, lambda captures)
+- Type-checks all expressions and statements
+- Resolves generic instantiation — infers type arguments at call sites and triggers monomorphization
+- Detects and registers operator aliases (<code>[[operator(...)]]</code>)
+- Resolves intrinsic function declarations
+- Manages closure capture analysis (upvalue detection)</p>
+<p><strong>Phase 3: Validation</strong> (<code>Validator</code>):
+- Validates <code>break</code>/<code>continue</code> usage (must be inside loops)
+- Checks switch exhaustiveness for sum types
+- Validates basic switch cases (no duplicate labels)
+- Validates operator consistency (e.g., if <code>eq</code> is defined, <code>hash</code> should be too)
+- Validates map key allowlist policy (<code>int</code>/<code>string</code> and newtypes over <code>int</code>/<code>string</code>); rejects <code>float</code>, <code>bool</code>, handles, arrays, maps, functions/closures, structs/sums, and other user-defined categories as map keys</p>
+<h4 id="implementation_16">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstResolver.hpp</code> — <code>AstResolver</code> orchestrator, scope management, type resolution
+- <code>lib/nw/smalls/NameResolver.hpp</code> — <code>NameResolver</code>, import resolution
+- <code>lib/nw/smalls/TypeResolver.hpp</code> — <code>TypeResolver</code>, type inference and checking
+- <code>lib/nw/smalls/Validator.hpp</code> — <code>Validator</code>, exhaustiveness, consistency checks</p>
+<h3 id="constant-folding-ctfe">Constant Folding (CTFE)</h3>
+<p>The <code>AstConstEvaluator</code> performs compile-time function evaluation (CTFE), folding constant expressions into values during resolution. This reduces runtime work and enables constant propagation.</p>
+<p><strong>What it folds</strong>:
+- <strong>Primitives</strong>: integer, float, boolean, string literals
+- <strong>Struct literals</strong>: constant brace-init expressions (both positional and named-field)
+- <strong>Tuple literals</strong>: constant tuple construction
+- <strong>F-strings</strong>: when all interpolated expressions are constant
+- <strong>Binary/comparison/logical expressions</strong>: using <code>Runtime::execute_binary_op()</code>
+- <strong>Unary expressions</strong>: using <code>Runtime::execute_unary_op()</code>
+- <strong>Cast expressions</strong>: int↔float, int↔bool, newtype wrapping/unwrapping
+- <strong>Type test expressions</strong> (<code>is</code>): resolved at compile time when operand type is known
+- <strong>Conditional expressions</strong>: when the condition is constant, only the taken branch is evaluated
+- <strong>Identifier resolution</strong>: follows <code>const</code> variable initializers to their values
+- <strong>Tuple indexing</strong>: constant index into constant tuple
+- <strong>Path expressions</strong>: field access on constant struct values</p>
+<p>The evaluator is invoked by the resolver for expressions marked <code>is_const_</code>. Foldable types are checked recursively (a struct is foldable if all its fields are foldable types).</p>
+<h4 id="implementation_17">Implementation</h4>
+<p><strong>Status</strong>: Complete — The evaluator computes constant values at resolve time. The compiler (<code>AstCompiler</code>) consults <code>AstConstEvaluator</code> directly at code-generation time via <code>try_emit_const()</code>, emitting a single constant-load instruction for any expression marked <code>is_const_</code> instead of the full sub-expression sequence.</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstConstEvaluator.hpp</code> — <code>AstConstEvaluator</code> visitor, <code>is_foldable_type()</code>
+- <code>lib/nw/smalls/AstCompiler.cpp</code> — <code>try_emit_const()</code>, <code>const_is_truthy()</code>, DCE in control flow
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>execute_binary_op()</code>, <code>execute_unary_op()</code> used by CTFE</p>
+<h3 id="compiler">Compiler</h3>
+<p>The <code>AstCompiler</code> performs single-pass AST → bytecode compilation. It visits the typed AST and emits instructions into a <code>BytecodeModule</code>.</p>
+<p><strong>Key characteristics</strong>:
+- <strong>Linear register allocation</strong>: Simple bump allocator within 256-register frames, with a free-list for register reuse
+- <strong>Jump patching</strong>: Control flow emits placeholder jumps, patched when targets are known
+- <strong>Expression compilation</strong>: Leaves result in a target register
+- <strong>Statement compilation</strong>: Emits instructions with no result register
+- <strong>Lambda compilation</strong>: Separate function compilation with upvalue descriptor emission
+- <strong>Generic instantiation</strong>: <code>compile_instantiated()</code> compiles monomorphized generic functions on demand
+- <strong>Constant folding</strong>: <code>try_emit_const()</code> is called at the top of every foldable expression visitor; on success a single LOADI/LOADK/LOADB replaces the full sub-expression sequence
+- <strong>Dead code elimination (DCE)</strong>:
+  - <code>if</code>/ternary with a constant condition compiles only the taken branch — no jump instructions emitted
+  - <code>&amp;&amp;</code>/<code>||</code> with a constant LHS compiles only the necessary branch (short-circuit without a runtime jump)
+  - <code>for</code> with a constant-false condition compiles only the init clause and skips the body entirely
+  - <code>BlockStatement</code> stops compiling after the first unconditional terminator (<code>return</code>/<code>break</code>/<code>continue</code>) via <code>block_terminated_</code></p>
+<h4 id="implementation_18">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstCompiler.hpp</code> — <code>AstCompiler</code>, <code>RegisterAllocator</code>, <code>ControlScope</code>
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>BytecodeModule</code>, <code>CompiledFunction</code>, <code>Instruction</code>, <code>Opcode</code></p>
+<h3 id="bytecode-verifier">Bytecode Verifier</h3>
+<p>The <code>verify_bytecode_module()</code> function validates compiled bytecode post-compilation. It checks:
+- Register indices are within bounds for each function's register count
+- Jump targets are within instruction bounds
+- Constant pool indices are valid
+- Function call argument counts are consistent</p>
+<p>The verifier is a safety net — it catches compiler bugs that would otherwise cause VM crashes. It returns <code>false</code> and fills an error message on invalid bytecode.</p>
+<h4 id="implementation_19">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/BytecodeVerifier.hpp</code> — <code>verify_bytecode_module()</code> declaration
+- <code>lib/nw/smalls/BytecodeVerifier.cpp</code> — per-instruction validation logic</p>
+<h3 id="tooling-lsp-support">Tooling (LSP Support)</h3>
+<p>Smalls provides several AST visitor utilities for IDE integration:</p>
+<p><strong>AstHinter</strong> — Generates inlay hints (parameter name annotations at call sites). Walks the AST within a source range and produces <code>InlayHint</code> objects (message + position) for function call arguments.</p>
+<p><strong>AstLocator</strong> — Locates symbols in source for go-to-definition, hover, and reference tracking. Given a symbol name and cursor position, finds the declaration and produces a <code>Symbol</code> result with kind (variable, function, type, param, field), type information, and source view.</p>
+<p><strong>Symbol</strong> — Represents a located symbol with <code>node</code>, <code>decl</code>, <code>comment</code>, <code>type</code>, <code>kind</code>, <code>provider</code> (which script it's from), and <code>view</code>.</p>
+<p><strong>CompletionContext</strong> — Collects completion candidates by aggregating symbols from the current scope, module exports, and dependencies.</p>
+<p><strong>SignatureHelp</strong> — Provides function signature information at call sites, including the active parameter index for cursor-position-aware help.</p>
+<p><strong>Script API</strong> — The <code>Script</code> class exposes <code>locate_symbol()</code>, <code>complete_at()</code>, <code>complete_dot()</code>, <code>inlay_hints()</code>, and <code>signature_help()</code> methods for LSP integration.</p>
+<h4 id="implementation_20">Implementation</h4>
+<p><strong>Status</strong>: Partial — Core infrastructure (symbol location, completion, inlay hints, signature help) is implemented. Remaining work: go-to-definition for sum type variants and their members (<code>SumDecl</code>/<code>VariantDecl</code> in <code>AstLocator</code>), rename symbol, find-all-references, semantic tokens, and diagnostics push.</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/AstHinter.hpp</code> — <code>AstHinter</code> visitor, <code>InlayHint</code> generation
+- <code>lib/nw/smalls/AstLocator.hpp</code> — <code>AstLocator</code> visitor, symbol location
+- <code>lib/nw/smalls/Smalls.hpp</code> — <code>Script</code>, <code>Symbol</code>, <code>CompletionContext</code>, <code>SignatureHelp</code>, <code>InlayHint</code></p>
+<hr>
+<h2 id="vi-virtual-machine">VI. Virtual Machine</h2>
+<h3 id="architecture-overview">Architecture Overview</h3>
+<p>Smalls uses a register-based VM following Lua's design philosophy: <strong>256 registers per frame, fixed-width 32-bit instructions, single-pass compilation, switch-based dispatch</strong>.</p>
+<h3 id="instruction-encoding">Instruction Encoding</h3>
+<p><strong>32-bit fixed width:</strong></p>
+<pre><code>Bits 31-24: Opcode (8 bits)
+Bits 23-16: Register A (8 bits)
+Bits 15-8:  Register B (8 bits)
+Bits 7-0:   Register C (8 bits)
+</code></pre>
+<p><strong>Alternative encodings:</strong>
+- <strong>ABx format</strong>: Opcode + RegA + 16-bit immediate (LOADK, LOADI)
+- <strong>Jump format</strong>: Opcode + 24-bit signed offset (JMP, JMPT, JMPF)</p>
+<h3 id="core-components">Core Components</h3>
+<p><strong>BytecodeModule</strong> — Compiled script container: instruction sequence, constant pool (int, float, string), function metadata (param count, register count), debug info (source locations, optional by debug tier).</p>
+<p><strong>VirtualMachine</strong> — Bytecode interpreter: shared register file (256 Values per frame), call stack (CallFrame array with PC, base register, return register), fetch-decode-execute loop (switch on opcode).</p>
+<h3 id="instruction-set">Instruction Set</h3>
+<p><strong>Arithmetic &amp; Logic:</strong> ADD, SUB, MUL, DIV, MOD, NEG, NOT, AND, OR</p>
+<p><strong>Comparisons:</strong> EQ, NE, LT, LE, GT, GE</p>
+<p><strong>Test and Skip:</strong> ISEQ, ISNE, ISLT, ISLE, ISGT, ISGE (skip next instruction if condition true)</p>
+<p><strong>Constants &amp; Moves:</strong> LOADK, LOADI, LOADB, MOVE, LOADNIL</p>
+<p><strong>Memory:</strong> GETFIELD, SETFIELD, GETTUPLE, GETARRAY, SETARRAY, NEWSTRUCT, NEWTUPLE, NEWARRAY, NEWMAP, MAPGET, MAPSET, NEWSUM, SUMINIT, SUMGETTAG, SUMGETPAYLOAD, GETGLOBAL, SETGLOBAL</p>
+<p><strong>Optimized Field Access:</strong> FIELDGETI/FIELDSETI (int), FIELDGETF/FIELDSETF (float), FIELDGETB/FIELDSETB (bool), FIELDGETS/FIELDSETS (string), FIELDGETO/FIELDSETO (object), FIELDGETH/FIELDSETH (heap) — each with immediate and register-indexed variants</p>
+<p><strong>Stack Value Types:</strong> STACK_ALLOC, STACK_COPY, STACK_FIELDGET/SET, STACK_INDEXGET/SET</p>
+<p><strong>Control Flow:</strong> JMP, JMPT, JMPF, CALL, CALLNATIVE, CALLEXT, CALLEXT_R, CALLINTR, CALLINTR_R, RET, RETVOID</p>
+<p><strong>Type Operations:</strong> CAST, TYPEOF, IS</p>
+<p><strong>Closures:</strong> CLOSURE, GETUPVAL, SETUPVAL, CLOSEUPVALS, CALLCLOSURE</p>
+<p><strong>Module Globals:</strong> GETGLOBAL, SETGLOBAL</p>
+<h3 id="key-design-decisions">Key Design Decisions</h3>
+<p><strong>Register-based (not stack-based):</strong>
+- Fewer instructions per operation (no stack shuffling)
+- Simpler register allocation (linear bump allocator)
+- Better compiler optimizations (explicit data flow)</p>
+<p><strong>Fixed 256 registers:</strong>
+- Fits in 8-bit operands (no multi-byte register indices)
+- Sufficient for all realistic functions (most use &lt; 32)</p>
+<p><strong>Single-pass compilation:</strong>
+- No IR layer (AST → bytecode directly)
+- Fast compilation (important for scripts loaded at runtime)</p>
+<p><strong>Reentrant execution:</strong>
+- VM tracks entry frame depth on each <code>execute()</code> call
+- Only resets VM state on top-level calls (when no frames active)
+- Execution stops when returning to entry depth (preserves outer frames)
+- Script → Native → Script call chains work correctly
+- Frame cleanup on execution failure (prevents register file corruption)</p>
+<p><strong>Safe arithmetic:</strong>
+- Division/modulo by zero checks in both VM and Runtime layers
+- Checks performed before operation (prevents SIGFPE hardware exception)
+- Returns VM error with descriptive message instead of process crash</p>
+<h3 id="integration-points">Integration Points</h3>
+<p><strong>Operator dispatch:</strong> Two-tier execution:
+1. <strong>Inline fast paths</strong> in the VM for primitive types (int, float, bool, string). Arithmetic, comparison, logical, and test-and-skip opcodes check operand types directly and execute without function call overhead.
+2. <strong>CALLEXT for user types</strong>: The compiler detects script-defined operators at compile time and emits direct CALLEXT instructions.
+3. <strong>Slow path fallback</strong>: <code>Runtime::execute_binary_op()</code>/<code>execute_unary_op()</code> for mixed types, coercions, and CTFE.</p>
+<p><strong><em>See [III.Operator Aliasing]</em></strong></p>
+<p><strong>Memory allocation:</strong> VM calls runtime helpers (<code>alloc_struct()</code>, <code>alloc_array()</code>, <code>alloc_string()</code>). All allocations live on ScriptHeap.</p>
+<p><strong><em>See [VII.Memory Management]</em></strong></p>
+<p><strong>Field access:</strong> VM uses runtime helpers with type metadata (<code>read_struct_field_by_index()</code>, <code>write_struct_field_by_index()</code>). Type safety enforced by resolver.</p>
+<p><strong>Bytecode caching:</strong> Runtime caches compiled bytecode per script to avoid recompilation overhead.</p>
+<p><strong>Error reporting:</strong> <code>ExecutionResult</code> contains: <code>value</code> (return value), <code>failed</code> flag, <code>error_message</code>, <code>stack_trace</code>, <code>error_module</code>, <code>error_location</code>, and <code>error_snippet</code>. Error sources: compilation failures, module loading failures, VM runtime errors, native exceptions.</p>
+<p><strong>Debug tiers:</strong> Runtime diagnostics are configurable:
+- <strong>none</strong>: no debug locations or snippets
+- <strong>source_map</strong>: bytecode locations + on-demand source lines
+- <strong>full</strong>: retains AST and full source text</p>
+<h4 id="implementation_21">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/VirtualMachine.hpp</code> — <code>VirtualMachine</code>, <code>CallFrame</code>, dispatch loop
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>Opcode</code> enum, <code>Instruction</code>, <code>BytecodeModule</code>, <code>CompiledFunction</code>
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>ExecutionResult</code>, <code>Value</code>, operator dispatch</p>
+<hr>
+<h2 id="vii-memory-management">VII. Memory Management</h2>
+<h3 id="gc-overview">GC Overview</h3>
+<p>Smalls uses a <strong>Luau-style incremental, generational, non-moving garbage collector</strong>. This design prioritizes stable memory addresses (critical for FFI) while still achieving generational benefits.</p>
+<h3 id="design-philosophy_1">Design Philosophy</h3>
+<ul>
+<li><strong>Non-moving</strong>: Objects never relocate after allocation. HeapPtr offsets remain stable for the lifetime of the object, enabling safe C++ interop without pinning.</li>
+<li><strong>Generational</strong>: Objects are tagged as young or old via a flag in the ObjectHeader, not physically separated into different memory regions. Promotion simply flips the flag.</li>
+<li><strong>Incremental</strong>: Tri-color marking (white/gray/black) spreads work across allocations to minimize pause times.</li>
+<li><strong>Write barriers</strong>: Card marking tracks old→young references to enable efficient minor collections.</li>
+</ul>
+<h3 id="heap-layout-objectheader">Heap Layout (ObjectHeader)</h3>
+<p>Each heap allocation includes an ObjectHeader with GC metadata: <code>alloc</code> (allocation handle), <code>type_id</code>, mark color (2 bits: white/gray/black), generation (1 bit: young/old), age (4 bits: survival count 0–15), <code>next_object</code> (linked list for sweep), and <code>alloc_size</code>.</p>
+<p>Objects are linked via <code>next_object</code> to enable efficient sweep-phase iteration.</p>
+<h3 id="collection-algorithms">Collection Algorithms</h3>
+<p><strong>Minor Collection</strong> (young generation only):
+1. Mark roots (VM registers, stack, upvalues)
+2. Scan dirty cards for old→young references
+3. Process gray stack (trace young objects only)
+4. Promote survivors (age++, flip generation flag if age &gt;= threshold)
+5. Sweep unreachable young objects
+6. Clear dirty cards</p>
+<p><strong>Major Collection</strong> (full heap):
+1. Reset all marks to white
+2. Mark roots
+3. Process entire gray stack (trace all objects)
+4. Sweep all unreachable objects
+5. Clear dirty cards</p>
+<h3 id="triggering-scheduling">Triggering &amp; Scheduling</h3>
+<p>Allocation <em>may</em> trigger GC based on <code>GCConfig</code> thresholds — this is the mechanism, not a contract. The engine controls timing indirectly by tuning <code>GCConfig</code>, and can trigger collections explicitly via <code>collect_minor()</code>/<code>collect_major()</code> for testing.</p>
+<ol>
+<li><strong>Minor GC</strong>: When young generation exceeds threshold (default 256KB)</li>
+<li><strong>Major GC</strong>: When old generation exceeds threshold (80% of committed heap)</li>
+<li>Major GC is <strong>incremental</strong>: marking work spreads across allocations</li>
+<li>Each allocation does a small amount of marking work (default 100 objects)</li>
+<li>Sweep happens when marking completes</li>
+</ol>
+<h3 id="write-barriers">Write Barriers</h3>
+<p>Write barriers are inserted at all pointer-store sites to maintain the card table. When target is old and stored value is young, the card table is marked dirty.</p>
+<p>Barrier sites include:
+- Struct field writes (<code>write_struct_field_by_index</code>, <code>write_field_at_offset</code>)
+- Array element writes (<code>array_set</code>)
+- Map key/value writes (<code>map_set</code>)
+- Tuple element writes (<code>write_tuple_element_by_index</code>)
+- Sum payload writes (<code>write_sum_payload</code>)
+- Upvalue writes (SETUPVAL opcode)</p>
+<h3 id="type-specific-tracing">Type-Specific Tracing</h3>
+<p>The GC traces heap references using type metadata:</p>
+<table>
+<thead>
+<tr>
+<th>Type Kind</th>
+<th>Tracing Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TK_struct</code></td>
+<td>Uses <code>StructDef::heap_ref_offsets</code> array</td>
+</tr>
+<tr>
+<td><code>TK_tuple</code></td>
+<td>Iterates <code>TupleDef::element_types</code></td>
+</tr>
+<tr>
+<td><code>TK_array</code></td>
+<td>Iterates elements if element type is heap type</td>
+</tr>
+<tr>
+<td><code>TK_map</code></td>
+<td>Iterates key-value pairs</td>
+</tr>
+<tr>
+<td><code>TK_function</code></td>
+<td>Traces closure upvalues</td>
+</tr>
+<tr>
+<td><code>TK_sum</code></td>
+<td>Reads tag, traces only active variant payload</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>contains_heap_refs</code> flag on <code>Type</code> enables fast skipping of types with no heap references.</p>
+<p><strong>The <code>contains_heap_refs</code> Invariant</strong>: This runtime invariant must be correctly maintained for GC correctness. Rules:
+- <strong>Primitives</strong> (<code>int</code>, <code>float</code>, <code>bool</code>): <code>false</code>
+- <strong>Heap types</strong> (strings, arrays, maps, closures): <code>true</code>
+- <strong>Structs/tuples</strong>: <code>true</code> if ANY field/element <code>contains_heap_refs</code>
+- <strong>Sum types</strong>: <code>true</code> if ANY variant payload <code>contains_heap_refs</code>
+- <strong>Fixed arrays</strong> (<code>T[N]</code>): inherits from element type
+- <strong>Newtypes/aliases</strong>: inherits from underlying type</p>
+<p>Computed by <code>TypeTable::compute_contains_heap_refs()</code> during type registration and never changes.</p>
+<h3 id="configuration">Configuration</h3>
+<p>GC behavior is configurable via <code>GCConfig</code>: <code>young_threshold</code> (default 256KB), <code>promotion_threshold</code> (default 2 survivals), <code>major_threshold_percent</code> (default 0.8), <code>incremental_work_budget</code> (default 100 objects per mark step).</p>
+<h3 id="statistics">Statistics</h3>
+<p><code>GCStats</code> tracks: <code>minor_collections</code>, <code>major_collections</code>, <code>objects_freed</code>, <code>bytes_freed</code>, <code>total_pause_time_us</code>, <code>max_pause_time_us</code>.</p>
+<h3 id="gc-integration-points">GC Integration Points</h3>
+<p><strong>Closures and upvalues</strong>: Closure's <code>upvalues</code> vector is traced. Closed upvalues (value copied to <code>Upvalue::closed</code>) are traced. Open upvalues are reachable via VM register file.</p>
+<p><strong>Native handles</strong>: Handle ownership modes interact with GC:
+- <strong>VM_OWNED</strong>: Created by scripts, eligible for collection. When swept, removed from registry and optional destructor invoked.
+- <strong>ENGINE_OWNED</strong>: Engine manages lifetime, treated as GC roots (never collected).
+- <strong>BORROWED</strong>: Temporary reference, treated as GC roots (never collected).</p>
+<p><strong><em>See [IV.Native Interfaces]</em></strong></p>
+<h4 id="implementation_22">Implementation</h4>
+<p><strong>Status</strong>: Complete</p>
+<p><strong>Key files</strong>:
+- <code>lib/nw/smalls/GarbageCollector.hpp</code> — <code>GarbageCollector</code>, <code>GCConfig</code>, <code>GCStats</code>, <code>ObjectHeader</code>
+- <code>lib/nw/smalls/ScriptHeap.hpp</code> — <code>ScriptHeap</code>, offset-based allocation
+- <code>lib/nw/smalls/runtime.hpp</code> — <code>scan_value_heap_refs()</code>, <code>enumerate_handle_roots()</code>
+- <code>lib/nw/smalls/runtime.cpp</code> — write barrier insertion, root enumeration</p>
+<hr>
+<h2 id="viii-roadmap">VIII. Roadmap</h2>
+<h3 id="migration-strategy">Migration Strategy</h3>
+<p><strong>Current Phase:</strong>
+1. C++ structs loaded from GFF/JSON files
+2. Native property sets for engine systems
+3. Script types defined but not yet used for data</p>
+<p><strong>Medium-term:</strong>
+1. Write converters: GFF/JSON → <code>.smalls</code> files with struct literals
+2. Dual loading: Keep C++ loaders, add script config loading
+3. Property sets with value types only
+4. Native bridge functions for complex collections</p>
+<p><strong>Long-term:</strong>
+1. Remove C++ data loaders
+2. All game data in <code>.smalls</code> config files
+3. Property sets with heap-allocated collections
+4. Native property sets only for engine integration (physics, rendering, etc.)
+5. Gameplay logic entirely in script (combat, AI, dialogue, etc.)</p>
+<h3 id="future-language-features">Future Language Features</h3>
+<ul>
+<li>Explicit export control for modules (currently everything is exported)</li>
+<li>Explicit generic instantiation syntax for functions</li>
+<li>Constraint syntax for type parameters (e.g., <code>where $T: Comparable</code>)</li>
+<li><code>set!(T)</code> collection type</li>
+<li>String length limits and array size limits (currently TBD)</li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

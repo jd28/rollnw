@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rules - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a class="active" href="index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/docs/rules.md">Source</a></div>
+      <aside class="notice notice-transitional"><span class="notice-label">transitional</span><p>This describes the older C++ rules/modifier cross section. Active rules authoring work is moving toward Smalls.</p></aside>
+      <article class="content">
+<h1 id="rules">Rules</h1>
+<p>This page preserves the useful context for the older C++ rules and modifier
+system. New rules authoring work is moving toward <a href="../smalls/index.html">Smalls</a>
+and <a href="../smalls/propset-architecture.html">propsets</a> so rule data can be
+authored, tested, and embedded without growing hardcoded C++ policy.</p>
+<h2 id="original-goals">Original Goals</h2>
+<ul>
+<li>Rules should be overridable, expandable, or removable through configuration
+  or programmatic registration.</li>
+<li>Rules should be queryable for a concrete situation, such as the modifiers
+  affecting one creature attacking one target with one weapon.</li>
+<li>Rule constants should avoid being permanently tied to 2da row numbers when a
+  ruleset-specific mapping is the real policy.</li>
+</ul>
+<h2 id="useful-definitions">Useful Definitions</h2>
+<p><strong>Attribute</strong>: A feature inherent to an object, such as creature ability scores.</p>
+<p><strong>Profile</strong>: A ruleset-specific layer that decouples rule values from the core
+rules service.</p>
+<p><strong>Type</strong>: A typed rule value, such as an armor class category. The rule system
+defines the type and invalid value; profiles define valid values.</p>
+<p><strong>Flag</strong>: A compact flag built from a rule type.</p>
+<h2 id="modifiers">Modifiers</h2>
+<p>The older modifier system is built on integer, floating-point, string, and
+function inputs stored in the global rules service. Modifier resolution calls a
+registered callback or uses helpers such as sum/max resolution for common cases.</p>
+<pre><code class="language-cpp">auto mod = nw::make_modifier(
+    mod_type_hitpoints,
+    20,
+    &quot;dnd-3.0-epic-toughness&quot;,
+    nw::ModifierSource::feat,
+    { nw::qualifier_feat(nwn1::feat_epic_toughness_1) });
+
+nw::kernel::rules().modifiers.add(mod);
+</code></pre>
+<p>This remains useful compatibility context, especially for existing NWN profile
+behavior. It should not be treated as the only rules direction for new authored
+game systems.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
