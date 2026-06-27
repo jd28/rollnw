@@ -6,9 +6,25 @@ on:
       - main
     tags:
       - 'v*'
+    paths-ignore:
+      - "**.md"
+      - "**.rst"
+      - "**.ipynb"
+      - "docs.toml"
+      - "docs/**"
+      - "tools/docs/**"
+      - ".github/workflows/docs.yml"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "**.md"
+      - "**.rst"
+      - "**.ipynb"
+      - "docs.toml"
+      - "docs/**"
+      - "tools/docs/**"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 jobs:

@@ -287,10 +287,10 @@
             }
         },
         {
-            "name": "ci-coverage-docs",
+            "name": "ci-coverage",
             "inherits": "linux",
-            "displayName": "ci-coverage-docs",
-            "description": "Default build with tests and code coverage, no python",
+            "displayName": "ci-coverage",
+            "description": "Default build with tests and code coverage",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -300,10 +300,6 @@
                 "CODE_COVERAGE": {
                     "type": "BOOL",
                     "value": "ON"
-                },
-                "ROLLNW_BUILD_DOCS": {
-                    "type": "BOOL",
-                    "value": true
                 },
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",

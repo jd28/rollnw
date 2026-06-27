@@ -33,13 +33,9 @@ rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN inf
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
-## Graphics Layer Guardrails
-
-`lib/nw/gfx` is intentionally a thin rendering abstraction and Vulkan utility layer, not a game engine framework. See the [gfx docs](https://jd28.github.io/rollnw/gfx/).
-
 ## Building / Installing
 
-The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}[-renderer][-{build tool}]-dev[-debug]`. Renderer presets build the platform's supported graphics tools; macOS does not currently have renderer presets because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.
+The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}[-renderer][-{build tool}]-dev[-debug]`. Renderer presets build the platform's supported graphics tools. Renderer and `mudl` builds are supported on Linux and Windows only; macOS is not supported for the renderer because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.
 
 Examples:
 ```

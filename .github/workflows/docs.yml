@@ -1,0 +1,58 @@
+name: Docs
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.md"
+      - "docs.toml"
+      - "docs/CMakeLists.txt"
+      - "tools/docs/**"
+      - "tools/mudl/readme-assets/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.md"
+      - "docs.toml"
+      - "docs/CMakeLists.txt"
+      - "tools/docs/**"
+      - "tools/mudl/readme-assets/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: Install docs dependencies
+        run: python -m pip install -r tools/docs/requirements.txt
+
+      - name: Test docs builder
+        run: python tools/docs/test_build_site.py
+
+      - name: Build docs site
+        run: |
+          python tools/docs/build_site.py \
+            --manifest docs.toml \
+            --repo-root "${{ github.workspace }}" \
+            --output "${{ github.workspace }}/build/docs/site"
+
+      - name: Deploy docs to GitHub Pages
+        if: github.event_name == 'push'
+        uses: JamesIves/github-pages-deploy-action@v4.8.0
+        with:
+          branch: gh-pages
+          folder: "${{ github.workspace }}/build/docs/site"
+          clean: true

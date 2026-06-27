@@ -1336,6 +1336,10 @@ auto* spell = rt.load_config<SpellInfo>("fireball", "game_types");
 - `lib/nw/smalls/runtime.hpp` — `load_config<T>()`, `ScriptString`, `ScriptClosure`
 - `lib/nw/smalls/ConfigArena.hpp` — config root management
 
+Script-side ruleset data loading uses the `load_config!(T)(path)` intrinsic.
+The authoring workflow, array contract, and RPG manifest direction are covered
+in [load-config.md](load-config.md).
+
 ### Property Sets
 
 Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.

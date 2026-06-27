@@ -15,18 +15,9 @@ It is useful for:
 
 ![c_aribeth turntable](./readme-assets/c_aribeth-turntable.gif)
 
-## Build
-
-Requires:
-- `ROLLNW_BUILD_RENDERER=ON`
-- DXC runtime binaries via GitHub releases on Linux/Windows, or a system install on macOS
-
-```bash
-cmake --preset linux-renderer-dev
-cmake --build --preset linux-renderer-dev --target mudl
-```
-
 ## Quickstart
+
+Build instructions live in the root [README](../../README.md#building-mudl).
 
 ```bash
 # Launch the interactive viewer

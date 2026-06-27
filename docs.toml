@@ -25,6 +25,13 @@ section = "Scripting"
 status = "current"
 
 [[pages]]
+source = "lib/nw/smalls/docs/load-config.md"
+target = "smalls/load-config.html"
+title = "load_config"
+section = "Scripting"
+status = "current"
+
+[[pages]]
 source = "lib/nw/smalls/docs/propset-architecture.md"
 target = "smalls/propset-architecture.html"
 title = "Propset Architecture"
