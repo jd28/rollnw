@@ -35,7 +35,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.platform_name }} ${{ matrix.compiler_name }} VS Code Binary
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Linux Node VSIX Package
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
