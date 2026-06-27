@@ -15,6 +15,7 @@ rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN inf
 - Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](lib/nw/smalls/docs/index.md) for a language spec.
 - The beginnings of a novel rules system and combat engine built on smalls.
 - [`nw::gfx`](./lib/nw/gfx/README.md), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
+- [`nw::render`](./lib/nw/render/README.md), the 3D renderer built on `nw::gfx`: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
