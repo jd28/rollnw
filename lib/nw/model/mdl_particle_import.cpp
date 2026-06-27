@@ -170,6 +170,7 @@ bool should_lower_stationary_normal_rect_to_local_plane(
     if (out.targeting.mode != ParticleTargetingMode::none) { return false; }
     if (out.emission.mode != ParticleEmissionMode::continuous) { return false; }
     if (out.emission.metric != ParticleSpawnMetric::per_second) { return false; }
+    if (out.simulation_space == ParticleSimulationSpace::world) { return false; }
     if (out.region.type != ParticleSpawnRegionType::rect) { return false; }
     if (!is_large_authored_rect_region(out.region.size)) { return false; }
     if (material.blend != ParticleBlendMode::additive) { return false; }

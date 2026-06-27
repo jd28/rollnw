@@ -568,9 +568,16 @@ TEST(ModelParticles, ImportStationaryNormalRectAuraAsLocalPlane)
         }
         return nullptr;
     }();
+    const auto* world_rect_fire = [&]() -> const nw::render::ParticleEmitterDef* {
+        for (const auto& emitter : result.effect.emitters) {
+            if (emitter.name == "world_rect_fire") return &emitter;
+        }
+        return nullptr;
+    }();
 
     ASSERT_NE(aura, nullptr);
     ASSERT_NE(spark, nullptr);
+    ASSERT_NE(world_rect_fire, nullptr);
     EXPECT_EQ(aura->render.mode, nw::render::ParticleRenderMode::billboard_local_z);
     EXPECT_EQ(aura->region.type, nw::render::ParticleSpawnRegionType::rect);
     EXPECT_FLOAT_EQ(aura->region.size.x, 26.0f);
@@ -578,6 +585,9 @@ TEST(ModelParticles, ImportStationaryNormalRectAuraAsLocalPlane)
     ASSERT_LT(aura->render.material, result.effect.materials.size());
     EXPECT_EQ(result.effect.materials[aura->render.material].blend, nw::render::ParticleBlendMode::additive);
     EXPECT_EQ(spark->render.mode, nw::render::ParticleRenderMode::billboard);
+    EXPECT_EQ(world_rect_fire->simulation_space, nw::render::ParticleSimulationSpace::world);
+    EXPECT_EQ(world_rect_fire->region.type, nw::render::ParticleSpawnRegionType::rect);
+    EXPECT_EQ(world_rect_fire->render.mode, nw::render::ParticleRenderMode::billboard);
 }
 
 TEST(ModelParticles, ParseEmitterFlags)

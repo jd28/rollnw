@@ -97,7 +97,7 @@ What you should see on screen for each combination:
 
 | Update | Render | Expected Screen Result |
 |---|---|---|
-| Fountain | normal | Steady stream of camera-facing quads from the spawn region. Exception: stationary additive sheets with broad rectangular spawn regions lower to `billboard_to_local_z` so the authored local plane stays fixed instead of turning into a camera-facing slab. |
+| Fountain | normal | Steady stream of camera-facing quads from the spawn region. Exception: stationary additive sheets with broad rectangular spawn regions and inherited/local simulation lower to `billboard_to_local_z` so the authored local plane stays fixed instead of turning into a camera-facing slab. World-space `normal` rect emitters stay camera-facing. |
 | Fountain | linked | Continuous ribbon connecting living particles; quads stretch where particles are sparse. Exception: non-targeted additive emitters with broad rectangular spawn regions lower to `billboard_world_z` soft ground cards. |
 | Fountain | billboard_to_local_z | Quads render in the emitter's local XY plane with local Z as the plane normal; attached particles keep their authored local rect/velocity motion while `particleRot` spins the sprite in that local plane |
 | Fountain | billboard_to_world_z | Quads lie flat in the world XY plane with stable world axes; good for pools, auras |
