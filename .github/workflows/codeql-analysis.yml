@@ -20,7 +20,6 @@ on:
       - "**.py"
       - "docs/**"
       - "**.ipynb"
-      - ".readthedocs.yaml"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -29,7 +28,6 @@ on:
       - "**.py"
       - "docs/**"
       - "**.ipynb"
-      - ".readthedocs.yaml"
   schedule:
     - cron: "21 9 * * 3"
 

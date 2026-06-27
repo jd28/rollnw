@@ -7,14 +7,12 @@ on:
       - "**.rst"
       - "**.ipynb"
       - "docs/**"
-      - ".readthedocs.yaml"
   pull_request:
     paths-ignore:
       - "**.md"
       - "**.rst"
       - "**.ipynb"
       - "docs/**"
-      - ".readthedocs.yaml"
   release:
     types:
       - published

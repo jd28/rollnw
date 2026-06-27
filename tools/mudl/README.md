@@ -2,6 +2,11 @@
 
 `mudl` is a model viewer and headless capture tool for NWN assets plus glTF 2.0 / PBR content, including skinned and animated glTF playback.
 
+It is the main tooling consumer of [`nw::render`](../../lib/nw/render/README.md)
+and its `lib/nw/render/viewer` preview layer. `mudl` drives real renderer
+paths against real assets; reusable renderer protocols stay in `nw::render`,
+with `nw::gfx` underneath as the low-level graphics API boundary.
+
 It is useful for:
 - interactive model inspection
 - quick asset stats and hierarchy inspection
@@ -478,8 +483,8 @@ mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.
 
 ## Design notes
 
-- `mudl` is a consumer of `nw::gfx`, not a rendering framework.
+- `mudl` is a consumer of `nw::render` and `lib/nw/render/viewer`, not a renderer framework.
 - Headless capture is built in because it is part of rendering validation.
 - Encoding stays outside the tool — `mudl` produces PNGs; `ffmpeg` and friends turn those into GIFs or videos.
 - NWN assets still come first, but glTF / PBR is now the primary modern material path for renderer validation.
-- Longer-term NWN1 preview/model compatibility notes live with the reusable runtime under `lib/nw/render/nwn/docs/`, not under the `mudl` app.
+- Longer-term NWN1 preview/model compatibility notes live with the reusable renderer docs, especially [NWN model conversion](../../lib/nw/render/docs/nwn_model_conversion.md) and the [NWN emitter map](../../lib/nw/render/docs/nwn_emitter_map.md), not under the `mudl` app.

@@ -1,0 +1,119 @@
+site_title = "rollNW"
+repo_url = "https://github.com/jd28/rollnw"
+source_branch = "main"
+
+[[pages]]
+source = "README.md"
+target = "index.html"
+title = "rollNW"
+section = "Overview"
+status = "transitional"
+notice = "rollNW is in active transition. Older docs and APIs may show a narrower NWN-library view of the project."
+
+[[pages]]
+source = "lib/nw/smalls/docs/index.md"
+target = "smalls/index.html"
+title = "Smalls"
+section = "Scripting"
+status = "current"
+
+[[pages]]
+source = "lib/nw/smalls/docs/spec.md"
+target = "smalls/spec.html"
+title = "Smalls Language Spec"
+section = "Scripting"
+status = "current"
+
+[[pages]]
+source = "lib/nw/smalls/docs/propset-architecture.md"
+target = "smalls/propset-architecture.html"
+title = "Propset Architecture"
+section = "Scripting"
+status = "current"
+
+[[pages]]
+source = "lib/nw/docs/rules.md"
+target = "rules/index.html"
+title = "Rules"
+section = "Scripting"
+status = "transitional"
+notice = "This describes the older C++ rules/modifier cross section. Active rules authoring work is moving toward Smalls."
+
+[[pages]]
+source = "lib/nw/docs/script.md"
+target = "script/index.html"
+title = "NWScript Parser"
+section = "Scripting"
+status = "transitional"
+notice = "NWScript parsing remains compatibility tooling. New scripting and rules work should start with Smalls."
+
+[[pages]]
+source = "lib/nw/docs/objects.md"
+target = "objects/index.html"
+title = "Objects"
+section = "Utility"
+status = "legacy"
+notice = "Object handles and loading remain useful runtime context. New game-data direction is Smalls propsets."
+
+[[pages]]
+source = "lib/nw/gfx/README.md"
+target = "gfx/index.html"
+title = "nw::gfx"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/README.md"
+target = "render/index.html"
+title = "nw::render"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/gltf.md"
+target = "render/gltf.html"
+title = "glTF Rendering"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/nwn_model_conversion.md"
+target = "render/nwn_model_conversion.html"
+title = "NWN Model Conversion"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/nwn_emitter_map.md"
+target = "render/nwn_emitter_map.html"
+title = "NWN Emitter Map"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/particle_system.md"
+target = "render/particle_system.html"
+title = "Particle System"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/prepared_model_draws.md"
+target = "render/prepared_model_draws.html"
+title = "Prepared Model Draws"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "lib/nw/render/docs/forward_plus_gpu_driven_roadmap.md"
+target = "render/forward_plus_gpu_driven_roadmap.html"
+title = "Forward+ GPU-Driven Roadmap"
+section = "Rendering"
+status = "current"
+
+[[pages]]
+source = "tools/mudl/README.md"
+target = "mudl/index.html"
+title = "mudl"
+section = "Tools"
+status = "current"
