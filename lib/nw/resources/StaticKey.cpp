@@ -250,10 +250,10 @@ bool StaticKey::load()
         file.read(buffer, 16);
 
         uint32_t id;
-        ResourceType::type type;
-        istream_read(file, &type, 2);
+        uint16_t type;
+        istream_read(file, &type, sizeof(type));
         istream_read(file, &id, 4);
-        auto r = Resource{String(buffer), type};
+        auto r = Resource{String(buffer), static_cast<ResourceType::type>(type)};
         elements_.emplace_back(r, detail::KeyTableElement{id >> 20, id & 0xFFFFF});
     }
 

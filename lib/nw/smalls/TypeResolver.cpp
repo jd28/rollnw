@@ -2206,18 +2206,22 @@ void TypeResolver::visit(StructDecl* decl)
                     if (field_type->type_kind == TK_primitive) {
                         allowed = is_v1_primitive(field_type->primitive_kind);
                     }
-                    // Case 2: [[value_type]] structs with no heap references
+                    // Case 2: native value types with no Smalls heap references
+                    else if (rt.is_native_value_type(field.type_id)) {
+                        allowed = true;
+                    }
+                    // Case 3: [[value_type]] structs with no heap references
                     else if (field_type->type_kind == TK_struct) {
                         // Must be [[value_type]] and contain no heap references
                         allowed = is_value_type_struct(field_type) && !field_type->contains_heap_refs;
                     }
-                    // Case 3: Fixed arrays T[N] where T is POD
+                    // Case 4: Fixed arrays T[N] where T is POD
                     else if (field_type->type_kind == TK_fixed_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
                         const Type* elem_type = rt.get_type(elem_tid);
-                        allowed = is_pod_type(elem_type);
+                        allowed = rt.is_native_value_type(elem_tid) || is_pod_type(elem_type);
                     }
-                    // Case 4: Dynamic arrays array!(T) where T is primitive or POD struct
+                    // Case 5: Dynamic arrays array!(T) where T is primitive or POD struct
                     else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
                         const Type* elem_type = rt.get_type(elem_tid);
@@ -2225,13 +2229,15 @@ void TypeResolver::visit(StructDecl* decl)
                         while (elem_type && elem_type->type_kind == TK_newtype
                             && elem_type->type_params[0].is<TypeID>())
                             elem_type = rt.get_type(elem_type->type_params[0].as<TypeID>());
-                        if (elem_type && elem_type->type_kind == TK_primitive) {
+                        if (rt.is_native_value_type(elem_tid)) {
+                            allowed = true;
+                        } else if (elem_type && elem_type->type_kind == TK_primitive) {
                             allowed = is_v1_primitive(elem_type->primitive_kind);
                         } else if (elem_type && elem_type->type_kind == TK_struct) {
                             allowed = !elem_type->contains_heap_refs;
                         }
                     }
-                    // Case 5: Object handle types (object, Creature, Item, etc.)
+                    // Case 6: Object handle types (object, Creature, Item, etc.)
                     // Stored as immediate 8-byte values; no heap references, no GC needed.
                     else if (rt.is_object_like_type(field.type_id)) {
                         allowed = true;

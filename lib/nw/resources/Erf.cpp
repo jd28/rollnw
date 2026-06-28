@@ -40,9 +40,12 @@ template <size_t N>
 struct ErfKey {
     std::array<char, N> resref;
     uint32_t id;
-    ResourceType::type type;
+    uint16_t type;
     int16_t unused;
 };
+
+static_assert(sizeof(ErfKey<16>) == 24);
+static_assert(sizeof(ErfKey<32>) == 40);
 
 Erf::Erf(const std::filesystem::path& path)
     : working_dir_{create_unique_tmp_path()}
@@ -245,6 +248,12 @@ bool Erf::save_as(const std::filesystem::path& path) const
             size = std::get<ErfElementInfo>(it->second).size;
         }
 
+        const auto disk_type = static_cast<int32_t>(e.type);
+        if (disk_type < 0 || disk_type > std::numeric_limits<uint16_t>::max()) {
+            throw std::runtime_error(fmt::format("[erf] resource type '{}' for '{}' cannot be written to ERF",
+                disk_type, e.filename()));
+        }
+
         if (version == ErfVersion::v1_0) {
             if (e.resref.length() > 16) {
                 throw std::runtime_error(fmt::format("[erf] invalid resref '{}', must be less than 16 characters", e.resref.view()));
@@ -252,7 +261,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
             std::array<char, 16> name;
             name.fill(0);
             memcpy(name.data(), e.resref.view().data(), e.resref.length());
-            entry_keys16.push_back({name, id++, e.type, 0});
+            entry_keys16.push_back({name, id++, static_cast<uint16_t>(disk_type), 0});
         } else if (version == ErfVersion::v1_1) {
             if (e.resref.length() > 32) {
                 throw std::runtime_error(fmt::format("[erf] invalid resref '{}', must be less than 16 characters", e.resref.view()));
@@ -260,7 +269,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
             std::array<char, 32> name;
             name.fill(0);
             memcpy(name.data(), e.resref.view().data(), e.resref.length());
-            entry_keys32.push_back({name, id++, e.type, 0});
+            entry_keys32.push_back({name, id++, static_cast<uint16_t>(disk_type), 0});
         }
         entry_info.push_back({data_offset, size});
         data_offset += size;
@@ -446,7 +455,7 @@ bool Erf::load(const fs::path& path)
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
         for (size_t i = 0; i < header.entry_count; ++i) {
-            elements_.emplace(Resource{Resref{keys[i].resref}, keys[i].type}, info[i]);
+            elements_.emplace(Resource{Resref{keys[i].resref}, static_cast<ResourceType::type>(keys[i].type)}, info[i]);
         }
     } else if (version == ErfVersion::v1_1) {
         Vector<ErfKey<32>> keys;
@@ -460,7 +469,7 @@ bool Erf::load(const fs::path& path)
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
         for (size_t i = 0; i < header.entry_count; ++i) {
-            elements_.emplace(Resource{keys[i].resref, keys[i].type}, info[i]);
+            elements_.emplace(Resource{keys[i].resref, static_cast<ResourceType::type>(keys[i].type)}, info[i]);
         }
     }
 

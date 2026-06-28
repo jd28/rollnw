@@ -39,9 +39,12 @@ template <size_t N>
 struct ErfKey {
     std::array<char, N> resref;
     uint32_t id;
-    ResourceType::type type;
+    uint16_t type;
     int16_t unused;
 };
+
+static_assert(sizeof(ErfKey<16>) == 24);
+static_assert(sizeof(ErfKey<32>) == 40);
 
 StaticErf::StaticErf(const std::filesystem::path& path, nw::MemoryResource* allocator)
     : Container(allocator)
@@ -179,7 +182,7 @@ bool StaticErf::load(const fs::path& path)
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
         for (size_t i = 0; i < header.entry_count; ++i) {
-            auto r = Resource{keys[i].resref, keys[i].type};
+            auto r = Resource{keys[i].resref, static_cast<ResourceType::type>(keys[i].type)};
             elements_.emplace_back(r, info[i].offset, info[i].size);
         }
     } else if (version == ErfVersion::v1_1) {
@@ -194,7 +197,7 @@ bool StaticErf::load(const fs::path& path)
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
         for (size_t i = 0; i < header.entry_count; ++i) {
-            auto r = Resource{keys[i].resref, keys[i].type};
+            auto r = Resource{keys[i].resref, static_cast<ResourceType::type>(keys[i].type)};
             elements_.emplace_back(r, info[i].offset, info[i].size);
         }
     }

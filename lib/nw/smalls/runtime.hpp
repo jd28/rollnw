@@ -18,6 +18,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <array>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -36,6 +37,7 @@ struct FunctionDefinition;
 struct GCRootVisitor;
 struct IArray;
 struct ModuleBuilder;
+struct NativeValueTypeLayout;
 struct NativeStructLayout;
 struct Script;
 struct Token;
@@ -398,6 +400,7 @@ struct Runtime : public nw::kernel::Service {
     bool is_object_like_type(TypeID type) const;
     std::optional<nw::ObjectType> object_subtype_tag(TypeID type) const;
     TypeID object_subtype_for_tag(nw::ObjectType tag) const;
+    bool is_native_value_type(TypeID type) const;
 
     /// Registers a type in the runtime type table
     /// @param name Fully-qualified type name (e.g., "core.creature.attack.AttackResult")
@@ -1355,6 +1358,12 @@ private:
     // Maps C++ type_index to smalls qualified name for native structs
     absl::flat_hash_map<std::type_index, String> native_struct_type_names_;
 
+    // Native value layouts registered from C++ for inline POD-like interop.
+    absl::flat_hash_map<String, NativeValueTypeLayout> native_value_type_layouts_;
+
+    // Maps C++ type_index to smalls qualified name for native value types.
+    absl::flat_hash_map<std::type_index, String> native_value_type_names_;
+
     // Built-in core prelude module
     Script* core_prelude_ = nullptr;
     Script* core_test_ = nullptr;
@@ -1411,6 +1420,25 @@ public:
         }
         return {};
     }
+
+    /// Returns the smalls qualified name for a native value C++ type, or empty if not registered
+    StringView native_value_type_qualified_name(std::type_index idx) const
+    {
+        auto it = native_value_type_names_.find(idx);
+        if (it != native_value_type_names_.end()) {
+            return it->second;
+        }
+        return {};
+    }
+};
+
+// == Native Value Type Registration ==========================================
+
+/// Complete C++ value layout for inline native value types.
+struct NativeValueTypeLayout {
+    String type_name;
+    size_t size;
+    size_t alignment;
 };
 
 // == Native Struct Registration ==============================================
@@ -1473,6 +1501,12 @@ TypeID deduce_type_id()
     } else if constexpr (std::is_same_v<T, ObjectHandle>) {
         return rt.object_type();
     }
+    // Native value types
+    else if constexpr (std::is_same_v<T, nw::Resref>) {
+        return rt.type_id("core.types.ResRef");
+    } else if constexpr (std::is_same_v<T, nw::Resource>) {
+        return rt.type_id("core.types.Resource");
+    }
     // ScriptString (mapped to smalls string)
     else if constexpr (std::is_same_v<T, ScriptString>) {
         return rt.string_type();
@@ -1480,6 +1514,22 @@ TypeID deduce_type_id()
     // ScriptClosure (mapped to smalls function type)
     else if constexpr (std::is_same_v<T, ScriptClosure>) {
         return rt.any_type(); // function types are polymorphic; resolved at load time
+    }
+    // Enums with int32_t storage map to smalls int.
+    else if constexpr (std::is_enum_v<T>) {
+        static_assert(sizeof(T) == sizeof(int32_t),
+            "native enum fields must have int32_t storage");
+        return rt.int_type();
+    }
+    // Registered native value types map by C++ type.
+    else if constexpr (std::is_class_v<T>) {
+        StringView name = rt.native_value_type_qualified_name(std::type_index(typeid(T)));
+        if (!name.empty()) {
+            return rt.type_id(name);
+        }
+        static_assert(always_false<T>(),
+            "Unsupported class type in [[native]] structs");
+        return invalid_type_id;
     }
     // Unsupported type
     else {
@@ -1567,30 +1617,52 @@ ModuleBuilder& ModuleBuilder::add_opaque_type(StringView name)
 template <typename T>
 ModuleBuilder& ModuleBuilder::value_type(StringView name)
 {
-    // Get the smalls type (should be registered from .smalls file or elsewhere)
-    const Type* smalls_type = runtime_->get_type(name);
+    String qualified_name = path_ + "." + String(name);
+
+    static_assert(std::is_trivially_copyable_v<T>,
+        "native value types must be trivially copyable");
+
+    const Type* smalls_type = runtime_->get_type(qualified_name);
     if (!smalls_type) {
-        LOG_F(ERROR, "[runtime] Cannot validate value_type '{}' - type not found. "
-                     "Ensure type is defined in .smalls file first.",
-            name);
-        return *this;
+        smalls_type = runtime_->get_type(name);
     }
 
-    // Validate layout matches
-    if (smalls_type->size != sizeof(T)) {
+    if (smalls_type && smalls_type->type_kind != TK_unspecified
+        && smalls_type->size != sizeof(T)) {
         LOG_F(ERROR, "[runtime] Layout mismatch for '{}': C++ size={}, smalls size={}",
-            name, sizeof(T), smalls_type->size);
+            smalls_type->name.view(), sizeof(T), smalls_type->size);
         return *this;
     }
 
-    if (smalls_type->alignment != alignof(T)) {
+    if (smalls_type && smalls_type->type_kind != TK_unspecified
+        && smalls_type->alignment != alignof(T)) {
         LOG_F(ERROR, "[runtime] Layout mismatch for '{}': C++ alignment={}, smalls alignment={}",
-            name, alignof(T), smalls_type->alignment);
+            smalls_type->name.view(), alignof(T), smalls_type->alignment);
         return *this;
     }
 
-    LOG_F(INFO, "[runtime] Validated value_type '{}': size={}, alignment={}",
-        name, sizeof(T), alignof(T));
+    TypeID type_id = runtime_->type_table_.reserve(qualified_name);
+    if (type_id != invalid_type_id && type_id.value >= 1
+        && static_cast<size_t>(type_id.value) <= runtime_->type_table_.types_.size()) {
+        Type& type = runtime_->type_table_.types_[static_cast<size_t>(type_id.value - 1)];
+        if (type.type_kind == TK_unspecified || type.type_kind == TK_opaque) {
+            type.type_kind = TK_opaque;
+            type.primitive_kind = PK_unspecified;
+            type.size = sizeof(T);
+            type.alignment = alignof(T);
+            type.contains_heap_refs = false;
+        }
+    }
+
+    runtime_->native_value_type_layouts_[qualified_name] = NativeValueTypeLayout{
+        .type_name = qualified_name,
+        .size = sizeof(T),
+        .alignment = alignof(T),
+    };
+    runtime_->native_value_type_names_[std::type_index(typeid(T))] = qualified_name;
+
+    LOG_F(INFO, "[runtime] Registered value_type '{}': size={}, alignment={}",
+        qualified_name, sizeof(T), alignof(T));
 
     // Add to interface for .smalli generation
     interface_.opaque_types.push_back(String(name));
@@ -1652,8 +1724,16 @@ TypeID cpp_to_typeid(Runtime* rt)
         return rt->bool_type();
     } else if constexpr (std::is_same_v<Bare, void>) {
         return rt->void_type();
+    } else if constexpr (std::is_same_v<Bare, ScriptString>) {
+        return rt->string_type();
+    } else if constexpr (std::is_same_v<Bare, ScriptClosure>) {
+        return rt->any_type();
     } else if constexpr (std::is_same_v<Bare, TypedHandle>) {
         return invalid_type_id; // script is source of truth for handle types
+    } else if constexpr (std::is_enum_v<Bare>) {
+        static_assert(sizeof(Bare) == sizeof(int32_t),
+            "native enum parameters must have int32_t storage");
+        return rt->int_type();
     } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
         return rt->object_type();
     } else if constexpr (std::is_same_v<Bare, IArray*> || (std::is_pointer_v<Bare> && std::is_base_of_v<IArray, std::remove_pointer_t<Bare>>)) {
@@ -1661,6 +1741,10 @@ TypeID cpp_to_typeid(Runtime* rt)
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return rt->any_type(); // Dynamic type: script determines actual type
     } else if constexpr (std::is_class_v<Bare>) {
+        StringView value_name = rt->native_value_type_qualified_name(std::type_index(typeid(Bare)));
+        if (!value_name.empty()) {
+            return rt->type_id(value_name);
+        }
         StringView name = rt->native_struct_qualified_name(std::type_index(typeid(Bare)));
         if (!name.empty()) {
             return rt->type_id(name);
@@ -1681,6 +1765,10 @@ T value_cast(Runtime* rt, const Value& v)
         return static_cast<Bare>(v.data.fval);
     } else if constexpr (std::is_same_v<Bare, bool>) {
         return static_cast<Bare>(v.data.bval);
+    } else if constexpr (std::is_same_v<Bare, ScriptString>) {
+        return ScriptString{v.data.hptr};
+    } else if constexpr (std::is_same_v<Bare, ScriptClosure>) {
+        return ScriptClosure{v.data.hptr};
     } else if constexpr (std::is_same_v<Bare, TypedHandle>) {
         if (!rt || v.data.hptr.value == 0) {
             return Bare{};
@@ -1692,6 +1780,8 @@ T value_cast(Runtime* rt, const Value& v)
             return Bare{};
         }
         return *handle;
+    } else if constexpr (std::is_enum_v<Bare>) {
+        return static_cast<Bare>(v.data.ival);
     } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
         if (!rt || !rt->is_object_like_type(v.type_id)) {
             return Bare{};
@@ -1716,6 +1806,15 @@ T value_cast(Runtime* rt, const Value& v)
         return v;
     } else if constexpr (std::is_class_v<Bare>) {
         Bare result{};
+        StringView value_name = rt ? rt->native_value_type_qualified_name(std::type_index(typeid(Bare))) : StringView{};
+        if (!value_name.empty()) {
+            if (rt) {
+                if (void* data = rt->get_value_data_ptr(v)) {
+                    std::memcpy(&result, data, sizeof(Bare));
+                }
+            }
+            return result;
+        }
         if (!rt || v.data.hptr.value == 0) { return result; }
         std::memcpy(&result, rt->heap_.get_ptr(v.data.hptr), sizeof(Bare));
         return result;
@@ -1734,6 +1833,8 @@ Value make_value(Runtime* rt, const T& val)
         return Value::make_float(val);
     } else if constexpr (std::is_same_v<Bare, bool>) {
         return Value::make_bool(val);
+    } else if constexpr (std::is_same_v<Bare, ScriptString>) {
+        return Value::make_string(val.ptr);
     } else if constexpr (std::is_same_v<Bare, TypedHandle>) {
         if (!rt) { return Value{}; }
         TypeID type_id = rt->handle_type_to_typeid_[val.type];
@@ -1751,10 +1852,21 @@ Value make_value(Runtime* rt, const T& val)
         TypeID mapped = rt->object_subtype_for_tag(val.type);
         out.type_id = mapped != invalid_type_id ? mapped : rt->object_type();
         return out;
+    } else if constexpr (std::is_enum_v<Bare>) {
+        return Value::make_int(static_cast<int32_t>(val));
     } else if constexpr (std::is_same_v<Bare, Value>) {
         return val;
     } else if constexpr (std::is_class_v<Bare>) {
         if (!rt) { return Value{}; }
+        StringView value_name = rt->native_value_type_qualified_name(std::type_index(typeid(Bare)));
+        if (!value_name.empty()) {
+            TypeID tid = rt->type_id(value_name);
+            if (tid == invalid_type_id) { return Value{}; }
+            HeapPtr ptr = rt->heap_.allocate(sizeof(Bare), alignof(Bare), tid);
+            if (ptr.value == 0) { return Value{}; }
+            std::memcpy(rt->heap_.get_ptr(ptr), &val, sizeof(Bare));
+            return Value::make_heap(ptr, tid);
+        }
         StringView name = rt->native_struct_qualified_name(std::type_index(typeid(Bare)));
         if (name.empty()) { return Value{}; }
         TypeID tid = rt->type_id(name);

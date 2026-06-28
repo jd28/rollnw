@@ -247,6 +247,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_internal_types();
         register_core_prelude(*this);
         register_core_test(*this);
+        register_core_types(*this);
         register_core_string(*this);
         register_core_array(*this);
         register_core_map(*this);
@@ -553,7 +554,7 @@ FunctionDefinition* Runtime::materialize_generic_function_template(
         return nullptr;
     }
 
-    auto source_it = generic_template_module_sources_.find(String(defining_script->name()));
+    auto source_it = generic_template_module_sources_.find(defining_script->name());
     if (source_it == generic_template_module_sources_.end()) {
         if (error_out) {
             *error_out = fmt::format(
@@ -1339,6 +1340,12 @@ TypeID Runtime::object_subtype_for_tag(nw::ObjectType tag) const
     return it->second;
 }
 
+bool Runtime::is_native_value_type(TypeID type) const
+{
+    const Type* info = get_type(type);
+    return info && native_value_type_layouts_.contains(info->name.view());
+}
+
 // -- Operator Registry -------------------------------------------------------
 
 void Runtime::register_binary_op(TokenType op, TypeID lhs, TypeID rhs, TypeID result, BinaryOpExecutor executor)
@@ -1518,7 +1525,8 @@ bool Runtime::supports_map_key_type(TypeID type) const
     }
 
     // Policy: map keys are intentionally narrow.
-    return type == int_type() || type == string_type();
+    return type == int_type() || type == string_type()
+        || (is_native_value_type(type) && supports_hash_type(type) && supports_equality_type(type));
 }
 
 Value Runtime::execute_binary_op(TokenType op, const Value& lhs, const Value& rhs)
@@ -2090,7 +2098,7 @@ bool Runtime::get_source_line(StringView module_name, size_t line, StringView& o
         return false;
     }
 
-    auto script_it = modules_.find(String(module_name));
+    auto script_it = modules_.find(module_name);
     if (script_it == modules_.end() || !script_it->second) {
         return false;
     }
@@ -2098,7 +2106,7 @@ bool Runtime::get_source_line(StringView module_name, size_t line, StringView& o
     Script* script = script_it->second;
     StringView text = script->text();
 
-    auto offsets_it = line_offsets_.find(String(module_name));
+    auto offsets_it = line_offsets_.find(module_name);
     if (offsets_it == line_offsets_.end()) {
         auto offsets = build_line_offsets(text);
         offsets_it = line_offsets_.insert({String(module_name), std::move(offsets)}).first;
@@ -2913,6 +2921,14 @@ Value read_field_as_value(void* ptr, TypeID type_id, const Runtime& rt)
         return Value::make_string(*static_cast<HeapPtr*>(ptr));
     } else if (type_id == rt.object_type()) {
         return Value::make_object(*static_cast<ObjectHandle*>(ptr));
+    } else if (rt.is_native_value_type(type_id)) {
+        const Type* type = rt.get_type(type_id);
+        if (!type) { return Value{}; }
+        Runtime& mut_rt = const_cast<Runtime&>(rt);
+        HeapPtr value_ptr = mut_rt.heap_.allocate(type->size, type->alignment, type_id);
+        if (value_ptr.value == 0) { return Value{}; }
+        std::memcpy(mut_rt.heap_.get_ptr(value_ptr), ptr, type->size);
+        return Value::make_heap(value_ptr, type_id);
     } else {
         const Type* type = rt.get_type(type_id);
         if (type && (type->type_kind == TK_struct || type->type_kind == TK_tuple || type->type_kind == TK_array || type->type_kind == TK_map || type->type_kind == TK_sum || type->type_kind == TK_function)) {
@@ -2942,6 +2958,15 @@ void write_value_to_field(void* ptr, TypeID type_id, const Value& value, const R
         *static_cast<HeapPtr*>(ptr) = value.data.hptr;
     } else if (type_id == rt.object_type()) {
         *static_cast<ObjectHandle*>(ptr) = value.data.oval;
+    } else if (rt.is_native_value_type(type_id)) {
+        Runtime& mut_rt = const_cast<Runtime&>(rt);
+        const Type* type = rt.get_type(type_id);
+        void* src = mut_rt.get_value_data_ptr(value);
+        if (type && src) {
+            std::memcpy(ptr, src, type->size);
+        } else if (type) {
+            std::memset(ptr, 0, type->size);
+        }
     } else {
         const Type* type = rt.get_type(type_id);
         if (type && type->type_kind == TK_function && type_id != value.type_id) {
@@ -3638,6 +3663,10 @@ HeapPtr Runtime::create_array_typed(TypeID element_type_id, size_t initial_capac
         const Type* type = get_type(type_id);
         if (!type) return false;
 
+        if (is_native_value_type(type_id)) {
+            return true;
+        }
+
         if (type->type_kind == TK_fixed_array) {
             return true;
         }
@@ -3695,7 +3724,7 @@ HeapPtr Runtime::create_array_typed(TypeID element_type_id, size_t initial_capac
     } else if (element_type_id == string_type() || element_type_id == object_type()) {
         ptr = heap_.allocate(sizeof(TypedArray<HeapPtr>), alignof(TypedArray<HeapPtr>), array_type_id);
         new (heap_.get_ptr(ptr)) TypedArray<HeapPtr>(element_type_id, initial_capacity);
-    } else if (elem_type->type_kind == TK_struct && is_value_type(element_type_id)) {
+    } else if (is_value_type(element_type_id)) {
         // For value-type structs - use StructArray with raw bytes
         ptr = heap_.allocate(sizeof(StructArray), alignof(StructArray), array_type_id);
         new (heap_.get_ptr(ptr)) StructArray(element_type_id, elem_type->size, elem_type->alignment, initial_capacity);
@@ -3736,7 +3765,7 @@ HeapPtr Runtime::alloc_map(TypeID key_type_id, TypeID value_type_id)
     String key_name(key_type_ptr->name.view());
     String val_name(val_type_ptr->name.view());
     ENSURE_OR_RETURN_VALUE(HeapPtr{}, supports_map_key_type(key_type_id),
-        "Map key type must be int/string or newtype over int/string, got: {}", key_name);
+        "Map key type must be int/string, newtype over int/string, or a hashable native value type, got: {}", key_name);
 
     // Create map type for header
     Type map_type{
@@ -3907,7 +3936,7 @@ void Runtime::map_iter_end(HeapPtr map_ptr, HeapPtr iter_ptr)
 
 bool Runtime::validate_native_struct(StringView struct_name, const StructDef* struct_def) const
 {
-    auto it = native_struct_layouts_.find(String(struct_name));
+    auto it = native_struct_layouts_.find(struct_name);
     if (it == native_struct_layouts_.end()) {
         LOG_F(ERROR, "[native] [[native]] struct '{}' not registered in C++. "
                      "Call validate_native_struct<T>(\\\"{}\\\") at startup.",
@@ -4302,7 +4331,7 @@ bool Runtime::native_types_compatible(TypeID cpp_type, TypeID script_type) const
     // Wildcard for native structs (invalid_type_id from C++ accepts a registered native struct)
     if (cpp_type == invalid_type_id) {
         const Type* script_info = get_type(script_type);
-        if (script_info && native_struct_layouts_.count(String(script_info->name.view()))) {
+        if (script_info && native_struct_layouts_.contains(script_info->name.view())) {
             return true;
         }
     }
@@ -5982,7 +6011,10 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                     tda.get_to(i, m.column, sv);
                     int32_t v = -1;
                     for (const auto& [k, kv] : m.string_enum) {
-                        if (nw::string::icmp(k, sv)) { v = kv; break; }
+                        if (nw::string::icmp(k, sv)) {
+                            v = kv;
+                            break;
+                        }
                     }
                     *reinterpret_cast<int32_t*>(fptr) = v;
                 } else {

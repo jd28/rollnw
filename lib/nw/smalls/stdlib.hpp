@@ -6,6 +6,7 @@ namespace nw::smalls {
 
 void register_core_prelude(Runtime& rt);
 void register_core_test(Runtime& rt);
+void register_core_types(Runtime& rt);
 void register_core_string(Runtime& rt);
 void register_core_array(Runtime& rt);
 void register_core_map(Runtime& rt);

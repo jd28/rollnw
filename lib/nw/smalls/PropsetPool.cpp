@@ -151,6 +151,14 @@ Value read_field_value(Runtime& rt, void* ptr, TypeID type_id)
         v.data.oval = *static_cast<ObjectHandle*>(ptr);
         return v;
     }
+    if (rt.is_native_value_type(type_id)) {
+        const Type* type = rt.get_type(type_id);
+        if (!type) { return Value{}; }
+        HeapPtr value_ptr = rt.heap_.allocate(type->size, type->alignment, original_type_id);
+        if (value_ptr.value == 0) { return Value{}; }
+        std::memcpy(rt.heap_.get_ptr(value_ptr), ptr, type->size);
+        return Value::make_heap(value_ptr, original_type_id);
+    }
 
     const Type* type = rt.get_type(type_id);
     if (type && rt.type_table_.is_heap_type(type_id)) {
@@ -189,6 +197,16 @@ void write_field_value(Runtime& rt, void* ptr, TypeID type_id, const Value& valu
     }
     if (rt.is_object_like_type(type_id)) {
         *static_cast<ObjectHandle*>(ptr) = value.data.oval;
+        return;
+    }
+    if (rt.is_native_value_type(type_id)) {
+        const Type* type = rt.get_type(type_id);
+        void* src = rt.get_value_data_ptr(value);
+        if (type && src) {
+            std::memcpy(ptr, src, type->size);
+        } else if (type) {
+            std::memset(ptr, 0, type->size);
+        }
         return;
     }
 

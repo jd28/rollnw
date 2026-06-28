@@ -10,6 +10,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <tuple>
 
@@ -23,7 +24,7 @@ struct Container;
 /// Resource type constants and helper functions
 struct ResourceType {
     /// Enumeration of resource types.
-    enum type : uint16_t {
+    enum type : int32_t {
         invalid = 0xFFFF,
 
         // Custom - Resource Type Categories

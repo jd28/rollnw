@@ -824,6 +824,10 @@ bool AstCompiler::is_value_type(TypeID tid) const
     const Type* type = runtime_->get_type(tid);
     if (!type) return false;
 
+    if (runtime_->is_native_value_type(tid)) {
+        return true;
+    }
+
     // T[N] fixed arrays are always value types
     if (type->type_kind == TK_fixed_array) {
         return true;

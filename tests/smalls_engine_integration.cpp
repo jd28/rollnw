@@ -442,6 +442,57 @@ TEST_F(SmallsEngineIntegration, PropsetIsolationAcrossObjectsAndTypes)
     nw::kernel::objects().destroy(b->handle());
 }
 
+TEST_F(SmallsEngineIntegration, PropsetNativeResourceValueFieldsPersist)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+
+    std::string_view source = R"(
+        import core.types as T;
+
+        [[propset]]
+        type ItemVisualManifest {
+            model: T.ResRef;
+            asset: T.Resource;
+        };
+
+        fn main(item: Item): int {
+            var manifest = get_propset!(ItemVisualManifest)(item);
+            manifest.model = T.resref("C_ARIBETH");
+            manifest.asset = T.resource(T.resref("c_aribeth"), T.resource_type_mdl);
+
+            var again = get_propset!(ItemVisualManifest)(item);
+            if (T.resref_to_string(again.model) != "c_aribeth") {
+                return 0;
+            }
+            if (T.resource_type(again.asset) != T.resource_type_mdl) {
+                return 0;
+            }
+            if (T.resref_to_string(T.resource_resref(again.asset)) != "c_aribeth") {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_native_resource_values", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_value = nw::smalls::Value::make_object(item->handle());
+    item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_value);
+
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(item->handle());
+}
+
 TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldIndexing)
 {
     auto& rt = nw::kernel::runtime();

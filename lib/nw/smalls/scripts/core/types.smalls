@@ -20,6 +20,41 @@ type EquipIndex(int);
 type ItemPropertyType(int);
 type RacialType(int);
 
+[[native, value_type]]
+type ResRef;
+
+[[native, value_type]]
+type Resource;
+
+const resource_type_invalid = 65535;
+const resource_type_tga = 3;
+const resource_type_plt = 6;
+const resource_type_mdl = 2002;
+const resource_type_uti = 2025;
+const resource_type_dds = 2033;
+
+[[native]] fn __resref_from_string(value: string): ResRef;
+[[native]] fn resref_to_string(value: ResRef): string;
+[[native]] fn resource(resref: ResRef, resource_type: int): Resource;
+[[native]] fn resource_resref(value: Resource): ResRef;
+[[native]] fn resource_type(value: Resource): int;
+[[native]] fn resource_valid(value: Resource): bool;
+[[native]] fn resource_filename(value: Resource): string;
+
+fn resref(value: string): ResRef {
+    return __resref_from_string(value);
+}
+
+[[operator(str)]]
+fn str_resref(value: ResRef): string {
+    return resref_to_string(value);
+}
+
+[[operator(str)]]
+fn str_resource(value: Resource): string {
+    return resource_filename(value);
+}
+
 [[value_type]]
 type DiceRoll {
     dice: int;

@@ -152,6 +152,7 @@ add_library(nw STATIC
     smalls/native/core_string.cpp
     smalls/native/core_test.cpp
     smalls/native/core_trigger.cpp
+    smalls/native/core_types.cpp
     smalls/native/core_waypoint.cpp
     smalls/Parser.cpp
     smalls/PropsetPool.cpp

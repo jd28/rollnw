@@ -235,7 +235,8 @@ IArray* create_unmanaged_array(TypeID elem_type, uint32_t initial_capacity)
         }
     }
 
-    if (elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs) {
+    if ((elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs)
+        || rt.is_native_value_type(declared_elem_type)) {
         return new UnmanagedArray<void>(declared_elem_type,
             elem_type_info->size,
             elem_type_info->alignment,

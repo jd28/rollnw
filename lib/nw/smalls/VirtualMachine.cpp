@@ -32,6 +32,10 @@ bool type_may_hold_heap_refs(Runtime* rt, TypeID type_id)
         return false;
     }
 
+    if (rt->is_native_value_type(type_id)) {
+        return false;
+    }
+
     while (type->type_kind == TK_newtype || type->type_kind == TK_alias) {
         if (!type->type_params[0].is<TypeID>()) {
             return false;
@@ -494,6 +498,10 @@ Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
     }
 
     const Type* ft = rt_->get_type(field_type);
+    if (rt_->is_native_value_type(field_type)) {
+        return Value::make_stack(base_offset + field_offset, field_type);
+    }
+
     if (ft && (ft->type_kind == TK_struct || ft->type_kind == TK_fixed_array)) {
         return Value::make_stack(base_offset + field_offset, field_type);
     }
@@ -521,6 +529,17 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
         *reinterpret_cast<HeapPtr*>(ptr) = val.data.hptr;
     } else if (field_type == rt_->object_type()) {
         *reinterpret_cast<ObjectHandle*>(ptr) = val.data.oval;
+    } else if (rt_->is_native_value_type(field_type)) {
+        const Type* type = rt_->get_type(field_type);
+        const uint8_t* src = nullptr;
+        if (val.storage == ValueStorage::stack) {
+            src = stack_data + val.data.stack_offset;
+        } else if (val.storage == ValueStorage::heap) {
+            src = static_cast<const uint8_t*>(rt.heap_.get_ptr(val.data.hptr));
+        }
+        if (type && src) {
+            std::memcpy(ptr, src, type->size);
+        }
     } else if (val.storage == ValueStorage::stack) {
         const Type* ft = rt_->get_type(field_type);
         if (ft) {
@@ -926,39 +945,39 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
 // prediction by the CPU's indirect branch predictor (true threaded dispatch).
 // frame_ptr and ip_ are kept stable across instructions; only updated by
 // push_frame/pop_frame and branch (JMP/JMPT/JMPF) handlers.
-#define DISPATCH()                                                                     \
-    do {                                                                               \
-        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
-            const uint64_t _vm_now = vm_profile_timing ? vm_profile_now_ns() : 0;     \
-            if (vm_prof_has_last) {                                                    \
-                rt_->record_vm_opcode(vm_prof_last_op,                                 \
-                    vm_profile_timing ? (_vm_now - vm_prof_last_ts) : 0);              \
-            }                                                                          \
-            vm_prof_last_ts = _vm_now;                                                 \
-            vm_prof_has_last = false;                                                  \
-        }                                                                              \
-        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                                 \
-        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;           \
-        if constexpr (StepLimited) {                                                   \
-            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                           \
-                fail("Script exceeded execution limit");                               \
-                goto vm_exit;                                                          \
-            }                                                                          \
-            --remaining_steps_;                                                        \
-        }                                                                              \
-        if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {                                      \
-            pop_frame();                                                               \
-            goto dispatch_top;                                                         \
-        }                                                                              \
-        _instr = *ip_++;                                                               \
-        _a = _instr.arg_a();                                                           \
-        _b = _instr.arg_b();                                                           \
-        _c = _instr.arg_c();                                                           \
-        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                                  \
-            vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());                   \
-            vm_prof_has_last = true;                                                   \
-        }                                                                              \
-        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];                   \
+#define DISPATCH()                                                                \
+    do {                                                                          \
+        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                             \
+            const uint64_t _vm_now = vm_profile_timing ? vm_profile_now_ns() : 0; \
+            if (vm_prof_has_last) {                                               \
+                rt_->record_vm_opcode(vm_prof_last_op,                            \
+                    vm_profile_timing ? (_vm_now - vm_prof_last_ts) : 0);         \
+            }                                                                     \
+            vm_prof_last_ts = _vm_now;                                            \
+            vm_prof_has_last = false;                                             \
+        }                                                                         \
+        if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;                            \
+        if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;      \
+        if constexpr (StepLimited) {                                              \
+            if (ABSL_PREDICT_FALSE(remaining_steps_ == 0)) {                      \
+                fail("Script exceeded execution limit");                          \
+                goto vm_exit;                                                     \
+            }                                                                     \
+            --remaining_steps_;                                                   \
+        }                                                                         \
+        if (ABSL_PREDICT_FALSE(ip_ >= ip_end_)) {                                 \
+            pop_frame();                                                          \
+            goto dispatch_top;                                                    \
+        }                                                                         \
+        _instr = *ip_++;                                                          \
+        _a = _instr.arg_a();                                                      \
+        _b = _instr.arg_b();                                                      \
+        _c = _instr.arg_c();                                                      \
+        if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {                             \
+            vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());              \
+            vm_prof_has_last = true;                                              \
+        }                                                                         \
+        goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];              \
     } while (0)
 
 // dispatch_top: entry point for initial dispatch and the pop_frame fallback.
@@ -1435,7 +1454,9 @@ lbl_GETARRAY: {
         }
         const Type* elem_type = rt_->get_type(arr->element_type());
         const void* raw = arr->element_data(index);
-        if (raw && elem_type && elem_type->type_kind == TK_struct && !elem_type->contains_heap_refs) {
+        if (raw && elem_type
+            && ((elem_type->type_kind == TK_struct && !elem_type->contains_heap_refs)
+                || rt_->is_native_value_type(arr->element_type()))) {
             uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment,
                 arr->element_type(),
                 /*tracks_heap_refs=*/false);
@@ -2200,7 +2221,8 @@ lbl_STACK_INDEXGET: {
         reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
     } else {
         uint8_t* ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
-        if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+        if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
+            || rt_->is_native_value_type(elem_type_id)) {
             uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment, elem_type_id,
                 type_may_hold_heap_refs(rt_, elem_type_id));
             std::memcpy(frame.stack_.data() + dst_off, ptr, elem_type->size);
@@ -2258,7 +2280,8 @@ lbl_STACK_INDEXSET: {
         ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
     }
 
-    if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+    if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
+        || rt_->is_native_value_type(elem_type_id)) {
         if (val.storage == ValueStorage::stack) {
             std::memcpy(ptr, frame.stack_.data() + val.data.stack_offset, elem_type->size);
         } else if (val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
@@ -3482,7 +3505,8 @@ vm_exit:
                 reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
             } else {
                 uint8_t* ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
-                if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+                if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
+                    || rt_->is_native_value_type(elem_type_id)) {
                     uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment, elem_type_id,
                         type_may_hold_heap_refs(rt_, elem_type_id));
                     std::memcpy(frame.stack_.data() + dst_off, ptr, elem_type->size);
@@ -3540,7 +3564,8 @@ vm_exit:
                 ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
             }
 
-            if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array) {
+            if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
+                || rt_->is_native_value_type(elem_type_id)) {
                 if (val.storage == ValueStorage::stack) {
                     std::memcpy(ptr, frame.stack_.data() + val.data.stack_offset, elem_type->size);
                 } else if (val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
@@ -4244,7 +4269,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
 
         const Type* elem_type_info = rt_->get_type(elem_type);
         const void* raw = arr->element_data(idx);
-        if (raw && elem_type_info && elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs) {
+        if (raw && elem_type_info
+            && ((elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs)
+                || rt_->is_native_value_type(elem_type))) {
             CallFrame& frame = frames_.back();
             uint32_t offset = frame.stack_alloc(elem_type_info->size, elem_type_info->alignment, elem_type,
                 /*tracks_heap_refs=*/false);
@@ -5106,7 +5133,10 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
         }
         if (is_inline) {
             uint8_t* src = get_inline_ptr(struct_val, effective_offset);
-            if (!src) { fail("FIELDGETH_OFF_R: null inline struct source"); return; }
+            if (!src) {
+                fail("FIELDGETH_OFF_R: null inline struct source");
+                return;
+            }
             uint32_t dst_off = frame_ptr_->stack_alloc(
                 access_type->size, access_def->alignment, access_type_id,
                 type_may_hold_heap_refs(rt_, access_type_id));
@@ -5140,7 +5170,10 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
         }
         if (is_inline) {
             uint8_t* dst = get_inline_ptr(struct_val, effective_offset);
-            if (!dst) { fail("FIELDSETH_OFF_R: null inline struct destination"); return; }
+            if (!dst) {
+                fail("FIELDSETH_OFF_R: null inline struct destination");
+                return;
+            }
             const uint8_t* src = nullptr;
             if (val.storage == ValueStorage::stack) {
                 src = frame_ptr_->stack_.data() + val.data.stack_offset;
@@ -5150,7 +5183,10 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
                 fail("FIELDSETH_OFF_R inline struct: source must be stack or heap");
                 return;
             }
-            if (!src) { fail("FIELDSETH_OFF_R: null inline struct source data"); return; }
+            if (!src) {
+                fail("FIELDSETH_OFF_R: null inline struct source data");
+                return;
+            }
             std::memcpy(dst, src, access_type->size);
         } else {
             if (!rt_->write_value_field_at_offset(struct_val, effective_offset, access_type_id, val)) {

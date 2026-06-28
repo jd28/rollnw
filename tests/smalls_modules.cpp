@@ -51,6 +51,69 @@ TEST_F(SmallsModules, LoadNestedModuleFromFilesystem)
     // Verify nested module exports
     auto color_it = types_module->exports().find("Color");
     EXPECT_NE(color_it, nullptr);
+    EXPECT_NE(types_module->exports().find("ResRef"), nullptr);
+    EXPECT_NE(types_module->exports().find("Resource"), nullptr);
+    EXPECT_NE(types_module->exports().find("resref"), nullptr);
+}
+
+TEST_F(SmallsModules, CoreTypesResourceValuesRoundTrip)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        import core.types as T;
+
+        fn main(): int {
+            var rr = T.resref("C_ARIBETH");
+            if (T.resref_to_string(rr) != "c_aribeth") {
+                return 0;
+            }
+
+            var names: array!(T.ResRef) = { rr, T.resref("nw_it_mboots001") };
+            if (T.resref_to_string(names[0]) != "c_aribeth") {
+                return 0;
+            }
+            if (T.resref_to_string(names[1]) != "nw_it_mboots001") {
+                return 0;
+            }
+
+            var seen: map!(T.ResRef, int) = { rr: 7 };
+            if (seen[T.resref("c_aribeth")] != 7) {
+                return 0;
+            }
+
+            var model = T.resource(rr, T.resource_type_mdl);
+            if (!T.resource_valid(model)) {
+                return 0;
+            }
+            if (T.resource_type(model) != T.resource_type_mdl) {
+                return 0;
+            }
+            if (T.resref_to_string(T.resource_resref(model)) != "c_aribeth") {
+                return 0;
+            }
+            if (T.resource_filename(model) != "c_aribeth.mdl") {
+                return 0;
+            }
+            if (!(model == T.resource(T.resref("c_aribeth"), T.resource_type_mdl))) {
+                return 0;
+            }
+
+            var resources: array!(T.Resource) = { model };
+            if (T.resource_filename(resources[0]) != "c_aribeth.mdl") {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.core_types_resource_values", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
 }
 
 TEST_F(SmallsModules, LoadCoreEffectsModule)
