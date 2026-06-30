@@ -42,6 +42,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -60,6 +61,60 @@ using nw::render::viewer::tile_color_from_index;
 using nw::render::viewer::tile_slot_color_for_model_light;
 
 static constexpr std::string_view kSpellSequenceTargetAnchor = "torso_g";
+
+static constexpr std::array<std::string_view, 8> kVisualEffectImpactModelColumns{{
+    "Imp_HeadCon_Node",
+    "Imp_Impact_Node",
+    "Imp_Root_M_Node",
+    "Imp_Root_L_Node",
+    "Imp_Root_H_Node",
+    "Imp_Root_S_Node",
+    "LowQuality",
+    "LowViolence",
+}};
+
+static constexpr std::array<std::string_view, 6> kVisualEffectCessationModelColumns{{
+    "Ces_HeadCon_Node",
+    "Ces_Impact_Node",
+    "Ces_Root_M_Node",
+    "Ces_Root_L_Node",
+    "Ces_Root_H_Node",
+    "Ces_Root_S_Node",
+}};
+
+static constexpr std::array<std::pair<std::string_view, std::string_view>, 3> kSpellCastVisualColumns{{
+    {"CastHandVisual", "handconjure"},
+    {"CastHeadVisual", "headconjure"},
+    {"CastGrndVisual", "rootdummy"},
+}};
+
+static constexpr std::array<std::string_view, 1> kSpellProjectileModelColumns{{
+    "ProjModel",
+}};
+
+static constexpr std::array<std::string_view, 3> kSpellCastVisualReferenceColumns{{
+    "CastHandVisual",
+    "CastHeadVisual",
+    "CastGrndVisual",
+}};
+
+static constexpr std::array<std::string_view, 3> kSpellConjureVisualReferenceColumns{{
+    "ConjHandVisual",
+    "ConjHeadVisual",
+    "ConjGrndVisual",
+}};
+
+static constexpr std::array<std::string_view, 1> kProgFxImpactColumns{{
+    "ProgFX_Impact",
+}};
+
+static constexpr std::array<std::string_view, 1> kProgFxDurationColumns{{
+    "ProgFX_Duration",
+}};
+
+static constexpr std::array<std::string_view, 1> kProgFxCessationColumns{{
+    "ProgFX_Cessation",
+}};
 
 struct TextureInfo {
     std::string name;
@@ -393,7 +448,7 @@ std::optional<size_t> parse_2da_row_index(std::string_view value, const nw::Stat
 }
 
 std::optional<std::string> resolve_model_from_2da_row(const nw::StaticTwoDA& table, size_t row,
-    std::string_view label, std::initializer_list<std::string_view> columns)
+    std::string_view label, std::span<const std::string_view> columns)
 {
     for (auto column : columns) {
         nw::String resref;
@@ -419,7 +474,7 @@ std::optional<std::string> resolve_progfx_vfx_source(const nw::StaticTwoDA& prog
 }
 
 std::optional<std::string> resolve_spell_vfx_reference(const nw::StaticTwoDA& spells, size_t row,
-    std::string_view spell_label, std::initializer_list<std::string_view> columns)
+    std::string_view spell_label, std::span<const std::string_view> columns)
 {
     for (auto column : columns) {
         nw::String value;
@@ -628,7 +683,7 @@ std::string preferred_effect_source_anchor(std::string_view model_spec)
 
 std::optional<VfxSequenceStep> resolve_spell_vfx_step(const nw::StaticTwoDA& spells, size_t row,
     std::string_view spell_label, std::string_view label,
-    std::initializer_list<std::pair<std::string_view, std::string_view>> columns)
+    std::span<const std::pair<std::string_view, std::string_view>> columns)
 {
     for (const auto& [column, anchor] : columns) {
         if (auto resolved = resolve_spell_vfx_column(spells, row, spell_label, column)) {
@@ -785,7 +840,7 @@ int estimate_spell_projectile_duration_ms(const nw::StaticTwoDA& spells, size_t 
 }
 
 std::optional<std::string> resolve_visualeffect_progfx_source(const nw::StaticTwoDA& visualeffects, size_t row,
-    std::string_view label, std::initializer_list<std::string_view> columns)
+    std::string_view label, std::span<const std::string_view> columns)
 {
     const auto* progfx = nw::kernel::twodas().get("progfx");
     if (!progfx) {
@@ -856,16 +911,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
 {
     switch (stage) {
     case VfxLookupStage::impact:
-        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, {
-            "Imp_HeadCon_Node",
-            "Imp_Impact_Node",
-            "Imp_Root_M_Node",
-            "Imp_Root_L_Node",
-            "Imp_Root_H_Node",
-            "Imp_Root_S_Node",
-            "LowQuality",
-            "LowViolence",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, kVisualEffectImpactModelColumns)) {
             VfxSequenceStep step;
             step.label = std::string(label);
             step.source = std::move(*resolved);
@@ -877,16 +923,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
         }
         return std::nullopt;
     case VfxLookupStage::duration:
-        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, {
-            "Imp_HeadCon_Node",
-            "Imp_Impact_Node",
-            "Imp_Root_M_Node",
-            "Imp_Root_L_Node",
-            "Imp_Root_H_Node",
-            "Imp_Root_S_Node",
-            "LowQuality",
-            "LowViolence",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, kVisualEffectImpactModelColumns)) {
             VfxSequenceStep step;
             step.label = std::string(label);
             step.source = std::move(*resolved);
@@ -898,14 +935,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
         }
         return std::nullopt;
     case VfxLookupStage::cessation:
-        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, {
-            "Ces_HeadCon_Node",
-            "Ces_Impact_Node",
-            "Ces_Root_M_Node",
-            "Ces_Root_L_Node",
-            "Ces_Root_H_Node",
-            "Ces_Root_S_Node",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(visualeffects, row, label, kVisualEffectCessationModelColumns)) {
             VfxSequenceStep step;
             step.label = std::string(label);
             step.source = std::move(*resolved);
@@ -1065,8 +1095,7 @@ std::optional<VfxSequenceStep> resolve_scripted_spell_projectile_step(const nw::
     step->label = "projectile";
     step->target_side = true;
     step->debug_origin = format_debug_origin(
-        "spells", row, std::string("ImpactScript ") + std::string(impact_script)
-            + " -> stock_spell_fx -> " + std::string(compatibility.vfx_label));
+        "spells", row, std::string("ImpactScript ") + std::string(impact_script) + " -> stock_spell_fx -> " + std::string(compatibility.vfx_label));
     LOG_F(INFO, "Resolved VFX spell '{}' scripted projectile via {} -> {}",
         spell_label, impact_script, compatibility.vfx_label);
     return step;
@@ -1089,26 +1118,26 @@ std::optional<std::string> resolve_spell_vfx_source(std::string_view query, VfxL
 
     switch (stage) {
     case VfxLookupStage::projectile:
-        return resolve_model_from_2da_row(*spells, *row, label, {"ProjModel"});
+        return resolve_model_from_2da_row(*spells, *row, label, kSpellProjectileModelColumns);
     case VfxLookupStage::cast:
-        if (auto resolved = resolve_spell_vfx_reference(*spells, *row, label, {"CastHandVisual", "CastHeadVisual", "CastGrndVisual"})) {
+        if (auto resolved = resolve_spell_vfx_reference(*spells, *row, label, kSpellCastVisualReferenceColumns)) {
             return resolved;
         }
-        return resolve_spell_vfx_reference(*spells, *row, label, {"ConjHandVisual", "ConjHeadVisual", "ConjGrndVisual"});
+        return resolve_spell_vfx_reference(*spells, *row, label, kSpellConjureVisualReferenceColumns);
     case VfxLookupStage::conjure:
-        return resolve_spell_vfx_reference(*spells, *row, label, {"ConjHandVisual", "ConjHeadVisual", "ConjGrndVisual"});
+        return resolve_spell_vfx_reference(*spells, *row, label, kSpellConjureVisualReferenceColumns);
     case VfxLookupStage::impact:
     case VfxLookupStage::duration:
     case VfxLookupStage::cessation:
         return std::nullopt;
     case VfxLookupStage::auto_select:
-        if (auto resolved = resolve_model_from_2da_row(*spells, *row, label, {"ProjModel"})) {
+        if (auto resolved = resolve_model_from_2da_row(*spells, *row, label, kSpellProjectileModelColumns)) {
             return resolved;
         }
-        if (auto resolved = resolve_spell_vfx_reference(*spells, *row, label, {"CastHandVisual", "CastHeadVisual", "CastGrndVisual"})) {
+        if (auto resolved = resolve_spell_vfx_reference(*spells, *row, label, kSpellCastVisualReferenceColumns)) {
             return resolved;
         }
-        return resolve_spell_vfx_reference(*spells, *row, label, {"ConjHandVisual", "ConjHeadVisual", "ConjGrndVisual"});
+        return resolve_spell_vfx_reference(*spells, *row, label, kSpellConjureVisualReferenceColumns);
     }
 
     return std::nullopt;
@@ -1146,11 +1175,7 @@ std::optional<VfxSequence> build_spell_sequence(const nw::StaticTwoDA& spells, s
         : conjure_duration_ms;
     append_sequence_step(sequence, std::move(conjure), conjure_step_duration_ms);
 
-    auto cast = resolve_spell_vfx_step(spells, row, label, "cast", {
-            {"CastHandVisual", "handconjure"},
-            {"CastHeadVisual", "headconjure"},
-            {"CastGrndVisual", "rootdummy"},
-        });
+    auto cast = resolve_spell_vfx_step(spells, row, label, "cast", kSpellCastVisualColumns);
     if (cast) {
         cast->caster_animation = map_cast_animation(cast_anim);
         if (cast->debug_origin.empty()) {
@@ -1163,7 +1188,7 @@ std::optional<VfxSequence> build_spell_sequence(const nw::StaticTwoDA& spells, s
         : cast_duration_ms;
     append_sequence_step(sequence, std::move(cast), cast_step_duration_ms);
 
-    if (auto projectile = resolve_model_from_2da_row(spells, row, label, {"ProjModel"})) {
+    if (auto projectile = resolve_model_from_2da_row(spells, row, label, kSpellProjectileModelColumns)) {
         nw::String proj_type;
         spells.get_to(row, "ProjType", proj_type, false);
         const int projectile_duration_ms = estimate_spell_projectile_duration_ms(
@@ -1282,65 +1307,31 @@ std::optional<std::string> resolve_visualeffect_vfx_source(std::string_view quer
     case VfxLookupStage::conjure:
         return std::nullopt;
     case VfxLookupStage::impact:
-        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, {
-            "Imp_HeadCon_Node",
-            "Imp_Impact_Node",
-            "Imp_Root_M_Node",
-            "Imp_Root_L_Node",
-            "Imp_Root_H_Node",
-            "Imp_Root_S_Node",
-            "LowQuality",
-            "LowViolence",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, kVisualEffectImpactModelColumns)) {
             return resolved;
         }
-        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Impact"});
+        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxImpactColumns);
     case VfxLookupStage::duration:
-        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, {
-            "Imp_HeadCon_Node",
-            "Imp_Impact_Node",
-            "Imp_Root_M_Node",
-            "Imp_Root_L_Node",
-            "Imp_Root_H_Node",
-            "Imp_Root_S_Node",
-            "LowQuality",
-            "LowViolence",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, kVisualEffectImpactModelColumns)) {
             return resolved;
         }
-        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Duration"});
+        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxDurationColumns);
     case VfxLookupStage::cessation:
-        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, {
-            "Ces_HeadCon_Node",
-            "Ces_Impact_Node",
-            "Ces_Root_M_Node",
-            "Ces_Root_L_Node",
-            "Ces_Root_H_Node",
-            "Ces_Root_S_Node",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, kVisualEffectCessationModelColumns)) {
             return resolved;
         }
-        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Cessation"});
+        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxCessationColumns);
     case VfxLookupStage::auto_select:
-        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, {
-            "Imp_HeadCon_Node",
-            "Imp_Impact_Node",
-            "Imp_Root_M_Node",
-            "Imp_Root_L_Node",
-            "Imp_Root_H_Node",
-            "Imp_Root_S_Node",
-            "LowQuality",
-            "LowViolence",
-        })) {
+        if (auto resolved = resolve_model_from_2da_row(*visualeffects, *row, label, kVisualEffectImpactModelColumns)) {
             return resolved;
         }
-        if (auto resolved = resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Impact"})) {
+        if (auto resolved = resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxImpactColumns)) {
             return resolved;
         }
-        if (auto resolved = resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Duration"})) {
+        if (auto resolved = resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxDurationColumns)) {
             return resolved;
         }
-        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, {"ProgFX_Cessation"});
+        return resolve_visualeffect_progfx_source(*visualeffects, *row, label, kProgFxCessationColumns);
     }
 
     return std::nullopt;
@@ -2181,7 +2172,7 @@ float area_model_light_intensity(const nw::model::LightNode& light, const TileLi
     const float maximum_intensity = has_slots ? (uses_main_slot ? 1.0f : 1.35f) : 1.0f;
     const float contribution_scale = has_slots && uses_main_slot ? 0.45f : 1.0f;
     const float multiplier = scalar_controller(light, nw::model::ControllerType::Multiplier)
-        .value_or(light.multiplier > 0.0f ? light.multiplier : 1.0f);
+                                 .value_or(light.multiplier > 0.0f ? light.multiplier : 1.0f);
     return std::clamp(std::max(multiplier, minimum_intensity), 0.0f, maximum_intensity)
         * tuning.intensity_scale * contribution_scale;
 }
@@ -2664,7 +2655,7 @@ int run_area_lights_command(std::string_view area_resref, std::string_view modul
                 const float authored_radius = light_authored_radius(*light);
                 const float radius = area_model_light_radius(*light, slots, report.tuning);
                 const float authored_multiplier = scalar_controller(*light, nw::model::ControllerType::Multiplier)
-                    .value_or(light->multiplier);
+                                                      .value_or(light->multiplier);
                 const float intensity = area_model_light_intensity(*light, slots, report.tuning);
                 const float color_max = color_max_channel(color);
                 const bool first_light = report.tile_model_lights == 0;
