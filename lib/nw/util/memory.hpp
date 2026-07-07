@@ -3,6 +3,7 @@
 #include "../config.hpp"
 #include "../log.hpp"
 #include "ChunkVector.hpp"
+#include "asan.hpp"
 #include "templates.hpp"
 
 #include <assert.h>
@@ -235,6 +236,7 @@ struct ObjectPool {
 
         auto result = free_list_.back();
         free_list_.pop_back();
+        nw::asan::unpoison(result, sizeof(T));
         new (result) T(allocator_);
         ++allocated_;
 
@@ -245,6 +247,8 @@ struct ObjectPool {
     {
         free_list_.clear();
         for (size_t i = 0; i < chunks_.size(); ++i) {
+            // Hand clean memory back to the underlying allocator.
+            nw::asan::unpoison(chunks_[i], sizeof(T) * chunk_size_);
             allocator_->deallocate(chunks_[i]);
         }
         chunks_.clear();
@@ -255,12 +259,17 @@ struct ObjectPool {
         object->~T();
         free_list_.push_back(object);
         --allocated_;
+        // Destroyed slot: any later access through a stale pointer trips ASan.
+        nw::asan::poison(object, sizeof(T));
     }
 
     void allocate_chunk()
     {
         T* chunk = static_cast<T*>(allocator_->allocate(sizeof(T) * chunk_size_, alignof(T)));
         CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size_);
+        // Slots start dead; allocate() unpoisons each as it hands it out. The
+        // free list lives in a separate ChunkVector, so this is safe.
+        nw::asan::poison(chunk, sizeof(T) * chunk_size_);
         for (size_t i = 0; i < chunk_size_; ++i) {
             free_list_.push_back(&chunk[i]);
         }

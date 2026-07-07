@@ -4,6 +4,7 @@
 #include "VirtualMachine.hpp"
 #include "runtime.hpp"
 
+#include <cassert>
 #include <chrono>
 
 namespace nw::smalls {
@@ -270,6 +271,31 @@ void GarbageCollector::start_major_gc()
 void GarbageCollector::finish_major_gc()
 {
     auto start = std::chrono::high_resolution_clock::now();
+
+    // Stop-the-world final mark. VM registers, stack slots, upvalues, and other
+    // roots are scanned once at start_major_gc() but mutate freely while
+    // incremental marking is interleaved with the mutator. The Dijkstra
+    // insertion barrier preserves the heap->heap tricolor invariant, yet a
+    // white object can stay live solely through a root that changed after the
+    // initial scan (loaded into a register, then its last heap edge
+    // overwritten). Re-scan the roots and drain to a fixpoint before sweeping
+    // so no object still reachable from a root is collected.
+    phase_ = GCPhase::mark_roots;
+    mark_roots(false);
+    phase_ = GCPhase::mark_incremental;
+    process_gray_stack(false);
+
+#ifndef NDEBUG
+    // The re-scan must be idempotent: with every root-reachable object now
+    // black, a second root scan may not discover any new white object. If it
+    // does, a root path escaped both the barrier and the first re-scan, which
+    // would let sweep_all() free a live object. Drain regardless so debug and
+    // release builds sweep the same graph.
+    mark_roots(false);
+    assert(gray_stack_.empty()
+        && "GC: root re-scan did not reach a fixpoint before sweep");
+    process_gray_stack(false);
+#endif
 
     phase_ = GCPhase::sweep;
     sweep_all();

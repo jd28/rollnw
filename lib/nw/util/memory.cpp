@@ -2,6 +2,7 @@
 
 #include "../kernel/Memory.hpp"
 #include "../log.hpp"
+#include "asan.hpp"
 
 #include <algorithm>
 #include <new>
@@ -65,6 +66,7 @@ void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
 
     if (needed + block.used <= block.capacity) {
         block.used += needed;
+        nw::asan::unpoison(reinterpret_cast<void*>(aligned), size);
         return reinterpret_cast<void*>(aligned);
     }
 
@@ -79,6 +81,7 @@ void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
     needed = padding + size;
 
     new_block.used += needed;
+    nw::asan::unpoison(reinterpret_cast<void*>(aligned), size);
     return reinterpret_cast<void*>(aligned);
 }
 
@@ -100,12 +103,25 @@ void MemoryArena::reset()
 {
     current_block_ = 0;
     blocks_[0].used = 0;
+    // Everything handed out is now dead; poison every block so any surviving
+    // pointer into arena memory trips ASan.
+    for (auto& block : blocks_) {
+        nw::asan::poison(block.base, block.capacity);
+    }
 }
 
 void MemoryArena::rewind(MemoryMarker marker)
 {
     current_block_ = marker.block_index;
     blocks_[current_block_].used = marker.position;
+    // Poison everything above the rewind point in the target block, plus every
+    // block past it — those allocations no longer exist.
+    auto& block = blocks_[current_block_];
+    nw::asan::poison(static_cast<uint8_t*>(block.base) + marker.position,
+        block.capacity - marker.position);
+    for (size_t i = current_block_ + 1; i < blocks_.size(); ++i) {
+        nw::asan::poison(blocks_[i].base, blocks_[i].capacity);
+    }
 }
 
 size_t MemoryArena::used() const noexcept
@@ -123,6 +139,8 @@ void MemoryArena::allocate_block(size_t capacity)
     CHECK_F(!!base, "Unable to allocate block of size: {}", capacity);
     current_block_ = blocks_.size();
     blocks_.push_back({base, 0, capacity});
+    // Whole block starts dead; allocate() unpoisons each sub-range it hands out.
+    nw::asan::poison(base, capacity);
 }
 
 void MemoryArena::deallocate_blocks()
@@ -230,11 +248,13 @@ void* PoolBlock::allocate()
     }
     void* ptr = free_list_.back();
     free_list_.pop_back();
+    nw::asan::unpoison(ptr, block_size_);
     return ptr;
 }
 
 void PoolBlock::deallocate(void* ptr)
 {
+    nw::asan::poison(ptr, block_size_);
     free_list_.push_back(ptr);
 }
 
@@ -243,6 +263,9 @@ void PoolBlock::expand(std::size_t count)
     std::size_t total = block_size_ * count;
     void* block = malloc(total);
     blocks_.push_back(block);
+    // Slots start dead (the free-list metadata lives in a separate Vector, not
+    // in the block, so poisoning the whole block is safe); allocate() unpoisons.
+    nw::asan::poison(block, total);
     for (std::size_t i = 0; i < count; ++i) {
         free_list_.push_back(static_cast<char*>(block) + i * block_size_);
     }

@@ -245,6 +245,49 @@ TEST_F(SmallsGCTest, AllocationDuringIncrementalMajorGCSurvives)
     EXPECT_FALSE(heap_contains(runtime, ptr));
 }
 
+// Regression for the incremental-major use-after-free: a white object that
+// becomes reachable *only* through a root added after start_major_gc()'s
+// initial root scan must survive the cycle. The Dijkstra write barrier does
+// not cover root slots, so correctness relies on finish_major_gc() re-scanning
+// roots before sweeping. Pre-fix this object was swept while still referenced
+// from the runtime value stack (a GC root) -> use-after-free.
+TEST_F(SmallsGCTest, RootReachableObjectSurvivesIncrementalMajorGC)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    // Allocated before the cycle and not reachable from any root, so
+    // start_major_gc() colors it white and does not mark it.
+    HeapPtr ptr = runtime.alloc_string("root-only during incremental major");
+    ASSERT_NE(ptr.value, 0);
+
+    gc->start_major_gc();
+    ASSERT_EQ(gc->phase(), GCPhase::mark_incremental);
+    ASSERT_EQ(runtime.heap_.get_header(ptr)->mark_color,
+        static_cast<uint8_t>(MarkColor::WHITE));
+
+    // Mutator, mid-cycle: the object becomes reachable through the runtime
+    // value stack, a root that was already scanned. No barrier fires (it is a
+    // root slot), and this is now the object's only reference.
+    runtime.push(Value::make_string(ptr));
+
+    // Drain incremental marking and terminate the cycle. mark_step() only
+    // drains the gray stack; it never re-scans roots, so `ptr` stays white
+    // until finish_major_gc() re-scans.
+    while (!gc->mark_step(1024)) {
+    }
+    gc->finish_major_gc();
+
+    EXPECT_TRUE(heap_contains(runtime, ptr));
+    EXPECT_TRUE(heap_list_is_well_formed(runtime));
+
+    // Correctly reclaimed once the root is gone.
+    runtime.pop();
+    gc->collect_major();
+    EXPECT_FALSE(heap_contains(runtime, ptr));
+}
+
 TEST_F(SmallsGCTest, WriteBarrierDirtiesCard)
 {
     auto& runtime = nw::kernel::runtime();

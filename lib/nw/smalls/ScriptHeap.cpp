@@ -3,6 +3,7 @@
 #include "GarbageCollector.hpp"
 
 #include "../log.hpp"
+#include "../util/asan.hpp"
 #include "../util/platform.hpp"
 
 #include <cstring>
@@ -89,6 +90,10 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
         commit_pages(committed_size_, end_offset - committed_size_);
     }
 
+    // This offset may have been poisoned by a prior free(); make the whole
+    // block writable again before we lay down the header/back-pointer/user data.
+    nw::asan::unpoison(base_address_ + alloc.offset, alloc_size);
+
     // Align the header start; store the original (unaligned) alloc offset in header->alloc for free().
     uintptr_t raw_start = reinterpret_cast<uintptr_t>(base_address_) + alloc.offset;
     uintptr_t alloc_start = (raw_start + header_align - 1) & ~(header_align - 1);
@@ -146,6 +151,14 @@ void ScriptHeap::free(HeapPtr ptr)
     void** back_ptr = reinterpret_cast<void**>(raw_ptr) - 1;
     *back_ptr = nullptr;
 
+    // Capture the user-data extent before the header is cleared, so we can
+    // poison it once the slot is returned to the allocator. Poison only from
+    // the user pointer onward — the back-pointer slot just before it stays
+    // addressable so try_get_header() can keep safely probing stale pointers.
+    const auto asan_user_start = reinterpret_cast<uintptr_t>(raw_ptr);
+    const auto asan_block_end = reinterpret_cast<uintptr_t>(base_address_)
+        + header->alloc.offset + header->alloc_size;
+
     header->next_object = HeapPtr{0};
     header->prev_object = HeapPtr{0};
     header->next_young = HeapPtr{0};
@@ -153,6 +166,10 @@ void ScriptHeap::free(HeapPtr ptr)
 
     --alloc_count_;
     allocator_->free(header->alloc);
+
+    if (asan_block_end > asan_user_start) {
+        nw::asan::poison(reinterpret_cast<void*>(asan_user_start), asan_block_end - asan_user_start);
+    }
 }
 
 ScriptHeap::ObjectHeader* ScriptHeap::try_get_header(HeapPtr ptr) const
