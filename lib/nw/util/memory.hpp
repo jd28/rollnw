@@ -163,7 +163,6 @@ struct MemoryScope : public MemoryResource {
     /// Resets a memory scope to its original state.
     void reset();
 
-    // private:
     MemoryArena* arena_ = nullptr;
     MemoryMarker marker_;
     detail::Finalizer* finalizers_ = nullptr;
@@ -188,7 +187,6 @@ public:
     size_t block_size() const noexcept;
     void deallocate(void* ptr);
 
-    // private:
     size_t block_size_;
     size_t block_count_;
     Vector<void*> blocks_;
@@ -205,7 +203,6 @@ struct MemoryPool : public MemoryResource {
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
     virtual void deallocate(void* ptr) override;
 
-    // private:
     nw::MemoryResource* allocator_ = nullptr;
     ChunkVector<detail::PoolBlock> pools_;
     size_t max_size_;

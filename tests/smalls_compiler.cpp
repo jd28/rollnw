@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 using namespace std::literals;
 
 class SmallsCompiler : public ::testing::Test {
@@ -24,6 +26,13 @@ protected:
 };
 
 // == Basic Compilation Tests =================================================
+
+TEST(RegisterAllocator, HighWaterMarkRejectsUnencodable256Registers)
+{
+    nw::smalls::RegisterAllocator registers;
+    registers.mark_used(255);
+    EXPECT_THROW(registers.high_water_mark(), std::runtime_error);
+}
 
 TEST_F(SmallsCompiler, CompileEmptyFunction)
 {
@@ -1038,7 +1047,10 @@ TEST_F(SmallsCompiler, ConstantFoldStringConcat)
     // String pool should contain the concatenated result, not the two parts separately
     bool found = false;
     for (const auto& s : module.string_pool) {
-        if (s == "hello world") { found = true; break; }
+        if (s == "hello world") {
+            found = true;
+            break;
+        }
     }
     EXPECT_TRUE(found) << "String pool should contain \"hello world\"";
 }
@@ -1213,6 +1225,6 @@ TEST_F(SmallsCompiler, DCE_ForConstFalse)
     // No loop condition check and no body/increment instructions
     for (const auto& instr : func->instructions) {
         EXPECT_NE(instr.opcode(), nw::smalls::Opcode::JMPF) << "Loop condition should be DCE'd";
-        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD)  << "Loop body/increment should be DCE'd";
+        EXPECT_NE(instr.opcode(), nw::smalls::Opcode::ADD) << "Loop body/increment should be DCE'd";
     }
 }

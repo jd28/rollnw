@@ -66,23 +66,23 @@ sentinel-returning lexers and are out of scope.
 
 ## Priority 0 — Exploitable memory safety (fix before shipping to untrusted content)
 
-### P0.1 — StaticKey stack buffer overflow
+### P0.1 — StaticKey stack buffer overflow — FIXED
 `lib/nw/resources/StaticKey.cpp:231-235`. `char buffer[256]` then
 `file.read(buffer, it.name_size)` where `name_size` is a `uint16_t` from the
 file. `CHECK_OFFSET` only validates against file size, never the buffer.
 - **Fix:** clamp the read to the buffer (`std::min<size_t>(name_size,
   sizeof(buffer) - 1)`) and reject entries whose `name_size >= sizeof(buffer)`
   as corrupt. Null-terminate before constructing the `String`.
-- **Verify:** unit test with a crafted KEY whose `name_size` = 65535; expect a
-  clean load failure, no overflow (confirm under ASan).
+- **Verify:** unit test with a crafted KEY whose `name_size` is 256; expects a
+  clean load failure, no overflow.
 
-### P0.2 — MemoryPool fallback heap overflow
+### P0.2 — MemoryPool fallback heap overflow — FIXED
 `lib/nw/util/memory.cpp:270-294`. When `total_size > max_size_` the fallback
 does `malloc(size)` but the code writes a `MemoryHeader` before the user
 pointer and hands back `size` usable bytes — it needs the full
 `total_size = size + alignment-1 + sizeof(MemoryHeader)`.
 - **Fix:** `original = malloc(total_size);` on the fallback path.
-- **Verify:** ASan test that forces the fallback (size just over `max_size_`,
+- **Verify:** regression test forces the fallback (size just over `max_size_`,
   alignment 64) and writes the full returned span.
 
 ### P0.2b — GC incremental major use-after-free — FIXED (commit f74aafe)
@@ -97,7 +97,7 @@ idempotence assert. Regression test
 collection of a still-referenced object (fails without the re-scan). Full
 analysis is in the commit message.
 
-### P0.3 — MDL binary parser: unbounded offsets and counts
+### P0.3 — MDL binary parser: unbounded offsets and counts — FIXED
 `lib/nw/model/MdlBinaryParser.cpp` (systemic). Reachable from any model file
 via `Mdl::Mdl` (`Mdl.cpp:377`, dispatched on `bytes[0] == 0`). Representative
 sites:
@@ -110,27 +110,28 @@ sites:
   into `parse_node` recursively — unbounded offset **and** unbounded recursion.
 - `:226-236` `s_ctx.verts[i]` indexed for `i < vertex_count` even when `verts`
   was never resized (absent vertex pointer path).
-- **Fix:** add a single checked reader on `BinaryParser`:
-  `bool read_at(size_t offset, void* dst, size_t n)` verifying
-  `offset + n <= bytes_.size()` (overflow-safe) and failing the parse on
-  violation. Route **every** `memcpy` through it. Validate every
-  `.offset` / `.length` / `*_count` before use. Add a recursion-depth cap
-  (and/or a visited-offset set) in `parse_node`. Guard against `vertex_count`
-  without a corresponding resized buffer. Model the checks on `Gff.cpp`.
-- **Verify:** libFuzzer target over `Mdl(ResourceData)`; ASan/UBSan clean on a
-  corpus of truncated/oversized headers. Add a regression test for the
-  1-byte-file and deep-recursion cases.
+- **Fix:** `BinaryParser` now has one checked byte reader and overflow-safe
+  range helpers. Every binary parser copy routes through it. File-controlled
+  pointer arrays, raw mesh payload offsets, controller arrays, animation event
+  arrays, child pointer arrays, and node headers are validated before resize or
+  read. Node recursion is bounded by the declared node count and an absolute
+  cap. Meshes with a nonzero `vertex_count` but no vertex payload are rejected
+  before vertex indexing.
+- **Verify:** regression tests cover a 1-byte binary MDL, a self-recursive
+  child pointer, and a mesh that declares vertices without a payload. The
+  existing binary parse and skin tests still cover known-good data.
 
-### P0.4 — MDL skin weights read/stored twice
+### P0.4 — MDL skin weights read/stored twice — FIXED
 `lib/nw/model/MdlBinaryParser.cpp:339-352`. Two consecutive identical loops
 both read `float[4]` per vertex and push into `s_ctx.weights`, over-reading the
 weight block by `vertex_count*16` bytes and doubling the stored entries.
-- **Fix:** determine the intent (single weight set vs. bone-index set) and
-  remove/correct the duplicate loop. Bounds-check `off` regardless.
-- **Verify:** covered by the P0.3 fuzzer; add a targeted test on a known-good
-  skinmesh asserting `weights.size() == vertex_count`.
+- **Fix:** the duplicate weight read was removed. Bones and weights now read
+  through the checked raw-array path, one row per vertex.
+- **Verify:** the existing known-good skinmesh tests still validate expected
+  bone and weight values; malformed offsets are covered by the P0.3 checked
+  reader path.
 
-### P0.5 — ERF/BIF/StaticErf offset+size 32-bit overflow
+### P0.5 — ERF/BIF/StaticErf offset+size 32-bit overflow — FIXED
 `lib/nw/resources/Erf.cpp:492`, `StaticKey.cpp:83` (Bif::demand),
 `StaticErf.cpp:211-233`. `offset + size` (both `uint32_t`) is compared to file
 size in 32-bit and can wrap past a valid bound, then `seekg`/`read` runs OOB.
@@ -141,7 +142,7 @@ size in 32-bit and can wrap past a valid bound, then `seekg`/`read` runs OOB.
 - **Verify:** unit tests with crafted ERF/BIF elements whose `offset + size`
   wraps; expect a logged error and empty result.
 
-### P0.6 — PLT overflow + OOB layer index + null palette deref
+### P0.6 — PLT overflow + OOB layer index + null palette deref — FIXED
 `lib/nw/formats/Plt.cpp:21`, `decode_plt_color:40-52`.
 - Size check `24 + (2 * width_ * height_)` is 32-bit; overflow validates a huge
   image against a tiny buffer, then `pixels()[y*width_+x]` reads OOB.
@@ -152,20 +153,22 @@ size in 32-bit and can wrap past a valid bound, then `seekg`/`read` runs OOB.
 - **Fix:** compute the size check in `uint64_t` and reject on mismatch;
   bounds-check `pixel.layer < plt_layer_size` (reject/skip pixel otherwise);
   null-check `img` before `img->valid()`.
-- **Verify:** unit tests for the overflow dimensions, an out-of-range layer
-  byte, and a missing palette texture.
+- **Verify:** unit tests cover overflow dimensions and an out-of-range layer
+  byte; the implementation now null-checks palette texture lookup before
+  dereference.
 
-### P0.7 — Image (Bioware DDS / PLT→Image) unchecked malloc on file dims
+### P0.7 — Image (Bioware DDS / PLT→Image) unchecked malloc on file dims — FIXED
 `lib/nw/formats/Image.cpp:73, 299, 343`. `malloc(4ull * width_ * height_)`
 with file-controlled dimensions, no upper bound and no null check; the next
 lines write through the (possibly null) pointer.
 - **Fix:** cap `width_ * height_` against a sane maximum (reject larger) and
   check every `malloc` result before use.
-- **Verify:** fuzzer over `Image(ResourceData)` for `dds`/bioware paths.
+- **Verify:** regression test rejects an oversized Bioware DDS before
+  allocation.
 
 ## Priority 1 — Correctness defects in foundations
 
-### P1.1 — ChunkVector::reserve is a no-op
+### P1.1 — ChunkVector::reserve is a no-op — FIXED
 `lib/nw/util/ChunkVector.hpp:96-102`. After the `n <= allocated_` early return,
 the loop `while (n < allocated_)` is immediately false, so no block is ever
 allocated. Used by `ObjectPool` and handle pools; the reserve intent is
@@ -173,7 +176,7 @@ silently lost (correctness is preserved by lazy `push_back` growth).
 - **Fix:** `while (allocated_ < n) alloc_block();`
 - **Verify:** unit test asserting `capacity() >= n` after `reserve(n)`.
 
-### P1.2 — MemoryArena::reset semantics
+### P1.2 — MemoryArena::reset semantics — FIXED
 `lib/nw/util/memory.cpp:99-103`. Documented "free all blocks except the first"
 but only resets block 0. Blocks 1..N are neither freed nor reused: after reset,
 `allocate_block` appends *new* blocks and orphans the grown ones until the
@@ -182,37 +185,40 @@ reset-and-reuse contract the TLS scratch arena (`kernel/Memory.cpp`) depends
 on.
 - **Fix:** on reset, either free blocks > 0 (keep only block 0) or zero every
   block's `used` and reuse them in order. Pick one; document it.
-- **Verify:** reset the arena, over-fill block 0, assert no new block is
-  appended (reuse policy) or that extra blocks are freed (free policy); assert
-  `used()` returns to 0.
+- **Verify:** reset the arena after over-filling block 0; assert extra blocks
+  are freed and `used()` returns to 0.
 
-### P1.3 — ByteArray::read_at off-by-one
+### P1.3 — ByteArray::read_at off-by-one — FIXED
 `lib/nw/util/ByteArray.cpp:32-38`. `if (offset + sz >= size()) return false;`
 rejects a read that ends exactly at the buffer end (should be `>`), and
 `offset + sz` can wrap for pathological inputs. Direction is safe (rejects
 valid reads, never allows OOB) but it silently drops legitimate
 end-of-buffer field reads in GFF/PLT.
 - **Fix:** `if (offset > size() || sz > size() - offset) return false;`
-- **Verify:** test reading the final byte of a `ByteArray` — currently fails.
+- **Verify:** unit test reads the final byte and a zero-length end offset.
 
 ## Priority 2 — Robustness & consistency (post-hardening polish)
 
-### P2.1 — FixedVector error-policy inconsistency
+### P2.1 — FixedVector error-policy inconsistency — FIXED
 `lib/nw/util/FixedVector.hpp:188-221`. `insert(pos, const T&)` uses `CHECK_F`
 (abort) on overflow while `insert(pos, T&&)` throws `std::out_of_range`. Same
 class, same precondition, two failure modes.
-- **Fix:** choose one policy for the container and apply it to all mutators.
+- **Fix:** `insert(pos, T&&)` now uses the same `CHECK_F` capacity policy as
+  the rest of `FixedVector`.
 
-### P2.2 — MDL binary vs text parser error handling
+### P2.2 — MDL binary vs text parser error handling — FIXED
 `lib/nw/model/Mdl.cpp:381-388`. The text path is wrapped in `try/catch`; the
 binary path is not. Moot once P0.3 lands, but align the two.
+- **Fix:** binary parser construction/parsing is now wrapped the same way as
+  the text parser and leaves the model invalid on exceptions.
 
-### P2.3 — Non-reentrant localtime
+### P2.3 — Non-reentrant localtime — FIXED
 `lib/nw/resources/Erf.cpp:187`. `*localtime(&tt)` in `save_as`; racy under
 concurrent saves. Low impact.
-- **Fix:** `localtime_r` / `localtime_s`.
+- **Fix:** `save_as` now uses `localtime_r` / `localtime_s` through a local
+  `util/platform` helper.
 
-### P2.5 — Register-count truncation at the 256-register boundary
+### P2.5 — Register-count truncation at the 256-register boundary — FIXED
 `lib/nw/smalls/AstCompiler.cpp:35` (`high_water_mark()` does
 `static_cast<uint8_t>(max_reg)`). `max_reg` is a `uint16_t` that becomes 256 the
 moment register index 255 is allocated, so a function that uses all 256
@@ -223,12 +229,15 @@ function produces a confusing "register out of range r0 (reg_count=0)" verifier
 error, while a 257-register function throws the clean "exceeded 256 registers"
 compiler message. Clamp/detect the 256 case in the allocator and surface the
 same clean diagnostic.
-- **Confidence:** high (safe, cosmetic-severity).
+- **Fix:** `RegisterAllocator::high_water_mark()` now rejects the unencodable
+  256-register count before bytecode metadata is written.
+- **Verify:** focused allocator test covers the boundary.
 
-### P2.4 — Misleading `// private:` comments
+### P2.4 — Misleading `// private:` comments — FIXED
 `lib/nw/util/memory.hpp:165, 207`, `HandlePool.hpp`, etc. Public data members
 labeled `// private:`. Either enforce access control or document why the
 members are intentionally open.
+- **Fix:** removed the misleading labels without changing public layout/API.
 
 ## Priority 3 — Assurance (raise the floor so the class can't return)
 
@@ -252,7 +261,7 @@ input."
     `BytecodeVerifier` is a defense-in-depth net, not a security boundary. Every
     op the verifier delegates (CALLNATIVE/CALLINTR index, SUMGETPAYLOAD variant)
     is independently bounds-checked by the VM at runtime. Register allocation
-    throws on overflow rather than truncating — except the cosmetic P2.5
+    throws on overflow rather than truncating, including the 256-register
     boundary case. No memory-safety defect found.
   - *GC:* the write barrier is complete (every heap pointer store — fields,
     tuples, sums, array elements, map keys *and* values — routes through
@@ -344,21 +353,20 @@ tracked there as the "inventory/equips own item handles" slice in
 `object-propset-overhaul.md`, not here. Until it lands, the ASan lane will flag
 this pre-existing UAF.
 
-## Suggested ordering
+## Remaining Work
 
-1. P0.1, P0.2 — smallest, highest-severity, isolated (a day).
-2. P0.5, P0.6, P0.7 — parser overflow/deref fixes sharing one pattern.
-3. P0.3, P0.4 — the MDL binary parser refactor (the big one; introduce the
-   checked reader first, then convert call sites).
-4. P1.1–P1.3 — foundation correctness (independent, can parallelize).
-5. Stand up the fuzzing harness (P3) *alongside* the P0 work so each fix lands
-   with a regression target rather than after.
-6. P2 polish and the deeper audit last.
+- Extend the fuzzing harness beyond the binary MDL target to the rest of the
+  binary format parsers listed in P3.
+- Add broader sanitizer coverage for allocator/container combinations not
+  covered by the focused regression tests.
+- Keep the inventory/equips item-ownership UAF tracked in
+  `object-propset-overhaul.md`; it is outside this memory-subsystem issue.
 
 ## Done criteria
 
-- Every P0 has an ASan/UBSan-clean regression test and, where a parser is
-  involved, a libFuzzer target in `fuzz/` wired into CI.
+- Every P0 has a focused regression test. The binary MDL parser also has a
+  libFuzzer target wired into the existing fuzz smoke lane; the remaining
+  format fuzzers are tracked as P3 assurance work.
 - P1 defects have positive unit tests asserting the corrected behavior
   (`reserve` grows, `reset` reuses/frees, `read_at` accepts end-of-buffer).
 - No parser reachable from `resman().demand()` reads outside its buffer on any

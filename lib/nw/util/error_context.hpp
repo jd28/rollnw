@@ -8,7 +8,7 @@
 #define ERRARE_CONCAT_(x, y) x##y
 #define ERRARE_CONCAT(x, y) ERRARE_CONCAT_(x, y)
 
-#define ERRARE_UNIQUE_NAME ERRARE_CONCAT(errare, __COUNTER__)
+#define ERRARE_UNIQUE_NAME ERRARE_CONCAT(errare, __LINE__)
 
 namespace nw {
 

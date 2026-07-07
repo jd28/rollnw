@@ -32,7 +32,7 @@ struct RegisterAllocator {
     uint8_t allocate_contiguous(uint8_t count);
     void free(uint8_t reg);
     void mark_used(uint8_t reg);
-    uint8_t high_water_mark() const { return static_cast<uint8_t>(max_reg); }
+    uint8_t high_water_mark() const;
     void reset();
 };
 

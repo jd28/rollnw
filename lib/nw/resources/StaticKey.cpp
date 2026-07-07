@@ -17,6 +17,26 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
+namespace {
+
+bool file_range_contains(std::streamsize file_size, size_t offset, size_t size) noexcept
+{
+    if (file_size < 0) { return false; }
+    const auto limit = static_cast<size_t>(file_size);
+    if (offset > limit) { return false; }
+    return size <= limit - offset;
+}
+
+bool file_table_contains(std::streamsize file_size, size_t offset, size_t count, size_t element_size) noexcept
+{
+    if (element_size != 0 && count > std::numeric_limits<size_t>::max() / element_size) {
+        return false;
+    }
+    return file_range_contains(file_size, offset, count * element_size);
+}
+
+} // namespace
+
 namespace detail {
 
 struct BifHeader {
@@ -36,12 +56,12 @@ Bif::Bif(StaticKey* key, fs::path path, nw::MemoryResource* allocator)
     is_loaded_ = load();
 }
 
-#define CHECK_OFFSET(offset)                                 \
-    do {                                                     \
-        if (static_cast<std::streamsize>(offset) > fsize_) { \
-            LOG_F(ERROR, "corrupted bif file");              \
-            return false;                                    \
-        }                                                    \
+#define CHECK_RANGE(offset, size)                                                      \
+    do {                                                                               \
+        if (!file_range_contains(fsize_, static_cast<size_t>(offset), size_t(size))) { \
+            LOG_F(ERROR, "corrupted bif file");                                        \
+            return false;                                                              \
+        }                                                                              \
     } while (0)
 
 bool Bif::load()
@@ -60,16 +80,21 @@ bool Bif::load()
     fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
 
     BifHeader header;
-    CHECK_OFFSET(sizeof(BifHeader));
+    CHECK_RANGE(0, sizeof(BifHeader));
     istream_read(file_, &header, sizeof(BifHeader));
 
     uint32_t offset = header.var_table_offset;
-    CHECK_OFFSET(header.var_table_offset);
+    CHECK_RANGE(header.var_table_offset, 0);
     file_.seekg(offset, std::ios_base::beg);
-    elements.resize(header.var_res_count);
 
-    CHECK_OFFSET(header.var_table_offset + sizeof(BifElement) * header.var_res_count);
-    istream_read(file_, &elements[0], sizeof(BifElement) * header.var_res_count);
+    if (!file_table_contains(fsize_, header.var_table_offset, header.var_res_count, sizeof(BifElement))) {
+        LOG_F(ERROR, "corrupted bif file");
+        return false;
+    }
+    elements.resize(header.var_res_count);
+    if (!elements.empty()) {
+        istream_read(file_, elements.data(), sizeof(BifElement) * header.var_res_count);
+    }
 
     return true;
 }
@@ -80,9 +105,9 @@ ByteArray Bif::demand(size_t index) const
 
     if (index >= elements.size()) {
         LOG_F(ERROR, "{}: Invalid index: {}", path_, index);
-    } else if (elements[index].offset + elements[index].size > fsize_) {
-        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_,
-            elements[index].offset + elements[index].size, fsize_);
+    } else if (!file_range_contains(fsize_, elements[index].offset, elements[index].size)) {
+        LOG_F(ERROR, "{}: Invalid range offset={}, size={}, file size={}", path_,
+            elements[index].offset, elements[index].size, fsize_);
     } else {
         std::ifstream file_{path_, std::ios_base::binary};
         ba.resize(elements[index].size);
@@ -93,7 +118,7 @@ ByteArray Bif::demand(size_t index) const
     return ba;
 }
 
-#undef CHECK_OFFSET
+#undef CHECK_RANGE
 
 }
 
@@ -191,12 +216,12 @@ void StaticKey::visit(std::function<void(Resource, const ContainerKey*)> visitor
 
 // ---- Private ---------------------------------------------------------------
 
-#define CHECK_OFFSET(offset)                                 \
-    do {                                                     \
-        if (static_cast<std::streamsize>(offset) > fsize_) { \
-            LOG_F(ERROR, "corrupted key file");              \
-            return false;                                    \
-        }                                                    \
+#define CHECK_RANGE(offset, size)                                                      \
+    do {                                                                               \
+        if (!file_range_contains(fsize_, static_cast<size_t>(offset), size_t(size))) { \
+            LOG_F(ERROR, "corrupted key file");                                        \
+            return false;                                                              \
+        }                                                                              \
     } while (0)
 
 bool StaticKey::load()
@@ -212,15 +237,20 @@ bool StaticKey::load()
     fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
 
     KeyHeader header;
-    CHECK_OFFSET(sizeof(KeyHeader));
+    CHECK_RANGE(0, sizeof(KeyHeader));
     istream_read(file, &header, sizeof(KeyHeader));
 
     Vector<FileTable> fts;
-    fts.resize(header.bif_count);
-    CHECK_OFFSET(header.offset_file_table);
+    CHECK_RANGE(header.offset_file_table, 0);
     file.seekg(header.offset_file_table);
-    CHECK_OFFSET(header.offset_file_table + sizeof(FileTable) * header.bif_count);
-    istream_read(file, &fts[0], sizeof(FileTable) * header.bif_count);
+    if (!file_table_contains(fsize_, header.offset_file_table, header.bif_count, sizeof(FileTable))) {
+        LOG_F(ERROR, "corrupted key file");
+        return false;
+    }
+    fts.resize(header.bif_count);
+    if (!fts.empty()) {
+        istream_read(file, fts.data(), sizeof(FileTable) * header.bif_count);
+    }
 
     bifs_.reserve(header.bif_count);
     Vector<String> bif_names;
@@ -230,9 +260,14 @@ bool StaticKey::load()
     for (const auto& it : fts) {
         char buffer[256] = {0};
 
-        CHECK_OFFSET(it.name_offset + it.name_size);
+        if (it.name_size >= sizeof(buffer)) {
+            LOG_F(ERROR, "corrupted key file: bif name is too long");
+            return false;
+        }
+        CHECK_RANGE(it.name_offset, it.name_size);
         file.seekg(it.name_offset);
         file.read(buffer, it.name_size);
+        buffer[it.name_size] = '\0';
 
         String s(buffer);
         std::replace(s.begin(), s.end(), '\\', '/');
@@ -243,10 +278,16 @@ bool StaticKey::load()
         bifs_.emplace_back(this, bif_path / s, allocator());
     }
 
+    CHECK_RANGE(header.offset_key_table, 0);
+    if (!file_table_contains(fsize_, header.offset_key_table, header.key_count, 22)) {
+        LOG_F(ERROR, "corrupted key file");
+        return false;
+    }
     file.seekg(header.offset_key_table);
     elements_.reserve(header.key_count);
     char buffer[17] = {0};
     for (size_t i = 0; i < header.key_count; ++i) {
+        buffer[16] = '\0';
         file.read(buffer, 16);
 
         uint32_t id;
@@ -261,6 +302,6 @@ bool StaticKey::load()
     return true;
 }
 
-#undef CHECK_OFFSET
+#undef CHECK_RANGE
 
 } // namespace nw

@@ -50,7 +50,6 @@ public:
         using other = Allocator<U>;
     };
 
-    // private:
     detail::MemoryResourceInternal resource_;
 };
 

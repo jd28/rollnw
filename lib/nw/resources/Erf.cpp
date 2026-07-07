@@ -19,6 +19,26 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
+namespace {
+
+bool file_range_contains(std::streamsize file_size, size_t offset, size_t size) noexcept
+{
+    if (file_size < 0) { return false; }
+    const auto limit = static_cast<size_t>(file_size);
+    if (offset > limit) { return false; }
+    return size <= limit - offset;
+}
+
+bool file_table_contains(std::streamsize file_size, size_t offset, size_t count, size_t element_size) noexcept
+{
+    if (element_size != 0 && count > std::numeric_limits<size_t>::max() / element_size) {
+        return false;
+    }
+    return file_range_contains(file_size, offset, count * element_size);
+}
+
+} // namespace
+
 /// @private
 struct ErfHeader {
     char type[4];
@@ -184,7 +204,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
     // Set build date
     auto now = std::chrono::system_clock::now();
     time_t tt = std::chrono::system_clock::to_time_t(now);
-    tm local_tm = *localtime(&tt);
+    tm local_tm = local_time(tt);
     header.day_of_year = to_u32(local_tm.tm_yday);
     header.year = to_u32(local_tm.tm_year + 1900);
 
@@ -363,11 +383,11 @@ const std::filesystem::path& Erf::working_directory() const
 
 // ---- Private ---------------------------------------------------------------
 
-#define CHECK_OFFSET(offset)                                 \
-    do {                                                     \
-        if (static_cast<std::streamsize>(offset) > fsize_) { \
-            return false;                                    \
-        }                                                    \
+#define CHECK_RANGE(offset, size)                                                      \
+    do {                                                                               \
+        if (!file_range_contains(fsize_, static_cast<size_t>(offset), size_t(size))) { \
+            return false;                                                              \
+        }                                                                              \
     } while (0)
 
 bool Erf::load(const fs::path& path)
@@ -382,7 +402,7 @@ bool Erf::load(const fs::path& path)
 
     fsize_ = static_cast<std::streamsize>(fs::file_size(path));
 
-    CHECK_OFFSET(sizeof(ErfHeader));
+    CHECK_RANGE(0, sizeof(ErfHeader));
 
     ErfHeader header;
     istream_read(file_, &header, sizeof(ErfHeader));
@@ -410,12 +430,18 @@ bool Erf::load(const fs::path& path)
     }
 
     if (version == ErfVersion::v1_0) {
-        CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey<16>));
+        if (!file_table_contains(fsize_, header.offset_keys, header.entry_count, sizeof(ErfKey<16>))) {
+            return false;
+        }
     } else if (version == ErfVersion::v1_1) {
-        CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey<32>));
+        if (!file_table_contains(fsize_, header.offset_keys, header.entry_count, sizeof(ErfKey<32>))) {
+            return false;
+        }
     }
 
-    CHECK_OFFSET(header.offset_res + header.entry_count * sizeof(ErfElementInfo));
+    if (!file_table_contains(fsize_, header.offset_res, header.entry_count, sizeof(ErfElementInfo))) {
+        return false;
+    }
 
     // It's not totally clear if `nwhak.exe` can have anything but English in the description.
     // The ERF file format saves LocStrings uniquely, and differently between types.
@@ -425,16 +451,16 @@ bool Erf::load(const fs::path& path)
     //     non-NULL-terminated character string. Consequently, when reading the String,
     //     a program should rely on the StringSize, not on the presence of a null terminator.
     description = LocString(header.desc_strref);
-    CHECK_OFFSET(header.offset_locstring);
+    CHECK_RANGE(header.offset_locstring, 0);
     file_.seekg(header.offset_locstring, std::ios::beg);
     for (uint32_t i = 0; i < header.locstring_count; ++i) {
         String tmp;
         uint32_t lang, sz;
-        CHECK_OFFSET(int(file_.tellg()) + 8);
+        CHECK_RANGE(file_.tellg(), 8);
         istream_read(file_, &lang, 4);
         istream_read(file_, &sz, 4);
-        CHECK_OFFSET(size_t(file_.tellg()) + sz);
-        tmp.resize(sz + 1, 0);
+        CHECK_RANGE(file_.tellg(), sz);
+        tmp.resize(static_cast<size_t>(sz) + 1, 0);
         file_.read(tmp.data(), sz);
         auto base_lang = Language::to_base_id(lang);
         tmp = to_utf8_by_langid(tmp.c_str(), base_lang.first);
@@ -477,7 +503,7 @@ bool Erf::load(const fs::path& path)
     return true;
 }
 
-#undef CHECK_OFFSET
+#undef CHECK_RANGE
 
 ResourceData Erf::read(const ErfElement& e) const
 {
@@ -489,8 +515,9 @@ ResourceData Erf::read(const ErfElement& e) const
         auto& ele = std::get<ErfElementInfo>(e);
         if (ele.offset == std::numeric_limits<uint32_t>::max()) {
             // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
-        } else if (ele.offset + ele.size > fsize_) {
-            LOG_F(ERROR, "{}: Out of bounds.", path_);
+        } else if (!file_range_contains(fsize_, ele.offset, ele.size)) {
+            LOG_F(ERROR, "{}: Out of bounds range offset={}, size={}, file size={}.",
+                path_, ele.offset, ele.size, fsize_);
         } else {
             data.bytes.resize(ele.size);
             file_.seekg(ele.offset, file_.beg);

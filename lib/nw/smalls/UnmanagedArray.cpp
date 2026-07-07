@@ -200,7 +200,7 @@ public:
         return true;
     }
 
-    const void* element_data(size_t index) const
+    const void* element_data(size_t index) const override
     {
         return index < size_ ? data_ + (index * elem_size_) : nullptr;
     }

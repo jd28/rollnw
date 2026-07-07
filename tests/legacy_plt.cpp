@@ -6,7 +6,26 @@
 #include <nw/log.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
+#include <cstring>
 #include <filesystem>
+#include <limits>
+
+namespace {
+
+nw::ResourceData make_plt(uint32_t width, uint32_t height, std::initializer_list<nw::PltPixel> pixels)
+{
+    nw::ResourceData data;
+    data.bytes.resize(24 + pixels.size() * sizeof(nw::PltPixel));
+    std::memcpy(data.bytes.data(), "PLT V1  ", 8);
+    std::memcpy(data.bytes.data() + 16, &width, sizeof(width));
+    std::memcpy(data.bytes.data() + 20, &height, sizeof(height));
+    if (pixels.size() != 0) {
+        std::memcpy(data.bytes.data() + 24, pixels.begin(), pixels.size() * sizeof(nw::PltPixel));
+    }
+    return data;
+}
+
+} // namespace
 
 TEST(Plt, Load)
 {
@@ -34,4 +53,18 @@ TEST(Plt, ToImage)
     nw::Image img(plt, colors);
     EXPECT_TRUE(img.valid());
     EXPECT_TRUE(img.write_to("tmp/pmh0_head001.png"));
+}
+
+TEST(Plt, RejectsOverflowDimensions)
+{
+    nw::Plt plt{make_plt(std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max(), {})};
+    EXPECT_FALSE(plt.valid());
+    EXPECT_EQ(nw::decode_plt_color(plt, {}, 0, 0), 0u);
+}
+
+TEST(Plt, DecodeRejectsInvalidLayer)
+{
+    nw::Plt plt{make_plt(1, 1, {nw::PltPixel{1, nw::plt_layer_size}})};
+    ASSERT_TRUE(plt.valid());
+    EXPECT_EQ(nw::decode_plt_color(plt, {}, 0, 0), 0u);
 }

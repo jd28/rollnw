@@ -96,7 +96,7 @@ struct ChunkVector {
     void reserve(size_t n)
     {
         if (n <= allocated_) { return; }
-        while (n < allocated_) {
+        while (allocated_ < n) {
             alloc_block();
         }
     }

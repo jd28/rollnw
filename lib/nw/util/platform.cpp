@@ -1,11 +1,12 @@
-#include "../log.hpp"
 #include "platform.hpp"
+#include "../log.hpp"
 
 #include <nowide/convert.hpp>
 #include <nowide/cstdlib.hpp>
 
 #include <algorithm>
 #include <cstdlib>
+#include <ctime>
 #include <random>
 #include <sstream>
 
@@ -126,6 +127,17 @@ String path_to_string(const std::filesystem::path& path)
 #else
     return String(path.string());
 #endif
+}
+
+tm local_time(time_t time)
+{
+    tm result{};
+#ifdef ROLLNW_OS_WINDOWS
+    localtime_s(&result, &time);
+#else
+    localtime_r(&time, &result);
+#endif
+    return result;
 }
 
 } // namespace nw

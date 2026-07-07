@@ -6,6 +6,7 @@
 #include <nw/log.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
+#include <cstring>
 #include <filesystem>
 
 #include <nowide/cstdlib.hpp>
@@ -31,6 +32,28 @@ TEST(Image, BiowareDDS)
     auto bytes = dds2.release();
     EXPECT_FALSE(dds2.valid());
     if (bytes) { free(bytes); }
+}
+
+TEST(Image, RejectsOversizedBiowareDDS)
+{
+    struct BiowareDdsHeader {
+        uint32_t width;
+        uint32_t height;
+        uint32_t colors;
+        uint32_t reserved[2];
+    };
+
+    BiowareDdsHeader header{};
+    header.width = 16385;
+    header.height = 16384;
+    header.colors = 4;
+
+    nw::ResourceData data;
+    data.name = nw::Resource{"oversized"sv, nw::ResourceType::dds};
+    data.bytes.append(&header, sizeof(header));
+
+    nw::Image image{std::move(data), false};
+    EXPECT_FALSE(image.valid());
 }
 
 TEST(Image, StandardDDS)

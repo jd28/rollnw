@@ -7,6 +7,7 @@
 
 #include <fmt/format.h>
 #include <limits>
+#include <stdexcept>
 
 namespace nw::smalls {
 
@@ -79,6 +80,14 @@ uint8_t RegisterAllocator::allocate()
     }
 
     return reg;
+}
+
+uint8_t RegisterAllocator::high_water_mark() const
+{
+    if (max_reg >= RegisterAllocator::max_registers) {
+        throw std::runtime_error("Register overflow: exceeded 256 registers");
+    }
+    return static_cast<uint8_t>(max_reg);
 }
 
 void RegisterAllocator::free(uint8_t reg)

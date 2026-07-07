@@ -203,10 +203,7 @@ struct FixedVector {
 
     iterator insert(iterator pos, T&& value)
     {
-        if (size_ >= capacity_) {
-            throw std::out_of_range("FixedVector capacity exceeded");
-        }
-
+        CHECK_F(size_ < capacity_, "FixedVector capacity exceeded");
         size_type index = pos - buffer_;
 
         for (size_type i = size_; i > index; --i) {

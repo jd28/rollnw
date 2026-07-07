@@ -2,12 +2,53 @@
 
 #include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
+#include <nw/model/MdlBinaryParser.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
+#include <cstring>
 #include <fstream>
+#include <limits>
 
 using namespace std::literals;
 namespace nwk = nw::kernel;
+
+namespace {
+
+constexpr size_t mdl_pointer_base = 12;
+
+template <typename T>
+void write_at(nw::ResourceData& data, size_t offset, const T& value)
+{
+    std::memcpy(data.bytes.data() + offset, &value, sizeof(T));
+}
+
+template <typename T>
+nw::ResourceData make_binary_mdl_with_node(const T& node, uint32_t node_count = 1, size_t extra_size = 0)
+{
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    const size_t file_size = node_offset + sizeof(T) + extra_size;
+    const uint32_t node_ptr = static_cast<uint32_t>(node_offset - mdl_pointer_base);
+
+    nw::ResourceData data;
+    data.bytes.resize(file_size);
+
+    nw::model::detail::MdlBinaryHeader header{};
+    header.type = 0;
+    header.raw_data_offset = static_cast<uint32_t>(file_size);
+    header.raw_data_size = 0;
+    write_at(data, 0, header);
+
+    nw::model::detail::MdlBinaryModelHeader model{};
+    model.geometry_header.root_node_offset = node_ptr;
+    model.geometry_header.node_count = node_count;
+    write_at(data, model_offset, model);
+    write_at(data, node_offset, node);
+
+    return data;
+}
+
+} // namespace
 
 TEST(Mdl, ParseASCII)
 {
@@ -51,6 +92,47 @@ TEST(Mdl, ParseBinary)
     EXPECT_EQ(mdl.model.supermodel_name, "a_ba");
     EXPECT_EQ(mdl.model.nodes[2]->children.size(), 2);
     // EXPECT_TRUE(mdl.model.supermodel);
+}
+
+TEST(Mdl, BinaryRejectsTruncatedHeader)
+{
+    nw::ResourceData data;
+    data.bytes.push_back(0);
+
+    nw::model::Mdl mdl{std::move(data)};
+    EXPECT_FALSE(mdl.valid());
+}
+
+TEST(Mdl, BinaryRejectsRecursiveChildPointer)
+{
+    nw::model::detail::MdlBinaryNodeHeader node{};
+    node.type = nw::model::NodeType::dummy;
+    node.children.length = 1;
+
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    constexpr size_t child_offset = node_offset + nw::model::detail::MdlBinaryNodeHeader::s_sizeof;
+    node.children.offset = static_cast<uint32_t>(child_offset - mdl_pointer_base);
+
+    auto data = make_binary_mdl_with_node(node, 1, sizeof(uint32_t));
+    const uint32_t root_ptr = static_cast<uint32_t>(node_offset - mdl_pointer_base);
+    write_at(data, child_offset, root_ptr);
+
+    nw::model::Mdl mdl{std::move(data)};
+    EXPECT_FALSE(mdl.valid());
+}
+
+TEST(Mdl, BinaryRejectsMeshWithoutVertexPayload)
+{
+    nw::model::detail::MdlBinaryTrimeshNode node{};
+    node.header.node_header.type = nw::model::NodeType::trimesh;
+    node.header.vertex_count = 1;
+    node.header.vertices = std::numeric_limits<uint32_t>::max();
+
+    auto data = make_binary_mdl_with_node(node);
+
+    nw::model::Mdl mdl{std::move(data)};
+    EXPECT_FALSE(mdl.valid());
 }
 
 TEST(Mdl, ParseASCII2)

@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -317,10 +318,15 @@ class BinaryParser {
     std::span<uint8_t> bytes_;
     detail::MdlBinaryHeader header;
 
+    bool array_offset(const detail::MdlBinaryArray& array, size_t element_size, size_t* result) const;
+    bool checked_range(size_t offset, size_t size) const;
+    bool pointer_offset(uint32_t offset, size_t* result) const;
+    bool raw_offset(uint32_t offset, size_t* result) const;
+    bool read_bytes(size_t offset, void* dst, size_t size) const;
     bool parse_anim(const detail::MdlBinaryAnimationHeader& data);
     bool parse_geometry(Geometry* geometry, const detail::MdlBinaryGeometryHeader& data);
     bool parse_model(uint32_t offset);
-    bool parse_node(uint32_t offset, Geometry* geometry, Node* parent = nullptr);
+    bool parse_node(uint32_t offset, Geometry* geometry, Node* parent, size_t max_nodes, size_t depth);
 
 public:
     BinaryParser(std::span<uint8_t> bytes, Mdl* mdl);

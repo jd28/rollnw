@@ -10,7 +10,12 @@ add_executable(fuzz_smalls_vm
     smalls_vm_fuzzer.cpp
 )
 
+add_executable(fuzz_mdl
+    mdl_fuzzer.cpp
+)
+
 set(fuzzer_targets
+    fuzz_mdl
     fuzz_smalls_parse
     fuzz_smalls_resolve
     fuzz_smalls_vm

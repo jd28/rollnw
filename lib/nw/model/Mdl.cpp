@@ -8,6 +8,8 @@
 #include "MdlBinaryParser.hpp"
 #include "MdlTextParser.hpp"
 
+#include <exception>
+
 namespace nw::model {
 
 const std::unordered_map<StringView, std::pair<uint32_t, uint32_t>> ControllerType::map = {
@@ -375,8 +377,13 @@ Mdl::Mdl(ResourceData data)
         return;
     }
     if (data_.bytes[0] == 0) {
-        BinaryParser p{std::span<uint8_t>(data_.bytes.data(), data_.bytes.size()), this};
-        loaded_ = p.parse();
+        try {
+            BinaryParser p{std::span<uint8_t>(data_.bytes.data(), data_.bytes.size()), this};
+            loaded_ = p.parse();
+        } catch (std::exception& e) {
+            LOG_F(ERROR, "failed to parse binary model <unknown>: {}", e.what());
+            loaded_ = false;
+        }
     } else {
         try {
             TextParser p{data_.bytes.string_view(), this};

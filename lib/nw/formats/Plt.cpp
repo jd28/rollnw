@@ -4,6 +4,7 @@
 #include "../resources/ResourceManager.hpp"
 
 #include <cstring>
+#include <limits>
 
 namespace nw {
 
@@ -18,7 +19,10 @@ Plt::Plt(ResourceData data)
     if (data_.bytes.size() > 24 && memcmp(data_.bytes.data(), "PLT V1  ", 8) == 0) {
         data_.bytes.read_at(16, &width_, 4);
         data_.bytes.read_at(20, &height_, 4);
-        valid_ = data_.bytes.size() == 24 + (2 * width_ * height_);
+        const uint64_t pixels = static_cast<uint64_t>(width_) * static_cast<uint64_t>(height_);
+        constexpr uint64_t max_payload = std::numeric_limits<size_t>::max() - 24ull;
+        valid_ = pixels <= max_payload / sizeof(PltPixel)
+            && data_.bytes.size() == 24 + pixels * sizeof(PltPixel);
     } else {
         valid_ = false;
     }
@@ -42,10 +46,20 @@ uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, u
         return 0;
     }
 
+    if (!plt.valid()) {
+        LOG_F(ERROR, "[plt] invalid PLT");
+        return 0;
+    }
+
     auto pixel = plt.pixels()[y * plt.width() + x];
+    if (static_cast<uint8_t>(pixel.layer) >= plt_layer_size) {
+        LOG_F(ERROR, "[plt] invalid PLT layer {}", uint8_t(pixel.layer));
+        return 0;
+    }
+
     auto selected_color = colors.data[pixel.layer];
     auto img = nw::kernel::resman().palette_texture(pixel.layer);
-    if (!img->valid()) {
+    if (!img || !img->valid()) {
         LOG_F(ERROR, "[plt] invalid palette texture for layer {}", uint8_t(pixel.layer));
         return 0;
     }

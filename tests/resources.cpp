@@ -11,12 +11,192 @@
 
 #include <nlohmann/json.hpp>
 
+#include <array>
+#include <cstring>
 #include <fstream>
+#include <limits>
 
 using namespace nw;
 using namespace std::literals;
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+
+namespace {
+
+struct TestErfHeader {
+    char type[4];
+    char version[4];
+    uint32_t locstring_count;
+    uint32_t locstring_size;
+    uint32_t entry_count;
+    uint32_t offset_locstring;
+    uint32_t offset_keys;
+    uint32_t offset_res;
+    uint32_t year;
+    uint32_t day_of_year;
+    uint32_t desc_strref;
+    char reserved[116];
+};
+
+template <size_t N>
+struct TestErfKey {
+    std::array<char, N> resref{};
+    uint32_t id = 0;
+    uint16_t type = 0;
+    int16_t unused = 0;
+};
+
+struct TestErfElementInfo {
+    uint32_t offset = 0;
+    uint32_t size = 0;
+};
+
+struct TestKeyHeader {
+    char type[4];
+    char version[4];
+    uint32_t bif_count;
+    uint32_t key_count;
+    uint32_t offset_file_table;
+    uint32_t offset_key_table;
+    uint32_t year;
+    uint32_t day_of_year;
+    char reserved[32];
+};
+
+struct TestFileTable {
+    uint32_t size = 0;
+    uint32_t name_offset = 0;
+    uint16_t name_size = 0;
+    uint16_t drives = 0;
+};
+
+struct TestBifHeader {
+    char type[4];
+    char version[4];
+    uint32_t var_res_count;
+    uint32_t fix_res_count;
+    uint32_t var_table_offset;
+};
+
+struct TestBifElement {
+    uint32_t id = 0;
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    uint32_t type = 0;
+};
+
+static_assert(sizeof(TestErfHeader) == 160);
+static_assert(sizeof(TestErfKey<16>) == 24);
+static_assert(sizeof(TestErfElementInfo) == 8);
+static_assert(sizeof(TestKeyHeader) == 64);
+static_assert(sizeof(TestFileTable) == 12);
+static_assert(sizeof(TestBifHeader) == 20);
+static_assert(sizeof(TestBifElement) == 16);
+
+template <typename T>
+void write_value(std::ofstream& out, const T& value)
+{
+    out.write(reinterpret_cast<const char*>(&value), sizeof(T));
+}
+
+void write_wrapped_erf(const fs::path& path)
+{
+    TestErfHeader header{};
+    std::memcpy(header.type, "ERF ", 4);
+    std::memcpy(header.version, "V1.0", 4);
+    header.entry_count = 1;
+    header.offset_keys = sizeof(TestErfHeader);
+    header.offset_res = header.offset_keys + sizeof(TestErfKey<16>);
+    header.offset_locstring = header.offset_res + sizeof(TestErfElementInfo);
+
+    TestErfKey<16> key{};
+    std::memcpy(key.resref.data(), "wrapped", 7);
+    key.type = static_cast<uint16_t>(ResourceType::txt);
+
+    TestErfElementInfo info{};
+    info.offset = std::numeric_limits<uint32_t>::max() - 7;
+    info.size = 16;
+
+    std::ofstream out{path, std::ios::binary};
+    write_value(out, header);
+    write_value(out, key);
+    write_value(out, info);
+}
+
+void write_key_with_long_bif_name(const fs::path& path)
+{
+    TestKeyHeader header{};
+    std::memcpy(header.type, "KEY ", 4);
+    std::memcpy(header.version, "V1  ", 4);
+    header.bif_count = 1;
+    header.offset_file_table = sizeof(TestKeyHeader);
+    header.offset_key_table = sizeof(TestKeyHeader) + sizeof(TestFileTable) + 256;
+
+    TestFileTable table{};
+    table.name_offset = sizeof(TestKeyHeader) + sizeof(TestFileTable);
+    table.name_size = 256;
+
+    std::array<char, 256> name{};
+    name.fill('a');
+
+    std::ofstream out{path, std::ios::binary};
+    write_value(out, header);
+    write_value(out, table);
+    out.write(name.data(), name.size());
+}
+
+void write_key_and_bif_with_wrapped_resource(const fs::path& root)
+{
+    fs::create_directories(root / "data");
+
+    const fs::path key_path = root / "data/wrapped.key";
+    TestKeyHeader key_header{};
+    std::memcpy(key_header.type, "KEY ", 4);
+    std::memcpy(key_header.version, "V1  ", 4);
+    key_header.bif_count = 1;
+    key_header.key_count = 1;
+    key_header.offset_file_table = sizeof(TestKeyHeader);
+    key_header.offset_key_table = sizeof(TestKeyHeader) + sizeof(TestFileTable) + 8;
+
+    TestFileTable file_table{};
+    file_table.name_offset = sizeof(TestKeyHeader) + sizeof(TestFileTable);
+    file_table.name_size = 8;
+
+    std::array<char, 8> bif_name{};
+    std::memcpy(bif_name.data(), "bad.bif", 7);
+
+    std::array<char, 16> resref{};
+    std::memcpy(resref.data(), "wrapped", 7);
+    uint16_t type = static_cast<uint16_t>(ResourceType::txt);
+    uint32_t id = 0;
+
+    {
+        std::ofstream out{key_path, std::ios::binary};
+        write_value(out, key_header);
+        write_value(out, file_table);
+        out.write(bif_name.data(), bif_name.size());
+        out.write(resref.data(), resref.size());
+        write_value(out, type);
+        write_value(out, id);
+    }
+
+    TestBifHeader bif_header{};
+    std::memcpy(bif_header.type, "BIFF", 4);
+    std::memcpy(bif_header.version, "V1  ", 4);
+    bif_header.var_res_count = 1;
+    bif_header.var_table_offset = sizeof(TestBifHeader);
+
+    TestBifElement element{};
+    element.offset = std::numeric_limits<uint32_t>::max() - 7;
+    element.size = 16;
+    element.type = static_cast<uint32_t>(ResourceType::txt);
+
+    std::ofstream out{root / "bad.bif", std::ios::binary};
+    write_value(out, bif_header);
+    write_value(out, element);
+}
+
+} // namespace
 
 // == Erf =====================================================================
 // ============================================================================
@@ -39,6 +219,17 @@ TEST(Erf, demand)
     EXPECT_TRUE(e.valid());
     auto data = e.demand({"module"sv, ResourceType::ifo});
     EXPECT_TRUE(data.bytes.size() > 0);
+}
+
+TEST(Erf, DemandRejectsWrappedResourceRange)
+{
+    const fs::path path = "tmp/wrapped.erf";
+    write_wrapped_erf(path);
+
+    Erf e{path};
+    ASSERT_TRUE(e.valid());
+    auto data = e.demand({"wrapped"sv, ResourceType::txt});
+    EXPECT_TRUE(data.bytes.size() == 0);
 }
 
 TEST(Erf, extract)
@@ -231,6 +422,26 @@ TEST(StaticErf, demand)
     EXPECT_TRUE(data.bytes.size() > 0);
 }
 
+TEST(StaticErf, DemandRejectsWrappedResourceRange)
+{
+    const fs::path path = "tmp/static_wrapped.erf";
+    write_wrapped_erf(path);
+
+    StaticErf e{path};
+    ASSERT_TRUE(e.valid());
+
+    const ContainerKey* wrapped_key = nullptr;
+    e.visit([&](Resource res, const ContainerKey* key) {
+        if (res == Resource{"wrapped"sv, ResourceType::txt}) {
+            wrapped_key = key;
+        }
+    });
+
+    ASSERT_NE(wrapped_key, nullptr);
+    auto data = e.demand(wrapped_key);
+    EXPECT_TRUE(data.bytes.size() == 0);
+}
+
 // == StaticKey ===============================================================
 // ============================================================================
 
@@ -245,6 +456,37 @@ TEST(Key, Construction)
         // EXPECT_TRUE(data.bytes.size());
         // EXPECT_EQ(k.extract(std::regex("nwscript\\.nss"), "tmp/"), 1);
     }
+}
+
+TEST(Key, RejectsLongBifName)
+{
+    const fs::path root = "tmp/key_long_name/data";
+    fs::create_directories(root);
+    const fs::path path = root / "bad.key";
+    write_key_with_long_bif_name(path);
+
+    nw::StaticKey key{path};
+    EXPECT_FALSE(key.valid());
+}
+
+TEST(Key, DemandRejectsWrappedBifResourceRange)
+{
+    const fs::path root = "tmp/key_wrapped";
+    write_key_and_bif_with_wrapped_resource(root);
+
+    nw::StaticKey key{root / "data/wrapped.key"};
+    ASSERT_TRUE(key.valid());
+
+    const nw::ContainerKey* wrapped_key = nullptr;
+    key.visit([&](nw::Resource res, const nw::ContainerKey* container_key) {
+        if (res == nw::Resource{"wrapped"sv, nw::ResourceType::txt}) {
+            wrapped_key = container_key;
+        }
+    });
+
+    ASSERT_NE(wrapped_key, nullptr);
+    auto data = key.demand(wrapped_key);
+    EXPECT_TRUE(data.bytes.size() == 0);
 }
 
 TEST(Key, visit)

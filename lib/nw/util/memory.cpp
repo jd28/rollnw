@@ -64,7 +64,7 @@ void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
     size_t padding = aligned - current;
     size_t needed = padding + size;
 
-    if (needed + block.used <= block.capacity) {
+    if (block.used <= block.capacity && needed <= block.capacity - block.used) {
         block.used += needed;
         nw::asan::unpoison(reinterpret_cast<void*>(aligned), size);
         return reinterpret_cast<void*>(aligned);
@@ -101,13 +101,16 @@ MemoryMarker MemoryArena::current()
 
 void MemoryArena::reset()
 {
+    if (blocks_.empty()) { return; }
+    for (size_t i = 1; i < blocks_.size(); ++i) {
+        free(blocks_[i].base);
+    }
+    blocks_.resize(1);
     current_block_ = 0;
     blocks_[0].used = 0;
-    // Everything handed out is now dead; poison every block so any surviving
-    // pointer into arena memory trips ASan.
-    for (auto& block : blocks_) {
-        nw::asan::poison(block.base, block.capacity);
-    }
+    // Everything handed out is now dead; poison the retained block so any
+    // surviving pointer into arena memory trips ASan.
+    nw::asan::poison(blocks_[0].base, blocks_[0].capacity);
 }
 
 void MemoryArena::rewind(MemoryMarker marker)
@@ -304,7 +307,8 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     }
 
     // Fallback to malloc
-    if (!original) { original = malloc(size); }
+    if (!original) { original = malloc(total_size); }
+    if (!original) { return nullptr; }
 
     uintptr_t raw_address = reinterpret_cast<uintptr_t>(original) + sizeof(detail::MemoryHeader);
     uintptr_t aligned_address = (raw_address + alignment - 1) & ~(alignment - 1);

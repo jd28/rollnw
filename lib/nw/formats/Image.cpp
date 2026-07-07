@@ -21,6 +21,8 @@ namespace nw {
 
 namespace {
 
+constexpr size_t max_image_pixels = 16384ull * 16384ull;
+
 void log_image_load_failure(const ResourceData& data, StringView reason)
 {
     if (error_context_stack) {
@@ -70,7 +72,16 @@ Image::Image(const Plt& plt, const PltColors& colors)
         return;
     }
 
-    bytes_ = reinterpret_cast<uint8_t*>(malloc(4ull * height_ * width_));
+    const uint64_t pixel_count = static_cast<uint64_t>(width_) * static_cast<uint64_t>(height_);
+    if (pixel_count > max_image_pixels) {
+        is_loaded_ = false;
+        return;
+    }
+    bytes_ = reinterpret_cast<uint8_t*>(malloc(pixel_count * 4ull));
+    if (!bytes_) {
+        is_loaded_ = false;
+        return;
+    }
     auto ptr = reinterpret_cast<uint32_t*>(bytes_);
     for (uint32_t x = 0; x < width_; ++x) {
         for (uint32_t y = 0; y < height_; ++y) {
@@ -270,6 +281,16 @@ bool Image::parse_bioware()
     height_ = bioware_header.height;
     off += sizeof(detail::BiowareDdsHeader);
 
+    const uint64_t pixel_count = static_cast<uint64_t>(width_) * static_cast<uint64_t>(height_);
+    if (pixel_count > max_image_pixels) {
+        if (log_errors_) {
+            const auto reason = fmt::format(
+                "Bioware DDS dimensions are too large ({}x{})", width_, height_);
+            log_image_load_failure(data_, reason);
+        }
+        return false;
+    }
+
     if (channels_ != 3 && channels_ != 4) {
         if (log_errors_) {
             const auto reason = fmt::format(
@@ -279,8 +300,14 @@ bool Image::parse_bioware()
         return false;
     }
 
-    const size_t block_pitch = (width_ + 3) >> 2;
-    const size_t block_rows = (height_ + 3) >> 2;
+    const size_t block_pitch = (static_cast<size_t>(width_) + 3) >> 2;
+    const size_t block_rows = (static_cast<size_t>(height_) + 3) >> 2;
+    if (block_pitch != 0 && block_rows > std::numeric_limits<size_t>::max() / block_pitch) {
+        if (log_errors_) {
+            log_image_load_failure(data_, "Bioware DDS block count overflows");
+        }
+        return false;
+    }
     const size_t num_blocks = block_pitch * block_rows;
     const size_t bytes_per_block = channels_ == 4 ? 16 : 8;
     const bool expected_size_overflow = num_blocks > (std::numeric_limits<size_t>::max() - off) / bytes_per_block;
@@ -296,7 +323,13 @@ bool Image::parse_bioware()
         return false;
     }
 
-    bytes_ = reinterpret_cast<uint8_t*>(malloc(4ull * height_ * width_));
+    bytes_ = reinterpret_cast<uint8_t*>(malloc(pixel_count * 4ull));
+    if (!bytes_) {
+        if (log_errors_) {
+            log_image_load_failure(data_, "Bioware DDS allocation failed");
+        }
+        return false;
+    }
 
     stbi_uc block[16 * 4];
     stbi_uc compressed[8];
@@ -340,9 +373,17 @@ bool Image::parse_bioware()
     }
 
     if (channels_ == 3) { // Gotta switch format
-        auto good = reinterpret_cast<uint8_t*>(malloc(3ull * height_ * width_));
+        auto good = reinterpret_cast<uint8_t*>(malloc(pixel_count * 3ull));
+        if (!good) {
+            if (log_errors_) {
+                log_image_load_failure(data_, "Bioware DDS allocation failed");
+            }
+            free(bytes_);
+            bytes_ = nullptr;
+            return false;
+        }
 
-        for (size_t j = 0; j < static_cast<size_t>(height_) * width_; ++j) {
+        for (size_t j = 0; j < static_cast<size_t>(pixel_count); ++j) {
             unsigned char* src = bytes_ + j * 4;
             unsigned char* dest = good + j * 3;
             dest[0] = src[0];

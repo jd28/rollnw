@@ -3,7 +3,10 @@
 #include "../log.hpp"
 #include "Mdl.hpp"
 
+#include <algorithm>
+#include <cstring>
 #include <limits>
+#include <type_traits>
 
 namespace nw::model {
 
@@ -36,13 +39,16 @@ template <size_t N>
 String to_string(const std::array<char, N>& in)
 {
     size_t len = 0;
-    while (in[len] && len < N) {
+    while (len < N && in[len]) {
         ++len;
     }
     String out{in.data(), len};
     string::tolower(&out);
     return out;
 }
+
+constexpr size_t mdl_pointer_base = 12;
+constexpr size_t max_binary_mdl_nodes = 65536;
 
 } // namespace detail
 
@@ -52,16 +58,83 @@ BinaryParser::BinaryParser(std::span<uint8_t> bytes, Mdl* mdl)
 {
 }
 
+bool BinaryParser::checked_range(size_t offset, size_t size) const
+{
+    return offset <= bytes_.size() && size <= bytes_.size() - offset;
+}
+
+bool BinaryParser::read_bytes(size_t offset, void* dst, size_t size) const
+{
+    if (!checked_range(offset, size)) {
+        LOG_F(ERROR, "invalid binary mdl: read outside buffer");
+        return false;
+    }
+    if (size > 0) {
+        std::memcpy(dst, bytes_.data() + offset, size);
+    }
+    return true;
+}
+
+bool BinaryParser::pointer_offset(uint32_t offset, size_t* result) const
+{
+    const size_t value = static_cast<size_t>(offset);
+    if (value > std::numeric_limits<size_t>::max() - detail::mdl_pointer_base) {
+        LOG_F(ERROR, "invalid binary mdl: pointer offset overflow");
+        return false;
+    }
+    *result = value + detail::mdl_pointer_base;
+    return checked_range(*result, 0);
+}
+
+bool BinaryParser::raw_offset(uint32_t offset, size_t* result) const
+{
+    size_t base = static_cast<size_t>(header.raw_data_offset);
+    if (base > std::numeric_limits<size_t>::max() - static_cast<size_t>(offset)) {
+        LOG_F(ERROR, "invalid binary mdl: raw offset overflow");
+        return false;
+    }
+    base += static_cast<size_t>(offset);
+    if (base > std::numeric_limits<size_t>::max() - detail::mdl_pointer_base) {
+        LOG_F(ERROR, "invalid binary mdl: raw offset overflow");
+        return false;
+    }
+    *result = base + detail::mdl_pointer_base;
+    return checked_range(*result, 0);
+}
+
+bool BinaryParser::array_offset(const detail::MdlBinaryArray& array, size_t element_size, size_t* result) const
+{
+    if (array.length == 0) {
+        *result = 0;
+        return true;
+    }
+    if (!pointer_offset(array.offset, result)) {
+        return false;
+    }
+    if (element_size != 0 && array.length > std::numeric_limits<size_t>::max() / element_size) {
+        LOG_F(ERROR, "invalid binary mdl: array size overflow");
+        return false;
+    }
+    const size_t size = static_cast<size_t>(array.length) * element_size;
+    if (!checked_range(*result, size)) {
+        LOG_F(ERROR, "invalid binary mdl: array outside buffer");
+        return false;
+    }
+    return true;
+}
+
 bool BinaryParser::parse()
 {
-    memcpy(&header, bytes_.data(), 12);
-    if (header.type != 0
-        || header.raw_data_offset >= bytes_.size()
-        || header.raw_data_offset + header.raw_data_size > bytes_.size()) {
+    if (!read_bytes(0, &header, detail::MdlBinaryHeader::s_sizeof)) {
         LOG_F(ERROR, "invalid binary mdl");
         return false;
     }
-    return parse_model(12);
+    if (header.type != 0
+        || !checked_range(header.raw_data_offset, header.raw_data_size)) {
+        LOG_F(ERROR, "invalid binary mdl");
+        return false;
+    }
+    return parse_model(detail::mdl_pointer_base);
 }
 
 bool BinaryParser::parse_anim(const detail::MdlBinaryAnimationHeader& data)
@@ -72,11 +145,16 @@ bool BinaryParser::parse_anim(const detail::MdlBinaryAnimationHeader& data)
     an->length = data.length;
     an->transition_time = data.transition_time;
 
+    size_t off = 0;
+    if (!array_offset(data.events, detail::MdlBinaryAnimationEvent::s_sizeof, &off)) {
+        return false;
+    }
     an->events.reserve(data.events.length);
-    auto off = data.events.offset;
     for (size_t i = 0; i < data.events.length; ++i) {
         detail::MdlBinaryAnimationEvent event;
-        memcpy(&event, bytes_.data() + off + 12, sizeof(detail::MdlBinaryAnimationEvent));
+        if (!read_bytes(off, &event, sizeof(detail::MdlBinaryAnimationEvent))) {
+            return false;
+        }
         an->events.push_back({event.after, detail::to_string(event.name)});
         off += sizeof(detail::MdlBinaryAnimationEvent);
     }
@@ -87,10 +165,15 @@ bool BinaryParser::parse_anim(const detail::MdlBinaryAnimationHeader& data)
 
 bool BinaryParser::parse_geometry(Geometry* geometry, const detail::MdlBinaryGeometryHeader& data)
 {
-    uint32_t off;
-    memcpy(&off, bytes_.data() + data.root_node_offset, 4);
-    geometry->nodes.reserve(data.node_count);
-    if (!parse_node(data.root_node_offset, geometry)) {
+    const size_t max_file_nodes = (bytes_.size() / detail::MdlBinaryNodeHeader::s_sizeof) + 1;
+    const size_t max_nodes = std::max<size_t>(1, data.node_count);
+    if (max_nodes > detail::max_binary_mdl_nodes || max_nodes > max_file_nodes) {
+        LOG_F(ERROR, "invalid binary mdl: node count outside file bounds");
+        return false;
+    }
+
+    geometry->nodes.reserve(max_nodes);
+    if (!parse_node(data.root_node_offset, geometry, nullptr, max_nodes, 0)) {
         return false;
     }
     return true;
@@ -99,7 +182,9 @@ bool BinaryParser::parse_geometry(Geometry* geometry, const detail::MdlBinaryGeo
 bool BinaryParser::parse_model(uint32_t offset)
 {
     detail::MdlBinaryModelHeader model_header;
-    memcpy(&model_header, bytes_.data() + offset, detail::MdlBinaryModelHeader::s_sizeof);
+    if (!read_bytes(offset, &model_header, detail::MdlBinaryModelHeader::s_sizeof)) {
+        return false;
+    }
 
     mdl_->model.name = detail::to_string(model_header.geometry_header.name);
     mdl_->model.animationscale = model_header.animation_scale;
@@ -114,14 +199,23 @@ bool BinaryParser::parse_model(uint32_t offset)
         return false;
     }
 
+    size_t off = 0;
+    if (!array_offset(model_header.animations, sizeof(uint32_t), &off)) {
+        return false;
+    }
     mdl_->model.animations.reserve(model_header.animations.length);
-    uint32_t off = model_header.animations.offset;
     for (size_t i = 0; i < model_header.animations.length; ++i) {
         uint32_t ptr;
-        memcpy(&ptr, bytes_.data() + off + 12, 4);
+        if (!read_bytes(off, &ptr, sizeof(uint32_t))) {
+            return false;
+        }
 
         detail::MdlBinaryAnimationHeader data;
-        memcpy(&data, bytes_.data() + ptr + 12, sizeof(detail::MdlBinaryAnimationHeader));
+        size_t anim_offset = 0;
+        if (!pointer_offset(ptr, &anim_offset)
+            || !read_bytes(anim_offset, &data, sizeof(detail::MdlBinaryAnimationHeader))) {
+            return false;
+        }
         if (!parse_anim(data)) {
             return false;
         }
@@ -136,30 +230,49 @@ namespace {
 thread_local detail::GeomCxt s_ctx;
 }
 
-bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
+bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent, size_t max_nodes, size_t depth)
 {
+    if (depth >= max_nodes || geometry->nodes.size() >= max_nodes) {
+        LOG_F(ERROR, "invalid binary mdl: node recursion exceeds declared node count");
+        return false;
+    }
+
+    size_t node_offset = 0;
     detail::MdlBinaryNodeHeader nodehead;
-    memcpy(&nodehead, bytes_.data() + offset + 12, detail::MdlBinaryNodeHeader::s_sizeof);
+    if (!pointer_offset(offset, &node_offset)
+        || !read_bytes(node_offset, &nodehead, detail::MdlBinaryNodeHeader::s_sizeof)) {
+        return false;
+    }
+
+    s_ctx.clear();
 
     std::unique_ptr<Node> node = mdl_->make_node(nodehead.type, detail::to_string(nodehead.name));
-    if (parent) {
-        parent->children.push_back(node.get());
+    if (!node) {
+        return false;
     }
     node->parent = parent;
     node->inheritcolor = nodehead.inherit_color;
 
-    // Controllers
+    size_t controller_data_offset = 0;
+    if (!array_offset(nodehead.controller_data, sizeof(float), &controller_data_offset)) {
+        return false;
+    }
     node->controller_data.resize(nodehead.controller_data.length);
-    if (nodehead.controller_data.length > 0) {
-        memcpy(node->controller_data.data(), bytes_.data() + nodehead.controller_data.offset + 12,
-            nodehead.controller_data.length * 4);
+    if (!node->controller_data.empty()
+        && !read_bytes(controller_data_offset, node->controller_data.data(),
+            node->controller_data.size() * sizeof(float))) {
+        return false;
     }
 
-    auto off = nodehead.controller_keys.offset + 12;
+    size_t controller_key_offset = 0;
+    if (!array_offset(nodehead.controller_keys, detail::MdlBinaryController::s_sizeof, &controller_key_offset)) {
+        return false;
+    }
     for (size_t i = 0; i < nodehead.controller_keys.length; ++i) {
         detail::MdlBinaryController old_c;
-        // old_c.time_index;
-        memcpy(&old_c, bytes_.data() + off, sizeof(detail::MdlBinaryController));
+        if (!read_bytes(controller_key_offset, &old_c, sizeof(detail::MdlBinaryController))) {
+            return false;
+        }
         ControllerKey new_c{
             {},
             static_cast<uint32_t>(old_c.type),
@@ -171,10 +284,63 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             geometry->type == GeometryType::animation};
 
         node->controller_keys.push_back(new_c);
-        off += sizeof(detail::MdlBinaryController);
+        controller_key_offset += sizeof(detail::MdlBinaryController);
     }
 
-    auto load_mesh_data = [this](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
+    auto read_raw_array = [this](uint32_t raw_ptr, auto& out, size_t count) {
+        using Out = std::remove_reference_t<decltype(out)>;
+        using Value = typename Out::value_type;
+
+        out.clear();
+        if (count == 0) {
+            return true;
+        }
+        if (raw_ptr == std::numeric_limits<uint32_t>::max()) {
+            LOG_F(ERROR, "invalid binary mdl: missing raw mesh data");
+            return false;
+        }
+        if (count > std::numeric_limits<size_t>::max() / sizeof(Value)) {
+            LOG_F(ERROR, "invalid binary mdl: raw mesh data size overflow");
+            return false;
+        }
+
+        size_t data_offset = 0;
+        const size_t size = count * sizeof(Value);
+        if (!raw_offset(raw_ptr, &data_offset) || !checked_range(data_offset, size)) {
+            LOG_F(ERROR, "invalid binary mdl: raw mesh data outside buffer");
+            return false;
+        }
+
+        out.resize(count);
+        return read_bytes(data_offset, out.data(), size);
+    };
+
+    auto read_pointer_array = [this](const detail::MdlBinaryArray& array, auto& out) {
+        using Out = std::remove_reference_t<decltype(out)>;
+        using Value = typename Out::value_type;
+
+        out.clear();
+        size_t data_offset = 0;
+        if (!array_offset(array, sizeof(Value), &data_offset)) {
+            return false;
+        }
+        out.resize(array.length);
+        if (out.empty()) {
+            return true;
+        }
+        return read_bytes(data_offset, out.data(), out.size() * sizeof(Value));
+    };
+
+    auto reserve_indices = [](auto& indices, size_t face_count) {
+        if (face_count > std::numeric_limits<size_t>::max() / 3) {
+            LOG_F(ERROR, "invalid binary mdl: index count overflow");
+            return false;
+        }
+        indices.reserve(face_count * 3);
+        return true;
+    };
+
+    auto load_mesh_data = [&](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
         mesh->ambient = data.ambient;
         mesh->beaming = data.beaming;
         mesh->bmin = data.bbmin;
@@ -199,31 +365,26 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
         // mesh->colors
 
-        if (data.vertices != std::numeric_limits<uint32_t>::max()) {
-            s_ctx.verts.resize(data.vertex_count);
-            memcpy(s_ctx.verts.data(), bytes_.data() + header.raw_data_offset + data.vertices + 12,
-                data.vertex_count * sizeof(glm::vec3));
+        if (!read_raw_array(data.vertices, s_ctx.verts, data.vertex_count)) {
+            return false;
         }
-
-        if (data.texture0_vert_ptr != std::numeric_limits<uint32_t>::max()) {
-            s_ctx.tverts[0].resize(data.vertex_count);
-            memcpy(s_ctx.tverts[0].data(), bytes_.data() + header.raw_data_offset + data.texture0_vert_ptr + 12,
-                data.vertex_count * sizeof(glm::vec2));
+        if (data.texture0_vert_ptr != std::numeric_limits<uint32_t>::max()
+            && !read_raw_array(data.texture0_vert_ptr, s_ctx.tverts[0], data.vertex_count)) {
+            return false;
         }
-
-        if (data.vertex_normals_ptr != std::numeric_limits<uint32_t>::max()) {
-            s_ctx.normals.resize(data.vertex_count);
-            memcpy(s_ctx.normals.data(), bytes_.data() + header.raw_data_offset + data.vertex_normals_ptr + 12,
-                data.vertex_count * sizeof(glm::vec3));
+        if (data.vertex_normals_ptr != std::numeric_limits<uint32_t>::max()
+            && !read_raw_array(data.vertex_normals_ptr, s_ctx.normals, data.vertex_count)) {
+            return false;
         }
-
-        s_ctx.faces.resize(data.faces.length);
-        memcpy(s_ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
-
-        return true;
+        return read_pointer_array(data.faces, s_ctx.faces);
     };
 
-    auto load_mesh_vertices = [this](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
+    auto load_mesh_vertices = [&](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
+        if (s_ctx.verts.size() != data.vertex_count) {
+            LOG_F(ERROR, "invalid binary mdl: mesh vertex data missing");
+            return false;
+        }
+
         mesh->vertices.resize(data.vertex_count);
         for (size_t i = 0; i < data.vertex_count; ++i) {
             mesh->vertices[i].position = s_ctx.verts[i];
@@ -235,7 +396,9 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             }
         }
 
-        mesh->indices.reserve(data.faces.length * 3);
+        if (!reserve_indices(mesh->indices, data.faces.length)) {
+            return false;
+        }
         for (size_t i = 0; i < data.faces.length; ++i) {
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
@@ -247,29 +410,26 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
     if (node->type == NodeType::trimesh) {
         detail::MdlBinaryTrimeshNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryTrimeshNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryTrimeshNode::s_sizeof)) { return false; }
 
         auto n = static_cast<TrimeshNode*>(node.get());
         if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
     } else if (node->type == NodeType::reference) {
         detail::MdlBinaryReferenceNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryReferenceNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryReferenceNode::s_sizeof)) { return false; }
 
         auto n = static_cast<ReferenceNode*>(node.get());
         n->reattachable = data.reattachable;
         n->refmodel = detail::to_string(data.ref);
     } else if (node->type == NodeType::danglymesh) {
         detail::MdlBinaryDanglymeshNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryDanglymeshNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryDanglymeshNode::s_sizeof)) { return false; }
 
         auto n = static_cast<DanglymeshNode*>(node.get());
         if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
 
-        if (data.vert_constraints.length) {
-            n->constraints.resize(data.vert_constraints.length);
-            memcpy(n->constraints.data(),
-                bytes_.data() + data.vert_constraints.offset + 12,
-                sizeof(uint32_t) * data.vert_constraints.length);
+        if (!read_pointer_array(data.vert_constraints, n->constraints)) {
+            return false;
         }
         n->displacement = data.displacement;
         n->period = data.period;
@@ -277,7 +437,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
     } else if (node->type == NodeType::emitter) {
         detail::MdlBinaryEmitterNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryEmitterNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryEmitterNode::s_sizeof)) { return false; }
 
         auto n = static_cast<EmitterNode*>(node.get());
         n->deadspace = data.dead_space;
@@ -297,7 +457,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         n->flags = data.flags;
     } else if (node->type == NodeType::light) {
         detail::MdlBinaryLightNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryLightNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryLightNode::s_sizeof)) { return false; }
 
         auto n = static_cast<LightNode*>(node.get());
         n->flareradius = data.flare_radius;
@@ -310,13 +470,13 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         n->fadinglight = data.fading;
     } else if (node->type == NodeType::aabb) {
         detail::MdlBinaryAABBNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAABBNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryAABBNode::s_sizeof)) { return false; }
 
         auto n = static_cast<AABBNode*>(node.get());
         if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
     } else if (node->type == NodeType::skin) {
         detail::MdlBinarySkinNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinarySkinNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinarySkinNode::s_sizeof)) { return false; }
         auto n = static_cast<SkinNode*>(node.get());
 
         if (!load_mesh_data(n, data.header)) {
@@ -328,27 +488,9 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             n->bone_nodes[i] = int16_t(data.bone_to_nodes[i]);
         }
 
-        size_t off = header.raw_data_offset + data.bones_ptr + 12;
-        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
-            std::array<uint16_t, 4> bones;
-            memcpy(bones.data(), bytes_.data() + off, sizeof(uint16_t) * 4);
-            off += sizeof(uint16_t) * 4;
-            s_ctx.bones.push_back(bones);
-        }
-
-        off = header.raw_data_offset + data.weights_ptr + 12;
-        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
-            glm::vec4 weights;
-            memcpy(&weights.x, bytes_.data() + off, sizeof(float) * 4);
-            off += sizeof(float) * 4;
-            s_ctx.weights.push_back(weights);
-        }
-
-        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
-            glm::vec4 weights;
-            memcpy(&weights.x, bytes_.data() + off, sizeof(float) * 4);
-            off += sizeof(float) * 4;
-            s_ctx.weights.push_back(weights);
+        if (!read_raw_array(data.bones_ptr, s_ctx.bones, s_ctx.verts.size())
+            || !read_raw_array(data.weights_ptr, s_ctx.weights, s_ctx.verts.size())) {
+            return false;
         }
 
         n->vertices.resize(data.header.vertex_count);
@@ -376,7 +518,9 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             }
         }
 
-        n->indices.reserve(data.header.faces.length * 3);
+        if (!reserve_indices(n->indices, data.header.faces.length)) {
+            return false;
+        }
         for (size_t i = 0; i < data.header.faces.length; ++i) {
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
@@ -384,7 +528,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         }
     } else if (node->type == NodeType::animmesh) {
         detail::MdlBinaryAnimmeshNode data;
-        memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAnimmeshNode::s_sizeof);
+        if (!read_bytes(node_offset, &data, detail::MdlBinaryAnimmeshNode::s_sizeof)) { return false; }
 
         auto n = static_cast<AnimeshNode*>(node.get());
         if (!load_mesh_data(n, data.header)) { return false; }
@@ -392,16 +536,23 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
     geometry->nodes.push_back(std::move(node));
     auto n = geometry->nodes.back().get();
+    if (parent) {
+        parent->children.push_back(n);
+    }
 
-    // Process all children
-    off = nodehead.children.offset;
+    size_t child_offset = 0;
+    if (!array_offset(nodehead.children, sizeof(uint32_t), &child_offset)) {
+        return false;
+    }
     for (size_t i = 0; i < nodehead.children.length; ++i) {
         uint32_t ptr = 0;
-        memcpy(&ptr, bytes_.data() + off + 12, 4);
-        if (!parse_node(ptr, geometry, n)) {
+        if (!read_bytes(child_offset, &ptr, sizeof(uint32_t))) {
             return false;
         }
-        off += 4;
+        if (!parse_node(ptr, geometry, n, max_nodes, depth + 1)) {
+            return false;
+        }
+        child_offset += sizeof(uint32_t);
     }
 
     if (n->children.size() != nodehead.children.length) {

@@ -3,6 +3,9 @@
 
 #include <nw/util/memory.hpp>
 
+#include <cstdint>
+#include <cstring>
+
 using namespace std::literals;
 
 TEST(Memory, Helpers)
@@ -83,4 +86,36 @@ TEST(Memory, Pool)
         EXPECT_EQ(free - 1, mp.pools_[3].free_list_.size());
     }
     EXPECT_EQ(free, mp.pools_[3].free_list_.size());
+}
+
+TEST(Memory, PoolFallbackAllocatesHeaderAndPayload)
+{
+    nw::MemoryPool mp(128, 1);
+    constexpr size_t size = 256;
+    constexpr size_t alignment = 64;
+
+    void* ptr = mp.allocate(size, alignment);
+    ASSERT_NE(ptr, nullptr);
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(ptr) % alignment, 0u);
+
+    std::memset(ptr, 0xAB, size);
+    mp.deallocate(ptr);
+}
+
+TEST(Memory, ArenaResetFreesExtraBlocks)
+{
+    nw::MemoryArena arena{64};
+    const size_t initial_capacity = arena.capacity();
+
+    arena.allocate(32);
+    arena.allocate(128);
+    EXPECT_GT(arena.capacity(), initial_capacity);
+    EXPECT_GT(arena.used(), 0u);
+
+    arena.reset();
+    EXPECT_EQ(arena.used(), 0u);
+    EXPECT_EQ(arena.capacity(), initial_capacity);
+
+    void* ptr = arena.allocate(16);
+    EXPECT_NE(ptr, nullptr);
 }

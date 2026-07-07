@@ -31,9 +31,10 @@ void ByteArray::append(const void* buffer, size_t len)
 
 bool ByteArray::read_at(size_t offset, void* buffer, size_t sz) const
 {
-    if (offset + sz >= size()) {
+    if (offset > size() || sz > size() - offset) {
         return false;
     }
+    if (sz == 0) { return true; }
     memcpy(buffer, data() + offset, sz);
     return true;
 }
