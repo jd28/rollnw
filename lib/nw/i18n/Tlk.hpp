@@ -3,10 +3,10 @@
 #include "../i18n/Language.hpp"
 #include "../util/ByteArray.hpp"
 
-#include <absl/container/flat_hash_map.h>
-
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <string_view>
 
@@ -93,7 +93,7 @@ private:
     ByteArray bytes_;
     TlkHeader header_;
     TlkElement* elements_ = nullptr;
-    absl::flat_hash_map<uint32_t, String> modified_strings_;
+    std::map<uint32_t, String> modified_strings_;
 
     void load();
     void refresh_elements() noexcept;

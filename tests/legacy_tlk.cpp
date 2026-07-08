@@ -121,3 +121,19 @@ TEST(Tlk, MalformedFileIsInvalidWithoutThrowing)
     EXPECT_EQ(tlk.size(), 0);
     EXPECT_EQ(tlk.get(0), "");
 }
+
+TEST(Tlk, RepeatedMalformedLoadsLeaveEmptyInvalidState)
+{
+    std::filesystem::create_directories("tmp");
+
+    {
+        std::ofstream out{"tmp/tiny-malformed.tlk", std::ios::binary};
+        out << '\x8b';
+    }
+
+    for (int i = 0; i < 512; ++i) {
+        nw::Tlk tlk{"tmp/tiny-malformed.tlk"};
+        EXPECT_FALSE(tlk.valid());
+        EXPECT_EQ(tlk.size(), 0);
+    }
+}
