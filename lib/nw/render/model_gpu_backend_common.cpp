@@ -369,7 +369,8 @@ nw::gfx::StorageSpan ModelGpuBackend::upload_bones(nw::gfx::CommandList* cmd, co
     nw::gfx::FrameInfo frame{};
     if (!cmd || !nw::gfx::get_frame_info(ctx_, frame)) return {};
 
-    const auto idx = std::min<size_t>(frame.frame_index, bone_arenas_.size() - 1);
+    if (frame.frame_index >= bone_arenas_.size()) return {};
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = bone_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         const uint32_t size = count * sizeof(glm::mat4);
@@ -390,7 +391,10 @@ nw::gfx::StorageSpan ModelGpuBackend::upload_frame_storage(
         return {};
     }
 
-    const auto idx = std::min<size_t>(frame.frame_index, static_draw_arenas_.size() - 1);
+    if (frame.frame_index >= static_draw_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = static_draw_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size)) {
@@ -411,7 +415,10 @@ MappedStorageSpan ModelGpuBackend::allocate_static_draw_data(nw::gfx::CommandLis
         return {};
     }
 
-    const auto idx = std::min<size_t>(frame.frame_index, static_draw_arenas_.size() - 1);
+    if (frame.frame_index >= static_draw_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = static_draw_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size)) {
@@ -432,7 +439,10 @@ MappedIndirectDrawSpan ModelGpuBackend::allocate_indirect_draw_data(nw::gfx::Com
         return {};
     }
 
-    const auto idx = std::min<size_t>(frame.frame_index, indirect_draw_arenas_.size() - 1);
+    if (frame.frame_index >= indirect_draw_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = indirect_draw_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size, nw::gfx::BufferUsage::Indirect)) {

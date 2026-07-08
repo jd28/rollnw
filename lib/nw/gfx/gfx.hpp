@@ -3,8 +3,10 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace nw::gfx {
@@ -36,6 +38,8 @@ private:
 
 template <typename Type, typename Impl>
 struct Pool {
+    static constexpr uint16_t kFreeListEnd = std::numeric_limits<uint16_t>::max();
+    static constexpr size_t max_capacity() noexcept { return kFreeListEnd; }
 
     Impl* get(Handle<Type> hndl)
     {
@@ -50,18 +54,25 @@ struct Pool {
     {
         uint16_t idx = 0;
         uint16_t gen = 1;
-        if (free_list_head_ != 0xFFFF) {
+        if (free_list_head_ != kFreeListEnd) {
             idx = free_list_head_;
             free_list_head_ = storage_[idx].free_list_next;
-            storage_[idx].free_list_next = 0xFFFF;
+            storage_[idx].free_list_next = kFreeListEnd;
             storage_[idx].value = std::forward<Impl>(impl);
             gen = storage_[idx].gen;
+            if (gen == 0) {
+                gen = 1;
+                storage_[idx].gen = gen;
+            }
         } else {
+            if (storage_.size() >= max_capacity()) {
+                return {};
+            }
             idx = static_cast<uint16_t>(storage_.size());
             storage_.emplace_back(ImplPayload{
                 .value = std::forward<Impl>(impl),
                 .gen = 1,
-                .free_list_next = 0xFFFF,
+                .free_list_next = kFreeListEnd,
             });
         }
 
@@ -77,6 +88,9 @@ struct Pool {
         if (payload.gen != hndl.gen_) { return; }
         payload.value = Impl{};
         ++payload.gen;
+        if (payload.gen == 0) {
+            ++payload.gen;
+        }
         payload.free_list_next = free_list_head_;
         free_list_head_ = hndl.idx_;
     }
@@ -85,11 +99,11 @@ private:
     struct ImplPayload {
         Impl value;
         uint16_t gen = 1;
-        uint16_t free_list_next = 0xFFFF;
+        uint16_t free_list_next = kFreeListEnd;
     };
 
     std::vector<ImplPayload> storage_;
-    uint16_t free_list_head_ = 0xFFFF;
+    uint16_t free_list_head_ = kFreeListEnd;
 };
 
 // ============================================================================
@@ -137,6 +151,15 @@ Context* create_context(Core* core, const ContextDesc& desc);
 void destroy_context(Context* ctx);
 bool resize_context(Context* ctx, uint32_t width, uint32_t height);
 void wait_idle(Context* ctx);
+
+// Public frame-slot count used by gfx and render per-frame upload arenas.
+inline constexpr uint32_t kFramesInFlight = 2;
+
+// Resource destruction policy:
+// destroy_* calls release backend resources immediately. Callers must ensure
+// the resource is not referenced by in-flight GPU work, either by calling
+// wait_idle(ctx) before replacing live resources or by owning a stricter
+// frame-completion policy outside gfx.
 
 struct FrameInfo {
     uint32_t frame_index = 0;
@@ -339,6 +362,8 @@ struct RenderTargetDesc {
 };
 
 Handle<RenderTarget> create_render_target(Context* ctx, const RenderTargetDesc& desc);
+// Render targets own their attachment texture handles in the current backend;
+// destroying a render target destroys its valid color/depth attachments.
 void destroy_render_target(Context* ctx, Handle<RenderTarget> handle);
 
 struct ShaderDesc {

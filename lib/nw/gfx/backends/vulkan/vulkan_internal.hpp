@@ -170,7 +170,7 @@ struct VulkanPipeline {
 extern Pool<Shader, VulkanShader> g_shader_pool;
 extern Pool<Pipeline, VulkanPipeline> g_pipeline_pool;
 
-constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+constexpr uint32_t MAX_FRAMES_IN_FLIGHT = kFramesInFlight;
 constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 16;
 constexpr uint32_t MAX_GPU_TIMERS_PER_FRAME = 64;
 constexpr uint32_t MAX_GPU_TIMESTAMP_QUERIES_PER_FRAME = MAX_GPU_TIMERS_PER_FRAME * 2;

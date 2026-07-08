@@ -169,6 +169,37 @@ void write_bindless_sampler_descriptor(VulkanContext* ctx)
         ctx->core->descriptor_buffer_props.samplerDescriptorSize, out);
 }
 
+bool render_target_attachment_supported(
+    const RenderTargetAttachment& attachment, const char* name, bool allow_texture) noexcept
+{
+    if (attachment.mip_level != 0 || attachment.layer != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "RenderTargetDesc %s mip/layer attachments are not implemented", name);
+        return false;
+    }
+    if (!allow_texture && attachment.texture.valid()) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "RenderTargetDesc %s attachment is not implemented", name);
+        return false;
+    }
+    return true;
+}
+
+bool render_target_desc_supported(const RenderTargetDesc& desc) noexcept
+{
+    if (!render_target_attachment_supported(desc.color[0], "color[0]", true)) {
+        return false;
+    }
+    for (size_t i = 1; i < 4; ++i) {
+        char name[16]{};
+        std::snprintf(name, sizeof(name), "color[%zu]", i);
+        if (!render_target_attachment_supported(desc.color[i], name, false)) {
+            return false;
+        }
+    }
+    return render_target_attachment_supported(desc.depth, "depth", true);
+}
+
 } // namespace
 
 static VkDeviceSize align_up(VkDeviceSize val, VkDeviceSize alignment)
@@ -881,6 +912,16 @@ void destroy_pipeline(Context* ctx, Handle<Pipeline> handle)
 Handle<Texture> create_texture(Context* ctx, const TextureDesc& desc)
 {
     auto* c = as_vulkan(ctx);
+    if (!c || desc.width == 0 || desc.height == 0 || desc.layers == 0 || desc.mip_levels == 0) {
+        return {};
+    }
+    if (desc.sampled && c->bindless_texture_capacity != 0 && c->free_bindless_texture_slots.empty()
+        && c->bindless_texture_count >= c->bindless_texture_capacity) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "bindless sampled texture table exhausted: capacity=%u", c->bindless_texture_capacity);
+        return {};
+    }
+
     VulkanImage tex;
     tex.width = desc.width;
     tex.height = desc.height;
@@ -2243,6 +2284,10 @@ BindlessTextureIndex get_bindless_texture_index(Context* ctx_ptr, Handle<Texture
 Handle<RenderTarget> create_render_target(Context* ctx, const RenderTargetDesc& desc)
 {
     auto* c = as_vulkan(ctx);
+    if (!c || !render_target_desc_supported(desc)) {
+        return {};
+    }
+
     VulkanRenderTarget rt{desc};
     return c->render_target_pool_.insert(std::move(rt));
 }

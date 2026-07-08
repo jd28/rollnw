@@ -415,7 +415,10 @@ nw::gfx::StorageSpan ForwardPlusRenderer::upload_frame_storage(
         return {};
     }
 
-    const auto idx = std::min<size_t>(frame.frame_index, upload_arenas_.size() - 1);
+    if (frame.frame_index >= upload_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = upload_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size)) {
@@ -625,7 +628,10 @@ nw::gfx::StorageSpan ForwardPlusRenderer::allocate_frame_storage(
     if (!nw::gfx::get_frame_info(ctx_, frame)) {
         return {};
     }
-    const auto idx = std::min<size_t>(frame.frame_index, upload_arenas_.size() - 1);
+    if (frame.frame_index >= upload_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = upload_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size)) {

@@ -345,7 +345,10 @@ nw::gfx::StorageSpan ParticleRenderer::upload_instances(
         return {};
     }
 
-    const auto idx = std::min<size_t>(frame.frame_index, instance_arenas_.size() - 1);
+    if (frame.frame_index >= instance_arenas_.size()) {
+        return {};
+    }
+    const auto idx = static_cast<size_t>(frame.frame_index);
     auto& arena = instance_arenas_[idx];
     const uint32_t size = static_cast<uint32_t>(instances.size_bytes());
     if (arena.frame_id() != frame.frame_id) {

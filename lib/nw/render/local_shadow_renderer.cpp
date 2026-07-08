@@ -33,6 +33,12 @@ bool LocalShadowRenderer::ensure_resources(uint32_t resolution)
         return true;
     }
 
+    if (std::any_of(render_targets_.begin(), render_targets_.end(), [](const auto& handle) {
+            return handle.valid();
+        })) {
+        nw::gfx::wait_idle(ctx_);
+    }
+
     for (size_t i = 0; i < render_targets_.size(); ++i) {
         if (render_targets_[i].valid()) {
             nw::gfx::destroy_render_target(ctx_, render_targets_[i]);

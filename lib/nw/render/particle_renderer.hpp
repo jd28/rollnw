@@ -49,7 +49,7 @@ private:
     nw::gfx::Handle<nw::gfx::Pipeline> cutout_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> transparent_pipeline_;
     nw::gfx::Handle<nw::gfx::Buffer> billboard_vertices_;
-    std::array<FrameStorageArena, 2> instance_arenas_{};
+    std::array<FrameStorageArena, nw::gfx::kFramesInFlight> instance_arenas_{};
     std::vector<ParticleVertex> vertices_;
     std::vector<ParticleBillboardInstance> instances_;
     std::vector<uint32_t> order_;

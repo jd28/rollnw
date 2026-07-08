@@ -140,9 +140,9 @@ private:
     nw::gfx::Handle<nw::gfx::Texture> fallback_emissive_;
     nw::gfx::Handle<nw::gfx::Buffer> dummy_storage_buffer_;
     nw::gfx::Handle<nw::gfx::Buffer> plt_palette_buffer_;
-    std::array<nw::render::FrameStorageArena, 2> bone_arenas_{};
-    std::array<nw::render::FrameStorageArena, 2> static_draw_arenas_{};
-    std::array<nw::render::FrameStorageArena, 2> indirect_draw_arenas_{};
+    std::array<nw::render::FrameStorageArena, nw::gfx::kFramesInFlight> bone_arenas_{};
+    std::array<nw::render::FrameStorageArena, nw::gfx::kFramesInFlight> static_draw_arenas_{};
+    std::array<nw::render::FrameStorageArena, nw::gfx::kFramesInFlight> indirect_draw_arenas_{};
 };
 
 } // namespace nw::render
