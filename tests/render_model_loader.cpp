@@ -374,6 +374,42 @@ TEST(RenderModelLoader, TileGradedAlphaUsesExplicitTransparencyHint)
     EXPECT_EQ(mode, nw::render::MaterialMode::transparent);
 }
 
+TEST(RenderModelLoader, NonTileOpaqueColorKeyUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"keyed_mesh"};
+    node.bitmap = "keyed_sprite";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::invalid,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
+        .has_color_key = true,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
+}
+
+TEST(RenderModelLoader, TileOpaqueColorKeyStaysOpaque)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"tile_mesh"};
+    node.bitmap = "keyed_floor";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
+        .has_color_key = true,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::opaque);
+}
+
 TEST(RenderModelLoader, ExtractsDummyNodesAsSocketRecords)
 {
     namespace nwn = nw::render::nwn;
@@ -1308,6 +1344,61 @@ TEST(RenderModelLoader, ImportsNwnDanglyModelAssetDeformers)
 
     const auto validation = nw::render::validate_model_asset(asset);
     EXPECT_TRUE(validation.passed());
+}
+
+TEST(RenderModelLoader, ImportsPalmFoliageLeavesAsCutoutAlpha)
+{
+    namespace nwn = nw::render::nwn;
+
+    const bool has_frond_texture = nw::kernel::resman().contains({nw::Resref{"plc_palmfrond"}, nw::ResourceType::dds})
+        || nw::kernel::resman().contains({nw::Resref{"plc_palmfrond"}, nw::ResourceType::tga});
+    if (!has_frond_texture) {
+        GTEST_SKIP() << "plc_palmfrond texture unavailable";
+    }
+
+    nw::model::Mdl mdl{"test_data/user/development/plc_palm02.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    const auto& asset = *result.asset;
+
+    size_t foliage_primitive_count = 0;
+    for (const auto& primitive : asset.primitives) {
+        if (primitive.deformer == nw::render::kInvalidModelDeformerIndex) {
+            continue;
+        }
+        ++foliage_primitive_count;
+
+        ASSERT_LT(primitive.material, asset.materials.size());
+        const auto& material = asset.materials[primitive.material];
+        EXPECT_EQ(material.alpha_mode, nw::render::MaterialMode::cutout);
+        EXPECT_GE(material.alpha_cutoff, 0.5f);
+
+        ASSERT_LT(primitive.material, asset.material_texture_sources.size());
+        const auto albedo_source = asset.material_texture_sources[primitive.material].albedo;
+        ASSERT_NE(albedo_source, nw::render::kInvalidModelAssetTextureSourceIndex);
+        ASSERT_LT(albedo_source, asset.texture_sources.size());
+        EXPECT_EQ(asset.texture_sources[albedo_source].resource.resref, nw::Resref{"plc_palmfrond"});
+
+        nw::render::ModelAssetTextureUploadStats decode_stats;
+        const auto decoded = nw::render::decode_model_asset_texture_source_rgba8(
+            asset.texture_sources[albedo_source], decode_stats);
+        ASSERT_TRUE(decoded.valid());
+        EXPECT_EQ(decode_stats.decode_failure_count, 0u);
+
+        bool saw_transparent_pixel = false;
+        bool saw_opaque_pixel = false;
+        for (size_t i = 3; i < decoded.pixels.size(); i += 4) {
+            const auto alpha = decoded.pixels[i];
+            saw_transparent_pixel |= alpha == 0;
+            saw_opaque_pixel |= alpha == 255;
+        }
+        EXPECT_TRUE(saw_transparent_pixel);
+        EXPECT_TRUE(saw_opaque_pixel);
+    }
+
+    EXPECT_GT(foliage_primitive_count, 0u);
 }
 
 TEST(RenderModelLoader, ModelTransformCacheRefreshesAfterDirectNodeEdits)

@@ -1496,6 +1496,21 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         return MaterialMode::cutout;
     }
 
+    if (input.has_color_key && input.alpha_profile == NwnMaterialAlphaProfile::opaque) {
+        switch (input.model_class) {
+        case nwm::ModelClass::tile:
+            break;
+        case nwm::ModelClass::effect:
+        case nwm::ModelClass::gui:
+        case nwm::ModelClass::invalid:
+        case nwm::ModelClass::character:
+        case nwm::ModelClass::door:
+        case nwm::ModelClass::item:
+        default:
+            return MaterialMode::cutout;
+        }
+    }
+
     if (input.node) {
         if (mesh_alpha_value(input.node) < 0.999f) {
             return MaterialMode::transparent;
@@ -1587,12 +1602,16 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
     mesh.material_uses_fallback = material_uses_fallback_resources(mesh);
 
     const bool water_material = looks_like_water_material(node, mesh.bitmap_name, model_class);
+    const auto* dangly_node = dynamic_cast<const nwm::DanglymeshNode*>(node);
+    const bool foliage_dangly = dangly_node
+        && dangly_deform_policy_for(dangly_node) == DanglyDeformPolicy::foliage_sway_cpu;
     auto txi = load_txi_material_info(mesh.bitmap_name);
+    TextureAnalysis texture{};
     if (!water_material) {
-        const auto texture = analyze_texture(mesh.bitmap_name);
+        texture = analyze_texture(mesh.bitmap_name);
         if (txi.has_txi && txi.alphamean > 0.0f && txi.alphamean < 1.0f) {
             mesh.alpha_cutout_threshold = txi.alphamean;
-        } else if (looks_like_foliage_texture(mesh.bitmap_name)
+        } else if ((foliage_dangly || looks_like_foliage_texture(mesh.bitmap_name))
             && texture.alpha_profile == NwnMaterialAlphaProfile::graded
             && texture.alpha_coverage_50 - texture.alpha_coverage_75 < 0.03f) {
             // Mostly-binary foliage alpha benefits from a stronger cutout threshold.
@@ -1607,6 +1626,12 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
         }
     }
     mesh.material_mode = water_material ? MaterialMode::water : classify_material(node, mesh.bitmap_name, model_class);
+    if (!water_material
+        && foliage_dangly
+        && texture.alpha_profile != NwnMaterialAlphaProfile::opaque
+        && mesh.material_mode == MaterialMode::opaque) {
+        mesh.material_mode = MaterialMode::cutout;
+    }
     mesh.roughness = nwn_shininess_to_legacy_roughness(node->shininess);
     mesh.specular_strength = nwn_specular_to_legacy_strength(node->specular);
     // Do not translate legacy Blinn shininess directly into the common PBR
@@ -2081,6 +2106,12 @@ nw::render::Material nwn_model_asset_material_from_mesh(const Mesh& mesh)
     material.material_uses_fallback = mesh.material_uses_fallback;
     material.alpha_mode = mesh.material_mode;
     material.alpha_cutoff = mesh.alpha_cutout_threshold;
+    material.color_key_threshold = glm::vec4{
+        mesh.color_key.x,
+        mesh.color_key.y,
+        mesh.color_key.z,
+        mesh.color_key_threshold,
+    };
     material.double_sided = mesh.two_sided_lighting;
     return material;
 }

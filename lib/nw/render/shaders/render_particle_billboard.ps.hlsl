@@ -56,9 +56,15 @@ float4 main(PSInput input) : SV_Target
         float fog_end = max(fog_range.x, fog_range.y);
         float fog_t = saturate((input.view_distance - fog_start) / max(fog_end - fog_start, 1.0e-4));
         float fog_factor = 1.0 - pow(1.0 - fog_t, 1.0 + saturate(fog_amount) * 3.0);
-        color.rgb = lerp(color.rgb, fog_color.rgb, fog_factor);
         if (alpha_cutout == 0) {
-            color.a *= 1.0 - fog_factor * 0.35;
+            color.rgb = lerp(color.rgb, fog_color.rgb * color.a, fog_factor);
+            if (additive_like == 0) {
+                float alpha_scale = 1.0 - fog_factor * 0.35;
+                color.rgb *= alpha_scale;
+                color.a *= alpha_scale;
+            }
+        } else {
+            color.rgb = lerp(color.rgb, fog_color.rgb, fog_factor);
         }
     }
 

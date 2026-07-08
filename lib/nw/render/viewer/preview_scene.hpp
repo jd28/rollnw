@@ -103,6 +103,14 @@ struct PreviewLoadEvent {
 struct PreviewLoadParticleSystemReport {
     std::string owner;
     size_t emitter_count = 0;
+    size_t material_count = 0;
+    size_t alpha_material_count = 0;
+    size_t cutout_material_count = 0;
+    size_t additive_material_count = 0;
+    size_t named_texture_count = 0;
+    size_t missing_texture_count = 0;
+    size_t alpha_texture_count = 0;
+    size_t opaque_texture_count = 0;
     uint32_t max_particles_total = 0;
     size_t import_warning_count = 0;
     size_t compile_warning_count = 0;
@@ -122,6 +130,7 @@ struct PreviewLoadMaterialReport {
     size_t transparent_count = 0;
     size_t water_count = 0;
     size_t unknown_alpha_mode_count = 0;
+    size_t color_key_count = 0;
     size_t albedo_source_count = 0;
     size_t normal_source_count = 0;
     size_t surface_source_count = 0;

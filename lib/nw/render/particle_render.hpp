@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace nw {
@@ -90,5 +91,7 @@ struct ParticleSpriteFrameRect {
 
 [[nodiscard]] ParticleBillboardAxes particle_billboard_sprite_axes(
     ParticleRenderMode mode, const ParticleBillboardAxes& axes, float rotation) noexcept;
+
+[[nodiscard]] bool particle_named_texture_available(std::string_view texture_name, const nw::Image* source_image) noexcept;
 
 } // namespace nw::render

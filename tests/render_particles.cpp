@@ -2,6 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <nw/formats/Image.hpp>
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_json.hpp>
 #include <nw/render/particle_render.hpp>
@@ -647,6 +648,15 @@ TEST(RenderParticles, BuildRenderPacketsGroupsByEmitterAndMaterial)
     EXPECT_EQ(packets[1].blend, ParticleBlendMode::cutout);
     EXPECT_TRUE(packets[0].transparent);
     EXPECT_FALSE(packets[1].transparent);
+}
+
+TEST(RenderParticles, NamedTextureRequiresLoadedSourceImage)
+{
+    EXPECT_TRUE(particle_named_texture_available({}, nullptr));
+    EXPECT_FALSE(particle_named_texture_available("missing_particle_texture", nullptr));
+
+    nw::Image invalid_image;
+    EXPECT_FALSE(particle_named_texture_available("invalid_particle_texture", &invalid_image));
 }
 
 TEST(RenderParticles, BuildRenderPacketsHonorsEmitterSortOrder)

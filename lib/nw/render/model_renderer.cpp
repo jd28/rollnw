@@ -359,6 +359,7 @@ bool render_render_model_primitive(const ModelRenderContext& render_ctx, nw::gfx
     surf.alpha_mode = static_cast<uint32_t>(material.alpha_mode);
     surf.alpha_cutoff = material.alpha_cutoff;
     surf.double_sided = material.double_sided ? 1u : 0u;
+    surf.color_key_threshold = material.color_key_threshold;
     apply_render_model_material_plt_constants(surf, material);
 
     auto scene_uniforms = nw::gfx::allocate_uniform_span(render_ctx.gfx, sizeof(SceneConstants));
@@ -403,6 +404,7 @@ SurfaceConstants make_render_model_shadow_surface_constants(const Material& mate
     surf.alpha_mode = static_cast<uint32_t>(material.alpha_mode);
     surf.alpha_cutoff = material.alpha_cutoff;
     surf.double_sided = material.double_sided ? 1u : 0u;
+    surf.color_key_threshold = material.color_key_threshold;
     apply_render_model_material_plt_constants(surf, material);
     return surf;
 }

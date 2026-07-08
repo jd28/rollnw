@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <string_view>
 
 namespace nw::render {
 
@@ -389,11 +390,14 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
         if (!texture.valid()) {
             continue;
         }
+        const auto* source_image = texture_name ? resources.get_source_image(texture_name) : nullptr;
+        if (!particle_named_texture_available(texture_name ? std::string_view{texture_name} : std::string_view{}, source_image)) {
+            continue;
+        }
         const auto texture_index = nw::gfx::get_bindless_texture_index(ctx_, texture);
         if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
             continue;
         }
-        const auto* source_image = texture_name ? resources.get_source_image(texture_name) : nullptr;
         const bool texture_rows_flipped = texture_name && resources.texture_rows_flipped(texture_name, premultiply_alpha);
         const bool additive_alpha_mask_billboard = packet.blend == ParticleBlendMode::additive
             && source_image

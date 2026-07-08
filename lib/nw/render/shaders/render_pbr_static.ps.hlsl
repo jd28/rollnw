@@ -28,6 +28,7 @@ cbuffer SurfaceConstants : register(b4) {
     float  sc_alpha_cutoff;
     uint   sc_double_sided;
     uint   sc_plt_enabled;
+    float4 sc_color_key_threshold;
     uint4  sc_plt_colors0;
     uint4  sc_plt_colors1;
     uint4  sc_plt_colors2;
@@ -308,10 +309,19 @@ float4 main(PSInput input) : SV_Target {
     normal_sample.z = sqrt(saturate(1.0 - dot(normal_sample.xy, normal_sample.xy)));
     float3 N = normalize(normal_sample.x * T + normal_sample.y * B + normal_sample.z * geom_N);
 
-    float4 albedo_sample = sc_plt_enabled != 0u
-        ? sample_plt(input.texcoord, sc_albedo_index, sc_plt_colors0, sc_plt_colors1, sc_plt_colors2) * sc_albedo
-        : g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, input.texcoord) * sc_albedo;
-    if (sc_alpha_mode == 1u) clip(albedo_sample.a - sc_alpha_cutoff);
+    float4 albedo_texel = sc_plt_enabled != 0u
+        ? sample_plt(input.texcoord, sc_albedo_index, sc_plt_colors0, sc_plt_colors1, sc_plt_colors2)
+        : g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, input.texcoord);
+    if (sc_alpha_mode == 1u) {
+        const float color_key_cutoff = sc_color_key_threshold.w;
+        if (color_key_cutoff > 0.0) {
+            float3 delta = albedo_texel.rgb - sc_color_key_threshold.xyz;
+            clip(dot(delta, delta) - (color_key_cutoff * color_key_cutoff));
+        }
+        clip(albedo_texel.a - sc_alpha_cutoff);
+        albedo_texel.a = 1.0;
+    }
+    float4 albedo_sample = albedo_texel * sc_albedo;
     float3 albedo_lin = albedo_sample.rgb;
 
     float4 surface_sample = g_textures[NonUniformResourceIndex(sc_surface_index)].Sample(g_sampler, input.texcoord);
@@ -371,5 +381,8 @@ float4 main(PSInput input) : SV_Target {
     final_color = forward_plus_apply_debug(final_color, input.position, input.view_depth, 0.72);
 
     float out_alpha = sc_alpha_mode == 2u ? albedo_sample.a : 1.0;
+    if (sc_alpha_mode == 2u) {
+        final_color *= out_alpha;
+    }
     return float4(final_color, out_alpha);
 }

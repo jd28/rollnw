@@ -321,6 +321,9 @@ void add_material_to_report(
     if (material.double_sided) {
         ++material_report.double_sided_count;
     }
+    if (material.color_key_threshold.w > 0.0f) {
+        ++material_report.color_key_count;
+    }
     if (nw::gfx::bindless_texture_index_valid(material.albedo_index)) {
         ++material_report.albedo_bound_count;
     }
@@ -5366,6 +5369,68 @@ static void add_particle_material_resources(
     }
 }
 
+static std::optional<bool> particle_texture_has_alpha(std::string_view raw_name)
+{
+    const auto cleaned = clean_preview_resource_token(raw_name);
+    if (is_null_preview_resource_name(cleaned) || !looks_like_preview_resref(cleaned)) {
+        return std::nullopt;
+    }
+
+    std::filesystem::path path{cleaned};
+    const auto name = path.extension().empty() ? cleaned : path.stem().string();
+    auto image = std::unique_ptr<nw::Image>{nw::kernel::resman().texture(nw::Resref{name})};
+    if (!image || !image->valid()) {
+        return std::nullopt;
+    }
+    return image->channels() >= 4;
+}
+
+static PreviewLoadParticleSystemReport make_particle_report_row(
+    std::string_view owner,
+    const nw::model::ParticleImportResult& import,
+    const nw::render::ParticleCompileResult& compiled)
+{
+    PreviewLoadParticleSystemReport result{
+        .owner = std::string{owner},
+        .emitter_count = import.effect.emitters.size(),
+        .material_count = import.effect.materials.size(),
+        .max_particles_total = compiled.effect.max_particles_total,
+        .import_warning_count = import.warnings.size(),
+        .compile_warning_count = compiled.warnings.size(),
+        .effect_event_count = import.effect_events.size(),
+    };
+
+    for (const auto& material : import.effect.materials) {
+        switch (material.blend) {
+        case nw::render::ParticleBlendMode::alpha:
+            ++result.alpha_material_count;
+            break;
+        case nw::render::ParticleBlendMode::cutout:
+            ++result.cutout_material_count;
+            break;
+        case nw::render::ParticleBlendMode::additive:
+            ++result.additive_material_count;
+            break;
+        }
+
+        const auto cleaned = clean_preview_resource_token(material.texture);
+        if (is_null_preview_resource_name(cleaned) || !looks_like_preview_resref(cleaned)) {
+            continue;
+        }
+        ++result.named_texture_count;
+        const auto alpha = particle_texture_has_alpha(cleaned);
+        if (!alpha) {
+            ++result.missing_texture_count;
+        } else if (*alpha) {
+            ++result.alpha_texture_count;
+        } else {
+            ++result.opaque_texture_count;
+        }
+    }
+
+    return result;
+}
+
 static void add_particle_report(
     PreviewLoadReport& report,
     PreviewLoadReportBuilder& builder,
@@ -5373,14 +5438,7 @@ static void add_particle_report(
     const nw::model::ParticleImportResult& import,
     const nw::render::ParticleCompileResult& compiled)
 {
-    report.particles.push_back({
-        .owner = std::string{owner},
-        .emitter_count = import.effect.emitters.size(),
-        .max_particles_total = compiled.effect.max_particles_total,
-        .import_warning_count = import.warnings.size(),
-        .compile_warning_count = compiled.warnings.size(),
-        .effect_event_count = import.effect_events.size(),
-    });
+    report.particles.push_back(make_particle_report_row(owner, import, compiled));
     add_particle_material_resources(builder, import.effect, owner);
 
     for (const auto& warning : import.warnings) {

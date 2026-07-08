@@ -171,4 +171,9 @@ ParticleBillboardAxes particle_billboard_sprite_axes(
     };
 }
 
+bool particle_named_texture_available(std::string_view texture_name, const nw::Image* source_image) noexcept
+{
+    return texture_name.empty() || (source_image && source_image->valid());
+}
+
 } // namespace nw::render

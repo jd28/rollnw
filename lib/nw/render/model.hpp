@@ -113,6 +113,7 @@ struct Material {
     bool material_uses_fallback = false;
     MaterialMode alpha_mode = MaterialMode::opaque;
     float alpha_cutoff = 0.5f;
+    glm::vec4 color_key_threshold{0.0f};
     bool double_sided = false;
 };
 
@@ -240,12 +241,13 @@ struct SurfaceConstants {
     float alpha_cutoff = 0.5f;
     uint32_t double_sided = 0;
     uint32_t plt_enabled = 0;
+    glm::vec4 color_key_threshold{0.0f};
     glm::uvec4 plt_colors0{0u};
     glm::uvec4 plt_colors1{0u};
     glm::uvec4 plt_colors2{0u};
 };
 
-static_assert(sizeof(SurfaceConstants) == 144);
+static_assert(sizeof(SurfaceConstants) == 160);
 static_assert(std::is_standard_layout_v<SurfaceConstants>);
 
 struct Node {

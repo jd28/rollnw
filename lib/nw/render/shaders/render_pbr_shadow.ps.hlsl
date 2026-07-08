@@ -23,6 +23,7 @@ cbuffer SurfaceConstants : register(b4) {
     float  sc_alpha_cutoff;
     uint   sc_double_sided;
     uint   sc_plt_enabled;
+    float4 sc_color_key_threshold;
     uint4  sc_plt_colors0;
     uint4  sc_plt_colors1;
     uint4  sc_plt_colors2;
@@ -39,9 +40,9 @@ struct PSInput {
     float view_depth   : TEXCOORD6;
 };
 
-float sample_albedo_alpha(float2 texcoord) {
+float4 sample_albedo(float2 texcoord) {
     if (sc_plt_enabled == 0u) {
-        return g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, texcoord).a;
+        return g_textures[NonUniformResourceIndex(sc_albedo_index)].Sample(g_sampler, texcoord);
     }
 
     uint tex_idx = NonUniformResourceIndex(sc_albedo_index);
@@ -49,16 +50,21 @@ float sample_albedo_alpha(float2 texcoord) {
     uint height = 0;
     g_textures[tex_idx].GetDimensions(width, height);
     if (width == 0 || height == 0) {
-        return 0.0;
+        return float4(0.0, 0.0, 0.0, 0.0);
     }
 
     uint2 pixel = min(uint2(texcoord * float2(width, height)), uint2(width - 1, height - 1));
-    return g_textures[tex_idx].Load(int3(pixel, 0)).a;
+    return g_textures[tex_idx].Load(int3(pixel, 0));
 }
 
 void main(PSInput input) {
     if (sc_alpha_mode == 1u) {
-        const float alpha = sample_albedo_alpha(input.texcoord);
-        clip(alpha - sc_alpha_cutoff);
+        const float4 albedo_sample = sample_albedo(input.texcoord);
+        const float color_key_cutoff = sc_color_key_threshold.w;
+        if (color_key_cutoff > 0.0) {
+            float3 delta = albedo_sample.rgb - sc_color_key_threshold.xyz;
+            clip(dot(delta, delta) - (color_key_cutoff * color_key_cutoff));
+        }
+        clip(albedo_sample.a - sc_alpha_cutoff);
     }
 }
