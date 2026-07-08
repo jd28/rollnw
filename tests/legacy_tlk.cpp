@@ -106,3 +106,18 @@ TEST(Tlk, RejectsOutOfRangeStrrefAndWrappedStringRange)
     EXPECT_EQ(wrapped.get(0), "");
     EXPECT_EQ(wrapped.get(1), "");
 }
+
+TEST(Tlk, MalformedFileIsInvalidWithoutThrowing)
+{
+    std::filesystem::create_directories("tmp");
+
+    {
+        std::ofstream out{"tmp/not-a-tlk.tlk", std::ios::binary};
+        out << "Tnot-a-tlk\n";
+    }
+
+    nw::Tlk tlk{"tmp/not-a-tlk.tlk"};
+    EXPECT_FALSE(tlk.valid());
+    EXPECT_EQ(tlk.size(), 0);
+    EXPECT_EQ(tlk.get(0), "");
+}
