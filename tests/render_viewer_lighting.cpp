@@ -5,6 +5,7 @@
 #include <nw/render/viewer/camera.hpp>
 #include <nw/render/viewer/preview_model_draws.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/viewer/scene_lights.hpp>
 #include <nw/render/viewer/scene_particles.hpp>
 #include <nw/render/viewer/scene_shadow.hpp>
 #include <nw/render/viewer/tile_light.hpp>
@@ -1122,9 +1123,11 @@ TEST(RenderAreaVisibility, DirectModelRecordSelectionUsesSelectedAreaRecords)
             },
         });
     EXPECT_TRUE(prepared_render_model_frame.direct_model_records_for_pass(
-        nw::render::RenderPassSelection::water).records.empty());
+                                               nw::render::RenderPassSelection::water)
+            .records.empty());
     EXPECT_TRUE(prepared_render_model_frame.direct_model_records_for_pass(
-        nw::render::RenderPassSelection::transparent).records.empty());
+                                               nw::render::RenderPassSelection::transparent)
+            .records.empty());
     const auto& prepared_frame_all_records = prepared_render_model_frame.direct_model_records_for_pass(
         nw::render::RenderPassSelection::all);
     expect_direct_records(

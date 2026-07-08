@@ -1,17 +1,23 @@
 #include "scene_debug.hpp"
 
+#include "preview_object.hpp"
 #include "preview_scene.hpp"
 
 #include <nw/gfx/gfx.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Encounter.hpp>
+#include <nw/objects/Trigger.hpp>
 #include <nw/render/render_context.hpp>
 #include <nw/render/shader_provider.hpp>
 
 #include <glm/glm.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <limits>
+#include <span>
 #include <vector>
 
 namespace nw::render::viewer {
@@ -217,7 +223,178 @@ bool debug_shape_category_enabled(DebugShapeCategory category, DebugShapeOptions
     return true;
 }
 
+std::vector<glm::vec3> normalize_debug_polygon_points(
+    std::span<const glm::vec3> geometry,
+    const glm::mat4& placement,
+    float z_offset)
+{
+    std::vector<glm::vec3> points;
+    points.reserve(geometry.size());
+    for (const auto& local_point : geometry) {
+        auto point = glm::vec3(placement * glm::vec4{local_point, 1.0f});
+        point.z += z_offset;
+        if (!points.empty() && glm::length(glm::vec2{point.x - points.back().x, point.y - points.back().y}) <= 1.0e-5f) {
+            continue;
+        }
+        points.push_back(point);
+    }
+
+    if (points.size() > 1) {
+        const auto& first = points.front();
+        const auto& last = points.back();
+        if (glm::length(glm::vec2{first.x - last.x, first.y - last.y}) <= 1.0e-5f) {
+            points.pop_back();
+        }
+    }
+    return points;
+}
+
+void append_debug_polygon(
+    PreviewScene& scene,
+    std::span<const glm::vec3> geometry,
+    const nw::Location& location,
+    const glm::vec4& outline_color,
+    float z_offset,
+    float outline_width)
+{
+    const auto points = normalize_debug_polygon_points(geometry, area_object_placement_transform(location), z_offset);
+    if (points.size() < 2) {
+        return;
+    }
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        append_debug_segment(scene, points[i], points[(i + 1) % points.size()], outline_color, outline_width);
+    }
+}
+
+void append_debug_spawn_marker(PreviewScene& scene, const nw::SpawnPoint& spawn_point)
+{
+    constexpr float k_marker_z_offset = 0.16f;
+    constexpr float k_marker_width = 0.08f;
+    const glm::vec4 color{1.0f, 0.22f, 0.18f, 0.95f};
+    const glm::vec3 origin = spawn_point.position + glm::vec3{0.0f, 0.0f, k_marker_z_offset};
+    const glm::vec3 forward{std::cos(spawn_point.orientation), std::sin(spawn_point.orientation), 0.0f};
+    const glm::vec3 right{-forward.y, forward.x, 0.0f};
+
+    append_debug_segment(scene, origin - forward * 0.25f, origin + forward * 0.65f, color, k_marker_width);
+    append_debug_segment(scene, origin - right * 0.25f, origin + right * 0.25f, color, k_marker_width);
+    append_debug_triangle(
+        scene,
+        origin + forward * 0.85f,
+        origin + forward * 0.5f + right * 0.2f,
+        origin + forward * 0.5f - right * 0.2f,
+        color);
+}
+
 } // namespace
+
+void append_debug_triangle(
+    PreviewScene& scene,
+    const glm::vec3& a,
+    const glm::vec3& b,
+    const glm::vec3& c,
+    const glm::vec4& color)
+{
+    const auto base = static_cast<uint32_t>(scene.debug_shape_vertices.size());
+    scene.debug_shape_vertices.push_back({a, color});
+    scene.debug_shape_vertices.push_back({b, color});
+    scene.debug_shape_vertices.push_back({c, color});
+    scene.debug_shape_indices.push_back(base);
+    scene.debug_shape_indices.push_back(base + 1);
+    scene.debug_shape_indices.push_back(base + 2);
+}
+
+void append_debug_segment(
+    PreviewScene& scene,
+    const glm::vec3& a,
+    const glm::vec3& b,
+    const glm::vec4& color,
+    float width)
+{
+    const glm::vec2 delta{b.x - a.x, b.y - a.y};
+    const float length = glm::length(delta);
+    if (length <= 1.0e-5f) {
+        return;
+    }
+
+    const glm::vec2 side = glm::vec2{-delta.y, delta.x} * (0.5f * width / length);
+    const auto base = static_cast<uint32_t>(scene.debug_shape_vertices.size());
+    scene.debug_shape_vertices.push_back({{a.x + side.x, a.y + side.y, a.z}, color});
+    scene.debug_shape_vertices.push_back({{b.x + side.x, b.y + side.y, b.z}, color});
+    scene.debug_shape_vertices.push_back({{b.x - side.x, b.y - side.y, b.z}, color});
+    scene.debug_shape_vertices.push_back({{a.x - side.x, a.y - side.y, a.z}, color});
+    scene.debug_shape_indices.insert(scene.debug_shape_indices.end(), {
+                                                                          base,
+                                                                          base + 1,
+                                                                          base + 2,
+                                                                          base,
+                                                                          base + 2,
+                                                                          base + 3,
+                                                                      });
+}
+
+void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index)
+{
+    const size_t last_index = scene.debug_shape_indices.size();
+    if (last_index <= first_index || first_index > std::numeric_limits<uint32_t>::max()) {
+        return;
+    }
+
+    scene.debug_shape_ranges.push_back(DebugShapeRange{
+        .category = category,
+        .first_index = static_cast<uint32_t>(first_index),
+        .index_count = static_cast<uint32_t>(std::min<size_t>(
+            last_index - first_index,
+            std::numeric_limits<uint32_t>::max())),
+    });
+}
+
+bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger)
+{
+    if (trigger.geometry.empty()) {
+        return false;
+    }
+
+    const size_t first_debug_index = scene.debug_shape_indices.size();
+    constexpr float k_floor_z_offset = 0.08f;
+    constexpr float k_outline_width = 0.07f;
+    const glm::vec4 outline_color{0.12f, 0.92f, 1.0f, 0.9f};
+    append_debug_polygon(scene, trigger.geometry, trigger.common.location, outline_color, k_floor_z_offset, k_outline_width);
+
+    if (trigger.highlight_height > 0.25f) {
+        append_debug_polygon(
+            scene,
+            trigger.geometry,
+            trigger.common.location,
+            {0.12f, 0.92f, 1.0f, 0.55f},
+            k_floor_z_offset + trigger.highlight_height,
+            k_outline_width * 0.8f);
+    }
+    append_debug_shape_range(scene, DebugShapeCategory::trigger, first_debug_index);
+    return scene.debug_shape_indices.size() > first_debug_index;
+}
+
+bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter)
+{
+    const size_t first_debug_index = scene.debug_shape_indices.size();
+    if (!encounter.geometry.empty()) {
+        constexpr float k_floor_z_offset = 0.12f;
+        constexpr float k_outline_width = 0.07f;
+        append_debug_polygon(
+            scene,
+            encounter.geometry,
+            encounter.common.location,
+            {1.0f, 0.18f, 0.72f, 0.9f},
+            k_floor_z_offset,
+            k_outline_width);
+    }
+
+    for (const auto& spawn_point : encounter.spawn_points) {
+        append_debug_spawn_marker(scene, spawn_point);
+    }
+    append_debug_shape_range(scene, DebugShapeCategory::encounter, first_debug_index);
+    return scene.debug_shape_indices.size() > first_debug_index;
+}
 
 void SceneDebugRenderer::render_debug_shapes(
     nw::gfx::CommandList* cmd, const PreviewScene& scene, const nw::render::RenderContext& ctx, DebugShapeOptions options)

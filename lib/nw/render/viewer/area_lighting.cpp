@@ -1,5 +1,7 @@
 #include "area_lighting.hpp"
 
+#include "scene_lights.hpp"
+
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 
@@ -82,8 +84,7 @@ float area_cycle_time(const PreviewScene& scene, float elapsed_seconds)
 
 float twilight_weighted_cycle_time(float cycle_t)
 {
-    return cycle_t - (kAreaViewerTwilightHoldStrength / (4.0f * glm::pi<float>()))
-        * std::sin(cycle_t * 4.0f * glm::pi<float>());
+    return cycle_t - (kAreaViewerTwilightHoldStrength / (4.0f * glm::pi<float>())) * std::sin(cycle_t * 4.0f * glm::pi<float>());
 }
 
 struct AreaCycleWeights {

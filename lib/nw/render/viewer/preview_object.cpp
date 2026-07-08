@@ -6,7 +6,11 @@
 #include <nw/util/error_context.hpp>
 #include <nw/util/string.hpp>
 
+#include <cmath>
+#include <fmt/format.h>
 #include <fstream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <nlohmann/json.hpp>
 
 namespace nw::render::viewer {
@@ -227,6 +231,46 @@ bool load_placeable_from_file(const std::filesystem::path& path, nw::Placeable& 
         return false;
     }
     return true;
+}
+
+std::optional<nw::DoorModelReference> resolve_door_model_reference(const nw::Door& door, const std::filesystem::path& path)
+{
+    auto lookup = nw::resolve_door_model(door);
+    if (!lookup.valid()) {
+        LOG_F(ERROR, "Door preview '{}': {}", path.string(), lookup.error);
+        log_error_context();
+        return {};
+    }
+    return lookup;
+}
+
+std::string door_model_lookup_context(const nw::DoorModelReference& lookup)
+{
+    return fmt::format("{} {} in {}.2da", lookup.selector, lookup.row, lookup.table);
+}
+
+std::string area_object_origin(std::string_view area, std::string_view kind, size_t index, const nw::Common& common)
+{
+    if (common.tag) {
+        return fmt::format("{}:{}:{}:{}", area, kind, index, common.tag.view());
+    }
+    if (!common.resref.empty()) {
+        return fmt::format("{}:{}:{}:{}", area, kind, index, common.resref.view());
+    }
+    return fmt::format("{}:{}:{}", area, kind, index);
+}
+
+glm::mat4 area_object_placement_transform(const nw::Location& location)
+{
+    constexpr float k_epsilon = 1.0e-5f;
+    float angle = 0.0f;
+    if (std::abs(location.orientation.x) > k_epsilon || std::abs(location.orientation.y) > k_epsilon) {
+        angle = std::atan2(location.orientation.y, location.orientation.x);
+    }
+
+    glm::mat4 placement = glm::translate(glm::mat4{1.0f}, location.position);
+    placement *= glm::toMat4(glm::angleAxis(angle, glm::vec3{0.0f, 0.0f, 1.0f}));
+    return placement;
 }
 
 } // namespace nw::render::viewer

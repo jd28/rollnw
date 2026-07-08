@@ -1,6 +1,8 @@
 #pragma once
 
 #include "area_render_scene.hpp"
+#include "preview_load_report.hpp"
+#include "preview_nwn_creature.hpp"
 #include "preview_render_resources.hpp"
 
 #include <nw/model/mdl_particle_import.hpp>
@@ -9,7 +11,6 @@
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_def.hpp>
 #include <nw/render/particle_system.hpp>
-#include <nw/resources/assets.hpp>
 
 #include <nw/objects/Area.hpp>
 
@@ -22,11 +23,6 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-
-namespace nw {
-struct Appearance;
-struct StaticTwoDA;
-}
 
 namespace nw::render::viewer {
 
@@ -55,154 +51,6 @@ struct PreviewSceneLoadOptions {
     // assembly stays legacy until PLT/socket/cross-skeleton policy is lowered
     // into explicit common data.
     NwnModelPreviewPath nwn_model_path = NwnModelPreviewPath::render_model;
-};
-
-enum class NwnAppearanceHandItemVisualPolicyReason : uint8_t {
-    visible,
-    hidden_no_arms,
-    hidden_null_weapon_scale,
-    hidden_invalid_weapon_scale,
-};
-
-struct NwnAppearanceHandItemVisualPolicy {
-    bool visible = true;
-    float scale = 1.0f;
-    NwnAppearanceHandItemVisualPolicyReason reason = NwnAppearanceHandItemVisualPolicyReason::visible;
-};
-
-// NWN appearance rows use WEAPONSCALE/HASARMS as held-item visual policy. This
-// applies to both hand slots: right-hand weapons and left-hand shields/offhand
-// items are either both hidden or both scaled by the appearance value.
-NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
-    const nw::StaticTwoDA* appearance_tda,
-    nw::Appearance appearance_id);
-
-enum class NwnWingAttachmentVisualPolicyReason : uint8_t {
-    default_visible,
-    strip_non_render_meshes,
-};
-
-struct NwnWingAttachmentVisualPolicy {
-    bool strip_non_render_meshes = false;
-    NwnWingAttachmentVisualPolicyReason reason = NwnWingAttachmentVisualPolicyReason::default_visible;
-};
-
-// NWN wing rows can carry non-render helper geometry that the legacy preview
-// path must drop. Keep that as a row policy in the NWN sidecar instead of
-// inferring it from node names.
-NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
-    nw::Appearance appearance_id,
-    uint32_t wing_row);
-
-enum class PreviewLoadResourceStatus {
-    found,
-    missing,
-};
-
-enum class PreviewLoadEventSeverity {
-    info,
-    warning,
-    error,
-};
-
-struct PreviewLoadResource {
-    nw::Resource resource;
-    PreviewLoadResourceStatus status = PreviewLoadResourceStatus::found;
-    std::vector<std::string> origins;
-};
-
-struct PreviewLoadEvent {
-    PreviewLoadEventSeverity severity = PreviewLoadEventSeverity::info;
-    std::string category;
-    std::string message;
-};
-
-struct PreviewLoadParticleSystemReport {
-    std::string owner;
-    size_t emitter_count = 0;
-    size_t material_count = 0;
-    size_t alpha_material_count = 0;
-    size_t cutout_material_count = 0;
-    size_t additive_material_count = 0;
-    size_t named_texture_count = 0;
-    size_t missing_texture_count = 0;
-    size_t alpha_texture_count = 0;
-    size_t opaque_texture_count = 0;
-    uint32_t max_particles_total = 0;
-    size_t import_warning_count = 0;
-    size_t compile_warning_count = 0;
-    size_t effect_event_count = 0;
-};
-
-struct PreviewLoadMaterialReport {
-    std::string owner;
-    size_t material_count = 0;
-    size_t fallback_material_count = 0;
-    size_t plt_albedo_count = 0;
-    size_t plt_enabled_count = 0;
-    size_t emissive_material_count = 0;
-    size_t double_sided_count = 0;
-    size_t opaque_count = 0;
-    size_t cutout_count = 0;
-    size_t transparent_count = 0;
-    size_t water_count = 0;
-    size_t unknown_alpha_mode_count = 0;
-    size_t color_key_count = 0;
-    size_t albedo_source_count = 0;
-    size_t normal_source_count = 0;
-    size_t surface_source_count = 0;
-    size_t emissive_source_count = 0;
-    size_t albedo_bound_count = 0;
-    size_t normal_bound_count = 0;
-    size_t surface_bound_count = 0;
-    size_t emissive_bound_count = 0;
-    size_t invalid_scalar_count = 0;
-    float roughness_min = 0.0f;
-    float roughness_max = 0.0f;
-    float specular_strength_min = 0.0f;
-    float specular_strength_max = 0.0f;
-    float normal_scale_min = 0.0f;
-    float normal_scale_max = 0.0f;
-};
-
-struct PreviewLoadGeometryReport {
-    std::string owner;
-    size_t primitive_count = 0;
-    size_t static_primitive_count = 0;
-    size_t skinned_primitive_count = 0;
-    size_t deformed_primitive_count = 0;
-    size_t shadow_caster_count = 0;
-    size_t vertex_count = 0;
-    size_t index_count = 0;
-    size_t node_count = 0;
-    size_t socket_count = 0;
-    size_t skin_count = 0;
-    size_t skeleton_count = 0;
-    size_t animation_count = 0;
-    size_t deformer_count = 0;
-    size_t particle_system_count = 0;
-    size_t normal_repair_count = 0;
-    size_t tangent_repair_count = 0;
-    size_t water_name_heuristic_count = 0;
-    size_t foliage_name_heuristic_count = 0;
-    size_t skipped_empty_mesh_count = 0;
-    size_t skipped_skin_mesh_count = 0;
-    size_t primitive_overflow_count = 0;
-};
-
-struct PreviewLoadReport {
-    std::string source;
-    std::string kind;
-    std::vector<std::string> model_names;
-    std::vector<PreviewLoadResource> resources;
-    std::vector<PreviewLoadMaterialReport> materials;
-    std::vector<PreviewLoadGeometryReport> geometries;
-    std::vector<PreviewLoadParticleSystemReport> particles;
-    std::vector<PreviewLoadEvent> events;
-
-    size_t missing_resource_count() const;
-    size_t warning_count() const;
-    size_t error_count() const;
 };
 
 struct PreviewRuntimeModelReport {
@@ -448,9 +296,6 @@ std::unique_ptr<PreviewScene> load_preview_scene(
 std::unique_ptr<PreviewScene> load_area_scene(PreviewRenderResources& resources, std::string_view area_resref);
 std::unique_ptr<PreviewScene> load_area_scene(
     PreviewRenderResources& resources, std::string_view area_resref, PreviewSceneLoadOptions options);
-void refresh_scene_local_light_render_data(PreviewScene& scene);
-bool refresh_scene_dynamic_local_light_render_data(PreviewScene& scene);
-PreviewLoadReport build_preview_load_report(std::string_view source, std::string_view animation_name = {});
 PreviewRuntimeModelReports build_preview_runtime_model_reports(
     const PreviewScene& scene,
     const nw::render::PreparedModelSurfaceDrawList* prepared_surfaces = nullptr);
@@ -459,7 +304,4 @@ LightingSpace studio_preview_lighting_space() noexcept;
 int32_t compute_particle_prime_ms(const PreviewScene& scene, bool explicit_animation);
 std::string_view preferred_model_animation_name(
     const nw::model::Mdl& mdl, PreferredModelAnimationContext context);
-std::string_view preview_load_resource_status_label(PreviewLoadResourceStatus status) noexcept;
-std::string_view preview_load_event_severity_label(PreviewLoadEventSeverity severity) noexcept;
-
 } // namespace nw::render::viewer

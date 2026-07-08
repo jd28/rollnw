@@ -3,15 +3,24 @@
 #include <nw/gfx/gfx.hpp>
 
 #include <cstddef>
+#include <cstdint>
+
+#include <glm/glm.hpp>
 
 namespace nw::render {
 struct RenderContext;
 class ShaderProvider;
 } // namespace nw::render
 
+namespace nw {
+struct Encounter;
+struct Trigger;
+} // namespace nw
+
 namespace nw::render::viewer {
 
 struct PreviewScene;
+enum class DebugShapeCategory : uint8_t;
 
 struct DebugShapeOptions {
     bool enabled = true;
@@ -44,5 +53,13 @@ private:
     size_t debug_shape_vertex_capacity_ = 0;
     size_t debug_shape_index_capacity_ = 0;
 };
+
+void append_debug_triangle(PreviewScene& scene, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
+    const glm::vec4& color);
+void append_debug_segment(PreviewScene& scene, const glm::vec3& a, const glm::vec3& b, const glm::vec4& color,
+    float width);
+void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index);
+bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger);
+bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter);
 
 } // namespace nw::render::viewer

@@ -147,9 +147,12 @@ add_library(nw-render-viewer STATIC
     viewer/preview_plt.cpp
     viewer/preview_model_animation.cpp
     viewer/preview_model_draws.cpp
+    viewer/preview_load_report.cpp
+    viewer/preview_nwn_creature.cpp
     viewer/preview_scene.cpp
     viewer/preview_render_resources.cpp
     viewer/scene_debug.cpp
+    viewer/scene_lights.cpp
     viewer/scene_particles.cpp
     viewer/scene_shadow.cpp
     viewer/session.cpp
