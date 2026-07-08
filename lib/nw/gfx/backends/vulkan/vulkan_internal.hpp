@@ -241,6 +241,7 @@ struct VulkanContext {
     VkImageView swapchain_depth_views[MAX_SWAPCHAIN_IMAGES] = {}; // Depth/stencil views per swapchain image
     uint32_t swapchain_image_count = 0;
     uint32_t current_image_index = 0;
+    bool swapchain_stale = false;
 
     PerFrame frames[MAX_FRAMES_IN_FLIGHT];
     // One render_finished semaphore per swapchain image — prevents reuse before the

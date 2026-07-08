@@ -77,8 +77,7 @@ void collect_completed_gpu_timer_results(VulkanContext* ctx, const PerFrame& fra
     const uint32_t query_count = std::min(cmds.timestamp_query_count, MAX_GPU_TIMESTAMP_QUERIES_PER_FRAME);
     ctx->timestamp_query_results.resize(static_cast<size_t>(query_count) * 2u);
     const VkDeviceSize result_stride = sizeof(uint64_t) * 2u;
-    const VkDeviceSize result_bytes =
-        static_cast<VkDeviceSize>(ctx->timestamp_query_results.size() * sizeof(uint64_t));
+    const VkDeviceSize result_bytes = static_cast<VkDeviceSize>(ctx->timestamp_query_results.size() * sizeof(uint64_t));
     const VkResult result = vkGetQueryPoolResults(
         ctx->core->device,
         frame.timestamp_query_pool,
@@ -111,8 +110,7 @@ void collect_completed_gpu_timer_results(VulkanContext* ctx, const PerFrame& fra
             .available = start_available != 0u && end_available != 0u && end_timestamp >= start_timestamp,
         };
         if (timer_result.available) {
-            const double elapsed_ns =
-                static_cast<double>(end_timestamp - start_timestamp) * static_cast<double>(ctx->gpu_timestamp_period_ns);
+            const double elapsed_ns = static_cast<double>(end_timestamp - start_timestamp) * static_cast<double>(ctx->gpu_timestamp_period_ns);
             timer_result.seconds = static_cast<float>(elapsed_ns * kNanosecondsToSeconds);
         }
         ctx->completed_gpu_timer_results.push_back(timer_result);
@@ -2669,7 +2667,19 @@ bool get_completed_gpu_timer_results(Context* ctx_ptr, std::vector<GpuTimerResul
     return true;
 }
 
+static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height, bool force);
+
 bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
+{
+    auto* ctx = as_vulkan(ctx_ptr);
+    if (!ctx) {
+        return false;
+    }
+
+    return recreate_swapchain(ctx_ptr, width, height, false);
+}
+
+static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height, bool force)
 {
     auto* ctx = as_vulkan(ctx_ptr);
     if (!ctx) {
@@ -2679,7 +2689,7 @@ bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
     width = std::max(1u, width);
     height = std::max(1u, height);
 
-    if (ctx->width == width && ctx->height == height) {
+    if (!force && !ctx->swapchain_stale && ctx->width == width && ctx->height == height) {
         return true;
     }
 
@@ -2687,6 +2697,7 @@ bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
     ctx->height = height;
 
     if (ctx->headless) {
+        ctx->swapchain_stale = false;
         return true;
     }
 
@@ -2696,6 +2707,7 @@ bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
     for (uint32_t i = 0; i < ctx->swapchain_image_count; ++i) {
         destroy_render_target(ctx_ptr, ctx->swapchain_render_targets[i]);
         ctx->swapchain_render_targets[i] = {};
+        ctx->swapchain_depth_views[i] = VK_NULL_HANDLE;
         if (ctx->render_finished[i] != VK_NULL_HANDLE) {
             vkDestroySemaphore(device, ctx->render_finished[i], nullptr);
             ctx->render_finished[i] = VK_NULL_HANDLE;
@@ -2703,6 +2715,7 @@ bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
     }
 
     destroy_swapchain(ctx);
+    ctx->current_image_index = 0;
     create_swapchain(ctx_ptr, ctx->window);
 
     VkSemaphoreCreateInfo sem_info{};
@@ -2741,6 +2754,7 @@ bool resize_context(Context* ctx_ptr, uint32_t width, uint32_t height)
         VK_CHECK(vkCreateSemaphore(device, &sem_info, nullptr, &ctx->render_finished[i]));
     }
 
+    ctx->swapchain_stale = false;
     return true;
 }
 
@@ -2770,9 +2784,14 @@ CommandList* begin_frame(Context* ctx_ptr)
     uint32_t frame_index = ctx->frame_index;
     PerFrame& frame = ctx->frames[frame_index];
 
-    vkWaitForFences(ctx->core->device, 1, &frame.in_flight, VK_TRUE, UINT64_MAX);
-    vkResetFences(ctx->core->device, 1, &frame.in_flight);
+    VK_CHECK(vkWaitForFences(ctx->core->device, 1, &frame.in_flight, VK_TRUE, UINT64_MAX));
     collect_completed_gpu_timer_results(ctx, frame);
+
+    if (!ctx->headless && ctx->swapchain_stale) {
+        if (!recreate_swapchain(ctx_ptr, ctx->width, ctx->height, true)) {
+            return nullptr;
+        }
+    }
 
     if (!ctx->headless) {
         uint32_t image_index = 0;
@@ -2784,8 +2803,16 @@ CommandList* begin_frame(Context* ctx_ptr)
             VK_NULL_HANDLE,
             &image_index);
 
-        if (res != VK_SUCCESS)
+        if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+            ctx->swapchain_stale = true;
             return nullptr;
+        }
+        if (res == VK_SUBOPTIMAL_KHR) {
+            ctx->swapchain_stale = true;
+        } else if (res != VK_SUCCESS) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Vulkan acquire failed: %d", static_cast<int>(res));
+            return nullptr;
+        }
 
         ctx->current_image_index = image_index;
     }
@@ -2812,39 +2839,31 @@ void end_frame(Context* ctx_ptr)
         frame.cmds.in_render_pass = false;
     }
 
-    // Transition swapchain image COLOR_ATTACHMENT_OPTIMAL -> PRESENT_SRC_KHR after rendering
-    if (!ctx->headless && frame.cmds.rendered) {
-        VkImageLayout old_layout = ctx->swapchain_layouts[ctx->current_image_index];
-        VkAccessFlags src_access = 0;
-        VkPipelineStageFlags src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-            src_access = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            src_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    if (!ctx->headless) {
+        GFX_CHECK(ctx->current_image_index < ctx->swapchain_image_count,
+            "swapchain image index out of range");
+        const VkImageLayout old_layout = ctx->swapchain_layouts[ctx->current_image_index];
+        if (old_layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+            transition_image_layout(frame.cmds.buffer,
+                ctx->swapchain_images[ctx->current_image_index],
+                old_layout,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                layout_access_mask(old_layout),
+                0,
+                layout_stage_mask(old_layout),
+                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+            ctx->swapchain_layouts[ctx->current_image_index] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         }
-
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.srcAccessMask = src_access;
-        barrier.dstAccessMask = 0;
-        barrier.oldLayout = old_layout;
-        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = ctx->swapchain_images[ctx->current_image_index];
-        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-
-        vkCmdPipelineBarrier(frame.cmds.buffer,
-            src_stage,
-            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &barrier);
-        ctx->swapchain_layouts[ctx->current_image_index] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     }
 
-    // End recording
-    vkEndCommandBuffer(frame.cmds.buffer);
+    VK_CHECK(vkEndCommandBuffer(frame.cmds.buffer));
+    frame.cmds.recording = false;
 
     VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    VkSemaphore render_finished = ctx->render_finished[ctx->current_image_index];
+    VkSemaphore render_finished = VK_NULL_HANDLE;
+    if (!ctx->headless) {
+        render_finished = ctx->render_finished[ctx->current_image_index];
+    }
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2859,6 +2878,7 @@ void end_frame(Context* ctx_ptr)
         submit_info.pSignalSemaphores = &render_finished;
     }
 
+    VK_CHECK(vkResetFences(ctx->core->device, 1, &frame.in_flight));
     VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit_info, frame.in_flight));
 
     if (!ctx->headless) {
@@ -2870,7 +2890,12 @@ void end_frame(Context* ctx_ptr)
         present_info.pSwapchains = &ctx->swapchain;
         present_info.pImageIndices = &ctx->current_image_index;
 
-        vkQueuePresentKHR(ctx->core->graphics_queue, &present_info);
+        const VkResult present_result = vkQueuePresentKHR(ctx->core->graphics_queue, &present_info);
+        if (present_result == VK_ERROR_OUT_OF_DATE_KHR || present_result == VK_SUBOPTIMAL_KHR) {
+            ctx->swapchain_stale = true;
+        } else {
+            VK_CHECK(present_result);
+        }
     }
 
     // Advance frame counters

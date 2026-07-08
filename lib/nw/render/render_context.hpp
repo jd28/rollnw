@@ -480,6 +480,11 @@ struct FogCompositeConstants {
     glm::vec2 camera_clip_planes{0.1f, 1000.0f};
 };
 
+static_assert(std::is_standard_layout_v<FogCompositeConstants>);
+static_assert(offsetof(FogCompositeConstants, fog_color) == 16);
+static_assert(sizeof(FogCompositeConstants) == 48);
+
+// Layout must be kept in sync with the ParticleDrawConstants cbuffer in shaders.
 struct ParticleDrawConstants {
     glm::mat4 view;
     glm::mat4 projection;
@@ -490,11 +495,16 @@ struct ParticleDrawConstants {
     float alpha_cutout_threshold = 0.5f;
     float additive_intensity = 1.0f;
     float alpha_intensity = 1.0f;
+    float _pad0 = 0.0f;
     glm::vec4 fog_color{0.0f};
     glm::vec2 fog_range{0.0f};
     float fog_amount = 0.0f;
     uint32_t fog_enabled = 0;
 };
+
+static_assert(std::is_standard_layout_v<ParticleDrawConstants>);
+static_assert(offsetof(ParticleDrawConstants, fog_color) == 160);
+static_assert(sizeof(ParticleDrawConstants) == 192);
 
 struct ParticleVertex {
     glm::vec3 position;
