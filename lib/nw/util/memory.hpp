@@ -109,6 +109,7 @@ void destructor(void* ptr)
 
 struct Finalizer {
     void (*fn)(void*) = nullptr;
+    void* object = nullptr;
     Finalizer* next = nullptr;
 };
 
@@ -146,6 +147,7 @@ struct MemoryScope : public MemoryResource {
         void* mem = allocate(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
         auto fo = static_cast<detail::FinalizedObject<T>*>(mem);
         fo->f.fn = &detail::destructor<T>;
+        fo->f.object = &fo->obj;
         fo->f.next = finalizers_; // last in, first destructed.
         finalizers_ = &fo->f;
         return new (&fo->obj) T(std::forward<Args>(args)...);

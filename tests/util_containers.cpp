@@ -3,6 +3,7 @@
 #include "nw/util/memory.hpp"
 #include <nw/util/ByteArray.hpp>
 #include <nw/util/ChunkVector.hpp>
+#include <nw/util/FixedVector.hpp>
 
 #include <limits>
 
@@ -42,6 +43,33 @@ TEST(ChunkVector, ReserveAllocatesCapacity)
     cv.reserve(7);
     EXPECT_EQ(cv.size(), 0u);
     EXPECT_GE(cv.capacity(), 7u);
+}
+
+TEST(FixedVector, InsertEraseAndResizeWithinCapacity)
+{
+    nw::FixedVector<std::string, std::allocator<std::string>> values{5};
+
+    values.push_back("a");
+    values.push_back("c");
+    values.insert(values.begin() + 1, std::string{"b"});
+    ASSERT_EQ(values.size(), 3u);
+    EXPECT_EQ(values[0], "a");
+    EXPECT_EQ(values[1], "b");
+    EXPECT_EQ(values[2], "c");
+
+    values.erase(values.begin() + 1);
+    ASSERT_EQ(values.size(), 2u);
+    EXPECT_EQ(values[0], "a");
+    EXPECT_EQ(values[1], "c");
+
+    values.resize(4, "x");
+    ASSERT_EQ(values.size(), 4u);
+    EXPECT_EQ(values[2], "x");
+    EXPECT_EQ(values[3], "x");
+
+    values.resize(1);
+    ASSERT_EQ(values.size(), 1u);
+    EXPECT_EQ(values[0], "a");
 }
 
 TEST(ByteArray, ReadAtAllowsEndBoundary)

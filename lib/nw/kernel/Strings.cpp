@@ -85,7 +85,7 @@ InternedString Strings::intern(uint32_t strref)
 
 void Strings::load_custom_tlk(const std::filesystem::path& path)
 {
-    custom_ = Tlk{path};
+    custom_.load_from(path);
     if (custom_.language_id() != global_lang_) {
         LOG_F(WARNING, "tlk language does not match global language: {} != {}",
             to_underlying(custom_.language_id()), to_underlying(global_lang_));
@@ -95,14 +95,14 @@ void Strings::load_custom_tlk(const std::filesystem::path& path)
         auto fem = path.parent_path() / (path.stem().string() + "f.tlk");
         LOG_F(INFO, "Strings checking for feminine tlk: '{}'", fem);
         if (fs::exists(fem)) {
-            customf_ = Tlk{fem};
+            customf_.load_from(fem);
         }
     }
 }
 
 void Strings::load_dialog_tlk(const std::filesystem::path& path)
 {
-    dialog_ = Tlk{path};
+    dialog_.load_from(path);
     if (dialog_.language_id() != global_lang_) {
         LOG_F(WARNING, "tlk language does not match global language: {} != {}",
             to_underlying(dialog_.language_id()), to_underlying(global_lang_));
@@ -112,7 +112,7 @@ void Strings::load_dialog_tlk(const std::filesystem::path& path)
         auto fem = path.parent_path() / (path.stem().string() + "f.tlk");
         LOG_F(INFO, "Strings checking for feminine tlk: '{}'", fem);
         if (fs::exists(fem)) {
-            dialogf_ = Tlk{fem};
+            dialogf_.load_from(fem);
         }
     }
 }
@@ -143,8 +143,8 @@ nlohmann::json Strings::stats() const
 
 void Strings::unload_custom_tlk()
 {
-    custom_ = Tlk{global_lang_};
-    customf_ = Tlk{global_lang_};
+    custom_.reset(global_lang_);
+    customf_.reset(global_lang_);
 }
 
 } // namespace nw::kernel

@@ -196,6 +196,55 @@ void write_key_and_bif_with_wrapped_resource(const fs::path& root)
     write_value(out, element);
 }
 
+void write_key_with_invalid_bif_index(const fs::path& root)
+{
+    fs::create_directories(root / "data");
+
+    const fs::path key_path = root / "data/invalid_bif_index.key";
+    TestKeyHeader key_header{};
+    std::memcpy(key_header.type, "KEY ", 4);
+    std::memcpy(key_header.version, "V1  ", 4);
+    key_header.bif_count = 1;
+    key_header.key_count = 1;
+    key_header.offset_file_table = sizeof(TestKeyHeader);
+    key_header.offset_key_table = sizeof(TestKeyHeader) + sizeof(TestFileTable) + 8;
+
+    TestFileTable file_table{};
+    file_table.name_offset = sizeof(TestKeyHeader) + sizeof(TestFileTable);
+    file_table.name_size = 8;
+
+    std::array<char, 8> bif_name{};
+    std::memcpy(bif_name.data(), "bad.bif", 7);
+
+    std::array<char, 16> resref{};
+    std::memcpy(resref.data(), "invalid", 7);
+    uint16_t type = static_cast<uint16_t>(ResourceType::txt);
+    uint32_t id = 1u << 20;
+
+    {
+        std::ofstream out{key_path, std::ios::binary};
+        write_value(out, key_header);
+        write_value(out, file_table);
+        out.write(bif_name.data(), bif_name.size());
+        out.write(resref.data(), resref.size());
+        write_value(out, type);
+        write_value(out, id);
+    }
+
+    TestBifHeader bif_header{};
+    std::memcpy(bif_header.type, "BIFF", 4);
+    std::memcpy(bif_header.version, "V1  ", 4);
+    bif_header.var_res_count = 1;
+    bif_header.var_table_offset = sizeof(TestBifHeader);
+
+    TestBifElement element{};
+    element.type = static_cast<uint32_t>(ResourceType::txt);
+
+    std::ofstream out{root / "bad.bif", std::ios::binary};
+    write_value(out, bif_header);
+    write_value(out, element);
+}
+
 } // namespace
 
 // == Erf =====================================================================
@@ -487,6 +536,15 @@ TEST(Key, DemandRejectsWrappedBifResourceRange)
     ASSERT_NE(wrapped_key, nullptr);
     auto data = key.demand(wrapped_key);
     EXPECT_TRUE(data.bytes.size() == 0);
+}
+
+TEST(Key, RejectsInvalidBifIndex)
+{
+    const fs::path root = "tmp/key_invalid_bif_index";
+    write_key_with_invalid_bif_index(root);
+
+    nw::StaticKey key{root / "data/invalid_bif_index.key"};
+    EXPECT_FALSE(key.valid());
 }
 
 TEST(Key, visit)

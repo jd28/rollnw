@@ -1,0 +1,9 @@
+Mnewmodel fuzz
+setsupermodel fuzz null
+classification character
+beginmodelgeom fuzz
+node dummy fuzz
+parent null
+endnode
+endmodelgeom fuzz
+donemodel fuzz

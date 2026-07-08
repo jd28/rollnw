@@ -8,6 +8,8 @@
 #include "../util/templates.hpp"
 
 #include <fstream>
+#include <limits>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -15,14 +17,43 @@ namespace nw {
 
 Tlk::Tlk(LanguageID language)
 {
-    header_.language_id = static_cast<uint32_t>(language);
-    loaded_ = true;
+    reset(language);
 }
 
 Tlk::Tlk(std::filesystem::path filename)
     : path_{std::move(filename)}
 {
     load();
+}
+
+Tlk::Tlk(Tlk&& other)
+    : path_{std::move(other.path_)}
+    , bytes_{std::move(other.bytes_)}
+    , header_{other.header_}
+    , modified_strings_{std::move(other.modified_strings_)}
+    , loaded_{other.loaded_}
+{
+    refresh_elements();
+    other.header_ = {};
+    other.elements_ = nullptr;
+    other.loaded_ = false;
+}
+
+Tlk& Tlk::operator=(Tlk&& other)
+{
+    if (this == &other) { return *this; }
+
+    path_ = std::move(other.path_);
+    bytes_ = std::move(other.bytes_);
+    header_ = other.header_;
+    modified_strings_ = std::move(other.modified_strings_);
+    loaded_ = other.loaded_;
+    refresh_elements();
+
+    other.header_ = {};
+    other.elements_ = nullptr;
+    other.loaded_ = false;
+    return *this;
 }
 
 String Tlk::get(uint32_t strref) const
@@ -40,13 +71,15 @@ String Tlk::get(uint32_t strref) const
         return it->second;
     }
 
-    if (strref > header_.str_count || !elements_) {
+    if (strref >= header_.str_count || !elements_) {
         LOG_F(ERROR, "attempting to get string from invalid strref");
         return result;
     }
 
     const auto& ele = elements_[strref];
-    if (header_.str_offset + ele.offset + ele.size <= bytes_.size()) {
+    if (header_.str_offset <= bytes_.size()
+        && ele.offset <= bytes_.size() - header_.str_offset
+        && ele.size <= bytes_.size() - header_.str_offset - ele.offset) {
         const char* temp = reinterpret_cast<const char*>(bytes_.data() + header_.str_offset + ele.offset);
         String s = string::sanitize_colors({temp, ele.size});
         result = to_utf8_by_langid(s, language_id());
@@ -67,6 +100,28 @@ bool Tlk::modified() const noexcept
     return modified_strings_.size() > 0;
 }
 
+void Tlk::reset(LanguageID language)
+{
+    path_.clear();
+    bytes_.clear();
+    header_ = {};
+    header_.language_id = static_cast<uint32_t>(language);
+    elements_ = nullptr;
+    modified_strings_.clear();
+    loaded_ = true;
+}
+
+void Tlk::load_from(std::filesystem::path filename)
+{
+    path_ = std::move(filename);
+    bytes_.clear();
+    header_ = {};
+    elements_ = nullptr;
+    modified_strings_.clear();
+    loaded_ = false;
+    load();
+}
+
 void Tlk::set(uint32_t strref, StringView string)
 {
     modified_strings_[strref] = String(string);
@@ -80,6 +135,19 @@ size_t Tlk::size() const noexcept
 bool Tlk::valid() const noexcept
 {
     return loaded_;
+}
+
+void Tlk::refresh_elements() noexcept
+{
+    if (!loaded_ || header_.str_count == 0) {
+        elements_ = nullptr;
+        return;
+    }
+
+    const size_t table_size = sizeof(TlkHeader) + sizeof(TlkElement) * static_cast<size_t>(header_.str_count);
+    elements_ = bytes_.size() >= table_size
+        ? reinterpret_cast<TlkElement*>(bytes_.data() + sizeof(TlkHeader))
+        : nullptr;
 }
 
 void Tlk::save()
@@ -157,6 +225,8 @@ void Tlk::save_as(const std::filesystem::path& path)
 
 void Tlk::load()
 {
+    loaded_ = false;
+    elements_ = nullptr;
     bytes_ = ByteArray::from_file(path_);
     if (modified_strings_.size()) {
         modified_strings_.clear();
@@ -169,13 +239,17 @@ void Tlk::load()
         }                                                                                                                  \
     } while (0)
 
-    CHECK_OFF(bytes_.size() > sizeof(TlkHeader), "invalid header");
+    CHECK_OFF(bytes_.size() >= sizeof(TlkHeader), "invalid header");
     memcpy(&header_, bytes_.data(), sizeof(TlkHeader));
     CHECK_OFF(strncmp(header_.type.data(), "TLK ", 4) == 0, "invalid format type");
     CHECK_OFF(strncmp(header_.version.data(), "V3.0", 4) == 0, "invalid format version");
-    elements_ = reinterpret_cast<TlkElement*>(bytes_.data() + sizeof(TlkHeader));
-    CHECK_OFF(bytes_.size() >= sizeof(TlkElement) * header_.str_count + sizeof(TlkHeader),
+    CHECK_OFF(static_cast<size_t>(header_.str_count) <= (std::numeric_limits<size_t>::max() - sizeof(TlkHeader)) / sizeof(TlkElement),
         "strings corrupted");
+    CHECK_OFF(bytes_.size() >= sizeof(TlkHeader) + sizeof(TlkElement) * header_.str_count,
+        "strings corrupted");
+    elements_ = header_.str_count == 0
+        ? nullptr
+        : reinterpret_cast<TlkElement*>(bytes_.data() + sizeof(TlkHeader));
 
     loaded_ = true;
 

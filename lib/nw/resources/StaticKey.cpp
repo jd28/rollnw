@@ -71,13 +71,25 @@ bool Bif::load()
         return false;
     }
 
-    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_); }
+    if (!fs::exists(path_)) {
+        LOG_F(ERROR, "File '{}' does not exist.", path_);
+        return false;
+    }
 
     std::ifstream file_;
     file_.open(path_, std::ios_base::binary);
-    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_); }
+    if (!file_.is_open()) {
+        LOG_F(ERROR, "Unable to open '{}'", path_);
+        return false;
+    }
 
-    fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
+    std::error_code ec;
+    const auto file_size = fs::file_size(path_, ec);
+    if (ec || file_size > static_cast<uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        LOG_F(ERROR, "Unable to read file size for '{}'", path_);
+        return false;
+    }
+    fsize_ = static_cast<std::streamsize>(file_size);
 
     BifHeader header;
     CHECK_RANGE(0, sizeof(BifHeader));
@@ -103,7 +115,9 @@ ByteArray Bif::demand(size_t index) const
 {
     ByteArray ba;
 
-    if (index >= elements.size()) {
+    if (!is_loaded_) {
+        LOG_F(ERROR, "{}: BIF is not loaded", path_);
+    } else if (index >= elements.size()) {
         LOG_F(ERROR, "{}: Invalid index: {}", path_, index);
     } else if (!file_range_contains(fsize_, elements[index].offset, elements[index].size)) {
         LOG_F(ERROR, "{}: Invalid range offset={}, size={}, file size={}", path_,
@@ -172,6 +186,10 @@ ResourceData StaticKey::demand(const ContainerKey* key) const
 
     auto k = static_cast<const detail::StaticKeyKey*>(key);
     if (!k) { return {}; }
+    if (k->element.bif >= bifs_.size()) {
+        LOG_F(ERROR, "{}: Invalid BIF index: {}", path_, k->element.bif);
+        return {};
+    }
 
     ResourceData data;
     data.name = k->name;
@@ -193,6 +211,10 @@ int StaticKey::extract(const std::regex& pattern, const std::filesystem::path& o
     for (const auto& it : elements_) {
         fname = it.name.filename();
         if (std::regex_match(fname, pattern)) {
+            if (it.element.bif >= bifs_.size()) {
+                LOG_F(ERROR, "{}: Invalid BIF index: {}", path_, it.element.bif);
+                continue;
+            }
             ++count;
             ba = bifs_[it.element.bif].demand(it.element.index);
             std::ofstream out{output / fs::path(fname), std::ios_base::binary};
@@ -234,7 +256,13 @@ bool StaticKey::load()
 
     LOG_F(INFO, "[resources] key: loading - '{}'", path_);
 
-    fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
+    std::error_code ec;
+    const auto file_size = fs::file_size(path_, ec);
+    if (ec || file_size > static_cast<uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        LOG_F(ERROR, "{}: Unable to read file size", path_);
+        return false;
+    }
+    fsize_ = static_cast<std::streamsize>(file_size);
 
     KeyHeader header;
     CHECK_RANGE(0, sizeof(KeyHeader));
@@ -260,6 +288,10 @@ bool StaticKey::load()
     for (const auto& it : fts) {
         char buffer[256] = {0};
 
+        if (it.name_size == 0) {
+            LOG_F(ERROR, "corrupted key file: empty bif name");
+            return false;
+        }
         if (it.name_size >= sizeof(buffer)) {
             LOG_F(ERROR, "corrupted key file: bif name is too long");
             return false;
@@ -276,6 +308,10 @@ bool StaticKey::load()
         bif_names.push_back(s);
 
         bifs_.emplace_back(this, bif_path / s, allocator());
+        if (!bifs_.back().is_loaded_) {
+            LOG_F(ERROR, "corrupted key file: unable to load bif '{}'", s);
+            return false;
+        }
     }
 
     CHECK_RANGE(header.offset_key_table, 0);
@@ -294,8 +330,13 @@ bool StaticKey::load()
         uint16_t type;
         istream_read(file, &type, sizeof(type));
         istream_read(file, &id, 4);
+        detail::KeyTableElement element{id >> 20, id & 0xFFFFF};
+        if (element.bif >= bifs_.size()) {
+            LOG_F(ERROR, "corrupted key file: key table BIF index {} outside {} BIFs", element.bif, bifs_.size());
+            return false;
+        }
         auto r = Resource{String(buffer), static_cast<ResourceType::type>(type)};
-        elements_.emplace_back(r, detail::KeyTableElement{id >> 20, id & 0xFFFFF});
+        elements_.emplace_back(r, element);
     }
 
     LOG_F(INFO, "[resources] key: loaded {} resources - '{}'", elements_.size(), path_);

@@ -47,7 +47,7 @@ struct Tlk {
     explicit Tlk(LanguageID language = LanguageID::english);
     explicit Tlk(std::filesystem::path filename);
     Tlk(const Tlk&) = delete;
-    Tlk(Tlk&&) = default;
+    Tlk(Tlk&& other);
 
     /// Get a localized string
     String get(uint32_t strref) const;
@@ -57,6 +57,12 @@ struct Tlk {
 
     /// Is Tlk modfied
     bool modified() const noexcept;
+
+    /// Reset to an empty, loaded TLK for the given language.
+    void reset(LanguageID language = LanguageID::english);
+
+    /// Load TLK data from a file path.
+    void load_from(std::filesystem::path filename);
 
     /// Write TLK to file
     void save();
@@ -80,7 +86,7 @@ struct Tlk {
     String operator[](uint32_t strref) const { return get(strref); };
 
     Tlk& operator=(const Tlk&) = delete;
-    Tlk& operator=(Tlk&&) = default;
+    Tlk& operator=(Tlk&& other);
 
 private:
     std::filesystem::path path_;
@@ -90,6 +96,7 @@ private:
     absl::flat_hash_map<uint32_t, String> modified_strings_;
 
     void load();
+    void refresh_elements() noexcept;
     bool loaded_ = false;
 };
 

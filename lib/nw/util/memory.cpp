@@ -5,6 +5,7 @@
 #include "asan.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <new>
 
 namespace nw {
@@ -14,17 +15,37 @@ struct alignas(std::max_align_t) MemoryHeader {
     void* original_ptr;
     std::size_t size;
 };
+
+bool checked_allocation_size(size_t size, size_t alignment, size_t& total_size) noexcept
+{
+    alignment = std::max(alignment, alignof(MemoryHeader));
+    if (alignment == 0 || (alignment & (alignment - 1)) != 0) { return false; }
+    if (size > std::numeric_limits<size_t>::max() - sizeof(MemoryHeader)) { return false; }
+
+    const size_t with_header = size + sizeof(MemoryHeader);
+    if (with_header > std::numeric_limits<size_t>::max() - (alignment - 1)) { return false; }
+
+    total_size = with_header + alignment - 1;
+    return true;
+}
+
+uintptr_t align_up(uintptr_t address, size_t alignment) noexcept
+{
+    return (address + alignment - 1) & ~(static_cast<uintptr_t>(alignment) - 1);
+}
 } // namespace detail
 
 void* GlobalMemory::allocate(size_t size, size_t alignment)
 {
-    size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
+    alignment = std::max(alignment, alignof(detail::MemoryHeader));
+    size_t total_size = 0;
+    if (!detail::checked_allocation_size(size, alignment, total_size)) { return nullptr; }
 
     void* original = malloc(total_size);
     if (!original) { return nullptr; }
 
     uintptr_t raw_address = reinterpret_cast<uintptr_t>(original) + sizeof(detail::MemoryHeader);
-    uintptr_t aligned_address = (raw_address + alignment - 1) & ~(alignment - 1);
+    uintptr_t aligned_address = detail::align_up(raw_address, alignment);
 
     detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(aligned_address - sizeof(detail::MemoryHeader));
     header->original_ptr = original;
@@ -211,9 +232,9 @@ void MemoryScope::reset()
     if (arena_) {
         auto f = finalizers_;
         while (f) {
-            auto obj = reinterpret_cast<uint8_t*>(f) + sizeof(detail::Finalizer);
-            f->fn(obj);
-            f = f->next;
+            auto next = f->next;
+            f->fn(f->object);
+            f = next;
         }
         arena_->rewind(marker_);
     }
@@ -295,7 +316,10 @@ MemoryPool::MemoryPool(size_t max_size, size_t count, MemoryResource* allocator)
 
 void* MemoryPool::allocate(size_t size, size_t alignment)
 {
-    size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
+    alignment = std::max(alignment, alignof(detail::MemoryHeader));
+    size_t total_size = 0;
+    if (!detail::checked_allocation_size(size, alignment, total_size)) { return nullptr; }
+
     void* original = nullptr;
     if (total_size <= max_size_) {
         for (size_t i = 0; i < pools_.size(); ++i) {
@@ -311,7 +335,7 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     if (!original) { return nullptr; }
 
     uintptr_t raw_address = reinterpret_cast<uintptr_t>(original) + sizeof(detail::MemoryHeader);
-    uintptr_t aligned_address = (raw_address + alignment - 1) & ~(alignment - 1);
+    uintptr_t aligned_address = detail::align_up(raw_address, alignment);
 
     detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(aligned_address - sizeof(detail::MemoryHeader));
     header->original_ptr = original;

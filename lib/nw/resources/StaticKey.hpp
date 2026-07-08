@@ -40,10 +40,10 @@ struct Bif {
 
     StaticKey* key_ = nullptr;
     std::filesystem::path path_;
-    std::streamsize fsize_;
+    std::streamsize fsize_ = 0;
     PVector<BifElement> elements;
-    bool is_loaded_;
-    nw::MemoryResource* allocator_;
+    bool is_loaded_ = false;
+    nw::MemoryResource* allocator_ = nullptr;
 
     bool load();
 };

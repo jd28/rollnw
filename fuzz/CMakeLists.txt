@@ -14,7 +14,12 @@ add_executable(fuzz_mdl
     mdl_fuzzer.cpp
 )
 
+add_executable(fuzz_format_parsers
+    format_parsers_fuzzer.cpp
+)
+
 set(fuzzer_targets
+    fuzz_format_parsers
     fuzz_mdl
     fuzz_smalls_parse
     fuzz_smalls_resolve
@@ -29,14 +34,14 @@ foreach(tgt IN LISTS fuzzer_targets)
         nw
     )
 
-    # libFuzzer (Clang-only) + ASan
+    # libFuzzer (Clang-only) + ASan/UBSan
     if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
         target_compile_options(${tgt} PRIVATE
-            -fsanitize=fuzzer,address
+            -fsanitize=fuzzer,address,undefined
             -fno-omit-frame-pointer
         )
         target_link_options(${tgt} PRIVATE
-            -fsanitize=fuzzer,address
+            -fsanitize=fuzzer,address,undefined
         )
     else()
         message(FATAL_ERROR "Fuzzers require Clang (libFuzzer)")

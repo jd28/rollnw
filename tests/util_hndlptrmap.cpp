@@ -111,6 +111,46 @@ struct TestObject {
     uint32_t b = 0;
 };
 
+struct GenericPoolObject {
+    nw::Handle handle{};
+    uint32_t value = 0;
+
+    void set_generic_handle(nw::Handle h) { handle = h; }
+    void reset()
+    {
+        handle = {};
+        value = 0;
+    }
+};
+
+TEST(HandlePool, ReusesDestroyedSlotsAndRejectsStaleHandles)
+{
+    nw::MemoryArena arena{4096};
+    nw::HandlePool<GenericPoolObject> pool{2, &arena};
+
+    auto h1 = pool.insert();
+    auto h2 = pool.insert();
+    ASSERT_TRUE(pool.valid(h1));
+    ASSERT_TRUE(pool.valid(h2));
+
+    auto* first = pool.get(h1);
+    ASSERT_NE(first, nullptr);
+    first->value = 42;
+
+    pool.destroy(h1);
+    EXPECT_FALSE(pool.valid(h1));
+    EXPECT_EQ(pool.get(h1), nullptr);
+
+    auto h3 = pool.insert();
+    EXPECT_EQ(h3.id, h1.id);
+    EXPECT_NE(h3.generation, h1.generation);
+    EXPECT_TRUE(pool.valid(h3));
+
+    auto* reused = pool.get(h3);
+    ASSERT_NE(reused, nullptr);
+    EXPECT_EQ(reused->value, 0u);
+}
+
 TEST(TypedHandlePool, BasicAllocation)
 {
     nw::TypedHandlePool pool(sizeof(TestObject));
@@ -185,4 +225,40 @@ TEST(TypedHandlePool, MultipleAllocations)
     }
 
     EXPECT_EQ(pool.size(), COUNT);
+}
+
+TEST(TypedHandlePool, ReusesSlotsAcrossMultipleChunks)
+{
+    nw::TypedHandlePool pool(sizeof(TestObject), 2);
+
+    TypedHandle h0 = pool.allocate();
+    TypedHandle h1 = pool.allocate();
+    TypedHandle h2 = pool.allocate();
+    TypedHandle h3 = pool.allocate();
+    ASSERT_EQ(pool.capacity(), 4u);
+    ASSERT_EQ(pool.size(), 4u);
+
+    auto* obj = static_cast<TestObject*>(pool.get(h1));
+    ASSERT_NE(obj, nullptr);
+    obj->a = 77;
+
+    pool.destroy(h1);
+    EXPECT_FALSE(pool.valid(h1));
+    EXPECT_EQ(pool.get(h1), nullptr);
+
+    TypedHandle reused = pool.allocate();
+    EXPECT_EQ(reused.id, h1.id);
+    EXPECT_NE(reused.generation, h1.generation);
+    EXPECT_TRUE(pool.valid(reused));
+    ASSERT_EQ(pool.size(), 4u);
+
+    auto* reused_obj = static_cast<TestObject*>(pool.get(reused));
+    ASSERT_NE(reused_obj, nullptr);
+    EXPECT_EQ(reused_obj->a, 0u);
+
+    pool.destroy(h0);
+    pool.destroy(h2);
+    pool.destroy(h3);
+    pool.destroy(reused);
+    EXPECT_EQ(pool.size(), 0u);
 }
