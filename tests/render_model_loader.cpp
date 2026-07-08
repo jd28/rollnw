@@ -265,6 +265,87 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSkinMeshes)
     EXPECT_EQ(instance.animation.skin_matrices[first_skin].size(), asset.skins[first_skin].joints.size());
 }
 
+TEST(RenderModelLoader, LegacyUploadDropsInvalidFaceIndices)
+{
+    namespace nwn = nw::render::nwn;
+
+    TestGfxRuntime runtime;
+    if (!runtime.initialize()) {
+        GTEST_SKIP() << "graphics context unavailable";
+    }
+
+    {
+        nw::model::Mdl mdl{"test_data/user/development/test_mtr_material.mdl"};
+        ASSERT_TRUE(mdl.valid());
+
+        nw::model::TrimeshNode* source = nullptr;
+        for (const auto& node : mdl.model.nodes) {
+            source = dynamic_cast<nw::model::TrimeshNode*>(node.get());
+            if (source && !dynamic_cast<nw::model::SkinNode*>(source)
+                && source->vertices.size() >= 3 && source->indices.size() >= 3) {
+                break;
+            }
+            source = nullptr;
+        }
+        ASSERT_NE(source, nullptr);
+
+        const auto valid_index_count = source->indices.size();
+        source->indices.push_back(0);
+        source->indices.push_back(1);
+        source->indices.push_back(static_cast<uint16_t>(source->vertices.size()));
+
+        nwn::ModelLoader loader{runtime.context};
+        auto model = loader.load(&mdl);
+        ASSERT_TRUE(model);
+
+        const nwn::Mesh* loaded = nullptr;
+        for (const auto& node : model->nodes_) {
+            const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
+            if (candidate && candidate->orig_ == source) {
+                loaded = candidate;
+                break;
+            }
+        }
+        ASSERT_NE(loaded, nullptr);
+        EXPECT_EQ(loaded->index_count, valid_index_count);
+    }
+
+    {
+        nw::model::Mdl mdl{"test_data/user/development/c_satyr.mdl"};
+        ASSERT_TRUE(mdl.valid());
+
+        nw::model::SkinNode* source = nullptr;
+        for (const auto& node : mdl.model.nodes) {
+            source = dynamic_cast<nw::model::SkinNode*>(node.get());
+            if (source && source->vertices.size() >= 3 && source->indices.size() >= 3) {
+                break;
+            }
+            source = nullptr;
+        }
+        ASSERT_NE(source, nullptr);
+
+        const auto valid_index_count = source->indices.size();
+        source->indices.push_back(0);
+        source->indices.push_back(1);
+        source->indices.push_back(static_cast<uint16_t>(source->vertices.size()));
+
+        nwn::ModelLoader loader{runtime.context};
+        auto model = loader.load(&mdl);
+        ASSERT_TRUE(model);
+
+        const nwn::SkinMesh* loaded = nullptr;
+        for (const auto& node : model->nodes_) {
+            const auto* candidate = dynamic_cast<const nwn::SkinMesh*>(node.get());
+            if (candidate && candidate->orig_ == source) {
+                loaded = candidate;
+                break;
+            }
+        }
+        ASSERT_NE(loaded, nullptr);
+        EXPECT_EQ(loaded->index_count, valid_index_count);
+    }
+}
+
 TEST(RenderModelLoader, AppliesMtrMaterialnameSidecarScalars)
 {
     namespace nwn = nw::render::nwn;

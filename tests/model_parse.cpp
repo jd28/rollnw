@@ -5,6 +5,7 @@
 #include <nw/model/MdlBinaryParser.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
+#include <array>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -133,6 +134,104 @@ TEST(Mdl, BinaryRejectsMeshWithoutVertexPayload)
 
     nw::model::Mdl mdl{std::move(data)};
     EXPECT_FALSE(mdl.valid());
+}
+
+TEST(Mdl, BinaryDropsControllerKeysOutsideControllerData)
+{
+    nw::model::detail::MdlBinaryNodeHeader node{};
+    node.type = nw::model::NodeType::dummy;
+
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    constexpr size_t controller_data_offset = node_offset + nw::model::detail::MdlBinaryNodeHeader::s_sizeof;
+    constexpr size_t controller_key_offset = controller_data_offset + sizeof(std::array<float, 2>);
+
+    node.controller_data.offset = static_cast<uint32_t>(controller_data_offset - mdl_pointer_base);
+    node.controller_data.length = 2;
+    node.controller_keys.offset = static_cast<uint32_t>(controller_key_offset - mdl_pointer_base);
+    node.controller_keys.length = 2;
+
+    auto data = make_binary_mdl_with_node(
+        node, 1, sizeof(std::array<float, 2>) + 2 * nw::model::detail::MdlBinaryController::s_sizeof);
+
+    const std::array<float, 2> controller_data{0.0f, 1.0f};
+    write_at(data, controller_data_offset, controller_data);
+
+    nw::model::detail::MdlBinaryController valid{};
+    valid.type = nw::model::ControllerType::Position;
+    valid.rows = 1;
+    valid.time_index = 0;
+    valid.data_index = 1;
+    valid.columns = 1;
+    write_at(data, controller_key_offset, valid);
+
+    auto invalid = valid;
+    invalid.rows = 2;
+    invalid.time_index = 1;
+    invalid.data_index = 0;
+    write_at(data, controller_key_offset + nw::model::detail::MdlBinaryController::s_sizeof, invalid);
+
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 1u);
+    EXPECT_EQ(mdl.model.nodes[0]->controller_keys.size(), 1u);
+
+    const auto controller = mdl.model.nodes[0]->get_controller(nw::model::ControllerType::Position);
+    ASSERT_TRUE(controller.key);
+    ASSERT_EQ(controller.time.size(), 1u);
+    ASSERT_EQ(controller.data.size(), 1u);
+    EXPECT_EQ(controller.time[0], 0.0f);
+    EXPECT_EQ(controller.data[0], 1.0f);
+}
+
+TEST(Mdl, BinaryDropsMeshFacesWithInvalidVertexIndices)
+{
+    nw::model::detail::MdlBinaryTrimeshNode node{};
+    node.header.node_header.type = nw::model::NodeType::trimesh;
+    node.header.vertex_count = 3;
+    node.header.vertices = 0;
+    node.header.faces.length = 2;
+
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    constexpr size_t face_offset = node_offset + nw::model::detail::MdlBinaryTrimeshNode::s_sizeof;
+    constexpr size_t raw_vertex_offset = face_offset + 2 * nw::model::detail::MdlBinaryFace::s_sizeof;
+    constexpr size_t raw_vertex_size = sizeof(std::array<glm::vec3, 3>);
+    node.header.faces.offset = static_cast<uint32_t>(face_offset - mdl_pointer_base);
+
+    auto data = make_binary_mdl_with_node(
+        node,
+        1,
+        2 * nw::model::detail::MdlBinaryFace::s_sizeof + raw_vertex_size);
+
+    nw::model::detail::MdlBinaryHeader header{};
+    header.type = 0;
+    header.raw_data_offset = static_cast<uint32_t>(raw_vertex_offset - mdl_pointer_base);
+    header.raw_data_size = raw_vertex_size;
+    write_at(data, 0, header);
+
+    std::array<nw::model::detail::MdlBinaryFace, 2> faces{};
+    faces[0].vertex_indicies = {0, 1, 2};
+    faces[1].vertex_indicies = {0, 1, 3};
+    write_at(data, face_offset, faces);
+
+    const std::array<glm::vec3, 3> vertices{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+        glm::vec3{1.0f, 0.0f, 0.0f},
+        glm::vec3{0.0f, 1.0f, 0.0f},
+    };
+    write_at(data, raw_vertex_offset, vertices);
+
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 1u);
+    auto* mesh = dynamic_cast<nw::model::TrimeshNode*>(mdl.model.nodes[0].get());
+    ASSERT_NE(mesh, nullptr);
+    ASSERT_EQ(mesh->vertices.size(), 3u);
+    ASSERT_EQ(mesh->indices.size(), 3u);
+    EXPECT_EQ(mesh->indices[0], 0u);
+    EXPECT_EQ(mesh->indices[1], 1u);
+    EXPECT_EQ(mesh->indices[2], 2u);
 }
 
 TEST(Mdl, ParseASCII2)

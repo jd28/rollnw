@@ -47,6 +47,34 @@ String to_string(const std::array<char, N>& in)
     return out;
 }
 
+bool controller_range_valid(int offset, size_t count, size_t data_count) noexcept
+{
+    if (offset < 0) { return false; }
+    const auto begin = static_cast<size_t>(offset);
+    return begin <= data_count && count <= data_count - begin;
+}
+
+bool binary_controller_valid(const MdlBinaryController& controller, size_t data_count) noexcept
+{
+    if (controller.rows < 0 || controller.columns < 0) { return false; }
+
+    const auto rows = static_cast<size_t>(controller.rows);
+    const auto columns = static_cast<size_t>(controller.columns);
+    if (!controller_range_valid(controller.time_index, rows, data_count)) { return false; }
+    if (rows != 0 && columns > std::numeric_limits<size_t>::max() / rows) { return false; }
+    return controller_range_valid(controller.data_index, rows * columns, data_count);
+}
+
+bool binary_face_indices_valid(const MdlBinaryFace& face, size_t vertex_count) noexcept
+{
+    for (const int16_t index : face.vertex_indicies) {
+        if (index < 0 || static_cast<size_t>(index) >= vertex_count) {
+            return false;
+        }
+    }
+    return true;
+}
+
 constexpr size_t mdl_pointer_base = 12;
 constexpr size_t max_binary_mdl_nodes = 65536;
 
@@ -268,11 +296,19 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
     if (!array_offset(nodehead.controller_keys, detail::MdlBinaryController::s_sizeof, &controller_key_offset)) {
         return false;
     }
+    size_t dropped_controller_keys = 0;
     for (size_t i = 0; i < nodehead.controller_keys.length; ++i) {
         detail::MdlBinaryController old_c;
         if (!read_bytes(controller_key_offset, &old_c, sizeof(detail::MdlBinaryController))) {
             return false;
         }
+
+        if (!detail::binary_controller_valid(old_c, node->controller_data.size())) {
+            ++dropped_controller_keys;
+            controller_key_offset += sizeof(detail::MdlBinaryController);
+            continue;
+        }
+
         ControllerKey new_c{
             {},
             static_cast<uint32_t>(old_c.type),
@@ -285,6 +321,9 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
 
         node->controller_keys.push_back(new_c);
         controller_key_offset += sizeof(detail::MdlBinaryController);
+    }
+    if (dropped_controller_keys != 0) {
+        LOG_F(WARNING, "invalid binary mdl: dropped {} malformed controller keys", dropped_controller_keys);
     }
 
     auto read_raw_array = [this](uint32_t raw_ptr, auto& out, size_t count) {
@@ -399,10 +438,18 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         if (!reserve_indices(mesh->indices, data.faces.length)) {
             return false;
         }
+        size_t dropped_faces = 0;
         for (size_t i = 0; i < data.faces.length; ++i) {
+            if (!detail::binary_face_indices_valid(s_ctx.faces[i], mesh->vertices.size())) {
+                ++dropped_faces;
+                continue;
+            }
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
+        }
+        if (dropped_faces != 0) {
+            LOG_F(WARNING, "invalid binary mdl: dropped {} mesh faces with invalid vertex indices", dropped_faces);
         }
 
         return true;
@@ -521,10 +568,18 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         if (!reserve_indices(n->indices, data.header.faces.length)) {
             return false;
         }
+        size_t dropped_faces = 0;
         for (size_t i = 0; i < data.header.faces.length; ++i) {
+            if (!detail::binary_face_indices_valid(s_ctx.faces[i], n->vertices.size())) {
+                ++dropped_faces;
+                continue;
+            }
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
+        }
+        if (dropped_faces != 0) {
+            LOG_F(WARNING, "invalid binary mdl: dropped {} skin faces with invalid vertex indices", dropped_faces);
         }
     } else if (node->type == NodeType::animmesh) {
         detail::MdlBinaryAnimmeshNode data;

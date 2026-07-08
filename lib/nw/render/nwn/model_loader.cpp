@@ -25,6 +25,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 
 namespace nw::render::nwn {
@@ -135,6 +136,39 @@ Vertex convert_vertex(const nwm::Vertex& vertex)
         .texcoord = vertex.tex_coords,
         .tangent = vertex.tangent,
     };
+}
+
+std::vector<uint16_t> validated_triangle_indices(
+    const std::vector<uint16_t>& source,
+    size_t vertex_count,
+    std::string_view node_name)
+{
+    std::vector<uint16_t> result;
+    result.reserve(source.size());
+
+    size_t dropped = 0;
+    size_t i = 0;
+    for (; i + 2 < source.size(); i += 3) {
+        const auto i0 = static_cast<size_t>(source[i + 0]);
+        const auto i1 = static_cast<size_t>(source[i + 1]);
+        const auto i2 = static_cast<size_t>(source[i + 2]);
+        if (i0 >= vertex_count || i1 >= vertex_count || i2 >= vertex_count) {
+            ++dropped;
+            continue;
+        }
+
+        result.push_back(source[i + 0]);
+        result.push_back(source[i + 1]);
+        result.push_back(source[i + 2]);
+    }
+
+    if (i != source.size()) {
+        ++dropped;
+    }
+    if (dropped != 0) {
+        LOG_F(WARNING, "model loader: dropped {} invalid triangles for node '{}'", dropped, node_name);
+    }
+    return result;
 }
 
 void expand_bounds(Bounds& bounds, const glm::vec3& position, bool first)
@@ -3983,16 +4017,20 @@ bool ModelLoader::create_mesh_buffers(Mesh& mesh, const nwm::TrimeshNode* node)
         for (const auto& vertex : node->vertices) {
             vertices.push_back(convert_vertex(vertex));
         }
-
-        if (has_invalid_normals(vertices)) {
-            recompute_static_vertex_normals(node, vertices);
-        }
-        if (has_invalid_tangents(vertices)) {
-            recompute_vertex_tangents(node, vertices);
-        }
     }
 
-    std::vector<uint16_t> indices = node->indices;
+    std::vector<uint16_t> indices = validated_triangle_indices(node->indices, vertices.size(), node->name);
+    if (indices.empty()) {
+        return false;
+    }
+
+    if (has_invalid_normals(vertices)) {
+        recompute_static_vertex_normals_for_indices(indices, vertices);
+    }
+    if (has_invalid_tangents(vertices)) {
+        recompute_vertex_tangents_for_indices(indices, vertices);
+    }
+
     inset_transparent_subrect_uvs(mesh, vertices);
     if (mesh.material_mode == MaterialMode::water) {
         subdivide_water_mesh(vertices, indices);
@@ -4041,6 +4079,11 @@ bool ModelLoader::create_skin_buffers(SkinMesh& mesh, const nwm::SkinNode* node)
         vertices.push_back(convert_vertex(vertex));
     }
 
+    std::vector<uint16_t> indices = validated_triangle_indices(node->indices, vertices.size(), node->name);
+    if (indices.empty()) {
+        return false;
+    }
+
     if (has_invalid_normals(vertices)) {
         std::vector<Vertex> static_vertices;
         static_vertices.reserve(vertices.size());
@@ -4052,14 +4095,14 @@ bool ModelLoader::create_skin_buffers(SkinMesh& mesh, const nwm::SkinNode* node)
                 .tangent = vertex.tangent,
             });
         }
-        recompute_static_vertex_normals(node, static_vertices);
+        recompute_static_vertex_normals_for_indices(indices, static_vertices);
         for (size_t i = 0; i < vertices.size(); ++i) {
             vertices[i].normal = static_vertices[i].normal;
         }
     }
 
     if (has_invalid_tangents(vertices)) {
-        recompute_vertex_tangents(node, vertices);
+        recompute_vertex_tangents_for_indices(indices, vertices);
     }
 
     inset_transparent_subrect_uvs(mesh, vertices);
@@ -4071,7 +4114,7 @@ bool ModelLoader::create_skin_buffers(SkinMesh& mesh, const nwm::SkinNode* node)
     mesh.vertices = nw::gfx::create_buffer(ctx_, vertex_desc);
 
     nw::gfx::BufferDesc index_desc{};
-    index_desc.size = node->indices.size() * sizeof(uint16_t);
+    index_desc.size = indices.size() * sizeof(uint16_t);
     index_desc.usage = nw::gfx::BufferUsage::Index;
     index_desc.cpu_visible = true;
     mesh.indices = nw::gfx::create_buffer(ctx_, index_desc);
@@ -4083,12 +4126,12 @@ bool ModelLoader::create_skin_buffers(SkinMesh& mesh, const nwm::SkinNode* node)
     }
 
     std::memcpy(vertex_buffer, vertices.data(), vertex_desc.size);
-    std::memcpy(index_buffer, node->indices.data(), index_desc.size);
+    std::memcpy(index_buffer, indices.data(), index_desc.size);
     nw::gfx::unmap_buffer(mesh.vertices);
     nw::gfx::unmap_buffer(mesh.indices);
 
     mesh.vertex_count = static_cast<uint32_t>(vertices.size());
-    mesh.index_count = static_cast<uint32_t>(node->indices.size());
+    mesh.index_count = static_cast<uint32_t>(indices.size());
     return true;
 }
 
