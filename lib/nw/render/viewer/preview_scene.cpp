@@ -2349,6 +2349,7 @@ static bool add_dynamic_creature_scene_models(
     PreviewRenderResources& resources,
     nw::Appearance appearance_id,
     uint8_t gender,
+    nw::Phenotype phenotype_id,
     uint32_t wings,
     uint32_t tail,
     nw::BodyParts body_parts,
@@ -2373,11 +2374,7 @@ static bool add_dynamic_creature_scene_models(
 
     std::string race;
     appearance_tda->get_to(*appearance_id, "RACE", race);
-    int phenotype = 0;
-    auto* phenotype_tda = nw::kernel::twodas().get("phenotype");
-    if (phenotype_tda) {
-        phenotype = 0;
-    }
+    const int phenotype = resolve_creature_phenotype(phenotype_id);
 
     const char sex = gender == 1 ? 'f' : 'm';
     body_parts = normalized_body_parts(body_parts);
@@ -2668,6 +2665,7 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
     nw::PltColors plt_colors{};
     nw::Appearance appearance_id = nw::Appearance::invalid();
     uint8_t gender = 0;
+    nw::Phenotype phenotype = nw::Phenotype::invalid();
     uint32_t wings = 0;
     uint32_t tail = 0;
     nw::BodyParts body_parts{};
@@ -2687,6 +2685,7 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
         resolve_preview_equipment(player, path);
         appearance_id = player.appearance.id;
         gender = player.gender;
+        phenotype = player.appearance.phenotype;
         wings = player.appearance.wings;
         tail = player.appearance.tail;
         body_parts = player.appearance.body_parts;
@@ -2705,6 +2704,7 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
         resolve_preview_equipment(creature, path);
         appearance_id = creature.appearance.id;
         gender = creature.gender;
+        phenotype = creature.appearance.phenotype;
         wings = creature.appearance.wings;
         tail = creature.appearance.tail;
         body_parts = creature.appearance.body_parts;
@@ -2720,6 +2720,7 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
             resources,
             appearance_id,
             gender,
+            phenotype,
             wings,
             tail,
             body_parts,
@@ -3095,6 +3096,7 @@ static std::unique_ptr<PreviewScene> load_area_creature_scene(
             resources,
             creature.appearance.id,
             creature.gender,
+            creature.appearance.phenotype,
             creature.appearance.wings,
             creature.appearance.tail,
             creature.appearance.body_parts,

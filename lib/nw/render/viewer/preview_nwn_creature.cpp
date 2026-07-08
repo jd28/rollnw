@@ -3,6 +3,7 @@
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/ModelCache.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Item.hpp>
@@ -510,6 +511,14 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
         };
     }
     return {};
+}
+
+int resolve_creature_phenotype(nw::Phenotype phenotype) noexcept
+{
+    if (nw::kernel::rules().phenotypes.is_valid(phenotype)) {
+        return *phenotype;
+    }
+    return 0;
 }
 
 size_t apply_nwn_wing_attachment_visual_policy(

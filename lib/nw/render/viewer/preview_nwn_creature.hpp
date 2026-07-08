@@ -96,6 +96,8 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
     nw::Appearance appearance_id,
     uint32_t wing_row);
 
+int resolve_creature_phenotype(nw::Phenotype phenotype) noexcept;
+
 size_t apply_nwn_wing_attachment_visual_policy(
     nw::render::nwn::ModelInstance& model,
     NwnWingAttachmentVisualPolicy policy);

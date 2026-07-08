@@ -10,6 +10,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/render/viewer/device.hpp>
+#include <nw/render/viewer/preview_nwn_creature.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
@@ -237,6 +238,34 @@ LABEL HASARMS
     EXPECT_TRUE(policy.visible);
     EXPECT_FLOAT_EQ(policy.scale, 1.0f);
     EXPECT_EQ(policy.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::visible);
+}
+
+TEST(RenderViewerPreparedDraws, CreaturePhenotypeResolutionUsesLoadedRuleRows)
+{
+    namespace viewer = nw::render::viewer;
+
+    const auto& phenotypes = nw::kernel::rules().phenotypes;
+    if (!phenotypes.is_valid(nw::Phenotype::make(0))) {
+        GTEST_SKIP() << "phenotype row 0 unavailable";
+    }
+
+    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::make(0)), 0);
+
+    bool found_non_default = false;
+    for (size_t i = 1; i < phenotypes.entries.size(); ++i) {
+        const auto phenotype = nw::Phenotype::make(static_cast<int32_t>(i));
+        if (phenotypes.is_valid(phenotype)) {
+            EXPECT_EQ(viewer::resolve_creature_phenotype(phenotype), static_cast<int>(i));
+            found_non_default = true;
+            break;
+        }
+    }
+    if (!found_non_default) {
+        GTEST_SKIP() << "no non-default phenotype row available";
+    }
+
+    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::invalid()), 0);
+    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::make(100000)), 0);
 }
 
 TEST(RenderViewerPreparedDraws, LoadReportIncludesStaticRenderModelNames)

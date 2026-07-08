@@ -986,7 +986,7 @@ static void add_dynamic_creature_report(
 
     std::string race;
     appearance_tda->get_to(*appearance_id, "RACE", race);
-    int phenotype = 0;
+    const int phenotype = resolve_creature_phenotype(creature.appearance.phenotype);
     const char sex = gender == 1 ? 'f' : 'm';
     body_parts = normalized_body_parts(body_parts);
 
