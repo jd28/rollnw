@@ -43,6 +43,14 @@ For each migration slice:
 - if the Sphinx tree still exists, make sure removed pages are also removed from
   `docs/index.rst` toctrees
 
+## Generated Site Rendering Gaps
+
+The README-style docs site still needs a rendering pass:
+
+- Code blocks need readable syntax highlighting in generated HTML.
+- Some Markdown tables are not formatting correctly; table rendering should be
+  verified against the generated site, not only GitHub's Markdown preview.
+
 ## Do Not Carry Forward
 
 - Renderer or runtime policy in the old Sphinx `structure/` pages.
