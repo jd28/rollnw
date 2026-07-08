@@ -314,16 +314,14 @@ void populate_creature_propsets(nw::smalls::Runtime* rt, nw::ObjectBase* obj)
 
     // Ensure carried/equipped item propsets exist before scripts query ItemStats.
     for (const auto& equip : cre->equipment.equips) {
-        if (!equip.is<nw::Item*>()) { continue; }
-        if (auto* it = equip.as<nw::Item*>()) {
+        if (auto* it = nw::equip_item_ptr(equip)) {
             rt->init_object_propsets(it->handle());
             populate_item_propsets(rt, it);
         }
     }
 
     for (const auto& inv : cre->inventory.items) {
-        if (!inv.item.is<nw::Item*>()) { continue; }
-        if (auto* it = inv.item.as<nw::Item*>()) {
+        if (auto* it = nw::inventory_item_ptr(inv)) {
             rt->init_object_propsets(it->handle());
             populate_item_propsets(rt, it);
         }

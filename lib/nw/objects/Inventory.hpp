@@ -4,6 +4,7 @@
 #include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"
 #include "ObjectBase.hpp"
+#include "ObjectHandle.hpp"
 
 #include <bitset>
 #include <cstdint>
@@ -16,7 +17,7 @@ struct InventoryItem {
     bool infinite = false;
     uint16_t pos_x;
     uint16_t pos_y;
-    Variant<Resref, Item*> item;
+    Variant<Resref, ObjectHandle> item;
 };
 
 struct InventorySlot {
@@ -107,5 +108,7 @@ struct Inventory {
 
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationProfile profile);
+
+Item* inventory_item_ptr(const InventoryItem& item) noexcept;
 
 } // namespace nw

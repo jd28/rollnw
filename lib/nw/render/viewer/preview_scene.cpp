@@ -2630,7 +2630,7 @@ static nw::Item* equipped_item(const nw::Equips& equips, nw::EquipIndex slot)
         return nullptr;
     }
     const auto& equip = equips.equips[idx];
-    return equip.is<nw::Item*>() ? equip.as<nw::Item*>() : nullptr;
+    return nw::equip_item_ptr(equip);
 }
 
 static void resolve_preview_equipment(nw::Creature& creature, const std::filesystem::path& path)

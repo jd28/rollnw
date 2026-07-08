@@ -10,6 +10,22 @@
 
 namespace nw {
 
+namespace {
+
+Item* item_from_handle(ObjectHandle handle) noexcept
+{
+    if (handle.type != ObjectType::item) { return nullptr; }
+    return nw::kernel::objects().get<Item>(handle);
+}
+
+} // namespace
+
+Item* inventory_item_ptr(const InventoryItem& item) noexcept
+{
+    if (!item.item.is<ObjectHandle>()) { return nullptr; }
+    return item_from_handle(item.item.as<ObjectHandle>());
+}
+
 Inventory::Inventory(ObjectBase* owner_, nw::MemoryResource* allocator)
     : Inventory(Inventory::default_pages, Inventory::max_rows, Inventory::max_columns,
           owner_, allocator)
@@ -34,8 +50,8 @@ Inventory::Inventory(int pages, int rows, int columns, ObjectBase* owner_, nw::M
 void Inventory::destroy()
 {
     for (auto& it : items) {
-        if (!it.item.is<Item*>()) { continue; }
-        auto item = it.item.as<Item*>();
+        auto item = inventory_item_ptr(it);
+        if (!item) { continue; }
         item->inventory.destroy();
         nw::kernel::objects().destroy(item->handle());
     }
@@ -51,15 +67,16 @@ bool Inventory::instantiate()
         if (it.item.is<Resref>()) {
             auto temp = kernel::objects().load<Item>(it.item.as<Resref>());
             if (temp) {
-                it.item = temp;
+                it.item = temp->handle();
             } else {
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
                     it.item.as<Resref>());
             }
         }
 
-        if (it.item.is<nw::Item*>()) {
-            auto item = it.item.as<nw::Item*>();
+        if (it.item.is<ObjectHandle>()) {
+            auto item = inventory_item_ptr(it);
+            if (!item) { continue; }
             auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
             if (bi) {
                 auto slot = xy_to_slot(it.pos_x, it.pos_y);
@@ -89,7 +106,7 @@ bool Inventory::add_item(nw::Item* item)
     auto [x, y] = slot_to_xy(slot);
 
     InventoryItem ii;
-    ii.item = item;
+    ii.item = item->handle();
     ii.pos_x = x;
     ii.pos_y = y;
     items.push_back(ii);
@@ -186,8 +203,12 @@ InventorySlot Inventory::find_slot(int width, int height) const noexcept
 
 bool Inventory::has_item(nw::Item* item) const noexcept
 {
+    if (!item) { return false; }
+    const auto handle = item->handle();
     auto it = std::find_if(items.begin(), items.end(),
-        [item](const nw::InventoryItem& ii) { return ii.item == item; });
+        [handle](const nw::InventoryItem& ii) {
+            return ii.item.is<ObjectHandle>() && ii.item.as<ObjectHandle>() == handle;
+        });
 
     return it != std::end(items);
 }
@@ -213,7 +234,9 @@ bool Inventory::remove_item(nw::Item* item)
     if (!bi) { return false; }
 
     auto it = std::find_if(items.begin(), items.end(),
-        [item](const nw::InventoryItem& ii) { return ii.item == item; });
+        [handle = item->handle()](const nw::InventoryItem& ii) {
+            return ii.item.is<ObjectHandle>() && ii.item.as<ObjectHandle>() == handle;
+        });
 
     if (it == std::end(items)) { return false; }
 
@@ -267,8 +290,9 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
                 ii.item = archive[i].at("item").get<Resref>();
             } else {
                 auto temp = kernel::objects().load_instance<Item>(archive[i].at("item"));
-                ii.item = temp;
-                if (!temp) {
+                if (temp) {
+                    ii.item = temp->handle();
+                } else {
                     valid_entry = false;
                 }
             }
@@ -290,25 +314,25 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
 
     try {
         for (const auto& it : items) {
-            j.push_back({});
-            auto& payload = j.back();
+            nlohmann::json payload;
             auto handle = owner->handle();
             if (handle.type == ObjectType::store) {
                 payload["infinite"] = it.infinite;
             }
 
             payload["position"] = {it.pos_x, it.pos_y};
-            if (it.item.is<Item*>()) {
+            if (auto* item = inventory_item_ptr(it)) {
                 if (SerializationProfile::blueprint == profile) {
-                    payload["item"] = it.item.as<Item*>()->common.resref;
+                    payload["item"] = item->common.resref;
                 } else {
-                    serialize(it.item.as<Item*>(), payload["item"], profile);
+                    serialize(item, payload["item"], profile);
                 }
+            } else if (SerializationProfile::blueprint == profile && it.item.is<Resref>()) {
+                payload["item"] = it.item.as<Resref>();
             } else {
-                if (SerializationProfile::blueprint == profile) {
-                    payload["item"] = it.item.as<Resref>();
-                }
+                continue;
             }
+            j.push_back(std::move(payload));
         }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "inventory::to_json exception: {}", e.what());
@@ -338,8 +362,9 @@ bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile
             }
         } else if (SerializationProfile::instance == profile) {
             auto temp = kernel::objects().load_instance<Item>(st);
-            ii.item = temp;
-            if (!temp) {
+            if (temp) {
+                ii.item = temp->handle();
+            } else {
                 valid_entry = false;
             }
         }
@@ -358,6 +383,11 @@ bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationPr
     }
     auto& list = archive.add_list("ItemList");
     for (const auto& it : self.items) {
+        auto* item = inventory_item_ptr(it);
+        if (!item && !(SerializationProfile::blueprint == profile && it.item.is<Resref>())) {
+            continue;
+        }
+
         auto& str = list.push_back(static_cast<uint32_t>(list.size()))
                         .add_field("Repos_PosX", it.pos_x)
                         .add_field("Repos_Posy", it.pos_y);
@@ -370,11 +400,11 @@ bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationPr
         if (SerializationProfile::blueprint == profile) {
             if (it.item.is<Resref>()) {
                 str.add_field("InventoryRes", it.item.as<Resref>());
-            } else {
-                str.add_field("InventoryRes", it.item.as<Item*>()->common.resref);
+            } else if (item) {
+                str.add_field("InventoryRes", item->common.resref);
             }
-        } else {
-            serialize(it.item.as<Item*>(), str, profile);
+        } else if (item) {
+            serialize(item, str, profile);
         }
     }
     return true;

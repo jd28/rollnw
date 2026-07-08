@@ -455,9 +455,8 @@ float calculate_challenge_rating(const nw::Creature* obj)
     // Equipped non-creature items only
     float inventory_value = 0.0f;
     for (size_t i = 0; i < size_t(nw::EquipIndex::creature_left); ++i) {
-        if (obj->equipment.equips[i].is<nw::Item*>()) {
-            if (!obj->equipment.equips[i].as<nw::Item*>()) { continue; }
-            inventory_value += calculate_item_value(obj->equipment.equips[i].as<nw::Item*>());
+        if (auto* item = nw::equip_item_ptr(obj->equipment.equips[i])) {
+            inventory_value += calculate_item_value(item);
         }
     }
 

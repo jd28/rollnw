@@ -12,6 +12,22 @@
 
 namespace nw {
 
+namespace {
+
+Item* item_from_handle(ObjectHandle handle) noexcept
+{
+    if (handle.type != ObjectType::item) { return nullptr; }
+    return nw::kernel::objects().get<Item>(handle);
+}
+
+} // namespace
+
+Item* equip_item_ptr(const EquipItem& item) noexcept
+{
+    if (!item.is<ObjectHandle>()) { return nullptr; }
+    return item_from_handle(item.as<ObjectHandle>());
+}
+
 Equips::Equips(Creature* owner, nw::MemoryResource* allocator)
     : owner_{owner}
 {
@@ -20,8 +36,8 @@ Equips::Equips(Creature* owner, nw::MemoryResource* allocator)
 void Equips::destroy()
 {
     for (auto& e : equips) {
-        if (e.is<nw::Item*>()) {
-            nw::kernel::objects().destroy(e.as<nw::Item*>()->handle());
+        if (auto* item = equip_item_ptr(e)) {
+            nw::kernel::objects().destroy(item->handle());
         }
     }
     equips = std::array<EquipItem, 18>{};
@@ -31,18 +47,16 @@ bool Equips::instantiate()
 {
     NW_PROFILE_SCOPE_N("Equips::instantiate");
     ERRARE("[objects] instantiating creature equipment");
-    int i = 0;
     for (auto& e : equips) {
         if (e.is<Resref>() && e.as<Resref>().length()) {
             auto temp = nw::kernel::objects().load<Item>(e.as<Resref>());
             if (temp) {
-                e = temp;
+                e = temp->handle();
             } else {
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?", e.as<Resref>());
-                e = static_cast<nw::Item*>(nullptr);
+                e = EquipItem{};
             }
         }
-        ++i;
     }
     return true;
 }
@@ -57,7 +71,9 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
                     equips[i] = archive.at(lookup).get<Resref>();
                 } else {
                     auto item = kernel::objects().load_instance<Item>(archive.at(lookup));
-                    equips[i] = item;
+                    if (item) {
+                        equips[i] = item->handle();
+                    }
                 }
             }
         }
@@ -80,12 +96,12 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
                 if (r.length()) {
                     j[lookup] = r;
                 }
-            } else if (equips[i].is<Item*>()) {
-                j[lookup] = equips[i].as<Item*>()->common.resref;
+            } else if (auto* item = equip_item_ptr(equips[i])) {
+                j[lookup] = item->common.resref;
             }
         } else {
-            if (equips[i].is<Item*>() && equips[i].as<Item*>()) {
-                serialize(equips[i].as<Item*>(), j[lookup], profile);
+            if (auto* item = equip_item_ptr(equips[i])) {
+                serialize(item, j[lookup], profile);
             }
         }
     }
@@ -111,7 +127,9 @@ bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile pr
             self.equips[idx] = r;
         } else {
             auto item = kernel::objects().load_instance<Item>(st);
-            self.equips[idx] = item;
+            if (item) {
+                self.equips[idx] = item->handle();
+            }
         }
     }
     return true;
@@ -129,12 +147,12 @@ bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfi
                 if (r.length()) {
                     list.push_back(struct_id).add_field("EquippedRes", r);
                 }
-            } else if (equip.is<Item*>()) {
+            } else if (auto* item = equip_item_ptr(equip)) {
                 list.push_back(struct_id).add_field("EquippedRes",
-                    equip.as<Item*>()->common.resref);
+                    item->common.resref);
             }
-        } else if (equip.is<Item*>() && equip.as<Item*>()) {
-            serialize(equip.as<Item*>(), list.push_back(struct_id), profile);
+        } else if (auto* item = equip_item_ptr(equip)) {
+            serialize(item, list.push_back(struct_id), profile);
         }
         ++i;
     }

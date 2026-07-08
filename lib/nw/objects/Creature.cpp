@@ -141,9 +141,9 @@ bool Creature::instantiate()
         NW_PROFILE_SCOPE_N("Creature::instantiate::item_effects");
         size_t i = 0;
         for (auto& equip : equipment.equips) {
-            if (equip.is<Item*>()) {
+            if (auto* item = equip_item_ptr(equip)) {
                 ++equipment_item_count;
-                item_effects_processed += process_item_properties(this, equip.as<Item*>(),
+                item_effects_processed += process_item_properties(this, item,
                     static_cast<EquipIndex>(i), false);
             }
             ++i;

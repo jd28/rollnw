@@ -89,7 +89,8 @@ TEST(Player, Inventory)
     EXPECT_EQ(x2, 5);
     EXPECT_EQ(y2, 0);
 
-    auto it = pl->inventory.items[0].item.as<nw::Item*>();
+    auto it = nw::inventory_item_ptr(pl->inventory.items[0]);
+    ASSERT_NE(it, nullptr);
     EXPECT_TRUE(pl->inventory.remove_item(it));
     EXPECT_FALSE(pl->inventory.has_item(it));
     EXPECT_EQ(pl->inventory.size(), 3);

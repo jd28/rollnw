@@ -205,12 +205,12 @@ bool equip_item_in_slot(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     if (!can_equip_item(obj, item, slot)) { return false; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
-    if (it.is<nw::Item*>() && it.as<nw::Item*>() == item) {
+    if (nw::equip_item_ptr(it) == item) {
         return true;
     }
 
     nw::unequip_item_in_slot(obj, slot);
-    obj->equipment.equips[size_t(slot)] = item;
+    obj->equipment.equips[size_t(slot)] = item->handle();
     ++obj->equipment.equip_version;
     return true;
 }
@@ -221,9 +221,7 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
     if (!obj) { return result; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
-    if (it.is<nw::Item*>()) {
-        result = it.as<nw::Item*>();
-    }
+    result = nw::equip_item_ptr(it);
     return result;
 }
 
@@ -233,11 +231,9 @@ nw::Item* unequip_item_in_slot(nw::Creature* obj, nw::EquipIndex slot)
     if (!obj) { return result; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
-    if (it.is<nw::Item*>()) {
-        result = it.as<nw::Item*>();
-        if (!result) { return result; }
-
-        it = nullptr;
+    result = nw::equip_item_ptr(it);
+    if (result) {
+        it = nw::EquipItem{};
         ++obj->equipment.equip_version;
     }
     return result;

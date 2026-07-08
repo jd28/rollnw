@@ -4,6 +4,7 @@
 #include "../serialization/Serialization.hpp"
 #include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"
+#include "ObjectHandle.hpp"
 
 namespace nw {
 
@@ -142,7 +143,9 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
     }
 }
 
-using EquipItem = Variant<Resref, Item*>;
+using EquipItem = Variant<Resref, ObjectHandle>;
+
+Item* equip_item_ptr(const EquipItem& item) noexcept;
 
 struct Equips {
     explicit Equips(Creature* owner, nw::MemoryResource* allocator = nw::kernel::global_allocator());
