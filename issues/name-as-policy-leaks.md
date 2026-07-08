@@ -1,5 +1,7 @@
 # Name-As-Policy Leaks Outside The NWN Sidecar
 
+Status: resolved in working tree.
+
 ## Problem
 
 AGENTS.md and the render README both forbid deciding renderer behavior from
@@ -34,12 +36,18 @@ failures"). Found in the 2026-07 gfx/render audit; verified in source.
 
 ## Fix
 
-- Minimum: add counters (`water_name_heuristic_count`,
-  `foliage_name_heuristic_count`, wing-strip count) to the import/preview
-  stats so diagnostics and the future offline compiler
-  (offline-model-compiler.md) can see and retire the heuristics.
-- Move the wing-strip special case into an explicit table keyed by
-  appearance row, following the hand-item policy pattern.
+- Done: added counters (`water_name_heuristic_count`,
+  `foliage_name_heuristic_count`) to the NWN import stats and preview
+  geometry report, and surfaced them in `mudl` JSON/debug UI plus preview
+  info events/logging.
+- Done: moved the wing-strip special case into an explicit NWN-side row
+  policy. The live preview path and load-report path now report
+  `nwn_wing_attachment_policy` with `stripped_non_render_meshes`, and the
+  strip/count uses authored mesh `render` metadata instead of node-name
+  prefixes.
+- Done: removed the `gargoyle_` / `wing_shadow` prefix policy from the
+  viewer path.
+- Done: added targeted tests for water/foliage counters and wing row policy.
 - Longer term: decide whether water/foliage classification becomes
   sidecar-only pre-pass data or explicit per-material authored data when
   MDL lowering moves to the offline compiler.

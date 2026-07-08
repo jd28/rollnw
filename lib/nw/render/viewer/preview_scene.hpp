@@ -77,6 +77,23 @@ NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy
     const nw::StaticTwoDA* appearance_tda,
     nw::Appearance appearance_id);
 
+enum class NwnWingAttachmentVisualPolicyReason : uint8_t {
+    default_visible,
+    strip_non_render_meshes,
+};
+
+struct NwnWingAttachmentVisualPolicy {
+    bool strip_non_render_meshes = false;
+    NwnWingAttachmentVisualPolicyReason reason = NwnWingAttachmentVisualPolicyReason::default_visible;
+};
+
+// NWN wing rows can carry non-render helper geometry that the legacy preview
+// path must drop. Keep that as a row policy in the NWN sidecar instead of
+// inferring it from node names.
+NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
+    nw::Appearance appearance_id,
+    uint32_t wing_row);
+
 enum class PreviewLoadResourceStatus {
     found,
     missing,
@@ -166,6 +183,8 @@ struct PreviewLoadGeometryReport {
     size_t particle_system_count = 0;
     size_t normal_repair_count = 0;
     size_t tangent_repair_count = 0;
+    size_t water_name_heuristic_count = 0;
+    size_t foliage_name_heuristic_count = 0;
     size_t skipped_empty_mesh_count = 0;
     size_t skipped_skin_mesh_count = 0;
     size_t primitive_overflow_count = 0;

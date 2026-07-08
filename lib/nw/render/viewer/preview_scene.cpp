@@ -423,6 +423,8 @@ void add_model_asset_geometry_report(
     if (import_stats) {
         geometry_report.normal_repair_count = import_stats->normal_repair_count;
         geometry_report.tangent_repair_count = import_stats->tangent_repair_count;
+        geometry_report.water_name_heuristic_count = import_stats->water_name_heuristic_count;
+        geometry_report.foliage_name_heuristic_count = import_stats->foliage_name_heuristic_count;
         geometry_report.skipped_empty_mesh_count = import_stats->skipped_empty_mesh_count;
         geometry_report.skipped_skin_mesh_count = import_stats->skipped_skin_mesh_count;
         geometry_report.primitive_overflow_count = import_stats->primitive_overflow_count;
@@ -2852,6 +2854,95 @@ NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy
     return result;
 }
 
+NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
+    nw::Appearance appearance_id,
+    uint32_t wing_row)
+{
+    constexpr uint32_t any_appearance_row = std::numeric_limits<uint32_t>::max();
+    struct PolicyRow {
+        uint32_t appearance_row;
+        uint32_t wing_row;
+        NwnWingAttachmentVisualPolicyReason reason;
+    };
+
+    constexpr std::array policy_rows = {
+        PolicyRow{
+            .appearance_row = any_appearance_row,
+            .wing_row = 1u,
+            .reason = NwnWingAttachmentVisualPolicyReason::strip_non_render_meshes,
+        },
+    };
+
+    if (wing_row == 0) {
+        return {};
+    }
+
+    const uint32_t appearance_row = appearance_id == nw::Appearance::invalid()
+        ? any_appearance_row
+        : static_cast<uint32_t>(appearance_id.idx());
+    for (const auto& row : policy_rows) {
+        if (row.wing_row != wing_row) {
+            continue;
+        }
+        if (row.appearance_row != any_appearance_row && row.appearance_row != appearance_row) {
+            continue;
+        }
+        return {
+            .strip_non_render_meshes = row.reason == NwnWingAttachmentVisualPolicyReason::strip_non_render_meshes,
+            .reason = row.reason,
+        };
+    }
+    return {};
+}
+
+size_t apply_nwn_wing_attachment_visual_policy(
+    nw::render::nwn::ModelInstance& model,
+    NwnWingAttachmentVisualPolicy policy)
+{
+    if (!policy.strip_non_render_meshes) {
+        return 0;
+    }
+
+    size_t stripped_mesh_count = 0;
+    for (const auto& node : model.nodes_) {
+        if (!node || !node->orig_ || !node->is_mesh || node->is_skin) {
+            continue;
+        }
+        const auto* source_mesh = dynamic_cast<const nw::model::TrimeshNode*>(node->orig_);
+        if (!source_mesh || source_mesh->render) {
+            continue;
+        }
+        if (auto* mesh = dynamic_cast<nw::render::nwn::Mesh*>(node.get())) {
+            mesh->vertices = {};
+            mesh->indices = {};
+            mesh->index_count = 0;
+            ++stripped_mesh_count;
+        }
+    }
+    return stripped_mesh_count;
+}
+
+size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(
+    const nw::model::Mdl& mdl,
+    NwnWingAttachmentVisualPolicy policy)
+{
+    if (!policy.strip_non_render_meshes) {
+        return 0;
+    }
+
+    size_t stripped_mesh_count = 0;
+    for (const auto& node : mdl.model.nodes) {
+        if (!node || !(node->type & nw::model::NodeFlags::mesh) || (node->type & nw::model::NodeFlags::skin)) {
+            continue;
+        }
+        const auto* source_mesh = dynamic_cast<const nw::model::TrimeshNode*>(node.get());
+        if (source_mesh && !source_mesh->render) {
+            ++stripped_mesh_count;
+        }
+    }
+    return stripped_mesh_count;
+}
+
 static std::string_view robe_hide_column(std::string_view token)
 {
     if (token == "belt") {
@@ -3939,29 +4030,28 @@ static bool add_dynamic_creature_scene_models(
                     row,
                     lookup.model_name);
                 log_preview_warning_context();
-            } else if (placement_model_index < scene.models.size() && !lookup.owner_socket.empty()) {
-                make_static_scene_attachment(*model);
+            } else {
                 if (table_name == std::string_view{"wingmodel"}) {
-                    for (const auto& node : model->nodes_) {
-                        const auto* orig = node->orig_;
-                        if (!orig || !node->is_mesh || node->is_skin) {
-                            continue;
-                        }
-
-                        std::string_view name = orig->name;
-                        if (name.starts_with("gargoyle_") || name.starts_with("wing_shadow")) {
-                            if (auto* mesh = dynamic_cast<Mesh*>(node.get())) {
-                                mesh->vertices = {};
-                                mesh->indices = {};
-                                mesh->index_count = 0;
-                            }
-                        }
+                    const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, row);
+                    const size_t stripped_mesh_count = apply_nwn_wing_attachment_visual_policy(*model, policy);
+                    if (load_events && policy.strip_non_render_meshes) {
+                        add_preview_load_event(*load_events,
+                            PreviewLoadEventSeverity::info,
+                            "nwn_wing_attachment_policy",
+                            fmt::format(
+                                "{}: wingmodel row {} stripped_non_render_meshes={}",
+                                origin,
+                                row,
+                                stripped_mesh_count));
                     }
                 }
+            }
+            if (model && placement_model_index < scene.models.size() && !lookup.owner_socket.empty()) {
+                make_static_scene_attachment(*model);
                 model->local_scale_ = wing_tail_scale;
                 model->anchor_uses_root_bind_offset = true;
                 scene.add_attached(std::move(model), placement_model_index, lookup.owner_socket, lookup.source_socket);
-            } else {
+            } else if (model) {
                 maybe_add_model(scene, std::move(model));
             }
         }
@@ -5831,6 +5921,22 @@ static void add_dynamic_creature_report(
         if (lookup.resolved) {
             add_report_model(report, builder, scanned_models, lookup.model_name,
                 fmt::format("{}:attachment:{}:{}", path.string(), table_name, row), animation_name);
+            if (table_name == std::string_view{"wingmodel"}) {
+                const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, row);
+                if (policy.strip_non_render_meshes) {
+                    size_t stripped_mesh_count = 0;
+                    if (auto* mdl = nw::kernel::models().load(lookup.model_name)) {
+                        stripped_mesh_count = count_nwn_wing_attachment_visual_policy_stripped_meshes(*mdl, policy);
+                    }
+                    builder.add_event(PreviewLoadEventSeverity::info,
+                        "nwn_wing_attachment_policy",
+                        fmt::format(
+                            "{}: wingmodel row {} stripped_non_render_meshes={}",
+                            path.string(),
+                            row,
+                            stripped_mesh_count));
+                }
+            }
         }
     };
     add_attachment("wingmodel", wings);
@@ -6235,6 +6341,16 @@ void collect_nwn_render_model_import_events(
                 import.deformer_overflow_count,
                 import.primitive_overflow_count));
     }
+    if (import.water_name_heuristic_count != 0 || import.foliage_name_heuristic_count != 0) {
+        add_preview_load_event(events,
+            PreviewLoadEventSeverity::info,
+            "nwn_render_model_name_policy",
+            fmt::format(
+                "{}: name_policy water_heuristics={} foliage_heuristics={}",
+                source,
+                import.water_name_heuristic_count,
+                import.foliage_name_heuristic_count));
+    }
 
     collect_model_asset_upload_events(
         events, source, "nwn_render_model", result.geometry_upload_stats, result.texture_upload_stats);
@@ -6326,6 +6442,13 @@ void log_nwn_render_model_import_gaps(
             import.deformer_overflow_count,
             import.primitive_overflow_count);
         log_preview_warning_context();
+    }
+    if (import.water_name_heuristic_count != 0 || import.foliage_name_heuristic_count != 0) {
+        LOG_F(INFO,
+            "NWN RenderModel import '{}' used name policy: water_heuristics={} foliage_heuristics={}",
+            source,
+            import.water_name_heuristic_count,
+            import.foliage_name_heuristic_count);
     }
 
     log_model_asset_upload_gaps(

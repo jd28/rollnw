@@ -854,6 +854,21 @@ TEST(RenderModelLoader, NwnModelAssetImportCountsVertexFrameRepairs)
     EXPECT_EQ(result.stats.tangent_repair_count, 1u);
 }
 
+TEST(RenderModelLoader, NwnModelAssetImportCountsWaterNamePolicy)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::Mdl mdl{"test_data/user/development/test_water_name_policy.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->materials.size(), 1u);
+    EXPECT_EQ(result.stats.water_name_heuristic_count, 1u);
+    EXPECT_EQ(result.stats.foliage_name_heuristic_count, 0u);
+    EXPECT_EQ(result.asset->materials[0].alpha_mode, nw::render::MaterialMode::water);
+}
+
 TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
 {
     namespace nwn = nw::render::nwn;
@@ -1399,6 +1414,7 @@ TEST(RenderModelLoader, ImportsNwnDanglyModelAssetDeformers)
 
     ASSERT_FALSE(asset.deformers.empty());
     EXPECT_EQ(result.stats.deformer_count, asset.deformers.size());
+    EXPECT_GT(result.stats.foliage_name_heuristic_count, 0u);
     bool saw_foliage_sway = false;
     for (const auto& deformer : asset.deformers) {
         ASSERT_LT(deformer.source_node_index, asset.nodes.size());

@@ -1608,7 +1608,8 @@ MaterialMode classify_material(const nwm::TrimeshNode* node, std::string_view bi
     });
 }
 
-void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::ModelClass model_class)
+void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::ModelClass model_class,
+    NwnModelAssetImportStats* stats = nullptr)
 {
     if (!node) {
         return;
@@ -1639,13 +1640,22 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
     const auto* dangly_node = dynamic_cast<const nwm::DanglymeshNode*>(node);
     const bool foliage_dangly = dangly_node
         && dangly_deform_policy_for(dangly_node) == DanglyDeformPolicy::foliage_sway_cpu;
+    const bool foliage_texture_hint = looks_like_foliage_texture(mesh.bitmap_name);
+    if (stats) {
+        if (water_material) {
+            ++stats->water_name_heuristic_count;
+        }
+        if (foliage_dangly || foliage_texture_hint) {
+            ++stats->foliage_name_heuristic_count;
+        }
+    }
     auto txi = load_txi_material_info(mesh.bitmap_name);
     TextureAnalysis texture{};
     if (!water_material) {
         texture = analyze_texture(mesh.bitmap_name);
         if (txi.has_txi && txi.alphamean > 0.0f && txi.alphamean < 1.0f) {
             mesh.alpha_cutout_threshold = txi.alphamean;
-        } else if ((foliage_dangly || looks_like_foliage_texture(mesh.bitmap_name))
+        } else if ((foliage_dangly || foliage_texture_hint)
             && texture.alpha_profile == NwnMaterialAlphaProfile::graded
             && texture.alpha_coverage_50 - texture.alpha_coverage_75 < 0.03f) {
             // Mostly-binary foliage alpha benefits from a stronger cutout threshold.
@@ -2485,7 +2495,7 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
             const auto* skin = static_cast<const nwm::SkinNode*>(source_node);
             if (should_create_mesh_node(skin, model.classification)) {
                 Mesh mesh;
-                initialize_mesh_material(mesh, skin, model.classification);
+                initialize_mesh_material(mesh, skin, model.classification, &stats);
                 if (!append_nwn_model_asset_skin_primitive(
                         skin, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats)) {
                     ++stats.skipped_skin_mesh_count;
@@ -2510,14 +2520,14 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
             const auto* dangly_node = static_cast<const nwm::DanglymeshNode*>(source_node);
             DanglyMesh mesh;
             mesh.initialize_dangly(dangly_node);
-            initialize_mesh_material(mesh, dangly_node, model.classification);
+            initialize_mesh_material(mesh, dangly_node, model.classification, &stats);
             append_nwn_model_asset_primitive(
                 dangly_node, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
             continue;
         }
 
         Mesh mesh;
-        initialize_mesh_material(mesh, trimesh, model.classification);
+        initialize_mesh_material(mesh, trimesh, model.classification, &stats);
         append_nwn_model_asset_primitive(
             trimesh, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
     }

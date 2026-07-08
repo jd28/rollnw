@@ -133,6 +133,18 @@ bool report_has_model_name(
         });
 }
 
+bool report_has_event_category(
+    const nw::render::viewer::PreviewLoadReport& report,
+    std::string_view category)
+{
+    return std::any_of(
+        report.events.begin(),
+        report.events.end(),
+        [category](const nw::render::viewer::PreviewLoadEvent& event) {
+            return event.category == category;
+        });
+}
+
 std::vector<std::string> item_model_resrefs_for_test(const nw::Item& item)
 {
     std::vector<std::string> result;
@@ -473,6 +485,39 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesAttachmentLookupRow
     EXPECT_EQ(no_wing_report.kind, "dynamic_creature");
     EXPECT_EQ(wing_report.kind, "dynamic_creature");
     EXPECT_GT(wing_report.model_names.size(), no_wing_report.model_names.size());
+}
+
+TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsWingRowPolicy)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto* wingmodel = nw::kernel::twodas().get("wingmodel");
+    std::string wing_model;
+    if (!wingmodel || !wingmodel->get_to(1u, "MODEL", wing_model) || wing_model.empty()) {
+        GTEST_SKIP() << "wingmodel row 1 unavailable";
+    }
+    const nw::Resource wing_resource{std::string_view{wing_model}, nw::ResourceType::mdl};
+    if (!nw::kernel::resman().contains(wing_resource)) {
+        GTEST_SKIP() << "wingmodel row 1 model unavailable";
+    }
+
+    const auto policy = viewer::resolve_nwn_wing_attachment_visual_policy(nw::Appearance::invalid(), 1u);
+    ASSERT_TRUE(policy.strip_non_render_meshes);
+    EXPECT_EQ(policy.reason, viewer::NwnWingAttachmentVisualPolicyReason::strip_non_render_meshes);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ASSERT_NE(creature, nullptr);
+    creature->appearance.wings = 1u;
+
+    std::filesystem::create_directories("tmp");
+    const std::filesystem::path wing_path{"tmp/load_report_wing_policy_creature.utc.json"};
+    ASSERT_TRUE(creature->save(wing_path, "json"));
+    nw::kernel::objects().destroy(creature->handle());
+
+    const auto report = viewer::build_preview_load_report(wing_path.string());
+
+    EXPECT_EQ(report.kind, "dynamic_creature");
+    EXPECT_TRUE(report_has_event_category(report, "nwn_wing_attachment_policy"));
 }
 
 TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsSkinnedMindflayerAsset)

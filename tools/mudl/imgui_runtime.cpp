@@ -619,6 +619,11 @@ void build_load_report_debug(const nw::render::viewer::PreviewLoadReport& report
                 geometry.skipped_empty_mesh_count,
                 geometry.skipped_skin_mesh_count,
                 geometry.primitive_overflow_count);
+            if (geometry.water_name_heuristic_count != 0 || geometry.foliage_name_heuristic_count != 0) {
+                ImGui::Text("name policy: water=%zu foliage=%zu",
+                    geometry.water_name_heuristic_count,
+                    geometry.foliage_name_heuristic_count);
+            }
             ImGui::Unindent();
         }
         ImGui::TreePop();

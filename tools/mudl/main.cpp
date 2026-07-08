@@ -168,6 +168,8 @@ static nlohmann::json load_report_json(const nw::render::viewer::PreviewLoadRepo
             {"particle_system_count", geometry.particle_system_count},
             {"normal_repair_count", geometry.normal_repair_count},
             {"tangent_repair_count", geometry.tangent_repair_count},
+            {"water_name_heuristic_count", geometry.water_name_heuristic_count},
+            {"foliage_name_heuristic_count", geometry.foliage_name_heuristic_count},
             {"skipped_empty_mesh_count", geometry.skipped_empty_mesh_count},
             {"skipped_skin_mesh_count", geometry.skipped_skin_mesh_count},
             {"primitive_overflow_count", geometry.primitive_overflow_count},

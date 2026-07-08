@@ -1,0 +1,45 @@
+#MAXMODEL ASCII
+newmodel test_water_name_policy
+setsupermodel test_water_name_policy NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_water_name_policy
+    node dummy test_water_name_policy
+        parent NULL
+    endnode
+    node trimesh water_plane
+        parent test_water_name_policy
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap water_plane
+        texture0 water_plane
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        normals 3
+            0 0 1
+            0 0 1
+            0 0 1
+        tangents 3
+            1 0 0 1
+            1 0 0 1
+            1 0 0 1
+    endnode
+endmodelgeom test_water_name_policy
+donemodel test_water_name_policy

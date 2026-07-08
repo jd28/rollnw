@@ -196,6 +196,8 @@ struct NwnModelAssetImportStats {
     uint32_t missing_texture_source_count = 0;
     uint32_t normal_repair_count = 0;
     uint32_t tangent_repair_count = 0;
+    uint32_t water_name_heuristic_count = 0;
+    uint32_t foliage_name_heuristic_count = 0;
     uint32_t texture_source_overflow_count = 0;
     uint32_t deformer_overflow_count = 0;
     uint32_t primitive_overflow_count = 0;
