@@ -8,6 +8,10 @@
 
 namespace nw::render {
 
+inline constexpr uint32_t kMaxCompiledParticlesPerEmitter = 4096;
+inline constexpr uint32_t kMaxCompiledParticlesPerEffect = 65536;
+inline constexpr int32_t kMaxParticleRenderSortOrder = 255;
+
 enum class CompiledParticleKernel {
     sprite_basic_constant,
     sprite_basic,

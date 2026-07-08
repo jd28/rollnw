@@ -12,8 +12,8 @@
 #include <bit>
 #include <cmath>
 #include <limits>
-#include <numeric>
 #include <numbers>
+#include <numeric>
 #include <utility>
 
 namespace nw::render {
@@ -112,16 +112,19 @@ const CompiledParticleMaterial* get_material(const CompiledParticleEffect& effec
 ParticleSpriteSheet eval_emitter_sheet(const CompiledParticleEmitter& emitter, const CompiledParticleMaterial& material, float emitter_time)
 {
     ParticleSpriteSheet sheet = material.sheet;
-    const uint16_t max_frames = std::max<uint16_t>(1, static_cast<uint16_t>(sheet.columns * sheet.rows));
+    const uint32_t max_frames = std::max<uint32_t>(
+        1u, static_cast<uint32_t>(std::max<uint16_t>(1, sheet.columns)) * static_cast<uint32_t>(std::max<uint16_t>(1, sheet.rows)));
+    const uint16_t max_frame_index = static_cast<uint16_t>(
+        std::min<uint32_t>(max_frames - 1u, std::numeric_limits<uint16_t>::max()));
     const float sampled_frame_begin = std::max(0.0f, eval_keyed_scalar_track(emitter.sheet_frame_begin_track, emitter_time));
     const float sampled_frame_end = std::max(0.0f, eval_keyed_scalar_track(emitter.sheet_frame_end_track, emitter_time));
     const float sampled_fps = std::max(0.0f, eval_keyed_scalar_track(emitter.sheet_fps_track, emitter_time));
     const float sampled_random_start = eval_keyed_scalar_track(emitter.sheet_random_start_track, emitter_time);
 
-    sheet.frame_begin = static_cast<uint16_t>(std::min<float>(sampled_frame_begin, static_cast<float>(max_frames - 1)));
-    sheet.frame_end = static_cast<uint16_t>(std::min<float>(std::max(sampled_frame_begin, sampled_frame_end), static_cast<float>(max_frames - 1)));
-    if (max_frames > 1 && sheet.frame_begin == 0 && sheet.frame_end == 0) {
-        sheet.frame_end = static_cast<uint16_t>(max_frames - 1);
+    sheet.frame_begin = static_cast<uint16_t>(std::min<float>(sampled_frame_begin, static_cast<float>(max_frame_index)));
+    sheet.frame_end = static_cast<uint16_t>(std::min<float>(std::max(sampled_frame_begin, sampled_frame_end), static_cast<float>(max_frame_index)));
+    if (max_frame_index > 0 && sheet.frame_begin == 0 && sheet.frame_end == 0) {
+        sheet.frame_end = max_frame_index;
     }
     sheet.frames_per_second = sampled_fps;
     sheet.random_start = sampled_random_start >= 0.5f;
@@ -135,7 +138,7 @@ uint16_t initial_frame_offset(const ParticleSpriteSheet& sheet, ParticleEmitterS
 {
     const uint16_t frame_begin = sheet.frame_begin;
     const uint16_t frame_end = std::max(frame_begin, sheet.frame_end);
-    const uint16_t frame_count = static_cast<uint16_t>(frame_end - frame_begin + 1);
+    const uint32_t frame_count = static_cast<uint32_t>(frame_end) - frame_begin + 1u;
     if (frame_count <= 1 || !sheet.random_start) { return 0; }
     return static_cast<uint16_t>(advance_rng(state.random_seed) % frame_count);
 }
@@ -144,7 +147,7 @@ uint16_t eval_sprite_frame(const ParticleSpriteSheet& sheet, float age, float no
 {
     const uint16_t frame_begin = sheet.frame_begin;
     const uint16_t frame_end = std::max(frame_begin, sheet.frame_end);
-    const uint16_t frame_count = static_cast<uint16_t>(frame_end - frame_begin + 1);
+    const uint32_t frame_count = static_cast<uint32_t>(frame_end) - frame_begin + 1u;
     if (frame_count <= 1) { return frame_begin; }
     if (sheet.frames_per_second <= 0.0f) {
         const uint32_t base = static_cast<uint32_t>(frame_offset % frame_count);
@@ -269,22 +272,6 @@ ParticleSimulationSpace effective_simulation_space(const CompiledParticleEmitter
     return emitter.simulation_space;
 }
 
-glm::vec3 particle_anchor_position(const ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
-{
-    const auto& emitter = system.effect->emitters[emitter_id];
-    switch (effective_simulation_space(emitter)) {
-    case ParticleSimulationSpace::local:
-    case ParticleSimulationSpace::emitter_attached:
-        return emitter_position(system.emitters[emitter_id]);
-    case ParticleSimulationSpace::spawn_attached:
-        return system.particles.attachment.anchor_position[particle_index];
-    case ParticleSimulationSpace::world:
-        return glm::vec3{0.0f};
-    }
-
-    return glm::vec3{0.0f};
-}
-
 glm::vec3 particle_anchor_position(const ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
     const ParticleEmitterState& emitter_state, size_t particle_index)
 {
@@ -348,22 +335,6 @@ glm::vec3 attachment_world_delta_to_local(const ParticleEmitterState& state, Par
     return world_delta;
 }
 
-void set_particle_world_position(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index, const glm::vec3& position)
-{
-    auto& emitter = system.effect->emitters[emitter_id];
-    const auto simulation_space = effective_simulation_space(emitter);
-    if (simulation_space == ParticleSimulationSpace::world) {
-        system.particles.core.position[particle_index] = position;
-        return;
-    }
-
-    const glm::vec3 anchor = particle_anchor_position(system, emitter_id, particle_index);
-    const auto& emitter_state = system.emitters[emitter_id];
-    system.particles.attachment.local_position[particle_index] =
-        attachment_world_to_local(emitter_state, simulation_space, anchor, position);
-    system.particles.core.position[particle_index] = position;
-}
-
 void set_particle_world_position(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
     const ParticleEmitterState& emitter_state, size_t particle_index, const glm::vec3& position)
 {
@@ -374,21 +345,8 @@ void set_particle_world_position(ParticleSystemInstance& system, const CompiledP
     }
 
     const glm::vec3 anchor = particle_anchor_position(system, emitter, emitter_state, particle_index);
-    system.particles.attachment.local_position[particle_index] =
-        attachment_world_to_local(emitter_state, simulation_space, anchor, position);
+    system.particles.attachment.local_position[particle_index] = attachment_world_to_local(emitter_state, simulation_space, anchor, position);
     system.particles.core.position[particle_index] = position;
-}
-
-void sync_attached_particle_position(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
-{
-    const auto& emitter = system.effect->emitters[emitter_id];
-    const auto simulation_space = effective_simulation_space(emitter);
-    if (simulation_space == ParticleSimulationSpace::world) { return; }
-
-    const auto& emitter_state = system.emitters[emitter_id];
-    const glm::vec3 anchor = particle_anchor_position(system, emitter_id, particle_index);
-    system.particles.core.position[particle_index] = attachment_local_to_world(
-        emitter_state, simulation_space, anchor, system.particles.attachment.local_position[particle_index]);
 }
 
 void sync_attached_particle_position(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
@@ -400,37 +358,6 @@ void sync_attached_particle_position(ParticleSystemInstance& system, const Compi
     const glm::vec3 anchor = particle_anchor_position(system, emitter, emitter_state, particle_index);
     system.particles.core.position[particle_index] = attachment_local_to_world(
         emitter_state, simulation_space, anchor, system.particles.attachment.local_position[particle_index]);
-}
-
-bool apply_particle_collision(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index, const glm::vec3& previous_position,
-    const ParticleSimulationContext& context)
-{
-    const auto& emitter = system.effect->emitters[emitter_id];
-    if (!emitter.collision.enabled || !context.collision) { return false; }
-
-    const float radius = 0.5f * std::max(system.particles.core.size_x[particle_index], system.particles.core.size_y[particle_index]);
-    const auto hit = context.collision->trace_particle(previous_position, system.particles.core.position[particle_index], radius);
-    if (!hit.hit) { return false; }
-
-    set_particle_world_position(system, emitter_id, particle_index, hit.position);
-
-    if (emitter.collision.splat) {
-        system.particles.core.velocity[particle_index] = glm::vec3{0.0f};
-        system.particles.core.age[particle_index] = system.particles.core.lifetime[particle_index];
-        return true;
-    }
-
-    if (emitter.collision.bounce) {
-        const glm::vec3 normal = glm::dot(hit.normal, hit.normal) > 1.0e-8f
-            ? glm::normalize(hit.normal)
-            : glm::vec3{0.0f, 1.0f, 0.0f};
-        system.particles.core.velocity[particle_index] = glm::reflect(system.particles.core.velocity[particle_index], normal)
-            * emitter.collision.bounce_coefficient;
-    } else {
-        system.particles.core.velocity[particle_index] = glm::vec3{0.0f};
-    }
-
-    return true;
 }
 
 bool apply_particle_collision(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
@@ -637,8 +564,7 @@ void set_attachment_state(ParticleStorage& particles, size_t particle_index,
     case ParticleSimulationSpace::emitter_attached: {
         const glm::vec3 anchor = emitter_position(state);
         particles.attachment.anchor_position[particle_index] = anchor;
-        particles.attachment.local_position[particle_index] =
-            attachment_world_to_local(state, emitter.simulation_space, anchor, world_position);
+        particles.attachment.local_position[particle_index] = attachment_world_to_local(state, emitter.simulation_space, anchor, world_position);
         break;
     }
     case ParticleSimulationSpace::spawn_attached:
@@ -966,46 +892,6 @@ void update_basic_particles_simd(ParticleCoreStorage& core, const BasicParticleS
     }
 }
 
-void update_particle_presentation(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
-{
-    auto& particles = system.particles;
-    auto& core = particles.core;
-    const auto& emitter = system.effect->emitters[emitter_id];
-
-    const float lifetime = std::max(core.lifetime[particle_index], 1.0e-6f);
-    const float normalized_age = std::clamp(core.age[particle_index] / lifetime, 0.0f, 1.0f);
-    core.normalized_age[particle_index] = normalized_age;
-
-    if ((emitter.features & CompiledParticleFeature::update_size) != 0) {
-        core.size_x[particle_index] = (emitter.features & CompiledParticleFeature::spawn_size_x_lerp) != 0
-            ? std::lerp(core.size_x_begin[particle_index], core.size_x_end[particle_index], normalized_age)
-            : eval_scalar_track(emitter.size_x_track, normalized_age);
-        core.size_y[particle_index] = (emitter.features & CompiledParticleFeature::spawn_size_y_lerp) != 0
-            ? std::lerp(core.size_y_begin[particle_index], core.size_y_end[particle_index], normalized_age)
-            : eval_scalar_track(emitter.size_y_track, normalized_age);
-    }
-
-    if ((emitter.features & CompiledParticleFeature::update_rotation) != 0) {
-        core.rotation[particle_index] = eval_scalar_track(emitter.rotation_track, normalized_age)
-            + core.rotation_rate[particle_index] * core.age[particle_index];
-    }
-
-    if ((emitter.features & CompiledParticleFeature::update_frame) != 0) {
-        core.frame[particle_index] = eval_sprite_frame(
-            system.emitters[emitter_id].sampled_sheet, core.age[particle_index], normalized_age, core.frame_offset[particle_index]);
-    }
-
-    if ((emitter.features & CompiledParticleFeature::update_color) != 0) {
-        glm::vec4 color = (emitter.features & CompiledParticleFeature::spawn_color_lerp) != 0
-            ? glm::mix(core.color_begin[particle_index], core.color_end[particle_index], normalized_age)
-            : eval_color_track(emitter.color_track, normalized_age);
-        if ((emitter.features & CompiledParticleFeature::spawn_color_lerp) == 0) {
-            color.a = eval_scalar_track(emitter.alpha_track, normalized_age);
-        }
-        core.color_rgba8[particle_index] = pack_color(color);
-    }
-}
-
 void update_particle_presentation(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
     const ParticleEmitterState& emitter_state, size_t particle_index)
 {
@@ -1046,22 +932,6 @@ void update_particle_presentation(ParticleSystemInstance& system, const Compiled
     }
 }
 
-void advance_attached_bezier_path(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
-{
-    const auto& emitter = system.effect->emitters[emitter_id];
-    if (emitter.simulation_space != ParticleSimulationSpace::local
-        && emitter.simulation_space != ParticleSimulationSpace::emitter_attached) {
-        return;
-    }
-
-    const glm::vec3 delta = system.emitters[emitter_id].frame_delta;
-    auto& bezier = system.particles.bezier;
-    bezier.source_position[particle_index] += delta;
-    bezier.source_tangent[particle_index] += delta;
-    bezier.target_tangent[particle_index] += delta;
-    bezier.target_position[particle_index] += delta;
-}
-
 void advance_attached_bezier_path(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
     const ParticleEmitterState& emitter_state, size_t particle_index)
 {
@@ -1078,45 +948,10 @@ void advance_attached_bezier_path(ParticleSystemInstance& system, const Compiled
     bezier.target_position[particle_index] += delta;
 }
 
-void sync_dynamic_particle_position(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index)
-{
-    sync_attached_particle_position(system, emitter_id, particle_index);
-}
-
 void sync_dynamic_particle_position(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
     const ParticleEmitterState& emitter_state, size_t particle_index)
 {
     sync_attached_particle_position(system, emitter, emitter_state, particle_index);
-}
-
-void advance_dynamic_particle(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index, float dt,
-    const ParticleSimulationContext& context)
-{
-    auto& particles = system.particles;
-    auto& core = particles.core;
-    const auto& emitter = system.effect->emitters[emitter_id];
-
-    sync_dynamic_particle_position(system, emitter_id, particle_index);
-
-    if (emitter.affected_by_wind) {
-        core.velocity[particle_index] += context.external.wind * dt;
-    }
-    core.velocity[particle_index].z -= core.mass[particle_index] * dt;
-
-    const glm::vec3 previous_position = core.position[particle_index];
-    const auto simulation_space = effective_simulation_space(emitter);
-    if ((simulation_space == ParticleSimulationSpace::local
-            || simulation_space == ParticleSimulationSpace::emitter_attached
-            || simulation_space == ParticleSimulationSpace::spawn_attached)) {
-        const auto& emitter_state = system.emitters[emitter_id];
-        particles.attachment.local_position[particle_index] +=
-            attachment_world_delta_to_local(emitter_state, simulation_space, core.velocity[particle_index] * dt);
-        sync_attached_particle_position(system, emitter_id, particle_index);
-    } else {
-        core.position[particle_index] += core.velocity[particle_index] * dt;
-    }
-
-    apply_particle_collision(system, emitter_id, particle_index, previous_position, context);
 }
 
 void advance_dynamic_particle(ParticleSystemInstance& system, const CompiledParticleEmitter& emitter,
@@ -1138,8 +973,7 @@ void advance_dynamic_particle(ParticleSystemInstance& system, const CompiledPart
     if (simulation_space == ParticleSimulationSpace::local
         || simulation_space == ParticleSimulationSpace::emitter_attached
         || simulation_space == ParticleSimulationSpace::spawn_attached) {
-        particles.attachment.local_position[particle_index] +=
-            attachment_world_delta_to_local(emitter_state, simulation_space, core.velocity[particle_index] * dt);
+        particles.attachment.local_position[particle_index] += attachment_world_delta_to_local(emitter_state, simulation_space, core.velocity[particle_index] * dt);
         sync_attached_particle_position(system, emitter, emitter_state, particle_index);
     } else {
         core.position[particle_index] += core.velocity[particle_index] * dt;
@@ -1261,8 +1095,7 @@ ReservedParticleRange reserve_spawn_range(ParticleSystemInstance& system, uint16
     if (core.age.size() >= system.effect->max_particles_total || live_particles[emitter_id] >= emitter.max_particles) {
         return {.begin = core.age.size(), .count = 0};
     }
-    const uint32_t available_total =
-        static_cast<uint32_t>(std::min<size_t>(std::numeric_limits<uint32_t>::max(), system.effect->max_particles_total - core.age.size()));
+    const uint32_t available_total = static_cast<uint32_t>(std::min<size_t>(std::numeric_limits<uint32_t>::max(), system.effect->max_particles_total - core.age.size()));
     const uint32_t available_emitter = emitter.max_particles - live_particles[emitter_id];
     const uint32_t spawn_count = std::min(requested_count, std::min(available_total, available_emitter));
     if (spawn_count == 0) {
@@ -1398,7 +1231,8 @@ uint32_t render_sort_group_key(const CompiledParticleEffect& effect, const Parti
 {
     const auto emitter_id = core.emitter_id[particle_index];
     const auto& emitter = effect.emitters[emitter_id];
-    const uint32_t sort_order = static_cast<uint32_t>(effect.emitters[emitter_id].render.sort_order);
+    const uint32_t sort_order = static_cast<uint32_t>(std::clamp(
+        emitter.render.sort_order, int32_t{0}, kMaxParticleRenderSortOrder));
     const bool preserve_emitter_partition = emitter.kernel == CompiledParticleKernel::mesh_basic
         || emitter.render.mode == ParticleRenderMode::linked_chain
         || emitter.render.mode == ParticleRenderMode::beam;
@@ -1538,7 +1372,7 @@ bool compatible_packet_state(const ParticleSystemInstance& system, uint32_t mate
         && lhs.render.deadspace_radians == rhs.render.deadspace_radians
         && lhs.region.type == rhs.region.type
         && (lhs.region.type != ParticleSpawnRegionType::rect
-                || (lhs.region.size.x == rhs.region.size.x && lhs.region.size.y == rhs.region.size.y))
+            || (lhs.region.size.x == rhs.region.size.x && lhs.region.size.y == rhs.region.size.y))
         && same_particle_sheet(system.emitters[lhs_emitter_id].sampled_sheet, system.emitters[rhs_emitter_id].sampled_sheet);
 }
 
@@ -1657,8 +1491,7 @@ void spawn_pending_bursts(ParticleSystemInstance& system, uint16_t emitter_id, c
     const float particles_per_burst_f = emitter.emission.trigger_on_effect_events
         ? emission_rate * std::max(emitter.emission.effect_event_period, 0.0f)
         : emission_rate;
-    const uint32_t particles_per_burst =
-        static_cast<uint32_t>(std::lround(std::max(0.0f, particles_per_burst_f)));
+    const uint32_t particles_per_burst = static_cast<uint32_t>(std::lround(std::max(0.0f, particles_per_burst_f)));
     const auto range = reserve_spawn_range(system, emitter_id, state.pending_bursts * particles_per_burst);
     size_t write = range.begin;
     for (uint32_t burst = 0; burst < state.pending_bursts; ++burst) {

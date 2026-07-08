@@ -14,6 +14,7 @@
 #include <limits>
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <string_view>
 
 namespace {
 
@@ -34,6 +35,18 @@ struct FlatGroundCollisionProvider final : ParticleCollisionProvider {
         };
     }
 };
+
+bool has_compile_warning(const ParticleCompileResult& result, uint32_t emitter, std::string_view message)
+{
+    return std::find_if(result.warnings.begin(), result.warnings.end(), [&](const auto& item) {
+        return item.emitter == emitter && item.message == message;
+    }) != result.warnings.end();
+}
+
+bool finite_vec3(const glm::vec3& value)
+{
+    return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+}
 
 TEST(RenderParticles, CompileClassifiesBasicSpriteEmitter)
 {
@@ -320,6 +333,132 @@ TEST(RenderParticles, CompileWarnsWhenEmitterParticleCapIsZero)
             && item.message == "max_particles is 0; emitter will not spawn particles";
     });
     EXPECT_NE(warning, result.warnings.end());
+}
+
+TEST(RenderParticles, CompileClampsHugeEmitterParticleCaps)
+{
+    ParticleEffectDef effect;
+    effect.materials.push_back(ParticleMaterialDef{});
+
+    ParticleEmitterDef emitter;
+    emitter.render.material = 0;
+    emitter.max_particles = std::numeric_limits<uint32_t>::max();
+    effect.emitters.push_back(emitter);
+
+    auto result = compile_particle_effect(effect);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+    EXPECT_EQ(result.effect.emitters[0].max_particles, kMaxCompiledParticlesPerEmitter);
+    EXPECT_EQ(result.effect.max_particles_total, kMaxCompiledParticlesPerEmitter);
+    EXPECT_TRUE(has_compile_warning(
+        result, 0u, "max_particles exceeds per-emitter runtime cap; clamping"));
+}
+
+TEST(RenderParticles, CompileClampsNegativeJsonParticleCaps)
+{
+    const auto j = nlohmann::json::parse(R"json({
+        "$type": "ParticleEffect",
+        "materials": [{}],
+        "emitters": [{
+            "render": {"material": 0},
+            "max_particles": -1
+        }]
+    })json");
+
+    ParticleEffectDef effect;
+    std::string error;
+    ASSERT_TRUE(try_parse_particle_effect_json(j, effect, &error)) << error;
+
+    auto result = compile_particle_effect(effect);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+    EXPECT_EQ(result.effect.emitters[0].max_particles, kMaxCompiledParticlesPerEmitter);
+    EXPECT_EQ(result.effect.max_particles_total, kMaxCompiledParticlesPerEmitter);
+}
+
+TEST(RenderParticles, CompileClampsTotalParticleCap)
+{
+    ParticleEffectDef effect;
+    effect.materials.push_back(ParticleMaterialDef{});
+
+    constexpr uint32_t emitter_count = kMaxCompiledParticlesPerEffect / kMaxCompiledParticlesPerEmitter + 1u;
+    for (uint32_t i = 0; i < emitter_count; ++i) {
+        ParticleEmitterDef emitter;
+        emitter.render.material = 0;
+        emitter.max_particles = kMaxCompiledParticlesPerEmitter;
+        effect.emitters.push_back(emitter);
+    }
+
+    auto result = compile_particle_effect(effect);
+    ASSERT_EQ(result.effect.emitters.size(), emitter_count);
+    EXPECT_EQ(result.effect.max_particles_total, kMaxCompiledParticlesPerEffect);
+    EXPECT_EQ(result.effect.emitters.back().max_particles, 0u);
+    EXPECT_TRUE(has_compile_warning(
+        result, emitter_count - 1u, "max_particles_total exceeds runtime cap; clamping compiled effect capacity"));
+}
+
+TEST(RenderParticles, CompileSanitizesNonFiniteJsonNumerics)
+{
+    const auto j = nlohmann::json::parse(R"json({
+        "$type": "ParticleEffect",
+        "materials": [{
+            "sheet": {"columns": 1, "rows": 1, "frames_per_second": 1e40}
+        }],
+        "emitters": [{
+            "emission": {"mode": "continuous", "rate": 2.0},
+            "initial": {
+                "lifetime": {"min": 1.0, "max": 1.0},
+                "speed": {"min": 1.0, "max": 1.0},
+                "spread_radians": 1e40,
+                "color": [1.0, 1e40, 1.0, 1.0]
+            },
+            "targeting": {"mode": "point_gravity", "gravity": 1e40},
+            "render": {"material": 0, "opacity_scale": 1e40},
+            "max_particles": 4
+        }]
+    })json");
+
+    ParticleEffectDef effect;
+    std::string error;
+    ASSERT_TRUE(try_parse_particle_effect_json(j, effect, &error)) << error;
+
+    auto result = compile_particle_effect(effect);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+    EXPECT_TRUE(has_compile_warning(
+        result, std::numeric_limits<uint32_t>::max(), "non-finite particle material numeric field sanitized to 0"));
+    EXPECT_TRUE(has_compile_warning(
+        result, 0u, "non-finite particle emitter numeric field sanitized to 0"));
+
+    auto system = create_particle_system(result.effect);
+    tick_particle_system(system, 0.5f);
+
+    ASSERT_EQ(system.particles.core.position.size(), 1u);
+    EXPECT_TRUE(finite_vec3(system.particles.core.position[0]));
+    EXPECT_TRUE(finite_vec3(system.particles.core.velocity[0]));
+    EXPECT_TRUE(std::isfinite(system.particles.core.size_x[0]));
+    EXPECT_TRUE(std::isfinite(system.particles.core.size_y[0]));
+    EXPECT_TRUE(std::isfinite(system.particles.core.mass[0]));
+}
+
+TEST(RenderParticles, CompileClampsSortOrderToPackedKeyRange)
+{
+    ParticleEffectDef effect;
+    effect.materials.push_back(ParticleMaterialDef{});
+
+    ParticleEmitterDef low;
+    low.render.material = 0;
+    low.render.sort_order = -10;
+    low.max_particles = 1;
+    effect.emitters.push_back(low);
+
+    ParticleEmitterDef high = low;
+    high.render.sort_order = 999;
+    effect.emitters.push_back(high);
+
+    auto result = compile_particle_effect(effect);
+    ASSERT_EQ(result.effect.emitters.size(), 2u);
+    EXPECT_EQ(result.effect.emitters[0].render.sort_order, 0);
+    EXPECT_EQ(result.effect.emitters[1].render.sort_order, kMaxParticleRenderSortOrder);
+    EXPECT_TRUE(has_compile_warning(result, 0u, "sort_order outside [0,255]; clamping"));
+    EXPECT_TRUE(has_compile_warning(result, 1u, "sort_order outside [0,255]; clamping"));
 }
 
 TEST(RenderParticles, TickEnforcesPerEmitterParticleCap)
@@ -1564,6 +1703,41 @@ TEST(RenderParticles, TickAdvancesImplicitMultiFrameAtlasOverLifetime)
     tick_particle_system(system, 0.5f);
     ASSERT_EQ(system.particles.core.frame.size(), 1u);
     EXPECT_EQ(system.particles.core.frame[0], 2u);
+}
+
+TEST(RenderParticles, TickAdvancesLargeSpriteSheetWithoutFrameCountTruncation)
+{
+    ParticleEffectDef effect;
+    ParticleMaterialDef material;
+    material.sheet.columns = 256;
+    material.sheet.rows = 256;
+    material.sheet.frame_begin = 0;
+    material.sheet.frame_end = 0;
+    material.sheet.frames_per_second = 0.0f;
+    effect.materials.push_back(material);
+
+    ParticleEmitterDef emitter;
+    emitter.render.material = 0;
+    emitter.emission.mode = ParticleEmissionMode::event_burst;
+    emitter.emission.rate = 1.0f;
+    emitter.initial.lifetime = {1.0f, 1.0f};
+    emitter.max_particles = 1;
+    effect.emitters.push_back(emitter);
+
+    auto compiled = compile_particle_effect(effect).effect;
+    ASSERT_EQ(compiled.emitters.size(), 1u);
+    EXPECT_NE(compiled.emitters[0].features & CompiledParticleFeature::update_frame, 0u);
+
+    auto system = create_particle_system(compiled);
+    trigger_particle_emitter(system, 0, 1);
+    tick_particle_system(system, 0.5f);
+
+    ASSERT_EQ(system.particles.core.frame.size(), 1u);
+    EXPECT_EQ(system.particles.core.frame[0], 32768u);
+
+    const auto packets = build_particle_render_packets(system);
+    ASSERT_EQ(packets.size(), 1u);
+    EXPECT_EQ(packets[0].sheet.frame_end, std::numeric_limits<uint16_t>::max());
 }
 
 TEST(RenderParticles, TickEventBurstWithZeroRateSpawnsNoParticles)
