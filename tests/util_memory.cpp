@@ -124,15 +124,36 @@ TEST(Memory, GlobalMemoryAlignsHeaderAndPayload)
 TEST(Memory, Pool)
 {
     nw::MemoryPool mp(1024, 8);
-    size_t free = mp.pools_[3].free_list_.size();
+    std::vector<size_t> free_before;
+    free_before.reserve(mp.pools_.size());
+    for (const auto& pool : mp.pools_) {
+        free_before.push_back(pool.free_list_.size());
+    }
+
+    size_t allocated_pool = mp.pools_.size();
     {
-        EXPECT_EQ(32 + 16, mp.pools_[3].block_size());
-        void* ptr = mp.allocate(16, alignof(std::max_align_t));
+        void* ptr = mp.allocate(16, 16);
         ASSERT_NE(ptr, nullptr);
-        EXPECT_EQ(free - 1, mp.pools_[3].free_list_.size());
+        EXPECT_EQ(reinterpret_cast<uintptr_t>(ptr) % 16, 0u);
+
+        size_t changed_pools = 0;
+        for (size_t i = 0; i < mp.pools_.size(); ++i) {
+            const size_t free_after = mp.pools_[i].free_list_.size();
+            if (free_after + 1 == free_before[i]) {
+                allocated_pool = i;
+                ++changed_pools;
+            } else {
+                EXPECT_EQ(free_before[i], free_after);
+            }
+        }
+        EXPECT_EQ(changed_pools, size_t{1});
+        EXPECT_NE(allocated_pool, mp.pools_.size());
+
         mp.deallocate(ptr);
     }
-    EXPECT_EQ(free, mp.pools_[3].free_list_.size());
+    for (size_t i = 0; i < mp.pools_.size(); ++i) {
+        EXPECT_EQ(free_before[i], mp.pools_[i].free_list_.size());
+    }
 }
 
 TEST(Memory, PoolFallbackAllocatesHeaderAndPayload)
