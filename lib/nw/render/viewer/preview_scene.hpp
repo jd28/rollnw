@@ -291,6 +291,8 @@ struct SceneModelAttachmentBinding {
     float child_local_scale = 1.0f;
 };
 
+inline constexpr uint32_t kInvalidSceneModelAttachmentBindingIndex = std::numeric_limits<uint32_t>::max();
+
 struct PreviewSceneRuntimeSyncStats {
     uint32_t nwn_model_count = 0;
     uint32_t render_model_count = 0;
@@ -358,9 +360,11 @@ struct SceneLocalLight {
 struct PreviewScene {
     std::vector<std::unique_ptr<ModelInstance>> models;
     std::vector<nw::render::ModelInstanceHandle> model_instance_handles;
+    std::vector<uint32_t> model_attachment_binding_indices;
     std::vector<AreaRenderSourceInfo> area_model_info;
     std::vector<std::unique_ptr<nw::render::RenderModel>> static_models;
     std::vector<nw::render::ModelInstanceHandle> static_model_instance_handles;
+    std::vector<uint32_t> static_model_attachment_binding_indices;
     std::vector<AreaRenderSourceInfo> static_area_model_info;
     nw::render::ModelInstanceStore model_instances;
     nw::render::ModelMaterialOverrideStore material_overrides;

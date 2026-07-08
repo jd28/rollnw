@@ -137,7 +137,8 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
     const nw::render::RenderContext& ctx,
     nw::render::RenderPassSelection pass,
-    const nw::render::PreparedRenderModelSkinTable* skin_table = nullptr);
+    const nw::render::PreparedRenderModelSkinTable* skin_table = nullptr,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
 PreviewPreparedNwnLegacyDrawItemStats render_prepared_nwn_legacy_surface_draws(
     nw::render::RenderService& render_service,
     nw::gfx::CommandList* cmd,

@@ -23,6 +23,7 @@ public:
 
     virtual nw::gfx::Handle<nw::gfx::Texture> get_texture(std::string_view name, bool premultiply_alpha) = 0;
     virtual const nw::Image* get_source_image(std::string_view name) = 0;
+    virtual bool source_image_is_white_alpha_mask(std::string_view name) = 0;
     virtual bool texture_rows_flipped(std::string_view name, bool premultiply_alpha) = 0;
     virtual nw::gfx::Handle<nw::gfx::Texture> fallback_texture() const = 0;
 };

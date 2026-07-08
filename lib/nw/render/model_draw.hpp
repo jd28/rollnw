@@ -395,12 +395,14 @@ struct PreparedRenderModelSkinTable {
 struct PreparedModelSurfaceDrawList {
     std::vector<PreparedModelSurfaceDraw> draws;
     PreparedRenderModelSkinTable render_model_skins;
+    PreparedRenderModelSurfacePacketList render_model_surface_packets;
     PreparedModelSurfaceDrawStats stats{};
 
     void clear()
     {
         draws.clear();
         render_model_skins.clear();
+        render_model_surface_packets.clear();
         stats = {};
     }
 };
@@ -1017,10 +1019,11 @@ inline void collect_prepared_render_model_skin_tables(
     out.ranges.reserve(surfaces.size());
 
     const auto find_range = [&out](ModelInstanceHandle instance, uint32_t source_skin_index) noexcept {
-        for (size_t i = 0; i < out.ranges.size(); ++i) {
-            const auto& range = out.ranges[i];
+        for (size_t i = out.ranges.size(); i > 0; --i) {
+            const size_t range_index = i - 1u;
+            const auto& range = out.ranges[range_index];
             if (range.instance == instance && range.source_skin_index == source_skin_index) {
-                return detail::prepared_model_draw_saturating_count(i);
+                return detail::prepared_model_draw_saturating_count(range_index);
             }
         }
         return kInvalidPreparedModelDrawIndex;

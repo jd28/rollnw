@@ -105,6 +105,29 @@ bool skeleton_eval_order_valid(const Skeleton& skeleton) noexcept
     return true;
 }
 
+bool skeleton_node_to_joint_valid(const Skeleton& skeleton) noexcept
+{
+    size_t expected_count = 0;
+    for (const auto& joint : skeleton.joints) {
+        if (joint.node >= 0) {
+            expected_count = std::max(expected_count, static_cast<size_t>(joint.node) + 1u);
+        }
+    }
+    if (skeleton.node_to_joint.size() != expected_count) {
+        return false;
+    }
+    for (size_t joint_index = 0; joint_index < skeleton.joints.size(); ++joint_index) {
+        const int32_t node = skeleton.joints[joint_index].node;
+        if (node < 0 || static_cast<size_t>(node) >= skeleton.node_to_joint.size()) {
+            continue;
+        }
+        if (skeleton.node_to_joint[static_cast<size_t>(node)] != static_cast<int32_t>(joint_index)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool valid_texture_source_index(uint32_t index, size_t texture_source_count) noexcept
 {
     return index == kInvalidModelAssetTextureSourceIndex || index < texture_source_count;
@@ -592,6 +615,9 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
         if (!skeleton_eval_order_valid(skeleton)) {
             ++stats.invalid_skeleton_eval_order_count;
         }
+        if (!skeleton_node_to_joint_valid(skeleton)) {
+            ++stats.invalid_skeleton_node_to_joint_count;
+        }
     }
 
     for (const auto& clip : asset.animations) {
@@ -719,6 +745,7 @@ bool upload_model_asset_primitive(nw::gfx::Context* ctx, const ModelAssetPrimiti
     uploaded.skinned = source.uses_skinned_vertices();
     uploaded.casts_shadow = source.casts_shadow;
     uploaded.transform = source.transform;
+    uploaded.inverse_mesh_transform = glm::inverse(source.transform);
     uploaded.bounds = source.bounds;
 
     std::vector<uint16_t> indices16;

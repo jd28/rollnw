@@ -124,6 +124,7 @@ struct ModelAssetValidationStats {
     uint32_t invalid_skeleton_joint_parent_count = 0;
     uint32_t invalid_skeleton_joint_node_count = 0;
     uint32_t invalid_skeleton_eval_order_count = 0;
+    uint32_t invalid_skeleton_node_to_joint_count = 0;
     uint32_t animation_count = 0;
     uint32_t invalid_animation_skeleton_count = 0;
     uint32_t invalid_animation_track_count = 0;
@@ -158,6 +159,7 @@ struct ModelAssetValidationStats {
             + invalid_skeleton_joint_parent_count
             + invalid_skeleton_joint_node_count
             + invalid_skeleton_eval_order_count
+            + invalid_skeleton_node_to_joint_count
             + invalid_animation_skeleton_count
             + invalid_animation_track_count
             + invalid_animation_duration_count;

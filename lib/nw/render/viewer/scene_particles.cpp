@@ -49,6 +49,11 @@ public:
         return service_.asset_cache().get_or_load_source_image(std::string{name});
     }
 
+    bool source_image_is_white_alpha_mask(std::string_view name) override
+    {
+        return service_.asset_cache().source_image_is_white_alpha_mask(std::string{name});
+    }
+
     bool texture_rows_flipped(std::string_view name, bool premultiply_alpha) override
     {
         return service_.asset_cache().texture_rows_flipped_on_upload(std::string{name}, premultiply_alpha);

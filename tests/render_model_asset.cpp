@@ -470,6 +470,7 @@ TEST(RenderModelAsset, ValidationCountsInvalidSkeletonAndAnimationRows)
     EXPECT_EQ(stats.invalid_skeleton_joint_parent_count, 1u);
     EXPECT_EQ(stats.invalid_skeleton_joint_node_count, 1u);
     EXPECT_EQ(stats.invalid_skeleton_eval_order_count, 1u);
+    EXPECT_EQ(stats.invalid_skeleton_node_to_joint_count, 1u);
     EXPECT_EQ(stats.animation_count, 2u);
     EXPECT_EQ(stats.invalid_animation_duration_count, 1u);
     EXPECT_EQ(stats.invalid_animation_skeleton_count, 1u);

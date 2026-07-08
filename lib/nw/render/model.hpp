@@ -322,6 +322,7 @@ struct Primitive {
     bool skinned = false;
     bool casts_shadow = true;
     glm::mat4 transform{1.0f};
+    glm::mat4 inverse_mesh_transform{1.0f};
     Bounds bounds;
 };
 

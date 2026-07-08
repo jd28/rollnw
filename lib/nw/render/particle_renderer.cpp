@@ -143,38 +143,6 @@ void plane_aligned_billboard_axes(const RenderContext& ctx, const glm::vec3& pos
     up = candidate_up / std::sqrt(up_len2);
 }
 
-bool is_white_alpha_mask_texture(const nw::Image& image)
-{
-    if (!image.valid() || image.width() == 0 || image.height() == 0 || image.channels() < 4 || !image.data()) {
-        return false;
-    }
-
-    const auto* pixels = image.data();
-    const size_t pixel_count = static_cast<size_t>(image.width()) * static_cast<size_t>(image.height());
-    const size_t stride = static_cast<size_t>(image.channels());
-    const size_t sample_step = std::max<size_t>(1, pixel_count / 256u);
-
-    bool saw_low_alpha = false;
-    bool saw_high_alpha = false;
-    float min_rgb = 1.0f;
-    float max_channel_delta = 0.0f;
-
-    for (size_t i = 0; i < pixel_count; i += sample_step) {
-        const size_t idx = i * stride;
-        const float r = pixels[idx + 0] * (1.0f / 255.0f);
-        const float g = pixels[idx + 1] * (1.0f / 255.0f);
-        const float b = pixels[idx + 2] * (1.0f / 255.0f);
-        const float a = pixels[idx + 3] * (1.0f / 255.0f);
-
-        min_rgb = std::min(min_rgb, std::min(r, std::min(g, b)));
-        max_channel_delta = std::max(max_channel_delta, std::max(std::abs(r - g), std::max(std::abs(g - b), std::abs(b - r))));
-        saw_low_alpha |= a <= 0.03f;
-        saw_high_alpha |= a >= 0.80f;
-    }
-
-    return saw_low_alpha && saw_high_alpha && min_rgb >= 0.96f && max_channel_delta <= 0.02f;
-}
-
 glm::vec3 ribbon_right_axis(
     const RenderContext& ctx, const glm::vec3& a, const glm::vec3& b, const glm::vec3& fallback_right)
 {
@@ -403,8 +371,8 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
         }
         const bool texture_rows_flipped = texture_name && resources.texture_rows_flipped(texture_name, premultiply_alpha);
         const bool additive_alpha_mask_billboard = packet.blend == ParticleBlendMode::additive
-            && source_image
-            && is_white_alpha_mask_texture(*source_image);
+            && texture_name
+            && resources.source_image_is_white_alpha_mask(texture_name);
 
         const float cols = std::max<uint16_t>(1, packet.sheet.columns);
         const float rows = std::max<uint16_t>(1, packet.sheet.rows);

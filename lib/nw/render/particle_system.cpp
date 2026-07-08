@@ -1334,18 +1334,13 @@ void spawn_particle(ParticleSystemInstance& system, uint16_t emitter_id, const g
     spawn_particle_at(system, emitter_id, range.begin, base_position);
 }
 
-size_t find_particle_for_emitter(const ParticleCoreStorage& core, uint16_t emitter_id)
-{
-    for (size_t i = 0; i < core.emitter_id.size(); ++i) {
-        if (core.emitter_id[i] == emitter_id) { return i; }
-    }
-    return static_cast<size_t>(-1);
-}
-
 void ensure_beam_particle(ParticleSystemInstance& system, uint16_t emitter_id)
 {
     NW_PROFILE_SCOPE_N("ensure_beam_particle");
-    if (find_particle_for_emitter(system.particles.core, emitter_id) != static_cast<size_t>(-1)) { return; }
+    if (emitter_id >= system.live_particles_per_emitter.size()
+        || system.live_particles_per_emitter[emitter_id] != 0) {
+        return;
+    }
     spawn_particle(system, emitter_id, emitter_position(system.emitters[emitter_id]));
     if (!system.particles.core.lifetime.empty()) {
         // Beam particles persist until the emitter is disabled or retargeted.

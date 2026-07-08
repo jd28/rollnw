@@ -7,6 +7,7 @@
 #include <nw/util/error_context.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -70,6 +71,38 @@ size_t particle_mesh_payload_bytes(const ModelInstance* model) noexcept
         result = saturating_add(result, saturating_multiply(mesh->index_count, sizeof(uint16_t)));
     }
     return result;
+}
+
+bool is_white_alpha_mask_texture(const nw::Image& image)
+{
+    if (!image.valid() || image.width() == 0 || image.height() == 0 || image.channels() < 4 || !image.data()) {
+        return false;
+    }
+
+    const auto* pixels = image.data();
+    const size_t pixel_count = static_cast<size_t>(image.width()) * static_cast<size_t>(image.height());
+    const size_t stride = static_cast<size_t>(image.channels());
+    const size_t sample_step = std::max<size_t>(1, pixel_count / 256u);
+
+    bool saw_low_alpha = false;
+    bool saw_high_alpha = false;
+    float min_rgb = 1.0f;
+    float max_channel_delta = 0.0f;
+
+    for (size_t i = 0; i < pixel_count; i += sample_step) {
+        const size_t idx = i * stride;
+        const float r = pixels[idx + 0] * (1.0f / 255.0f);
+        const float g = pixels[idx + 1] * (1.0f / 255.0f);
+        const float b = pixels[idx + 2] * (1.0f / 255.0f);
+        const float a = pixels[idx + 3] * (1.0f / 255.0f);
+
+        min_rgb = std::min(min_rgb, std::min(r, std::min(g, b)));
+        max_channel_delta = std::max(max_channel_delta, std::max(std::abs(r - g), std::max(std::abs(g - b), std::abs(b - r))));
+        saw_low_alpha |= a <= 0.03f;
+        saw_high_alpha |= a >= 0.80f;
+    }
+
+    return saw_low_alpha && saw_high_alpha && min_rgb >= 0.96f && max_channel_delta <= 0.02f;
 }
 
 void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t height,
@@ -234,6 +267,7 @@ void RenderAssetCache::clear(nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
     }
     texture_cache_.clear();
     image_cache_.clear();
+    white_alpha_mask_cache_.clear();
     particle_mesh_cache_.clear();
     clear_model_loader_resource_caches();
 }
@@ -530,6 +564,21 @@ const nw::Image* RenderAssetCache::get_or_load_source_image(const std::string& n
     auto image = std::make_unique<nw::Image>(std::move(data), true);
     const auto* result = image && image->valid() ? image.get() : nullptr;
     image_cache_[name] = std::move(image);
+    return result;
+}
+
+bool RenderAssetCache::source_image_is_white_alpha_mask(const std::string& name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    if (auto it = white_alpha_mask_cache_.find(name); it != white_alpha_mask_cache_.end()) {
+        return it->second;
+    }
+
+    const auto* image = get_or_load_source_image(name);
+    const bool result = image && is_white_alpha_mask_texture(*image);
+    white_alpha_mask_cache_[name] = result;
     return result;
 }
 

@@ -136,26 +136,6 @@ bool publish_sampled_node_world_transforms(
     return published;
 }
 
-std::vector<int32_t> build_node_to_joint_map(const Skeleton& skeleton)
-{
-    size_t node_count = 0;
-    for (const auto& joint : skeleton.joints) {
-        if (joint.node >= 0) {
-            node_count = std::max(node_count, static_cast<size_t>(joint.node) + 1u);
-        }
-    }
-
-    std::vector<int32_t> node_to_joint(node_count, -1);
-    for (size_t i = 0; i < skeleton.joints.size(); ++i) {
-        const int32_t node = skeleton.joints[i].node;
-        if (node >= 0 && static_cast<size_t>(node) < node_to_joint.size()
-            && i <= static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
-            node_to_joint[static_cast<size_t>(node)] = static_cast<int32_t>(i);
-        }
-    }
-    return node_to_joint;
-}
-
 bool build_model_instance_skin_matrices(
     const Pose& pose,
     const Skin& skin,
@@ -235,7 +215,6 @@ SampleResult sample_model_instance_animation_impl(
         animation.pose);
     animation.skin_matrices.resize(model.skins.size());
     bool published_skin_matrices = false;
-    const auto node_to_joint = build_node_to_joint_map(skeleton);
     for (size_t skin_index = 0; skin_index < model.skins.size(); ++skin_index) {
         const auto& skin = model.skins[skin_index];
         if (skin.skeleton != clip.skeleton) {
@@ -244,7 +223,9 @@ SampleResult sample_model_instance_animation_impl(
         published_skin_matrices = build_model_instance_skin_matrices(
                                       animation.pose,
                                       skin,
-                                      std::span<const int32_t>{node_to_joint.data(), node_to_joint.size()},
+                                      std::span<const int32_t>{
+                                          skeleton.node_to_joint.data(),
+                                          skeleton.node_to_joint.size()},
                                       animation.skin_matrices[skin_index])
             || published_skin_matrices;
     }

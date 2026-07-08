@@ -794,7 +794,8 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
     const nw::render::RenderContext& ctx,
     nw::render::RenderPassSelection pass,
-    const nw::render::PreparedRenderModelSkinTable* skin_table)
+    const nw::render::PreparedRenderModelSkinTable* skin_table,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
 {
     nw::render::PreparedRenderModelSurfaceSubmissionStats stats{};
 
@@ -824,7 +825,8 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
             pass,
             skin_table,
             &scene.material_overrides,
-            &stats);
+            &stats,
+            packet_scratch);
     }
 
     return stats;
@@ -839,7 +841,8 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
     const nw::render::RenderContext& ctx,
     nw::render::RenderPassSelection pass,
-    const nw::render::PreparedRenderModelSkinTable* skin_table)
+    const nw::render::PreparedRenderModelSkinTable* skin_table,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
 {
     return render_prepared_render_model_surface_draws_for_pass(
         render_model_ctx,
@@ -848,7 +851,8 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         prepared_surface_pass_span(surfaces, pass),
         ctx,
         pass,
-        skin_table);
+        skin_table,
+        packet_scratch);
 }
 
 PreviewPreparedNwnLegacyDrawItemStats collect_nwn_legacy_prepared_surface_draw_items(

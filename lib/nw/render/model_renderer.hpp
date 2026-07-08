@@ -34,7 +34,8 @@ void render_prepared_render_model_surfaces(const ModelRenderContext& render_ctx,
     RenderPassSelection pass = RenderPassSelection::all,
     const PreparedRenderModelSkinTable* skin_table = nullptr,
     const ModelMaterialOverrideStore* material_overrides = nullptr,
-    PreparedRenderModelSurfaceSubmissionStats* stats = nullptr);
+    PreparedRenderModelSurfaceSubmissionStats* stats = nullptr,
+    PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
 void render_prepared_render_model_shadow_surfaces(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
     const RenderModel& model, std::span<const PreparedModelSurfaceDraw> surfaces,
     uint32_t range_index, const glm::mat4& light_view, const glm::mat4& light_projection,

@@ -954,7 +954,8 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             surfaces,
             pass_context,
             pass,
-            render_model_skin_table);
+            render_model_skin_table,
+            &prepared_model_surfaces_.render_model_surface_packets);
         add_prepared_surface_submission_stats(frame_stats, submission_stats);
     };
 

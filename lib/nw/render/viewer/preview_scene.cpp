@@ -2002,10 +2002,22 @@ static const SceneModelAttachmentBinding* scene_model_attachment_binding_for_chi
     nw::render::ModelInstanceKind child_kind,
     uint32_t child_model_index) noexcept
 {
-    for (const auto& binding : scene.model_attachments) {
-        if (binding.child_kind == child_kind && binding.child_model_index == child_model_index) {
-            return &binding;
-        }
+    const auto& binding_indices = child_kind == nw::render::ModelInstanceKind::render_model
+        ? scene.static_model_attachment_binding_indices
+        : scene.model_attachment_binding_indices;
+    if (child_model_index >= binding_indices.size()) {
+        return nullptr;
+    }
+
+    const uint32_t binding_index = binding_indices[child_model_index];
+    if (binding_index == kInvalidSceneModelAttachmentBindingIndex
+        || binding_index >= scene.model_attachments.size()) {
+        return nullptr;
+    }
+
+    const auto& binding = scene.model_attachments[binding_index];
+    if (binding.child_kind == child_kind && binding.child_model_index == child_model_index) {
+        return &binding;
     }
     return nullptr;
 }
@@ -2315,10 +2327,13 @@ void PreviewScene::add(std::unique_ptr<ModelInstance> model)
     const size_t model_index = models.size();
     auto handle = model_instances.create(make_common_nwn_model_instance(*model, model_index));
     model_instance_handles.push_back(handle);
+    model_attachment_binding_indices.push_back(kInvalidSceneModelAttachmentBindingIndex);
     const uint32_t owner_model_index = scene_nwn_model_index_for_pointer(*this, model->transform_context_);
     if (owner_model_index != std::numeric_limits<uint32_t>::max()
         && owner_model_index < model_instance_handles.size()
         && model_index <= std::numeric_limits<uint32_t>::max()) {
+        const uint32_t binding_index = static_cast<uint32_t>(
+            std::min<size_t>(model_attachments.size(), std::numeric_limits<uint32_t>::max()));
         model_attachments.push_back(SceneModelAttachmentBinding{
             .child_model_index = static_cast<uint32_t>(model_index),
             .child_instance_handle = handle,
@@ -2327,6 +2342,7 @@ void PreviewScene::add(std::unique_ptr<ModelInstance> model)
             .owner_socket_index = model->transform_anchor_socket_index_,
             .child_source_socket_index = model->transform_source_anchor_socket_index_,
         });
+        model_attachment_binding_indices[model_index] = binding_index;
     }
     models.push_back(std::move(model));
     area_model_info.emplace_back();
@@ -2370,6 +2386,7 @@ void PreviewScene::add(std::unique_ptr<nw::render::RenderModel> model)
     const size_t model_index = static_models.size();
     const auto owner_handle = model_instances.create(make_common_render_model_instance(*model, model_index));
     static_model_instance_handles.push_back(owner_handle);
+    static_model_attachment_binding_indices.push_back(kInvalidSceneModelAttachmentBindingIndex);
 
     if (model_index <= std::numeric_limits<uint32_t>::max()) {
         particles.reserve(particles.size() + model->particle_systems.size());
@@ -2414,6 +2431,8 @@ void PreviewScene::add_attached(std::unique_ptr<nw::render::RenderModel> model, 
         return;
     }
 
+    const uint32_t binding_index = static_cast<uint32_t>(
+        std::min<size_t>(model_attachments.size(), std::numeric_limits<uint32_t>::max()));
     model_attachments.push_back(SceneModelAttachmentBinding{
         .child_kind = nw::render::ModelInstanceKind::render_model,
         .child_model_index = static_cast<uint32_t>(child_model_index),
@@ -2425,6 +2444,7 @@ void PreviewScene::add_attached(std::unique_ptr<nw::render::RenderModel> model, 
         .child_source_socket_index = child_source_socket_index,
         .child_local_scale = child_local_scale,
     });
+    static_model_attachment_binding_indices[child_model_index] = binding_index;
 }
 
 void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
@@ -5154,6 +5174,8 @@ static void append_render_model_attachment_bindings(
             continue;
         }
 
+        const uint32_t binding_index = static_cast<uint32_t>(
+            std::min<size_t>(target.model_attachments.size(), std::numeric_limits<uint32_t>::max()));
         target.model_attachments.push_back(SceneModelAttachmentBinding{
             .child_kind = nw::render::ModelInstanceKind::render_model,
             .child_model_index = target_child_index,
@@ -5165,6 +5187,7 @@ static void append_render_model_attachment_bindings(
             .child_source_socket_index = binding.child_source_socket_index,
             .child_local_scale = binding.child_local_scale,
         });
+        target.static_model_attachment_binding_indices[target_child_index] = binding_index;
     }
 }
 
@@ -5185,6 +5208,7 @@ static size_t append_scene_models(
         }
     }
     source.models.clear();
+    source.model_attachment_binding_indices.clear();
 
     // AreaRenderScene currently records only legacy sidecar rows. RenderModel
     // rows are still moved into the target scene so the generic RenderModel
@@ -5220,6 +5244,7 @@ static size_t append_scene_models(
     }
     source.static_models.clear();
     source.static_model_instance_handles.clear();
+    source.static_model_attachment_binding_indices.clear();
     source.static_area_model_info.clear();
     source.material_overrides.clear();
     source.area_model_info.clear();

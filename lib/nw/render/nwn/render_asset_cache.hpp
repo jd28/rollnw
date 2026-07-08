@@ -6,10 +6,11 @@
 #include <nw/formats/Plt.hpp>
 #include <nw/gfx/gfx.hpp>
 
+#include <absl/container/flat_hash_map.h>
+
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace nw::render::nwn {
 
@@ -50,6 +51,7 @@ public:
     nw::gfx::Handle<nw::gfx::Texture> get_or_load_roughness_surface_texture(const std::string& name);
     nw::gfx::Handle<nw::gfx::Texture> get_or_load_raw_plt_texture(const std::string& name);
     const nw::Image* get_or_load_source_image(const std::string& name);
+    bool source_image_is_white_alpha_mask(const std::string& name);
     [[nodiscard]] bool texture_rows_flipped_on_upload(const std::string& name, bool premultiply_alpha) const;
     ModelInstance* get_or_load_particle_mesh(const std::string& resref);
 
@@ -61,9 +63,10 @@ private:
     };
 
     nw::gfx::Context* ctx_ = nullptr;
-    std::unordered_map<std::string, CachedTexture> texture_cache_;
-    std::unordered_map<std::string, std::unique_ptr<nw::Image>> image_cache_;
-    std::unordered_map<std::string, std::unique_ptr<ModelInstance>> particle_mesh_cache_;
+    absl::flat_hash_map<std::string, CachedTexture> texture_cache_;
+    absl::flat_hash_map<std::string, std::unique_ptr<nw::Image>> image_cache_;
+    absl::flat_hash_map<std::string, bool> white_alpha_mask_cache_;
+    absl::flat_hash_map<std::string, std::unique_ptr<ModelInstance>> particle_mesh_cache_;
 };
 
 } // namespace nw::render::nwn

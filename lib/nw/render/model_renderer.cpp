@@ -258,11 +258,10 @@ bool fill_render_model_bones(
     for (auto& bone : bones) {
         bone = glm::mat4(1.0f);
     }
-    const glm::mat4 inverse_mesh = glm::inverse(model.nodes[prim.node].world_transform);
     if (skin_matrices.available) {
         const auto src = skin_matrices.matrices;
         for (size_t i = 0; i < src.size() && i < bones.size(); ++i) {
-            bones[i] = inverse_mesh * src[i];
+            bones[i] = prim.inverse_mesh_transform * src[i];
         }
         bone_count = static_cast<uint32_t>(std::min<size_t>(skin_matrices.matrices.size(), bones.size()));
         return true;
@@ -274,7 +273,7 @@ bool fill_render_model_bones(
             || i >= skin.inverse_bind_matrices.size()) {
             continue;
         }
-        bones[i] = inverse_mesh * model.nodes[joint].world_transform * skin.inverse_bind_matrices[i];
+        bones[i] = prim.inverse_mesh_transform * model.nodes[joint].world_transform * skin.inverse_bind_matrices[i];
     }
     bone_count = static_cast<uint32_t>(skin.joints.size());
     return true;
@@ -662,13 +661,15 @@ void render_prepared_render_model_surfaces(const ModelRenderContext& render_ctx,
     const RenderContext& ctx,
     RenderPassSelection pass, const PreparedRenderModelSkinTable* skin_table,
     const ModelMaterialOverrideStore* material_overrides,
-    PreparedRenderModelSurfaceSubmissionStats* stats)
+    PreparedRenderModelSurfaceSubmissionStats* stats,
+    PreparedRenderModelSurfacePacketList* packet_scratch)
 {
     if (surfaces.empty()) {
         return;
     }
 
-    PreparedRenderModelSurfacePacketList packets;
+    PreparedRenderModelSurfacePacketList local_packets;
+    auto& packets = packet_scratch ? *packet_scratch : local_packets;
     collect_prepared_render_model_surface_packets(packets, model, surfaces, pass, skin_table, material_overrides);
 
     if (!render_ctx.gfx || !render_ctx.gpu || !cmd || model.primitives.empty()

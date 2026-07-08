@@ -10,6 +10,8 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <span>
 #include <string>
 #include <vector>
@@ -50,7 +52,27 @@ struct Joint {
 struct Skeleton {
     std::vector<Joint> joints;
     std::vector<uint32_t> eval_order; // topological order for build_model_matrices
+    std::vector<int32_t> node_to_joint; // node index -> joint index, built with eval_order
 };
+
+inline void build_node_to_joint_map(Skeleton& skeleton)
+{
+    size_t node_count = 0;
+    for (const auto& joint : skeleton.joints) {
+        if (joint.node >= 0) {
+            node_count = std::max(node_count, static_cast<size_t>(joint.node) + 1u);
+        }
+    }
+
+    skeleton.node_to_joint.assign(node_count, -1);
+    for (size_t i = 0; i < skeleton.joints.size(); ++i) {
+        const int32_t node = skeleton.joints[i].node;
+        if (node >= 0 && static_cast<size_t>(node) < skeleton.node_to_joint.size()
+            && i <= static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+            skeleton.node_to_joint[static_cast<size_t>(node)] = static_cast<int32_t>(i);
+        }
+    }
+}
 
 inline void build_eval_order(Skeleton& skeleton)
 {
@@ -69,6 +91,7 @@ inline void build_eval_order(Skeleton& skeleton)
     };
     for (size_t i = 0; i < skeleton.joints.size(); ++i)
         if (skeleton.joints[i].parent < 0) dfs(dfs, static_cast<int32_t>(i));
+    build_node_to_joint_map(skeleton);
 }
 
 enum class InterpolationMode {
