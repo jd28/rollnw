@@ -3,6 +3,7 @@
 #include <nw/gfx/gfx.hpp>
 #include <nw/render/gltf/import_gltf.hpp>
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -57,6 +58,21 @@ struct TestGfxRuntime {
         return context != nullptr;
     }
 };
+
+void write_file(const std::filesystem::path& path, const std::vector<uint8_t>& bytes)
+{
+    std::ofstream out(path, std::ios::binary);
+    out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+}
+
+void write_triangle_positions(const std::filesystem::path& path, const std::array<float, 9>& positions)
+{
+    std::vector<uint8_t> bin(positions.size() * sizeof(float), 0);
+    for (size_t i = 0; i < positions.size(); ++i) {
+        std::memcpy(bin.data() + i * sizeof(float), &positions[i], sizeof(float));
+    }
+    write_file(path, bin);
+}
 
 } // namespace
 
@@ -157,6 +173,158 @@ TEST(RenderGltfImport, ImportsModelAssetWithoutGraphicsContext)
     EXPECT_EQ(uploaded.geometry_upload_stats.uploaded_primitive_count, 0u);
     EXPECT_EQ(uploaded.geometry_upload_stats.missing_context_count, 1u);
     EXPECT_EQ(uploaded.texture_upload_stats.material_count, 0u);
+
+    std::filesystem::remove_all(dir);
+}
+
+TEST(RenderGltfImport, RepeatedSceneNodeReferenceImportsOnceAndCountsDuplicate)
+{
+    const auto dir = std::filesystem::temp_directory_path() / "rollnw_repeated_scene_node_gltf_import";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+
+    const auto bin_path = dir / "triangle.bin";
+    write_triangle_positions(bin_path, {
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           1.0f,
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           1.0f,
+                                           0.0f,
+                                       });
+
+    const auto gltf_path = dir / "repeated_scene_node.gltf";
+    {
+        std::ofstream out(gltf_path);
+        out << R"({
+  "asset": {"version": "2.0"},
+  "scene": 0,
+  "scenes": [{"nodes": [0, 0]}],
+  "nodes": [
+    {"mesh": 0}
+  ],
+  "buffers": [{"uri": "triangle.bin", "byteLength": 36}],
+  "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36}],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}
+  ],
+  "meshes": [{"primitives": [{
+    "attributes": {"POSITION": 0}
+  }]}]
+})";
+    }
+
+    auto result = nw::render::gltf::import_gltf_model_asset_with_stats(gltf_path);
+    ASSERT_TRUE(result.asset);
+    EXPECT_EQ(result.stats.source_node_count, 1u);
+    EXPECT_EQ(result.stats.imported_node_count, 1u);
+    EXPECT_EQ(result.stats.skipped_duplicate_node_count, 1u);
+    EXPECT_EQ(result.stats.skipped_depth_node_count, 0u);
+    EXPECT_EQ(result.stats.primitive_count, 1u);
+    EXPECT_EQ(result.stats.dropped_primitive_count, 0u);
+    ASSERT_EQ(result.asset->primitives.size(), 1u);
+    EXPECT_EQ(result.asset->primitives[0].node, 0);
+
+    std::filesystem::remove_all(dir);
+}
+
+TEST(RenderGltfImport, DeepNodeChainStopsAtDepthCap)
+{
+    const auto dir = std::filesystem::temp_directory_path() / "rollnw_deep_chain_gltf_import";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+
+    const auto bin_path = dir / "triangle.bin";
+    write_triangle_positions(bin_path, {
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           1.0f,
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           1.0f,
+                                           0.0f,
+                                       });
+
+    constexpr size_t node_count = 270;
+    const auto gltf_path = dir / "deep_chain.gltf";
+    {
+        std::ofstream out(gltf_path);
+        out << R"({"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],"nodes":[)";
+        for (size_t i = 0; i < node_count; ++i) {
+            if (i != 0) {
+                out << ',';
+            }
+            if (i + 1u < node_count) {
+                out << R"({"children":[)" << (i + 1u) << "]}";
+            } else {
+                out << R"({"mesh":0})";
+            }
+        }
+        out << R"(],"buffers":[{"uri":"triangle.bin","byteLength":36}],)";
+        out << R"("bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":36}],)";
+        out << R"("accessors":[{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3"}],)";
+        out << R"("meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}]})";
+    }
+
+    auto result = nw::render::gltf::import_gltf_model_asset_with_stats(gltf_path);
+    EXPECT_FALSE(result.asset);
+    EXPECT_EQ(result.stats.source_node_count, node_count);
+    EXPECT_GT(result.stats.imported_node_count, 0u);
+    EXPECT_GT(result.stats.skipped_depth_node_count, 0u);
+    EXPECT_EQ(result.stats.primitive_count, 0u);
+
+    std::filesystem::remove_all(dir);
+}
+
+TEST(RenderGltfImport, NonFinitePositionDropsPrimitiveAndCountsInput)
+{
+    const auto dir = std::filesystem::temp_directory_path() / "rollnw_nonfinite_position_gltf_import";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+
+    const auto bin_path = dir / "triangle.bin";
+    write_triangle_positions(bin_path, {
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           std::numeric_limits<float>::quiet_NaN(),
+                                           0.0f,
+                                           0.0f,
+                                           0.0f,
+                                           1.0f,
+                                           0.0f,
+                                       });
+
+    const auto gltf_path = dir / "nonfinite_position.gltf";
+    {
+        std::ofstream out(gltf_path);
+        out << R"({
+  "asset": {"version": "2.0"},
+  "scene": 0,
+  "scenes": [{"nodes": [0]}],
+  "nodes": [{"mesh": 0}],
+  "buffers": [{"uri": "triangle.bin", "byteLength": 36}],
+  "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36}],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}
+  ],
+  "meshes": [{"primitives": [{
+    "attributes": {"POSITION": 0}
+  }]}]
+})";
+    }
+
+    auto result = nw::render::gltf::import_gltf_model_asset_with_stats(gltf_path);
+    EXPECT_FALSE(result.asset);
+    EXPECT_EQ(result.stats.imported_node_count, 1u);
+    EXPECT_EQ(result.stats.nonfinite_position_count, 1u);
+    EXPECT_EQ(result.stats.dropped_primitive_count, 1u);
+    EXPECT_EQ(result.stats.primitive_count, 0u);
 
     std::filesystem::remove_all(dir);
 }

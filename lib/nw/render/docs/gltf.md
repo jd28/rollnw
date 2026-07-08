@@ -9,6 +9,8 @@ other common models.
 
 - `nw::render::gltf::import_gltf_model_asset(path)` decodes glTF into a
   CPU-side `ModelAsset` without requiring a graphics context.
+- `nw::render::gltf::import_gltf_model_asset_with_stats(path)` is the same
+  CPU-side import path with source/import diagnostic counters.
 - `nw::render::gltf::import_gltf_render_model_from_asset(path, desc)` decodes
   through `ModelAsset`, uploads geometry and textures, and returns a
   `RenderModel`.
@@ -97,6 +99,8 @@ The renderer should not branch on "glTF" at draw time.
 
 ## Validation And Fallbacks
 
+`GltfImportStats` counts importer-boundary drops and repairs, including repeated
+or over-depth node graph references and non-finite accessor payloads.
 `validate_model_asset` counts invalid primitive/material/skin/animation rows
 before upload. Upload stats then count geometry and texture upload failures.
 

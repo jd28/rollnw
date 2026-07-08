@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -52,6 +53,86 @@ struct SurfaceTextureImport {
     bool material_uses_fallback = false;
 };
 
+struct GltfNodeVisit {
+    int32_t node_index = -1;
+    glm::mat4 world{1.0f};
+};
+
+struct PendingGltfNode {
+    const cgltf_node* node = nullptr;
+    int32_t parent_index = -1;
+    glm::mat4 parent_world{1.0f};
+    uint32_t depth = 0;
+};
+
+constexpr uint32_t kMaxGltfNodeDepth = 256;
+
+uint32_t saturating_gltf_count(size_t count) noexcept
+{
+    return count > std::numeric_limits<uint32_t>::max()
+        ? std::numeric_limits<uint32_t>::max()
+        : static_cast<uint32_t>(count);
+}
+
+void add_saturating(uint32_t& target, uint32_t value = 1) noexcept
+{
+    const uint64_t total = static_cast<uint64_t>(target) + value;
+    target = total > std::numeric_limits<uint32_t>::max()
+        ? std::numeric_limits<uint32_t>::max()
+        : static_cast<uint32_t>(total);
+}
+
+int32_t node_index_of(const cgltf_data* data, const cgltf_node* node) noexcept
+{
+    if (!data || !node) {
+        return -1;
+    }
+    for (cgltf_size i = 0; i < data->nodes_count; ++i) {
+        if (&data->nodes[i] == node) {
+            return static_cast<int32_t>(i);
+        }
+    }
+    return -1;
+}
+
+bool finite_floats(const float* values, size_t count) noexcept
+{
+    for (size_t i = 0; i < count; ++i) {
+        if (!std::isfinite(values[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool finite_vec3_values(const float* values) noexcept
+{
+    return finite_floats(values, 3);
+}
+
+bool finite_vec4_values(const float* values) noexcept
+{
+    return finite_floats(values, 4);
+}
+
+bool finite_mat4(const glm::mat4& value) noexcept
+{
+    for (int col = 0; col < 4; ++col) {
+        for (int row = 0; row < 4; ++row) {
+            if (!std::isfinite(value[col][row])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool read_finite_float(const cgltf_accessor* accessor, cgltf_size index, float* values, cgltf_size component_count)
+{
+    return cgltf_accessor_read_float(accessor, index, values, component_count)
+        && finite_floats(values, static_cast<size_t>(component_count));
+}
+
 uint32_t pack_u8x4(uint32_t x, uint32_t y, uint32_t z, uint32_t w)
 {
     return (x & 0xffu) | ((y & 0xffu) << 8u) | ((z & 0xffu) << 16u) | ((w & 0xffu) << 24u);
@@ -69,6 +150,10 @@ uint32_t pack_skin_joint_indices(const std::vector<cgltf_uint>& joints)
 std::array<uint8_t, 4> pack_weights(const std::array<float, 4>& weights)
 {
     std::array<uint8_t, 4> packed{};
+    if (!finite_floats(weights.data(), weights.size())) {
+        packed[0] = 255;
+        return packed;
+    }
     float sum = weights[0] + weights[1] + weights[2] + weights[3];
     if (sum <= 1.0e-6f) {
         packed[0] = 255;
@@ -88,7 +173,11 @@ std::array<uint8_t, 4> pack_weights(const std::array<float, 4>& weights)
 }
 
 bool skin_accessors_supported_by_renderer(
-    const cgltf_accessor* joints_acc, const cgltf_accessor* weights_acc, cgltf_size vertex_count, size_t skin_joint_count)
+    const cgltf_accessor* joints_acc,
+    const cgltf_accessor* weights_acc,
+    cgltf_size vertex_count,
+    size_t skin_joint_count,
+    GltfImportStats& stats)
 {
     if (!joints_acc || !weights_acc || joints_acc->count < vertex_count || weights_acc->count < vertex_count
         || !nw::render::model_skin_bone_count_supported(skin_joint_count)) {
@@ -102,6 +191,10 @@ bool skin_accessors_supported_by_renderer(
             return false;
         }
         if (!cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4)) {
+            return false;
+        }
+        if (!finite_floats(weight_values.data(), weight_values.size())) {
+            add_saturating(stats.nonfinite_skin_weight_count);
             return false;
         }
         for (cgltf_uint joint : joint_values) {
@@ -125,24 +218,33 @@ uint32_t full_mip_count(uint32_t width, uint32_t height)
     return levels;
 }
 
-glm::mat4 load_matrix(const cgltf_node* node)
+bool load_matrix(const cgltf_node* node, glm::mat4& local)
 {
-    glm::mat4 local{1.0f};
+    local = glm::mat4{1.0f};
     if (node->has_matrix) {
         std::memcpy(&local, node->matrix, sizeof(local));
-        return local;
+        return finite_mat4(local);
     }
 
     if (node->has_translation) {
+        if (!finite_vec3_values(node->translation)) {
+            return false;
+        }
         local = glm::translate(local, glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
     }
     if (node->has_rotation) {
+        if (!finite_vec4_values(node->rotation)) {
+            return false;
+        }
         local *= glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
     }
     if (node->has_scale) {
+        if (!finite_vec3_values(node->scale)) {
+            return false;
+        }
         local = glm::scale(local, glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
     }
-    return local;
+    return finite_mat4(local);
 }
 
 void expand_bounds(nw::render::Bounds& bounds, const glm::vec3& pos, bool& first)
@@ -158,24 +260,87 @@ void expand_bounds(nw::render::Bounds& bounds, const glm::vec3& pos, bool& first
 }
 
 template <typename Model>
-void import_node_hierarchy(const cgltf_data* data, const cgltf_node* node, int32_t parent_index,
-    const glm::mat4& parent_world, Model& model)
+std::vector<GltfNodeVisit> import_selected_scene_node_hierarchy(
+    const cgltf_data* data, const glm::mat4& root_transform, Model& model, GltfImportStats& stats)
 {
-    const int32_t node_index = static_cast<int32_t>(node - data->nodes);
-    if (node_index < 0) return;
+    std::vector<GltfNodeVisit> visits;
+    std::vector<uint8_t> visited(data->nodes_count, 0);
+    std::vector<PendingGltfNode> stack;
+    visits.reserve(data->nodes_count);
+    stack.reserve(data->nodes_count);
 
-    auto local = load_matrix(node);
-    model.nodes[node_index].parent = parent_index;
-    model.nodes[node_index].local_transform = local;
-    model.nodes[node_index].world_transform = parent_world * local;
-
-    for (cgltf_size i = 0; i < node->children_count; ++i) {
-        import_node_hierarchy(data, node->children[i], node_index, model.nodes[node_index].world_transform, model);
+    for (cgltf_size scene_index = data->scenes_count; scene_index > 0; --scene_index) {
+        const cgltf_scene* scene = &data->scenes[scene_index - 1u];
+        if (data->scene && scene != data->scene) continue;
+        for (cgltf_size node_index = scene->nodes_count; node_index > 0; --node_index) {
+            stack.push_back(PendingGltfNode{
+                .node = scene->nodes[node_index - 1u],
+                .parent_index = -1,
+                .parent_world = root_transform,
+                .depth = 0,
+            });
+        }
     }
+
+    while (!stack.empty()) {
+        PendingGltfNode pending = stack.back();
+        stack.pop_back();
+
+        const int32_t node_index = node_index_of(data, pending.node);
+        if (node_index < 0) {
+            add_saturating(stats.skipped_invalid_node_count);
+            continue;
+        }
+        const size_t node_offset = static_cast<size_t>(node_index);
+        if (node_offset >= visited.size()) {
+            add_saturating(stats.skipped_invalid_node_count);
+            continue;
+        }
+        if (pending.depth > kMaxGltfNodeDepth) {
+            add_saturating(stats.skipped_depth_node_count);
+            continue;
+        }
+        if (visited[node_offset] != 0) {
+            add_saturating(stats.skipped_duplicate_node_count);
+            continue;
+        }
+        visited[node_offset] = 1;
+
+        glm::mat4 local{1.0f};
+        if (!load_matrix(pending.node, local)) {
+            add_saturating(stats.nonfinite_node_transform_count);
+            add_saturating(stats.skipped_invalid_node_count);
+            continue;
+        }
+
+        const glm::mat4 world = pending.parent_world * local;
+        if (!finite_mat4(world)) {
+            add_saturating(stats.nonfinite_node_transform_count);
+            add_saturating(stats.skipped_invalid_node_count);
+            continue;
+        }
+
+        model.nodes[node_offset].parent = pending.parent_index;
+        model.nodes[node_offset].local_transform = local;
+        model.nodes[node_offset].world_transform = world;
+        visits.push_back(GltfNodeVisit{.node_index = node_index, .world = world});
+        add_saturating(stats.imported_node_count);
+
+        for (cgltf_size child_index = pending.node->children_count; child_index > 0; --child_index) {
+            stack.push_back(PendingGltfNode{
+                .node = pending.node->children[child_index - 1u],
+                .parent_index = node_index,
+                .parent_world = world,
+                .depth = pending.depth + 1u,
+            });
+        }
+    }
+
+    return visits;
 }
 
 template <typename Model>
-void import_skins(const cgltf_data* data, Model& model)
+void import_skins(const cgltf_data* data, Model& model, GltfImportStats& stats)
 {
     model.skins.reserve(data->skins_count);
     std::vector<float> values(16);
@@ -187,26 +352,35 @@ void import_skins(const cgltf_data* data, Model& model)
         skin.inverse_bind_matrices.reserve(src.joints_count);
         bool warned_inverse_bind_read = false;
         for (cgltf_size j = 0; j < src.joints_count; ++j) {
-            int32_t joint_index = static_cast<int32_t>(src.joints[j] - data->nodes);
+            int32_t joint_index = node_index_of(data, src.joints[j]);
+            if (joint_index < 0 || static_cast<size_t>(joint_index) >= model.nodes.size()) {
+                add_saturating(stats.skipped_skin_joint_count);
+                continue;
+            }
             skin.joints.push_back(joint_index);
             glm::mat4 ibm{1.0f};
             if (src.inverse_bind_matrices
                 && j < src.inverse_bind_matrices->count
-                && cgltf_accessor_read_float(src.inverse_bind_matrices, j, values.data(), 16)) {
+                && cgltf_accessor_read_float(src.inverse_bind_matrices, j, values.data(), 16)
+                && finite_floats(values.data(), values.size())) {
                 for (int col = 0; col < 4; ++col) {
                     for (int row = 0; row < 4; ++row) {
                         ibm[col][row] = values[col * 4 + row];
                     }
                 }
             } else {
+                if (src.inverse_bind_matrices
+                    && j < src.inverse_bind_matrices->count
+                    && cgltf_accessor_read_float(src.inverse_bind_matrices, j, values.data(), 16)
+                    && !finite_floats(values.data(), values.size())) {
+                    add_saturating(stats.nonfinite_inverse_bind_matrix_count);
+                }
                 if (src.inverse_bind_matrices && !warned_inverse_bind_read) {
                     LOG_F(WARNING, "glTF '{}': skin {} inverse bind matrices could not be read; falling back to node transforms",
                         model.name, i);
                     warned_inverse_bind_read = true;
                 }
-                if (joint_index >= 0 && static_cast<size_t>(joint_index) < model.nodes.size()) {
-                    ibm = glm::inverse(model.nodes[joint_index].world_transform);
-                }
+                ibm = glm::inverse(model.nodes[static_cast<size_t>(joint_index)].world_transform);
             }
             skin.inverse_bind_matrices.push_back(ibm);
         }
@@ -272,7 +446,7 @@ nw::render::InterpolationMode map_interpolation(cgltf_interpolation_type interpo
 }
 
 template <typename Model>
-void import_animations(const cgltf_data* data, Model& model)
+void import_animations(const cgltf_data* data, Model& model, GltfImportStats& stats)
 {
     model.animations.clear();
     if (model.skeletons.empty()) return;
@@ -320,6 +494,11 @@ void import_animations(const cgltf_data* data, Model& model)
                         times_ok = false;
                         break;
                     }
+                    if (!std::isfinite(times[i])) {
+                        add_saturating(stats.nonfinite_animation_channel_count);
+                        times_ok = false;
+                        break;
+                    }
                     channel_duration = std::max(channel_duration, times[i]);
                 }
                 if (!times_ok) {
@@ -334,7 +513,8 @@ void import_animations(const cgltf_data* data, Model& model)
                     translations.reserve(times.size());
                     bool values_ok = true;
                     for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3)) {
+                        if (!read_finite_float(channel.sampler->output, i, values.data(), 3)) {
+                            add_saturating(stats.nonfinite_animation_channel_count);
                             values_ok = false;
                             break;
                         }
@@ -357,11 +537,18 @@ void import_animations(const cgltf_data* data, Model& model)
                     rotations.reserve(times.size());
                     bool values_ok = true;
                     for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 4)) {
+                        if (!read_finite_float(channel.sampler->output, i, values.data(), 4)) {
+                            add_saturating(stats.nonfinite_animation_channel_count);
                             values_ok = false;
                             break;
                         }
-                        rotations.push_back({times[i], glm::normalize(glm::quat(values[3], values[0], values[1], values[2]))});
+                        const glm::quat rotation{values[3], values[0], values[1], values[2]};
+                        if (glm::length(rotation) <= 1.0e-6f) {
+                            add_saturating(stats.nonfinite_animation_channel_count);
+                            values_ok = false;
+                            break;
+                        }
+                        rotations.push_back({times[i], glm::normalize(rotation)});
                     }
                     if (!values_ok) {
                         LOG_F(WARNING, "glTF '{}': animation '{}' channel {} rotations could not be read; skipping channel",
@@ -380,7 +567,8 @@ void import_animations(const cgltf_data* data, Model& model)
                     scales.reserve(times.size());
                     bool values_ok = true;
                     for (cgltf_size i = 0; i < channel.sampler->output->count; ++i) {
-                        if (!cgltf_accessor_read_float(channel.sampler->output, i, values.data(), 3)) {
+                        if (!read_finite_float(channel.sampler->output, i, values.data(), 3)) {
+                            add_saturating(stats.nonfinite_animation_channel_count);
                             values_ok = false;
                             break;
                         }
@@ -794,6 +982,7 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
     const std::vector<nw::render::Node>& nodes,
     const std::string& model_name,
     size_t primitive_index,
+    GltfImportStats& stats,
     nw::render::ModelAssetPrimitive& out)
 {
     if (primitive.type != cgltf_primitive_type_triangles) return false;
@@ -854,10 +1043,21 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
                 model_name, primitive_index);
             return false;
         }
+        if (!finite_floats(values.data(), 3)) {
+            add_saturating(stats.nonfinite_position_count);
+            LOG_F(WARNING, "glTF '{}': primitive {} has non-finite position data; dropping primitive",
+                model_name, primitive_index);
+            return false;
+        }
         vertices[i].position = glm::vec3(values[0], values[1], values[2]);
         if (norm_acc) {
             if (!cgltf_accessor_read_float(norm_acc, i, values.data(), 3)) {
                 LOG_F(WARNING, "glTF '{}': primitive {} normals could not be read; generating normals",
+                    model_name, primitive_index);
+                norm_acc = nullptr;
+            } else if (!finite_floats(values.data(), 3)) {
+                add_saturating(stats.nonfinite_normal_count);
+                LOG_F(WARNING, "glTF '{}': primitive {} has non-finite normal data; generating normals",
                     model_name, primitive_index);
                 norm_acc = nullptr;
             } else {
@@ -872,6 +1072,14 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
                     vertex.texcoord = {};
                 }
                 uv_acc = nullptr;
+            } else if (!finite_floats(values.data(), 2)) {
+                add_saturating(stats.nonfinite_texcoord_count);
+                LOG_F(WARNING, "glTF '{}': primitive {} has non-finite texcoord data; using default texcoords",
+                    model_name, primitive_index);
+                for (auto& vertex : vertices) {
+                    vertex.texcoord = {};
+                }
+                uv_acc = nullptr;
             } else {
                 vertices[i].texcoord = glm::vec2(values[0], values[1]);
             }
@@ -879,6 +1087,11 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
         if (tan_acc) {
             if (!cgltf_accessor_read_float(tan_acc, i, values.data(), 4)) {
                 LOG_F(WARNING, "glTF '{}': primitive {} tangents could not be read; regenerating tangents",
+                    model_name, primitive_index);
+                tan_acc = nullptr;
+            } else if (!finite_floats(values.data(), 4)) {
+                add_saturating(stats.nonfinite_tangent_count);
+                LOG_F(WARNING, "glTF '{}': primitive {} has non-finite tangent data; regenerating tangents",
                     model_name, primitive_index);
                 tan_acc = nullptr;
             } else {
@@ -927,7 +1140,7 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
     if (out.skinned) {
         const size_t skin_joint_count = skin_index < skins.size() ? skins[skin_index].joints.size() : 0;
         const bool skin_supported = skin_index < skins.size()
-            && skin_accessors_supported_by_renderer(joints_acc, weights_acc, pos_acc->count, skin_joint_count);
+            && skin_accessors_supported_by_renderer(joints_acc, weights_acc, pos_acc->count, skin_joint_count, stats);
         if (!skin_supported) {
             LOG_F(WARNING,
                 "glTF '{}': primitive {} skin {} has unsupported or unreadable skin attributes; importing primitive as static bind pose",
@@ -951,6 +1164,12 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
                     model_name, primitive_index);
                 return false;
             }
+            if (!finite_floats(weight_values.data(), weight_values.size())) {
+                add_saturating(stats.nonfinite_skin_weight_count);
+                LOG_F(WARNING, "glTF '{}': primitive {} has non-finite skin weights; dropping primitive",
+                    model_name, primitive_index);
+                return false;
+            }
             float weight_sum = weight_values[0] + weight_values[1] + weight_values[2] + weight_values[3];
             if (weight_sum <= 1.0e-6f) {
                 weight_values[0] = 1.0f;
@@ -971,6 +1190,12 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
         } else {
             world_pos = glm::vec3(world * glm::vec4(vertices[i].position, 1.0f));
         }
+        if (!std::isfinite(world_pos.x) || !std::isfinite(world_pos.y) || !std::isfinite(world_pos.z)) {
+            add_saturating(stats.nonfinite_position_count);
+            LOG_F(WARNING, "glTF '{}': primitive {} produced non-finite bounds; dropping primitive",
+                model_name, primitive_index);
+            return false;
+        }
         expand_bounds(out.bounds, world_pos, first);
     }
 
@@ -984,6 +1209,12 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
             if (!cgltf_accessor_read_uint(joints_acc, i, joint_values.data(), 4)
                 || !cgltf_accessor_read_float(weights_acc, i, weight_values.data(), 4)) {
                 LOG_F(WARNING, "glTF '{}': primitive {} skin attributes could not be read; dropping primitive",
+                    model_name, primitive_index);
+                return false;
+            }
+            if (!finite_floats(weight_values.data(), weight_values.size())) {
+                add_saturating(stats.nonfinite_skin_weight_count);
+                LOG_F(WARNING, "glTF '{}': primitive {} has non-finite skin weights; dropping primitive",
                     model_name, primitive_index);
                 return false;
             }
@@ -1003,7 +1234,7 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
 
 void import_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
     const glm::mat4& world,
-    const ImportGltfDesc& desc, nw::render::RenderModel& model)
+    const ImportGltfDesc& desc, GltfImportStats& stats, nw::render::RenderModel& model)
 {
     nw::render::ModelAssetPrimitive decoded{};
     if (!decode_model_asset_primitive(primitive,
@@ -1015,7 +1246,9 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
             model.nodes,
             model.name,
             model.primitives.size(),
+            stats,
             decoded)) {
+        add_saturating(stats.dropped_primitive_count);
         return;
     }
 
@@ -1023,13 +1256,14 @@ void import_primitive(const cgltf_primitive& primitive, uint32_t material_index,
     if (!nw::render::upload_model_asset_primitive(desc.ctx, decoded, out)) {
         LOG_F(WARNING, "glTF '{}': primitive {} GPU upload failed; dropping primitive",
             model.name, model.primitives.size());
+        add_saturating(stats.dropped_primitive_count);
         return;
     }
     model.primitives.push_back(out);
 }
 
 void import_model_asset_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
-    const glm::mat4& world, nw::render::ModelAsset& asset)
+    const glm::mat4& world, GltfImportStats& stats, nw::render::ModelAsset& asset)
 {
     nw::render::ModelAssetPrimitive out{};
     if (decode_model_asset_primitive(primitive,
@@ -1041,32 +1275,37 @@ void import_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
             asset.nodes,
             asset.name,
             asset.primitives.size(),
+            stats,
             out)) {
         asset.primitives.push_back(std::move(out));
+    } else {
+        add_saturating(stats.dropped_primitive_count);
     }
 }
 
 template <typename ImportPrimitiveFn>
-void walk_node_primitives(const cgltf_data* data, const cgltf_node* node, const glm::mat4& parent,
+void import_node_primitives(const cgltf_data* data, const std::vector<GltfNodeVisit>& visits,
     size_t material_count, ImportPrimitiveFn& import_primitive_fn)
 {
-    glm::mat4 world = parent * load_matrix(node);
-    if (node->mesh) {
+    for (const GltfNodeVisit& visit : visits) {
+        if (visit.node_index < 0 || static_cast<size_t>(visit.node_index) >= data->nodes_count) {
+            continue;
+        }
+        const cgltf_node* node = &data->nodes[static_cast<size_t>(visit.node_index)];
+        if (!node->mesh) {
+            continue;
+        }
         for (cgltf_size i = 0; i < node->mesh->primitives_count; ++i) {
             uint32_t material_index = 0;
             if (node->mesh->primitives[i].material && material_count != 0) {
                 material_index = static_cast<uint32_t>(node->mesh->primitives[i].material - data->materials);
             }
-            const int32_t node_index = static_cast<int32_t>(node - data->nodes);
             uint32_t skin_index = std::numeric_limits<uint32_t>::max();
             if (node->skin) {
                 skin_index = static_cast<uint32_t>(node->skin - data->skins);
             }
-            import_primitive_fn(node->mesh->primitives[i], material_index, skin_index, node_index, world);
+            import_primitive_fn(node->mesh->primitives[i], material_index, skin_index, visit.node_index, visit.world);
         }
-    }
-    for (cgltf_size i = 0; i < node->children_count; ++i) {
-        walk_node_primitives(data, node->children[i], world, material_count, import_primitive_fn);
     }
 }
 
@@ -1102,15 +1341,16 @@ void merge_model_primitive_bounds(Model& model)
 
 } // namespace
 
-std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::filesystem::path& path)
+GltfModelAssetImportResult import_gltf_model_asset_with_stats(const std::filesystem::path& path)
 {
-    if (path.empty()) return {};
+    GltfModelAssetImportResult result{};
+    if (path.empty()) return result;
 
     cgltf_options options{};
     cgltf_data* data = nullptr;
     if (cgltf_parse_file(&options, path.string().c_str(), &data) != cgltf_result_success || !data) {
         LOG_F(ERROR, "Failed to parse glTF: {}", path.string());
-        return {};
+        return result;
     }
 
     auto cleanup = [&]() {
@@ -1120,19 +1360,20 @@ std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::files
     if (cgltf_validate(data) != cgltf_result_success) {
         LOG_F(ERROR, "Invalid glTF: {}", path.string());
         cleanup();
-        return {};
+        return result;
     }
 
     if (cgltf_load_buffers(&options, data, path.string().c_str()) != cgltf_result_success) {
         LOG_F(ERROR, "Failed to load glTF buffers: {}", path.string());
         cleanup();
-        return {};
+        return result;
     }
 
     auto asset = std::make_unique<nw::render::ModelAsset>();
     asset->source_kind = nw::render::ModelAssetSourceKind::gltf;
     asset->name = path.filename().string();
     asset->nodes.resize(data->nodes_count);
+    result.stats.source_node_count = saturating_gltf_count(data->nodes_count);
 
     std::unordered_map<const cgltf_image*, uint32_t> image_map;
     const auto base_dir = path.parent_path();
@@ -1149,17 +1390,11 @@ std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::files
         }
     }
 
-    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
-        const cgltf_scene* scene = &data->scenes[i];
-        if (data->scene && scene != data->scene) continue;
-        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
-            import_node_hierarchy(data, scene->nodes[j], -1, kGltfToMudl, *asset);
-        }
-    }
+    auto node_visits = import_selected_scene_node_hierarchy(data, kGltfToMudl, *asset, result.stats);
 
-    import_skins(data, *asset);
+    import_skins(data, *asset, result.stats);
     build_skeletons(data, *asset);
-    import_animations(data, *asset);
+    import_animations(data, *asset, result.stats);
     expand_model_bounds_from_skin_joints(*asset);
 
     auto import_asset_primitive = [&](const cgltf_primitive& primitive,
@@ -1167,23 +1402,24 @@ std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::files
                                       uint32_t skin_index,
                                       int32_t node_index,
                                       const glm::mat4& world) {
-        import_model_asset_primitive(primitive, material_index, skin_index, node_index, world, *asset);
+        import_model_asset_primitive(primitive, material_index, skin_index, node_index, world, result.stats, *asset);
     };
 
-    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
-        const cgltf_scene* scene = &data->scenes[i];
-        if (data->scene && scene != data->scene) continue;
-        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
-            walk_node_primitives(data, scene->nodes[j], kGltfToMudl, asset->materials.size(), import_asset_primitive);
-        }
-    }
+    import_node_primitives(data, node_visits, asset->materials.size(), import_asset_primitive);
 
     merge_model_primitive_bounds(*asset);
     asset->shadow = nw::render::summarize_model_asset_shadows(*asset);
+
+    result.stats.material_count = saturating_gltf_count(asset->materials.size());
+    result.stats.primitive_count = saturating_gltf_count(asset->primitives.size());
+    result.stats.texture_source_count = saturating_gltf_count(asset->texture_sources.size());
+    result.stats.skin_count = saturating_gltf_count(asset->skins.size());
+    result.stats.skeleton_count = saturating_gltf_count(asset->skeletons.size());
+    result.stats.animation_count = saturating_gltf_count(asset->animations.size());
     cleanup();
 
     if (asset->primitives.empty()) {
-        return {};
+        return result;
     }
     const auto validation = nw::render::validate_model_asset(*asset);
     if (!validation.passed()) {
@@ -1194,9 +1430,15 @@ std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::files
             validation.invalid_primitive_count(),
             validation.invalid_asset_row_count(),
             validation.invalid_material_texture_binding_count);
-        return {};
+        return result;
     }
-    return asset;
+    result.asset = std::move(asset);
+    return result;
+}
+
+std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::filesystem::path& path)
+{
+    return import_gltf_model_asset_with_stats(path).asset;
 }
 
 GltfRenderModelImportResult import_gltf_render_model_from_asset(
@@ -1205,13 +1447,14 @@ GltfRenderModelImportResult import_gltf_render_model_from_asset(
 {
     GltfRenderModelImportResult result{};
 
-    auto asset = import_gltf_model_asset(path);
-    if (!asset) {
+    auto imported = import_gltf_model_asset_with_stats(path);
+    result.import_stats = imported.stats;
+    if (!imported.asset) {
         return result;
     }
     result.asset_imported = true;
 
-    auto uploaded = nw::render::upload_model_asset(*asset, desc.ctx);
+    auto uploaded = nw::render::upload_model_asset(*imported.asset, desc.ctx);
     result.geometry_upload_stats = uploaded.stats;
     if (!uploaded.model) {
         return result;
@@ -1224,7 +1467,7 @@ GltfRenderModelImportResult import_gltf_render_model_from_asset(
     texture_upload.fallback_surface = desc.fallback_surface;
     texture_upload.fallback_emissive = desc.fallback_emissive;
     result.texture_upload_stats = nw::render::upload_model_asset_material_textures(
-        *asset, texture_upload, *uploaded.model);
+        *imported.asset, texture_upload, *uploaded.model);
     result.model = std::move(uploaded.model);
     return result;
 }
@@ -1259,6 +1502,8 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
     auto model = std::make_unique<nw::render::RenderModel>();
     model->name = path.filename().string();
     model->nodes.resize(data->nodes_count);
+    GltfImportStats import_stats{};
+    import_stats.source_node_count = saturating_gltf_count(data->nodes_count);
 
     std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash> tex_map;
     const auto base_dir = path.parent_path();
@@ -1317,17 +1562,11 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
         }
     }
 
-    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
-        const cgltf_scene* scene = &data->scenes[i];
-        if (data->scene && scene != data->scene) continue;
-        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
-            import_node_hierarchy(data, scene->nodes[j], -1, kGltfToMudl, *model);
-        }
-    }
+    auto node_visits = import_selected_scene_node_hierarchy(data, kGltfToMudl, *model, import_stats);
 
-    import_skins(data, *model);
+    import_skins(data, *model, import_stats);
     build_skeletons(data, *model);
-    import_animations(data, *model);
+    import_animations(data, *model, import_stats);
 
     // Skinned glTF meshes can have misleading raw mesh bounds relative to the final posed model,
     // especially when the asset carries authoring-space root transforms (for example CesiumMan's
@@ -1340,16 +1579,10 @@ std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path
                                        uint32_t skin_index,
                                        int32_t node_index,
                                        const glm::mat4& world) {
-        import_primitive(primitive, material_index, skin_index, node_index, world, desc, *model);
+        import_primitive(primitive, material_index, skin_index, node_index, world, desc, import_stats, *model);
     };
 
-    for (cgltf_size i = 0; i < data->scenes_count; ++i) {
-        const cgltf_scene* scene = &data->scenes[i];
-        if (data->scene && scene != data->scene) continue;
-        for (cgltf_size j = 0; j < scene->nodes_count; ++j) {
-            walk_node_primitives(data, scene->nodes[j], kGltfToMudl, model->materials.size(), import_render_primitive);
-        }
-    }
+    import_node_primitives(data, node_visits, model->materials.size(), import_render_primitive);
 
     // Merge primitive bounds into any existing joint-expanded bounds.
     merge_model_primitive_bounds(*model);
