@@ -45,6 +45,29 @@ multiple scenes or previews resident.
   automatically invalidate on `unfreeze()`, `unload_module()`, or container
   mutation? Without that protocol, automatic reload-awareness would be guesswork.
 
+## Audit Findings (2026-07)
+
+The gfx/render audit confirmed the concrete failure mechanism behind the
+"do not clear from a session" caution above — there is no invalidation
+protocol between the cache and anything that captured its outputs:
+
+- A `Mesh`'s cached `nw::gfx::Handle<Texture>` (`model_loader.hpp:91`) is
+  populated once by `ensure_mesh_texture` (`nwn/model_renderer.cpp:288-301`)
+  and never re-fetched: the guard is only `mesh.texture.valid()`, and
+  `Handle::valid()` (`gfx.hpp:20`) checks `gen_ != 0` without consulting
+  the pool. A `Mesh` created before `clear()` keeps reporting a "valid"
+  destroyed/reused texture handle forever — silently wrong or invalid
+  texture at draw time.
+- `get_or_load_source_image` (`render_asset_cache.cpp:514`) and
+  `get_or_load_particle_mesh` (`:536`) return raw
+  `const nw::Image*` / `ModelInstance*` into cache-owned storage with no
+  generation checking; any caller retaining one across `clear()` has a
+  plain use-after-free.
+
+Whatever eviction policy is chosen, it needs one of: (a) an epoch counter
+consumers re-validate cached handles/pointers against, or (b) an enforced
+"no reachable consumers at clear()" contract asserted at the API boundary.
+
 ## Verification Needed
 
 - Record `asset_cache` snapshots from representative `mudl area-benchmark` and
