@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>load_config - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="index.html">Smalls</a>
+<a href="spec.html">Smalls Language Spec</a>
+<a class="active" href="load-config.html">load_config</a>
+<a href="propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/load-config.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="load_config">load_config</h1>
+<p><code>load_config!</code> is the current path for moving RPG ruleset data out of hardcoded
+C++ tables and into Smalls-owned manifests. The data is still typed code: each
+entry is a Smalls struct literal, and rules modules load arrays of those entries
+through one intrinsic.</p>
+<p>This is the "manifest RPGs" direction in practical form:</p>
+<pre><code class="language-text">ruleset schema
+  -&gt; typed Smalls structs with explicit fields and indexes
+ruleset data
+  -&gt; one `.smalls` struct literal per entry
+rules code
+  -&gt; load_config!(EntryType)(&quot;ruleset.data.table&quot;)
+runtime
+  -&gt; cached array!(EntryType), indexed by the entry's [[index]] field
+</code></pre>
+<p>The common case is a rules module loading one table once, then serving small
+lookup helpers from that cached array.</p>
+<h2 id="entry-schema">Entry Schema</h2>
+<p>Config arrays are built from structs. The struct needs an integer field marked
+with <code>[[index]]</code>; that field determines where the entry lands in the returned
+array. For hot rules lookups, use <code>[[value_type]]</code> so entries are stored inline
+in <code>array!(T)</code>.</p>
+<pre><code class="language-smalls">type StrRef(int);
+
+[[value_type]]
+type ClassEntry {
+    [[index]]
+    id:             int;
+    name:           StrRef;
+    hit_die:        int;
+    saves_table:    int;
+    attack_table:   int;
+    spellcaster:    bool;
+    caster_ability: int;
+};
+</code></pre>
+<p>The <code>[[index]]</code> field is policy, not the filename. Filenames are just stable
+entry names for authors and diffs.</p>
+<h2 id="entry-files">Entry Files</h2>
+<p>Each config entry is one Smalls file containing a single struct literal. Current
+NWN1 class data lives under <code>lib/nw/smalls/scripts/nwn1/data/classes/</code>:</p>
+<pre><code class="language-smalls">ClassEntry {
+    id = 4,
+    name = StrRef(8),
+    hit_die = 10,
+    saves_table = 5,
+    attack_table = 0,
+    spellcaster = false,
+    caster_ability = -1
+}
+</code></pre>
+<p>The table path maps to the directory:</p>
+<pre><code class="language-text">nwn1.data.classes -&gt; nwn1/data/classes/
+nwn1/data/classes -&gt; nwn1/data/classes/
+</code></pre>
+<p>Both dot and slash forms are accepted. Only direct children of the table
+directory are loaded.</p>
+<h2 id="loading-from-script">Loading From Script</h2>
+<p>The intrinsic is declared in <code>core.prelude</code>:</p>
+<pre><code class="language-smalls">[[intrinsic(&quot;load_config&quot;)]] fn load_config(path: string): array!($T);
+</code></pre>
+<p>Call it with an explicit entry type:</p>
+<pre><code class="language-smalls">import core.array as Array;
+from nwn1.rules import { ClassEntry };
+
+var classes = load_config!(ClassEntry)(&quot;nwn1.data.classes&quot;);
+
+fn fighter_hit_die(): int {
+    var fighter = Array.get(classes, 4);
+    return fighter.hit_die;
+}
+</code></pre>
+<p>Most modules hide the raw table behind lookup helpers so callers get explicit
+out-of-range behavior:</p>
+<pre><code class="language-smalls">from nwn1.rules import { ClassEntry };
+from core.types import { Class, Ability };
+import core.array as Array;
+
+var _loaded = false;
+var _classes: array!(ClassEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _classes = load_config!(ClassEntry)(&quot;nwn1.data.classes&quot;);
+    _loaded = true;
+}
+
+fn exists(class_id: Class): bool {
+    _ensure_loaded();
+    var index = class_id as int;
+    return index &gt;= 0 &amp;&amp; index &lt; Array.len(_classes);
+}
+
+fn caster_ability(class_id: Class): Ability {
+    if (!exists(class_id)) {
+        return Ability(-1);
+    }
+    var entry = Array.get(_classes, class_id as int);
+    if (!entry.spellcaster) {
+        return Ability(-1);
+    }
+    return Ability(entry.caster_ability);
+}
+</code></pre>
+<p>That wrapper shape is deliberate. <code>load_config!</code> loads data; the rules module
+owns invalid-id policy.</p>
+<h2 id="runtime-contract">Runtime Contract</h2>
+<p><code>load_config!(T)(path)</code>:</p>
+<ul>
+<li>normalizes dot and slash paths before lookup</li>
+<li>requires <code>T</code> to be a struct with an <code>int</code> <code>[[index]]</code> field</li>
+<li>loads all direct <code>.smalls</code> entries below the table path</li>
+<li>sorts entry files by resource path before inserting them</li>
+<li>returns an <code>array!(T)</code> sized to the highest non-negative index plus one</li>
+<li>caches the returned array by normalized path and entry type</li>
+<li>roots the array so garbage collection does not reclaim config data</li>
+</ul>
+<p>Out-of-range and bad data behavior is explicit:</p>
+<ul>
+<li>missing table path logs a warning and returns an empty array</li>
+<li>invalid entry type, missing <code>[[index]]</code>, or non-<code>int</code> index fails the intrinsic</li>
+<li>entries that fail to load, have non-<code>int</code> indexes, or have negative indexes are skipped</li>
+<li>duplicate indexes are last-wins after filename sorting</li>
+</ul>
+<p>Because sparse IDs produce array holes, rules modules should bounds-check before
+reading and should define the fallback value at the API boundary.</p>
+<h2 id="2da-bridge">2DA Bridge</h2>
+<p>Some paths can be backed by a registered 2DA converter instead of <code>.smalls</code>
+entry files. The script API is the same:</p>
+<pre><code class="language-smalls">var feats = load_config!(FeatEntry)(&quot;nwn1.data.feats&quot;);
+</code></pre>
+<p>This keeps old NWN data sources usable while the rules-facing code moves toward
+typed Smalls manifests. A future authored RPG can use native <code>.smalls</code> entries
+directly without changing the lookup code.</p>
+<h2 id="relationship-to-propsets">Relationship To Propsets</h2>
+<p><code>load_config!</code> is for stable ruleset data: classes, races, feats, base items,
+spell rows, progression tables, and similar data that is loaded once and queried
+many times.</p>
+<p>Propsets are for per-object game state: hit points, ability scores, combat
+state, class levels, inventory-facing state, and other data attached to a live
+object. A combat rule commonly joins both:</p>
+<pre><code class="language-text">class/race/base-item config from load_config!
+  + live creature/item propsets
+  -&gt; rule result
+</code></pre>
+<p>Keeping these separate prevents static rules manifests from becoming object
+storage, and prevents live object state from becoming global rules data.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

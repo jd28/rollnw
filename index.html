@@ -16,6 +16,7 @@
 <div class="site-nav-section">Scripting</div>
 <a href="smalls/index.html">Smalls</a>
 <a href="smalls/spec.html">Smalls Language Spec</a>
+<a href="smalls/load-config.html">load_config</a>
 <a href="smalls/propset-architecture.html">Propset Architecture</a>
 <a href="rules/index.html">Rules</a>
 <a href="script/index.html">NWScript Parser</a>
@@ -69,10 +70,8 @@
 <li>hews as close to <a href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core Guidelines</a> as possible.</li>
 <li>aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.</li>
 </ul>
-<h2 id="graphics-layer-guardrails">Graphics Layer Guardrails</h2>
-<p><code>lib/nw/gfx</code> is intentionally a thin rendering abstraction and Vulkan utility layer, not a game engine framework. See the <a href="https://jd28.github.io/rollnw/gfx/">gfx docs</a>.</p>
 <h2 id="building-installing">Building / Installing</h2>
-<p>The library uses <a href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a> as its build system. The naming convention for non-ci presets is <code>{platform}[-renderer][-{build tool}]-dev[-debug]</code>. Renderer presets build the platform's supported graphics tools; macOS does not currently have renderer presets because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.</p>
+<p>The library uses <a href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a> as its build system. The naming convention for non-ci presets is <code>{platform}[-renderer][-{build tool}]-dev[-debug]</code>. Renderer presets build the platform's supported graphics tools. Renderer and <code>mudl</code> builds are supported on Linux and Windows only; macOS is not supported for the renderer because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.</p>
 <p>Examples:</p>
 <pre><code>$ cmake --preset=linux-dev
 $ cmake --preset=linux-renderer-dev

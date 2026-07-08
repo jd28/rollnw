@@ -16,6 +16,7 @@
 <div class="site-nav-section">Scripting</div>
 <a href="index.html">Smalls</a>
 <a class="active" href="spec.html">Smalls Language Spec</a>
+<a href="load-config.html">load_config</a>
 <a href="propset-architecture.html">Propset Architecture</a>
 <a href="../rules/index.html">Rules</a>
 <a href="../script/index.html">NWScript Parser</a>
@@ -1443,6 +1444,9 @@ SpellInfo {
 <p><strong>Key files</strong>:
 - <code>lib/nw/smalls/runtime.hpp</code> — <code>load_config&lt;T&gt;()</code>, <code>ScriptString</code>, <code>ScriptClosure</code>
 - <code>lib/nw/smalls/ConfigArena.hpp</code> — config root management</p>
+<p>Script-side ruleset data loading uses the <code>load_config!(T)(path)</code> intrinsic.
+The authoring workflow, array contract, and RPG manifest direction are covered
+in <a href="load-config.html">load-config.md</a>.</p>
 <h3 id="property-sets">Property Sets</h3>
 <p>Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.</p>
 <pre><code class="language-smalls">[[propset]]

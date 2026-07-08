@@ -16,6 +16,7 @@
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
 <a href="../smalls/propset-architecture.html">Propset Architecture</a>
 <a href="../rules/index.html">Rules</a>
 <a href="../script/index.html">NWScript Parser</a>
@@ -50,14 +51,8 @@ with <code>nw::gfx</code> underneath as the low-level graphics API boundary.</p>
 - deterministic screenshot capture
 - deterministic turntable frame generation for downstream tooling</p>
 <p><img alt="c_aribeth turntable" src="../assets/tools/mudl/readme-assets/c_aribeth-turntable.gif"></p>
-<h2 id="build">Build</h2>
-<p>Requires:
-- <code>ROLLNW_BUILD_RENDERER=ON</code>
-- DXC runtime binaries via GitHub releases on Linux/Windows, or a system install on macOS</p>
-<pre><code class="language-bash">cmake --preset linux-renderer-dev
-cmake --build --preset linux-renderer-dev --target mudl
-</code></pre>
 <h2 id="quickstart">Quickstart</h2>
+<p>Build instructions live in the root <a href="../index.html#building-mudl">README</a>.</p>
 <pre><code class="language-bash"># Launch the interactive viewer
 mudl
 
