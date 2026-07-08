@@ -14,6 +14,10 @@ add_executable(fuzz_mdl
     mdl_fuzzer.cpp
 )
 
+add_executable(fuzz_text_mdl
+    text_mdl_fuzzer.cpp
+)
+
 add_executable(fuzz_format_parsers
     format_parsers_fuzzer.cpp
 )
@@ -21,6 +25,7 @@ add_executable(fuzz_format_parsers
 set(fuzzer_targets
     fuzz_format_parsers
     fuzz_mdl
+    fuzz_text_mdl
     fuzz_smalls_parse
     fuzz_smalls_resolve
     fuzz_smalls_vm

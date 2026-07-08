@@ -1,0 +1,7 @@
+#MAXMODEL ASCII
+newmodel fuzz_partial
+setsupermodel fuzz_partial NULL
+beginmodelgeom fuzz_partial
+node trimesh mesh01
+verts 3
+0 0

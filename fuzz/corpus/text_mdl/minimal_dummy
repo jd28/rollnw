@@ -1,0 +1,11 @@
+#MAXMODEL ASCII
+newmodel fuzz_dummy
+setsupermodel fuzz_dummy NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom fuzz_dummy
+node dummy fuzz_dummy
+parent NULL
+endnode
+endmodelgeom fuzz_dummy
+donemodel fuzz_dummy

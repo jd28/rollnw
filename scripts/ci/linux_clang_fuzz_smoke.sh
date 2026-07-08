@@ -15,7 +15,7 @@ export UBSAN_OPTIONS="${UBSAN_OPTIONS:-print_stacktrace=1:halt_on_error=1}"
 "${script_dir}/ensure_nwn.sh"
 
 cmake --preset ci-linux-clang-fuzz
-cmake --build --preset ci-linux-clang-fuzz --target fuzz_format_parsers fuzz_mdl fuzz_smalls_parse fuzz_smalls_resolve fuzz_smalls_vm
+cmake --build --preset ci-linux-clang-fuzz --target fuzz_format_parsers fuzz_mdl fuzz_text_mdl fuzz_smalls_parse fuzz_smalls_resolve fuzz_smalls_vm
 
 build_dir="${repo_root}/build-ci-linux-clang-fuzz"
 seed_corpus_root="${repo_root}/fuzz/corpus"
@@ -29,10 +29,11 @@ timeout="${FUZZ_TIMEOUT:-3}"
 mkdir -p "${artifact_dir}"
 
 rm -rf "${run_corpus_root}"
-mkdir -p "${run_corpus_root}/format_parsers" "${run_corpus_root}/mdl" "${run_corpus_root}/smalls_parse" "${run_corpus_root}/smalls_resolve" "${run_corpus_root}/smalls_vm"
+mkdir -p "${run_corpus_root}/format_parsers" "${run_corpus_root}/mdl" "${run_corpus_root}/text_mdl" "${run_corpus_root}/smalls_parse" "${run_corpus_root}/smalls_resolve" "${run_corpus_root}/smalls_vm"
 
 cp -a "${seed_corpus_root}/format_parsers/." "${run_corpus_root}/format_parsers/" || true
 cp -a "${seed_corpus_root}/mdl/." "${run_corpus_root}/mdl/" || true
+cp -a "${seed_corpus_root}/text_mdl/." "${run_corpus_root}/text_mdl/" || true
 cp -a "${seed_corpus_root}/smalls_parse/." "${run_corpus_root}/smalls_parse/" || true
 cp -a "${seed_corpus_root}/smalls_resolve/." "${run_corpus_root}/smalls_resolve/" || true
 cp -a "${seed_corpus_root}/smalls_vm/." "${run_corpus_root}/smalls_vm/" || true
@@ -47,3 +48,4 @@ fi
 "${build_dir}/fuzz/fuzz_smalls_vm" "${dict_arg[@]}" -artifact_prefix="${artifact_dir}" -max_total_time="${max_total_time}" -timeout="${timeout}" "${run_corpus_root}/smalls_vm"
 "${build_dir}/fuzz/fuzz_format_parsers" -artifact_prefix="${artifact_dir}" -max_total_time="${max_total_time}" -timeout="${timeout}" "${run_corpus_root}/format_parsers"
 "${build_dir}/fuzz/fuzz_mdl" -artifact_prefix="${artifact_dir}" -max_total_time="${max_total_time}" -timeout="${timeout}" "${run_corpus_root}/mdl"
+"${build_dir}/fuzz/fuzz_text_mdl" -artifact_prefix="${artifact_dir}" -max_total_time="${max_total_time}" -timeout="${timeout}" "${run_corpus_root}/text_mdl"

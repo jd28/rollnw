@@ -1,0 +1,11 @@
+#MAXMODEL ASCII
+newmodel fuzz_super
+setsupermodel fuzz_super c_aribeth
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom fuzz_super
+node dummy fuzz_super
+parent NULL
+endnode
+endmodelgeom fuzz_super
+donemodel fuzz_super
