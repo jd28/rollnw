@@ -17,7 +17,7 @@ The design is intentionally shaped around the access pattern of RPG game logic: 
 
 Game-logic data — ability scores, feats, HP, class levels — that the engine has no need to know about. Schemas are defined in `.smalls` files using the `[[propset]]` annotation. Memory is managed by `PropsetPoolManager` in slab-based pools keyed by `ObjectHandle`. Scripts access propsets through the `get_propset` intrinsic.
 
-```go
+```smalls
 [[propset]]
 type CreatureStats {
     abilities: int[6];
@@ -74,7 +74,7 @@ Native arrays are a C++ implementation pattern, not a script-visible abstraction
 
 Four propsets covering distinct data lifetimes and computational domains. Common operations touch at most two propsets.
 
-```go
+```smalls
 // "What this creature is" — rarely changes, consulted by most RPG calculations
 [[propset]]
 type CreatureStats {
@@ -164,7 +164,7 @@ Nothing requires more than two propsets. The ceiling is AC and attack resolution
 
 ### Item
 
-```go
+```smalls
 [[propset]]
 type ItemStats {
     base_item: int;
@@ -184,7 +184,7 @@ Item properties (the `ItemProperty` list) are deferred. They require either a st
 
 ### Door
 
-```go
+```smalls
 [[propset]]
 type DoorState {
     hp: int;
@@ -201,7 +201,7 @@ type DoorState {
 
 ### Placeable
 
-```go
+```smalls
 [[propset]]
 type PlaceableState {
     hp: int;
@@ -265,7 +265,7 @@ No propset pool, no hash map, no GC involvement. Slot lifetime is managed by the
 
 Scripts access native array data exclusively through bridge functions. No `get_propset` equivalent for native arrays:
 
-```go
+```smalls
 // core/object.smalls — bridge functions, not propset access
 [[native]] fn get_position(obj: object): vec3;
 [[native]] fn set_position(obj: object, pos: vec3);

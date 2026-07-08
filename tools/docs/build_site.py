@@ -23,14 +23,118 @@ try:
 except ModuleNotFoundError as exc:
     raise SystemExit("Missing dependency: install tools/docs/requirements.txt") from exc
 
+try:
+    from pygments.formatters import HtmlFormatter
+    from pygments.lexer import RegexLexer, words
+    from pygments.lexers import LEXERS, _lexer_cache
+    from pygments.token import Comment, Keyword, Name, Number, Operator, Punctuation, String, Text
+except ModuleNotFoundError as exc:
+    raise SystemExit("Missing dependency: install tools/docs/requirements.txt") from exc
+
 
 VALID_STATUSES = {"current", "transitional", "legacy"}
 ASSET_OUTPUT_DIR = PurePosixPath("assets")
 STYLE_TARGET = PurePosixPath("_static/site.css")
+PYGMENTS_STYLE = "zenburn"
 
 
 class SiteError(RuntimeError):
     pass
+
+
+class SmallsLexer(RegexLexer):
+    name = "Smalls"
+    aliases = ["smalls"]
+    filenames = ["*.smalls"]
+    mimetypes = ["text/x-smalls"]
+
+    tokens = {
+        "root": [
+            (r"\s+", Text),
+            (r"//.*?$", Comment.Single),
+            (r"/\*", Comment.Multiline, "block-comment"),
+            (r"\[\[[^\]\n]+\]\]", Name.Decorator),
+            (r'[rR]"([^"\\]|\\.|"")*"', String.Double),
+            (r'f"([^"\\]|\\.)*"', String.Double),
+            (r'F"([^"\\]|\\.)*"', String.Double),
+            (r'"([^"\\]|\\.)*"', String.Double),
+            (r"\b0[xX][0-9a-fA-F]+\b", Number.Hex),
+            (r"\b0[bB][01]+\b", Number.Bin),
+            (r"\b0[oO][0-7]+\b", Number.Oct),
+            (r"\b\d+\.(?:\d+)?f?(?![A-Za-z0-9_])", Number.Float),
+            (r"\b\d+\b", Number.Integer),
+            (r"\$[A-Za-z_][A-Za-z0-9_]*", Name.Variable),
+            (
+                words(
+                    (
+                        "as",
+                        "break",
+                        "case",
+                        "const",
+                        "continue",
+                        "default",
+                        "elif",
+                        "else",
+                        "extern",
+                        "false",
+                        "fn",
+                        "for",
+                        "from",
+                        "if",
+                        "import",
+                        "in",
+                        "is",
+                        "return",
+                        "switch",
+                        "true",
+                        "type",
+                        "var",
+                    ),
+                    prefix=r"\b",
+                    suffix=r"\b",
+                ),
+                Keyword,
+            ),
+            (
+                words(
+                    (
+                        "bool",
+                        "float",
+                        "int",
+                        "object",
+                        "ResRef",
+                        "Resource",
+                        "string",
+                        "void",
+                    ),
+                    prefix=r"\b",
+                    suffix=r"\b",
+                ),
+                Keyword.Type,
+            ),
+            (r"[A-Z][A-Za-z0-9_]*", Name.Class),
+            (r"[A-Za-z_][A-Za-z0-9_]*", Name),
+            (r"->|==|!=|<=|>=|\+=|-=|\*=|/=|%=|&&|\|\||[+\-*/%=|!<>]+", Operator),
+            (r"[{}()[\],:;#?.]", Punctuation),
+        ],
+        "block-comment": [
+            (r"[^*/]+", Comment.Multiline),
+            (r"\*/", Comment.Multiline, "#pop"),
+            (r"[*/]", Comment.Multiline),
+        ],
+    }
+
+
+def register_smalls_lexer() -> None:
+    lexer_name = SmallsLexer.name
+    _lexer_cache[lexer_name] = SmallsLexer
+    LEXERS["SmallsLexer"] = (
+        __name__,
+        lexer_name,
+        tuple(SmallsLexer.aliases),
+        tuple(SmallsLexer.filenames),
+        tuple(SmallsLexer.mimetypes),
+    )
 
 
 @dataclass(frozen=True)
@@ -301,15 +405,26 @@ class LinkRewriteExtension(Extension):
 
 
 def render_markdown(page: Page, ctx: SiteContext) -> str:
+    register_smalls_lexer()
     text = page.source.read_text(encoding="utf-8")
     md = markdown.Markdown(
         extensions=[
             "extra",
             "fenced_code",
+            "codehilite",
             "tables",
             "toc",
             LinkRewriteExtension(page, ctx),
         ],
+        extension_configs={
+            "codehilite": {
+                "css_class": "codehilite",
+                "guess_lang": False,
+                "linenums": False,
+                "noclasses": False,
+                "use_pygments": True,
+            },
+        },
         output_format="html5",
     )
     return md.convert(text)
@@ -378,6 +493,10 @@ def render_page(page: Page, ctx: SiteContext) -> str:
 """
 
 
+def pygments_css() -> str:
+    return HtmlFormatter(cssclass="codehilite", style=PYGMENTS_STYLE).get_style_defs(".codehilite")
+
+
 def write_css(ctx: SiteContext) -> None:
     target = ctx.output_root / STYLE_TARGET.as_posix()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -402,6 +521,7 @@ def write_css(ctx: SiteContext) -> None:
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #151617;
     --fg: #e7e7e1;
     --muted: #a6abb3;
@@ -570,6 +690,20 @@ a {
   padding: 14px;
 }
 
+.content .codehilite {
+  margin: 0 0 1em;
+}
+
+.content .codehilite pre {
+  background: transparent;
+  margin: 0;
+}
+
+.content .codehilite code {
+  background: transparent;
+  padding: 0;
+}
+
 .content pre code {
   background: transparent;
   padding: 0;
@@ -620,7 +754,10 @@ a {
     padding: 28px clamp(16px, 4vw, 28px) 56px;
   }
 }
-""",
+"""
+        + "\n"
+        + pygments_css()
+        + "\n",
         encoding="utf-8",
     )
 

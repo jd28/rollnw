@@ -88,7 +88,7 @@ Practical constraints to prevent resource exhaustion and ensure predictable beha
 
 ### Type Definitions & Forms
 
-```go
+```smalls
 // Type alias (different name for abbreviation, documentation, etc)
 type Gold = int;
 
@@ -147,7 +147,7 @@ Three forms supported for aggregate type initialization (structs, arrays, maps):
 **Note**: Trailing commas are allowed in all three syntax forms.
 
 **Examples**:
-```go
+```smalls
 type Point { x, y: float; };
 type Color { r, g, b, a: float; };
 
@@ -171,7 +171,7 @@ const line = Line {
 
 Newtypes create distinct types at compile-time while sharing the same runtime representation as their underlying type. This provides type safety without runtime overhead:
 
-```go
+```smalls
 type HP(int);
 type Gold(int);
 
@@ -207,7 +207,7 @@ Sum types (also known as tagged unions or algebraic data types) allow a value to
 
 #### Sum Type Declaration
 
-```go
+```smalls
 // Simple enum-style (unit variants)
 type Color = Red | Green | Blue;
 
@@ -232,7 +232,7 @@ type Shape = Circle(float) | Rectangle(float, float) | Point;
 
 Variants are constructed using qualified access (Rust-style). Variants are members of their sum type's namespace:
 
-```go
+```smalls
 type Result = Ok(int) | Err(string);
 type Color = Red | Green | Blue;
 
@@ -245,7 +245,7 @@ var c: Color = Color.Red;
 ```
 
 **With modules**:
-```go
+```smalls
 from core.errors import { Result };
 var r: Result = Result.Ok(42);  // Qualified access
 
@@ -254,7 +254,7 @@ var r: err.Result = err.Result.Ok(42);
 ```
 
 **Type aliases do not create variant namespaces**:
-```go
+```smalls
 type Result = Ok(int) | Err(string);
 type MyResult = Result;  // Just another name for Result
 var r: MyResult = Result.Ok(42); // ✓ Use original type name
@@ -275,7 +275,7 @@ var r: MyResult = Result.Ok(42); // ✓ Use original type name
 
 Pattern matching on sum types is done via `switch` statements:
 
-```go
+```smalls
 type Result = Ok(int) | Err(string);
 
 fn process(r: Result): int {
@@ -296,7 +296,7 @@ fn process(r: Result): int {
 
 **Examples**:
 
-```go
+```smalls
 // Unit variants
 type Color = Red | Green | Blue;
 fn describe_color(c: Color): string {
@@ -379,14 +379,14 @@ Tuples are anonymous product types with structural equality. The primary use cas
 - Tuples with identical element types are deduplicated at runtime
 
 **Multiple Return Values**:
-```go
+```smalls
 fn swap(x: int, y: int): (int, int) {
     return y, x;  // Implicit tuple creation
 }
 ```
 
 **Tuple Destructuring**:
-```go
+```smalls
 fn test() {
     var a, b = swap(1, 2);  // Declaration destructuring
     a, b = swap(b, a);      // Assignment destructuring
@@ -394,7 +394,7 @@ fn test() {
 ```
 
 **Tuple Indexing**:
-```go
+```smalls
 fn test() {
     var tuple = (42, 3.14, "hello");
     var x = tuple[0];  // x: int = 42
@@ -428,7 +428,7 @@ Functions are first-class values with explicit function types and lexical closur
 - `fn(int, string)` (implicit `void` return)
 
 **Lambda syntax**:
-```go
+```smalls
 fn(x: int): int { return x + 1; }
 fn(x: int) { print(x); } // void return inferred
 ```
@@ -460,7 +460,7 @@ fn(x: int) { print(x); } // void return inferred
 Smalls supports **lightweight monomorphization** for generic functions — think **type-safe C macros**. Use `$T` syntax for type parameters that get inferred at call sites and specialized at compile-time.
 
 **Syntax**:
-```go
+```smalls
 // Just use $T in the signature - no explicit type parameter list needed
 fn max(a: $T, b: $T): $T {
     return a > b ? a : b;
@@ -492,7 +492,7 @@ fn map(arr: array!($T), f: fn($T): $U): array!($U) {
 6. Caches by `(func_name, [type_args])` — reused for future `max(int, int)` calls
 
 **Call Site Examples**:
-```go
+```smalls
 var x = max(10, 20);              // $T inferred as int
 var y = max(1.5, 2.5);            // $T inferred as float
 var squared = map(nums, fn(x) { return x * x; });  // $T = int, $U = int
@@ -508,7 +508,7 @@ var squared = map(nums, fn(x) { return x * x; });  // $T = int, $U = int
 
 Smalls supports generic struct and sum type definitions using explicit type parameter syntax:
 
-```go
+```smalls
 // Generic struct
 type Pair!($A, $B) {
     first: $A;
@@ -647,7 +647,7 @@ F-strings provide string interpolation with embedded expressions.
 Expressions inside `{...}` are evaluated and converted to strings. For user-defined types, the `[[operator(str)]]` function is called for conversion.
 
 **Examples**:
-```go
+```smalls
 var name = "World";
 var greeting = f"Hello, {name}!";      // "Hello, World!"
 
@@ -687,7 +687,7 @@ F-strings are also foldable at compile time by the constant evaluator when all i
 The `[[value_type]]` attribute guarantees a struct has C-compatible memory layout, enabling stack allocation and predictable memory representation.
 
 **Syntax**:
-```go
+```smalls
 [[value_type]]
 type Vector {
     x, y, z: float;
@@ -702,7 +702,7 @@ type Vector {
 - Identical memory layout to equivalent C struct
 
 **Stack allocation**:
-```go
+```smalls
 [[value_type]]
 type Point { x, y: float; };
 
@@ -765,7 +765,7 @@ Value types use a distinct calling convention from heap types. The runtime track
 Smalls provides `as` for casting and `is` for type testing.
 
 **Cast expressions** (`expr as Type`):
-```go
+```smalls
 var x: int = 42;
 var f: float = x as float;      // int → float
 var n: int = 3.14 as int;       // float → int (truncates)
@@ -784,7 +784,7 @@ var raw: int = feat as int;     // Unwrap newtype
 - Newtype ↔ underlying type — wrapping/unwrapping
 
 **Type test expressions** (`expr is Type`):
-```go
+```smalls
 var val: int = 42;
 var check = val is int;    // true
 var check2 = val is float; // false
@@ -881,13 +881,13 @@ Use `is` only for type tests (`expr is Type`), as defined in [II.Cast & Type Tes
 
 Smalls supports C-style conditional (ternary) expressions:
 
-```go
+```smalls
 var result = condition ? true_value : false_value;
 ```
 
 The condition is evaluated first. If truthy, the true branch is evaluated and returned; otherwise the false branch. Both branches must produce compatible types. Conditional expressions are foldable at compile time when the condition is constant.
 
-```go
+```smalls
 var x = 10;
 var abs_x = x >= 0 ? x : -x;
 var label = score > 90 ? "A" : score > 80 ? "B" : "C";  // Nesting supported
@@ -906,7 +906,7 @@ var label = score > 90 ? "A" : score > 80 ? "B" : "C";  // Nesting supported
 
 #### If/Else Statements
 
-```go
+```smalls
 if (condition) {
     // then block (braces required)
 }
@@ -937,7 +937,7 @@ Three forms (Go-style):
 2. **While-style loop** — `for (condition) { ... }` — checked before each iteration
 3. **C-style loop** — `for (init; condition; increment) { ... }` — traditional three-part form
 
-```go
+```smalls
 for {
     if (done) { break; }
 }
@@ -958,7 +958,7 @@ for (var i = 0; i < 10; i = i + 1) {
 #### For-Each Loops
 
 **Array iteration** — Single binding receives element values:
-```go
+```smalls
 var nums: array!(int) = {1, 2, 3, 4, 5};
 for (var x in nums) {
     print(x);  // x is int, inferred from array element type
@@ -966,7 +966,7 @@ for (var x in nums) {
 ```
 
 **Map iteration** — Two bindings receive key-value pairs:
-```go
+```smalls
 var scores: map!(string, int) = {"alice": 100, "bob": 85};
 for (var key, value in scores) {
     print(key);    // key is string
@@ -998,7 +998,7 @@ Beyond syntactic convenience, operator aliasing provides **extensibility**:
 #### Syntax
 
 **Basic Binary Operator:**
-```go
+```smalls
 type Point { x, y: float; };
 
 [[operator(plus)]]
@@ -1010,7 +1010,7 @@ var p3 = p1 + p2;  // Calls add(p1, p2)
 ```
 
 **Unary Operator:**
-```go
+```smalls
 [[operator(minus)]]
 fn negate(p: Point): Point {
     return Point { -p.x, -p.y };
@@ -1023,7 +1023,7 @@ var p2 = -p1;  // Calls negate(p1)
 
 By default, operators only work in the exact order written. Use `commutative` to handle both orderings:
 
-```go
+```smalls
 [[operator(times, commutative)]]
 fn scale(p: Point, s: float): Point {
     return Point { p.x * s, p.y * s };
@@ -1037,7 +1037,7 @@ var r2 = 2.0 * p;  // Calls scale(p, 2.0) with swapped arguments
 
 The `str` operator enables custom string conversion for user types:
 
-```go
+```smalls
 [[operator(str)]]
 fn point_to_string(p: Point): string {
     return "Point(" + str(p.x) + ", " + str(p.y) + ")";
@@ -1153,13 +1153,13 @@ Enable cross-file references with two import styles: aliased and selective.
 #### Import Syntax
 
 **Aliased Import** — Import a module with an explicit alias:
-```go
+```smalls
 import core.math.vector as vec;
 var p: vec.Vector;
 ```
 
 **Selective Import** — Import specific symbols directly:
-```go
+```smalls
 from core.math.vector import { Vector, Point };
 var p: Vector;
 ```
@@ -1177,7 +1177,7 @@ var p: Vector;
 
 Intrinsics are module-scoped functions declared with `[[intrinsic("name")]]` and accessed through imports like any other function. Intrinsic declarations have no body and cannot be combined with `[[native]]`.
 
-```go
+```smalls
 // core/bit.smalls
 [[intrinsic("bit_and")]] fn and(a: int, b: int): int;
 [[intrinsic("bit_or")]] fn or(a: int, b: int): int;
@@ -1266,7 +1266,7 @@ The runtime maintains a loading stack to detect circular dependencies:
 
 Modules can declare `var` and `const` at the top level. These are stored in per-module global slots and initialized by a synthesized `__init` function that runs automatically when the module is first compiled.
 
-```go
+```smalls
 var counter = 0;
 const MAX_RETRIES = 3;
 
@@ -1468,7 +1468,7 @@ mb.finalize();
 ```
 
 **Script Side** — Link to native module with `[[native]]` declarations:
-```go
+```smalls
 // core/effects.smalls
 [[native]] type Position { x, y, z: float; };
 [[native]] type Effect;

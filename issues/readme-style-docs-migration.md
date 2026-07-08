@@ -43,13 +43,20 @@ For each migration slice:
 - if the Sphinx tree still exists, make sure removed pages are also removed from
   `docs/index.rst` toctrees
 
-## Generated Site Rendering Gaps
+## Generated Site Rendering
 
-The README-style docs site still needs a rendering pass:
+Resolved 2026-07-08:
 
-- Code blocks need readable syntax highlighting in generated HTML.
-- Some Markdown tables are not formatting correctly; table rendering should be
-  verified against the generated site, not only GitHub's Markdown preview.
+- Generated HTML uses build-time Pygments highlighting, including a local
+  Smalls lexer for `smalls` fenced code blocks.
+- The docs Smalls lexer is intentionally presentation-only, but its keyword,
+  literal, string, and operator surface is aligned with
+  `lib/nw/smalls/Lexer.cpp`.
+- Highlighting uses Pygments' built-in `zenburn` style. Pygments does not ship
+  `wombat`, and `zenburn` is the closest muted dark style available without
+  adding a custom theme file.
+- Markdown table rendering is covered by the docs site test fixture and
+  verified against the generated site output.
 
 ## Do Not Carry Forward
 

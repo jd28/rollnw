@@ -82,4 +82,4 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
 - [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
-- [Python-Markdown](https://python-markdown.github.io/) - documentation rendering
+- [Python-Markdown](https://python-markdown.github.io/), [Pygments](https://pygments.org/) - documentation rendering

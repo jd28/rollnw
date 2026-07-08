@@ -137,6 +137,7 @@ title = "A"
             self.assertIn('class="site-sidebar"', html)
             self.assertIn("grid-template-columns: 280px minmax(0, 1fr);", css)
             self.assertNotIn('class="site-header"', html)
+            self.assertNotIn("theme-switch", html)
 
     def test_sidebar_navigation_uses_manifest_sections(self) -> None:
         with Fixture() as fx:
@@ -169,6 +170,95 @@ section = "Beta"
             self.assertIn('<div class="site-nav-section">Alpha</div>', html)
             self.assertIn('<div class="site-nav-section">Beta</div>', html)
             self.assertIn(".site-nav-section", css)
+
+    def test_smalls_code_blocks_are_highlighted(self) -> None:
+        with Fixture() as fx:
+            fx.write(
+                "a.md",
+                """# A
+
+```smalls
+[[native]]
+[[intrinsic("load_config")]]
+type ItemVisual {
+    model: ResRef;
+};
+
+fn load_config(path: string): array!($T);
+
+const mask = 0b1010;
+var oct = 0o17;
+
+switch (mask) {
+case 0xA:
+    return 1.0f;
+default:
+    return 1.;
+}
+```
+""",
+            )
+            fx.write_manifest(
+                """
+site_title = "test"
+repo_url = "https://example.test/repo"
+source_branch = "main"
+
+[[pages]]
+source = "a.md"
+target = "index.html"
+title = "A"
+"""
+            )
+
+            fx.build()
+
+            html = fx.read_output("index.html")
+            css = fx.read_output("_static/site.css")
+            self.assertIn('class="codehilite"', html)
+            self.assertIn('<span class="nd">[[native]]</span>', html)
+            self.assertIn('<span class="nd">[[intrinsic(&quot;load_config&quot;)]]</span>', html)
+            self.assertIn('<span class="k">type</span>', html)
+            self.assertIn('<span class="k">switch</span>', html)
+            self.assertIn('<span class="nc">ItemVisual</span>', html)
+            self.assertIn('<span class="nv">$T</span>', html)
+            self.assertIn('<span class="mb">0b1010</span>', html)
+            self.assertIn('<span class="mo">0o17</span>', html)
+            self.assertIn('<span class="mh">0xA</span>', html)
+            self.assertIn('<span class="mf">1.0f</span>', html)
+            self.assertIn('<span class="mf">1.</span>', html)
+            self.assertIn(".codehilite .k", css)
+
+    def test_markdown_tables_render_as_tables(self) -> None:
+        with Fixture() as fx:
+            fx.write(
+                "a.md",
+                """# A
+
+| Field | Meaning |
+| --- | --- |
+| model | ResRef model token |
+""",
+            )
+            fx.write_manifest(
+                """
+site_title = "test"
+repo_url = "https://example.test/repo"
+source_branch = "main"
+
+[[pages]]
+source = "a.md"
+target = "index.html"
+title = "A"
+"""
+            )
+
+            fx.build()
+
+            html = fx.read_output("index.html")
+            self.assertIn("<table>", html)
+            self.assertIn("<th>Field</th>", html)
+            self.assertIn("<td>model</td>", html)
 
     def test_manifest_markdown_link_rewrites_to_html(self) -> None:
         with Fixture() as fx:
