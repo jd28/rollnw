@@ -20,7 +20,7 @@ struct Item;
 }
 
 namespace nw::model {
-struct Mdl;
+class Mdl;
 }
 
 namespace nw::render::nwn {

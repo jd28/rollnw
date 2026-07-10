@@ -11,7 +11,7 @@ struct PlaceableInfo;
 }
 
 namespace nw::model {
-struct Mdl;
+class Mdl;
 }
 
 namespace nw::render::viewer {
