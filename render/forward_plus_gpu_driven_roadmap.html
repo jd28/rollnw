@@ -96,7 +96,7 @@ uses the same renderer family rather than a separate <code>RenderModelRenderer</
   path issue.</li>
 </ul>
 <h2 id="dependency-graph">Dependency graph</h2>
-<pre><code>A (simplify)  ──────────────┐  (A1/A2/A3 done; A4 mostly done)
+<div class="codehilite"><pre><span></span><code>A (simplify)  ──────────────┐  (A1/A2/A3 done; A4 mostly done)
                             │
 B1 indirect-count (gfx) ────┼──────────────► D3 GPU cull+submit (parked)
 B2 compute scaffolding ─────┼──► C2 GPU light cull (done; default)
@@ -107,7 +107,8 @@ C1 depth pre-pass ──────────┴──► C2 ──► C3 fro
 D1 persistent instance buffers ─┐
 D2 static mega vtx/idx buffer ──┴──► D3 GPU cull + DrawIndexedIndirectCount ──► D4 HiZ occlusion
             (done)                    (parked by measurement)                    (later)
-</code></pre>
+</code></pre></div>
+
 <p>Current recommended order: keep C4 as a visual-quality follow-up only. Leave
 D1/D3/D4 parked until an area benchmark shows CPU prepare cost is material.</p>
 <h2 id="validation-strategy-applies-to-every-phase">Validation strategy (applies to every phase)</h2>

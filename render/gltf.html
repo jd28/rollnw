@@ -48,6 +48,8 @@ other common models.</p>
 <ul>
 <li><code>nw::render::gltf::import_gltf_model_asset(path)</code> decodes glTF into a
   CPU-side <code>ModelAsset</code> without requiring a graphics context.</li>
+<li><code>nw::render::gltf::import_gltf_model_asset_with_stats(path)</code> is the same
+  CPU-side import path with source/import diagnostic counters.</li>
 <li><code>nw::render::gltf::import_gltf_render_model_from_asset(path, desc)</code> decodes
   through <code>ModelAsset</code>, uploads geometry and textures, and returns a
   <code>RenderModel</code>.</li>
@@ -57,7 +59,7 @@ other common models.</p>
 <p>The viewer and mudl preview path is <code>ModelAsset -&gt; RenderModel</code>; there is no
 runtime glTF preview switch.</p>
 <h2 id="data-flow">Data Flow</h2>
-<pre><code class="language-text">.gltf / .glb
+<div class="codehilite"><pre><span></span><code>.gltf / .glb
   -&gt; cgltf parse
   -&gt; ModelAsset
      materials
@@ -74,7 +76,8 @@ runtime glTF preview switch.</p>
   -&gt; ModelInstance
   -&gt; PreparedModelDraw / PreparedModelSurfaceDraw
   -&gt; PBR renderer
-</code></pre>
+</code></pre></div>
+
 <h2 id="modelasset-mapping">ModelAsset Mapping</h2>
 <table>
 <thead>
@@ -156,7 +159,9 @@ Reference sampling remains a debug fallback.</p>
 </ol>
 <p>The renderer should not branch on "glTF" at draw time.</p>
 <h2 id="validation-and-fallbacks">Validation And Fallbacks</h2>
-<p><code>validate_model_asset</code> counts invalid primitive/material/skin/animation rows
+<p><code>GltfImportStats</code> counts importer-boundary drops and repairs, including repeated
+or over-depth node graph references and non-finite accessor payloads.
+<code>validate_model_asset</code> counts invalid primitive/material/skin/animation rows
 before upload. Upload stats then count geometry and texture upload failures.</p>
 <p>Out-of-range or unsupported data should be rejected, dropped, or counted at the
 conversion/upload boundary. It should not reach Vulkan submission as undefined

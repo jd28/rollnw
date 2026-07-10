@@ -48,14 +48,15 @@ transform from scene-owned model instance handles to flat draw records that
 renderer passes can sort, filter, validate, and submit.</p>
 <h2 id="frame-transform">Frame Transform</h2>
 <p>The common path is:</p>
-<pre><code class="language-text">ModelInstanceHandle span
+<div class="codehilite"><pre><span></span><code>ModelInstanceHandle span
   -&gt; PreparedModelDrawList
   -&gt; PreparedModelDrawRangeList
   -&gt; PreparedModelSurfaceDrawList
   -&gt; sorted PreparedModelSurfaceDraw span
   -&gt; RenderModel skin table
   -&gt; backend submission adapters
-</code></pre>
+</code></pre></div>
+
 <p><code>PreparedModelDrawList</code> is collected from stable instance handles. It owns a
 flat <code>draws</code> array and one offset table entry per input handle plus a terminal
 offset. Hidden, stale, missing, or non-emitting inputs repeat the previous

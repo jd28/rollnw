@@ -53,31 +53,32 @@ with <code>nw::gfx</code> underneath as the low-level graphics API boundary.</p>
 <p><img alt="c_aribeth turntable" src="../assets/tools/mudl/readme-assets/c_aribeth-turntable.gif"></p>
 <h2 id="quickstart">Quickstart</h2>
 <p>Build instructions live in the root <a href="../index.html#building-mudl">README</a>.</p>
-<pre><code class="language-bash"># Launch the interactive viewer
+<div class="codehilite"><pre><span></span><code><span class="c1"># Launch the interactive viewer</span>
 mudl
 
-# Open a stock NWN model
-mudl c_aribeth
+<span class="c1"># Open a stock NWN model</span>
+mudl<span class="w"> </span>c_aribeth
 
-# Open a glTF asset
-mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+<span class="c1"># Open a glTF asset</span>
+mudl<span class="w"> </span>./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
 
-# Inspect model stats
-mudl stats c_aribeth
+<span class="c1"># Inspect model stats</span>
+mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth
 
-# Print the viewer load report as JSON
-mudl report c_halaster
+<span class="c1"># Print the viewer load report as JSON</span>
+mudl<span class="w"> </span>report<span class="w"> </span>c_halaster
 
-# Headless screenshot
-mudl screenshot c_aribeth ./out/c_aribeth.png
+<span class="c1"># Headless screenshot</span>
+mudl<span class="w"> </span>screenshot<span class="w"> </span>c_aribeth<span class="w"> </span>./out/c_aribeth.png
 
-# Headless turntable image sequence
-mudl turntable c_aribeth 36 --output ./out/c_aribeth
-# Without --output, frames go to ./c_aribeth-turntable/
+<span class="c1"># Headless turntable image sequence</span>
+mudl<span class="w"> </span>turntable<span class="w"> </span>c_aribeth<span class="w"> </span><span class="m">36</span><span class="w"> </span>--output<span class="w"> </span>./out/c_aribeth
+<span class="c1"># Without --output, frames go to ./c_aribeth-turntable/</span>
 
-# Print the full command list
-mudl help
-</code></pre>
+<span class="c1"># Print the full command list</span>
+mudl<span class="w"> </span><span class="nb">help</span>
+</code></pre></div>
+
 <h2 id="common-flags">Common flags</h2>
 <p>Most commands accept these:</p>
 <ul>
@@ -94,169 +95,182 @@ mudl help
 <p>Command-specific flags are listed inline below.</p>
 <h2 id="commands">Commands</h2>
 <h3 id="interactive-viewer">Interactive viewer</h3>
-<pre><code class="language-text">mudl [&lt;resref&gt;]
+<div class="codehilite"><pre><span></span><code>mudl [&lt;resref&gt;]
 mudl &lt;path/to/model.gltf|model.glb&gt;
 mudl view [&lt;resref&gt;|model.gltf|model.glb|effect.json]
 mudl creature &lt;resref&gt;
 mudl item &lt;resref&gt;
 mudl area &lt;resref&gt;
-</code></pre>
+</code></pre></div>
+
 <p><code>mudl view</code> also opens a native particle asset directly when the input is a JSON file with <code>"$type": "ParticleEffect"</code> — this is the source-neutral authoring path for particle work.</p>
-<pre><code class="language-bash">mudl
-mudl c_aribeth
-mudl view c_aribeth
-mudl view ./tests/test_data/user/development/particle_basic.json
+<div class="codehilite"><pre><span></span><code>mudl
+mudl<span class="w"> </span>c_aribeth
+mudl<span class="w"> </span>view<span class="w"> </span>c_aribeth
+mudl<span class="w"> </span>view<span class="w"> </span>./tests/test_data/user/development/particle_basic.json
 
-# Static or skinned glTF / glb preview
-mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
-mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
-mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
+<span class="c1"># Static or skinned glTF / glb preview</span>
+mudl<span class="w"> </span>./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+mudl<span class="w"> </span>./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
+mudl<span class="w"> </span>./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
 
-# Creature and item previews
-mudl creature c_aribeth --animation pause1
-mudl item nw_it_mpotion001
+<span class="c1"># Creature and item previews</span>
+mudl<span class="w"> </span>creature<span class="w"> </span>c_aribeth<span class="w"> </span>--animation<span class="w"> </span>pause1
+mudl<span class="w"> </span>item<span class="w"> </span>nw_it_mpotion001
 
-# Interactive area viewer
-mudl area ttr01
-</code></pre>
+<span class="c1"># Interactive area viewer</span>
+mudl<span class="w"> </span>area<span class="w"> </span>ttr01
+</code></pre></div>
+
 <h3 id="headless-capture">Headless capture</h3>
-<pre><code class="language-text">mudl screenshot &lt;resref&gt; &lt;path&gt;
+<div class="codehilite"><pre><span></span><code>mudl screenshot &lt;resref&gt; &lt;path&gt;
 mudl turntable &lt;resref&gt; [frames] [--output &lt;dir&gt;]
 mudl frames &lt;count&gt; [&lt;resref&gt;]
 mudl area-screenshot &lt;resref&gt; &lt;path&gt;
 mudl area-benchmark &lt;resref&gt; [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius &lt;tiles&gt;] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot &lt;path&gt;]
 mudl area-sweep &lt;resref|area-list.txt&gt; [--frames &lt;count&gt;] [--warmup &lt;count&gt;] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--validate] [--json &lt;path&gt;]
 mudl area --dump &lt;module-path&gt; [--output &lt;path&gt;] [--skip-existing] [--limit &lt;n&gt;]
-</code></pre>
+</code></pre></div>
+
 <p>Forward+ is enabled by default for local lights. Use <code>--no-forward-plus</code> only for
 fallback or comparison captures. GPU gather is the default Forward+ path;
 <code>--no-forward-plus-gpu-cull</code> forces the CPU reference path for parity runs.</p>
-<pre><code class="language-bash"># Single headless screenshot
-mudl screenshot c_aribeth ./out/c_aribeth.png
+<div class="codehilite"><pre><span></span><code><span class="c1"># Single headless screenshot</span>
+mudl<span class="w"> </span>screenshot<span class="w"> </span>c_aribeth<span class="w"> </span>./out/c_aribeth.png
 
-# Turntable image sequence
-mudl turntable c_aribeth 36 --output ./out/c_aribeth
-# Defaults to ./c_aribeth-turntable/ when --output is omitted
+<span class="c1"># Turntable image sequence</span>
+mudl<span class="w"> </span>turntable<span class="w"> </span>c_aribeth<span class="w"> </span><span class="m">36</span><span class="w"> </span>--output<span class="w"> </span>./out/c_aribeth
+<span class="c1"># Defaults to ./c_aribeth-turntable/ when --output is omitted</span>
 
-# Render a fixed number of frames
-mudl frames 36 c_aribeth
+<span class="c1"># Render a fixed number of frames</span>
+mudl<span class="w"> </span>frames<span class="w"> </span><span class="m">36</span><span class="w"> </span>c_aribeth
 
-# Headless area screenshot
-mudl area-screenshot ttr01 ./out/ttr01.png
+<span class="c1"># Headless area screenshot</span>
+mudl<span class="w"> </span>area-screenshot<span class="w"> </span>ttr01<span class="w"> </span>./out/ttr01.png
 
-# Headless area render benchmark from a gameplay-style camera
-mudl area-benchmark ms_4city --camera gameplay --json ./out/ms_4city.json
+<span class="c1"># Headless area render benchmark from a gameplay-style camera</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city.json
 
-# Compare the same fixed camera without local-light shadow maps
-mudl area-benchmark ms_4city --camera gameplay --no-local-shadows --json ./out/ms_4city-no-local-shadows.json
+<span class="c1"># Compare the same fixed camera without local-light shadow maps</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--no-local-shadows<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-no-local-shadows.json
 
-# Simulate a game/PVS visibility mask around the camera tile
-mudl area-benchmark ms_4city --camera gameplay --visible-tile-radius 2 --json ./out/ms_4city-near.json
+<span class="c1"># Simulate a game/PVS visibility mask around the camera tile</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--visible-tile-radius<span class="w"> </span><span class="m">2</span><span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-near.json
 
-# Capture a Forward+ cluster light-count heatmap after the benchmark
-mudl area-benchmark ms_4city --camera gameplay --forward-plus-debug cluster-lights --screenshot ./out/ms_4city-fplus.png --json ./out/ms_4city-fplus.json
+<span class="c1"># Capture a Forward+ cluster light-count heatmap after the benchmark</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--forward-plus-debug<span class="w"> </span>cluster-lights<span class="w"> </span>--screenshot<span class="w"> </span>./out/ms_4city-fplus.png<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-fplus.json
 
-# Run the GPU Forward+ gather path explicitly for CPU/GPU parity captures
-mudl area-benchmark ms_4city --camera gameplay --forward-plus-gpu-cull --forward-plus-debug cluster-lights --json ./out/ms_4city-fplus-gpu.json
+<span class="c1"># Run the GPU Forward+ gather path explicitly for CPU/GPU parity captures</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--forward-plus-gpu-cull<span class="w"> </span>--forward-plus-debug<span class="w"> </span>cluster-lights<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-fplus-gpu.json
 
-# Compare a fixed Forward+ cluster layout against the automatic area config
-mudl area-benchmark ms_4city --camera gameplay --forward-plus-config 32,4,64 --json ./out/ms_4city-fplus-fixed.json
+<span class="c1"># Compare a fixed Forward+ cluster layout against the automatic area config</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--forward-plus-config<span class="w"> </span><span class="m">32</span>,4,64<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-fplus-fixed.json
 
-# Run a validation sweep over area renderer variants
-mudl area-sweep ms_4city --module ../the_awakening --frames 1 --variants default --validate --json ./out/ms_4city-sweep.json
+<span class="c1"># Run a validation sweep over area renderer variants</span>
+mudl<span class="w"> </span>area-sweep<span class="w"> </span>ms_4city<span class="w"> </span>--module<span class="w"> </span>../the_awakening<span class="w"> </span>--frames<span class="w"> </span><span class="m">1</span><span class="w"> </span>--variants<span class="w"> </span>default<span class="w"> </span>--validate<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-sweep.json
 
-# Run validation plus an area benchmark matrix and summary report
-tools/mudl/area_benchmark_baseline.py ms_4city --module ../the_awakening --out-dir ./out/ms_4city-baseline --quiet
+<span class="c1"># Run validation plus an area benchmark matrix and summary report</span>
+tools/mudl/area_benchmark_baseline.py<span class="w"> </span>ms_4city<span class="w"> </span>--module<span class="w"> </span>../the_awakening<span class="w"> </span>--out-dir<span class="w"> </span>./out/ms_4city-baseline<span class="w"> </span>--quiet
 
-# Dump every area in a module to screenshots
-mudl area --dump ./mymodule.mod --output ./out/areas --skip-existing --limit 50 --debug
-</code></pre>
+<span class="c1"># Dump every area in a module to screenshots</span>
+mudl<span class="w"> </span>area<span class="w"> </span>--dump<span class="w"> </span>./mymodule.mod<span class="w"> </span>--output<span class="w"> </span>./out/areas<span class="w"> </span>--skip-existing<span class="w"> </span>--limit<span class="w"> </span><span class="m">50</span><span class="w"> </span>--debug
+</code></pre></div>
+
 <h3 id="inspection">Inspection</h3>
-<pre><code class="language-text">mudl stats &lt;resref&gt;
+<div class="codehilite"><pre><span></span><code>mudl stats &lt;resref&gt;
 mudl report &lt;resref|path&gt;
 mudl dump &lt;resref&gt; [--output &lt;dir&gt;]
 mudl texture &lt;resref&gt; &lt;path&gt;
-</code></pre>
-<pre><code class="language-bash">mudl stats c_aribeth
-mudl report c_halaster
-mudl report ./shared/blueprints/creatures/pl_bernard.utc.json --module ./mymodule.mod
-mudl dump c_aribeth --output ./out/c_aribeth-assets
-mudl stats c_aribeth --module ./mymodule.mod
-mudl texture plc_archtarg plc_archtarg_d.png
-</code></pre>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth
+mudl<span class="w"> </span>report<span class="w"> </span>c_halaster
+mudl<span class="w"> </span>report<span class="w"> </span>./shared/blueprints/creatures/pl_bernard.utc.json<span class="w"> </span>--module<span class="w"> </span>./mymodule.mod
+mudl<span class="w"> </span>dump<span class="w"> </span>c_aribeth<span class="w"> </span>--output<span class="w"> </span>./out/c_aribeth-assets
+mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth<span class="w"> </span>--module<span class="w"> </span>./mymodule.mod
+mudl<span class="w"> </span>texture<span class="w"> </span>plc_archtarg<span class="w"> </span>plc_archtarg_d.png
+</code></pre></div>
+
 <p><code>mudl report</code> resolves the NWN preview dependency graph without starting the renderer and writes the load report to stdout as JSON. It includes the preview source and kind, loaded model names, referenced resources, missing resources with model/node origins, particle emitter counts, particle caps, and report events. Supermodels are reported as MDL dependencies, but their mesh textures/materials are not treated as loaded preview resources. Redirect stdout to capture it cleanly:</p>
-<pre><code class="language-bash">mudl report c_halaster &gt; ./out/c_halaster-report.json
-</code></pre>
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>report<span class="w"> </span>c_halaster<span class="w"> </span>&gt;<span class="w"> </span>./out/c_halaster-report.json
+</code></pre></div>
+
 <p><code>mudl dump</code> writes a self-contained resource closure for a model preview, including the model,
 supermodels, reference models, mesh/emitter/light textures, TXI files, MTR files, and texture
 references found inside TXI/MTR text. A <code>manifest.json</code> records copied and missing resources plus
 the model node or secondary file that referenced each asset.</p>
 <h3 id="spells-and-vfx">Spells and VFX</h3>
-<pre><code class="language-text">mudl spell &lt;spells.2da rowid&gt;
+<div class="codehilite"><pre><span></span><code>mudl spell &lt;spells.2da rowid&gt;
 mudl spell-export &lt;spells.2da rowid&gt; &lt;path&gt;
 mudl spell-export-live &lt;spells.2da rowid&gt; &lt;path&gt;
 mudl spell-preview-live &lt;spells.2da rowid&gt; &lt;path&gt; [--frame &lt;count&gt;] [--view front|top|side] [--metadata]
 mudl vfx &lt;spell|resref|VFX_*|effect.json&gt; [--stage proj|cast|conj|impact|duration|cessation]
-</code></pre>
-<pre><code class="language-bash">mudl spell 115
-mudl spell-export 115 ./out/spell115.json
-mudl spell-export-live 115 ./out/spell115-live.json
-mudl spell-preview-live 115 ./out/spell115-preview.png --frame 24 --metadata
+</code></pre></div>
 
-mudl vfx VFX_IMP_MIRV
-mudl vfx Fireball --stage impact
-mudl vfx ./tests/test_data/user/development/particle_basic.json
-</code></pre>
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>spell<span class="w"> </span><span class="m">115</span>
+mudl<span class="w"> </span>spell-export<span class="w"> </span><span class="m">115</span><span class="w"> </span>./out/spell115.json
+mudl<span class="w"> </span>spell-export-live<span class="w"> </span><span class="m">115</span><span class="w"> </span>./out/spell115-live.json
+mudl<span class="w"> </span>spell-preview-live<span class="w"> </span><span class="m">115</span><span class="w"> </span>./out/spell115-preview.png<span class="w"> </span>--frame<span class="w"> </span><span class="m">24</span><span class="w"> </span>--metadata
+
+mudl<span class="w"> </span>vfx<span class="w"> </span>VFX_IMP_MIRV
+mudl<span class="w"> </span>vfx<span class="w"> </span>Fireball<span class="w"> </span>--stage<span class="w"> </span>impact
+mudl<span class="w"> </span>vfx<span class="w"> </span>./tests/test_data/user/development/particle_basic.json
+</code></pre></div>
+
 <h3 id="particles">Particles</h3>
-<pre><code class="language-text">mudl particle-preview &lt;mdl-path|resref&gt; &lt;out.png&gt; [--time &lt;seconds&gt;] [--view front|top|side] [--metadata]
+<div class="codehilite"><pre><span></span><code>mudl particle-preview &lt;mdl-path|resref&gt; &lt;out.png&gt; [--time &lt;seconds&gt;] [--view front|top|side] [--metadata]
 mudl particle-preview-frames &lt;mdl-path|resref&gt; &lt;out-dir&gt; [--duration &lt;seconds&gt;] [--fps &lt;n&gt;] [--view front|top|side] [--metadata]
 mudl particle-export &lt;mdl-path|resref&gt; &lt;effect.json&gt;
-</code></pre>
+</code></pre></div>
+
 <p><code>--metadata</code> writes JSON companion files with emitter/kernel/warning state. <code>particle-preview</code> writes a sibling <code>.json</code> next to the PNG; <code>particle-preview-frames</code> writes <code>preview.json</code> plus one <code>.json</code> per numbered frame.</p>
-<pre><code class="language-bash"># Preview from a local MDL file
-mudl particle-preview ./tests/test_data/user/development/vfx_lightning_test.mdl ./out/lightning.png --time 0.25 --metadata
+<div class="codehilite"><pre><span></span><code><span class="c1"># Preview from a local MDL file</span>
+mudl<span class="w"> </span>particle-preview<span class="w"> </span>./tests/test_data/user/development/vfx_lightning_test.mdl<span class="w"> </span>./out/lightning.png<span class="w"> </span>--time<span class="w"> </span><span class="m">0</span>.25<span class="w"> </span>--metadata
 
-# Preview from an NWN model resref
-mudl particle-preview c_mindflayer ./out/c_mindflayer-particles.png --time 1.0 --view front --animation cspecial
+<span class="c1"># Preview from an NWN model resref</span>
+mudl<span class="w"> </span>particle-preview<span class="w"> </span>c_mindflayer<span class="w"> </span>./out/c_mindflayer-particles.png<span class="w"> </span>--time<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span>--view<span class="w"> </span>front<span class="w"> </span>--animation<span class="w"> </span>cspecial
 
-# Frame sequence
-mudl particle-preview-frames it_torch_000 ./out/torch-particles --duration 1.5 --fps 24 --view front --metadata
+<span class="c1"># Frame sequence</span>
+mudl<span class="w"> </span>particle-preview-frames<span class="w"> </span>it_torch_000<span class="w"> </span>./out/torch-particles<span class="w"> </span>--duration<span class="w"> </span><span class="m">1</span>.5<span class="w"> </span>--fps<span class="w"> </span><span class="m">24</span><span class="w"> </span>--view<span class="w"> </span>front<span class="w"> </span>--metadata
 
-# Export an NWN particle effect into the native particle JSON format
-mudl particle-export it_torch_000 ./out/it_torch_000.json
-</code></pre>
+<span class="c1"># Export an NWN particle effect into the native particle JSON format</span>
+mudl<span class="w"> </span>particle-export<span class="w"> </span>it_torch_000<span class="w"> </span>./out/it_torch_000.json
+</code></pre></div>
+
 <h3 id="visual-corpus-and-smoke-tests">Visual corpus and smoke tests</h3>
-<pre><code class="language-text">mudl corpus &lt;corpus.json&gt; [--output &lt;dir&gt;] [--user &lt;path&gt;] [--pbr-environment &lt;ktx&gt;] [--no-pbr-ibl] [--limit &lt;n&gt;] [--filter &lt;tag&gt;] [--ledger &lt;path&gt;]
+<div class="codehilite"><pre><span></span><code>mudl corpus &lt;corpus.json&gt; [--output &lt;dir&gt;] [--user &lt;path&gt;] [--pbr-environment &lt;ktx&gt;] [--no-pbr-ibl] [--limit &lt;n&gt;] [--filter &lt;tag&gt;] [--ledger &lt;path&gt;]
 mudl nwn-animation-smoke [--user &lt;path&gt;]
 mudl compute-smoke
-</code></pre>
-<pre><code class="language-bash"># Run a checked-in corpus and collect per-entry outputs
-mudl corpus ./tests/test_data/user/development/spell_corpus.json \
-  --user ./tests/test_data/user \
-  --output ./tmp/visual-audit/spells
+</code></pre></div>
 
-# Run a corpus and update the checked-in visual audit ledger
-mudl corpus ./tests/test_data/user/development/creature_corpus.json \
-  --user ./tests/test_data/user \
-  --output ./tmp/visual-audit/creatures \
-  --ledger ./tests/test_data/user/development/visual_audit_ledger.json
+<div class="codehilite"><pre><span></span><code><span class="c1"># Run a checked-in corpus and collect per-entry outputs</span>
+mudl<span class="w"> </span>corpus<span class="w"> </span>./tests/test_data/user/development/spell_corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span>./tests/test_data/user<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>./tmp/visual-audit/spells
 
-# Run the checked-in DockerDemo area corpus through the test user directory
-mudl corpus ./tests/test_data/user/development/area_corpus.json \
-  --module ./tests/test_data/user/modules/DockerDemo.mod \
-  --user ./tests/test_data/user \
-  --output ./tmp/visual-audit/areas
+<span class="c1"># Run a corpus and update the checked-in visual audit ledger</span>
+mudl<span class="w"> </span>corpus<span class="w"> </span>./tests/test_data/user/development/creature_corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span>./tests/test_data/user<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>./tmp/visual-audit/creatures<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ledger<span class="w"> </span>./tests/test_data/user/development/visual_audit_ledger.json
 
-# Run the Stage 2 PBR convergence baseline with static PBR reference IBL enabled
-mudl corpus ./tests/test_data/user/development/pbr_corpus.json \
-  --module ./tests/test_data/user/modules/DockerDemo.mod \
-  --user ./tests/test_data/user \
-  --output ./tmp/visual-audit/pbr \
-  --ledger ./tests/test_data/user/development/visual_audit_ledger.json
+<span class="c1"># Run the checked-in DockerDemo area corpus through the test user directory</span>
+mudl<span class="w"> </span>corpus<span class="w"> </span>./tests/test_data/user/development/area_corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--module<span class="w"> </span>./tests/test_data/user/modules/DockerDemo.mod<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span>./tests/test_data/user<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>./tmp/visual-audit/areas
 
-# Renderer smoke test
-mudl compute-smoke --validate
-</code></pre>
+<span class="c1"># Run the Stage 2 PBR convergence baseline with static PBR reference IBL enabled</span>
+mudl<span class="w"> </span>corpus<span class="w"> </span>./tests/test_data/user/development/pbr_corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--module<span class="w"> </span>./tests/test_data/user/modules/DockerDemo.mod<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span>./tests/test_data/user<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>./tmp/visual-audit/pbr<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ledger<span class="w"> </span>./tests/test_data/user/development/visual_audit_ledger.json
+
+<span class="c1"># Renderer smoke test</span>
+mudl<span class="w"> </span>compute-smoke<span class="w"> </span>--validate
+</code></pre></div>
+
 <p><code>mudl corpus --ledger &lt;path&gt;</code> updates a persistent audit ledger from the current run while preserving human review fields such as ownership, issue linkage, disposition, and review notes.</p>
 <p>Viewer corpus entries may include a <code>camera</code> object when auto-fit is not a useful
 diagnostic frame. Supported modes are <code>orbit</code>, <code>free</code>, and <code>area_gameplay</code>.
@@ -264,11 +278,12 @@ Use three-number arrays for <code>position</code> and <code>target</code>; <code
 positive <code>radius</code> plus optional <code>yaw</code>, <code>pitch</code>, and <code>fov</code>.</p>
 <p>Static PBR corpus entries may include a <code>static_pbr_environment</code> object to pin
 their reference lighting independently of the command line:</p>
-<pre><code class="language-json">&quot;static_pbr_environment&quot;: {
-  &quot;environment_path&quot;: &quot;tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx&quot;,
-  &quot;ibl_requested&quot;: true
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nt">&quot;static_pbr_environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;environment_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;ibl_requested&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>Both fields are optional. Missing fields inherit <code>--pbr-environment</code> and
 <code>--no-pbr-ibl</code>; malformed paths or non-boolean <code>ibl_requested</code> values fail the
 corpus load.</p>
@@ -283,21 +298,23 @@ corpus load.</p>
 - <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/area_corpus.json">area_corpus.json</a>
 - <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/visual_audit_ledger.json">visual_audit_ledger.json</a></p>
 <p>NWN MDL import gets you close, and native particle JSON gives you something clean to tune from there:</p>
-<pre><code class="language-bash">mudl view ./tests/test_data/user/development/particle_basic.json
-</code></pre>
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>view<span class="w"> </span>./tests/test_data/user/development/particle_basic.json
+</code></pre></div>
+
 <h2 id="output">Output</h2>
 <p><code>mudl</code> stops at deterministic frame generation. It does not own GIF or video encoding — that belongs in external tools like <code>ffmpeg</code> or build scripts that consume the generated PNGs.</p>
-<pre><code class="language-bash"># Generate a 36-frame turntable sequence
-mudl turntable c_aribeth 36 --output ./out/c_aribeth
-# Or omit --output to write ./c_aribeth-turntable/%04d.png
+<div class="codehilite"><pre><span></span><code><span class="c1"># Generate a 36-frame turntable sequence</span>
+mudl<span class="w"> </span>turntable<span class="w"> </span>c_aribeth<span class="w"> </span><span class="m">36</span><span class="w"> </span>--output<span class="w"> </span>./out/c_aribeth
+<span class="c1"># Or omit --output to write ./c_aribeth-turntable/%04d.png</span>
 
-# GIF via ffmpeg
-ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -vf palettegen ./out/c_aribeth-palette.png
-ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -i ./out/c_aribeth-palette.png -lavfi paletteuse ./out/c_aribeth.gif
+<span class="c1"># GIF via ffmpeg</span>
+ffmpeg<span class="w"> </span>-framerate<span class="w"> </span><span class="m">12</span><span class="w"> </span>-i<span class="w"> </span>./out/c_aribeth/%04d.png<span class="w"> </span>-vf<span class="w"> </span>palettegen<span class="w"> </span>./out/c_aribeth-palette.png
+ffmpeg<span class="w"> </span>-framerate<span class="w"> </span><span class="m">12</span><span class="w"> </span>-i<span class="w"> </span>./out/c_aribeth/%04d.png<span class="w"> </span>-i<span class="w"> </span>./out/c_aribeth-palette.png<span class="w"> </span>-lavfi<span class="w"> </span>paletteuse<span class="w"> </span>./out/c_aribeth.gif
 
-# MP4 via ffmpeg
-ffmpeg -framerate 12 -i ./out/c_aribeth/%04d.png -pix_fmt yuv420p ./out/c_aribeth.mp4
-</code></pre>
+<span class="c1"># MP4 via ffmpeg</span>
+ffmpeg<span class="w"> </span>-framerate<span class="w"> </span><span class="m">12</span><span class="w"> </span>-i<span class="w"> </span>./out/c_aribeth/%04d.png<span class="w"> </span>-pix_fmt<span class="w"> </span>yuv420p<span class="w"> </span>./out/c_aribeth.mp4
+</code></pre></div>
+
 <h2 id="viewer-controls">Viewer Controls</h2>
 <h3 id="general-viewer">General viewer</h3>
 <ul>
@@ -430,18 +447,19 @@ Use that directory as the explicit NWN user root so the model, texture, and
 TXI bytes are served from committed test data while the install root only
 provides bootstrap rules and base tables.</p>
 <p>Suggested checks:</p>
-<pre><code class="language-bash">mudl stats c_aribeth --user ./tests/test_data/renderer/nwn_dump_user
-mudl stats c_drgshad --user ./tests/test_data/renderer/nwn_dump_user
-mudl stats it_torch_000 --user ./tests/test_data/renderer/nwn_dump_user
-mudl stats ttd01_a04_03 --user ./tests/test_data/renderer/nwn_dump_user
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>stats<span class="w"> </span>c_drgshad<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>stats<span class="w"> </span>it_torch_000<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>stats<span class="w"> </span>ttd01_a04_03<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
 
-mudl screenshot c_drgshad ./out/c_drgshad.png --user ./tests/test_data/renderer/nwn_dump_user
-mudl screenshot it_torch_000 ./out/it_torch_000.png --user ./tests/test_data/renderer/nwn_dump_user
-mudl screenshot ttd01_a04_03 ./out/ttd01_a04_03.png --user ./tests/test_data/renderer/nwn_dump_user
-mudl ./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
-mudl ./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
-mudl ./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
-</code></pre>
+mudl<span class="w"> </span>screenshot<span class="w"> </span>c_drgshad<span class="w"> </span>./out/c_drgshad.png<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>screenshot<span class="w"> </span>it_torch_000<span class="w"> </span>./out/it_torch_000.png<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>screenshot<span class="w"> </span>ttd01_a04_03<span class="w"> </span>./out/ttd01_a04_03.png<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+mudl<span class="w"> </span>./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+mudl<span class="w"> </span>./tests/test_data/renderer/CesiumMan/glTF-Binary/CesiumMan.glb
+mudl<span class="w"> </span>./tests/test_data/renderer/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb
+</code></pre></div>
+
 <h2 id="design-notes">Design notes</h2>
 <ul>
 <li><code>mudl</code> is a consumer of <code>nw::render</code> and <code>lib/nw/render/viewer</code>, not a renderer framework.</li>

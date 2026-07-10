@@ -54,9 +54,10 @@ fields still match the object array.</p>
 <h2 id="kernel-service">Kernel Service</h2>
 <p>Objects loaded through the kernel object service belong to that service and must
 be destroyed through it.</p>
-<pre><code class="language-cpp">auto obj = nw::kernel::objects().load&lt;nw::Creature&gt;(fs::path(&quot;a/path/to/nw_chicken.utc&quot;));
-nw::kernel::objects().destroy(obj-&gt;handle());
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">destroy</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">handle</span><span class="p">());</span>
+</code></pre></div>
+
 <p>After destroy, direct access to the object pointer is invalid and any stored
 handle no longer resolves to that object version.</p>
 <h2 id="current-boundary">Current Boundary</h2>

@@ -46,20 +46,21 @@ descent parser, include processing, AST resolution, and type checking.</p>
 <a href="../smalls/index.html">Smalls</a>. The NWScript parser remains useful for
 reading, analyzing, and migrating existing NWN content.</p>
 <h2 id="basic-loading">Basic Loading</h2>
-<pre><code class="language-cpp">#include &lt;nw/kernel/Kernel.hpp&gt;
-#include &lt;nw/script/Nss.hpp&gt;
+<div class="codehilite"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
 
-nw::kernel::config().initialize();
-nw::kernel::services().start();
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">();</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
 
-auto ctx = std::make_unique&lt;nw::script::Context&gt;();
-nw::script::Nss nss{fs::path(&quot;path/to/myscript.nss&quot;), ctx.get()};
+<span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;path/to/myscript.nss&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">()};</span>
 
-nss.parse();
-nss.process_includes();
-auto deps = nss.dependencies();
-nss.resolve();
-</code></pre>
+<span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">process_includes</span><span class="p">();</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">deps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nss</span><span class="p">.</span><span class="n">dependencies</span><span class="p">();</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">resolve</span><span class="p">();</span>
+</code></pre></div>
+
 <h2 id="top-level-declarations">Top-Level Declarations</h2>
 <p>Tooling can inspect declarations through the resolved AST exposed by
 <code>nw::script::Nss</code>. That path is intended for compatibility analysis, dependency

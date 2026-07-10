@@ -170,38 +170,39 @@
 </tbody>
 </table>
 <h3 id="type-definitions-forms">Type Definitions &amp; Forms</h3>
-<pre><code class="language-go">// Type alias (different name for abbreviation, documentation, etc)
-type Gold = int;
+<div class="codehilite"><pre><span></span><code><span class="c1">// Type alias (different name for abbreviation, documentation, etc)</span>
+<span class="k">type</span> <span class="nc">Gold</span> <span class="o">=</span> <span class="kt">int</span><span class="p">;</span>
 
-// Type alias with generics
-type StringMap = map!(string, string);
-type IntList = array!(int);
+<span class="c1">// Type alias with generics</span>
+<span class="k">type</span> <span class="nc">StringMap</span> <span class="o">=</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">);</span>
+<span class="k">type</span> <span class="nc">IntList</span> <span class="o">=</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 
-// Newtype (distinct type at compile-time, same representation at runtime)
-type Feat(int);
+<span class="c1">// Newtype (distinct type at compile-time, same representation at runtime)</span>
+<span class="k">type</span> <span class="nc">Feat</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 
-// Product type (struct) - note: semicolon-delimited members
-type Point {
-    x: float;
-    y: float;
-};
+<span class="c1">// Product type (struct) - note: semicolon-delimited members</span>
+<span class="k">type</span> <span class="nc">Point</span> <span class="p">{</span>
+    <span class="n">x</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span>
+    <span class="n">y</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span>
+<span class="p">};</span>
 
-// Multiple identifiers with same type
-type Point3D {
-    x, y, z: float;
-};
+<span class="c1">// Multiple identifiers with same type</span>
+<span class="k">type</span> <span class="nc">Point3D</span> <span class="p">{</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span>
+<span class="p">};</span>
 
-// Tuple - anonymous product type with structural equality
-(int, float, string)
+<span class="c1">// Tuple - anonymous product type with structural equality</span>
+<span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">float</span><span class="p">,</span> <span class="kt">string</span><span class="p">)</span>
 
-// Sum type (tagged union / algebraic data type)
-type Result = Ok(int) | Err(string);
+<span class="c1">// Sum type (tagged union / algebraic data type)</span>
+<span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
 
-// Sum type with unit variants
-type Color = Red | Green | Blue;
+<span class="c1">// Sum type with unit variants</span>
+<span class="k">type</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Red</span> <span class="o">|</span> <span class="nc">Green</span> <span class="o">|</span> <span class="nc">Blue</span><span class="p">;</span>
 
-// Opaque types - not declared in scripts, registered from C++ engine code
-</code></pre>
+<span class="c1">// Opaque types - not declared in scripts, registered from C++ engine code</span>
+</code></pre></div>
+
 <h3 id="struct-types">Struct Types</h3>
 <h4 id="member-syntax">Member Syntax</h4>
 <ul>
@@ -225,39 +226,41 @@ type Color = Red | Green | Blue;
 </ol>
 <p><strong>Note</strong>: Trailing commas are allowed in all three syntax forms.</p>
 <p><strong>Examples</strong>:</p>
-<pre><code class="language-go">type Point { x, y: float; };
-type Color { r, g, b, a: float; };
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span> <span class="p">};</span>
+<span class="k">type</span> <span class="nc">Color</span> <span class="p">{</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span> <span class="p">};</span>
 
-// Named field initialization
-const p1 = Point { x = 1.0, y = 2.0 };
-const p2 = Point { y = 3.0, x = 4.0 };  // Order doesn't matter
+<span class="c1">// Named field initialization</span>
+<span class="k">const</span> <span class="n">p1</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="p">};</span>
+<span class="k">const</span> <span class="n">p2</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="p">};</span>  <span class="c1">// Order doesn&#39;t matter</span>
 
-// Positional initialization
-const p3 = Point { 1.0, 2.0 };
-const c1 = Color { 1.0, 0.5, 0.0, 1.0 };
+<span class="c1">// Positional initialization</span>
+<span class="k">const</span> <span class="n">p3</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="p">};</span>
+<span class="k">const</span> <span class="n">c1</span> <span class="o">=</span> <span class="nc">Color</span> <span class="p">{</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="p">};</span>
 
-// Mixed with nested structs
-type Line { start, end: Point; };
-const line = Line {
-    start = { 0.0, 0.0 },
-    end = { 10.0, 10.0 }
-};
-</code></pre>
+<span class="c1">// Mixed with nested structs</span>
+<span class="k">type</span> <span class="nc">Line</span> <span class="p">{</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nc">Point</span><span class="p">;</span> <span class="p">};</span>
+<span class="k">const</span> <span class="n">line</span> <span class="o">=</span> <span class="nc">Line</span> <span class="p">{</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span> <span class="p">},</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+
 <h3 id="newtype-wrappers">Newtype Wrappers</h3>
 <p>Newtypes create distinct types at compile-time while sharing the same runtime representation as their underlying type. This provides type safety without runtime overhead:</p>
-<pre><code class="language-go">type HP(int);
-type Gold(int);
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">HP</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="k">type</span> <span class="nc">Gold</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 
-fn damage_creature(creature: object, amount: HP) { ... }
-fn buy_item(cost: Gold) { ... }
+<span class="k">fn</span> <span class="n">damage_creature</span><span class="p">(</span><span class="n">creature</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nc">HP</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+<span class="k">fn</span> <span class="n">buy_item</span><span class="p">(</span><span class="n">cost</span><span class="p">:</span> <span class="nc">Gold</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
 
-var health: HP = HP(100);
-var money: Gold = Gold(50);
+<span class="k">var</span> <span class="n">health</span><span class="p">:</span> <span class="nc">HP</span> <span class="o">=</span> <span class="nc">HP</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+<span class="k">var</span> <span class="n">money</span><span class="p">:</span> <span class="nc">Gold</span> <span class="o">=</span> <span class="nc">Gold</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span>
 
-damage_creature(obj, health);  // ✓ Correct
-damage_creature(obj, money);   // ✗ Compile error: Gold is not HP
-buy_item(health);              // ✗ Compile error: HP is not Gold
-</code></pre>
+<span class="n">damage_creature</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">health</span><span class="p">);</span>  <span class="c1">// ✓ Correct</span>
+<span class="n">damage_creature</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">money</span><span class="p">);</span>   <span class="c1">// ✗ Compile error: Gold is not HP</span>
+<span class="n">buy_item</span><span class="p">(</span><span class="n">health</span><span class="p">);</span>              <span class="c1">// ✗ Compile error: HP is not Gold</span>
+</code></pre></div>
+
 <p><strong>Key properties</strong>:
 - <strong>Distinct at compile-time</strong>: <code>Feat(1)</code> and <code>Gold(1)</code> are different types
 - <strong>Identical at runtime</strong>: Both stored as <code>int32_t</code>, no wrapper overhead
@@ -272,18 +275,19 @@ buy_item(health);              // ✗ Compile error: HP is not Gold
 <h3 id="sum-types-pattern-matching">Sum Types &amp; Pattern Matching</h3>
 <p>Sum types (also known as tagged unions or algebraic data types) allow a value to be one of several variants. Each variant can optionally carry payload data.</p>
 <h4 id="sum-type-declaration">Sum Type Declaration</h4>
-<pre><code class="language-go">// Simple enum-style (unit variants)
-type Color = Red | Green | Blue;
+<div class="codehilite"><pre><span></span><code><span class="c1">// Simple enum-style (unit variants)</span>
+<span class="k">type</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Red</span> <span class="o">|</span> <span class="nc">Green</span> <span class="o">|</span> <span class="nc">Blue</span><span class="p">;</span>
 
-// Variants with payloads
-type Result = Ok(int) | Err(string);
+<span class="c1">// Variants with payloads</span>
+<span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
 
-// Mixed variants (some with payloads, some without)
-type Option = Some(int) | None;
+<span class="c1">// Mixed variants (some with payloads, some without)</span>
+<span class="k">type</span> <span class="nc">Option</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">None</span><span class="p">;</span>
 
-// Multiple payload types (tuple syntax)
-type Shape = Circle(float) | Rectangle(float, float) | Point;
-</code></pre>
+<span class="c1">// Multiple payload types (tuple syntax)</span>
+<span class="k">type</span> <span class="nc">Shape</span> <span class="o">=</span> <span class="nc">Circle</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Rectangle</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span> <span class="kt">float</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Point</span><span class="p">;</span>
+</code></pre></div>
+
 <p><strong>Key features</strong>:
 - Pipe-separated variant list: <code>Variant1 | Variant2 | ...</code>
 - Unit variants have no payload: <code>Red</code>, <code>None</code>
@@ -292,29 +296,32 @@ type Shape = Circle(float) | Rectangle(float, float) | Point;
 - Nominal typing: Each sum type declaration creates a distinct type</p>
 <h4 id="variant-construction">Variant Construction</h4>
 <p>Variants are constructed using qualified access (Rust-style). Variants are members of their sum type's namespace:</p>
-<pre><code class="language-go">type Result = Ok(int) | Err(string);
-type Color = Red | Green | Blue;
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
+<span class="k">type</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Red</span> <span class="o">|</span> <span class="nc">Green</span> <span class="o">|</span> <span class="nc">Blue</span><span class="p">;</span>
 
-// Payload variants - use qualified call syntax
-var r: Result = Result.Ok(42);
-var e: Result = Result.Err(&quot;something failed&quot;);
+<span class="c1">// Payload variants - use qualified call syntax</span>
+<span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="k">var</span> <span class="n">e</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Err</span><span class="p">(</span><span class="s2">&quot;something failed&quot;</span><span class="p">);</span>
 
-// Unit variants - use qualified member access
-var c: Color = Color.Red;
-</code></pre>
+<span class="c1">// Unit variants - use qualified member access</span>
+<span class="k">var</span> <span class="n">c</span><span class="p">:</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Color</span><span class="p">.</span><span class="nc">Red</span><span class="p">;</span>
+</code></pre></div>
+
 <p><strong>With modules</strong>:</p>
-<pre><code class="language-go">from core.errors import { Result };
-var r: Result = Result.Ok(42);  // Qualified access
+<div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">errors</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Result</span> <span class="p">};</span>
+<span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>  <span class="c1">// Qualified access</span>
 
-import core.errors as err;
-var r: err.Result = err.Result.Ok(42);
-</code></pre>
+<span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">errors</span> <span class="k">as</span> <span class="n">err</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="n">err</span><span class="p">.</span><span class="nc">Result</span> <span class="o">=</span> <span class="n">err</span><span class="p">.</span><span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+</code></pre></div>
+
 <p><strong>Type aliases do not create variant namespaces</strong>:</p>
-<pre><code class="language-go">type Result = Ok(int) | Err(string);
-type MyResult = Result;  // Just another name for Result
-var r: MyResult = Result.Ok(42); // ✓ Use original type name
-// NOT: MyResult.Ok(42) - aliases don't have their own variants
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
+<span class="k">type</span> <span class="nc">MyResult</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">;</span>  <span class="c1">// Just another name for Result</span>
+<span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="nc">MyResult</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span> <span class="c1">// ✓ Use original type name</span>
+<span class="c1">// NOT: MyResult.Ok(42) - aliases don&#39;t have their own variants</span>
+</code></pre></div>
+
 <p><strong>Construction rules</strong>:
 - Payload variants: <code>TypeName.VariantName(args)</code> — CallExpression with arguments
 - Unit variants: <code>TypeName.VariantName</code> — DotExpression with no call
@@ -325,62 +332,64 @@ var r: MyResult = Result.Ok(42); // ✓ Use original type name
 - Unit variants require an expected type context (e.g., a variable annotation or function return type)</p>
 <h4 id="pattern-matching">Pattern Matching</h4>
 <p>Pattern matching on sum types is done via <code>switch</code> statements:</p>
-<pre><code class="language-go">type Result = Ok(int) | Err(string);
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
 
-fn process(r: Result): int {
-    switch (r) {
-        case Ok(value):
-            return value;
-        case Err(msg):
-            return -1;
-    }
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">process</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nc">Result</span><span class="p">):</span> <span class="kt">int</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Ok</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Err</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Pattern syntax</strong>:
 - <strong>Unit variant</strong>: <code>case VariantName:</code> — Matches variant with no payload
 - <strong>Single binding</strong>: <code>case Ok(x):</code> — Binds payload to variable <code>x</code>
 - <strong>Multiple bindings</strong>: <code>case Rectangle(w, h):</code> — Binds tuple elements to <code>w</code> and <code>h</code>
 - <strong>Guard expression</strong>: <code>case Ok(x) if x &gt; 0:</code> — Additional condition on binding</p>
 <p><strong>Examples</strong>:</p>
-<pre><code class="language-go">// Unit variants
-type Color = Red | Green | Blue;
-fn describe_color(c: Color): string {
-    switch (c) {
-        case Red:   return &quot;red&quot;;
-        case Green: return &quot;green&quot;;
-        case Blue:  return &quot;blue&quot;;
-    }
-}
+<div class="codehilite"><pre><span></span><code><span class="c1">// Unit variants</span>
+<span class="k">type</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Red</span> <span class="o">|</span> <span class="nc">Green</span> <span class="o">|</span> <span class="nc">Blue</span><span class="p">;</span>
+<span class="k">fn</span> <span class="n">describe_color</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="nc">Color</span><span class="p">):</span> <span class="kt">string</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Red</span><span class="p">:</span>   <span class="k">return</span> <span class="s2">&quot;red&quot;</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Green</span><span class="p">:</span> <span class="k">return</span> <span class="s2">&quot;green&quot;</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Blue</span><span class="p">:</span>  <span class="k">return</span> <span class="s2">&quot;blue&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-// Single payload with bindings
-type Option = Some(int) | None;
-fn unwrap_or(opt: Option, or_value: int): int {
-    switch (opt) {
-        case Some(value): return value;
-        case None:        return or_value;
-    }
-}
+<span class="c1">// Single payload with bindings</span>
+<span class="k">type</span> <span class="nc">Option</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">None</span><span class="p">;</span>
+<span class="k">fn</span> <span class="n">unwrap_or</span><span class="p">(</span><span class="n">opt</span><span class="p">:</span> <span class="nc">Option</span><span class="p">,</span> <span class="n">or_value</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">opt</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Some</span><span class="p">(</span><span class="n">value</span><span class="p">):</span> <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">None</span><span class="p">:</span>        <span class="k">return</span> <span class="n">or_value</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-// Multiple payloads (tuple destructuring)
-type Shape = Circle(float) | Rectangle(float, float) | Point;
-fn area(s: Shape): float {
-    switch (s) {
-        case Circle(radius):        return 3.14 * radius * radius;
-        case Rectangle(width, height): return width * height;
-        case Point:                  return 0.0;
-    }
-}
+<span class="c1">// Multiple payloads (tuple destructuring)</span>
+<span class="k">type</span> <span class="nc">Shape</span> <span class="o">=</span> <span class="nc">Circle</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Rectangle</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span> <span class="kt">float</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Point</span><span class="p">;</span>
+<span class="k">fn</span> <span class="n">area</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nc">Shape</span><span class="p">):</span> <span class="kt">float</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Circle</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>        <span class="k">return</span> <span class="mf">3.14</span> <span class="o">*</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">radius</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Rectangle</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span> <span class="k">return</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Point</span><span class="p">:</span>                  <span class="k">return</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-// Guard expressions
-type Result = Ok(int) | Err(string);
-fn get_positive(r: Result): int {
-    switch (r) {
-        case Ok(x) if x &gt; 0: return x;
-        case Ok(x):           return 0;
-        default:               return -1;
-    }
-}
-</code></pre>
+<span class="c1">// Guard expressions</span>
+<span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
+<span class="k">fn</span> <span class="n">get_positive</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nc">Result</span><span class="p">):</span> <span class="kt">int</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Ok</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Ok</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>           <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">default</span><span class="p">:</span>               <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Type checking &amp; validation</strong>:
 - Variant names must exist in the sum type
 - Binding count must match payload type (1 for single, N for tuple)
@@ -411,24 +420,27 @@ fn get_positive(r: Result): int {
 - <code>(int, int)</code> in module A is the same type as <code>(int, int)</code> in module B
 - Tuples with identical element types are deduplicated at runtime</p>
 <p><strong>Multiple Return Values</strong>:</p>
-<pre><code class="language-go">fn swap(x: int, y: int): (int, int) {
-    return y, x;  // Implicit tuple creation
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// Implicit tuple creation</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Tuple Destructuring</strong>:</p>
-<pre><code class="language-go">fn test() {
-    var a, b = swap(1, 2);  // Declaration destructuring
-    a, b = swap(b, a);      // Assignment destructuring
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">swap</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>  <span class="c1">// Declaration destructuring</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">swap</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>      <span class="c1">// Assignment destructuring</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Tuple Indexing</strong>:</p>
-<pre><code class="language-go">fn test() {
-    var tuple = (42, 3.14, &quot;hello&quot;);
-    var x = tuple[0];  // x: int = 42
-    var y = tuple[1];  // y: float = 3.14
-    var z = tuple[2];  // z: string = &quot;hello&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">42</span><span class="p">,</span> <span class="mf">3.14</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span><span class="p">);</span>
+    <span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>  <span class="c1">// x: int = 42</span>
+    <span class="k">var</span> <span class="n">y</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>  <span class="c1">// y: float = 3.14</span>
+    <span class="k">var</span> <span class="n">z</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>  <span class="c1">// z: string = &quot;hello&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Key Features</strong>:
 - Destructuring in declarations and assignments
 - Index access with <code>[N]</code> syntax where N is a compile-time constant
@@ -447,9 +459,10 @@ fn get_positive(r: Result): int {
 - <code>fn(int, string): bool</code>
 - <code>fn(int, string)</code> (implicit <code>void</code> return)</p>
 <p><strong>Lambda syntax</strong>:</p>
-<pre><code class="language-go">fn(x: int): int { return x + 1; }
-fn(x: int) { print(x); } // void return inferred
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span> <span class="p">{</span> <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="p">}</span>
+<span class="k">fn</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span> <span class="n">print</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="p">}</span> <span class="c1">// void return inferred</span>
+</code></pre></div>
+
 <p><strong>Return type inference</strong>:
 - If the return type is omitted, the compiler infers it from <code>return</code> statements
 - No returns → <code>void</code>
@@ -469,20 +482,21 @@ fn(x: int) { print(x); } // void return inferred
 <p><strong>Status</strong>: Complete — Full support for generic functions with type inference and on-demand monomorphization.</p>
 <p>Smalls supports <strong>lightweight monomorphization</strong> for generic functions — think <strong>type-safe C macros</strong>. Use <code>$T</code> syntax for type parameters that get inferred at call sites and specialized at compile-time.</p>
 <p><strong>Syntax</strong>:</p>
-<pre><code class="language-go">// Just use $T in the signature - no explicit type parameter list needed
-fn max(a: $T, b: $T): $T {
-    return a &gt; b ? a : b;
-}
+<div class="codehilite"><pre><span></span><code><span class="c1">// Just use $T in the signature - no explicit type parameter list needed</span>
+<span class="k">fn</span> <span class="n">max</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nv">$T</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nv">$T</span><span class="p">):</span> <span class="nv">$T</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span> <span class="p">?</span> <span class="n">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">;</span>
+<span class="p">}</span>
 
-// Multiple type parameters
-fn map(arr: array!($T), f: fn($T): $U): array!($U) {
-    var result: array!($U);
-    for (var item in arr) {
-        result.append(f(item));
-    }
-    return result;
-}
-</code></pre>
+<span class="c1">// Multiple type parameters</span>
+<span class="k">fn</span> <span class="n">map</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">),</span> <span class="n">f</span><span class="p">:</span> <span class="k">fn</span><span class="p">(</span><span class="nv">$T</span><span class="p">):</span> <span class="nv">$U</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$U</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">result</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$U</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">item</span> <span class="k">in</span> <span class="n">arr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">result</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">item</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Key Design Principles</strong>:
 1. <strong>Structural typing</strong> — Type parameters constrained by usage (duck typing), not explicit bounds
 2. <strong>Monomorphization</strong> — Compiler generates specialized version for each concrete type usage
@@ -497,10 +511,11 @@ fn map(arr: array!($T), f: fn($T): $U): array!($U) {
 5. Compiles specialized bytecode as <code>max_int</code>
 6. Caches by <code>(func_name, [type_args])</code> — reused for future <code>max(int, int)</code> calls</p>
 <p><strong>Call Site Examples</strong>:</p>
-<pre><code class="language-go">var x = max(10, 20);              // $T inferred as int
-var y = max(1.5, 2.5);            // $T inferred as float
-var squared = map(nums, fn(x) { return x * x; });  // $T = int, $U = int
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>              <span class="c1">// $T inferred as int</span>
+<span class="k">var</span> <span class="n">y</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">);</span>            <span class="c1">// $T inferred as float</span>
+<span class="k">var</span> <span class="n">squared</span> <span class="o">=</span> <span class="n">map</span><span class="p">(</span><span class="n">nums</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">;</span> <span class="p">});</span>  <span class="c1">// $T = int, $U = int</span>
+</code></pre></div>
+
 <p><strong>Type Parameter Rules</strong>:
 - <code>$T</code>, <code>$U</code>, <code>$V</code>, etc. — Single uppercase letter prefixed with <code>$</code>
 - Scoped to function declaration (not visible outside)
@@ -508,18 +523,19 @@ var squared = map(nums, fn(x) { return x * x; });  // $T = int, $U = int
 - Inferred from call site arguments — no manual specification</p>
 <p><strong>Generic Types (Structs/Sum Types)</strong>:</p>
 <p>Smalls supports generic struct and sum type definitions using explicit type parameter syntax:</p>
-<pre><code class="language-go">// Generic struct
-type Pair!($A, $B) {
-    first: $A;
-    second: $B;
-};
+<div class="codehilite"><pre><span></span><code><span class="c1">// Generic struct</span>
+<span class="k">type</span> <span class="nc">Pair</span><span class="o">!</span><span class="p">(</span><span class="nv">$A</span><span class="p">,</span> <span class="nv">$B</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">first</span><span class="p">:</span> <span class="nv">$A</span><span class="p">;</span>
+    <span class="n">second</span><span class="p">:</span> <span class="nv">$B</span><span class="p">;</span>
+<span class="p">};</span>
 
-// Generic sum type
-type Option!($T) = Some($T) | None;
+<span class="c1">// Generic sum type</span>
+<span class="k">type</span> <span class="nc">Option</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">)</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="nv">$T</span><span class="p">)</span> <span class="o">|</span> <span class="nc">None</span><span class="p">;</span>
 
-// Usage - explicit type arguments required
-var pair: Pair!(int, string) = { 42, &quot;hello&quot; };
-</code></pre>
+<span class="c1">// Usage - explicit type arguments required</span>
+<span class="k">var</span> <span class="n">pair</span><span class="p">:</span> <span class="nc">Pair</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">string</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span> <span class="p">};</span>
+</code></pre></div>
+
 <p><strong>Limitations</strong>:
 - Monomorphization increases binary size (one copy per type combination)
 - Compile-time only (no dynamic dispatch or runtime generics)
@@ -567,29 +583,31 @@ var pair: Pair!(int, string) = { 42, &quot;hello&quot; };
 </tbody>
 </table>
 <p><strong>Dynamic Arrays</strong> (<code>array!(T)</code>):</p>
-<pre><code class="language-smalls">fn process_nearby_objects(center: vec3, radius: float) {
-    var nearby: array!(object) = {};  // VM heap allocation
-    for (var x in nearby) {
-        // ... process ...
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">process_nearby_objects</span><span class="p">(</span><span class="n">center</span><span class="p">:</span> <span class="n">vec3</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="kt">float</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">nearby</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="kt">object</span><span class="p">)</span> <span class="o">=</span> <span class="p">{};</span>  <span class="c1">// VM heap allocation</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">x</span> <span class="k">in</span> <span class="n">nearby</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// ... process ...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>Properties:
 - Heap-allocated, GC-managed
 - Resizable via <code>push</code>, <code>pop</code>, <code>resize</code>
 - Stored as HeapPtr (4 bytes inline)
 - Element storage: TypedArray for primitives, StructArray for value-type structs</p>
 <p><strong>Fixed Arrays</strong> (<code>T[N]</code>):</p>
-<pre><code class="language-smalls">[[value_type]]
-type Matrix3x3 {
-    data: float[9];  // 36 bytes inline
-};
+<div class="codehilite"><pre><span></span><code><span class="nd">[[value_type]]</span>
+<span class="k">type</span> <span class="nc">Matrix3x3</span> <span class="p">{</span>
+    <span class="n">data</span><span class="p">:</span> <span class="kt">float</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>  <span class="c1">// 36 bytes inline</span>
+<span class="p">};</span>
 
-fn test() {
-    var buffer: int[256];  // 1024 bytes on stack
-    buffer[0] = 42;
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">buffer</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span>  <span class="c1">// 1024 bytes on stack</span>
+    <span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>Properties:
 - Value type with C-compatible layout
 - Inline storage (no indirection)
@@ -600,8 +618,9 @@ fn test() {
 - <code>T[N]</code> is the fixed-size inline value type.</p>
 <p><strong><em>See [VII.Write Barriers]</em></strong></p>
 <p><strong>Maps</strong> (<code>map!(K, V)</code>):</p>
-<pre><code class="language-smalls">var scores: map!(string, int) = {&quot;alice&quot;: 100, &quot;bob&quot;: 85};
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;alice&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;bob&quot;</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
+</code></pre></div>
+
 <p>Properties:
 - Heap-allocated hash table
 - Keys are policy-restricted to <code>int</code>, <code>string</code>, and newtypes over <code>int</code>/<code>string</code>
@@ -632,15 +651,16 @@ fn test() {
 <p><strong>Syntax</strong>: <code>f"text {expr} more text"</code></p>
 <p>Expressions inside <code>{...}</code> are evaluated and converted to strings. For user-defined types, the <code>[[operator(str)]]</code> function is called for conversion.</p>
 <p><strong>Examples</strong>:</p>
-<pre><code class="language-go">var name = &quot;World&quot;;
-var greeting = f&quot;Hello, {name}!&quot;;      // &quot;Hello, World!&quot;
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;World&quot;</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">greeting</span> <span class="o">=</span> <span class="s2">f&quot;Hello, {name}!&quot;</span><span class="p">;</span>      <span class="c1">// &quot;Hello, World!&quot;</span>
 
-var x = 42;
-var msg = f&quot;The answer is {x}&quot;;        // &quot;The answer is 42&quot;
+<span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f&quot;The answer is {x}&quot;</span><span class="p">;</span>        <span class="c1">// &quot;The answer is 42&quot;</span>
 
-var p = Point { 1.0, 2.0 };
-var desc = f&quot;Position: {p}&quot;;           // Calls [[operator(str)]] on Point
-</code></pre>
+<span class="k">var</span> <span class="n">p</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="p">};</span>
+<span class="k">var</span> <span class="n">desc</span> <span class="o">=</span> <span class="s2">f&quot;Position: {p}&quot;</span><span class="p">;</span>           <span class="c1">// Calls [[operator(str)]] on Point</span>
+</code></pre></div>
+
 <p><strong>Supported interpolation types</strong>:
 - <code>int</code> — converted via integer-to-string
 - <code>float</code> — converted via float-to-string
@@ -660,11 +680,12 @@ var desc = f&quot;Position: {p}&quot;;           // Calls [[operator(str)]] on P
 <h4 id="value-type-attribute">Value Type Attribute</h4>
 <p>The <code>[[value_type]]</code> attribute guarantees a struct has C-compatible memory layout, enabling stack allocation and predictable memory representation.</p>
 <p><strong>Syntax</strong>:</p>
-<pre><code class="language-go">[[value_type]]
-type Vector {
-    x, y, z: float;
-};
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[value_type]]</span>
+<span class="k">type</span> <span class="nc">Vector</span> <span class="p">{</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
 <p><strong>What it guarantees</strong>:
 - Fields laid out sequentially in memory (no reordering)
 - Natural alignment for each field
@@ -672,14 +693,15 @@ type Vector {
 - Total size aligned to strictest member
 - Identical memory layout to equivalent C struct</p>
 <p><strong>Stack allocation</strong>:</p>
-<pre><code class="language-go">[[value_type]]
-type Point { x, y: float; };
+<div class="codehilite"><pre><span></span><code><span class="nd">[[value_type]]</span>
+<span class="k">type</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span> <span class="p">};</span>
 
-fn test() {
-    var p: Point;  // Stack-allocated, not heap
-    var grid: Point[10];  // Array of 10 Points on stack
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">p</span><span class="p">:</span> <span class="nc">Point</span><span class="p">;</span>  <span class="c1">// Stack-allocated, not heap</span>
+    <span class="k">var</span> <span class="n">grid</span><span class="p">:</span> <span class="nc">Point</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>  <span class="c1">// Array of 10 Points on stack</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Restrictions</strong>:
 - Can contain heap types (strings, arrays) as HeapPtr fields
 - No virtual methods or runtime polymorphism</p>
@@ -719,26 +741,28 @@ fn test() {
 <h3 id="cast-type-test-expressions">Cast &amp; Type Test Expressions</h3>
 <p>Smalls provides <code>as</code> for casting and <code>is</code> for type testing.</p>
 <p><strong>Cast expressions</strong> (<code>expr as Type</code>):</p>
-<pre><code class="language-go">var x: int = 42;
-var f: float = x as float;      // int → float
-var n: int = 3.14 as int;       // float → int (truncates)
-var b: bool = 1 as bool;        // int → bool
-var i: int = true as int;       // bool → int
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">x</span><span class="p">:</span> <span class="kt">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">f</span><span class="p">:</span> <span class="kt">float</span> <span class="o">=</span> <span class="n">x</span> <span class="k">as</span> <span class="kt">float</span><span class="p">;</span>      <span class="c1">// int → float</span>
+<span class="k">var</span> <span class="n">n</span><span class="p">:</span> <span class="kt">int</span> <span class="o">=</span> <span class="mf">3.14</span> <span class="k">as</span> <span class="kt">int</span><span class="p">;</span>       <span class="c1">// float → int (truncates)</span>
+<span class="k">var</span> <span class="n">b</span><span class="p">:</span> <span class="kt">bool</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">as</span> <span class="kt">bool</span><span class="p">;</span>        <span class="c1">// int → bool</span>
+<span class="k">var</span> <span class="n">i</span><span class="p">:</span> <span class="kt">int</span> <span class="o">=</span> <span class="k">true</span> <span class="k">as</span> <span class="kt">int</span><span class="p">;</span>       <span class="c1">// bool → int</span>
 
-// Newtype unwrapping
-type Feat(int);
-var feat = Feat(42);
-var raw: int = feat as int;     // Unwrap newtype
-</code></pre>
+<span class="c1">// Newtype unwrapping</span>
+<span class="k">type</span> <span class="nc">Feat</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="k">var</span> <span class="n">feat</span> <span class="o">=</span> <span class="nc">Feat</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="k">var</span> <span class="n">raw</span><span class="p">:</span> <span class="kt">int</span> <span class="o">=</span> <span class="n">feat</span> <span class="k">as</span> <span class="kt">int</span><span class="p">;</span>     <span class="c1">// Unwrap newtype</span>
+</code></pre></div>
+
 <p><strong>Supported casts</strong>:
 - <code>int</code> ↔ <code>float</code> — numeric conversion (float→int truncates)
 - <code>int</code> ↔ <code>bool</code> — zero/nonzero conversion
 - Newtype ↔ underlying type — wrapping/unwrapping</p>
 <p><strong>Type test expressions</strong> (<code>expr is Type</code>):</p>
-<pre><code class="language-go">var val: int = 42;
-var check = val is int;    // true
-var check2 = val is float; // false
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">val</span><span class="p">:</span> <span class="kt">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">check</span> <span class="o">=</span> <span class="n">val</span> <span class="k">is</span> <span class="kt">int</span><span class="p">;</span>    <span class="c1">// true</span>
+<span class="k">var</span> <span class="n">check2</span> <span class="o">=</span> <span class="n">val</span> <span class="k">is</span> <span class="kt">float</span><span class="p">;</span> <span class="c1">// false</span>
+</code></pre></div>
+
 <p>Both <code>as</code> and <code>is</code> are foldable at compile time by the constant evaluator when the operand is constant.</p>
 <h4 id="implementation_10">Implementation</h4>
 <p><strong>Status</strong>: Complete</p>
@@ -821,15 +845,17 @@ var check2 = val is float; // false
 <p>This preserves predictable zero-initialization while allowing optional callback wiring.</p>
 <h4 id="nullempty-testing">Null/empty testing</h4>
 <p>Use closure truthiness to test whether a callback is present:</p>
-<pre><code class="language-smalls">if (!on_hit) {
-    // no callback
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">on_hit</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// no callback</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>You can also use positive checks:</p>
-<pre><code class="language-smalls">if (on_hit) {
-    on_hit(target);
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span><span class="n">on_hit</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">on_hit</span><span class="p">(</span><span class="n">target</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>Use <code>is</code> only for type tests (<code>expr is Type</code>), as defined in [II.Cast &amp; Type Test Expressions]; <code>is</code> is not a null/empty-check operator.</p>
 <hr>
 <h2 id="iii-language-features">III. Language Features</h2>
@@ -849,13 +875,15 @@ var check2 = val is float; // false
 </ul>
 <h3 id="conditional-ternary-expressions">Conditional (Ternary) Expressions</h3>
 <p>Smalls supports C-style conditional (ternary) expressions:</p>
-<pre><code class="language-go">var result = condition ? true_value : false_value;
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">result</span> <span class="o">=</span> <span class="n">condition</span> <span class="p">?</span> <span class="n">true_value</span> <span class="p">:</span> <span class="n">false_value</span><span class="p">;</span>
+</code></pre></div>
+
 <p>The condition is evaluated first. If truthy, the true branch is evaluated and returned; otherwise the false branch. Both branches must produce compatible types. Conditional expressions are foldable at compile time when the condition is constant.</p>
-<pre><code class="language-go">var x = 10;
-var abs_x = x &gt;= 0 ? x : -x;
-var label = score &gt; 90 ? &quot;A&quot; : score &gt; 80 ? &quot;B&quot; : &quot;C&quot;;  // Nesting supported
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">abs_x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="p">?</span> <span class="n">x</span> <span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">label</span> <span class="o">=</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">90</span> <span class="p">?</span> <span class="s2">&quot;A&quot;</span> <span class="p">:</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">80</span> <span class="p">?</span> <span class="s2">&quot;B&quot;</span> <span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">;</span>  <span class="c1">// Nesting supported</span>
+</code></pre></div>
+
 <h4 id="implementation_11">Implementation</h4>
 <p><strong>Status</strong>: Complete</p>
 <p><strong>Key files</strong>:
@@ -864,24 +892,25 @@ var label = score &gt; 90 ? &quot;A&quot; : score &gt; 80 ? &quot;B&quot; : &quo
 - <code>lib/nw/smalls/AstCompiler.cpp</code> — emits <code>JMPF</code> + branch bytecode</p>
 <h3 id="control-flow">Control Flow</h3>
 <h4 id="ifelse-statements">If/Else Statements</h4>
-<pre><code class="language-go">if (condition) {
-    // then block (braces required)
-}
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// then block (braces required)</span>
+<span class="p">}</span>
 
-if (condition) {
-    // then block
-} else {
-    // else block (braces required)
-}
+<span class="k">if</span> <span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// then block</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// else block (braces required)</span>
+<span class="p">}</span>
 
-if (condition) {
-    // first branch
-} else if (other_condition) {
-    // second branch
-} else {
-    // final branch
-}
-</code></pre>
+<span class="k">if</span> <span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// first branch</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">other_condition</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// second branch</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// final branch</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <ul>
 <li>Block braces <code>{}</code> are always required</li>
 <li>Condition expressions must be in parentheses</li>
@@ -893,18 +922,19 @@ if (condition) {
 <li><strong>While-style loop</strong> — <code>for (condition) { ... }</code> — checked before each iteration</li>
 <li><strong>C-style loop</strong> — <code>for (init; condition; increment) { ... }</code> — traditional three-part form</li>
 </ol>
-<pre><code class="language-go">for {
-    if (done) { break; }
-}
+<div class="codehilite"><pre><span></span><code><span class="k">for</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">done</span><span class="p">)</span> <span class="p">{</span> <span class="k">break</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
 
-for (i &lt; 10) {
-    i = i + 1;
-}
+<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
 
-for (var i = 0; i &lt; 10; i = i + 1) {
-    print(i);
-}
-</code></pre>
+<span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <ul>
 <li>Block braces <code>{}</code> always required</li>
 <li>Loop variables declared in init are scoped to the loop</li>
@@ -912,18 +942,20 @@ for (var i = 0; i &lt; 10; i = i + 1) {
 </ul>
 <h4 id="for-each-loops">For-Each Loops</h4>
 <p><strong>Array iteration</strong> — Single binding receives element values:</p>
-<pre><code class="language-go">var nums: array!(int) = {1, 2, 3, 4, 5};
-for (var x in nums) {
-    print(x);  // x is int, inferred from array element type
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">nums</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">};</span>
+<span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">x</span> <span class="k">in</span> <span class="n">nums</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// x is int, inferred from array element type</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Map iteration</strong> — Two bindings receive key-value pairs:</p>
-<pre><code class="language-go">var scores: map!(string, int) = {&quot;alice&quot;: 100, &quot;bob&quot;: 85};
-for (var key, value in scores) {
-    print(key);    // key is string
-    print(value);  // value is int
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;alice&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;bob&quot;</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
+<span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="k">in</span> <span class="n">scores</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>    <span class="c1">// key is string</span>
+    <span class="n">print</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>  <span class="c1">// value is int</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <ul>
 <li>Type inference: Binding types inferred from collection</li>
 <li><code>break</code> and <code>continue</code> supported</li>
@@ -941,43 +973,47 @@ for (var key, value in scores) {
 - User types integrate with language features seamlessly</p>
 <h4 id="syntax">Syntax</h4>
 <p><strong>Basic Binary Operator:</strong></p>
-<pre><code class="language-go">type Point { x, y: float; };
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span> <span class="p">};</span>
 
-[[operator(plus)]]
-fn add(a: Point, b: Point): Point {
-    return Point { a.x + b.x, a.y + b.y };
-}
+<span class="nd">[[operator(plus)]]</span>
+<span class="k">fn</span> <span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nc">Point</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nc">Point</span><span class="p">):</span> <span class="nc">Point</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">a</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">b</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">b</span><span class="p">.</span><span class="n">y</span> <span class="p">};</span>
+<span class="p">}</span>
 
-var p3 = p1 + p2;  // Calls add(p1, p2)
-</code></pre>
+<span class="k">var</span> <span class="n">p3</span> <span class="o">=</span> <span class="n">p1</span> <span class="o">+</span> <span class="n">p2</span><span class="p">;</span>  <span class="c1">// Calls add(p1, p2)</span>
+</code></pre></div>
+
 <p><strong>Unary Operator:</strong></p>
-<pre><code class="language-go">[[operator(minus)]]
-fn negate(p: Point): Point {
-    return Point { -p.x, -p.y };
-}
+<div class="codehilite"><pre><span></span><code><span class="nd">[[operator(minus)]]</span>
+<span class="k">fn</span> <span class="n">negate</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nc">Point</span><span class="p">):</span> <span class="nc">Point</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nc">Point</span> <span class="p">{</span> <span class="o">-</span><span class="n">p</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="p">.</span><span class="n">y</span> <span class="p">};</span>
+<span class="p">}</span>
 
-var p2 = -p1;  // Calls negate(p1)
-</code></pre>
+<span class="k">var</span> <span class="n">p2</span> <span class="o">=</span> <span class="o">-</span><span class="n">p1</span><span class="p">;</span>  <span class="c1">// Calls negate(p1)</span>
+</code></pre></div>
+
 <p><strong>Commutative Operators:</strong></p>
 <p>By default, operators only work in the exact order written. Use <code>commutative</code> to handle both orderings:</p>
-<pre><code class="language-go">[[operator(times, commutative)]]
-fn scale(p: Point, s: float): Point {
-    return Point { p.x * s, p.y * s };
-}
+<div class="codehilite"><pre><span></span><code><span class="nd">[[operator(times, commutative)]]</span>
+<span class="k">fn</span> <span class="n">scale</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nc">Point</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="kt">float</span><span class="p">):</span> <span class="nc">Point</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">p</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">s</span> <span class="p">};</span>
+<span class="p">}</span>
 
-var r1 = p * 2.0;  // Calls scale(p, 2.0)
-var r2 = 2.0 * p;  // Calls scale(p, 2.0) with swapped arguments
-</code></pre>
+<span class="k">var</span> <span class="n">r1</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="mf">2.0</span><span class="p">;</span>  <span class="c1">// Calls scale(p, 2.0)</span>
+<span class="k">var</span> <span class="n">r2</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">p</span><span class="p">;</span>  <span class="c1">// Calls scale(p, 2.0) with swapped arguments</span>
+</code></pre></div>
+
 <p><strong>String Conversion:</strong></p>
 <p>The <code>str</code> operator enables custom string conversion for user types:</p>
-<pre><code class="language-go">[[operator(str)]]
-fn point_to_string(p: Point): string {
-    return &quot;Point(&quot; + str(p.x) + &quot;, &quot; + str(p.y) + &quot;)&quot;;
-}
+<div class="codehilite"><pre><span></span><code><span class="nd">[[operator(str)]]</span>
+<span class="k">fn</span> <span class="n">point_to_string</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nc">Point</span><span class="p">):</span> <span class="kt">string</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="s2">&quot;Point(&quot;</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">;</span>
+<span class="p">}</span>
 
-var msg = f&quot;Location: {p}&quot;;  // Calls point_to_string(p)
-var s = str(p);               // &quot;Point(1.0, 2.0)&quot;
-</code></pre>
+<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f&quot;Location: {p}&quot;</span><span class="p">;</span>  <span class="c1">// Calls point_to_string(p)</span>
+<span class="k">var</span> <span class="n">s</span> <span class="o">=</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>               <span class="c1">// &quot;Point(1.0, 2.0)&quot;</span>
+</code></pre></div>
+
 <p><strong><em>See [III.Modules (core.string)]</em></strong> for string intrinsics.</p>
 <h4 id="key-rules">Key Rules</h4>
 <ol>
@@ -1077,13 +1113,15 @@ var s = str(p);               // &quot;Point(1.0, 2.0)&quot;
 <p>Enable cross-file references with two import styles: aliased and selective.</p>
 <h4 id="import-syntax">Import Syntax</h4>
 <p><strong>Aliased Import</strong> — Import a module with an explicit alias:</p>
-<pre><code class="language-go">import core.math.vector as vec;
-var p: vec.Vector;
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">math</span><span class="p">.</span><span class="n">vector</span> <span class="k">as</span> <span class="n">vec</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">p</span><span class="p">:</span> <span class="n">vec</span><span class="p">.</span><span class="nc">Vector</span><span class="p">;</span>
+</code></pre></div>
+
 <p><strong>Selective Import</strong> — Import specific symbols directly:</p>
-<pre><code class="language-go">from core.math.vector import { Vector, Point };
-var p: Vector;
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">math</span><span class="p">.</span><span class="n">vector</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Vector</span><span class="p">,</span> <span class="nc">Point</span> <span class="p">};</span>
+<span class="k">var</span> <span class="n">p</span><span class="p">:</span> <span class="nc">Vector</span><span class="p">;</span>
+</code></pre></div>
+
 <h4 id="design-principles">Design Principles</h4>
 <ul>
 <li><strong>Module paths</strong> are dot-separated (e.g., <code>core.math.vector</code>) and map to file paths</li>
@@ -1095,11 +1133,12 @@ var p: Vector;
 </ul>
 <h4 id="intrinsic-functions">Intrinsic Functions</h4>
 <p>Intrinsics are module-scoped functions declared with <code>[[intrinsic("name")]]</code> and accessed through imports like any other function. Intrinsic declarations have no body and cannot be combined with <code>[[native]]</code>.</p>
-<pre><code class="language-go">// core/bit.smalls
-[[intrinsic(&quot;bit_and&quot;)]] fn and(a: int, b: int): int;
-[[intrinsic(&quot;bit_or&quot;)]] fn or(a: int, b: int): int;
-[[intrinsic(&quot;bit_not&quot;)]] fn not(a: int): int;
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="c1">// core/bit.smalls</span>
+<span class="nd">[[intrinsic(&quot;bit_and&quot;)]]</span> <span class="k">fn</span> <span class="n">and</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+<span class="nd">[[intrinsic(&quot;bit_or&quot;)]]</span> <span class="k">fn</span> <span class="n">or</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+<span class="nd">[[intrinsic(&quot;bit_not&quot;)]]</span> <span class="k">fn</span> <span class="n">not</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+</code></pre></div>
+
 <p><strong>Complete intrinsic list</strong> (from <code>Intrinsics.hpp</code>):</p>
 <table>
 <thead>
@@ -1392,14 +1431,15 @@ var p: Vector;
 - If found, reports the full dependency cycle and fails to load</p>
 <h4 id="module-scope-variables">Module-Scope Variables</h4>
 <p>Modules can declare <code>var</code> and <code>const</code> at the top level. These are stored in per-module global slots and initialized by a synthesized <code>__init</code> function that runs automatically when the module is first compiled.</p>
-<pre><code class="language-go">var counter = 0;
-const MAX_RETRIES = 3;
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">const</span> <span class="nc">MAX_RETRIES</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
 
-fn increment(): int {
-    counter = counter + 1;
-    return counter;
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">increment</span><span class="p">():</span> <span class="kt">int</span> <span class="p">{</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="n">counter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">counter</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>Key properties</strong>:
 - Module globals are private to the module (not importable across modules)
 - Functions access them via <code>GETGLOBAL</code>/<code>SETGLOBAL</code> opcodes
@@ -1414,19 +1454,21 @@ fn increment(): int {
 <h2 id="iv-data-engine-integration">IV. Data &amp; Engine Integration</h2>
 <h3 id="config-serialization">Config &amp; Serialization</h3>
 <p>Following the philosophy "Config &amp; Serialization Are Struct Literals", Smalls uses bare struct literal syntax as the primary data format. Each <code>.smalls</code> config file contains a single struct literal:</p>
-<pre><code class="language-smalls">// fireball.smalls
-SpellInfo {
-    name = &quot;Fireball&quot;,
-    school = SpellSchool.Evocation,
-    innate_level = 3,
-    on_impact = fn(caster: object, loc: Location) {
-        apply_area_damage(loc, roll_dice(6, caster_level(caster)), DamageType.Fire);
-    },
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="c1">// fireball.smalls</span>
+<span class="nc">SpellInfo</span> <span class="p">{</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Fireball&quot;</span><span class="p">,</span>
+    <span class="n">school</span> <span class="o">=</span> <span class="nc">SpellSchool</span><span class="p">.</span><span class="nc">Evocation</span><span class="p">,</span>
+    <span class="n">innate_level</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">on_impact</span> <span class="o">=</span> <span class="k">fn</span><span class="p">(</span><span class="n">caster</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="nc">Location</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">apply_area_damage</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">roll_dice</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">caster_level</span><span class="p">(</span><span class="n">caster</span><span class="p">)),</span> <span class="nc">DamageType</span><span class="p">.</span><span class="nc">Fire</span><span class="p">);</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p><strong>C++ API</strong>: Types are registered via <code>ModuleBuilder</code>, then configs loaded with <code>load_config&lt;T&gt;()</code>:</p>
-<pre><code class="language-cpp">auto* spell = rt.load_config&lt;SpellInfo&gt;(&quot;fireball&quot;, &quot;game_types&quot;);
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">spell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="n">load_config</span><span class="o">&lt;</span><span class="n">SpellInfo</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;fireball&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;game_types&quot;</span><span class="p">);</span>
+</code></pre></div>
+
 <p><strong><em>See [IV.Native Interfaces]</em></strong> for the Registration API used to define config types.</p>
 <p><strong>Implementation details</strong>:
 - Config prelude types use <code>[[native]]</code> so the smalls heap struct has identical layout to the C++ struct
@@ -1449,20 +1491,21 @@ The authoring workflow, array contract, and RPG manifest direction are covered
 in <a href="load-config.html">load-config.md</a>.</p>
 <h3 id="property-sets">Property Sets</h3>
 <p>Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.</p>
-<pre><code class="language-smalls">[[propset]]
-type CreatureStats {
-    hp, max_hp: int;
-    str, dex, con, int, wis, cha: int;
-    level: int;
-    xp: int;
-};
+<div class="codehilite"><pre><span></span><code><span class="nd">[[propset]]</span>
+<span class="k">type</span> <span class="nc">CreatureStats</span> <span class="p">{</span>
+    <span class="n">hp</span><span class="p">,</span> <span class="n">max_hp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">str</span><span class="p">,</span> <span class="n">dex</span><span class="p">,</span> <span class="n">con</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="n">wis</span><span class="p">,</span> <span class="n">cha</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">level</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">xp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
 
-[[propset]]
-type Position {
-    x, y, z: float;
-    area_id: int;
-};
-</code></pre>
+<span class="nd">[[propset]]</span>
+<span class="k">type</span> <span class="nc">Position</span> <span class="p">{</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span>
+    <span class="n">area_id</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
 <p><strong>Key Characteristics</strong>:
 - <strong>Schema in script</strong> — Data layout defined using Smalls type system
 - <strong>Memory in engine</strong> — Object manager allocates components in contiguous chunks for cache efficiency
@@ -1501,9 +1544,10 @@ To keep propsets invisible to GC, propset fields MUST NOT store <code>HeapPtr</c
 - Direct assignment (<code>ps.arr = other_arr</code>) is a compile-time error.</p>
 <h4 id="native-property-sets">Native Property Sets</h4>
 <p>For engine-managed data or functionality not yet in script, native property sets use bridge functions:</p>
-<pre><code class="language-smalls">[[native]] fn has_feat(obj: object, feat: Feat): bool;
-[[native]] fn add_feat(obj: object, feat: Feat);
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">has_feat</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">feat</span><span class="p">:</span> <span class="nc">Feat</span><span class="p">):</span> <span class="kt">bool</span><span class="p">;</span>
+<span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">add_feat</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">feat</span><span class="p">:</span> <span class="nc">Feat</span><span class="p">);</span>
+</code></pre></div>
+
 <p><strong>Native vs Script Property Sets</strong>:
 - <strong>Native propsets</strong> — Always exist for engine systems (physics, rendering, pathfinding)
 - <strong>Script propsets</strong> — Gameplay data (stats, skills, etc.)
@@ -1534,30 +1578,32 @@ To keep propsets invisible to GC, propset fields MUST NOT store <code>HeapPtr</c
 <p><strong><em>See [VII.GC Integration Points]</em></strong></p>
 <h4 id="registration-api">Registration API</h4>
 <p><strong>C++ Side</strong> — Register native module interface:</p>
-<pre><code class="language-cpp">ModuleBuilder mb(&amp;runtime, &quot;core.effects&quot;);
-mb.value_type&lt;glm::vec3&gt;(&quot;vec3&quot;);
-mb.native_struct&lt;Position&gt;(&quot;Position&quot;)
-    .field(&quot;x&quot;, &amp;Position::x)
-    .field(&quot;y&quot;, &amp;Position::y)
-    .field(&quot;z&quot;, &amp;Position::z);
-mb.handle_type(&quot;Effect&quot;, RuntimeObjectPool::TYPE_EFFECT);
-mb.function(&quot;create_damage&quot;, &amp;create_damage_effect);
-mb.finalize();
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">mb</span><span class="p">(</span><span class="o">&amp;</span><span class="n">runtime</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;core.effects&quot;</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">value_type</span><span class="o">&lt;</span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;vec3&quot;</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">native_struct</span><span class="o">&lt;</span><span class="n">Position</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;Position&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">x</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">y</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">z</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">handle_type</span><span class="p">(</span><span class="s">&quot;Effect&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">RuntimeObjectPool</span><span class="o">::</span><span class="n">TYPE_EFFECT</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">function</span><span class="p">(</span><span class="s">&quot;create_damage&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">create_damage_effect</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">finalize</span><span class="p">();</span>
+</code></pre></div>
+
 <p><strong>Script Side</strong> — Link to native module with <code>[[native]]</code> declarations:</p>
-<pre><code class="language-go">// core/effects.smalls
-[[native]] type Position { x, y, z: float; };
-[[native]] type Effect;
+<div class="codehilite"><pre><span></span><code><span class="c1">// core/effects.smalls</span>
+<span class="nd">[[native]]</span> <span class="k">type</span> <span class="nc">Position</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="kt">float</span><span class="p">;</span> <span class="p">};</span>
+<span class="nd">[[native]]</span> <span class="k">type</span> <span class="nc">Effect</span><span class="p">;</span>
 
-[[native]] fn create_damage(amount: int): Effect;
-[[native]] fn apply(effect: Effect): void;
+<span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">create_damage</span><span class="p">(</span><span class="n">amount</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="nc">Effect</span><span class="p">;</span>
+<span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">apply</span><span class="p">(</span><span class="n">effect</span><span class="p">:</span> <span class="nc">Effect</span><span class="p">):</span> <span class="kt">void</span><span class="p">;</span>
 
-// Can mix native and script-side code
-fn create_and_apply_damage(amount: int) {
-    const dmg = create_damage(amount);
-    apply(dmg);
-}
-</code></pre>
+<span class="c1">// Can mix native and script-side code</span>
+<span class="k">fn</span> <span class="n">create_and_apply_damage</span><span class="p">(</span><span class="n">amount</span><span class="p">:</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="n">dmg</span> <span class="o">=</span> <span class="n">create_damage</span><span class="p">(</span><span class="n">amount</span><span class="p">);</span>
+    <span class="n">apply</span><span class="p">(</span><span class="n">dmg</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <ul>
 <li>Function signatures must match exactly (parameter count, types, return type)</li>
 <li>Script modules can mix native declarations with regular script code</li>
@@ -1576,7 +1622,7 @@ fn create_and_apply_damage(amount: int) {
 <h2 id="v-compilation-pipeline">V. Compilation Pipeline</h2>
 <h3 id="pipeline-overview">Pipeline Overview</h3>
 <p>Smalls compiles scripts through a multi-stage pipeline:</p>
-<pre><code>Source → Lexer → Parser → Resolver → Compiler → Bytecode → [Verifier]
+<div class="codehilite"><pre><span></span><code>Source → Lexer → Parser → Resolver → Compiler → Bytecode → [Verifier]
          │         │         │            │          │           │
        Tokens    AST    Typed AST    BytecodeModule  │    Validation
                                      (instructions,  │    (optional)
@@ -1584,7 +1630,8 @@ fn create_and_apply_damage(amount: int) {
                                       functions)     │
                                                      ↓
                                               VirtualMachine
-</code></pre>
+</code></pre></div>
+
 <p>Each stage is a separate component with well-defined inputs and outputs. The pipeline is designed for fast compilation (important for hot-reloading).</p>
 <h3 id="lexer-parser">Lexer &amp; Parser</h3>
 <p>The <strong>Lexer</strong> (<code>Lexer.hpp</code>) performs tokenization: converts source text into a stream of <code>Token</code> values. It handles string literals, f-string splitting, numeric literals, identifiers, keywords, operators, and comments. It builds a <code>line_map</code> for source location tracking.</p>
@@ -1697,11 +1744,12 @@ fn create_and_apply_damage(amount: int) {
 <p>Smalls uses a register-based VM following Lua's design philosophy: <strong>256 registers per frame, fixed-width 32-bit instructions, single-pass compilation, switch-based dispatch</strong>.</p>
 <h3 id="instruction-encoding">Instruction Encoding</h3>
 <p><strong>32-bit fixed width:</strong></p>
-<pre><code>Bits 31-24: Opcode (8 bits)
+<div class="codehilite"><pre><span></span><code>Bits 31-24: Opcode (8 bits)
 Bits 23-16: Register A (8 bits)
 Bits 15-8:  Register B (8 bits)
 Bits 7-0:   Register C (8 bits)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Alternative encodings:</strong>
 - <strong>ABx format</strong>: Opcode + RegA + 16-bit immediate (LOADK, LOADI)
 - <strong>Jump format</strong>: Opcode + 24-bit signed offset (JMP, JMPT, JMPF)</p>

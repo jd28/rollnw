@@ -47,7 +47,7 @@ owner. It turns explicit runtime data into GPU work through <code>nw::gfx</code>
 lists and backend resources.</p>
 <h2 id="the-short-version">The Short Version</h2>
 <p>The current renderer path is:</p>
-<pre><code class="language-text">source assets
+<div class="codehilite"><pre><span></span><code>source assets
   -&gt; common CPU records
      ModelAsset, ParticleEffectDef, sockets, deformers, animation clips
   -&gt; runtime/upload records
@@ -58,7 +58,8 @@ lists and backend resources.</p>
      model, particle, shadow, Forward+, fog
   -&gt; nw::gfx
      buffers, textures, pipelines, command lists, swapchain
-</code></pre>
+</code></pre></div>
+
 <p>The common case is source-neutral runtime data. glTF and NWN are inputs to that
 data, not renderer policy. NWN compatibility still exists where the common
 runtime does not yet own equivalent data.</p>

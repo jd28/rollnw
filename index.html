@@ -73,25 +73,29 @@
 <h2 id="building-installing">Building / Installing</h2>
 <p>The library uses <a href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a> as its build system. The naming convention for non-ci presets is <code>{platform}[-renderer][-{build tool}]-dev[-debug]</code>. Renderer presets build the platform's supported graphics tools. Renderer and <code>mudl</code> builds are supported on Linux and Windows only; macOS is not supported for the renderer because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.</p>
 <p>Examples:</p>
-<pre><code>$ cmake --preset=linux-dev
+<div class="codehilite"><pre><span></span><code>$ cmake --preset=linux-dev
 $ cmake --preset=linux-renderer-dev
 $ cmake --preset=macos-dev-debug
 $ cmake --preset=windows-vs2019-dev-debug
 $ cmake --preset=windows-renderer-dev
 $ cmake --preset=windows-dev
-</code></pre>
+</code></pre></div>
+
 <p>Once your configuration is done, everything is the same between platforms. To build:</p>
-<pre><code>$ cmake --build --preset=default
+<div class="codehilite"><pre><span></span><code>$ cmake --build --preset=default
 $ cmake --build --preset=debug
-</code></pre>
+</code></pre></div>
+
 <p>To install all binaries and test data to local <code>bin</code> dir (build or build-debug):</p>
-<pre><code>$ cmake --install build --prefix=.
+<div class="codehilite"><pre><span></span><code>$ cmake --install build --prefix=.
 $ cd bin
 $ ./rollnw_benchmark
-</code></pre>
+</code></pre></div>
+
 <p>To run ctest:</p>
-<pre><code>$ ctest --preset=default
-</code></pre>
+<div class="codehilite"><pre><span></span><code>$ ctest --preset=default
+</code></pre></div>
+
 <h2 id="history">History</h2>
 <p>A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries. Similarly to an older project that asked what if Bioware had stuck with Lua? The answer to that was pretty positive: a decade ahead, at least, of nwscript.</p>
 <h2 id="credits">Credits</h2>
@@ -106,7 +110,7 @@ $ ./rollnw_benchmark
 <li><a href="https://github.com/benhoyt/inih">inih</a> - INI, SET parsing</li>
 <li><a href="https://github.com/nlohmann/json">nholmann_json</a> - JSON</li>
 <li><a href="https://www.gnu.org/software/libiconv/">libiconv</a>, <a href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string conversion</li>
-<li><a href="https://python-markdown.github.io/">Python-Markdown</a> - documentation rendering</li>
+<li><a href="https://python-markdown.github.io/">Python-Markdown</a>, <a href="https://pygments.org/">Pygments</a> - documentation rendering</li>
 </ul>
       </article>
     </main>

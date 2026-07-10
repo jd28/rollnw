@@ -45,15 +45,16 @@ C++ tables and into Smalls-owned manifests. The data is still typed code: each
 entry is a Smalls struct literal, and rules modules load arrays of those entries
 through one intrinsic.</p>
 <p>This is the "manifest RPGs" direction in practical form:</p>
-<pre><code class="language-text">ruleset schema
+<div class="codehilite"><pre><span></span><code>ruleset schema
   -&gt; typed Smalls structs with explicit fields and indexes
 ruleset data
   -&gt; one `.smalls` struct literal per entry
 rules code
   -&gt; load_config!(EntryType)(&quot;ruleset.data.table&quot;)
 runtime
-  -&gt; cached array!(EntryType), indexed by the entry's [[index]] field
-</code></pre>
+  -&gt; cached array!(EntryType), indexed by the entry&#39;s [[index]] field
+</code></pre></div>
+
 <p>The common case is a rules module loading one table once, then serving small
 lookup helpers from that cached array.</p>
 <h2 id="entry-schema">Entry Schema</h2>
@@ -61,90 +62,96 @@ lookup helpers from that cached array.</p>
 with <code>[[index]]</code>; that field determines where the entry lands in the returned
 array. For hot rules lookups, use <code>[[value_type]]</code> so entries are stored inline
 in <code>array!(T)</code>.</p>
-<pre><code class="language-smalls">type StrRef(int);
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">StrRef</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 
-[[value_type]]
-type ClassEntry {
-    [[index]]
-    id:             int;
-    name:           StrRef;
-    hit_die:        int;
-    saves_table:    int;
-    attack_table:   int;
-    spellcaster:    bool;
-    caster_ability: int;
-};
-</code></pre>
+<span class="nd">[[value_type]]</span>
+<span class="k">type</span> <span class="nc">ClassEntry</span> <span class="p">{</span>
+    <span class="nd">[[index]]</span>
+    <span class="n">id</span><span class="p">:</span>             <span class="kt">int</span><span class="p">;</span>
+    <span class="n">name</span><span class="p">:</span>           <span class="nc">StrRef</span><span class="p">;</span>
+    <span class="n">hit_die</span><span class="p">:</span>        <span class="kt">int</span><span class="p">;</span>
+    <span class="n">saves_table</span><span class="p">:</span>    <span class="kt">int</span><span class="p">;</span>
+    <span class="n">attack_table</span><span class="p">:</span>   <span class="kt">int</span><span class="p">;</span>
+    <span class="n">spellcaster</span><span class="p">:</span>    <span class="kt">bool</span><span class="p">;</span>
+    <span class="n">caster_ability</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
 <p>The <code>[[index]]</code> field is policy, not the filename. Filenames are just stable
 entry names for authors and diffs.</p>
 <h2 id="entry-files">Entry Files</h2>
 <p>Each config entry is one Smalls file containing a single struct literal. Current
 NWN1 class data lives under <code>lib/nw/smalls/scripts/nwn1/data/classes/</code>:</p>
-<pre><code class="language-smalls">ClassEntry {
-    id = 4,
-    name = StrRef(8),
-    hit_die = 10,
-    saves_table = 5,
-    attack_table = 0,
-    spellcaster = false,
-    caster_ability = -1
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nc">ClassEntry</span> <span class="p">{</span>
+    <span class="n">id</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="nc">StrRef</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span>
+    <span class="n">hit_die</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">saves_table</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">attack_table</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">spellcaster</span> <span class="o">=</span> <span class="k">false</span><span class="p">,</span>
+    <span class="n">caster_ability</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>The table path maps to the directory:</p>
-<pre><code class="language-text">nwn1.data.classes -&gt; nwn1/data/classes/
+<div class="codehilite"><pre><span></span><code>nwn1.data.classes -&gt; nwn1/data/classes/
 nwn1/data/classes -&gt; nwn1/data/classes/
-</code></pre>
+</code></pre></div>
+
 <p>Both dot and slash forms are accepted. Only direct children of the table
 directory are loaded.</p>
 <h2 id="loading-from-script">Loading From Script</h2>
 <p>The intrinsic is declared in <code>core.prelude</code>:</p>
-<pre><code class="language-smalls">[[intrinsic(&quot;load_config&quot;)]] fn load_config(path: string): array!($T);
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[intrinsic(&quot;load_config&quot;)]]</span> <span class="k">fn</span> <span class="n">load_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="kt">string</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">);</span>
+</code></pre></div>
+
 <p>Call it with an explicit entry type:</p>
-<pre><code class="language-smalls">import core.array as Array;
-from nwn1.rules import { ClassEntry };
+<div class="codehilite"><pre><span></span><code><span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">array</span> <span class="k">as</span> <span class="nc">Array</span><span class="p">;</span>
+<span class="k">from</span> <span class="n">nwn1</span><span class="p">.</span><span class="n">rules</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">ClassEntry</span> <span class="p">};</span>
 
-var classes = load_config!(ClassEntry)(&quot;nwn1.data.classes&quot;);
+<span class="k">var</span> <span class="n">classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.classes&quot;</span><span class="p">);</span>
 
-fn fighter_hit_die(): int {
-    var fighter = Array.get(classes, 4);
-    return fighter.hit_die;
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">fighter_hit_die</span><span class="p">():</span> <span class="kt">int</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">fighter</span> <span class="o">=</span> <span class="nc">Array</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">classes</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">fighter</span><span class="p">.</span><span class="n">hit_die</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>Most modules hide the raw table behind lookup helpers so callers get explicit
 out-of-range behavior:</p>
-<pre><code class="language-smalls">from nwn1.rules import { ClassEntry };
-from core.types import { Class, Ability };
-import core.array as Array;
+<div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">nwn1</span><span class="p">.</span><span class="n">rules</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">ClassEntry</span> <span class="p">};</span>
+<span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">types</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Class</span><span class="p">,</span> <span class="nc">Ability</span> <span class="p">};</span>
+<span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">array</span> <span class="k">as</span> <span class="nc">Array</span><span class="p">;</span>
 
-var _loaded = false;
-var _classes: array!(ClassEntry);
+<span class="k">var</span> <span class="n">_loaded</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">_classes</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">);</span>
 
-fn _ensure_loaded() {
-    if (_loaded) {
-        return;
-    }
-    _classes = load_config!(ClassEntry)(&quot;nwn1.data.classes&quot;);
-    _loaded = true;
-}
+<span class="k">fn</span> <span class="n">_ensure_loaded</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">_loaded</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">_classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.classes&quot;</span><span class="p">);</span>
+    <span class="n">_loaded</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+<span class="p">}</span>
 
-fn exists(class_id: Class): bool {
-    _ensure_loaded();
-    var index = class_id as int;
-    return index &gt;= 0 &amp;&amp; index &lt; Array.len(_classes);
-}
+<span class="k">fn</span> <span class="n">exists</span><span class="p">(</span><span class="n">class_id</span><span class="p">:</span> <span class="nc">Class</span><span class="p">):</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="n">_ensure_loaded</span><span class="p">();</span>
+    <span class="k">var</span> <span class="n">index</span> <span class="o">=</span> <span class="n">class_id</span> <span class="k">as</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nc">Array</span><span class="p">.</span><span class="n">len</span><span class="p">(</span><span class="n">_classes</span><span class="p">);</span>
+<span class="p">}</span>
 
-fn caster_ability(class_id: Class): Ability {
-    if (!exists(class_id)) {
-        return Ability(-1);
-    }
-    var entry = Array.get(_classes, class_id as int);
-    if (!entry.spellcaster) {
-        return Ability(-1);
-    }
-    return Ability(entry.caster_ability);
-}
-</code></pre>
+<span class="k">fn</span> <span class="n">caster_ability</span><span class="p">(</span><span class="n">class_id</span><span class="p">:</span> <span class="nc">Class</span><span class="p">):</span> <span class="nc">Ability</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">exists</span><span class="p">(</span><span class="n">class_id</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nc">Ability</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">var</span> <span class="n">entry</span> <span class="o">=</span> <span class="nc">Array</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">_classes</span><span class="p">,</span> <span class="n">class_id</span> <span class="k">as</span> <span class="kt">int</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">entry</span><span class="p">.</span><span class="n">spellcaster</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nc">Ability</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nc">Ability</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">caster_ability</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
 <p>That wrapper shape is deliberate. <code>load_config!</code> loads data; the rules module
 owns invalid-id policy.</p>
 <h2 id="runtime-contract">Runtime Contract</h2>
@@ -170,8 +177,9 @@ reading and should define the fallback value at the API boundary.</p>
 <h2 id="2da-bridge">2DA Bridge</h2>
 <p>Some paths can be backed by a registered 2DA converter instead of <code>.smalls</code>
 entry files. The script API is the same:</p>
-<pre><code class="language-smalls">var feats = load_config!(FeatEntry)(&quot;nwn1.data.feats&quot;);
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">feats</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">FeatEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.feats&quot;</span><span class="p">);</span>
+</code></pre></div>
+
 <p>This keeps old NWN data sources usable while the rules-facing code moves toward
 typed Smalls manifests. A future authored RPG can use native <code>.smalls</code> entries
 directly without changing the lookup code.</p>
@@ -182,10 +190,11 @@ many times.</p>
 <p>Propsets are for per-object game state: hit points, ability scores, combat
 state, class levels, inventory-facing state, and other data attached to a live
 object. A combat rule commonly joins both:</p>
-<pre><code class="language-text">class/race/base-item config from load_config!
+<div class="codehilite"><pre><span></span><code>class/race/base-item config from load_config!
   + live creature/item propsets
   -&gt; rule result
-</code></pre>
+</code></pre></div>
+
 <p>Keeping these separate prevents static rules manifests from becoming object
 storage, and prevents live object state from becoming global rules data.</p>
       </article>

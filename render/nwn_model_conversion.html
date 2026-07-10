@@ -58,7 +58,7 @@ common data.</p>
 <p>The default static NWN preview path uses <code>ModelAsset -&gt; RenderModel</code> where it is
 safe. Compatibility paths stay available for parity and unresolved quirks.</p>
 <h2 id="data-flow">Data Flow</h2>
-<pre><code class="language-text">NWN MDL / MTR / TXI / PLT / emitter data
+<div class="codehilite"><pre><span></span><code>NWN MDL / MTR / TXI / PLT / emitter data
   -&gt; nwn::ModelInstance sidecar
      source node tree
      legacy draw payloads
@@ -78,7 +78,8 @@ safe. Compatibility paths stay available for parity and unresolved quirks.</p>
   -&gt; common ModelInstance runtime record
   -&gt; PreparedModelDraw / PreparedModelSurfaceDraw
   -&gt; PBR renderer or bridge adapter
-</code></pre>
+</code></pre></div>
+
 <p>The sidecar is not the desired modern runtime shape. It is the source and
 compatibility owner during the bridge.</p>
 <h2 id="lowered-common-data">Lowered Common Data</h2>

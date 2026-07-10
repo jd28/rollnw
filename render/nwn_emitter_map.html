@@ -576,7 +576,7 @@
 <h2 id="common-pattern-cookbook">Common Pattern Cookbook</h2>
 <p>For each of MerricksDad's canonical emitter patterns, the key fields and expected screen result:</p>
 <h3 id="basic-puff-eg-vim_magblue-magic-missile-impact">Basic Puff (e.g., vim_magblue — magic missile impact)</h3>
-<pre><code>update    Explosion
+<div class="codehilite"><pre><span></span><code>update    Explosion
 render    Normal
 blend     Lighten
 texture   fxpa_flare    (single frame: xgrid 1, ygrid 1)
@@ -585,10 +585,11 @@ colorStart 1 1 1 → colorEnd 0.36 0.76 1.0
 alphaStart 1 → alphaEnd 0
 sizeStart 0.5 → sizeEnd 0.07
 birthrate 70   lifeExp 1
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> On <code>detonate</code> event — camera-facing colored flash that shrinks and fades over 1 second. Additive blending means the center appears brightest; edges fall off. Nothing visible between detonate events.</p>
 <h3 id="animated-puff-flame-eg-vim_exp2flame">Animated Puff / Flame (e.g., vim_exp2flame)</h3>
-<pre><code>update    Fountain
+<div class="codehilite"><pre><span></span><code>update    Fountain
 render    Normal
 blend     Lighten
 texture   fxpa_firebb   (xgrid 4, ygrid 4, frameStart 0, frameEnd 15, fps 16)
@@ -596,10 +597,11 @@ xsize 60  ysize 50
 inherit 1
 birthrate 30   lifeExp 1
 mass (negative or zero)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> Continuous animated quads rising from a 60×50 cm base; each quad cycles through the 4×4 sprite sheet over its lifetime. <code>inherit 1</code> makes the flames follow the emitter when it moves. Particles always face camera.</p>
 <h3 id="chunks-eg-vim_destruct-goredebris">Chunks (e.g., vim_destruct — gore/debris)</h3>
-<pre><code>update    Fountain
+<div class="codehilite"><pre><span></span><code>update    Fountain
 render    Normal
 blend     Normal
 texture   NULL
@@ -609,10 +611,11 @@ velocity  5   randvel 1
 particleRot 1.5
 birthrate (driven by animation keys, bursts near 100 then drops to 0)
 lifeExp   4
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> 3D mesh instances launched in every direction from a point. Each chunk has a random-ish trajectory and tumbles (particleRot). Normal blend because they are opaque lit geometry.</p>
 <h3 id="trail-of-smoke-eg-it_torch_000">Trail of Smoke (e.g., it_torch_000)</h3>
-<pre><code>update    Fountain
+<div class="codehilite"><pre><span></span><code>update    Fountain
 render    Normal
 blend     Normal
 texture   fxpa_smoke01  (xgrid 4, ygrid 4, random 1, fps 30)
@@ -620,10 +623,11 @@ mass      -0.2          (rises)
 velocity  0   randVel 0.2
 sizeStart 0 → sizeEnd 2
 alphaStart X → alphaEnd 0
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> Expanding, fading puffs that rise from the emitter. <code>random 1</code> means each puff shows a different noise frame. <code>mass &lt; 0</code> gives upward buoyancy; <code>randVel</code> adds subtle variance. Puffs diffuse visually as they scale up and fade out. <code>twosidedtex</code> is parsed but not yet GPU-applied — if the puff rotates edge-on it may vanish (currently not a practical issue since these are camera-facing).</p>
 <h3 id="local-z-ripple-swirl-eg-wmgst_t_051-spin02">Local-Z Ripple / Swirl (e.g., wmgst_t_051 spin02)</h3>
-<pre><code>update      Fountain
+<div class="codehilite"><pre><span></span><code>update      Fountain
 render      billboard_to_local_z
 blend       Lighten
 texture     fxpa_ripple      (xgrid 2, ygrid 2)
@@ -635,25 +639,28 @@ velocity    0   randvel 0.04
 particleRot 5
 blurlength  10
 mass        0
-</code></pre>
+</code></pre></div>
+
 <p><strong>Runtime mapping:</strong> The emitter's local XY axes define the quad plane and local Z is the plane normal. Attached/local particles keep the authored local rect spawn and velocity motion; <code>particleRot</code> rotates each sprite in that local plane. For <code>wmgst_t_051 spin02</code>, the visible spiral comes from absolute atlas frame 1 of <code>fxpa_ripple</code> on large 0.6m quads, not from rewriting particle centers into a synthetic spiral. <code>blurlength</code> is parsed but does not resize <code>billboard_to_local_z</code> effects.</p>
 <p><strong>Expected:</strong> A circular additive ripple disk that stays anchored to the item/socket orientation. The ripple texture spins in the authored local plane; particles should not grow into a wide cloud or orbit as independent center points.</p>
 <h3 id="detonation-burst">Detonation Burst</h3>
-<pre><code>update    Explosion
+<div class="codehilite"><pre><span></span><code>update    Explosion
 event     &lt;time&gt; detonate    (in the animation sequence)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> All <code>Explosion</code>-mode emitters in the model fire simultaneously when the <code>detonate</code> animation event fires. Using multiple <code>detonate</code> entries in one sequence triggers multiple bursts. Set <code>birthrate = 0</code> on specific emitters to suppress them on a given detonate pass.</p>
 <h3 id="lightning-p2p-beam">Lightning (P2P Beam)</h3>
-<pre><code>update    Lightning
+<div class="codehilite"><pre><span></span><code>update    Lightning
 lightningDelay    (re-randomize interval)
 lightningRadius   (lateral jitter amplitude)
 subdivision       (number of segments)
 lightningScale    (per-segment max offset)
 node reference &lt;name&gt;    (child of the emitter node)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> Animated jittered polyline from the emitter to the reference child node. Shape re-randomizes at each <code>lightningDelay</code> interval. More subdivisions = more jagged. Larger <code>lightningRadius</code> = more chaotic spread. End-fade applied via sine function.</p>
 <h3 id="p2p-gravity-vortex-eg-vff_comvortex-implosion">P2P Gravity Vortex (e.g., vff_comvortex — Implosion)</h3>
-<pre><code>update    Fountain
+<div class="codehilite"><pre><span></span><code>update    Fountain
 render    Normal
 blend     Normal
 p2p 1     p2p_sel 0     (gravity type)
@@ -664,16 +671,18 @@ drag      1             (slingshot past then return)
 threshold 1.5           (destroy within 1.5m of reference)
 spread    0.175         (≈10°, mostly perpendicular to plane)
 node reference &lt;name&gt;   (target singularity)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> Chunks spawn across the wide plane, drift toward the reference node with increasing speed, overshoot slightly (<code>drag</code>), curve back, and are destroyed when they enter the <code>threshold</code> radius. The reference node's position is inverted — if offset is <code>(0 0 0.63)</code>, particles converge downward.</p>
 <h3 id="linked-chain-lightning-curtain-eg-t_door21-ground_lightning-vps_tentacle">Linked Chain / Lightning Curtain (e.g., T_Door21 ground_lightning, vps_tentacle)</h3>
-<pre><code>render    Linked
+<div class="codehilite"><pre><span></span><code>render    Linked
 p2p 1     p2p_sel 1     (Bezier)
 combinetime               controls kink traversal speed (see below)
 lifeExp                   particle lifetime; kink travels (lifeExp/combinetime) fraction of path
 xsize / ysize             spawn region; lateral spread provides initial kink displacement
 sizeStart / sizeEnd       ribbon width over particle lifetime
-</code></pre>
+</code></pre></div>
+
 <p><strong>Rendering model:</strong> The ribbon is drawn <strong>source (emitter position, fixed) → particle (animated kink) → target (reference node, fixed)</strong>. Both endpoints are anchors. The kink is a per-particle waypoint that starts at the particle's <strong>spawn position</strong> and traverses toward the target at rate <code>path_t = age / combinetime</code>. Because <code>xsize</code>/<code>ysize</code> give each spawn a lateral offset within the emitter's local XY plane, the kink starts off the emitter→target axis and converges toward the target as the particle ages. This off-axis starting position is the source of the visible V-kink and zigzag character. When the particle dies, a new one spawns at a fresh random position, instantly resetting the kink shape.</p>
 <p><strong><code>xsize</code> and <code>ysize</code> on linked-chain emitters</strong> define the spawn region that provides the initial kink displacement — they are not the ribbon width (that is <code>sizeStart</code>). Large values give extreme initial kinks; zero gives a point spawn at the emitter with no off-axis bend. The emitter's local orientation determines which world axis the spread falls on.</p>
 <p><strong><code>combinetime</code> effect on kink convergence:</strong>
@@ -682,31 +691,34 @@ sizeStart / sizeEnd       ribbon width over particle lifetime
 - In both cases the bolt spans <strong>full height end-to-end</strong> (source → kink → target). <code>combinetime</code> does not affect bolt height, only how far the kink has converged when the particle dies.</p>
 <p><strong>Expected:</strong> Full-height ribbon spanning from emitter to reference node. The kink shape changes each spawn due to random lateral spawn offset. <code>random 1</code> on the sprite sheet gives each new particle a different texture frame → flickering lightning character. Additive blend (<code>Lighten</code>) makes it glow. Bolt reshapes every <code>lifeExp</code> seconds.</p>
 <h3 id="linked-broad-rect-ground-mist-eg-tnp_gmist">Linked Broad Rect / Ground Mist (e.g., tnp_gmist)</h3>
-<pre><code>update    Fountain
+<div class="codehilite"><pre><span></span><code>update    Fountain
 render    Linked
 blend     Lighten
 p2p 0
 xsize / ysize             broad rectangular spawn region
 lifeExp                   &gt;= 1 second
 velocity + randvel        &lt;= 1 m/s
-</code></pre>
+</code></pre></div>
+
 <p><strong>Import model:</strong> This legacy NWN pattern uses <code>Linked</code>, but the authored intent is a volume of soft cards, not a ribbon. rollnw lowers it to <code>billboard_world_z</code> when the emitter is non-targeted, non-lightning, additive, broad rectangular, continuous, long-lived, and low-speed. Targeted <code>Linked</code> emitters (<code>p2p 1</code>) still use the linked-chain renderer.</p>
 <p><strong>Expected:</strong> Low, soft additive ground mist with overlapping horizontal cards. It should not draw connected ribbons between particles.</p>
 <h3 id="wind-burst-eg-vff_pulswind">Wind Burst (e.g., vff_pulswind)</h3>
-<pre><code>update    Explosion
+<div class="codehilite"><pre><span></span><code>update    Explosion
 texture   NULL
 blastRadius 15
 blastLength 1.2
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> Invisible emitter — no particles drawn. On <code>detonate</code>, pushes a force event outward in <code>blastRadius</code>. Affects particles with <code>affectedByWind = 1</code> and animesh dangly objects. No visual representation in mudl; only observable through secondary effects on other particles.</p>
 <h3 id="ground-aura-flat-ring">Ground Aura / Flat Ring</h3>
-<pre><code>render    billboard_to_world_z    (quads lie flat, face up)
+<div class="codehilite"><pre><span></span><code>render    billboard_to_world_z    (quads lie flat, face up)
    or
 render    aligned_to_world_z      (quads face sideways, ring-like)
 spread    180–360                 (wide horizontal emission)
 mass      0                       (no gravity drift)
 velocity  (low, or 0 for static)
-</code></pre>
+</code></pre></div>
+
 <p><strong>Expected:</strong> <code>billboard_to_world_z</code> — quads flat on the ground plane with stable world-space axes; circular disc appearance when <code>spread = 360</code>. <code>aligned_to_world_z</code> — quads perpendicular to ground with world Z locked as the vertical axis; suitable for vertical shaft/ring/halo effects.</p>
 <hr>
 <h2 id="known-gaps-summary">Known Gaps Summary</h2>

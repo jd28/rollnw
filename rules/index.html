@@ -64,15 +64,16 @@ defines the type and invalid value; profiles define valid values.</p>
 <p>The older modifier system is built on integer, floating-point, string, and
 function inputs stored in the global rules service. Modifier resolution calls a
 registered callback or uses helpers such as sum/max resolution for common cases.</p>
-<pre><code class="language-cpp">auto mod = nw::make_modifier(
-    mod_type_hitpoints,
-    20,
-    &quot;dnd-3.0-epic-toughness&quot;,
-    nw::ModifierSource::feat,
-    { nw::qualifier_feat(nwn1::feat_epic_toughness_1) });
+<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_modifier</span><span class="p">(</span>
+<span class="w">    </span><span class="n">mod_type_hitpoints</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="s">&quot;dnd-3.0-epic-toughness&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">feat</span><span class="p">,</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">});</span>
 
-nw::kernel::rules().modifiers.add(mod);
-</code></pre>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifiers</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">mod</span><span class="p">);</span>
+</code></pre></div>
+
 <p>This remains useful compatibility context, especially for existing NWN profile
 behavior. It should not be treated as the only rules direction for new authored
 game systems.</p>
