@@ -9,7 +9,7 @@ struct ObjectBase;
 
 namespace combat {
 
-/// Resolves one attack via nw::resolve_attack.
+/// Resolves one attack using the configured combat policy module.
 bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out = nullptr);
 
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks = 60);

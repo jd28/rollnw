@@ -1,23 +1,61 @@
-[[native]] fn get_hp(obj: Placeable): int;
-
-// Test
-[[native]] fn get_hp_current(obj: Placeable): int;
-[[native]] fn has_inventory(obj: Placeable): bool;
+from core.types import { ResRef, TextRef };
 
 // == Propsets ================================================================
 // ============================================================================
 
 [[propset(Placeable)]]
 type PlaceableState {
+    on_click: ResRef;
+    on_closed: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disarm: ResRef;
+    on_heartbeat: ResRef;
+    on_inventory_disturbed: ResRef;
+    on_lock: ResRef;
+    on_melee_attacked: ResRef;
+    on_open: ResRef;
+    on_spell_cast_at: ResRef;
+    on_trap_triggered: ResRef;
+    on_unlock: ResRef;
+    on_used: ResRef;
+    on_user_defined: ResRef;
+
+    key_name: string;
+    key_required: int;
+    lockable: int;
+    locked: int;
+    lock_dc: int;
+    unlock_dc: int;
+    remove_key: int;
+
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+
+    conversation: ResRef;
+    description: TextRef;
+
     hp: int;
     hp_current: int;
     save_fort: int;
     save_reflex: int;
     save_will: int;
+    appearance: int;
+    faction: int;
+    portrait_id: int;
+    legacy_type: int;
+    animation_state: int;
+    bodybag: int;
     hardness: int;
-    locked: int;
+    interruptable: int;
     plot: int;
     useable: int;
     has_inventory: int;
-    static_: int;
+    static: int;
+    light_color: int;
 };

@@ -17,22 +17,30 @@
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
+namespace {
+
+constexpr int kInvalidResourceType = 65535;
+constexpr int kMdlResourceType = 2002;
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Spec structures
 // ---------------------------------------------------------------------------
 
 struct FieldSpec {
     std::string name;
-    std::string type;    // "int", "float", "bool", "StrRef", "int[N]", "array(int)"
-    std::string source;  // "@row_index", "@scan_index", "@scan_ref:COL:spec",
-                         // "@indirect:COL:SUBCOL:N", "@array:COL1,...",
-                         // plain column name, or empty for constant default
+    std::string type;   // "int", "float", "bool", "StrRef", "ResRef", "Resource", "int[N]", "array(int)"
+    std::string source; // "@row_index", "@scan_index", "@scan_ref:COL:spec",
+                        // "@indirect:COL:SUBCOL:N", "@indirect_grid:COL:PREFIX:N[:LIMIT_COL]",
+                        // "@array:COL1,...",
+                        // plain column name, or empty for constant default
     std::string default_val;
     std::map<std::string, int> string_enum; // case-insensitive string→int
 };
 
 struct GenSpec {
-    std::string spec_name;       // filename stem (for --entity filter and @scan_ref lookups)
+    std::string spec_name; // filename stem (for --entity filter and @scan_ref lookups)
     std::string smalls_type;
     std::string output_subdir;
     std::optional<std::string> valid_column;
@@ -79,6 +87,28 @@ static bool is_dynamic_array_type(const std::string& type)
     return type == "array(int)" || type == "array!(int)";
 }
 
+static std::string escape_smalls_string(const std::string& value)
+{
+    std::string result;
+    result.reserve(value.size());
+    for (char c : value) {
+        if (c == '\\' || c == '"') {
+            result += '\\';
+        }
+        result += c;
+    }
+    return result;
+}
+
+static std::string read_resref_column(const nw::StaticTwoDA* tda, int row, const std::string& column)
+{
+    nw::String value;
+    if (tda && tda->get_to(row, column, value, false) && !value.empty() && value != "****") {
+        return std::string(value);
+    }
+    return {};
+}
+
 // Convert a string to a filename-safe slug: lowercase, spaces→_, strip others.
 static std::string slugify(const std::string& s)
 {
@@ -95,7 +125,8 @@ static std::string slugify(const std::string& s)
         // strip everything else (parentheses, punctuation, etc.)
     }
     // Trim trailing underscores
-    while (!result.empty() && result.back() == '_') result.pop_back();
+    while (!result.empty() && result.back() == '_')
+        result.pop_back();
     return result;
 }
 
@@ -152,10 +183,10 @@ static std::string unique_filename(const std::string& slug, int fallback_id,
 
 static void emit_field(std::ofstream& out, const FieldSpec& f,
     int row_index,
-    const nw::StaticTwoDA* tda,              // primary 2da (scan mode: secondary 2da for this entry)
+    const nw::StaticTwoDA* tda,                                            // primary 2da (scan mode: secondary 2da for this entry)
     const std::map<std::string, const nw::StaticTwoDA*>& cached_secondary, // @indirect cache
     const std::map<std::string, ScanResult>& scan_results,                 // global scan results
-    int scan_index = -1)                     // ID in scan results (scan mode only)
+    int scan_index = -1)                                                   // ID in scan results (scan mode only)
 {
     out << "    " << f.name << " = ";
 
@@ -231,6 +262,79 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         return;
     }
 
+    // @indirect_grid:COL:PREFIX:N[:LIMIT_COL] — secondary 2da row-major fixed array
+    if (f.source.rfind("@indirect_grid:", 0) == 0) {
+        int default_val = 0;
+        if (!f.default_val.empty()) {
+            default_val = std::stoi(f.default_val);
+        }
+
+        auto write_defaults = [&]() {
+            out << "{";
+            for (int i = 0; i < arr_size; ++i) {
+                if (i > 0) out << ", ";
+                out << default_val;
+            }
+            out << "}";
+        };
+
+        auto it = cached_secondary.find(f.name);
+        if (it == cached_secondary.end() || !it->second) {
+            write_defaults();
+            return;
+        }
+
+        std::string src = f.source.substr(15);
+        std::vector<std::string> parts;
+        size_t pos = 0;
+        while (pos <= src.size()) {
+            auto colon = src.find(':', pos);
+            if (colon == std::string::npos) {
+                parts.push_back(src.substr(pos));
+                break;
+            }
+            parts.push_back(src.substr(pos, colon - pos));
+            pos = colon + 1;
+        }
+
+        if (parts.size() < 3) {
+            write_defaults();
+            return;
+        }
+
+        const nw::StaticTwoDA* sec = it->second;
+        const std::string& prefix = parts[1];
+        int columns = std::stoi(parts[2]);
+        if (columns <= 0) {
+            write_defaults();
+            return;
+        }
+        const std::string limit_column = parts.size() >= 4 ? parts[3] : "";
+
+        out << "{";
+        for (int i = 0; i < arr_size; ++i) {
+            if (i > 0) out << ", ";
+            int val = default_val;
+            int row = i / columns;
+            int col = i % columns;
+            int column_limit = columns;
+            if (!limit_column.empty() && !sec->get_to(static_cast<size_t>(row), limit_column, column_limit, false)) {
+                column_limit = 0;
+            }
+            if (column_limit < 0) {
+                column_limit = 0;
+            } else if (column_limit > columns) {
+                column_limit = columns;
+            }
+            if (row >= 0 && static_cast<size_t>(row) < sec->rows() && col < column_limit) {
+                sec->get_to(static_cast<size_t>(row), fmt::format("{}{}", prefix, col), val, false);
+            }
+            out << val;
+        }
+        out << "}";
+        return;
+    }
+
     // @array:COL1,COL2,... — inline array from multiple columns of the primary 2da
     if (f.source.rfind("@array:", 0) == 0) {
         std::string cols_str = f.source.substr(7);
@@ -245,10 +349,15 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
             cols.push_back(cols_str.substr(pos, comma - pos));
             pos = comma + 1;
         }
+        int default_val = 0;
+        if (!f.default_val.empty()) {
+            default_val = std::stoi(f.default_val);
+        }
+
         out << "{";
         for (size_t i = 0; i < cols.size(); ++i) {
             if (i > 0) out << ", ";
-            int val = 0;
+            int val = default_val;
             tda->get_to(row_index, cols[i], val);
             out << val;
         }
@@ -277,7 +386,8 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         if (tda && tda->get_to(row_index, f.source, sval)) {
             std::string lower;
             lower.resize(sval.size());
-            for (size_t i = 0; i < sval.size(); ++i) lower[i] = static_cast<char>(tolower(static_cast<unsigned char>(sval[i])));
+            for (size_t i = 0; i < sval.size(); ++i)
+                lower[i] = static_cast<char>(tolower(static_cast<unsigned char>(sval[i])));
             auto it = f.string_enum.find(lower);
             if (it != f.string_enum.end()) {
                 out << it->second;
@@ -312,6 +422,16 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         // Treat unset values correctly: -1 stays as StrRef(-1)
         uint32_t val = static_cast<uint32_t>(raw);
         out << "StrRef(" << static_cast<int32_t>(val) << ")";
+    } else if (f.type == "ResRef") {
+        std::string value = read_resref_column(tda, row_index, f.source);
+        out << "resref(\"" << escape_smalls_string(value) << "\")";
+    } else if (f.type == "Resource") {
+        std::string value = read_resref_column(tda, row_index, f.source);
+        if (value.empty()) {
+            out << "resource(resref(\"\"), " << kInvalidResourceType << ")";
+        } else {
+            out << "resource(resref(\"" << escape_smalls_string(value) << "\"), " << kMdlResourceType << ")";
+        }
     } else {
         out << f.default_val;
     }
@@ -337,11 +457,11 @@ static bool parse_spec(const fs::path& spec_path, GenSpec& out_spec)
         return false;
     }
 
-    out_spec.spec_name      = spec_path.stem().string();
-    out_spec.smalls_type    = j.value("smalls_type", "");
-    out_spec.output_subdir  = j.value("output_subdir", "");
-    out_spec.source_2da     = j.value("source_2da", "");
-    out_spec.scan_column    = j.value("scan_column", "");
+    out_spec.spec_name = spec_path.stem().string();
+    out_spec.smalls_type = j.value("smalls_type", "");
+    out_spec.output_subdir = j.value("output_subdir", "");
+    out_spec.source_2da = j.value("source_2da", "");
+    out_spec.scan_column = j.value("scan_column", "");
     out_spec.filename_source = j.value("filename_source", "");
 
     if (j.contains("valid_column") && !j["valid_column"].is_null())
@@ -352,8 +472,8 @@ static bool parse_spec(const fs::path& spec_path, GenSpec& out_spec)
 
     for (const auto& jf : j.value("fields", json::array())) {
         FieldSpec f;
-        f.name        = jf.value("name", "");
-        f.type        = jf.value("type", "int");
+        f.name = jf.value("name", "");
+        f.type = jf.value("type", "int");
         f.default_val = jf.value("default", "0");
 
         if (jf.contains("source") && !jf["source"].is_null())
@@ -362,7 +482,8 @@ static bool parse_spec(const fs::path& spec_path, GenSpec& out_spec)
         if (jf.contains("enum"))
             for (auto& [k, v] : jf["enum"].items()) {
                 std::string lower = k;
-                for (char& c : lower) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+                for (char& c : lower)
+                    c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
                 f.string_enum[lower] = v.get<int>();
             }
 
@@ -414,8 +535,15 @@ static std::map<std::string, const nw::StaticTwoDA*> build_indirect_cache(
     std::map<std::string, const nw::StaticTwoDA*> resolved;
 
     for (const auto& f : spec.fields) {
-        if (f.source.rfind("@indirect:", 0) != 0) continue;
-        std::string src = f.source.substr(10);
+        size_t prefix_len = 0;
+        if (f.source.rfind("@indirect:", 0) == 0) {
+            prefix_len = 10;
+        } else if (f.source.rfind("@indirect_grid:", 0) == 0) {
+            prefix_len = 15;
+        } else {
+            continue;
+        }
+        std::string src = f.source.substr(prefix_len);
         auto colon1 = src.find(':');
         std::string col = src.substr(0, colon1);
 
@@ -518,7 +646,9 @@ static int run_scan_spec(const GenSpec& spec, const fs::path& out_root,
     }
 
     int id = 0;
-    for (auto& [name, _] : name_to_id) { _ = id++; }
+    for (auto& [name, _] : name_to_id) {
+        _ = id++;
+    }
     out_result = std::map<std::string, int>(name_to_id.begin(), name_to_id.end());
 
     fs::path out_dir = out_root / spec.output_subdir;
@@ -581,11 +711,16 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if      (arg == "--nwn"    && i + 1 < argc) nwn_path      = argv[++i];
-        else if (arg == "--out"    && i + 1 < argc) out_path       = argv[++i];
-        else if (arg == "--specs"  && i + 1 < argc) specs_path     = argv[++i];
-        else if (arg == "--entity" && i + 1 < argc) entity_filter  = argv[++i];
-        else if (arg == "--no-overwrite")              force          = false;
+        if (arg == "--nwn" && i + 1 < argc)
+            nwn_path = argv[++i];
+        else if (arg == "--out" && i + 1 < argc)
+            out_path = argv[++i];
+        else if (arg == "--specs" && i + 1 < argc)
+            specs_path = argv[++i];
+        else if (arg == "--entity" && i + 1 < argc)
+            entity_filter = argv[++i];
+        else if (arg == "--no-overwrite")
+            force = false;
         else if (arg == "-h" || arg == "--help") {
             print_usage(argv[0]);
             return 0;

@@ -1,8 +1,7 @@
 #include "Equips.hpp"
 
 #include "../rules/effects.hpp"
-#include "../serialization/Gff.hpp"
-#include "../serialization/GffBuilder.hpp"
+#include "../smalls/runtime.hpp"
 #include "../util/profile.hpp"
 #include "Creature.hpp"
 #include "Item.hpp"
@@ -20,12 +19,81 @@ Item* item_from_handle(ObjectHandle handle) noexcept
     return nw::kernel::objects().get<Item>(handle);
 }
 
+bool equip_index_valid(EquipIndex slot) noexcept
+{
+    return static_cast<uint32_t>(slot) < 18;
+}
+
+bool serialize_item_to_json(const Item* item, nlohmann::json& out, SerializationProfile profile)
+{
+    bool (*serialize_json)(const Item*, nlohmann::json&, SerializationProfile) = nw::serialize;
+    return serialize_json(item, out, profile);
+}
+
 } // namespace
 
 Item* equip_item_ptr(const EquipItem& item) noexcept
 {
     if (!item.is<ObjectHandle>()) { return nullptr; }
     return item_from_handle(item.as<ObjectHandle>());
+}
+
+bool can_equip_item(const Creature* obj, Item* item, EquipIndex slot)
+{
+    if (!obj || !item) { return false; }
+    if (!equip_index_valid(slot)) { return false; }
+
+    auto& rt = nw::kernel::runtime();
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    args.push_back(nw::smalls::detail::make_value(&rt, item->handle()));
+    args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(slot)));
+
+    auto result = rt.execute_script("core.item", "can_equip_item", args);
+    return result.ok() && result.value.type_id == rt.bool_type() && result.value.data.bval;
+}
+
+bool equip_item_in_slot(Creature* obj, Item* item, EquipIndex slot)
+{
+    if (!obj || !item) { return false; }
+    if (!equip_index_valid(slot)) { return false; }
+    if (!can_equip_item(obj, item, slot)) { return false; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    if (nw::equip_item_ptr(it) == item) {
+        return true;
+    }
+
+    nw::unequip_item_in_slot(obj, slot);
+    obj->equipment.equips[size_t(slot)] = item->handle();
+    ++obj->equipment.equip_version;
+    return true;
+}
+
+Item* get_equipped_item(const Creature* obj, EquipIndex slot)
+{
+    Item* result = nullptr;
+    if (!obj) { return result; }
+    if (!equip_index_valid(slot)) { return result; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    result = nw::equip_item_ptr(it);
+    return result;
+}
+
+Item* unequip_item_in_slot(Creature* obj, EquipIndex slot)
+{
+    Item* result = nullptr;
+    if (!obj) { return result; }
+    if (!equip_index_valid(slot)) { return result; }
+
+    auto& it = obj->equipment.equips[size_t(slot)];
+    result = nw::equip_item_ptr(it);
+    if (result) {
+        it = nw::EquipItem{};
+        ++obj->equipment.equip_version;
+    }
+    return result;
 }
 
 Equips::Equips(Creature* owner, nw::MemoryResource* allocator)
@@ -97,67 +165,16 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
                     j[lookup] = r;
                 }
             } else if (auto* item = equip_item_ptr(equips[i])) {
-                j[lookup] = item->common.resref;
+                j[lookup] = item->resref;
             }
         } else {
             if (auto* item = equip_item_ptr(equips[i])) {
-                serialize(item, j[lookup], profile);
+                serialize_item_to_json(item, j[lookup], profile);
             }
         }
     }
 
     return j;
-}
-
-bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile)
-{
-    size_t sz = archive["Equip_ItemList"].size();
-    for (size_t i = 0; i < sz; ++i) {
-        auto st = archive["Equip_ItemList"][i];
-        auto slot = static_cast<EquipSlot>(st.id());
-        auto index = equip_slot_to_index(slot);
-        if (index == EquipIndex::invalid) {
-            LOG_F(ERROR, "equips invalid equipment slot: {}", st.id());
-            return false;
-        }
-        uint32_t idx = static_cast<uint32_t>(index);
-        if (profile == SerializationProfile::blueprint) {
-            Resref r;
-            st.get_to("EquippedRes", r);
-            self.equips[idx] = r;
-        } else {
-            auto item = kernel::objects().load_instance<Item>(st);
-            if (item) {
-                self.equips[idx] = item->handle();
-            }
-        }
-    }
-    return true;
-}
-
-bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfile profile)
-{
-    auto& list = archive.add_list("Equip_ItemList");
-    size_t i = 0;
-    for (const auto& equip : self.equips) {
-        uint32_t struct_id = 1 << i;
-        if (profile == SerializationProfile::blueprint) {
-            if (equip.is<Resref>()) {
-                const auto& r = equip.as<Resref>();
-                if (r.length()) {
-                    list.push_back(struct_id).add_field("EquippedRes", r);
-                }
-            } else if (auto* item = equip_item_ptr(equip)) {
-                list.push_back(struct_id).add_field("EquippedRes",
-                    item->common.resref);
-            }
-        } else if (auto* item = equip_item_ptr(equip)) {
-            serialize(item, list.push_back(struct_id), profile);
-        }
-        ++i;
-    }
-
-    return true;
 }
 
 } // namespace nw

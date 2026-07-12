@@ -1,0 +1,87 @@
+from core.types import { Class, Spell };
+from nwn1.rules import { MetamagicEntry };
+
+import core.array as Array;
+import nwn1.classes as Classes;
+
+var _loaded = false;
+var _entries: array!(MetamagicEntry);
+
+const metamagic_none = 0;
+const metamagic_empower = 1;
+const metamagic_extend = 2;
+const metamagic_maximize = 4;
+const metamagic_quicken = 8;
+const metamagic_silent = 16;
+const metamagic_still = 32;
+const metamagic_any = 255;
+
+const metamagic_row_quicken = 1;
+const metamagic_row_empower = 2;
+const metamagic_row_extend = 3;
+const metamagic_row_maximize = 4;
+const metamagic_row_silent = 5;
+const metamagic_row_still = 6;
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _entries = load_config!(MetamagicEntry)("nwn1.data.metamagic");
+    _loaded = true;
+}
+
+fn _entry_exists(row: int): bool {
+    _ensure_loaded();
+    return row >= 0 && row < Array.len(_entries);
+}
+
+fn row_for_code(code: int): int {
+    if (code == metamagic_quicken) { return metamagic_row_quicken; }
+    if (code == metamagic_empower) { return metamagic_row_empower; }
+    if (code == metamagic_extend) { return metamagic_row_extend; }
+    if (code == metamagic_maximize) { return metamagic_row_maximize; }
+    if (code == metamagic_silent) { return metamagic_row_silent; }
+    if (code == metamagic_still) { return metamagic_row_still; }
+    return -1;
+}
+
+fn is_specific_code(code: int): bool {
+    return _entry_exists(row_for_code(code));
+}
+
+fn level_adjustment(code: int): int {
+    if (code == metamagic_none || code == metamagic_any) {
+        return 0;
+    }
+
+    var row = row_for_code(code);
+    if (!_entry_exists(row)) {
+        return 0;
+    }
+    return Array.get(_entries, row).level_adjustment;
+}
+
+fn effective_spell_level(class_: Class, spell: Spell, code: int): int {
+    if ((class_ as int) < 0 || (spell as int) < 0) {
+        return -1;
+    }
+
+    var result = Classes.spell_level(class_, spell);
+    if (result < 0) {
+        return -1;
+    }
+
+    if (code == metamagic_none || code == metamagic_any) {
+        return result;
+    }
+    if (!is_specific_code(code)) {
+        return -1;
+    }
+
+    result = result + level_adjustment(code);
+    if (result < 0 || result >= Classes.spell_progression_tier_count) {
+        return -1;
+    }
+    return result;
+}

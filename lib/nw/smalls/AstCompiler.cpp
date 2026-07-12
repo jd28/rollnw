@@ -5,6 +5,7 @@
 #include "Context.hpp"
 #include "Smalls.hpp"
 
+#include <cstddef>
 #include <fmt/format.h>
 #include <limits>
 #include <stdexcept>
@@ -56,6 +57,23 @@ TypeID resolve_function_value_type(Runtime* runtime, const FunctionDefinition* f
     }
 
     return runtime->register_function_type(param_types, return_type);
+}
+
+bool vec3_component_offset(StringView name, uint32_t& offset)
+{
+    if (name == "x") {
+        offset = static_cast<uint32_t>(offsetof(glm::vec3, x));
+        return true;
+    }
+    if (name == "y") {
+        offset = static_cast<uint32_t>(offsetof(glm::vec3, y));
+        return true;
+    }
+    if (name == "z") {
+        offset = static_cast<uint32_t>(offsetof(glm::vec3, z));
+        return true;
+    }
+    return false;
 }
 
 } // namespace
@@ -2774,6 +2792,21 @@ void AstCompiler::visit(PathExpression* expr)
         }
 
         const Type* type = runtime_->get_type(current_type);
+        if (current_type == runtime_->vec3_type()) {
+            uint32_t offset = 0;
+            if (!vec3_component_offset(ident->ident.loc.view(), offset)) {
+                fail(fmt::format("Unknown vec3 component '{}'", ident->ident.loc.view()));
+                return;
+            }
+
+            uint8_t dest_reg = registers_.allocate();
+            emit_field_get(dest_reg, current_reg, offset, runtime_->float_type());
+            registers_.free(current_reg);
+            current_reg = dest_reg;
+            current_type = runtime_->float_type();
+            continue;
+        }
+
         if (!type || type->type_kind != TK_struct) {
             fail("Path operator on non-struct in bytecode compiler");
             return;

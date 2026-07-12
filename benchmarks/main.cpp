@@ -8,16 +8,14 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/script/Nss.hpp>
-#include <nw/scriptapi.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 
-#include <nw/functions.hpp>
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
-#include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>
@@ -25,9 +23,9 @@
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
-#include <nowide/cstdlib.hpp>
 
-#include <cstdlib>
+#include "../tests/item_gff_builders.hpp"
+
 #include <random>
 
 // Note the resources loaded here should be default NWN resources distributed in the game install
@@ -37,19 +35,6 @@ namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
-
-static nw::ItemProperty make_itemprop_ability_modifier(nw::Ability ability, int modifier)
-{
-    nw::ItemProperty result;
-    if (modifier == 0) {
-        return result;
-    }
-
-    result.type = static_cast<uint16_t>(modifier > 0 ? *nwn1::ip_ability_bonus : *nwn1::ip_decreased_ability_score);
-    result.subtype = static_cast<uint16_t>(*ability);
-    result.cost_value = static_cast<uint16_t>(std::abs(modifier));
-    return result;
-}
 
 static fs::path resolve_stdlib_module_path(const char* argv0, std::string_view module)
 {
@@ -202,50 +187,6 @@ static void BM_creature_to_gff_instance(benchmark::State& state)
 }
 BENCHMARK(BM_creature_to_gff_instance);
 
-static void BM_creature_get_skill_rank(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
-    ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
-    for (auto _ : state) {
-        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_creature_get_skill_rank_smalls(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
-    ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
-    for (auto _ : state) {
-        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_creature_ability_score(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
-    for (auto _ : state) {
-        auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_creature_ability_score_smalls(benchmark::State& state)
-{
-    auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
-    for (auto _ : state) {
-        auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
 static void BM_script_lex(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
@@ -342,11 +283,6 @@ BENCHMARK(BM_load_module);
 }
 // BENCHMARK(BM_start_service);
 
-BENCHMARK(BM_creature_get_skill_rank);
-BENCHMARK(BM_creature_get_skill_rank_smalls);
-BENCHMARK(BM_creature_ability_score);
-BENCHMARK(BM_creature_ability_score_smalls);
-
 BENCHMARK(BM_script_lex);
 BENCHMARK(BM_script_parse);
 BENCHMARK(BM_script_resolve);
@@ -360,19 +296,28 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
         state.SkipWithError("failed to create creature");
         return;
     }
-    auto* item = nwk::objects().make<nw::Item>();
+    rollnw::tests::TestItemGff spec{.base_item = nwn1::base_item_gloves};
+    spec.properties.push_back({
+        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .subtype = static_cast<uint16_t>(*nw::Ability::make(0)),
+        .cost_value = 2,
+    });
+    spec.properties.push_back({
+        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .subtype = static_cast<uint16_t>(*nw::Ability::make(1)),
+        .cost_value = 2,
+    });
+
+    auto* item = rollnw::tests::make_item_from_gff(spec);
     if (!item) {
         state.SkipWithError("failed to create item");
+        nwk::objects().destroy(creature->handle());
         return;
     }
 
-    item->baseitem = nwn1::base_item_gloves;
-    item->properties.push_back(make_itemprop_ability_modifier(nw::Ability::make(0), 2));
-    item->properties.push_back(make_itemprop_ability_modifier(nw::Ability::make(1), 2));
-
     // Prime the smalls lazy generator init before benchmarking
-    nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
-    nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+    nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, false);
+    nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, true);
 
     auto& rt = nwk::runtime();
     auto* gc = rt.gc();
@@ -381,8 +326,8 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     size_t iters = 0;
 
     for (auto _ : state) {
-        nw::process_item_properties(creature, item, nw::EquipIndex::arms, false);
-        nw::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+        nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, false);
+        nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, true);
 
         ++iters;
         if (gc && (iters % 1024) == 0) {

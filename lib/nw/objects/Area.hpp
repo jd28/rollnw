@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../kernel/Memory.hpp"
-#include "../objects/Common.hpp"
 #include "../objects/ObjectBase.hpp"
 #include "../serialization/Serialization.hpp"
 #include "../util/enum_flags.hpp"
@@ -87,8 +86,6 @@ struct Area : public ObjectBase {
     static constexpr StringView serial_id{"CAF"};
 
     // LCOV_EXCL_START
-    virtual Common* as_common() override { return &common; }
-    virtual const Common* as_common() const override { return &common; }
     virtual Area* as_area() override { return this; }
     virtual const Area* as_area() const override { return this; }
     // LCOV_EXCL_STOP
@@ -97,8 +94,6 @@ struct Area : public ObjectBase {
     virtual bool instantiate() override;
 
     static String get_name_from_file(const std::filesystem::path& path);
-
-    Common common;
     AreaScripts scripts;
     AreaWeather weather;
 

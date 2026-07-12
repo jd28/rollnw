@@ -1,14 +1,22 @@
 #pragma once
 
-#include "propset_gff_policy.hpp"
 #include "../../serialization/Serialization.hpp"
+#include "propset_gff_policy.hpp"
 
 namespace nw {
+struct ObjectBase;
 struct Creature;
 struct Door;
+struct Encounter;
 struct GffBuilderStruct;
 struct Item;
+struct LocString;
 struct Placeable;
+struct Resref;
+struct Sound;
+struct Store;
+struct Trigger;
+struct Waypoint;
 } // namespace nw
 
 namespace nw::smalls {
@@ -33,13 +41,28 @@ class PropsetGffExporter {
 public:
     PropsetGffExporter(nw::smalls::Runtime* rt, const PropsetGffPolicyRegistry* registry);
 
+    bool export_object_propset(const nw::ObjectBase* obj, const char* qname,
+        nw::GffBuilderStruct& out, nw::SerializationProfile profile) const;
+
     void export_creature(const nw::Creature* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
+    void export_creature_levels(const nw::Creature* obj, nw::GffBuilderStruct& out,
         nw::SerializationProfile profile);
     void export_item(const nw::Item* obj, nw::GffBuilderStruct& out,
         nw::SerializationProfile profile);
     void export_door(const nw::Door* obj, nw::GffBuilderStruct& out,
         nw::SerializationProfile profile);
+    void export_encounter(const nw::Encounter* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
     void export_placeable(const nw::Placeable* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
+    void export_sound(const nw::Sound* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
+    void export_store(const nw::Store* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
+    void export_trigger(const nw::Trigger* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile);
+    void export_waypoint(const nw::Waypoint* obj, nw::GffBuilderStruct& out,
         nw::SerializationProfile profile);
 
 private:
@@ -52,22 +75,32 @@ private:
         const PropsetGffPolicy& policy,
         nw::GffBuilderStruct& out,
         nw::SerializationProfile profile) const;
+    void export_item_visuals(const nw::Item* obj, nw::GffBuilderStruct& out,
+        nw::SerializationProfile profile) const;
 
     // Encoding-specific helpers
-    void export_scalar    (const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
-    void export_spread    (const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
+    void export_scalar(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
+    void export_spread(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
     void export_list_scalar(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
+        const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
     void export_list_paired(const FieldGffPolicy& fp,
-                           const nw::smalls::FieldDef* field_a,
-                           const nw::smalls::FieldDef* field_b,
-                           const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
+        const nw::smalls::FieldDef* field_a,
+        const nw::smalls::FieldDef* field_b,
+        const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
+    void export_list_struct(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, nw::GffBuilderStruct& out) const;
 
     // Helper: read int32 from a propset field
-    int32_t read_int  (const nw::smalls::Value& ref, uint32_t offset) const;
-    float   read_float(const nw::smalls::Value& ref, uint32_t offset) const;
+    int32_t read_int(const nw::smalls::Value& ref, uint32_t offset) const;
+    float read_float(const nw::smalls::Value& ref, uint32_t offset) const;
+    nw::Resref read_resref(const nw::smalls::Value& ref,
+        const nw::smalls::FieldDef& field) const;
+    nw::String read_string(const nw::smalls::Value& ref,
+        const nw::smalls::FieldDef& field) const;
+    nw::LocString read_locstring(const nw::smalls::Value& ref,
+        const nw::smalls::FieldDef& field) const;
 
     // Helper: get IArray* from a propset unmanaged-array field
     nw::smalls::IArray* get_array(const nw::smalls::Value& ref,

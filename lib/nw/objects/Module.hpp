@@ -8,7 +8,6 @@
 #include "ObjectBase.hpp"
 
 #include <glm/glm.hpp>
-#include <stduuid/uuid.h>
 
 namespace nw {
 
@@ -81,9 +80,7 @@ struct Module : public ObjectBase {
     String min_game_version;
     LocString name;
     Resref start_movie;
-    String tag;
     String tlk;
-    uuids::uuid uuid;
 
     int32_t creator = 0;
     uint32_t start_year;

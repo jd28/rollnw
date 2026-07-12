@@ -1,11 +1,11 @@
 # Propset Architecture
 
 **Version**: 0.1.0
-**Last Updated**: 2026-02-20
+**Last Updated**: 2026-07-13
 
 ## Overview
 
-The propset system is an ECS-inspired component architecture for game objects. Data schemas are defined in Smalls script, giving ruleset authors full control over data layout without engine recompilation. The engine remains blind to game-logic data and communicates with scripts exclusively through native function boundaries.
+The propset system is the script-owned half of the object data architecture. Data schemas are defined in Smalls script, giving ruleset authors control over game and rules data layout without engine recompilation. C++ owns object lifetime, native components, serialization boundaries, and renderer-facing row storage. Runtime C++ should not reach into propset fields for game policy; scripts read propsets directly and communicate native side effects through explicit native functions.
 
 The design is intentionally shaped around the access pattern of RPG game logic: **discrete event simulation**, not continuous batch processing. Combat resolves one event at a time — an attack fires, two specific creatures' data is fetched, a result is computed. You never need to iterate all creatures in combat simultaneously. This means the optimization target is fast per-object lookup, not cache-coherent iteration across thousands of entities, and the slab-based pool with O(1) handle lookup is exactly right for that.
 
@@ -15,10 +15,10 @@ The design is intentionally shaped around the access pattern of RPG game logic: 
 
 ### Script Propsets
 
-Game-logic data — ability scores, feats, HP, class levels — that the engine has no need to know about. Schemas are defined in `.smalls` files using the `[[propset]]` annotation. Memory is managed by `PropsetPoolManager` in slab-based pools keyed by `ObjectHandle`. Scripts access propsets through the `get_propset` intrinsic.
+Game-logic data — descriptors, appearance source data, ability scores, feats, item stats, object state — that script policy owns. Schemas are defined in `.smalls` files using the `[[propset(ObjectType)]]` annotation. Memory is managed by `PropsetPoolManager` in slab-based pools keyed by `ObjectHandle`. Scripts access propsets through the `get_propset` intrinsic.
 
 ```smalls
-[[propset]]
+[[propset(Creature)]]
 type CreatureStats {
     abilities: int[6];
     save_fort: int;
@@ -42,16 +42,19 @@ type CreatureStats {
     plot: int;
     chunk_death: int;
     bodybag: int;
+    special_abilities: array!(SpecialAbility);
 };
 ```
 
-The engine registers propset types and populates them at object load time, but does not read or write propset fields directly thereafter. Game logic that previously lived in C++ (AC calculation, feat checks, skill rolls) migrates to script and accesses data directly through propset fields.
+The engine registers propset types, initializes them for object handles, and imports/exports them at serialization boundaries. Generic JSON and legacy GFF conversion may read/write propsets as data transforms. Runtime policy should live in Smalls; C++ runtime reads from propsets are temporary compatibility bridges or conversion code, not the long-term architecture.
 
-### Native Arrays
+### Native Object Components
 
-Engine-critical data — position, visual appearance, physics bodies — that subsystems need to iterate efficiently every frame. These are plain C++ arrays indexed by object slot, owned by the relevant subsystem. The renderer owns `Transform transforms[MAX_OBJECTS]`. The physics system owns its own arrays. The object manager is the authority on slot lifetime.
+Engine-critical and engine-owned data — spatial state, local variables, geometry, visual rows, inventories, store inventories, item layout, vitals, and ability loadout rows — lives in `ObjectComponentSystem`. Components are C++ storage rows keyed by `ObjectHandle`. Some are contiguous vectors for common component data; inventories are lazily allocated because many objects do not carry one.
 
-Scripts have no direct access to native arrays. They are purely a C++ implementation detail for cache-coherent batch iteration by engine subsystems.
+Scripts have no direct memory access to native components. They communicate through native functions that preserve C++ invariants. Equipping, inventory mutation, position changes, and visual row emission are engine transactions, not propset field writes.
+
+Visual appearance follows the same rule: scripts emit explicit visual rows through bridge functions, and C++ stores those rows in object components for renderer/tooling consumption. The model/light/icon handoff is described in the [Visual Asset Protocol](../../render/docs/visual_asset_protocol.md).
 
 ---
 
@@ -64,7 +67,7 @@ All communication between the script world and the engine-owned data goes throug
 - The script-engine boundary is entirely legible as a set of function signatures
 - No "native propset" concept needs to exist in the script type system at all
 
-Native arrays are a C++ implementation pattern, not a script-visible abstraction.
+Native components are a C++ implementation pattern, not a script-visible abstraction.
 
 ---
 
@@ -72,11 +75,46 @@ Native arrays are a C++ implementation pattern, not a script-visible abstraction
 
 ### Creature
 
-Four propsets covering distinct data lifetimes and computational domains. Common operations touch at most two propsets.
+Creature data is split by lifetime and access pattern. Cold descriptor and appearance source data stay separate from rules stats, health, level progression, and transient combat/cache rows.
 
 ```smalls
-// "What this creature is" — rarely changes, consulted by most RPG calculations
-[[propset]]
+[[propset(Creature)]]
+type CreatureDescriptor {
+    on_attacked: ResRef;
+    on_blocked: ResRef;
+    on_conversation: ResRef;
+    // ... other event scripts ...
+
+    conversation: ResRef;
+    description: TextRef;
+    name_first: TextRef;
+    name_last: TextRef;
+    deity: string;
+    subrace: string;
+    soundset: int;
+    decay_time: int;
+};
+
+[[propset(Creature)]]
+type CreatureAppearance {
+    appearance: int;
+    phenotype: int;
+    tail: int;
+    wings: int;
+    portrait: ResRef;
+    portrait_id: int;
+
+    color_hair: int;
+    color_skin: int;
+    color_tattoo1: int;
+    color_tattoo2: int;
+
+    body_part_belt: int;
+    // ... remaining body part fields ...
+    body_part_torso: int;
+};
+
+[[propset(Creature)]]
 type CreatureStats {
     abilities: int[6];       // STR=0, DEX=1, CON=2, INT=3, WIS=4, CHA=5
     save_fort: int;
@@ -100,12 +138,13 @@ type CreatureStats {
     plot: int;
     chunk_death: int;
     bodybag: int;
+    special_abilities: array!(SpecialAbility);
 };
 
-// Vital state — changes in combat, persisted to disk
-[[propset]]
+[[propset(Creature)]]
 type CreatureHealth {
     hp: int;
+    hp_base_for_max: int;
     hp_current: int;
     hp_max: int;
     hp_temp: int;
@@ -113,17 +152,16 @@ type CreatureHealth {
     starting_package: int;
 };
 
-// Class progression — changes on level-up, source of BAB and spell slots
-[[propset]]
+[[propset(Creature)]]
 type CreatureLevels {
     classes: int[8];       // Class IDs per slot
     class_levels: int[8];  // Level count per slot
+    levelup_classes: array!(int);
     xp: int;
     walkrate: int;
 };
 
-// Transient combat state — resets between sessions, not persisted
-[[propset]]
+[[transient, propset(Creature)]]
 type CreatureCombat {
     attack_current: int;
     attacks_onhand: int;
@@ -138,6 +176,12 @@ type CreatureCombat {
     target_state: int;
     hasted: int;
     size: int;
+    // ... round/epoch/weapon cache fields ...
+};
+
+[[transient, propset(Creature)]]
+type CreatureCombatCache {
+    // Cached combat modifier rows and epoch keys.
 };
 ```
 
@@ -153,21 +197,53 @@ type CreatureCombat {
 | Save roll | `CreatureStats` |
 | BAB / attack roll | `CreatureLevels` + `CreatureCombat` |
 | AC calculation | `CreatureStats` + `CreatureCombat` |
-| Spell slot check | `CreatureLevels` |
+| Spell slot check | `CreatureLevels` + native ability loadout |
+| Visual model resolution | `CreatureAppearance` + equipment/item propsets |
 
-Nothing requires more than two propsets. The ceiling is AC and attack resolution, which are the most complex calculations and still only need the combat state alongside the sheet.
+Most common rules operations touch one or two propsets. Complex combat paths may also consult equipment, item propsets, native ability loadout rows, or transient caches. Keep those joins explicit in Smalls instead of hiding them behind C++ object members.
+
+`[[transient]]` propsets are runtime/cache rows. Component/propset JSON
+initializes them from defaults on load and does not write them to durable
+fixtures or saves.
 
 **Excluded from propsets (v1):**
-- `SpellBook` — slot arrays per class per level, too complex for v1 field types; remains as native functions (`get_spell_slots`, `get_remaining_slots`)
-- `LevelHistory` — per-level-up detail (feat/skill/ability choices); player-character only, rarely accessed from script; remains serialized in C++
-- `CreatureScripts` — all Resref fields (strings); event handler names, bridge-function territory
+- Spell preparation/loadout rows — mutable runtime state owned by the native
+  `ObjectAbilityLoadout` component; legacy NWN1 `SpellBook` lists exist only
+  as GFF import/export compatibility.
+- `LevelHistory` detail beyond class slots — feat/skill/ability choices remain
+  player-character compatibility data. `CreatureLevels.levelup_classes` carries
+  the class-slot projection used by current script rules.
+- Equipped items and inventory ownership — native components, with Smalls hooks
+  for policy and visual/effect updates.
 
 ### Item
 
 ```smalls
-[[propset]]
+[[native]]
+type ItemProperty {
+    prop_type: int;
+    subtype: int;
+    cost_table: int;
+    cost_value: int;
+    param_table: int;
+    param_value: int;
+};
+
+[[propset(Item)]]
+type ItemDescriptor {
+    description: TextRef;
+    description_id: TextRef;
+};
+
+[[propset(Item)]]
 type ItemStats {
     base_item: int;
+    armor_id: int;
+    armor_dex_bonus: int;
+    armor_dex_bonus_valid: int;
+    armor_ac_bonus: int;
+    armor_ac_bonus_valid: int;
+    item_properties: array!(ItemProperty);
     cost: int;
     cost_additional: int;
     stack_size: int;
@@ -176,16 +252,24 @@ type ItemStats {
     identified: int;
     plot: int;
     stolen: int;
-    // item properties: deferred — requires structured array representation
+};
+
+[[propset(Item)]]
+type ItemVisuals {
+    model_colors: int[item_model_color_count];
+    model_parts: int[item_model_part_count];
+    part_colors: int[item_part_color_count];
 };
 ```
 
-Item properties (the `ItemProperty` list) are deferred. They require either a structured encoding into `array!(int)` or v2 propset field types. Native functions cover them in the interim.
+`ItemProperty` is a native struct value stored in `ItemStats.item_properties`.
+Smalls processes properties into effect rows on equip/unequip. C++ still owns the
+effect application/removal boundary and the inventory/equipment transaction.
 
 ### Door
 
 ```smalls
-[[propset]]
+[[propset(Door)]]
 type DoorState {
     hp: int;
     hp_current: int;
@@ -202,7 +286,7 @@ type DoorState {
 ### Placeable
 
 ```smalls
-[[propset]]
+[[propset(Placeable)]]
 type PlaceableState {
     hp: int;
     hp_current: int;
@@ -211,59 +295,77 @@ type PlaceableState {
     plot: int;
     useable: int;
     has_inventory: int;
-    static_: int;
+    static: int;
+    appearance: int;
+    light_color: int;
 };
 ```
 
 ### Other Objects
 
-Triggers, waypoints, sounds, encounters — these carry minimal runtime state. Their script interaction is primarily through event handlers and native bridge functions. Propsets are not a priority for these types.
+These now have minimal object-type-scoped propsets:
+
+| Object | Propset |
+|---|---|
+| Encounter | `EncounterState`, with `array!(EncounterSpawn)` |
+| Sound | `SoundState` |
+| Store | `StoreState` |
+| Trigger | `TriggerState` |
+| Waypoint | `WaypointState` |
+
+Area and module data remain mostly C++/format-owned for now. Their contents
+reference sub-objects, components, and module-level resources rather than a
+single object-local rules state row.
 
 ---
 
-## Native Array System (Future)
-
-This section documents the intended design for when rendering and larger simulations are in scope. Nothing here needs to be built yet.
+## Native Object Component System
 
 ### Concept
 
-Each engine subsystem owns flat arrays indexed by object slot. The object manager assigns slots at creation and reclaims them at destruction. Arrays are pre-allocated at startup for `MAX_OBJECTS` capacity.
+C++ object components hold engine-owned data and explicit cross-system protocols. They are keyed by `ObjectHandle`, owned by `ObjectComponentSystem`, and accessed through native functions or C++ component APIs.
 
 ```cpp
-// Renderer owns these
-Transform   transforms[MAX_OBJECTS];
-Appearance  appearances[MAX_OBJECTS];
+struct ObjectSpatialState {
+    ObjectHandle owner{};
+    ObjectID area = object_invalid;
+    glm::vec3 position{0.0f};
+    glm::vec3 orientation{0.0f};
+    glm::vec3 scale{1.0f};
+    glm::vec3 velocity{0.0f};
+    glm::vec3 angular_velocity{0.0f};
+    uint32_t flags = 0;
+};
 
-// Physics system owns these
-PhysicsBody physics_bodies[MAX_OBJECTS];
+struct ObjectVisualState {
+    ObjectHandle owner{};
+    Vector<ObjectVisualModel> models;
+    Vector<ObjectVisualLight> lights;
+    PltColors base_plt_colors{};
+    uint32_t base_plt_color_mask = 0;
+    int32_t appearance = -1;
+    int32_t body_variant = 0;
+};
 ```
 
-Iteration is a plain loop — no query system, no archetype machinery, no indirection:
+Current native component families:
 
-```cpp
-for (uint32_t i = 0; i < active_count; ++i) {
-    render(transforms[active_slots[i]], appearances[active_slots[i]]);
-}
-```
+| Component | Owner / Reason |
+|---|---|
+| Spatial | position, orientation, area, velocity, future physics integration |
+| Local data | dynamic script variables; sparse and mutable |
+| Vitals | engine-facing current/max HP bridge |
+| Geometry | triggers, encounters, spawn points, highlight bounds |
+| Visual | script-emitted model/light rows for renderer/tooling |
+| Item layout | inventory dimensions for items |
+| Inventory / store inventory | ownership grids; lazily allocated |
+| Ability loadout | known/slotted/unslotted ability rows |
 
-### Registration
-
-A subsystem registers its array so the object manager can initialize/clear slots on object creation/destruction:
-
-```cpp
-object_manager.register_native_array<Transform>(
-    transform_array,
-    MAX_OBJECTS,
-    /*on_create=*/[](uint32_t slot) { transform_array[slot] = {}; },
-    /*on_destroy=*/[](uint32_t slot) { /* cleanup if needed */ }
-);
-```
-
-No propset pool, no hash map, no GC involvement. Slot lifetime is managed by the object manager directly.
+The common case is not “all objects have all components.” Components are created when an object actually needs them. This keeps empty objects cheap and makes optional systems visible in code.
 
 ### Script Access
 
-Scripts access native array data exclusively through bridge functions. No `get_propset` equivalent for native arrays:
+Scripts access native component data exclusively through bridge functions. No `get_propset` equivalent exists for native components:
 
 ```smalls
 // core/object.smalls — bridge functions, not propset access
@@ -274,97 +376,67 @@ Scripts access native array data exclusively through bridge functions. No `get_p
 [[native]] fn get_area(obj: object): object;
 ```
 
-The bridge function handles side effects (spatial index update, area transition check, pathfinding notify). Scripts never touch Transform memory directly.
+The bridge function handles side effects such as spatial state updates, object transfer policy, pathing hooks, or renderer row invalidation. Scripts never touch component memory directly.
+
+Visual rows use the same boundary:
+
+```smalls
+[[native]] fn clear_visual(obj: object, appearance: int): bool;
+[[native]] fn add_visual_model_row(
+    obj: object,
+    model: ResRef,
+    attach_to: ResRef,
+    attach_from: ResRef,
+    kind: int,
+    slot: int,
+    part: int,
+    source_part: int,
+    model_part: int,
+    flags: int): bool;
+```
 
 ### Separation from Script Propsets
 
-Native arrays and script propsets are completely separate systems with no shared infrastructure:
+Native components and script propsets are separate storage systems:
 
-| | Script Propsets | Native Arrays |
+| | Script Propsets | Native Components |
 |---|---|---|
 | Schema defined in | Smalls script | C++ struct |
-| Memory managed by | `PropsetPoolManager` | Subsystem directly |
-| GC integration | Yes | No |
+| Memory managed by | `PropsetPoolManager` | `ObjectComponentSystem` / component owner |
+| GC integration | Propsets are not GC-scanned; unmanaged arrays are cleaned on object destruction | No |
 | Access from script | `get_propset` intrinsic | Bridge functions only |
-| Access from C++ | Via propset pool API | Direct array index |
-| Iteration pattern | Per-object lookup | Contiguous loop |
-| Optimization target | Fast single-object fetch | Cache-coherent batch |
+| Runtime C++ policy access | Avoid; use Smalls or native rows | Direct C++ component API |
+| Serialization | Generic propset JSON plus legacy GFF import/export policies | Fixed component JSON/GFF sections |
+| Optimization target | Fast single-object fetch | Explicit C++ data protocol and optional component storage |
 
 ---
 
-## Implementation Plan
-
-### Phase 1 — Script Propset Schemas (Current)
-
-Define propset schemas and wire them to existing C++ data as a bootstrap layer. The C++ data remains authoritative during this phase; propsets are populated from it at load time and flushed back at save time.
-
-1. Define `CreatureStats`, `CreatureHealth`, `CreatureLevels`, `CreatureCombat` in `core/creature.smalls`
-2. Define `ItemStats` in `core/item.smalls`
-3. Define `DoorState`, `PlaceableState` in respective script modules
-4. Register propset types from C++ at runtime startup (via `ModuleBuilder` or equivalent)
-5. In `Creature::instantiate()` — allocate and populate propsets from existing C++ struct fields
-6. In serialization path — flush propset data back to GFF/JSON on save
-7. Write tests: load creature → check propset fields match GFF data → save → reload → compare
-
-**Key constraint**: C++ structs (`CreatureStats`, `CombatInfo`, etc.) are not modified in this phase. The propset is a parallel copy, not yet canonical.
-
-### Phase 2 — Game Logic Migration (Medium-term)
-
-Move ruleset calculations from C++ into script. Propsets become canonical; C++ structs become load/save intermediaries only.
-
-1. Implement combat system in script using propset direct field access
-2. Replace native `get_ability_score`, `has_feat`, `get_skill_rank` with script functions reading `CreatureStats`
-3. Replace native `get_total_levels`, `get_level_by_class` with script functions reading `CreatureLevels`
-4. C++ combat event dispatcher calls script functions rather than executing game logic itself
-5. Deprecate C++ game-logic functions as script equivalents cover them
-6. Schema migration story: when a propset field is added, existing saves get default zero; document the policy
-
-### Phase 3 — Native Array Infrastructure (Pre-rendering)
-
-Build the subsystem array infrastructure before the renderer needs it.
-
-1. Object manager gets slot assignment and reclamation (if not already present)
-2. `register_native_array<T>()` API on object manager
-3. `Transform` and `Appearance` arrays registered at startup
-4. Bridge functions in `core/object.smalls` replace any direct field access patterns
-5. Validate that no script code assumes position/appearance data is in a propset
-
-### Phase 4 — Renderer Integration (Future)
-
-Renderer and physics iterate native arrays directly. No per-object virtual dispatch.
-
-1. Renderer reads `transforms[slot]` and `appearances[slot]` in its draw loop
-2. `active_slots[]` maintained by object manager (compacted list of live slots)
-3. Physics system registers its own arrays
-4. Spatial query structures (area octree, etc.) update through `set_position` bridge function
-
----
-
-## What Is Already Built
+## Current Implementation
 
 - `PropsetPoolManager` — slab pool, slot management, dirty tracking, unmanaged array support
-- `[[propset]]` annotation — parsed and validated by `TypeResolver`
-- Propset field validation — only allows POD types, `[[value_type]]` structs, fixed arrays, `array!(int|float|bool)`
+- `[[propset(ObjectType)]]` annotation — parsed and validated by `TypeResolver`
+- Propset field validation — allows POD types, `string`, `[[value_type]]` structs, fixed arrays, and supported unmanaged arrays
 - `get_propset` intrinsic — declared in `core/prelude.smalls`
-- `array!(int)` as propset field — IArray bridge infrastructure for `feats` and `skills`
+- Object-type propset registration at runtime startup
+- GFF import/export through `PropsetGffImporter` and `PropsetGffExporter`
+- Generic component/propset JSON through `object_to_component_propset_json` and `object_from_component_propset_json`
+- Durable propset JSON sections keyed by qualified Smalls type name
+- `[[transient]]` skip policy for durable JSON output
+- Object component JSON sections for native components such as spatial, local data, geometry, inventory, visuals, and ability loadout
+- Script-side rules for combat, modifiers, item property processing, spell slot/known-spell logic, creature sizing, and visual row resolution
+- Visual asset protocol from Smalls resolvers into `ObjectVisualState`
 
-## What Is Not Yet Built
-
-- Propset schema definitions in `.smalls` files (Phase 1)
-- C++ registration of propset types at startup (Phase 1)
-- Bootstrap population of propsets from existing C++ object data (Phase 1)
-- Serialization round-trip through propsets (Phase 1)
-- Script-side ruleset functions using propset fields (Phase 2)
-- Native array registration API (Phase 3)
-- Renderer/physics integration (Phase 4)
+**Key constraint**: while a C++ mirror still has runtime consumers, remove those consumers before deleting the mirror. Do not add new runtime reads from propsets in C++; use Smalls functions, native components, or explicit row protocols as the boundary.
 
 ---
 
 ## Deferred / Out of Scope (v1)
 
-- `SpellBook` in propsets — slot-per-level-per-class structure needs richer field types or a compact encoding
-- `LevelHistory` in propsets — complex nested structure, player-character only
-- `string` fields in propsets — requires GC root management within unmanaged slab memory; tracked as v2
-- `object` handle fields in propsets — `TypedHandle` is POD and could work inline, but the policy and type-system representation need design
-- `ItemProperty` list in propsets — structured encoding TBD
+- Spell preparation/loadout in propsets — slot-per-level-per-class runtime rows
+  stay in the native `ObjectAbilityLoadout` component for now; NWN1 `SpellBook`
+  remains only a legacy GFF list adapter.
+- Full `LevelHistory` in propsets — player-character compatibility detail; only the class-slot projection is currently in `CreatureLevels`
+- General `object` handle fields in propsets — needs policy for lifetime, serialization, and type-system representation
+- Area/module conversion to propsets — left mostly C++/format-owned until their object/subresource boundaries are clearer
+- Schema migration policy beyond zero/default initialization for newly added fields
 - Query system (iterate all objects with propset X) — not needed at current scale; revisit if simulation scope grows

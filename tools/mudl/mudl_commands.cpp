@@ -15,6 +15,7 @@
 #include <nw/log.hpp>
 #include <nw/model/mdl_particle_import.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/render/animation_backend.hpp>
@@ -183,7 +184,8 @@ struct AreaLightSample {
 
 struct AreaPlaceableLightSample {
     size_t index = 0;
-    uint32_t appearance = 0;
+    size_t light_index = 0;
+    int32_t appearance = -1;
     std::string tag;
     std::string resref;
     std::string label;
@@ -2079,13 +2081,13 @@ glm::vec3 area_model_light_color(const nw::model::LightNode& light, const TileLi
     return glm::clamp(color, glm::vec3{0.0f}, glm::vec3{1.0f});
 }
 
-glm::vec3 placeable_table_light_color(const nw::PlaceableInfo& info) noexcept
+glm::vec3 placeable_light_color(int32_t color_id) noexcept
 {
-    if (!info.has_light()) {
+    if (color_id < 0) {
         return glm::vec3{0.0f};
     }
 
-    return tile_main_light_color(static_cast<uint8_t>(std::clamp(info.light_color, 0, 31)));
+    return tile_main_light_color(static_cast<uint8_t>(std::clamp(color_id, 0, 31)));
 }
 
 glm::mat4 area_object_placement_transform(const nw::Location& location)
@@ -2099,6 +2101,21 @@ glm::mat4 area_object_placement_transform(const nw::Location& location)
     glm::mat4 placement = glm::translate(glm::mat4{1.0f}, location.position);
     placement *= glm::toMat4(glm::angleAxis(angle, glm::vec3{0.0f, 0.0f, 1.0f}));
     return placement;
+}
+
+const nw::ObjectVisualModel* first_visible_visual_model(
+    const nw::ObjectVisualState* visual,
+    nw::ObjectVisualRenderMode render_mode) noexcept
+{
+    if (!visual) {
+        return nullptr;
+    }
+
+    auto it = std::find_if(visual->models.begin(), visual->models.end(),
+        [render_mode](const nw::ObjectVisualModel& model) {
+            return nw::object_visual_model_visible_in_mode(model, render_mode) && !model.model.empty();
+        });
+    return it != visual->models.end() ? &*it : nullptr;
 }
 
 glm::quat model_quat_controller(
@@ -2710,54 +2727,61 @@ int run_area_lights_command(std::string_view area_resref, std::string_view modul
     std::cout << "placeables:\n";
     for (size_t i = 0; i < loaded_area->placeables.size(); ++i) {
         const auto* placeable = loaded_area->placeables[i];
-        if (!placeable || placeable->appearance > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+        if (!placeable) {
             continue;
         }
 
-        const auto* info = nw::kernel::rules().placeables.get(
-            nw::PlaceableType::make(static_cast<int32_t>(placeable->appearance)));
-        std::cout << "  [" << i << "] appearance=" << placeable->appearance
-                  << " tag=" << (placeable->common.tag ? placeable->common.tag.view() : "")
-                  << " resref=" << placeable->common.resref.string()
-                  << " model=" << (info ? info->model.string() : "?")
-                  << " has_light=" << (info && info->has_light() ? 1 : 0)
-                  << " bp_light_color=" << (info ? info->light_color : -2)
-                  << " inst_light_color=" << placeable->light_color
+        const auto* visual = nw::kernel::objects().components().find_visual(placeable->handle());
+        const int32_t appearance = visual ? visual->appearance : -1;
+        const auto placeable_resref = placeable->resref;
+        const auto* model = first_visible_visual_model(visual, nw::ObjectVisualRenderMode::toolset);
+        const std::string model_name = model ? model->model.string() : std::string{"?"};
+        std::cout << "  [" << i << "] appearance=" << appearance
+                  << " tag=" << (placeable->tag ? placeable->tag.view() : "")
+                  << " resref=" << placeable_resref.string()
+                  << " model=" << model_name
+                  << " model_count=" << (visual ? visual->models.size() : 0)
+                  << " light_count=" << (visual ? visual->lights.size() : 0)
                   << '\n';
-        if (!info || !info->has_light()) {
+        if (!visual || visual->lights.empty()) {
             continue;
         }
 
-        const glm::vec3 color = placeable_table_light_color(*info);
-        if (!has_visible_light_color(color)) {
-            continue;
-        }
+        for (size_t light_index = 0; light_index < visual->lights.size(); ++light_index) {
+            const auto& light = visual->lights[light_index];
+            const glm::vec3 color = placeable_light_color(light.light_color);
+            if (!has_visible_light_color(color)) {
+                continue;
+            }
 
-        const glm::vec3 offset{info->light_offset_x, info->light_offset_y, info->light_offset_z};
-        const glm::vec3 position = glm::vec3(
-            area_object_placement_transform(placeable->common.location) * glm::vec4{offset, 1.0f});
+            const glm::vec3 offset = light.light_offset;
+            const nw::Location location = nw::kernel::objects().components().location(placeable->handle());
+            const glm::vec3 position = glm::vec3(
+                area_object_placement_transform(location) * glm::vec4{offset, 1.0f});
 
-        ++report.placeable_table_lights;
-        ++report.placeable_light_color_counts[info->light_color];
-        const float color_max = color_max_channel(color);
-        report.placeable_max_color = std::max(report.placeable_max_color, color_max);
-        if (color_max > 1.0e-4f) {
-            ++report.placeable_colored_lights;
-        }
+            ++report.placeable_table_lights;
+            ++report.placeable_light_color_counts[light.light_color];
+            const float color_max = color_max_channel(color);
+            report.placeable_max_color = std::max(report.placeable_max_color, color_max);
+            if (color_max > 1.0e-4f) {
+                ++report.placeable_colored_lights;
+            }
 
-        if (report.placeable_samples.size() < k_sample_limit) {
-            report.placeable_samples.push_back(AreaPlaceableLightSample{
-                .index = i,
-                .appearance = placeable->appearance,
-                .tag = placeable->common.tag ? std::string{placeable->common.tag.view()} : std::string{},
-                .resref = placeable->common.resref.string(),
-                .label = info->label,
-                .model = info->model.string(),
-                .light_color = info->light_color,
-                .offset = offset,
-                .position = position,
-                .color = color,
-            });
+            if (report.placeable_samples.size() < k_sample_limit) {
+                report.placeable_samples.push_back(AreaPlaceableLightSample{
+                    .index = i,
+                    .light_index = light_index,
+                    .appearance = appearance,
+                    .tag = placeable->tag ? std::string{placeable->tag.view()} : std::string{},
+                    .resref = placeable_resref.string(),
+                    .label = {},
+                    .model = model_name,
+                    .light_color = light.light_color,
+                    .offset = offset,
+                    .position = position,
+                    .color = color,
+                });
+            }
         }
     }
 
@@ -2878,6 +2902,7 @@ int run_area_lights_command(std::string_view area_resref, std::string_view modul
     } else {
         for (const auto& sample : report.placeable_samples) {
             std::cout << "  index=" << sample.index
+                      << " light=" << sample.light_index
                       << " appearance=" << sample.appearance
                       << " tag=" << sample.tag
                       << " resref=" << sample.resref

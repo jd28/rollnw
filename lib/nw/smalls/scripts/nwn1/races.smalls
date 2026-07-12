@@ -25,3 +25,11 @@ fn ability_modifier(race_id: int, ability: int): int {
     var abilities = entry.abilities;
     return abilities[ability];
 }
+
+fn cr_modifier(race_id: int): float {
+    if (race_id < 0 || race_id >= Array.len(_races)) {
+        return 0.0;
+    }
+    var entry = _races[race_id];
+    return entry.cr_modifier;
+}

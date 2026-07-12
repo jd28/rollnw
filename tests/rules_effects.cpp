@@ -2,24 +2,60 @@
 
 #include "nwn1_test_builders.hpp"
 
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/scriptapi.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/rules/feats.hpp>
-#include <nw/scriptapi.hpp>
 
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+
+namespace {
+
+nw::String test_itemprop_to_string(const nw::ItemProperty& ip)
+{
+    nw::String result;
+    if (ip.type == std::numeric_limits<uint16_t>::max()) { return result; }
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto def = nwk::effects().ip_definition(type);
+    if (!def) { return result; }
+
+    result = nwk::strings().get(def->game_string);
+
+    if (ip.subtype != std::numeric_limits<uint16_t>::max() && def->subtype) {
+        if (auto name = def->subtype->get<uint32_t>(ip.subtype, "Name")) {
+            result += " " + nwk::strings().get(*name);
+        }
+    }
+
+    if (ip.cost_value != std::numeric_limits<uint16_t>::max() && def->cost_table) {
+        if (auto name = def->cost_table->get<uint32_t>(ip.cost_value, "Name")) {
+            result += " " + nwk::strings().get(*name);
+        }
+    }
+
+    if (ip.param_value != std::numeric_limits<uint8_t>::max() && def->param_table) {
+        if (auto name = def->param_table->get<uint32_t>(ip.param_value, "Name")) {
+            result += " " + nwk::strings().get(*name);
+        }
+    }
+
+    return result;
+}
+
+} // namespace
 
 TEST(Rules, Effects)
 {
@@ -40,11 +76,11 @@ TEST(Rules, ItemProperties)
     EXPECT_TRUE(mod);
 
     auto ip = nwn1::itemprop_haste();
-    auto str = nw::itemprop_to_string(ip);
+    auto str = test_itemprop_to_string(ip);
     EXPECT_EQ(str, "Haste");
 
     auto ip2 = nwn1::itemprop_ability_modifier(nwn1::ability_strength, 6);
-    auto str2 = nw::itemprop_to_string(ip2);
+    auto str2 = test_itemprop_to_string(ip2);
     EXPECT_EQ(str2, "Enhancement Bonus: Strength +6");
 }
 
@@ -68,10 +104,12 @@ TEST(EffectSystem, ApplyRemoveEffect)
 
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
-    EXPECT_TRUE(nw::apply_effect(obj, eff));
+    EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
     // Note: haste status is tracked in propset, not synced back to C++ object
     EXPECT_EQ(obj->effects().size(), 1);
-    EXPECT_TRUE(nw::remove_effect(obj, eff));
+    const bool removed = nwk::effects().remove_from(obj, eff);
+    if (removed) { nwk::effects().destroy(eff); }
+    EXPECT_TRUE(removed);
     EXPECT_EQ(obj->effects().size(), 0);
 }
 

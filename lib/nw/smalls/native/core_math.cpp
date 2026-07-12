@@ -64,6 +64,13 @@ void register_core_math(Runtime& rt)
     atan2_meta.params.push_back(ParamMetadata{String("y"), rt.float_type()});
     atan2_meta.params.push_back(ParamMetadata{String("x"), rt.float_type()});
 
+    FunctionMetadata make_vec3_meta;
+    make_vec3_meta.name = "make_vec3";
+    make_vec3_meta.return_type = rt.vec3_type();
+    make_vec3_meta.params.push_back(ParamMetadata{String("x"), rt.float_type()});
+    make_vec3_meta.params.push_back(ParamMetadata{String("y"), rt.float_type()});
+    make_vec3_meta.params.push_back(ParamMetadata{String("z"), rt.float_type()});
+
     ModuleInterface iface;
     iface.module_path = "core.math";
     iface.functions.push_back(sin_meta);
@@ -76,6 +83,7 @@ void register_core_math(Runtime& rt)
     iface.functions.push_back(round_meta);
     iface.functions.push_back(pow_meta);
     iface.functions.push_back(atan2_meta);
+    iface.functions.push_back(make_vec3_meta);
     rt.register_native_interface(std::move(iface));
 
     rt.register_native_function(NativeFunction{
@@ -169,6 +177,17 @@ void register_core_math(Runtime& rt)
             return Value::make_float(static_cast<float>(std::atan2(args[0].data.fval, args[1].data.fval)));
         },
         .metadata = atan2_meta});
+
+    rt.register_native_function(NativeFunction{
+        .name = "core.math.make_vec3",
+        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
+            if (argc != 3 || !rt) { return Value{}; }
+            if (args[0].type_id != rt->float_type()) { return Value{}; }
+            if (args[1].type_id != rt->float_type()) { return Value{}; }
+            if (args[2].type_id != rt->float_type()) { return Value{}; }
+            return detail::make_value(rt, glm::vec3{args[0].data.fval, args[1].data.fval, args[2].data.fval});
+        },
+        .metadata = make_vec3_meta});
 }
 
 } // namespace nw::smalls

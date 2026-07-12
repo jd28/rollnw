@@ -1,0 +1,127 @@
+import core.bit as bit;
+import core.combat as CoreCombat;
+import core.creature as Cre;
+import nwn1.combat as Combat;
+import nwn1.constants as Const;
+import nwn1.creature as NCre;
+
+const req_type_ability = 0;
+const req_type_alignment = 2;
+const req_type_bab = 4;
+const req_type_class_level = 6;
+const req_type_feat = 7;
+const req_type_level = 8;
+const req_type_race = 11;
+const req_type_skill = 12;
+
+const qualifier_match_eq = 0;
+const qualifier_match_ne = 1;
+const qualifier_match_lt = 2;
+const qualifier_match_lte = 3;
+const qualifier_match_gt = 4;
+const qualifier_match_gte = 5;
+const qualifier_match_any_bits = 6;
+const qualifier_match_all_bits = 7;
+const qualifier_match_no_bits = 8;
+
+const alignment_axis_law_chaos = 1;
+const alignment_axis_good_evil = 2;
+const alignment_axis_both = 3;
+
+fn match_value(actual: int, match: int, expected: int): bool {
+    switch (match) {
+        case qualifier_match_eq: { return actual == expected; }
+        case qualifier_match_ne: { return actual != expected; }
+        case qualifier_match_lt: { return actual < expected; }
+        case qualifier_match_lte: { return actual <= expected; }
+        case qualifier_match_gt: { return actual > expected; }
+        case qualifier_match_gte: { return actual >= expected; }
+        case qualifier_match_any_bits: { return bit.and(actual, expected) != 0; }
+        case qualifier_match_all_bits: { return bit.and(actual, expected) == expected; }
+        case qualifier_match_no_bits: { return bit.and(actual, expected) == 0; }
+        default: { return false; }
+    }
+}
+
+fn add_good_evil_alignment(flags: int, good_evil: int, include_neutral: bool): int {
+    if (good_evil > 50) {
+        return bit.or(flags, CoreCombat.alignment_flag_good);
+    } elif (good_evil < 50) {
+        return bit.or(flags, CoreCombat.alignment_flag_evil);
+    } elif (include_neutral) {
+        return bit.or(flags, CoreCombat.alignment_flag_neutral);
+    }
+    return flags;
+}
+
+fn add_law_chaos_alignment(flags: int, lawful_chaotic: int, include_neutral: bool): int {
+    if (lawful_chaotic > 50) {
+        return bit.or(flags, CoreCombat.alignment_flag_lawful);
+    } elif (lawful_chaotic < 50) {
+        return bit.or(flags, CoreCombat.alignment_flag_chaotic);
+    } elif (include_neutral) {
+        return bit.or(flags, CoreCombat.alignment_flag_neutral);
+    }
+    return flags;
+}
+
+fn alignment_flags_for_axis(obj: Creature, axis: int): int {
+    var ge = Cre.get_good_evil(obj);
+    var lc = Cre.get_lawful_chaotic(obj);
+    var result = CoreCombat.alignment_flag_none;
+
+    switch (axis) {
+        case alignment_axis_good_evil: {
+            return add_good_evil_alignment(result, ge, true);
+        }
+        case alignment_axis_law_chaos: {
+            return add_law_chaos_alignment(result, lc, true);
+        }
+        case alignment_axis_both: {
+            if (ge == 50 && lc == 50) {
+                return bit.or(result, CoreCombat.alignment_flag_neutral);
+            }
+            result = add_good_evil_alignment(result, ge, false);
+            return add_law_chaos_alignment(result, lc, false);
+        }
+        default: {
+            return result;
+        }
+    }
+}
+
+fn match_qualifier(obj: Creature, req_type: int, subtype: int, match: int, value: int): bool {
+    switch (req_type) {
+        case req_type_ability: {
+            if (subtype < 0) { return false; }
+            return match_value(NCre.get_ability_score(obj, Const.Ability(subtype)), match, value);
+        }
+        case req_type_alignment: {
+            return match_value(alignment_flags_for_axis(obj, subtype), match, value);
+        }
+        case req_type_bab: {
+            return match_value(Combat.base_attack_bonus(obj), match, value);
+        }
+        case req_type_class_level: {
+            if (subtype < 0) { return false; }
+            return match_value(Cre.get_level_by_class(obj, Const.Class(subtype)), match, value);
+        }
+        case req_type_feat: {
+            if (subtype < 0) { return false; }
+            return match_value(Cre.has_feat(obj, Const.Feat(subtype)) ? 1 : 0, match, value);
+        }
+        case req_type_level: {
+            return match_value(Cre.get_total_levels(obj), match, value);
+        }
+        case req_type_race: {
+            return match_value(Cre.get_race(obj), match, value);
+        }
+        case req_type_skill: {
+            if (subtype < 0) { return false; }
+            return match_value(NCre.get_skill_rank(obj, Const.Skill(subtype)), match, value);
+        }
+        default: {
+            return false;
+        }
+    }
+}

@@ -23,11 +23,12 @@ TEST(Sound, JsonRoundTrip)
     nlohmann::json j;
     nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    nw::Sound ent2;
-    EXPECT_TRUE(nw::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
+    auto* ent2 = nw::kernel::objects().make<nw::Sound>();
+    ASSERT_NE(ent2, nullptr);
+    EXPECT_TRUE(nw::deserialize(ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
+    nw::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
 
@@ -41,7 +42,7 @@ TEST(Sound, GffDeserialize)
     auto ent = nw::kernel::objects().load_file<nw::Sound>("test_data/user/development/blue_bell.uts");
     EXPECT_TRUE(ent);
 
-    EXPECT_EQ(ent->common.resref, "blue_bell");
+    EXPECT_EQ(ent->resref, "blue_bell");
 }
 
 TEST(Sound, GffRoundTrip)
@@ -49,10 +50,11 @@ TEST(Sound, GffRoundTrip)
     nw::Gff g("test_data/user/development/blue_bell.uts");
     EXPECT_TRUE(g.valid());
 
-    nw::Sound ent;
-    deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint);
+    auto* ent = nw::kernel::objects().make<nw::Sound>();
+    ASSERT_NE(ent, nullptr);
+    deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffBuilder oa = serialize(&ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/blue_bell.uts");
 
     nw::Gff g2("tmp/blue_bell.uts");

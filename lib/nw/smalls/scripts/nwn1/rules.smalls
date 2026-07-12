@@ -2,7 +2,75 @@
 // [[index]] marks the array placement field (must be int).
 // [[value_type]] stores structs inline in array!(T) for cache-efficient lookup.
 
+import core.types as T;
+import core.string as String;
+
 type StrRef(int);
+
+const resource_type_invalid = T.resource_type_invalid;
+const resource_type_mdl = T.resource_type_mdl;
+
+fn resref(value: string): T.ResRef {
+    return T.resref(value);
+}
+
+fn resource(resref_value: T.ResRef, resource_type: int): T.Resource {
+    return T.resource(resref_value, resource_type);
+}
+
+const item_model_type_simple = 0;
+const item_model_type_layered = 1;
+const item_model_type_composite = 2;
+const item_model_type_armor = 3;
+
+const item_model_part_model1 = 0;
+const item_model_part_model2 = 1;
+const item_model_part_model3 = 2;
+
+const appearance_model_type_invalid = -1;
+const appearance_model_type_parts = 0;        // MODELTYPE=P
+const appearance_model_type_simple = 1;       // MODELTYPE=S
+const appearance_model_type_full = 2;         // MODELTYPE=F
+const appearance_model_type_large = 3;        // MODELTYPE=L
+const appearance_model_type_full_tail = 4;    // MODELTYPE=FT
+const appearance_model_type_full_wings = 5;   // MODELTYPE=FW
+const appearance_model_type_full_wings_tail = 6;
+const appearance_model_type_large_wings_tail = 7;
+const appearance_model_type_simple_wings_tail = 8;
+
+fn item_model_number_suffix(model_number: int): string {
+    return String.pad_left(f"{model_number}", 3, "0");
+}
+
+fn item_model_resref(model_type: int, item_class: T.ResRef, part: int, model_number: int): T.ResRef {
+    if (model_number <= 0) {
+        return resref("");
+    }
+
+    const cls = T.resref_to_string(item_class);
+    const suffix = item_model_number_suffix(model_number);
+
+    if (model_type == item_model_type_simple || model_type == item_model_type_layered) {
+        if (part == item_model_part_model1) {
+            return resref(f"{cls}_{suffix}");
+        }
+        return resref("");
+    }
+
+    if (model_type == item_model_type_composite) {
+        if (part == item_model_part_model1) {
+            return resref(f"{cls}_b_{suffix}");
+        }
+        if (part == item_model_part_model2) {
+            return resref(f"{cls}_m_{suffix}");
+        }
+        if (part == item_model_part_model3) {
+            return resref(f"{cls}_t_{suffix}");
+        }
+    }
+
+    return resref("");
+}
 
 [[value_type]]
 type ClassEntry {
@@ -13,6 +81,14 @@ type ClassEntry {
     saves_table:    int;    // index into SaveTableEntry array
     attack_table:   int;    // index into AttackTableEntry array
     spellcaster:    bool;
+    memorizes_spells: bool;
+    spellbook_restricted: bool;
+    spell_table:    int;    // index into SpellEntry.class_levels, -1=none
+    spells_gained:  int[600]; // row-major: (class_level - 1) * 10 + spell level
+    spells_known:   int[600]; // row-major: (class_level - 1) * 10 + spell level
+    arcane:         bool;
+    arcane_spellgain_mod: int;
+    divine_spellgain_mod: int;
     caster_ability: int;    // 0=STR 1=DEX 2=CON 3=INT 4=WIS 5=CHA, -1=none
 };
 
@@ -42,20 +118,117 @@ type SpellEntry {
     innate_level: int;      // -1 if invalid
     school:       int;      // SpellSchool int, -1=none
     user_type:    int;
+    class_levels: int[6];   // Bard, Cleric, Druid, Paladin, Ranger, Wiz/Sorc; -1=not a class spell
+};
+
+[[value_type]]
+type MetamagicEntry {
+    [[index]]
+    id:               int;
+    name:             StrRef;
+    level_adjustment: int;
+    feat:             int;
 };
 
 [[value_type]]
 type FeatEntry {
     [[index]]
-    id:        int;
-    name:      StrRef;
-    min_level: int;    // 0 = no requirement
-    max_cr:    float;  // MAXCR (0.0 = no limit)
-    passive:   bool;   // smalls-side annotation (default false)
-    uses:      int;    // USESPERDAY (0 = unlimited)
-    epic:      bool;   // PreReqEpic
-    master:    int;    // MASTERFEAT (-1 = none)
-    successor: int;    // SUCCESSOR (-1 = none)
+    id:           int;
+    name:         StrRef;
+    min_level:    int;    // 0 = no requirement
+    max_level:    int;    // -1 = no requirement
+    min_str:      int;    // 0 = no requirement
+    min_dex:      int;
+    min_con:      int;
+    min_int:      int;
+    min_wis:      int;
+    min_cha:      int;
+    prereq_feat1: int;    // -1 = none
+    prereq_feat2: int;
+    max_cr:       float;  // MAXCR (0.0 = no limit)
+    cr_value:     float;  // CRValue contribution for legacy NWN1 CR approximation
+    passive:      bool;   // smalls-side annotation (default false)
+    uses:         int;    // USESPERDAY (0 = unlimited)
+    epic:         bool;   // PreReqEpic
+    master:       int;    // MASTERFEAT (-1 = none)
+    successor:    int;    // SUCCESSOR (-1 = none)
+};
+
+[[value_type]]
+type AppearanceEntry {
+    [[index]]
+    id:         int;
+    name:       StrRef;
+    model:      T.ResRef;  // appearance.2da RACE: model resref for non-P rows, race token for P rows
+    model_type: int;
+    size:       int;
+    walkrate:   int;
+    wing_tail_scale: float;
+    helmet_scale_m:  float;
+    helmet_scale_f:  float;
+    weapon_scale:    float;
+    has_arms:        bool;
+};
+
+[[value_type]]
+type CreatureSizeEntry {
+    [[index]]
+    id: int;
+    ac_attack_mod: int;
+};
+
+[[value_type]]
+type CreatureSpeedEntry {
+    [[index]]
+    id:       int;
+    walkrate: float;
+};
+
+[[value_type]]
+type FractionalChallengeRatingEntry {
+    [[index]]
+    id:          int;
+    min:         float;
+    denominator: int;
+};
+
+[[value_type]]
+type RobePartsEntry {
+    [[index]]
+    id: int;
+    hide_belt: int;
+    hide_bicep_left: int;
+    hide_bicep_right: int;
+    hide_foot_left: int;
+    hide_foot_right: int;
+    hide_forearm_left: int;
+    hide_forearm_right: int;
+    hide_hand_left: int;
+    hide_hand_right: int;
+    hide_head: int;
+    hide_neck: int;
+    hide_pelvis: int;
+    hide_shin_left: int;
+    hide_shin_right: int;
+    hide_shoulder_left: int;
+    hide_shoulder_right: int;
+    hide_thigh_left: int;
+    hide_thigh_right: int;
+    hide_torso: int;
+};
+
+[[value_type]]
+type WingModelEntry {
+    [[index]]
+    id:    int;
+    model: T.ResRef;
+};
+
+[[value_type]]
+type TailModelEntry {
+    [[index]]
+    id:    int;
+    model: T.ResRef;
 };
 
 [[value_type]]
@@ -63,7 +236,22 @@ type BaseItemEntry {
     [[index]]
     id:                                    int;
     name:                                  StrRef;
+    model_type:                            int;
+    item_class:                            T.ResRef;
+    default_model:                         T.Resource;
+    default_icon:                          T.ResRef;
+    inventory_width:                       int;
+    inventory_height:                      int;
+    equipable_slots:                       int;
+    base_cost:                             int;
     stack_size:                            int;
+    cost_multiplier:                       float;
+    req_feat0:                             int;
+    req_feat1:                             int;
+    req_feat2:                             int;
+    req_feat3:                             int;
+    req_feat4:                             int;
+    base_ac:                               int;
     damage_num:                            int;
     damage_die:                            int;
     crit_threat:                           int;
@@ -79,6 +267,47 @@ type BaseItemEntry {
     epic_weapon_overwhelming_critical_feat:int;
     epic_weapon_devastating_critical_feat: int;
     weapon_of_choice_feat:                 int;
+};
+
+[[value_type]]
+type DoorTypeEntry {
+    [[index]]
+    id:    int;
+    model: T.ResRef;
+};
+
+[[value_type]]
+type GenericDoorEntry {
+    [[index]]
+    id:    int;
+    model: T.ResRef;
+};
+
+[[value_type]]
+type PlaceableEntry {
+    [[index]]
+    id:             int;
+    model:          T.ResRef;
+    light_color:    int;
+    light_offset_x: float;
+    light_offset_y: float;
+    light_offset_z: float;
+    static:         bool;
+};
+
+[[value_type]]
+type CloakModelEntry {
+    [[index]]
+    id:    int;
+    icon:  int;
+    model: int;
+};
+
+[[value_type]]
+type ArmorEntry {
+    [[index]]
+    id:   int;
+    cost: float;
 };
 
 [[value_type]]

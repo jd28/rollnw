@@ -103,6 +103,30 @@ uint32_t unpack_owner_id(uint64_t bits)
     return static_cast<uint32_t>(bits & 0xFFFFFFFFu);
 }
 
+bool propset_accepts_object_type(ObjectType propset_type, ObjectType object_type)
+{
+    if (propset_type == ObjectType::invalid || propset_type == object_type) {
+        return true;
+    }
+
+    return propset_type == ObjectType::creature && object_type == ObjectType::player;
+}
+
+void register_object_type_propset(
+    absl::flat_hash_map<uint8_t, std::vector<TypeID>>& object_type_propsets,
+    ObjectType object_type,
+    TypeID type_id)
+{
+    if (object_type == ObjectType::invalid) {
+        return;
+    }
+
+    object_type_propsets[static_cast<uint8_t>(object_type)].push_back(type_id);
+    if (object_type == ObjectType::creature) {
+        object_type_propsets[static_cast<uint8_t>(ObjectType::player)].push_back(type_id);
+    }
+}
+
 bool has_annotation(const StructDef* def, StringView name)
 {
     if (!def) {
@@ -227,6 +251,56 @@ bool PropsetPoolManager::is_propset_type(const Runtime& rt, TypeID type_id) cons
     return has_annotation(def, "propset");
 }
 
+Value PropsetPoolManager::find(Runtime& rt, TypeID propset_type, ObjectHandle obj)
+{
+    if (!nw::kernel::objects().valid(obj)) {
+        return Value{};
+    }
+
+    if (ABSL_PREDICT_FALSE(g_propset_cache_owner != this)) {
+        propset_cache_clear_all();
+        g_propset_cache_owner = this;
+    }
+
+    size_t cache_idx = propset_cache_index(propset_type, obj);
+    const PropsetCacheEntry& cache_entry = g_propset_cache[cache_idx];
+    if (propset_cache_hit(cache_entry, propset_type, obj)) {
+        auto* hdr = reinterpret_cast<PropsetHeader*>(cache_entry.entry);
+        if (ABSL_PREDICT_TRUE(hdr->alive() && unpack_owner(hdr->owner_bits) == obj)) {
+            Value out(propset_type);
+            out.storage = ValueStorage::propset;
+            out.data.propset_ptr = cache_entry.entry;
+            return out;
+        }
+    }
+
+    Pool* pool = get_pool(propset_type);
+    if (!pool) {
+        return Value{};
+    }
+
+    if (!propset_accepts_object_type(pool->info.object_type, obj.type)) {
+        return Value{};
+    }
+
+    uint8_t* entry = get_entry(*pool, static_cast<uint32_t>(obj.id));
+    if (!entry) {
+        return Value{};
+    }
+
+    auto* hdr = reinterpret_cast<PropsetHeader*>(entry);
+    if (!hdr->alive() || unpack_owner(hdr->owner_bits) != obj) {
+        return Value{};
+    }
+
+    propset_cache_update(cache_idx, propset_type, obj, entry);
+
+    Value out(propset_type);
+    out.storage = ValueStorage::propset;
+    out.data.propset_ptr = entry;
+    return out;
+}
+
 // == Pool Management ==========================================================
 
 PropsetPoolManager::Pool* PropsetPoolManager::get_pool(TypeID type_id)
@@ -274,9 +348,7 @@ PropsetPoolManager::Pool* PropsetPoolManager::ensure_pool(Runtime& rt, TypeID ty
     }
 
     auto [inserted_it, _] = pools_.emplace(type_id, std::move(pool));
-    if (inserted_it->second.info.object_type != ObjectType::invalid) {
-        object_type_propsets_[static_cast<uint8_t>(inserted_it->second.info.object_type)].push_back(type_id);
-    }
+    register_object_type_propset(object_type_propsets_, inserted_it->second.info.object_type, type_id);
     return &inserted_it->second;
 }
 
@@ -441,7 +513,7 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
         return Value{};
     }
 
-    if (pool->info.object_type != ObjectType::invalid && pool->info.object_type != obj.type) {
+    if (!propset_accepts_object_type(pool->info.object_type, obj.type)) {
         rt.fail("get_propset: object type mismatch for type-restricted propset");
         return Value{};
     }
@@ -562,8 +634,7 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
         return out;
     }
 
-    // TODO(v2-cleanup): Heap-typed propset fields are rejected by the TypeResolver in v1.
-    // This branch handles any future relaxation of that constraint.
+    // Heap-typed propset fields are stored as HeapPtr slots owned by this row.
     if (rt.type_table_.is_heap_type(field_type)) {
         auto* ptr = reinterpret_cast<HeapPtr*>(data + offset);
 
@@ -726,6 +797,14 @@ void PropsetPoolManager::prime_pools(Runtime& rt)
             ensure_pool(rt, TypeID{static_cast<int32_t>(i + 1)});
         }
     }
+}
+
+void PropsetPoolManager::object_propset_types(ObjectType type, std::vector<TypeID>& out) const
+{
+    auto it = object_type_propsets_.find(static_cast<uint8_t>(type));
+    if (it == object_type_propsets_.end()) { return; }
+
+    out.insert(out.end(), it->second.begin(), it->second.end());
 }
 
 // == Heap Mutation Notification ===============================================

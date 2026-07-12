@@ -6,6 +6,8 @@ import core.array as Array;
 var _loaded = false;
 var _spells: array!(SpellEntry);
 
+const class_spell_table_count = 6;
+
 fn _ensure_loaded() {
     if (_loaded) {
         return;
@@ -47,4 +49,12 @@ fn user_type(spell: Spell): int {
         return 0;
     }
     return Array.get(_spells, spell as int).user_type;
+}
+
+// Returns this spell's level in one of the class spell tables, or -1 if absent.
+fn class_level(spell: Spell, class_spell_table: int): int {
+    if (!exists(spell) || class_spell_table < 0 || class_spell_table >= class_spell_table_count) {
+        return -1;
+    }
+    return Array.get(_spells, spell as int).class_levels[class_spell_table];
 }

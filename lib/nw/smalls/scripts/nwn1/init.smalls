@@ -6,7 +6,7 @@ import core.item as Item;
 import core.object as Obj;
 import core.effects as effects;
 from core.creature import { CreatureCombat, CreatureStats };
-from core.types import { BaseItemType };
+from core.types import { BaseItemType, Feat };
 
 import nwn1.creature as NCre;
 import nwn1.combat_modes as combat_modes;
@@ -369,19 +369,29 @@ fn dragon_disciple_ability(obj: Creature, _vs: object, subtype: int): int {
 fn epic_great_ability(obj: Creature, _vs: object, subtype: int): int {
     const st = Const.Ability(subtype);
     if (st == Const.ability_strength) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_strength_1, Const.feat_epic_great_strength_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_strength_1, Const.feat_epic_great_strength_10);
     } elif (st == Const.ability_dexterity) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_dexterity_1, Const.feat_epic_great_dexterity_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_dexterity_1, Const.feat_epic_great_dexterity_10);
     } elif (st == Const.ability_constitution) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_constitution_1, Const.feat_epic_great_constitution_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_constitution_1, Const.feat_epic_great_constitution_10);
     } elif (st == Const.ability_intelligence) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_intelligence_1, Const.feat_epic_great_intelligence_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_intelligence_1, Const.feat_epic_great_intelligence_10);
     } elif (st == Const.ability_wisdom) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_wisdom_1, Const.feat_epic_great_wisdom_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_wisdom_1, Const.feat_epic_great_wisdom_10);
     } elif (st == Const.ability_charisma) {
-        return Cre.count_feats_in_range(obj, Const.feat_epic_great_charisma_1, Const.feat_epic_great_charisma_10);
+        return ranked_feat_count(obj, Const.feat_epic_great_charisma_1, Const.feat_epic_great_charisma_10);
     }
     return 0;
+}
+
+fn ranked_feat_count(obj: Creature, start: Feat, stop: Feat): int {
+    var highest = Cre.highest_feat_in_range(obj, start, stop);
+    if (highest as int < 0) {
+        return 0;
+    }
+    var highest_id = highest as int;
+    var start_id = start as int;
+    return highest_id - start_id + 1;
 }
 
 const NUM_SLOTS = 31;
@@ -496,7 +506,7 @@ fn hp_modifier_toughness(obj: Creature, _vs: object, _subtype: int): int {
 }
 
 fn hp_modifier_epic_toughness(obj: Creature, _vs: object, _subtype: int): int {
-    return Cre.count_feats_in_range(obj, Const.feat_epic_toughness_1, Const.feat_epic_toughness_10) * 20;
+    return ranked_feat_count(obj, Const.feat_epic_toughness_1, Const.feat_epic_toughness_10) * 20;
 }
 
 // == Damage Reduction Modifiers =============================================

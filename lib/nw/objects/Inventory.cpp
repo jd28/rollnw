@@ -1,9 +1,7 @@
 #include "Inventory.hpp"
 
-#include "../kernel/Rules.hpp"
-#include "../serialization/Gff.hpp"
-#include "../serialization/GffBuilder.hpp"
 #include "Item.hpp"
+#include "ObjectComponentSystem.hpp"
 #include "ObjectManager.hpp"
 
 #include <nlohmann/json.hpp>
@@ -16,6 +14,18 @@ Item* item_from_handle(ObjectHandle handle) noexcept
 {
     if (handle.type != ObjectType::item) { return nullptr; }
     return nw::kernel::objects().get<Item>(handle);
+}
+
+const ObjectItemLayoutState* item_layout_for(Item* item)
+{
+    if (!item) { return nullptr; }
+    return nw::kernel::objects().components().find_item_layout(item->handle());
+}
+
+bool serialize_item_to_json(const Item* item, nlohmann::json& out, SerializationProfile profile)
+{
+    bool (*serialize_json)(const Item*, nlohmann::json&, SerializationProfile) = nw::serialize;
+    return serialize_json(item, out, profile);
 }
 
 } // namespace
@@ -47,12 +57,39 @@ Inventory::Inventory(int pages, int rows, int columns, ObjectBase* owner_, nw::M
     inventory_bitset.resize(pages_);
 }
 
+StoreInventory::StoreInventory(nw::MemoryResource* allocator)
+    : StoreInventory{nullptr, allocator}
+{
+}
+
+StoreInventory::StoreInventory(ObjectBase* owner, nw::MemoryResource* allocator)
+    : armor{1, 10, 10, owner, allocator}
+    , miscellaneous{1, 10, 10, owner, allocator}
+    , potions{1, 10, 10, owner, allocator}
+    , rings{1, 10, 10, owner, allocator}
+    , weapons{1, 10, 10, owner, allocator}
+{
+    armor.set_growable(true);
+    miscellaneous.set_growable(true);
+    potions.set_growable(true);
+    rings.set_growable(true);
+    weapons.set_growable(true);
+}
+
+void StoreInventory::set_owner(ObjectBase* owner)
+{
+    armor.owner = owner;
+    miscellaneous.owner = owner;
+    potions.owner = owner;
+    rings.owner = owner;
+    weapons.owner = owner;
+}
+
 void Inventory::destroy()
 {
     for (auto& it : items) {
         auto item = inventory_item_ptr(it);
         if (!item) { continue; }
-        item->inventory.destroy();
         nw::kernel::objects().destroy(item->handle());
     }
     items.clear();
@@ -77,15 +114,14 @@ bool Inventory::instantiate()
         if (it.item.is<ObjectHandle>()) {
             auto item = inventory_item_ptr(it);
             if (!item) { continue; }
-            auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-            if (bi) {
+            if (const auto* layout = item_layout_for(item)) {
                 auto slot = xy_to_slot(it.pos_x, it.pos_y);
-                auto [width, height] = bi->inventory_slot_size;
                 if (pages_ <= slot.page) {
                     inventory_bitset.resize(slot.page + 1);
                     pages_ = slot.page + 1;
                 }
-                insert_item(slot.page, slot.row, slot.col, width, height);
+                insert_item(slot.page, slot.row, slot.col,
+                    layout->inventory_width, layout->inventory_height);
             }
         }
     }
@@ -95,11 +131,12 @@ bool Inventory::instantiate()
 bool Inventory::add_item(nw::Item* item)
 {
     if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) { return false; }
+    const auto* layout = item_layout_for(item);
+    if (!layout) { return false; }
     if (has_item(item)) { return false; }
 
-    auto [width, height] = bi->inventory_slot_size;
+    const int width = layout->inventory_width;
+    const int height = layout->inventory_height;
     auto slot = find_slot(width, height);
     if (slot.page == -1) { return false; }
     insert_item(slot.page, slot.row, slot.col, width, height);
@@ -125,11 +162,10 @@ bool Inventory::add_page()
 bool Inventory::can_add_item(nw::Item* item) const
 {
     if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) { return false; }
+    const auto* layout = item_layout_for(item);
+    if (!layout) { return false; }
 
-    auto [width, height] = bi->inventory_slot_size;
-    auto slot = find_slot(width, height);
+    auto slot = find_slot(layout->inventory_width, layout->inventory_height);
     return slot.page != -1;
 }
 
@@ -230,8 +266,8 @@ bool Inventory::insert_item(int page, int row, int col, int width, int height)
 bool Inventory::remove_item(nw::Item* item)
 {
     if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) { return false; }
+    const auto* layout = item_layout_for(item);
+    if (!layout) { return false; }
 
     auto it = std::find_if(items.begin(), items.end(),
         [handle = item->handle()](const nw::InventoryItem& ii) {
@@ -241,8 +277,8 @@ bool Inventory::remove_item(nw::Item* item)
     if (it == std::end(items)) { return false; }
 
     auto slot = xy_to_slot(it->pos_x, it->pos_y);
-    auto [width, height] = bi->inventory_slot_size;
-    clear_item(slot.page, slot.row, slot.col, width, height);
+    clear_item(slot.page, slot.row, slot.col,
+        layout->inventory_width, layout->inventory_height);
     items.erase(it);
     return true;
 }
@@ -323,9 +359,9 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
             payload["position"] = {it.pos_x, it.pos_y};
             if (auto* item = inventory_item_ptr(it)) {
                 if (SerializationProfile::blueprint == profile) {
-                    payload["item"] = item->common.resref;
+                    payload["item"] = item->resref;
                 } else {
-                    serialize(item, payload["item"], profile);
+                    serialize_item_to_json(item, payload["item"], profile);
                 }
             } else if (SerializationProfile::blueprint == profile && it.item.is<Resref>()) {
                 payload["item"] = it.item.as<Resref>();
@@ -340,74 +376,6 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
     }
 
     return j;
-}
-
-bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile)
-{
-    size_t sz = archive["ItemList"].size();
-    for (size_t i = 0; i < sz; ++i) {
-        bool valid_entry = true;
-        auto st = archive["ItemList"][i];
-        InventoryItem ii;
-        auto handle = self.owner->handle();
-        if (handle.type == ObjectType::store) {
-            st.get_to("Infinite", ii.infinite, false);
-        }
-        st.get_to("Repos_PosX", ii.pos_x);
-        st.get_to("Repos_Posy", ii.pos_y); // Not typo..
-
-        if (SerializationProfile::blueprint == profile) {
-            if (auto r = st.get<Resref>("InventoryRes")) {
-                ii.item = *r;
-            }
-        } else if (SerializationProfile::instance == profile) {
-            auto temp = kernel::objects().load_instance<Item>(st);
-            if (temp) {
-                ii.item = temp->handle();
-            } else {
-                valid_entry = false;
-            }
-        }
-        if (valid_entry) {
-            self.items.push_back(std::move(ii));
-        }
-    }
-
-    return true;
-}
-
-bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationProfile profile)
-{
-    if (self.items.empty()) {
-        return true;
-    }
-    auto& list = archive.add_list("ItemList");
-    for (const auto& it : self.items) {
-        auto* item = inventory_item_ptr(it);
-        if (!item && !(SerializationProfile::blueprint == profile && it.item.is<Resref>())) {
-            continue;
-        }
-
-        auto& str = list.push_back(static_cast<uint32_t>(list.size()))
-                        .add_field("Repos_PosX", it.pos_x)
-                        .add_field("Repos_Posy", it.pos_y);
-
-        auto handle = self.owner->handle();
-        if (handle.type == ObjectType::store && it.infinite) {
-            str.add_field("Infinite", it.infinite);
-        }
-
-        if (SerializationProfile::blueprint == profile) {
-            if (it.item.is<Resref>()) {
-                str.add_field("InventoryRes", it.item.as<Resref>());
-            } else if (item) {
-                str.add_field("InventoryRes", item->common.resref);
-            }
-        } else if (item) {
-            serialize(item, str, profile);
-        }
-    }
-    return true;
 }
 
 } // namespace nw

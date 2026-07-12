@@ -8,6 +8,7 @@
 [[native]] fn round(x: float): float;
 [[native]] fn pow(base: float, exponent: float): float;
 [[native]] fn atan2(y: float, x: float): float;
+[[native]] fn make_vec3(x: float, y: float, z: float): vec3;
 
 fn abs(a: $T): $T {
     if (a < 0) { return -a; }

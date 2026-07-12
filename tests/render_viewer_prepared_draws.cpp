@@ -7,6 +7,7 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/render/viewer/device.hpp>
@@ -14,12 +15,12 @@
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
-
-#include <fmt/format.h>
+#include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -103,6 +104,29 @@ std::filesystem::path cesium_man_path()
     return candidates[0];
 }
 
+bool set_creature_appearance_propset_int(nw::Creature* creature, const char* field, int32_t value)
+{
+    if (!creature) { return false; }
+
+    auto& rt = nw::kernel::runtime();
+    rt.init_object_propsets(creature->handle());
+    const auto tid = rt.type_id("core.creature.CreatureAppearance", false);
+    if (tid == nw::smalls::invalid_type_id) { return false; }
+
+    auto ref = rt.get_or_create_propset_ref(tid, creature->handle());
+    if (ref.type_id == nw::smalls::invalid_type_id) { return false; }
+
+    const auto* def = rt.get_struct_def(ref.type_id);
+    if (!def) { return false; }
+
+    const uint32_t index = def->field_index(field);
+    if (index == std::numeric_limits<uint32_t>::max()) { return false; }
+
+    const auto& field_def = def->fields[index];
+    return rt.write_value_field_at_offset(ref, field_def.offset, rt.int_type(),
+        nw::smalls::Value::make_int(value));
+}
+
 bool render_viewer_frame(
     nw::gfx::Context* context,
     nw::render::viewer::ViewerSession& session,
@@ -146,40 +170,35 @@ bool report_has_event_category(
         });
 }
 
-std::vector<std::string> item_model_resrefs_for_test(const nw::Item& item)
+std::vector<std::string> item_model_resrefs_for_test(nw::Item& item)
 {
     std::vector<std::string> result;
-    auto* baseitem = nw::kernel::rules().baseitems.get(item.baseitem);
-    if (!baseitem) {
+    if (!item.instantiate()) {
         return result;
     }
 
-    auto add = [&](std::string resref) {
-        if (!resref.empty()) {
-            result.push_back(std::move(resref));
-        }
-    };
+    auto& rt = nw::kernel::runtime();
+    nw::Vector<nw::smalls::Value> args;
+    auto item_value = nw::smalls::Value::make_object(item.handle());
+    item_value.type_id = rt.object_subtype_for_tag(item.handle().type);
+    args.push_back(item_value);
+    args.push_back(nw::smalls::Value::make_bool(false));
 
-    switch (item.model_type) {
-    case nw::ItemModelType::simple:
-    case nw::ItemModelType::layered:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            add(fmt::format("{}_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model1]));
+    auto update = rt.execute_script("nwn1.item", "update_standalone_visual", args);
+    if (!update.ok() || update.value.type_id != rt.bool_type() || !update.value.data.bval) {
+        return result;
+    }
+
+    const auto* visual = nw::kernel::objects().components().find_visual(item.handle());
+    if (!visual) {
+        return result;
+    }
+
+    result.reserve(visual->models.size());
+    for (const auto& row : visual->models) {
+        if (row.kind == nw::ObjectVisualModelKind::item_model && !row.model.empty()) {
+            result.push_back(row.model.string());
         }
-        break;
-    case nw::ItemModelType::composite:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            add(fmt::format("{}_b_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model1]));
-        }
-        if (item.model_parts[nw::ItemModelParts::model2] > 0) {
-            add(fmt::format("{}_m_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model2]));
-        }
-        if (item.model_parts[nw::ItemModelParts::model3] > 0) {
-            add(fmt::format("{}_t_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model3]));
-        }
-        break;
-    case nw::ItemModelType::armor:
-        break;
     }
     return result;
 }
@@ -238,34 +257,6 @@ LABEL HASARMS
     EXPECT_TRUE(policy.visible);
     EXPECT_FLOAT_EQ(policy.scale, 1.0f);
     EXPECT_EQ(policy.reason, viewer::NwnAppearanceHandItemVisualPolicyReason::visible);
-}
-
-TEST(RenderViewerPreparedDraws, CreaturePhenotypeResolutionUsesLoadedRuleRows)
-{
-    namespace viewer = nw::render::viewer;
-
-    const auto& phenotypes = nw::kernel::rules().phenotypes;
-    if (!phenotypes.is_valid(nw::Phenotype::make(0))) {
-        GTEST_SKIP() << "phenotype row 0 unavailable";
-    }
-
-    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::make(0)), 0);
-
-    bool found_non_default = false;
-    for (size_t i = 1; i < phenotypes.entries.size(); ++i) {
-        const auto phenotype = nw::Phenotype::make(static_cast<int32_t>(i));
-        if (phenotypes.is_valid(phenotype)) {
-            EXPECT_EQ(viewer::resolve_creature_phenotype(phenotype), static_cast<int>(i));
-            found_non_default = true;
-            break;
-        }
-    }
-    if (!found_non_default) {
-        GTEST_SKIP() << "no non-default phenotype row available";
-    }
-
-    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::invalid()), 0);
-    EXPECT_EQ(viewer::resolve_creature_phenotype(nw::Phenotype::make(100000)), 0);
 }
 
 TEST(RenderViewerPreparedDraws, LoadReportIncludesStaticRenderModelNames)
@@ -480,7 +471,7 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesHumanoidResolverRow
     EXPECT_TRUE(report_has_model_name(report, "pma0_head001"));
 }
 
-TEST(RenderViewerPreparedDraws, ItemLoadReportUsesItemModelResolverRows)
+TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
 {
     namespace viewer = nw::render::viewer;
 
@@ -495,9 +486,32 @@ TEST(RenderViewerPreparedDraws, ItemLoadReportUsesItemModelResolverRows)
     EXPECT_TRUE(report_has_model_name(report, "wswsc_b_044"));
     EXPECT_TRUE(report_has_model_name(report, "wswsc_m_054"));
     EXPECT_TRUE(report_has_model_name(report, "wswsc_t_044"));
+    EXPECT_EQ(report.error_count(), 0u);
 }
 
-TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesAttachmentLookupRows)
+TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
+{
+    namespace viewer = nw::render::viewer;
+
+    const auto report = viewer::build_preview_load_report("test_data/user/development/arrowcorpse001.utp");
+
+    EXPECT_EQ(report.kind, "Placeable");
+    EXPECT_TRUE(report_has_model_name(report, "plc_o01"));
+    EXPECT_EQ(report.error_count(), 0u);
+}
+
+TEST(RenderViewerPreparedDraws, DoorLoadReportUsesSmallsResolverRows)
+{
+    namespace viewer = nw::render::viewer;
+
+    const auto report = viewer::build_preview_load_report("test_data/user/development/door_ttr_002.utd");
+
+    EXPECT_EQ(report.kind, "Door");
+    EXPECT_FALSE(report.model_names.empty());
+    EXPECT_EQ(report.error_count(), 0u);
+}
+
+TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesVisualAttachmentRows)
 {
     namespace viewer = nw::render::viewer;
 
@@ -523,11 +537,11 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesAttachmentLookupRow
 
     std::filesystem::create_directories("tmp");
     const std::filesystem::path no_wing_path{"tmp/load_report_no_wing_creature.utc.json"};
-    creature->appearance.wings = 0u;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
     ASSERT_TRUE(creature->save(no_wing_path, "json"));
 
     const std::filesystem::path wing_path{"tmp/load_report_wing_creature.utc.json"};
-    creature->appearance.wings = 1u;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 1));
     ASSERT_TRUE(creature->save(wing_path, "json"));
     nw::kernel::objects().destroy(creature->handle());
 
@@ -566,7 +580,7 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsWingRowPolicy)
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    creature->appearance.wings = 1u;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 1));
 
     std::filesystem::create_directories("tmp");
     const std::filesystem::path wing_path{"tmp/load_report_wing_policy_creature.utc.json"};
@@ -600,9 +614,9 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsSkinnedMindflayer
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    creature->appearance.id = nwn1::appearance_type_mindflayer;
-    creature->appearance.wings = 0u;
-    creature->appearance.tail = 0u;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_mindflayer));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
         equip = nw::Resref{};
     }
@@ -637,6 +651,7 @@ TEST(RenderViewerPreparedDraws, PreviewSceneLoadOptionsDefaultToNwnRenderModelPa
     const viewer::PreviewSceneLoadOptions options{};
 
     EXPECT_EQ(options.nwn_model_path, viewer::NwnModelPreviewPath::render_model);
+    EXPECT_EQ(options.visual_render_mode, nw::ObjectVisualRenderMode::toolset);
 }
 
 TEST(RenderViewerPreparedDraws, PreviewSceneLoadOptionsIgnoresRetiredNwnEnvOverride)
@@ -657,6 +672,7 @@ TEST(RenderViewerPreparedDraws, PreviewSceneLoadOptionsIgnoresRetiredNwnEnvOverr
     }
 
     EXPECT_EQ(options.nwn_model_path, viewer::NwnModelPreviewPath::render_model);
+    EXPECT_EQ(options.visual_render_mode, nw::ObjectVisualRenderMode::toolset);
 }
 
 TEST(RenderViewerPreparedDraws, PreparedRenderModelSurfacePathSubmitsCesiumManWithoutDrops)
@@ -799,9 +815,9 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    creature->appearance.id = nwn1::appearance_type_bodak;
-    creature->appearance.wings = 1;
-    creature->appearance.tail = 0;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 1));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
         equip = nw::Resref{};
     }
@@ -910,9 +926,9 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
-    creature->appearance.id = nwn1::appearance_type_bodak;
-    creature->appearance.wings = 0;
-    creature->appearance.tail = 0;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
         equip = nw::Resref{};
     }
@@ -987,9 +1003,9 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelDynamicSkinnedCreatureSamplesSkinM
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
-    creature->appearance.id = nwn1::appearance_type_mindflayer;
-    creature->appearance.wings = 0;
-    creature->appearance.tail = 0;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_mindflayer));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
         equip = nw::Resref{};
     }
@@ -1088,9 +1104,9 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathWarnsAndFallsBackForHumano
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    creature->appearance.id = nwn1::appearance_type_human;
-    creature->appearance.wings = 0;
-    creature->appearance.tail = 0;
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_human));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
         equip = nw::Resref{};
     }
@@ -1270,8 +1286,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
             continue;
         }
         creature->instantiate();
-        creature->update_appearance(creature->appearance.id);
-        auto* appearance = nw::kernel::rules().appearances.get(creature->appearance.id);
+        const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+        if (!visual || visual->appearance < 0) {
+            continue;
+        }
+        auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(visual->appearance));
         if (!appearance || appearance->model_type == "P" || appearance->model_name.empty()) {
             continue;
         }

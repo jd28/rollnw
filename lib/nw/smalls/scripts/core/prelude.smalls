@@ -6,3 +6,12 @@
 [[native]] fn gc_collect();
 [[intrinsic("get_propset")]] fn get_propset(obj: object): $T;
 [[intrinsic("load_config")]] fn load_config(path: string): array!($T);
+
+from core.types import {
+    ResRef,
+    Resource,
+    resref,
+    resource,
+    resource_type_invalid,
+    resource_type_mdl,
+};

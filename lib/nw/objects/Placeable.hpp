@@ -1,125 +1,33 @@
 #pragma once
 
-#include "Common.hpp"
 #include "Inventory.hpp"
-#include "Item.hpp"
-#include "Lock.hpp"
 #include "ObjectBase.hpp"
-#include "Saves.hpp"
-#include "Trap.hpp"
 
 namespace nw {
-
-DECLARE_RULE_TYPE(PlaceableType);
-
-struct PlaceableInfo {
-    PlaceableInfo(const TwoDARowView& tda);
-
-    String label;
-    uint32_t name = 0xFFFFFFFF;
-    nw::Resref model;
-    int32_t light_color = -1;
-    float light_offset_x = 0.0f;
-    float light_offset_y = 0.0f;
-    float light_offset_z = 0.0f;
-    //  SoundAppType
-    //  ShadowSize
-    //  BodyBag
-    //  LowGore
-    //  Reflection
-    bool static_;
-
-    /// Gets the name to display when using in contexts like a toolset.
-    String editor_name() const;
-
-    bool has_light() const noexcept { return light_color >= 0; }
-    bool valid() const noexcept { return name != 0xFFFFFFFF || !label.empty(); }
-};
-
-using PlaceableArray = RuleTypeArray<PlaceableType, PlaceableInfo>;
-
-enum struct PlaceableAnimationState : uint8_t {
-    none = 0, // Technically "default"
-    open = 1,
-    closed = 2,
-    destroyed = 3,
-    activated = 4,
-    deactivated = 5
-};
-
-struct PlaceableScripts {
-    bool from_json(const nlohmann::json& archive);
-    nlohmann::json to_json() const;
-
-    Resref on_click;
-    Resref on_closed;
-    Resref on_damaged;
-    Resref on_death;
-    Resref on_disarm;
-    Resref on_heartbeat;
-    Resref on_inventory_disturbed;
-    Resref on_lock;
-    Resref on_melee_attacked;
-    Resref on_open;
-    Resref on_spell_cast_at;
-    Resref on_trap_triggered;
-    Resref on_unlock;
-    Resref on_used;
-    Resref on_user_defined;
-};
 
 struct Placeable : public ObjectBase {
     Placeable();
     Placeable(MemoryResource* allocator);
-    static constexpr int json_archive_version = 1;
+    virtual ~Placeable();
     static constexpr ObjectType object_type = ObjectType::placeable;
     static constexpr ResourceType::type restype = ResourceType::utp;
     static constexpr StringView serial_id{"UTP"};
 
     // LCOV_EXCL_START
-    virtual Common* as_common() override { return &common; }
-    virtual const Common* as_common() const override { return &common; }
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
     // LCOV_EXCL_STOP
 
     virtual void clear() override;
     virtual bool instantiate() override;
-    virtual InternedString tag() const override { return common.tag; }
+    Inventory& inventory();
+    const Inventory& inventory() const;
 
     /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
     bool save(const std::filesystem::path& path, std::string_view format = "json");
 
     // Serialization
     static String get_name_from_file(const std::filesystem::path& path);
-
-    Common common;
-    PlaceableScripts scripts;
-    Inventory inventory;
-    Lock lock;
-    Trap trap;
-
-    Resref conversation;
-    LocString description;
-    Saves saves;
-
-    uint32_t appearance = 0;
-    uint32_t faction = 0;
-
-    int16_t hp = 0;
-    int16_t hp_current = 0;
-    uint16_t portrait_id = 0;
-
-    PlaceableAnimationState animation_state = PlaceableAnimationState::none;
-    uint8_t bodybag = 0;
-    uint8_t hardness = 0;
-    bool has_inventory = false;
-    bool interruptable = 0;
-    bool plot = 0;
-    bool static_ = false;
-    bool useable = false;
-
-    int32_t light_color = -1;
 
     bool instantiated_ = false;
 };

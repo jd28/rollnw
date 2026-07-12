@@ -2077,11 +2077,16 @@ fn test(obj: object): int {
 
 TEST_F(SmallsResolver, NativeSubtypeParameterAcceptsSubtype)
 {
-    auto script = make_script(R"(
-from core.door import { as_door, get_hp };
+    nw::kernel::runtime()
+        .module("test")
+        .function("test_trigger", +[](nw::ObjectHandle) -> int32_t { return 0; })
+        .finalize();
 
-fn test(obj: object): int {
-    return get_hp(as_door(obj));
+    auto script = make_script(R"(
+[[native]] fn test_trigger(obj: Trigger): int;
+
+fn test(trigger: Trigger): int {
+    return test_trigger(trigger);
 }
     )"sv);
 
@@ -2094,11 +2099,16 @@ fn test(obj: object): int {
 
 TEST_F(SmallsResolver, NativeSubtypeParameterRejectsObject)
 {
+    nw::kernel::runtime()
+        .module("test")
+        .function("test_trigger", +[](nw::ObjectHandle) -> int32_t { return 0; })
+        .finalize();
+
     auto script = make_script(R"(
-from core.door import { get_hp };
+[[native]] fn test_trigger(obj: Trigger): int;
 
 fn test(obj: object): int {
-    return get_hp(obj);
+    return test_trigger(obj);
 }
     )"sv);
 

@@ -1,52 +1,10 @@
 {
-    "$type": "UTC",
-    "$version": 1,
-    "appearance": {
-        "body_parts": {
-            "belt": 0,
-            "bicep_left": 1,
-            "bicep_right": 1,
-            "foot_left": 1,
-            "foot_right": 1,
-            "forearm_left": 1,
-            "forearm_right": 1,
-            "hand_left": 1,
-            "hand_right": 1,
-            "head": 119,
-            "neck": 1,
-            "pelvis": 1,
-            "shin_left": 1,
-            "shin_right": 1,
-            "shoulder_left": 0,
-            "shoulder_right": 0,
-            "thigh_left": 1,
-            "thigh_right": 1,
-            "torso": 1
+    "components": {
+        "equipment": {
+            "arms": "handwish",
+            "chest": "dk_agent_thread2",
+            "creature_left": "pl_slam_1d2"
         },
-        "hair": 167,
-        "id": 6,
-        "phenotype": 0,
-        "portrait_id": 65,
-        "skin": 3,
-        "tail": 0,
-        "tattoo1": 1,
-        "tattoo2": 1,
-        "wings": 0
-    },
-    "bodybag": 0,
-    "chunk_death": 0,
-    "combat_info": {
-        "ac_natural": 0,
-        "special_abilities": [
-            {
-                "flags": 1,
-                "level": 15,
-                "spell": 120
-            }
-        ]
-    },
-    "common": {
-        "comment": "",
         "locals": {
             "DIPType": {
                 "integer": 3
@@ -69,74 +27,60 @@
             "rlgs_ss_1": {
                 "string": "lt_agent_1"
             }
-        },
-        "object_type": 5,
-        "palette_id": 0,
-        "resref": "pl_agent_001",
-        "tag": "pl_agent_001"
-    },
-    "conversation": "",
-    "cr": 38.0,
-    "cr_adjust": -36,
-    "decay_time": 5000,
-    "deity": "",
-    "description": {
-        "strings": [],
-        "strref": 4294967295
-    },
-    "disarmable": 0,
-    "equipment": {
-        "arms": "handwish",
-        "chest": "dk_agent_thread2",
-        "creature_left": "pl_slam_1d2"
-    },
-    "faction_id": 1,
-    "gender": 0,
-    "good_evil": 100,
-    "hp": 894,
-    "hp_current": 1094,
-    "hp_max": 1094,
-    "immortal": 0,
-    "interruptable": 0,
-    "inventory": [],
-    "lawful_chaotic": 50,
-    "levels": [
-        {
-            "class": 4,
-            "level": 10,
-            "spellbook": {
-                "known": [],
-                "memorized": []
-            }
-        },
-        {
-            "class": 5,
-            "level": 30,
-            "spellbook": {
-                "known": [],
-                "memorized": []
-            }
         }
-    ],
-    "lootable": 0,
-    "name_first": {
-        "strings": [
-            {
-                "lang": 0,
-                "string": "Agent"
-            }
-        ],
-        "strref": 4294967295
     },
-    "name_last": {
-        "strings": [],
-        "strref": 4294967295
+    "core.creature.CreatureAppearance": {
+        "appearance": 6,
+        "body_part_belt": 0,
+        "body_part_bicep_left": 1,
+        "body_part_bicep_right": 1,
+        "body_part_foot_left": 1,
+        "body_part_foot_right": 1,
+        "body_part_forearm_left": 1,
+        "body_part_forearm_right": 1,
+        "body_part_hand_left": 1,
+        "body_part_hand_right": 1,
+        "body_part_head": 119,
+        "body_part_neck": 1,
+        "body_part_pelvis": 1,
+        "body_part_shin_left": 1,
+        "body_part_shin_right": 1,
+        "body_part_shoulder_left": 0,
+        "body_part_shoulder_right": 0,
+        "body_part_thigh_left": 1,
+        "body_part_thigh_right": 1,
+        "body_part_torso": 1,
+        "color_hair": 167,
+        "color_skin": 3,
+        "color_tattoo1": 1,
+        "color_tattoo2": 1,
+        "phenotype": 0,
+        "portrait": "",
+        "portrait_id": 65,
+        "tail": 0,
+        "wings": 0
     },
-    "pc": 0,
-    "perception_range": 11,
-    "plot": false,
-    "race": 6,
-    "scripts": {
+    "core.creature.CreatureDescriptor": {
+        "conversation": "",
+        "decay_time": 5000,
+        "deity": "",
+        "description": {
+            "strings": [],
+            "strref": 4294967295
+        },
+        "name_first": {
+            "strings": [
+                {
+                    "lang": 0,
+                    "string": "Agent"
+                }
+            ],
+            "strref": 4294967295
+        },
+        "name_last": {
+            "strings": [],
+            "strref": 4294967295
+        },
         "on_attacked": "mon_ai_5attacked",
         "on_blocked": "mon_ai_13blocked",
         "on_conversation": "mon_ai_4conv",
@@ -149,11 +93,45 @@
         "on_rested": "mon_ai_10rest",
         "on_spawn": "mon_ai_9spawn",
         "on_spell_cast_at": "mon_ai_11spcast",
-        "on_user_defined": "mon_ai_12ud"
+        "on_user_defined": "mon_ai_12ud",
+        "soundset": 171,
+        "subrace": ""
     },
-    "soundset": 171,
-    "starting_package": 4,
-    "stats": {
+    "core.creature.CreatureHealth": {
+        "faction_id": 1,
+        "hp": 894,
+        "hp_base_for_max": 894,
+        "hp_current": 1094,
+        "hp_max": 1094,
+        "hp_temp": 0,
+        "starting_package": 4
+    },
+    "core.creature.CreatureLevels": {
+        "class_levels": [
+            10,
+            30,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "classes": [
+            4,
+            5,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+        ],
+        "levelup_classes": [],
+        "walkrate": 4,
+        "xp": 0
+    },
+    "core.creature.CreatureStats": {
         "abilities": [
             40,
             13,
@@ -162,6 +140,12 @@
             16,
             9
         ],
+        "ac_natural_bonus": 0,
+        "bodybag": 0,
+        "chunk_death": 0,
+        "cr": 38.0,
+        "cr_adjust": -36,
+        "disarmable": 0,
         "feats": [
             2,
             3,
@@ -201,11 +185,19 @@
             971,
             1089
         ],
-        "save_bonus": {
-            "fort": 9,
-            "reflex": 15,
-            "will": 13
-        },
+        "gender": 0,
+        "good_evil": 100,
+        "immortal": 0,
+        "interruptable": 0,
+        "lawful_chaotic": 50,
+        "lootable": 0,
+        "pc": 0,
+        "perception_range": 11,
+        "plot": 0,
+        "race": 6,
+        "save_fort": 9,
+        "save_reflex": 15,
+        "save_will": 13,
         "skills": [
             0,
             1,
@@ -235,8 +227,23 @@
             1,
             2,
             0
+        ],
+        "special_abilities": [
+            {
+                "level": 15,
+                "spell": 120,
+                "uses": 1
+            }
         ]
     },
-    "subrace": "",
-    "walkrate": 4
+    "object": {
+        "comment": "",
+        "name": {
+            "strings": [],
+            "strref": 4294967295
+        },
+        "palette_id": 0,
+        "resref": "pl_agent_001",
+        "tag": "pl_agent_001"
+    }
 }

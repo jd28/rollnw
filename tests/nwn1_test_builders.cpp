@@ -140,4 +140,11 @@ nw::ItemProperty itemprop_haste()
     return result;
 }
 
+nw::ItemProperty itemprop_keen()
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_keen);
+    return result;
+}
+
 } // namespace nwn1

@@ -3,7 +3,6 @@ find_package(Threads)
 add_library(nw STATIC
     functions.cpp
     log.cpp
-    scriptapi.cpp
 
     formats/Dialog.cpp
     formats/Faction.cpp
@@ -50,6 +49,7 @@ add_library(nw STATIC
     objects/Item.cpp
     objects/Module.cpp
     objects/ObjectBase.cpp
+    objects/ObjectComponentSystem.cpp
     objects/ObjectHandle.cpp
     objects/ObjectManager.cpp
     objects/Placeable.cpp
@@ -59,32 +59,31 @@ add_library(nw STATIC
     objects/Trigger.cpp
     objects/Waypoint.cpp
     # Components
-    objects/Appearance.cpp
-    objects/CombatInfo.cpp
-    objects/Common.cpp
-    objects/CreatureStats.cpp
     objects/Equips.cpp
     objects/Inventory.cpp
     objects/LevelHistory.cpp
-    objects/LevelStats.cpp
     objects/LocalData.cpp
     objects/Location.cpp
-    objects/Lock.cpp
-    objects/Saves.cpp
-    objects/SpellBook.cpp
-    objects/Trap.cpp
-    objects/VisualTransform.cpp
 
     profiles/nwn1/constants.cpp
-    profiles/nwn1/object_json.cpp
+    profiles/nwn1/creature_ability_loadout.cpp
+    profiles/nwn1/equipment_gff.cpp
+    profiles/nwn1/gff_propset_component_json.cpp
+    profiles/nwn1/geometry_component_gff.cpp
+    profiles/nwn1/inventory_component_gff.cpp
+    profiles/nwn1/item_materialization.cpp
+    profiles/nwn1/legacy_gff_compat.cpp
+    profiles/nwn1/legacy_spellbook_gff.cpp
+    profiles/nwn1/object_name_preview.cpp
+    profiles/nwn1/object_compat_fields.cpp
+    profiles/nwn1/player_levelup_bridge.cpp
     profiles/nwn1/Profile.cpp
     profiles/nwn1/propset_gff_policy.cpp
     profiles/nwn1/propset_gff_importer.cpp
     profiles/nwn1/propset_gff_exporter.cpp
-    profiles/nwn1/propset_populate.cpp
     profiles/nwn1/rules.cpp
     profiles/nwn1/scriptbridge.cpp
-    profiles/nwn1/scriptapi.cpp
+    profiles/nwn1/store_inventory_gff.cpp
 
     resources/assets.cpp
     resources/Container.cpp
@@ -115,6 +114,7 @@ add_library(nw STATIC
 
     serialization/gff_common.cpp
     serialization/gff_conversion.cpp
+    serialization/component_propset_json.cpp
     serialization/Gff.cpp
     serialization/GffBuilder.cpp
     serialization/Serialization.cpp
@@ -135,25 +135,18 @@ add_library(nw STATIC
     smalls/native/core_area.cpp
     smalls/native/core_creature.cpp
     smalls/native/core_combat.cpp
-    smalls/native/core_door.cpp
-    smalls/native/core_encounter.cpp
     smalls/native/core_effects.cpp
     smalls/native/core_item.cpp
     smalls/native/core_map.cpp
     smalls/native/core_math.cpp
     smalls/native/core_module.cpp
     smalls/native/core_object.cpp
-    smalls/native/core_placeable.cpp
     smalls/native/core_player.cpp
-    smalls/native/core_progression.cpp
     smalls/native/core_prelude.cpp
-    smalls/native/core_sound.cpp
-    smalls/native/core_store.cpp
     smalls/native/core_string.cpp
     smalls/native/core_test.cpp
-    smalls/native/core_trigger.cpp
     smalls/native/core_types.cpp
-    smalls/native/core_waypoint.cpp
+    smalls/native/core_visual.cpp
     smalls/Parser.cpp
     smalls/PropsetPool.cpp
     smalls/propset_json.cpp

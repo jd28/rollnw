@@ -1,9 +1,12 @@
 #include "Area.hpp"
 
-#include "../kernel/Strings.hpp"
+#include "../kernel/Kernel.hpp"
 #include "../kernel/TilesetRegistry.hpp"
+#include "../profiles/nwn1/object_compat_fields.hpp"
+#include "../profiles/nwn1/object_name_preview.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../serialization/component_propset_json.hpp"
 #include "Creature.hpp"
 #include "Door.hpp"
 #include "Encounter.hpp"
@@ -148,7 +151,6 @@ Area::Area()
 
 Area::Area(MemoryResource* allocator)
     : ObjectBase(allocator)
-    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::area});
 }
@@ -182,27 +184,7 @@ bool Area::instantiate()
 
 String Area::get_name_from_file(const std::filesystem::path& path)
 {
-    String result;
-    LocString l1;
-
-    auto rdata = ResourceData::from_file(path);
-    if (rdata.bytes.size() <= 8) { return result; }
-    if (memcmp(rdata.bytes.data(), "ARE V3.2", 8) == 0) {
-        Gff gff(std::move(rdata));
-        if (!gff.valid()) { return result; }
-        gff.toplevel().get_to("Name", l1);
-    } else {
-        try {
-            std::ifstream f{path, std::ifstream::binary};
-            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
-            j.at("name").get_to(l1);
-        } catch (...) {
-            return result;
-        }
-    }
-
-    result = nw::kernel::strings().get(l1);
-    return result;
+    return nwn1::preview_area_name_from_file(path);
 }
 
 // == Area - Serialization - Gff ==============================================
@@ -263,7 +245,9 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     // [TODO] Load this..
     ROLLNW_UNUSED(gic);
 
-    deserialize(obj->common, are, SerializationProfile::any, ObjectType::area);
+    nwn1::obj_compat_fields_from_gff(*obj, are, SerializationProfile::any, ObjectType::area);
+    nw::kernel::objects().components().deserialize_spatial(obj->handle(), are, SerializationProfile::any);
+    nw::kernel::objects().components().deserialize_locals(obj->handle(), are);
     deserialize(obj->scripts, are);
     deserialize(obj->weather, are);
 
@@ -343,10 +327,6 @@ bool deserialize(Area* obj, const nlohmann::json& are,
     // [TODO] Load this..
     ROLLNW_UNUSED(gic);
 
-    obj->common.from_json(are.at("common"), SerializationProfile::any, ObjectType::area);
-    obj->scripts.from_json(are.at("scripts"));
-    obj->weather.from_json(are.at("weather"));
-
 #define OBJECT_LIST_FROM_JSON(holder, type)                              \
     do {                                                                 \
         auto& arr = git.at(#holder);                                     \
@@ -363,6 +343,29 @@ bool deserialize(Area* obj, const nlohmann::json& are,
     } while (0)
 
     try {
+        const auto object = are.find("object");
+        if (object == are.end() || !object->is_object()) {
+            LOG_F(ERROR, "area JSON missing object section");
+            return false;
+        }
+        if (!nwn1::obj_compat_fields_from_json(*obj, *object, SerializationProfile::any, ObjectType::area)) {
+            return false;
+        }
+
+        const auto components_json = are.find("components");
+        if (components_json == are.end() || !components_json->is_object()) {
+            LOG_F(ERROR, "area JSON missing components section");
+            return false;
+        }
+        auto& components = nw::kernel::objects().components();
+        if (!components.from_json_spatial(obj->handle(), *components_json, SerializationProfile::any)
+            || !components.from_json_locals(obj->handle(), *components_json)) {
+            return false;
+        }
+
+        obj->scripts.from_json(are.at("scripts"));
+        obj->weather.from_json(are.at("weather"));
+
         OBJECT_LIST_FROM_JSON(creatures, Creature);
         OBJECT_LIST_FROM_JSON(doors, Door);
         OBJECT_LIST_FROM_JSON(encounters, Encounter);
@@ -408,14 +411,32 @@ bool deserialize(Area* obj, const nlohmann::json& are,
 #undef OBJECT_LIST_FROM_JSON
 }
 
-#define OBJECT_LIST_TO_JSON(name, type)                        \
-    do {                                                       \
-        auto& ref = archive[#name] = nlohmann::json::array();  \
-        for (const auto ob : obj->name) {                      \
-            nlohmann::json j2;                                 \
-            serialize(ob, j2, SerializationProfile::instance); \
-            ref.push_back(j2);                                 \
-        }                                                      \
+namespace {
+
+void serialize_area_object_propset_component_json(const ObjectBase* obj, nlohmann::json& out)
+{
+    auto result = object_to_component_propset_json(
+        obj,
+        out,
+        &nw::kernel::runtime(),
+        SerializationProfile::instance);
+    if (result) { return; }
+
+    LOG_F(ERROR, "area JSON: failed to serialize object type {} through propset/component JSON: {}",
+        int(result.object_type), result.error);
+    throw std::runtime_error(result.error);
+}
+
+} // namespace
+
+#define OBJECT_LIST_TO_JSON(name)                                 \
+    do {                                                          \
+        auto& ref = archive[#name] = nlohmann::json::array();     \
+        for (const auto ob : obj->name) {                         \
+            nlohmann::json j2;                                    \
+            serialize_area_object_propset_component_json(ob, j2); \
+            ref.push_back(j2);                                    \
+        }                                                         \
     } while (0)
 
 void serialize(const Area* obj, nlohmann::json& archive)
@@ -425,19 +446,22 @@ void serialize(const Area* obj, nlohmann::json& archive)
     archive["$type"] = "CAF";
     archive["$version"] = Area::json_archive_version;
 
-    archive["common"] = obj->common.to_json(SerializationProfile::any, ObjectType::area);
+    archive["object"] = nwn1::obj_compat_fields_to_json(*obj, SerializationProfile::any, ObjectType::area);
+    auto& components = archive["components"] = nlohmann::json::object();
+    nw::kernel::objects().components().to_json_spatial(obj->handle(), components, SerializationProfile::any);
+    nw::kernel::objects().components().to_json_locals(obj->handle(), components, SerializationProfile::any);
     archive["weather"] = obj->weather.to_json();
     archive["scripts"] = obj->scripts.to_json();
 
-    OBJECT_LIST_TO_JSON(creatures, Creature);
-    OBJECT_LIST_TO_JSON(doors, Door);
-    OBJECT_LIST_TO_JSON(encounters, Encounter);
-    OBJECT_LIST_TO_JSON(items, Item);
-    OBJECT_LIST_TO_JSON(placeables, Placeable);
-    OBJECT_LIST_TO_JSON(sounds, Sound);
-    OBJECT_LIST_TO_JSON(stores, Store);
-    OBJECT_LIST_TO_JSON(triggers, Trigger);
-    OBJECT_LIST_TO_JSON(waypoints, Waypoint);
+    OBJECT_LIST_TO_JSON(creatures);
+    OBJECT_LIST_TO_JSON(doors);
+    OBJECT_LIST_TO_JSON(encounters);
+    OBJECT_LIST_TO_JSON(items);
+    OBJECT_LIST_TO_JSON(placeables);
+    OBJECT_LIST_TO_JSON(sounds);
+    OBJECT_LIST_TO_JSON(stores);
+    OBJECT_LIST_TO_JSON(triggers);
+    OBJECT_LIST_TO_JSON(waypoints);
 
     archive["comments"] = obj->comments;
     archive["name"] = obj->name;

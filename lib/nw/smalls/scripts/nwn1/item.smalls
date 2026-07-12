@@ -1,9 +1,863 @@
 import nwn1.constants as Const;
 
+import core.array as Array;
+import core.bit as bit;
+import core.creature as Cre;
 import core.item as base;
+import core.math as Math;
 import core.object as O;
+import core.types as T;
+import core.visual as Visual;
 import core.effects as effects;
+from core.visual import { VisualModelRow };
 import nwn1.effects as nwn1eff;
+import nwn1.equipment as Equipment;
+import nwn1.rules as Rules;
+
+var _baseitems_loaded = false;
+var _baseitems: array!(Rules.BaseItemEntry);
+var _appearances_loaded = false;
+var _appearances: array!(Rules.AppearanceEntry);
+var _cloakmodels_loaded = false;
+var _cloakmodels: array!(Rules.CloakModelEntry);
+var _armor_loaded = false;
+var _armor: array!(Rules.ArmorEntry);
+var did_install_can_equip_callbacks = false;
+var did_install_visual_callbacks = false;
+
+const item_model_part_model1 = 0;
+const item_model_part_model2 = 1;
+const item_model_part_model3 = 2;
+const item_model_part_armor_belt = 0;
+const item_model_part_armor_lbicep = 1;
+const item_model_part_armor_lfarm = 2;
+const item_model_part_armor_lfoot = 3;
+const item_model_part_armor_lhand = 4;
+const item_model_part_armor_lshin = 5;
+const item_model_part_armor_lshoul = 6;
+const item_model_part_armor_lthigh = 7;
+const item_model_part_armor_neck = 8;
+const item_model_part_armor_pelvis = 9;
+const item_model_part_armor_rbicep = 10;
+const item_model_part_armor_rfarm = 11;
+const item_model_part_armor_rfoot = 12;
+const item_model_part_armor_rhand = 13;
+const item_model_part_armor_robe = 14;
+const item_model_part_armor_rshin = 15;
+const item_model_part_armor_rshoul = 16;
+const item_model_part_armor_rthigh = 17;
+const item_model_part_armor_torso = 18;
+const equip_index_invalid = -1;
+const item_color_cloth1 = 0;
+const item_color_cloth2 = 1;
+const item_color_leather1 = 2;
+const item_color_leather2 = 3;
+const item_color_metal1 = 4;
+const item_color_metal2 = 5;
+const item_part_color_inherit = 255;
+
+type ItemResolvedVisual {
+    attachment_count: int;
+    default_model: T.ResRef;
+    baseitem_valid: bool;
+    requires_wearer_context: bool;
+};
+
+type ItemResolvedIcon {
+    resref: T.ResRef;
+    default_icon: T.ResRef;
+    part: int;
+    baseitem_valid: bool;
+    is_plt: bool;
+    allow_default: bool;
+    invalid_part: bool;
+};
+
+fn _ensure_baseitems_loaded() {
+    if (_baseitems_loaded) {
+        return;
+    }
+    _baseitems = load_config!(Rules.BaseItemEntry)("nwn1.data.baseitems");
+    _baseitems_loaded = true;
+}
+
+fn _ensure_appearances_loaded() {
+    if (_appearances_loaded) {
+        return;
+    }
+    _appearances = load_config!(Rules.AppearanceEntry)("nwn1.data.appearance");
+    _appearances_loaded = true;
+}
+
+fn _ensure_cloakmodels_loaded() {
+    if (_cloakmodels_loaded) {
+        return;
+    }
+    _cloakmodels = load_config!(Rules.CloakModelEntry)("nwn1.data.cloakmodels");
+    _cloakmodels_loaded = true;
+}
+
+fn _find_cloakmodel(model_number: int): Rules.CloakModelEntry {
+    _ensure_cloakmodels_loaded();
+    if (model_number < 0 || model_number >= Array.len(_cloakmodels)) {
+        var invalid: Rules.CloakModelEntry;
+        invalid.id = -1;
+        invalid.icon = -1;
+        invalid.model = -1;
+        return invalid;
+    }
+
+    var entry = Array.get(_cloakmodels, model_number);
+    if (entry.id != model_number) {
+        var invalid: Rules.CloakModelEntry;
+        invalid.id = -1;
+        invalid.icon = -1;
+        invalid.model = -1;
+        return invalid;
+    }
+    return entry;
+}
+
+fn _ensure_armor_loaded() {
+    if (_armor_loaded) {
+        return;
+    }
+    _armor = load_config!(Rules.ArmorEntry)("nwn1.data.armor");
+    _armor_loaded = true;
+}
+
+fn _find_armor(armor_id: int): Rules.ArmorEntry {
+    _ensure_armor_loaded();
+    if (armor_id < 0 || armor_id >= Array.len(_armor)) {
+        var invalid: Rules.ArmorEntry;
+        invalid.id = -1;
+        invalid.cost = 0.0;
+        return invalid;
+    }
+
+    var entry = Array.get(_armor, armor_id);
+    if (entry.id != armor_id) {
+        var invalid: Rules.ArmorEntry;
+        invalid.id = -1;
+        invalid.cost = 0.0;
+        return invalid;
+    }
+    return entry;
+}
+
+fn _empty_resref(): T.ResRef {
+    return T.resref("");
+}
+
+fn _sex_for_gender(gender: int): string {
+    if (gender == 1) {
+        return "f";
+    }
+    return "m";
+}
+
+fn _creature_part_model(sex: string, race: T.ResRef, phenotype: int, token: string, model_part: int): T.ResRef {
+    if (model_part == 0 || model_part == 255 || token == "") {
+        return _empty_resref();
+    }
+
+    var race_name = T.resref_to_string(race);
+    if (race_name == "") {
+        return _empty_resref();
+    }
+
+    var candidate = T.resref(f"p{sex}{race_name}{phenotype}_{token}{Rules.item_model_number_suffix(model_part)}");
+    if (T.resource_exists(candidate, T.resource_type_mdl)) {
+        return candidate;
+    }
+    return _empty_resref();
+}
+
+fn _resolve_creature_cloak_model(creature: Creature, model_part: int): T.ResRef {
+    _ensure_appearances_loaded();
+    var appearance = Cre.get_appearance(creature);
+    if (appearance < 0 || appearance >= Array.len(_appearances)) {
+        return _empty_resref();
+    }
+
+    var entry = Array.get(_appearances, appearance);
+    if (entry.model_type != Rules.appearance_model_type_parts) {
+        return _empty_resref();
+    }
+
+    var sex = _sex_for_gender(Cre.get_gender(creature));
+    var model = _creature_part_model(sex, entry.model, 0, "cloak_", model_part);
+    if (T.resref_to_string(model) != "") {
+        return model;
+    }
+    return _creature_part_model(sex, entry.model, 0, "cloak", model_part);
+}
+
+fn _empty_visual(): ItemResolvedVisual {
+    return ItemResolvedVisual {
+        attachment_count = 0,
+        default_model = _empty_resref(),
+        baseitem_valid = false,
+        requires_wearer_context = false,
+    };
+}
+
+fn _empty_visual_row(): VisualModelRow {
+    return VisualModelRow {
+        model = _empty_resref(),
+        attach_to = _empty_resref(),
+        attach_from = _empty_resref(),
+        kind = Visual.visual_model_kind_root,
+        slot = Visual.visual_model_slot_none,
+        part = item_model_part_model1,
+        source_part = 0,
+        model_part = 0,
+        flags = Visual.visual_model_flag_none,
+    };
+}
+
+fn _empty_icon(part: int): ItemResolvedIcon {
+    return ItemResolvedIcon {
+        resref = _empty_resref(),
+        default_icon = _empty_resref(),
+        part = part,
+        baseitem_valid = false,
+        is_plt = false,
+        allow_default = false,
+        invalid_part = false,
+    };
+}
+
+fn _find_baseitem(base_item: int): Rules.BaseItemEntry {
+    _ensure_baseitems_loaded();
+    if (base_item < 0 || base_item >= Array.len(_baseitems)) {
+        var invalid: Rules.BaseItemEntry;
+        invalid.id = -1;
+        return invalid;
+    }
+
+    var entry = Array.get(_baseitems, base_item);
+    if (entry.id != base_item) {
+        var invalid: Rules.BaseItemEntry;
+        invalid.id = -1;
+        return invalid;
+    }
+    return entry;
+}
+
+fn _baseitem_slot_can_equip(entry: Rules.BaseItemEntry, slot: T.EquipIndex): bool {
+    var raw = slot as int;
+    if (entry.id < 0 || raw < 0 || raw >= 32) {
+        return false;
+    }
+    return bit.and(entry.equipable_slots, bit.shl(1, raw)) != 0;
+}
+
+fn sync_native_layout(item_obj: Item): bool {
+    if ((item_obj as object) == O.invalid) {
+        return false;
+    }
+    if (!base.__clear_item_layout(item_obj)) {
+        return false;
+    }
+
+    var stats = get_propset!(base.ItemStats)(item_obj);
+    var entry = _find_baseitem(stats.base_item);
+    if (entry.id < 0) {
+        return false;
+    }
+
+    return base.__set_item_layout(item_obj, entry.inventory_width, entry.inventory_height);
+}
+
+fn get_model_type(item_obj: Item): int {
+    if ((item_obj as object) == O.invalid) {
+        return 0;
+    }
+
+    var stats = get_propset!(base.ItemStats)(item_obj);
+    var entry = _find_baseitem(stats.base_item);
+    if (entry.id < 0) {
+        return 0;
+    }
+    return entry.model_type;
+}
+
+fn _has_required_feat(creature: Creature, feat: int): bool {
+    if (feat < 0) {
+        return true;
+    }
+    return Cre.has_feat(creature, Const.Feat(feat));
+}
+
+fn _baseitem_requirements_met(creature: Creature, item_obj: Item, _slot: T.EquipIndex): bool {
+    if ((creature as object) == O.invalid || (item_obj as object) == O.invalid) {
+        return false;
+    }
+
+    var stats = get_propset!(base.ItemStats)(item_obj);
+    var entry = _find_baseitem(stats.base_item);
+    if (entry.id < 0) {
+        return false;
+    }
+
+    if (!_baseitem_slot_can_equip(entry, _slot)) {
+        return false;
+    }
+
+    return _has_required_feat(creature, entry.req_feat0)
+        && _has_required_feat(creature, entry.req_feat1)
+        && _has_required_feat(creature, entry.req_feat2)
+        && _has_required_feat(creature, entry.req_feat3)
+        && _has_required_feat(creature, entry.req_feat4);
+}
+
+fn _append_visual_row_count(
+    visual: ItemResolvedVisual,
+    model: T.ResRef): ItemResolvedVisual {
+    if (T.resref_to_string(model) == "" || visual.attachment_count >= 3) {
+        return visual;
+    }
+
+    visual.attachment_count = visual.attachment_count + 1;
+    return visual;
+}
+
+fn resolve_visual_by_state(base_item: int, model_part0: int, model_part1: int, model_part2: int): ItemResolvedVisual {
+    var result = _empty_visual();
+    var entry = _find_baseitem(base_item);
+    if (entry.id < 0) {
+        return result;
+    }
+
+    result.baseitem_valid = true;
+    result.default_model = T.resource_resref(entry.default_model);
+
+    if (base_item == Const.base_item_cloak as int
+        && entry.model_type == Rules.item_model_type_layered
+        && model_part0 > 0) {
+        result.requires_wearer_context = true;
+        result.attachment_count = 1;
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_simple || entry.model_type == Rules.item_model_type_layered) {
+        if (model_part0 > 0) {
+            result = _append_visual_row_count(
+                result,
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0));
+        }
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_composite) {
+        if (model_part0 > 0) {
+            result = _append_visual_row_count(
+                result,
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0));
+        }
+        if (model_part1 > 0) {
+            result = _append_visual_row_count(
+                result,
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model2, model_part1));
+        }
+        if (model_part2 > 0) {
+            result = _append_visual_row_count(
+                result,
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model3, model_part2));
+        }
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_armor) {
+        result.requires_wearer_context = true;
+    }
+
+    return result;
+}
+
+fn resolve_visual(item: Item): ItemResolvedVisual {
+    if ((item as object) == O.invalid) {
+        return _empty_visual();
+    }
+
+    var stats = get_propset!(base.ItemStats)(item);
+    var visuals = get_propset!(base.ItemVisuals)(item);
+    return resolve_visual_by_state(
+        stats.base_item,
+        visuals.model_parts[item_model_part_model1],
+        visuals.model_parts[item_model_part_model2],
+        visuals.model_parts[item_model_part_model3]);
+}
+
+fn _valid_target_slot(slot: T.EquipIndex): bool {
+    var raw = slot as int;
+    return raw >= 0 && raw <= Const.equip_index_creature_skin as int;
+}
+
+fn _model_visual_row(
+    model: T.ResRef,
+    part: int,
+    target_slot: T.EquipIndex,
+    socket: T.ResRef): VisualModelRow {
+    if (T.resref_to_string(model) == "") {
+        return _empty_visual_row();
+    }
+
+    var result = _empty_visual_row();
+    result.kind = Visual.visual_model_kind_item_model;
+    if (_valid_target_slot(target_slot)) {
+        result.slot = target_slot as int;
+        result.attach_to = socket;
+    }
+    result.model = model;
+    result.part = part;
+    result.flags = Visual.visual_model_flag_none;
+    return result;
+}
+
+fn _wearer_visual_row(
+    source_model_part: int,
+    target_slot: T.EquipIndex,
+    socket: T.ResRef): VisualModelRow {
+    if (source_model_part <= 0) {
+        return _empty_visual_row();
+    }
+
+    var model_part = _find_cloakmodel(source_model_part).model;
+    if (model_part <= 0) {
+        return _empty_visual_row();
+    }
+
+    var wearer = _empty_visual_row();
+    wearer.kind = Visual.visual_model_kind_creature_model_part;
+    if (_valid_target_slot(target_slot)) {
+        wearer.slot = target_slot as int;
+        wearer.attach_to = socket;
+    }
+    wearer.part = item_model_part_model1;
+    wearer.source_part = source_model_part;
+    wearer.model_part = model_part;
+    wearer.flags = Visual.visual_model_flag_requires_wearer;
+    return wearer;
+}
+
+fn _composite_visual_row(
+    entry: Rules.BaseItemEntry,
+    model_part0: int,
+    model_part1: int,
+    model_part2: int,
+    index: int,
+    target_slot: T.EquipIndex,
+    socket: T.ResRef): VisualModelRow {
+    var at = 0;
+    if (model_part0 > 0) {
+        if (index == at) {
+            return _model_visual_row(
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0),
+                item_model_part_model1,
+                target_slot,
+                socket);
+        }
+        at = at + 1;
+    }
+    if (model_part1 > 0) {
+        if (index == at) {
+            return _model_visual_row(
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model2, model_part1),
+                item_model_part_model2,
+                target_slot,
+                socket);
+        }
+        at = at + 1;
+    }
+    if (model_part2 > 0 && index == at) {
+        return _model_visual_row(
+            Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model3, model_part2),
+            item_model_part_model3,
+            target_slot,
+            socket);
+    }
+    return _empty_visual_row();
+}
+
+fn resolve_visual_row_by_state(
+    base_item: int,
+    model_part0: int,
+    model_part1: int,
+    model_part2: int,
+    index: int,
+    target_slot: T.EquipIndex,
+    socket: T.ResRef): VisualModelRow {
+    var visual = resolve_visual_by_state(base_item, model_part0, model_part1, model_part2);
+    if (index < 0 || index >= visual.attachment_count) {
+        return _empty_visual_row();
+    }
+
+    var entry = _find_baseitem(base_item);
+    if (entry.id < 0) {
+        return _empty_visual_row();
+    }
+
+    if (base_item == Const.base_item_cloak as int
+        && entry.model_type == Rules.item_model_type_layered
+        && model_part0 > 0
+        && index == 0) {
+        return _wearer_visual_row(model_part0, target_slot, socket);
+    }
+
+    if (entry.model_type == Rules.item_model_type_simple || entry.model_type == Rules.item_model_type_layered) {
+        if (index == 0 && model_part0 > 0) {
+            return _model_visual_row(
+                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0),
+                item_model_part_model1,
+                target_slot,
+                socket);
+        }
+        return _empty_visual_row();
+    }
+
+    if (entry.model_type == Rules.item_model_type_composite) {
+        return _composite_visual_row(
+            entry,
+            model_part0,
+            model_part1,
+            model_part2,
+            index,
+            target_slot,
+            socket);
+    }
+
+    return _empty_visual_row();
+}
+
+fn resolve_visual_row(item: Item, index: int): VisualModelRow {
+    if ((item as object) == O.invalid) {
+        return _empty_visual_row();
+    }
+
+    var stats = get_propset!(base.ItemStats)(item);
+    var visuals = get_propset!(base.ItemVisuals)(item);
+    return resolve_visual_row_by_state(
+        stats.base_item,
+        visuals.model_parts[item_model_part_model1],
+        visuals.model_parts[item_model_part_model2],
+        visuals.model_parts[item_model_part_model3],
+        index,
+        T.EquipIndex(equip_index_invalid),
+        _empty_resref());
+}
+
+fn resolve_visual_row_for_slot(
+    item: Item,
+    index: int,
+    target_slot: T.EquipIndex,
+    socket: T.ResRef): VisualModelRow {
+    if ((item as object) == O.invalid) {
+        return _empty_visual_row();
+    }
+
+    var stats = get_propset!(base.ItemStats)(item);
+    var visuals = get_propset!(base.ItemVisuals)(item);
+    return resolve_visual_row_by_state(
+        stats.base_item,
+        visuals.model_parts[item_model_part_model1],
+        visuals.model_parts[item_model_part_model2],
+        visuals.model_parts[item_model_part_model3],
+        index,
+        target_slot,
+        socket);
+}
+
+fn _visual_socket_for_slot(slot: T.EquipIndex): T.ResRef {
+    if (slot == Const.equip_index_head) { return T.resref("head"); }
+    if (slot == Const.equip_index_righthand) { return T.resref("rhand"); }
+    if (slot == Const.equip_index_lefthand) { return T.resref("lhand"); }
+    return _empty_resref();
+}
+
+fn _item_plt_color(visuals: base.ItemVisuals, part: int, color: int): int {
+    var result = visuals.model_colors[color];
+    if (base.valid_visual_part_index(part)) {
+        var part_color = visuals.part_colors[base.visual_part_color_index(part, color)];
+        if (part_color != item_part_color_inherit) {
+            result = part_color;
+        }
+    }
+    return result;
+}
+
+fn set_visual_plt_colors_for_row(obj: object, item: Item, slot: int, kind: int, part: int): bool {
+    if ((item as object) == O.invalid) {
+        return false;
+    }
+
+    var visuals = get_propset!(base.ItemVisuals)(item);
+    return Visual.set_visual_plt_colors(
+        obj,
+        slot,
+        kind,
+        part,
+        Visual.visual_plt_mask_material,
+        0,
+        0,
+        _item_plt_color(visuals, part, item_color_metal1),
+        _item_plt_color(visuals, part, item_color_metal2),
+        _item_plt_color(visuals, part, item_color_cloth1),
+        _item_plt_color(visuals, part, item_color_cloth2),
+        _item_plt_color(visuals, part, item_color_leather1),
+        _item_plt_color(visuals, part, item_color_leather2),
+        0,
+        0);
+}
+
+fn _append_visual_row(owner: object, item: Item, row: VisualModelRow): bool {
+    if (row.kind == Visual.visual_model_kind_root && T.resref_to_string(row.model) == "") {
+        return true;
+    }
+
+    if (row.kind == Visual.visual_model_kind_item_model
+        || row.kind == Visual.visual_model_kind_creature_model_part) {
+        if (!Visual.add_visual_model_row(
+            owner,
+            row.model,
+            row.attach_to,
+            row.attach_from,
+            row.kind,
+            row.slot,
+            row.part,
+            row.source_part,
+            row.model_part,
+            row.flags)) {
+            return false;
+        }
+        return set_visual_plt_colors_for_row(owner, item, row.slot, row.kind, row.part);
+    }
+
+    return false;
+}
+
+fn _append_default_visual(owner: object, item: Item, visual: ItemResolvedVisual): bool {
+    if (T.resref_to_string(visual.default_model) == "") {
+        return true;
+    }
+
+    var row = _model_visual_row(
+        visual.default_model,
+        item_model_part_model1,
+        T.EquipIndex(equip_index_invalid),
+        _empty_resref());
+    return _append_visual_row(owner, item, row);
+}
+
+fn update_standalone_visual(item: Item, use_default_fallback: bool): bool {
+    if ((item as object) == O.invalid) {
+        return false;
+    }
+
+    if (!Visual.clear_visual(item, -1)) {
+        return false;
+    }
+
+    var visual = resolve_visual(item);
+    if (!visual.baseitem_valid) {
+        return false;
+    }
+
+    var ok = true;
+    var appended = 0;
+    for (var i = 0; i < visual.attachment_count; i = i + 1) {
+        var row = resolve_visual_row(item, i);
+        if (row.kind == Visual.visual_model_kind_item_model) {
+            if (!_append_visual_row(item, item, row)) {
+                ok = false;
+            } else {
+                appended = appended + 1;
+            }
+        }
+    }
+
+    if (use_default_fallback && appended == 0) {
+        if (!_append_default_visual(item, item, visual)) {
+            ok = false;
+        }
+    }
+
+    return ok;
+}
+
+fn update_visual_for_slot(creature: Creature, item: Item, slot: T.EquipIndex): bool {
+    if (!Visual.clear_visual_slot(creature, slot as int)) {
+        return false;
+    }
+
+    if ((item as object) == O.invalid) {
+        return true;
+    }
+
+    var visual = resolve_visual(item);
+    var socket = _visual_socket_for_slot(slot);
+    var ok = true;
+    for (var i = 0; i < visual.attachment_count; i = i + 1) {
+        var row = resolve_visual_row_for_slot(item, i, slot, socket);
+        if (slot == Const.equip_index_cloak && row.kind == Visual.visual_model_kind_creature_model_part) {
+            row.model = _resolve_creature_cloak_model(creature, row.model_part);
+        }
+        if (!_append_visual_row(creature, item, row)) {
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+fn update_creature_visual_equipment(creature: Creature): bool {
+    var ok = true;
+    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_head), Const.equip_index_head)) {
+        ok = false;
+    }
+    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_righthand), Const.equip_index_righthand)) {
+        ok = false;
+    }
+    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_lefthand), Const.equip_index_lefthand)) {
+        ok = false;
+    }
+    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_cloak), Const.equip_index_cloak)) {
+        ok = false;
+    }
+    return ok;
+}
+
+fn _on_item_equipped_update_visual(creature: Creature, equipped: Item, slot: T.EquipIndex) {
+    update_visual_for_slot(creature, equipped, slot);
+}
+
+fn _on_item_unequipped_update_visual(creature: Creature, _removed: Item, slot: T.EquipIndex) {
+    update_visual_for_slot(creature, O.invalid as Item, slot);
+}
+
+fn _ensure_visual_callbacks() {
+    if (did_install_visual_callbacks) {
+        return;
+    }
+
+    base.add_on_equip_callback(_on_item_equipped_update_visual);
+    base.add_on_unequip_callback(_on_item_unequipped_update_visual);
+    did_install_visual_callbacks = true;
+}
+
+fn _ensure_can_equip_callbacks() {
+    if (did_install_can_equip_callbacks) {
+        return;
+    }
+
+    base.add_can_equip_callback(_baseitem_requirements_met);
+    did_install_can_equip_callbacks = true;
+}
+
+fn _armor_icon_part_token(part: int): string {
+    if (part == item_model_part_armor_torso) { return "chest"; }
+    if (part == item_model_part_armor_robe) { return "robe"; }
+    if (part == item_model_part_armor_belt) { return "belt"; }
+    if (part == item_model_part_armor_pelvis) { return "pelvis"; }
+    if (part == item_model_part_armor_lshoul) { return "shol"; }
+    if (part == item_model_part_armor_rshoul) { return "shor"; }
+    return "";
+}
+
+fn resolve_icon_by_state(base_item: int, part: int, model_number: int, female: bool): ItemResolvedIcon {
+    var result = _empty_icon(part);
+    var entry = _find_baseitem(base_item);
+    if (entry.id < 0) {
+        return result;
+    }
+
+    result.baseitem_valid = true;
+    result.default_icon = entry.default_icon;
+
+    if (!base.valid_visual_part_index(part)) {
+        result.invalid_part = true;
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_simple) {
+        if (part == item_model_part_model1) {
+            result.allow_default = true;
+            result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_{Rules.item_model_number_suffix(model_number)}");
+        }
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_layered) {
+        if (part == item_model_part_model1) {
+            result.allow_default = true;
+            result.is_plt = true;
+            if (base_item == Const.base_item_cloak as int) {
+                var icon = _find_cloakmodel(model_number).icon;
+                if (icon >= 0) {
+                    result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_m_{Rules.item_model_number_suffix(icon)}");
+                }
+            } else {
+                result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_{Rules.item_model_number_suffix(model_number)}");
+            }
+        }
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_composite) {
+        result.allow_default = true;
+        if (part == item_model_part_model1) {
+            result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_b_{Rules.item_model_number_suffix(model_number)}");
+        } else {
+            if (part == item_model_part_model2) {
+                result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_m_{Rules.item_model_number_suffix(model_number)}");
+            } else {
+                if (part == item_model_part_model3) {
+                    result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_t_{Rules.item_model_number_suffix(model_number)}");
+                } else {
+                    result.allow_default = false;
+                    result.invalid_part = true;
+                }
+            }
+        }
+        return result;
+    }
+
+    if (entry.model_type == Rules.item_model_type_armor) {
+        if (model_number == 0) {
+            return result;
+        }
+
+        result.allow_default = true;
+        result.is_plt = true;
+        var sex = "m";
+        if (female) {
+            sex = "f";
+        }
+        var token = _armor_icon_part_token(part);
+        if (token == "") {
+            result.allow_default = false;
+            result.invalid_part = true;
+        } else {
+            result.resref = T.resref(f"ip{sex}_{token}{Rules.item_model_number_suffix(model_number)}");
+        }
+    }
+
+    return result;
+}
+
+fn resolve_icon(item: Item, part: int, female: bool): ItemResolvedIcon {
+    if ((item as object) == O.invalid) {
+        return _empty_icon(part);
+    }
+
+    var stats = get_propset!(base.ItemStats)(item);
+    var model_number = 0;
+    if (base.valid_visual_part_index(part)) {
+        var visuals = get_propset!(base.ItemVisuals)(item);
+        model_number = visuals.model_parts[part];
+    }
+    return resolve_icon_by_state(stats.base_item, part, model_number, female);
+}
 
 // IP type constants
 const ip_ability_bonus                        = Const.ItemPropertyType(0);
@@ -21,6 +875,7 @@ const ip_decreased_saving_throws_specific     = Const.ItemPropertyType(50);
 const ip_skill_bonus                          = Const.ItemPropertyType(52);
 const ip_attack_bonus                         = Const.ItemPropertyType(56);
 const ip_attack_penalty                       = Const.ItemPropertyType(60);
+const ip_monster_damage                       = Const.ItemPropertyType(77);
 
 fn equip_index_to_attack_type(equip_index: Const.EquipIndex): Const.AttackType {
     if (equip_index == Const.equip_index_righthand) { return Const.attack_type_onhand; }
@@ -32,56 +887,103 @@ fn equip_index_to_attack_type(equip_index: Const.EquipIndex): Const.AttackType {
     return Const.attack_type_any;
 }
 
-fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
+fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.ability_modifier(Const.Ability(ip.subtype), value);
+    return base.ability_modifier(Const.Ability(ip.subtype), value);
 }
 
-fn ip_gen_attack_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): effects.Effect {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    var attack = equip_index_to_attack_type(equip_index);
-    return nwn1eff.attack_modifier(attack, value);
-}
-
-fn ip_gen_enhancement_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): effects.Effect {
+fn ip_gen_attack_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): base.ItemEffectRow {
     var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
     var attack = equip_index_to_attack_type(equip_index);
-    return nwn1eff.attack_modifier(attack, value);
+    return base.attack_modifier(attack, value);
 }
 
-fn ip_gen_bonus_spell_slot(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
-    return nwn1eff.bonus_spell_slot(Const.Class(ip.subtype), ip.cost_value);
+fn ip_gen_enhancement_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): base.ItemEffectRow {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var attack = equip_index_to_attack_type(equip_index);
+    return base.attack_modifier(attack, value);
 }
 
-fn ip_gen_damage_bonus(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
+fn ip_gen_bonus_spell_slot(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    return base.bonus_spell_slot(Const.Class(ip.subtype), ip.cost_value);
+}
+
+fn ip_gen_damage_bonus(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
     var dice  = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
     var sides = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
     if (dice > 0) {
-        return nwn1eff.damage_bonus(Const.Damage(ip.subtype), dice, sides, 0, Const.DamageCategory(0));
+        return base.damage_bonus(Const.Damage(ip.subtype), dice, sides, 0, Const.DamageCategory(0));
     }
-    return nwn1eff.damage_bonus(Const.Damage(ip.subtype), 0, 0, sides, Const.DamageCategory(0));
+    return base.damage_bonus(Const.Damage(ip.subtype), 0, 0, sides, Const.DamageCategory(0));
 }
 
-fn ip_gen_haste(_ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
+fn ip_gen_monster_damage(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    var dice = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+    var sides = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+    return base.damage_bonus(Const.damage_type_base_weapon, dice, sides, 0, Const.damage_category_none);
+}
+
+fn ip_gen_haste(_ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    return base.haste();
+}
+
+fn ip_gen_save_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return base.save_modifier(Const.Save(ip.subtype), value, Const.saving_throw_vs_all);
+}
+
+fn ip_gen_save_vs_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return base.save_modifier(Const.saving_throw_all, value, Const.SaveVersus(ip.subtype));
+}
+
+fn ip_gen_skill_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
+    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return base.skill_modifier(Const.Skill(ip.subtype), value);
+}
+
+fn item_row_to_ability_modifier(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.ability_modifier(Const.Ability(row.subject), row.value0);
+}
+
+fn item_row_to_attack_modifier(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.attack_modifier(Const.AttackType(row.subject), row.value0);
+}
+
+fn item_row_to_bonus_spell_slot(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.bonus_spell_slot(Const.Class(row.subject), row.value0);
+}
+
+fn item_row_to_damage_bonus(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.damage_bonus(
+        Const.Damage(row.subject),
+        row.value0,
+        row.value1,
+        row.value2,
+        Const.DamageCategory(row.flags));
+}
+
+fn item_row_to_haste(_row: base.ItemEffectRow): effects.Effect {
     return nwn1eff.haste();
 }
 
-fn ip_gen_save_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.save_modifier(Const.Save(ip.subtype), value, Const.saving_throw_vs_all);
+fn item_row_to_save_modifier(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.save_modifier(Const.Save(row.subject), row.value0, Const.SaveVersus(row.value1));
 }
 
-fn ip_gen_save_vs_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.save_modifier(Const.saving_throw_all, value, Const.SaveVersus(ip.subtype));
-}
-
-fn ip_gen_skill_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): effects.Effect {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return nwn1eff.skill_modifier(Const.Skill(ip.subtype), value);
+fn item_row_to_skill_modifier(row: base.ItemEffectRow): effects.Effect {
+    return nwn1eff.skill_modifier(Const.Skill(row.subject), row.value0);
 }
 
 fn register_default_generators() {
+    base.set_effect_generator_for_op(base.item_effect_op_ability_modifier, item_row_to_ability_modifier);
+    base.set_effect_generator_for_op(base.item_effect_op_attack_modifier, item_row_to_attack_modifier);
+    base.set_effect_generator_for_op(base.item_effect_op_bonus_spell_slot, item_row_to_bonus_spell_slot);
+    base.set_effect_generator_for_op(base.item_effect_op_damage_bonus, item_row_to_damage_bonus);
+    base.set_effect_generator_for_op(base.item_effect_op_haste, item_row_to_haste);
+    base.set_effect_generator_for_op(base.item_effect_op_save_modifier, item_row_to_save_modifier);
+    base.set_effect_generator_for_op(base.item_effect_op_skill_modifier, item_row_to_skill_modifier);
+
     base.set_generator_for_type(ip_ability_bonus,                    ip_gen_ability_modifier);
     base.set_generator_for_type(ip_decreased_ability_score,          ip_gen_ability_modifier);
     base.set_generator_for_type(ip_attack_bonus,                     ip_gen_attack_modifier);
@@ -90,6 +992,7 @@ fn register_default_generators() {
     base.set_generator_for_type(ip_enhancement_penalty,              ip_gen_enhancement_modifier);
     base.set_generator_for_type(ip_bonus_spell_slot_of_level_n,      ip_gen_bonus_spell_slot);
     base.set_generator_for_type(ip_damage_bonus,                     ip_gen_damage_bonus);
+    base.set_generator_for_type(ip_monster_damage,                   ip_gen_monster_damage);
     base.set_generator_for_type(ip_haste,                            ip_gen_haste);
     base.set_generator_for_type(ip_saving_throw_bonus,               ip_gen_save_modifier);
     base.set_generator_for_type(ip_decreased_saving_throws,          ip_gen_save_modifier);
@@ -97,6 +1000,9 @@ fn register_default_generators() {
     base.set_generator_for_type(ip_decreased_saving_throws_specific, ip_gen_save_vs_modifier);
     base.set_generator_for_type(ip_skill_bonus,                      ip_gen_skill_modifier);
     base.set_generator_for_type(ip_decreased_skill_modifier,         ip_gen_skill_modifier);
+    _ensure_visual_callbacks();
+    _ensure_can_equip_callbacks();
+    Equipment.ensure_equipment_ac_callbacks();
 }
 
 fn is_creature_weapon(it: Item): bool {
@@ -108,27 +1014,86 @@ fn is_creature_weapon(it: Item): bool {
 }
 
 fn is_shield(base_item: int): bool {
-    return base_item == Const.base_item_smallshield as int
-        || base_item == Const.base_item_largeshield as int
-        || base_item == Const.base_item_towershield as int;
+    return Equipment.is_shield(base_item);
 }
 
 fn calculate_item_ac(obj: Item): int {
+    return Equipment.calculate_item_ac(obj);
+}
+
+fn sync_equipment_armor_class(creature: Creature): bool {
+    return Equipment.sync_equipment_armor_class(creature);
+}
+
+fn _item_property_value(ip: base.ItemProperty): float {
+    var property_value = base.__ip_definition_cost(ip.prop_type);
+    var subtype_value = base.__ip_subtype_cost(ip.prop_type, ip.subtype);
+    if (property_value == 0.0) {
+        property_value = subtype_value;
+    }
+
+    var cost_value = base.__ip_cost_table_float(ip.prop_type, ip.cost_value, "Cost");
+    if (cost_value != 0.0) {
+        property_value = property_value * cost_value;
+    }
+    return property_value;
+}
+
+fn calculate_value(obj: Item): int {
     if ((obj as object) == O.invalid) {
         return 0;
     }
 
     var stats = get_propset!(base.ItemStats)(obj);
-    // Preserve legacy C++ parity for now: shields explicitly return 0.
-    if (is_shield(stats.base_item)) {
+    var entry = _find_baseitem(stats.base_item);
+    if (entry.id < 0) {
         return 0;
     }
 
-    if (stats.base_item == Const.base_item_armor as int
-        && stats.armor_id != -1
-        && stats.armor_ac_bonus_valid != 0) {
-        return stats.armor_ac_bonus;
+    var base_value = 0.0;
+    if (stats.base_item == Const.base_item_armor as int) {
+        if (stats.armor_id < 0) {
+            return 0;
+        }
+        base_value = _find_armor(stats.armor_id).cost;
+    } else {
+        base_value = entry.base_cost as float;
     }
 
-    return 0;
+    var positive = 0.0;
+    var negative = 0.0;
+    var spell_values: array!(float) = {};
+
+    for (var ip in stats.item_properties) {
+        var property_value = _item_property_value(ip);
+        if (ip.prop_type == Const.ip_cast_spell as int) {
+            Array.push(spell_values, property_value);
+        } else {
+            if (property_value > 0.0) {
+                positive = positive + property_value;
+            } else {
+                negative = negative + property_value;
+            }
+        }
+    }
+
+    var total_spell_value = 0.0;
+    if (Array.len(spell_values) > 0) {
+        Array.sort(spell_values, fn(a: float, b: float): bool { return a > b; });
+        for (var value in spell_values) {
+            total_spell_value = total_spell_value + value * 0.5;
+        }
+
+        total_spell_value = total_spell_value + Array.get(spell_values, 0) * 0.5;
+        if (Array.len(spell_values) >= 2) {
+            total_spell_value = total_spell_value + Array.get(spell_values, 1) * 0.25;
+        }
+    }
+
+    var result = base_value;
+    result = result + 1000.0 * ((positive * positive) - (negative * negative)) + total_spell_value;
+    result = result * (entry.stack_size as float);
+    result = result * entry.cost_multiplier;
+    result = result + (stats.cost_additional as float);
+    return Math.round(result) as int;
 }

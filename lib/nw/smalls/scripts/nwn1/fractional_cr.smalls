@@ -1,0 +1,29 @@
+from nwn1.rules import { FractionalChallengeRatingEntry };
+import core.array as Array;
+
+var _loaded = false;
+var _entries: array!(FractionalChallengeRatingEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _entries = load_config!(FractionalChallengeRatingEntry)("nwn1.data.fractionalcr");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_entries);
+}
+
+fn resolve(challenge_rating: float): float {
+    _ensure_loaded();
+    for (var i = 0; i < Array.len(_entries); i += 1) {
+        var entry = Array.get(_entries, i);
+        if (entry.min < challenge_rating && entry.denominator != 0) {
+            return 1.0 / (entry.denominator as float);
+        }
+    }
+    return 0.0;
+}

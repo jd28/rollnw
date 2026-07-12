@@ -91,6 +91,11 @@ The renderer should not infer behavior from model, texture, or node names.
 Source-specific quirks should be lowered into explicit common records or kept in
 a compatibility sidecar with counters.
 
+Object-level model, light, and icon references enter C++ through the
+[Visual Asset Protocol](docs/visual_asset_protocol.md).
+Smalls emits semantic rows; C++ loads concrete assets and turns them into
+renderer-owned model instances and draw records.
+
 ### Particles
 
 The particle system is source-neutral:
@@ -126,6 +131,8 @@ compiled runtime asset path exists.
 
 ## Source Conversion Notes
 
+- [Visual Asset Protocol](docs/visual_asset_protocol.md): Smalls to C++ to
+  renderer model/light/icon row protocol.
 - [docs/gltf.md](docs/gltf.md): glTF to `ModelAsset` / `RenderModel`.
 - [docs/nwn_model_conversion.md](docs/nwn_model_conversion.md): NWN MDL to
   common model data plus compatibility sidecars.

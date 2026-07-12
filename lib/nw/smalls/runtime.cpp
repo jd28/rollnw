@@ -26,6 +26,7 @@
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -257,24 +258,21 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_object(*this);
         register_core_area(*this);
         register_core_creature(*this);
-        register_core_area(*this);
-        register_core_door(*this);
-        register_core_encounter(*this);
         register_core_module(*this);
         register_core_player(*this);
-        register_core_trigger(*this);
-        register_core_waypoint(*this);
-        register_core_sound(*this);
-        register_core_store(*this);
-        register_core_placeable(*this);
         register_core_combat(*this);
-        register_core_progression(*this);
+        register_core_visual(*this);
 
         // Force-load core propset schemas so pools are primed before object creation
         load_module("core.creature");
         load_module("core.item");
         load_module("core.door");
+        load_module("core.encounter");
         load_module("core.placeable");
+        load_module("core.sound");
+        load_module("core.store");
+        load_module("core.trigger");
+        load_module("core.waypoint");
         prime_propset_pools();
 
         const auto& init_mod = kernel::config().init_module();
@@ -612,6 +610,26 @@ const Type* Runtime::get_type(TypeID id) const
 const Type* Runtime::get_type(StringView name) const
 {
     return type_table_.get(name);
+}
+
+const StructDef* Runtime::get_struct_def(TypeID id) const
+{
+    const Type* type = get_type(id);
+    for (size_t guard = 0; type && guard < type_table_.types_.size(); ++guard) {
+        if ((type->type_kind != TK_newtype && type->type_kind != TK_alias)
+            || type->type_params.empty()
+            || !type->type_params[0].is<TypeID>()) {
+            break;
+        }
+        type = get_type(type->type_params[0].as<TypeID>());
+    }
+
+    if (!type || type->type_kind != TK_struct || type->type_params.empty()
+        || !type->type_params[0].is<StructID>()) {
+        return nullptr;
+    }
+
+    return type_table_.get(type->type_params[0].as<StructID>());
 }
 
 TypeID Runtime::type_id(StringView name, bool define)
@@ -1881,8 +1899,6 @@ void Runtime::reset_vm_profile() noexcept
     vm_propset_write_field_count_ = 0;
     vm_propset_write_field_ns_ = 0;
     vm_propset_write_site_hist_.clear();
-    vm_populate_creature_propsets_count_ = 0;
-    vm_populate_creature_propsets_ns_ = 0;
 }
 
 VmProfileSnapshot Runtime::vm_profile_snapshot() const
@@ -1895,8 +1911,6 @@ VmProfileSnapshot Runtime::vm_profile_snapshot() const
     out.propset_get_or_create_ns = vm_propset_get_or_create_ns_;
     out.propset_write_field_count = vm_propset_write_field_count_;
     out.propset_write_field_ns = vm_propset_write_field_ns_;
-    out.populate_creature_propsets_count = vm_populate_creature_propsets_count_;
-    out.populate_creature_propsets_ns = vm_populate_creature_propsets_ns_;
 
     for (size_t i = 0; i < vm_opcode_count_.size(); ++i) {
         if (vm_opcode_count_[i] == 0) {
@@ -2013,15 +2027,6 @@ void Runtime::record_propset_write_field_site(TypeID propset_type, uint32_t offs
     }
     String key = fmt::format("{}@{}", type_name(propset_type), offset);
     ++vm_propset_write_site_hist_[std::move(key)];
-}
-
-void Runtime::record_populate_creature_propsets(uint64_t ns) noexcept
-{
-    if (!vm_profile_enabled_) {
-        return;
-    }
-    ++vm_populate_creature_propsets_count_;
-    vm_populate_creature_propsets_ns_ += ns;
 }
 
 void Runtime::fail(StringView msg)
@@ -2611,6 +2616,7 @@ void Runtime::add_module_path(const std::filesystem::path& path)
         }
         resman_.add_custom_container(new (ptr) StaticDirectory(path, allocator()));
         resman_needs_build_ = true;
+        config_array_cache_.clear();
         LOG_F(INFO, "[runtime] Added module path: {}", path_to_string(path));
     } else {
         LOG_F(WARNING, "[runtime] Module path does not exist or is not a directory: {}", path_to_string(path));
@@ -3272,6 +3278,14 @@ bool Runtime::is_propset_type(TypeID type_id) const
     return propsets_ && propsets_->is_propset_type(*this, type_id);
 }
 
+Value Runtime::find_propset_ref(TypeID propset_type, ObjectHandle obj)
+{
+    if (!propsets_) {
+        return Value{};
+    }
+    return propsets_->find(*this, propset_type, obj);
+}
+
 Value Runtime::get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj)
 {
     if (!propsets_) {
@@ -3304,6 +3318,12 @@ void Runtime::prime_propset_pools()
 {
     if (!propsets_) { return; }
     propsets_->prime_pools(*this);
+}
+
+void Runtime::object_propset_types(ObjectType type, std::vector<TypeID>& out) const
+{
+    if (!propsets_) { return; }
+    propsets_->object_propset_types(type, out);
 }
 
 Value Runtime::read_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id)
@@ -5657,6 +5677,11 @@ static uint32_t find_index_field(const StructDef* def)
 
 Value Runtime::load_config_array_value(StringView path, TypeID config_type)
 {
+    if (resman_needs_build_) {
+        resman_.build_registry();
+        resman_needs_build_ = false;
+    }
+
     String canonical_path = normalize_module_name(path);
 
     // Cache lookup
@@ -5852,6 +5877,8 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
     if (!arr) return Value{};
     arr->resize(nrows);
 
+    const TypeID resref_type = type_id("core.types.ResRef", false);
+
     for (size_t i = 0; i < nrows; ++i) {
         HeapPtr entry = alloc_struct(config_type);
         if (!entry.value) continue;
@@ -5862,6 +5889,78 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
 
         // Write each mapped column into the corresponding field
         for (const auto& m : conv.mappings) {
+            // Handle secondary 2DA row-major fixed-array loading.
+            if (!m.secondary_grid_column_prefix.empty() && m.secondary_grid_column_count > 0) {
+                StringView table_name;
+                if (!tda.get_to(i, m.column, table_name) || table_name.empty() || table_name == "****") {
+                    continue;
+                }
+
+                uint32_t fidx = def->field_index(m.field);
+                if (fidx == UINT32_MAX) { continue; }
+                const FieldDef& fd = def->fields[fidx];
+
+                TypeID arr_type = fd.type_id;
+                const Type* arr_ftype = get_type(arr_type);
+                while (arr_ftype && (arr_ftype->type_kind == TK_newtype || arr_ftype->type_kind == TK_alias)) {
+                    TypeID next = arr_ftype->type_params[0].as<TypeID>();
+                    if (next == invalid_type_id || next == arr_type) { break; }
+                    arr_type = next;
+                    arr_ftype = get_type(arr_type);
+                }
+                if (!arr_ftype || arr_ftype->type_kind != TK_fixed_array
+                    || !arr_ftype->type_params[0].is<TypeID>()
+                    || !arr_ftype->type_params[1].is<int32_t>()) {
+                    continue;
+                }
+
+                TypeID elem_type = arr_ftype->type_params[0].as<TypeID>();
+                int32_t fixed_size = arr_ftype->type_params[1].as<int32_t>();
+                const Type* elem_obj = get_type(elem_type);
+                while (elem_obj && (elem_obj->type_kind == TK_newtype || elem_obj->type_kind == TK_alias)) {
+                    TypeID next = elem_obj->type_params[0].as<TypeID>();
+                    if (next == invalid_type_id || next == elem_type) { break; }
+                    elem_type = next;
+                    elem_obj = get_type(elem_type);
+                }
+                if (!elem_obj || elem_obj->type_kind != TK_primitive) { continue; }
+
+                StaticTwoDA sec{kernel::resman().demand({String(table_name), ResourceType::twoda})};
+                if (!sec.is_valid()) { continue; }
+
+                uint8_t* fptr = data + fd.offset;
+                for (size_t row = 0; row < sec.rows(); ++row) {
+                    int32_t column_limit = m.secondary_grid_column_count;
+                    if (!m.secondary_grid_limit_column.empty()) {
+                        if (!sec.get_to(row, m.secondary_grid_limit_column, column_limit, false)) {
+                            column_limit = 0;
+                        }
+                    }
+                    column_limit = std::clamp(column_limit, int32_t{0}, m.secondary_grid_column_count);
+
+                    for (int32_t col = 0; col < m.secondary_grid_column_count; ++col) {
+                        size_t fixed_index = row * static_cast<size_t>(m.secondary_grid_column_count) + static_cast<size_t>(col);
+                        if (fixed_index >= static_cast<size_t>(fixed_size)) { break; }
+
+                        uint8_t* eptr = fptr + fixed_index * elem_obj->size;
+                        if (elem_type == int_type()) {
+                            int32_t v = m.int_default;
+                            if (col < column_limit) {
+                                sec.get_to(row, fmt::format("{}{}", m.secondary_grid_column_prefix, col), v, false);
+                            }
+                            *reinterpret_cast<int32_t*>(eptr) = v;
+                        } else if (elem_type == float_type()) {
+                            float v = m.float_default;
+                            if (col < column_limit) {
+                                sec.get_to(row, fmt::format("{}{}", m.secondary_grid_column_prefix, col), v, false);
+                            }
+                            *reinterpret_cast<float*>(eptr) = v;
+                        }
+                    }
+                }
+                continue;
+            }
+
             // Handle secondary 2DA loading (column names a 2DA resource; rows fill fixed arrays)
             if (!m.secondary_columns.empty()) {
                 StringView table_name;
@@ -5980,15 +6079,15 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
 
                 uint8_t* eptr = fptr + static_cast<size_t>(fixed_index) * elem_type_obj->size;
                 if (elem_type == int_type()) {
-                    int32_t v = 0;
+                    int32_t v = m.int_default;
                     tda.get_to(i, m.column, v);
                     *reinterpret_cast<int32_t*>(eptr) = v;
                 } else if (elem_type == float_type()) {
-                    float v = 0.f;
+                    float v = m.float_default;
                     tda.get_to(i, m.column, v);
                     *reinterpret_cast<float*>(eptr) = v;
                 } else if (elem_type == bool_type()) {
-                    int32_t v = 0;
+                    int32_t v = m.bool_default ? 1 : 0;
                     tda.get_to(i, m.column, v);
                     *reinterpret_cast<bool*>(eptr) = (v != 0);
                 }
@@ -6001,6 +6100,17 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                 if (next == invalid_type_id || next == field_type) break;
                 field_type = next;
                 ftype = get_type(field_type);
+            }
+
+            if (is_native_value_type(field_type)) {
+                if (field_type == resref_type) {
+                    StringView value;
+                    if (tda.get_to(i, m.column, value) && !value.empty() && value != "****") {
+                        nw::Resref resref{value};
+                        std::memcpy(fptr, &resref, sizeof(resref));
+                    }
+                }
+                continue;
             }
 
             if (!ftype || ftype->type_kind != TK_primitive) continue;
@@ -6018,16 +6128,16 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                     }
                     *reinterpret_cast<int32_t*>(fptr) = v;
                 } else {
-                    int32_t v = 0;
+                    int32_t v = m.int_default;
                     tda.get_to(i, m.column, v);
                     *reinterpret_cast<int32_t*>(fptr) = v;
                 }
             } else if (field_type == float_type()) {
-                float v = 0.f;
+                float v = m.float_default;
                 tda.get_to(i, m.column, v);
                 *reinterpret_cast<float*>(fptr) = v;
             } else if (field_type == bool_type()) {
-                int32_t v = 0;
+                int32_t v = m.bool_default ? 1 : 0;
                 tda.get_to(i, m.column, v);
                 *reinterpret_cast<bool*>(fptr) = (v != 0);
             }

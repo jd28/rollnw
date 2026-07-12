@@ -1,8 +1,9 @@
 import core.effects as eff;
+import core.creature as Cre;
 from core.creature import { CreatureCombat, CreatureHealth };
 from core.creature import { CreatureCombatCache };
 
-from core.math import { abs, clamp };
+from core.math import { abs, clamp, max };
 from core.types import { ObjectMask };
 
 import nwn1.constants as Const;
@@ -15,7 +16,7 @@ const effect_event_apply_remove = 3;
 
 fn _register_effect_type(effect_type: Const.EffectType, object_mask: ObjectMask, event_mask: int,
     has_versus_component: bool = false) {
-    eff.register_type_metadata(effect_type as int, object_mask as int, event_mask, 0, 0, has_versus_component);
+    eff.register_type_metadata(effect_type as int, object_mask as int, event_mask, has_versus_component);
 }
 
 fn register_effect_types() {
@@ -78,11 +79,15 @@ fn _on_temp_hitpoints_effect(cre: Creature, effect: eff.Effect, is_apply: bool) 
     if (is_apply) {
         health.hp_current += amount;
         health.hp_temp += amount;
+        health.hp_max += amount;
+        Cre.set_vitals(cre, health.hp_current, health.hp_max);
         return;
     }
 
     health.hp_current -= amount;
     health.hp_temp -= amount;
+    health.hp_max = max(1, health.hp_max - amount);
+    Cre.set_vitals(cre, health.hp_current, health.hp_max);
 }
 
 fn on_effects(obj: object, effects_batch: array!(eff.Effect), is_apply: bool) {

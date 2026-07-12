@@ -48,11 +48,13 @@ public:
     static constexpr uint32_t chunk_size = 2048;
 
     bool is_propset_type(const Runtime& rt, TypeID type_id) const;
+    Value find(Runtime& rt, TypeID propset_type, ObjectHandle obj);
     Value get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj);
 
     void init_object_propsets(Runtime& rt, ObjectHandle obj);
     void free_object_propsets(Runtime& rt, ObjectHandle obj);
     void prime_pools(Runtime& rt);
+    void object_propset_types(ObjectType type, std::vector<TypeID>& out) const;
 
     Value read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty);
     bool write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value);

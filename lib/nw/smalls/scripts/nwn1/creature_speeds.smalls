@@ -1,0 +1,27 @@
+from nwn1.rules import { CreatureSpeedEntry };
+import core.array as Array;
+
+var _loaded = false;
+var _speeds: array!(CreatureSpeedEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _speeds = load_config!(CreatureSpeedEntry)("nwn1.data.creaturespeed");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_speeds);
+}
+
+fn walkrate(row: int): float {
+    _ensure_loaded();
+    if (row < 0 || row >= Array.len(_speeds)) {
+        return 0.0;
+    }
+    var entry = Array.get(_speeds, row);
+    return entry.walkrate;
+}

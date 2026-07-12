@@ -6,7 +6,7 @@ import core.effects as effects;
 import core.item as item;
 import core.math as Math;
 import core.object as Obj;
-from core.creature import { CreatureCombat, CreatureCombatCache, CreatureStats };
+from core.creature import { CombatEpochKeys, CreatureCombat, CreatureCombatCache, CreatureStats };
 
 from nwn1.cachedefs import {
     slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
@@ -22,6 +22,8 @@ from nwn1.cachedefs import {
 };
 
 import nwn1.constants as Const;
+import nwn1.creature_size as CreatureSize;
+import nwn1.equipment as Equipment;
 import nwn1.races as races;
 
 // Total number of modifier types (0..mod_type_damage_special_attack inclusive)
@@ -344,22 +346,24 @@ fn _refresh_offense_non_target_cache_from_handle(cache: CreatureCombatCache, com
     cache.ab_target = any;
 
     cache.ab_nt_cache_valid = 1;
-    cache.ab_nt_effect_epoch = combat.effect_epoch;
-    cache.ab_nt_progression_epoch = combat.progression_epoch;
-    cache.ab_nt_equip_epoch = combat.equip_epoch;
-    cache.ab_nt_mode_epoch = combat.combat_mode;
+    var keys = synced_combat_epoch_keys(combat);
+    cache.ab_nt_effect_epoch = keys.effect_epoch;
+    cache.ab_nt_progression_epoch = keys.progression_epoch;
+    cache.ab_nt_equip_epoch = keys.equip_epoch;
+    cache.ab_nt_mode_epoch = keys.mode_epoch;
 }
 
 fn _is_offense_non_target_cache_valid(cache: CreatureCombatCache, combat: CreatureCombat): bool {
+    var keys = synced_combat_epoch_keys(combat);
     return cache.ab_nt_cache_valid != 0
-        && cache.ab_nt_effect_epoch == combat.effect_epoch
-        && cache.ab_nt_progression_epoch == combat.progression_epoch
-        && cache.ab_nt_equip_epoch == combat.equip_epoch
-        && cache.ab_nt_mode_epoch == combat.combat_mode;
+        && cache.ab_nt_effect_epoch == keys.effect_epoch
+        && cache.ab_nt_progression_epoch == keys.progression_epoch
+        && cache.ab_nt_equip_epoch == keys.equip_epoch
+        && cache.ab_nt_mode_epoch == keys.mode_epoch;
 }
 
 fn refresh_offense_non_target_cache(attacker: Creature) {
-    var combat = get_propset!(CreatureCombat)(attacker);
+    var combat = sync_combat_epoch_keys(get_propset!(CreatureCombat)(attacker), attacker);
     var cache = get_propset!(CreatureCombatCache)(attacker);
     _refresh_offense_non_target_cache_from_handle(cache, combat, attacker);
 }
@@ -368,11 +372,8 @@ fn refresh_offense_non_target_cache(attacker: Creature) {
 // ============================================================================
 
 fn is_cache_valid(cache: CreatureCombatCache, creature: Creature): bool {
-    var combat = get_propset!(CreatureCombat)(creature);
-    return cache.effect_epoch == combat.effect_epoch
-        && cache.progression_epoch == combat.progression_epoch
-        && cache.equip_epoch == combat.equip_epoch
-        && cache.mode_epoch == combat.combat_mode;
+    var combat = sync_combat_epoch_keys(get_propset!(CreatureCombat)(creature), creature);
+    return cache_epoch_keys_match(cache, synced_combat_epoch_keys(combat));
 }
 
 fn build_defense_cache(cache: CreatureCombatCache, creature: Creature) {
@@ -393,12 +394,8 @@ fn build_defense_cache(cache: CreatureCombatCache, creature: Creature) {
     cache.immune_positive = C.damage_immunity_effect_delta(creature, Const.damage_type_positive, Obj.invalid);
     cache.immune_negative = C.damage_immunity_effect_delta(creature, Const.damage_type_negative, Obj.invalid);
 
-    // Set epochs
-    var combat = get_propset!(CreatureCombat)(creature);
-    cache.effect_epoch = combat.effect_epoch;
-    cache.progression_epoch = combat.progression_epoch;
-    cache.equip_epoch = combat.equip_epoch;
-    cache.mode_epoch = combat.combat_mode;
+    var combat = sync_combat_epoch_keys(get_propset!(CreatureCombat)(creature), creature);
+    stamp_cache_epoch_keys(cache, synced_combat_epoch_keys(combat));
 }
 
 fn refresh_defense_cache(creature: Creature) {
@@ -421,135 +418,98 @@ fn target_effect_epoch(obj: object): int {
     return 0;
 }
 
+fn combat_epoch_keys(combat: CreatureCombat, creature: Creature): CombatEpochKeys {
+    return CombatEpochKeys {
+        effect_epoch = C.creature_effect_version(creature),
+        equip_epoch = C.creature_equip_version(creature),
+        progression_epoch = Cre.progression_version(creature),
+        mode_epoch = combat.combat_mode,
+    };
+}
+
+fn synced_combat_epoch_keys(combat: CreatureCombat): CombatEpochKeys {
+    return CombatEpochKeys {
+        effect_epoch = combat.effect_epoch,
+        equip_epoch = combat.equip_epoch,
+        progression_epoch = combat.progression_epoch,
+        mode_epoch = combat.combat_mode,
+    };
+}
+
+fn combat_epoch_keys_changed(combat: CreatureCombat, keys: CombatEpochKeys): bool {
+    return combat.effect_epoch != keys.effect_epoch
+        || combat.equip_epoch != keys.equip_epoch
+        || combat.progression_epoch != keys.progression_epoch
+        || combat.combat_mode != keys.mode_epoch;
+}
+
+fn apply_combat_epoch_keys(combat: CreatureCombat, keys: CombatEpochKeys): CreatureCombat {
+    if (combat.effect_epoch != keys.effect_epoch) { combat.effect_epoch = keys.effect_epoch; }
+    if (combat.equip_epoch != keys.equip_epoch) { combat.equip_epoch = keys.equip_epoch; }
+    if (combat.progression_epoch != keys.progression_epoch) {
+        combat.progression_epoch = keys.progression_epoch;
+    }
+    return combat;
+}
+
+fn sync_combat_epoch_keys(combat: CreatureCombat, creature: Creature): CreatureCombat {
+    return apply_combat_epoch_keys(combat, combat_epoch_keys(combat, creature));
+}
+
+fn cache_epoch_keys_match(cache: CreatureCombatCache, keys: CombatEpochKeys): bool {
+    return cache.effect_epoch == keys.effect_epoch
+        && cache.progression_epoch == keys.progression_epoch
+        && cache.equip_epoch == keys.equip_epoch
+        && cache.mode_epoch == keys.mode_epoch;
+}
+
+fn stamp_cache_epoch_keys(cache: CreatureCombatCache, keys: CombatEpochKeys) {
+    cache.effect_epoch = keys.effect_epoch;
+    cache.progression_epoch = keys.progression_epoch;
+    cache.equip_epoch = keys.equip_epoch;
+    cache.mode_epoch = keys.mode_epoch;
+}
+
 // Sync offense context keys for attacker vs target. Invalidates stale slots
 // and eagerly rebuilds the two most common non-target slots (onhand/offhand).
 // Returns the attacker's CreatureCombat handle so callers avoid a second get_propset!.
 fn sync_off_context(attacker: Creature, target: object): CreatureCombat {
-    var combat = get_propset!(CreatureCombat)(attacker);
-
-    var cur_self_eff  = C.creature_effect_version(attacker);
-    var cur_equip     = combat.equip_epoch;
-    var cur_mode      = combat.combat_mode;
-    var cur_prog      = combat.progression_epoch;
-    var cur_tgt_eff   = target_effect_epoch(target);
-
-    var changed_key_mask = 0;
-    if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
-    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
-    if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
-    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
-    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
-    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
-
-    if (changed_key_mask != 0) {
-        var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
-        slot_clear(combat, clear_slot_bits);
-
-        // Update stored context keys.
-        combat.off_target             = target;
-        combat.off_effect_epoch       = cur_self_eff;
-        combat.off_target_effect_epoch = cur_tgt_eff;
-        combat.off_equip_epoch        = cur_equip;
-        combat.off_mode_epoch         = cur_mode;
-        combat.off_progression_epoch  = cur_prog;
-
-        // Prewarm all non-target offense AB slots.
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_offhand);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_cweapon)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_cweapon);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_unarmed)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_unarmed);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_any)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_any);
-        }
-    }
-
-    return combat;
+    return sync_off_context_with_tgt_epoch(get_propset!(CreatureCombat)(attacker),
+        attacker, target, target_effect_epoch(target));
 }
 
 // Same as sync_off_context but caller already holds the attacker's propset handle
 // (e.g. returned by sync_combat_round_state_from_native). Skips the initial
 // get_propset! call on attacker.
 fn sync_off_context_from_handle(combat: CreatureCombat, attacker: Creature, target: object): CreatureCombat {
-    var cur_self_eff  = C.creature_effect_version(attacker);
-    var cur_equip     = combat.equip_epoch;
-    var cur_mode      = combat.combat_mode;
-    var cur_prog      = combat.progression_epoch;
-    var cur_tgt_eff   = target_effect_epoch(target);
-
-    var changed_key_mask = 0;
-    if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
-    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
-    if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
-    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
-    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
-    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
-
-    if (changed_key_mask != 0) {
-        var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
-        slot_clear(combat, clear_slot_bits);
-
-        combat.off_target             = target;
-        combat.off_effect_epoch       = cur_self_eff;
-        combat.off_target_effect_epoch = cur_tgt_eff;
-        combat.off_equip_epoch        = cur_equip;
-        combat.off_mode_epoch         = cur_mode;
-        combat.off_progression_epoch  = cur_prog;
-
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_offhand)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_offhand);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_cweapon)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_cweapon);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_unarmed)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_unarmed);
-        }
-        if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_any)) != 0) {
-            rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_any);
-        }
-    }
-
-    return combat;
+    return sync_off_context_with_tgt_epoch(combat, attacker, target, target_effect_epoch(target));
 }
 
 // Like sync_off_context_from_handle but takes the target's effect epoch as a parameter,
 // avoiding a redundant get_propset!(CreatureCombat)(target) call when the caller already
 // holds a def_combat handle for the target (e.g. from sync_def_context).
 fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, target: object, cur_tgt_eff: int): CreatureCombat {
-    var cur_self_eff  = C.creature_effect_version(attacker);
-    var cur_equip     = combat.equip_epoch;
-    var cur_mode      = combat.combat_mode;
-    var cur_prog      = combat.progression_epoch;
+    combat = sync_combat_epoch_keys(combat, attacker);
+    var keys = synced_combat_epoch_keys(combat);
 
     var changed_key_mask = 0;
     if (target != combat.off_target)              { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
-    if (cur_self_eff  != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (keys.effect_epoch != combat.off_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
     if (cur_tgt_eff   != combat.off_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
-    if (cur_equip     != combat.off_equip_epoch)  { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
-    if (cur_mode      != combat.off_mode_epoch)   { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
-    if (cur_prog      != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
+    if (keys.equip_epoch != combat.off_equip_epoch) { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (keys.mode_epoch != combat.off_mode_epoch) { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (keys.progression_epoch != combat.off_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
 
     if (changed_key_mask != 0) {
         var clear_slot_bits = off_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         combat.off_target             = target;
-        combat.off_effect_epoch       = cur_self_eff;
+        combat.off_effect_epoch       = keys.effect_epoch;
         combat.off_target_effect_epoch = cur_tgt_eff;
-        combat.off_equip_epoch        = cur_equip;
-        combat.off_mode_epoch         = cur_mode;
-        combat.off_progression_epoch  = cur_prog;
+        combat.off_equip_epoch        = keys.equip_epoch;
+        combat.off_mode_epoch         = keys.mode_epoch;
+        combat.off_progression_epoch  = keys.progression_epoch;
 
         if (bit.and(clear_slot_bits, bit.shl(1, slot_off_ab_nt_onhand)) != 0) {
             rebuild_off_nt_slot_from_handle(combat, attacker, slot_off_ab_nt_onhand);
@@ -579,10 +539,8 @@ fn sync_off_context_with_tgt_epoch(combat: CreatureCombat, attacker: Creature, t
 // Returns the target's CreatureCombat handle so callers avoid a second get_propset!.
 fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, attacker_effect_epoch: int = -2147483648): CreatureCombat {
     var combat = get_propset!(CreatureCombat)(target);
-
-    var cur_self_eff = C.creature_effect_version(target);
-    var cur_equip    = combat.equip_epoch;
-    var cur_mode     = combat.combat_mode;
+    combat = sync_combat_epoch_keys(combat, target);
+    var keys = synced_combat_epoch_keys(combat);
     var cur_atk_eff = attacker_effect_epoch;
     if (cur_atk_eff == -2147483648) {
         cur_atk_eff = target_effect_epoch(attacker);
@@ -590,20 +548,22 @@ fn sync_def_context(attacker: Creature, target: Creature, _is_ranged: bool, atta
 
     var changed_key_mask = 0;
     if (attacker != combat.def_target) { changed_key_mask = bit.or(changed_key_mask, key_target_id); }
-    if (cur_self_eff != combat.def_self_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
+    if (keys.effect_epoch != combat.def_self_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_self_effect_epoch); }
     if (cur_atk_eff  != combat.def_target_effect_epoch) { changed_key_mask = bit.or(changed_key_mask, key_target_effect_epoch); }
-    if (cur_equip    != combat.def_equip_epoch)       { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
-    if (cur_mode     != combat.def_mode_epoch)        { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (keys.equip_epoch != combat.def_equip_epoch) { changed_key_mask = bit.or(changed_key_mask, key_equipment_epoch); }
+    if (keys.mode_epoch != combat.def_mode_epoch) { changed_key_mask = bit.or(changed_key_mask, key_mode_epoch); }
+    if (keys.progression_epoch != combat.def_progression_epoch) { changed_key_mask = bit.or(changed_key_mask, key_progression_epoch); }
 
     if (changed_key_mask != 0) {
         var clear_slot_bits = def_clear_lut[bit.shr(changed_key_mask, 8)];
         slot_clear(combat, clear_slot_bits);
 
         combat.def_target            = attacker;
-        combat.def_self_effect_epoch = cur_self_eff;
+        combat.def_self_effect_epoch = keys.effect_epoch;
         combat.def_target_effect_epoch = cur_atk_eff;
-        combat.def_equip_epoch       = cur_equip;
-        combat.def_mode_epoch        = cur_mode;
+        combat.def_equip_epoch       = keys.equip_epoch;
+        combat.def_mode_epoch        = keys.mode_epoch;
+        combat.def_progression_epoch = keys.progression_epoch;
     }
 
     return combat;
@@ -645,9 +605,10 @@ fn _get_dex_modifier(obj: Creature): int {
 // a Creature-typed argument at the call site (smalls template intrinsic requirement).
 // DEX modifier delegates to C.get_dex_modifier_for_ac which applies the armor DEX cap.
 fn _compute_ac_creature(target: Creature, attacker: object): int {
+    Equipment.sync_equipment_armor_class(target);
     var combat = get_propset!(CreatureCombat)(target);
     var stats = get_propset!(CreatureStats)(target);
-    var result = 10 + combat.size_ac_modifier + combat.ac_armor_base
+    var result = 10 + CreatureSize.armor_modifier(target) + combat.ac_armor_base
         + stats.ac_natural_bonus + combat.ac_shield_base;
     result += _get_dex_modifier(target);
     var dodge = combat.hasted != 0 ? 4 : 0;
@@ -714,6 +675,7 @@ fn explain_armor_class(target: object, attacker: object): ArmorClassTrace {
     }
 
     var creature = target as Creature;
+    Equipment.sync_equipment_armor_class(creature);
     var combat = get_propset!(CreatureCombat)(creature);
     var stats = get_propset!(CreatureStats)(creature);
 
@@ -723,10 +685,11 @@ fn explain_armor_class(target: object, attacker: object): ArmorClassTrace {
         subtype = -1,
     });
 
-    if (combat.size_ac_modifier != 0) {
+    var size_ac_modifier = CreatureSize.armor_modifier(creature);
+    if (size_ac_modifier != 0) {
         arr.push(terms, ArmorClassTraceTerm {
             tag = "size_armor_class",
-            value = combat.size_ac_modifier,
+            value = size_ac_modifier,
             subtype = Const.ac_dodge as int,
         });
     }

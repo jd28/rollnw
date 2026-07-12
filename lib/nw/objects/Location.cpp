@@ -84,7 +84,7 @@ bool deserialize(Location& self, const GffStruct gff, SerializationProfile profi
         self.area = object_invalid;
     }
 
-    return self.area != object_invalid;
+    return valid;
 }
 
 } // namespace nw

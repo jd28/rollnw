@@ -1,26 +1,59 @@
-[[native]] fn is_valid(obj: object): bool;
-[[native]] fn is_door(obj: object): bool;
-[[native]] fn as_door(obj: object): Door;
-[[native]] fn get_hp(obj: Door): int;
-[[native]] fn get_hp_current(obj: Door): int;
-[[native]] fn is_open(obj: Door): bool;
-[[native]] fn type_id(): int;
+from core.types import { ResRef, TextRef };
 
 // == Propsets ================================================================
 // ============================================================================
 
 [[propset(Door)]]
 type DoorState {
+    on_click: ResRef;
+    on_closed: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disarm: ResRef;
+    on_heartbeat: ResRef;
+    on_lock: ResRef;
+    on_melee_attacked: ResRef;
+    on_open: ResRef;
+    on_open_failure: ResRef;
+    on_spell_cast_at: ResRef;
+    on_trap_triggered: ResRef;
+    on_unlock: ResRef;
+    on_user_defined: ResRef;
+
+    key_name: string;
+    key_required: int;
+    lockable: int;
+    locked: int;
+    lock_dc: int;
+    unlock_dc: int;
+    remove_key: int;
+
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+
+    conversation: ResRef;
+    description: TextRef;
+    linked_to: string;
+
     hp: int;
     hp_current: int;
     save_fort: int;
     save_reflex: int;
     save_will: int;
+    appearance: int;
+    faction: int;
+    generic_type: int;
+    loadscreen: int;
+    portrait_id: int;
     hardness: int;
-    locked: int;
-    lock_dc: int;
     bash_dc: int;
     open_state: int;
     plot: int;
     interruptable: int;
+    linked_to_flags: int;
 };

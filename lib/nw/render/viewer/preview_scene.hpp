@@ -13,6 +13,7 @@
 #include <nw/render/particle_system.hpp>
 
 #include <nw/objects/Area.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 
 #include <cstdint>
 #include <limits>
@@ -51,6 +52,7 @@ struct PreviewSceneLoadOptions {
     // assembly stays legacy until PLT/socket/cross-skeleton policy is lowered
     // into explicit common data.
     NwnModelPreviewPath nwn_model_path = NwnModelPreviewPath::render_model;
+    nw::ObjectVisualRenderMode visual_render_mode = nw::ObjectVisualRenderMode::toolset;
 };
 
 struct PreviewRuntimeModelReport {

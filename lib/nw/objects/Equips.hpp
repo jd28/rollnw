@@ -146,6 +146,10 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
 using EquipItem = Variant<Resref, ObjectHandle>;
 
 Item* equip_item_ptr(const EquipItem& item) noexcept;
+bool can_equip_item(const Creature* obj, Item* item, EquipIndex slot);
+bool equip_item_in_slot(Creature* obj, Item* item, EquipIndex slot);
+Item* get_equipped_item(const Creature* obj, EquipIndex slot);
+Item* unequip_item_in_slot(Creature* obj, EquipIndex slot);
 
 struct Equips {
     explicit Equips(Creature* owner, nw::MemoryResource* allocator = nw::kernel::global_allocator());
@@ -165,8 +169,5 @@ struct Equips {
     std::array<EquipItem, 18> equips;
     uint32_t equip_version = 0;
 };
-
-bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile);
-bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfile profile);
 
 } // namespace nw

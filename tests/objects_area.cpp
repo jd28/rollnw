@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <nw/objects/Area.hpp>
-#include <nw/objects/Common.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Location.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
+#include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
@@ -17,6 +17,21 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+
+namespace {
+
+int32_t creature_ability_score_from_script(const nw::Creature* creature, nw::Ability ability, bool base = false)
+{
+    if (!creature || ability == nw::Ability::invalid()) { return 0; }
+
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nwn1::bridge::make_object_arg(creature->handle()));
+    args.push_back(nw::smalls::Value::make_int(*ability));
+    args.push_back(nw::smalls::Value::make_bool(base));
+    return nwn1::bridge::call_nwn1_module_int("nwn1.creature", "get_ability_score", args).value_or(0);
+}
+
+} // namespace
 
 TEST(Area, GffDeserialize)
 {
@@ -42,11 +57,11 @@ TEST(Area, GffDeserialize)
     EXPECT_EQ(ent->width, 16);
 
     EXPECT_TRUE(ent->creatures.size() > 0);
-    EXPECT_EQ(ent->creatures[0]->common.resref, "test_creature");
-    EXPECT_EQ(ent->creatures[0]->stats.get_ability_score(nwn1::ability_strength), 20);
+    EXPECT_EQ(ent->creatures[0]->resref, "test_creature");
+    EXPECT_EQ(creature_ability_score_from_script(ent->creatures[0], nwn1::ability_strength, true), 20);
 }
 
-TEST(Area, JsonRoundtrip)
+TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)
 {
     auto ent = new nw::Area;
     nw::Gff are{"test_data/user/development/test_area.are"};
@@ -61,14 +76,58 @@ TEST(Area, JsonRoundtrip)
     nlohmann::json j;
     nw::serialize(ent, j);
 
-    auto ent2 = new nw::Area;
-    nw::deserialize(ent2, j);
-    EXPECT_TRUE(ent2);
+    EXPECT_EQ(j.at("$type"), "CAF");
+    EXPECT_FALSE(j.contains("common"));
+    EXPECT_TRUE(j.contains("object"));
+    EXPECT_TRUE(j.contains("components"));
+    EXPECT_TRUE(j.at("components").contains("locals"));
+    ASSERT_TRUE(j.contains("creatures"));
+    ASSERT_FALSE(j.at("creatures").empty());
 
-    nlohmann::json j2;
-    nw::serialize(ent2, j2);
+    const auto& creature = j.at("creatures").at(0);
+    EXPECT_FALSE(creature.contains("$type"));
+    EXPECT_FALSE(creature.contains("$version"));
+    EXPECT_TRUE(creature.contains("components"));
+    EXPECT_TRUE(creature.contains("core.creature.CreatureDescriptor"));
+    EXPECT_TRUE(creature.contains("core.creature.CreatureStats"));
 
-    EXPECT_EQ(j, j2);
+    for (const char* list : {
+             "creatures",
+             "doors",
+             "encounters",
+             "items",
+             "placeables",
+             "sounds",
+             "stores",
+             "triggers",
+             "waypoints",
+         }) {
+        ASSERT_TRUE(j.contains(list)) << list;
+        ASSERT_TRUE(j.at(list).is_array()) << list;
+        for (const auto& embedded : j.at(list)) {
+            EXPECT_FALSE(embedded.contains("$type")) << list;
+            EXPECT_FALSE(embedded.contains("$version")) << list;
+            EXPECT_TRUE(embedded.contains("components")) << list;
+        }
+    }
+
+    auto roundtrip = new nw::Area;
+    ASSERT_TRUE(nw::deserialize(roundtrip, j));
+    ASSERT_FALSE(roundtrip->creatures.empty());
+    EXPECT_EQ(roundtrip->creatures[0]->resref, "test_creature");
+
+    nlohmann::json roundtrip_json;
+    nw::serialize(roundtrip, roundtrip_json);
+
+    const auto& roundtrip_creature = roundtrip_json.at("creatures").at(0);
+    EXPECT_FALSE(roundtrip_creature.contains("$type"));
+    EXPECT_FALSE(roundtrip_creature.contains("$version"));
+    EXPECT_TRUE(roundtrip_creature.contains("object"));
+    EXPECT_TRUE(roundtrip_creature.at("object").contains("resref"));
+    EXPECT_TRUE(roundtrip_creature.contains("components"));
+    EXPECT_FALSE(roundtrip_creature.at("components").contains("resref"));
+    EXPECT_TRUE(roundtrip_creature.contains("core.creature.CreatureDescriptor"));
+    EXPECT_TRUE(roundtrip_creature.contains("core.creature.CreatureStats"));
 }
 
 TEST(Location, DeserializeGitBareCoordinates)
@@ -99,7 +158,7 @@ TEST(Location, DeserializeGitBareCoordinates)
     EXPECT_FLOAT_EQ(loc.orientation.z, 0.0f);
 }
 
-TEST(Common, DeserializeGitBareCoordinatesWithoutArea)
+TEST(Location, DeserializeGitBareCoordinatesWithoutArea)
 {
     fs::create_directories("tmp");
 
@@ -117,13 +176,13 @@ TEST(Common, DeserializeGitBareCoordinatesWithoutArea)
     nw::Gff in{"tmp/common_bare_coordinates_no_area.gff"};
     ASSERT_TRUE(in.valid());
 
-    nw::Common common;
-    EXPECT_TRUE(deserialize(common, in.toplevel(), nw::SerializationProfile::instance, nw::ObjectType::placeable));
-    EXPECT_EQ(common.location.area, nw::object_invalid);
-    EXPECT_FLOAT_EQ(common.location.position.x, 97.0f);
-    EXPECT_FLOAT_EQ(common.location.position.y, 139.0f);
-    EXPECT_FLOAT_EQ(common.location.position.z, 0.25f);
-    EXPECT_FLOAT_EQ(common.location.orientation.x, std::cos(bearing));
-    EXPECT_FLOAT_EQ(common.location.orientation.y, std::sin(bearing));
-    EXPECT_FLOAT_EQ(common.location.orientation.z, 0.0f);
+    nw::Location loc;
+    EXPECT_TRUE(deserialize(loc, in.toplevel(), nw::SerializationProfile::instance));
+    EXPECT_EQ(loc.area, nw::object_invalid);
+    EXPECT_FLOAT_EQ(loc.position.x, 97.0f);
+    EXPECT_FLOAT_EQ(loc.position.y, 139.0f);
+    EXPECT_FLOAT_EQ(loc.position.z, 0.25f);
+    EXPECT_FLOAT_EQ(loc.orientation.x, std::cos(bearing));
+    EXPECT_FLOAT_EQ(loc.orientation.y, std::sin(bearing));
+    EXPECT_FLOAT_EQ(loc.orientation.z, 0.0f);
 }

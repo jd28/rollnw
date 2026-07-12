@@ -1,3 +1,14 @@
-[[native]] fn get_appearance(obj: Waypoint): int;
-[[native]] fn has_map_note(obj: Waypoint): bool;
-[[native]] fn is_map_note_enabled(obj: Waypoint): bool;
+from core.types import { TextRef };
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Waypoint)]]
+type WaypointState {
+    description: TextRef;
+    linked_to: string;
+    map_note: TextRef;
+    appearance: int;
+    has_map_note: int;
+    map_note_enabled: int;
+};

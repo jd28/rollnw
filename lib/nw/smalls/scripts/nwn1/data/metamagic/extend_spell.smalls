@@ -1,0 +1,6 @@
+MetamagicEntry {
+    id = 3,
+    name = StrRef(293),
+    level_adjustment = 1,
+    feat = 12
+}

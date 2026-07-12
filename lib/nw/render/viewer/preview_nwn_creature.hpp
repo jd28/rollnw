@@ -1,20 +1,21 @@
 #pragma once
 
 #include <nw/formats/Plt.hpp>
-#include <nw/objects/Appearance.hpp>
 #include <nw/objects/Equips.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
+#include <nw/resources/assets.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/items.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace nw {
+struct Creature;
 struct StaticTwoDA;
 struct Item;
 }
@@ -28,6 +29,25 @@ struct ModelInstance;
 }
 
 namespace nw::render::viewer {
+
+struct PreviewCreatureModelLoad {
+    nw::Resref model;
+    nw::Resref race;
+    std::string error;
+    int32_t appearance = -1;
+    int32_t model_type = -1;
+    int32_t hand_item_reason = 0;
+    float wing_tail_scale = 1.0f;
+    float helmet_scale_m = 1.0f;
+    float helmet_scale_f = 1.0f;
+    float hand_item_scale = 1.0f;
+    bool hand_item_visible = true;
+    bool humanoid = false;
+    bool resolved = false;
+
+    bool valid() const noexcept { return resolved; }
+    bool has_model() const noexcept { return !model.empty(); }
+};
 
 enum class NwnAppearanceHandItemVisualPolicyReason : uint8_t {
     visible,
@@ -52,38 +72,26 @@ struct NwnWingAttachmentVisualPolicy {
     NwnWingAttachmentVisualPolicyReason reason = NwnWingAttachmentVisualPolicyReason::default_visible;
 };
 
-struct ResolvedHumanoidBodyPartModel {
-    std::string_view token;
-    std::string anchor;
-    nw::PltColors colors{};
-    std::optional<std::string> resref;
-    uint16_t model_part = 0;
-    bool missing_requested_part = false;
+constexpr std::array<nw::EquipIndex, 3> kPreviewAttachedEquipmentSlots{
+    nw::EquipIndex::righthand,
+    nw::EquipIndex::lefthand,
+    nw::EquipIndex::head,
 };
 
-struct ResolvedItemModelPart {
-    std::string resref;
-    nw::ItemModelParts::type part = nw::ItemModelParts::model1;
-};
-
-struct CreatureAttachmentModelLookup {
-    std::string_view table_name;
-    uint32_t row = 0;
-    std::string model_name;
-    std::string owner_socket;
-    std::string source_socket;
-    std::string warning;
-    bool requested = false;
-    bool resolved = false;
-    bool null_model = false;
-};
-
-nw::BodyParts normalized_body_parts(nw::BodyParts body_parts);
 nw::Item* equipped_item(const nw::Equips& equips, nw::EquipIndex slot);
+nw::Appearance visual_appearance(const nw::ObjectVisualState* visual) noexcept;
+uint8_t visual_body_variant(const nw::ObjectVisualState* visual) noexcept;
+nw::PltColors visual_base_plt_colors(const nw::ObjectVisualState* visual) noexcept;
+bool visual_row_matches_slot(const nw::ObjectVisualModel& row, nw::EquipIndex slot, int32_t kind) noexcept;
+nw::PltColors visual_row_plt_colors(const nw::ObjectVisualModel& row, nw::PltColors colors = {}) noexcept;
+bool visual_row_is_humanoid_body_part(const nw::ObjectVisualModel& row) noexcept;
+bool visual_row_requests_model_part(const nw::ObjectVisualModel& row) noexcept;
+std::string visual_row_body_part_name(const nw::ObjectVisualModel& row);
+bool visual_row_is_creature_attachment(const nw::ObjectVisualModel& row) noexcept;
+bool visual_row_is_creature_wing_attachment(const nw::ObjectVisualModel& row) noexcept;
+std::string_view visual_creature_attachment_name(const nw::ObjectVisualModel& row) noexcept;
 
 std::string anchor_name_for_equipped_item(nw::EquipIndex slot);
-std::string anchor_name_for_attachment(std::string_view table_name);
-std::string source_anchor_name_for_attachment(std::string_view table_name);
 
 float appearance_wing_tail_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id);
 float appearance_helmet_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id, uint8_t gender);
@@ -91,42 +99,20 @@ float appearance_helmet_scale(const nw::StaticTwoDA* appearance_tda, nw::Appeara
 NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
     const nw::StaticTwoDA* appearance_tda,
     nw::Appearance appearance_id);
+PreviewCreatureModelLoad resolve_creature_model_from_appearance(nw::Appearance appearance);
+NwnAppearanceHandItemVisualPolicy hand_item_visual_policy_from_creature_model(
+    const PreviewCreatureModelLoad& model_ref);
+float helmet_scale_from_creature_model(const PreviewCreatureModelLoad& model_ref, uint8_t gender);
 
 NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
     nw::Appearance appearance_id,
     uint32_t wing_row);
 
-int resolve_creature_phenotype(nw::Phenotype phenotype) noexcept;
-
 size_t apply_nwn_wing_attachment_visual_policy(
     nw::render::nwn::ModelInstance& model,
     NwnWingAttachmentVisualPolicy policy);
-size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(
-    const nw::model::Mdl& mdl,
-    NwnWingAttachmentVisualPolicy policy);
+size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(const nw::model::Mdl& mdl, NwnWingAttachmentVisualPolicy policy);
 
-std::optional<std::string> resolve_creature_part_model(char sex, std::string_view race, int phenotype,
-    std::initializer_list<std::string_view> part_tokens, uint16_t part);
-std::optional<std::string> resolve_creature_cloak_model(char sex, std::string_view race, int phenotype, uint16_t part);
 std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& appearance, std::string_view race, char sex);
-
-void preserve_creature_identity_plt_colors(nw::PltColors& colors, const nw::PltColors& creature_colors);
-
-std::vector<ResolvedHumanoidBodyPartModel> resolve_humanoid_body_part_models(
-    char sex,
-    std::string_view race,
-    int phenotype,
-    nw::BodyParts body_parts,
-    const nw::PltColors& plt_colors,
-    const nw::Item* chest_item,
-    const nw::Item* head_item);
-
-std::vector<ResolvedItemModelPart> resolve_item_model_parts(
-    const nw::Item& item,
-    const nw::BaseItemInfo& baseitem);
-
-CreatureAttachmentModelLookup resolve_creature_attachment_model_lookup(
-    std::string_view table_name,
-    uint32_t row);
 
 } // namespace nw::render::viewer

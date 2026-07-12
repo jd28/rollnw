@@ -1,20 +1,54 @@
-from core.types import { Ability, Class, EquipIndex, Feat, Save, Skill, Spell, SpellSchool };
+from core.types import { Ability, Class, EquipIndex, Feat, ResRef, Save, Skill, Spell, SpellSchool, TextRef };
+import core.array as arr;
 import core.item as item;
 import core.object as Obj;
 
-[[native]] fn get_total_levels(obj: Creature): int;
-[[native]] fn progression_version(obj: Creature): int;
-[[native]] fn get_level_by_class(obj: Creature, class_type: Class): int;
-[[native]] fn get_class_count(obj: Creature): int;
-[[native]] fn get_class_at(obj: Creature, index: int): Class;
-[[native]] fn get_class_levels_at(obj: Creature, index: int): int;
-[[native]] fn get_levelup_class_position(obj: Creature, level_index: int): int;
-[[native]] fn can_equip_item(creature: Creature, item: Item, slot: EquipIndex): bool;
+const body_part_belt = 0;
+const body_part_bicep_left = 1;
+const body_part_bicep_right = 2;
+const body_part_foot_left = 3;
+const body_part_foot_right = 4;
+const body_part_forearm_left = 5;
+const body_part_forearm_right = 6;
+const body_part_hand_left = 7;
+const body_part_hand_right = 8;
+const body_part_head = 9;
+const body_part_neck = 10;
+const body_part_pelvis = 11;
+const body_part_shin_left = 12;
+const body_part_shin_right = 13;
+const body_part_shoulder_left = 14;
+const body_part_shoulder_right = 15;
+const body_part_thigh_left = 16;
+const body_part_thigh_right = 17;
+const body_part_torso = 18;
+const body_part_count = 19;
+
+[[native]] fn set_vitals(obj: Creature, hp_current: int, hp_max: int): bool;
+[[native]] fn get_vitals_hp_current(obj: Creature): int;
+[[native]] fn get_vitals_hp_max(obj: Creature): int;
+[[native]] fn get_ability_loadout_count(obj: Creature): int;
+[[native]] fn get_ability_loadout_ability(obj: Creature, index: int): int;
+[[native]] fn get_ability_loadout_source(obj: Creature, index: int): int;
+[[native]] fn get_ability_loadout_tier(obj: Creature, index: int): int;
+[[native]] fn get_ability_loadout_slot(obj: Creature, index: int): int;
+[[native]] fn get_ability_loadout_modifier(obj: Creature, index: int): int;
+[[native]] fn add_unslotted_ability(obj: Creature, source: Class, tier: int, ability: Spell): bool;
+[[native]] fn remove_unslotted_ability(obj: Creature, source: Class, tier: int, ability: Spell): bool;
+[[native]] fn set_slotted_ability_count(obj: Creature, source: Class, tier: int, count: int): bool;
+[[native]] fn available_ability_slots(obj: Creature, source: Class, tier: int): int;
+[[native]] fn add_slotted_ability(obj: Creature, source: Class, tier: int, ability: Spell, modifier: int, flags: int): bool;
+[[native]] fn clear_slotted_ability_from_tier(obj: Creature, source: Class, min_tier: int, ability: Spell): bool;
+
 [[native]] fn equip_item_in_slot(creature: Creature, item: Item, slot: EquipIndex): bool;
 [[native]] fn get_equipped_item(creature: Creature, slot: EquipIndex): Item;
 [[native]] fn unequip_item_in_slot(creature: Creature, slot: EquipIndex): Item;
 [[native]] fn inventory_add_item(creature: Creature, item: Item): bool;
 [[native]] fn inventory_remove_item(creature: Creature, item: Item): bool;
+
+fn can_equip_item(creature: Creature, equipped: Item, slot: EquipIndex): bool {
+    return item.can_equip_item(creature, equipped, slot);
+}
 
 fn equip_item(creature: Creature, equipped: Item, slot: EquipIndex): bool {
     if (equipped == Obj.invalid) {
@@ -70,16 +104,6 @@ fn unequip_item(creature: Creature, slot: EquipIndex): Item {
 // == Feats ===================================================================
 // ============================================================================
 
-[[native]] fn has_feat(obj: Creature, feat: Feat): bool;
-
-// Returns the highest feat in [start, stop] that obj has, or Feat(-1) if none.
-// Single binary search — faster than looping has_feat.
-[[native]] fn highest_feat_in_range(obj: Creature, start: Feat, stop: Feat): Feat;
-
-// Returns how many feat tiers in [start, stop] the creature has progressed through
-// (i.e. highest - start + 1), or 0 if none.
-[[native]] fn count_feats_in_range(obj: Creature, start: Feat, stop: Feat): int;
-
 // == Rules data accessors ====================================================
 // ============================================================================
 
@@ -95,6 +119,108 @@ type SpecialAbility {
 
 // == Propsets ================================================================
 // ============================================================================
+
+// Cold descriptive data and event scripts: loaded from UTC, rarely changes.
+[[propset(Creature)]]
+type CreatureDescriptor {
+    on_attacked: ResRef;
+    on_blocked: ResRef;
+    on_conversation: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disturbed: ResRef;
+    on_endround: ResRef;
+    on_heartbeat: ResRef;
+    on_perceived: ResRef;
+    on_rested: ResRef;
+    on_spawn: ResRef;
+    on_spell_cast_at: ResRef;
+    on_user_defined: ResRef;
+
+    conversation: ResRef;
+    description: TextRef;
+    name_first: TextRef;
+    name_last: TextRef;
+    deity: string;
+    subrace: string;
+    soundset: int;
+    decay_time: int;
+};
+
+// Authored visual source data. Smalls resolves this to flat native visual rows.
+[[propset(Creature)]]
+type CreatureAppearance {
+    appearance: int;
+    phenotype: int;
+    tail: int;
+    wings: int;
+    portrait: ResRef;
+    portrait_id: int;
+
+    color_hair: int;
+    color_skin: int;
+    color_tattoo1: int;
+    color_tattoo2: int;
+
+    body_part_belt: int;
+    body_part_bicep_left: int;
+    body_part_bicep_right: int;
+    body_part_foot_left: int;
+    body_part_foot_right: int;
+    body_part_forearm_left: int;
+    body_part_forearm_right: int;
+    body_part_hand_left: int;
+    body_part_hand_right: int;
+    body_part_head: int;
+    body_part_neck: int;
+    body_part_pelvis: int;
+    body_part_shin_left: int;
+    body_part_shin_right: int;
+    body_part_shoulder_left: int;
+    body_part_shoulder_right: int;
+    body_part_thigh_left: int;
+    body_part_thigh_right: int;
+    body_part_torso: int;
+};
+
+fn get_appearance(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.appearance;
+}
+
+fn get_wings(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.wings;
+}
+
+fn get_tail(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.tail;
+}
+
+fn get_body_part(obj: Creature, part: int): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (part == body_part_belt) { return appearance.body_part_belt; }
+    if (part == body_part_bicep_left) { return appearance.body_part_bicep_left; }
+    if (part == body_part_bicep_right) { return appearance.body_part_bicep_right; }
+    if (part == body_part_foot_left) { return appearance.body_part_foot_left; }
+    if (part == body_part_foot_right) { return appearance.body_part_foot_right; }
+    if (part == body_part_forearm_left) { return appearance.body_part_forearm_left; }
+    if (part == body_part_forearm_right) { return appearance.body_part_forearm_right; }
+    if (part == body_part_hand_left) { return appearance.body_part_hand_left; }
+    if (part == body_part_hand_right) { return appearance.body_part_hand_right; }
+    if (part == body_part_head) { return appearance.body_part_head; }
+    if (part == body_part_neck) { return appearance.body_part_neck; }
+    if (part == body_part_pelvis) { return appearance.body_part_pelvis; }
+    if (part == body_part_shin_left) { return appearance.body_part_shin_left; }
+    if (part == body_part_shin_right) { return appearance.body_part_shin_right; }
+    if (part == body_part_shoulder_left) { return appearance.body_part_shoulder_left; }
+    if (part == body_part_shoulder_right) { return appearance.body_part_shoulder_right; }
+    if (part == body_part_thigh_left) { return appearance.body_part_thigh_left; }
+    if (part == body_part_thigh_right) { return appearance.body_part_thigh_right; }
+    if (part == body_part_torso) { return appearance.body_part_torso; }
+    return 0;
+}
 
 // "What this creature is" — rarely changes, consulted by most RPG calculations
 [[propset(Creature)]]
@@ -141,9 +267,210 @@ type CreatureHealth {
 type CreatureLevels {
     classes: int[8];        // Class IDs per slot
     class_levels: int[8];   // Level count per slot
+    levelup_classes: array!(int); // Class slot per player level-up entry
     xp: int;
     walkrate: int;
 };
+
+fn get_total_levels(obj: Creature): int {
+    var levels = get_propset!(CreatureLevels)(obj);
+    var result = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.class_levels[i] > 0) {
+            result += levels.class_levels[i];
+        }
+    }
+    return result;
+}
+
+fn progression_version(obj: Creature): int {
+    const progression_mod = 1000003;
+    var levels = get_propset!(CreatureLevels)(obj);
+    var stats = get_propset!(CreatureStats)(obj);
+    var v = arr.len(stats.feats) % progression_mod;
+
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            var class_id = levels.classes[i] % 2048;
+            var class_level = levels.class_levels[i] % 2048;
+            v = ((v * 257) + (class_id * 31) + class_level) % progression_mod;
+        }
+    }
+    return v;
+}
+
+fn get_level_by_class(obj: Creature, class_type: Class): int {
+    var class_id = class_type as int;
+    if (class_id < 0) {
+        return 0;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] == class_id && levels.class_levels[i] > 0) {
+            return levels.class_levels[i];
+        }
+    }
+    return 0;
+}
+
+fn get_class_count(obj: Creature): int {
+    var levels = get_propset!(CreatureLevels)(obj);
+    var result = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            result += 1;
+        }
+    }
+    return result;
+}
+
+fn get_class_at(obj: Creature, index: int): Class {
+    if (index < 0) {
+        return Class(-1);
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    var current = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            if (current == index) {
+                return Class(levels.classes[i]);
+            }
+            current += 1;
+        }
+    }
+    return Class(-1);
+}
+
+fn get_class_levels_at(obj: Creature, index: int): int {
+    if (index < 0) {
+        return 0;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    var current = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            if (current == index) {
+                return levels.class_levels[i];
+            }
+            current += 1;
+        }
+    }
+    return 0;
+}
+
+fn get_race(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.race;
+}
+
+fn get_gender(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.gender;
+}
+
+fn get_good_evil(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.good_evil;
+}
+
+fn get_lawful_chaotic(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.lawful_chaotic;
+}
+
+fn get_levelup_class_position(obj: Creature, level_index: int): int {
+    if (level_index < 0) {
+        return -1;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    if (level_index >= arr.len(levels.levelup_classes)) {
+        return -1;
+    }
+    return levels.levelup_classes[level_index];
+}
+
+fn _feat_lower_bound(feats: array!(int), needle: int): int {
+    var lo = 0;
+    var hi = arr.len(feats);
+    for (lo < hi) {
+        var mid = (lo + hi) / 2;
+        if (feats[mid] < needle) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+fn _feat_upper_bound(feats: array!(int), needle: int): int {
+    var lo = 0;
+    var hi = arr.len(feats);
+    for (lo < hi) {
+        var mid = (lo + hi) / 2;
+        if (feats[mid] <= needle) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+fn has_feat(obj: Creature, feat: Feat): bool {
+    var stats = get_propset!(CreatureStats)(obj);
+    var needle = feat as int;
+    var index = _feat_lower_bound(stats.feats, needle);
+    return index < arr.len(stats.feats) && stats.feats[index] == needle;
+}
+
+// Returns the highest feat in [start, stop] that obj has, or Feat(-1) if none.
+fn highest_feat_in_range(obj: Creature, start: Feat, stop: Feat): Feat {
+    var start_id = start as int;
+    var stop_id = stop as int;
+    if (stop_id < start_id) {
+        return Feat(-1);
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var index = _feat_upper_bound(stats.feats, stop_id);
+    if (index <= 0) {
+        return Feat(-1);
+    }
+
+    var value = stats.feats[index - 1];
+    return value >= start_id ? Feat(value) : Feat(-1);
+}
+
+// Returns the number of distinct known feats in [start, stop].
+fn count_feats_in_range(obj: Creature, start: Feat, stop: Feat): int {
+    var start_id = start as int;
+    var stop_id = stop as int;
+    if (stop_id < start_id) {
+        return 0;
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var first = _feat_lower_bound(stats.feats, start_id);
+    var last = _feat_upper_bound(stats.feats, stop_id);
+
+    var result = 0;
+    var previous = 0;
+    var have_previous = false;
+    for (var i = first; i < last; i += 1) {
+        var current = stats.feats[i];
+        if (!have_previous || current != previous) {
+            result += 1;
+            previous = current;
+            have_previous = true;
+        }
+    }
+    return result;
+}
 
 [[value_type]]
 type CombatWeapon {
@@ -160,8 +487,15 @@ type CombatWeapon {
     crit_mult: int;      // critical multiplier
 };
 
+type CombatEpochKeys {
+    effect_epoch: int;
+    equip_epoch: int;
+    progression_epoch: int;
+    mode_epoch: int;
+};
+
 // Transient combat state — resets between sessions, not persisted
-[[propset(Creature)]]
+[[transient, propset(Creature)]]
 type CreatureCombat {
     attack_current: int;
     attacks_onhand: int;
@@ -225,7 +559,7 @@ type CreatureCombat {
 
 // Combat cache - precomputed values for fast attack resolution.
 // Invalidated when effect/progression/equip/mode epochs change.
-[[propset(Creature)]]
+[[transient, propset(Creature)]]
 type CreatureCombatCache {
     // === OFFENSE ===
     ab_onhand: int;

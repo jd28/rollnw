@@ -12,6 +12,15 @@
     {"name": "saves_table",    "type": "int",    "source": "@scan_ref:SavingThrowTable:savetables",  "default": "0"},
     {"name": "attack_table",   "type": "int",    "source": "@scan_ref:AttackBonusTable:attacktables", "default": "0"},
     {"name": "spellcaster",    "type": "bool",   "source": "SpellCaster",       "default": "false"},
+    {"name": "memorizes_spells", "type": "bool",  "source": "MemorizesSpells",   "default": "false"},
+    {"name": "spellbook_restricted", "type": "bool", "source": "SpellbookRestricted", "default": "false"},
+    {"name": "spell_table",    "type": "int",    "source": "SpellTableColumn",  "default": "-1",
+      "enum": {"bard": 0, "cleric": 1, "druid": 2, "paladin": 3, "ranger": 4, "wiz_sorc": 5}},
+    {"name": "spells_gained",  "type": "int[600]", "source": "@indirect_grid:SpellGainTable:SpellLevel:10:NumSpellLevels", "default": "0"},
+    {"name": "spells_known",   "type": "int[600]", "source": "@indirect_grid:SpellKnownTable:SpellLevel:10", "default": "0"},
+    {"name": "arcane",         "type": "bool",   "source": "Arcane",            "default": "false"},
+    {"name": "arcane_spellgain_mod", "type": "int", "source": "ArcSpellLvlMod", "default": "0"},
+    {"name": "divine_spellgain_mod", "type": "int", "source": "DivSpellLvlMod", "default": "0"},
     {"name": "caster_ability", "type": "int",    "source": "SpellcastingAbil",  "default": "-1",
       "enum": {"str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5}}
   ]

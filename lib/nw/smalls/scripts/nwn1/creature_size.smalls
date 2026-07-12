@@ -1,0 +1,56 @@
+from core.creature import { CreatureStats };
+import core.array as arr;
+import core.creature as Cre;
+import nwn1.races as races;
+from nwn1.rules import { AppearanceEntry, CreatureSizeEntry };
+
+var _appearances_loaded = false;
+var _appearances: array!(AppearanceEntry);
+var _creature_sizes_loaded = false;
+var _creature_sizes: array!(CreatureSizeEntry);
+
+fn _ensure_appearances_loaded() {
+    if (_appearances_loaded) {
+        return;
+    }
+    _appearances = load_config!(AppearanceEntry)("nwn1.data.appearance");
+    _appearances_loaded = true;
+}
+
+fn _ensure_creature_sizes_loaded() {
+    if (_creature_sizes_loaded) {
+        return;
+    }
+    _creature_sizes = load_config!(CreatureSizeEntry)("nwn1.data.creaturesize");
+    _creature_sizes_loaded = true;
+}
+
+fn creature_size(obj: Creature): int {
+    _ensure_appearances_loaded();
+    var appearance = Cre.get_appearance(obj);
+    if (appearance >= 0 && appearance < arr.len(_appearances)) {
+        var size = arr.get(_appearances, appearance).size;
+        if (size > 0) {
+            return size;
+        }
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    return races.size(stats.race);
+}
+
+fn modifier_from_size(size: int): int {
+    _ensure_creature_sizes_loaded();
+    if (size >= 0 && size < arr.len(_creature_sizes)) {
+        return arr.get(_creature_sizes, size).ac_attack_mod;
+    }
+    return 0;
+}
+
+fn attack_modifier(obj: Creature): int {
+    return modifier_from_size(creature_size(obj));
+}
+
+fn armor_modifier(obj: Creature): int {
+    return modifier_from_size(creature_size(obj));
+}

@@ -1,7 +1,29 @@
-[[native]] fn is_valid(obj: object): bool;
-[[native]] fn is_sound(obj: object): bool;
-[[native]] fn as_sound(obj: object): Sound;
-[[native]] fn get_sound_count(obj: Sound): int;
-[[native]] fn is_active(obj: Sound): bool;
-[[native]] fn is_looping(obj: Sound): bool;
-[[native]] fn type_id(): int;
+from core.types import { ResRef };
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Sound)]]
+type SoundState {
+    sounds: array!(ResRef);
+    distance_min: float;
+    distance_max: float;
+    elevation: float;
+    generated_type: int;
+    hours: int;
+    interval: int;
+    interval_variation: int;
+    pitch_variation: float;
+    random_x: float;
+    random_y: float;
+    active: int;
+    continuous: int;
+    looping: int;
+    positional: int;
+    priority: int;
+    random: int;
+    random_position: int;
+    times: int;
+    volume: int;
+    volume_variation: int;
+};

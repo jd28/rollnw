@@ -1,3 +1,0 @@
-import nwn1.constants as Const;
-
-[[native]] fn get_base_attack_bonus(class_type: Const.Class, levels: int): int;

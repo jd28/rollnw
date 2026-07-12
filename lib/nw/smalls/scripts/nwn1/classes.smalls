@@ -1,11 +1,15 @@
 from nwn1.rules import { ClassEntry };
-from core.types import { Class, Ability, Save };
+from core.types import { Class, Ability, Save, Spell };
 import core.array as Array;
 import nwn1.savetables as SaveTables;
 import nwn1.attacktables as AttackTables;
+import nwn1.spells as Spells;
 
 var _loaded = false;
 var _classes: array!(ClassEntry);
+
+const spell_progression_level_count = 60;
+const spell_progression_tier_count = 10;
 
 fn _ensure_loaded() {
     if (_loaded) {
@@ -24,6 +28,55 @@ fn exists(class_id: Class): bool {
     _ensure_loaded();
     var index = class_id as int;
     return index >= 0 && index < Array.len(_classes);
+}
+
+fn hit_die(class_id: Class): int {
+    if (!exists(class_id)) {
+        return 0;
+    }
+    return Array.get(_classes, class_id as int).hit_die;
+}
+
+fn spellcaster(class_id: Class): bool {
+    if (!exists(class_id)) {
+        return false;
+    }
+    return Array.get(_classes, class_id as int).spellcaster;
+}
+
+fn memorizes_spells(class_id: Class): bool {
+    if (!exists(class_id)) {
+        return false;
+    }
+    return Array.get(_classes, class_id as int).memorizes_spells;
+}
+
+fn spellbook_restricted(class_id: Class): bool {
+    if (!exists(class_id)) {
+        return false;
+    }
+    return Array.get(_classes, class_id as int).spellbook_restricted;
+}
+
+fn arcane(class_id: Class): bool {
+    if (!exists(class_id)) {
+        return false;
+    }
+    return Array.get(_classes, class_id as int).arcane;
+}
+
+fn arcane_spellgain_mod(class_id: Class): int {
+    if (!exists(class_id)) {
+        return 0;
+    }
+    return Array.get(_classes, class_id as int).arcane_spellgain_mod;
+}
+
+fn divine_spellgain_mod(class_id: Class): int {
+    if (!exists(class_id)) {
+        return 0;
+    }
+    return Array.get(_classes, class_id as int).divine_spellgain_mod;
 }
 
 // Returns the spellcasting ability for a class.
@@ -56,4 +109,52 @@ fn attack_bonus(class_id: Class, level: int): int {
     }
     var entry = Array.get(_classes, class_id as int);
     return AttackTables.bonus(entry.attack_table, level);
+}
+
+// Returns this class's spell level for spell, or -1 when not a class spell.
+fn spell_level(class_id: Class, spell: Spell): int {
+    if (!exists(class_id) || (spell as int) < 0) {
+        return -1;
+    }
+    var entry = Array.get(_classes, class_id as int);
+    if (!entry.spellcaster || entry.spell_table < 0) {
+        return -1;
+    }
+    return Spells.class_level(spell, entry.spell_table);
+}
+
+fn _spell_progression_index(class_level: int, spell_level: int): int {
+    if (class_level < 1 || class_level > spell_progression_level_count) {
+        return -1;
+    }
+    if (spell_level < 0 || spell_level >= spell_progression_tier_count) {
+        return -1;
+    }
+    return (class_level - 1) * spell_progression_tier_count + spell_level;
+}
+
+fn spells_gained(class_id: Class, class_level: int, spell_level: int): int {
+    if (!spellcaster(class_id)) {
+        return 0;
+    }
+
+    var index = _spell_progression_index(class_level, spell_level);
+    if (index < 0) {
+        return 0;
+    }
+
+    return Array.get(_classes, class_id as int).spells_gained[index];
+}
+
+fn spells_known(class_id: Class, class_level: int, spell_level: int): int {
+    if (!spellcaster(class_id)) {
+        return 0;
+    }
+
+    var index = _spell_progression_index(class_level, spell_level);
+    if (index < 0) {
+        return 0;
+    }
+
+    return Array.get(_classes, class_id as int).spells_known[index];
 }

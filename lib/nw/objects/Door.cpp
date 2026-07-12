@@ -1,83 +1,20 @@
 #include "Door.hpp"
 
-#include "../formats/StaticTwoDA.hpp"
-#include "../kernel/Strings.hpp"
-#include "../kernel/TwoDACache.hpp"
+#include "../kernel/Kernel.hpp"
+#include "../profiles/nwn1/object_compat_fields.hpp"
+#include "../profiles/nwn1/object_name_preview.hpp"
+#include "../profiles/nwn1/propset_gff_object_io.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../serialization/component_propset_json.hpp"
 #include "../util/platform.hpp"
-#include "../util/string.hpp"
+#include "ObjectManager.hpp"
 
-#include <fmt/format.h>
 #include <nlohmann/json.hpp>
-
-#include <string_view>
 
 namespace fs = std::filesystem;
 
 namespace nw {
-
-namespace {
-
-bool is_null_door_model_name(std::string_view name)
-{
-    return name.empty()
-        || nw::string::icmp(name, "null")
-        || nw::string::icmp(name, "none")
-        || nw::string::icmp(name, "****");
-}
-
-} // namespace
-
-// == DoorScripts =============================================================
-// ============================================================================
-
-bool DoorScripts::from_json(const nlohmann::json& archive)
-{
-    try {
-        archive.at("on_click").get_to(on_click);
-        archive.at("on_closed").get_to(on_closed);
-        archive.at("on_damaged").get_to(on_damaged);
-        archive.at("on_death").get_to(on_death);
-        archive.at("on_disarm").get_to(on_disarm);
-        archive.at("on_heartbeat").get_to(on_heartbeat);
-        archive.at("on_lock").get_to(on_lock);
-        archive.at("on_melee_attacked").get_to(on_melee_attacked);
-        archive.at("on_open").get_to(on_open);
-        archive.at("on_open_failure").get_to(on_open_failure);
-        archive.at("on_spell_cast_at").get_to(on_spell_cast_at);
-        archive.at("on_trap_triggered").get_to(on_trap_triggered);
-        archive.at("on_unlock").get_to(on_unlock);
-        archive.at("on_user_defined").get_to(on_user_defined);
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "DoorScripts::from_json exception: {}", e.what());
-        return false;
-    }
-
-    return true;
-}
-
-nlohmann::json DoorScripts::to_json() const
-{
-    nlohmann::json j;
-
-    j["on_click"] = on_click;
-    j["on_closed"] = on_closed;
-    j["on_damaged"] = on_damaged;
-    j["on_death"] = on_death;
-    j["on_disarm"] = on_disarm;
-    j["on_heartbeat"] = on_heartbeat;
-    j["on_lock"] = on_lock;
-    j["on_melee_attacked"] = on_melee_attacked;
-    j["on_open"] = on_open;
-    j["on_open_failure"] = on_open_failure;
-    j["on_spell_cast_at"] = on_spell_cast_at;
-    j["on_trap_triggered"] = on_trap_triggered;
-    j["on_unlock"] = on_unlock;
-    j["on_user_defined"] = on_user_defined;
-
-    return j;
-}
 
 // == Door ====================================================================
 // ============================================================================
@@ -89,73 +26,13 @@ Door::Door()
 
 Door::Door(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
-    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::door});
 }
 
 String Door::get_name_from_file(const std::filesystem::path& path)
 {
-    String result;
-    LocString l1;
-
-    auto rdata = ResourceData::from_file(path);
-    if (rdata.bytes.size() <= 8) { return result; }
-    if (memcmp(rdata.bytes.data(), "UTD V3.2", 8) == 0) {
-        Gff gff(std::move(rdata));
-        if (!gff.valid()) { return result; }
-        gff.toplevel().get_to("LocName", l1);
-    } else {
-        try {
-            LOG_F(INFO, "json");
-            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
-            j["common"].at("name").get_to(l1);
-        } catch (nlohmann::json::parse_error& e) {
-            LOG_F(ERROR, "[door] json error: {}", e.what());
-            return result;
-        }
-    }
-
-    result = nw::kernel::strings().get(l1);
-    return result;
-}
-
-DoorModelReference resolve_door_model(const Door& door)
-{
-    DoorModelReference result;
-    result.generic = door.appearance == 0;
-    result.table = result.generic ? StringView{"genericdoors"} : StringView{"doortypes"};
-    result.column = result.generic ? StringView{"ModelName"} : StringView{"Model"};
-    result.selector = result.generic ? StringView{"generic type"} : StringView{"appearance"};
-    result.row = result.generic ? door.generic_type : door.appearance;
-
-    auto* table = nw::kernel::twodas().get(result.table);
-    if (!table) {
-        result.error = fmt::format("could not load {}.2da", result.table);
-        return result;
-    }
-
-    if (result.row >= table->rows()) {
-        result.error = fmt::format("{} {} is outside {}.2da ({} rows)",
-            result.selector,
-            result.row,
-            result.table,
-            table->rows());
-        return result;
-    }
-
-    String model_name;
-    if (!table->get_to(result.row, result.column, model_name, false) || is_null_door_model_name(model_name)) {
-        result.error = fmt::format("{} {} has no {} in {}.2da",
-            result.selector,
-            result.row,
-            result.column,
-            result.table);
-        return result;
-    }
-
-    result.model = Resref{model_name};
-    return result;
+    return nwn1::preview_object_name_from_file(path, serial_id, object_type);
 }
 
 bool Door::save(const std::filesystem::path& path, std::string_view format)
@@ -187,110 +64,18 @@ bool Door::save(const std::filesystem::path& path, std::string_view format)
 // == Door - Serialization - Gff ==============================================
 // ============================================================================
 
-bool deserialize(DoorScripts& self, const GffStruct& archive)
-{
-    archive.get_to("OnClick", self.on_click);
-    archive.get_to("OnClosed", self.on_closed);
-    archive.get_to("OnDamaged", self.on_damaged);
-    archive.get_to("OnDeath", self.on_death);
-    archive.get_to("OnDisarm", self.on_disarm);
-    archive.get_to("OnHeartbeat", self.on_heartbeat);
-    archive.get_to("OnLock", self.on_lock);
-    archive.get_to("OnMeleeAttacked", self.on_melee_attacked);
-    archive.get_to("OnOpen", self.on_open);
-    archive.get_to("OnFailToOpen", self.on_open_failure);
-    archive.get_to("OnSpellCastAt", self.on_spell_cast_at);
-    archive.get_to("OnTrapTriggered", self.on_trap_triggered);
-    archive.get_to("OnUnlock", self.on_unlock);
-    archive.get_to("OnUserDefined", self.on_user_defined);
-
-    return true;
-}
-
-bool serialize(const DoorScripts& self, GffBuilderStruct& archive)
-{
-    archive.add_field("OnClick", self.on_click)
-        .add_field("OnClosed", self.on_closed)
-        .add_field("OnDamaged", self.on_damaged)
-        .add_field("OnDeath", self.on_death)
-        .add_field("OnDisarm", self.on_disarm)
-        .add_field("OnHeartbeat", self.on_heartbeat)
-        .add_field("OnLock", self.on_lock)
-        .add_field("OnMeleeAttacked", self.on_melee_attacked)
-        .add_field("OnOpen", self.on_open)
-        .add_field("OnFailToOpen", self.on_open_failure)
-        .add_field("OnSpellCastAt", self.on_spell_cast_at)
-        .add_field("OnTrapTriggered", self.on_trap_triggered)
-        .add_field("OnUnlock", self.on_unlock)
-        .add_field("OnUserDefined", self.on_user_defined);
-
-    return true;
-}
-
 bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    deserialize(obj->common, archive, profile, ObjectType::door);
-    deserialize(obj->lock, archive);
-    deserialize(obj->scripts, archive);
-    deserialize(obj->trap, archive);
+    nwn1::obj_compat_fields_from_gff(*obj, archive, profile, ObjectType::door);
+    nw::kernel::objects().components().deserialize_spatial(obj->handle(), archive, profile);
+    nw::kernel::objects().components().deserialize_locals(obj->handle(), archive);
 
-    bool result = true;
-    uint8_t save;
-
-    archive.get_to("Conversation", obj->conversation);
-    archive.get_to("Description", obj->description);
-    archive.get_to("LinkedTo", obj->linked_to);
-
-    archive.get_to("Fort", save);
-    obj->saves.fort = save;
-    archive.get_to("Ref", save);
-    obj->saves.reflex = save;
-    archive.get_to("Will", save);
-    obj->saves.will = save;
-
-    archive.get_to("Appearance", obj->appearance);
-    archive.get_to("Faction", obj->faction);
-    if (!archive.get_to("GenericType_New", obj->generic_type, false)) {
-        uint8_t temp = 0;
-        archive.get_to("GenericType", temp);
-        obj->generic_type = temp;
-    }
-
-    archive.get_to("HP", obj->hp);
-    archive.get_to("CurrentHP", obj->hp_current);
-    archive.get_to("LoadScreenID", obj->loadscreen);
-    archive.get_to("PortraitId", obj->portrait_id);
-
-    archive.get_to("AnimationState", obj->animation_state);
-    archive.get_to("Hardness", obj->hardness);
-    archive.get_to("Interruptable", obj->interruptable);
-    archive.get_to("LinkedToFlags", obj->linked_to_flags);
-    archive.get_to("Plot", obj->plot);
-
-    if (profile == SerializationProfile::instance) {
-        auto field = archive["VisTransformList"];
-        if (field.valid()) {
-            obj->visual_transform().reserve(field.size());
-            for (size_t i = 0; i < field.size(); ++i) {
-                VisualTransform vt;
-                deserialize(field[i], vt);
-                obj->add_visual_transform(vt);
-            }
-        } else {
-            auto st = archive.get<GffStruct>("VisualTransform", false);
-            if (st) {
-                VisualTransform vt;
-                deserialize(*st, vt);
-                obj->add_visual_transform(vt);
-            }
-        }
-    }
-
-    return result;
+    nwn1::import_door_propsets_from_gff(&nw::kernel::runtime(), obj, archive, profile);
+    return true;
 }
 
 bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile)
@@ -299,62 +84,14 @@ bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive.add_field("TemplateResRef", obj->common.resref)
-        .add_field("LocName", obj->common.name)
-        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : StringView()));
-
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", obj->common.comment);
-        archive.add_field("PaletteID", obj->common.palette_id);
-    } else {
-        archive.add_field("PositionX", obj->common.location.position.x)
-            .add_field("PositionY", obj->common.location.position.y)
-            .add_field("PositionZ", obj->common.location.position.z)
-            .add_field("OrientationX", obj->common.location.orientation.x)
-            .add_field("OrientationY", obj->common.location.orientation.y);
+    nwn1::obj_compat_fields_to_gff(*obj, archive, profile, ObjectType::door);
+    if (profile != SerializationProfile::blueprint) {
+        nw::kernel::objects().components().serialize_position_orientation(obj->handle(), archive, profile);
     }
 
-    if (obj->common.locals.size()) {
-        serialize(obj->common.locals, archive, profile);
-    }
+    nw::kernel::objects().components().serialize_locals(obj->handle(), archive, profile);
 
-    serialize(obj->lock, archive);
-    serialize(obj->scripts, archive);
-    serialize(obj->trap, archive);
-
-    archive.add_field("Conversation", obj->conversation)
-        .add_field("Description", obj->description)
-        .add_field("LinkedTo", obj->linked_to);
-
-    archive.add_field("Fort", static_cast<uint8_t>(obj->saves.fort))
-        .add_field("Ref", static_cast<uint8_t>(obj->saves.reflex))
-        .add_field("Will", static_cast<uint8_t>(obj->saves.will));
-
-    archive.add_field("Appearance", obj->appearance)
-        .add_field("Faction", obj->faction)
-        .add_field("GenericType_New", obj->generic_type);
-
-    archive.add_field("HP", obj->hp)
-        .add_field("CurrentHP", obj->hp_current)
-        .add_field("LoadScreenID", obj->loadscreen)
-        .add_field("PortraitId", obj->portrait_id);
-
-    archive.add_field("AnimationState", obj->animation_state)
-        .add_field("Hardness", obj->hardness)
-        .add_field("Interruptable", obj->interruptable)
-        .add_field("LinkedToFlags", obj->linked_to_flags)
-        .add_field("Plot", obj->plot);
-
-    if (profile == SerializationProfile::instance) {
-        // Don't add default constructed visual transforms (unlike the game).
-        auto& vts = archive.add_list("VisTransformList");
-        for (const auto& vt : obj->visual_transform()) {
-            if (vt != VisualTransform{}) {
-                auto& st = vts.push_back(6);
-                serialize(st, vt);
-            }
-        }
-    }
+    nwn1::export_door_propsets_to_gff(&kernel::runtime(), obj, archive, profile);
 
     return true;
 }
@@ -379,46 +116,12 @@ bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::door);
-        obj->lock.from_json(archive.at("lock"));
-        obj->scripts.from_json(archive.at("scripts"));
-        obj->trap.from_json(archive.at("trap"));
-
-        archive.at("conversation").get_to(obj->conversation);
-        archive.at("description").get_to(obj->description);
-        archive.at("saves").get_to(obj->saves);
-
-        archive.at("appearance").get_to(obj->appearance);
-        archive.at("faction").get_to(obj->faction);
-        archive.at("generic_type").get_to(obj->generic_type);
-
-        archive.at("hp").get_to(obj->hp);
-        archive.at("hp_current").get_to(obj->hp_current);
-        archive.at("loadscreen").get_to(obj->loadscreen);
-        archive.at("portrait_id").get_to(obj->portrait_id);
-
-        archive.at("animation_state").get_to(obj->animation_state);
-        archive.at("hardness").get_to(obj->hardness);
-        archive.at("interruptable").get_to(obj->interruptable);
-        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
-        archive.at("linked_to").get_to(obj->linked_to);
-        archive.at("plot").get_to(obj->plot);
-
-        if (profile == SerializationProfile::instance) {
-            auto it = archive.find("visual_transforms");
-            if (it != std::end(archive)) {
-                archive.at("visual_transforms").get_to(obj->visual_transform());
-            }
-        }
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "[door] conversion to json failed: {}", e.what());
+    auto result = object_from_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "[door] component/propset JSON load failed: {}", result.error);
         return false;
     }
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
     return true;
 }
 
@@ -428,42 +131,10 @@ bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile pr
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive["$type"] = Door::serial_id;
-    archive["$version"] = Door::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::door);
-    archive["lock"] = obj->lock.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    archive["conversation"] = obj->conversation;
-    archive["description"] = obj->description;
-    archive["linked_to"] = obj->linked_to;
-    archive["saves"] = obj->saves;
-
-    archive["appearance"] = obj->appearance;
-    archive["faction"] = obj->faction;
-    archive["generic_type"] = obj->generic_type;
-
-    archive["hp"] = obj->hp;
-    archive["hp_current"] = obj->hp_current;
-    archive["loadscreen"] = obj->loadscreen;
-    archive["portrait_id"] = obj->portrait_id;
-
-    archive["animation_state"] = obj->animation_state;
-    archive["hardness"] = obj->hardness;
-    archive["interruptable"] = obj->interruptable;
-    archive["linked_to_flags"] = obj->linked_to_flags;
-    archive["plot"] = obj->plot;
-
-    if (profile == SerializationProfile::instance) {
-        archive["visual_transforms"] = nlohmann::json::array();
-        for (const auto& vt : obj->visual_transform()) {
-            // Don't add default constructed visual transforms
-            if (vt != VisualTransform{}) {
-                archive["visual_transforms"].push_back(vt);
-            }
-        }
+    auto result = object_to_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "[door] component/propset JSON save failed: {}", result.error);
+        return false;
     }
 
     return true;

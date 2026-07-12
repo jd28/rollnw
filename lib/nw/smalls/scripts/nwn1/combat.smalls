@@ -2,9 +2,10 @@ import nwn1.constants as Const;
 import nwn1.baseitems as baseitems;
 import nwn1.combat_modes as combat_modes;
 import nwn1.special_attack as special_attack;
+import nwn1.classes as Classes;
 
 from core.combat import { AttackData, DamageResult };
-from core.creature import { CombatWeapon, CreatureCombat, CreatureCombatCache, CreatureStats };
+from core.creature import { CombatEpochKeys, CombatWeapon, CreatureCombat, CreatureCombatCache, CreatureStats };
 from core.types import { BaseItemType, DamageRoll, DiceRoll };
 import core.array as arr;
 import core.bit as bit;
@@ -16,10 +17,9 @@ import nwn1.creature as NCre;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
 import nwn1.on_hit as on_hit;
-import nwn1.progression as progression;
-import nwn1.races as races;
 import nwn1.saving_throws as saving_throws;
 import nwn1.init as nwn1init;
+import nwn1.creature_size as CreatureSize;
 import core.object as Obj;
 
 from nwn1.cachedefs import {
@@ -52,6 +52,13 @@ const damage_mask_ranged = 8;
 
 var did_install_weapon_cache_callbacks = false;
 
+const on_hit_item_property_type_count = 3;
+const on_hit_item_property_types: int[on_hit_item_property_type_count] = {
+    Const.ip_on_hit_properties as int,
+    Const.ip_on_monster_hit as int,
+    Const.ip_onhitcastspell as int,
+};
+
 type AttackExplainTerm {
     tag: string;
     value: int;
@@ -81,6 +88,57 @@ fn roll_range(min: int, max: int): int {
     return roll_uniform_int(min, max);
 }
 
+fn item_has_property(weapon: Item, property_type: Const.ItemPropertyType): bool {
+    if ((weapon as object) == Obj.invalid) {
+        return false;
+    }
+
+    var stats = get_propset!(item.ItemStats)(weapon);
+    for (var ip in stats.item_properties) {
+        if (ip.prop_type == property_type as int) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn weapon_has_keen(obj: Creature, attack_type: Const.AttackType): bool {
+    return item_has_property(NCre.weapon_for_attack(obj, attack_type), Const.ip_keen);
+}
+
+fn weapon_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
+    var weapon = NCre.weapon_for_attack(obj, attack_type);
+    if ((weapon as object) == Obj.invalid) {
+        return 1;
+    }
+
+    var threat = baseitems.crit_threat(item.get_baseitem_type(weapon));
+    return threat > 0 ? threat : 1;
+}
+
+fn is_on_hit_item_property_type(prop_type: int): bool {
+    for (var i = 0; i < on_hit_item_property_type_count; i = i + 1) {
+        if (on_hit_item_property_types[i] == prop_type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn weapon_has_on_hit_property(weapon: Item): bool {
+    if ((weapon as object) == Obj.invalid) {
+        return false;
+    }
+
+    var stats = get_propset!(item.ItemStats)(weapon);
+    for (var ip in stats.item_properties) {
+        if (is_on_hit_item_property_type(ip.prop_type)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Returns the base damage dice parameters for a weapon slot (unarmed, creature, or normal).
 // Extracts dice/sides/bonus without rolling — used to populate CombatWeapon.base_dmg.
 fn _get_weapon_base_dmg_roll(obj: Creature, weapon: Item, base_item: BaseItemType, attack_type: Const.AttackType): DiceRoll {
@@ -90,12 +148,7 @@ fn _get_weapon_base_dmg_roll(obj: Creature, weapon: Item, base_item: BaseItemTyp
 
     if (attack_type == Const.attack_type_unarmed || is_unarmed_type) {
         var level = Cre.get_level_by_class(obj, Const.class_type_monk);
-        var combat = get_propset!(CreatureCombat)(obj);
-        var size = combat.size;
-        if (size <= 0) {
-            var stats = get_propset!(CreatureStats)(obj);
-            size = races.size(stats.race);
-        }
+        var size = CreatureSize.creature_size(obj);
         var big = size >= Const.creature_size_medium;
 
         var dice = 1;
@@ -121,15 +174,6 @@ fn _get_weapon_base_dmg_roll(obj: Creature, weapon: Item, base_item: BaseItemTyp
         || base_item == Const.base_item_cslashweapon
         || base_item == Const.base_item_cslshprcweap;
     if (is_creature) {
-        const ip_monster_damage = 77;
-        var weapon_stats = get_propset!(item.ItemStats)(weapon);
-        for (var ip in weapon_stats.item_properties) {
-            if (ip.prop_type == ip_monster_damage) {
-                var d = item.__ip_cost_table_int(ip_monster_damage, ip.cost_value, "NumDice");
-                var s = item.__ip_cost_table_int(ip_monster_damage, ip.cost_value, "Die");
-                return DiceRoll { dice = d, sides = s, bonus = 0 };
-            }
-        }
         return DiceRoll { dice = 0, sides = 0, bonus = 0 };
     }
 
@@ -332,8 +376,8 @@ fn _ensure_weapon_cache_callbacks() {
         return;
     }
 
-    item.set_on_equip_callback(_on_item_equipped_refresh_weapon_cache);
-    item.set_on_unequip_callback(_on_item_unequipped_refresh_weapon_cache);
+    item.add_on_equip_callback(_on_item_equipped_refresh_weapon_cache);
+    item.add_on_unequip_callback(_on_item_unequipped_refresh_weapon_cache);
     did_install_weapon_cache_callbacks = true;
 }
 
@@ -358,6 +402,26 @@ fn roll_dice(dice: int, sides: int, bonus: int, mult: int = 1): int {
     return C.roll_dice(dice, sides, bonus, mult);
 }
 
+fn _combat_attack_current(obj: Creature): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    return combat.attack_current;
+}
+
+fn _combat_attacks_offhand(obj: Creature): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    return combat.attacks_offhand;
+}
+
+fn _combat_attacks_extra(obj: Creature): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    return combat.attacks_extra;
+}
+
+fn _is_pc_creature(obj: Creature): bool {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.pc != 0;
+}
+
 fn compute_base_attack_bonus(obj: Creature): int {
     var levels = Cre.get_total_levels(obj);
     if (levels <= 0) { return 0; }
@@ -370,7 +434,7 @@ fn compute_base_attack_bonus(obj: Creature): int {
 
     var result = 0;
     var class_count = Cre.get_class_count(obj);
-    if (Obj.is_pc(obj)) {
+    if (_is_pc_creature(obj)) {
         for (var i = 0; i < class_count; i += 1) {
             var cl = Cre.get_class_at(obj, i);
             var class_levels = 0;
@@ -382,7 +446,7 @@ fn compute_base_attack_bonus(obj: Creature): int {
             }
 
             if (class_levels > 0) {
-                result += progression.get_base_attack_bonus(cl, class_levels);
+                result += Classes.attack_bonus(cl, class_levels);
             }
         }
     } else {
@@ -397,7 +461,7 @@ fn compute_base_attack_bonus(obj: Creature): int {
             }
 
             if (class_levels > 0) {
-                result += progression.get_base_attack_bonus(cl, class_levels);
+                result += Classes.attack_bonus(cl, class_levels);
                 remaining_levels -= class_levels;
             }
         }
@@ -443,14 +507,14 @@ fn compute_enchant_arrow_bonus(obj: Creature): int {
     return 0;
 }
 
-fn _is_offense_cache_valid(cache: CreatureCombatCache, combat: CreatureCombat): bool {
-    return cache.off_effect_epoch == combat.effect_epoch
-        && cache.off_progression_epoch == combat.progression_epoch
-        && cache.off_equip_epoch == combat.equip_epoch
-        && cache.off_mode_epoch == combat.combat_mode;
+fn _is_offense_cache_valid(cache: CreatureCombatCache, keys: CombatEpochKeys): bool {
+    return cache.off_effect_epoch == keys.effect_epoch
+        && cache.off_progression_epoch == keys.progression_epoch
+        && cache.off_equip_epoch == keys.equip_epoch
+        && cache.off_mode_epoch == keys.mode_epoch;
 }
 
-fn _refresh_offense_cache(cache: CreatureCombatCache, combat: CreatureCombat, obj: Creature) {
+fn _refresh_offense_cache(cache: CreatureCombatCache, combat: CreatureCombat, obj: Creature, keys: CombatEpochKeys) {
     cache.base_attack_bonus = compute_base_attack_bonus(obj);
 
     var flags = 0;
@@ -491,25 +555,27 @@ fn _refresh_offense_cache(cache: CreatureCombatCache, combat: CreatureCombat, ob
     cache.monk_power_bonus = compute_monk_power_bonus(obj);
     cache.enchant_arrow_bonus = compute_enchant_arrow_bonus(obj);
 
-    cache.off_effect_epoch = combat.effect_epoch;
-    cache.off_progression_epoch = combat.progression_epoch;
-    cache.off_equip_epoch = combat.equip_epoch;
-    cache.off_mode_epoch = combat.combat_mode;
+    cache.off_effect_epoch = keys.effect_epoch;
+    cache.off_progression_epoch = keys.progression_epoch;
+    cache.off_equip_epoch = keys.equip_epoch;
+    cache.off_mode_epoch = keys.mode_epoch;
 }
 
 fn _ensure_offense_cache(obj: Creature): CreatureCombatCache {
-    var combat = get_propset!(CreatureCombat)(obj);
+    var combat = modifier.sync_combat_epoch_keys(get_propset!(CreatureCombat)(obj), obj);
     var cache = get_propset!(CreatureCombatCache)(obj);
-    if (!_is_offense_cache_valid(cache, combat)) {
-        _refresh_offense_cache(cache, combat, obj);
+    var keys = modifier.synced_combat_epoch_keys(combat);
+    if (!_is_offense_cache_valid(cache, keys)) {
+        _refresh_offense_cache(cache, combat, obj, keys);
     }
     return cache;
 }
 
 fn _ensure_offense_cache_from_handle(combat: CreatureCombat, obj: Creature): CreatureCombatCache {
     var cache = get_propset!(CreatureCombatCache)(obj);
-    if (!_is_offense_cache_valid(cache, combat)) {
-        _refresh_offense_cache(cache, combat, obj);
+    var keys = modifier.synced_combat_epoch_keys(combat);
+    if (!_is_offense_cache_valid(cache, keys)) {
+        _refresh_offense_cache(cache, combat, obj, keys);
     }
     return cache;
 }
@@ -578,13 +644,7 @@ fn is_double_sided_weapon_base_item(base_item: BaseItemType): bool {
 }
 
 fn creature_size(obj: Creature): int {
-    var combat = get_propset!(CreatureCombat)(obj);
-    if (combat.size > 0) {
-        return combat.size;
-    }
-
-    var stats = get_propset!(CreatureStats)(obj);
-    return races.size(stats.race);
+    return CreatureSize.creature_size(obj);
 }
 
 fn get_relative_weapon_size(obj: Creature, base_item: BaseItemType): int {
@@ -641,12 +701,11 @@ fn has_attack_weapon(obj: Creature, attack_type: Const.AttackType): bool {
     return item.get_baseitem_type(NCre.weapon_for_attack(obj, attack_type)) != Const.base_item_invalid;
 }
 
-fn is_flanked(target: Creature, attacker: Creature): bool {
+fn is_flanked(target: Creature, attacker: Creature, distance_sq: float): bool {
     var target_combat = get_propset!(CreatureCombat)(target);
-    var attacker_combat = get_propset!(CreatureCombat)(attacker);
 
     if (target_combat.off_target == attacker) { return false; }
-    if (attacker_combat.target_distance_sq > 10.0 * 10.0) { return false; }
+    if (distance_sq > 10.0 * 10.0) { return false; }
     if (Cre.has_feat(target, Const.feat_prestige_defensive_awareness_2)) { return false; }
     return true;
 }
@@ -655,7 +714,7 @@ fn resolve_effective_attack_type(obj: Creature, attack_type: Const.AttackType): 
     if (attack_type == Const.attack_type_onhand) {
         return has_attack_weapon(obj, Const.attack_type_onhand) ? Const.attack_type_onhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_offhand) {
-        return C.attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
+        return _combat_attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon1) {
         return has_attack_weapon(obj, Const.attack_type_cweapon1) ? Const.attack_type_cweapon1 : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon2) {
@@ -679,7 +738,7 @@ fn resolve_attack_bonus(obj: Creature, attack_type: Const.AttackType, versus: ob
     if (attack_type == Const.attack_type_onhand) {
         effective_attack_type = base_item != Const.base_item_invalid ? Const.attack_type_onhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_offhand) {
-        effective_attack_type = C.attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
+        effective_attack_type = _combat_attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon1) {
         effective_attack_type = base_item != Const.base_item_invalid ? Const.attack_type_cweapon1 : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon2) {
@@ -707,7 +766,7 @@ fn resolve_attack_bonus(obj: Creature, attack_type: Const.AttackType, versus: ob
 
     // combat is already synced above; use raw variant to skip redundant sync.
     // ab_ability and ab_mod now come from the weapons cache instead of the modifier registry.
-    return bab + dual_wield_penalty + combat.size_ab_modifier
+    return bab + dual_wield_penalty + CreatureSize.attack_modifier(obj)
         + w.ab_ability + w.ab_mod
         + modifier.get_off_attack_bonus_raw(combat, obj, versus, effective_attack_type);
 }
@@ -783,7 +842,7 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
     if (attack_type == Const.attack_type_onhand) {
         effective_attack_type = base_item != Const.base_item_invalid ? Const.attack_type_onhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_offhand) {
-        effective_attack_type = C.attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
+        effective_attack_type = _combat_attacks_offhand(obj) > 0 ? Const.attack_type_offhand : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon1) {
         effective_attack_type = base_item != Const.base_item_invalid ? Const.attack_type_cweapon1 : Const.attack_type_unarmed;
     } elif (attack_type == Const.attack_type_cweapon2) {
@@ -828,9 +887,9 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
     var crit_threat = 0;
     if (attack_type == Const.attack_type_onhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_on)) {
-            var start = C.weapon_critical_threat(obj, attack_type);
+            var start = weapon_critical_threat(obj, attack_type);
             var ct = start;
-            if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
+            if (weapon_has_keen(obj, attack_type)) { ct = ct + start; }
             if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_on] = ct;
@@ -839,9 +898,9 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
         crit_threat = combat.slot_values[slot_off_crit_threat_on];
     } elif (attack_type == Const.attack_type_offhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_off)) {
-            var start = C.weapon_critical_threat(obj, attack_type);
+            var start = weapon_critical_threat(obj, attack_type);
             var ct = start;
-            if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
+            if (weapon_has_keen(obj, attack_type)) { ct = ct + start; }
             if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_off] = ct;
@@ -849,14 +908,14 @@ fn resolve_attack_roll(obj: Creature, attack_type: Const.AttackType, versus: obj
         }
         crit_threat = combat.slot_values[slot_off_crit_threat_off];
     } else {
-        var start = C.weapon_critical_threat(obj, attack_type);
+        var start = weapon_critical_threat(obj, attack_type);
         crit_threat = start;
-        if (C.weapon_has_keen(obj, attack_type)) { crit_threat = crit_threat + start; }
+        if (weapon_has_keen(obj, attack_type)) { crit_threat = crit_threat + start; }
         if (mfeat.has_improved_critical(obj, attack_type)) { crit_threat = crit_threat + start; }
         if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { crit_threat = crit_threat + 2; }
     }
 
-    var ab = bab + dual_wield_penalty + combat.size_ab_modifier
+    var ab = bab + dual_wield_penalty + CreatureSize.attack_modifier(obj)
         + modifier.get_off_attack_bonus_raw(combat, obj, versus, effective_attack_type);
 
     return _resolve_attack_roll_with_inputs(obj, attack_type, versus, ab, iter, crit_threat, is_ranged,
@@ -991,30 +1050,24 @@ fn attack_sequence_index(combat: CreatureCombat, attack_type: Const.AttackType):
 
 fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
     var combat = get_propset!(CreatureCombat)(obj);
+    var cache = get_propset!(CreatureCombatCache)(obj);
     var prev_attack_current = combat.attack_current;
-    var effect_epoch = C.creature_effect_version(obj);
-    var equip_epoch = C.creature_equip_version(obj);
-    var progression_epoch = Cre.progression_version(obj);
-    var combat_mode = C.get_combat_mode(obj);
+    var keys = modifier.combat_epoch_keys(combat, obj);
 
-    // Attack count topology only changes when effect/equipment/progression change.
+    // Round/cache state changes when effects, equipment, progression, or mode change.
     // Recompute lazily on epoch change (or first sync if counts are unset).
     var need_recompute_attack_counts = false;
     if (combat.attacks_onhand == 0 && combat.attacks_offhand == 0 && combat.attacks_extra == 0) {
         need_recompute_attack_counts = true;
     }
-    if (combat.effect_epoch != effect_epoch) { need_recompute_attack_counts = true; }
-    if (combat.equip_epoch != equip_epoch) { need_recompute_attack_counts = true; }
-    if (combat.progression_epoch != progression_epoch) { need_recompute_attack_counts = true; }
-    if (combat.combat_mode != combat_mode) { need_recompute_attack_counts = true; }
+    if (modifier.combat_epoch_keys_changed(combat, keys)) { need_recompute_attack_counts = true; }
+    if (cache.off_mode_epoch != combat.combat_mode) { need_recompute_attack_counts = true; }
 
     if (need_recompute_attack_counts) {
         var onhand = resolve_number_of_attacks_onhand(obj);
         var offhand = resolve_number_of_attacks_offhand(obj);
-        var extra = C.attacks_extra(obj);
-        if (combat.attacks_onhand != onhand) { combat.attacks_onhand = onhand; C.set_attacks_onhand(obj, onhand); }
-        if (combat.attacks_offhand != offhand) { combat.attacks_offhand = offhand; C.set_attacks_offhand(obj, offhand); }
-        if (combat.attacks_extra != extra) { combat.attacks_extra = extra; }
+        if (combat.attacks_onhand != onhand) { combat.attacks_onhand = onhand; }
+        if (combat.attacks_offhand != offhand) { combat.attacks_offhand = offhand; }
 
         combat.slot_values[slot_off_attack_type_mask] = compute_attack_type_mask(obj);
         modifier.slot_set_valid(combat, slot_off_attack_type_mask);
@@ -1046,10 +1099,7 @@ fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
         combat.attack_current = 0;
     }
 
-    if (combat.effect_epoch != effect_epoch) { combat.effect_epoch = effect_epoch; }
-    if (combat.equip_epoch != equip_epoch) { combat.equip_epoch = equip_epoch; }
-    if (combat.progression_epoch != progression_epoch) { combat.progression_epoch = progression_epoch; }
-    if (combat.combat_mode != combat_mode) { combat.combat_mode = combat_mode; }
+    combat = modifier.apply_combat_epoch_keys(combat, keys);
     if (combat.attack_current == 0 && prev_attack_current != 0) {
         combat.epic_dodge_used = 0;
     }
@@ -1058,7 +1108,7 @@ fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
 
 fn _sync_defense_round_window(attacker: Creature, target: Creature): CreatureCombat {
     var tgt_combat = get_propset!(CreatureCombat)(target);
-    var attacker_seq = C.attack_current(attacker) + 1;
+    var attacker_seq = _combat_attack_current(attacker) + 1;
 
     var new_window = false;
     if (tgt_combat.defense_window_attacker != attacker) {
@@ -1124,7 +1174,7 @@ fn prepare_attack_round(attacker: Creature) {
 fn _target_parry_limit(target: Creature): int {
     var limit = resolve_number_of_attacks_onhand(target)
         + resolve_number_of_attacks_offhand(target)
-        + C.attacks_extra(target);
+        + _combat_attacks_extra(target);
     if (limit <= 0) {
         return 1;
     }
@@ -1148,9 +1198,9 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
     var combat = get_propset!(CreatureCombat)(obj);
     if (attack_type == Const.attack_type_onhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_on)) {
-            var start = C.weapon_critical_threat(obj, attack_type);
+            var start = weapon_critical_threat(obj, attack_type);
             var ct = start;
-            if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
+            if (weapon_has_keen(obj, attack_type)) { ct = ct + start; }
             if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_on] = ct;
@@ -1160,9 +1210,9 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
     }
     if (attack_type == Const.attack_type_offhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_off)) {
-            var start = C.weapon_critical_threat(obj, attack_type);
+            var start = weapon_critical_threat(obj, attack_type);
             var ct = start;
-            if (C.weapon_has_keen(obj, attack_type)) { ct = ct + start; }
+            if (weapon_has_keen(obj, attack_type)) { ct = ct + start; }
             if (mfeat.has_improved_critical(obj, attack_type)) { ct = ct + start; }
             if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
             combat.slot_values[slot_off_crit_threat_off] = ct;
@@ -1171,9 +1221,9 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
         return combat.slot_values[slot_off_crit_threat_off];
     }
 
-    var start = C.weapon_critical_threat(obj, attack_type);
+    var start = weapon_critical_threat(obj, attack_type);
     var result = start;
-    if (C.weapon_has_keen(obj, attack_type)) { result = result + start; }
+    if (weapon_has_keen(obj, attack_type)) { result = result + start; }
     if (mfeat.has_improved_critical(obj, attack_type)) { result = result + start; }
     if (Cre.get_level_by_class(obj, Const.class_type_weapon_master) >= 7) { result = result + 2; }
     return result;
@@ -1428,12 +1478,7 @@ fn resolve_weapon_damage_bonus(obj: Creature, base_item: BaseItemType): int {
 
 fn resolve_unarmed_damage(obj: Creature): int {
     var level = Cre.get_level_by_class(obj, Const.class_type_monk);
-    var combat = get_propset!(CreatureCombat)(obj);
-    var size = combat.size;
-    if (size <= 0) {
-        var stats = get_propset!(CreatureStats)(obj);
-        size = races.size(stats.race);
-    }
+    var size = CreatureSize.creature_size(obj);
     var big = size >= Const.creature_size_medium;
 
     var dice = 1;
@@ -1467,28 +1512,6 @@ fn resolve_unarmed_damage(obj: Creature): int {
     return roll_dice(dice, sides, bonus);
 }
 
-fn resolve_creature_damage(_obj: Creature, weapon: Item): int {
-    const ip_monster_damage = 77;
-
-    var base_item = item.get_baseitem_type(weapon);
-    if (!is_creature_weapon_base_item(base_item)) {
-        return 0;
-    }
-
-    var dice = 0;
-    var sides = 0;
-    var weapon_stats = get_propset!(item.ItemStats)(weapon);
-    for (var ip in weapon_stats.item_properties) {
-        if (ip.prop_type == ip_monster_damage) {
-            dice = item.__ip_cost_table_int(ip_monster_damage, ip.cost_value, "NumDice");
-            sides = item.__ip_cost_table_int(ip_monster_damage, ip.cost_value, "Die");
-            break;
-        }
-    }
-
-    return roll_dice(dice, sides, 0);
-}
-
 fn resolve_attack_base_damage(obj: Creature, weapon: Item, base_item: BaseItemType, multiplier: int): int {
     var is_unarmed = base_item == Const.base_item_invalid
         || base_item == Const.base_item_gloves
@@ -1499,13 +1522,6 @@ fn resolve_attack_base_damage(obj: Creature, weapon: Item, base_item: BaseItemTy
         || base_item == Const.base_item_cslshprcweap;
     if (is_unarmed) {
         return resolve_unarmed_damage(obj) * multiplier;
-    }
-    var is_creature = base_item == Const.base_item_cbludgweapon
-        || base_item == Const.base_item_cpiercweapon
-        || base_item == Const.base_item_cslashweapon
-        || base_item == Const.base_item_cslshprcweap;
-    if (is_creature) {
-        return resolve_creature_damage(obj, weapon) * multiplier;
     }
     var base_roll = baseitems.base_damage_roll(base_item);
     var bonus = base_roll.bonus + resolve_weapon_damage_bonus(obj, base_item);
@@ -1535,12 +1551,21 @@ fn is_sneak_attack_immune(target: Creature): bool {
         || race == Const.racial_type_ooze as int;
 }
 
-fn resolve_target_state(attacker: Creature, target: object): int {
+fn resolve_target_distance_sq(attacker: Creature, target: object): float {
+    var a = Obj.get_position(attacker);
+    var t = Obj.get_position(target);
+    var dx = a.x - t.x;
+    var dy = a.y - t.y;
+    var dz = a.z - t.z;
+    return dx * dx + dy * dy + dz * dz;
+}
+
+fn resolve_target_state(attacker: Creature, target: object, distance_sq: float): int {
     const target_state_none = 0;
     const target_state_flanked = 64;
 
     if (target is Creature) {
-        if (is_flanked(target, attacker)) {
+        if (is_flanked(target, attacker, distance_sq)) {
             return target_state_flanked;
         }
     }
@@ -1548,10 +1573,16 @@ fn resolve_target_state(attacker: Creature, target: object): int {
     return target_state_none;
 }
 
+fn sync_target_context(combat: CreatureCombat, attacker: Creature, target: object): CreatureCombat {
+    combat.target_distance_sq = resolve_target_distance_sq(attacker, target);
+    combat.target_state = resolve_target_state(attacker, target, combat.target_distance_sq);
+    return combat;
+}
+
 fn resolve_attack_cooldown_ticks(attacker: Creature, round_ticks: int): int {
     var attacks_per_round = resolve_number_of_attacks_onhand(attacker)
         + resolve_number_of_attacks_offhand(attacker)
-        + C.attacks_extra(attacker);
+        + _combat_attacks_extra(attacker);
     if (attacks_per_round <= 0) {
         attacks_per_round = 1;
     }
@@ -1964,7 +1995,7 @@ fn resolve_attack_base_damage_result(attacker: Creature, target: object, attack_
 // Extracted to avoid duplicating this logic across onhand/offhand/else branches.
 fn compute_critical_threat_value(base_threat: int, attacker: Creature, attack_type: Const.AttackType): int {
     var ct = base_threat;
-    if (C.weapon_has_keen(attacker, attack_type)) { ct = ct + base_threat; }
+    if (weapon_has_keen(attacker, attack_type)) { ct = ct + base_threat; }
     if (mfeat.has_improved_critical(attacker, attack_type)) { ct = ct + base_threat; }
     if (Cre.get_level_by_class(attacker, Const.class_type_weapon_master) >= 7) { ct = ct + 2; }
     return ct;
@@ -1976,6 +2007,7 @@ fn explain_attack(attacker: Creature, target: object): AttackExplain {
     var terms: array!(AttackExplainTerm) = {};
 
     var combat = sync_combat_round_state_from_native(attacker);
+    combat = sync_target_context(combat, attacker, target);
     var attack_type = resolve_attack_type_from_handle(combat, attacker);
 
     var weapon = NCre.weapon_for_attack(attacker, attack_type);
@@ -2055,10 +2087,11 @@ fn explain_attack(attacker: Creature, target: object): AttackExplain {
         });
     }
 
-    if (combat.size_ab_modifier != 0) {
+    var size_ab_modifier = CreatureSize.attack_modifier(attacker);
+    if (size_ab_modifier != 0) {
         arr.push(terms, AttackExplainTerm {
             tag = "size_attack_bonus",
-            value = combat.size_ab_modifier,
+            value = size_ab_modifier,
             group = explain_group_base,
             subtype = effective_attack_type as int,
         });
@@ -2084,7 +2117,7 @@ fn explain_attack(attacker: Creature, target: object): AttackExplain {
         });
     }
 
-    var attack_bonus = bab + dual_wield_penalty + combat.size_ab_modifier + w.ab_ability + w.ab_mod;
+    var attack_bonus = bab + dual_wield_penalty + size_ab_modifier + w.ab_ability + w.ab_mod;
 
     var modifier_terms = modifier.collect_attack_bonus_terms(attacker, target, effective_attack_type);
     for (var term in modifier_terms) {
@@ -2204,6 +2237,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
 
     _ensure_weapon_cache_callbacks();
     var combat = sync_combat_round_state_from_native(attacker);
+    combat = sync_target_context(combat, attacker, target);
     var attack_type = resolve_attack_type_from_handle(combat, attacker);
 
     var weapon = NCre.weapon_for_attack(attacker, attack_type);
@@ -2328,20 +2362,20 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     var critical_threat = 0;
     if (attack_type == Const.attack_type_onhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_on)) {
-            var start = C.weapon_critical_threat(attacker, attack_type);
+            var start = weapon_critical_threat(attacker, attack_type);
             combat.slot_values[slot_off_crit_threat_on] = compute_critical_threat_value(start, attacker, attack_type);
             modifier.slot_set_valid(combat, slot_off_crit_threat_on);
         }
         critical_threat = combat.slot_values[slot_off_crit_threat_on];
     } elif (attack_type == Const.attack_type_offhand) {
         if (!modifier.slot_valid(combat, slot_off_crit_threat_off)) {
-            var start = C.weapon_critical_threat(attacker, attack_type);
+            var start = weapon_critical_threat(attacker, attack_type);
             combat.slot_values[slot_off_crit_threat_off] = compute_critical_threat_value(start, attacker, attack_type);
             modifier.slot_set_valid(combat, slot_off_crit_threat_off);
         }
         critical_threat = combat.slot_values[slot_off_crit_threat_off];
     } else {
-        var start = C.weapon_critical_threat(attacker, attack_type);
+        var start = weapon_critical_threat(attacker, attack_type);
         critical_threat = compute_critical_threat_value(start, attacker, attack_type);
     }
 
@@ -2353,7 +2387,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
 
     var w = combat.weapons[effective_attack_type as int];
 
-    var attack_bonus = bab + dual_wield_penalty + combat.size_ab_modifier
+    var attack_bonus = bab + dual_wield_penalty + CreatureSize.attack_modifier(attacker)
         + w.ab_ability + w.ab_mod
         + modifier.get_off_attack_bonus_raw(combat, attacker, target, effective_attack_type)
         + requested_special_ab;
@@ -2479,9 +2513,8 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
             if (!is_ranged && target is Creature) {
                 // Knockdown (23) allows Medium targets; Improved Knockdown (17) allows Large.
                 if (requested_special == Const.feat_knockdown || requested_special == Const.feat_improved_knockdown) {
-                    var tgt_combat = get_propset!(CreatureCombat)(target);
                     var max_size = requested_special == Const.feat_improved_knockdown ? 4 : 3;
-                    if (tgt_combat.size <= max_size) {
+                    if (CreatureSize.creature_size(target) <= max_size) {
                         if (!NCre.resolve_skill_check(target, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
                             special_attack_type = requested_special;
                         }
@@ -2536,7 +2569,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     var rolls: array!(DamageRoll) = {};
     var on_hit_base_damage_bonus = 0;
     if (attack_result <= attack_result_hit_by_roll && on_hit.has_handlers()) {
-        var has_weapon_properties = get_propset!(item.ItemStats)(weapon).has_on_hit > 0;
+        var has_weapon_properties = weapon_has_on_hit_property(weapon);
         if (has_weapon_properties) {
             rolls = {};
             var on_hit_result = on_hit.resolve_weapon_on_hit(attacker, target, weapon, attack_type,
@@ -2721,7 +2754,6 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
             combat.epic_dodge_used = 0;
         }
     }
-    C.set_attack_current(attacker, combat.attack_current);
     return data;
 }
 

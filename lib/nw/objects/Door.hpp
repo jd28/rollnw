@@ -1,102 +1,28 @@
 #pragma once
 
-#include "Common.hpp"
-#include "Lock.hpp"
 #include "ObjectBase.hpp"
-#include "Saves.hpp"
-#include "Trap.hpp"
 
 namespace nw {
-
-enum struct DoorAnimationState : uint8_t {
-    closed = 0,
-    opened1 = 1,
-    opened2 = 2
-};
-
-struct DoorScripts {
-    bool from_json(const nlohmann::json& archive);
-    nlohmann::json to_json() const;
-
-    Resref on_click;
-    Resref on_closed;
-    Resref on_damaged;
-    Resref on_death;
-    Resref on_disarm;
-    Resref on_heartbeat;
-    Resref on_lock;
-    Resref on_melee_attacked;
-    Resref on_open;
-    Resref on_open_failure;
-    Resref on_spell_cast_at;
-    Resref on_trap_triggered;
-    Resref on_unlock;
-    Resref on_user_defined;
-};
 
 struct Door : public ObjectBase {
     Door();
     Door(nw::MemoryResource* allocator);
 
-    static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
     static constexpr ResourceType::type restype = ResourceType::utd;
     static constexpr StringView serial_id{"UTD"};
 
     // ObjectBase overrides
-    virtual Common* as_common() override { return &common; }
-    virtual const Common* as_common() const override { return &common; }
     virtual Door* as_door() override { return this; }
     virtual const Door* as_door() const override { return this; }
     virtual bool instantiate() override { return true; }
-    virtual InternedString tag() const override { return common.tag; }
 
     /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
     bool save(const std::filesystem::path& path, std::string_view format = "json");
 
     // Serialization
     static String get_name_from_file(const std::filesystem::path& path);
-
-    Common common;
-    DoorScripts scripts;
-    Lock lock;
-    Trap trap;
-    Resref conversation;
-    LocString description;
-    String linked_to;
-    Saves saves;
-
-    uint32_t appearance;
-    uint32_t faction = 0;
-    uint32_t generic_type = 0;
-
-    int16_t hp = 0;
-    int16_t hp_current = 0;
-    uint16_t loadscreen = 0;
-    uint16_t portrait_id;
-
-    DoorAnimationState animation_state = DoorAnimationState::closed;
-    uint8_t hardness;
-    bool interruptable = 0;
-    uint8_t linked_to_flags = 0;
-    bool plot = false;
-
-    bool instantiated_ = true;
 };
-
-struct DoorModelReference {
-    Resref model;
-    String error;
-    StringView table;
-    StringView column;
-    StringView selector;
-    uint32_t row = 0;
-    bool generic = false;
-
-    bool valid() const noexcept { return !model.empty(); }
-};
-
-DoorModelReference resolve_door_model(const Door& door);
 
 // == Door - Serialization - Gff ==============================================
 // ============================================================================

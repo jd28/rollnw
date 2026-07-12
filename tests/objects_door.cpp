@@ -8,11 +8,14 @@
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
+#include <nw/smalls/runtime.hpp>
 #include <nw/util/string.hpp>
 
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace fs = std::filesystem;
 
@@ -57,6 +60,113 @@ void expect_same_resref(const nw::Resref& actual, std::string_view expected)
         << "expected " << expected << ", got " << actual.view();
 }
 
+struct DoorLookup {
+    bool resolved = false;
+    nw::Resref model;
+    std::string error;
+    std::string table;
+    std::string column;
+    std::string selector;
+    int32_t row = -1;
+    bool generic = false;
+
+    bool valid() const noexcept { return resolved && !model.empty(); }
+};
+
+nw::smalls::Value script_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
+{
+    const nw::smalls::StructDef* def = rt.get_struct_def(value.type_id);
+    if (!def) {
+        return {};
+    }
+
+    uint32_t index = def->field_index(field);
+    if (index == UINT32_MAX) {
+        return {};
+    }
+
+    const auto& fd = def->fields[index];
+    return rt.read_value_field_at_offset(value, fd.offset, fd.type_id);
+}
+
+int32_t script_int_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value,
+    const char* field, int32_t fallback = 0)
+{
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    return field_value.type_id == rt.int_type() ? field_value.data.ival : fallback;
+}
+
+bool script_bool_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
+{
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    return field_value.type_id == rt.bool_type() && field_value.data.bval;
+}
+
+std::string script_string_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
+{
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    if (field_value.type_id != rt.string_type()) {
+        return {};
+    }
+    return std::string{nw::smalls::ScriptString{field_value.data.hptr}.view(rt)};
+}
+
+nw::Resref script_resref_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
+{
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    nw::smalls::TypeID resref_type = rt.type_id("core.types.ResRef", false);
+    if (field_value.type_id != resref_type) {
+        return {};
+    }
+
+    const auto* resref = static_cast<const nw::Resref*>(rt.get_value_data_ptr(field_value));
+    return resref ? *resref : nw::Resref{};
+}
+
+DoorLookup resolve_door_model_by_state(int32_t appearance, int32_t generic_type)
+{
+    auto& rt = nw::kernel::runtime();
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::Value::make_int(appearance));
+    args.push_back(nw::smalls::Value::make_int(generic_type));
+
+    auto executed = rt.execute_script("nwn1.doors", "resolve_door_model_by_state", args);
+    DoorLookup result;
+    if (!executed.ok()) {
+        result.error = executed.error_message;
+        return result;
+    }
+
+    result.model = script_resref_field(rt, executed.value, "model");
+    result.error = script_string_field(rt, executed.value, "error");
+    result.table = script_string_field(rt, executed.value, "table");
+    result.column = script_string_field(rt, executed.value, "column");
+    result.selector = script_string_field(rt, executed.value, "selector");
+    result.row = script_int_field(rt, executed.value, "row", -1);
+    result.generic = script_bool_field(rt, executed.value, "generic");
+    result.resolved = script_bool_field(rt, executed.value, "valid");
+    return result;
+}
+
+int32_t door_state_int(nw::Door* door, const char* field)
+{
+    auto& rt = nw::kernel::runtime();
+    auto tid = rt.type_id("core.door.DoorState", false);
+    if (!door || tid == nw::smalls::invalid_type_id) { return 0; }
+
+    auto ref = rt.find_propset_ref(tid, door->handle());
+    if (ref.type_id == nw::smalls::invalid_type_id) { return 0; }
+
+    const auto* def = rt.get_struct_def(tid);
+    if (!def) { return 0; }
+
+    uint32_t idx = def->field_index(field);
+    if (idx == UINT32_MAX) { return 0; }
+
+    auto value = rt.read_value_field_at_offset(ref, def->fields[idx].offset, rt.int_type());
+    return value.type_id == rt.int_type() ? value.data.ival : 0;
+}
+
 } // namespace
 
 TEST(Door, JsonSerialize)
@@ -68,11 +178,12 @@ TEST(Door, JsonSerialize)
     nlohmann::json j;
     EXPECT_TRUE(nw::serialize(door, j, nw::SerializationProfile::blueprint));
 
-    nw::Door door2;
-    EXPECT_TRUE(nw::deserialize(&door2, j, nw::SerializationProfile::blueprint));
+    auto* door2 = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(door2, nullptr);
+    EXPECT_TRUE(nw::deserialize(door2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    EXPECT_TRUE(nw::serialize(&door2, j2, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::serialize(door2, j2, nw::SerializationProfile::blueprint));
     EXPECT_EQ(j, j2);
 
     std::ofstream f{"tmp/door_ttr_002.utd.json"};
@@ -87,10 +198,10 @@ TEST(Door, GffDeserialize)
 {
     auto door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
 
-    EXPECT_EQ(door->common.resref, "door_ttr_002");
-    EXPECT_EQ(door->appearance, 0u);
-    EXPECT_TRUE(!door->plot);
-    EXPECT_TRUE(!door->lock.locked);
+    EXPECT_EQ(door->resref, "door_ttr_002");
+    EXPECT_EQ(door_state_int(door, "appearance"), 0);
+    EXPECT_EQ(door_state_int(door, "plot"), 0);
+    EXPECT_EQ(door_state_int(door, "locked"), 0);
 }
 
 TEST(Door, GffRoundTrip)
@@ -133,14 +244,10 @@ TEST(Door, ResolveGenericModelUsesGenericDoors)
     auto model_name = door_table_model_name(*genericdoors, *row, "ModelName");
     ASSERT_TRUE(model_name);
 
-    nw::Door door;
-    door.appearance = 0;
-    door.generic_type = static_cast<uint32_t>(*row);
-
-    auto lookup = nw::resolve_door_model(door);
+    auto lookup = resolve_door_model_by_state(0, static_cast<int32_t>(*row));
     ASSERT_TRUE(lookup.valid()) << lookup.error;
     EXPECT_TRUE(lookup.generic);
-    EXPECT_EQ(lookup.row, *row);
+    EXPECT_EQ(lookup.row, static_cast<int32_t>(*row));
     EXPECT_TRUE(nw::string::icmp(lookup.table, "genericdoors"));
     EXPECT_TRUE(nw::string::icmp(lookup.column, "ModelName"));
     EXPECT_TRUE(nw::string::icmp(lookup.selector, "generic type"));
@@ -159,14 +266,10 @@ TEST(Door, ResolveExplicitModelUsesDoorTypes)
     auto model_name = door_table_model_name(*doortypes, *row, "Model");
     ASSERT_TRUE(model_name);
 
-    nw::Door door;
-    door.appearance = static_cast<uint32_t>(*row);
-    door.generic_type = 0;
-
-    auto lookup = nw::resolve_door_model(door);
+    auto lookup = resolve_door_model_by_state(static_cast<int32_t>(*row), 0);
     ASSERT_TRUE(lookup.valid()) << lookup.error;
     EXPECT_FALSE(lookup.generic);
-    EXPECT_EQ(lookup.row, *row);
+    EXPECT_EQ(lookup.row, static_cast<int32_t>(*row));
     EXPECT_TRUE(nw::string::icmp(lookup.table, "doortypes"));
     EXPECT_TRUE(nw::string::icmp(lookup.column, "Model"));
     EXPECT_TRUE(nw::string::icmp(lookup.selector, "appearance"));

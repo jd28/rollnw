@@ -2,9 +2,7 @@
 
 #include "../resources/assets.hpp"
 #include "../util/enum_flags.hpp"
-#include "feats.hpp"
 #include "rule_type.hpp"
-#include "system.hpp"
 
 namespace nw {
 
@@ -22,24 +20,12 @@ enum struct SpellFlags : uint8_t {
 DEFINE_ENUM_FLAGS(SpellFlags);
 
 DECLARE_RULE_TYPE(MetaMagic);
-DECLARE_RULE_TYPE(MetaMagicFlag);
+DECLARE_RULE_TYPE(MetaMagicCode);
+DECLARE_RULE_TYPE(MetaMagicMask);
 
-constexpr MetaMagicFlag metamagic_none = MetaMagicFlag::make(0);
-constexpr MetaMagicFlag metamagic_any = MetaMagicFlag::make(0xFF);
-
-struct MetaMagicInfo {
-    MetaMagicInfo() = default;
-    MetaMagicInfo(const TwoDARowView& tda);
-
-    uint32_t name = 0xFFFFFFFF;
-    int level_adjustment = 0;
-    Feat feat;
-    Requirement requirements;
-
-    bool valid() const noexcept { return name != 0xFFFFFFFF; }
-};
-
-using MetaMagicArray = RuleTypeArray<MetaMagic, MetaMagicInfo>;
+constexpr MetaMagicCode metamagic_none = MetaMagicCode::make(0);
+constexpr MetaMagicCode metamagic_any = MetaMagicCode::make(0xFF);
+constexpr MetaMagicMask metamagic_mask_none = MetaMagicMask::make(0);
 
 DECLARE_RULE_TYPE(SpellSchool);
 
@@ -67,7 +53,7 @@ struct SpellInfo {
     SpellSchool school = SpellSchool::invalid();
     // Range
     // VS
-    MetaMagicFlag metamagic = metamagic_none;
+    MetaMagicMask metamagic_mask = metamagic_mask_none;
     // TargetType
     // ImpactScript
     int innate_level = -1; // Class spells and levels are in Class Array

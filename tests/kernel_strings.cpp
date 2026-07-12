@@ -38,3 +38,25 @@ TEST(KernelStrings, Intern)
     EXPECT_TRUE(str5);
     EXPECT_EQ(str5.view(), "Bad Strref");
 }
+
+TEST(KernelStrings, TextRefResolution)
+{
+    nw::kernel::strings().load_dialog_tlk("test_data/root/lang/en/data/dialog.tlk");
+
+    nw::TextRef ref = nw::kernel::strings().make_text_ref(1000);
+    EXPECT_EQ(nw::kernel::strings().get(ref), "Silence");
+
+    EXPECT_TRUE(nw::kernel::strings().set_text(ref, nw::LanguageID::english, "Inline Silence"));
+    EXPECT_EQ(nw::kernel::strings().get(ref), "Inline Silence");
+
+    EXPECT_TRUE(nw::kernel::strings().set_text_override(ref, nw::LanguageID::english, "Runtime Silence"));
+    EXPECT_EQ(nw::kernel::strings().get(ref), "Runtime Silence");
+
+    nw::kernel::strings().clear_text_override(ref, nw::LanguageID::english);
+    EXPECT_EQ(nw::kernel::strings().get(ref), "Inline Silence");
+
+    nw::TextRef copy = nw::kernel::strings().clone_text_ref(ref);
+    EXPECT_TRUE(nw::kernel::strings().set_text_override(copy, nw::LanguageID::english, "Copy Silence"));
+    EXPECT_EQ(nw::kernel::strings().get(copy), "Copy Silence");
+    EXPECT_EQ(nw::kernel::strings().get(ref), "Inline Silence");
+}

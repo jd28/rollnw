@@ -207,7 +207,7 @@ void ObjectManager::destroy(ObjectHandle obj)
     if (!o) { return; }
 
     // Delete from tag map
-    if (auto tag = o->tag()) {
+    if (auto tag = o->tag) {
         auto it = object_tag_map_.find(tag);
         while (it != std::end(object_tag_map_)) {
             if (it->second == o->handle()) {
@@ -220,10 +220,11 @@ void ObjectManager::destroy(ObjectHandle obj)
         }
     }
 
-    if (destroy_callback_) {
-        destroy_callback_(o);
-    }
+    o->clear_effects();
 
+    if (destroy_callback_) { destroy_callback_(o); }
+
+    components_.remove(obj);
     objects_array_.destroy(obj);
 }
 
@@ -334,14 +335,14 @@ Module* ObjectManager::make_module()
 void ObjectManager::run_instantiate_callback(ObjectBase* obj)
 {
     if (!obj) { return; }
-    if (instatiate_callback_) {
-        instatiate_callback_(obj);
+    if (instantiate_callback_) {
+        instantiate_callback_(obj);
     }
 }
 
 void ObjectManager::set_instantiate_callback(void (*callback)(ObjectBase*))
 {
-    instatiate_callback_ = callback;
+    instantiate_callback_ = callback;
 }
 
 void ObjectManager::set_destroy_callback(void (*callback)(ObjectBase*))
@@ -351,7 +352,9 @@ void ObjectManager::set_destroy_callback(void (*callback)(ObjectBase*))
 
 nlohmann::json ObjectManager::stats() const
 {
-    return {};
+    return {
+        {"components", components_.stats()},
+    };
 }
 
 bool ObjectManager::valid(ObjectHandle handle) const

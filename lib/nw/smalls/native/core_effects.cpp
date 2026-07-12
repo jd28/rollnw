@@ -7,27 +7,6 @@
 
 namespace nw::smalls {
 
-namespace {
-
-// All effect state changes now flow through Smalls propsets
-// C++ callbacks are no longer used for stateful effects
-
-enum : int32_t {
-    effect_callback_none = 0,
-};
-
-nw::EffectFunc resolve_effect_callback(int32_t callback, bool is_apply)
-{
-    (void)is_apply;
-    switch (callback) {
-    default:
-    case effect_callback_none:
-        return {};
-    }
-}
-
-} // namespace
-
 void register_core_effects(Runtime& rt)
 {
     if (rt.get_native_module("core.effects")) {
@@ -116,13 +95,14 @@ void register_core_effects(Runtime& rt)
                 return;
             }
             e->handle().subtype = subtype; })
-        .function("register_type_metadata", +[](int32_t effect_type, int32_t object_mask, int32_t event_mask, int32_t apply_callback, int32_t remove_callback, bool has_versus_component) { nw::kernel::effects().add(
-                                                                                                                                                                                                nw::EffectType::make(effect_type),
-                                                                                                                                                                                                static_cast<uint32_t>(object_mask),
-                                                                                                                                                                                                static_cast<uint32_t>(event_mask),
-                                                                                                                                                                                                resolve_effect_callback(apply_callback, true),
-                                                                                                                                                                                                resolve_effect_callback(remove_callback, false),
-                                                                                                                                                                                                has_versus_component); })
+        .function("register_type_metadata", +[](int32_t effect_type, int32_t object_mask, int32_t event_mask, bool has_versus_component) {
+            nw::kernel::effects().add(
+                nw::EffectType::make(effect_type),
+                static_cast<uint32_t>(object_mask),
+                static_cast<uint32_t>(event_mask),
+                {},
+                {},
+                has_versus_component); })
         .finalize();
 }
 

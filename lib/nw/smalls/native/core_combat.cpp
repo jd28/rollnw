@@ -1,12 +1,9 @@
 #include "../runtime.hpp"
 
 #include "../../functions.hpp"
-#include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
-#include "../../objects/Item.hpp"
 #include "../../objects/ObjectManager.hpp"
-#include "../../profiles/nwn1/scriptapi.hpp"
-#include "../../scriptapi.hpp"
+#include "../../profiles/nwn1/constants.hpp"
 
 #include <algorithm>
 
@@ -16,15 +13,21 @@ namespace {
 
 const nw::ObjectBase* as_object_const(nw::ObjectHandle obj);
 
-int32_t damage_immunity_effect_delta_uncached(const nw::ObjectBase* base, int32_t damage_type, nw::ObjectHandle versus)
+nw::Versus make_versus(int32_t race, int32_t align_flags) noexcept
+{
+    constexpr int32_t valid_align_flags = 0x1 | 0x2 | 0x4 | 0x8 | 0x10;
+    nw::Versus vs;
+    if (race >= 0) {
+        vs.race = nw::Race::make(race);
+    }
+    vs.align_flags = static_cast<nw::AlignmentFlags>(align_flags & valid_align_flags);
+    return vs;
+}
+
+int32_t damage_immunity_effect_delta_uncached(const nw::ObjectBase* base, int32_t damage_type, nw::Versus vs)
 {
     if (!base) {
         return 0;
-    }
-
-    nw::Versus vs;
-    if (auto* target = as_object_const(versus)) {
-        vs = target->versus_me();
     }
 
     auto begin = std::begin(base->effects());
@@ -150,48 +153,11 @@ nw::ObjectBase* as_object_base(nw::ObjectHandle obj)
     return nw::kernel::objects().get_object_base(obj);
 }
 
-nw::Item* as_item(nw::ObjectHandle obj)
-{
-    auto* base = nw::kernel::objects().get_object_base(obj);
-    if (!base) {
-        return nullptr;
-    }
-    return base->as_item();
-}
-
-nw::Item* get_weapon_for_attack_type(nw::ObjectHandle obj, int32_t attack_type)
-{
-    auto* cre = as_creature(obj);
-    if (!cre) { return nullptr; }
-
-    switch (attack_type) {
-    case 1:
-        return nw::get_equipped_item(cre, nw::EquipIndex::righthand);
-    case 2:
-        return nw::get_equipped_item(cre, nw::EquipIndex::lefthand);
-    case 3:
-        return nw::get_equipped_item(cre, nw::EquipIndex::arms);
-    case 4:
-        return nw::get_equipped_item(cre, nw::EquipIndex::creature_bite);
-    case 5:
-        return nw::get_equipped_item(cre, nw::EquipIndex::creature_left);
-    case 6:
-        return nw::get_equipped_item(cre, nw::EquipIndex::creature_right);
-    default:
-        return nullptr;
-    }
-}
-
-int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus)
+int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_type, nw::Versus vs)
 {
     auto* cre = as_creature(obj);
     if (!cre) {
         return 0;
-    }
-
-    nw::Versus vs;
-    if (auto* target = as_object_const(versus)) {
-        vs = target->versus_me();
     }
 
     auto begin = std::begin(cre->effects());
@@ -222,35 +188,14 @@ int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_t
     return std::clamp(bonus - decrease, min, max);
 }
 
-int32_t weapon_critical_threat(nw::ObjectHandle obj, int32_t attack_type)
-{
-    auto* weapon = get_weapon_for_attack_type(obj, attack_type);
-    if (!weapon) {
-        return 1;
-    }
-
-    auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
-    if (!baseitem) {
-        return 1;
-    }
-
-    return baseitem->crit_threat;
-}
-
-bool weapon_has_keen(nw::ObjectHandle obj, int32_t attack_type)
-{
-    auto* weapon = get_weapon_for_attack_type(obj, attack_type);
-    return weapon && weapon->derived_has_keen;
-}
-
-int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus)
+int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, int32_t damage_type, nw::Versus vs)
 {
     auto* base = as_object_const(obj);
     if (!base) {
         return 0;
     }
 
-    return damage_immunity_effect_delta_uncached(base, damage_type, versus);
+    return damage_immunity_effect_delta_uncached(base, damage_type, vs);
 }
 
 int32_t object_effect_count(nw::ObjectHandle obj)
@@ -331,16 +276,11 @@ int32_t roll_uniform_int(int32_t min, int32_t max)
 }
 
 int32_t aggregate_effect_int(nw::ObjectHandle obj, int32_t effect_type, int32_t subtype,
-    nw::ObjectHandle versus, int32_t int_index, int32_t stack_policy)
+    nw::Versus vs, int32_t int_index, int32_t stack_policy)
 {
     auto* base = as_object_const(obj);
     if (!base || int_index < 0) {
         return 0;
-    }
-
-    nw::Versus vs;
-    if (auto* target = as_object_const(versus)) {
-        vs = target->versus_me();
     }
 
     auto type = nw::EffectType::make(effect_type);
@@ -357,17 +297,12 @@ int32_t aggregate_effect_int(nw::ObjectHandle obj, int32_t effect_type, int32_t 
 }
 
 int32_t aggregate_effect_int_filtered(nw::ObjectHandle obj, int32_t effect_type, int32_t subtype,
-    nw::ObjectHandle versus, int32_t filter_int_index, int32_t filter_int_value,
+    nw::Versus vs, int32_t filter_int_index, int32_t filter_int_value,
     int32_t int_index, int32_t stack_policy)
 {
     auto* base = as_object_const(obj);
     if (!base || int_index < 0 || filter_int_index < 0) {
         return 0;
-    }
-
-    nw::Versus vs;
-    if (auto* target = as_object_const(versus)) {
-        vs = target->versus_me();
     }
 
     auto type = nw::EffectType::make(effect_type);
@@ -382,12 +317,6 @@ int32_t aggregate_effect_int_filtered(nw::ObjectHandle obj, int32_t effect_type,
     }
 
     return folder.result();
-}
-
-int32_t weapon_power_item_property_bonus(nw::ObjectHandle weapon)
-{
-    auto* item = as_item(weapon);
-    return item ? item->derived_weapon_power_bonus : 0;
 }
 
 int32_t roll_dice_amount(int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier)
@@ -413,12 +342,6 @@ int32_t creature_equip_version(nw::ObjectHandle obj)
     return cre ? static_cast<int32_t>(cre->equipment.equip_version) : 0;
 }
 
-int32_t get_combat_mode(nw::ObjectHandle obj)
-{
-    auto* cre = as_creature(obj);
-    return cre ? static_cast<int32_t>(*cre->combat_info.combat_mode) : -1;
-}
-
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -428,13 +351,11 @@ void register_core_combat(Runtime& rt)
     }
 
     rt.module("core.combat")
-        .function("attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, nw::ObjectHandle versus) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, versus); })
-        .function("weapon_critical_threat", +[](nw::ObjectHandle obj, int32_t attack_type) -> int32_t { return weapon_critical_threat(obj, attack_type); })
-        .function("weapon_has_keen", +[](nw::ObjectHandle obj, int32_t attack_type) -> bool { return weapon_has_keen(obj, attack_type); })
+        .function("__attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, make_versus(versus_race, versus_alignment_flags)); })
         .function("roll_uniform_int", +[](int32_t min, int32_t max) -> int32_t { return roll_uniform_int(min, max); })
-        .function("aggregate_effect_int", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, nw::ObjectHandle versus, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int(obj, effect_type, subtype, versus, int_index, stack_policy); })
-        .function("aggregate_effect_int_filtered", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, nw::ObjectHandle versus, int32_t filter_int_index, int32_t filter_int_value, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int_filtered(obj, effect_type, subtype, versus, filter_int_index, filter_int_value, int_index, stack_policy); })
-        .function("damage_immunity_effect_delta", +[](nw::ObjectHandle obj, int32_t damage_type, nw::ObjectHandle versus) -> int32_t { return damage_immunity_effect_delta(obj, damage_type, versus); })
+        .function("__aggregate_effect_int", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t versus_race, int32_t versus_alignment_flags, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int(obj, effect_type, subtype, make_versus(versus_race, versus_alignment_flags), int_index, stack_policy); })
+        .function("__aggregate_effect_int_filtered", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t versus_race, int32_t versus_alignment_flags, int32_t filter_int_index, int32_t filter_int_value, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int_filtered(obj, effect_type, subtype, make_versus(versus_race, versus_alignment_flags), filter_int_index, filter_int_value, int_index, stack_policy); })
+        .function("__damage_immunity_effect_delta", +[](nw::ObjectHandle obj, int32_t damage_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return damage_immunity_effect_delta(obj, damage_type, make_versus(versus_race, versus_alignment_flags)); })
         .function("object_effect_count", +[](nw::ObjectHandle obj) -> int32_t { return object_effect_count(obj); })
         .function("object_effect_at", +[](nw::ObjectHandle obj, int32_t index) -> nw::TypedHandle { return object_effect_at(obj, index); })
         .function("object_find_first_effect_of", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t start_index) -> int32_t { return object_find_first_effect_of(obj, effect_type, subtype, start_index); })
@@ -444,43 +365,9 @@ void register_core_combat(Runtime& rt)
         .function("effect_best_damage_resistance", +[](nw::ObjectHandle obj, int32_t damage_type) -> nw::TypedHandle {
             auto* eff = effect_best_damage_resistance(obj, damage_type);
             return eff ? eff->handle().to_typed_handle() : nw::TypedHandle{}; })
-        .function("weapon_power_item_property_bonus", +[](nw::ObjectHandle weapon) -> int32_t { return weapon_power_item_property_bonus(weapon); })
         .function("roll_dice", +[](int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier) -> int32_t { return roll_dice_amount(dice, sides, bonus, multiplier); })
-        .function("attack_current", +[](nw::ObjectHandle attacker) -> int32_t {
-            auto* cre = as_creature(attacker);
-            return cre ? cre->combat_info.attack_current : 0; })
-        .function("attacks_onhand", +[](nw::ObjectHandle attacker) -> int32_t {
-            auto* cre = as_creature(attacker);
-            return cre ? cre->combat_info.attacks_onhand : 0; })
-        .function("attacks_offhand", +[](nw::ObjectHandle attacker) -> int32_t {
-            auto* cre = as_creature(attacker);
-            return cre ? cre->combat_info.attacks_offhand : 0; })
-        .function("attacks_extra", +[](nw::ObjectHandle attacker) -> int32_t {
-            auto* cre = as_creature(attacker);
-            return cre ? cre->combat_info.attacks_extra : 0; })
-        .function("advance_attack_round", +[](nw::ObjectHandle attacker) {
-            auto* cre = as_creature(attacker);
-            if (cre) {
-                ++cre->combat_info.attack_current;
-            } })
-        .function("set_attack_current", +[](nw::ObjectHandle attacker, int32_t value) {
-            auto* cre = as_creature(attacker);
-            if (cre) {
-                cre->combat_info.attack_current = value;
-            } })
-        .function("set_attacks_onhand", +[](nw::ObjectHandle attacker, int32_t value) {
-            auto* cre = as_creature(attacker);
-            if (cre) {
-                cre->combat_info.attacks_onhand = value;
-            } })
-        .function("set_attacks_offhand", +[](nw::ObjectHandle attacker, int32_t value) {
-            auto* cre = as_creature(attacker);
-            if (cre) {
-                cre->combat_info.attacks_offhand = value;
-            } })
         .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })
         .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
-        .function("get_combat_mode", +[](nw::ObjectHandle obj) -> int32_t { return get_combat_mode(obj); })
         .finalize();
 }
 

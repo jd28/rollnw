@@ -57,16 +57,6 @@ std::string preferred_plt_bitmap(std::string_view model_resref, std::string_view
     return std::string(bitmap_name);
 }
 
-nw::PltColors creature_plt_colors(const nw::CreatureAppearance& appearance)
-{
-    nw::PltColors result{};
-    result.data[nw::plt_layer_hair] = appearance.colors[nw::CreatureColors::hair];
-    result.data[nw::plt_layer_skin] = appearance.colors[nw::CreatureColors::skin];
-    result.data[nw::plt_layer_tattoo1] = appearance.colors[nw::CreatureColors::tatoo1];
-    result.data[nw::plt_layer_tattoo2] = appearance.colors[nw::CreatureColors::tatoo2];
-    return result;
-}
-
 void apply_plt_to_model(PreviewRenderResources& resources, ModelInstance& model, const nw::PltColors& colors,
     std::string_view model_resref)
 {

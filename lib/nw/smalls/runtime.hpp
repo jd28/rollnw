@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../i18n/TextRef.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../objects/ObjectHandle.hpp"
 #include "../resources/ResourceManager.hpp"
@@ -328,8 +329,6 @@ struct VmProfileSnapshot {
     uint64_t propset_get_or_create_ns = 0;
     uint64_t propset_write_field_count = 0;
     uint64_t propset_write_field_ns = 0;
-    uint64_t populate_creature_propsets_count = 0;
-    uint64_t populate_creature_propsets_ns = 0;
 
     Vector<VmOpcodeProfileEntry> opcodes;
     Vector<VmNativeProfileEntry> natives;
@@ -415,6 +414,10 @@ struct Runtime : public nw::kernel::Service {
     /// Gets a type by fully-qualified name
     /// @return The type definition, or nullptr if not found
     const Type* get_type(StringView name) const;
+
+    /// Gets the struct definition for a struct, alias, or newtype ID.
+    /// @return The struct definition, or nullptr if the type does not resolve to a struct
+    const StructDef* get_struct_def(TypeID id) const;
 
     /// Gets the type ID for a fully-qualified name
     /// @param name The type name
@@ -964,6 +967,15 @@ public:
         /// that 2DA is loaded and each row fills one element of the listed fixed-array fields.
         /// `field` is unused in this mode. Maps secondary_column → primary_fixed_array_field.
         Vector<std::pair<String, String>> secondary_columns;
+        int32_t int_default = 0;
+        float float_default = 0.0f;
+        bool bool_default = false;
+        /// Optional secondary 2DA row-major fixed-array loader. `column` names
+        /// the secondary 2DA, `field` names the primary fixed-array field,
+        /// and columns are read as `secondary_grid_column_prefix + index`.
+        String secondary_grid_column_prefix;
+        int32_t secondary_grid_column_count = 0;
+        String secondary_grid_limit_column;
     };
 
     /// Registered converter for a config-array path: read from a .2da instead of .smalls files.
@@ -984,11 +996,13 @@ public:
     // -- Propsets ------------------------------------------------------------
 
     bool is_propset_type(TypeID type_id) const;
+    Value find_propset_ref(TypeID propset_type, ObjectHandle obj);
     Value get_or_create_propset_ref(TypeID propset_type, ObjectHandle obj);
     void mark_propset_heap_mutation(HeapPtr ptr);
     void init_object_propsets(ObjectHandle obj);
     void free_object_propsets(ObjectHandle obj);
     void prime_propset_pools();
+    void object_propset_types(ObjectType type, std::vector<TypeID>& out) const;
 
     // -- Optional VM Profiling -----------------------------------------------
 
@@ -1006,7 +1020,6 @@ public:
     void record_propset_get_or_create(uint64_t ns) noexcept;
     void record_propset_write_field(uint64_t ns) noexcept;
     void record_propset_write_field_site(TypeID propset_type, uint32_t offset);
-    void record_populate_creature_propsets(uint64_t ns) noexcept;
 
     // -- Tuple Element Access ------------------------------------------------
 
@@ -1395,8 +1408,6 @@ private:
     uint64_t vm_propset_write_field_count_ = 0;
     uint64_t vm_propset_write_field_ns_ = 0;
     absl::flat_hash_map<String, uint64_t> vm_propset_write_site_hist_;
-    uint64_t vm_populate_creature_propsets_count_ = 0;
-    uint64_t vm_populate_creature_propsets_ns_ = 0;
 
     friend struct NativeStructBuilder;
     friend struct ModuleBuilder;
@@ -1506,6 +1517,8 @@ TypeID deduce_type_id()
         return rt.type_id("core.types.ResRef");
     } else if constexpr (std::is_same_v<T, nw::Resource>) {
         return rt.type_id("core.types.Resource");
+    } else if constexpr (std::is_same_v<T, nw::TextRef>) {
+        return rt.type_id("core.types.TextRef");
     }
     // ScriptString (mapped to smalls string)
     else if constexpr (std::is_same_v<T, ScriptString>) {
@@ -1736,6 +1749,8 @@ TypeID cpp_to_typeid(Runtime* rt)
         return rt->int_type();
     } else if constexpr (std::is_same_v<Bare, ObjectHandle>) {
         return rt->object_type();
+    } else if constexpr (std::is_same_v<Bare, glm::vec3>) {
+        return rt->vec3_type();
     } else if constexpr (std::is_same_v<Bare, IArray*> || (std::is_pointer_v<Bare> && std::is_base_of_v<IArray, std::remove_pointer_t<Bare>>)) {
         return rt->any_array_type(); // Wildcard: matches any array<T>
     } else if constexpr (std::is_same_v<Bare, Value>) {
@@ -1787,6 +1802,14 @@ T value_cast(Runtime* rt, const Value& v)
             return Bare{};
         }
         return v.data.oval;
+    } else if constexpr (std::is_same_v<Bare, glm::vec3>) {
+        Bare result{};
+        if (rt && v.type_id == rt->vec3_type()) {
+            if (void* data = rt->get_value_data_ptr(v)) {
+                std::memcpy(&result, data, sizeof(Bare));
+            }
+        }
+        return result;
     } else if constexpr (std::is_same_v<Bare, IArray*> || (std::is_pointer_v<Bare> && std::is_base_of_v<IArray, std::remove_pointer_t<Bare>>)) {
         if (!rt || v.storage != ValueStorage::heap || v.data.hptr.value == 0) {
             return Bare{};
@@ -1852,6 +1875,12 @@ Value make_value(Runtime* rt, const T& val)
         TypeID mapped = rt->object_subtype_for_tag(val.type);
         out.type_id = mapped != invalid_type_id ? mapped : rt->object_type();
         return out;
+    } else if constexpr (std::is_same_v<Bare, glm::vec3>) {
+        if (!rt) { return Value{}; }
+        HeapPtr ptr = rt->heap_.allocate(sizeof(Bare), alignof(Bare), rt->vec3_type());
+        if (ptr.value == 0) { return Value{}; }
+        std::memcpy(rt->heap_.get_ptr(ptr), &val, sizeof(Bare));
+        return Value::make_heap(ptr, rt->vec3_type());
     } else if constexpr (std::is_enum_v<Bare>) {
         return Value::make_int(static_cast<int32_t>(val));
     } else if constexpr (std::is_same_v<Bare, Value>) {

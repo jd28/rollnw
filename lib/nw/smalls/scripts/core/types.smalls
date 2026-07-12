@@ -26,6 +26,9 @@ type ResRef;
 [[native, value_type]]
 type Resource;
 
+[[native, value_type]]
+type TextRef;
+
 const resource_type_invalid = 65535;
 const resource_type_tga = 3;
 const resource_type_plt = 6;
@@ -40,6 +43,13 @@ const resource_type_dds = 2033;
 [[native]] fn resource_type(value: Resource): int;
 [[native]] fn resource_valid(value: Resource): bool;
 [[native]] fn resource_filename(value: Resource): string;
+[[native]] fn resource_exists(resref: ResRef, resource_type: int): bool;
+[[native]] fn make_text_ref(strref: int): TextRef;
+[[native]] fn make_inline_text_ref(text: string, language: int): TextRef;
+[[native]] fn set_text(value: TextRef, text: string, language: int): bool;
+[[native]] fn set_text_override(value: TextRef, text: string, language: int): bool;
+[[native]] fn clear_text_override(value: TextRef, language: int);
+[[native]] fn resolve_text(value: TextRef, language: int): string;
 
 fn resref(value: string): ResRef {
     return __resref_from_string(value);

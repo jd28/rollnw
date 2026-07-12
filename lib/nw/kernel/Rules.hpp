@@ -4,7 +4,6 @@
 #include "../objects/Creature.hpp"
 #include "../objects/ObjectBase.hpp"
 #include "../objects/Placeable.hpp"
-#include "../objects/Trap.hpp"
 #include "../rules/Class.hpp"
 #include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
@@ -22,6 +21,7 @@ namespace nw::kernel {
 
 struct Rules : public Service {
     const static std::type_index type_index;
+    using QualifierMatcher = bool (*)(const Qualifier&, const ObjectBase*);
 
     Rules(MemoryResource* memory);
     virtual ~Rules() = default;
@@ -38,27 +38,21 @@ struct Rules : public Service {
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
-    /// Sets a qualifier for a particular requirement type
-    void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
+    /// Sets the active profile qualifier matcher.
+    void set_qualifier_matcher(QualifierMatcher matcher) noexcept;
 
     /// Get service stats
     nlohmann::json stats() const override;
 
-    BaseItemArray baseitems;
-    ClassArray classes;
     FeatArray feats;
-    MetaMagicArray metamagic;
     RaceArray races;
     SpellArray spells;
     SpellSchoolArray spellschools;
     SkillArray skills;
-    PhenotypeArray phenotypes;
     AppearanceArray appearances;
-    PlaceableArray placeables;
-    TrapArray traps;
 
 private:
-    std::array<bool (*)(const Qualifier&, const ObjectBase*), 256> qualifiers_;
+    QualifierMatcher qualifier_matcher_ = nullptr;
     size_t maximum_spell_levels_ = 10;
 };
 

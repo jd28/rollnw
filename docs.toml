@@ -77,6 +77,13 @@ section = "Rendering"
 status = "current"
 
 [[pages]]
+source = "lib/nw/render/docs/visual_asset_protocol.md"
+target = "render/visual_asset_protocol.html"
+title = "Visual Asset Protocol"
+section = "Rendering"
+status = "current"
+
+[[pages]]
 source = "lib/nw/render/docs/gltf.md"
 target = "render/gltf.html"
 title = "glTF Rendering"

@@ -2,5 +2,6 @@ SpellEntry {
     id = 179,
     innate_level = 5,
     school = 2,
-    user_type = 1
+    user_type = 1,
+    class_levels = {5, 5, 5, -1, -1, 5}
 }

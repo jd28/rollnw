@@ -1,11 +1,12 @@
 #include "Module.hpp"
 
 #include "../kernel/Strings.hpp"
+#include "../profiles/nwn1/legacy_gff_compat.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../util/profile.hpp"
 #include "Area.hpp"
 #include "ObjectManager.hpp"
-#include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -109,6 +110,8 @@ void Module::clear()
             nw::kernel::objects().destroy(it->handle());
         }
     }
+    areas = Vector<Resref>{};
+    ObjectBase::clear();
     instantiated_ = false;
 }
 
@@ -219,12 +222,16 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
         archive.at("min_game_version").get_to(obj->min_game_version);
         archive.at("name").get_to(obj->name);
         archive.at("start_movie").get_to(obj->start_movie);
-        archive.at("tag").get_to(obj->tag);
         archive.at("tlk").get_to(obj->tlk);
 
         String temp;
+        archive.at("tag").get_to(temp);
+        obj->tag = InternedString{};
+        if (!temp.empty()) { obj->tag = nw::kernel::strings().intern(temp); }
+
         auto it = archive.find("uuid");
         if (it != std::end(archive)) {
+            temp.clear();
             it.value().get_to(temp);
             if (auto uuid = uuids::uuid::from_string(temp)) {
                 obj->uuid = *uuid;
@@ -306,10 +313,14 @@ bool deserialize(Module* obj, const GffStruct& archive)
     archive.get_to("Mod_MinGameVer", obj->min_game_version);
     archive.get_to("Mod_Name", obj->name);
     archive.get_to("Mod_StartMovie", obj->start_movie);
-    archive.get_to("Mod_Tag", obj->tag);
     archive.get_to("Mod_CustomTlk", obj->tlk);
 
     String temp;
+    archive.get_to("Mod_Tag", temp);
+    obj->tag = InternedString{};
+    if (!temp.empty()) { obj->tag = nw::kernel::strings().intern(temp); }
+
+    temp.clear();
     archive.get_to("Mod_UUID", temp, false);
     if (!temp.empty()) {
         if (auto uuid = uuids::uuid::from_string(temp)) {
@@ -352,7 +363,7 @@ bool Module::serialize(const Module* obj, nlohmann::json& archive)
     } else {
         auto& area_list = archive["areas"] = nlohmann::json::array();
         for (const auto area : obj->areas.as<Vector<Area*>>()) {
-            area_list.push_back(area->common.resref);
+            area_list.push_back(area->resref);
         }
     }
 
@@ -374,7 +385,7 @@ bool Module::serialize(const Module* obj, nlohmann::json& archive)
     archive["name"] = obj->name;
     archive["start_movie"] = obj->start_movie;
     archive["start_year"] = obj->start_year;
-    archive["tag"] = obj->tag;
+    archive["tag"] = obj->tag ? obj->tag.view() : "";
     archive["tlk"] = obj->tlk;
 
     if (!obj->uuid.is_nil()) {
@@ -414,7 +425,7 @@ bool serialize(const Module* obj, GffBuilderStruct& archive)
         }
     } else {
         for (const auto& area : obj->areas.as<Vector<Area*>>()) {
-            area_list.push_back(6).add_field("Area_Name", area->common.resref);
+            area_list.push_back(6).add_field("Area_Name", area->resref);
         }
     }
 
@@ -436,17 +447,14 @@ bool serialize(const Module* obj, GffBuilderStruct& archive)
     archive.add_field("Mod_MinGameVer", obj->min_game_version);
     archive.add_field("Mod_Name", obj->name);
     archive.add_field("Mod_StartMovie", obj->start_movie);
-    archive.add_field("Mod_Tag", obj->tag);
+    archive.add_field("Mod_Tag", String(obj->tag ? obj->tag.view() : StringView{}));
     archive.add_field("Mod_CustomTlk", obj->tlk);
 
     if (!obj->uuid.is_nil()) {
         archive.add_field("Mod_UUID", uuids::to_string(obj->uuid));
     }
 
-    // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
-    archive.add_list("Mod_CutSceneList");
-    archive.add_list("Mod_Expan_List");
-    archive.add_list("Mod_GVar_List");
+    nwn1::export_module_legacy_gff_fields(archive);
 
     archive.add_field("Mod_Creator_ID", obj->creator)
         .add_field("Mod_StartYear", obj->start_year)

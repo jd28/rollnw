@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../i18n/LocString.hpp"
+#include "../i18n/TextRef.hpp"
 #include "../i18n/Tlk.hpp"
 #include "../log.hpp"
 #include "../util/InternedString.hpp"
@@ -9,6 +10,7 @@
 #include <absl/container/node_hash_set.h>
 
 #include <filesystem>
+#include <limits>
 #include <string_view>
 
 namespace nw::kernel {
@@ -26,8 +28,35 @@ struct Strings : public Service {
     /// @note if Tlk strref, use that; if not look in localized strings
     String get(const LocString& locstring, bool feminine = false) const;
 
+    /// Gets string by TextRef using global language.
+    String get(TextRef ref, bool feminine = false) const;
+
+    /// Gets string by TextRef using a specific language.
+    String get(TextRef ref, LanguageID language, bool feminine = false) const;
+
     /// Gets string by Tlk strref
     String get(uint32_t strref, bool feminine = false) const;
+
+    /// Creates a text ref with an optional TLK fallback.
+    TextRef make_text_ref(uint32_t strref = std::numeric_limits<uint32_t>::max());
+
+    /// Creates a text ref from legacy localized string data.
+    TextRef make_text_ref(const LocString& locstring);
+
+    /// Clones a text ref so runtime mutation does not affect shared authored text.
+    TextRef clone_text_ref(TextRef ref);
+
+    /// Sets authored inline text on a text ref.
+    bool set_text(TextRef ref, LanguageID language, StringView str, bool feminine = false);
+
+    /// Sets a runtime text override on a text ref.
+    bool set_text_override(TextRef ref, LanguageID language, StringView str, bool feminine = false);
+
+    /// Clears a runtime text override on a text ref.
+    void clear_text_override(TextRef ref, LanguageID language, bool feminine = false);
+
+    /// Converts text ref authored data to a legacy LocString.
+    LocString to_locstring(TextRef ref, bool include_overrides = false) const;
 
     /// Gets interned string
     /// @note Return will not be valid if there is no interned string
@@ -69,10 +98,20 @@ struct Strings : public Service {
     void unload_custom_tlk();
 
 private:
+    struct TextEntry {
+        LocString text;
+        LocString overrides;
+    };
+
+    TextEntry* get_text_entry(TextRef ref);
+    const TextEntry* get_text_entry(TextRef ref) const;
+
     Tlk dialog_;
     Tlk dialogf_;
     Tlk custom_;
     Tlk customf_;
+
+    Vector<TextEntry> text_entries_;
 
     // Node hash set for pointer stability
     absl::node_hash_set<String> interned_;

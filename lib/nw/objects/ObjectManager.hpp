@@ -3,6 +3,7 @@
 #include "../kernel/Kernel.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "../serialization/Gff.hpp"
+#include "../serialization/component_propset_json.hpp"
 #include "../util/error_context.hpp"
 #include "../util/memory.hpp"
 #include "Area.hpp"
@@ -11,6 +12,7 @@
 #include "Encounter.hpp"
 #include "Module.hpp"
 #include "ObjectBase.hpp"
+#include "ObjectComponentSystem.hpp"
 #include "ObjectHandle.hpp"
 #include "Placeable.hpp"
 #include "Player.hpp"
@@ -140,6 +142,10 @@ struct ObjectManager : public kernel::Service {
     /// Logs service metrics
     nlohmann::json stats() const override;
 
+    /// Gets native object component tables
+    ObjectComponentSystem& components() noexcept { return components_; }
+    const ObjectComponentSystem& components() const noexcept { return components_; }
+
     /// Creates a new object
     template <typename T>
     T* make();
@@ -168,7 +174,7 @@ struct ObjectManager : public kernel::Service {
     /// Run instantiate callback
     void run_instantiate_callback(ObjectBase* obj);
 
-    /// Set instatiate callback
+    /// Set instantiate callback
     void set_instantiate_callback(void (*callback)(ObjectBase*));
 
     /// Set destroy callback — called just before an object is freed
@@ -177,9 +183,10 @@ struct ObjectManager : public kernel::Service {
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
 
+    ObjectComponentSystem components_;
     ObjectArray objects_array_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
-    void (*instatiate_callback_)(ObjectBase*) = nullptr;
+    void (*instantiate_callback_)(ObjectBase*) = nullptr;
     void (*destroy_callback_)(ObjectBase*) = nullptr;
 };
 
@@ -253,8 +260,12 @@ T* ObjectManager::load_file(const std::filesystem::path& archive)
     } else {
         try {
             nlohmann::json j = nlohmann::json::parse(data.bytes.string_view());
-            String serial_id = j.at("$type").get<String>();
-            type = serial_id_to_obj_type(serial_id);
+            String serial_id{T::serial_id};
+            type = T::object_type;
+            if (auto type_it = j.find("$type"); type_it != j.end()) {
+                serial_id = type_it->get<String>();
+                type = serial_id_to_obj_type(serial_id);
+            }
             if (type == T::object_type) {
                 if constexpr (std::is_same_v<T, nw::Player>) {
                     good = deserialize(obj, j);
@@ -275,7 +286,7 @@ T* ObjectManager::load_file(const std::filesystem::path& archive)
         return nullptr;
     }
 
-    if (auto tag = obj->tag()) {
+    if (auto tag = obj->tag) {
         object_tag_map_.insert({tag, obj->handle()});
     }
 
@@ -313,8 +324,12 @@ T* ObjectManager::load(Resref resref)
         ERRARE("[kernel/objects] deserializing object from JSON");
         try {
             nlohmann::json j = nlohmann::json::parse(data.bytes.string_view());
-            String serial_id = j.at("$type").get<String>();
-            type = serial_id_to_obj_type(serial_id);
+            String serial_id{T::serial_id};
+            type = T::object_type;
+            if (auto type_it = j.find("$type"); type_it != j.end()) {
+                serial_id = type_it->get<String>();
+                type = serial_id_to_obj_type(serial_id);
+            }
             if (type == T::object_type) {
                 good = deserialize(obj, j, SerializationProfile::blueprint);
             } else {
@@ -331,7 +346,7 @@ T* ObjectManager::load(Resref resref)
         return nullptr;
     }
 
-    if (auto tag = obj->tag()) {
+    if (auto tag = obj->tag) {
         object_tag_map_.insert({tag, obj->handle()});
     }
 
@@ -349,7 +364,7 @@ T* ObjectManager::load_instance(const GffStruct& archive)
 {
     auto ob = make<T>();
     if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
-        if (auto tag = ob->tag()) {
+        if (auto tag = ob->tag) {
             object_tag_map_.insert({tag, ob->handle()});
         }
         return ob;
@@ -363,8 +378,23 @@ template <typename T>
 T* ObjectManager::load_instance(const nlohmann::json& archive)
 {
     auto ob = make<T>();
-    if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
-        if (auto tag = ob->tag()) {
+    bool good = false;
+    if (ob) {
+        if (archive.contains("$type")) {
+            LOG_F(ERROR, "legacy '$type' object JSON is not supported for embedded instances");
+        } else {
+            auto result = object_from_component_propset_json(
+                ob, archive, &kernel::runtime(), SerializationProfile::instance);
+            good = result && ob->instantiate();
+            if (!result) {
+                LOG_F(ERROR, "component/propset JSON load failed for object type {}: {}",
+                    int(result.object_type), result.error);
+            }
+        }
+    }
+
+    if (good) {
+        if (auto tag = ob->tag) {
             object_tag_map_.insert({tag, ob->handle()});
         }
         return ob;

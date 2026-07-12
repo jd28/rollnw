@@ -1,9 +1,14 @@
 #pragma once
 
-#include "../rules/Versus.hpp"
+#include "../i18n/LocString.hpp"
+#include "../resources/assets.hpp"
 #include "../rules/effects.hpp"
+#include "../util/InternedString.hpp"
 #include "ObjectHandle.hpp"
-#include "VisualTransform.hpp"
+
+#include <stduuid/uuid.h>
+
+#include <cstdint>
 
 namespace nw {
 
@@ -11,12 +16,12 @@ namespace nw {
 //-----------------------------------------------------------------------------
 
 struct Area;
-struct Common;
 struct Creature;
 struct Door;
 struct Encounter;
 struct Item;
 struct Module;
+struct ObjectManager;
 struct Placeable;
 struct Player;
 struct Sound;
@@ -33,19 +38,18 @@ struct ObjectBase {
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
     EffectArray& effects();
-    Vector<VisualTransform>& visual_transform() noexcept { return visual_transform_; }
-    const Vector<VisualTransform>& visual_transform() const noexcept { return visual_transform_; }
-    void add_visual_transform(VisualTransform value);
+
+    uuids::uuid uuid;
+    Resref resref;
+    LocString name;
+    InternedString tag;
+    String comment;
+    uint8_t palette_id = 0xFF;
 
     virtual void clear();
     virtual bool instantiate() = 0;
-    virtual InternedString tag() const;
-    virtual Versus versus_me() const { return Versus{}; }
-
     virtual Area* as_area() { return nullptr; }
     virtual const Area* as_area() const { return nullptr; }
-    virtual Common* as_common() { return nullptr; }
-    virtual const Common* as_common() const { return nullptr; }
     virtual Creature* as_creature() { return nullptr; }
     virtual const Creature* as_creature() const { return nullptr; }
     virtual Door* as_door() { return nullptr; }
@@ -70,10 +74,13 @@ struct ObjectBase {
     virtual const Waypoint* as_waypoint() const { return nullptr; }
 
 private:
+    friend struct ObjectManager;
+
+    void clear_effects();
+
     nw::MemoryResource* allocator_;
     ObjectHandle handle_;
     EffectArray effects_;
-    Vector<VisualTransform> visual_transform_;
 };
 
 } // namespace nw

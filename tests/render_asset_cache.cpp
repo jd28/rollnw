@@ -2,9 +2,17 @@
 
 #include <gtest/gtest.h>
 
+#include <nw/kernel/Kernel.hpp>
+
 #include <string>
 
-TEST(RenderAssetCache, ClearDropsCachedMissingResourceEntries)
+class RenderAssetCache : public ::testing::Test {
+protected:
+    // Later render tests in this binary use the same ambient kernel services.
+    void SetUp() override { nw::kernel::services().start(); }
+};
+
+TEST_F(RenderAssetCache, ClearDropsCachedMissingResourceEntries)
 {
     nw::render::nwn::RenderAssetCache cache{nullptr};
     const nw::gfx::Handle<nw::gfx::Texture> fallback_texture{};
@@ -26,7 +34,7 @@ TEST(RenderAssetCache, ClearDropsCachedMissingResourceEntries)
     EXPECT_TRUE(cache.stats().empty());
 }
 
-TEST(RenderAssetCache, StatsCountDecodedSourceImagePixels)
+TEST_F(RenderAssetCache, StatsCountDecodedSourceImagePixels)
 {
     nw::render::nwn::RenderAssetCache cache{nullptr};
 

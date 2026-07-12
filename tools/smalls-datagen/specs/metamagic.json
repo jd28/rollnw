@@ -1,0 +1,14 @@
+{
+  "source_2da": "metamagic",
+  "smalls_type": "MetamagicEntry",
+  "output_subdir": "nwn1/data/metamagic",
+  "valid_column": "Name",
+  "filename_source": "@strref:Name",
+  "valid_strref_column": "Name",
+  "fields": [
+    {"name": "id",               "type": "int",    "source": "@row_index"},
+    {"name": "name",             "type": "StrRef", "source": "Name"},
+    {"name": "level_adjustment", "type": "int",    "source": "LevelAdjustment", "default": "0"},
+    {"name": "feat",             "type": "int",    "source": "FeatRequired",    "default": "-1"}
+  ]
+}

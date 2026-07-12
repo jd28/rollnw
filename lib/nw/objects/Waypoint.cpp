@@ -1,9 +1,14 @@
 #include "Waypoint.hpp"
 
-#include "../kernel/Strings.hpp"
+#include "../kernel/Kernel.hpp"
+#include "../profiles/nwn1/object_compat_fields.hpp"
+#include "../profiles/nwn1/object_name_preview.hpp"
+#include "../profiles/nwn1/propset_gff_object_io.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../serialization/component_propset_json.hpp"
 #include "../util/platform.hpp"
+#include "ObjectManager.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -50,28 +55,7 @@ bool Waypoint::save(const std::filesystem::path& path, std::string_view format)
 
 String Waypoint::get_name_from_file(const std::filesystem::path& path)
 {
-    String result;
-    LocString l1;
-
-    auto rdata = ResourceData::from_file(path);
-    if (rdata.bytes.size() <= 8) { return result; }
-    if (memcmp(rdata.bytes.data(), "UTW V3.2", 8) == 0) {
-        Gff gff(std::move(rdata));
-        if (!gff.valid()) { return result; }
-        gff.toplevel().get_to("LocalizedName", l1);
-    } else {
-        try {
-            std::ifstream f{path, std::ifstream::binary};
-            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
-            j["common"].at("name").get_to(l1);
-        } catch (nlohmann::json::exception& e) {
-            LOG_F(ERROR, "[door] json error: {}", e.what());
-            return result;
-        }
-    }
-
-    result = nw::kernel::strings().get(l1);
-    return result;
+    return nwn1::preview_object_name_from_file(path, serial_id, object_type);
 }
 
 // == Waypoint - Serialization - Gff ==========================================
@@ -83,16 +67,11 @@ bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile p
         throw std::runtime_error("unable to serialize null object");
     }
 
-    deserialize(obj->common, archive, profile, ObjectType::waypoint);
+    nwn1::obj_compat_fields_from_gff(*obj, archive, profile, ObjectType::waypoint);
+    nw::kernel::objects().components().deserialize_spatial(obj->handle(), archive, profile);
+    nw::kernel::objects().components().deserialize_locals(obj->handle(), archive);
 
-    archive.get_to("Description", obj->description);
-    archive.get_to("LinkedTo", obj->linked_to);
-    archive.get_to("MapNote", obj->map_note);
-
-    archive.get_to("Appearance", obj->appearance);
-    archive.get_to("HasMapNote", obj->has_map_note);
-    archive.get_to("MapNoteEnabled", obj->map_note_enabled);
-
+    nwn1::import_waypoint_propsets_from_gff(&nw::kernel::runtime(), obj, archive, profile);
     return true;
 }
 
@@ -103,31 +82,14 @@ bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive.add_field("TemplateResRef", obj->common.resref)
-        .add_field("LocalizedName", obj->common.name)
-        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : ""));
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", obj->common.comment);
-        archive.add_field("PaletteID", obj->common.palette_id);
-    } else {
-        archive.add_field("PositionX", obj->common.location.position.x)
-            .add_field("PositionY", obj->common.location.position.y)
-            .add_field("PositionZ", obj->common.location.position.z)
-            .add_field("OrientationX", obj->common.location.orientation.x)
-            .add_field("OrientationY", obj->common.location.orientation.y);
+    nwn1::obj_compat_fields_to_gff(*obj, archive, profile, ObjectType::waypoint);
+    if (profile != SerializationProfile::blueprint) {
+        nw::kernel::objects().components().serialize_position_orientation(obj->handle(), archive, profile);
     }
 
-    if (obj->common.locals.size()) {
-        serialize(obj->common.locals, archive, profile);
-    }
+    nw::kernel::objects().components().serialize_locals(obj->handle(), archive, profile);
 
-    archive.add_field("Description", obj->description)
-        .add_field("LinkedTo", obj->linked_to)
-        .add_field("MapNote", obj->map_note);
-
-    archive.add_field("Appearance", obj->appearance)
-        .add_field("HasMapNote", obj->has_map_note)
-        .add_field("MapNoteEnabled", obj->map_note_enabled);
+    nwn1::export_waypoint_propsets_to_gff(&kernel::runtime(), obj, archive, profile);
 
     return true;
 }
@@ -153,20 +115,11 @@ bool deserialize(Waypoint* obj, const nlohmann::json& archive, SerializationProf
         throw std::runtime_error("unable to serialize null object");
     }
 
-    if (archive.at("$type").get<String>() != "UTW") {
-        LOG_F(ERROR, "waypoint: invalid json type");
+    auto result = object_from_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "waypoint: component/propset JSON load failed: {}", result.error);
         return false;
     }
-
-    obj->common.from_json(archive.at("common"), profile, ObjectType::waypoint);
-
-    archive.at("appearance").get_to(obj->appearance);
-    archive.at("description").get_to(obj->description);
-    archive.at("has_map_note").get_to(obj->has_map_note);
-    archive.at("linked_to").get_to(obj->linked_to);
-    archive.at("map_note_enabled").get_to(obj->map_note_enabled);
-    archive.at("map_note").get_to(obj->map_note);
-
     return true;
 }
 
@@ -176,17 +129,11 @@ bool serialize(const Waypoint* obj, nlohmann::json& archive, SerializationProfil
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive["$type"] = "UTW";
-    archive["$version"] = Waypoint::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
-    archive["description"] = obj->description;
-    archive["linked_to"] = obj->linked_to;
-    archive["map_note"] = obj->map_note;
-
-    archive["appearance"] = obj->appearance;
-    archive["has_map_note"] = obj->has_map_note;
-    archive["map_note_enabled"] = obj->map_note_enabled;
+    auto result = object_to_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "waypoint: component/propset JSON save failed: {}", result.error);
+        return false;
+    }
     return true;
 }
 

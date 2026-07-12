@@ -12,10 +12,8 @@ namespace nw {
 struct Creature;
 struct ObjectBase;
 struct Feat;
-struct Item;
 struct ItemProperty;
 struct ItemPropertyType;
-enum struct EquipIndex : uint32_t;
 
 // == Effects =================================================================
 // ============================================================================
@@ -177,11 +175,5 @@ std::pair<T, It> sum_effects_of(It begin, It end, nw::EffectType type, int subty
     auto it = resolve_effects_of<T>(begin, end, type, subtype, vs, summer, extractor, comparator);
     return std::make_pair(result, it);
 }
-
-// == Item: Properties ========================================================
-// ============================================================================
-
-/// Processes item properties and applies resulting effects to creature
-int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);
 
 } // namespace nw

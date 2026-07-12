@@ -1,7 +1,30 @@
-[[native]] fn is_valid(obj: object): bool;
-[[native]] fn is_trigger(obj: object): bool;
-[[native]] fn as_trigger(obj: object): Trigger;
-[[native]] fn get_geometry_point_count(obj: Trigger): int;
-[[native]] fn get_trigger_type(obj: Trigger): int;
-[[native]] fn get_highlight_height(obj: Trigger): float;
-[[native]] fn type_id(): int;
+from core.types import { ResRef };
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Trigger)]]
+type TriggerState {
+    on_click: ResRef;
+    on_disarm: ResRef;
+    on_enter: ResRef;
+    on_exit: ResRef;
+    on_heartbeat: ResRef;
+    on_trap_triggered: ResRef;
+    on_user_defined: ResRef;
+    linked_to: string;
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+    faction: int;
+    highlight_height: float;
+    trigger_type: int;
+    loadscreen: int;
+    portrait: int;
+    cursor: int;
+    linked_to_flags: int;
+};

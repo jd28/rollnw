@@ -2,124 +2,37 @@
 
 #include "ObjectBase.hpp"
 
-#include "../rules/attributes.hpp"
-#include "../rules/combat.hpp"
-#include "Appearance.hpp"
-#include "CombatInfo.hpp"
-#include "Common.hpp"
-#include "CreatureStats.hpp"
 #include "Equips.hpp"
 #include "Inventory.hpp"
 #include "Item.hpp"
-#include "LevelHistory.hpp"
-#include "LevelStats.hpp"
 #include "Location.hpp"
 
 namespace nw {
 
-struct CreatureScripts {
-    CreatureScripts() = default;
-
-    bool deserialize(const GffStruct& archive);
-    bool from_json(const nlohmann::json& archive);
-    bool serialize(GffBuilderStruct& archive) const;
-    nlohmann::json to_json() const;
-
-    Resref on_attacked;
-    Resref on_blocked;
-    Resref on_conversation;
-    Resref on_damaged;
-    Resref on_death;
-    Resref on_disturbed;
-    Resref on_endround;
-    Resref on_heartbeat;
-    Resref on_perceived;
-    Resref on_rested;
-    Resref on_spawn;
-    Resref on_spell_cast_at;
-    Resref on_user_defined;
-};
-
 struct Creature : public ObjectBase {
     Creature();
     Creature(nw::MemoryResource* allocator);
+    virtual ~Creature();
 
-    static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::creature;
     static constexpr ResourceType::type restype = ResourceType::utc;
     static constexpr StringView serial_id{"UTC"};
 
     // LCOV_EXCL_START
-    virtual Common* as_common() override { return &common; }
-    virtual const Common* as_common() const override { return &common; }
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
     // LCOV_EXCL_STOP
 
     virtual void clear() override;
     virtual bool instantiate() override;
-    virtual InternedString tag() const override { return common.tag; }
-    virtual Versus versus_me() const override;
-
+    Inventory& inventory();
+    const Inventory& inventory() const;
     static String get_name_from_file(const std::filesystem::path& path);
-
-    /// Gets alignment flags
-    AlignmentFlags alignment_flags() const noexcept;
 
     /// Saves an object to the specified ``path``, ``format`` can be either 'json' or 'gff'
     bool save(const std::filesystem::path& path, std::string_view format = "json");
 
-    /// Update creatures appearance
-    void update_appearance(Appearance id);
-
-    Common common;
-    CreatureAppearance appearance;
-    CombatInfo combat_info;
     Equips equipment;
-    Inventory inventory;
-    LevelStats levels;
-    LevelHistory history;
-    CreatureScripts scripts;
-    CreatureStats stats;
-
-    Resref conversation;
-    String deity;
-    LocString description;
-    LocString name_first;
-    LocString name_last;
-    String subrace;
-
-    float cr = 0.0;
-    int32_t cr_adjust = 0;
-    uint32_t decay_time;
-    Race race = Race::invalid();
-    int32_t walkrate = 0;
-    uint32_t starting_package = 0;
-
-    uint16_t faction_id = 0;
-    int16_t hp = 0;
-    int16_t hp_current = 0;
-    int16_t hp_max = 0;
-    int16_t hp_temp = 0;
-    uint16_t soundset;
-
-    // Transient
-    int32_t hasted = 0;
-    int32_t size = 0;
-
-    // Serialized
-    uint8_t bodybag = 0;
-    uint8_t chunk_death = 0;
-    uint8_t disarmable = 0;
-    uint8_t gender = 0;
-    uint8_t good_evil = 50;
-    uint8_t interruptable = 0;
-    uint8_t immortal = 0;
-    uint8_t lawful_chaotic = 50;
-    uint8_t lootable = 0;
-    uint8_t pc = 0;
-    uint8_t perception_range = 0;
-    bool plot = false;
 
     bool instantiated_ = false;
 };

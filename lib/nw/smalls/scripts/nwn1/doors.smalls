@@ -1,0 +1,163 @@
+import core.array as Array;
+import core.types as T;
+import core.visual as Visual;
+from core.door import { DoorState };
+from nwn1.rules import { DoorTypeEntry, GenericDoorEntry };
+
+type DoorResolvedModel {
+    model:    T.ResRef;
+    error:    string;
+    table:    string;
+    column:   string;
+    selector: string;
+    row:      int;
+    generic:  bool;
+    valid:    bool;
+};
+
+var _loaded = false;
+var _doortypes: array!(DoorTypeEntry);
+var _genericdoors: array!(GenericDoorEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _doortypes = load_config!(DoorTypeEntry)("nwn1.data.doortypes");
+    _genericdoors = load_config!(GenericDoorEntry)("nwn1.data.genericdoors");
+    _loaded = true;
+}
+
+fn _invalid_model(
+    error: string,
+    table: string,
+    column: string,
+    selector: string,
+    row: int,
+    generic: bool): DoorResolvedModel {
+    return DoorResolvedModel {
+        model = T.resref(""),
+        error = error,
+        table = table,
+        column = column,
+        selector = selector,
+        row = row,
+        generic = generic,
+        valid = false,
+    };
+}
+
+fn _model_name_is_null(model: string): bool {
+    return model == "" || model == "****" || model == "null" || model == "none";
+}
+
+fn _valid_model(
+    model: T.ResRef,
+    table: string,
+    column: string,
+    selector: string,
+    row: int,
+    generic: bool): DoorResolvedModel {
+    return DoorResolvedModel {
+        model = model,
+        error = "",
+        table = table,
+        column = column,
+        selector = selector,
+        row = row,
+        generic = generic,
+        valid = true,
+    };
+}
+
+fn count_doortypes(): int {
+    _ensure_loaded();
+    return Array.len(_doortypes);
+}
+
+fn count_genericdoors(): int {
+    _ensure_loaded();
+    return Array.len(_genericdoors);
+}
+
+fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolvedModel {
+    _ensure_loaded();
+
+    if (appearance == 0) {
+        var row = generic_type;
+        var table = "genericdoors";
+        var column = "ModelName";
+        var selector = "generic type";
+        if (row < 0) {
+            return _invalid_model(f"{selector} {row} is invalid", table, column, selector, row, true);
+        }
+        if (row >= Array.len(_genericdoors)) {
+            return _invalid_model(
+                f"{selector} {row} is outside {table}.2da ({Array.len(_genericdoors)} rows)",
+                table,
+                column,
+                selector,
+                row,
+                true);
+        }
+
+        var entry = Array.get(_genericdoors, row);
+        var model = T.resref_to_string(entry.model);
+        if (_model_name_is_null(model)) {
+            return _invalid_model(f"{selector} {row} has no {column} in {table}.2da", table, column, selector, row, true);
+        }
+
+        return _valid_model(entry.model, table, column, selector, row, true);
+    }
+
+    var row = appearance;
+    var table = "doortypes";
+    var column = "Model";
+    var selector = "appearance";
+    if (row < 0) {
+        return _invalid_model(f"{selector} {row} is invalid", table, column, selector, row, false);
+    }
+    if (row >= Array.len(_doortypes)) {
+        return _invalid_model(
+            f"{selector} {row} is outside {table}.2da ({Array.len(_doortypes)} rows)",
+            table,
+            column,
+            selector,
+            row,
+            false);
+    }
+
+    var entry = Array.get(_doortypes, row);
+    var model = T.resref_to_string(entry.model);
+    if (_model_name_is_null(model)) {
+        return _invalid_model(f"{selector} {row} has no {column} in {table}.2da", table, column, selector, row, false);
+    }
+
+    return _valid_model(entry.model, table, column, selector, row, false);
+}
+
+fn resolve_door_model(door: Door): DoorResolvedModel {
+    var state = get_propset!(DoorState)(door);
+    return resolve_door_model_by_state(state.appearance, state.generic_type);
+}
+
+fn update_visual(door: Door): bool {
+    var state = get_propset!(DoorState)(door);
+    var model = resolve_door_model_by_state(state.appearance, state.generic_type);
+    if (!Visual.clear_visual(door, state.appearance)) {
+        return false;
+    }
+    if (!model.valid) {
+        return true;
+    }
+    return Visual.add_visual_model(
+        door,
+        model.model,
+        T.resref(""),
+        T.resref(""),
+        Visual.visual_model_kind_root,
+        Visual.visual_model_slot_none,
+        0,
+        Visual.visual_model_flag_none
+    );
+}

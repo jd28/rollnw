@@ -161,6 +161,7 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
     def->decl = decl;
     def->is_propset = struct_decl_has_annotation(decl, "propset");
     def->is_value_type = struct_decl_has_annotation(decl, "value_type");
+    def->is_transient = struct_decl_has_annotation(decl, "transient");
     def->propset_object_type = struct_decl_propset_object_type(decl);
     uint32_t struct_alignment = 1;
 
@@ -289,6 +290,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
     def->decl = decl;
     def->is_propset = struct_decl_has_annotation(decl, "propset");
     def->is_value_type = struct_decl_has_annotation(decl, "value_type");
+    def->is_transient = struct_decl_has_annotation(decl, "transient");
     def->propset_object_type = struct_decl_propset_object_type(decl);
     uint32_t struct_alignment = 1;
 

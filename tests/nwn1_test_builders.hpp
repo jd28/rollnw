@@ -23,5 +23,6 @@ nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 
 nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
 nw::ItemProperty itemprop_haste();
+nw::ItemProperty itemprop_keen();
 
 } // namespace nwn1

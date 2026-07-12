@@ -1,9 +1,9 @@
 #include "Player.hpp"
 
+#include "../profiles/nwn1/player_levelup_bridge.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"
-#include "LevelHistory.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -68,7 +68,6 @@ bool serialize(const Player* obj, GffBuilderStruct& archive)
 
 bool deserialize(Player* obj, const GffStruct& archive)
 {
-    obj->pc = true;
     deserialize(obj->as_creature(), archive, SerializationProfile::instance);
 
     auto level_stats = archive["LvlStatList"];
@@ -78,6 +77,7 @@ bool deserialize(Player* obj, const GffStruct& archive)
         deserialize(obj->history.entries[i], level_stats[i]);
     }
 
+    nwn1::pc_sync_levelup_class_slots(*obj);
     return true;
 }
 
@@ -86,9 +86,9 @@ bool deserialize(Player* obj, const GffStruct& archive)
 
 bool deserialize(Player* obj, const nlohmann::json& archive)
 {
-    obj->pc = true;
     deserialize(obj->as_creature(), archive, SerializationProfile::instance);
     archive.at("history").get_to(obj->history.entries);
+    nwn1::pc_sync_levelup_class_slots(*obj);
     return true;
 }
 

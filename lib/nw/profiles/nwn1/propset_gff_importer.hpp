@@ -1,8 +1,8 @@
 #pragma once
 
-#include "propset_gff_policy.hpp"
 #include "../../serialization/Serialization.hpp"
 #include "../../smalls/types.hpp"
+#include "propset_gff_policy.hpp"
 
 #include <string_view>
 #include <vector>
@@ -10,9 +10,15 @@
 namespace nw {
 struct Creature;
 struct Door;
+struct Encounter;
 struct GffStruct;
 struct Item;
 struct Placeable;
+struct Resref;
+struct Sound;
+struct Store;
+struct Trigger;
+struct Waypoint;
 } // namespace nw
 
 namespace nw::smalls {
@@ -27,11 +33,11 @@ namespace nwn1 {
 /// Reflection-based GFF → propset importer.
 ///
 /// Uses PropsetGffPolicyRegistry to know how to map GFF fields into propset
-/// fields, eliminating the hand-written populate_*_propsets() functions.
+/// fields. This is the transition adapter for deserialize-time propset
+/// initialization and the eventual standalone object conversion tooling.
 ///
-/// Wire-up: call import_creature / import_item / import_door / import_placeable
-/// from the GFF deserialize path (after the C++ object is loaded), replacing
-/// or supplementing populate_creature_propsets().
+/// Wire-up: call import_* from the GFF deserialize path after the C++ object is
+/// loaded. Do not add runtime service state here.
 class PropsetGffImporter {
 public:
     PropsetGffImporter(nw::smalls::Runtime* rt, const PropsetGffPolicyRegistry* registry);
@@ -42,7 +48,17 @@ public:
         nw::SerializationProfile profile);
     void import_door(nw::Door* obj, const nw::GffStruct& gff,
         nw::SerializationProfile profile);
+    void import_encounter(nw::Encounter* obj, const nw::GffStruct& gff,
+        nw::SerializationProfile profile);
     void import_placeable(nw::Placeable* obj, const nw::GffStruct& gff,
+        nw::SerializationProfile profile);
+    void import_sound(nw::Sound* obj, const nw::GffStruct& gff,
+        nw::SerializationProfile profile);
+    void import_store(nw::Store* obj, const nw::GffStruct& gff,
+        nw::SerializationProfile profile);
+    void import_trigger(nw::Trigger* obj, const nw::GffStruct& gff,
+        nw::SerializationProfile profile);
+    void import_waypoint(nw::Waypoint* obj, const nw::GffStruct& gff,
         nw::SerializationProfile profile);
 
 private:
@@ -62,20 +78,30 @@ private:
         nw::SerializationProfile profile) const;
 
     // Encoding-specific helpers
-    void import_scalar    (const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
-    void import_spread    (const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+    void import_scalar(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+    void import_spread(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
     void import_list_scalar(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
-                           const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+        const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
     void import_list_paired(const FieldGffPolicy& fp,
-                           const nw::smalls::FieldDef* field_a,
-                           const nw::smalls::FieldDef* field_b,
-                           const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+        const nw::smalls::FieldDef* field_a,
+        const nw::smalls::FieldDef* field_b,
+        const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+    void import_list_struct(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
+        const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+    void import_item_visuals(nw::Item* obj, const nw::GffStruct& gff) const;
+    void write_item_armor_stats(nw::Item* obj, int32_t armor_id) const;
 
     // Helper: write an integer value into a propset field
     void write_int(const nw::smalls::Value& ref, uint32_t offset, int32_t v) const;
     void write_float(const nw::smalls::Value& ref, uint32_t offset, float v) const;
+    void write_resref(const nw::smalls::Value& ref, const nw::smalls::FieldDef& field,
+        const nw::Resref& v) const;
+    void write_string(const nw::smalls::Value& ref, const nw::smalls::FieldDef& field,
+        std::string_view v) const;
+    void write_locstring(const nw::smalls::Value& ref, const nw::smalls::FieldDef& field,
+        const nw::LocString& v) const;
 
     // Helper: get IArray* from a propset unmanaged-array field
     nw::smalls::IArray* get_array(const nw::smalls::Value& ref,

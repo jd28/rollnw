@@ -43,6 +43,102 @@ String Strings::get(const LocString& locstring, bool feminine) const
     }
 }
 
+String Strings::get(TextRef ref, bool feminine) const
+{
+    return get(ref, global_lang_, feminine);
+}
+
+String Strings::get(TextRef ref, LanguageID language, bool feminine) const
+{
+    if (language == LanguageID::invalid) { return ""; }
+
+    const TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return ""; }
+
+    if (entry->overrides.contains(language, feminine)) {
+        return entry->overrides.get(language, feminine);
+    }
+
+    if (entry->text.contains(language, feminine)) {
+        return entry->text.get(language, feminine);
+    }
+
+    return get(entry->text.strref(), feminine);
+}
+
+TextRef Strings::make_text_ref(uint32_t strref)
+{
+    text_entries_.push_back(TextEntry{LocString{strref}, LocString{}});
+    return TextRef{static_cast<uint32_t>(text_entries_.size())};
+}
+
+TextRef Strings::make_text_ref(const LocString& locstring)
+{
+    TextRef ref = make_text_ref(locstring.strref());
+    TextEntry* entry = get_text_entry(ref);
+    if (entry) {
+        entry->text = locstring;
+    }
+    return ref;
+}
+
+TextRef Strings::clone_text_ref(TextRef ref)
+{
+    const TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return {}; }
+
+    text_entries_.push_back(*entry);
+    return TextRef{static_cast<uint32_t>(text_entries_.size())};
+}
+
+bool Strings::set_text(TextRef ref, LanguageID language, StringView str, bool feminine)
+{
+    TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return false; }
+    return entry->text.add(language, str, feminine);
+}
+
+bool Strings::set_text_override(TextRef ref, LanguageID language, StringView str, bool feminine)
+{
+    TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return false; }
+    return entry->overrides.add(language, str, feminine);
+}
+
+void Strings::clear_text_override(TextRef ref, LanguageID language, bool feminine)
+{
+    TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return; }
+    entry->overrides.remove(language, feminine);
+}
+
+LocString Strings::to_locstring(TextRef ref, bool include_overrides) const
+{
+    const TextEntry* entry = get_text_entry(ref);
+    if (!entry) { return LocString{}; }
+
+    LocString result = entry->text;
+    if (include_overrides) {
+        for (const auto& [lang, string] : entry->overrides) {
+            auto base_lang = Language::to_base_id(lang);
+            result.add(base_lang.first, string, base_lang.second);
+        }
+    }
+    return result;
+}
+
+Strings::TextEntry* Strings::get_text_entry(TextRef ref)
+{
+    if (!ref.valid() || ref.value > text_entries_.size()) { return nullptr; }
+    return &text_entries_[ref.value - 1];
+}
+
+const Strings::TextEntry* Strings::get_text_entry(TextRef ref) const
+{
+    if (!ref.valid() || ref.value > text_entries_.size()) { return nullptr; }
+    return &text_entries_[ref.value - 1];
+}
+
 InternedString Strings::get_interned(StringView str) const
 {
     auto it = interned_.find(str);

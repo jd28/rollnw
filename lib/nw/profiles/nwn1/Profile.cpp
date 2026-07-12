@@ -1,26 +1,26 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
-#include "propset_populate.hpp"
 #include "rules.hpp"
-#include "scriptapi.hpp"
+#include "scriptbridge.hpp"
 
 #include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"
 #include "../../kernel/Kernel.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/Strings.hpp"
+#include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../resources/ResourceManager.hpp"
 #include "../../rules/combat_scheduler.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
-#include "../../kernel/TwoDACache.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/profile.hpp"
 
 #include <map>
+#include <utility>
 
 namespace nwk = nw::kernel;
 
@@ -41,6 +41,23 @@ void register_twoda_config_converters()
     // and assign stable integer IDs (sorted alphabetically for consistency with datagen).
     nw::Vector<std::pair<nw::String, int32_t>> save_table_enum;
     nw::Vector<std::pair<nw::String, int32_t>> atk_table_enum;
+    nw::Vector<std::pair<nw::String, int32_t>> spell_table_enum{
+        {"bard", 0},
+        {"cleric", 1},
+        {"druid", 2},
+        {"paladin", 3},
+        {"ranger", 4},
+        {"wiz_sorc", 5},
+    };
+    auto spell_progression_grid = [](nw::String column, nw::String field, nw::String limit_column = {}) {
+        CM result;
+        result.column = std::move(column);
+        result.field = std::move(field);
+        result.secondary_grid_column_prefix = "SpellLevel";
+        result.secondary_grid_column_count = 10;
+        result.secondary_grid_limit_column = std::move(limit_column);
+        return result;
+    };
     {
         auto* cls_tda = nw::kernel::twodas().get("classes");
         if (cls_tda) {
@@ -55,18 +72,99 @@ void register_twoda_config_converters()
                 }
             }
             int32_t id = 0;
-            for (auto& [name, _] : save_map) { save_table_enum.push_back({name, id++}); }
+            for (auto& [name, _] : save_map) {
+                save_table_enum.push_back({name, id++});
+            }
             id = 0;
-            for (auto& [name, _] : atk_map) { atk_table_enum.push_back({name, id++}); }
+            for (auto& [name, _] : atk_map) {
+                atk_table_enum.push_back({name, id++});
+            }
         }
     }
 
+    srt.register_twoda_converter("nwn1.data.appearance", "appearance", {
+                                                                           CM{"STRING_REF", "name"},
+                                                                           CM{"RACE", "model"},
+                                                                           CM{"MODELTYPE", "model_type", {
+                                                                                                             {"P", 0},
+                                                                                                             {"S", 1},
+                                                                                                             {"F", 2},
+                                                                                                             {"L", 3},
+                                                                                                             {"FT", 4},
+                                                                                                             {"FW", 5},
+                                                                                                             {"FWT", 6},
+                                                                                                             {"LWT", 7},
+                                                                                                             {"SWT", 8},
+                                                                                                         }},
+                                                                           CM{"SIZECATEGORY", "size"},
+                                                                           CM{"MOVERATE", "walkrate", {
+                                                                                                          {"PLAYER", 0},
+                                                                                                          {"NOMOVE", 1},
+                                                                                                          {"VSLOW", 2},
+                                                                                                          {"SLOW", 3},
+                                                                                                          {"NORM", 4},
+                                                                                                          {"FAST", 5},
+                                                                                                          {"VFAST", 6},
+                                                                                                          {"DEFAULT", 7},
+                                                                                                          {"DFAST", 8},
+                                                                                                      }},
+                                                                           CM{"WING_TAIL_SCALE", "wing_tail_scale", {}, {}, 0, 1.0f},
+                                                                           CM{"HELMET_SCALE_M", "helmet_scale_m", {}, {}, 0, 1.0f},
+                                                                           CM{"HELMET_SCALE_F", "helmet_scale_f", {}, {}, 0, 1.0f},
+                                                                           CM{"WEAPONSCALE", "weapon_scale", {}, {}, 0, -1.0f},
+                                                                           CM{"HASARMS", "has_arms", {}, {}, 0, 0.0f, true},
+                                                                       });
+    srt.register_twoda_converter("nwn1.data.parts_robe", "parts_robe", {
+                                                                           CM{"HIDEBELT", "hide_belt"},
+                                                                           CM{"HIDEBICEPL", "hide_bicep_left"},
+                                                                           CM{"HIDEBICEPR", "hide_bicep_right"},
+                                                                           CM{"HIDEFOOTL", "hide_foot_left"},
+                                                                           CM{"HIDEFOOTR", "hide_foot_right"},
+                                                                           CM{"HIDEFOREL", "hide_forearm_left"},
+                                                                           CM{"HIDEFORER", "hide_forearm_right"},
+                                                                           CM{"HIDEHANDL", "hide_hand_left"},
+                                                                           CM{"HIDEHANDR", "hide_hand_right"},
+                                                                           CM{"HIDEHEAD", "hide_head"},
+                                                                           CM{"HIDENECK", "hide_neck"},
+                                                                           CM{"HIDEPELVIS", "hide_pelvis"},
+                                                                           CM{"HIDESHINL", "hide_shin_left"},
+                                                                           CM{"HIDESHINR", "hide_shin_right"},
+                                                                           CM{"HIDESHOL", "hide_shoulder_left"},
+                                                                           CM{"HIDESHOR", "hide_shoulder_right"},
+                                                                           CM{"HIDELEGL", "hide_thigh_left"},
+                                                                           CM{"HIDELEGR", "hide_thigh_right"},
+                                                                           CM{"HIDECHEST", "hide_torso"},
+                                                                       });
+    srt.register_twoda_converter("nwn1.data.wingmodel", "wingmodel", {
+                                                                         CM{"MODEL", "model"},
+                                                                     });
+    srt.register_twoda_converter("nwn1.data.tailmodel", "tailmodel", {
+                                                                         CM{"MODEL", "model"},
+                                                                     });
+    srt.register_twoda_converter("nwn1.data.creaturesize", "creaturesize", {
+                                                                               CM{"ACATTACKMOD", "ac_attack_mod"},
+                                                                           });
+    srt.register_twoda_converter("nwn1.data.creaturespeed", "creaturespeed", {
+                                                                                 CM{"WALKRATE", "walkrate"},
+                                                                             });
+    srt.register_twoda_converter("nwn1.data.fractionalcr", "fractionalcr", {
+                                                                               CM{"Min", "min"},
+                                                                               CM{"Denominator", "denominator"},
+                                                                           });
     srt.register_twoda_converter("nwn1.data.classes", "classes", {
-                                                                     CM{"STRING_REF", "name"},
+                                                                     CM{"Name", "name"},
                                                                      CM{"HitDie", "hit_die"},
                                                                      CM{"SavingThrowTable", "saves_table", save_table_enum},
                                                                      CM{"AttackBonusTable", "attack_table", atk_table_enum},
                                                                      CM{"SpellCaster", "spellcaster"},
+                                                                     CM{"MemorizesSpells", "memorizes_spells"},
+                                                                     CM{"SpellbookRestricted", "spellbook_restricted"},
+                                                                     CM{"SpellTableColumn", "spell_table", spell_table_enum},
+                                                                     spell_progression_grid("SpellGainTable", "spells_gained", "NumSpellLevels"),
+                                                                     spell_progression_grid("SpellKnownTable", "spells_known"),
+                                                                     CM{"Arcane", "arcane"},
+                                                                     CM{"ArcSpellLvlMod", "arcane_spellgain_mod"},
+                                                                     CM{"DivSpellLvlMod", "divine_spellgain_mod"},
                                                                      CM{"SpellcastingAbil", "caster_ability", {
                                                                                                                   {"str", 0},
                                                                                                                   {"dex", 1},
@@ -77,61 +175,134 @@ void register_twoda_config_converters()
                                                                                                               }},
                                                                  });
     srt.register_twoda_converter("nwn1.data.spells", "spells", {
-                                                                    CM{"Innate", "innate_level"},
-                                                                    CM{"UserType", "user_type"},
-                                                                    CM{"School", "school", {
-                                                                                               {"G", 0},
-                                                                                               {"A", 1},
-                                                                                               {"C", 2},
-                                                                                               {"D", 3},
-                                                                                               {"E", 4},
-                                                                                               {"V", 5},
-                                                                                               {"I", 6},
-                                                                                               {"N", 7},
-                                                                                               {"T", 8},
-                                                                                           }},
-                                                                });
+                                                                   CM{"Innate", "innate_level"},
+                                                                   CM{"UserType", "user_type"},
+                                                                   CM{"School", "school", {
+                                                                                              {"G", 0},
+                                                                                              {"A", 1},
+                                                                                              {"C", 2},
+                                                                                              {"D", 3},
+                                                                                              {"E", 4},
+                                                                                              {"V", 5},
+                                                                                              {"I", 6},
+                                                                                              {"N", 7},
+                                                                                              {"T", 8},
+                                                                                          }},
+                                                                   CM{"Bard", "class_levels[0]", {}, {}, -1},
+                                                                   CM{"Cleric", "class_levels[1]", {}, {}, -1},
+                                                                   CM{"Druid", "class_levels[2]", {}, {}, -1},
+                                                                   CM{"Paladin", "class_levels[3]", {}, {}, -1},
+                                                                   CM{"Ranger", "class_levels[4]", {}, {}, -1},
+                                                                   CM{"Wiz_Sorc", "class_levels[5]", {}, {}, -1},
+                                                               });
+    srt.register_twoda_converter("nwn1.data.metamagic", "metamagic", {
+                                                                         CM{"Name", "name"},
+                                                                         CM{"LevelAdjustment", "level_adjustment"},
+                                                                         CM{"FeatRequired", "feat", {}, {}, -1},
+                                                                     });
     srt.register_twoda_converter("nwn1.data.feats", "feat", {
                                                                 CM{"FEAT", "name"},
                                                                 CM{"MINLEVELCLASS", "min_level"},
+                                                                CM{"MaxLevel", "max_level", {}, {}, -1},
+                                                                CM{"MINSTR", "min_str"},
+                                                                CM{"MINDEX", "min_dex"},
+                                                                CM{"MINCON", "min_con"},
+                                                                CM{"MININT", "min_int"},
+                                                                CM{"MINWIS", "min_wis"},
+                                                                CM{"MINCHA", "min_cha"},
+                                                                CM{"PREREQFEAT1", "prereq_feat1", {}, {}, -1},
+                                                                CM{"PREREQFEAT2", "prereq_feat2", {}, {}, -1},
                                                                 CM{"MAXCR", "max_cr"},
-                                                                CM{"PASSIVE", "passive"},
+                                                                CM{"CRValue", "cr_value"},
                                                                 CM{"USESPERDAY", "uses"},
                                                                 CM{"PreReqEpic", "epic"},
-                                                                CM{"MASTERFEAT", "master"},
-                                                                CM{"SUCCESSOR", "successor"},
+                                                                CM{"MASTERFEAT", "master", {}, {}, -1},
+                                                                CM{"SUCCESSOR", "successor", {}, {}, -1},
                                                             });
-    srt.register_twoda_converter("nwn1.data.baseitems", "baseitems", {
-                                                                         CM{"Name", "name"},
-                                                                         CM{"Stacking", "stack_size"},
-                                                                         CM{"NumDice", "damage_num"},
-                                                                         CM{"DieToRoll", "damage_die"},
-                                                                         CM{"CritThreat", "crit_threat"},
-                                                                         CM{"CritHitMult", "crit_multiplier"},
-                                                                         CM{"WeaponType", "weapon_type"},
-                                                                         CM{"RangedWeapon", "ranged"},
-                                                                         CM{"WeaponFocusFeat", "weapon_focus_feat"},
-                                                                         CM{"EpicWeaponFocusFeat", "epic_weapon_focus_feat"},
-                                                                         CM{"WeaponSpecializationFeat", "weapon_specialization_feat"},
-                                                                         CM{"EpicWeaponSpecializationFeat", "epic_weapon_specialization_feat"},
-                                                                         CM{"WeaponImprovedCriticalFeat", "weapon_improved_critical_feat"},
-                                                                         CM{"EpicWeaponOverwhelmingCriticalFeat", "epic_weapon_overwhelming_critical_feat"},
-                                                                         CM{"EpicWeaponDevastatingCriticalFeat", "epic_weapon_devastating_critical_feat"},
-                                                                         CM{"WeaponOfChoiceFeat", "weapon_of_choice_feat"},
-                                                                     });
     srt.register_twoda_converter("nwn1.data.skills", "skills", {
-                                                                      CM{"Name", "name"},
-                                                                      CM{"Untrained", "untrained"},
-                                                                      CM{"KeyAbility", "ability", {
-                                                                                                      {"str", 0},
-                                                                                                      {"dex", 1},
-                                                                                                      {"con", 2},
-                                                                                                      {"int", 3},
-                                                                                                      {"wis", 4},
-                                                                                                      {"cha", 5},
-                                                                                                  }},
-                                                                      CM{"ArmorCheckPenalty", "armor_check_penalty"},
-                                                                  });
+                                                                   CM{"Name", "name"},
+                                                                   CM{"Untrained", "untrained"},
+                                                                   CM{"KeyAbility", "ability", {
+                                                                                                   {"str", 0},
+                                                                                                   {"dex", 1},
+                                                                                                   {"con", 2},
+                                                                                                   {"int", 3},
+                                                                                                   {"wis", 4},
+                                                                                                   {"cha", 5},
+                                                                                               }},
+                                                                   CM{"ArmorCheckPenalty", "armor_check_penalty"},
+                                                               });
+    srt.register_twoda_converter("nwn1.data.doortypes", "doortypes", {
+                                                                         CM{"Model", "model"},
+                                                                     });
+    srt.register_twoda_converter("nwn1.data.genericdoors", "genericdoors", {
+                                                                               CM{"ModelName", "model"},
+                                                                           });
+    srt.register_twoda_converter("nwn1.data.placeables", "placeables", {
+                                                                           CM{"ModelName", "model"},
+                                                                           CM{"LightColor", "light_color", {}, {}, -1},
+                                                                           CM{"LightOffsetX", "light_offset_x"},
+                                                                           CM{"LightOffsetY", "light_offset_y"},
+                                                                           CM{"LightOffsetZ", "light_offset_z"},
+                                                                           CM{"Static", "static"},
+                                                                       });
+    srt.register_twoda_converter("nwn1.data.cloakmodels", "cloakmodel", {
+                                                                            CM{"ICON", "icon", {}, {}, -1},
+                                                                            CM{"MODEL", "model", {}, {}, -1},
+                                                                        });
+    srt.register_twoda_converter("nwn1.data.armor", "armor", {
+                                                                 CM{"Cost", "cost"},
+                                                             });
+}
+
+void update_placeable_visual(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.placeables", "update_visual", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to update placeable visual: {}", result.error_message);
+    }
+}
+
+void update_creature_visual_equipment(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.item", "update_creature_visual_equipment", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to update creature equipment visual: {}", result.error_message);
+    }
+}
+
+void update_creature_visual_body(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.creature", "update_visual", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to update creature body visual: {}", result.error_message);
+    }
+}
+
+void initialize_creature_health(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.hitpoints", "initialize_creature_health", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to initialize creature health: {}", result.error_message);
+    }
+}
+
+void recompute_creature_available_spell_slots(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.creature", "recompute_all_available_spell_slots", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to recompute creature available spell slots: {}", result.error_message);
+    }
 }
 
 } // namespace
@@ -148,7 +319,7 @@ bool Profile::load_rules() const
 
     // == Load Rules ==========================================================
 
-    load_qualifiers();
+    load_qualifier_matcher();
 
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
         NW_PROFILE_SCOPE_N("nwn1::instantiate_callback");
@@ -160,38 +331,20 @@ bool Profile::load_rules() const
         switch (obj->handle().type) {
         default:
             break;
-        case nw::ObjectType::creature:
-            {
-                NW_PROFILE_SCOPE_N("nwn1::populate_creature_propsets");
-                nwn1::populate_creature_propsets(&rt, obj);
-            }
-            break;
-        case nw::ObjectType::item:
-            {
-                NW_PROFILE_SCOPE_N("nwn1::populate_item_propsets");
-                nwn1::populate_item_propsets(&rt, obj);
-            }
-            break;
-        case nw::ObjectType::door:
-            {
-                NW_PROFILE_SCOPE_N("nwn1::populate_door_propsets");
-                nwn1::populate_door_propsets(&rt, obj);
-            }
-            break;
-        case nw::ObjectType::placeable:
-            {
-                NW_PROFILE_SCOPE_N("nwn1::populate_placeable_propsets");
-                nwn1::populate_placeable_propsets(&rt, obj);
-            }
-            break;
+        case nw::ObjectType::placeable: {
+            NW_PROFILE_SCOPE_N("nwn1::update_placeable_visual");
+            update_placeable_visual(rt, obj);
+        } break;
         }
 
         if (obj->handle().type == nw::ObjectType::creature) {
             NW_PROFILE_SCOPE_N("nwn1::creature_post_instantiate");
             auto* cre = obj->as_creature();
-            cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
-            recompute_all_availabe_spell_slots(cre);
+            initialize_creature_health(rt, obj);
+            recompute_creature_available_spell_slots(rt, obj);
             refresh_combat_weapon_cache(cre);
+            update_creature_visual_body(rt, obj);
+            update_creature_visual_equipment(rt, obj);
         }
     });
 
@@ -202,19 +355,13 @@ bool Profile::load_rules() const
     // == Load 2das ===========================================================
 
     nw::StaticTwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA metamagic{nw::kernel::resman().demand({"metamagic"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA traps{nw::kernel::resman().demand({"traps"sv, nw::ResourceType::twoda})};
     nw::String temp_string;
-    int temp_int = 0;
 
     auto& appearance_array = nw::kernel::rules().appearances;
     if (appearances.is_valid()) {
@@ -226,139 +373,9 @@ bool Profile::load_rules() const
         throw std::runtime_error("rules: failed to load 'appearance.2da'");
     }
 
-    // BaseItems
-    auto& baseitem_array = nw::kernel::rules().baseitems;
-    if (baseitems.is_valid()) {
-        for (size_t i = 0; i < baseitems.rows(); ++i) {
-            auto& info = baseitem_array.entries.emplace_back(baseitems.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'baseitems.2da'");
-    }
-
-    // Classes
-    auto& class_array = nw::kernel::rules().classes;
-    if (classes.is_valid()) {
-        class_array.entries.reserve(classes.rows());
-        for (size_t i = 0; i < classes.rows(); ++i) {
-            auto& info = class_array.entries.emplace_back(classes.row(i));
-            if (info.constant) {
-                class_array.constant_to_index.emplace(info.constant, nw::Class::make(int32_t(i)));
-            } else if (info.valid()) {
-                LOG_F(WARNING, "[nwn1] valid class ({}) with invalid constant", i);
-            }
-            if (info.skill_table.valid()) {
-                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.skill_table)};
-                if (tda.is_valid()) {
-                    info.class_skills.resize(skills.rows());
-                    for (size_t j = 0; j < tda.rows(); ++j) {
-                        size_t index;
-                        int is_class;
-                        if (tda.get_to(j, "SkillIndex", index)
-                            && tda.get_to(j, "ClassSkill", is_class)) {
-                            if (index >= info.class_skills.size()) {
-                                LOG_F(ERROR, "class array: invalid skill index {} on row {}", index, j);
-                                continue;
-                            }
-                            info.class_skills[index] = is_class;
-                        }
-                    }
-                }
-            }
-            if (info.saving_throw_table.valid()) {
-                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.saving_throw_table)};
-                if (tda.is_valid()) {
-                    info.class_saves.reserve(tda.rows());
-                    for (size_t j = 0; j < tda.rows(); ++j) {
-                        nw::Saves save;
-
-                        if (!tda.get_to(j, "FortSave", save.fort)
-                            || !tda.get_to(j, "RefSave", save.reflex)
-                            || !tda.get_to(j, "WillSave", save.will)) {
-                            LOG_F(ERROR, "class array: invalid save on row {}", j);
-                        }
-                        info.class_saves.push_back(save);
-                    }
-                }
-            }
-            if (info.stat_gain_table.valid()) {
-                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.stat_gain_table)};
-                if (tda.is_valid()) {
-                    info.class_stat_gain.reserve(tda.rows());
-                    for (size_t j = 0; j < tda.rows(); ++j) {
-                        nw::ClassStatGain result{};
-                        tda.get_to(j, "Str", result.ability[0]);
-                        tda.get_to(j, "Dex", result.ability[1]);
-                        tda.get_to(j, "Con", result.ability[2]);
-                        tda.get_to(j, "Wis", result.ability[3]);
-                        tda.get_to(j, "Int", result.ability[4]);
-                        tda.get_to(j, "Cha", result.ability[5]);
-                        tda.get_to(j, "NaturalAC", result.natural_ac);
-                        info.class_stat_gain.push_back(result);
-                    }
-                }
-            }
-            if (info.prereq_table.valid()) {
-                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.prereq_table)};
-                if (tda.is_valid()) {
-                    for (size_t j = 0; j < tda.rows(); ++j) {
-                        nw::StringView temp;
-                        if (!tda.get_to(j, "ReqType", temp)) { continue; }
-                        int param1_int = 0;
-                        int param2_int = 0;
-
-                        if (nw::string::icmp("ARCSPELL", temp)) {
-                            // [TODO]
-                        } else if (nw::string::icmp("BAB", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.main.add(
-                                    nw::qualifier_base_attack_bonus(param1_int));
-                            }
-                        } else if (nw::string::icmp("CLASSOR", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.class_or.add(
-                                    nw::qualifier_class_level(nw::Class::make(param1_int), 1));
-                            }
-                        } else if (nw::string::icmp("CLASSNOT", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.class_not.add(
-                                    nw::qualifier_class_level(nw::Class::make(param1_int), 1));
-                            }
-                        } else if (nw::string::icmp("FEAT", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.main.add(
-                                    nw::qualifier_feat(nw::Feat::make(param1_int)));
-                            }
-                        } else if (nw::string::icmp("FEATOR", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.feat_or.add(
-                                    nw::qualifier_feat(nw::Feat::make(param1_int)));
-                            }
-                        } else if (nw::string::icmp("RACE", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)) {
-                                info.requirements.main.add(
-                                    nw::qualifier_race(nw::Race::make(param1_int)));
-                            }
-                        } else if (nw::string::icmp("SAVE", temp)) {
-                            // [TODO]
-                        } else if (nw::string::icmp("SKILL", temp)) {
-                            if (tda.get_to(j, "ReqParam1", param1_int)
-                                && tda.get_to(j, "ReqParam2", param2_int)) {
-                                info.requirements.main.add(
-                                    nw::qualifier_skill(nw::Skill::make(param1_int), param2_int));
-                            }
-                        } else if (nw::string::icmp("SPELL", temp)) {
-                            // [TODO]
-                        } else if (nw::string::icmp("VAR", temp)) {
-                            // [TODO]
-                        } else {
-                            LOG_F(ERROR, "class array: unknown requirement");
-                        }
-                    }
-                }
-            }
-        }
-    } else {
+    // Class policy is generated as Smalls config. Keep the load-time check here
+    // because the profile still requires classes.2da for nwn1.data.classes.
+    if (!classes.is_valid()) {
         throw std::runtime_error("rules: failed to load 'classes.2da'");
     }
 
@@ -376,27 +393,6 @@ bool Profile::load_rules() const
         }
     } else {
         throw std::runtime_error("rules: failed to load 'feat.2da'");
-    }
-
-    // Placeables
-    auto& placeable_array = nw::kernel::rules().placeables;
-    if (placeables.is_valid()) {
-        placeable_array.entries.reserve(placeables.rows());
-        for (size_t i = 0; i < placeables.rows(); ++i) {
-            placeable_array.entries.emplace_back(placeables.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'placeables.2da'");
-    }
-
-    auto& phenotype_array = nw::kernel::rules().phenotypes;
-    if (phenotypes.is_valid()) {
-        phenotype_array.entries.reserve(phenotypes.rows());
-        for (size_t i = 0; i < phenotypes.rows(); ++i) {
-            phenotype_array.entries.emplace_back(phenotypes.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'phenotype.2da'");
     }
 
     // Races
@@ -431,15 +427,6 @@ bool Profile::load_rules() const
         throw std::runtime_error("rules: failed to load 'skills.2da'");
     }
 
-    // MetaMagic
-    auto& metamagic_array = nw::kernel::rules().metamagic;
-    if (metamagic.is_valid()) {
-        metamagic_array.entries.reserve(metamagic.rows());
-        for (size_t i = 0; i < metamagic.rows(); ++i) {
-            metamagic_array.entries.emplace_back(metamagic.row(i));
-        }
-    }
-
     // Spell Schools
     auto& spell_school_array = nw::kernel::rules().spellschools;
     if (spellschools.is_valid()) {
@@ -460,106 +447,7 @@ bool Profile::load_rules() const
         throw std::runtime_error("rules: failed to load 'spells.2da'");
     }
 
-    // Traps
-    auto& trap_array = nw::kernel::rules().traps;
-    if (traps.is_valid()) {
-        trap_array.entries.reserve(traps.rows());
-        for (size_t i = 0; i < traps.rows(); ++i) {
-            trap_array.entries.emplace_back(traps.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'traps.2da'");
-    }
-
     // == Postprocess 2das ====================================================
-
-    // BaseItems
-    for (size_t i = 0; i < baseitem_array.entries.size(); ++i) {
-        nw::BaseItemInfo& info = baseitem_array.entries[i];
-        if (baseitems.get_to(i, "ReqFeat0", temp_int)) {
-            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-
-        if (baseitems.get_to(i, "ReqFeat1", temp_int)) {
-            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-
-        if (baseitems.get_to(i, "ReqFeat2", temp_int)) {
-            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-
-        if (baseitems.get_to(i, "ReqFeat3", temp_int)) {
-            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-
-        if (baseitems.get_to(i, "ReqFeat4", temp_int)) {
-            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-    }
-
-    // Classes
-    for (size_t i = 0; i < class_array.entries.size(); ++i) {
-        nw::ClassInfo& info = class_array.entries[i];
-        if (!info.valid() || info.spell_table_column.empty()) { continue; }
-
-        auto col = spells.column_index(info.spell_table_column);
-        if (col == nw::StaticTwoDA::npos) {
-            LOG_F(ERROR, "[rules] class spell table column '{}' does not exist in spells.2da", info.spell_table_column);
-            continue;
-        }
-
-        for (size_t j = 0; j < spells.rows(); ++j) {
-            int temp = 0;
-            if (spells.get_to(j, col, temp)) {
-                info.spells.push_back({nw::Spell::make(static_cast<int32_t>(j)), temp});
-            }
-        }
-    }
-
-    // Feats
-
-    for (size_t i = 0; i < feat_array.entries.size(); ++i) {
-        nw::FeatInfo& info = feat_array.entries[i];
-        if (!info.valid()) { continue; }
-
-        if (feat.get_to(i, "MaxLevel", temp_int)) {
-            info.requirements.add(nw::qualifier_level(0, temp_int));
-        }
-
-        if (feat.get_to(i, "MINSTR", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_strength, temp_int));
-        }
-
-        if (feat.get_to(i, "MINDEX", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_dexterity, temp_int));
-        }
-
-        if (feat.get_to(i, "MINCON", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_constitution, temp_int));
-        }
-
-        if (feat.get_to(i, "MININT", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_intelligence, temp_int));
-        }
-
-        if (feat.get_to(i, "MINWIS", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_wisdom, temp_int));
-        }
-
-        if (feat.get_to(i, "MINCHA", temp_int)) {
-            info.requirements.add(nw::qualifier_ability(ability_charisma, temp_int));
-        }
-
-        if (feat.get_to(i, "PREREQFEAT1", temp_int)) {
-            info.requirements.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-
-        if (feat.get_to(i, "PREREQFEAT2", temp_int)) {
-            info.requirements.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
-        }
-    }
-
-    // Races
 
     // Skill
     for (size_t i = 0; i < skills.rows(); ++i) {

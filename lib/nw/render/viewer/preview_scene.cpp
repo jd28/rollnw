@@ -20,12 +20,17 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/objects/Encounter.hpp>
+#include <nw/objects/Item.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>
+#include <nw/smalls/runtime.hpp>
 #include <nw/util/error_context.hpp>
 #include <nw/util/string.hpp>
 
@@ -45,6 +50,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
+#include <span>
 #include <unordered_map>
 
 namespace nw::render::viewer {
@@ -78,6 +84,11 @@ void append_preview_load_events(std::vector<PreviewLoadEvent>& target, std::vect
         std::make_move_iterator(events.begin()),
         std::make_move_iterator(events.end()));
     events.clear();
+}
+
+nw::Location object_spatial_location(const nw::ObjectBase& object)
+{
+    return nw::kernel::objects().components().location(object.handle());
 }
 
 void append_scene_load_events(PreviewScene& scene, std::vector<PreviewLoadEvent>& events)
@@ -1943,6 +1954,30 @@ static void resolve_preview_equipment(nw::Creature& creature, const std::filesys
     }
 }
 
+struct PreviewObjectDeleter {
+    void operator()(nw::ObjectBase* object) const noexcept
+    {
+        if (object) {
+            nw::kernel::objects().destroy(object->handle());
+        }
+    }
+};
+
+template <typename T>
+using PreviewObjectPtr = std::unique_ptr<T, PreviewObjectDeleter>;
+
+using PreviewCreatureObject = PreviewObjectPtr<nw::Creature>;
+
+template <typename T, typename Load>
+static PreviewObjectPtr<T> load_managed_preview_object(const std::filesystem::path& path, Load load)
+{
+    PreviewObjectPtr<T> result{nw::kernel::objects().make<T>()};
+    if (!result || !load(path, *result)) {
+        return {};
+    }
+    return result;
+}
+
 static void maybe_add_model(PreviewScene& scene, std::unique_ptr<ModelInstance> model)
 {
     if (model) {
@@ -2085,48 +2120,126 @@ static bool apply_render_model_plt_material_overrides(PreviewScene& scene, uint3
     return applied;
 }
 
-static void add_equipped_item_model(PreviewScene& scene, PreviewRenderResources& resources, const nw::Item& item,
-    nw::EquipIndex slot, uint32_t placement_model_index, float local_scale = 1.0f,
+static bool add_humanoid_visual_body_rows(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    const nw::ObjectVisualState* visual,
+    const nw::PltColors& creature_colors,
+    nw::ObjectVisualRenderMode render_mode)
+{
+    if (!visual) {
+        LOG_F(WARNING, "Dynamic creature humanoid visual rows were not created");
+        log_preview_warning_context();
+        return false;
+    }
+
+    const uint32_t placement_model_index = scene.models.empty()
+        ? std::numeric_limits<uint32_t>::max()
+        : 0u;
+    bool found_row = false;
+    bool loaded_any = false;
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, render_mode)
+            || !visual_row_is_humanoid_body_part(row)) {
+            continue;
+        }
+        found_row = true;
+
+        const auto part_name = visual_row_body_part_name(row);
+        if (row.model.empty()) {
+            if (visual_row_requests_model_part(row)) {
+                ERRARE("[viewer] resolving dynamic creature body part '{}' model part {}",
+                    std::string_view{part_name},
+                    row.model_part);
+                LOG_F(WARNING, "Dynamic creature body part '{}' model part {} was not found",
+                    part_name,
+                    row.model_part);
+                log_preview_warning_context();
+            }
+            continue;
+        }
+
+        auto colors = visual_row_plt_colors(row, creature_colors);
+        ERRARE("[viewer] resolving dynamic creature body part '{}' model '{}'",
+            std::string_view{part_name},
+            row.model.view());
+        auto model = load_model_with_plt(resources, row.model.view(), &colors);
+        if (!model) {
+            LOG_F(WARNING, "Dynamic creature body part '{}' model '{}' failed to load",
+                part_name,
+                row.model);
+            log_preview_warning_context();
+            continue;
+        }
+
+        if (placement_model_index < scene.models.size() && !row.attach_to.empty()) {
+            make_static_scene_attachment(*model);
+            model->anchor_uses_root_bind_offset = false;
+            scene.add_attached(std::move(model), placement_model_index, row.attach_to.string());
+        } else {
+            if (row.part == static_cast<int32_t>(nw::ItemModelParts::armor_robe)) {
+                model->accepts_external_animation_source = false;
+            }
+            maybe_add_model(scene, std::move(model));
+        }
+        loaded_any = true;
+    }
+
+    if (!found_row) {
+        LOG_F(WARNING, "Dynamic creature humanoid produced no body visual rows");
+        log_preview_warning_context();
+    }
+    return loaded_any;
+}
+
+static void add_equipped_item_visual_models(PreviewScene& scene,
+    PreviewRenderResources& resources,
+    const nw::ObjectVisualState* visual,
+    const nw::Item& item,
+    nw::EquipIndex slot,
+    uint32_t placement_model_index,
+    nw::ObjectVisualRenderMode render_mode,
+    float local_scale = 1.0f,
     const nw::PltColors* creature_colors = nullptr)
 {
     const auto slot_name = nw::equip_index_to_string(slot);
-    const auto item_resref = item.common.resref.string();
-    ERRARE("[viewer] resolving equipped item '{}.uti' in slot '{}'",
+    const auto item_resref_value = item.resref;
+    const auto item_resref = item_resref_value.string();
+    ERRARE("[viewer] loading equipped item visual rows for '{}.uti' in slot '{}'",
         std::string_view{item_resref},
         slot_name);
 
     auto anchor = anchor_name_for_equipped_item(slot);
-    if (placement_model_index >= scene.models.size() || anchor.empty()) {
+    if (!visual || placement_model_index >= scene.models.size() || anchor.empty()) {
         LOG_F(WARNING, "Dynamic creature equipped item '{}' in slot '{}' has no attachment anchor/context",
-            item.common.resref,
+            item_resref_value,
             slot_name);
         log_preview_warning_context();
         return;
     }
 
-    auto* baseitem = nw::kernel::rules().baseitems.get(item.baseitem);
-    if (!baseitem) {
-        LOG_F(WARNING, "Dynamic creature equipped item '{}' in slot '{}' has invalid baseitem {}",
-            item.common.resref,
-            slot_name,
-            *item.baseitem);
-        log_preview_warning_context();
-        return;
-    }
-
-    auto try_add = [&](std::string_view resref, nw::ItemModelParts::type part) {
-        if (resref.empty()) {
-            return;
+    bool found_row = false;
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, render_mode)
+            || !visual_row_matches_slot(row, slot, nw::ObjectVisualModelKind::item_model)) {
+            continue;
         }
+        found_row = true;
+        const auto resref = row.model.view();
+        if (resref.empty()) {
+            continue;
+        }
+        const std::string attachment_anchor = row.attach_to.empty() ? anchor : row.attach_to.string();
+        const std::string attachment_source = row.attach_from.empty() ? std::string{} : row.attach_from.string();
 
         ERRARE("[viewer] resolving equipped item model '{}'", resref);
         if (!nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::mdl})) {
             LOG_F(WARNING, "Dynamic creature equipped model '{}' was not found for slot '{}' item '{}'",
                 resref,
                 slot_name,
-                item.common.resref);
+                item_resref_value);
             log_preview_warning_context();
-            return;
+            continue;
         }
 
         auto model = load_model_with_plt(resources, resref);
@@ -2134,15 +2247,12 @@ static void add_equipped_item_model(PreviewScene& scene, PreviewRenderResources&
             LOG_F(WARNING, "Dynamic creature equipped model '{}' failed to load for slot '{}' item '{}'",
                 resref,
                 slot_name,
-                item.common.resref);
+                item_resref_value);
             log_preview_warning_context();
-            return;
+            continue;
         }
         if (nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::plt})) {
-            auto item_plt = item.part_to_plt_colors(part);
-            if (creature_colors) {
-                preserve_creature_identity_plt_colors(item_plt, *creature_colors);
-            }
+            auto item_plt = creature_colors ? visual_row_plt_colors(row, *creature_colors) : visual_row_plt_colors(row);
             apply_plt_to_model(resources, *model, item_plt);
         }
         model->scene_animation_enabled = false;
@@ -2152,21 +2262,31 @@ static void add_equipped_item_model(PreviewScene& scene, PreviewRenderResources&
         model->local_scale_ = local_scale;
         LOG_F(INFO, "dynamic creature equipped {} -> {}",
             nw::equip_index_to_string(slot), resref);
-        scene.add_attached(std::move(model), placement_model_index, anchor);
-    };
+        scene.add_attached(std::move(model), placement_model_index, attachment_anchor, attachment_source);
+    }
 
-    for (const auto& model_part : resolve_item_model_parts(item, *baseitem)) {
-        try_add(model_part.resref, model_part.part);
+    if (!found_row) {
+        LOG_F(WARNING, "Dynamic creature equipped item '{}' in slot '{}' produced no visual model rows",
+            item_resref_value,
+            slot_name);
+        log_preview_warning_context();
     }
 }
 
-static bool add_render_model_equipped_item_model(PreviewScene& scene, PreviewRenderResources& resources,
-    const nw::Item& item, nw::EquipIndex slot, uint32_t owner_model_index, float local_scale,
+static bool add_render_model_equipped_visual_models(PreviewScene& scene,
+    PreviewRenderResources& resources,
+    const nw::ObjectVisualState* visual,
+    const nw::Item& item,
+    nw::EquipIndex slot,
+    uint32_t owner_model_index,
+    float local_scale,
+    nw::ObjectVisualRenderMode render_mode,
     std::vector<PreviewLoadEvent>* load_events, const nw::PltColors* creature_colors = nullptr)
 {
     const auto slot_name = nw::equip_index_to_string(slot);
-    const auto item_resref = item.common.resref.string();
-    ERRARE("[viewer] resolving RenderModel equipped item '{}.uti' in slot '{}'",
+    const auto item_resref_value = item.resref;
+    const auto item_resref = item_resref_value.string();
+    ERRARE("[viewer] loading RenderModel equipped item visual rows for '{}.uti' in slot '{}'",
         std::string_view{item_resref},
         slot_name);
 
@@ -2183,73 +2303,92 @@ static bool add_render_model_equipped_item_model(PreviewScene& scene, PreviewRen
     };
 
     const auto anchor = anchor_name_for_equipped_item(slot);
-    if (anchor.empty()
+    if (!visual
+        || anchor.empty()
         || owner_model_index >= scene.static_models.size()
         || owner_model_index >= scene.static_model_instance_handles.size()) {
         return skip_with_warning(fmt::format(
             "RenderModel creature equipped item '{}' in slot '{}' has no attachment anchor/context",
-            item.common.resref,
+            item_resref_value,
             slot_name));
     }
 
-    const auto& owner = scene.static_models[owner_model_index];
-    if (!owner || owner->socket_index(anchor) == nw::render::kInvalidModelNodeIndex) {
+    auto owner_model = [&]() -> const nw::render::RenderModel* {
+        if (owner_model_index >= scene.static_models.size()) {
+            return nullptr;
+        }
+        return scene.static_models[owner_model_index].get();
+    };
+
+    const auto* initial_owner = owner_model();
+    if (!initial_owner || initial_owner->socket_index(anchor) == nw::render::kInvalidModelNodeIndex) {
         return skip_with_warning(fmt::format(
             "RenderModel creature equipped item '{}' in slot '{}' missing owner socket '{}'",
-            item.common.resref,
+            item_resref_value,
             slot_name,
             anchor));
     }
 
-    auto* baseitem = nw::kernel::rules().baseitems.get(item.baseitem);
-    if (!baseitem) {
-        return skip_with_warning(fmt::format(
-            "RenderModel creature equipped item '{}' in slot '{}' has invalid baseitem {}",
-            item.common.resref,
-            slot_name,
-            *item.baseitem));
-    }
-
     bool resolved_part = false;
     bool added = false;
-    for (const auto& model_part : resolve_item_model_parts(item, *baseitem)) {
-        if (model_part.resref.empty()) {
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, render_mode)
+            || !visual_row_matches_slot(row, slot, nw::ObjectVisualModelKind::item_model)
+            || row.model.empty()) {
             continue;
         }
         resolved_part = true;
+        const auto model_resref = row.model;
+        const std::string attachment_anchor = row.attach_to.empty() ? anchor : row.attach_to.string();
+        const std::string attachment_source = row.attach_from.empty() ? std::string{} : row.attach_from.string();
 
-        ERRARE("[viewer] resolving RenderModel equipped item model '{}'", std::string_view{model_part.resref});
-        if (!nw::kernel::resman().contains({nw::Resref{model_part.resref}, nw::ResourceType::mdl})) {
+        ERRARE("[viewer] resolving RenderModel equipped item model '{}'", model_resref);
+        if (!nw::kernel::resman().contains({model_resref, nw::ResourceType::mdl})) {
             skip_with_warning(fmt::format(
                 "RenderModel creature equipped model '{}' was not found for slot '{}' item '{}'",
-                model_part.resref,
+                model_resref,
                 slot_name,
-                item.common.resref));
+                item_resref_value));
+            continue;
+        }
+        const auto* owner = owner_model();
+        if (!owner || owner->socket_index(attachment_anchor) == nw::render::kInvalidModelNodeIndex) {
+            skip_with_warning(fmt::format(
+                "RenderModel creature equipped item '{}' in slot '{}' missing owner socket '{}'",
+                item_resref_value,
+                slot_name,
+                attachment_anchor));
             continue;
         }
 
-        auto load = load_nwn_render_model_preview(resources, model_part.resref);
+        auto load = load_nwn_render_model_preview(resources, model_resref.view());
         if (load_events) {
             append_preview_load_events(*load_events, load.events);
         }
         if (!load.model) {
             skip_with_warning(fmt::format(
                 "RenderModel creature equipped model '{}' failed to load for slot '{}' item '{}'",
-                model_part.resref,
+                model_resref,
                 slot_name,
-                item.common.resref));
+                item_resref_value));
+            continue;
+        }
+        if (!attachment_source.empty()
+            && load.model->socket_index(attachment_source) == nw::render::kInvalidModelNodeIndex) {
+            skip_with_warning(fmt::format(
+                "RenderModel creature equipped model '{}' in slot '{}' missing child socket '{}'",
+                model_resref,
+                slot_name,
+                attachment_source));
             continue;
         }
 
         LOG_F(INFO, "dynamic RenderModel creature equipped {} -> {}",
-            nw::equip_index_to_string(slot), model_part.resref);
+            nw::equip_index_to_string(slot), model_resref);
         const uint32_t child_model_index = static_cast<uint32_t>(scene.static_models.size());
-        scene.add_attached(std::move(load.model), owner_model_index, anchor, {}, local_scale);
+        scene.add_attached(std::move(load.model), owner_model_index, attachment_anchor, attachment_source, local_scale);
         if (child_model_index < scene.static_models.size()) {
-            auto item_plt = item.part_to_plt_colors(model_part.part);
-            if (creature_colors) {
-                preserve_creature_identity_plt_colors(item_plt, *creature_colors);
-            }
+            auto item_plt = creature_colors ? visual_row_plt_colors(row, *creature_colors) : visual_row_plt_colors(row);
             apply_render_model_plt_material_overrides(scene, child_model_index, item_plt);
         }
         added = true;
@@ -2258,7 +2397,7 @@ static bool add_render_model_equipped_item_model(PreviewScene& scene, PreviewRen
     if (!added && !resolved_part) {
         return skip_with_warning(fmt::format(
             "RenderModel creature equipped item '{}' in slot '{}' produced no attachable models",
-            item.common.resref,
+            item_resref_value,
             slot_name));
     }
 
@@ -2268,18 +2407,13 @@ static bool add_render_model_equipped_item_model(PreviewScene& scene, PreviewRen
 static bool add_render_model_creature_attachment(
     PreviewScene& scene,
     PreviewRenderResources& resources,
-    std::string_view table_name,
-    uint32_t row,
+    const nw::ObjectVisualModel& row,
     float local_scale,
     const nw::PltColors& plt_colors,
     std::string_view origin,
     std::vector<PreviewLoadEvent>* load_events)
 {
-    const auto lookup = resolve_creature_attachment_model_lookup(table_name, row);
-    if (!lookup.requested || lookup.null_model) {
-        return true;
-    }
-
+    const auto attachment_name = visual_creature_attachment_name(row);
     auto skip_with_warning = [&](std::string message) {
         LOG_F(WARNING, "{}", message);
         log_preview_warning_context();
@@ -2292,27 +2426,33 @@ static bool add_render_model_creature_attachment(
         return false;
     };
 
-    if (!lookup.warning.empty()) {
-        return skip_with_warning(fmt::format("{}: {}", origin, lookup.warning));
+    if (row.model.empty()) {
+        return skip_with_warning(fmt::format(
+            "{}: attachment '{}' row {} did not resolve to a model",
+            origin,
+            attachment_name,
+            row.source_part));
     }
     if (scene.static_models.empty() || !scene.static_models.front()) {
         return skip_with_warning(fmt::format(
-            "{}: attachment '{}' row {} has no RenderModel owner", origin, table_name, row));
+            "{}: attachment '{}' row {} has no RenderModel owner", origin, attachment_name, row.source_part));
     }
 
-    if (lookup.owner_socket.empty()
-        || scene.static_models.front()->socket_index(lookup.owner_socket) == nw::render::kInvalidModelNodeIndex) {
+    const std::string owner_socket = row.attach_to.empty() ? std::string{} : row.attach_to.string();
+    const std::string source_socket = row.attach_from.empty() ? std::string{} : row.attach_from.string();
+    if (owner_socket.empty()
+        || scene.static_models.front()->socket_index(owner_socket) == nw::render::kInvalidModelNodeIndex) {
         return skip_with_warning(fmt::format(
             "{}: attachment '{}' row {} model '{}' missing owner socket '{}'",
             origin,
-            table_name,
-            row,
-            lookup.model_name,
-            lookup.owner_socket));
+            attachment_name,
+            row.source_part,
+            row.model,
+            owner_socket));
     }
 
-    ERRARE("[viewer] resolving RenderModel creature attachment model '{}'", std::string_view{lookup.model_name});
-    auto load = load_nwn_render_model_preview(resources, lookup.model_name);
+    ERRARE("[viewer] resolving RenderModel creature attachment model '{}'", row.model.view());
+    auto load = load_nwn_render_model_preview(resources, row.model.view());
     if (load_events) {
         append_preview_load_events(*load_events, load.events);
     }
@@ -2320,68 +2460,98 @@ static bool add_render_model_creature_attachment(
         return skip_with_warning(fmt::format(
             "{}: attachment '{}' row {} model '{}' failed to load through RenderModel",
             origin,
-            table_name,
-            row,
-            lookup.model_name));
+            attachment_name,
+            row.source_part,
+            row.model));
     }
-    if (!lookup.source_socket.empty()
-        && load.model->socket_index(lookup.source_socket) == nw::render::kInvalidModelNodeIndex) {
+    if (!source_socket.empty()
+        && load.model->socket_index(source_socket) == nw::render::kInvalidModelNodeIndex) {
         return skip_with_warning(fmt::format(
             "{}: attachment '{}' row {} model '{}' missing child socket '{}'",
             origin,
-            table_name,
-            row,
-            lookup.model_name,
-            lookup.source_socket));
+            attachment_name,
+            row.source_part,
+            row.model,
+            source_socket));
     }
 
-    LOG_F(INFO, "dynamic RenderModel creature attachment {} row {} -> {}", table_name, row, lookup.model_name);
+    LOG_F(INFO, "dynamic RenderModel creature attachment {} row {} -> {}", attachment_name, row.source_part, row.model);
     const uint32_t child_model_index = static_cast<uint32_t>(scene.static_models.size());
-    scene.add_attached(std::move(load.model), 0u, lookup.owner_socket, lookup.source_socket, local_scale);
+    scene.add_attached(std::move(load.model), 0u, owner_socket, source_socket, local_scale);
     if (child_model_index < scene.static_models.size()) {
         apply_render_model_plt_material_overrides(scene, child_model_index, plt_colors);
     }
     return true;
 }
 
+static bool preview_equipped_slot_visible(
+    nw::EquipIndex slot,
+    const NwnAppearanceHandItemVisualPolicy& hand_item_policy) noexcept
+{
+    return (slot != nw::EquipIndex::righthand && slot != nw::EquipIndex::lefthand)
+        || hand_item_policy.visible;
+}
+
+static float preview_equipped_slot_scale(
+    nw::EquipIndex slot,
+    const NwnAppearanceHandItemVisualPolicy& hand_item_policy,
+    float helmet_scale) noexcept
+{
+    if (slot == nw::EquipIndex::head) {
+        return helmet_scale;
+    }
+    if (slot == nw::EquipIndex::righthand || slot == nw::EquipIndex::lefthand) {
+        return hand_item_policy.scale;
+    }
+    return 1.0f;
+}
+
 static bool add_dynamic_creature_scene_models(
     PreviewScene& scene,
     PreviewRenderResources& resources,
-    nw::Appearance appearance_id,
-    uint8_t gender,
-    nw::Phenotype phenotype_id,
-    uint32_t wings,
-    uint32_t tail,
-    nw::BodyParts body_parts,
-    const nw::PltColors& plt_colors,
-    nw::Item* chest_item,
-    nw::Item* cloak_item,
-    nw::Item* head_item,
-    nw::Item* righthand_item,
-    nw::Item* lefthand_item,
+    const nw::Creature& creature,
     std::string_view origin,
     PreviewSceneLoadOptions options,
     std::vector<PreviewLoadEvent>* load_events)
 {
-    auto* app = nw::kernel::rules().appearances.get(appearance_id);
-    auto* appearance_tda = nw::kernel::twodas().get("appearance");
-    if (!app || !appearance_tda) {
+    const nw::ObjectVisualState* visual = object_visual_state(creature);
+    const nw::PltColors plt_colors = visual_base_plt_colors(visual);
+    const nw::Appearance appearance_id = visual_appearance(visual);
+    const uint8_t body_variant = visual_body_variant(visual);
+    const nw::Equips& equips = creature.equipment;
+
+    auto model_ref = resolve_creature_model_from_appearance(appearance_id);
+    if (!model_ref.valid()) {
+        const auto message = fmt::format(
+            "Creature appearance {} did not resolve: {}",
+            appearance_id.idx(),
+            model_ref.error.empty() ? "unknown error" : model_ref.error);
+        LOG_F(WARNING, "{}", message);
+        log_preview_warning_context();
+        if (load_events) {
+            add_preview_load_event(*load_events,
+                PreviewLoadEventSeverity::warning,
+                "creature",
+                message);
+        }
         return false;
     }
-    const float wing_tail_scale = appearance_wing_tail_scale(appearance_tda, appearance_id);
-    const float helmet_scale = appearance_helmet_scale(appearance_tda, appearance_id, gender);
-    const auto hand_item_policy = resolve_nwn_appearance_hand_item_visual_policy(appearance_tda, appearance_id);
+    const float wing_tail_scale = model_ref.wing_tail_scale;
+    const float helmet_scale = helmet_scale_from_creature_model(model_ref, body_variant);
+    const auto hand_item_policy = hand_item_visual_policy_from_creature_model(model_ref);
 
-    std::string race;
-    appearance_tda->get_to(*appearance_id, "RACE", race);
-    const int phenotype = resolve_creature_phenotype(phenotype_id);
-
-    const char sex = gender == 1 ? 'f' : 'm';
-    body_parts = normalized_body_parts(body_parts);
+    const std::string race{model_ref.race.view()};
+    const char sex = body_variant == 1 ? 'f' : 'm';
     std::unique_ptr<ModelInstance> base_rig;
     const bool use_render_model_creature_body = options.nwn_model_path == NwnModelPreviewPath::render_model
-        && app->model_type != "P";
-    if (app->model_type == "P") {
+        && !model_ref.humanoid;
+    if (model_ref.humanoid) {
+        auto* app = nw::kernel::rules().appearances.get(appearance_id);
+        if (!app) {
+            LOG_F(WARNING, "Creature humanoid appearance {} was not found in legacy appearance rules", appearance_id.idx());
+            log_preview_warning_context();
+            return false;
+        }
         if (options.nwn_model_path == NwnModelPreviewPath::render_model) {
             const auto message = fmt::format(
                 "{}: RenderModel creature path requested for humanoid appearance {}; using legacy sidecar "
@@ -2412,68 +2582,32 @@ static bool add_dynamic_creature_scene_models(
             log_preview_warning_context();
         }
 
-        const uint32_t placement_model_index = scene.models.empty()
-            ? std::numeric_limits<uint32_t>::max()
-            : 0u;
-
-        const auto resolved_body_parts = resolve_humanoid_body_part_models(
-            sex, race, phenotype, body_parts, plt_colors, chest_item, head_item);
-        for (const auto& part : resolved_body_parts) {
-            if (part.resref) {
-                ERRARE("[viewer] resolving dynamic creature body part '{}' model '{}'",
-                    part.token,
-                    std::string_view{*part.resref});
-                auto model = load_model_with_plt(resources, *part.resref, &part.colors);
-                if (!model) {
-                    LOG_F(WARNING, "Dynamic creature body part '{}' model '{}' failed to load",
-                        part.token,
-                        *part.resref);
-                    log_preview_warning_context();
-                } else if (placement_model_index < scene.models.size() && !part.anchor.empty()) {
-                    make_static_scene_attachment(*model);
-                    model->anchor_uses_root_bind_offset = false;
-                    scene.add_attached(std::move(model), placement_model_index, part.anchor);
-                } else {
-                    maybe_add_model(scene, std::move(model));
-                }
-            } else if (part.missing_requested_part) {
-                ERRARE("[viewer] resolving dynamic creature body part '{}' model part {}",
-                    part.token,
-                    part.model_part);
-                LOG_F(WARNING, "Dynamic creature body part '{}' model part {} was not found",
-                    part.token,
-                    part.model_part);
-                log_preview_warning_context();
-            }
-        }
-
-        if (chest_item && chest_item->model_type == nw::ItemModelType::armor) {
-            auto robe_part = chest_item->model_parts[nw::ItemModelParts::armor_robe];
-            if (robe_part > 0) {
-                auto robe_colors = chest_item->part_to_plt_colors(nw::ItemModelParts::armor_robe);
-                preserve_creature_identity_plt_colors(robe_colors, plt_colors);
-                if (auto robe_resref = resolve_creature_part_model(sex, race, phenotype, {"robe"}, robe_part)) {
-                    ERRARE("[viewer] resolving dynamic creature robe model '{}'", std::string_view{*robe_resref});
-                    auto robe = load_model_with_plt(resources, *robe_resref, &robe_colors);
-                    if (robe) {
-                        robe->accepts_external_animation_source = false;
-                    }
-                    if (!robe) {
-                        LOG_F(WARNING, "Dynamic creature robe model '{}' failed to load", *robe_resref);
-                        log_preview_warning_context();
-                    }
-                    maybe_add_model(scene, std::move(robe));
-                } else {
-                    ERRARE("[viewer] resolving dynamic creature robe model part {}", robe_part);
-                    LOG_F(WARNING, "Dynamic creature robe model part {} was not found", robe_part);
-                    log_preview_warning_context();
-                }
-            }
-        }
+        add_humanoid_visual_body_rows(
+            scene,
+            resources,
+            visual,
+            plt_colors,
+            options.visual_render_mode);
     } else {
-        ERRARE("[viewer] resolving creature model '{}'", std::string_view{app->model_name});
+        if (!model_ref.has_model()) {
+            const auto message = fmt::format(
+                "Creature appearance {} did not resolve to a single model: {}",
+                appearance_id.idx(),
+                model_ref.error.empty() ? "unknown error" : model_ref.error);
+            LOG_F(WARNING, "{}", message);
+            log_preview_warning_context();
+            if (load_events) {
+                add_preview_load_event(*load_events,
+                    PreviewLoadEventSeverity::warning,
+                    "creature",
+                    message);
+            }
+            return false;
+        }
+
+        ERRARE("[viewer] resolving creature model '{}'", model_ref.model.view());
         if (use_render_model_creature_body) {
-            auto load = load_nwn_render_model_preview(resources, app->model_name);
+            auto load = load_nwn_render_model_preview(resources, model_ref.model.view());
             if (load_events) {
                 append_preview_load_events(*load_events, load.events);
             }
@@ -2483,9 +2617,9 @@ static bool add_dynamic_creature_scene_models(
                 apply_render_model_plt_material_overrides(scene, body_model_index, plt_colors);
             }
         } else {
-            auto model = load_model_with_plt(resources, app->model_name, &plt_colors);
+            auto model = load_model_with_plt(resources, model_ref.model.view(), &plt_colors);
             if (!model) {
-                LOG_F(WARNING, "Creature model '{}' failed to load", app->model_name);
+                LOG_F(WARNING, "Creature model '{}' failed to load", model_ref.model.view());
                 log_preview_warning_context();
             }
             maybe_add_model(scene, std::move(model));
@@ -2493,27 +2627,40 @@ static bool add_dynamic_creature_scene_models(
     }
 
     if (use_render_model_creature_body) {
-        const bool loaded_wings = add_render_model_creature_attachment(
-            scene, resources, "wingmodel", wings, wing_tail_scale, plt_colors, origin, load_events);
-        const bool loaded_tail = add_render_model_creature_attachment(
-            scene, resources, "tailmodel", tail, wing_tail_scale, plt_colors, origin, load_events);
-        const bool loaded_righthand = !hand_item_policy.visible
-            || !righthand_item
-            || add_render_model_equipped_item_model(
-                scene, resources, *righthand_item, nw::EquipIndex::righthand, 0u, hand_item_policy.scale, load_events, &plt_colors);
-        const bool loaded_lefthand = !hand_item_policy.visible
-            || !lefthand_item
-            || add_render_model_equipped_item_model(
-                scene, resources, *lefthand_item, nw::EquipIndex::lefthand, 0u, hand_item_policy.scale, load_events, &plt_colors);
-        const bool loaded_head = !head_item
-            || add_render_model_equipped_item_model(
-                scene, resources, *head_item, nw::EquipIndex::head, 0u, helmet_scale, load_events, &plt_colors);
-        const bool has_legacy_visual_addons = (wings != 0 && !loaded_wings)
-            || (tail != 0 && !loaded_tail)
-            || cloak_item
-            || !loaded_head
-            || !loaded_righthand
-            || !loaded_lefthand;
+        bool loaded_attachments = visual != nullptr;
+        if (visual) {
+            for (const auto& row : visual->models) {
+                if (!visual_row_visible_for_mode(row, options.visual_render_mode)
+                    || !visual_row_is_creature_attachment(row)) {
+                    continue;
+                }
+                loaded_attachments = add_render_model_creature_attachment(
+                                         scene, resources, row, wing_tail_scale, plt_colors, origin, load_events)
+                    && loaded_attachments;
+            }
+        }
+        bool loaded_equipped_models = true;
+        for (const auto slot : kPreviewAttachedEquipmentSlots) {
+            auto* item = equipped_item(equips, slot);
+            if (!item || !preview_equipped_slot_visible(slot, hand_item_policy)) {
+                continue;
+            }
+            loaded_equipped_models = add_render_model_equipped_visual_models(
+                                         scene,
+                                         resources,
+                                         visual,
+                                         *item,
+                                         slot,
+                                         0u,
+                                         preview_equipped_slot_scale(slot, hand_item_policy, helmet_scale),
+                                         options.visual_render_mode,
+                                         load_events,
+                                         &plt_colors)
+                && loaded_equipped_models;
+        }
+        const bool has_legacy_visual_addons = !loaded_attachments
+            || equipped_item(equips, nw::EquipIndex::cloak)
+            || !loaded_equipped_models;
         if (has_legacy_visual_addons) {
             const auto message = fmt::format(
                 "{}: RenderModel creature path skipped or failed some remaining legacy cloak/head/hand/add-on data "
@@ -2536,32 +2683,36 @@ static bool add_dynamic_creature_scene_models(
         return true;
     }
 
-    auto add_attachment = [&](const char* table_name, uint32_t row) {
-        const auto lookup = resolve_creature_attachment_model_lookup(table_name, row);
-        if (!lookup.requested || lookup.null_model) {
-            return;
-        }
-        ERRARE("[viewer] resolving creature attachment '{}' row {}", std::string_view{table_name}, row);
-        if (!lookup.warning.empty()) {
-            LOG_F(WARNING, "{}", lookup.warning);
-            log_preview_warning_context();
-            return;
-        }
-        if (lookup.resolved) {
-            ERRARE("[viewer] resolving creature attachment model '{}'", std::string_view{lookup.model_name});
-            auto model = load_model_with_plt(resources, lookup.model_name, &plt_colors);
+    if (visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, options.visual_render_mode)
+                || !visual_row_is_creature_attachment(row)) {
+                continue;
+            }
+
+            const auto attachment_name = visual_creature_attachment_name(row);
+            if (row.model.empty()) {
+                LOG_F(WARNING, "Dynamic creature {} row {} did not resolve to a model",
+                    attachment_name,
+                    row.source_part);
+                log_preview_warning_context();
+                continue;
+            }
+
+            ERRARE("[viewer] resolving creature {} model '{}'", attachment_name, row.model.view());
+            auto model = load_model_with_plt(resources, row.model.view(), &plt_colors);
             const uint32_t placement_model_index = scene.models.empty()
                 ? std::numeric_limits<uint32_t>::max()
                 : 0u;
             if (!model) {
-                LOG_F(WARNING, "Dynamic creature attachment '{}' row {} model '{}' failed to load",
-                    table_name,
-                    row,
-                    lookup.model_name);
+                LOG_F(WARNING, "Dynamic creature {} model '{}' failed to load",
+                    attachment_name,
+                    row.model);
                 log_preview_warning_context();
             } else {
-                if (table_name == std::string_view{"wingmodel"}) {
-                    const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, row);
+                if (visual_row_is_creature_wing_attachment(row)) {
+                    const uint32_t wing_row = row.source_part > 0 ? static_cast<uint32_t>(row.source_part) : 0u;
+                    const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, wing_row);
                     const size_t stripped_mesh_count = apply_nwn_wing_attachment_visual_policy(*model, policy);
                     if (load_events && policy.strip_non_render_meshes) {
                         add_preview_load_event(*load_events,
@@ -2570,71 +2721,78 @@ static bool add_dynamic_creature_scene_models(
                             fmt::format(
                                 "{}: wingmodel row {} stripped_non_render_meshes={}",
                                 origin,
-                                row,
+                                row.source_part,
                                 stripped_mesh_count));
                     }
                 }
             }
-            if (model && placement_model_index < scene.models.size() && !lookup.owner_socket.empty()) {
+            if (model && placement_model_index < scene.models.size() && !row.attach_to.empty()) {
                 make_static_scene_attachment(*model);
                 model->local_scale_ = wing_tail_scale;
                 model->anchor_uses_root_bind_offset = true;
-                scene.add_attached(std::move(model), placement_model_index, lookup.owner_socket, lookup.source_socket);
+                scene.add_attached(std::move(model), placement_model_index, row.attach_to.string(), row.attach_from.string());
             } else if (model) {
                 maybe_add_model(scene, std::move(model));
             }
         }
-    };
-    add_attachment("wingmodel", wings);
-    add_attachment("tailmodel", tail);
+    }
 
-    if (cloak_item && cloak_item->model_type == nw::ItemModelType::layered) {
-        ERRARE("[viewer] resolving dynamic creature cloak item '{}.uti'", cloak_item->common.resref.view());
-        auto* cloakmodel = nw::kernel::twodas().get("cloakmodel");
-        int cloak_model = 0;
-        if (!cloakmodel) {
-            LOG_F(WARNING, "Dynamic creature cloak model table was not loaded");
-            log_preview_warning_context();
-        } else if (cloakmodel->get_to(cloak_item->model_parts[nw::ItemModelParts::model1], "MODEL", cloak_model) && cloak_model > 0) {
-            auto cloak_colors = cloak_item->part_to_plt_colors(nw::ItemModelParts::model1);
-            if (auto cloak_resref = resolve_creature_cloak_model(sex, race, phenotype, static_cast<uint16_t>(cloak_model))) {
-                LOG_F(INFO, "dynamic creature cloak -> {}", *cloak_resref);
-                ERRARE("[viewer] resolving dynamic creature cloak model '{}'", std::string_view{*cloak_resref});
-                auto cloak = load_model_with_plt(resources, *cloak_resref, &cloak_colors);
-                if (cloak) {
-                    cloak->accepts_external_animation_source = false;
-                }
-                if (!cloak) {
-                    LOG_F(WARNING, "Dynamic creature cloak model '{}' failed to load", *cloak_resref);
+    if (auto* cloak_item = equipped_item(equips, nw::EquipIndex::cloak); cloak_item && visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, options.visual_render_mode)
+                || !visual_row_matches_slot(row, nw::EquipIndex::cloak, nw::ObjectVisualModelKind::creature_model_part)) {
+                continue;
+            }
+
+            const auto cloak_item_resref = cloak_item->resref;
+            ERRARE("[viewer] resolving dynamic creature cloak item '{}.uti'", cloak_item_resref.view());
+            if (row.model.empty()) {
+                if (row.model_part > 0) {
+                    ERRARE("[viewer] resolving dynamic creature cloak model part {}", row.model_part);
+                    LOG_F(WARNING, "Dynamic creature cloak model part {} was not found", row.model_part);
                     log_preview_warning_context();
+                    break;
                 }
-                maybe_add_model(scene, std::move(cloak));
-            } else {
-                ERRARE("[viewer] resolving dynamic creature cloak model part {}", cloak_model);
-                LOG_F(WARNING, "Dynamic creature cloak model part {} was not found", cloak_model);
+                LOG_F(WARNING, "Dynamic creature cloak item '{}' model part {} has no cloakmodel.2da MODEL",
+                    cloak_item_resref,
+                    row.source_part);
+                log_preview_warning_context();
+                break;
+            }
+
+            auto cloak_colors = visual_row_plt_colors(row);
+            ERRARE("[viewer] resolving dynamic creature cloak model '{}'", row.model.view());
+            auto cloak = load_model_with_plt(resources, row.model.view(), &cloak_colors);
+            if (cloak) {
+                cloak->accepts_external_animation_source = false;
+            }
+            if (!cloak) {
+                LOG_F(WARNING, "Dynamic creature cloak model '{}' failed to load", row.model);
                 log_preview_warning_context();
             }
-        } else {
-            LOG_F(WARNING, "Dynamic creature cloak item '{}' model part {} has no cloakmodel.2da MODEL",
-                cloak_item->common.resref,
-                cloak_item->model_parts[nw::ItemModelParts::model1]);
-            log_preview_warning_context();
+            maybe_add_model(scene, std::move(cloak));
+            break;
         }
     }
 
     const uint32_t placement_model_index = scene.models.empty()
         ? std::numeric_limits<uint32_t>::max()
         : 0u;
-    if (righthand_item && hand_item_policy.visible) {
-        add_equipped_item_model(
-            scene, resources, *righthand_item, nw::EquipIndex::righthand, placement_model_index, hand_item_policy.scale, &plt_colors);
-    }
-    if (lefthand_item && hand_item_policy.visible) {
-        add_equipped_item_model(
-            scene, resources, *lefthand_item, nw::EquipIndex::lefthand, placement_model_index, hand_item_policy.scale, &plt_colors);
-    }
-    if (head_item) {
-        add_equipped_item_model(scene, resources, *head_item, nw::EquipIndex::head, placement_model_index, helmet_scale, &plt_colors);
+    for (const auto slot : kPreviewAttachedEquipmentSlots) {
+        auto* item = equipped_item(equips, slot);
+        if (!item || !preview_equipped_slot_visible(slot, hand_item_policy)) {
+            continue;
+        }
+        add_equipped_item_visual_models(
+            scene,
+            resources,
+            visual,
+            *item,
+            slot,
+            placement_model_index,
+            options.visual_render_mode,
+            preview_equipped_slot_scale(slot, hand_item_policy, helmet_scale),
+            &plt_colors);
     }
 
     if (scene.models.empty() && scene.static_models.empty()) {
@@ -2662,74 +2820,33 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
 
     auto scene = std::make_unique<PreviewScene>();
     std::vector<PreviewLoadEvent> load_events;
-    nw::PltColors plt_colors{};
-    nw::Appearance appearance_id = nw::Appearance::invalid();
-    uint8_t gender = 0;
-    nw::Phenotype phenotype = nw::Phenotype::invalid();
-    uint32_t wings = 0;
-    uint32_t tail = 0;
-    nw::BodyParts body_parts{};
-    nw::Item* chest_item = nullptr;
-    nw::Item* cloak_item = nullptr;
-    nw::Item* head_item = nullptr;
-    nw::Item* righthand_item = nullptr;
-    nw::Item* lefthand_item = nullptr;
+    PreviewCreatureObject preview_creature;
 
     const nw::Resource resource = nw::Resource::from_path(path, false);
     if (resource.type == nw::ResourceType::bic) {
-        nw::Player player;
-        if (!load_player_from_file(path, player)) {
+        auto* player = nw::kernel::objects().make<nw::Player>();
+        preview_creature.reset(player);
+        if (!player || !load_player_from_file(path, *player)) {
             return {};
         }
-        player.update_appearance(player.appearance.id);
-        resolve_preview_equipment(player, path);
-        appearance_id = player.appearance.id;
-        gender = player.gender;
-        phenotype = player.appearance.phenotype;
-        wings = player.appearance.wings;
-        tail = player.appearance.tail;
-        body_parts = player.appearance.body_parts;
-        plt_colors = creature_plt_colors(player.appearance);
-        chest_item = equipped_item(player.equipment, nw::EquipIndex::chest);
-        cloak_item = equipped_item(player.equipment, nw::EquipIndex::cloak);
-        head_item = equipped_item(player.equipment, nw::EquipIndex::head);
-        righthand_item = equipped_item(player.equipment, nw::EquipIndex::righthand);
-        lefthand_item = equipped_item(player.equipment, nw::EquipIndex::lefthand);
     } else {
-        nw::Creature creature;
-        if (!load_creature_from_file(path, creature)) {
+        auto* creature = nw::kernel::objects().make<nw::Creature>();
+        preview_creature.reset(creature);
+        if (!creature || !load_creature_from_file(path, *creature)) {
             return {};
         }
-        creature.update_appearance(creature.appearance.id);
-        resolve_preview_equipment(creature, path);
-        appearance_id = creature.appearance.id;
-        gender = creature.gender;
-        phenotype = creature.appearance.phenotype;
-        wings = creature.appearance.wings;
-        tail = creature.appearance.tail;
-        body_parts = creature.appearance.body_parts;
-        plt_colors = creature_plt_colors(creature.appearance);
-        chest_item = equipped_item(creature.equipment, nw::EquipIndex::chest);
-        cloak_item = equipped_item(creature.equipment, nw::EquipIndex::cloak);
-        head_item = equipped_item(creature.equipment, nw::EquipIndex::head);
-        righthand_item = equipped_item(creature.equipment, nw::EquipIndex::righthand);
-        lefthand_item = equipped_item(creature.equipment, nw::EquipIndex::lefthand);
+    }
+
+    resolve_preview_equipment(*preview_creature, path);
+    if (!preview_creature->instantiate()) {
+        LOG_F(ERROR, "Dynamic creature preview '{}' failed to instantiate", path.string());
+        log_preview_error_context();
+        return {};
     }
 
     if (!add_dynamic_creature_scene_models(*scene,
             resources,
-            appearance_id,
-            gender,
-            phenotype,
-            wings,
-            tail,
-            body_parts,
-            plt_colors,
-            chest_item,
-            cloak_item,
-            head_item,
-            righthand_item,
-            lefthand_item,
+            *preview_creature,
             path_text,
             options,
             &load_events)) {
@@ -2744,21 +2861,33 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
 static bool add_item_scene_models(
     PreviewScene& scene,
     PreviewRenderResources& resources,
-    const nw::Item& item,
+    nw::Item& item,
     std::string_view origin,
     bool use_default_fallback)
 {
-    auto* baseitem = nw::kernel::rules().baseitems.get(item.baseitem);
-    if (!baseitem) {
-        LOG_F(ERROR, "Item preview '{}' has invalid baseitem {}", origin, *item.baseitem);
+    if (!update_standalone_item_visual(item, use_default_fallback, origin)) {
+        LOG_F(ERROR, "Item preview '{}' failed to produce visual rows", origin);
+        log_preview_error_context();
+        return false;
+    }
+
+    const nw::ObjectVisualState* visual = object_visual_state(item);
+    if (!visual) {
+        LOG_F(ERROR, "Item preview '{}' has no visual state", origin);
         log_preview_error_context();
         return false;
     }
 
     const size_t initial_model_count = scene.models.size();
-    auto try_add = [&](std::string_view resref, nw::ItemModelParts::type part) {
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, nw::ObjectVisualRenderMode::game)
+            || row.kind != nw::ObjectVisualModelKind::item_model) {
+            continue;
+        }
+
+        const auto resref = row.model.view();
         if (resref.empty()) {
-            return;
+            continue;
         }
         ERRARE("[viewer] resolving item preview model '{}'", resref);
         if (!nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::mdl})) {
@@ -2766,7 +2895,7 @@ static bool add_item_scene_models(
                 origin,
                 resref);
             log_preview_warning_context();
-            return;
+            continue;
         }
         auto model = load_model_with_plt(resources, resref);
         if (!model) {
@@ -2774,44 +2903,12 @@ static bool add_item_scene_models(
                 origin,
                 resref);
             log_preview_warning_context();
-            return;
+            continue;
         }
         if (nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::plt})) {
-            auto item_plt = item.part_to_plt_colors(part);
-            apply_plt_to_model(resources, *model, item_plt);
+            apply_plt_to_model(resources, *model, visual_row_plt_colors(row));
         }
         maybe_add_model(scene, std::move(model));
-    };
-
-    switch (item.model_type) {
-    case nw::ItemModelType::simple:
-    case nw::ItemModelType::layered:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            try_add(fmt::format("{}_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model1]),
-                nw::ItemModelParts::model1);
-        }
-        break;
-    case nw::ItemModelType::composite:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            try_add(fmt::format("{}_b_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model1]),
-                nw::ItemModelParts::model1);
-        }
-        if (item.model_parts[nw::ItemModelParts::model2] > 0) {
-            try_add(fmt::format("{}_m_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model2]),
-                nw::ItemModelParts::model2);
-        }
-        if (item.model_parts[nw::ItemModelParts::model3] > 0) {
-            try_add(fmt::format("{}_t_{:03d}", baseitem->item_class.view(), item.model_parts[nw::ItemModelParts::model3]),
-                nw::ItemModelParts::model3);
-        }
-        break;
-    case nw::ItemModelType::armor:
-        LOG_F(WARNING, "Standalone armor item preview is not supported yet; preview armor through a creature/player file instead");
-        break;
-    }
-
-    if (use_default_fallback && scene.models.size() == initial_model_count && baseitem->default_model.valid()) {
-        try_add(baseitem->default_model.resref.view(), nw::ItemModelParts::model1);
     }
 
     return scene.models.size() > initial_model_count;
@@ -2822,13 +2919,19 @@ static std::unique_ptr<PreviewScene> load_item_scene(PreviewRenderResources& res
     const auto path_text = path.string();
     ERRARE("[viewer] loading item preview '{}'", std::string_view{path_text});
 
-    nw::Item item;
-    if (!load_item_from_file(path, item)) {
+    auto item = load_managed_preview_object<nw::Item>(path, load_item_from_file);
+    if (!item) {
+        return {};
+    }
+
+    if (!item->instantiate()) {
+        LOG_F(ERROR, "Item preview '{}' failed to instantiate", path.string());
+        log_preview_error_context();
         return {};
     }
 
     auto scene = std::make_unique<PreviewScene>();
-    if (!add_item_scene_models(*scene, resources, item, path_text, true)) {
+    if (!add_item_scene_models(*scene, resources, *item, path_text, true)) {
         LOG_F(ERROR, "Item preview '{}' produced no renderable models", path.string());
         log_preview_error_context();
         return {};
@@ -2876,31 +2979,6 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(PreviewRenderRes
     append_scene_authored_model_lights(*scene);
     scene->rebuild_load_report(path_text, preview_type);
     return scene;
-}
-
-static const nw::PlaceableInfo* resolve_area_placeable_info(
-    const nw::Placeable& placeable,
-    std::string_view origin)
-{
-    if (placeable.appearance > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-        LOG_F(WARNING,
-            "Area placeable '{}' appearance {} is invalid",
-            origin,
-            placeable.appearance);
-        return {};
-    }
-
-    const auto* info = nw::kernel::rules().placeables.get(
-        nw::PlaceableType::make(static_cast<int32_t>(placeable.appearance)));
-    if (!info) {
-        LOG_F(WARNING,
-            "Area placeable '{}' appearance {} was not found in placeables.2da",
-            origin,
-            placeable.appearance);
-        return nullptr;
-    }
-
-    return info;
 }
 
 static std::unique_ptr<ModelInstance> load_area_object_model(
@@ -3089,30 +3167,17 @@ static std::unique_ptr<PreviewScene> load_area_creature_scene(
         LOG_F(WARNING, "Area creature '{}' failed to instantiate", origin);
         return {};
     }
-    creature.update_appearance(creature.appearance.id);
-
     auto scene = std::make_unique<PreviewScene>();
     if (!add_dynamic_creature_scene_models(*scene,
             resources,
-            creature.appearance.id,
-            creature.gender,
-            creature.appearance.phenotype,
-            creature.appearance.wings,
-            creature.appearance.tail,
-            creature.appearance.body_parts,
-            creature_plt_colors(creature.appearance),
-            equipped_item(creature.equipment, nw::EquipIndex::chest),
-            equipped_item(creature.equipment, nw::EquipIndex::cloak),
-            equipped_item(creature.equipment, nw::EquipIndex::head),
-            equipped_item(creature.equipment, nw::EquipIndex::righthand),
-            equipped_item(creature.equipment, nw::EquipIndex::lefthand),
+            creature,
             origin,
             options,
             nullptr)) {
         return {};
     }
 
-    set_scene_root_placement(*scene, area_object_placement_transform(creature.common.location));
+    set_scene_root_placement(*scene, area_object_placement_transform(object_spatial_location(creature)));
     return scene;
 }
 
@@ -3131,7 +3196,7 @@ static std::unique_ptr<PreviewScene> load_area_item_scene(
         return {};
     }
 
-    set_scene_root_placement(*scene, area_object_placement_transform(item.common.location));
+    set_scene_root_placement(*scene, area_object_placement_transform(object_spatial_location(item)));
     return scene;
 }
 
@@ -3140,18 +3205,15 @@ static std::unique_ptr<PreviewScene> load_door_scene(PreviewRenderResources& res
     const auto path_text = path.string();
     ERRARE("[viewer] loading door preview '{}'", std::string_view{path_text});
 
-    nw::Door door;
-    if (!load_door_from_file(path, door)) {
-        return {};
-    }
-
-    auto model_ref = resolve_door_model_reference(door, path);
-    if (!model_ref) {
+    auto model_ref = resolve_door_model_from_file(path);
+    if (!model_ref.valid) {
+        LOG_F(ERROR, "Door preview '{}': {}", path.string(), model_ref.error);
+        log_preview_error_context();
         return {};
     }
 
     return load_blueprint_model_scene(resources, path, "Door",
-        door_model_lookup_context(*model_ref), model_ref->model.view());
+        door_model_lookup_context(model_ref), model_ref.model.view());
 }
 
 static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources& resources, const std::filesystem::path& path)
@@ -3159,31 +3221,25 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
     const auto path_text = path.string();
     ERRARE("[viewer] loading placeable preview '{}'", std::string_view{path_text});
 
-    nw::Placeable placeable;
-    if (!load_placeable_from_file(path, placeable)) {
-        return {};
-    }
-
-    if (placeable.appearance > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-        LOG_F(ERROR, "Placeable preview '{}' appearance {} is invalid",
-            path.string(), placeable.appearance);
+    PreviewPlaceableVisualLoad visual = load_placeable_visual_from_file(path);
+    if (!visual.loaded) {
+        LOG_F(ERROR, "Placeable preview '{}': {}", path.string(), visual.error);
         log_preview_error_context();
         return {};
     }
 
-    const auto* info = nw::kernel::rules().placeables.get(
-        nw::PlaceableType::make(static_cast<int32_t>(placeable.appearance)));
-    if (!info) {
-        LOG_F(ERROR, "Placeable preview '{}' appearance {} was not found in placeables.2da",
-            path.string(), placeable.appearance);
+    const auto* model = first_valid_visual_model(std::span<const nw::ObjectVisualModel>{visual.visual.models});
+    if (!model) {
+        LOG_F(ERROR, "Placeable preview '{}': {}",
+            path.string(), visual.error.empty() ? placeable_visual_error(&visual.visual) : visual.error);
         log_preview_error_context();
         return {};
     }
 
-    const auto lookup_context = fmt::format("appearance {}", placeable.appearance);
-    auto scene = load_blueprint_model_scene(resources, path, "Placeable", lookup_context, info->model.view());
+    const auto lookup_context = fmt::format("visual appearance {}", visual.visual.appearance);
+    auto scene = load_blueprint_model_scene(resources, path, "Placeable", lookup_context, model->model.view());
     if (scene) {
-        append_placeable_table_light(*scene, placeable, *info);
+        append_placeable_table_lights(*scene, nw::Location{}, &visual.visual);
     }
     return scene;
 }
@@ -3760,7 +3816,7 @@ std::unique_ptr<PreviewScene> load_area_scene(
             continue;
         }
 
-        const auto origin = area_object_origin(area_resref, "creature", i, creature->common);
+        const auto origin = area_object_origin(area_resref, "creature", i, *creature);
         auto creature_scene = load_area_creature_scene(resources, *creature, origin, options);
         if (creature_scene) {
             const size_t light_count_before = scene->local_lights.size();
@@ -3777,14 +3833,14 @@ std::unique_ptr<PreviewScene> load_area_scene(
             continue;
         }
 
-        const auto origin = area_object_origin(area_resref, "door", i, door->common);
-        auto model_ref = nw::resolve_door_model(*door);
-        if (!model_ref.valid()) {
+        const auto origin = area_object_origin(area_resref, "door", i, *door);
+        auto model_ref = resolve_door_model_for_object(*door);
+        if (!model_ref.valid) {
             LOG_F(WARNING, "Area door '{}' has no render model: {}", origin, model_ref.error);
             continue;
         }
 
-        auto model = load_area_object_model(resources, model_ref.model.view(), door->common.location, origin);
+        auto model = load_area_object_model(resources, model_ref.model.view(), object_spatial_location(*door), origin);
         if (model) {
             share_static_area_model_geometry(static_geometry_cache, *model);
             scene->add(std::move(model));
@@ -3805,7 +3861,7 @@ std::unique_ptr<PreviewScene> load_area_scene(
             continue;
         }
 
-        const auto origin = area_object_origin(area_resref, "item", i, item->common);
+        const auto origin = area_object_origin(area_resref, "item", i, *item);
         auto item_scene = load_area_item_scene(resources, *item, origin);
         if (item_scene) {
             const size_t light_count_before = scene->local_lights.size();
@@ -3817,26 +3873,30 @@ std::unique_ptr<PreviewScene> load_area_scene(
     }
 
     for (size_t i = 0; i < loaded_area->placeables.size(); ++i) {
-        const auto* placeable = loaded_area->placeables[i];
+        auto* placeable = loaded_area->placeables[i];
         if (!placeable) {
             continue;
         }
 
-        const auto origin = area_object_origin(area_resref, "placeable", i, placeable->common);
-        const auto* placeable_info = resolve_area_placeable_info(*placeable, origin);
-        if (!placeable_info) {
-            continue;
-        }
-        loaded_area_object_model_lights += append_placeable_table_light(*scene, *placeable, *placeable_info);
-        if (placeable_info->model.empty()) {
-            LOG_F(WARNING,
-                "Area placeable '{}' appearance {} has no model in placeables.2da",
-                origin,
-                placeable->appearance);
+        const auto origin = area_object_origin(area_resref, "placeable", i, *placeable);
+        if (!placeable->instantiate()) {
+            LOG_F(WARNING, "Area placeable '{}' failed to instantiate", origin);
             continue;
         }
 
-        auto model = load_area_object_model(resources, placeable_info->model.view(), placeable->common.location, origin);
+        const auto* visual = placeable_visual_state(*placeable);
+        const nw::Location location = object_spatial_location(*placeable);
+        loaded_area_object_model_lights += append_placeable_table_lights(*scene, location, visual);
+        const auto* model_ref = first_valid_visual_model(visual, options.visual_render_mode);
+        if (!model_ref) {
+            LOG_F(WARNING,
+                "Area placeable '{}': {}",
+                origin,
+                placeable_visual_error(visual));
+            continue;
+        }
+
+        auto model = load_area_object_model(resources, model_ref->model.view(), location, origin);
         if (model) {
             share_static_area_model_geometry(static_geometry_cache, *model);
             scene->add(std::move(model));

@@ -4,6 +4,7 @@
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/serialization/gff_conversion.hpp>
@@ -12,6 +13,18 @@
 
 using namespace std::literals;
 
+namespace {
+
+void expect_creature_hp_max(nw::Creature* creature, int32_t expected)
+{
+    ASSERT_NE(creature, nullptr);
+    auto* vitals = nw::kernel::objects().components().find_vitals(creature->handle());
+    ASSERT_NE(vitals, nullptr);
+    EXPECT_EQ(vitals->hp_max, expected);
+}
+
+} // namespace
+
 TEST(Kernel, LoadModuleErf)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
@@ -19,7 +32,7 @@ TEST(Kernel, LoadModuleErf)
     EXPECT_TRUE(mod->area_count() == 1);
     auto area = mod->get_area(0);
     EXPECT_TRUE(area);
-    EXPECT_TRUE(area->common.resref == "start");
+    EXPECT_TRUE(area->resref == "start");
     mod->clear(); // Make sure nothing crashes, not called on unload..
 }
 
@@ -29,9 +42,9 @@ TEST(Kernel, LoadModuleDirectory)
     EXPECT_TRUE(mod);
     EXPECT_EQ(mod->area_count(), 1);
     auto area = mod->get_area(0);
-    EXPECT_EQ(area->common.resref, "test_area");
+    EXPECT_EQ(area->resref, "test_area");
     EXPECT_TRUE(area->creatures.size() > 0);
-    EXPECT_EQ(area->creatures[0]->hp_max, 110);
+    expect_creature_hp_max(area->creatures[0], 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
     EXPECT_TRUE(cre);
 }
@@ -42,9 +55,9 @@ TEST(Kernel, LoadModuleZip)
     EXPECT_TRUE(mod);
     EXPECT_EQ(mod->area_count(), 1);
     auto area = mod->get_area(0);
-    EXPECT_EQ(area->common.resref, "test_area");
+    EXPECT_EQ(area->resref, "test_area");
     EXPECT_TRUE(area->creatures.size() > 0);
-    EXPECT_EQ(area->creatures[0]->hp_max, 110);
+    expect_creature_hp_max(area->creatures[0], 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
     EXPECT_TRUE(cre);
 }
@@ -55,16 +68,14 @@ TEST(Kernel, LoadMissingModule)
     EXPECT_FALSE(mod);
 }
 
-TEST(Kernel, LoadModuleWithScaled)
+TEST(Kernel, LoadModuleWithIgnoredLegacyRenderScale)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/transforms.mod");
     EXPECT_TRUE(mod);
     EXPECT_EQ(mod->area_count(), 1);
     auto area = mod->get_area(0);
-    EXPECT_EQ(area->common.resref, "area001");
+    EXPECT_EQ(area->resref, "area001");
     EXPECT_GT(area->creatures.size(), 0);
-    EXPECT_GT(area->creatures[0]->visual_transform().size(), 0);
-    EXPECT_NEAR(area->creatures[0]->visual_transform()[0].scale_x.value_to, 2.2f, 0.1);
 }
 
 TEST(Kernel, ConfigProfileOption)

@@ -43,6 +43,7 @@ add_executable(rollnw_test
     ../tools/mudl/mudl_cli.cpp
     mudl_benchmark_report.cpp
     mudl_cli.cpp
+    nwn1_gff_propset_component_json.cpp
 
     objects_area.cpp
     objects_creature.cpp
@@ -59,7 +60,6 @@ add_executable(rollnw_test
 
     resources.cpp
 
-    rules_base.cpp
     rules_effects.cpp
     rules_qualifier.cpp
     rules_random.cpp

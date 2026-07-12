@@ -106,8 +106,22 @@ struct Inventory {
     bool growable_ = false;
 };
 
-bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);
-bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationProfile profile);
+/// Store inventory component: five growable item lists plus store buy filters.
+struct StoreInventory {
+    StoreInventory(nw::MemoryResource* allocator = nw::kernel::global_allocator());
+    StoreInventory(ObjectBase* owner, nw::MemoryResource* allocator);
+
+    /// Sets inventory owner.
+    void set_owner(ObjectBase* owner);
+
+    Inventory armor;
+    Inventory miscellaneous;
+    Inventory potions;
+    Inventory rings;
+    Inventory weapons;
+    Vector<int32_t> will_not_buy;
+    Vector<int32_t> will_only_buy;
+};
 
 Item* inventory_item_ptr(const InventoryItem& item) noexcept;
 

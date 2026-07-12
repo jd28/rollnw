@@ -1,0 +1,153 @@
+import core.array as Array;
+import core.types as T;
+import core.visual as Visual;
+from core.placeable import { PlaceableState };
+from nwn1.rules import { PlaceableEntry };
+
+type PlaceableResolvedModel {
+    model:      T.ResRef;
+    appearance: int;
+    valid:      bool;
+    error:      string;
+};
+
+type PlaceableResolvedLighting {
+    color:    int;
+    offset_x: float;
+    offset_y: float;
+    offset_z: float;
+    valid:    bool;
+};
+
+var _loaded = false;
+var _placeables: array!(PlaceableEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _placeables = load_config!(PlaceableEntry)("nwn1.data.placeables");
+    _loaded = true;
+}
+
+fn _invalid_model(appearance: int, error: string): PlaceableResolvedModel {
+    return PlaceableResolvedModel {
+        model = T.resref(""),
+        appearance = appearance,
+        valid = false,
+        error = error,
+    };
+}
+
+fn _invalid_lighting(): PlaceableResolvedLighting {
+    return PlaceableResolvedLighting {
+        color = -1,
+        offset_x = 0.0,
+        offset_y = 0.0,
+        offset_z = 0.0,
+        valid = false,
+    };
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_placeables);
+}
+
+fn exists(appearance: int): bool {
+    _ensure_loaded();
+    return appearance >= 0 && appearance < Array.len(_placeables);
+}
+
+fn resolve_placeable_model_by_appearance(appearance: int): PlaceableResolvedModel {
+    _ensure_loaded();
+
+    if (appearance < 0) {
+        return _invalid_model(appearance, f"appearance {appearance} is invalid");
+    }
+    if (appearance >= Array.len(_placeables)) {
+        return _invalid_model(appearance, f"appearance {appearance} was not found in placeables.2da");
+    }
+
+    var entry = Array.get(_placeables, appearance);
+    var model = T.resref_to_string(entry.model);
+    if (model == "" || model == "****") {
+        return _invalid_model(appearance, f"appearance {appearance} has no model in placeables.2da");
+    }
+
+    return PlaceableResolvedModel {
+        model = entry.model,
+        appearance = appearance,
+        valid = true,
+        error = "",
+    };
+}
+
+fn resolve_placeable_model(placeable: Placeable): PlaceableResolvedModel {
+    var state = get_propset!(PlaceableState)(placeable);
+    return resolve_placeable_model_by_appearance(state.appearance);
+}
+
+fn resolve_placeable_lighting_by_state(appearance: int, override_light_color: int): PlaceableResolvedLighting {
+    _ensure_loaded();
+
+    if (appearance < 0 || appearance >= Array.len(_placeables)) {
+        return _invalid_lighting();
+    }
+
+    var entry = Array.get(_placeables, appearance);
+    var color = entry.light_color;
+    if (color < 0 && override_light_color >= 0) {
+        color = override_light_color;
+    }
+    if (color < 0) {
+        return _invalid_lighting();
+    }
+
+    return PlaceableResolvedLighting {
+        color = color,
+        offset_x = entry.light_offset_x,
+        offset_y = entry.light_offset_y,
+        offset_z = entry.light_offset_z,
+        valid = true,
+    };
+}
+
+fn resolve_placeable_lighting(placeable: Placeable): PlaceableResolvedLighting {
+    var state = get_propset!(PlaceableState)(placeable);
+    return resolve_placeable_lighting_by_state(state.appearance, state.light_color);
+}
+
+fn update_visual(placeable: Placeable): bool {
+    var model = resolve_placeable_model(placeable);
+    if (!Visual.clear_visual(placeable, model.appearance)) {
+        return false;
+    }
+
+    var ok = true;
+    if (model.valid) {
+        ok = Visual.add_visual_model(
+            placeable,
+            model.model,
+            T.resref(""),
+            T.resref(""),
+            Visual.visual_model_kind_root,
+            Visual.visual_model_slot_none,
+            0,
+            0
+        ) && ok;
+    }
+
+    var lighting = resolve_placeable_lighting(placeable);
+    if (lighting.valid) {
+        ok = Visual.add_visual_light(
+            placeable,
+            lighting.color,
+            lighting.offset_x,
+            lighting.offset_y,
+            lighting.offset_z
+        ) && ok;
+    }
+
+    return ok;
+}

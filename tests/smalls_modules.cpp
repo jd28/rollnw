@@ -289,6 +289,7 @@ TEST_F(SmallsModules, LoadNwn1CreatureModule)
     // nwn1.creature is pure smalls rules — no [[native]] functions
     EXPECT_NE(creature_module->exports().find("get_ability_score"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_ability_modifier"), nullptr);
+    EXPECT_NE(creature_module->exports().find("resolve_creature_model"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_saving_throw"), nullptr);
     EXPECT_NE(creature_module->exports().find("get_skill_rank"), nullptr);
 }
@@ -299,9 +300,11 @@ TEST_F(SmallsModules, LoadCoreItemModule)
     auto* item_module = rt.load_module("core.item");
     ASSERT_NE(item_module, nullptr);
 
-    EXPECT_NE(item_module->exports().find("property_count"), nullptr);
-    EXPECT_NE(item_module->exports().find("clear_properties"), nullptr);
     EXPECT_NE(item_module->exports().find("ItemProperty"), nullptr);
+    EXPECT_NE(item_module->exports().find("ItemEffectRow"), nullptr);
+    EXPECT_NE(item_module->exports().find("ability_modifier"), nullptr);
+    EXPECT_NE(item_module->exports().find("set_effect_generator_for_op"), nullptr);
+    EXPECT_NE(item_module->exports().find("item_effect_to_effect"), nullptr);
     EXPECT_NE(item_module->exports().find("set_generator_for_type"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_generator_for_type"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_generators"), nullptr);
@@ -404,33 +407,12 @@ TEST_F(SmallsModules, LoadObjectTypeStubModules)
             EXPECT_NE(loaded->exports().find("get_width"), nullptr);
             EXPECT_NE(loaded->exports().find("get_height"), nullptr);
             EXPECT_NE(loaded->exports().find("get_size"), nullptr);
-        } else if (module == "core.door") {
-            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
-            EXPECT_NE(loaded->exports().find("is_open"), nullptr);
-        } else if (module == "core.encounter") {
-            EXPECT_NE(loaded->exports().find("is_active"), nullptr);
-            EXPECT_NE(loaded->exports().find("get_spawn_point_count"), nullptr);
         } else if (module == "core.module") {
             EXPECT_NE(loaded->exports().find("get_area_count"), nullptr);
             EXPECT_NE(loaded->exports().find("is_save_game"), nullptr);
-        } else if (module == "core.placeable") {
-            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
-            EXPECT_NE(loaded->exports().find("has_inventory"), nullptr);
         } else if (module == "core.player") {
-            EXPECT_NE(loaded->exports().find("get_hp_current"), nullptr);
-            EXPECT_NE(loaded->exports().find("is_pc"), nullptr);
-        } else if (module == "core.sound") {
-            EXPECT_NE(loaded->exports().find("get_sound_count"), nullptr);
-            EXPECT_NE(loaded->exports().find("is_active"), nullptr);
-        } else if (module == "core.store") {
-            EXPECT_NE(loaded->exports().find("get_gold"), nullptr);
-            EXPECT_NE(loaded->exports().find("is_blackmarket"), nullptr);
-        } else if (module == "core.trigger") {
-            EXPECT_NE(loaded->exports().find("get_geometry_point_count"), nullptr);
-            EXPECT_NE(loaded->exports().find("get_trigger_type"), nullptr);
-        } else if (module == "core.waypoint") {
-            EXPECT_NE(loaded->exports().find("get_appearance"), nullptr);
-            EXPECT_NE(loaded->exports().find("has_map_note"), nullptr);
+            EXPECT_NE(loaded->exports().find("history_entry_count"), nullptr);
+            EXPECT_NE(loaded->exports().find("sync_levelup_class_slots"), nullptr);
         }
     }
 }

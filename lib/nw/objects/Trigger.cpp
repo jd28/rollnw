@@ -1,46 +1,22 @@
 #include "Trigger.hpp"
 
-#include "../kernel/Strings.hpp"
+#include "../kernel/Kernel.hpp"
+#include "../profiles/nwn1/geometry_component_gff.hpp"
+#include "../profiles/nwn1/legacy_gff_compat.hpp"
+#include "../profiles/nwn1/object_compat_fields.hpp"
+#include "../profiles/nwn1/object_name_preview.hpp"
+#include "../profiles/nwn1/propset_gff_object_io.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
+#include "../serialization/component_propset_json.hpp"
 #include "../util/platform.hpp"
+#include "ObjectManager.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace fs = std::filesystem;
 
 namespace nw {
-
-nlohmann::json TriggerScripts::to_json() const
-{
-    nlohmann::json j;
-    j["on_click"] = on_click;
-    j["on_disarm"] = on_disarm;
-    j["on_enter"] = on_enter;
-    j["on_exit"] = on_exit;
-    j["on_heartbeat"] = on_heartbeat;
-    j["on_trap_triggered"] = on_trap_triggered;
-    j["on_user_defined"] = on_user_defined;
-    return j;
-}
-
-bool TriggerScripts::from_json(const nlohmann::json& archive)
-{
-    try {
-        archive.at("on_click").get_to(on_click);
-        archive.at("on_disarm").get_to(on_disarm);
-        archive.at("on_enter").get_to(on_enter);
-        archive.at("on_exit").get_to(on_exit);
-        archive.at("on_heartbeat").get_to(on_heartbeat);
-        archive.at("on_trap_triggered").get_to(on_trap_triggered);
-        archive.at("on_user_defined").get_to(on_user_defined);
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "trigger/scripts: json parsing error: {}", e.what());
-        return false;
-    }
-
-    return true;
-}
 
 Trigger::Trigger()
     : Trigger{nw::kernel::global_allocator()}
@@ -51,13 +27,6 @@ Trigger::Trigger(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::trigger});
-}
-
-Versus Trigger::versus_me() const
-{
-    Versus result;
-    result.trap = trap.is_trapped;
-    return result;
 }
 
 bool Trigger::save(const std::filesystem::path& path, std::string_view format)
@@ -88,28 +57,7 @@ bool Trigger::save(const std::filesystem::path& path, std::string_view format)
 
 String Trigger::get_name_from_file(const std::filesystem::path& path)
 {
-    String result;
-    LocString l1;
-
-    auto rdata = ResourceData::from_file(path);
-    if (rdata.bytes.size() <= 8) { return result; }
-    if (memcmp(rdata.bytes.data(), "UTT V3.2", 8) == 0) {
-        Gff gff(std::move(rdata));
-        if (!gff.valid()) { return result; }
-        gff.toplevel().get_to("LocalizedName", l1);
-    } else {
-        try {
-            std::ifstream f{path, std::ifstream::binary};
-            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
-            j["common"].at("name").get_to(l1);
-        } catch (nlohmann::json::exception& e) {
-            LOG_F(ERROR, "[door] json error: {}", e.what());
-            return result;
-        }
-    }
-
-    result = nw::kernel::strings().get(l1);
-    return result;
+    return nwn1::preview_object_name_from_file(path, serial_id, object_type);
 }
 
 // == Trigger - Serialization - Gff ===========================================
@@ -119,45 +67,12 @@ bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile pr
 {
     if (!obj) return false;
 
-    deserialize(obj->common, archive, profile, ObjectType::trigger);
+    nwn1::obj_compat_fields_from_gff(*obj, archive, profile, ObjectType::trigger);
+    nw::kernel::objects().components().deserialize_spatial(obj->handle(), archive, profile);
+    nw::kernel::objects().components().deserialize_locals(obj->handle(), archive);
+    if (!nwn1::import_trigger_geometry_from_gff(obj->handle(), archive, profile)) { return false; }
 
-    archive.get_to("OnClick", obj->scripts.on_click);
-    archive.get_to("OnDisarm", obj->scripts.on_disarm);
-    archive.get_to("ScriptOnEnter", obj->scripts.on_enter);
-    archive.get_to("ScriptOnExit", obj->scripts.on_exit);
-    archive.get_to("ScriptHeartbeat", obj->scripts.on_heartbeat);
-    archive.get_to("OnTrapTriggered", obj->scripts.on_trap_triggered);
-    archive.get_to("ScriptUserDefine", obj->scripts.on_user_defined);
-
-    deserialize(obj->trap, archive);
-
-    if (profile != SerializationProfile::blueprint) {
-        size_t sz = archive["Geometry"].size();
-        obj->geometry.reserve(sz);
-        for (size_t i = 0; i < sz; ++i) {
-            glm::vec3 v;
-            archive["Geometry"][i].get_to("PointX", v[0]);
-            archive["Geometry"][i].get_to("PointY", v[1]);
-            archive["Geometry"][i].get_to("PointZ", v[2]);
-            obj->geometry.push_back(v);
-        }
-    }
-
-    archive.get_to("LinkedTo", obj->linked_to);
-
-    archive.get_to("Faction", obj->faction);
-    archive.get_to("HighlightHeight", obj->highlight_height);
-    archive.get_to("Type", obj->type);
-
-    archive.get_to("LoadScreenID", obj->loadscreen);
-    archive.get_to("PortraitId", obj->portrait);
-
-    archive.get_to("Cursor", obj->cursor);
-    archive.get_to("LinkedToFlags", obj->linked_to_flags);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
+    nwn1::import_trigger_propsets_from_gff(&nw::kernel::runtime(), obj, archive, profile);
 
     return true;
 }
@@ -166,54 +81,15 @@ bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfi
 {
     if (!obj) return false;
 
-    archive.add_field("TemplateResRef", obj->common.resref); // Store does it's own thing, not typo.
-    archive.add_field("LocalizedName", obj->common.name);
-    archive.add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : ""));
-
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", obj->common.comment);
-        archive.add_field("PaletteID", obj->common.palette_id);
-    } else {
-        archive.add_field("PositionX", obj->common.location.position.x)
-            .add_field("PositionY", obj->common.location.position.y)
-            .add_field("PositionZ", obj->common.location.position.z)
-            .add_field("OrientationX", obj->common.location.orientation.x)
-            .add_field("OrientationY", obj->common.location.orientation.y);
-
-        auto& list = archive.add_list("Geometry");
-        for (const auto& point : obj->geometry) {
-            list.push_back(3)
-                .add_field("PointX", point[0])
-                .add_field("PointY", point[1])
-                .add_field("PointZ", point[2]);
-        }
+    nwn1::obj_compat_fields_to_gff(*obj, archive, profile, ObjectType::trigger);
+    if (profile != SerializationProfile::blueprint) {
+        nw::kernel::objects().components().serialize_position_orientation(obj->handle(), archive, profile);
+        if (!nwn1::export_trigger_geometry_to_gff(obj->handle(), archive, profile)) { return false; }
     }
 
-    archive.add_field("LinkedTo", obj->linked_to)
-        .add_field("OnClick", obj->scripts.on_click)
-        .add_field("OnDisarm", obj->scripts.on_disarm)
-        .add_field("ScriptOnEnter", obj->scripts.on_enter)
-        .add_field("ScriptOnExit", obj->scripts.on_exit)
-        .add_field("ScriptHeartbeat", obj->scripts.on_heartbeat)
-        .add_field("OnTrapTriggered", obj->scripts.on_trap_triggered)
-        .add_field("ScriptUserDefine", obj->scripts.on_user_defined);
+    nwn1::export_trigger_propsets_to_gff(&kernel::runtime(), obj, archive, profile);
 
-    serialize(obj->trap, archive);
-
-    uint8_t zero = 0;
-    String empty;
-
-    archive.add_field("Faction", obj->faction)
-        .add_field("HighlightHeight", obj->highlight_height)
-        .add_field("Type", obj->type);
-
-    archive.add_field("LoadScreenID", obj->loadscreen)
-        .add_field("PortraitId", obj->portrait);
-
-    archive.add_field("Cursor", obj->cursor)
-        .add_field("LinkedToFlags", obj->linked_to_flags)
-        .add_field("AutoRemoveKey", zero) // obsolete
-        .add_field("KeyName", empty);     // obsolete
+    nwn1::export_trigger_legacy_gff_fields(archive);
 
     return true;
 }
@@ -237,39 +113,10 @@ bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfi
 {
     if (!obj) return false;
 
-    try {
-        if (!obj->common.from_json(archive.at("common"), profile, ObjectType::trigger)
-            || !obj->scripts.from_json(archive.at("scripts"))
-            || !obj->trap.from_json(archive.at("trap"))) {
-            return false;
-        }
-
-        if (profile != SerializationProfile::blueprint) {
-            auto& ref = archive.at("geometry");
-            for (size_t i = 0; i < ref.size(); ++i) {
-                obj->geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
-            }
-        }
-
-        archive.at("linked_to").get_to(obj->linked_to);
-
-        archive.at("faction").get_to(obj->faction);
-        archive.at("highlight_height").get_to(obj->highlight_height);
-        archive.at("type").get_to(obj->type);
-
-        archive.at("loadscreen").get_to(obj->loadscreen);
-        archive.at("portrait").get_to(obj->portrait);
-
-        archive.at("cursor").get_to(obj->cursor);
-        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "from_json exception: {}", e.what());
+    auto result = object_from_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "trigger: component/propset JSON load failed: {}", result.error);
         return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
     }
 
     return true;
@@ -281,32 +128,11 @@ bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile
         throw std::runtime_error("unable to serialize null object");
     }
 
-    archive["$type"] = Trigger::serial_id;
-    archive["$version"] = Trigger::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::trigger);
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    if (profile != SerializationProfile::blueprint) {
-        auto& ref = archive["geometry"] = nlohmann::json::array();
-        for (const auto& g : obj->geometry) {
-            ref.push_back({g.x, g.y, g.z});
-        }
+    auto result = object_to_component_propset_json(obj, archive, &kernel::runtime(), profile);
+    if (!result) {
+        LOG_F(ERROR, "trigger: component/propset JSON save failed: {}", result.error);
+        return false;
     }
-
-    archive["linked_to"] = obj->linked_to;
-
-    archive["faction"] = obj->faction;
-    archive["highlight_height"] = obj->highlight_height;
-    archive["type"] = obj->type;
-
-    archive["loadscreen"] = obj->loadscreen;
-    archive["portrait"] = obj->portrait;
-
-    archive["cursor"] = obj->cursor;
-    archive["linked_to_flags"] = obj->linked_to_flags;
-
     return true;
 }
 

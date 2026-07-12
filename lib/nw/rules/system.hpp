@@ -10,13 +10,13 @@
 #include <absl/container/fixed_array.h>
 #include <absl/container/inlined_vector.h>
 
+#include <cstdint>
+
 namespace nw {
 
 struct Class;
 struct Feat;
 struct ObjectBase;
-
-using RuleValue = Variant<int32_t, float, String>;
 
 DECLARE_RULE_TYPE(ReqType);
 
@@ -39,20 +39,41 @@ constexpr ReqType req_type_spell_level = nw::ReqType::make(13);   ///< Subtype:
 // == Qualifier ===============================================================
 // ============================================================================
 
-struct Qualifier {
-    ReqType type;
-    RuleValue subtype;
-    absl::InlinedVector<RuleValue, 4> params;
+enum struct QualifierMatch : uint8_t {
+    eq,
+    ne,
+    lt,
+    lte,
+    gt,
+    gte,
+    any_bits,
+    all_bits,
+    no_bits,
 };
 
-Qualifier qualifier_ability(Ability id, int min, int max = 0);
+struct Qualifier {
+    ReqType type;
+    int32_t subtype = -1;
+    QualifierMatch match = QualifierMatch::eq;
+    int32_t value = 0;
+};
+
+bool match_qualifier_value(int32_t actual, QualifierMatch match, int32_t expected) noexcept;
+
+Qualifier make_qualifier(ReqType type, int32_t subtype, QualifierMatch match, int32_t value);
+Qualifier qualifier_ability(Ability id, int value, QualifierMatch match = QualifierMatch::gte);
+Qualifier qualifier_ability(Ability id, QualifierMatch match, int value);
 Qualifier qualifier_alignment(AlignmentAxis axis, AlignmentFlags flags);
-Qualifier qualifier_base_attack_bonus(int min, int max = 0);
-Qualifier qualifier_class_level(Class id, int min, int max = 0);
-Qualifier qualifier_level(int min, int max = 0);
+Qualifier qualifier_base_attack_bonus(int value, QualifierMatch match = QualifierMatch::gte);
+Qualifier qualifier_base_attack_bonus(QualifierMatch match, int value);
+Qualifier qualifier_class_level(Class id, int value, QualifierMatch match = QualifierMatch::gte);
+Qualifier qualifier_class_level(Class id, QualifierMatch match, int value);
+Qualifier qualifier_level(int value, QualifierMatch match = QualifierMatch::gte);
+Qualifier qualifier_level(QualifierMatch match, int value);
 Qualifier qualifier_feat(Feat id);
 Qualifier qualifier_race(Race id);
-Qualifier qualifier_skill(Skill id, int min, int max = 0);
+Qualifier qualifier_skill(Skill id, int value, QualifierMatch match = QualifierMatch::gte);
+Qualifier qualifier_skill(Skill id, QualifierMatch match, int value);
 
 // == Requirement =============================================================
 // ============================================================================

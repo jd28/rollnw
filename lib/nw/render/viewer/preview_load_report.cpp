@@ -37,6 +37,8 @@ namespace nw::render::viewer {
 
 namespace {
 
+constexpr nw::ObjectVisualRenderMode preview_load_report_visual_render_mode = nw::ObjectVisualRenderMode::toolset;
+
 std::string preview_resource_key(const nw::Resource& resource)
 {
     return resource.resref.string() + "." + std::string(nw::ResourceType::to_string(resource.type));
@@ -141,6 +143,28 @@ private:
     PreviewLoadReport& report_;
     std::unordered_map<std::string, size_t> resource_indices_;
 };
+
+struct PreviewObjectDestroyer {
+    void operator()(nw::ObjectBase* obj) const
+    {
+        if (obj) {
+            nw::kernel::objects().destroy(obj->handle());
+        }
+    }
+};
+
+template <typename T>
+using PreviewObjectPtr = std::unique_ptr<T, PreviewObjectDestroyer>;
+
+template <typename T, typename Load>
+PreviewObjectPtr<T> load_managed_preview_object(const std::filesystem::path& path, Load load)
+{
+    PreviewObjectPtr<T> result{nw::kernel::objects().make<T>()};
+    if (!result || !load(path, *result)) {
+        return {};
+    }
+    return result;
+}
 
 bool material_report_exists(const PreviewLoadReport& report, std::string_view owner)
 {
@@ -801,6 +825,56 @@ static void add_report_model(
     add_model_particle_report(report, builder, *mdl, animation_name);
 }
 
+static void add_humanoid_visual_body_report(
+    PreviewLoadReport& report,
+    PreviewLoadReportBuilder& builder,
+    std::set<std::string>& scanned_models,
+    const nw::ObjectVisualState* visual,
+    std::string_view origin,
+    std::string_view animation_name)
+{
+    if (!visual) {
+        builder.add_event(PreviewLoadEventSeverity::warning,
+            "creature",
+            fmt::format("{}: humanoid visual rows were not created", origin));
+        return;
+    }
+
+    bool found_row = false;
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, preview_load_report_visual_render_mode)
+            || !visual_row_is_humanoid_body_part(row)) {
+            continue;
+        }
+        found_row = true;
+
+        const auto part_name = visual_row_body_part_name(row);
+        if (!row.model.empty()) {
+            add_report_model(report,
+                builder,
+                scanned_models,
+                row.model.view(),
+                fmt::format("{}:body_part:{}", origin, part_name),
+                animation_name);
+            continue;
+        }
+
+        if (visual_row_requests_model_part(row)) {
+            builder.add_event(PreviewLoadEventSeverity::warning,
+                "creature",
+                fmt::format("Dynamic creature body part '{}' model part {} was not found",
+                    part_name,
+                    row.model_part));
+        }
+    }
+
+    if (!found_row) {
+        builder.add_event(PreviewLoadEventSeverity::warning,
+            "creature",
+            fmt::format("{}: humanoid produced no body visual rows", origin));
+    }
+}
+
 static void add_area_door_report(
     PreviewLoadReport& report,
     PreviewLoadReportBuilder& builder,
@@ -809,8 +883,8 @@ static void add_area_door_report(
     std::string_view origin,
     std::string_view animation_name)
 {
-    auto model_ref = nw::resolve_door_model(door);
-    if (!model_ref.valid()) {
+    auto model_ref = resolve_door_model_for_object(door);
+    if (!model_ref.valid) {
         builder.add_event(PreviewLoadEventSeverity::warning,
             "door",
             fmt::format("{}: {}", origin, model_ref.error));
@@ -825,93 +899,123 @@ static void add_area_placeable_report(
     PreviewLoadReport& report,
     PreviewLoadReportBuilder& builder,
     std::set<std::string>& scanned_models,
-    const nw::Placeable& placeable,
+    nw::Placeable& placeable,
     std::string_view origin,
     std::string_view animation_name)
 {
-    if (placeable.appearance > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+    if (!placeable.instantiate()) {
         builder.add_event(PreviewLoadEventSeverity::warning,
             "placeable",
-            fmt::format("{}: appearance {} is invalid", origin, placeable.appearance));
+            fmt::format("{}: failed to instantiate", origin));
         return;
     }
 
-    const auto* info = nw::kernel::rules().placeables.get(
-        nw::PlaceableType::make(static_cast<int32_t>(placeable.appearance)));
-    if (!info) {
+    const auto* visual = placeable_visual_state(placeable);
+    const auto* model = first_valid_visual_model(visual, preview_load_report_visual_render_mode);
+    if (!model) {
         builder.add_event(PreviewLoadEventSeverity::warning,
             "placeable",
-            fmt::format("{}: appearance {} was not found in placeables.2da", origin, placeable.appearance));
-        return;
-    }
-    if (info->model.empty()) {
-        builder.add_event(PreviewLoadEventSeverity::warning,
-            "placeable",
-            fmt::format("{}: appearance {} has no model in placeables.2da", origin, placeable.appearance));
+            fmt::format("{}: {}", origin, placeable_visual_error(visual)));
         return;
     }
 
-    add_report_model(report, builder, scanned_models, info->model.view(),
-        fmt::format("{}:appearance:{}", origin, placeable.appearance), animation_name);
+    add_report_model(report, builder, scanned_models, model->model.view(),
+        fmt::format("{}:visual:{}", origin, visual ? visual->appearance : -1), animation_name);
 }
 
 static void add_item_model_report(
     PreviewLoadReport& report,
     PreviewLoadReportBuilder& builder,
     std::set<std::string>& scanned_models,
-    const nw::Item& item,
+    nw::Item& item,
     std::string_view origin_prefix,
     bool use_default_fallback,
     std::string_view animation_name)
 {
-    const std::string item_resref = item.common.resref.string();
+    const auto item_resref = item.resref;
     if (!item_resref.empty()) {
         builder.add_existing_or_missing_resource({item_resref, nw::ResourceType::uti},
             fmt::format("{}:item", origin_prefix));
     }
 
-    auto* baseitem = nw::kernel::rules().baseitems.get(item.baseitem);
-    if (!baseitem) {
+    if (!update_standalone_item_visual(item, use_default_fallback, origin_prefix)) {
         builder.add_event(PreviewLoadEventSeverity::error,
             "item",
-            fmt::format("{} item '{}' has invalid baseitem {}",
+            fmt::format("{} item '{}' failed to produce visual rows",
                 origin_prefix,
-                item.common.resref,
-                *item.baseitem));
+                item_resref));
         return;
     }
 
-    auto try_add = [&](std::string_view resref, nw::ItemModelParts::type part) {
-        if (resref.empty()) {
-            return false;
-        }
-        const bool found = nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::mdl});
-        add_report_model(report,
-            builder,
-            scanned_models,
-            resref,
-            fmt::format("{}:{}:part{}", origin_prefix, item.common.resref.view(), static_cast<int>(part)),
-            animation_name);
-        return found;
-    };
-
+    const nw::ObjectVisualState* visual = object_visual_state(item);
     bool found_item_model = false;
-    for (const auto& model_part : resolve_item_model_parts(item, *baseitem)) {
-        found_item_model = try_add(model_part.resref, model_part.part) || found_item_model;
-    }
-
-    if (item.model_type == nw::ItemModelType::armor) {
-        if (use_default_fallback) {
-            builder.add_event(PreviewLoadEventSeverity::warning,
-                "item",
-                fmt::format("{} standalone armor item '{}' is only fully resolved through a creature/player preview",
-                    origin_prefix,
-                    item.common.resref));
+    if (visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, nw::ObjectVisualRenderMode::game)
+                || row.kind != nw::ObjectVisualModelKind::item_model
+                || row.model.empty()) {
+                continue;
+            }
+            found_item_model = true;
+            add_report_model(report,
+                builder,
+                scanned_models,
+                row.model.view(),
+                fmt::format("{}:{}:part{}", origin_prefix, item_resref.view(), row.part),
+                animation_name);
         }
     }
 
-    if (use_default_fallback && !found_item_model && baseitem->default_model.valid()) {
-        (void)try_add(baseitem->default_model.resref.view(), nw::ItemModelParts::model1);
+    if (!found_item_model) {
+        builder.add_event(PreviewLoadEventSeverity::warning,
+            "item",
+            fmt::format("{} item '{}' produced no visual model rows",
+                origin_prefix,
+                item_resref));
+    }
+}
+
+static void add_equipped_visual_model_report(
+    PreviewLoadReport& report,
+    PreviewLoadReportBuilder& builder,
+    std::set<std::string>& scanned_models,
+    const nw::ObjectVisualState* visual,
+    const nw::Item& item,
+    nw::EquipIndex slot,
+    std::string_view origin_prefix,
+    std::string_view animation_name)
+{
+    const auto item_resref_value = item.resref;
+    const std::string item_resref = item_resref_value.string();
+    if (!item_resref.empty()) {
+        builder.add_existing_or_missing_resource({item_resref_value, nw::ResourceType::uti},
+            fmt::format("{}:item", origin_prefix));
+    }
+
+    bool found_row = false;
+    if (visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, preview_load_report_visual_render_mode)
+                || !visual_row_matches_slot(row, slot, nw::ObjectVisualModelKind::item_model)
+                || row.model.empty()) {
+                continue;
+            }
+            found_row = true;
+            add_report_model(report,
+                builder,
+                scanned_models,
+                row.model.view(),
+                fmt::format("{}:{}:part{}", origin_prefix, item_resref_value.view(), row.part),
+                animation_name);
+        }
+    }
+
+    if (!found_row) {
+        builder.add_event(PreviewLoadEventSeverity::warning,
+            "item",
+            fmt::format("{} equipped item '{}' produced no visual model rows",
+                origin_prefix,
+                item_resref_value));
     }
 }
 
@@ -961,36 +1065,43 @@ static void add_dynamic_creature_report(
     const std::filesystem::path& path,
     std::string_view animation_name)
 {
-    creature.update_appearance(creature.appearance.id);
     report_preview_equipment(creature, builder, path);
+    if (!creature.instantiate()) {
+        builder.add_event(PreviewLoadEventSeverity::error,
+            "creature",
+            fmt::format("Dynamic creature preview '{}' failed to instantiate", path.string()));
+        return;
+    }
+    const auto* visual = object_visual_state(creature);
 
-    nw::Appearance appearance_id = creature.appearance.id;
-    uint8_t gender = creature.gender;
-    uint32_t wings = creature.appearance.wings;
-    uint32_t tail = creature.appearance.tail;
-    nw::BodyParts body_parts = creature.appearance.body_parts;
-    nw::Item* chest_item = equipped_item(creature.equipment, nw::EquipIndex::chest);
+    nw::Appearance appearance_id = visual_appearance(visual);
+    const uint8_t body_variant = visual_body_variant(visual);
     nw::Item* cloak_item = equipped_item(creature.equipment, nw::EquipIndex::cloak);
-    nw::Item* head_item = equipped_item(creature.equipment, nw::EquipIndex::head);
-    nw::Item* righthand_item = equipped_item(creature.equipment, nw::EquipIndex::righthand);
-    nw::Item* lefthand_item = equipped_item(creature.equipment, nw::EquipIndex::lefthand);
 
-    auto* app = nw::kernel::rules().appearances.get(appearance_id);
-    auto* appearance_tda = nw::kernel::twodas().get("appearance");
-    if (!app || !appearance_tda) {
+    auto model_ref = resolve_creature_model_from_appearance(appearance_id);
+    if (!model_ref.valid()) {
         builder.add_event(PreviewLoadEventSeverity::error,
             "appearance",
-            fmt::format("Dynamic creature preview '{}' has invalid appearance {}", path.string(), appearance_id.idx()));
+            fmt::format("Dynamic creature preview '{}' has invalid appearance {}: {}",
+                path.string(),
+                appearance_id.idx(),
+                model_ref.error.empty() ? "unknown error" : model_ref.error));
         return;
     }
 
-    std::string race;
-    appearance_tda->get_to(*appearance_id, "RACE", race);
-    const int phenotype = resolve_creature_phenotype(creature.appearance.phenotype);
-    const char sex = gender == 1 ? 'f' : 'm';
-    body_parts = normalized_body_parts(body_parts);
+    const std::string race{model_ref.race.view()};
+    const char sex = body_variant == 1 ? 'f' : 'm';
 
-    if (app->model_type == "P") {
+    if (model_ref.humanoid) {
+        auto* app = nw::kernel::rules().appearances.get(appearance_id);
+        if (!app) {
+            builder.add_event(PreviewLoadEventSeverity::error,
+                "appearance",
+                fmt::format("Dynamic creature preview '{}' has missing legacy humanoid appearance {}",
+                    path.string(),
+                    appearance_id.idx()));
+            return;
+        }
         if (auto base_rig_resref = resolve_creature_base_rig(*app, race, sex)) {
             add_report_model(report, builder, scanned_models, *base_rig_resref,
                 fmt::format("{}:base_rig", path.string()), animation_name);
@@ -1000,58 +1111,46 @@ static void add_dynamic_creature_report(
                 fmt::format("No dynamic creature base rig resolved for appearance {}", appearance_id.idx()));
         }
 
-        const auto resolved_body_parts = resolve_humanoid_body_part_models(
-            sex, race, phenotype, body_parts, creature_plt_colors(creature.appearance), chest_item, head_item);
-        for (const auto& part : resolved_body_parts) {
-            if (part.resref) {
-                add_report_model(report, builder, scanned_models, *part.resref,
-                    fmt::format("{}:body_part:{}", path.string(), part.token), animation_name);
-            } else if (part.missing_requested_part) {
-                builder.add_event(PreviewLoadEventSeverity::warning,
-                    "creature",
-                    fmt::format("Dynamic creature body part '{}' model part {} was not found",
-                        part.token,
-                        part.model_part));
-            }
-        }
-
-        if (chest_item && chest_item->model_type == nw::ItemModelType::armor) {
-            auto robe_part = chest_item->model_parts[nw::ItemModelParts::armor_robe];
-            if (robe_part > 0) {
-                if (auto robe_resref = resolve_creature_part_model(sex, race, phenotype, {"robe"}, robe_part)) {
-                    add_report_model(report, builder, scanned_models, *robe_resref,
-                        fmt::format("{}:robe", path.string()), animation_name);
-                } else {
-                    builder.add_event(PreviewLoadEventSeverity::warning,
-                        "creature",
-                        fmt::format("Dynamic creature robe model part {} was not found", robe_part));
-                }
-            }
-        }
+        add_humanoid_visual_body_report(report, builder, scanned_models, visual, path.string(), animation_name);
     } else {
-        add_report_model(report, builder, scanned_models, app->model_name,
-            fmt::format("{}:appearance", path.string()), animation_name);
+        if (!model_ref.has_model()) {
+            builder.add_event(PreviewLoadEventSeverity::error,
+                "creature",
+                fmt::format("Dynamic creature preview '{}' appearance {} did not resolve to a single model: {}",
+                    path.string(),
+                    appearance_id.idx(),
+                    model_ref.error.empty() ? "unknown error" : model_ref.error));
+        } else {
+            add_report_model(report, builder, scanned_models, model_ref.model.view(),
+                fmt::format("{}:appearance:{}", path.string(), model_ref.appearance), animation_name);
+        }
     }
 
-    auto add_attachment = [&](const char* table_name, uint32_t row) {
-        const auto lookup = resolve_creature_attachment_model_lookup(table_name, row);
-        if (!lookup.requested || lookup.null_model) {
-            return;
-        }
-        if (!lookup.warning.empty()) {
-            builder.add_event(PreviewLoadEventSeverity::warning,
-                "attachment",
-                lookup.warning);
-            return;
-        }
-        if (lookup.resolved) {
-            add_report_model(report, builder, scanned_models, lookup.model_name,
-                fmt::format("{}:attachment:{}:{}", path.string(), table_name, row), animation_name);
-            if (table_name == std::string_view{"wingmodel"}) {
-                const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, row);
+    if (visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, preview_load_report_visual_render_mode)
+                || !visual_row_is_creature_attachment(row)) {
+                continue;
+            }
+
+            const auto attachment_name = visual_creature_attachment_name(row);
+            if (row.model.empty()) {
+                builder.add_event(PreviewLoadEventSeverity::warning,
+                    "attachment",
+                    fmt::format("Dynamic creature {} row {} did not resolve to a model",
+                        attachment_name,
+                        row.source_part));
+                continue;
+            }
+
+            add_report_model(report, builder, scanned_models, row.model.view(),
+                fmt::format("{}:attachment:{}:{}", path.string(), attachment_name, row.source_part), animation_name);
+            if (visual_row_is_creature_wing_attachment(row)) {
+                const uint32_t wing_row = row.source_part > 0 ? static_cast<uint32_t>(row.source_part) : 0u;
+                const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, wing_row);
                 if (policy.strip_non_render_meshes) {
                     size_t stripped_mesh_count = 0;
-                    if (auto* mdl = nw::kernel::models().load(lookup.model_name)) {
+                    if (auto* mdl = nw::kernel::models().load(row.model.view())) {
                         stripped_mesh_count = count_nwn_wing_attachment_visual_policy_stripped_meshes(*mdl, policy);
                     }
                     builder.add_event(PreviewLoadEventSeverity::info,
@@ -1059,55 +1158,56 @@ static void add_dynamic_creature_report(
                         fmt::format(
                             "{}: wingmodel row {} stripped_non_render_meshes={}",
                             path.string(),
-                            row,
+                            row.source_part,
                             stripped_mesh_count));
                 }
             }
         }
-    };
-    add_attachment("wingmodel", wings);
-    add_attachment("tailmodel", tail);
+    }
 
-    if (cloak_item && cloak_item->model_type == nw::ItemModelType::layered) {
-        auto* cloakmodel = nw::kernel::twodas().get("cloakmodel");
-        int cloak_model = 0;
-        if (!cloakmodel) {
-            builder.add_event(PreviewLoadEventSeverity::warning,
-                "cloak",
-                "Dynamic creature cloak model table was not loaded");
-        } else if (cloakmodel->get_to(cloak_item->model_parts[nw::ItemModelParts::model1], "MODEL", cloak_model)
-            && cloak_model > 0) {
-            if (auto cloak_resref = resolve_creature_cloak_model(sex, race, phenotype, static_cast<uint16_t>(cloak_model))) {
-                add_report_model(report, builder, scanned_models, *cloak_resref,
-                    fmt::format("{}:cloak", path.string()), animation_name);
-            } else {
+    if (cloak_item && visual) {
+        for (const auto& row : visual->models) {
+            if (!visual_row_visible_for_mode(row, preview_load_report_visual_render_mode)
+                || !visual_row_matches_slot(row, nw::EquipIndex::cloak, nw::ObjectVisualModelKind::creature_model_part)) {
+                continue;
+            }
+
+            if (row.model.empty()) {
+                if (row.model_part > 0) {
+                    builder.add_event(PreviewLoadEventSeverity::warning,
+                        "cloak",
+                        fmt::format("Dynamic creature cloak model part {} was not found", row.model_part));
+                    break;
+                }
+                const auto cloak_item_resref = cloak_item->resref;
                 builder.add_event(PreviewLoadEventSeverity::warning,
                     "cloak",
-                    fmt::format("Dynamic creature cloak model part {} was not found", cloak_model));
+                    fmt::format("Dynamic creature cloak item '{}' model part {} has no cloakmodel.2da MODEL",
+                        cloak_item_resref,
+                        row.source_part));
+                break;
             }
-        } else {
-            builder.add_event(PreviewLoadEventSeverity::warning,
-                "cloak",
-                fmt::format("Dynamic creature cloak item '{}' model part {} has no cloakmodel.2da MODEL",
-                    cloak_item->common.resref,
-                    cloak_item->model_parts[nw::ItemModelParts::model1]));
+
+            add_report_model(report, builder, scanned_models, row.model.view(),
+                fmt::format("{}:cloak", path.string()), animation_name);
+            break;
         }
     }
 
-    if (righthand_item) {
-        add_item_model_report(report, builder, scanned_models, *righthand_item,
-            fmt::format("{}:equipment:{}", path.string(), nw::equip_index_to_string(nw::EquipIndex::righthand)),
-            false, animation_name);
-    }
-    if (lefthand_item) {
-        add_item_model_report(report, builder, scanned_models, *lefthand_item,
-            fmt::format("{}:equipment:{}", path.string(), nw::equip_index_to_string(nw::EquipIndex::lefthand)),
-            false, animation_name);
-    }
-    if (head_item) {
-        add_item_model_report(report, builder, scanned_models, *head_item,
-            fmt::format("{}:equipment:{}", path.string(), nw::equip_index_to_string(nw::EquipIndex::head)),
-            false, animation_name);
+    for (const auto slot : kPreviewAttachedEquipmentSlots) {
+        auto* item = equipped_item(creature.equipment, slot);
+        if (!item) {
+            continue;
+        }
+        add_equipped_visual_model_report(
+            report,
+            builder,
+            scanned_models,
+            visual,
+            *item,
+            slot,
+            fmt::format("{}:equipment:{}", path.string(), nw::equip_index_to_string(slot)),
+            animation_name);
     }
 }
 
@@ -1152,9 +1252,9 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
         const nw::Resource resource = nw::Resource::from_path(path, false);
         if (resource.type == nw::ResourceType::bic) {
             report.kind = "dynamic_creature";
-            nw::Player player;
-            if (load_player_from_file(path, player)) {
-                add_dynamic_creature_report(report, builder, scanned_models, player, path, animation_name);
+            auto player = load_managed_preview_object<nw::Player>(path, load_player_from_file);
+            if (player) {
+                add_dynamic_creature_report(report, builder, scanned_models, *player, path, animation_name);
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
                     "source",
@@ -1165,9 +1265,9 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
         }
         if (resource.type == nw::ResourceType::utc) {
             report.kind = "dynamic_creature";
-            nw::Creature creature;
-            if (load_creature_from_file(path, creature)) {
-                add_dynamic_creature_report(report, builder, scanned_models, creature, path, animation_name);
+            auto creature = load_managed_preview_object<nw::Creature>(path, load_creature_from_file);
+            if (creature) {
+                add_dynamic_creature_report(report, builder, scanned_models, *creature, path, animation_name);
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
                     "source",
@@ -1178,9 +1278,9 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
         }
         if (resource.type == nw::ResourceType::uti) {
             report.kind = "item";
-            nw::Item item;
-            if (load_item_from_file(path, item)) {
-                add_item_model_report(report, builder, scanned_models, item, path.string(), true, animation_name);
+            auto item = load_managed_preview_object<nw::Item>(path, load_item_from_file);
+            if (item && item->instantiate()) {
+                add_item_model_report(report, builder, scanned_models, *item, path.string(), true, animation_name);
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
                     "source",
@@ -1191,45 +1291,41 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
         }
         if (resource.type == nw::ResourceType::utd) {
             report.kind = "Door";
-            nw::Door door;
-            if (load_door_from_file(path, door)) {
-                if (auto model_ref = resolve_door_model_reference(door, path)) {
-                    add_report_model(report, builder, scanned_models, model_ref->model.view(),
-                        fmt::format("{}:{}", path.string(), door_model_lookup_context(*model_ref)), animation_name);
-                }
+            auto model_ref = resolve_door_model_from_file(path);
+            if (model_ref.valid) {
+                add_report_model(report, builder, scanned_models, model_ref.model.view(),
+                    fmt::format("{}:{}", path.string(), door_model_lookup_context(model_ref)), animation_name);
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
-                    "source",
-                    fmt::format("Failed to load door preview '{}'", path.string()));
+                    "door",
+                    fmt::format("Door preview '{}': {}", path.string(), model_ref.error));
             }
             finalize_load_report(report, builder);
             return report;
         }
         if (resource.type == nw::ResourceType::utp) {
             report.kind = "Placeable";
-            nw::Placeable placeable;
-            if (load_placeable_from_file(path, placeable)) {
-                if (placeable.appearance > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-                    builder.add_event(PreviewLoadEventSeverity::error,
-                        "placeable",
-                        fmt::format("Placeable preview '{}' appearance {} is invalid",
-                            path.string(),
-                            placeable.appearance));
-                } else if (const auto* info = nw::kernel::rules().placeables.get(
-                               nw::PlaceableType::make(static_cast<int32_t>(placeable.appearance)))) {
-                    add_report_model(report, builder, scanned_models, info->model.view(),
-                        fmt::format("{}:appearance:{}", path.string(), placeable.appearance), animation_name);
+            PreviewPlaceableVisualLoad visual = load_placeable_visual_from_file(path);
+            if (visual.loaded) {
+                const auto* model = first_valid_visual_model(
+                    std::span<const nw::ObjectVisualModel>{visual.visual.models},
+                    preview_load_report_visual_render_mode);
+                if (model) {
+                    add_report_model(report, builder, scanned_models, model->model.view(),
+                        fmt::format("{}:visual:{}", path.string(), visual.visual.appearance), animation_name);
                 } else {
                     builder.add_event(PreviewLoadEventSeverity::error,
                         "placeable",
-                        fmt::format("Placeable preview '{}' appearance {} was not found in placeables.2da",
+                        fmt::format("Placeable preview '{}': {}",
                             path.string(),
-                            placeable.appearance));
+                            visual.error.empty() ? placeable_visual_error(&visual.visual) : visual.error));
                 }
             } else {
                 builder.add_event(PreviewLoadEventSeverity::error,
                     "source",
-                    fmt::format("Failed to load placeable preview '{}'", path.string()));
+                    visual.error.empty()
+                        ? fmt::format("Failed to load placeable preview '{}'", path.string())
+                        : visual.error);
             }
             finalize_load_report(report, builder);
             return report;
@@ -1320,7 +1416,7 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
                 if (!creature) {
                     continue;
                 }
-                const auto origin = area_object_origin(source, "creature", i, creature->common);
+                const auto origin = area_object_origin(source, "creature", i, *creature);
                 add_dynamic_creature_report(report, builder, scanned_models, *creature,
                     std::filesystem::path{origin}, animation_name);
             }
@@ -1330,23 +1426,23 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
                     continue;
                 }
                 add_area_door_report(report, builder, scanned_models, *door,
-                    area_object_origin(source, "door", i, door->common), animation_name);
+                    area_object_origin(source, "door", i, *door), animation_name);
             }
             for (size_t i = 0; i < loaded_area->items.size(); ++i) {
-                const auto* item = loaded_area->items[i];
+                auto* item = loaded_area->items[i];
                 if (!item) {
                     continue;
                 }
                 add_item_model_report(report, builder, scanned_models, *item,
-                    area_object_origin(source, "item", i, item->common), true, animation_name);
+                    area_object_origin(source, "item", i, *item), true, animation_name);
             }
             for (size_t i = 0; i < loaded_area->placeables.size(); ++i) {
-                const auto* placeable = loaded_area->placeables[i];
+                auto* placeable = loaded_area->placeables[i];
                 if (!placeable) {
                     continue;
                 }
                 add_area_placeable_report(report, builder, scanned_models, *placeable,
-                    area_object_origin(source, "placeable", i, placeable->common), animation_name);
+                    area_object_origin(source, "placeable", i, *placeable), animation_name);
             }
         } else if (report.error_count() == 0) {
             builder.add_event(PreviewLoadEventSeverity::error,

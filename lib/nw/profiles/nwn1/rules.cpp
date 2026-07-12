@@ -1,168 +1,47 @@
 #include "rules.hpp"
 
-#include "constants.hpp"
-#include "scriptapi.hpp"
+#include "scriptbridge.hpp"
 
-#include "../../formats/StaticTwoDA.hpp"
-#include "../../functions.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
-#include "../../scriptapi.hpp"
-
-namespace nwk = nw::kernel;
 
 namespace nwn1 {
 
-// == Qualifiers ==============================================================
-// ============================================================================
+namespace {
 
-bool qualify_ability(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+bool is_supported_qualifier_type(nw::ReqType type) noexcept
 {
-    if (!qual.subtype.is<int32_t>()) {
-        LOG_F(ERROR, "qualifier - ability: invalid subtype");
-        return {};
-    }
-    auto val = get_ability_score(obj->as_creature(), nw::Ability::make(qual.subtype.as<int32_t>()));
-    auto min = qual.params[0].as<int32_t>();
-    auto max = qual.params[1].as<int32_t>();
-
-    if (val < min) { return false; }
-    if (max != 0 && val > max) { return false; }
-    return true;
+    return type == nw::req_type_ability
+        || type == nw::req_type_alignment
+        || type == nw::req_type_bab
+        || type == nw::req_type_class_level
+        || type == nw::req_type_feat
+        || type == nw::req_type_level
+        || type == nw::req_type_race
+        || type == nw::req_type_skill;
 }
 
-bool qualify_alignment(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+bool match_qualifier(const nw::Qualifier& qual, const nw::ObjectBase* obj)
 {
-    if (!qual.subtype.is<int32_t>()) {
-        LOG_F(ERROR, "qualifier - alignment: invalid subtype");
-        return false;
-    }
+    if (!is_supported_qualifier_type(qual.type)) { return true; }
 
-    auto cre = obj->as_creature();
+    auto* cre = obj ? obj->as_creature() : nullptr;
     if (!cre) { return false; }
 
-    auto target_axis = static_cast<nw::AlignmentAxis>(qual.subtype.as<int32_t>());
-    auto flags = static_cast<nw::AlignmentFlags>(qual.params[0].as<int32_t>());
-    auto ge = cre->good_evil;
-    auto lc = cre->lawful_chaotic;
-
-    if (!!(flags & nw::AlignmentFlags::good) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
-        if (ge > 50) {
-            return true;
-        }
-    }
-
-    if (!!(flags & nw::AlignmentFlags::evil) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
-        if (ge < 50) {
-            return true;
-        }
-    }
-
-    if (!!(flags & nw::AlignmentFlags::lawful) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
-        if (lc > 50) {
-            return true;
-        }
-    }
-
-    if (!!(flags & nw::AlignmentFlags::chaotic) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
-        if (lc < 50) {
-            return true;
-        }
-    }
-
-    if (!!(flags & nw::AlignmentFlags::neutral)) {
-        if (target_axis == nw::AlignmentAxis::both) {
-            return ge == 50 && lc == 50;
-        }
-        if (target_axis == nw::AlignmentAxis::good_evil) {
-            return ge == 50;
-        }
-        if (target_axis == nw::AlignmentAxis::law_chaos) {
-            return lc == 50;
-        }
-    }
-
-    return false;
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(bridge::make_object_arg(cre->handle()));
+    args.push_back(nw::smalls::Value::make_int(*qual.type));
+    args.push_back(nw::smalls::Value::make_int(qual.subtype));
+    args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(qual.match)));
+    args.push_back(nw::smalls::Value::make_int(qual.value));
+    return bridge::call_nwn1_module_bool("nwn1.requirements", "match_qualifier", args).value_or(false);
 }
 
-bool qualify_bab(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+} // namespace
+
+void load_qualifier_matcher()
 {
-    auto val = base_attack_bonus(obj->as_creature());
-    auto min = qual.params[0].as<int32_t>();
-    auto max = qual.params[1].as<int32_t>();
-
-    if (val < min) { return false; }
-    if (max != 0 && val > max) { return false; }
-    return true;
-}
-
-bool qualify_feat(const nw::Qualifier& qual, const nw::ObjectBase* obj)
-{
-    auto cre = obj->as_creature();
-    return cre && cre->stats.has_feat(nw::Feat::make(qual.subtype.as<int32_t>()));
-}
-
-bool qualify_class_level(const nw::Qualifier& qual, const nw::ObjectBase* obj)
-{
-    if (!qual.subtype.is<int32_t>()) {
-        LOG_F(ERROR, "qualifier - ability: invalid subtype");
-        return false;
-    }
-
-    auto cre = obj->as_creature();
-    if (!cre) { return false; }
-    auto val = cre->levels.level_by_class(nw::Class::make(qual.subtype.as<int32_t>()));
-    auto min = qual.params[0].as<int32_t>();
-    auto max = qual.params[1].as<int32_t>();
-
-    if (val < min) { return false; }
-    if (max != 0 && val > max) { return false; }
-    return true;
-}
-
-bool qualify_level(const nw::Qualifier& qual, const nw::ObjectBase* obj)
-{
-    auto cre = obj->as_creature();
-    if (!cre) { return false; }
-    auto val = cre->levels.level();
-    auto min = qual.params[0].as<int32_t>();
-    auto max = qual.params[1].as<int32_t>();
-
-    if (val < min) { return false; }
-    if (max != 0 && val > max) { return false; }
-    return true;
-}
-
-bool qualify_race(const nw::Qualifier& qual, const nw::ObjectBase* obj)
-{
-    auto cre = obj->as_creature();
-    return cre && *cre->race == qual.params[0].as<int32_t>();
-}
-
-bool qualify_skill(const nw::Qualifier& qual, const nw::ObjectBase* obj)
-{
-    if (!qual.subtype.is<int32_t>()) {
-        LOG_F(ERROR, "qualifier - skill: invalid subtype");
-        return {};
-    }
-    auto val = get_skill_rank(obj->as_creature(), nw::Skill::make(qual.subtype.as<int32_t>()));
-    auto min = qual.params[0].as<int32_t>();
-    auto max = qual.params[1].as<int32_t>();
-    if (val < min) { return false; }
-    if (max != 0 && val > max) { return false; }
-    return true;
-}
-
-void load_qualifiers()
-{
-    nw::kernel::rules().set_qualifier(nw::req_type_ability, qualify_ability);
-    nw::kernel::rules().set_qualifier(nw::req_type_alignment, qualify_alignment);
-    nw::kernel::rules().set_qualifier(nw::req_type_bab, qualify_bab);
-    nw::kernel::rules().set_qualifier(nw::req_type_class_level, qualify_class_level);
-    nw::kernel::rules().set_qualifier(nw::req_type_feat, qualify_feat);
-    nw::kernel::rules().set_qualifier(nw::req_type_level, qualify_level);
-    nw::kernel::rules().set_qualifier(nw::req_type_race, qualify_race);
-    nw::kernel::rules().set_qualifier(nw::req_type_skill, qualify_skill);
+    nw::kernel::rules().set_qualifier_matcher(match_qualifier);
 }
 
 } // namespace nwn1

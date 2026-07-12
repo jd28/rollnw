@@ -55,3 +55,16 @@ fn get_max_hitpoints(obj: object): int {
         }
     }
 }
+
+fn sync_creature_vitals(cre: Creature): bool {
+    var health = get_propset!(CreatureHealth)(cre);
+    health.hp_max = get_max_hitpoints(cre);
+    return Cre.set_vitals(cre, health.hp_current, health.hp_max);
+}
+
+fn initialize_creature_health(cre: Creature): bool {
+    var health = get_propset!(CreatureHealth)(cre);
+    health.hp_max = get_max_hitpoints(cre);
+    health.hp_current = health.hp_max;
+    return Cre.set_vitals(cre, health.hp_current, health.hp_max);
+}

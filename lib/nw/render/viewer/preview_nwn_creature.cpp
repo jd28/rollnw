@@ -6,14 +6,17 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/model/Mdl.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/render/nwn/model_loader.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/smalls/runtime.hpp>
 #include <nw/util/string.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <fmt/format.h>
 #include <limits>
 
@@ -21,346 +24,64 @@ namespace nw::render::viewer {
 
 namespace {
 
-uint16_t resolve_body_part_value(uint16_t value, uint16_t mirror_value)
+nw::smalls::Value script_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
 {
-    if (value == 255) {
-        return mirror_value != 0 && mirror_value != 255 ? mirror_value : 0;
+    const nw::smalls::StructDef* def = rt.get_struct_def(value.type_id);
+    if (!def) {
+        return {};
     }
-    return value;
+
+    uint32_t index = def->field_index(field);
+    if (index == UINT32_MAX) {
+        return {};
+    }
+
+    const auto& fd = def->fields[index];
+    return rt.read_value_field_at_offset(value, fd.offset, fd.type_id);
 }
 
-uint16_t resolve_armor_part_value(uint16_t value, uint16_t mirror_value)
+int32_t script_int_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value,
+    const char* field, int32_t fallback = 0)
 {
-    if (value == 0 || value == 255) {
-        return mirror_value != 0 && mirror_value != 255 ? mirror_value : value;
-    }
-    return value;
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    return field_value.type_id == rt.int_type() ? field_value.data.ival : fallback;
 }
 
-bool body_part_tattoo_model_uses_tattoo_palette(std::string_view token)
+float script_float_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value,
+    const char* field, float fallback = 0.0f)
 {
-    return token == "bicepl"
-        || token == "bicepr"
-        || token == "chest"
-        || token == "forel"
-        || token == "forer"
-        || token == "legl"
-        || token == "legr"
-        || token == "shinl"
-        || token == "shinr";
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    return field_value.type_id == rt.float_type() ? field_value.data.fval : fallback;
 }
 
-uint16_t resolve_armor_skin_tattoo_model_part(std::string_view token, uint16_t creature_model_part,
-    uint16_t armor_model_part)
+bool script_bool_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
 {
-    constexpr uint16_t skin_model_part = 1;
-    constexpr uint16_t tattoo_model_part = 2;
-
-    if (armor_model_part == skin_model_part
-        && creature_model_part == tattoo_model_part
-        && body_part_tattoo_model_uses_tattoo_palette(token)) {
-        return tattoo_model_part;
-    }
-    return armor_model_part;
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    return field_value.type_id == rt.bool_type() && field_value.data.bval;
 }
 
-std::optional<nw::ItemModelParts::type> armor_item_part_for_token(std::string_view token)
+std::string script_string_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
 {
-    using Parts = nw::ItemModelParts;
-    if (token == "belt") {
-        return Parts::armor_belt;
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    if (field_value.type_id != rt.string_type()) {
+        return {};
     }
-    if (token == "bicepl") {
-        return Parts::armor_lbicep;
-    }
-    if (token == "bicepr") {
-        return Parts::armor_rbicep;
-    }
-    if (token == "chest") {
-        return Parts::armor_torso;
-    }
-    if (token == "forel") {
-        return Parts::armor_lfarm;
-    }
-    if (token == "forer") {
-        return Parts::armor_rfarm;
-    }
-    if (token == "footl") {
-        return Parts::armor_lfoot;
-    }
-    if (token == "footr") {
-        return Parts::armor_rfoot;
-    }
-    if (token == "handl") {
-        return Parts::armor_lhand;
-    }
-    if (token == "handr") {
-        return Parts::armor_rhand;
-    }
-    if (token == "neck") {
-        return Parts::armor_neck;
-    }
-    if (token == "pelvis") {
-        return Parts::armor_pelvis;
-    }
-    if (token == "shinl") {
-        return Parts::armor_lshin;
-    }
-    if (token == "shinr") {
-        return Parts::armor_rshin;
-    }
-    if (token == "shol") {
-        return Parts::armor_lshoul;
-    }
-    if (token == "shor") {
-        return Parts::armor_rshoul;
-    }
-    if (token == "legl") {
-        return Parts::armor_lthigh;
-    }
-    if (token == "legr") {
-        return Parts::armor_rthigh;
-    }
-    return std::nullopt;
+    return std::string{nw::smalls::ScriptString{field_value.data.hptr}.view(rt)};
 }
 
-std::string_view robe_hide_column(std::string_view token)
+nw::Resref script_resref_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value, const char* field)
 {
-    if (token == "belt") {
-        return "HIDEBELT";
+    nw::smalls::Value field_value = script_field(rt, value, field);
+    nw::smalls::TypeID resref_type = rt.type_id("core.types.ResRef", false);
+    if (field_value.type_id != resref_type) {
+        return {};
     }
-    if (token == "bicepl") {
-        return "HIDEBICEPL";
-    }
-    if (token == "bicepr") {
-        return "HIDEBICEPR";
-    }
-    if (token == "footl") {
-        return "HIDEFOOTL";
-    }
-    if (token == "footr") {
-        return "HIDEFOOTR";
-    }
-    if (token == "forel") {
-        return "HIDEFOREL";
-    }
-    if (token == "forer") {
-        return "HIDEFORER";
-    }
-    if (token == "handl") {
-        return "HIDEHANDL";
-    }
-    if (token == "handr") {
-        return "HIDEHANDR";
-    }
-    if (token == "head") {
-        return "HIDEHEAD";
-    }
-    if (token == "neck") {
-        return "HIDENECK";
-    }
-    if (token == "pelvis") {
-        return "HIDEPELVIS";
-    }
-    if (token == "shinl") {
-        return "HIDESHINL";
-    }
-    if (token == "shinr") {
-        return "HIDESHINR";
-    }
-    if (token == "shol") {
-        return "HIDESHOL";
-    }
-    if (token == "shor") {
-        return "HIDESHOR";
-    }
-    if (token == "legl") {
-        return "HIDELEGL";
-    }
-    if (token == "legr") {
-        return "HIDELEGR";
-    }
-    if (token == "chest") {
-        return "HIDECHEST";
-    }
-    return {};
+
+    const auto* resref = static_cast<const nw::Resref*>(rt.get_value_data_ptr(field_value));
+    return resref ? *resref : nw::Resref{};
 }
-
-bool robe_hides_body_part(uint16_t robe_part, std::string_view token)
-{
-    auto column = robe_hide_column(token);
-    if (column.empty()) {
-        return false;
-    }
-
-    auto* tda = nw::kernel::twodas().get("parts_robe");
-    if (!tda || robe_part >= tda->rows()) {
-        return false;
-    }
-
-    int hidden = 0;
-    return tda->get_to(static_cast<size_t>(robe_part), column, hidden, false) && hidden != 0;
-}
-
-std::optional<std::string_view> mirrored_part_token(std::string_view token)
-{
-    if (token == "bicepl") {
-        return "bicepr";
-    }
-    if (token == "bicepr") {
-        return "bicepl";
-    }
-    if (token == "footl") {
-        return "footr";
-    }
-    if (token == "footr") {
-        return "footl";
-    }
-    if (token == "forel") {
-        return "forer";
-    }
-    if (token == "forer") {
-        return "forel";
-    }
-    if (token == "handl") {
-        return "handr";
-    }
-    if (token == "handr") {
-        return "handl";
-    }
-    if (token == "shinl") {
-        return "shinr";
-    }
-    if (token == "shinr") {
-        return "shinl";
-    }
-    if (token == "shol") {
-        return "shor";
-    }
-    if (token == "shor") {
-        return "shol";
-    }
-    if (token == "legl") {
-        return "legr";
-    }
-    if (token == "legr") {
-        return "legl";
-    }
-    return std::nullopt;
-}
-
-bool prefers_symmetric_mirrored_armor_model(std::string_view token)
-{
-    return token == "legr";
-}
-
-std::string anchor_name_for_part(std::string_view token)
-{
-    if (token == "belt") {
-        return "belt_g";
-    }
-    if (token == "bicepl") {
-        return "lbicep_g";
-    }
-    if (token == "bicepr") {
-        return "rbicep_g";
-    }
-    if (token == "chest") {
-        return "torso_g";
-    }
-    if (token == "forel") {
-        return "lforearm_g";
-    }
-    if (token == "forer") {
-        return "rforearm_g";
-    }
-    if (token == "footl") {
-        return "lfoot_g";
-    }
-    if (token == "footr") {
-        return "rfoot_g";
-    }
-    if (token == "handl") {
-        return "lhand_g";
-    }
-    if (token == "handr") {
-        return "rhand_g";
-    }
-    if (token == "pelvis") {
-        return "pelvis_g";
-    }
-    if (token == "legl") {
-        return "lthigh_g";
-    }
-    if (token == "legr") {
-        return "rthigh_g";
-    }
-    if (token == "neck") {
-        return "neck_g";
-    }
-    if (token == "head") {
-        return "head_g";
-    }
-    if (token == "shinl") {
-        return "lshin_g";
-    }
-    if (token == "shinr") {
-        return "rshin_g";
-    }
-    if (token == "shol") {
-        return "lshoulder_g";
-    }
-    if (token == "shor") {
-        return "rshoulder_g";
-    }
-    return {};
-}
-
-struct HumanoidBodyPartSpec {
-    uint16_t nw::BodyParts::* field;
-    std::string_view token;
-};
-
-constexpr std::array<HumanoidBodyPartSpec, 19> kHumanoidBodyPartSpecs{{
-    {&nw::BodyParts::belt, "belt"},
-    {&nw::BodyParts::bicep_left, "bicepl"},
-    {&nw::BodyParts::bicep_right, "bicepr"},
-    {&nw::BodyParts::foot_left, "footl"},
-    {&nw::BodyParts::foot_right, "footr"},
-    {&nw::BodyParts::forearm_left, "forel"},
-    {&nw::BodyParts::forearm_right, "forer"},
-    {&nw::BodyParts::hand_left, "handl"},
-    {&nw::BodyParts::hand_right, "handr"},
-    {&nw::BodyParts::head, "head"},
-    {&nw::BodyParts::neck, "neck"},
-    {&nw::BodyParts::pelvis, "pelvis"},
-    {&nw::BodyParts::shin_left, "shinl"},
-    {&nw::BodyParts::shin_right, "shinr"},
-    {&nw::BodyParts::shoulder_left, "shol"},
-    {&nw::BodyParts::shoulder_right, "shor"},
-    {&nw::BodyParts::thigh_left, "legl"},
-    {&nw::BodyParts::thigh_right, "legr"},
-    {&nw::BodyParts::torso, "chest"},
-}};
 
 } // namespace
-
-nw::BodyParts normalized_body_parts(nw::BodyParts body_parts)
-{
-    body_parts.bicep_left = resolve_body_part_value(body_parts.bicep_left, body_parts.bicep_right);
-    body_parts.bicep_right = resolve_body_part_value(body_parts.bicep_right, body_parts.bicep_left);
-    body_parts.forearm_left = resolve_body_part_value(body_parts.forearm_left, body_parts.forearm_right);
-    body_parts.forearm_right = resolve_body_part_value(body_parts.forearm_right, body_parts.forearm_left);
-    body_parts.hand_left = resolve_body_part_value(body_parts.hand_left, body_parts.hand_right);
-    body_parts.hand_right = resolve_body_part_value(body_parts.hand_right, body_parts.hand_left);
-    body_parts.foot_left = resolve_body_part_value(body_parts.foot_left, body_parts.foot_right);
-    body_parts.foot_right = resolve_body_part_value(body_parts.foot_right, body_parts.foot_left);
-    body_parts.shin_left = resolve_body_part_value(body_parts.shin_left, body_parts.shin_right);
-    body_parts.shin_right = resolve_body_part_value(body_parts.shin_right, body_parts.shin_left);
-    body_parts.thigh_left = resolve_body_part_value(body_parts.thigh_left, body_parts.thigh_right);
-    body_parts.thigh_right = resolve_body_part_value(body_parts.thigh_right, body_parts.thigh_left);
-    return body_parts;
-}
 
 nw::Item* equipped_item(const nw::Equips& equips, nw::EquipIndex slot)
 {
@@ -370,6 +91,98 @@ nw::Item* equipped_item(const nw::Equips& equips, nw::EquipIndex slot)
     }
     const auto& equip = equips.equips[idx];
     return nw::equip_item_ptr(equip);
+}
+
+nw::Appearance visual_appearance(const nw::ObjectVisualState* visual) noexcept
+{
+    if (!visual || visual->appearance < 0) {
+        return nw::Appearance::invalid();
+    }
+    return nw::Appearance::make(visual->appearance);
+}
+
+uint8_t visual_body_variant(const nw::ObjectVisualState* visual) noexcept
+{
+    return visual && visual->body_variant == 1 ? uint8_t{1} : uint8_t{0};
+}
+
+nw::PltColors visual_base_plt_colors(const nw::ObjectVisualState* visual) noexcept
+{
+    nw::PltColors colors{};
+    if (!visual) {
+        return colors;
+    }
+
+    for (size_t layer = 0; layer < colors.data.size(); ++layer) {
+        const uint32_t layer_mask = uint32_t{1} << layer;
+        if ((visual->base_plt_color_mask & layer_mask) != 0) {
+            colors.data[layer] = visual->base_plt_colors.data[layer];
+        }
+    }
+    return colors;
+}
+
+bool visual_row_matches_slot(const nw::ObjectVisualModel& row, nw::EquipIndex slot, int32_t kind) noexcept
+{
+    return row.slot == static_cast<int32_t>(slot) && row.kind == kind;
+}
+
+nw::PltColors visual_row_plt_colors(const nw::ObjectVisualModel& row, nw::PltColors colors) noexcept
+{
+    for (size_t layer = 0; layer < colors.data.size(); ++layer) {
+        const uint32_t layer_mask = uint32_t{1} << layer;
+        if ((row.plt_color_mask & layer_mask) != 0) {
+            colors.data[layer] = row.plt_colors.data[layer];
+        }
+    }
+    return colors;
+}
+
+bool visual_row_is_humanoid_body_part(const nw::ObjectVisualModel& row) noexcept
+{
+    return row.kind == nw::ObjectVisualModelKind::creature_model_part
+        && (row.slot == -1
+            || row.slot == static_cast<int32_t>(nw::EquipIndex::chest));
+}
+
+bool visual_row_requests_model_part(const nw::ObjectVisualModel& row) noexcept
+{
+    return row.model_part > 0 && row.model_part != 255;
+}
+
+std::string visual_row_body_part_name(const nw::ObjectVisualModel& row)
+{
+    if (row.part == static_cast<int32_t>(nw::ItemModelParts::armor_robe)) {
+        return "robe";
+    }
+    if (!row.attach_to.empty()) {
+        return row.attach_to.string();
+    }
+    return fmt::format("part {}", row.part);
+}
+
+bool visual_row_is_creature_attachment(const nw::ObjectVisualModel& row) noexcept
+{
+    return row.kind == nw::ObjectVisualModelKind::creature_attachment
+        && (row.part == nw::ObjectVisualCreatureAttachmentPart::wing
+            || row.part == nw::ObjectVisualCreatureAttachmentPart::tail);
+}
+
+bool visual_row_is_creature_wing_attachment(const nw::ObjectVisualModel& row) noexcept
+{
+    return row.kind == nw::ObjectVisualModelKind::creature_attachment
+        && row.part == nw::ObjectVisualCreatureAttachmentPart::wing;
+}
+
+std::string_view visual_creature_attachment_name(const nw::ObjectVisualModel& row) noexcept
+{
+    if (row.part == nw::ObjectVisualCreatureAttachmentPart::wing) {
+        return "wing";
+    }
+    if (row.part == nw::ObjectVisualCreatureAttachmentPart::tail) {
+        return "tail";
+    }
+    return "attachment";
 }
 
 std::string anchor_name_for_equipped_item(nw::EquipIndex slot)
@@ -384,28 +197,6 @@ std::string anchor_name_for_equipped_item(nw::EquipIndex slot)
     default:
         return {};
     }
-}
-
-std::string anchor_name_for_attachment(std::string_view table_name)
-{
-    if (table_name == "wingmodel") {
-        return "wings";
-    }
-    if (table_name == "tailmodel") {
-        return "tail";
-    }
-    return {};
-}
-
-std::string source_anchor_name_for_attachment(std::string_view table_name)
-{
-    if (table_name == "wingmodel") {
-        return "wings";
-    }
-    if (table_name == "tailmodel") {
-        return "tail";
-    }
-    return {};
 }
 
 float appearance_wing_tail_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id)
@@ -472,6 +263,85 @@ NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy
     return result;
 }
 
+PreviewCreatureModelLoad resolve_creature_model_from_appearance(nw::Appearance appearance)
+{
+    auto& rt = nw::kernel::runtime();
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::Value::make_int(*appearance));
+
+    auto executed = rt.execute_script("nwn1.creature", "resolve_creature_model", args);
+    PreviewCreatureModelLoad result;
+    if (!executed.ok()) {
+        result.error = fmt::format("nwn1.creature.resolve_creature_model failed: {}", executed.error_message);
+        return result;
+    }
+
+    result.appearance = script_int_field(rt, executed.value, "appearance", -1);
+    result.model_type = script_int_field(rt, executed.value, "model_type", -1);
+    result.hand_item_reason = script_int_field(rt, executed.value, "hand_item_reason");
+    result.wing_tail_scale = script_float_field(rt, executed.value, "wing_tail_scale", 1.0f);
+    result.helmet_scale_m = script_float_field(rt, executed.value, "helmet_scale_m", 1.0f);
+    result.helmet_scale_f = script_float_field(rt, executed.value, "helmet_scale_f", 1.0f);
+    result.hand_item_scale = script_float_field(rt, executed.value, "hand_item_scale", 1.0f);
+    result.hand_item_visible = script_bool_field(rt, executed.value, "hand_item_visible");
+    result.humanoid = script_bool_field(rt, executed.value, "humanoid");
+    result.resolved = script_bool_field(rt, executed.value, "valid");
+    result.error = script_string_field(rt, executed.value, "error");
+    result.race = script_resref_field(rt, executed.value, "race");
+    result.model = script_resref_field(rt, executed.value, "model");
+
+    if (!result.resolved) {
+        if (result.error.empty()) {
+            result.error = "nwn1.creature.resolve_creature_model returned invalid data";
+        }
+        result.model = {};
+        result.race = {};
+        return result;
+    }
+
+    if (!result.humanoid && result.model.empty()) {
+        result.resolved = false;
+        if (result.error.empty()) {
+            result.error = "nwn1.creature.resolve_creature_model returned no model";
+        }
+        result.model = {};
+    }
+
+    return result;
+}
+
+NwnAppearanceHandItemVisualPolicy hand_item_visual_policy_from_creature_model(
+    const PreviewCreatureModelLoad& model_ref)
+{
+    NwnAppearanceHandItemVisualPolicy result;
+    result.visible = model_ref.hand_item_visible;
+    result.scale = model_ref.hand_item_scale;
+
+    switch (model_ref.hand_item_reason) {
+    case 0:
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::visible;
+        break;
+    case 1:
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_no_arms;
+        break;
+    case 2:
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_null_weapon_scale;
+        break;
+    case 3:
+    default:
+        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_invalid_weapon_scale;
+        result.visible = false;
+        break;
+    }
+
+    return result;
+}
+
+float helmet_scale_from_creature_model(const PreviewCreatureModelLoad& model_ref, uint8_t gender)
+{
+    return gender == 1 ? model_ref.helmet_scale_f : model_ref.helmet_scale_m;
+}
+
 NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
     nw::Appearance appearance_id,
     uint32_t wing_row)
@@ -511,14 +381,6 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
         };
     }
     return {};
-}
-
-int resolve_creature_phenotype(nw::Phenotype phenotype) noexcept
-{
-    if (nw::kernel::rules().phenotypes.is_valid(phenotype)) {
-        return *phenotype;
-    }
-    return 0;
 }
 
 size_t apply_nwn_wing_attachment_visual_policy(
@@ -569,27 +431,6 @@ size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(
     return stripped_mesh_count;
 }
 
-std::optional<std::string> resolve_creature_part_model(char sex, std::string_view race, int phenotype,
-    std::initializer_list<std::string_view> part_tokens, uint16_t part)
-{
-    if (part == 0 || part == 255 || race.empty()) {
-        return std::nullopt;
-    }
-
-    for (auto token : part_tokens) {
-        auto resref = fmt::format("p{}{}{}_{}{:03d}", sex, race, phenotype, token, part);
-        if (nw::kernel::resman().contains({resref, nw::ResourceType::mdl})) {
-            return resref;
-        }
-    }
-    return std::nullopt;
-}
-
-std::optional<std::string> resolve_creature_cloak_model(char sex, std::string_view race, int phenotype, uint16_t part)
-{
-    return resolve_creature_part_model(sex, race, phenotype, {"cloak_", "cloak"}, part);
-}
-
 std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& appearance, std::string_view race, char sex)
 {
     nw::String label = appearance.label;
@@ -612,182 +453,6 @@ std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& a
         }
     }
     return std::nullopt;
-}
-
-void preserve_creature_identity_plt_colors(nw::PltColors& colors, const nw::PltColors& creature_colors)
-{
-    colors.data[nw::plt_layer_skin] = creature_colors.data[nw::plt_layer_skin];
-    colors.data[nw::plt_layer_hair] = creature_colors.data[nw::plt_layer_hair];
-    colors.data[nw::plt_layer_tattoo1] = creature_colors.data[nw::plt_layer_tattoo1];
-    colors.data[nw::plt_layer_tattoo2] = creature_colors.data[nw::plt_layer_tattoo2];
-}
-
-std::vector<ResolvedHumanoidBodyPartModel> resolve_humanoid_body_part_models(
-    char sex,
-    std::string_view race,
-    int phenotype,
-    nw::BodyParts body_parts,
-    const nw::PltColors& plt_colors,
-    const nw::Item* chest_item,
-    const nw::Item* head_item)
-{
-    std::vector<ResolvedHumanoidBodyPartModel> result;
-    result.reserve(kHumanoidBodyPartSpecs.size());
-
-    for (const auto& part : kHumanoidBodyPartSpecs) {
-        auto model_part = body_parts.*(part.field);
-        const uint16_t creature_model_part = model_part;
-        nw::PltColors part_colors = plt_colors;
-        bool prefer_mirrored_part_model = false;
-        const uint16_t robe_part = chest_item && chest_item->model_type == nw::ItemModelType::armor
-            ? static_cast<uint16_t>(chest_item->model_parts[nw::ItemModelParts::armor_robe])
-            : 0;
-
-        if (head_item && part.token == "head") {
-            continue;
-        }
-        if (robe_part > 0 && robe_hides_body_part(robe_part, part.token)) {
-            continue;
-        }
-
-        if (chest_item && chest_item->model_type == nw::ItemModelType::armor) {
-            if (auto armor_part = armor_item_part_for_token(part.token)) {
-                uint16_t armor_model_part = chest_item->model_parts[*armor_part];
-                nw::PltColors armor_part_colors = chest_item->part_to_plt_colors(*armor_part);
-                preserve_creature_identity_plt_colors(armor_part_colors, plt_colors);
-
-                if (auto mirror = mirrored_part_token(part.token)) {
-                    if (auto mirror_armor_part = armor_item_part_for_token(*mirror)) {
-                        const uint16_t raw_armor_model_part = chest_item->model_parts[*armor_part];
-                        const uint16_t mirrored_model_part = chest_item->model_parts[*mirror_armor_part];
-                        armor_model_part = resolve_armor_part_value(armor_model_part, mirrored_model_part);
-                        const bool inherited_from_mirror = (raw_armor_model_part == 0 || raw_armor_model_part == 255)
-                            && mirrored_model_part != 0 && mirrored_model_part != 255;
-                        const bool symmetric_right_side = prefers_symmetric_mirrored_armor_model(part.token)
-                            && armor_model_part != 0 && armor_model_part != 255
-                            && armor_model_part == mirrored_model_part;
-                        prefer_mirrored_part_model = prefers_symmetric_mirrored_armor_model(part.token)
-                            && (inherited_from_mirror || symmetric_right_side);
-
-                        if (inherited_from_mirror) {
-                            prefer_mirrored_part_model = true;
-                            armor_part_colors = chest_item->part_to_plt_colors(*mirror_armor_part);
-                            preserve_creature_identity_plt_colors(armor_part_colors, plt_colors);
-                        }
-                    }
-                }
-
-                armor_model_part = resolve_armor_skin_tattoo_model_part(
-                    part.token, creature_model_part, armor_model_part);
-                if (armor_model_part > 0 && armor_model_part != 255) {
-                    model_part = armor_model_part;
-                    part_colors = armor_part_colors;
-                }
-            }
-        }
-
-        auto part_resref = resolve_creature_part_model(sex, race, phenotype, {part.token}, model_part);
-        if (auto mirror = mirrored_part_token(part.token)) {
-            if (prefer_mirrored_part_model) {
-                part_resref = resolve_creature_part_model(sex, race, phenotype, {*mirror, part.token}, model_part);
-            } else if (!part_resref) {
-                part_resref = resolve_creature_part_model(sex, race, phenotype, {*mirror, part.token}, model_part);
-            }
-        }
-
-        result.push_back(ResolvedHumanoidBodyPartModel{
-            .token = part.token,
-            .anchor = anchor_name_for_part(part.token),
-            .colors = part_colors,
-            .resref = std::move(part_resref),
-            .model_part = model_part,
-            .missing_requested_part = !part_resref && model_part > 0 && model_part != 255,
-        });
-    }
-
-    return result;
-}
-
-std::vector<ResolvedItemModelPart> resolve_item_model_parts(
-    const nw::Item& item,
-    const nw::BaseItemInfo& baseitem)
-{
-    std::vector<ResolvedItemModelPart> result;
-    result.reserve(3);
-
-    auto add = [&](std::string resref, nw::ItemModelParts::type part) {
-        if (!resref.empty()) {
-            result.push_back(ResolvedItemModelPart{
-                .resref = std::move(resref),
-                .part = part,
-            });
-        }
-    };
-
-    switch (item.model_type) {
-    case nw::ItemModelType::simple:
-    case nw::ItemModelType::layered:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            add(fmt::format("{}_{:03d}", baseitem.item_class.view(), item.model_parts[nw::ItemModelParts::model1]),
-                nw::ItemModelParts::model1);
-        }
-        break;
-    case nw::ItemModelType::composite:
-        if (item.model_parts[nw::ItemModelParts::model1] > 0) {
-            add(fmt::format("{}_b_{:03d}", baseitem.item_class.view(), item.model_parts[nw::ItemModelParts::model1]),
-                nw::ItemModelParts::model1);
-        }
-        if (item.model_parts[nw::ItemModelParts::model2] > 0) {
-            add(fmt::format("{}_m_{:03d}", baseitem.item_class.view(), item.model_parts[nw::ItemModelParts::model2]),
-                nw::ItemModelParts::model2);
-        }
-        if (item.model_parts[nw::ItemModelParts::model3] > 0) {
-            add(fmt::format("{}_t_{:03d}", baseitem.item_class.view(), item.model_parts[nw::ItemModelParts::model3]),
-                nw::ItemModelParts::model3);
-        }
-        break;
-    case nw::ItemModelType::armor:
-        break;
-    }
-
-    return result;
-}
-
-CreatureAttachmentModelLookup resolve_creature_attachment_model_lookup(
-    std::string_view table_name,
-    uint32_t row)
-{
-    CreatureAttachmentModelLookup result{
-        .table_name = table_name,
-        .row = row,
-        .model_name = {},
-        .owner_socket = anchor_name_for_attachment(table_name),
-        .source_socket = source_anchor_name_for_attachment(table_name),
-        .warning = {},
-        .requested = row != 0,
-        .resolved = false,
-        .null_model = false,
-    };
-    if (!result.requested) {
-        return result;
-    }
-
-    auto* tda = nw::kernel::twodas().get(table_name);
-    if (!tda) {
-        result.warning = fmt::format("Dynamic creature attachment table '{}' was not loaded", table_name);
-        return result;
-    }
-    if (!tda->get_to(row, "MODEL", result.model_name) || result.model_name.empty()) {
-        result.warning = fmt::format("Dynamic creature attachment '{}' row {} has no MODEL", table_name, row);
-        return result;
-    }
-    if (result.model_name == "c_nulltail") {
-        result.null_model = true;
-        return result;
-    }
-
-    result.resolved = true;
-    return result;
 }
 
 } // namespace nw::render::viewer

@@ -9,77 +9,108 @@ namespace nw {
 // == Qualifier ===============================================================
 // ============================================================================
 
-Qualifier qualifier_ability(nw::Ability id, int min, int max)
+bool match_qualifier_value(int32_t actual, QualifierMatch match, int32_t expected) noexcept
 {
-    Qualifier q;
-    q.type = nw::req_type_ability;
-    q.subtype = *id;
-    q.params.push_back(min);
-    q.params.push_back(max);
-    return q;
+    switch (match) {
+    case QualifierMatch::eq:
+        return actual == expected;
+    case QualifierMatch::ne:
+        return actual != expected;
+    case QualifierMatch::lt:
+        return actual < expected;
+    case QualifierMatch::lte:
+        return actual <= expected;
+    case QualifierMatch::gt:
+        return actual > expected;
+    case QualifierMatch::gte:
+        return actual >= expected;
+    case QualifierMatch::any_bits:
+        return (actual & expected) != 0;
+    case QualifierMatch::all_bits:
+        return (actual & expected) == expected;
+    case QualifierMatch::no_bits:
+        return (actual & expected) == 0;
+    }
+    return false;
+}
+
+Qualifier make_qualifier(ReqType type, int32_t subtype, QualifierMatch match, int32_t value)
+{
+    return Qualifier{
+        type,
+        subtype,
+        match,
+        value,
+    };
+}
+
+Qualifier qualifier_ability(nw::Ability id, int value, QualifierMatch match)
+{
+    return make_qualifier(nw::req_type_ability, *id, match, value);
+}
+
+Qualifier qualifier_ability(nw::Ability id, QualifierMatch match, int value)
+{
+    return qualifier_ability(id, value, match);
 }
 
 Qualifier qualifier_alignment(nw::AlignmentAxis axis, nw::AlignmentFlags flags)
 {
-    Qualifier q;
-    q.type = req_type_alignment;
-    q.subtype = static_cast<int>(axis);
-    q.params.push_back(static_cast<int32_t>(flags));
-    return q;
+    return make_qualifier(
+        req_type_alignment,
+        static_cast<int32_t>(axis),
+        QualifierMatch::any_bits,
+        static_cast<int32_t>(flags));
 }
 
-Qualifier qualifier_base_attack_bonus(int min, int max)
+Qualifier qualifier_base_attack_bonus(int value, QualifierMatch match)
 {
-    Qualifier q;
-    q.type = req_type_bab;
-    q.params.push_back(min);
-    q.params.push_back(max);
-    return q;
+    return make_qualifier(req_type_bab, -1, match, value);
 }
 
-Qualifier qualifier_class_level(nw::Class id, int min, int max)
+Qualifier qualifier_base_attack_bonus(QualifierMatch match, int value)
 {
-    Qualifier q;
-    q.type = req_type_class_level;
-    q.subtype = *id;
-    q.params.push_back(min);
-    q.params.push_back(max);
-    return q;
+    return qualifier_base_attack_bonus(value, match);
+}
+
+Qualifier qualifier_class_level(nw::Class id, int value, QualifierMatch match)
+{
+    return make_qualifier(req_type_class_level, *id, match, value);
+}
+
+Qualifier qualifier_class_level(nw::Class id, QualifierMatch match, int value)
+{
+    return qualifier_class_level(id, value, match);
 }
 
 Qualifier qualifier_feat(nw::Feat id)
 {
-    Qualifier q;
-    q.type = req_type_feat;
-    q.subtype = *id;
-    return q;
+    return make_qualifier(req_type_feat, *id, QualifierMatch::eq, 1);
 }
 
 Qualifier qualifier_race(nw::Race id)
 {
-    Qualifier q;
-    q.type = req_type_race;
-    q.params.push_back(*id);
-    return q;
+    return make_qualifier(req_type_race, -1, QualifierMatch::eq, *id);
 }
 
-Qualifier qualifier_skill(nw::Skill id, int min, int max)
+Qualifier qualifier_skill(nw::Skill id, int value, QualifierMatch match)
 {
-    Qualifier q;
-    q.type = req_type_skill;
-    q.subtype = *id;
-    q.params.push_back(min);
-    q.params.push_back(max);
-    return q;
+    return make_qualifier(req_type_skill, *id, match, value);
 }
 
-Qualifier qualifier_level(int min, int max)
+Qualifier qualifier_skill(nw::Skill id, QualifierMatch match, int value)
 {
-    Qualifier q;
-    q.type = req_type_level;
-    q.params.push_back(min);
-    q.params.push_back(max);
-    return q;
+    return qualifier_skill(id, value, match);
+}
+
+Qualifier qualifier_level(int value, QualifierMatch match)
+{
+    return make_qualifier(req_type_level, -1, match, value);
+}
+
+Qualifier qualifier_level(QualifierMatch match, int value)
+{
+    return qualifier_level(value, match);
 }
 
 // == Requirement =============================================================

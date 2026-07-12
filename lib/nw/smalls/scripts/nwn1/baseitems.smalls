@@ -68,6 +68,14 @@ fn weapon_size(base_item: BaseItemType): int {
     return entry.weapon_size;
 }
 
+fn base_ac(base_item: BaseItemType): int {
+    if (!exists(base_item)) {
+        return 0;
+    }
+    var entry = Array.get(_baseitems, base_item as int);
+    return entry.base_ac;
+}
+
 fn crit_threat(base_item: BaseItemType): int {
     if (!exists(base_item)) {
         return 0;

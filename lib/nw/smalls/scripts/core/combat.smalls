@@ -1,5 +1,14 @@
 from core.types import { AttackType, ArmorClass, Damage, DamageRoll, EffectType };
+from core.creature import { CreatureStats };
+import core.bit as bit;
 import core.effects as effects;
+
+const alignment_flag_none = 0;
+const alignment_flag_neutral = 1;
+const alignment_flag_lawful = 2;
+const alignment_flag_chaotic = 4;
+const alignment_flag_good = 8;
+const alignment_flag_evil = 16;
 
 [[value_type]]
 type DamageResult {
@@ -36,28 +45,77 @@ type AttackData {
     special_attack: int;   // 0 = none; else SpecialAttack value that triggered on this hit
 };
 
-[[native]] fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int;
+[[native]] fn __attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus_race: int, versus_alignment_flags: int): int;
 [[native]] fn roll_uniform_int(min: int, max: int): int;
-[[native]] fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus: object, int_index: int, stack_policy: int): int;
-[[native]] fn aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: int, versus: object, filter_int_index: int, filter_int_value: int, int_index: int, stack_policy: int): int;
-[[native]] fn weapon_critical_threat(obj: Creature, attack_type: AttackType): int;
-[[native]] fn weapon_has_keen(obj: Creature, attack_type: AttackType): bool;
-[[native]] fn damage_immunity_effect_delta(obj: object, damage_type: Damage, versus: object): int;
+[[native]] fn __aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus_race: int, versus_alignment_flags: int, int_index: int, stack_policy: int): int;
+[[native]] fn __aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: int, versus_race: int, versus_alignment_flags: int, filter_int_index: int, filter_int_value: int, int_index: int, stack_policy: int): int;
+[[native]] fn __damage_immunity_effect_delta(obj: object, damage_type: Damage, versus_race: int, versus_alignment_flags: int): int;
 [[native]] fn object_effect_count(obj: object): int;
 [[native]] fn object_effect_at(obj: object, index: int): effects.Effect;
 [[native]] fn object_find_first_effect_of(obj: object, effect_type: int, subtype: int, start_index: int): int;
 [[native]] fn effect_best_damage_reduction(obj: object, power: int): effects.Effect;
 [[native]] fn effect_best_damage_resistance(obj: object, damage_type: Damage): effects.Effect;
-[[native]] fn weapon_power_item_property_bonus(weapon: Item): int;
 [[native]] fn roll_dice(dice: int, sides: int, bonus: int, multiplier: int): int;
-[[native]] fn attack_current(attacker: Creature): int;
-[[native]] fn attacks_onhand(attacker: Creature): int;
-[[native]] fn attacks_offhand(attacker: Creature): int;
-[[native]] fn attacks_extra(attacker: Creature): int;
-[[native]] fn advance_attack_round(attacker: Creature): void;
-[[native]] fn set_attack_current(attacker: Creature, value: int): void;
-[[native]] fn set_attacks_onhand(attacker: Creature, value: int): void;
-[[native]] fn set_attacks_offhand(attacker: Creature, value: int): void;
 [[native]] fn creature_effect_version(obj: Creature): int;
 [[native]] fn creature_equip_version(obj: Creature): int;
-[[native]] fn get_combat_mode(obj: Creature): int;
+
+fn alignment_flags_from_values(good_evil: int, lawful_chaotic: int): int {
+    var result = alignment_flag_none;
+
+    if (good_evil >= 70) {
+        result = bit.or(result, alignment_flag_good);
+    } elif (good_evil <= 30) {
+        result = bit.or(result, alignment_flag_evil);
+    } else {
+        result = bit.or(result, alignment_flag_neutral);
+    }
+
+    if (lawful_chaotic >= 70) {
+        result = bit.or(result, alignment_flag_lawful);
+    } elif (lawful_chaotic <= 30) {
+        result = bit.or(result, alignment_flag_chaotic);
+    } else {
+        result = bit.or(result, alignment_flag_neutral);
+    }
+
+    return result;
+}
+
+fn versus_race(versus: object): int {
+    if (!(versus is Creature)) {
+        return -1;
+    }
+
+    var stats = get_propset!(CreatureStats)(versus as Creature);
+    return stats.race;
+}
+
+fn versus_alignment_flags(versus: object): int {
+    if (!(versus is Creature)) {
+        return alignment_flag_none;
+    }
+
+    var stats = get_propset!(CreatureStats)(versus as Creature);
+    return alignment_flags_from_values(stats.good_evil, stats.lawful_chaotic);
+}
+
+fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int {
+    return __attack_bonus_effect_delta_clamped(obj, attack_type,
+        versus_race(versus), versus_alignment_flags(versus));
+}
+
+fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus: object, int_index: int, stack_policy: int): int {
+    return __aggregate_effect_int(obj, effect_type, subtype,
+        versus_race(versus), versus_alignment_flags(versus), int_index, stack_policy);
+}
+
+fn aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: int, versus: object, filter_int_index: int, filter_int_value: int, int_index: int, stack_policy: int): int {
+    return __aggregate_effect_int_filtered(obj, effect_type, subtype,
+        versus_race(versus), versus_alignment_flags(versus),
+        filter_int_index, filter_int_value, int_index, stack_policy);
+}
+
+fn damage_immunity_effect_delta(obj: object, damage_type: Damage, versus: object): int {
+    return __damage_immunity_effect_delta(obj, damage_type,
+        versus_race(versus), versus_alignment_flags(versus));
+}

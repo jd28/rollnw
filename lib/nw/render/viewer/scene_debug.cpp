@@ -6,6 +6,7 @@
 #include <nw/gfx/gfx.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Encounter.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/render/render_context.hpp>
 #include <nw/render/shader_provider.hpp>
@@ -27,6 +28,11 @@ namespace {
 struct DebugGridVertex {
     glm::vec3 position{0.0f};
 };
+
+nw::Location object_spatial_location(const nw::ObjectBase& object)
+{
+    return nw::kernel::objects().components().location(object.handle());
+}
 
 } // namespace
 
@@ -267,7 +273,7 @@ void append_debug_polygon(
     }
 }
 
-void append_debug_spawn_marker(PreviewScene& scene, const nw::SpawnPoint& spawn_point)
+void append_debug_spawn_marker(PreviewScene& scene, const nw::ObjectSpawnPoint& spawn_point)
 {
     constexpr float k_marker_z_offset = 0.16f;
     constexpr float k_marker_width = 0.08f;
@@ -351,7 +357,8 @@ void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, 
 
 bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger)
 {
-    if (trigger.geometry.empty()) {
+    const auto* geometry = nw::kernel::objects().components().find_geometry(trigger.handle());
+    if (!geometry || geometry->points.empty()) {
         return false;
     }
 
@@ -359,15 +366,15 @@ bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigg
     constexpr float k_floor_z_offset = 0.08f;
     constexpr float k_outline_width = 0.07f;
     const glm::vec4 outline_color{0.12f, 0.92f, 1.0f, 0.9f};
-    append_debug_polygon(scene, trigger.geometry, trigger.common.location, outline_color, k_floor_z_offset, k_outline_width);
+    append_debug_polygon(scene, geometry->points, object_spatial_location(trigger), outline_color, k_floor_z_offset, k_outline_width);
 
-    if (trigger.highlight_height > 0.25f) {
+    if (geometry->highlight_height > 0.25f) {
         append_debug_polygon(
             scene,
-            trigger.geometry,
-            trigger.common.location,
+            geometry->points,
+            object_spatial_location(trigger),
             {0.12f, 0.92f, 1.0f, 0.55f},
-            k_floor_z_offset + trigger.highlight_height,
+            k_floor_z_offset + geometry->highlight_height,
             k_outline_width * 0.8f);
     }
     append_debug_shape_range(scene, DebugShapeCategory::trigger, first_debug_index);
@@ -377,20 +384,23 @@ bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigg
 bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter)
 {
     const size_t first_debug_index = scene.debug_shape_indices.size();
-    if (!encounter.geometry.empty()) {
+    const auto* geometry = nw::kernel::objects().components().find_geometry(encounter.handle());
+    if (geometry && !geometry->points.empty()) {
         constexpr float k_floor_z_offset = 0.12f;
         constexpr float k_outline_width = 0.07f;
         append_debug_polygon(
             scene,
-            encounter.geometry,
-            encounter.common.location,
+            geometry->points,
+            object_spatial_location(encounter),
             {1.0f, 0.18f, 0.72f, 0.9f},
             k_floor_z_offset,
             k_outline_width);
     }
 
-    for (const auto& spawn_point : encounter.spawn_points) {
-        append_debug_spawn_marker(scene, spawn_point);
+    if (geometry) {
+        for (const auto& spawn_point : geometry->spawn_points) {
+            append_debug_spawn_marker(scene, spawn_point);
+        }
     }
     append_debug_shape_range(scene, DebugShapeCategory::encounter, first_debug_index);
     return scene.debug_shape_indices.size() > first_debug_index;

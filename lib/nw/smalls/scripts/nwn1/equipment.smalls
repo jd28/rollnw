@@ -1,0 +1,76 @@
+import core.creature as Cre;
+import core.item as ItemBase;
+import core.object as O;
+from core.creature import { CreatureCombat };
+
+import nwn1.baseitems as BaseItems;
+import nwn1.constants as Const;
+
+var did_install_equipment_ac_callbacks = false;
+
+fn is_shield(base_item: int): bool {
+    return base_item != Const.base_item_armor as int
+        && BaseItems.base_ac(Const.BaseItemType(base_item)) > 0;
+}
+
+fn calculate_item_ac(obj: Item): int {
+    if ((obj as object) == O.invalid) {
+        return 0;
+    }
+
+    var stats = get_propset!(ItemBase.ItemStats)(obj);
+    if (is_shield(stats.base_item)) {
+        return BaseItems.base_ac(Const.BaseItemType(stats.base_item));
+    }
+
+    if (stats.base_item == Const.base_item_armor as int
+        && stats.armor_id != -1
+        && stats.armor_ac_bonus_valid != 0) {
+        return stats.armor_ac_bonus;
+    }
+
+    return 0;
+}
+
+fn sync_equipment_armor_class(creature: Creature): bool {
+    if ((creature as object) == O.invalid) {
+        return false;
+    }
+
+    var combat = get_propset!(CreatureCombat)(creature);
+    combat.ac_armor_base = 0;
+    combat.ac_shield_base = 0;
+
+    var chest = Cre.get_equipped_item(creature, Const.equip_index_chest);
+    if ((chest as object) != O.invalid) {
+        combat.ac_armor_base = calculate_item_ac(chest);
+    }
+
+    var offhand = Cre.get_equipped_item(creature, Const.equip_index_lefthand);
+    if ((offhand as object) != O.invalid) {
+        var stats = get_propset!(ItemBase.ItemStats)(offhand);
+        if (is_shield(stats.base_item)) {
+            combat.ac_shield_base = calculate_item_ac(offhand);
+        }
+    }
+
+    return true;
+}
+
+fn _on_item_equipped_sync_equipment_ac(creature: Creature, _equipped: Item, _slot: Const.EquipIndex) {
+    sync_equipment_armor_class(creature);
+}
+
+fn _on_item_unequipped_sync_equipment_ac(creature: Creature, _removed: Item, _slot: Const.EquipIndex) {
+    sync_equipment_armor_class(creature);
+}
+
+fn ensure_equipment_ac_callbacks() {
+    if (did_install_equipment_ac_callbacks) {
+        return;
+    }
+
+    ItemBase.add_on_equip_callback(_on_item_equipped_sync_equipment_ac);
+    ItemBase.add_on_unequip_callback(_on_item_unequipped_sync_equipment_ac);
+    did_install_equipment_ac_callbacks = true;
+}

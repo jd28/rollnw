@@ -1,3 +1,17 @@
-[[native]] fn get_gold(obj: Store): int;
-[[native]] fn get_max_price(obj: Store): int;
-[[native]] fn is_blackmarket(obj: Store): bool;
+from core.types import { ResRef };
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[propset(Store)]]
+type StoreState {
+    on_closed: ResRef;
+    on_opened: ResRef;
+    blackmarket_markdown: int;
+    identify_price: int;
+    markdown: int;
+    markup: int;
+    max_price: int;
+    gold: int;
+    blackmarket: int;
+};

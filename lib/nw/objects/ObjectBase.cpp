@@ -1,6 +1,7 @@
 #include "ObjectBase.hpp"
 
-#include <nlohmann/json.hpp>
+#include "../kernel/Kernel.hpp"
+#include "ObjectManager.hpp"
 
 namespace nw {
 
@@ -15,21 +16,61 @@ ObjectBase::ObjectBase(nw::MemoryResource* allocator)
 
 void ObjectBase::clear()
 {
+    clear_effects();
+
+    if (auto* objects = kernel::services().get_mut<ObjectManager>()) {
+        objects->components().remove(*this);
+    }
+
+    uuid = uuids::uuid{};
+    resref = Resref{};
+    name = LocString{};
+    tag = InternedString{};
+    comment.clear();
+    palette_id = 0xFF;
 }
 
-void ObjectBase::add_visual_transform(VisualTransform value)
+void ObjectBase::clear_effects()
 {
-    // The game is using a std::map, I think. I have no clue why.. yet.
-    if (value == VisualTransform{}
-        || std::find(visual_transform_.begin(), visual_transform_.end(), value) != visual_transform_.end()) {
+    if (effects_.size() == 0) { return; }
+
+    auto* effects = kernel::services().get_mut<EffectSystem>();
+    if (!effects) {
+        effects_.clear();
         return;
     }
-    visual_transform_.push_back(value);
+
+    Vector<Effect*> to_remove;
+    to_remove.reserve(effects_.size());
+    for (const auto& handle : effects_) {
+        if (auto* effect = handle.effect ? handle.effect : effects->get(handle.runtime_handle)) {
+            to_remove.push_back(effect);
+        }
+    }
+
+    if (!to_remove.empty()) {
+        effects->remove_from(this, to_remove, true);
+    }
+
+    if (effects_.size() == 0) { return; }
+
+    Vector<TypedHandle> stale_handles;
+    stale_handles.reserve(effects_.size());
+    for (const auto& handle : effects_) {
+        if (handle.runtime_handle.is_valid()) {
+            stale_handles.push_back(handle.runtime_handle);
+        }
+    }
+    effects_.clear();
+
+    for (const auto& handle : stale_handles) {
+        if (auto* effect = effects->get(handle)) {
+            effects->destroy(effect);
+        }
+    }
 }
 
 EffectArray& ObjectBase::effects() { return effects_; }
 const EffectArray& ObjectBase::effects() const { return effects_; }
-
-InternedString ObjectBase::tag() const { return {}; }
 
 } // namespace nw

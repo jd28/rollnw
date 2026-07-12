@@ -1,3 +1,33 @@
-[[native]] fn is_active(obj: Encounter): bool;
-[[native]] fn get_spawn_point_count(obj: Encounter): int;
-[[native]] fn get_creatures_max(obj: Encounter): int;
+from core.types import { ResRef };
+
+// == Propsets ================================================================
+// ============================================================================
+
+[[value_type]]
+type EncounterSpawn {
+    appearance: int;
+    cr: float;
+    resref: ResRef;
+    single_spawn: int;
+};
+
+[[propset(Encounter)]]
+type EncounterState {
+    on_entered: ResRef;
+    on_exhausted: ResRef;
+    on_exit: ResRef;
+    on_heartbeat: ResRef;
+    on_user_defined: ResRef;
+    creatures: array!(EncounterSpawn);
+    creatures_max: int;
+    creatures_recommended: int;
+    difficulty: int;
+    difficulty_index: int;
+    faction: int;
+    reset_time: int;
+    respawns: int;
+    spawn_option: int;
+    active: int;
+    player_only: int;
+    reset: int;
+};

@@ -2,6 +2,7 @@
 
 #include <nw/log.hpp>
 #include <nw/smalls/Smalls.hpp>
+#include <nw/smalls/propset_json.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/smalls/types.hpp>
 
@@ -230,6 +231,70 @@ TEST_F(SmallsRuntime, TypeIdLookup)
     // Non-existent type without define should return invalid
     auto bad_id = rt.type_id("nonexistent", false);
     EXPECT_EQ(bad_id, nw::smalls::invalid_type_id);
+}
+
+TEST_F(SmallsRuntime, GetStructDef)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.runtime_struct_def", R"(
+        type Point {
+            x, y: int;
+        };
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(script), nullptr);
+
+    auto point_id = rt.type_id("test.runtime_struct_def.Point", false);
+    ASSERT_NE(point_id, nw::smalls::invalid_type_id);
+
+    nw::smalls::Type alias_type{};
+    alias_type.type_params = {point_id, nw::smalls::TypeParam{}};
+    alias_type.type_kind = nw::smalls::TK_alias;
+    auto alias_id = rt.register_type("test.runtime_struct_def.PointAlias", alias_type);
+
+    const nw::smalls::StructDef* point_def = rt.get_struct_def(point_id);
+    ASSERT_NE(point_def, nullptr);
+    EXPECT_EQ(point_def->field_count, 2u);
+    EXPECT_EQ(rt.get_struct_def(alias_id), point_def);
+    EXPECT_EQ(rt.get_struct_def(rt.int_type()), nullptr);
+    EXPECT_EQ(rt.get_struct_def(nw::smalls::invalid_type_id), nullptr);
+}
+
+TEST_F(SmallsRuntime, JsonSerializerRoundTripsStructValue)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.json_serializer", R"(
+        type Probe {
+            id: int;
+            label: string;
+            values: array!(int);
+        };
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(script), nullptr);
+
+    auto probe_id = rt.type_id("test.json_serializer.Probe", false);
+    ASSERT_NE(probe_id, nw::smalls::invalid_type_id);
+
+    nw::smalls::JsonSerializer serializer{&rt};
+    nw::smalls::Value value;
+    ASSERT_TRUE(serializer.deserialize_value({
+        {"id", 7},
+        {"label", "seven"},
+        {"values", {1, 2, 3}},
+    },
+        probe_id, value));
+
+    auto out = serializer.serialize_value(value, probe_id);
+    EXPECT_EQ(out.at("id"), 7);
+    EXPECT_EQ(out.at("label"), "seven");
+    ASSERT_TRUE(out.at("values").is_array());
+    ASSERT_EQ(out.at("values").size(), 3);
+    EXPECT_EQ(out.at("values")[0], 1);
+    EXPECT_EQ(out.at("values")[1], 2);
+    EXPECT_EQ(out.at("values")[2], 3);
 }
 
 TEST_F(SmallsRuntime, MapObjectKeysRejected)

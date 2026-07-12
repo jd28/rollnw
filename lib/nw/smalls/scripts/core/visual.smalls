@@ -1,0 +1,134 @@
+from core.types import { ResRef };
+
+const visual_model_kind_root = 0;
+const visual_model_kind_item_model = 1;
+const visual_model_kind_creature_model_part = 2;
+const visual_model_kind_creature_attachment = 3;
+const visual_model_slot_none = -1;
+const visual_model_flag_none = 0;
+const visual_model_flag_requires_wearer = 1;
+const visual_model_flag_hidden_in_game = 2;
+const visual_model_flag_hidden_in_toolset = 4;
+
+const visual_plt_layer_skin = 0;
+const visual_plt_layer_hair = 1;
+const visual_plt_layer_metal1 = 2;
+const visual_plt_layer_metal2 = 3;
+const visual_plt_layer_cloth1 = 4;
+const visual_plt_layer_cloth2 = 5;
+const visual_plt_layer_leather1 = 6;
+const visual_plt_layer_leather2 = 7;
+const visual_plt_layer_tattoo1 = 8;
+const visual_plt_layer_tattoo2 = 9;
+
+const visual_plt_mask_skin = 1;
+const visual_plt_mask_hair = 2;
+const visual_plt_mask_metal1 = 4;
+const visual_plt_mask_metal2 = 8;
+const visual_plt_mask_cloth1 = 16;
+const visual_plt_mask_cloth2 = 32;
+const visual_plt_mask_leather1 = 64;
+const visual_plt_mask_leather2 = 128;
+const visual_plt_mask_tattoo1 = 256;
+const visual_plt_mask_tattoo2 = 512;
+const visual_plt_mask_material = 252;
+const visual_plt_mask_creature = 771;
+
+const visual_creature_attachment_wing = 1;
+const visual_creature_attachment_tail = 2;
+
+type VisualModelRow {
+    model: ResRef;
+    attach_to: ResRef;
+    attach_from: ResRef;
+    kind: int;
+    slot: int;
+    part: int;
+    source_part: int;
+    model_part: int;
+    flags: int;
+};
+
+type VisualLightRow {
+    color: int;
+    offset_x: float;
+    offset_y: float;
+    offset_z: float;
+};
+
+[[native]] fn clear_visual(obj: object, appearance: int): bool;
+
+[[native]] fn clear_visual_slot(obj: object, slot: int): bool;
+
+[[native]] fn set_visual_body_variant(obj: object, body_variant: int): bool;
+
+[[native]] fn add_visual_model(
+    obj: object,
+    model: ResRef,
+    attach_to: ResRef,
+    attach_from: ResRef,
+    kind: int,
+    slot: int,
+    part: int,
+    flags: int): bool;
+
+[[native]] fn add_visual_model_row(
+    obj: object,
+    model: ResRef,
+    attach_to: ResRef,
+    attach_from: ResRef,
+    kind: int,
+    slot: int,
+    part: int,
+    source_part: int,
+    model_part: int,
+    flags: int): bool;
+
+[[native]] fn add_visual_part(
+    obj: object,
+    attach_to: ResRef,
+    attach_from: ResRef,
+    kind: int,
+    slot: int,
+    part: int,
+    source_part: int,
+    model_part: int,
+    flags: int): bool;
+
+[[native]] fn set_visual_plt_colors(
+    obj: object,
+    slot: int,
+    kind: int,
+    part: int,
+    mask: int,
+    skin: int,
+    hair: int,
+    metal1: int,
+    metal2: int,
+    cloth1: int,
+    cloth2: int,
+    leather1: int,
+    leather2: int,
+    tattoo1: int,
+    tattoo2: int): bool;
+
+[[native]] fn set_visual_base_plt_colors(
+    obj: object,
+    mask: int,
+    skin: int,
+    hair: int,
+    metal1: int,
+    metal2: int,
+    cloth1: int,
+    cloth2: int,
+    leather1: int,
+    leather2: int,
+    tattoo1: int,
+    tattoo2: int): bool;
+
+[[native]] fn add_visual_light(
+    obj: object,
+    color: int,
+    offset_x: float,
+    offset_y: float,
+    offset_z: float): bool;

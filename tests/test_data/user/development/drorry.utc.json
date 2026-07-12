@@ -1,155 +1,106 @@
 {
-    "$type": "UTC",
-    "$version": 1,
-    "appearance": {
-        "body_parts": {
-            "belt": 0,
-            "bicep_left": 1,
-            "bicep_right": 1,
-            "foot_left": 1,
-            "foot_right": 1,
-            "forearm_left": 1,
-            "forearm_right": 1,
-            "hand_left": 1,
-            "hand_right": 1,
-            "head": 1,
-            "neck": 1,
-            "pelvis": 1,
-            "shin_left": 1,
-            "shin_right": 1,
-            "shoulder_left": 0,
-            "shoulder_right": 0,
-            "thigh_left": 1,
-            "thigh_right": 1,
-            "torso": 1
+    "components": {
+        "equipment": {
+            "boots": "nw_it_mboots005",
+            "chest": "nw_aarcl002",
+            "righthand": "nw_wswmsc007"
         },
-        "hair": 1,
-        "id": 3,
+        "inventory": [
+            {
+                "item": "nw_it_torch001",
+                "position": [
+                    0,
+                    0
+                ]
+            },
+            {
+                "item": "nw_it_mpotion001",
+                "position": [
+                    1,
+                    0
+                ]
+            },
+            {
+                "item": "nw_it_mpotion001",
+                "position": [
+                    2,
+                    0
+                ]
+            },
+            {
+                "item": "nw_it_mpotion001",
+                "position": [
+                    3,
+                    0
+                ]
+            },
+            {
+                "item": "nw_wswss001",
+                "position": [
+                    4,
+                    0
+                ]
+            }
+        ],
+        "locals": {}
+    },
+    "core.creature.CreatureAppearance": {
+        "appearance": 3,
+        "body_part_belt": 0,
+        "body_part_bicep_left": 1,
+        "body_part_bicep_right": 1,
+        "body_part_foot_left": 1,
+        "body_part_foot_right": 1,
+        "body_part_forearm_left": 1,
+        "body_part_forearm_right": 1,
+        "body_part_hand_left": 1,
+        "body_part_hand_right": 1,
+        "body_part_head": 1,
+        "body_part_neck": 1,
+        "body_part_pelvis": 1,
+        "body_part_shin_left": 1,
+        "body_part_shin_right": 1,
+        "body_part_shoulder_left": 0,
+        "body_part_shoulder_right": 0,
+        "body_part_thigh_left": 1,
+        "body_part_thigh_right": 1,
+        "body_part_torso": 1,
+        "color_hair": 1,
+        "color_skin": 1,
+        "color_tattoo1": 1,
+        "color_tattoo2": 1,
         "phenotype": 0,
+        "portrait": "",
         "portrait_id": 61,
-        "skin": 1,
         "tail": 0,
-        "tattoo1": 1,
-        "tattoo2": 1,
         "wings": 0
     },
-    "bodybag": 0,
-    "chunk_death": 1,
-    "combat_info": {
-        "ac_natural": 0,
-        "special_abilities": []
-    },
-    "common": {
-        "comment": "",
-        "locals": {},
-        "object_type": 5,
-        "palette_id": 0,
-        "resref": "drorry",
-        "tag": "Drorry"
-    },
-    "conversation": "",
-    "cr": 20.0,
-    "cr_adjust": 0,
-    "decay_time": 5000,
-    "deity": "",
-    "description": {
-        "strings": [],
-        "strref": 4294967295
-    },
-    "disarmable": 1,
-    "equipment": {
-        "boots": "nw_it_mboots005",
-        "chest": "nw_aarcl002",
-        "righthand": "nw_wswmsc007"
-    },
-    "faction_id": 1,
-    "gender": 0,
-    "good_evil": 50,
-    "hp": 59,
-    "hp_current": 173,
-    "hp_max": 173,
-    "immortal": 0,
-    "interruptable": 1,
-    "inventory": [
-        {
-            "item": "nw_it_torch001",
-            "position": [
-                0,
-                0
-            ]
+    "core.creature.CreatureDescriptor": {
+        "conversation": "",
+        "decay_time": 5000,
+        "deity": "",
+        "description": {
+            "strings": [],
+            "strref": 4294967295
         },
-        {
-            "item": "nw_it_mpotion001",
-            "position": [
-                1,
-                0
-            ]
+        "name_first": {
+            "strings": [
+                {
+                    "lang": 0,
+                    "string": "Drorry"
+                }
+            ],
+            "strref": 4294967295
         },
-        {
-            "item": "nw_it_mpotion001",
-            "position": [
-                2,
-                0
-            ]
+        "name_last": {
+            "strings": [
+                {
+                    "lang": 0,
+                    "string": "Tildspeas"
+                }
+            ],
+            "strref": 4294967295
         },
-        {
-            "item": "nw_it_mpotion001",
-            "position": [
-                3,
-                0
-            ]
-        },
-        {
-            "item": "nw_wswss001",
-            "position": [
-                4,
-                0
-            ]
-        }
-    ],
-    "lawful_chaotic": 50,
-    "levels": [
-        {
-            "class": 4,
-            "level": 10,
-            "spellbook": {
-                "known": [],
-                "memorized": []
-            }
-        },
-        {
-            "class": 33,
-            "level": 28,
-            "spellbook": {
-                "known": [],
-                "memorized": []
-            }
-        }
-    ],
-    "lootable": 0,
-    "name_first": {
-        "strings": [
-            {
-                "lang": 0,
-                "string": "Drorry"
-            }
-        ],
-        "strref": 4294967295
-    },
-    "name_last": {
-        "strings": [
-            {
-                "lang": 0,
-                "string": "Tildspeas"
-            }
-        ],
-        "strref": 4294967295
-    },
-    "pc": 0,
-    "perception_range": 11,
-    "plot": false,
-    "race": 3,
-    "scripts": {
         "on_attacked": "x2_def_attacked",
         "on_blocked": "x2_def_onblocked",
         "on_conversation": "x2_def_onconv",
@@ -162,11 +113,45 @@
         "on_rested": "x2_def_rested",
         "on_spawn": "x2_def_spawn",
         "on_spell_cast_at": "x2_def_spellcast",
-        "on_user_defined": "x2_def_userdef"
+        "on_user_defined": "x2_def_userdef",
+        "soundset": 0,
+        "subrace": ""
     },
-    "soundset": 0,
-    "starting_package": 4,
-    "stats": {
+    "core.creature.CreatureHealth": {
+        "faction_id": 1,
+        "hp": 59,
+        "hp_base_for_max": 59,
+        "hp_current": 173,
+        "hp_max": 173,
+        "hp_temp": 0,
+        "starting_package": 4
+    },
+    "core.creature.CreatureLevels": {
+        "class_levels": [
+            10,
+            28,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "classes": [
+            4,
+            33,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+        ],
+        "levelup_classes": [],
+        "walkrate": 4,
+        "xp": 0
+    },
+    "core.creature.CreatureStats": {
         "abilities": [
             18,
             13,
@@ -175,6 +160,12 @@
             10,
             9
         ],
+        "ac_natural_bonus": 0,
+        "bodybag": 0,
+        "chunk_death": 1,
+        "cr": 20.0,
+        "cr_adjust": 0,
+        "disarmable": 1,
         "feats": [
             2,
             3,
@@ -206,11 +197,19 @@
             927,
             1089
         ],
-        "save_bonus": {
-            "fort": 0,
-            "reflex": 0,
-            "will": 0
-        },
+        "gender": 0,
+        "good_evil": 50,
+        "immortal": 0,
+        "interruptable": 1,
+        "lawful_chaotic": 50,
+        "lootable": 0,
+        "pc": 0,
+        "perception_range": 11,
+        "plot": 0,
+        "race": 3,
+        "save_fort": 0,
+        "save_reflex": 0,
+        "save_will": 0,
         "skills": [
             0,
             1,
@@ -240,8 +239,17 @@
             1,
             1,
             0
-        ]
+        ],
+        "special_abilities": []
     },
-    "subrace": "",
-    "walkrate": 4
+    "object": {
+        "comment": "",
+        "name": {
+            "strings": [],
+            "strref": 4294967295
+        },
+        "palette_id": 0,
+        "resref": "drorry",
+        "tag": "Drorry"
+    }
 }

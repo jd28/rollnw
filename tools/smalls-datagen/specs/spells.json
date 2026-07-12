@@ -9,6 +9,7 @@
     {"name": "innate_level", "type": "int",   "source": "Innate",    "default": "-1"},
     {"name": "school",       "type": "int",   "source": "School",    "default": "-1",
       "enum": {"G": 0, "A": 1, "C": 2, "D": 3, "E": 4, "V": 5, "I": 6, "N": 7, "T": 8}},
-    {"name": "user_type",    "type": "int",   "source": "UserType",  "default": "0"}
+    {"name": "user_type",    "type": "int",   "source": "UserType",  "default": "0"},
+    {"name": "class_levels", "type": "int[6]", "source": "@array:Bard,Cleric,Druid,Paladin,Ranger,Wiz_Sorc", "default": "-1"}
   ]
 }

@@ -126,6 +126,9 @@ struct EffectArray {
     /// Adds an effect
     bool add(Effect* effect);
 
+    /// Clears all effect handles
+    void clear();
+
     iterator begin();
     const_iterator begin() const;
 
@@ -152,6 +155,7 @@ private:
 // ============================================================================
 
 enum struct EquipIndex : uint32_t;
+struct ObjectBase;
 struct StaticTwoDA;
 
 using EffectFunc = FunctionPtr<bool(ObjectBase*, const Effect*)>;

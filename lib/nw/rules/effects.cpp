@@ -236,8 +236,17 @@ bool EffectArray::add(Effect* effect)
     return true;
 }
 
+void EffectArray::clear()
+{
+    if (effects_.empty()) { return; }
+
+    effects_.clear();
+    ++effect_version;
+}
+
 void EffectArray::erase(EffectArray::iterator first, EffectArray::iterator last)
 {
+    if (first != last) { ++effect_version; }
     effects_.erase(first, last);
 }
 

@@ -105,21 +105,6 @@ DECLARE_RULE_TYPE(ArmorClass);
 
 DECLARE_RULE_TYPE(Phenotype);
 
-struct PhenotypeInfo {
-    PhenotypeInfo() = default;
-    PhenotypeInfo(const TwoDARowView& tda);
-
-    uint32_t name = std::numeric_limits<uint32_t>::max();
-    int fallback = 0;
-
-    /// Gets the name to display when using in contexts like a toolset.
-    String editor_name() const;
-
-    bool valid() const noexcept { return name != 0xFFFFFFFF; }
-};
-
-using PhenotypeArray = RuleTypeArray<Phenotype, PhenotypeInfo>;
-
 // -- Race --------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 

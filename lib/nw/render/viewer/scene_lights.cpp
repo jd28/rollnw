@@ -8,7 +8,6 @@
 #include <nw/formats/Tileset.hpp>
 #include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
-#include <nw/objects/Placeable.hpp>
 #include <nw/render/render_context.hpp>
 
 #include <algorithm>
@@ -197,17 +196,13 @@ SceneLocalLightTuning scene_placeable_table_light_tuning(const PreviewScene& sce
     return SceneLocalLightTuning{.radius_scale = 0.92f, .intensity_scale = 0.72f};
 }
 
-glm::vec3 placeable_table_light_color(const nw::Placeable& placeable, const nw::PlaceableInfo& info) noexcept
+glm::vec3 placeable_table_light_color(int32_t color) noexcept
 {
-    int32_t light_color = info.light_color;
-    if (light_color < 0 && placeable.light_color >= 0) {
-        light_color = placeable.light_color;
-    }
-    if (light_color < 0) {
+    if (color < 0) {
         return glm::vec3{0.0f};
     }
 
-    return tile_main_light_debug_color(static_cast<uint8_t>(std::clamp(light_color, 0, 31)));
+    return tile_main_light_debug_color(static_cast<uint8_t>(std::clamp(color, 0, 31)));
 }
 
 SceneLocalLightTuning scene_light_tuning_for_source(
@@ -484,13 +479,13 @@ SceneTileLightSlots scene_tile_light_slots(const nw::AreaTile& tile) noexcept
 
 size_t append_placeable_table_light(
     PreviewScene& scene,
-    const nw::Placeable& placeable,
-    const nw::PlaceableInfo& info)
+    const nw::Location& location,
+    const nw::ObjectVisualLight& lighting)
 {
     constexpr float k_base_radius = 6.0f;
     constexpr float k_base_intensity = 0.86f;
 
-    const glm::vec3 color = placeable_table_light_color(placeable, info);
+    const glm::vec3 color = placeable_table_light_color(lighting.light_color);
     if (!has_visible_light_color(color)) {
         if (viewer_tile_light_debug_shapes_enabled()) {
             LOG_F(INFO,
@@ -498,15 +493,14 @@ size_t append_placeable_table_light(
                 color.r,
                 color.g,
                 color.b,
-                info.light_color);
+                lighting.light_color);
         }
         return 0;
     }
 
     const SceneLocalLightTuning tuning = scene_placeable_table_light_tuning(scene);
-    const glm::mat4 placement = area_object_placement_transform(placeable.common.location);
-    const glm::vec3 local_offset{info.light_offset_x, info.light_offset_y, info.light_offset_z};
-    const glm::vec3 world_position = glm::vec3(placement * glm::vec4{local_offset, 1.0f});
+    const glm::mat4 placement = area_object_placement_transform(location);
+    const glm::vec3 world_position = glm::vec3(placement * glm::vec4{lighting.light_offset, 1.0f});
 
     SceneLocalLight light{
         .position = world_position,
@@ -526,6 +520,20 @@ size_t append_placeable_table_light(
         append_debug_shape_range(scene, DebugShapeCategory::general, first_debug_index);
     }
     return 1;
+}
+
+size_t append_placeable_table_lights(
+    PreviewScene& scene,
+    const nw::Location& location,
+    const nw::ObjectVisualState* visual)
+{
+    if (!visual) { return 0; }
+
+    size_t result = 0;
+    for (const auto& light : visual->lights) {
+        result += append_placeable_table_light(scene, location, light);
+    }
+    return result;
 }
 
 size_t append_model_authored_lights(PreviewScene& scene, size_t model_index)

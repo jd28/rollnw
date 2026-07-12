@@ -1,4 +1,18 @@
-from core.types import { BaseItemType, EquipIndex, ItemPropertyType };
+from core.types import {
+    Ability,
+    AttackType,
+    BaseItemType,
+    Class,
+    Damage,
+    DamageCategory,
+    EquipIndex,
+    ItemPropertyType,
+    ResRef,
+    Save,
+    SaveVersus,
+    Skill,
+    TextRef,
+};
 import core.array as arr;
 import core.effects as effects;
 import core.map as m;
@@ -14,25 +28,81 @@ type ItemProperty {
     param_value: int;
 };
 
-var itemprop_generators_by_type: map!(int, fn(ItemProperty, EquipIndex): effects.Effect) = {};
+type ItemEffectRow {
+    op: int;
+    timing: int;
+    subject: int;
+    value0: int;
+    value1: int;
+    value2: int;
+    condition: int;
+    flags: int;
+};
 
-fn _noop_on_equip(_creature: Creature, _equipped: Item, _slot: EquipIndex) {}
-fn _noop_on_unequip(_creature: Creature, _removed: Item, _slot: EquipIndex) {}
+const item_effect_op_ability_modifier = 1;
+const item_effect_op_attack_modifier = 2;
+const item_effect_op_bonus_spell_slot = 3;
+const item_effect_op_damage_bonus = 4;
+const item_effect_op_haste = 5;
+const item_effect_op_save_modifier = 6;
+const item_effect_op_skill_modifier = 7;
 
-var on_equip_callback: fn(Creature, Item, EquipIndex) = _noop_on_equip;
-var on_unequip_callback: fn(Creature, Item, EquipIndex) = _noop_on_unequip;
+const item_effect_timing_equipped = 1;
 
-[[native]] fn property_count(item: Item): int;
-[[native]] fn has_on_hit_properties(item: Item): bool;
-[[native]] fn has_property(item: Item, prop_type: int): bool;
-[[native]] fn clear_properties(item: Item);
-[[native]] fn __get_property(item: Item, index: int): ItemProperty;
+const item_effect_condition_none = 0;
+
+const item_effect_flag_none = 0;
+
+const item_model_color_count = 6;
+const item_model_part_count = 19;
+const item_part_color_count = item_model_color_count * item_model_part_count;
+
+var itemprop_generators_by_type: map!(int, fn(ItemProperty, EquipIndex): ItemEffectRow) = {};
+var item_effect_generators_by_op: map!(int, fn(ItemEffectRow): effects.Effect) = {};
+
+var can_equip_callbacks: array!(fn(Creature, Item, EquipIndex): bool) = {};
+var on_equip_callbacks: array!(fn(Creature, Item, EquipIndex)) = {};
+var on_unequip_callbacks: array!(fn(Creature, Item, EquipIndex)) = {};
+
 [[native]] fn __apply_item_effect(creature: Creature, item: Item, effect: effects.Effect): bool;
 [[native]] fn __remove_item_effects(creature: Creature, item: Item): int;
 [[native]] fn __ip_cost_table_int(prop_type: int, cost_value: int, column: string): int;
-[[native]] fn __sync_item_propset(item: Item);
+[[native]] fn __ip_definition_cost(prop_type: int): float;
+[[native]] fn __ip_subtype_cost(prop_type: int, subtype: int): float;
+[[native]] fn __ip_cost_table_float(prop_type: int, cost_value: int, column: string): float;
+[[native]] fn __set_item_layout(item: Item, inventory_width: int, inventory_height: int): bool;
+[[native]] fn __clear_item_layout(item: Item): bool;
 
-fn set_generator_for_type(prop_type: ItemPropertyType, generator: fn(ItemProperty, EquipIndex): effects.Effect) {
+fn has_property(item_obj: Item, prop_type: int, subtype: int): bool {
+    if ((item_obj as object) == Obj.invalid) {
+        return false;
+    }
+
+    var stats = get_propset!(ItemStats)(item_obj);
+    for (var ip in stats.item_properties) {
+        if (ip.prop_type == prop_type && (subtype == -1 || ip.subtype == subtype)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn can_equip_item(creature: Creature, item_obj: Item, slot: EquipIndex): bool {
+    if ((creature as object) == Obj.invalid || (item_obj as object) == Obj.invalid) {
+        return false;
+    }
+
+    for (var i = 0; i < arr.len(can_equip_callbacks); i = i + 1) {
+        var f = can_equip_callbacks[i];
+        if (!f(creature, item_obj, slot)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+fn set_generator_for_type(prop_type: ItemPropertyType, generator: fn(ItemProperty, EquipIndex): ItemEffectRow) {
     itemprop_generators_by_type[prop_type as int] = generator;
 }
 
@@ -44,22 +114,143 @@ fn clear_generators() {
     m.clear(itemprop_generators_by_type);
 }
 
+fn add_can_equip_callback(cb: fn(Creature, Item, EquipIndex): bool) {
+    arr.push(can_equip_callbacks, cb);
+}
+
+fn set_effect_generator_for_op(op: int, generator: fn(ItemEffectRow): effects.Effect) {
+    item_effect_generators_by_op[op] = generator;
+}
+
+fn ability_modifier(ability: Ability, amount: int): ItemEffectRow {
+    return {
+        op = item_effect_op_ability_modifier,
+        timing = item_effect_timing_equipped,
+        subject = ability as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn attack_modifier(attack: AttackType, amount: int): ItemEffectRow {
+    return {
+        op = item_effect_op_attack_modifier,
+        timing = item_effect_timing_equipped,
+        subject = attack as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn bonus_spell_slot(class_id: Class, spell_level: int): ItemEffectRow {
+    return {
+        op = item_effect_op_bonus_spell_slot,
+        timing = item_effect_timing_equipped,
+        subject = class_id as int,
+        value0 = spell_level,
+        value1 = 0,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn damage_bonus(damage_type: Damage, dice: int, sides: int, bonus: int, category: DamageCategory): ItemEffectRow {
+    return {
+        op = item_effect_op_damage_bonus,
+        timing = item_effect_timing_equipped,
+        subject = damage_type as int,
+        value0 = dice,
+        value1 = sides,
+        value2 = bonus,
+        condition = item_effect_condition_none,
+        flags = category as int,
+    };
+}
+
+fn haste(): ItemEffectRow {
+    return {
+        op = item_effect_op_haste,
+        timing = item_effect_timing_equipped,
+        subject = 0,
+        value0 = 0,
+        value1 = 0,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn save_modifier(save: Save, amount: int, versus: SaveVersus): ItemEffectRow {
+    return {
+        op = item_effect_op_save_modifier,
+        timing = item_effect_timing_equipped,
+        subject = save as int,
+        value0 = amount,
+        value1 = versus as int,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn skill_modifier(skill: Skill, amount: int): ItemEffectRow {
+    return {
+        op = item_effect_op_skill_modifier,
+        timing = item_effect_timing_equipped,
+        subject = skill as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = item_effect_condition_none,
+        flags = item_effect_flag_none,
+    };
+}
+
+fn item_effect_to_effect(row: ItemEffectRow): effects.Effect {
+    if (row.timing != item_effect_timing_equipped) { return effects.invalid(); }
+    if (row.condition != item_effect_condition_none) { return effects.invalid(); }
+    if (!m.has(item_effect_generators_by_op, row.op)) { return effects.invalid(); }
+    var f: fn(ItemEffectRow): effects.Effect = item_effect_generators_by_op[row.op];
+    return f(row);
+}
+
 fn set_on_equip_callback(cb: fn(Creature, Item, EquipIndex)) {
-    on_equip_callback = cb;
+    arr.clear(on_equip_callbacks);
+    arr.push(on_equip_callbacks, cb);
 }
 
 fn set_on_unequip_callback(cb: fn(Creature, Item, EquipIndex)) {
-    on_unequip_callback = cb;
+    arr.clear(on_unequip_callbacks);
+    arr.push(on_unequip_callbacks, cb);
+}
+
+fn add_on_equip_callback(cb: fn(Creature, Item, EquipIndex)) {
+    arr.push(on_equip_callbacks, cb);
+}
+
+fn add_on_unequip_callback(cb: fn(Creature, Item, EquipIndex)) {
+    arr.push(on_unequip_callbacks, cb);
 }
 
 fn _dispatch_on_equip(creature: Creature, equipped: Item, slot: EquipIndex) {
-    var f = on_equip_callback;
-    f(creature, equipped, slot);
+    for (var i = 0; i < arr.len(on_equip_callbacks); i = i + 1) {
+        var f = on_equip_callbacks[i];
+        f(creature, equipped, slot);
+    }
 }
 
 fn _dispatch_on_unequip(creature: Creature, removed: Item, slot: EquipIndex) {
-    var f = on_unequip_callback;
-    f(creature, removed, slot);
+    for (var i = 0; i < arr.len(on_unequip_callbacks); i = i + 1) {
+        var f = on_unequip_callbacks[i];
+        f(creature, removed, slot);
+    }
 }
 
 fn process_item_properties(creature: Creature, item: Item, equip_index: EquipIndex, remove: bool): int {
@@ -69,13 +260,15 @@ fn process_item_properties(creature: Creature, item: Item, equip_index: EquipInd
     var processed = 0;
     for (var i = 0; i < count; i = i + 1) {
         var ip = stats.item_properties[i];
-        var eff: effects.Effect;
+        var row: ItemEffectRow;
         if (m.has(itemprop_generators_by_type, ip.prop_type)) {
-            var f: fn(ItemProperty, EquipIndex): effects.Effect = itemprop_generators_by_type[ip.prop_type];
-            eff = f(ip, equip_index);
+            var f: fn(ItemProperty, EquipIndex): ItemEffectRow = itemprop_generators_by_type[ip.prop_type];
+            row = f(ip, equip_index);
         } else {
             continue;
         }
+        var eff = item_effect_to_effect(row);
+        if (!effects.is_valid(eff)) { continue; }
         if (__apply_item_effect(creature, item, eff)) { processed = processed + 1; }
     }
     return processed;
@@ -83,6 +276,12 @@ fn process_item_properties(creature: Creature, item: Item, equip_index: EquipInd
 
 // == Propsets ================================================================
 // ============================================================================
+
+[[propset(Item)]]
+type ItemDescriptor {
+    description: TextRef;
+    description_id: TextRef;
+};
 
 [[propset(Item)]]
 type ItemStats {
@@ -93,7 +292,6 @@ type ItemStats {
     armor_ac_bonus: int;
     armor_ac_bonus_valid: int;
     item_properties: array!(ItemProperty);
-    has_on_hit: int;
     cost: int;
     cost_additional: int;
     stack_size: int;
@@ -103,6 +301,64 @@ type ItemStats {
     plot: int;
     stolen: int;
 };
+
+[[propset(Item)]]
+type ItemVisuals {
+    model_colors: int[item_model_color_count];
+    model_parts: int[item_model_part_count];
+    part_colors: int[item_part_color_count];
+};
+
+fn valid_visual_color_index(color: int): bool {
+    return color >= 0 && color < item_model_color_count;
+}
+
+fn valid_visual_part_index(part: int): bool {
+    return part >= 0 && part < item_model_part_count;
+}
+
+fn visual_part_color_index(part: int, color: int): int {
+    return part * item_model_color_count + color;
+}
+
+fn get_visual_model_color(item: Item, color: int): int {
+    if (!valid_visual_color_index(color)) { return 0; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    return visuals.model_colors[color];
+}
+
+fn set_visual_model_color(item: Item, color: int, value: int): bool {
+    if (!valid_visual_color_index(color)) { return false; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    visuals.model_colors[color] = value;
+    return true;
+}
+
+fn get_visual_model_part(item: Item, part: int): int {
+    if (!valid_visual_part_index(part)) { return 0; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    return visuals.model_parts[part];
+}
+
+fn set_visual_model_part(item: Item, part: int, model_number: int): bool {
+    if (!valid_visual_part_index(part)) { return false; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    visuals.model_parts[part] = model_number;
+    return true;
+}
+
+fn get_visual_part_color(item: Item, part: int, color: int): int {
+    if (!valid_visual_part_index(part) || !valid_visual_color_index(color)) { return 0; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    return visuals.part_colors[visual_part_color_index(part, color)];
+}
+
+fn set_visual_part_color(item: Item, part: int, color: int, value: int): bool {
+    if (!valid_visual_part_index(part) || !valid_visual_color_index(color)) { return false; }
+    var visuals = get_propset!(ItemVisuals)(item);
+    visuals.part_colors[visual_part_color_index(part, color)] = value;
+    return true;
+}
 
 fn get_baseitem_type(item: Item): BaseItemType {
     if (item == Obj.invalid) { return BaseItemType(-1); }

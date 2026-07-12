@@ -2163,7 +2163,7 @@ void TypeResolver::visit(StructDecl* decl)
 
                     bool allowed = false;
 
-                    // Helper to check if primitive kind is in v1 allowlist
+                    // Helper to check if inline primitive kind is in the POD allowlist.
                     auto is_v1_primitive = [&](PrimitiveKind pk) -> bool {
                         return pk == PK_int || pk == PK_float || pk == PK_bool;
                     };
@@ -2202,9 +2202,11 @@ void TypeResolver::visit(StructDecl* decl)
                         return false;
                     };
 
-                    // Case 1: Primitive types (int, float, bool only - NOT string)
+                    // Case 1: Primitive types. Direct string fields are HeapPtr-backed
+                    // and owned by the propset row; string arrays remain rejected below.
                     if (field_type->type_kind == TK_primitive) {
-                        allowed = is_v1_primitive(field_type->primitive_kind);
+                        allowed = is_v1_primitive(field_type->primitive_kind)
+                            || field_type->primitive_kind == PK_string;
                     }
                     // Case 2: native value types with no Smalls heap references
                     else if (rt.is_native_value_type(field.type_id)) {
@@ -2245,7 +2247,7 @@ void TypeResolver::visit(StructDecl* decl)
 
                     if (!allowed) {
                         ctx.errorf(decl->range_,
-                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool), and array!(POD struct with no heap refs)",
+                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, string, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool), and array!(POD struct with no heap refs)",
                             decl->identifier(),
                             field.name.view());
                     }

@@ -535,7 +535,9 @@ const effect_agg_max = 1;
 const effect_agg_min = 2;
 
 const ip_attack_bonus = ItemPropertyType(56);
+const ip_cast_spell = ItemPropertyType(15);
 const ip_enhancement_bonus = ItemPropertyType(6);
+const ip_keen = ItemPropertyType(43);
 const ip_mighty = ItemPropertyType(45);
 const ip_on_hit_properties = ItemPropertyType(48);
 const ip_on_monster_hit = ItemPropertyType(72);

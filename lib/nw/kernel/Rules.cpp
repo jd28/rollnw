@@ -15,18 +15,12 @@ const std::type_index Rules::type_index{typeid(Rules)};
 
 Rules::Rules(MemoryResource* scope)
     : Service(scope)
-    , baseitems{allocator()}
-    , classes{allocator()}
     , feats{allocator()}
-    , metamagic(allocator())
     , races{allocator()}
     , spells{allocator()}
     , spellschools{allocator()}
     , skills{allocator()}
-    , phenotypes{allocator()}
     , appearances{allocator()}
-    , placeables{allocator()}
-    , traps{allocator()}
 {
 }
 
@@ -53,11 +47,7 @@ void Rules::initialize(ServiceInitTime time)
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
-    if (qual.type.idx() >= qualifiers_.size()) {
-        return true;
-    }
-    auto fd = qualifiers_[qual.type.idx()];
-    return fd(qual, obj);
+    return qualifier_matcher_ ? qualifier_matcher_(qual, obj) : true;
 }
 
 bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) const
@@ -74,9 +64,9 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
     return true;
 }
 
-void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))
+void Rules::set_qualifier_matcher(QualifierMatcher matcher) noexcept
 {
-    if (qualifier) { qualifiers_[type.idx()] = qualifier; };
+    qualifier_matcher_ = matcher;
 }
 
 nlohmann::json Rules::stats() const

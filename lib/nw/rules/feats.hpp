@@ -41,8 +41,6 @@ struct FeatInfo {
     bool epic = false;
     bool requires_action = false;
 
-    Requirement requirements;
-
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;
 
@@ -55,7 +53,6 @@ using FeatArray = RuleTypeArray<Feat, FeatInfo>;
 // Not Implemented Yet
 // - MINATTACKBONUS
 // - MINSPELLLVL
-// - PREREQFEAT1, PREREQFEAT2
 // - MinLevelClass
 // - MinFortSave
 // - OrReqFeat0, OrReqFeat1, OrReqFeat2, OrReqFeat3, OrReqFeat4

@@ -1,6 +1,9 @@
-from nwn1.rules import { FeatEntry };
+from nwn1.rules import { FeatEntry, StrRef };
 from core.types import { Feat };
 import core.array as Array;
+import core.creature as Cre;
+import nwn1.constants as Const;
+import nwn1.creature as NCre;
 
 var _loaded = false;
 var _feats: array!(FeatEntry);
@@ -21,14 +24,51 @@ fn count(): int {
 fn exists(feat: Feat): bool {
     _ensure_loaded();
     var index = feat as int;
-    return index >= 0 && index < Array.len(_feats);
+    if (index < 0 || index >= Array.len(_feats)) {
+        return false;
+    }
+    var entry = Array.get(_feats, index);
+    return entry.id == index;
+}
+
+fn _entry(feat: Feat): FeatEntry {
+    return Array.get(_feats, feat as int);
+}
+
+fn _meets_min_ability(obj: Creature, ability: Const.Ability, value: int): bool {
+    return value <= 0 || NCre.get_ability_score(obj, ability) >= value;
+}
+
+fn _has_prereq_feat(obj: Creature, feat: int): bool {
+    return feat < 0 || Cre.has_feat(obj, Feat(feat));
+}
+
+fn can_take_feat(obj: Creature, feat: Feat): bool {
+    if (!exists(feat) || Cre.has_feat(obj, feat)) {
+        return false;
+    }
+
+    var entry = _entry(feat);
+    if (entry.max_level >= 0 && Cre.get_total_levels(obj) > entry.max_level) {
+        return false;
+    }
+
+    if (!_meets_min_ability(obj, Const.ability_strength, entry.min_str)) { return false; }
+    if (!_meets_min_ability(obj, Const.ability_dexterity, entry.min_dex)) { return false; }
+    if (!_meets_min_ability(obj, Const.ability_constitution, entry.min_con)) { return false; }
+    if (!_meets_min_ability(obj, Const.ability_intelligence, entry.min_int)) { return false; }
+    if (!_meets_min_ability(obj, Const.ability_wisdom, entry.min_wis)) { return false; }
+    if (!_meets_min_ability(obj, Const.ability_charisma, entry.min_cha)) { return false; }
+
+    return _has_prereq_feat(obj, entry.prereq_feat1)
+        && _has_prereq_feat(obj, entry.prereq_feat2);
 }
 
 fn name_strref(feat: Feat): StrRef {
     if (!exists(feat)) {
         return StrRef(-1);
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.name;
 }
 
@@ -36,7 +76,7 @@ fn uses_per_day(feat: Feat): int {
     if (!exists(feat)) {
         return 0;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.uses;
 }
 
@@ -44,7 +84,7 @@ fn is_epic(feat: Feat): bool {
     if (!exists(feat)) {
         return false;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.epic;
 }
 
@@ -52,7 +92,7 @@ fn master_feat(feat: Feat): int {
     if (!exists(feat)) {
         return -1;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.master;
 }
 
@@ -60,7 +100,7 @@ fn successor(feat: Feat): int {
     if (!exists(feat)) {
         return -1;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.successor;
 }
 
@@ -68,7 +108,7 @@ fn min_level(feat: Feat): int {
     if (!exists(feat)) {
         return 0;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.min_level;
 }
 
@@ -76,7 +116,7 @@ fn max_cr(feat: Feat): float {
     if (!exists(feat)) {
         return 0.0;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.max_cr;
 }
 
@@ -84,6 +124,6 @@ fn is_passive(feat: Feat): bool {
     if (!exists(feat)) {
         return false;
     }
-    var entry = Array.get(_feats, feat as int);
+    var entry = _entry(feat);
     return entry.passive;
 }

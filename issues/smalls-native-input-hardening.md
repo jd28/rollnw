@@ -11,19 +11,11 @@ source.
 
 ## Findings
 
-- Equipment-slot family: `scriptapi.cpp:218` (`get_equipped_item`),
-  `:229` (`unequip_item_in_slot`), plus `equip_item_in_slot`/`can_equip_item`,
-  bound in `native/core_creature.cpp:99-106` as `(..., int32_t slot)` with
-  `static_cast<nw::EquipIndex>(slot)` and no range check. `EquipIndex` is a
-  script-constructible `newtype(int)` (`scripts/core/types.smalls:19`), so a
-  script passes any int. `equipment.equips` is `std::array<EquipItem,18>`
-  (`Equips.hpp:165`); `equips[size_t(slot)]` with an out-of-range or negative
-  (→ huge) slot reads far out of bounds, and `unequip_item_in_slot`
-  additionally writes `it = EquipItem{}` there — an OOB write primitive.
-  Sibling natives in the same file (`get_class_at`, etc.) bounds-check
-  identical-shaped index params, so this is a dropped check, not design.
-  Fix: reject `slot < 0 || slot >= 18` at the top of all four functions in
-  `scriptapi.cpp`, returning `nullptr`/`false`.
+- Resolved: equipment-slot helpers moved to `Equips.cpp` and now reject
+  `slot < 0 || slot >= 18` before indexing the fixed 18-slot row. The
+  `core.creature` natives still accept script-controlled `int32_t slot`, but
+  the native boundary now returns `false`/invalid object instead of indexing
+  out of range.
 - Fixed-array size overflow: `AstResolver.cpp:657` validates only
   `array_size > 0`; `Type::size = elem_type->size * array_size`
   (`AstResolver.cpp:667`) and `alloc_array`'s `elements_size = count *
@@ -58,6 +50,5 @@ vs. explicit fail) rather than leaving it emergent.
 
 ## Verification
 
-Script tests: `get_equipped_item(cre, EquipIndex(-1))` and slot ≥ 18 under
-ASan; `array!(BigStruct, N)` with overflowing N under ASan; `pad_left` with
-huge width returns bounded/rejected.
+Script tests: `array!(BigStruct, N)` with overflowing N under ASan; `pad_left`
+with huge width returns bounded/rejected.

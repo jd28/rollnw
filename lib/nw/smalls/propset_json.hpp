@@ -10,7 +10,7 @@ struct Runtime;
 struct StructDef;
 struct Value;
 
-/// Generic propset ↔ JSON serializer.
+/// Generic smalls value/struct ↔ JSON serializer.
 ///
 /// Uses smalls field names as JSON keys; no GFF or NWN1 dependency.
 /// Handles:
@@ -18,13 +18,27 @@ struct Value;
 ///   - TK_primitive PK_float → JSON float
 ///   - TK_primitive PK_bool  → JSON bool
 ///   - TK_fixed_array int[N] → JSON array of N ints
-///   - TK_array (unmanaged)  → JSON array of ints
+///   - TK_array (unmanaged)  → JSON array of primitives/objects/POD structs
 ///   - ObjectHandle (immediate) → JSON number (serialised as uint64)
-/// Heap-ref types (TK_struct strings) → "null" placeholder with a log
-/// warning (strings need GC root management — V2 scope).
-class PropsetJsonSerializer {
+/// Unsupported heap/native fields → "null" placeholder with a log warning.
+class JsonSerializer {
 public:
-    explicit PropsetJsonSerializer(Runtime* rt);
+    explicit JsonSerializer(Runtime* rt);
+
+    /// Serialize a smalls value using the declared type as the JSON contract.
+    nlohmann::json serialize_value(const Value& value, TypeID declared_type) const;
+
+    /// Deserialize JSON into a smalls value using the declared type as the JSON contract.
+    /// Allocates heap-backed values when needed.
+    bool deserialize_value(const nlohmann::json& j, TypeID declared_type, Value& out) const;
+
+    /// Serialize a struct-like field block to JSON.
+    nlohmann::json serialize_struct(const Value& ref, const StructDef* def) const;
+
+    /// Deserialize JSON into an existing struct-like field block.
+    /// Returns false if any field could not be written.
+    bool deserialize_struct(const nlohmann::json& j, const Value& ref,
+        const StructDef* def) const;
 
     /// Serialize a propset value to JSON.
     nlohmann::json serialize(const Value& ref, const StructDef* def) const;
@@ -37,5 +51,7 @@ public:
 private:
     Runtime* rt_;
 };
+
+using PropsetJsonSerializer = JsonSerializer;
 
 } // namespace nw::smalls

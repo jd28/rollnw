@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../rules/Class.hpp"
+#include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
 #include "../rules/feats.hpp"
 

@@ -16,14 +16,17 @@ TEST(Qualifier, Basic)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_ability(nwn1::ability_strength, 0, 20); // less than 20 str.
+    auto qual1 = nw::qualifier_ability(nwn1::ability_strength, nw::QualifierMatch::lte, 20); // less than 20 str.
     EXPECT_FALSE(nw::kernel::rules().match(qual1, ent));
 
-    auto qual2 = nw::qualifier_ability(nwn1::ability_constitution, 15, 20); // between 15 and 20
+    auto qual2 = nw::qualifier_ability(nwn1::ability_constitution, 15); // at least 15 con.
     EXPECT_TRUE(nw::kernel::rules().match(qual2, ent));
 
-    auto qual3 = nw::qualifier_skill(nwn1::skill_discipline, 35); // at least 35
+    auto qual3 = nw::qualifier_ability(nwn1::ability_constitution, nw::QualifierMatch::lte, 20); // at most 20 con.
     EXPECT_TRUE(nw::kernel::rules().match(qual3, ent));
+
+    auto qual4 = nw::qualifier_skill(nwn1::skill_discipline, 35); // at least 35
+    EXPECT_TRUE(nw::kernel::rules().match(qual4, ent));
 }
 
 TEST(Qualifier, Race)
@@ -49,7 +52,7 @@ TEST(Qualifier, Level)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_level(0, 1);
+    auto qual1 = nw::qualifier_level(nw::QualifierMatch::lte, 1);
     EXPECT_FALSE(nw::kernel::rules().match(qual1, ent));
 
     auto qual2 = nw::qualifier_level(1);
@@ -124,15 +127,15 @@ TEST(Qualifier, ClassLevel)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_class_level(nwn1::class_type_fighter, 30, 40);
+    auto qual1 = nw::qualifier_class_level(nwn1::class_type_fighter, 30);
     EXPECT_FALSE(nw::kernel::rules().match(qual1, ent));
 
     auto qual2 = nw::qualifier_class_level(nwn1::class_type_fighter, 10);
     EXPECT_TRUE(nw::kernel::rules().match(qual2, ent));
 
-    auto qual3 = nw::qualifier_class_level(nwn1::class_type_fighter, 1, 1);
+    auto qual3 = nw::qualifier_class_level(nwn1::class_type_fighter, nw::QualifierMatch::lte, 1);
     EXPECT_FALSE(nw::kernel::rules().match(qual3, ent));
 
-    auto qual4 = nw::qualifier_class_level(nwn1::class_type_fighter, 4, 5);
+    auto qual4 = nw::qualifier_class_level(nwn1::class_type_fighter, nw::QualifierMatch::lte, 5);
     EXPECT_FALSE(nw::kernel::rules().match(qual4, ent));
 }

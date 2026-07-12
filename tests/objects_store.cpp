@@ -4,6 +4,7 @@
 #include <nw/objects/Store.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -11,6 +12,29 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+
+namespace {
+
+int32_t store_state_int(nw::Store* store, const char* field)
+{
+    auto& rt = nw::kernel::runtime();
+    auto tid = rt.type_id("core.store.StoreState", false);
+    if (!store || tid == nw::smalls::invalid_type_id) { return 0; }
+
+    auto ref = rt.find_propset_ref(tid, store->handle());
+    if (ref.type_id == nw::smalls::invalid_type_id) { return 0; }
+
+    const auto* def = rt.get_struct_def(tid);
+    if (!def) { return 0; }
+
+    uint32_t idx = def->field_index(field);
+    if (idx == UINT32_MAX) { return 0; }
+
+    auto value = rt.read_value_field_at_offset(ref, def->fields[idx].offset, rt.int_type());
+    return value.type_id == rt.int_type() ? value.data.ival : 0;
+}
+
+} // namespace
 
 TEST(Store, JsonSerialize)
 {
@@ -33,11 +57,11 @@ TEST(Store, JsonDeserialize)
     auto j = nlohmann::json::parse(f);
     nw::deserialize(ent, j, nw::SerializationProfile::blueprint);
 
-    EXPECT_EQ(ent->common.resref, "storethief002");
-    EXPECT_TRUE(ent->blackmarket);
-    EXPECT_EQ(ent->blackmarket_markdown, 25);
-    EXPECT_GT(ent->inventory.weapons.size(), 0);
-    EXPECT_EQ(ent->inventory.weapons.items[0].item.as<nw::Resref>(), "nw_wswdg001");
+    EXPECT_EQ(ent->resref, "storethief002");
+    EXPECT_EQ(store_state_int(ent, "blackmarket"), 1);
+    EXPECT_EQ(store_state_int(ent, "blackmarket_markdown"), 25);
+    EXPECT_GT(ent->inventory().weapons.size(), 0);
+    EXPECT_EQ(ent->inventory().weapons.items[0].item.as<nw::Resref>(), "nw_wswdg001");
 }
 
 TEST(Store, JsonRoundTrip)
@@ -63,13 +87,13 @@ TEST(Store, GffDeserialize)
     auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
 
-    EXPECT_EQ(ent->common.resref, "storethief002");
-    EXPECT_TRUE(ent->blackmarket);
-    EXPECT_EQ(ent->blackmarket_markdown, 25);
-    EXPECT_TRUE(ent->inventory.weapons.size() > 0);
-    auto* item = nw::inventory_item_ptr(ent->inventory.weapons.items[0]);
+    EXPECT_EQ(ent->resref, "storethief002");
+    EXPECT_EQ(store_state_int(ent, "blackmarket"), 1);
+    EXPECT_EQ(store_state_int(ent, "blackmarket_markdown"), 25);
+    EXPECT_TRUE(ent->inventory().weapons.size() > 0);
+    auto* item = nw::inventory_item_ptr(ent->inventory().weapons.items[0]);
     ASSERT_NE(item, nullptr);
-    EXPECT_EQ(item->common.resref, "nw_wswdg001");
+    EXPECT_EQ(item->resref, "nw_wswdg001");
 }
 
 TEST(Store, GffRoundTrip)
@@ -108,7 +132,7 @@ TEST(Store, Inventory)
 {
     auto ent = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
     EXPECT_TRUE(ent);
-    EXPECT_EQ(ent->inventory.weapons.pages(), 1);
-    EXPECT_TRUE(ent->inventory.weapons.add_page());
-    EXPECT_EQ(ent->inventory.weapons.pages(), 2);
+    EXPECT_EQ(ent->inventory().weapons.pages(), 1);
+    EXPECT_TRUE(ent->inventory().weapons.add_page());
+    EXPECT_EQ(ent->inventory().weapons.pages(), 2);
 }
