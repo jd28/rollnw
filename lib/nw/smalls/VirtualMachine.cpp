@@ -1084,7 +1084,7 @@ lbl_LOADK: {
     } else if (val.type_id == rt_->float_type()) {
         val.data.fval = k.data.fval;
     } else if (val.type_id == rt_->string_type()) {
-        val.data.hptr = rt_->alloc_string(current_module->get_string(k.data.string_idx));
+        val = Value::make_string(rt_->alloc_string(current_module->get_string(k.data.string_idx)));
     } else {
         fail("Unsupported constant type");
     }
@@ -2444,7 +2444,7 @@ vm_exit:
             } else if (val.type_id == rt_->float_type()) {
                 val.data.fval = k.data.fval;
             } else if (val.type_id == rt_->string_type()) {
-                val.data.hptr = rt_->alloc_string(current_module->get_string(k.data.string_idx));
+                val = Value::make_string(rt_->alloc_string(current_module->get_string(k.data.string_idx)));
             } else {
                 fail("Unsupported constant type");
             }
