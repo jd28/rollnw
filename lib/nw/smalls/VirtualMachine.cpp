@@ -10,6 +10,7 @@
 #include <cctype>
 #include <chrono>
 #include <cstring>
+#include <limits>
 
 namespace nw::smalls {
 
@@ -19,6 +20,18 @@ inline uint64_t vm_profile_now_ns() noexcept
 {
     auto now = std::chrono::steady_clock::now().time_since_epoch();
     return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
+}
+
+bool bit_shift_count_valid(int32_t count) noexcept
+{
+    return count >= 0 && count < 32;
+}
+
+int32_t int32_from_bits(uint32_t bits) noexcept
+{
+    int32_t result = 0;
+    std::memcpy(&result, &bits, sizeof(result));
+    return result;
 }
 
 bool type_may_hold_heap_refs(Runtime* rt, TypeID type_id)
@@ -410,14 +423,31 @@ void* VirtualMachine::resolve_sum_data(const Value& sum_val, CallFrame& frame,
     return rt_->heap_.get_ptr(sum_val.data.hptr);
 }
 
+void VirtualMachine::store_native_result(Value result, uint8_t dest_reg, StringView func_name, TypeID return_type)
+{
+    if (failed_) { return; }
+    if (result.type_id == invalid_type_id) {
+        if (rt_ && rt_->is_handle_type(return_type)) {
+            HeapPtr ptr = rt_->alloc_handle(return_type);
+            if (ptr.value != 0) {
+                reg(dest_reg) = Value::make_heap(ptr, return_type);
+                return;
+            }
+        }
+        fail(absl::StrCat("Native '", func_name, "' returned invalid value"));
+        return;
+    }
+    reg(dest_reg) = result;
+}
+
 void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt,
-    const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
+    const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name, TypeID return_type)
 {
     const bool profile = rt.is_vm_profile_enabled();
     const bool profile_timing = profile && rt.is_vm_profile_timing_enabled();
     const uint64_t t0 = profile_timing ? vm_profile_now_ns() : 0;
     try {
-        reg(dest_reg) = wrapper(&rt, args, argc);
+        store_native_result(wrapper(&rt, args, argc), dest_reg, func_name, return_type);
     } catch (const std::exception& ex) {
         fail(absl::StrCat("Native '", func_name, "' threw exception: ", ex.what()));
     } catch (...) {
@@ -429,13 +459,13 @@ void VirtualMachine::call_native_wrapper(const NativeFunctionWrapper& wrapper, R
 }
 
 void VirtualMachine::call_native_pointer(NativeFunctionPointer fn, Runtime& rt,
-    const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name)
+    const Value* args, uint8_t argc, uint8_t dest_reg, StringView func_name, TypeID return_type)
 {
     const bool profile = rt.is_vm_profile_enabled();
     const bool profile_timing = profile && rt.is_vm_profile_timing_enabled();
     const uint64_t t0 = profile_timing ? vm_profile_now_ns() : 0;
     try {
-        reg(dest_reg) = fn(&rt, args, argc);
+        store_native_result(fn(&rt, args, argc), dest_reg, func_name, return_type);
     } catch (const std::exception& ex) {
         fail(absl::StrCat("Native '", func_name, "' threw exception: ", ex.what()));
     } catch (...) {
@@ -450,6 +480,16 @@ void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
     BytecodeModule* target_module, const CompiledFunction* callee,
     Closure* closure, const char* opcode_name)
 {
+    if (!callee) {
+        fail(fmt::format("{} missing callee", opcode_name));
+        return;
+    }
+    if (argc != callee->param_count) {
+        fail(fmt::format("{} argument count mismatch: expected {}, got {}",
+            opcode_name, callee->param_count, argc));
+        return;
+    }
+
     uint32_t caller_base = current_base_;
     size_t caller_frame_index = frames_.empty() ? 0 : frames_.size() - 1;
 
@@ -553,6 +593,16 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
 void VirtualMachine::copy_args_to_callee(uint32_t caller_base, uint8_t dest_reg, uint8_t argc,
     size_t caller_frame_index, const char* opcode_name)
 {
+    if (frames_.empty() || !frames_.back().function) {
+        fail(fmt::format("{} missing callee frame", opcode_name));
+        return;
+    }
+    const CallFrame& callee_frame_info = frames_.back();
+    if (argc > callee_frame_info.function->register_count) {
+        fail(fmt::format("{} argument count exceeds callee register window", opcode_name));
+        return;
+    }
+
     const Value* src = &registers_[caller_base + dest_reg + 1];
     Value* dst = &registers_[current_base_];
 
@@ -668,7 +718,7 @@ Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* fu
 
     if (!const_cast<BytecodeModule*>(module)->verification_attempted) {
         String verify_error;
-        const bool verified = verify_bytecode_module(module, &verify_error);
+        const bool verified = verify_bytecode_module(module, rt_, &verify_error);
         auto* mutable_module = const_cast<BytecodeModule*>(module);
         mutable_module->verification_attempted = true;
         mutable_module->verification_passed = verified;
@@ -736,7 +786,7 @@ Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& arg
 
     if (!module->verification_attempted) {
         String verify_error;
-        const bool verified = verify_bytecode_module(module, &verify_error);
+        const bool verified = verify_bytecode_module(module, rt_, &verify_error);
         module->verification_attempted = true;
         module->verification_passed = verified;
         module->verification_error = std::move(verify_error);
@@ -899,24 +949,26 @@ bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
         &&lbl_MAPSET,           // 87
         &&lbl_STACK_ALLOC,      // 88
         &&lbl_STACK_COPY,       // 89
-        &&lbl_STACK_FIELDGET,   // 90
-        &&lbl_STACK_FIELDGET_R, // 91
-        &&lbl_STACK_FIELDSET,   // 92
-        &&lbl_STACK_FIELDSET_R, // 93
-        &&lbl_STACK_INDEXGET,   // 94
-        &&lbl_STACK_INDEXSET,   // 95
-        &&lbl_NEWSUM,           // 96
-        &&lbl_SUMINIT,          // 97
-        &&lbl_SUMGETTAG,        // 98
-        &&lbl_SUMGETPAYLOAD,    // 99
-        &&lbl_CLOSURE,          // 100
-        &&lbl_GETUPVAL,         // 101
-        &&lbl_SETUPVAL,         // 102
-        &&lbl_CLOSEUPVALS,      // 103
-        &&lbl_CALLCLOSURE,      // 104
-        &&lbl_GETGLOBAL,        // 105
-        &&lbl_SETGLOBAL,        // 106
-        &&lbl_GETEXTGLOBAL,     // 107
+        &&lbl_STACK_MARK,       // 90
+        &&lbl_STACK_RESTORE,    // 91
+        &&lbl_STACK_FIELDGET,   // 92
+        &&lbl_STACK_FIELDGET_R, // 93
+        &&lbl_STACK_FIELDSET,   // 94
+        &&lbl_STACK_FIELDSET_R, // 95
+        &&lbl_STACK_INDEXGET,   // 96
+        &&lbl_STACK_INDEXSET,   // 97
+        &&lbl_NEWSUM,           // 98
+        &&lbl_SUMINIT,          // 99
+        &&lbl_SUMGETTAG,        // 100
+        &&lbl_SUMGETPAYLOAD,    // 101
+        &&lbl_CLOSURE,          // 102
+        &&lbl_GETUPVAL,         // 103
+        &&lbl_SETUPVAL,         // 104
+        &&lbl_CLOSEUPVALS,      // 105
+        &&lbl_CALLCLOSURE,      // 106
+        &&lbl_GETGLOBAL,        // 107
+        &&lbl_SETGLOBAL,        // 108
+        &&lbl_GETEXTGLOBAL,     // 109
     };
     static_assert(std::size(dispatch_table) == static_cast<size_t>(Opcode::_COUNT),
         "dispatch_table out of sync with Opcode enum — update both when adding opcodes");
@@ -1188,9 +1240,11 @@ lbl_CALLNATIVE: {
 
     const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
     if (func->fast_wrapper) {
-        call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+        call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc,
+            dest_reg, func->name, func->metadata.return_type);
     } else {
-        call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+        call_native_wrapper(func->wrapper, *rt_, args_ptr, argc,
+            dest_reg, func->name, func->metadata.return_type);
     }
     DISPATCH();
 }
@@ -1224,10 +1278,10 @@ lbl_CALLEXT: {
         const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
         if (ext->native_fast_wrapper) {
             call_native_pointer(ext->native_fast_wrapper, *rt_, args_ptr, argc,
-                dest_reg, ext->qualified_name.view());
+                dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
         } else {
             call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
-                dest_reg, ext->qualified_name.view());
+                dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
         }
     } else {
         if (ext->func_idx >= ext->script_module->functions.size()) {
@@ -1254,29 +1308,38 @@ lbl_CALLINTR: {
     // BitAnd=0 .. BitShr=5 are the first 6 IntrinsicId values.
     if (ABSL_PREDICT_TRUE(static_cast<uint16_t>(intr_id) <= static_cast<uint16_t>(IntrinsicId::BitShr))) {
         if (intr_id == IntrinsicId::BitNot) {
-            reg(dest_reg) = Value::make_int(~reg(static_cast<uint8_t>(dest_reg + 1)).data.ival);
+            uint32_t value = static_cast<uint32_t>(reg(static_cast<uint8_t>(dest_reg + 1)).data.ival);
+            reg(dest_reg) = Value::make_int(int32_from_bits(~value));
         } else {
-            int32_t lhs = reg(static_cast<uint8_t>(dest_reg + 1)).data.ival;
+            uint32_t lhs = static_cast<uint32_t>(reg(static_cast<uint8_t>(dest_reg + 1)).data.ival);
             int32_t rhs = reg(static_cast<uint8_t>(dest_reg + 2)).data.ival;
-            int32_t result;
+            uint32_t result;
             switch (intr_id) {
             case IntrinsicId::BitAnd:
-                result = lhs & rhs;
+                result = lhs & static_cast<uint32_t>(rhs);
                 break;
             case IntrinsicId::BitOr:
-                result = lhs | rhs;
+                result = lhs | static_cast<uint32_t>(rhs);
                 break;
             case IntrinsicId::BitXor:
-                result = lhs ^ rhs;
+                result = lhs ^ static_cast<uint32_t>(rhs);
                 break;
             case IntrinsicId::BitShl:
+                if (!bit_shift_count_valid(rhs)) {
+                    fail("bit shift count out of range");
+                    DISPATCH();
+                }
                 result = lhs << rhs;
                 break;
             default:
+                if (!bit_shift_count_valid(rhs)) {
+                    fail("bit shift count out of range");
+                    DISPATCH();
+                }
                 result = lhs >> rhs;
                 break; // BitShr
             }
-            reg(dest_reg) = Value::make_int(result);
+            reg(dest_reg) = Value::make_int(int32_from_bits(result));
         }
         DISPATCH();
     }
@@ -1685,6 +1748,7 @@ lbl_CLOSURE: {
         fail("Failed to allocate closure");
         DISPATCH();
     }
+    reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
 
     uint8_t upvalue_count = callee->upvalue_count;
     size_t words = (upvalue_count + 3) / 4;
@@ -1718,7 +1782,6 @@ lbl_CLOSURE: {
     }
     if (!ok) { DISPATCH(); }
 
-    reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
     DISPATCH();
 }
 
@@ -2125,6 +2188,33 @@ lbl_STACK_COPY: {
     DISPATCH();
 }
 
+lbl_STACK_MARK: {
+    if (frame.stack_top_ > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+        fail("STACK_MARK stack offset out of range");
+        DISPATCH();
+    }
+
+    reg(a) = Value::make_int(static_cast<int32_t>(frame.stack_top_));
+    DISPATCH();
+}
+
+lbl_STACK_RESTORE: {
+    Value mark = reg(a);
+    if (mark.type_id != rt_->int_type() || mark.storage != ValueStorage::immediate || mark.data.ival < 0) {
+        fail("STACK_RESTORE requires non-negative int mark");
+        DISPATCH();
+    }
+
+    const auto offset = static_cast<uint32_t>(mark.data.ival);
+    if (offset > frame.stack_top_) {
+        fail("STACK_RESTORE mark beyond current stack top");
+        DISPATCH();
+    }
+
+    frame.stack_free_to(offset);
+    DISPATCH();
+}
+
 lbl_STACK_FIELDGET:
 lbl_STACK_FIELDGET_R: {
     uint8_t dest_reg = a;
@@ -2509,9 +2599,11 @@ vm_exit:
 
             const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
             if (func->fast_wrapper) {
-                call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+                call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc,
+                    dest_reg, func->name, func->metadata.return_type);
             } else {
-                call_native_wrapper(func->wrapper, *rt_, args_ptr, argc, dest_reg, func->name);
+                call_native_wrapper(func->wrapper, *rt_, args_ptr, argc,
+                    dest_reg, func->name, func->metadata.return_type);
             }
             break;
         }
@@ -2545,10 +2637,10 @@ vm_exit:
                 const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
                 if (ext->native_fast_wrapper) {
                     call_native_pointer(ext->native_fast_wrapper, *rt_, args_ptr, argc,
-                        dest_reg, ext->qualified_name.view());
+                        dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
                 } else {
                     call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
-                        dest_reg, ext->qualified_name.view());
+                        dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
                 }
             } else {
                 if (ext->func_idx >= ext->script_module->functions.size()) {
@@ -2957,6 +3049,7 @@ vm_exit:
                 fail("Failed to allocate closure");
                 break;
             }
+            reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
 
             uint8_t upvalue_count = callee->upvalue_count;
             size_t words = (upvalue_count + 3) / 4;
@@ -2990,7 +3083,6 @@ vm_exit:
             }
             if (!ok) { break; }
 
-            reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
             break;
         }
 
@@ -3409,6 +3501,33 @@ vm_exit:
             break;
         }
 
+        case Opcode::STACK_MARK: {
+            if (frame.stack_top_ > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+                fail("STACK_MARK stack offset out of range");
+                break;
+            }
+
+            reg(a) = Value::make_int(static_cast<int32_t>(frame.stack_top_));
+            break;
+        }
+
+        case Opcode::STACK_RESTORE: {
+            Value mark = reg(a);
+            if (mark.type_id != rt_->int_type() || mark.storage != ValueStorage::immediate || mark.data.ival < 0) {
+                fail("STACK_RESTORE requires non-negative int mark");
+                break;
+            }
+
+            const auto offset = static_cast<uint32_t>(mark.data.ival);
+            if (offset > frame.stack_top_) {
+                fail("STACK_RESTORE mark beyond current stack top");
+                break;
+            }
+
+            frame.stack_free_to(offset);
+            break;
+        }
+
         case Opcode::STACK_FIELDGET:
         case Opcode::STACK_FIELDGET_R: {
             uint8_t dest_reg = a;
@@ -3610,6 +3729,11 @@ void VirtualMachine::op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     if (op == Opcode::DIV || op == Opcode::MOD) {
         if (rv.type_id == rt_->int_type() && rv.data.ival == 0) {
             fail(op == Opcode::DIV ? "Division by zero" : "Modulo by zero");
+            return;
+        }
+        if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()
+            && lv.data.ival == std::numeric_limits<int32_t>::min() && rv.data.ival == -1) {
+            fail(op == Opcode::DIV ? "Integer division overflow" : "Integer modulo overflow");
             return;
         }
         if (rv.type_id == rt_->float_type() && rv.data.fval == 0.0f) {
@@ -3953,7 +4077,7 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
         default:
             break;
         }
-        if (skip) { frames_.back().pc++; }
+        if (skip) { skip_next_instruction(); }
         return;
     }
 
@@ -4106,7 +4230,7 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         int32_t value = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 1), value)) return;
-        reg(dest_reg) = Value::make_int(~value);
+        reg(dest_reg) = Value::make_int(int32_from_bits(~static_cast<uint32_t>(value)));
         return;
     }
     case IntrinsicId::BitAnd:
@@ -4123,27 +4247,37 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (!read_int(static_cast<uint8_t>(dest_reg + 1), lhs)) return;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), rhs)) return;
 
-        int32_t result = 0;
+        uint32_t lhs_bits = static_cast<uint32_t>(lhs);
+        uint32_t rhs_bits = static_cast<uint32_t>(rhs);
+        uint32_t result = 0;
         switch (id) {
         case IntrinsicId::BitAnd:
-            result = lhs & rhs;
+            result = lhs_bits & rhs_bits;
             break;
         case IntrinsicId::BitOr:
-            result = lhs | rhs;
+            result = lhs_bits | rhs_bits;
             break;
         case IntrinsicId::BitXor:
-            result = lhs ^ rhs;
+            result = lhs_bits ^ rhs_bits;
             break;
         case IntrinsicId::BitShl:
-            result = lhs << rhs;
+            if (!bit_shift_count_valid(rhs)) {
+                fail("bit shift count out of range");
+                return;
+            }
+            result = lhs_bits << rhs;
             break;
         case IntrinsicId::BitShr:
-            result = lhs >> rhs;
+            if (!bit_shift_count_valid(rhs)) {
+                fail("bit shift count out of range");
+                return;
+            }
+            result = lhs_bits >> rhs;
             break;
         default:
             break;
         }
-        reg(dest_reg) = Value::make_int(result);
+        reg(dest_reg) = Value::make_int(int32_from_bits(result));
         return;
     }
     case IntrinsicId::ArrayPush: {
@@ -4498,7 +4632,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         if (start < 0) start = 0;
         if (start > static_cast<int32_t>(str_len)) start = str_len;
         if (len < 0) len = 0;
-        if (start + len > static_cast<int32_t>(str_len)) len = str_len - start;
+        if (len > static_cast<int32_t>(str_len) - start) {
+            len = static_cast<int32_t>(str_len) - start;
+        }
 
         HeapPtr new_str = rt_->alloc_string_view(sr->backing, sr->offset + start, len);
         reg(dest_reg) = Value::make_string(new_str);

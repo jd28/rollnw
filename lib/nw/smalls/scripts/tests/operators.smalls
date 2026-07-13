@@ -4,7 +4,8 @@ fn will_fail(): bool {
     return (1 / 0) == 0;
 }
 
-fn main() {
+[[test("tests.operators corpus")]]
+fn corpus() {
     reset();
 
     test("eq_int", 5 == 5);

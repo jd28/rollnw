@@ -1,7 +1,8 @@
 from core.test import { test, reset, summary };
 import core.map as m;
 
-fn main() {
+[[test("tests.map_intrinsics corpus")]]
+fn corpus() {
     reset();
 
     var scores: map!(string, int) = { "a": 1, "b": 2 };

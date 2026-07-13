@@ -2,7 +2,8 @@ import core.string as str;
 import core.array as array;
 from core.test import { reset, test, summary };
 
-fn main() {
+[[test("tests.string_intrinsics corpus")]]
+fn corpus() {
     reset();
     test("len empty", str.len("") == 0);
     test("len", str.len("hello") == 5);

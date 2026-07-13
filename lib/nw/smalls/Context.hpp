@@ -24,7 +24,8 @@ struct DiagnosticConfig {
 struct Limits {
     // 0 means unlimited.
     uint32_t max_ast_nodes = 0;
-    uint32_t max_parse_depth = 0;
+    uint32_t max_parse_depth = 256;
+    uint32_t max_semantic_diagnostics = 20;
     uint32_t max_type_instantiations = 0;
     uint32_t max_generic_function_instantiations = 0;
 };
@@ -35,6 +36,7 @@ struct Context {
     virtual void lexical_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
     virtual void parse_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
     virtual void semantic_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
+    bool will_emit_semantic_diagnostic(const Script* script) const noexcept;
 
     MemoryArena* arena = nullptr;
     MemoryScope* scope = nullptr;

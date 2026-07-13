@@ -192,6 +192,10 @@ static StringView opcode_name(Opcode op)
         return "STACK_ALLOC";
     case Opcode::STACK_COPY:
         return "STACK_COPY";
+    case Opcode::STACK_MARK:
+        return "STACK_MARK";
+    case Opcode::STACK_RESTORE:
+        return "STACK_RESTORE";
     case Opcode::STACK_FIELDGET:
         return "STACK_FIELDGET";
     case Opcode::STACK_FIELDGET_R:

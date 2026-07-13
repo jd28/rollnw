@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <fmt/format.h>
 #include <limits>
-#include <stdexcept>
 
 namespace nw::smalls {
 
@@ -88,7 +87,8 @@ uint8_t RegisterAllocator::allocate()
         reg = free_stack[--free_count];
     } else {
         if (next_reg >= RegisterAllocator::max_registers) {
-            throw std::runtime_error("Register overflow: exceeded 256 registers");
+            overflowed = true;
+            return 0;
         }
         reg = static_cast<uint8_t>(next_reg++);
     }
@@ -100,12 +100,9 @@ uint8_t RegisterAllocator::allocate()
     return reg;
 }
 
-uint8_t RegisterAllocator::high_water_mark() const
+uint16_t RegisterAllocator::high_water_mark() const
 {
-    if (max_reg >= RegisterAllocator::max_registers) {
-        throw std::runtime_error("Register overflow: exceeded 256 registers");
-    }
-    return static_cast<uint8_t>(max_reg);
+    return max_reg;
 }
 
 void RegisterAllocator::free(uint8_t reg)
@@ -139,12 +136,14 @@ void RegisterAllocator::reset()
     next_reg = 0;
     max_reg = 0;
     free_count = 0;
+    overflowed = false;
 }
 
 uint8_t RegisterAllocator::allocate_contiguous(uint8_t count)
 {
     if (next_reg + count > RegisterAllocator::max_registers) {
-        throw std::runtime_error("Register overflow: exceeded 256 registers");
+        overflowed = true;
+        return 0;
     }
     uint8_t start = static_cast<uint8_t>(next_reg);
     next_reg = static_cast<uint16_t>(next_reg + count);
@@ -171,6 +170,45 @@ static bool const_is_truthy(const Value& val, Runtime* rt)
     if (val.type_id == rt->bool_type()) { return val.data.bval; }
     if (val.type_id == rt->int_type()) { return val.data.ival != 0; }
     if (val.type_id == rt->float_type()) { return val.data.fval != 0.0f; }
+    return false;
+}
+
+static bool statement_does_not_fallthrough(const AstNode* node, Script* script, Runtime* runtime)
+{
+    if (!node) { return false; }
+
+    if (auto* block = dynamic_cast<const BlockStatement*>(node)) {
+        for (auto* child : block->nodes) {
+            if (statement_does_not_fallthrough(child, script, runtime)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (auto* jump = dynamic_cast<const JumpStatement*>(node)) {
+        return jump->op.type == TokenType::RETURN
+            || jump->op.type == TokenType::BREAK
+            || jump->op.type == TokenType::CONTINUE;
+    }
+
+    if (auto* ifs = dynamic_cast<const IfStatement*>(node)) {
+        if (ifs->expr && ifs->expr->is_const_) {
+            AstConstEvaluator cond_eval(script, ifs->expr);
+            if (!cond_eval.failed_ && !cond_eval.result_.empty()) {
+                if (const_is_truthy(cond_eval.result_.back(), runtime)) {
+                    return statement_does_not_fallthrough(ifs->if_branch, script, runtime);
+                }
+                return ifs->else_branch
+                    && statement_does_not_fallthrough(ifs->else_branch, script, runtime);
+            }
+        }
+
+        return ifs->if_branch && ifs->else_branch
+            && statement_does_not_fallthrough(ifs->if_branch, script, runtime)
+            && statement_does_not_fallthrough(ifs->else_branch, script, runtime);
+    }
+
     return false;
 }
 
@@ -425,6 +463,7 @@ bool AstCompiler::compile()
         current_func_ = init_func;
         registers_.reset();
         local_vars_.clear();
+        local_scope_stack_.clear();
 
         for (auto* decl : script_->ast().decls) {
             if (auto* var = dynamic_cast<VarDecl*>(decl)) {
@@ -463,7 +502,10 @@ bool AstCompiler::compile()
 
         emit(Instruction::make_abc(Opcode::CLOSEUPVALS, 0, 0, 0));
         emit(Instruction::make_abc(Opcode::RETVOID, 0, 0, 0));
-        init_func->register_count = registers_.high_water_mark();
+        if (!finalize_register_count(init_func)) {
+            current_func_ = nullptr;
+            return false;
+        }
         current_func_ = nullptr;
     }
 
@@ -500,6 +542,7 @@ bool AstCompiler::compile_function(FunctionDefinition* func)
     current_func_ = compiled;
     registers_.reset();
     local_vars_.clear();
+    local_scope_stack_.clear();
 
     // Allocate registers for parameters (r0, r1, r2, ...)
     for (size_t i = 0; i < func->params.size(); ++i) {
@@ -515,14 +558,17 @@ bool AstCompiler::compile_function(FunctionDefinition* func)
         func->block->accept(this);
     }
 
-    // If function didn't end with return, emit RETVOID
-    if (current_func_->instructions.empty() || current_func_->instructions.back().opcode() != Opcode::RET) {
+    // If the function can fall through, emit an explicit terminal landing pad.
+    if (!func->block || !statement_does_not_fallthrough(func->block, script_, runtime_)) {
         emit(Instruction::make_abc(Opcode::CLOSEUPVALS, 0, 0, 0));
         emit(Instruction::make_abc(Opcode::RETVOID, 0, 0, 0));
     }
 
     // Set register count
-    compiled->register_count = registers_.high_water_mark();
+    if (!finalize_register_count(compiled)) {
+        current_func_ = nullptr;
+        return false;
+    }
 
     // Function is already in module
 
@@ -560,6 +606,7 @@ bool AstCompiler::compile_instantiated(CompiledFunction* compiled, FunctionDefin
     current_func_ = compiled;
     registers_.reset();
     local_vars_.clear();
+    local_scope_stack_.clear();
     hydrate_module_globals();
 
     for (size_t i = 0; i < func->params.size(); ++i) {
@@ -574,12 +621,15 @@ bool AstCompiler::compile_instantiated(CompiledFunction* compiled, FunctionDefin
         func->block->accept(this);
     }
 
-    if (current_func_->instructions.empty() || current_func_->instructions.back().opcode() != Opcode::RET) {
+    if (!func->block || !statement_does_not_fallthrough(func->block, script_, runtime_)) {
         emit(Instruction::make_abc(Opcode::CLOSEUPVALS, 0, 0, 0));
         emit(Instruction::make_abc(Opcode::RETVOID, 0, 0, 0));
     }
 
-    compiled->register_count = registers_.high_water_mark();
+    if (!finalize_register_count(compiled)) {
+        current_func_ = nullptr;
+        return false;
+    }
     current_func_ = nullptr;
     return !failed_;
 }
@@ -707,15 +757,102 @@ void AstCompiler::fail(StringView message)
     }
 }
 
-uint8_t AstCompiler::allocate_local(StringView name, bool is_parameter)
+void AstCompiler::begin_local_scope()
 {
-    auto it = local_vars_.find(String(name));
-    if (it != local_vars_.end()) {
-        return it->second.register_index;
+    local_scope_stack_.push_back({});
+}
+
+void AstCompiler::end_local_scope()
+{
+    if (local_scope_stack_.empty()) {
+        fail("internal compiler error: local scope underflow");
+        return;
     }
 
+    auto& scope = local_scope_stack_.back();
+    if (scope.has_stack_mark) {
+        if (!block_terminated_) {
+            emit_abc(Opcode::STACK_RESTORE, scope.stack_mark_register, 0, 0);
+        }
+        registers_.free(scope.stack_mark_register);
+    }
+
+    for (auto it = scope.bindings.rbegin(); it != scope.bindings.rend(); ++it) {
+        if (it->had_previous) {
+            local_vars_[it->name] = it->previous;
+        } else {
+            local_vars_.erase(it->name);
+        }
+    }
+    local_scope_stack_.pop_back();
+}
+
+void AstCompiler::ensure_current_scope_stack_mark()
+{
+    if (local_scope_stack_.empty()) {
+        return;
+    }
+
+    auto& scope = local_scope_stack_.back();
+    if (scope.has_stack_mark) {
+        return;
+    }
+
+    uint8_t mark_reg = registers_.allocate();
+    emit_abc(Opcode::STACK_MARK, mark_reg, 0, 0);
+    scope.has_stack_mark = true;
+    scope.stack_mark_register = mark_reg;
+}
+
+void AstCompiler::emit_stack_restores_to_scope_depth(size_t keep_depth)
+{
+    if (keep_depth > local_scope_stack_.size()) {
+        fail("internal compiler error: local scope unwind depth out of range");
+        return;
+    }
+
+    for (size_t i = local_scope_stack_.size(); i > keep_depth; --i) {
+        auto& scope = local_scope_stack_[i - 1];
+        if (scope.has_stack_mark) {
+            emit_abc(Opcode::STACK_RESTORE, scope.stack_mark_register, 0, 0);
+        }
+    }
+}
+
+bool AstCompiler::finalize_register_count(CompiledFunction* func)
+{
+    if (!func) {
+        fail("internal compiler error: missing function during register finalization");
+        return false;
+    }
+
+    const uint16_t register_count = registers_.high_water_mark();
+    if (registers_.overflowed || register_count > RegisterAllocator::max_registers) {
+        fail("Register overflow: exceeded 256 registers");
+        return false;
+    }
+
+    func->register_count = register_count;
+    return true;
+}
+
+uint8_t AstCompiler::allocate_local(StringView name, bool is_parameter)
+{
+    String key(name);
     uint8_t reg = registers_.allocate();
-    local_vars_[String(name)] = VariableInfo{reg, is_parameter};
+
+    if (!local_scope_stack_.empty()) {
+        LocalBindingRestore restore;
+        restore.name = key;
+        auto it = local_vars_.find(key);
+        if (it != local_vars_.end()) {
+            restore.had_previous = true;
+            restore.previous = it->second;
+        }
+        local_scope_stack_.back().bindings.push_back(std::move(restore));
+    }
+
+    local_vars_[key] = VariableInfo{reg, is_parameter};
     return reg;
 }
 
@@ -1107,9 +1244,12 @@ void AstCompiler::visit(FunctionDefinition* decl)
 void AstCompiler::visit(VarDecl* decl)
 {
     uint8_t var_reg = allocate_local(decl->identifier_.loc.view(), false);
+    bool is_val_type = is_value_type(decl->type_id_);
+    if (is_val_type) {
+        ensure_current_scope_stack_mark();
+    }
 
     if (decl->init) {
-        bool is_val_type = is_value_type(decl->type_id_);
         bool is_brace_init = dynamic_cast<BraceInitLiteral*>(decl->init) != nullptr;
 
         if (is_val_type && !is_brace_init) {
@@ -1191,6 +1331,8 @@ void AstCompiler::visit(ExprStatement* stmt)
 
 void AstCompiler::visit(BlockStatement* stmt)
 {
+    begin_local_scope();
+
     // Save the terminated flag from any outer block so we don't clobber it.
     bool outer_terminated = block_terminated_;
     block_terminated_ = false;
@@ -1200,6 +1342,8 @@ void AstCompiler::visit(BlockStatement* stmt)
         if (block_terminated_) break; // DCE: skip unreachable code
         node->accept(this);
     }
+
+    end_local_scope();
 
     // The terminated state is only relevant within this block; restore the outer.
     block_terminated_ = outer_terminated;
@@ -1214,8 +1358,12 @@ void AstCompiler::visit(IfStatement* stmt)
             bool cond = const_is_truthy(cond_eval.result_.back(), runtime_);
             if (cond) {
                 stmt->if_branch->accept(this);
+                block_terminated_ = statement_does_not_fallthrough(stmt->if_branch, script_, runtime_);
             } else if (stmt->else_branch) {
                 stmt->else_branch->accept(this);
+                block_terminated_ = statement_does_not_fallthrough(stmt->else_branch, script_, runtime_);
+            } else {
+                block_terminated_ = false;
             }
             return;
         }
@@ -1234,11 +1382,18 @@ void AstCompiler::visit(IfStatement* stmt)
     registers_.free(cond_reg);
 
     // 3. Compile 'then' block
+    bool then_terminated = statement_does_not_fallthrough(stmt->if_branch, script_, runtime_);
+    bool else_terminated = stmt->else_branch
+        && statement_does_not_fallthrough(stmt->else_branch, script_, runtime_);
+
     stmt->if_branch->accept(this);
 
     if (stmt->else_branch) {
         // 4. Emit Jump to skip 'else' block (unconditional JMP)
-        uint32_t jmp_to_end_idx = emit_jump(Opcode::JMP, 0);
+        uint32_t jmp_to_end_idx = UINT32_MAX;
+        if (!then_terminated) {
+            jmp_to_end_idx = emit_jump(Opcode::JMP, 0);
+        }
 
         // 5. Patch the JMPF to jump here (start of else block)
         // Target PC is the next instruction index (which is current size)
@@ -1248,15 +1403,21 @@ void AstCompiler::visit(IfStatement* stmt)
         stmt->else_branch->accept(this);
 
         // 7. Patch the JMP to jump here (end of else block)
-        patch_jump(jmp_to_end_idx, static_cast<int32_t>(current_func_->instructions.size()));
+        if (jmp_to_end_idx != UINT32_MAX) {
+            patch_jump(jmp_to_end_idx, static_cast<int32_t>(current_func_->instructions.size()));
+        }
+        block_terminated_ = then_terminated && else_terminated;
     } else {
         // No else block, so JMPF jumps to here (end of then block)
         patch_jump(jmp_to_else_idx, static_cast<int32_t>(current_func_->instructions.size()));
+        block_terminated_ = false;
     }
 }
 
 void AstCompiler::visit(ForStatement* stmt)
 {
+    begin_local_scope();
+
     // DCE: constant-false condition → skip entire loop body.
     if (stmt->check && stmt->check->is_const_) {
         AstConstEvaluator chk_eval(script_, stmt->check);
@@ -1265,6 +1426,7 @@ void AstCompiler::visit(ForStatement* stmt)
                 // The loop will never execute.  Still compile the init clause
                 // because it may have side-effects (e.g. variable declarations).
                 if (stmt->init) stmt->init->accept(this);
+                end_local_scope();
                 return;
             }
             // constant-true: fall through to normal compilation (infinite loop)
@@ -1283,6 +1445,7 @@ void AstCompiler::visit(ForStatement* stmt)
     ControlScope scope;
     scope.is_loop = true;
     scope.start_pc = loop_start;
+    scope.local_scope_depth = local_scope_stack_.size();
     control_stack_.push_back(scope);
 
     // 2. Compile Check
@@ -1334,6 +1497,7 @@ void AstCompiler::visit(ForStatement* stmt)
     }
 
     control_stack_.pop_back();
+    end_local_scope();
 }
 
 void AstCompiler::visit(ForEachStatement* stmt)
@@ -1341,6 +1505,8 @@ void AstCompiler::visit(ForEachStatement* stmt)
     // Compile collection expression
     stmt->collection->accept(this);
     uint8_t collection_reg = result_reg_;
+
+    begin_local_scope();
 
     if (stmt->is_map_iteration) {
         // Map iteration: use iterator intrinsics
@@ -1355,6 +1521,7 @@ void AstCompiler::visit(ForEachStatement* stmt)
         ControlScope scope;
         scope.is_loop = true;
         scope.start_pc = loop_start;
+        scope.local_scope_depth = local_scope_stack_.size();
         control_stack_.push_back(scope);
 
         // Allocate locals for key and value
@@ -1414,6 +1581,10 @@ void AstCompiler::visit(ForEachStatement* stmt)
 
     } else {
         // Array iteration: index-based loop
+        if (is_value_type(stmt->element_type)) {
+            ensure_current_scope_stack_mark();
+        }
+
         // index = 0
         uint8_t index_reg = registers_.allocate();
         uint32_t zero_const = add_constant_int(0);
@@ -1425,6 +1596,7 @@ void AstCompiler::visit(ForEachStatement* stmt)
         ControlScope scope;
         scope.is_loop = true;
         scope.start_pc = loop_start;
+        scope.local_scope_depth = local_scope_stack_.size();
         control_stack_.push_back(scope);
 
         // len = array_len(collection)
@@ -1465,6 +1637,12 @@ void AstCompiler::visit(ForEachStatement* stmt)
         for (uint32_t idx : control_stack_.back().continue_jumps) {
             patch_jump(idx, static_cast<int32_t>(continue_target));
         }
+        if (is_value_type(stmt->element_type) && !local_scope_stack_.empty()) {
+            const auto& scope = local_scope_stack_.back();
+            if (scope.has_stack_mark) {
+                emit_abc(Opcode::STACK_RESTORE, scope.stack_mark_register, 0, 0);
+            }
+        }
 
         // index++
         uint8_t one_reg = registers_.allocate();
@@ -1490,6 +1668,7 @@ void AstCompiler::visit(ForEachStatement* stmt)
         control_stack_.pop_back();
     }
 
+    end_local_scope();
     registers_.free(collection_reg);
 }
 
@@ -1498,6 +1677,8 @@ void AstCompiler::visit(SwitchStatement* stmt)
     // 1. Compile target
     stmt->target->accept(this);
     uint8_t target_reg = result_reg_;
+
+    begin_local_scope();
 
     // Check if this is a sum type switch
     const Type* target_type = runtime_->get_type(stmt->target->type_id_);
@@ -1515,6 +1696,7 @@ void AstCompiler::visit(SwitchStatement* stmt)
     scope.sum_target_reg = target_reg;
     scope.object_target_reg = target_reg;
     scope.sum_type_id = stmt->target->type_id_;
+    scope.local_scope_depth = local_scope_stack_.size();
     control_stack_.push_back(scope);
 
     // 4. Compile Body (no implicit fallthrough - each case gets implicit break)
@@ -1663,6 +1845,7 @@ void AstCompiler::visit(SwitchStatement* stmt)
     }
 
     control_stack_.pop_back();
+    end_local_scope();
     registers_.free(target_reg);
 }
 
@@ -1806,6 +1989,7 @@ void AstCompiler::visit(JumpStatement* stmt)
             fail("Break statement outside of control structure");
             return;
         }
+        emit_stack_restores_to_scope_depth(control_stack_.back().local_scope_depth);
         uint32_t idx = emit_jump(Opcode::JMP, 0);
         control_stack_.back().break_jumps.push_back(idx);
         block_terminated_ = true;
@@ -1820,6 +2004,7 @@ void AstCompiler::visit(JumpStatement* stmt)
             fail("Continue statement outside of loop");
             return;
         }
+        emit_stack_restores_to_scope_depth(control_stack_[scope_idx].local_scope_depth);
         uint32_t idx = emit_jump(Opcode::JMP, 0);
         control_stack_[scope_idx].continue_jumps.push_back(idx);
         block_terminated_ = true;
@@ -4076,6 +4261,7 @@ uint16_t AstCompiler::compile_lambda(LambdaExpression* lambda)
     CompiledFunction* saved_func = current_func_;
     RegisterAllocator saved_registers = registers_;
     auto saved_locals = std::move(local_vars_);
+    auto saved_local_scopes = std::move(local_scope_stack_);
     auto saved_upvalues = std::move(upvalue_indices_);
     LambdaExpression* saved_lambda = current_lambda_;
 
@@ -4111,6 +4297,7 @@ uint16_t AstCompiler::compile_lambda(LambdaExpression* lambda)
     current_lambda_ = lambda;
     registers_.reset();
     local_vars_.clear();
+    local_scope_stack_.clear();
     upvalue_indices_.clear();
 
     for (size_t i = 0; i < lambda->captures.size(); ++i) {
@@ -4129,12 +4316,21 @@ uint16_t AstCompiler::compile_lambda(LambdaExpression* lambda)
         lambda->body->accept(this);
     }
 
-    if (compiled->instructions.empty() || compiled->instructions.back().opcode() != Opcode::RET) {
+    if (!lambda->body || !statement_does_not_fallthrough(lambda->body, script_, runtime_)) {
         emit(Instruction::make_abc(Opcode::CLOSEUPVALS, 0, 0, 0));
         emit(Instruction::make_abc(Opcode::RETVOID, 0, 0, 0));
     }
 
-    compiled->register_count = registers_.high_water_mark();
+    if (!finalize_register_count(compiled)) {
+        delete compiled;
+        current_func_ = saved_func;
+        registers_ = saved_registers;
+        local_vars_ = std::move(saved_locals);
+        local_scope_stack_ = std::move(saved_local_scopes);
+        upvalue_indices_ = std::move(saved_upvalues);
+        current_lambda_ = saved_lambda;
+        return 0;
+    }
 
     uint16_t func_idx = static_cast<uint16_t>(module_->functions.size());
     module_->functions.push_back(compiled);
@@ -4144,6 +4340,7 @@ uint16_t AstCompiler::compile_lambda(LambdaExpression* lambda)
     current_func_ = saved_func;
     registers_ = saved_registers;
     local_vars_ = std::move(saved_locals);
+    local_scope_stack_ = std::move(saved_local_scopes);
     upvalue_indices_ = std::move(saved_upvalues);
     current_lambda_ = saved_lambda;
 

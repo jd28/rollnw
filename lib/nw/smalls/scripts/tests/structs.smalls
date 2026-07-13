@@ -36,7 +36,8 @@ fn test_struct_as_param(p: Point): float {
     return p.x + p.y;
 }
 
-fn main() {
+[[test("tests.structs corpus")]]
+fn corpus() {
     reset();
 
     test("struct_init", test_struct_init());

@@ -53,6 +53,7 @@ struct AstResolver {
     void report(SourceRange range, StringView message, bool is_warning) const;
     void error(SourceRange range, StringView message) const;
     void warn(SourceRange range, StringView message) const;
+    bool will_emit_semantic_diagnostic() const noexcept;
 
     template <typename... Args>
     void errorf(SourceRange range, const char* fmt_str, Args&&... args) const

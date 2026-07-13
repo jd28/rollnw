@@ -731,7 +731,7 @@ Value types use a distinct calling convention from heap types. The runtime track
 - **Fixed arrays** (`T[N]`): `stack` — stored in per-frame stack buffer
 - **Heap types** (strings, `array!(T)`, `map!(K,V)`, closures): `heap` — HeapPtr in Value
 
-**Frame Stack Allocation**: Each `CallFrame` maintains a separate `stack_` buffer for value-type locals. When a value-type variable is declared: `stack_alloc(size, alignment, type_id)` allocates space, data is copied into the stack buffer, `Value::make_stack(offset, type_id)` creates a reference, and `stack_layout_` records the slot for GC tracing.
+**Frame Stack Allocation**: Each `CallFrame` maintains a separate `stack_` buffer for value-type locals. When a value-type variable is declared: `stack_alloc(size, alignment, type_id)` allocates space, data is copied into the stack buffer, `Value::make_stack(offset, type_id)` creates a reference, and `stack_layout_` records the slot for GC tracing. The compiler emits `STACK_MARK` once for a lexical scope that owns value-type stack slots, then emits `STACK_RESTORE` at scope exit and at loop iteration boundaries that would otherwise retain copied value-type elements.
 
 **Function Returns**: Value types are returned by copying into caller's frame stack. Heap types return HeapPtr (no copy). The caller allocates stack space before the call for value-type returns.
 
@@ -756,7 +756,7 @@ Value types use a distinct calling convention from heap types. The runtime track
 **Status**: Complete
 
 **Key files**:
-- `lib/nw/smalls/Bytecode.hpp` — `STACK_ALLOC`, `STACK_COPY`, `STACK_FIELDGET/SET` opcodes
+- `lib/nw/smalls/Bytecode.hpp` — `STACK_MARK`, `STACK_RESTORE`, `STACK_ALLOC`, `STACK_COPY`, `STACK_FIELDGET/SET` opcodes
 - `lib/nw/smalls/VirtualMachine.hpp` — call frames and stack root enumeration
 - `lib/nw/smalls/runtime.hpp` — `ValueStorage` enum, `Value` struct
 
@@ -1230,6 +1230,8 @@ Intrinsics are module-scoped functions declared with `[[intrinsic("name")]]` and
 | | `string_from_char_code` | `from_char_code(code: int): string` | Char code to string |
 | | `string_to_int` | `to_int(s: string): int` | Parse integer |
 | | `string_to_float` | `to_float(s: string): float` | Parse float |
+
+Bit intrinsics operate on the raw 32-bit payload of `int` as unsigned data and return the low 32 bits as `int`. `shl` and `shr` reject shift counts outside `0..31`.
 
 The resolver validates intrinsic names and signatures, and the compiler emits intrinsic call opcodes. Runtime errors (bounds, empty pop) abort script execution.
 
@@ -1712,7 +1714,7 @@ Bits 7-0:   Register C (8 bits)
 
 **Optimized Field Access:** FIELDGETI/FIELDSETI (int), FIELDGETF/FIELDSETF (float), FIELDGETB/FIELDSETB (bool), FIELDGETS/FIELDSETS (string), FIELDGETO/FIELDSETO (object), FIELDGETH/FIELDSETH (heap) — each with immediate and register-indexed variants
 
-**Stack Value Types:** STACK_ALLOC, STACK_COPY, STACK_FIELDGET/SET, STACK_INDEXGET/SET
+**Stack Value Types:** STACK_MARK, STACK_RESTORE, STACK_ALLOC, STACK_COPY, STACK_FIELDGET/SET, STACK_INDEXGET/SET
 
 **Control Flow:** JMP, JMPT, JMPF, CALL, CALLNATIVE, CALLEXT, CALLEXT_R, CALLINTR, CALLINTR_R, RET, RETVOID
 

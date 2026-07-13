@@ -134,7 +134,8 @@ fn test_nested_if(): int {
     return 0;
 }
 
-fn main() {
+[[test("tests.control_flow corpus")]]
+fn corpus() {
     reset();
 
     test("if_true", test_if_true() == 1);

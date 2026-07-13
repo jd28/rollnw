@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include <stdexcept>
+#include <string>
 
 using namespace std::literals;
 
@@ -27,11 +27,51 @@ protected:
 
 // == Basic Compilation Tests =================================================
 
-TEST(RegisterAllocator, HighWaterMarkRejectsUnencodable256Registers)
+TEST(RegisterAllocator, HighWaterMarkAllowsLastEncodedRegister)
 {
     nw::smalls::RegisterAllocator registers;
     registers.mark_used(255);
-    EXPECT_THROW(registers.high_water_mark(), std::runtime_error);
+    EXPECT_FALSE(registers.overflowed);
+    EXPECT_EQ(registers.high_water_mark(), 256);
+}
+
+TEST(RegisterAllocator, AllocatePastLastRegisterRecordsOverflow)
+{
+    nw::smalls::RegisterAllocator registers;
+    for (uint16_t i = 0; i < nw::smalls::RegisterAllocator::max_registers; ++i) {
+        EXPECT_EQ(registers.allocate(), static_cast<uint8_t>(i));
+    }
+
+    EXPECT_FALSE(registers.overflowed);
+    EXPECT_EQ(registers.high_water_mark(), 256);
+    EXPECT_EQ(registers.allocate(), 0);
+    EXPECT_TRUE(registers.overflowed);
+}
+
+TEST_F(SmallsCompiler, RegisterOverflowFailsCompileWithoutThrow)
+{
+    std::string source = "fn test(): int {\n";
+    for (uint16_t i = 0; i <= nw::smalls::RegisterAllocator::max_registers; ++i) {
+        source += "    var v";
+        source += std::to_string(i);
+        source += ": int;\n";
+    }
+    source += "    return 0;\n";
+    source += "}\n";
+
+    auto script = make_script(source);
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_EQ(script.errors(), 0);
+    ASSERT_NO_THROW(script.resolve());
+
+    nw::smalls::BytecodeModule module("test");
+    nw::smalls::AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+
+    EXPECT_NO_THROW({
+        EXPECT_FALSE(compiler.compile());
+    });
+    EXPECT_TRUE(compiler.failed_);
+    EXPECT_NE(compiler.error_message_.find("Register overflow"), nw::String::npos);
 }
 
 TEST_F(SmallsCompiler, CompileEmptyFunction)
@@ -705,7 +745,7 @@ TEST_F(SmallsCompiler, IfElseStatement)
     }
 
     EXPECT_TRUE(found_jmpf);
-    EXPECT_TRUE(found_jmp);
+    EXPECT_FALSE(found_jmp);
 }
 
 TEST_F(SmallsCompiler, ForStatement)

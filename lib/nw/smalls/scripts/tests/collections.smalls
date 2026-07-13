@@ -27,7 +27,8 @@ fn test_map_set(): bool {
     return m["a"] == 1 && m["b"] == 5;
 }
 
-fn main() {
+[[test("tests.collections corpus")]]
+fn corpus() {
     reset();
 
     test("array_basic", test_array_basic());

@@ -5,6 +5,8 @@
 #include "TypeResolver.hpp"
 #include "Validator.hpp"
 
+#include <limits>
+
 namespace nw::smalls {
 
 namespace {
@@ -41,6 +43,15 @@ std::optional<StringView> extract_identifier(Expression* expr)
         }
     }
     return std::nullopt;
+}
+
+bool fixed_size_fits_uint32(uint32_t element_size, int32_t element_count) noexcept
+{
+    if (element_count <= 0) {
+        return false;
+    }
+    return static_cast<uint64_t>(element_size) * static_cast<uint64_t>(element_count)
+        <= std::numeric_limits<uint32_t>::max();
 }
 
 Vector<StringView> extract_qualified_path(Expression* expr)
@@ -132,6 +143,11 @@ void AstResolver::error(SourceRange range, StringView message) const
 void AstResolver::warn(SourceRange range, StringView message) const
 {
     report(range, message, true);
+}
+
+bool AstResolver::will_emit_semantic_diagnostic() const noexcept
+{
+    return ctx_ && ctx_->will_emit_semantic_diagnostic(parent_);
 }
 
 bool AstResolver::in_function_context() const noexcept
@@ -594,6 +610,11 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
             errorf(range, "fixed array size must be positive, got {}", array_size);
             return invalid_type_id;
         }
+        if (!fixed_size_fits_uint32(elem_type_obj->size, array_size)) {
+            errorf(range, "fixed array size overflows type layout: {} * {} bytes",
+                elem_type_obj->size, array_size);
+            return invalid_type_id;
+        }
 
         Type fixed_array_type{
             .name = nw::kernel::strings().intern(fmt::format("{}[{}]",
@@ -656,6 +677,11 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
                 int32_t array_size = *array_size_opt;
                 if (array_size <= 0) {
                     errorf(range, "array size must be positive, got {}", array_size);
+                    return invalid_type_id;
+                }
+                if (!fixed_size_fits_uint32(elem_type_obj->size, array_size)) {
+                    errorf(range, "array size overflows type layout: {} * {} bytes",
+                        elem_type_obj->size, array_size);
                     return invalid_type_id;
                 }
 
@@ -827,7 +853,10 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
     auto export_ptr = aliased_import->loaded_module->exports().find(type_str);
 
     if (!export_ptr) {
-        auto suggestions = format_suggestions(type_str, collect_module_exports(aliased_import->loaded_module));
+        String suggestions;
+        if (will_emit_semantic_diagnostic()) {
+            suggestions = format_suggestions(type_str, collect_module_exports(aliased_import->loaded_module));
+        }
         errorf(range, "type '{}' not found in module '{}'{}", type_str, aliased_import->module_path, suggestions);
         return invalid_type_id;
     }

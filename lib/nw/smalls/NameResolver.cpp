@@ -92,7 +92,10 @@ void NameResolver::visit(SelectiveImportDecl* decl)
         auto export_ptr = module_exports.find(symbol_name);
 
         if (!export_ptr) {
-            auto suggestions = format_suggestions(symbol_name, ctx.collect_module_exports(decl->loaded_module));
+            String suggestions;
+            if (ctx.will_emit_semantic_diagnostic()) {
+                suggestions = format_suggestions(symbol_name, ctx.collect_module_exports(decl->loaded_module));
+            }
             ctx.errorf(symbol_token.loc.range, "'{}' not found in module '{}'{}", symbol_name, decl->module_path, suggestions);
             continue;
         }

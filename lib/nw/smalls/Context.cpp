@@ -11,6 +11,72 @@ namespace nw::smalls {
 
 namespace {
 
+bool find_line_from_map(const Script* script, StringView text, size_t target_line, size_t& start, size_t& end)
+{
+    if (!script || script->ast_discarded() || target_line == 0) {
+        return false;
+    }
+
+    const auto& line_map = script->ast().line_map;
+    if (target_line > line_map.size()) {
+        return false;
+    }
+
+    size_t line_start = line_map[target_line - 1];
+    size_t line_end = text.size();
+    if (target_line < line_map.size()) {
+        line_end = line_map[target_line] == 0 ? 0 : line_map[target_line] - 1;
+    }
+    if (line_start > text.size() || line_end > text.size() || line_end < line_start) {
+        return false;
+    }
+    if (line_end > line_start && text[line_end - 1] == '\r') {
+        --line_end;
+    }
+
+    start = line_start;
+    end = line_end;
+    return true;
+}
+
+bool find_line_by_scan(StringView text, size_t target_line, size_t& start, size_t& end)
+{
+    if (target_line == 0) {
+        return false;
+    }
+    size_t current_line = 1;
+    size_t line_start = 0;
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (current_line == target_line) {
+            line_start = i;
+            break;
+        }
+        if (text[i] == '\n') {
+            current_line++;
+        }
+    }
+    if (current_line != target_line) {
+        return false;
+    }
+
+    size_t line_end = text.size();
+    for (size_t i = line_start; i < text.size(); ++i) {
+        if (text[i] == '\n' || text[i] == '\r') {
+            line_end = i;
+            break;
+        }
+    }
+    start = line_start;
+    end = line_end;
+    return true;
+}
+
+bool find_line_bounds(const Script* script, StringView text, size_t target_line, size_t& start, size_t& end)
+{
+    return find_line_from_map(script, text, target_line, start, end)
+        || find_line_by_scan(text, target_line, start, end);
+}
+
 void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is_warning, SourceRange range, DiagnosticType type)
 {
     bool use_color = ctx ? ctx->config.use_color : true;
@@ -27,6 +93,9 @@ void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is
             script->increment_warnings();
         } else {
             script->increment_errors();
+        }
+        if (type == DiagnosticType::semantic) {
+            script->increment_semantic_diagnostics();
         }
     }
 
@@ -59,44 +128,13 @@ void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is
         StringView text = script->text();
         bool show_multiline = type != DiagnosticType::lexical;
 
-        auto find_line = [&](size_t target_line, size_t& start, size_t& end) -> bool {
-            if (target_line == 0) {
-                return false;
-            }
-            size_t current_line = 1;
-            size_t line_start = 0;
-            for (size_t i = 0; i < text.size(); ++i) {
-                if (current_line == target_line) {
-                    line_start = i;
-                    break;
-                }
-                if (text[i] == '\n') {
-                    current_line++;
-                }
-            }
-            if (current_line != target_line) {
-                return false;
-            }
-
-            size_t line_end = text.size();
-            for (size_t i = line_start; i < text.size(); ++i) {
-                if (text[i] == '\n' || text[i] == '\r') {
-                    line_end = i;
-                    break;
-                }
-            }
-            start = line_start;
-            end = line_end;
-            return true;
-        };
-
         size_t line_start = 0;
         size_t line_end = 0;
-        if (find_line(range.start.line, line_start, line_end)) {
+        if (find_line_bounds(script, text, range.start.line, line_start, line_end)) {
             if (show_multiline && range.start.line > 1) {
                 size_t prev_start = 0;
                 size_t prev_end = 0;
-                if (find_line(range.start.line - 1, prev_start, prev_end)) {
+                if (find_line_bounds(script, text, range.start.line - 1, prev_start, prev_end)) {
                     StringView prev_line = text.substr(prev_start, prev_end - prev_start);
                     ss << "\n    " << prev_line;
                 }
@@ -141,7 +179,7 @@ void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is
             if (show_multiline) {
                 size_t next_start = 0;
                 size_t next_end = 0;
-                if (find_line(range.start.line + 1, next_start, next_end)) {
+                if (find_line_bounds(script, text, range.start.line + 1, next_start, next_end)) {
                     StringView next_line = text.substr(next_start, next_end - next_start);
                     ss << "\n    " << next_line;
                 }
@@ -168,8 +206,25 @@ void Context::parse_diagnostic(Script* script, StringView msg, bool is_warning, 
     print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::parse);
 }
 
+bool Context::will_emit_semantic_diagnostic(const Script* script) const noexcept
+{
+    return !script || limits.max_semantic_diagnostics == 0
+        || script->semantic_diagnostics() < limits.max_semantic_diagnostics;
+}
+
 void Context::semantic_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range)
 {
+    if (script && limits.max_semantic_diagnostics != 0
+        && script->semantic_diagnostics() >= limits.max_semantic_diagnostics) {
+        if (!script->semantic_diagnostic_limit_reported()) {
+            script->mark_semantic_diagnostic_limit_reported();
+            String limit_message = fmt::format(
+                "too many semantic diagnostics, suppressing further diagnostics (limit {})",
+                limits.max_semantic_diagnostics);
+            print_diagnostic_impl(this, script, limit_message, false, range, DiagnosticType::semantic);
+        }
+        return;
+    }
     print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::semantic);
 }
 

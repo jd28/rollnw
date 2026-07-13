@@ -898,6 +898,13 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
     }
     const Type* type = runtime_->get_type(header->type_id);
     if (!type) { return false; }
+    while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+        if (type->type_params.empty() || !type->type_params[0].is<TypeID>()) {
+            return false;
+        }
+        type = runtime_->get_type(type->type_params[0].as<TypeID>());
+    }
+    if (!type) { return false; }
 
     bool has_young_refs = false;
 

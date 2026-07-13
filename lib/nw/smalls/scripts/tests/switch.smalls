@@ -38,7 +38,8 @@ fn classify_word(word: string): int {
     }
 }
 
-fn main() {
+[[test("tests.switch corpus")]]
+fn corpus() {
     reset();
 
     test("switch_case_1", classify(1) == 10);

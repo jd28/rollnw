@@ -37,7 +37,8 @@ fn second(a: $A, b: $B): $B {
     return b;
 }
 
-fn main() {
+[[test("tests.generics corpus")]]
+fn corpus() {
     reset();
 
     // Identity function with different types

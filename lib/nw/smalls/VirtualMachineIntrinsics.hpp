@@ -59,6 +59,72 @@ enum class IntrinsicId : uint16_t {
     Invalid = 0xFFFF
 };
 
+struct IntrinsicCallContract {
+    uint8_t min_args = 0;
+    uint8_t max_args = 0;
+    uint8_t extra_result_registers = 0;
+};
+
+inline std::optional<IntrinsicCallContract> intrinsic_call_contract(IntrinsicId id)
+{
+    switch (id) {
+    case IntrinsicId::BitNot:
+    case IntrinsicId::ArrayPop:
+    case IntrinsicId::ArrayLen:
+    case IntrinsicId::ArrayClear:
+    case IntrinsicId::MapLen:
+    case IntrinsicId::MapClear:
+    case IntrinsicId::MapIterBegin:
+    case IntrinsicId::MapIterNext:
+    case IntrinsicId::StringLen:
+    case IntrinsicId::StringToUpper:
+    case IntrinsicId::StringToLower:
+    case IntrinsicId::StringTrim:
+    case IntrinsicId::StringToInt:
+    case IntrinsicId::StringToFloat:
+    case IntrinsicId::StringFromCharCode:
+    case IntrinsicId::StringReverse:
+        return IntrinsicCallContract{1, 1, id == IntrinsicId::MapIterNext ? uint8_t{2} : uint8_t{0}};
+
+    case IntrinsicId::BitAnd:
+    case IntrinsicId::BitOr:
+    case IntrinsicId::BitXor:
+    case IntrinsicId::BitShl:
+    case IntrinsicId::BitShr:
+    case IntrinsicId::ArrayPush:
+    case IntrinsicId::ArrayReserve:
+    case IntrinsicId::ArrayGet:
+    case IntrinsicId::MapGet:
+    case IntrinsicId::MapHas:
+    case IntrinsicId::MapRemove:
+    case IntrinsicId::MapIterEnd:
+    case IntrinsicId::StringCharAt:
+    case IntrinsicId::StringFind:
+    case IntrinsicId::StringContains:
+    case IntrinsicId::StringStartsWith:
+    case IntrinsicId::StringEndsWith:
+    case IntrinsicId::StringSplit:
+    case IntrinsicId::StringJoin:
+    case IntrinsicId::StringAppend:
+    case IntrinsicId::GetPropset:
+    case IntrinsicId::LoadConfig:
+        return IntrinsicCallContract{2, 2, 0};
+
+    case IntrinsicId::ArraySet:
+    case IntrinsicId::MapSet:
+    case IntrinsicId::StringSubstr:
+    case IntrinsicId::StringReplace:
+    case IntrinsicId::StringInsert:
+        return IntrinsicCallContract{3, 3, 0};
+
+    case IntrinsicId::StringConcat:
+        return IntrinsicCallContract{0, 255, 0};
+
+    default:
+        return std::nullopt;
+    }
+}
+
 inline std::optional<IntrinsicId> intrinsic_id_from_string(std::string_view name)
 {
     if (name == "bit_and") {

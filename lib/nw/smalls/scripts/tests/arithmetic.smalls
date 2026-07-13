@@ -1,6 +1,7 @@
 from core.test import { test, reset, summary };
 
-fn main() {
+[[test("tests.arithmetic corpus")]]
+fn corpus() {
     reset();
 
     test("int_add", 1 + 2 == 3);

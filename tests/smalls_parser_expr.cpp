@@ -207,6 +207,33 @@ TEST_F(SmallsParser, UnaryDepthLimitTriggersOnNestedUnary)
     ctx->limits.max_parse_depth = previous_limit;
 }
 
+TEST_F(SmallsParser, RuntimeHasFiniteDefaultParseDepth)
+{
+    auto* ctx = nw::kernel::runtime().diagnostic_context();
+    ASSERT_NE(ctx, nullptr);
+    EXPECT_GT(ctx->limits.max_parse_depth, 0u);
+}
+
+TEST_F(SmallsParser, BraceInitDepthLimitTriggersOnNestedBraces)
+{
+    auto* ctx = nw::kernel::runtime().diagnostic_context();
+    ASSERT_NE(ctx, nullptr);
+
+    auto previous_limit = ctx->limits.max_parse_depth;
+    ctx->limits.max_parse_depth = 3;
+
+    auto script = make_script(R"(
+        fn test() {
+            var x = { { { { 1 } } } };
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+
+    ctx->limits.max_parse_depth = previous_limit;
+}
+
 TEST_F(SmallsParser, FStringRejectsTrailingTokensInInterpolation)
 {
     auto script = make_script(R"(

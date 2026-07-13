@@ -65,7 +65,8 @@ fn test_closure_truthiness_set(): bool {
     return on_hit() == 7;
 }
 
-fn main() {
+[[test("tests.closures corpus")]]
+fn corpus() {
     reset();
 
     test("closure_basic_capture", test_basic_capture());

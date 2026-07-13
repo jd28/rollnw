@@ -1,6 +1,7 @@
 from core.test import { reset, test, summary };
 
-fn main() {
+[[test("tests.fstrings corpus")]]
+fn corpus() {
     reset();
 
     var name = "Alice";

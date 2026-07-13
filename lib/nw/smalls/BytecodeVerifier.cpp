@@ -1,6 +1,7 @@
 
 #include "BytecodeVerifier.hpp"
 
+#include "VirtualMachineIntrinsics.hpp"
 #include "runtime.hpp"
 
 #include <fmt/format.h>
@@ -16,7 +17,7 @@ inline bool fail(String* out, StringView msg)
     return false;
 }
 
-inline bool check_reg(String* out, uint8_t r, uint8_t reg_count, StringView context)
+inline bool check_reg(String* out, uint8_t r, uint16_t reg_count, StringView context)
 {
     if (r >= reg_count) {
         return fail(out, fmt::format("{}: register out of range: r{} (reg_count={})", context, r, reg_count));
@@ -24,26 +25,135 @@ inline bool check_reg(String* out, uint8_t r, uint8_t reg_count, StringView cont
     return true;
 }
 
-inline bool check_reg_range(String* out, uint8_t first, uint8_t last, uint8_t reg_count, StringView context)
+inline bool check_reg_window(String* out, uint8_t dest, uint8_t max_offset, uint16_t reg_count, StringView context)
 {
-    if (first >= reg_count || last >= reg_count || last < first) {
-        return fail(out, fmt::format("{}: register range out of range: r{}..r{} (reg_count={})", context, first, last, reg_count));
+    if (!check_reg(out, dest, reg_count, context)) { return false; }
+    if (max_offset == 0) { return true; }
+
+    const uint16_t last = static_cast<uint16_t>(dest) + static_cast<uint16_t>(max_offset);
+    if (last >= reg_count) {
+        return fail(out, fmt::format("{}: register window out of range: r{}..r{} (reg_count={})", context, dest, last, reg_count));
     }
     return true;
 }
 
-bool verify_function(const BytecodeModule* module, const CompiledFunction* func, String* out)
+bool build_instruction_starts(const BytecodeModule* module, const CompiledFunction* func,
+    Vector<uint8_t>& instruction_starts, String* out)
+{
+    const size_t n = func->instructions.size();
+    instruction_starts.assign(n, 0);
+
+    for (size_t pc = 0; pc < n; ++pc) {
+        instruction_starts[pc] = 1;
+
+        const Instruction instr = func->instructions[pc];
+        if (instr.opcode() != Opcode::CLOSURE) { continue; }
+
+        const auto ctx = [&]() -> String {
+            return fmt::format("verify: {}: pc {} op {}", func->name, pc, static_cast<uint32_t>(instr.opcode()));
+        };
+
+        const uint16_t func_idx = instr.arg_bx();
+        if (func_idx >= module->functions.size()) {
+            return fail(out, fmt::format("{}: closure function index out of range: {} (functions={})", ctx(), func_idx, module->functions.size()));
+        }
+
+        const CompiledFunction* callee = module->functions[func_idx];
+        if (!callee) {
+            return fail(out, fmt::format("{}: closure missing callee", ctx()));
+        }
+
+        const uint8_t upc = callee->upvalue_count;
+        const size_t words = (static_cast<size_t>(upc) + 3) / 4;
+        if (pc + words >= n) {
+            return fail(out, fmt::format("{}: missing closure descriptor words: need {}", ctx(), words));
+        }
+        pc += words;
+    }
+
+    return true;
+}
+
+inline bool check_jump_target(String* out, int64_t target, const Vector<uint8_t>& instruction_starts,
+    StringView context, StringView opcode_name)
+{
+    if (target < 0 || target >= static_cast<int64_t>(instruction_starts.size())) {
+        return fail(out, fmt::format("{}: {} target out of range: {}", context, opcode_name, target));
+    }
+    if (instruction_starts[static_cast<size_t>(target)] == 0) {
+        return fail(out, fmt::format("{}: {} target is not an instruction start: {}", context, opcode_name, target));
+    }
+    return true;
+}
+
+bool check_external_call_arity(const BytecodeModule* module, const Runtime* runtime, uint8_t ref_idx,
+    uint8_t argc, String* out, StringView context)
+{
+    if (!runtime) { return true; }
+
+    const uint32_t ext_idx = module->external_indices[ref_idx];
+    if (ext_idx == UINT32_MAX) {
+        return fail(out, fmt::format("{}: unresolved external function: {}", context, module->external_refs[ref_idx].view()));
+    }
+
+    const ExternalFunction* ext = runtime->get_external_function(ext_idx);
+    if (!ext) {
+        return fail(out, fmt::format("{}: external function index out of range: {}", context, ext_idx));
+    }
+
+    size_t expected_argc = ext->metadata.params.size();
+    if (!ext->is_native()) {
+        if (!ext->script_module) {
+            return fail(out, fmt::format("{}: external script function missing module", context));
+        }
+        if (ext->func_idx >= ext->script_module->functions.size()) {
+            return fail(out, fmt::format("{}: external script function index out of range: {} (functions={})", context, ext->func_idx, ext->script_module->functions.size()));
+        }
+
+        const CompiledFunction* callee = ext->script_module->functions[ext->func_idx];
+        if (!callee) {
+            return fail(out, fmt::format("{}: external script function missing callee", context));
+        }
+        if (callee->instructions.empty()) {
+            return fail(out, fmt::format("{}: external script callee has no bytecode body", context));
+        }
+        expected_argc = callee->param_count;
+    }
+
+    if (argc != expected_argc) {
+        return fail(out, fmt::format("{}: external argument count mismatch for {}: expected {}, got {}", context, ext->qualified_name.view(), expected_argc, argc));
+    }
+
+    return true;
+}
+
+bool verify_function(const BytecodeModule* module, const Runtime* runtime, const CompiledFunction* func, String* out)
 {
     if (!module || !func) {
         return fail(out, "verify: null module/function");
     }
 
-    const uint8_t reg_count = func->register_count;
+    const uint16_t reg_count = func->register_count;
     if (reg_count < func->param_count) {
         return fail(out, fmt::format("verify: {}: register_count {} < param_count {}", func->name, reg_count, func->param_count));
     }
 
     const size_t n = func->instructions.size();
+    if (n == 0) {
+        return true;
+    }
+
+    Vector<uint8_t> instruction_starts;
+    if (!build_instruction_starts(module, func, instruction_starts, out)) {
+        return false;
+    }
+
+    const Instruction terminal = func->instructions.back();
+    if (instruction_starts.back() == 0
+        || (terminal.opcode() != Opcode::RET && terminal.opcode() != Opcode::RETVOID)) {
+        return fail(out, fmt::format("verify: {}: missing terminal return", func->name));
+    }
+
     for (size_t pc = 0; pc < n; ++pc) {
         const Instruction instr = func->instructions[pc];
         const Opcode op = instr.opcode();
@@ -99,6 +209,8 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
         case Opcode::LOADNIL:
         case Opcode::LOADI:
         case Opcode::LOADB:
+        case Opcode::STACK_MARK:
+        case Opcode::STACK_RESTORE:
             if (!check_reg(out, a, reg_count, ctx())) { return false; }
             break;
 
@@ -115,9 +227,7 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
         case Opcode::JMP: {
             const int32_t off = instr.arg_jump();
             const int64_t target = static_cast<int64_t>(pc + 1) + static_cast<int64_t>(off);
-            if (target < 0 || target > static_cast<int64_t>(n)) {
-                return fail(out, fmt::format("{}: JMP target out of range: {}", ctx(), target));
-            }
+            if (!check_jump_target(out, target, instruction_starts, ctx(), "JMP")) { return false; }
             break;
         }
         case Opcode::JMPT:
@@ -125,9 +235,7 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
             if (!check_reg(out, a, reg_count, ctx())) { return false; }
             const int32_t off = static_cast<int32_t>(instr.arg_sbx());
             const int64_t target = static_cast<int64_t>(pc + 1) + static_cast<int64_t>(off);
-            if (target < 0 || target > static_cast<int64_t>(n)) {
-                return fail(out, fmt::format("{}: JMP* target out of range: {}", ctx(), target));
-            }
+            if (!check_jump_target(out, target, instruction_starts, ctx(), "JMP*")) { return false; }
             break;
         }
 
@@ -140,6 +248,7 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
         case Opcode::ISGE:
             if (!check_reg(out, a, reg_count, ctx())) { return false; }
             if (!check_reg(out, b, reg_count, ctx())) { return false; }
+            if (!check_jump_target(out, static_cast<int64_t>(pc + 2), instruction_starts, ctx(), "test skip")) { return false; }
             break;
 
         // tuple/field immediate slow ops
@@ -233,31 +342,54 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
         case Opcode::CALLINTR: {
             const uint8_t dest = a;
             const uint8_t argc = c;
-            if (!check_reg(out, dest, reg_count, ctx())) { return false; }
-            if (argc > 0) {
-                const uint8_t last = static_cast<uint8_t>(dest + argc);
-                if (!check_reg_range(out, static_cast<uint8_t>(dest + 1), last, reg_count, ctx())) { return false; }
+
+            uint8_t required_register_offset = argc;
+            if (op == Opcode::CALLINTR) {
+                auto contract = intrinsic_call_contract(static_cast<IntrinsicId>(b));
+                if (!contract) {
+                    return fail(out, fmt::format("{}: unknown intrinsic id: {}", ctx(), b));
+                }
+                if (argc < contract->min_args || argc > contract->max_args) {
+                    return fail(out, fmt::format("{}: intrinsic argument count mismatch for {}: expected {}..{}, got {}", ctx(), intrinsic_name(static_cast<IntrinsicId>(b)), contract->min_args, contract->max_args, argc));
+                }
+                if (contract->extra_result_registers > required_register_offset) {
+                    required_register_offset = contract->extra_result_registers;
+                }
             }
+
+            if (!check_reg_window(out, dest, required_register_offset, reg_count, ctx())) { return false; }
             if (op == Opcode::CALL && b >= module->functions.size()) {
                 return fail(out, fmt::format("{}: function index out of range: {} (functions={})", ctx(), b, module->functions.size()));
             }
+            if (op == Opcode::CALL) {
+                const CompiledFunction* callee = module->functions[b];
+                if (!callee) {
+                    return fail(out, fmt::format("{}: missing callee", ctx()));
+                }
+                if (callee->instructions.empty()) {
+                    return fail(out, fmt::format("{}: callee has no bytecode body", ctx()));
+                }
+                if (argc != callee->param_count) {
+                    return fail(out, fmt::format("{}: argument count mismatch: expected {}, got {}", ctx(), callee->param_count, argc));
+                }
+            }
             if (op == Opcode::CALLEXT && b >= module->external_indices.size()) {
                 return fail(out, fmt::format("{}: external ref index out of range: {} (externals={})", ctx(), b, module->external_indices.size()));
+            }
+            if (op == Opcode::CALLEXT && !check_external_call_arity(module, runtime, b, argc, out, ctx())) {
+                return false;
             }
             break;
         }
 
         case Opcode::CALLEXT_R:
         case Opcode::CALLINTR_R: {
+            // The callee/intrinsic id is runtime data; the VM revalidates the resolved target.
             const uint8_t dest = a;
             const uint8_t id_reg = b;
             const uint8_t argc = c;
-            if (!check_reg(out, dest, reg_count, ctx())) { return false; }
+            if (!check_reg_window(out, dest, argc, reg_count, ctx())) { return false; }
             if (!check_reg(out, id_reg, reg_count, ctx())) { return false; }
-            if (argc > 0) {
-                const uint8_t last = static_cast<uint8_t>(dest + argc);
-                if (!check_reg_range(out, static_cast<uint8_t>(dest + 1), last, reg_count, ctx())) { return false; }
-            }
             break;
         }
 
@@ -265,12 +397,8 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
             const uint8_t dest = a;
             const uint8_t closure_reg = b;
             const uint8_t argc = c;
-            if (!check_reg(out, dest, reg_count, ctx())) { return false; }
+            if (!check_reg_window(out, dest, argc, reg_count, ctx())) { return false; }
             if (!check_reg(out, closure_reg, reg_count, ctx())) { return false; }
-            if (argc > 0) {
-                const uint8_t last = static_cast<uint8_t>(dest + argc);
-                if (!check_reg_range(out, static_cast<uint8_t>(dest + 1), last, reg_count, ctx())) { return false; }
-            }
             break;
         }
 
@@ -306,11 +434,7 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
         case Opcode::NEWTUPLE: {
             const uint8_t dest = a;
             const uint8_t count = b;
-            if (!check_reg(out, dest, reg_count, ctx())) { return false; }
-            if (count > 0) {
-                const uint8_t last = static_cast<uint8_t>(dest + count);
-                if (!check_reg_range(out, static_cast<uint8_t>(dest + 1), last, reg_count, ctx())) { return false; }
-            }
+            if (!check_reg_window(out, dest, count, reg_count, ctx())) { return false; }
             break;
         }
 
@@ -418,6 +542,7 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
 
         case Opcode::GETUPVAL:
         case Opcode::SETUPVAL:
+            // Closure presence and upvalue index are runtime object state; the VM validates both.
             if (!check_reg(out, a, reg_count, ctx())) { return false; }
             break;
 
@@ -432,6 +557,11 @@ bool verify_function(const BytecodeModule* module, const CompiledFunction* func,
 } // namespace
 
 bool verify_bytecode_module(const BytecodeModule* module, String* error_message)
+{
+    return verify_bytecode_module(module, nullptr, error_message);
+}
+
+bool verify_bytecode_module(const BytecodeModule* module, const Runtime* runtime, String* error_message)
 {
     if (!module) {
         return fail(error_message, "verify: null module");
@@ -450,7 +580,7 @@ bool verify_bytecode_module(const BytecodeModule* module, String* error_message)
     }
 
     for (const CompiledFunction* f : module->functions) {
-        if (!verify_function(module, f, error_message)) {
+        if (!verify_function(module, runtime, f, error_message)) {
             return false;
         }
     }

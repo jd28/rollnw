@@ -6,6 +6,12 @@
 
 namespace nw::smalls {
 
+namespace {
+
+constexpr int32_t max_pad_width = 1024 * 1024;
+
+} // namespace
+
 void register_core_string(Runtime& rt)
 {
     if (rt.get_native_module("core.string")) {
@@ -82,6 +88,9 @@ void register_core_string(Runtime& rt)
             if (args[2].data.hptr.value != 0) {
                 pad_str = rt->get_string_view(args[2].data.hptr);
             }
+            if (width > max_pad_width) {
+                return Value{};
+            }
             if (width <= static_cast<int32_t>(str.size()) || pad_str.empty()) {
                 return Value::make_string(rt->alloc_string(str));
             }
@@ -112,6 +121,9 @@ void register_core_string(Runtime& rt)
             StringView pad_str = " ";
             if (args[2].data.hptr.value != 0) {
                 pad_str = rt->get_string_view(args[2].data.hptr);
+            }
+            if (width > max_pad_width) {
+                return Value{};
             }
             if (width <= static_cast<int32_t>(str.size()) || pad_str.empty()) {
                 return Value::make_string(rt->alloc_string(str));

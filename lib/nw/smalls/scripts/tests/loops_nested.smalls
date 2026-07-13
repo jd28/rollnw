@@ -34,7 +34,8 @@ fn test_nested_continue(): int {
     return sum + outer;
 }
 
-fn main() {
+[[test("tests.loops_nested corpus")]]
+fn corpus() {
     reset();
 
     test("nested_break", test_nested_break() == 32);

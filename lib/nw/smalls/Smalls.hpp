@@ -194,6 +194,12 @@ struct Script {
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept { return errors_; }
 
+    /// Returns how many semantic diagnostics were recorded.
+    size_t semantic_diagnostics() const noexcept { return semantic_diagnostics_; }
+
+    /// Returns true when the semantic diagnostic cap notice was emitted.
+    bool semantic_diagnostic_limit_reported() const noexcept { return semantic_diagnostic_limit_reported_; }
+
     /// Table of symbols exported from script
     immer::map<String, Export> exports() const noexcept { return symbol_table_; }
 
@@ -205,6 +211,12 @@ struct Script {
 
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
+
+    /// Increments semantic diagnostic count
+    void increment_semantic_diagnostics() noexcept { ++semantic_diagnostics_; }
+
+    /// Marks the semantic diagnostic cap notice as emitted.
+    void mark_semantic_diagnostic_limit_reported() noexcept { semantic_diagnostic_limit_reported_ = true; }
 
     Vector<InlayHint> inlay_hints(SourceRange range);
 
@@ -250,10 +262,12 @@ private:
     Vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
+    size_t semantic_diagnostics_ = 0;
     bool resolved_ = false;
     bool parsed_ = false;
     bool includes_processed_ = false;
     bool ast_discarded_ = false;
+    bool semantic_diagnostic_limit_reported_ = false;
     mutable bool tooling_disabled_diagnostic_emitted_ = false;
 };
 

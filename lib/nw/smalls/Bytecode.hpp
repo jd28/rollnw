@@ -12,6 +12,15 @@ struct BytecodeModule;
 struct FunctionDefinition;
 struct Value;
 
+struct ScriptTest {
+    BytecodeModule* module = nullptr;
+    String module_name;
+    String name;
+    SourceLocation location;
+    uint32_t function_index = UINT32_MAX;
+    uint32_t flags = 0;
+};
+
 // == Opcodes =================================================================
 // ============================================================================
 
@@ -113,8 +122,8 @@ enum class Opcode : uint8_t {
     RETVOID,    // return (void function)
 
     // Type Operations
-    CAST,   // r0 = cast<type_id=bx>(r1)
-    TYPEOF, // r0 = typeof(r1)
+    CAST,           // r0 = cast<type_id=bx>(r1)
+    TYPEOF,         // r0 = typeof(r1)
     IS,             // r0 = (r1 is type_id=bx)
     IS_OBJ_SUBTYPE, // r0 = (r1.oval.type == ObjectType(bx)) — fast path, tag baked at compile time
 
@@ -137,6 +146,8 @@ enum class Opcode : uint8_t {
     // Stack value type operations
     STACK_ALLOC,      // rA = stack_alloc(type_idx=Bx) - allocate value type on frame stack
     STACK_COPY,       // memcpy(stack+rA, stack+rB, size from type) - copy value type
+    STACK_MARK,       // rA = current frame stack top
+    STACK_RESTORE,    // stack_free_to(rA)
     STACK_FIELDGET,   // rA = *(stack + rB + field_offset[C]) - load field from stack value
     STACK_FIELDGET_R, // rA = *(stack + rB + field_offset[rC]) - register-indexed variant
     STACK_FIELDSET,   // *(stack + rA + field_offset[B]) = rC - store field in stack value
@@ -253,8 +264,8 @@ struct CompiledFunction {
 
     String name;
     uint8_t param_count = 0;
-    uint8_t register_count = 0; // Total registers needed (including params)
-    uint8_t upvalue_count = 0;  // Number of upvalues this function captures
+    uint16_t register_count = 0; // Total registers needed (including params)
+    uint8_t upvalue_count = 0;   // Number of upvalues this function captures
     TypeID return_type = invalid_type_id;
     TypeID function_type = invalid_type_id;
 
@@ -324,6 +335,10 @@ struct BytecodeModule {
     bool verification_attempted = false;
     bool verification_passed = false;
     String verification_error;
+
+    // Script test metadata, populated only when Runtime script-test mode is enabled.
+    bool script_tests_discovered = false;
+    Vector<ScriptTest> script_tests;
 
     // Module-scope globals (var/const at top level). These are runtime state
     // that can be modified during execution (e.g., via SETGLOBAL opcode).

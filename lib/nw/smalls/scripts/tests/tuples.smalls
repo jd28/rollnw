@@ -50,7 +50,8 @@ fn tuple_indexing(): bool {
     return ok;
 }
 
-fn main() {
+[[test("tests.tuples corpus")]]
+fn corpus() {
     reset();
 
     test("tuple_return", test_tuple_return());

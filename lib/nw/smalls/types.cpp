@@ -250,6 +250,11 @@ void TypeTable::define(TypeID id, const TypeAlias* decl, StringView module_path,
     Type& type = types_[id.value - 1];
     type.type_params = {aliased_type_id, {}};
     type.type_kind = TK_alias;
+    if (const Type* aliased = get(aliased_type_id)) {
+        type.size = aliased->size;
+        type.alignment = aliased->alignment;
+        type.contains_heap_refs = aliased->contains_heap_refs;
+    }
 
     type_to_index_.insert({type, id.value});
 }
@@ -474,11 +479,15 @@ TypeID TypeTable::add(const TypeAlias* decl, StringView module_path, TypeID alia
         qualified_name = String(decl->identifier());
     }
 
+    const Type* aliased = get(aliased_type_id);
     return add({
         .name = nw::kernel::strings().intern(qualified_name),
         .type_params = {aliased_type_id, {}},
         .type_kind = TK_alias,
         .primitive_kind = PK_unspecified,
+        .size = aliased ? aliased->size : 0,
+        .alignment = aliased ? aliased->alignment : 0,
+        .contains_heap_refs = aliased ? aliased->contains_heap_refs : false,
     });
 }
 

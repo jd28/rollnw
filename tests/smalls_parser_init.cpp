@@ -57,6 +57,42 @@ TEST_F(SmallsParser, LiteralFloat)
     ASSERT_NE(literal, nullptr);
     EXPECT_EQ(literal->literal.type, nw::smalls::TokenType::FLOAT_LITERAL);
 }
+
+TEST_F(SmallsParser, IntegerLiteralOverflowIsDiagnostic)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var x = 99999999999;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+}
+
+TEST_F(SmallsParser, SignedIntegerMinimumParses)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var x = -2147483648;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+}
+
+TEST_F(SmallsParser, FloatLiteralOverflowIsDiagnostic)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var x = 9999999999999999999999999999999999999999.0;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+}
 TEST_F(SmallsParser, LiteralString)
 {
     auto script = make_script(R"(

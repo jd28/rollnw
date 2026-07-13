@@ -23,6 +23,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <type_traits>
 #include <typeindex>
 
@@ -41,6 +42,7 @@ struct ModuleBuilder;
 struct NativeValueTypeLayout;
 struct NativeStructLayout;
 struct Script;
+struct ScriptTest;
 struct Token;
 struct VirtualMachine;
 class PropsetPoolManager;
@@ -694,6 +696,10 @@ struct Runtime : public nw::kernel::Service {
     /// @return index or UINT32_MAX if not found
     uint32_t find_native_function(StringView name) const;
 
+    /// Binds the resolved script return type for native functions whose C++
+    /// signature uses a wildcard return type such as TypedHandle.
+    void bind_native_function_return_type(StringView qualified_name, TypeID return_type);
+
     // -- External Function Registry ------------------------------------------
 
     /// Registers an external function (native or cross-module script)
@@ -714,6 +720,14 @@ struct Runtime : public nw::kernel::Service {
     void report_test_summary();
     uint32_t test_count() const { return test_count_; }
     uint32_t test_failures() const { return test_failures_; }
+    void set_script_tests_enabled(bool enabled) noexcept;
+    bool script_tests_enabled() const noexcept { return script_tests_enabled_; }
+    std::span<const ScriptTest> module_tests(Script* script);
+    std::span<const ScriptTest> module_tests(const BytecodeModule* module) const noexcept;
+    const ScriptTest* module_test(Script* script, StringView name);
+    ExecutionResult execute_test(const ScriptTest& test, uint64_t gas_limit = default_gas_limit);
+    ExecutionResult execute_test(Script* script, StringView name, uint64_t gas_limit = default_gas_limit);
+    Vector<ExecutionResult> execute_tests(Script* script, uint64_t gas_limit = default_gas_limit);
 
     // -- Handle System -------------------------------------------------------
 
@@ -1280,6 +1294,7 @@ private:
         StringView function_name,
         std::unique_ptr<Script>& template_holder,
         String* error_out);
+    bool discover_script_tests(Script* script, BytecodeModule* module, String* error_out);
 
     absl::flat_hash_map<GenericFunctionTemplateKey, GenericFunctionTemplate> generic_function_templates_;
     absl::flat_hash_map<String, String> generic_template_module_sources_;
@@ -1393,6 +1408,7 @@ private:
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;
+    bool script_tests_enabled_ = false;
 
     bool vm_profile_enabled_ = false;
     bool vm_profile_timing_enabled_ = false;

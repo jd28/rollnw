@@ -122,7 +122,8 @@ fn test_empty_map(): bool {
     return count == 0;
 }
 
-fn main() {
+[[test("tests.foreach corpus")]]
+fn corpus() {
     reset();
 
     test("array_sum", test_array_sum());

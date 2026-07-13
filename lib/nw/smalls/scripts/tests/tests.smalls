@@ -14,7 +14,8 @@ fn contains_str(a: array!(string), needle: string): bool {
     return false;
 }
 
-fn main() {
+[[test("tests.tests corpus")]]
+fn corpus() {
     reset();
 
     test("int_add", 1 + 1 == 2);

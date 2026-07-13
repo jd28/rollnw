@@ -82,7 +82,8 @@ fn test_lambda_access(): bool {
     return counter == 2;
 }
 
-fn main() {
+[[test("tests.module_globals corpus")]]
+fn corpus() {
     test("module global initial value", test_initial_value());
     test("module global increment", test_increment());
     test("module global add", test_add());

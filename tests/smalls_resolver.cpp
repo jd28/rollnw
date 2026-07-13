@@ -7,6 +7,7 @@
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <string>
 #include <string_view>
 
 using namespace std::literals;
@@ -253,6 +254,29 @@ fn use_alias(x: MyInt): MyInt {
     EXPECT_EQ(script.errors(), 0);
 }
 
+TEST_F(SmallsResolver, TypeAliasCanBeStructField)
+{
+    auto script = make_script(R"(
+        type Point {
+            x: float;
+            y: float;
+        };
+
+        type Vec2 = Point;
+
+        type Line {
+            start: Vec2;
+            end: Vec2;
+        };
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+}
+
 // Error cases
 
 TEST_F(SmallsResolver, ErrorWrongReturnType)
@@ -331,6 +355,32 @@ TEST_F(SmallsResolver, ErrorUndefinedFunction)
 
     EXPECT_NO_THROW(script.resolve());
     EXPECT_GT(script.errors(), 0); // Should have undefined function error
+}
+
+TEST_F(SmallsResolver, SemanticDiagnosticsAreCapped)
+{
+    auto* ctx = nw::kernel::runtime().diagnostic_context();
+    auto old_limit = ctx->limits.max_semantic_diagnostics;
+    ctx->limits.max_semantic_diagnostics = 3;
+
+    std::string source = "fn test(): int {\n";
+    for (int i = 0; i < 12; ++i) {
+        source += "    var v" + std::to_string(i) + " = missing" + std::to_string(i) + ";\n";
+    }
+    source += "    return 0;\n}\n";
+
+    auto script = make_script(source);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.semantic_diagnostics(), 4);
+    EXPECT_EQ(script.diagnostics().size(), 4);
+    if (!script.diagnostics().empty()) {
+        EXPECT_NE(script.diagnostics().back().message.find("too many semantic diagnostics"), nw::String::npos);
+    }
+
+    ctx->limits.max_semantic_diagnostics = old_limit;
 }
 
 TEST_F(SmallsResolver, ErrorReturnOutsideFunction)
@@ -1351,17 +1401,17 @@ TEST_F(SmallsResolver, MutuallyRecursiveFunctions)
     EXPECT_EQ(script.errors(), 0);
 }
 
-TEST_F(SmallsResolver, TypesCanReferenceEachOther)
+TEST_F(SmallsResolver, StructFieldsCanUseEarlierValueTypes)
 {
     auto script = make_script(R"(
-        type Line {
-            start: Point;
-            end: Point;
-        };
-
         type Point {
             x: float;
             y: float;
+        };
+
+        type Line {
+            start: Point;
+            end: Point;
         };
     )"sv);
 
@@ -1372,13 +1422,13 @@ TEST_F(SmallsResolver, TypesCanReferenceEachOther)
     EXPECT_EQ(script.errors(), 0);
 
     auto& decls = script.ast().decls;
-    auto* line_decl = dynamic_cast<nw::smalls::StructDecl*>(decls[0]);
-    ASSERT_NE(line_decl, nullptr);
-    EXPECT_NE(line_decl->type_id_, nw::smalls::invalid_type_id);
-
-    auto* point_decl = dynamic_cast<nw::smalls::StructDecl*>(decls[1]);
+    auto* point_decl = dynamic_cast<nw::smalls::StructDecl*>(decls[0]);
     ASSERT_NE(point_decl, nullptr);
     EXPECT_NE(point_decl->type_id_, nw::smalls::invalid_type_id);
+
+    auto* line_decl = dynamic_cast<nw::smalls::StructDecl*>(decls[1]);
+    ASSERT_NE(line_decl, nullptr);
+    EXPECT_NE(line_decl->type_id_, nw::smalls::invalid_type_id);
 }
 
 TEST_F(SmallsResolver, FunctionsCanUseLaterDefinedTypes)
@@ -1429,17 +1479,9 @@ TEST_F(SmallsResolver, TypeAliasCanReferenceLaterType)
     EXPECT_EQ(script.errors(), 0);
 }
 
-TEST_F(SmallsResolver, ComplexForwardReferences)
+TEST_F(SmallsResolver, StructFieldCannotUseLaterValueType)
 {
     auto script = make_script(R"(
-        fn process(g: Graph): int {
-            return traverse(g.root);
-        }
-
-        fn traverse(n: Node): int {
-            return n.value;
-        }
-
         type Graph {
             root: Node;
             size: int;
@@ -1454,7 +1496,26 @@ TEST_F(SmallsResolver, ComplexForwardReferences)
     EXPECT_EQ(script.errors(), 0);
 
     EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, MutuallyRecursiveStructFieldsAreRejected)
+{
+    auto script = make_script(R"(
+        type A {
+            b: B;
+        };
+
+        type B {
+            a: A;
+        };
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
     EXPECT_EQ(script.errors(), 0);
+
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
 }
 
 TEST_F(SmallsResolver, LocalVariablesAreLexical)

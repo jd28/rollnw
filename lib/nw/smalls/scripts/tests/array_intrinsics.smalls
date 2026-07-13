@@ -1,7 +1,8 @@
 from core.test import { test, reset, summary };
 import core.array as arr;
 
-fn main() {
+[[test("tests.array_intrinsics corpus")]]
+fn corpus() {
     reset();
 
     var nums: array!(int) = { 1, 2 };

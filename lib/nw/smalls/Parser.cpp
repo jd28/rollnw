@@ -441,6 +441,18 @@ Expression* Parser::parse_expr_unary()
             TokenType::PLUS})) {
         auto op = previous();
         ParseDepthGuard depth_guard(*this);
+
+        if (op.type == TokenType::MINUS && check({TokenType::INTEGER_LITERAL})
+            && peek().loc.view() == "2147483648") {
+            match({TokenType::INTEGER_LITERAL});
+            auto literal = previous();
+            auto expr = ast_.create_node<LiteralExpression>(literal);
+            expr->literal.loc = merge_source_location(op.loc, literal.loc);
+            expr->range_ = expr->literal.loc.range;
+            expr->data = std::numeric_limits<int32_t>::min();
+            return expr;
+        }
+
         auto right = parse_expr_unary();
 
         // Constant fold unary expressions cause this will cause problems later
@@ -895,6 +907,7 @@ TypeExpression* Parser::parse_type()
 
 BraceInitLiteral* Parser::parse_brace_init_literal()
 {
+    ParseDepthGuard depth_guard(*this);
     Token start = previous();
     auto expr = ast_.create_node<BraceInitLiteral>(ctx_->arena);
 

@@ -27,12 +27,13 @@ struct RegisterAllocator {
     // Fixed-size stack for free registers (no heap allocation)
     uint8_t free_stack[max_registers];
     uint16_t free_count = 0;
+    bool overflowed = false;
 
     uint8_t allocate();
     uint8_t allocate_contiguous(uint8_t count);
     void free(uint8_t reg);
     void mark_used(uint8_t reg);
-    uint8_t high_water_mark() const;
+    uint16_t high_water_mark() const;
     void reset();
 };
 
@@ -42,6 +43,7 @@ struct RegisterAllocator {
 struct ControlScope {
     bool is_loop = false;
     uint32_t start_pc = 0; // Loop start (for continue)
+    size_t local_scope_depth = 0;
 
     Vector<uint32_t> break_jumps;
     Vector<uint32_t> continue_jumps; // Only for loops
@@ -68,6 +70,18 @@ struct VariableInfo {
     bool is_parameter;
 };
 
+struct LocalBindingRestore {
+    String name;
+    bool had_previous = false;
+    VariableInfo previous{};
+};
+
+struct LocalScopeState {
+    Vector<LocalBindingRestore> bindings;
+    bool has_stack_mark = false;
+    uint8_t stack_mark_register = 0;
+};
+
 // == AST Compiler ============================================================
 // ============================================================================
 
@@ -83,6 +97,7 @@ struct AstCompiler : public BaseVisitor {
 
     // Maps variable names to register indices for current function
     std::unordered_map<String, VariableInfo> local_vars_;
+    Vector<LocalScopeState> local_scope_stack_;
 
     struct ModuleGlobal {
         uint16_t slot;
@@ -164,6 +179,11 @@ struct AstCompiler : public BaseVisitor {
     // == Helper Methods ======================================================
 
     void fail(StringView message);
+    void begin_local_scope();
+    void end_local_scope();
+    void ensure_current_scope_stack_mark();
+    void emit_stack_restores_to_scope_depth(size_t keep_depth);
+    bool finalize_register_count(CompiledFunction* func);
     uint8_t allocate_local(StringView name, bool is_parameter);
     uint8_t get_local_register(StringView name);
 

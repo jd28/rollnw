@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <string_view>
 
 using namespace std::literals;
@@ -235,6 +236,60 @@ TEST_F(SmallsVirtualMachine, ControlFlowFor)
     args.push_back(Value::make_int(5)); // Sum 1..5 = 15
     auto res = vm.execute(&module, "sum", args);
     EXPECT_EQ(res.data.ival, 15);
+}
+
+TEST_F(SmallsVirtualMachine, BlockLocalShadowingPreservesOuterRegister)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        fn test(): int {
+            var x = 10;
+            {
+                var x = 20;
+                x = x + 1;
+            }
+            return x;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    VirtualMachine vm{};
+    nw::Vector<Value> args;
+    auto res = vm.execute(&module, "test", args);
+    EXPECT_EQ(res.data.ival, 10);
+}
+
+TEST_F(SmallsVirtualMachine, ForInitLocalShadowingPreservesOuterRegister)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        fn test(): int {
+            var x = 7;
+            for (var x = 0; x < 3; x = x + 1) {
+            }
+            return x;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    VirtualMachine vm{};
+    nw::Vector<Value> args;
+    auto res = vm.execute(&module, "test", args);
+    EXPECT_EQ(res.data.ival, 7);
 }
 
 TEST_F(SmallsVirtualMachine, ControlFlowWhile)
@@ -668,6 +723,39 @@ TEST_F(SmallsVirtualMachine, SwitchExecution)
     EXPECT_EQ(res3.data.ival, 300);
 }
 
+TEST_F(SmallsVirtualMachine, SwitchFloatCaseSkipsDefault)
+{
+    using namespace nw::smalls;
+    auto& rt = nw::kernel::runtime();
+
+    BytecodeModule module("test");
+    Constant key = Constant::make_float(1.5f);
+    key.type_id = rt.float_type();
+    module.add_constant(key);
+
+    auto* func = new CompiledFunction("test_float_skip");
+    func->param_count = 1;
+    func->register_count = 3;
+    func->return_type = rt.int_type();
+    func->instructions.push_back(Instruction::make_abx(Opcode::LOADK, 1, 0));
+    func->instructions.push_back(Instruction::make_abc(Opcode::ISEQ, 0, 1, 0));
+    func->instructions.push_back(Instruction::make_jump(Opcode::JMP, 2));
+    func->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, 100));
+    func->instructions.push_back(Instruction::make_abc(Opcode::RET, 2, 0, 0));
+    func->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, 300));
+    func->instructions.push_back(Instruction::make_abc(Opcode::RET, 2, 0, 0));
+    module.add_function(func);
+
+    VirtualMachine vm{};
+    nw::Vector<Value> args;
+    args.push_back(Value::make_float(1.5f));
+
+    auto result = vm.execute(&module, "test_float_skip", args);
+    EXPECT_FALSE(vm.failed()) << vm.error_message();
+    EXPECT_EQ(result.type_id, rt.int_type());
+    EXPECT_EQ(result.data.ival, 100);
+}
+
 TEST_F(SmallsVirtualMachine, SwitchNoFallthrough)
 {
     using namespace nw::smalls;
@@ -765,6 +853,82 @@ TEST_F(SmallsVirtualMachine, CastFloatToInt)
 
     EXPECT_EQ(res.type_id, nw::kernel::runtime().int_type());
     EXPECT_EQ(res.data.ival, 10);
+}
+
+TEST_F(SmallsVirtualMachine, BitIntrinsicsUseUnsigned32BitSemantics)
+{
+    using namespace nw::smalls;
+
+    auto& rt = nw::kernel::runtime();
+    BytecodeModule module("test");
+
+    auto* shr = new CompiledFunction("shr");
+    shr->param_count = 0;
+    shr->register_count = 3;
+    shr->return_type = rt.int_type();
+    shr->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 1, -1));
+    shr->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, 1));
+    shr->instructions.push_back(Instruction::make_abc(Opcode::CALLINTR, 0, static_cast<uint8_t>(IntrinsicId::BitShr), 2));
+    shr->instructions.push_back(Instruction::make_abc(Opcode::RET, 0, 0, 0));
+    module.add_function(shr);
+
+    auto* shl = new CompiledFunction("shl");
+    shl->param_count = 0;
+    shl->register_count = 3;
+    shl->return_type = rt.int_type();
+    shl->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 1, 1));
+    shl->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, 31));
+    shl->instructions.push_back(Instruction::make_abc(Opcode::CALLINTR, 0, static_cast<uint8_t>(IntrinsicId::BitShl), 2));
+    shl->instructions.push_back(Instruction::make_abc(Opcode::RET, 0, 0, 0));
+    module.add_function(shl);
+
+    VirtualMachine vm{};
+    auto shr_result = vm.execute(&module, "shr", {});
+    ASSERT_FALSE(vm.failed()) << vm.error_message();
+    EXPECT_EQ(shr_result.data.ival, std::numeric_limits<int32_t>::max());
+
+    auto shl_result = vm.execute(&module, "shl", {});
+    ASSERT_FALSE(vm.failed()) << vm.error_message();
+    EXPECT_EQ(shl_result.data.ival, std::numeric_limits<int32_t>::min());
+}
+
+TEST_F(SmallsVirtualMachine, BitIntrinsicsRejectOutOfRangeShiftCounts)
+{
+    using namespace nw::smalls;
+
+    auto& rt = nw::kernel::runtime();
+    BytecodeModule module("test");
+
+    auto* direct = new CompiledFunction("direct");
+    direct->param_count = 0;
+    direct->register_count = 3;
+    direct->return_type = rt.int_type();
+    direct->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 1, 1));
+    direct->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, 32));
+    direct->instructions.push_back(Instruction::make_abc(Opcode::CALLINTR, 0, static_cast<uint8_t>(IntrinsicId::BitShl), 2));
+    direct->instructions.push_back(Instruction::make_abc(Opcode::RET, 0, 0, 0));
+    module.add_function(direct);
+
+    auto* register_id = new CompiledFunction("register_id");
+    register_id->param_count = 0;
+    register_id->register_count = 4;
+    register_id->return_type = rt.int_type();
+    register_id->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 1, 1));
+    register_id->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 2, -1));
+    register_id->instructions.push_back(Instruction::make_asbx(Opcode::LOADI, 3, static_cast<int32_t>(IntrinsicId::BitShr)));
+    register_id->instructions.push_back(Instruction::make_abc(Opcode::CALLINTR_R, 0, 3, 2));
+    register_id->instructions.push_back(Instruction::make_abc(Opcode::RET, 0, 0, 0));
+    module.add_function(register_id);
+
+    VirtualMachine direct_vm{};
+    direct_vm.execute(&module, "direct", {});
+    EXPECT_TRUE(direct_vm.failed());
+    EXPECT_NE(direct_vm.error_message().find("bit shift count out of range"), nw::StringView::npos);
+
+    VirtualMachine register_vm{};
+    register_vm.execute(&module, "register_id", {});
+    EXPECT_TRUE(register_vm.failed());
+    EXPECT_NE(register_vm.error_message().find("bit shift count out of range"), nw::StringView::npos);
 }
 
 TEST_F(SmallsVirtualMachine, TypeCheckIs)
@@ -1181,6 +1345,99 @@ TEST_F(SmallsVirtualMachine, ValueTypeCopy)
     EXPECT_FLOAT_EQ(res.data.fval, 10.0f);
 }
 
+TEST_F(SmallsVirtualMachine, ValueTypeLocalInLoopEmitsScopedStackRestore)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        [[value_type]]
+        type Pair { x, y: int; };
+
+        fn test(): int {
+            var total = 0;
+            for (var i = 0; i < 5; i = i + 1) {
+                var p: Pair = { i, 1 };
+                total = total + p.x + p.y;
+            }
+            return total;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const CompiledFunction* fn = module.get_function("test");
+    ASSERT_NE(fn, nullptr);
+
+    bool saw_stack_mark = false;
+    bool saw_stack_restore = false;
+    for (const auto& instr : fn->instructions) {
+        saw_stack_mark = saw_stack_mark || instr.opcode() == Opcode::STACK_MARK;
+        saw_stack_restore = saw_stack_restore || instr.opcode() == Opcode::STACK_RESTORE;
+    }
+
+    EXPECT_TRUE(saw_stack_mark);
+    EXPECT_TRUE(saw_stack_restore);
+
+    VirtualMachine vm{};
+    auto res = vm.execute(&module, "test", {});
+    EXPECT_FALSE(vm.failed()) << vm.error_message();
+    EXPECT_EQ(res.data.ival, 15);
+}
+
+TEST_F(SmallsVirtualMachine, ValueTypeLoopBreakContinueEmitStackRestore)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        [[value_type]]
+        type Pair { x, y: int; };
+
+        fn test(): int {
+            var total = 0;
+            for (var i = 0; i < 6; i = i + 1) {
+                var p: Pair = { i, 1 };
+                if (i == 2) {
+                    continue;
+                }
+                if (i == 4) {
+                    break;
+                }
+                total = total + p.x;
+            }
+            return total;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const CompiledFunction* fn = module.get_function("test");
+    ASSERT_NE(fn, nullptr);
+
+    size_t stack_restore_count = 0;
+    for (const auto& instr : fn->instructions) {
+        if (instr.opcode() == Opcode::STACK_RESTORE) {
+            ++stack_restore_count;
+        }
+    }
+
+    EXPECT_GE(stack_restore_count, 3u);
+
+    VirtualMachine vm{};
+    auto res = vm.execute(&module, "test", {});
+    EXPECT_FALSE(vm.failed()) << vm.error_message();
+    EXPECT_EQ(res.data.ival, 4);
+}
+
 TEST_F(SmallsVirtualMachine, ValueTypeReturnAcrossCall)
 {
     using namespace nw::smalls;
@@ -1518,6 +1775,58 @@ TEST_F(SmallsVirtualMachine, ForEachValueTypeArrayWithClosureField)
 
     EXPECT_TRUE(saw_stack_alloc);
     EXPECT_TRUE(saw_stack_copy);
+}
+
+TEST_F(SmallsVirtualMachine, ForEachValueTypeArrayEmitsIterationRestore)
+{
+    using namespace nw::smalls;
+
+    auto script = make_script(R"(
+        [[value_type]]
+        type Pair { x, y: int; };
+
+        fn test(pairs: array!(Pair)): int {
+            var total = 0;
+            for (var p in pairs) {
+                if (p.x == 2) {
+                    continue;
+                }
+                total = total + p.x + p.y;
+            }
+            return total;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    ASSERT_NO_THROW(script.resolve());
+
+    BytecodeModule module("test");
+    AstCompiler compiler(&script, &module, &nw::kernel::runtime(), nw::kernel::runtime().diagnostic_context());
+    ASSERT_TRUE(compiler.compile()) << compiler.error_message_;
+
+    const CompiledFunction* fn = module.get_function("test");
+    ASSERT_NE(fn, nullptr);
+
+    size_t first_stack_mark = std::numeric_limits<size_t>::max();
+    size_t first_loop_check = std::numeric_limits<size_t>::max();
+    size_t stack_restore_count = 0;
+    for (size_t i = 0; i < fn->instructions.size(); ++i) {
+        const Opcode op = fn->instructions[i].opcode();
+        if (op == Opcode::STACK_MARK && first_stack_mark == std::numeric_limits<size_t>::max()) {
+            first_stack_mark = i;
+        }
+        if (op == Opcode::JMPF && first_loop_check == std::numeric_limits<size_t>::max()) {
+            first_loop_check = i;
+        }
+        if (op == Opcode::STACK_RESTORE) {
+            ++stack_restore_count;
+        }
+    }
+
+    ASSERT_NE(first_stack_mark, std::numeric_limits<size_t>::max());
+    ASSERT_NE(first_loop_check, std::numeric_limits<size_t>::max());
+    EXPECT_LT(first_stack_mark, first_loop_check);
+    EXPECT_GE(stack_restore_count, 2u);
 }
 
 TEST_F(SmallsVirtualMachine, StructClosureFieldCall)

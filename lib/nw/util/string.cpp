@@ -12,6 +12,7 @@
 #include <cstring>
 #include <optional>
 #include <string_view>
+#include <system_error>
 
 #ifdef _MSC_VER
 #define strncasecmp _strnicmp
@@ -68,8 +69,10 @@ std::optional<bool> from(StringView str)
         int b = detail::base(str);                                                     \
         type v = 0;                                                                    \
         const char* start = str.data() + (b != 10 ? 2 : 0);                            \
-        auto res = std::from_chars(start, str.data() + str.size(), v, b);              \
-        return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
+        const char* end = str.data() + str.size();                                     \
+        auto res = std::from_chars(start, end, v, b);                                  \
+        return res.ec == std::errc() && res.ptr == end ? std::optional<type>(v)        \
+                                                        : std::optional<type>();       \
     }
 
 #define DEFINE_FROM_FLOAT(type)                                                        \
@@ -77,8 +80,10 @@ std::optional<bool> from(StringView str)
     std::optional<type> from(StringView str)                                           \
     {                                                                                  \
         type v = 0.0;                                                                  \
-        auto res = absl::from_chars(str.data(), str.data() + str.size(), v);           \
-        return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
+        const char* end = str.data() + str.size();                                     \
+        auto res = absl::from_chars(str.data(), end, v);                               \
+        return res.ec == std::errc() && res.ptr == end ? std::optional<type>(v)        \
+                                                        : std::optional<type>();       \
     }
 
 DEFINE_FROM_INT(int16_t)

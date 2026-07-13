@@ -182,3 +182,29 @@ TEST_F(SmallsResolver, FixedArrayZeroSizeError)
     EXPECT_NO_THROW(script.resolve());
     EXPECT_GT(script.errors(), 0);  // Should have error about zero size
 }
+
+TEST_F(SmallsResolver, FixedArrayLayoutOverflowError)
+{
+    nw::String code = R"(
+        var bad: int[1073741824];
+    )";
+
+    auto script = make_script(code);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}
+
+TEST_F(SmallsResolver, StaticArrayLayoutOverflowError)
+{
+    nw::String code = R"(
+        var bad: array!(int, 1073741824);
+    )";
+
+    auto script = make_script(code);
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_GT(script.errors(), 0);
+}

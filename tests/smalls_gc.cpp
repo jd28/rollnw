@@ -457,6 +457,37 @@ TEST_F(SmallsGCTest, StructFieldSurvival)
     EXPECT_EQ(result.value.data.ival, 42);
 }
 
+TEST_F(SmallsGCTest, NewtypeWrappedStringSurvival)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    std::string_view source = R"(
+        import core.string as S;
+
+        type Name(string);
+
+        var saved: Name;
+
+        fn main(): int {
+            saved = Name("persistent");
+            gc_collect();
+            gc_collect();
+
+            return S.len(saved as string);
+        }
+    )";
+
+    auto* script = runtime.load_module_from_source("test/gc/newtype_string", source);
+    ASSERT_TRUE(script);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = runtime.execute_script(script, "main");
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 10);
+}
+
 TEST_F(SmallsGCTest, ArrayElementSurvival)
 {
     auto& runtime = nw::kernel::runtime();

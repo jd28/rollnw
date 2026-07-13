@@ -9,6 +9,7 @@
 #include "../util/profile.hpp"
 #include "AstCompiler.hpp"
 #include "AstResolver.hpp"
+#include "BytecodeVerifier.hpp"
 #include "Context.hpp"
 #include "NullVisitor.hpp"
 #include "PropsetPool.hpp"
@@ -30,6 +31,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 namespace nw::smalls {
 
@@ -1448,6 +1450,7 @@ void Runtime::register_native_hash_op(TypeID operand, std::function<Value(const 
     ExternalFunction ext;
     ext.qualified_name = nw::kernel::strings().intern(qualified_name);
     ext.metadata.return_type = int_type();
+    ext.metadata.params.push_back(ParamMetadata{String("value"), operand});
     ext.script_module = nullptr;
     ext.native_wrapper = [captured](Runtime*, const Value* args, uint8_t) -> Value {
         return captured(args[0]);
@@ -2058,7 +2061,7 @@ void Runtime::evict_user_modules()
 
     if (!evicted_modules.empty()) {
         for (uint32_t i = 0; i < external_functions_.size(); ++i) {
-            const auto& ext = external_functions_[i];
+            auto& ext = external_functions_[i];
             if (ext.is_native() || !evicted_modules.contains(ext.script_module)) {
                 continue;
             }
@@ -2067,6 +2070,20 @@ void Runtime::evict_user_modules()
             if (name_it != external_function_names_.end() && name_it->second == i) {
                 external_function_names_.erase(name_it);
             }
+            for (auto& entry : bytecode_cache_) {
+                auto& module = entry.second;
+                if (!module) { continue; }
+                for (uint32_t& ext_idx : module->external_indices) {
+                    if (ext_idx == i) {
+                        ext_idx = UINT32_MAX;
+                    }
+                }
+            }
+            ext.qualified_name = {};
+            ext.script_module = nullptr;
+            ext.func_idx = UINT32_MAX;
+            ext.native_wrapper = {};
+            ext.native_fast_wrapper = nullptr;
         }
     }
 
@@ -2140,13 +2157,146 @@ bool Runtime::get_source_line(StringView module_name, size_t line, StringView& o
     return true;
 }
 
+namespace {
+
+const Annotation* find_annotation(const Declaration* decl, StringView name)
+{
+    if (!decl) { return nullptr; }
+    for (const auto& ann : decl->annotations_) {
+        if (ann.name.loc.view() == name) {
+            return &ann;
+        }
+    }
+    return nullptr;
+}
+
+bool script_test_name(const FunctionDefinition* func, const Annotation* test_ann, String& out, String* error_out)
+{
+    out = func->identifier();
+    if (test_ann->args.empty()) { return true; }
+
+    if (test_ann->args.size() != 1 || test_ann->args[0].is_named) {
+        if (error_out) {
+            *error_out = fmt::format("{}: [[test]] accepts at most one positional string label", func->identifier());
+        }
+        return false;
+    }
+
+    auto* label = dynamic_cast<LiteralExpression*>(test_ann->args[0].value);
+    if (!label || !label->data.is<PString>()) {
+        if (error_out) {
+            *error_out = fmt::format("{}: [[test]] label must be a string literal", func->identifier());
+        }
+        return false;
+    }
+
+    out = String(label->data.as<PString>());
+    if (out.empty()) {
+        if (error_out) {
+            *error_out = fmt::format("{}: [[test]] label must not be empty", func->identifier());
+        }
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+bool Runtime::discover_script_tests(Script* script, BytecodeModule* module, String* error_out)
+{
+    if (!script || !module) {
+        if (error_out) { *error_out = "invalid script test discovery input"; }
+        return false;
+    }
+    if (script->ast_discarded()) {
+        if (error_out) {
+            *error_out = fmt::format("module '{}' has no retained AST for script test discovery", script->name());
+        }
+        return false;
+    }
+
+    module->script_tests.clear();
+
+    absl::flat_hash_set<String> names;
+    for (Statement* stmt : script->ast().decls) {
+        auto* func = dynamic_cast<FunctionDefinition*>(stmt);
+        if (!func) { continue; }
+
+        const Annotation* test_ann = find_annotation(func, "test");
+        if (!test_ann) { continue; }
+
+        if (func->is_generic()) {
+            if (error_out) {
+                *error_out = fmt::format("{}: [[test]] function cannot be generic", func->identifier());
+            }
+            return false;
+        }
+        if (!func->params.empty()) {
+            if (error_out) {
+                *error_out = fmt::format("{}: [[test]] function must not have parameters", func->identifier());
+            }
+            return false;
+        }
+        if (func->type_id_ != void_type()) {
+            if (error_out) {
+                *error_out = fmt::format("{}: [[test]] function must return void", func->identifier());
+            }
+            return false;
+        }
+        if (!func->block) {
+            if (error_out) {
+                *error_out = fmt::format("{}: [[test]] function must have a body", func->identifier());
+            }
+            return false;
+        }
+
+        String row_name;
+        if (!script_test_name(func, test_ann, row_name, error_out)) { return false; }
+        if (!names.insert(row_name).second) {
+            if (error_out) {
+                *error_out = fmt::format("{}: duplicate [[test]] name", row_name);
+            }
+            return false;
+        }
+
+        String function_name = func->identifier();
+        const uint32_t function_index = module->get_function_index(function_name);
+        if (function_index == UINT32_MAX) {
+            if (error_out) {
+                *error_out = fmt::format("{}: [[test]] function is not compiled", function_name);
+            }
+            return false;
+        }
+
+        module->script_tests.push_back(ScriptTest{
+            .module = module,
+            .module_name = String(script->name()),
+            .name = std::move(row_name),
+            .location = func->identifier_.loc,
+            .function_index = function_index,
+            .flags = 0,
+        });
+    }
+
+    module->script_tests_discovered = true;
+    return true;
+}
+
 BytecodeModule* Runtime::get_or_compile_module(Script* script)
 {
     NW_PROFILE_SCOPE_N("smalls.get_or_compile_module");
 
     auto it = bytecode_cache_.find(script);
     if (it != bytecode_cache_.end()) {
-        return it->second.get();
+        BytecodeModule* module = it->second.get();
+        if (script_tests_enabled_ && module && !module->script_tests_discovered) {
+            String test_error;
+            if (!discover_script_tests(script, module, &test_error)) {
+                LOG_F(ERROR, "[runtime] Script test discovery failed for '{}': {}", script->name(), test_error);
+                return nullptr;
+            }
+        }
+        return module;
     }
 
     // Ensure script is parsed and resolved
@@ -2186,6 +2336,15 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
         return nullptr;
     }
 
+    if (script_tests_enabled_) {
+        String test_error;
+        if (!discover_script_tests(script, module, &test_error)) {
+            LOG_F(ERROR, "[runtime] Script test discovery failed for '{}': {}", script->name(), test_error);
+            bytecode_cache_[script] = nullptr;
+            return nullptr;
+        }
+    }
+
     // Register this module's script functions as external functions
     // so other modules can call them
     for (uint32_t i = 0; i < module->functions.size(); ++i) {
@@ -2216,6 +2375,18 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
         module->globals.resize(module->global_count);
     }
 
+    String verify_error;
+    const bool verified = verify_bytecode_module(module, this, &verify_error);
+    module->verification_attempted = true;
+    module->verification_passed = verified;
+    module->verification_error = std::move(verify_error);
+    if (!verified) {
+        LOG_F(ERROR, "[runtime] Bytecode verification failed for '{}': {}",
+            script->name(), module->verification_error);
+        bytecode_cache_[script] = nullptr;
+        return nullptr;
+    }
+
     // Auto-run __init if present.
     // Uses execute_module_init so that lazily-loaded modules (triggered during another
     // script's execution) get their own isolated gas budget rather than draining the
@@ -2224,7 +2395,9 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
         vm_->execute_module_init(module, default_gas_limit);
     }
 
-    maybe_compact_script_state(script);
+    if (!script_tests_enabled_) {
+        maybe_compact_script_state(script);
+    }
 
     return module;
 }
@@ -2675,6 +2848,101 @@ void Runtime::report_test_summary()
     }
 }
 
+void Runtime::set_script_tests_enabled(bool enabled) noexcept
+{
+    script_tests_enabled_ = enabled;
+}
+
+std::span<const ScriptTest> Runtime::module_tests(Script* script)
+{
+    if (!script_tests_enabled_ || !script) {
+        return {};
+    }
+
+    BytecodeModule* module = get_or_compile_module(script);
+    return module_tests(module);
+}
+
+std::span<const ScriptTest> Runtime::module_tests(const BytecodeModule* module) const noexcept
+{
+    if (!module) {
+        return {};
+    }
+    return std::span<const ScriptTest>{module->script_tests.data(), module->script_tests.size()};
+}
+
+const ScriptTest* Runtime::module_test(Script* script, StringView name)
+{
+    auto tests = module_tests(script);
+    for (const ScriptTest& test : tests) {
+        if (test.name == name) {
+            return &test;
+        }
+    }
+    return nullptr;
+}
+
+ExecutionResult Runtime::execute_test(const ScriptTest& test, uint64_t gas_limit)
+{
+    if (!test.module || test.function_index >= test.module->functions.size()) {
+        return ExecutionResult{
+            .value = Value{},
+            .failed = true,
+            .error_message = fmt::format("{}::{}: invalid script test row", test.module_name, test.name),
+            .stack_trace = {},
+            .error_module = test.module_name,
+            .error_location = test.location,
+            .error_snippet = {}};
+    }
+
+    const CompiledFunction* function = test.module->functions[test.function_index];
+    ExecutionResult result = execute_compiled(test.module, function, {}, gas_limit);
+    if (!result.ok()) {
+        if (result.error_module.empty()) {
+            result.error_module = test.module_name;
+        }
+        if (result.error_location.range.start.line == 0) {
+            result.error_location = test.location;
+        }
+        if (result.error_snippet.empty() && result.error_location.range.start.line != 0) {
+            StringView line_view;
+            if (get_source_line(result.error_module, result.error_location.range.start.line, line_view)) {
+                result.error_snippet = String(line_view);
+            }
+        }
+        result.error_message = fmt::format("{}::{}: {}", test.module_name, test.name, result.error_message);
+    }
+    return result;
+}
+
+ExecutionResult Runtime::execute_test(Script* script, StringView name, uint64_t gas_limit)
+{
+    const ScriptTest* test = module_test(script, name);
+    if (!test) {
+        String module_name = script ? String(script->name()) : String{};
+        return ExecutionResult{
+            .value = Value{},
+            .failed = true,
+            .error_message = fmt::format("{}::{}: script test not found", module_name, name),
+            .stack_trace = {},
+            .error_module = std::move(module_name),
+            .error_location = {},
+            .error_snippet = {}};
+    }
+    return execute_test(*test, gas_limit);
+}
+
+Vector<ExecutionResult> Runtime::execute_tests(Script* script, uint64_t gas_limit)
+{
+    auto tests = module_tests(script);
+    Vector<ExecutionResult> results;
+    results.reserve(tests.size());
+    for (const ScriptTest& test : tests) {
+        results.push_back(execute_test(test, gas_limit));
+    }
+    return results;
+}
+
 // Core stdlib native registration lives in lib/nw/smalls/native/*.
 
 const ModuleInterface* Runtime::get_native_module(StringView module_path) const
@@ -2736,6 +3004,19 @@ uint32_t Runtime::find_native_function(StringView name) const
     return UINT32_MAX;
 }
 
+void Runtime::bind_native_function_return_type(StringView qualified_name, TypeID return_type)
+{
+    uint32_t native_idx = find_native_function(qualified_name);
+    if (native_idx != UINT32_MAX && native_idx < native_functions_.size()) {
+        native_functions_[native_idx].metadata.return_type = return_type;
+    }
+
+    uint32_t external_idx = find_external_function(qualified_name);
+    if (external_idx != UINT32_MAX && external_idx < external_functions_.size()) {
+        external_functions_[external_idx].metadata.return_type = return_type;
+    }
+}
+
 // -- External Function Registry ----------------------------------------------
 
 uint32_t Runtime::register_external_function(ExternalFunction func)
@@ -2753,6 +3034,9 @@ uint32_t Runtime::register_external_function(ExternalFunction func)
 const ExternalFunction* Runtime::get_external_function(uint32_t index) const
 {
     if (index >= external_functions_.size()) {
+        return nullptr;
+    }
+    if (!external_functions_[index].qualified_name) {
         return nullptr;
     }
     return &external_functions_[index];
@@ -3536,6 +3820,11 @@ HeapPtr Runtime::alloc_array(TypeID element_type_id, uint32_t count)
     uint32_t elem_size = elem_type_ptr->size;
     uint32_t elem_alignment = std::max(1u, elem_type_ptr->alignment);
     String elem_name(elem_type_ptr->name.view());
+    if (elem_size != 0 && count > std::numeric_limits<uint32_t>::max() / elem_size) {
+        LOG_F(ERROR, "[runtime] array allocation overflows type layout: {} * {} bytes",
+            count, elem_size);
+        return {};
+    }
 
     // Create array type for header
     Type array_type{
@@ -3550,6 +3839,11 @@ HeapPtr Runtime::alloc_array(TypeID element_type_id, uint32_t count)
     size_t header_size = sizeof(uint32_t);
     size_t elements_start = (header_size + elem_alignment - 1) & ~(elem_alignment - 1);
     size_t elements_size = count * elem_size;
+    if (elements_size > std::numeric_limits<size_t>::max() - elements_start) {
+        LOG_F(ERROR, "[runtime] array allocation overflows addressable size: {} + {} bytes",
+            elements_start, elements_size);
+        return {};
+    }
     size_t total_size = elements_start + elements_size;
     size_t alignment = std::max(alignof(uint32_t), static_cast<size_t>(elem_alignment));
 

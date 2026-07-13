@@ -176,6 +176,7 @@ private:
     bool consume_gas(uint64_t amount = 1);
     void init_gas(uint64_t gas_limit);
 
+    void store_native_result(Value result, uint8_t dest_reg, StringView func_name, TypeID return_type);
     void push_frame(BytecodeModule* module, const CompiledFunction* func, uint32_t ret_reg, Closure* closure);
     void pop_frame();
 
@@ -193,9 +194,9 @@ private:
     bool resolve_type_ref(uint16_t type_idx, const BytecodeModule* mod, TypeID& out_tid);
     void* resolve_sum_data(const Value& sum_val, CallFrame& frame, const SumDef*& out_def, const char* opcode_name);
     void call_native_pointer(NativeFunctionPointer fn, Runtime& rt, const Value* args, uint8_t argc,
-        uint8_t dest_reg, StringView func_name);
+        uint8_t dest_reg, StringView func_name, TypeID return_type);
     void call_native_wrapper(const NativeFunctionWrapper& wrapper, Runtime& rt, const Value* args, uint8_t argc,
-        uint8_t dest_reg, StringView func_name);
+        uint8_t dest_reg, StringView func_name, TypeID return_type);
     void setup_script_call(uint8_t dest_reg, uint8_t argc, BytecodeModule* target_module,
         const CompiledFunction* callee, Closure* closure, const char* opcode_name);
     Value read_stack_value(uint8_t* ptr, TypeID field_type, uint32_t base_offset, uint32_t field_offset,

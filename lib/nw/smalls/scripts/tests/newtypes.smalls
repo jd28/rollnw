@@ -53,7 +53,8 @@ fn test_newtype_comparison(): bool {
     return true;
 }
 
-fn main() {
+[[test("tests.newtypes corpus")]]
+fn corpus() {
     reset();
 
     test("newtype_construct", test_newtype_construct());

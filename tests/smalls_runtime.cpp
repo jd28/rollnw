@@ -1,6 +1,7 @@
 #include "smalls_fixtures.hpp"
 
 #include <nw/log.hpp>
+#include <nw/smalls/Bytecode.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/propset_json.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -137,6 +138,192 @@ TEST_F(SmallsRuntime, GenericTypeAndFunctionInstantiationFromModuleWithDebugNone
     auto exec_result = rt.execute_script(consumer, "main");
     ASSERT_TRUE(exec_result.ok());
     EXPECT_EQ(exec_result.value.data.ival, 42);
+}
+
+TEST_F(SmallsRuntime, NormalLoadDoesNotDiscoverScriptTests)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.script_tests_normal", R"(
+        [[test]]
+        fn invalid_signature(x: int) {
+        }
+
+        fn main(): int {
+            return 7;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    auto* module = rt.get_or_compile_module(script);
+    ASSERT_NE(module, nullptr);
+    EXPECT_FALSE(module->script_tests_discovered);
+    EXPECT_TRUE(module->script_tests.empty());
+}
+
+TEST_F(SmallsRuntime, ScriptTestsDiscoverAndExecuteAnnotatedFunctions)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path("stdlib/core");
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_tests", R"(
+        [[test]]
+        fn passes_one() {
+            assert(1 + 1 == 2);
+        }
+
+        [[test]]
+        fn passes_two() {
+            assert(true);
+        }
+
+        fn main(): int {
+            return 7;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    auto tests = rt.module_tests(script);
+    ASSERT_EQ(tests.size(), 2u);
+    EXPECT_EQ(tests[0].module_name, "test.script_tests");
+    EXPECT_EQ(tests[0].name, "passes_one");
+    EXPECT_GT(tests[0].location.range.start.line, 0u);
+    EXPECT_EQ(tests[1].name, "passes_two");
+
+    for (const auto& test : tests) {
+        auto result = rt.execute_test(test);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+    }
+
+    auto main_result = rt.execute_script(script, "main");
+    ASSERT_TRUE(main_result.ok()) << main_result.error_message;
+    EXPECT_EQ(main_result.value.data.ival, 7);
+}
+
+TEST_F(SmallsRuntime, ScriptTestsUseOptionalStringLabel)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path("stdlib/core");
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_test_labels", R"(
+        [[test("readable label")]]
+        fn generated_test_name() {
+            assert(true);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    auto tests = rt.module_tests(script);
+    ASSERT_EQ(tests.size(), 1u);
+    EXPECT_EQ(tests[0].name, "readable label");
+
+    auto result = rt.execute_test(tests[0]);
+    EXPECT_TRUE(result.ok()) << result.error_message;
+}
+
+TEST_F(SmallsRuntime, ScriptTestsExecuteNamedAndAllRows)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path("stdlib/core");
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_test_runner", R"(
+        [[test("alpha")]]
+        fn alpha_body() {
+            assert(true);
+        }
+
+        [[test("beta")]]
+        fn beta_body() {
+            assert(2 + 2 == 4);
+        }
+
+        [[test("broken")]]
+        fn broken_body() {
+            assert(false);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    const auto* beta = rt.module_test(script, "beta");
+    ASSERT_NE(beta, nullptr);
+    EXPECT_EQ(beta->name, "beta");
+
+    auto beta_result = rt.execute_test(script, "beta");
+    EXPECT_TRUE(beta_result.ok()) << beta_result.error_message;
+
+    auto missing = rt.execute_test(script, "missing");
+    EXPECT_FALSE(missing.ok());
+    EXPECT_NE(missing.error_message.find("test.script_test_runner::missing: script test not found"), nw::String::npos)
+        << missing.error_message;
+
+    auto results = rt.execute_tests(script);
+    ASSERT_EQ(results.size(), 3u);
+    EXPECT_TRUE(results[0].ok()) << results[0].error_message;
+    EXPECT_TRUE(results[1].ok()) << results[1].error_message;
+    EXPECT_FALSE(results[2].ok());
+    EXPECT_NE(results[2].error_message.find("test.script_test_runner::broken: assert failed"), nw::String::npos)
+        << results[2].error_message;
+}
+
+TEST_F(SmallsRuntime, ScriptTestsRejectInvalidSignatureInTestMode)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_tests_bad_signature", R"(
+        [[test]]
+        fn invalid_signature(x: int) {
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    EXPECT_EQ(rt.get_or_compile_module(script), nullptr);
+}
+
+TEST_F(SmallsRuntime, ScriptTestsRejectInvalidLabelInTestMode)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_tests_bad_label", R"(
+        [[test(42)]]
+        fn invalid_label() {
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    EXPECT_EQ(rt.get_or_compile_module(script), nullptr);
+}
+
+TEST_F(SmallsRuntime, ScriptTestsReportFailureWithSourceContext)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path("stdlib/core");
+    rt.set_script_tests_enabled(true);
+
+    auto* script = rt.load_module_from_source("test.script_tests_failure", R"(
+        [[test]]
+        fn fails() {
+            assert(false);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+
+    auto tests = rt.module_tests(script);
+    ASSERT_EQ(tests.size(), 1u);
+    EXPECT_EQ(tests[0].name, "fails");
+    EXPECT_GT(tests[0].location.range.start.line, 0u);
+
+    auto result = rt.execute_test(tests[0]);
+    ASSERT_FALSE(result.ok());
+    EXPECT_NE(result.error_message.find("test.script_tests_failure::fails: assert failed"), nw::String::npos)
+        << result.error_message;
+    EXPECT_EQ(result.error_module, "test.script_tests_failure");
+    EXPECT_GT(result.error_location.range.start.line, 0u);
+    EXPECT_FALSE(result.error_snippet.empty());
 }
 
 TEST_F(SmallsRuntime, SourceMapCompactsAstButKeepsSource)
@@ -281,10 +468,10 @@ TEST_F(SmallsRuntime, JsonSerializerRoundTripsStructValue)
     nw::smalls::JsonSerializer serializer{&rt};
     nw::smalls::Value value;
     ASSERT_TRUE(serializer.deserialize_value({
-        {"id", 7},
-        {"label", "seven"},
-        {"values", {1, 2, 3}},
-    },
+                                                 {"id", 7},
+                                                 {"label", "seven"},
+                                                 {"values", {1, 2, 3}},
+                                             },
         probe_id, value));
 
     auto out = serializer.serialize_value(value, probe_id);
@@ -838,4 +1025,127 @@ TEST_F(SmallsRuntime, GenericFunctionCanAccessModuleGlobal)
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 42);
+}
+
+TEST_F(SmallsRuntime, IntMinDivisionOverflowFails)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.int_div_overflow", R"(
+        fn div_overflow(): int {
+            var min = 0 - 2147483647 - 1;
+            return min / -1;
+        }
+
+        fn mod_overflow(): int {
+            var min = 0 - 2147483647 - 1;
+            return min % -1;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto div_result = rt.execute_script(script, "div_overflow");
+    EXPECT_FALSE(div_result.ok());
+    EXPECT_NE(div_result.error_message.find("overflow"), nw::String::npos);
+
+    auto mod_result = rt.execute_script(script, "mod_overflow");
+    EXPECT_FALSE(mod_result.ok());
+    EXPECT_NE(mod_result.error_message.find("overflow"), nw::String::npos);
+}
+
+TEST_F(SmallsRuntime, SubstrOverflowLengthClamps)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* script = rt.load_module_from_source("test.substr_overflow", R"(
+        import core.string as str;
+
+        fn main(): int {
+            return str.len(str.substr("abc", 0, 2147483647));
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.type_id, rt.int_type());
+    EXPECT_EQ(result.value.data.ival, 3);
+}
+
+TEST_F(SmallsRuntime, PadWidthRejectsHugeOutput)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* left = rt.load_module_from_source("test.pad_left_huge", R"(
+        import core.string as str;
+
+        fn main(): int {
+            return str.len(str.pad_left("x", 1048577, " "));
+        }
+    )");
+    ASSERT_NE(left, nullptr);
+    ASSERT_EQ(left->errors(), 0);
+
+    auto left_result = rt.execute_script(left, "main");
+    EXPECT_FALSE(left_result.ok());
+    EXPECT_NE(left_result.error_message.find("core.string.pad_left"), nw::String::npos);
+    EXPECT_NE(left_result.error_message.find("returned invalid value"), nw::String::npos);
+
+    auto* right = rt.load_module_from_source("test.pad_right_huge", R"(
+        import core.string as str;
+
+        fn main(): int {
+            return str.len(str.pad_right("x", 1048577, " "));
+        }
+    )");
+    ASSERT_NE(right, nullptr);
+    ASSERT_EQ(right->errors(), 0);
+
+    auto right_result = rt.execute_script(right, "main");
+    EXPECT_FALSE(right_result.ok());
+    EXPECT_NE(right_result.error_message.find("core.string.pad_right"), nw::String::npos);
+    EXPECT_NE(right_result.error_message.find("returned invalid value"), nw::String::npos);
+}
+
+TEST_F(SmallsRuntime, ReloadInvalidatesExternalScriptFunctionIndices)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* provider = rt.load_module_from_source("test.reload_provider", R"(
+        fn value(): int {
+            return 1;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(provider), nullptr);
+
+    auto* consumer = rt.load_module_from_source("core.reload_consumer", R"(
+        from test.reload_provider import { value };
+
+        fn main(): int {
+            return value();
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+
+    auto first = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(first.ok()) << first.error_message;
+    EXPECT_EQ(first.value.data.ival, 1);
+
+    rt.clear_user_cache();
+    EXPECT_EQ(rt.find_external_function("test.reload_provider.value"), UINT32_MAX);
+
+    auto* reloaded_provider = rt.load_module_from_source("test.reload_provider", R"(
+        fn value(): int {
+            return 2;
+        }
+    )");
+    ASSERT_NE(reloaded_provider, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(reloaded_provider), nullptr);
+
+    auto second = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(second.ok()) << second.error_message;
+    EXPECT_EQ(second.value.data.ival, 2);
 }

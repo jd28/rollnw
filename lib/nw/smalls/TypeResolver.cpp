@@ -1090,7 +1090,10 @@ struct CallResolver {
             }
 
             if (ve) {
-                auto suggestions = format_suggestions(func_name, resolver.ctx.collect_env_names(resolver.ctx.env_stack_.back()));
+                String suggestions;
+                if (resolver.ctx.will_emit_semantic_diagnostic()) {
+                    suggestions = format_suggestions(func_name, resolver.ctx.collect_env_names(resolver.ctx.env_stack_.back()));
+                }
                 resolver.ctx.errorf(ve->range_, "unable to resolve identifier '{}'{}", func_name, suggestions);
             } else {
                 resolver.ctx.error(expr->expr->range_, fmt::format("unable to resolve identifier '{}'", func_name));
@@ -1856,11 +1859,14 @@ static void resolve_function_signature(TypeResolver& resolver, FunctionDefinitio
         }
 
         const auto& native_func = *func_it;
-        if (!rt.native_types_compatible(native_func.return_type, decl->type_id_)) {
+        const bool return_type_matches = rt.native_types_compatible(native_func.return_type, decl->type_id_);
+        if (!return_type_matches) {
             ctx.errorf(decl->range_, "Native function '{}' return type mismatch: script has '{}', C++ has '{}'",
                 func_name,
                 decl->type_id_,
                 native_func.return_type);
+        } else if (native_func.return_type == invalid_type_id && rt.is_handle_type(decl->type_id_)) {
+            rt.bind_native_function_return_type(String(ctx.parent_->name()) + "." + func_name, decl->type_id_);
         }
 
         if (native_func.params.size() != decl->params.size()) {
@@ -2075,6 +2081,55 @@ static void resolve_struct_field(TypeResolver& resolver, VarDecl* decl)
     }
 }
 
+static bool validate_struct_field_layout(TypeResolver& resolver, const StructDecl* struct_decl, const VarDecl* field_decl)
+{
+    if (!field_decl) { return true; }
+    if (field_decl->type_id_ == invalid_type_id) {
+        return false;
+    }
+
+    const Type* field_type = nw::kernel::runtime().get_type(field_decl->type_id_);
+    if (!field_type) {
+        return false;
+    }
+
+    SourceRange range = field_decl->type ? field_decl->type->range_ : field_decl->range_;
+    if (field_type->type_kind == TK_unspecified) {
+        resolver.ctx.errorf(range,
+            "struct '{}' field '{}' uses type '{}' before its storage layout is defined",
+            struct_decl->identifier(),
+            field_decl->identifier(),
+            field_decl->type_id_);
+        return false;
+    }
+
+    if (field_type->alignment == 0 && field_type->size == 0) {
+        resolver.ctx.errorf(range,
+            "struct '{}' field '{}' type '{}' has no storage layout",
+            struct_decl->identifier(),
+            field_decl->identifier(),
+            field_decl->type_id_);
+        return false;
+    }
+
+    return true;
+}
+
+static bool validate_struct_field_layouts(TypeResolver& resolver, const StructDecl* decl)
+{
+    bool ok = true;
+    for (auto* it : decl->decls) {
+        if (auto* vd = dynamic_cast<VarDecl*>(it)) {
+            ok &= validate_struct_field_layout(resolver, decl, vd);
+        } else if (auto* vdl = dynamic_cast<DeclList*>(it)) {
+            for (auto* vd : vdl->decls) {
+                ok &= validate_struct_field_layout(resolver, decl, vd);
+            }
+        }
+    }
+    return ok;
+}
+
 void TypeResolver::visit(StructDecl* decl)
 {
     decl->env_ = ctx.env_stack_.back();
@@ -2093,6 +2148,10 @@ void TypeResolver::visit(StructDecl* decl)
     }
 
     ctx.struct_decl_stack_ = prev_struct;
+
+    if (!validate_struct_field_layouts(*this, decl)) {
+        return;
+    }
 
     auto& rt = nw::kernel::runtime();
     rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name());
@@ -2342,7 +2401,10 @@ void TypeResolver::visit(TypeAlias* decl)
 {
     decl->env_ = ctx.env_stack_.back();
     auto& rt = nw::kernel::runtime();
-    TypeID aliased = rt.type_id(decl->aliased_type->str());
+    if (decl->aliased_type && (decl->aliased_type->name || decl->aliased_type->is_function_type)) {
+        decl->aliased_type->accept(this);
+    }
+    TypeID aliased = decl->aliased_type ? decl->aliased_type->type_id_ : invalid_type_id;
     rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name(), aliased);
 }
 
@@ -2350,7 +2412,10 @@ void TypeResolver::visit(NewtypeDecl* decl)
 {
     decl->env_ = ctx.env_stack_.back();
     auto& rt = nw::kernel::runtime();
-    TypeID wrapped = rt.type_id(decl->wrapped_type->str());
+    if (decl->wrapped_type && (decl->wrapped_type->name || decl->wrapped_type->is_function_type)) {
+        decl->wrapped_type->accept(this);
+    }
+    TypeID wrapped = decl->wrapped_type ? decl->wrapped_type->type_id_ : invalid_type_id;
     rt.type_table_.define(decl->type_id_, decl, ctx.parent_->name(), wrapped);
 }
 
@@ -3052,7 +3117,10 @@ void TypeResolver::visit(IdentifierExpression* expr)
                 expr->type_id_ = refined;
             }
         } else {
-            auto suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
+            String suggestions;
+            if (ctx.will_emit_semantic_diagnostic()) {
+                suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
+            }
             ctx.errorf(expr->range_, "unable to resolve identifier '{}'{}", expr->ident.loc.view(), suggestions);
         }
     }

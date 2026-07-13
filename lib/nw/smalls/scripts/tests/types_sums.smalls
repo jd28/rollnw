@@ -255,7 +255,8 @@ fn test_value_type_reassign(): bool {
     return value == 2;
 }
 
-fn main() {
+[[test("tests.types_sums corpus")]]
+fn corpus() {
     reset();
 
     test("unit_variant_red", test_unit_variant_red());

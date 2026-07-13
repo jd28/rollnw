@@ -42,7 +42,8 @@ fn test_value_type_string_copy(): bool {
     return a.id == 1 && b.id == 2 && a.name == "test" && b.name == "test";
 }
 
-fn main() {
+[[test("tests.value_types corpus")]]
+fn corpus() {
     reset();
 
     test("value_type_init", test_value_type_init());
