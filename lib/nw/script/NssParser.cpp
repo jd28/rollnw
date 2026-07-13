@@ -7,7 +7,64 @@
 
 #include "xxhash/xxh3.h"
 
+#include <bit>
+#include <optional>
+
 namespace nw::script {
+
+namespace {
+
+StringView nss_float_value_view(StringView literal)
+{
+    if (!literal.empty() && literal[literal.size() - 1] == 'f') {
+        return literal.substr(0, literal.size() - 1);
+    }
+    return literal;
+}
+
+std::optional<int32_t> parse_nss_integer_literal(StringView literal)
+{
+    const bool is_prefixed = literal.size() > 2 && literal[0] == '0'
+        && (literal[1] == 'x' || literal[1] == 'X'
+            || literal[1] == 'b' || literal[1] == 'B'
+            || literal[1] == 'o' || literal[1] == 'O');
+    if (!is_prefixed) {
+        return string::from<int32_t>(literal);
+    }
+
+    if (auto value = string::from<uint32_t>(literal)) {
+        return std::bit_cast<int32_t>(*value);
+    }
+    return {};
+}
+
+void set_integer_literal_data(Context* ctx, Nss* parent, const NssToken& token, int32_t& value)
+{
+    if (auto val = parse_nss_integer_literal(token.loc.view())) {
+        value = *val;
+    } else {
+        value = 0;
+        ctx->parse_diagnostic(parent,
+            fmt::format("unable to parse integer literal '{}'", token.loc.view()),
+            false,
+            token.loc.range);
+    }
+}
+
+void set_float_literal_data(Context* ctx, Nss* parent, const NssToken& token, float& value, StringView diagnostic_type)
+{
+    if (auto val = string::from<float>(nss_float_value_view(token.loc.view()))) {
+        value = *val;
+    } else {
+        value = 0.0f;
+        ctx->parse_diagnostic(parent,
+            fmt::format("unable to parse {} literal '{}'", diagnostic_type, token.loc.view()),
+            false,
+            token.loc.range);
+    }
+}
+
+} // namespace
 
 NssParser::NssParser(StringView view, Context* ctx, Nss* parent)
     : ctx_{ctx}
@@ -495,23 +552,13 @@ Expression* NssParser::parse_expr_primary()
             expr->data = static_cast<int32_t>(XXH32(expr->literal.loc.view().data(), expr->literal.loc.view().size(), 0)) ^ nullhash;
 
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
-            if (auto val = string::from<int32_t>(expr->literal.loc.view())) {
-                expr->data = *val;
-            } else {
-                ctx_->parse_diagnostic(parent_,
-                    fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view()),
-                    false,
-                    expr->literal.loc.range);
-            }
+            int32_t value = 0;
+            set_integer_literal_data(ctx_, parent_, expr->literal, value);
+            expr->data = value;
         } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
-            if (auto val = string::from<float>(expr->literal.loc.view())) {
-                expr->data = *val;
-            } else {
-                ctx_->parse_diagnostic(parent_,
-                    fmt::format("unable to parse float literal '{}'", expr->literal.loc.view()),
-                    false,
-                    expr->literal.loc.range);
-            }
+            float value = 0.0f;
+            set_float_literal_data(ctx_, parent_, expr->literal, value, "float");
+            expr->data = value;
         } else if (expr->literal.type == NssTokenType::LOCATION_INVALID) {
             expr->data = Location{};
         } else if (expr->literal.type == NssTokenType::OBJECT_INVALID_CONST
@@ -552,32 +599,9 @@ Expression* NssParser::parse_expr_primary()
         expr->range_.start = start;
         expr->range_.end = previous().loc.range.end;
 
-        if (auto val = string::from<float>(expr->x.loc.view())) {
-            expr->data.x = *val;
-        } else {
-            ctx_->parse_diagnostic(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->x.loc.view()),
-                false,
-                expr->x.loc.range);
-        }
-
-        if (auto val = string::from<float>(expr->y.loc.view())) {
-            expr->data.y = *val;
-        } else {
-            ctx_->parse_diagnostic(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->y.loc.view()),
-                false,
-                expr->y.loc.range);
-        }
-
-        if (auto val = string::from<float>(expr->z.loc.view())) {
-            expr->data.z = *val;
-        } else {
-            ctx_->parse_diagnostic(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->z.loc.view()),
-                false,
-                expr->z.loc.range);
-        }
+        set_float_literal_data(ctx_, parent_, expr->x, expr->data.x, "vector");
+        set_float_literal_data(ctx_, parent_, expr->y, expr->data.y, "vector");
+        set_float_literal_data(ctx_, parent_, expr->z, expr->data.z, "vector");
 
         return expr;
     }

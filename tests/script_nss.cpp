@@ -923,7 +923,7 @@ TEST(Nss, Literals)
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_EQ(nss6.errors(), 0);
 
-    script::Nss nss7("void main() { int i = 0x123456789abcdef; }"sv, ctx.get());
+    script::Nss nss7("void main() { int i = 0xDEADBEEF; }"sv, ctx.get());
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_EQ(nss7.errors(), 0);
 
@@ -941,6 +941,10 @@ TEST(Nss, Literals)
             EXPECT_TRUE(dynamic_cast<script::LiteralExpression*>(p->init));
         }
     }
+
+    script::Nss nss10("void main() { int i = 0x123456789abcdef; }"sv, ctx.get());
+    EXPECT_NO_THROW(nss10.parse());
+    EXPECT_EQ(nss10.errors(), 1);
 }
 
 TEST(Nss, Switch)
