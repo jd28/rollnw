@@ -25,6 +25,7 @@
 <div class="site-nav-section">Rendering</div>
 <a href="../gfx/index.html">nw::gfx</a>
 <a href="../render/index.html">nw::render</a>
+<a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
@@ -41,15 +42,15 @@
       <article class="content">
 <h1 id="propset-architecture">Propset Architecture</h1>
 <p><strong>Version</strong>: 0.1.0
-<strong>Last Updated</strong>: 2026-02-20</p>
+<strong>Last Updated</strong>: 2026-07-13</p>
 <h2 id="overview">Overview</h2>
-<p>The propset system is an ECS-inspired component architecture for game objects. Data schemas are defined in Smalls script, giving ruleset authors full control over data layout without engine recompilation. The engine remains blind to game-logic data and communicates with scripts exclusively through native function boundaries.</p>
+<p>The propset system is the script-owned half of the object data architecture. Data schemas are defined in Smalls script, giving ruleset authors control over game and rules data layout without engine recompilation. C++ owns object lifetime, native components, serialization boundaries, and renderer-facing row storage. Runtime C++ should not reach into propset fields for game policy; scripts read propsets directly and communicate native side effects through explicit native functions.</p>
 <p>The design is intentionally shaped around the access pattern of RPG game logic: <strong>discrete event simulation</strong>, not continuous batch processing. Combat resolves one event at a time — an attack fires, two specific creatures' data is fetched, a result is computed. You never need to iterate all creatures in combat simultaneously. This means the optimization target is fast per-object lookup, not cache-coherent iteration across thousands of entities, and the slab-based pool with O(1) handle lookup is exactly right for that.</p>
 <hr>
 <h2 id="two-worlds">Two Worlds</h2>
 <h3 id="script-propsets">Script Propsets</h3>
-<p>Game-logic data — ability scores, feats, HP, class levels — that the engine has no need to know about. Schemas are defined in <code>.smalls</code> files using the <code>[[propset]]</code> annotation. Memory is managed by <code>PropsetPoolManager</code> in slab-based pools keyed by <code>ObjectHandle</code>. Scripts access propsets through the <code>get_propset</code> intrinsic.</p>
-<div class="codehilite"><pre><span></span><code><span class="nd">[[propset]]</span>
+<p>Game-logic data — descriptors, appearance source data, ability scores, feats, item stats, object state — that script policy owns. Schemas are defined in <code>.smalls</code> files using the <code>[[propset(ObjectType)]]</code> annotation. Memory is managed by <code>PropsetPoolManager</code> in slab-based pools keyed by <code>ObjectHandle</code>. Scripts access propsets through the <code>get_propset</code> intrinsic.</p>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[propset(Creature)]]</span>
 <span class="k">type</span> <span class="nc">CreatureStats</span> <span class="p">{</span>
     <span class="n">abilities</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
     <span class="n">save_fort</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -73,13 +74,15 @@
     <span class="n">plot</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">chunk_death</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">bodybag</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">special_abilities</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">SpecialAbility</span><span class="p">);</span>
 <span class="p">};</span>
 </code></pre></div>
 
-<p>The engine registers propset types and populates them at object load time, but does not read or write propset fields directly thereafter. Game logic that previously lived in C++ (AC calculation, feat checks, skill rolls) migrates to script and accesses data directly through propset fields.</p>
-<h3 id="native-arrays">Native Arrays</h3>
-<p>Engine-critical data — position, visual appearance, physics bodies — that subsystems need to iterate efficiently every frame. These are plain C++ arrays indexed by object slot, owned by the relevant subsystem. The renderer owns <code>Transform transforms[MAX_OBJECTS]</code>. The physics system owns its own arrays. The object manager is the authority on slot lifetime.</p>
-<p>Scripts have no direct access to native arrays. They are purely a C++ implementation detail for cache-coherent batch iteration by engine subsystems.</p>
+<p>The engine registers propset types, initializes them for object handles, and imports/exports them at serialization boundaries. Generic JSON and legacy GFF conversion may read/write propsets as data transforms. Runtime policy should live in Smalls; C++ runtime reads from propsets are temporary compatibility bridges or conversion code, not the long-term architecture.</p>
+<h3 id="native-object-components">Native Object Components</h3>
+<p>Engine-critical and engine-owned data — spatial state, local variables, geometry, visual rows, inventories, store inventories, item layout, vitals, and ability loadout rows — lives in <code>ObjectComponentSystem</code>. Components are C++ storage rows keyed by <code>ObjectHandle</code>. Some are contiguous vectors for common component data; inventories are lazily allocated because many objects do not carry one.</p>
+<p>Scripts have no direct memory access to native components. They communicate through native functions that preserve C++ invariants. Equipping, inventory mutation, position changes, and visual row emission are engine transactions, not propset field writes.</p>
+<p>Visual appearance follows the same rule: scripts emit explicit visual rows through bridge functions, and C++ stores those rows in object components for renderer/tooling consumption. The model/light/icon handoff is described in the <a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>.</p>
 <hr>
 <h2 id="the-boundary-bridge-functions">The Boundary: Bridge Functions</h2>
 <p>All communication between the script world and the engine-owned data goes through native function signatures. Scripts call <code>get_position(obj)</code> — not <code>get_propset(obj): Transform</code>. This is deliberate:</p>
@@ -89,13 +92,48 @@
 <li>The script-engine boundary is entirely legible as a set of function signatures</li>
 <li>No "native propset" concept needs to exist in the script type system at all</li>
 </ul>
-<p>Native arrays are a C++ implementation pattern, not a script-visible abstraction.</p>
+<p>Native components are a C++ implementation pattern, not a script-visible abstraction.</p>
 <hr>
 <h2 id="script-propset-schemas">Script Propset Schemas</h2>
 <h3 id="creature">Creature</h3>
-<p>Four propsets covering distinct data lifetimes and computational domains. Common operations touch at most two propsets.</p>
-<div class="codehilite"><pre><span></span><code><span class="c1">// &quot;What this creature is&quot; — rarely changes, consulted by most RPG calculations</span>
-<span class="nd">[[propset]]</span>
+<p>Creature data is split by lifetime and access pattern. Cold descriptor and appearance source data stay separate from rules stats, health, level progression, and transient combat/cache rows.</p>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[propset(Creature)]]</span>
+<span class="k">type</span> <span class="nc">CreatureDescriptor</span> <span class="p">{</span>
+    <span class="n">on_attacked</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">;</span>
+    <span class="n">on_blocked</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">;</span>
+    <span class="n">on_conversation</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">;</span>
+    <span class="c1">// ... other event scripts ...</span>
+
+    <span class="n">conversation</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">;</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nc">TextRef</span><span class="p">;</span>
+    <span class="n">name_first</span><span class="p">:</span> <span class="nc">TextRef</span><span class="p">;</span>
+    <span class="n">name_last</span><span class="p">:</span> <span class="nc">TextRef</span><span class="p">;</span>
+    <span class="n">deity</span><span class="p">:</span> <span class="kt">string</span><span class="p">;</span>
+    <span class="n">subrace</span><span class="p">:</span> <span class="kt">string</span><span class="p">;</span>
+    <span class="n">soundset</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">decay_time</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Creature)]]</span>
+<span class="k">type</span> <span class="nc">CreatureAppearance</span> <span class="p">{</span>
+    <span class="n">appearance</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">phenotype</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">tail</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">wings</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">portrait</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">;</span>
+    <span class="n">portrait_id</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+
+    <span class="n">color_hair</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">color_skin</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">color_tattoo1</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">color_tattoo2</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+
+    <span class="n">body_part_belt</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="c1">// ... remaining body part fields ...</span>
+    <span class="n">body_part_torso</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Creature)]]</span>
 <span class="k">type</span> <span class="nc">CreatureStats</span> <span class="p">{</span>
     <span class="n">abilities</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>       <span class="c1">// STR=0, DEX=1, CON=2, INT=3, WIS=4, CHA=5</span>
     <span class="n">save_fort</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -119,12 +157,13 @@
     <span class="n">plot</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">chunk_death</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">bodybag</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">special_abilities</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">SpecialAbility</span><span class="p">);</span>
 <span class="p">};</span>
 
-<span class="c1">// Vital state — changes in combat, persisted to disk</span>
-<span class="nd">[[propset]]</span>
+<span class="nd">[[propset(Creature)]]</span>
 <span class="k">type</span> <span class="nc">CreatureHealth</span> <span class="p">{</span>
     <span class="n">hp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">hp_base_for_max</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hp_current</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hp_max</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hp_temp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -132,17 +171,16 @@
     <span class="n">starting_package</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="c1">// Class progression — changes on level-up, source of BAB and spell slots</span>
-<span class="nd">[[propset]]</span>
+<span class="nd">[[propset(Creature)]]</span>
 <span class="k">type</span> <span class="nc">CreatureLevels</span> <span class="p">{</span>
     <span class="n">classes</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>       <span class="c1">// Class IDs per slot</span>
     <span class="n">class_levels</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// Level count per slot</span>
+    <span class="n">levelup_classes</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
     <span class="n">xp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">walkrate</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="c1">// Transient combat state — resets between sessions, not persisted</span>
-<span class="nd">[[propset]]</span>
+<span class="nd">[[transient, propset(Creature)]]</span>
 <span class="k">type</span> <span class="nc">CreatureCombat</span> <span class="p">{</span>
     <span class="n">attack_current</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">attacks_onhand</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -157,6 +195,12 @@
     <span class="n">target_state</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hasted</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">size</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="c1">// ... round/epoch/weapon cache fields ...</span>
+<span class="p">};</span>
+
+<span class="nd">[[transient, propset(Creature)]]</span>
+<span class="k">type</span> <span class="nc">CreatureCombatCache</span> <span class="p">{</span>
+    <span class="c1">// Cached combat modifier rows and epoch keys.</span>
 <span class="p">};</span>
 </code></pre></div>
 
@@ -203,19 +247,53 @@
 </tr>
 <tr>
 <td>Spell slot check</td>
-<td><code>CreatureLevels</code></td>
+<td><code>CreatureLevels</code> + native ability loadout</td>
+</tr>
+<tr>
+<td>Visual model resolution</td>
+<td><code>CreatureAppearance</code> + equipment/item propsets</td>
 </tr>
 </tbody>
 </table>
-<p>Nothing requires more than two propsets. The ceiling is AC and attack resolution, which are the most complex calculations and still only need the combat state alongside the sheet.</p>
+<p>Most common rules operations touch one or two propsets. Complex combat paths may also consult equipment, item propsets, native ability loadout rows, or transient caches. Keep those joins explicit in Smalls instead of hiding them behind C++ object members.</p>
+<p><code>[[transient]]</code> propsets are runtime/cache rows. Component/propset JSON
+initializes them from defaults on load and does not write them to durable
+fixtures or saves.</p>
 <p><strong>Excluded from propsets (v1):</strong>
-- <code>SpellBook</code> — slot arrays per class per level, too complex for v1 field types; remains as native functions (<code>get_spell_slots</code>, <code>get_remaining_slots</code>)
-- <code>LevelHistory</code> — per-level-up detail (feat/skill/ability choices); player-character only, rarely accessed from script; remains serialized in C++
-- <code>CreatureScripts</code> — all Resref fields (strings); event handler names, bridge-function territory</p>
+- Spell preparation/loadout rows — mutable runtime state owned by the native
+  <code>ObjectAbilityLoadout</code> component; legacy NWN1 <code>SpellBook</code> lists exist only
+  as GFF import/export compatibility.
+- <code>LevelHistory</code> detail beyond class slots — feat/skill/ability choices remain
+  player-character compatibility data. <code>CreatureLevels.levelup_classes</code> carries
+  the class-slot projection used by current script rules.
+- Equipped items and inventory ownership — native components, with Smalls hooks
+  for policy and visual/effect updates.</p>
 <h3 id="item">Item</h3>
-<div class="codehilite"><pre><span></span><code><span class="nd">[[propset]]</span>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[native]]</span>
+<span class="k">type</span> <span class="nc">ItemProperty</span> <span class="p">{</span>
+    <span class="n">prop_type</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">subtype</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">cost_table</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">cost_value</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">param_table</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">param_value</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Item)]]</span>
+<span class="k">type</span> <span class="nc">ItemDescriptor</span> <span class="p">{</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nc">TextRef</span><span class="p">;</span>
+    <span class="n">description_id</span><span class="p">:</span> <span class="nc">TextRef</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Item)]]</span>
 <span class="k">type</span> <span class="nc">ItemStats</span> <span class="p">{</span>
     <span class="n">base_item</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">armor_id</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">armor_dex_bonus</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">armor_dex_bonus_valid</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">armor_ac_bonus</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">armor_ac_bonus_valid</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">item_properties</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">ItemProperty</span><span class="p">);</span>
     <span class="n">cost</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">cost_additional</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">stack_size</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -224,13 +302,21 @@
     <span class="n">identified</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">plot</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">stolen</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
-    <span class="c1">// item properties: deferred — requires structured array representation</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Item)]]</span>
+<span class="k">type</span> <span class="nc">ItemVisuals</span> <span class="p">{</span>
+    <span class="n">model_colors</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="n">item_model_color_count</span><span class="p">];</span>
+    <span class="n">model_parts</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="n">item_model_part_count</span><span class="p">];</span>
+    <span class="n">part_colors</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="n">item_part_color_count</span><span class="p">];</span>
 <span class="p">};</span>
 </code></pre></div>
 
-<p>Item properties (the <code>ItemProperty</code> list) are deferred. They require either a structured encoding into <code>array!(int)</code> or v2 propset field types. Native functions cover them in the interim.</p>
+<p><code>ItemProperty</code> is a native struct value stored in <code>ItemStats.item_properties</code>.
+Smalls processes properties into effect rows on equip/unequip. C++ still owns the
+effect application/removal boundary and the inventory/equipment transaction.</p>
 <h3 id="door">Door</h3>
-<div class="codehilite"><pre><span></span><code><span class="nd">[[propset]]</span>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[propset(Door)]]</span>
 <span class="k">type</span> <span class="nc">DoorState</span> <span class="p">{</span>
     <span class="n">hp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hp_current</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -245,7 +331,7 @@
 </code></pre></div>
 
 <h3 id="placeable">Placeable</h3>
-<div class="codehilite"><pre><span></span><code><span class="nd">[[propset]]</span>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[propset(Placeable)]]</span>
 <span class="k">type</span> <span class="nc">PlaceableState</span> <span class="p">{</span>
     <span class="n">hp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">hp_current</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
@@ -254,44 +340,119 @@
     <span class="n">plot</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">useable</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">has_inventory</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
-    <span class="n">static_</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">static</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">appearance</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">light_color</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
 <span class="p">};</span>
 </code></pre></div>
 
 <h3 id="other-objects">Other Objects</h3>
-<p>Triggers, waypoints, sounds, encounters — these carry minimal runtime state. Their script interaction is primarily through event handlers and native bridge functions. Propsets are not a priority for these types.</p>
+<p>These now have minimal object-type-scoped propsets:</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Propset</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encounter</td>
+<td><code>EncounterState</code>, with <code>array!(EncounterSpawn)</code></td>
+</tr>
+<tr>
+<td>Sound</td>
+<td><code>SoundState</code></td>
+</tr>
+<tr>
+<td>Store</td>
+<td><code>StoreState</code></td>
+</tr>
+<tr>
+<td>Trigger</td>
+<td><code>TriggerState</code></td>
+</tr>
+<tr>
+<td>Waypoint</td>
+<td><code>WaypointState</code></td>
+</tr>
+</tbody>
+</table>
+<p>Area and module data remain mostly C++/format-owned for now. Their contents
+reference sub-objects, components, and module-level resources rather than a
+single object-local rules state row.</p>
 <hr>
-<h2 id="native-array-system-future">Native Array System (Future)</h2>
-<p>This section documents the intended design for when rendering and larger simulations are in scope. Nothing here needs to be built yet.</p>
+<h2 id="native-object-component-system">Native Object Component System</h2>
 <h3 id="concept">Concept</h3>
-<p>Each engine subsystem owns flat arrays indexed by object slot. The object manager assigns slots at creation and reclaims them at destruction. Arrays are pre-allocated at startup for <code>MAX_OBJECTS</code> capacity.</p>
-<div class="codehilite"><pre><span></span><code><span class="c1">// Renderer owns these</span>
-<span class="n">Transform</span><span class="w">   </span><span class="n">transforms</span><span class="p">[</span><span class="n">MAX_OBJECTS</span><span class="p">];</span>
-<span class="n">Appearance</span><span class="w">  </span><span class="n">appearances</span><span class="p">[</span><span class="n">MAX_OBJECTS</span><span class="p">];</span>
+<p>C++ object components hold engine-owned data and explicit cross-system protocols. They are keyed by <code>ObjectHandle</code>, owned by <code>ObjectComponentSystem</code>, and accessed through native functions or C++ component APIs.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">ObjectSpatialState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ObjectHandle</span><span class="w"> </span><span class="n">owner</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">ObjectID</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">object_invalid</span><span class="p">;</span>
+<span class="w">    </span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="w"> </span><span class="n">position</span><span class="p">{</span><span class="mf">0.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="w"> </span><span class="n">orientation</span><span class="p">{</span><span class="mf">0.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="w"> </span><span class="n">scale</span><span class="p">{</span><span class="mf">1.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="w"> </span><span class="n">velocity</span><span class="p">{</span><span class="mf">0.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="w"> </span><span class="n">angular_velocity</span><span class="p">{</span><span class="mf">0.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span class="c1">// Physics system owns these</span>
-<span class="n">PhysicsBody</span><span class="w"> </span><span class="n">physics_bodies</span><span class="p">[</span><span class="n">MAX_OBJECTS</span><span class="p">];</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ObjectVisualState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ObjectHandle</span><span class="w"> </span><span class="n">owner</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">ObjectVisualModel</span><span class="o">&gt;</span><span class="w"> </span><span class="n">models</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">ObjectVisualLight</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lights</span><span class="p">;</span>
+<span class="w">    </span><span class="n">PltColors</span><span class="w"> </span><span class="n">base_plt_colors</span><span class="p">{};</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">base_plt_color_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">body_variant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
 </code></pre></div>
 
-<p>Iteration is a plain loop — no query system, no archetype machinery, no indirection:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">active_count</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">render</span><span class="p">(</span><span class="n">transforms</span><span class="p">[</span><span class="n">active_slots</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span><span class="w"> </span><span class="n">appearances</span><span class="p">[</span><span class="n">active_slots</span><span class="p">[</span><span class="n">i</span><span class="p">]]);</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<h3 id="registration">Registration</h3>
-<p>A subsystem registers its array so the object manager can initialize/clear slots on object creation/destruction:</p>
-<div class="codehilite"><pre><span></span><code><span class="n">object_manager</span><span class="p">.</span><span class="n">register_native_array</span><span class="o">&lt;</span><span class="n">Transform</span><span class="o">&gt;</span><span class="p">(</span>
-<span class="w">    </span><span class="n">transform_array</span><span class="p">,</span>
-<span class="w">    </span><span class="n">MAX_OBJECTS</span><span class="p">,</span>
-<span class="w">    </span><span class="cm">/*on_create=*/</span><span class="p">[](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">slot</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">transform_array</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="cm">/*on_destroy=*/</span><span class="p">[](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">slot</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* cleanup if needed */</span><span class="w"> </span><span class="p">}</span>
-<span class="p">);</span>
-</code></pre></div>
-
-<p>No propset pool, no hash map, no GC involvement. Slot lifetime is managed by the object manager directly.</p>
+<p>Current native component families:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Owner / Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spatial</td>
+<td>position, orientation, area, velocity, future physics integration</td>
+</tr>
+<tr>
+<td>Local data</td>
+<td>dynamic script variables; sparse and mutable</td>
+</tr>
+<tr>
+<td>Vitals</td>
+<td>engine-facing current/max HP bridge</td>
+</tr>
+<tr>
+<td>Geometry</td>
+<td>triggers, encounters, spawn points, highlight bounds</td>
+</tr>
+<tr>
+<td>Visual</td>
+<td>script-emitted model/light rows for renderer/tooling</td>
+</tr>
+<tr>
+<td>Item layout</td>
+<td>inventory dimensions for items</td>
+</tr>
+<tr>
+<td>Inventory / store inventory</td>
+<td>ownership grids; lazily allocated</td>
+</tr>
+<tr>
+<td>Ability loadout</td>
+<td>known/slotted/unslotted ability rows</td>
+</tr>
+</tbody>
+</table>
+<p>The common case is not “all objects have all components.” Components are created when an object actually needs them. This keeps empty objects cheap and makes optional systems visible in code.</p>
 <h3 id="script-access">Script Access</h3>
-<p>Scripts access native array data exclusively through bridge functions. No <code>get_propset</code> equivalent for native arrays:</p>
+<p>Scripts access native component data exclusively through bridge functions. No <code>get_propset</code> equivalent exists for native components:</p>
 <div class="codehilite"><pre><span></span><code><span class="c1">// core/object.smalls — bridge functions, not propset access</span>
 <span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">get_position</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">):</span> <span class="n">vec3</span><span class="p">;</span>
 <span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">set_position</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="n">vec3</span><span class="p">);</span>
@@ -300,15 +461,30 @@
 <span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">get_area</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">):</span> <span class="kt">object</span><span class="p">;</span>
 </code></pre></div>
 
-<p>The bridge function handles side effects (spatial index update, area transition check, pathfinding notify). Scripts never touch Transform memory directly.</p>
+<p>The bridge function handles side effects such as spatial state updates, object transfer policy, pathing hooks, or renderer row invalidation. Scripts never touch component memory directly.</p>
+<p>Visual rows use the same boundary:</p>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">clear_visual</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">appearance</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">bool</span><span class="p">;</span>
+<span class="nd">[[native]]</span> <span class="k">fn</span> <span class="n">add_visual_model_row</span><span class="p">(</span>
+    <span class="n">obj</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">,</span>
+    <span class="n">attach_to</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">,</span>
+    <span class="n">attach_from</span><span class="p">:</span> <span class="kt">ResRef</span><span class="p">,</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">slot</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">part</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">source_part</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">model_part</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">flags</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">bool</span><span class="p">;</span>
+</code></pre></div>
+
 <h3 id="separation-from-script-propsets">Separation from Script Propsets</h3>
-<p>Native arrays and script propsets are completely separate systems with no shared infrastructure:</p>
+<p>Native components and script propsets are separate storage systems:</p>
 <table>
 <thead>
 <tr>
 <th></th>
 <th>Script Propsets</th>
-<th>Native Arrays</th>
+<th>Native Components</th>
 </tr>
 </thead>
 <tbody>
@@ -320,11 +496,11 @@
 <tr>
 <td>Memory managed by</td>
 <td><code>PropsetPoolManager</code></td>
-<td>Subsystem directly</td>
+<td><code>ObjectComponentSystem</code> / component owner</td>
 </tr>
 <tr>
 <td>GC integration</td>
-<td>Yes</td>
+<td>Propsets are not GC-scanned; unmanaged arrays are cleaned on object destruction</td>
 <td>No</td>
 </tr>
 <tr>
@@ -333,90 +509,49 @@
 <td>Bridge functions only</td>
 </tr>
 <tr>
-<td>Access from C++</td>
-<td>Via propset pool API</td>
-<td>Direct array index</td>
+<td>Runtime C++ policy access</td>
+<td>Avoid; use Smalls or native rows</td>
+<td>Direct C++ component API</td>
 </tr>
 <tr>
-<td>Iteration pattern</td>
-<td>Per-object lookup</td>
-<td>Contiguous loop</td>
+<td>Serialization</td>
+<td>Generic propset JSON plus legacy GFF import/export policies</td>
+<td>Fixed component JSON/GFF sections</td>
 </tr>
 <tr>
 <td>Optimization target</td>
 <td>Fast single-object fetch</td>
-<td>Cache-coherent batch</td>
+<td>Explicit C++ data protocol and optional component storage</td>
 </tr>
 </tbody>
 </table>
 <hr>
-<h2 id="implementation-plan">Implementation Plan</h2>
-<h3 id="phase-1-script-propset-schemas-current">Phase 1 — Script Propset Schemas (Current)</h3>
-<p>Define propset schemas and wire them to existing C++ data as a bootstrap layer. The C++ data remains authoritative during this phase; propsets are populated from it at load time and flushed back at save time.</p>
-<ol>
-<li>Define <code>CreatureStats</code>, <code>CreatureHealth</code>, <code>CreatureLevels</code>, <code>CreatureCombat</code> in <code>core/creature.smalls</code></li>
-<li>Define <code>ItemStats</code> in <code>core/item.smalls</code></li>
-<li>Define <code>DoorState</code>, <code>PlaceableState</code> in respective script modules</li>
-<li>Register propset types from C++ at runtime startup (via <code>ModuleBuilder</code> or equivalent)</li>
-<li>In <code>Creature::instantiate()</code> — allocate and populate propsets from existing C++ struct fields</li>
-<li>In serialization path — flush propset data back to GFF/JSON on save</li>
-<li>Write tests: load creature → check propset fields match GFF data → save → reload → compare</li>
-</ol>
-<p><strong>Key constraint</strong>: C++ structs (<code>CreatureStats</code>, <code>CombatInfo</code>, etc.) are not modified in this phase. The propset is a parallel copy, not yet canonical.</p>
-<h3 id="phase-2-game-logic-migration-medium-term">Phase 2 — Game Logic Migration (Medium-term)</h3>
-<p>Move ruleset calculations from C++ into script. Propsets become canonical; C++ structs become load/save intermediaries only.</p>
-<ol>
-<li>Implement combat system in script using propset direct field access</li>
-<li>Replace native <code>get_ability_score</code>, <code>has_feat</code>, <code>get_skill_rank</code> with script functions reading <code>CreatureStats</code></li>
-<li>Replace native <code>get_total_levels</code>, <code>get_level_by_class</code> with script functions reading <code>CreatureLevels</code></li>
-<li>C++ combat event dispatcher calls script functions rather than executing game logic itself</li>
-<li>Deprecate C++ game-logic functions as script equivalents cover them</li>
-<li>Schema migration story: when a propset field is added, existing saves get default zero; document the policy</li>
-</ol>
-<h3 id="phase-3-native-array-infrastructure-pre-rendering">Phase 3 — Native Array Infrastructure (Pre-rendering)</h3>
-<p>Build the subsystem array infrastructure before the renderer needs it.</p>
-<ol>
-<li>Object manager gets slot assignment and reclamation (if not already present)</li>
-<li><code>register_native_array&lt;T&gt;()</code> API on object manager</li>
-<li><code>Transform</code> and <code>Appearance</code> arrays registered at startup</li>
-<li>Bridge functions in <code>core/object.smalls</code> replace any direct field access patterns</li>
-<li>Validate that no script code assumes position/appearance data is in a propset</li>
-</ol>
-<h3 id="phase-4-renderer-integration-future">Phase 4 — Renderer Integration (Future)</h3>
-<p>Renderer and physics iterate native arrays directly. No per-object virtual dispatch.</p>
-<ol>
-<li>Renderer reads <code>transforms[slot]</code> and <code>appearances[slot]</code> in its draw loop</li>
-<li><code>active_slots[]</code> maintained by object manager (compacted list of live slots)</li>
-<li>Physics system registers its own arrays</li>
-<li>Spatial query structures (area octree, etc.) update through <code>set_position</code> bridge function</li>
-</ol>
-<hr>
-<h2 id="what-is-already-built">What Is Already Built</h2>
+<h2 id="current-implementation">Current Implementation</h2>
 <ul>
 <li><code>PropsetPoolManager</code> — slab pool, slot management, dirty tracking, unmanaged array support</li>
-<li><code>[[propset]]</code> annotation — parsed and validated by <code>TypeResolver</code></li>
-<li>Propset field validation — only allows POD types, <code>[[value_type]]</code> structs, fixed arrays, <code>array!(int|float|bool)</code></li>
+<li><code>[[propset(ObjectType)]]</code> annotation — parsed and validated by <code>TypeResolver</code></li>
+<li>Propset field validation — allows POD types, <code>string</code>, <code>[[value_type]]</code> structs, fixed arrays, and supported unmanaged arrays</li>
 <li><code>get_propset</code> intrinsic — declared in <code>core/prelude.smalls</code></li>
-<li><code>array!(int)</code> as propset field — IArray bridge infrastructure for <code>feats</code> and <code>skills</code></li>
+<li>Object-type propset registration at runtime startup</li>
+<li>GFF import/export through <code>PropsetGffImporter</code> and <code>PropsetGffExporter</code></li>
+<li>Generic component/propset JSON through <code>object_to_component_propset_json</code> and <code>object_from_component_propset_json</code></li>
+<li>Durable propset JSON sections keyed by qualified Smalls type name</li>
+<li><code>[[transient]]</code> skip policy for durable JSON output</li>
+<li>Object component JSON sections for native components such as spatial, local data, geometry, inventory, visuals, and ability loadout</li>
+<li>Script-side rules for combat, modifiers, item property processing, spell slot/known-spell logic, creature sizing, and visual row resolution</li>
+<li>Visual asset protocol from Smalls resolvers into <code>ObjectVisualState</code></li>
 </ul>
-<h2 id="what-is-not-yet-built">What Is Not Yet Built</h2>
-<ul>
-<li>Propset schema definitions in <code>.smalls</code> files (Phase 1)</li>
-<li>C++ registration of propset types at startup (Phase 1)</li>
-<li>Bootstrap population of propsets from existing C++ object data (Phase 1)</li>
-<li>Serialization round-trip through propsets (Phase 1)</li>
-<li>Script-side ruleset functions using propset fields (Phase 2)</li>
-<li>Native array registration API (Phase 3)</li>
-<li>Renderer/physics integration (Phase 4)</li>
-</ul>
+<p><strong>Key constraint</strong>: while a C++ mirror still has runtime consumers, remove those consumers before deleting the mirror. Do not add new runtime reads from propsets in C++; use Smalls functions, native components, or explicit row protocols as the boundary.</p>
 <hr>
 <h2 id="deferred-out-of-scope-v1">Deferred / Out of Scope (v1)</h2>
 <ul>
-<li><code>SpellBook</code> in propsets — slot-per-level-per-class structure needs richer field types or a compact encoding</li>
-<li><code>LevelHistory</code> in propsets — complex nested structure, player-character only</li>
-<li><code>string</code> fields in propsets — requires GC root management within unmanaged slab memory; tracked as v2</li>
-<li><code>object</code> handle fields in propsets — <code>TypedHandle</code> is POD and could work inline, but the policy and type-system representation need design</li>
-<li><code>ItemProperty</code> list in propsets — structured encoding TBD</li>
+<li>Spell preparation/loadout in propsets — slot-per-level-per-class runtime rows
+  stay in the native <code>ObjectAbilityLoadout</code> component for now; NWN1 <code>SpellBook</code>
+  remains only a legacy GFF list adapter.</li>
+<li>Full <code>LevelHistory</code> in propsets — player-character compatibility detail; only the class-slot projection is currently in <code>CreatureLevels</code></li>
+<li>General <code>object</code> handle fields in propsets — needs policy for lifetime, serialization, and type-system representation</li>
+<li>Area/module conversion to propsets — left mostly C++/format-owned until their object/subresource boundaries are clearer</li>
+<li>Schema migration policy beyond zero/default initialization for newly added fields</li>
 <li>Query system (iterate all objects with propset X) — not needed at current scale; revisit if simulation scope grows</li>
 </ul>
       </article>

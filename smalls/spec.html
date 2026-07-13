@@ -25,6 +25,7 @@
 <div class="site-nav-section">Rendering</div>
 <a href="../gfx/index.html">nw::gfx</a>
 <a href="../render/index.html">nw::render</a>
+<a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
@@ -716,7 +717,7 @@
 - <strong>Value-type structs</strong> (<code>[[value_type]]</code>): <code>stack</code> — stored in per-frame stack buffer
 - <strong>Fixed arrays</strong> (<code>T[N]</code>): <code>stack</code> — stored in per-frame stack buffer
 - <strong>Heap types</strong> (strings, <code>array!(T)</code>, <code>map!(K,V)</code>, closures): <code>heap</code> — HeapPtr in Value</p>
-<p><strong>Frame Stack Allocation</strong>: Each <code>CallFrame</code> maintains a separate <code>stack_</code> buffer for value-type locals. When a value-type variable is declared: <code>stack_alloc(size, alignment, type_id)</code> allocates space, data is copied into the stack buffer, <code>Value::make_stack(offset, type_id)</code> creates a reference, and <code>stack_layout_</code> records the slot for GC tracing.</p>
+<p><strong>Frame Stack Allocation</strong>: Each <code>CallFrame</code> maintains a separate <code>stack_</code> buffer for value-type locals. When a value-type variable is declared: <code>stack_alloc(size, alignment, type_id)</code> allocates space, data is copied into the stack buffer, <code>Value::make_stack(offset, type_id)</code> creates a reference, and <code>stack_layout_</code> records the slot for GC tracing. The compiler emits <code>STACK_MARK</code> once for a lexical scope that owns value-type stack slots, then emits <code>STACK_RESTORE</code> at scope exit and at loop iteration boundaries that would otherwise retain copied value-type elements.</p>
 <p><strong>Function Returns</strong>: Value types are returned by copying into caller's frame stack. Heap types return HeapPtr (no copy). The caller allocates stack space before the call for value-type returns.</p>
 <p><strong>GC Integration</strong>: Frame stack roots are enumerated via <code>CallFrame::enumerate_stack_roots()</code>, which uses <code>Runtime::scan_value_heap_refs()</code> to find any HeapPtr fields within value-type data.</p>
 <p><strong><em>See [VII.Memory Management]</em></strong></p>
@@ -735,7 +736,7 @@
 <h4 id="implementation_9">Implementation</h4>
 <p><strong>Status</strong>: Complete</p>
 <p><strong>Key files</strong>:
-- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>STACK_ALLOC</code>, <code>STACK_COPY</code>, <code>STACK_FIELDGET/SET</code> opcodes
+- <code>lib/nw/smalls/Bytecode.hpp</code> — <code>STACK_MARK</code>, <code>STACK_RESTORE</code>, <code>STACK_ALLOC</code>, <code>STACK_COPY</code>, <code>STACK_FIELDGET/SET</code> opcodes
 - <code>lib/nw/smalls/VirtualMachine.hpp</code> — call frames and stack root enumeration
 - <code>lib/nw/smalls/runtime.hpp</code> — <code>ValueStorage</code> enum, <code>Value</code> struct</p>
 <h3 id="cast-type-test-expressions">Cast &amp; Type Test Expressions</h3>
@@ -1404,6 +1405,7 @@
 </tr>
 </tbody>
 </table>
+<p>Bit intrinsics operate on the raw 32-bit payload of <code>int</code> as unsigned data and return the low 32 bits as <code>int</code>. <code>shl</code> and <code>shr</code> reject shift counts outside <code>0..31</code>.</p>
 <p>The resolver validates intrinsic names and signatures, and the compiler emits intrinsic call opcodes. Runtime errors (bounds, empty pop) abort script execution.</p>
 <h4 id="module-resolution">Module Resolution</h4>
 <ol>
@@ -1763,7 +1765,7 @@ Bits 7-0:   Register C (8 bits)
 <p><strong>Constants &amp; Moves:</strong> LOADK, LOADI, LOADB, MOVE, LOADNIL</p>
 <p><strong>Memory:</strong> GETFIELD, SETFIELD, GETTUPLE, GETARRAY, SETARRAY, NEWSTRUCT, NEWTUPLE, NEWARRAY, NEWMAP, MAPGET, MAPSET, NEWSUM, SUMINIT, SUMGETTAG, SUMGETPAYLOAD, GETGLOBAL, SETGLOBAL</p>
 <p><strong>Optimized Field Access:</strong> FIELDGETI/FIELDSETI (int), FIELDGETF/FIELDSETF (float), FIELDGETB/FIELDSETB (bool), FIELDGETS/FIELDSETS (string), FIELDGETO/FIELDSETO (object), FIELDGETH/FIELDSETH (heap) — each with immediate and register-indexed variants</p>
-<p><strong>Stack Value Types:</strong> STACK_ALLOC, STACK_COPY, STACK_FIELDGET/SET, STACK_INDEXGET/SET</p>
+<p><strong>Stack Value Types:</strong> STACK_MARK, STACK_RESTORE, STACK_ALLOC, STACK_COPY, STACK_FIELDGET/SET, STACK_INDEXGET/SET</p>
 <p><strong>Control Flow:</strong> JMP, JMPT, JMPF, CALL, CALLNATIVE, CALLEXT, CALLEXT_R, CALLINTR, CALLINTR_R, RET, RETVOID</p>
 <p><strong>Type Operations:</strong> CAST, TYPEOF, IS</p>
 <p><strong>Closures:</strong> CLOSURE, GETUPVAL, SETUPVAL, CLOSEUPVALS, CALLCLOSURE</p>

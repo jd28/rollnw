@@ -25,6 +25,7 @@
 <div class="site-nav-section">Rendering</div>
 <a href="../gfx/index.html">nw::gfx</a>
 <a class="active" href="index.html">nw::render</a>
+<a href="visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="gltf.html">glTF Rendering</a>
 <a href="nwn_model_conversion.html">NWN Model Conversion</a>
 <a href="nwn_emitter_map.html">NWN Emitter Map</a>
@@ -117,6 +118,10 @@ shadow-caster state. The array is sorted in place by pass/material needs.</p>
 <p>The renderer should not infer behavior from model, texture, or node names.
 Source-specific quirks should be lowered into explicit common records or kept in
 a compatibility sidecar with counters.</p>
+<p>Object-level model, light, and icon references enter C++ through the
+<a href="visual_asset_protocol.html">Visual Asset Protocol</a>.
+Smalls emits semantic rows; C++ loads concrete assets and turns them into
+renderer-owned model instances and draw records.</p>
 <h3 id="particles">Particles</h3>
 <p>The particle system is source-neutral:</p>
 <ul>
@@ -144,6 +149,8 @@ common renderer contracts are exercised against real NWN/glTF data until a
 compiled runtime asset path exists.</p>
 <h2 id="source-conversion-notes">Source Conversion Notes</h2>
 <ul>
+<li><a href="visual_asset_protocol.html">Visual Asset Protocol</a>: Smalls to C++ to
+  renderer model/light/icon row protocol.</li>
 <li><a href="gltf.html">docs/gltf.md</a>: glTF to <code>ModelAsset</code> / <code>RenderModel</code>.</li>
 <li><a href="nwn_model_conversion.html">docs/nwn_model_conversion.md</a>: NWN MDL to
   common model data plus compatibility sidecars.</li>

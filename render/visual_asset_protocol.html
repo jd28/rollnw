@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visual Asset Protocol - rollNW</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollNW</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollNW</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a class="active" href="visual_asset_protocol.html">Visual Asset Protocol</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/visual_asset_protocol.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="visual-asset-protocol">Visual Asset Protocol</h1>
+<p>This document describes how gameplay/script decisions become renderer-visible
+model, light, and icon resource references.</p>
+<p>The goal is to keep the renderer source-neutral. Smalls and rules modules decide
+which semantic assets an object needs. C++ owns object-component storage,
+resource loading, validation, and renderer submission. Renderer passes consume
+uploaded renderer data, not NWN table policy or model-name rules.</p>
+<h2 id="data-flow">Data Flow</h2>
+<div class="codehilite"><pre><span></span><code>propsets, load_config data, equipment, appearance state
+  -&gt; Smalls resolver functions
+     nwn1.placeables.update_visual
+     nwn1.doors.update_visual
+     nwn1.creature.update_visual
+     nwn1.item.update_visual_for_slot
+  -&gt; core.visual native row functions
+     clear_visual, clear_visual_slot
+     add_visual_model, add_visual_model_row, add_visual_part
+     add_visual_light
+  -&gt; C++ object components
+     ObjectVisualState
+     ObjectVisualModel[]
+     ObjectVisualLight[]
+  -&gt; viewer/runtime assembly
+     load model ResRefs at the renderer boundary
+     apply PLT/material/animation/socket compatibility data
+     create model instances and light lists
+  -&gt; renderer frame protocol
+     RenderModel, ModelInstance
+     PreparedModelDraw, PreparedModelSurfaceDraw
+     light packets and renderer passes
+</code></pre></div>
+
+<p>The common case is a batch of rows for one changed object. A single static
+object has one root model row. A weapon or shield has one or more item model
+rows. A humanoid creature has body/loadout rows, plus equipment rows owned by
+slot. Area and viewer code later collect these component rows into renderer
+instances and flat draw streams.</p>
+<h2 id="equipment-boundary">Equipment Boundary</h2>
+<p>Equipping is an engine transaction. C++ owns the mutation of equipment slots,
+inventory ownership, object/component versions, and effect ownership. Smalls
+does not replace that transaction.</p>
+<p>Visual resolution happens after the equip state changes. The input is the object
+and its current equipped item handles. Smalls reads the relevant creature/item
+propsets and <code>load_config</code> data, then emits the rows the renderer needs:</p>
+<ul>
+<li>creature body/loadout rows for the owner object</li>
+<li>equipped item rows partitioned by slot</li>
+<li>optional attachment rows such as wings, tails, shields, cloaks, and weapons</li>
+<li>later row protocols for animation slate changes or other render-facing state</li>
+</ul>
+<p>The renderer does not inspect equipment slots, base-item IDs, or NWN tables. It
+loads and submits the <code>ObjectVisualModel</code> rows already attached to the object.
+If an equipped item changes the visible model, icon, attachment, or animation
+state, that change must be expressed as explicit row data before renderer
+assembly begins.</p>
+<p>Rows are mode-filterable data. Default rows render in both game and toolset
+contexts. Producers can mark a row hidden in game mode or hidden in toolset mode
+when editor helpers, placement previews, or gameplay-only visuals need different
+visibility. The renderer consumes those flags as data; it does not infer the
+mode from model names or source tables.</p>
+<h2 id="row-contract">Row Contract</h2>
+<p>Smalls writes visual rows through <code>core.visual</code>. The native functions are generic
+over <code>object</code>; they do not know whether the object is a door, item, creature, or
+placeable.</p>
+<p><code>ObjectVisualModel</code> is the C++ storage row:</p>
+<ul>
+<li><code>model</code>: semantic model <code>ResRef</code></li>
+<li><code>attach_to</code>: socket or target node name, if the row is attached</li>
+<li><code>attach_from</code>: source socket/node, if needed</li>
+<li><code>kind</code>: root model, item model, creature model part, or creature attachment</li>
+<li><code>slot</code>: equipment/loadout slot, or <code>-1</code> for no slot</li>
+<li><code>part</code>: source item/body part vocabulary</li>
+<li><code>source_part</code>: authored part number before mapping</li>
+<li><code>model_part</code>: resolved dynamic model part number</li>
+<li><code>flags</code>: row behavior such as <code>requires_wearer</code>, <code>hidden_in_game</code>, or
+  <code>hidden_in_toolset</code></li>
+</ul>
+<p><code>ObjectVisualLight</code> is the C++ light row:</p>
+<ul>
+<li><code>light_color</code>: semantic palette/index value</li>
+<li><code>light_offset</code>: local-space offset</li>
+</ul>
+<p>Out-of-range behavior is explicit at the producer boundary. Invalid appearance
+rows fail the resolver. Invalid attachment indices return an empty row. Empty
+model <code>ResRef</code>s are rejected by the row consumer. Missing resources are counted
+or warned at the loading boundary, not inferred by renderer passes.</p>
+<h2 id="models">Models</h2>
+<p>Smalls communicates semantic model references as <code>ResRef</code>, not as concrete
+filenames and not as <code>Resource</code>.</p>
+<p>That distinction is intentional:</p>
+<ul>
+<li>Smalls decides which model identity should exist for the object.</li>
+<li>C++ decides which concrete resource type and upload path satisfy that identity.</li>
+<li>Renderer code sees uploaded model data and draw records.</li>
+</ul>
+<p>For NWN compatibility, <code>nwn1.*</code> modules may still construct legacy model names
+from table data. That is compatibility policy and should stay in <code>nwn1.*</code>, not
+inside <code>nw::render</code> and not in low-level object components. A future RPG or
+non-NWN rules module can emit different <code>ResRef</code>s or different row kinds without
+changing renderer passes.</p>
+<h2 id="icons">Icons</h2>
+<p>Icons are not model rows and are not part of the model renderer protocol.</p>
+<p>Item icon resolution returns icon <code>ResRef</code>s for UI/tooling consumers. The C++
+side can ask Smalls for an item icon when a UI or preview tool needs one, then
+the texture/image loading boundary decides whether the concrete source is TGA,
+DDS, KTX, PLT, or another supported image format. The renderer should not care
+which authored image format produced the icon.</p>
+<p>Model rows may carry an icon hint for tooling, but renderer model loading does
+not depend on that hint.</p>
+<h2 id="ownership">Ownership</h2>
+<p>Smalls owns policy:</p>
+<ul>
+<li>resolving base-item, appearance, placeable, door, and creature state</li>
+<li>lowering current equipment into visual rows</li>
+<li>mapping equipment changes to visual rows</li>
+<li>deciding when a row requires wearer context</li>
+<li>emitting root, item, body/loadout, attachment, and light rows</li>
+</ul>
+<p>C++ object components own storage:</p>
+<ul>
+<li>mutating equipment and inventory state before visual rebuilds</li>
+<li><code>ObjectComponentSystem</code> stores visual rows by object handle</li>
+<li>rows are cleared and rebuilt on object load or on relevant state changes</li>
+<li>rows are contiguous per object and cheap to scan for viewer/runtime assembly</li>
+</ul>
+<p><code>nw::render</code> owns renderer meaning:</p>
+<ul>
+<li>validating and loading model assets</li>
+<li>applying material, PLT, animation, socket, and compatibility sidecar data</li>
+<li>creating <code>RenderModel</code> and <code>ModelInstance</code> data</li>
+<li>collecting <code>PreparedModelDraw</code> and <code>PreparedModelSurfaceDraw</code> arrays</li>
+<li>submitting renderer passes through <code>nw::gfx</code></li>
+</ul>
+<h2 id="boundary-rules">Boundary Rules</h2>
+<ul>
+<li>Do not resolve model names in renderer passes.</li>
+<li>Do not infer rules from model, texture, or node names.</li>
+<li>Do not make C++ read propsets for visual policy, except for narrow temporary
+  migration bridges.</li>
+<li>Do not return <code>Resource</code> from visual/loadout resolvers. Emit semantic
+  <code>ResRef</code>s and let C++ pick the concrete load path.</li>
+<li>Do not add per-frame visual resolution. Resolve on object load or state change,
+  then iterate stored rows.</li>
+<li>Keep NWN oddities in <code>nwn1.*</code> lowering code until they can be replaced by
+  source-neutral authored data.</li>
+</ul>
+<p>The renderer boundary is explicit data, not a name convention.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
