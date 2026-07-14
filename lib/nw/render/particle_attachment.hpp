@@ -13,16 +13,13 @@ namespace nw::render {
 struct ParticleEmitterAttachmentBinding {
     // Frame/runtime binding for an emitter anchored to a common model instance.
     // The scene owns handle validity. Attachment-point indices are the common
-    // runtime path; source-node indices are bridge fallback data for legacy NWN
-    // sidecars. Invalid or stale rows are ignored by the resolver, which then
-    // falls back to imported/default emitter placement.
+    // runtime path. Invalid or stale rows fall back to explicit default emitter
+    // placement carried by the compiled effect.
     uint32_t emitter = std::numeric_limits<uint32_t>::max();
     ModelInstanceHandle owner_instance_handle;
     uint32_t owner_model_index = std::numeric_limits<uint32_t>::max();
     ModelAttachmentPointIndex emitter_attachment_point = kInvalidModelAttachmentPointIndex;
-    uint32_t emitter_source_node_index = std::numeric_limits<uint32_t>::max();
     ModelAttachmentPointIndex target_attachment_point = kInvalidModelAttachmentPointIndex;
-    uint32_t target_source_node_index = std::numeric_limits<uint32_t>::max();
 };
 
 struct ParticleEmitterAttachmentFrame {

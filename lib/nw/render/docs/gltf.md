@@ -56,6 +56,12 @@ runtime glTF preview switch.
 | animations | `AnimationClip` tracks |
 | material alpha mode | `MaterialMode` |
 
+glTF socket markers are intentionally not inferred from node or bone names.
+glTF does not define locator semantics, so a separate authoring contract must
+specify the accepted node or `extras` annotation and its validation rules before
+the importer emits `ModelSocket` rows. See
+[gltf-socket-authoring-contract.md](../../../../issues/gltf-socket-authoring-contract.md).
+
 The source texture table stores file paths or encoded bytes. GPU texture handles
 are not created until upload.
 
@@ -101,8 +107,9 @@ The renderer should not branch on "glTF" at draw time.
 
 `GltfImportStats` counts importer-boundary drops and repairs, including repeated
 or over-depth node graph references and non-finite accessor payloads.
-`validate_model_asset` counts invalid primitive/material/skin/animation rows
-before upload. Upload stats then count geometry and texture upload failures.
+`validate_model_asset` counts invalid primitive, material, socket, skin, and
+animation rows before upload. Upload stats then count geometry and texture
+upload failures.
 
 Out-of-range or unsupported data should be rejected, dropped, or counted at the
 conversion/upload boundary. It should not reach Vulkan submission as undefined

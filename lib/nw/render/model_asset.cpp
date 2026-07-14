@@ -6,6 +6,7 @@
 #include <nw/util/string.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -545,6 +546,27 @@ void destroy_render_model_buffers(RenderModel& model) noexcept
     }
 }
 
+bool model_matrix_finite(const glm::mat4& value) noexcept
+{
+    for (int column = 0; column < 4; ++column) {
+        for (int row = 0; row < 4; ++row) {
+            if (!std::isfinite(value[column][row])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool model_socket_matrix_valid(const glm::mat4& value) noexcept
+{
+    if (!model_matrix_finite(value)) {
+        return false;
+    }
+    const float determinant = glm::determinant(value);
+    return std::isfinite(determinant) && std::fabs(determinant) > 1.0e-8f;
+}
+
 } // namespace
 
 ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
@@ -552,6 +574,7 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
     ModelAssetValidationStats stats{};
     stats.primitive_count = saturating_asset_count(asset.primitives.size());
     stats.node_count = saturating_asset_count(asset.nodes.size());
+    stats.socket_count = saturating_asset_count(asset.sockets.size());
     stats.deformer_count = saturating_asset_count(asset.deformers.size());
     stats.skin_count = saturating_asset_count(asset.skins.size());
     stats.skeleton_count = saturating_asset_count(asset.skeletons.size());
@@ -563,6 +586,30 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
     for (size_t node_index = 0; node_index < asset.nodes.size(); ++node_index) {
         if (!node_parent_valid(asset.nodes[node_index], node_index, asset.nodes.size())) {
             ++stats.invalid_node_parent_count;
+        }
+    }
+
+    for (size_t socket_index = 0; socket_index < asset.sockets.size(); ++socket_index) {
+        const auto& socket = asset.sockets[socket_index];
+        if (!source_node_index_valid(socket.source_node_index, asset.nodes.size())) {
+            ++stats.invalid_socket_source_node_count;
+        }
+        if (socket.name.empty()) {
+            ++stats.empty_socket_name_count;
+        }
+        if (!model_socket_matrix_valid(socket.local_transform)
+            || !model_socket_matrix_valid(socket.bind_transform)) {
+            ++stats.invalid_socket_transform_count;
+        }
+        if (!socket.name.empty()) {
+            // Socket tables are small setup data; the linear prefix scan avoids
+            // allocating a temporary hash table during asset validation.
+            for (size_t previous = 0; previous < socket_index; ++previous) {
+                if (nw::string::icmp(asset.sockets[previous].name, socket.name)) {
+                    ++stats.duplicate_socket_name_count;
+                    break;
+                }
+            }
         }
     }
 

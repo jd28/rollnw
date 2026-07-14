@@ -517,7 +517,7 @@ TEST(RenderModelLoader, ExtractsDummyNodesAsSocketRecords)
     EXPECT_FLOAT_EQ(socket->bind_transform[0][0], 1.0f);
 }
 
-TEST(RenderModelLoader, MeshHandAnchorsImportAsSocketAliases)
+TEST(RenderModelLoader, AuthoredHandDummyOverridesMeshAliasFallback)
 {
     namespace nwn = nw::render::nwn;
 
@@ -550,10 +550,10 @@ TEST(RenderModelLoader, MeshHandAnchorsImportAsSocketAliases)
     ASSERT_NE(left_node, nullptr);
     ASSERT_NE(right_node->orig_, nullptr);
     ASSERT_NE(left_node->orig_, nullptr);
-    EXPECT_EQ(right_node->orig_->name, "rhand_g");
+    EXPECT_EQ(right_node->orig_->name, "rhand");
     EXPECT_EQ(left_node->orig_->name, "lhand_g");
-    EXPECT_FLOAT_EQ(right_socket->local_transform[0][0], 1.5f);
-    EXPECT_FLOAT_EQ(right_socket->bind_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(right_socket->local_transform[0][0], 0.5f);
+    EXPECT_FLOAT_EQ(right_socket->bind_transform[0][0], 0.75f);
     EXPECT_FLOAT_EQ(left_socket->local_transform[0][0], 0.75f);
     EXPECT_FLOAT_EQ(left_socket->bind_transform[0][0], 0.75f);
 
@@ -575,8 +575,8 @@ TEST(RenderModelLoader, MeshHandAnchorsImportAsSocketAliases)
     ASSERT_NE(asset_left_socket, nullptr);
     EXPECT_EQ(asset_right_socket->source_node_index, right_socket->source_node_index);
     EXPECT_EQ(asset_left_socket->source_node_index, left_socket->source_node_index);
-    EXPECT_FLOAT_EQ(asset_right_socket->local_transform[0][0], 1.5f);
-    EXPECT_FLOAT_EQ(asset_right_socket->bind_transform[0][0], 1.5f);
+    EXPECT_FLOAT_EQ(asset_right_socket->local_transform[0][0], 0.5f);
+    EXPECT_FLOAT_EQ(asset_right_socket->bind_transform[0][0], 0.75f);
     EXPECT_FLOAT_EQ(asset_left_socket->local_transform[0][0], 0.75f);
     EXPECT_FLOAT_EQ(asset_left_socket->bind_transform[0][0], 0.75f);
 }

@@ -651,30 +651,6 @@ bool scene_particle_common_attachment_world_transform(
     return true;
 }
 
-const nw::render::nwn::Node* scene_particle_owner_source_node(
-    const SceneParticleSystem& scene_particles, uint32_t source_node_index) noexcept
-{
-    if (!scene_particles.owner || source_node_index == nw::model::kInvalidParticleImportNodeIndex
-        || source_node_index >= scene_particles.owner->source_nodes_.size()) {
-        return nullptr;
-    }
-    return scene_particles.owner->source_nodes_[source_node_index];
-}
-
-const nw::render::nwn::Node* scene_particle_owner_node(
-    const SceneParticleSystem& scene_particles,
-    uint32_t source_node_index,
-    std::string_view fallback_name) noexcept
-{
-    if (const auto* node = scene_particle_owner_source_node(scene_particles, source_node_index)) {
-        return node;
-    }
-    if (!scene_particles.owner || fallback_name.empty()) {
-        return nullptr;
-    }
-    return scene_particles.owner->find(fallback_name);
-}
-
 const nw::render::ParticleEmitterAttachmentBinding* scene_particle_emitter_attachment(
     const SceneParticleSystem& scene_particles,
     size_t init_index) noexcept
@@ -722,9 +698,7 @@ void build_scene_particle_emitter_attachments(SceneParticleSystem& scene_particl
             .owner_instance_handle = scene_particles.owner_instance_handle,
             .owner_model_index = scene_particles.owner_model_index,
             .emitter_attachment_point = attachment.emitter_attachment_point,
-            .emitter_source_node_index = attachment.emitter_source_node_index,
             .target_attachment_point = attachment.target_attachment_point,
-            .target_source_node_index = attachment.target_source_node_index,
         });
     }
 }
@@ -751,15 +725,9 @@ void resolve_scene_particle_emitter_attachment_frames(const PreviewScene& scene,
         const nw::render::ModelAttachmentPointIndex emitter_attachment_point = binding
             ? binding->emitter_attachment_point
             : attachment.emitter_attachment_point;
-        const uint32_t emitter_source_node_index = binding
-            ? binding->emitter_source_node_index
-            : attachment.emitter_source_node_index;
         const nw::render::ModelAttachmentPointIndex target_attachment_point = binding
             ? binding->target_attachment_point
             : attachment.target_attachment_point;
-        const uint32_t target_source_node_index = binding
-            ? binding->target_source_node_index
-            : attachment.target_source_node_index;
 
         auto& frame = frames.emplace_back(nw::render::ParticleEmitterAttachmentFrame{
             .emitter = emitter_index,
@@ -771,23 +739,16 @@ void resolve_scene_particle_emitter_attachment_frames(const PreviewScene& scene,
                 scene, scene_particles, binding, emitter_attachment_point, common_emitter_transform)) {
             frame.emitter_world_transform = common_emitter_transform;
             frame.has_emitter_world_transform = true;
-        } else if (const auto* animated_emitter = scene_particle_owner_node(
-                       scene_particles, emitter_source_node_index, attachment.emitter_node_name)) {
-            frame.emitter_world_transform = emitter_root * animated_emitter->get_transform();
+        } else if (attachment.has_default_transform) {
+            frame.emitter_world_transform = emitter_root * attachment.default_transform;
             frame.has_emitter_world_transform = true;
         }
 
-        if (target_attachment_point != nw::render::kInvalidModelAttachmentPointIndex
-            || target_source_node_index != nw::model::kInvalidParticleImportNodeIndex
-            || !attachment.target_node_name.empty()) {
+        if (target_attachment_point != nw::render::kInvalidModelAttachmentPointIndex) {
             glm::mat4 common_target_transform{1.0f};
             if (scene_particle_common_attachment_world_transform(
                     scene, scene_particles, binding, target_attachment_point, common_target_transform)) {
                 frame.target_point = glm::vec3(common_target_transform[3]);
-                frame.has_target_point = true;
-            } else if (const auto* animated_target = scene_particle_owner_node(
-                           scene_particles, target_source_node_index, attachment.target_node_name)) {
-                frame.target_point = glm::vec3(emitter_root * animated_target->get_transform()[3]);
                 frame.has_target_point = true;
             } else if (attachment.has_default_target_offset) {
                 frame.target_point = glm::vec3(emitter_root * glm::vec4(attachment.default_target_offset, 1.0f));
@@ -1329,137 +1290,31 @@ static uint32_t scene_nwn_model_index_for_pointer(const PreviewScene& scene, con
     return std::numeric_limits<uint32_t>::max();
 }
 
-static const SceneModelAttachmentBinding* scene_model_attachment_binding_for_child(
+static std::span<const nw::render::ModelSocket> scene_model_sockets(
     const PreviewScene& scene,
-    nw::render::ModelInstanceKind child_kind,
-    uint32_t child_model_index) noexcept
+    nw::render::ModelInstanceHandle handle,
+    const nw::render::ModelInstance& instance) noexcept
 {
-    const auto& binding_indices = child_kind == nw::render::ModelInstanceKind::render_model
-        ? scene.static_model_attachment_binding_indices
-        : scene.model_attachment_binding_indices;
-    if (child_model_index >= binding_indices.size()) {
-        return nullptr;
-    }
-
-    const uint32_t binding_index = binding_indices[child_model_index];
-    if (binding_index == kInvalidSceneModelAttachmentBindingIndex
-        || binding_index >= scene.model_attachments.size()) {
-        return nullptr;
-    }
-
-    const auto& binding = scene.model_attachments[binding_index];
-    if (binding.child_kind == child_kind && binding.child_model_index == child_model_index) {
-        return &binding;
-    }
-    return nullptr;
-}
-
-static std::optional<glm::mat4> scene_model_attachment_root_transform(
-    const PreviewScene& scene,
-    const ModelInstance& model,
-    const SceneModelAttachmentBinding& binding)
-{
-    if (binding.owner_kind != nw::render::ModelInstanceKind::nwn_legacy
-        || binding.child_kind != nw::render::ModelInstanceKind::nwn_legacy
-        || binding.owner_model_index >= scene.models.size()
-        || binding.owner_model_index >= scene.model_instance_handles.size()) {
-        return std::nullopt;
-    }
-    const auto* owner_instance = scene.model_instances.get(binding.owner_instance_handle);
-    if (!owner_instance || owner_instance->kind != nw::render::ModelInstanceKind::nwn_legacy
-        || owner_instance->nwn_legacy_model_index != binding.owner_model_index) {
-        return std::nullopt;
-    }
-
-    const auto& owner_model = scene.models[binding.owner_model_index];
-    if (!owner_model) {
-        return std::nullopt;
-    }
-    const auto* anchor = owner_model->socket_node(binding.owner_socket_index);
-    if (!anchor) {
-        return std::nullopt;
-    }
-
-    const bool has_local_scale = model.local_scale_ != 1.0f;
-    const glm::mat4 local_scale = has_local_scale
-        ? glm::scale(glm::mat4(1.0f), glm::vec3(model.local_scale_))
-        : glm::mat4(1.0f);
-    glm::mat4 anchor_transform = owner_instance->root_transform * model.placement_transform_;
-
-    if (model.anchor_position_only) {
-        glm::vec3 anchor_world = glm::vec3(owner_instance->root_transform * anchor->get_transform()[3]);
-        glm::mat3 root_basis{owner_instance->root_transform};
-        for (int i = 0; i < 3; ++i) {
-            const float length = glm::length(root_basis[i]);
-            if (length > 0.0f) {
-                root_basis[i] /= length;
+    if (instance.kind == nw::render::ModelInstanceKind::nwn_legacy) {
+        if (instance.nwn_legacy_model_index < scene.models.size()
+            && instance.nwn_legacy_model_index < scene.model_instance_handles.size()
+            && scene.model_instance_handles[instance.nwn_legacy_model_index] == handle) {
+            const auto& model = scene.models[instance.nwn_legacy_model_index];
+            if (model) {
+                return model->sockets();
             }
         }
-        const glm::quat root_rotation = glm::normalize(glm::quat_cast(root_basis));
-        anchor_transform = glm::translate(glm::mat4(1.0f), anchor_world)
-            * glm::mat4_cast(root_rotation)
-            * model.placement_transform_;
-    } else {
-        anchor_transform = anchor_transform * anchor->get_transform();
+        return {};
     }
-
-    if (has_local_scale) {
-        anchor_transform = anchor_transform * local_scale;
-    }
-
-    if (model.anchor_uses_root_bind_offset && !model.nodes_.empty()) {
-        if (const auto* local_anchor = model.socket_node(binding.child_source_socket_index)) {
-            anchor_transform = anchor_transform * glm::inverse(local_anchor->bind_pose_);
-        } else {
-            const auto bind_translation = glm::vec3(model.nodes_.front()->bind_pose_[3]);
-            anchor_transform = anchor_transform * glm::translate(glm::mat4(1.0f), -bind_translation);
+    if (instance.render_model_index < scene.static_models.size()
+        && instance.render_model_index < scene.static_model_instance_handles.size()
+        && scene.static_model_instance_handles[instance.render_model_index] == handle) {
+        const auto& model = scene.static_models[instance.render_model_index];
+        if (model) {
+            return model->sockets;
         }
     }
-
-    return anchor_transform;
-}
-
-static std::optional<glm::mat4> scene_render_model_attachment_root_transform(
-    const PreviewScene& scene,
-    const nw::render::RenderModel& child_model,
-    const SceneModelAttachmentBinding& binding)
-{
-    if (binding.owner_kind != nw::render::ModelInstanceKind::render_model
-        || binding.child_kind != nw::render::ModelInstanceKind::render_model
-        || binding.owner_model_index >= scene.static_models.size()
-        || binding.owner_model_index >= scene.static_model_instance_handles.size()) {
-        return std::nullopt;
-    }
-
-    const auto* owner_instance = scene.model_instances.get(binding.owner_instance_handle);
-    if (!owner_instance || owner_instance->kind != nw::render::ModelInstanceKind::render_model
-        || owner_instance->render_model_index != binding.owner_model_index) {
-        return std::nullopt;
-    }
-
-    const auto& owner_model = scene.static_models[binding.owner_model_index];
-    if (!owner_model) {
-        return std::nullopt;
-    }
-
-    glm::mat4 root_transform{1.0f};
-    if (!nw::render::build_render_model_attachment_root_transform(
-            nw::render::RenderModelAttachmentRootTransformInput{
-                .owner_instance = owner_instance,
-                .owner_model = owner_model.get(),
-                .child_model = &child_model,
-                .owner_socket_index = binding.owner_socket_index,
-                .child_source_socket_index = binding.child_source_socket_index,
-            },
-            root_transform)) {
-        return std::nullopt;
-    }
-
-    if (binding.child_local_scale != 1.0f) {
-        root_transform *= glm::scale(glm::mat4{1.0f}, glm::vec3{binding.child_local_scale});
-    }
-
-    return root_transform;
+    return {};
 }
 
 static void sync_common_nwn_attachment_node_transforms(
@@ -1520,25 +1375,7 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
         }
         ++stats.nwn_model_count;
 
-        const uint32_t common_model_index = static_cast<uint32_t>(
-            std::min<size_t>(model_index, std::numeric_limits<uint32_t>::max()));
-        const auto* attachment = scene_model_attachment_binding_for_child(
-            scene, nw::render::ModelInstanceKind::nwn_legacy, common_model_index);
-        glm::mat4 root_transform{1.0f};
-        bool has_root_transform = false;
-        if (attachment) {
-            ++stats.nwn_attachment_binding_count;
-            if (auto attachment_root = scene_model_attachment_root_transform(scene, *model, *attachment)) {
-                root_transform = *attachment_root;
-                has_root_transform = true;
-                ++stats.nwn_attachment_root_resolved_count;
-            } else {
-                ++stats.nwn_attachment_root_failed_count;
-            }
-        }
-        if (!has_root_transform) {
-            root_transform = model->root_transform();
-        }
+        const glm::mat4 root_transform = model->root_transform();
 
         instance->visible = model->render_enabled;
         instance->root_transform = root_transform;
@@ -1555,24 +1392,83 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
         }
         ++stats.render_model_count;
 
-        const uint32_t common_model_index = static_cast<uint32_t>(
-            std::min<size_t>(model_index, std::numeric_limits<uint32_t>::max()));
-        const auto* attachment = scene_model_attachment_binding_for_child(
-            scene, nw::render::ModelInstanceKind::render_model, common_model_index);
-        if (attachment) {
-            ++stats.render_model_attachment_binding_count;
-            if (auto attachment_root = scene_render_model_attachment_root_transform(scene, *model, *attachment)) {
-                instance->root_transform = *attachment_root;
-                ++stats.render_model_attachment_root_resolved_count;
-            } else {
-                ++stats.render_model_attachment_root_failed_count;
-            }
-        }
         if (!instance->animation.enabled) {
             nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
         }
         instance->current_bounds = transform_bounds(model->bounds, instance->root_transform);
         instance->shadow = render_model_shadow_summary(*model, instance->current_bounds);
+    }
+
+    auto& attachment_inputs = scene.attachment_transform_inputs;
+    auto& attachment_outputs = scene.attachment_transform_outputs;
+    attachment_inputs.clear();
+    attachment_inputs.reserve(scene.model_attachments.size());
+    for (const auto& binding : scene.model_attachments) {
+        auto* child_instance = scene.model_instances.get(binding.child_instance_handle);
+        const auto* owner_instance = scene.model_instances.get(binding.owner_instance_handle);
+        if (child_instance) {
+            if (child_instance->kind == nw::render::ModelInstanceKind::nwn_legacy) {
+                ++stats.nwn_attachment_binding_count;
+            } else {
+                ++stats.render_model_attachment_binding_count;
+            }
+        }
+        attachment_inputs.push_back(nw::render::ModelAttachmentRootTransformInput{
+            .owner_instance = owner_instance,
+            .owner_sockets = owner_instance
+                ? scene_model_sockets(scene, binding.owner_instance_handle, *owner_instance)
+                : std::span<const nw::render::ModelSocket>{},
+            .child_sockets = child_instance
+                ? scene_model_sockets(scene, binding.child_instance_handle, *child_instance)
+                : std::span<const nw::render::ModelSocket>{},
+            .owner_socket_index = binding.owner_socket_index,
+            .child_source_socket_index = binding.child_source_socket_index,
+            .child_local_transform = binding.child_local_transform,
+            .child_root_bind_translation = binding.child_root_bind_translation,
+            .child_local_scale = binding.child_local_scale,
+            .orientation = binding.orientation,
+            .source_offset = binding.source_offset,
+        });
+    }
+
+    attachment_outputs.resize(attachment_inputs.size());
+    nw::render::build_model_attachment_root_transforms(attachment_inputs, attachment_outputs);
+    for (size_t i = 0; i < attachment_outputs.size(); ++i) {
+        auto* instance = scene.model_instances.get(scene.model_attachments[i].child_instance_handle);
+        if (!instance) {
+            continue;
+        }
+        if (!attachment_outputs[i].valid) {
+            if (instance->kind == nw::render::ModelInstanceKind::nwn_legacy) {
+                ++stats.nwn_attachment_root_failed_count;
+            } else {
+                ++stats.render_model_attachment_root_failed_count;
+            }
+            continue;
+        }
+
+        instance->root_transform = attachment_outputs[i].root_transform;
+        if (instance->kind == nw::render::ModelInstanceKind::nwn_legacy
+            && instance->nwn_legacy_model_index < scene.models.size()) {
+            const auto& model = scene.models[instance->nwn_legacy_model_index];
+            if (model) {
+                instance->current_bounds = model->current_bounds(instance->root_transform);
+                instance->shadow = nwn_model_shadow_summary(*model, instance->current_bounds);
+                sync_common_nwn_attachment_node_transforms(*instance, *model);
+            }
+            ++stats.nwn_attachment_root_resolved_count;
+        } else if (instance->kind == nw::render::ModelInstanceKind::render_model
+            && instance->render_model_index < scene.static_models.size()) {
+            const auto& model = scene.static_models[instance->render_model_index];
+            if (model) {
+                if (!instance->animation.enabled) {
+                    nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
+                }
+                instance->current_bounds = transform_bounds(model->bounds, instance->root_transform);
+                instance->shadow = render_model_shadow_summary(*model, instance->current_bounds);
+            }
+            ++stats.render_model_attachment_root_resolved_count;
+        }
     }
     return stats;
 }
@@ -1661,18 +1557,29 @@ void PreviewScene::add(std::unique_ptr<ModelInstance> model)
     model_instance_handles.push_back(handle);
     model_attachment_binding_indices.push_back(kInvalidSceneModelAttachmentBindingIndex);
     const uint32_t owner_model_index = scene_nwn_model_index_for_pointer(*this, model->transform_context_);
-    if (owner_model_index != std::numeric_limits<uint32_t>::max()
+    if (model_attachments.size() < kInvalidSceneModelAttachmentBindingIndex
+        && owner_model_index != std::numeric_limits<uint32_t>::max()
         && owner_model_index < model_instance_handles.size()
-        && model_index <= std::numeric_limits<uint32_t>::max()) {
-        const uint32_t binding_index = static_cast<uint32_t>(
-            std::min<size_t>(model_attachments.size(), std::numeric_limits<uint32_t>::max()));
-        model_attachments.push_back(SceneModelAttachmentBinding{
-            .child_model_index = static_cast<uint32_t>(model_index),
+        && model_index <= std::numeric_limits<uint32_t>::max()
+        && model->transform_anchor_socket_index_ != nw::render::kInvalidModelNodeIndex) {
+        const glm::vec3 root_bind_translation = model->nodes_.empty()
+            ? glm::vec3{0.0f}
+            : glm::vec3{model->nodes_.front()->bind_pose_[3]};
+        const uint32_t binding_index = static_cast<uint32_t>(model_attachments.size());
+        model_attachments.push_back(nw::render::ModelInstanceAttachmentBinding{
             .child_instance_handle = handle,
-            .owner_model_index = owner_model_index,
             .owner_instance_handle = model_instance_handles[owner_model_index],
             .owner_socket_index = model->transform_anchor_socket_index_,
             .child_source_socket_index = model->transform_source_anchor_socket_index_,
+            .child_local_transform = model->placement_transform_,
+            .child_root_bind_translation = root_bind_translation,
+            .child_local_scale = model->local_scale_,
+            .orientation = model->anchor_position_only
+                ? nw::render::ModelAttachmentOrientationPolicy::owner_root
+                : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+            .source_offset = model->anchor_uses_root_bind_offset
+                ? nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation
+                : nw::render::ModelAttachmentSourceOffsetPolicy::none,
         });
         model_attachment_binding_indices[model_index] = binding_index;
     }
@@ -1687,9 +1594,9 @@ void PreviewScene::add_attached(std::unique_ptr<ModelInstance> model, uint32_t o
         return;
     }
 
-    // Bridge setup path: callers own scene model indices, while the NWN sidecar
-    // still stores the pointer/string fallback until attachment evaluation is
-    // fully common-runtime. Invalid owner/anchor adds the model unattached.
+    // Bridge setup path: callers own scene model indices. The NWN sidecar keeps
+    // cached socket indices for compatibility; frame evaluation does not retain
+    // or search anchor names. Invalid owner/anchor adds the model unattached.
     if (!owner_socket.empty() && owner_model_index < models.size()) {
         if (const auto* owner = models[owner_model_index].get()) {
             model->set_transform_anchor(owner, owner_socket, child_source_socket);
@@ -1697,6 +1604,62 @@ void PreviewScene::add_attached(std::unique_ptr<ModelInstance> model, uint32_t o
     }
 
     add(std::move(model));
+}
+
+bool PreviewScene::attach_model(uint32_t child_model_index, uint32_t owner_model_index,
+    std::string_view owner_socket, std::string_view child_source_socket)
+{
+    if (owner_socket.empty()
+        || child_model_index >= models.size()
+        || child_model_index >= model_instance_handles.size()
+        || child_model_index >= model_attachment_binding_indices.size()
+        || owner_model_index >= models.size()
+        || owner_model_index >= model_instance_handles.size()
+        || child_model_index == owner_model_index) {
+        return false;
+    }
+
+    auto* child = models[child_model_index].get();
+    const auto* owner = models[owner_model_index].get();
+    if (!child || !owner) {
+        return false;
+    }
+
+    child->set_transform_anchor(owner, owner_socket, child_source_socket);
+    if (child->transform_anchor_socket_index_ == nw::render::kInvalidModelNodeIndex) {
+        return false;
+    }
+
+    const glm::vec3 root_bind_translation = child->nodes_.empty()
+        ? glm::vec3{0.0f}
+        : glm::vec3{child->nodes_.front()->bind_pose_[3]};
+    const nw::render::ModelInstanceAttachmentBinding binding{
+        .child_instance_handle = model_instance_handles[child_model_index],
+        .owner_instance_handle = model_instance_handles[owner_model_index],
+        .owner_socket_index = child->transform_anchor_socket_index_,
+        .child_source_socket_index = child->transform_source_anchor_socket_index_,
+        .child_local_transform = child->placement_transform_,
+        .child_root_bind_translation = root_bind_translation,
+        .child_local_scale = child->local_scale_,
+        .orientation = child->anchor_position_only
+            ? nw::render::ModelAttachmentOrientationPolicy::owner_root
+            : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+        .source_offset = child->anchor_uses_root_bind_offset
+            ? nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation
+            : nw::render::ModelAttachmentSourceOffsetPolicy::none,
+    };
+
+    uint32_t& binding_index = model_attachment_binding_indices[child_model_index];
+    if (binding_index < model_attachments.size()) {
+        model_attachments[binding_index] = binding;
+        return true;
+    }
+    if (model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex) {
+        return false;
+    }
+    binding_index = static_cast<uint32_t>(model_attachments.size());
+    model_attachments.push_back(binding);
+    return true;
 }
 
 void PreviewScene::add(std::unique_ptr<nw::render::RenderModel> model)
@@ -1758,19 +1721,15 @@ void PreviewScene::add_attached(std::unique_ptr<nw::render::RenderModel> model, 
 
     if (owner_socket_index == nw::render::kInvalidModelNodeIndex
         || !owner_handle.valid()
+        || model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex
         || child_model_index > std::numeric_limits<uint32_t>::max()
         || child_model_index >= static_model_instance_handles.size()) {
         return;
     }
 
-    const uint32_t binding_index = static_cast<uint32_t>(
-        std::min<size_t>(model_attachments.size(), std::numeric_limits<uint32_t>::max()));
-    model_attachments.push_back(SceneModelAttachmentBinding{
-        .child_kind = nw::render::ModelInstanceKind::render_model,
-        .child_model_index = static_cast<uint32_t>(child_model_index),
+    const uint32_t binding_index = static_cast<uint32_t>(model_attachments.size());
+    model_attachments.push_back(nw::render::ModelInstanceAttachmentBinding{
         .child_instance_handle = static_model_instance_handles[child_model_index],
-        .owner_kind = nw::render::ModelInstanceKind::render_model,
-        .owner_model_index = owner_model_index,
         .owner_instance_handle = owner_handle,
         .owner_socket_index = owner_socket_index,
         .child_source_socket_index = child_source_socket_index,
@@ -3062,34 +3021,39 @@ static void append_render_model_attachment_bindings(
     std::span<const uint32_t> model_index_map)
 {
     for (const auto& binding : source.model_attachments) {
-        if (binding.child_kind != nw::render::ModelInstanceKind::render_model
-            || binding.owner_kind != nw::render::ModelInstanceKind::render_model
-            || binding.child_model_index >= model_index_map.size()
-            || binding.owner_model_index >= model_index_map.size()) {
+        const auto* source_child = source.model_instances.get(binding.child_instance_handle);
+        const auto* source_owner = source.model_instances.get(binding.owner_instance_handle);
+        if (!source_child || !source_owner
+            || source_child->kind != nw::render::ModelInstanceKind::render_model
+            || source_owner->kind != nw::render::ModelInstanceKind::render_model
+            || source_child->render_model_index >= model_index_map.size()
+            || source_owner->render_model_index >= model_index_map.size()) {
             continue;
         }
 
-        const uint32_t target_child_index = model_index_map[binding.child_model_index];
-        const uint32_t target_owner_index = model_index_map[binding.owner_model_index];
+        const uint32_t target_child_index = model_index_map[source_child->render_model_index];
+        const uint32_t target_owner_index = model_index_map[source_owner->render_model_index];
         if (target_child_index == nw::render::kInvalidModelInstanceIndex
             || target_owner_index == nw::render::kInvalidModelInstanceIndex
             || target_child_index >= target.static_model_instance_handles.size()
             || target_owner_index >= target.static_model_instance_handles.size()) {
             continue;
         }
+        if (target.model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex) {
+            return;
+        }
 
-        const uint32_t binding_index = static_cast<uint32_t>(
-            std::min<size_t>(target.model_attachments.size(), std::numeric_limits<uint32_t>::max()));
-        target.model_attachments.push_back(SceneModelAttachmentBinding{
-            .child_kind = nw::render::ModelInstanceKind::render_model,
-            .child_model_index = target_child_index,
+        const uint32_t binding_index = static_cast<uint32_t>(target.model_attachments.size());
+        target.model_attachments.push_back(nw::render::ModelInstanceAttachmentBinding{
             .child_instance_handle = target.static_model_instance_handles[target_child_index],
-            .owner_kind = nw::render::ModelInstanceKind::render_model,
-            .owner_model_index = target_owner_index,
             .owner_instance_handle = target.static_model_instance_handles[target_owner_index],
             .owner_socket_index = binding.owner_socket_index,
             .child_source_socket_index = binding.child_source_socket_index,
+            .child_local_transform = binding.child_local_transform,
+            .child_root_bind_translation = binding.child_root_bind_translation,
             .child_local_scale = binding.child_local_scale,
+            .orientation = binding.orientation,
+            .source_offset = binding.source_offset,
         });
         target.static_model_attachment_binding_indices[target_child_index] = binding_index;
     }

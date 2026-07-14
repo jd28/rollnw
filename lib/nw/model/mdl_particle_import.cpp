@@ -656,24 +656,26 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
             });
         }
 
-        out.attachment.emitter_source_node_index = source_node_index >= kInvalidParticleImportNodeIndex
+        const uint32_t emitter_source_node_index = source_node_index >= kInvalidParticleImportNodeIndex
             ? kInvalidParticleImportNodeIndex
             : static_cast<uint32_t>(source_node_index);
-        out.attachment.emitter_attachment_point = out.attachment.emitter_source_node_index;
-        out.attachment.emitter_node_name = emitter.name.c_str();
+        out.attachment.emitter_attachment_point = emitter_source_node_index;
         out.attachment.has_default_transform = true;
         out.attachment.default_transform = node_model_transform(emitter);
         out.attachment.has_default_position = true;
         out.attachment.default_position = glm::vec3(out.attachment.default_transform[3]);
         out.attachment.has_default_orientation = true;
         out.attachment.default_orientation = quat_or(emitter, ControllerType::Orientation);
+        ParticleImportEmitterInit init;
+        init.emitter_source_node_index = emitter_source_node_index;
+        init.emitter_node_name = emitter.name.c_str();
         if (out.targeting.mode != ParticleTargetingMode::none) {
             if (const auto* target_node = find_reference_target_node(emitter)) {
                 out.attachment.has_default_target_offset = true;
                 out.attachment.default_target_offset = glm::vec3(node_model_transform(*target_node)[3]);
-                out.attachment.target_source_node_index = source_node_index_for(mdl, target_node);
-                out.attachment.target_attachment_point = out.attachment.target_source_node_index;
-                out.attachment.target_node_name = target_node->name.c_str();
+                init.target_source_node_index = source_node_index_for(mdl, target_node);
+                init.target_node_name = target_node->name.c_str();
+                out.attachment.target_attachment_point = init.target_source_node_index;
             } else {
                 result.warnings.push_back({emitter.name.c_str(), "reference", "targeted emitter is missing a reference child"});
             }
@@ -683,18 +685,13 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         result.effect.emitters.push_back(std::move(out));
 
         const auto& attachment = result.effect.emitters.back().attachment;
-        ParticleImportEmitterInit init;
         init.emitter = emitter_index;
-        init.emitter_source_node_index = attachment.emitter_source_node_index;
-        init.emitter_node_name = attachment.emitter_node_name;
         init.has_default_transform = attachment.has_default_transform;
         init.default_transform = attachment.default_transform;
         init.has_default_position = attachment.has_default_position;
         init.default_position = attachment.default_position;
         init.has_default_orientation = attachment.has_default_orientation;
         init.default_orientation = attachment.default_orientation;
-        init.target_source_node_index = attachment.target_source_node_index;
-        init.target_node_name = attachment.target_node_name;
         init.has_default_target_offset = attachment.has_default_target_offset;
         init.default_target_offset = attachment.default_target_offset;
         result.emitter_inits.push_back(init);

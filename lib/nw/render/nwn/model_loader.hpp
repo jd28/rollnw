@@ -310,8 +310,6 @@ struct ModelInstance {
     glm::mat4 placement_transform_{1.0f};
 
     const ModelInstance* transform_context_ = nullptr;
-    std::string transform_anchor_;
-    std::string transform_source_anchor_;
     uint32_t transform_anchor_socket_index_ = nw::render::kInvalidModelNodeIndex;
     uint32_t transform_source_anchor_socket_index_ = nw::render::kInvalidModelNodeIndex;
 
@@ -358,8 +356,6 @@ struct ModelInstance {
         std::string_view source_anchor = {})
     {
         transform_context_ = ctx;
-        transform_anchor_ = std::string(anchor);
-        transform_source_anchor_ = std::string(source_anchor);
         transform_anchor_socket_index_ = ctx ? ctx->socket_index(anchor) : nw::render::kInvalidModelNodeIndex;
         transform_source_anchor_socket_index_ = source_anchor.empty()
             ? nw::render::kInvalidModelNodeIndex

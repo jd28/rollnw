@@ -7,6 +7,7 @@
 
 #include <nw/model/mdl_particle_import.hpp>
 #include <nw/render/gltf/import_gltf.hpp>
+#include <nw/render/model_instance_attachment.hpp>
 #include <nw/render/nwn/model_loader.hpp>
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_def.hpp>
@@ -121,9 +122,9 @@ struct ModelMeshCollisionProvider : public nw::render::ParticleCollisionProvider
 };
 
 struct SceneParticleSystem {
-    // Legacy sidecar supplies source-node fallback lookup during the bridge.
-    // Common handle/kind/index supplies owner visibility/root transform for
-    // both legacy sidecars and source-agnostic RenderModel owners.
+    // Common handle/kind/index supplies owner visibility, root transform, and
+    // dense attachment-point rows for legacy and source-agnostic owners. The
+    // sidecar pointer remains for source diagnostics and collision construction.
     const ModelInstance* owner = nullptr;
     nw::render::ModelInstanceKind owner_kind = nw::render::ModelInstanceKind::nwn_legacy;
     uint32_t owner_model_index = std::numeric_limits<uint32_t>::max();
@@ -140,24 +141,6 @@ struct SceneParticleSystem {
     float particle_animation_length = 0.0f;
     bool animation_time_initialized = false;
     bool owner_visible_last = true;
-};
-
-struct SceneModelAttachmentBinding {
-    // Bridge record for sidecar transform anchors. The common owner handle and
-    // socket indices are scene-owned runtime data. `*_model_index` addresses
-    // `models` when the matching kind is nwn_legacy and `static_models` when
-    // the matching kind is render_model. nwn::ModelInstance keeps the legacy
-    // pointer/string anchor as fallback until transform evaluation moves fully
-    // into the common instance path.
-    nw::render::ModelInstanceKind child_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    uint32_t child_model_index = std::numeric_limits<uint32_t>::max();
-    nw::render::ModelInstanceHandle child_instance_handle;
-    nw::render::ModelInstanceKind owner_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    uint32_t owner_model_index = std::numeric_limits<uint32_t>::max();
-    nw::render::ModelInstanceHandle owner_instance_handle;
-    uint32_t owner_socket_index = nw::render::kInvalidModelNodeIndex;
-    uint32_t child_source_socket_index = nw::render::kInvalidModelNodeIndex;
-    float child_local_scale = 1.0f;
 };
 
 inline constexpr uint32_t kInvalidSceneModelAttachmentBindingIndex = std::numeric_limits<uint32_t>::max();
@@ -238,7 +221,11 @@ struct PreviewScene {
     nw::render::ModelInstanceStore model_instances;
     nw::render::ModelMaterialOverrideStore material_overrides;
     std::unique_ptr<AreaRenderScene> area_render_scene;
-    std::vector<SceneModelAttachmentBinding> model_attachments;
+    std::vector<nw::render::ModelInstanceAttachmentBinding> model_attachments;
+    // Main-thread frame scratch retained across updates. Rows correspond 1:1
+    // with model_attachments.
+    std::vector<nw::render::ModelAttachmentRootTransformInput> attachment_transform_inputs;
+    std::vector<nw::render::ModelAttachmentRootTransformOutput> attachment_transform_outputs;
     std::vector<SceneParticleSystem> particles;
     std::vector<DebugShapeVertex> debug_shape_vertices;
     std::vector<uint32_t> debug_shape_indices;
@@ -274,6 +261,8 @@ struct PreviewScene {
     const nw::render::ModelInstance* static_model_instance(size_t model_index) const noexcept;
     void add(std::unique_ptr<ModelInstance> model);
     void add_attached(std::unique_ptr<ModelInstance> model, uint32_t owner_model_index,
+        std::string_view owner_socket, std::string_view child_source_socket = {});
+    bool attach_model(uint32_t child_model_index, uint32_t owner_model_index,
         std::string_view owner_socket, std::string_view child_source_socket = {});
     void add(std::unique_ptr<nw::render::RenderModel> model);
     void add_attached(std::unique_ptr<nw::render::RenderModel> model, uint32_t owner_model_index,

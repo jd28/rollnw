@@ -1868,6 +1868,10 @@ void initialize_nwn_model_asset_nodes(const nwm::Model& model, nw::render::Model
 void append_nwn_model_asset_sockets(const nwm::Model& model, nw::render::ModelAsset& asset)
 {
     asset.sockets.reserve(model.nodes.size());
+
+    // Authored dummy sockets are authoritative. Collect them before lowering
+    // mesh-backed compatibility aliases so traversal order cannot replace a
+    // precise child socket with its parent mesh transform.
     for (size_t i = 0; i < model.nodes.size() && i < asset.nodes.size(); ++i) {
         const auto* source = model.nodes[i].get();
         if (!source || source->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
@@ -1877,11 +1881,18 @@ void append_nwn_model_asset_sockets(const nwm::Model& model, nw::render::ModelAs
         if (source->type == nwm::NodeType::dummy) {
             append_model_asset_socket_if_missing(asset, i, std::string_view{source->name});
         }
+    }
+
+    for (size_t i = 0; i < model.nodes.size() && i < asset.nodes.size(); ++i) {
+        const auto* source = model.nodes[i].get();
+        if (!source || source->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
+            continue;
+        }
 
         // NWN single-body creatures sometimes expose equipment anchors as named
         // mesh nodes such as rhand_g/lhand_g instead of dummy nodes. Lower those
-        // source-specific names into the common socket table here so runtime
-        // attachment binding stays index-based.
+        // source-specific names only when no authored dummy has claimed the
+        // common socket name.
         append_model_asset_socket_if_missing(asset, i, nwn_equipped_item_socket_alias(source->name));
     }
 }
@@ -3471,6 +3482,7 @@ void ModelInstance::build_socket_records()
 {
     sockets_.clear();
     sockets_.reserve(source_nodes_.size());
+
     for (size_t i = 0; i < source_nodes_.size(); ++i) {
         const auto* node = source_nodes_[i];
         if (!node || !node->orig_ || node->orig_->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
@@ -3485,10 +3497,17 @@ void ModelInstance::build_socket_records()
                 source_nodes_.size(),
                 std::string_view{node->orig_->name});
         }
+    }
+
+    for (size_t i = 0; i < source_nodes_.size(); ++i) {
+        const auto* node = source_nodes_[i];
+        if (!node || !node->orig_ || node->orig_->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
+            continue;
+        }
 
         // NWN source compatibility only: some single-body creature MDLs use
-        // mesh nodes as equipped item anchors. Lower that authoring quirk into
-        // socket rows at load time so runtime attachment code consumes indices.
+        // mesh nodes as equipped item anchors. Authored dummy sockets were
+        // collected first, so these aliases are fallback rows only.
         append_sidecar_socket_if_missing(
             sockets_,
             *node,
@@ -3699,14 +3718,11 @@ glm::mat4 ModelInstance::root_transform() const
     const glm::mat4 local_scale = has_local_scale
         ? glm::scale(glm::mat4(1.0f), glm::vec3(this->local_scale_))
         : glm::mat4(1.0f);
-    if (!transform_context_ || transform_anchor_.empty()) {
+    if (!transform_context_ || transform_anchor_socket_index_ == nw::render::kInvalidModelNodeIndex) {
         return has_local_scale ? base * local_scale : base;
     }
 
     auto* anchor = transform_context_->socket_node(transform_anchor_socket_index_);
-    if (!anchor) {
-        anchor = transform_context_->find(transform_anchor_);
-    }
     glm::mat4 anchor_transform = transform_context_->root_transform() * base;
     if (anchor_position_only) {
         const glm::mat4 context_root = transform_context_->root_transform();
@@ -3735,9 +3751,6 @@ glm::mat4 ModelInstance::root_transform() const
 
     if (this->anchor_uses_root_bind_offset && !nodes_.empty()) {
         const Node* local_anchor = socket_node(transform_source_anchor_socket_index_);
-        if (!local_anchor && !this->transform_source_anchor_.empty()) {
-            local_anchor = find(this->transform_source_anchor_);
-        }
         if (local_anchor) {
             anchor_transform = anchor_transform * glm::inverse(local_anchor->bind_pose_);
         } else {

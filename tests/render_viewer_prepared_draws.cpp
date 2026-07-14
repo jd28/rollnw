@@ -970,12 +970,16 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
 
     for (size_t i = 0; i < scene->model_attachments.size(); ++i) {
         const auto& binding = scene->model_attachments[i];
-        EXPECT_EQ(binding.owner_kind, nw::render::ModelInstanceKind::render_model);
-        EXPECT_EQ(binding.child_kind, nw::render::ModelInstanceKind::render_model);
-        EXPECT_EQ(binding.owner_model_index, 0u);
-        EXPECT_EQ(binding.child_model_index, static_cast<uint32_t>(i + 1u));
         EXPECT_EQ(binding.owner_instance_handle, scene->static_model_instance_handles[0]);
         EXPECT_EQ(binding.child_instance_handle, scene->static_model_instance_handles[i + 1u]);
+        const auto* owner = scene->model_instances.get(binding.owner_instance_handle);
+        ASSERT_NE(owner, nullptr);
+        EXPECT_EQ(owner->kind, nw::render::ModelInstanceKind::render_model);
+        EXPECT_EQ(owner->render_model_index, 0u);
+        const auto* child = scene->model_instances.get(binding.child_instance_handle);
+        ASSERT_NE(child, nullptr);
+        EXPECT_EQ(child->kind, nw::render::ModelInstanceKind::render_model);
+        EXPECT_EQ(child->render_model_index, static_cast<uint32_t>(i + 1u));
         EXPECT_NE(binding.owner_socket_index, nw::render::kInvalidModelNodeIndex);
         EXPECT_FLOAT_EQ(binding.child_local_scale, 1.0f);
     }

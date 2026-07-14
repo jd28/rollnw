@@ -1,6 +1,6 @@
 #include <nw/render/model.hpp>
-#include <nw/render/model_instance_attachment.hpp>
 #include <nw/render/model_instance_animation.hpp>
+#include <nw/render/model_instance_attachment.hpp>
 
 #include <gtest/gtest.h>
 
@@ -143,11 +143,11 @@ TEST(RenderModelInstance, RenderModelAttachmentRootTransformUsesSocketRows)
     owner_instance.attachment_node_transform_valid = {1u};
 
     glm::mat4 root_transform{1.0f};
-    EXPECT_TRUE(nw::render::build_render_model_attachment_root_transform(
-        nw::render::RenderModelAttachmentRootTransformInput{
+    EXPECT_TRUE(nw::render::build_model_attachment_root_transform(
+        nw::render::ModelAttachmentRootTransformInput{
             .owner_instance = &owner_instance,
-            .owner_model = &owner_model,
-            .child_model = &child_model,
+            .owner_sockets = owner_model.sockets,
+            .child_sockets = child_model.sockets,
             .owner_socket_index = 0u,
             .child_source_socket_index = 0u,
         },
@@ -179,31 +179,31 @@ TEST(RenderModelInstance, RenderModelAttachmentRootTransformBatchCountsDrops)
     owner_instance.attachment_node_transform_valid = {1u};
 
     const std::array inputs{
-        nw::render::RenderModelAttachmentRootTransformInput{
+        nw::render::ModelAttachmentRootTransformInput{
             .owner_instance = &owner_instance,
-            .owner_model = &owner_model,
-            .child_model = &child_model,
+            .owner_sockets = owner_model.sockets,
+            .child_sockets = child_model.sockets,
             .owner_socket_index = 0u,
             .child_source_socket_index = 99u,
         },
-        nw::render::RenderModelAttachmentRootTransformInput{
+        nw::render::ModelAttachmentRootTransformInput{
             .owner_instance = &owner_instance,
-            .owner_model = &owner_model,
-            .child_model = &child_model,
+            .owner_sockets = owner_model.sockets,
+            .child_sockets = child_model.sockets,
             .owner_socket_index = 77u,
             .child_source_socket_index = nw::render::kInvalidModelNodeIndex,
         },
-        nw::render::RenderModelAttachmentRootTransformInput{
+        nw::render::ModelAttachmentRootTransformInput{
             .owner_instance = &owner_instance,
-            .owner_model = &owner_model,
-            .child_model = &child_model,
+            .owner_sockets = owner_model.sockets,
+            .child_sockets = child_model.sockets,
             .owner_socket_index = 0u,
             .child_source_socket_index = nw::render::kInvalidModelNodeIndex,
         },
     };
-    std::array<nw::render::RenderModelAttachmentRootTransformOutput, 2> outputs{};
+    std::array<nw::render::ModelAttachmentRootTransformOutput, 2> outputs{};
 
-    const auto stats = nw::render::build_render_model_attachment_root_transforms(inputs, outputs);
+    const auto stats = nw::render::build_model_attachment_root_transforms(inputs, outputs);
 
     EXPECT_EQ(stats.input_count, 3u);
     EXPECT_EQ(stats.output_count, 2u);
@@ -214,6 +214,119 @@ TEST(RenderModelInstance, RenderModelAttachmentRootTransformBatchCountsDrops)
     ASSERT_TRUE(outputs[0].valid);
     EXPECT_FLOAT_EQ(outputs[0].root_transform[3].x, 5.0f);
     EXPECT_FALSE(outputs[1].valid);
+}
+
+TEST(RenderModelInstance, AttachmentOrientationPoliciesUseExplicitTransformOrder)
+{
+    nw::render::RenderModel owner_model;
+    owner_model.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "hand_r",
+    });
+
+    nw::render::ModelInstance owner_instance;
+    owner_instance.attachment_node_world_transforms = {
+        glm::translate(glm::mat4{1.0f}, glm::vec3{5.0f, 0.0f, 0.0f})
+            * glm::rotate(glm::mat4{1.0f}, glm::radians(90.0f), glm::vec3{0.0f, 0.0f, 1.0f}),
+    };
+    owner_instance.attachment_node_transform_valid = {1u};
+
+    const glm::mat4 placement = glm::translate(glm::mat4{1.0f}, glm::vec3{2.0f, 0.0f, 0.0f});
+    const std::array inputs{
+        nw::render::ModelAttachmentRootTransformInput{
+            .owner_instance = &owner_instance,
+            .owner_sockets = owner_model.sockets,
+            .owner_socket_index = 0u,
+            .child_local_transform = placement,
+            .orientation = nw::render::ModelAttachmentOrientationPolicy::socket,
+            .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::none,
+        },
+        nw::render::ModelAttachmentRootTransformInput{
+            .owner_instance = &owner_instance,
+            .owner_sockets = owner_model.sockets,
+            .owner_socket_index = 0u,
+            .child_local_transform = placement,
+            .orientation = nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+            .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::none,
+        },
+    };
+    std::array<nw::render::ModelAttachmentRootTransformOutput, 2> outputs{};
+
+    const auto stats = nw::render::build_model_attachment_root_transforms(inputs, outputs);
+
+    ASSERT_EQ(stats.resolved_count, 2u);
+    EXPECT_NEAR(outputs[0].root_transform[3].x, 5.0f, 1.0e-5f);
+    EXPECT_NEAR(outputs[0].root_transform[3].y, 2.0f, 1.0e-5f);
+    EXPECT_NEAR(outputs[1].root_transform[3].x, 7.0f, 1.0e-5f);
+    EXPECT_NEAR(outputs[1].root_transform[3].y, 0.0f, 1.0e-5f);
+}
+
+TEST(RenderModelInstance, AttachmentOwnerRootAndSourceOffsetFallbackAreExplicit)
+{
+    nw::render::RenderModel owner_model;
+    owner_model.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "impact",
+    });
+
+    nw::render::ModelInstance owner_instance;
+    owner_instance.root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f})
+        * glm::rotate(glm::mat4{1.0f}, glm::radians(90.0f), glm::vec3{0.0f, 0.0f, 1.0f})
+        * glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f});
+    owner_instance.attachment_node_world_transforms = {
+        glm::translate(glm::mat4{1.0f}, glm::vec3{4.0f, 5.0f, 6.0f}),
+    };
+    owner_instance.attachment_node_transform_valid = {1u};
+
+    glm::mat4 root_transform{1.0f};
+    ASSERT_TRUE(nw::render::build_model_attachment_root_transform(
+        nw::render::ModelAttachmentRootTransformInput{
+            .owner_instance = &owner_instance,
+            .owner_sockets = owner_model.sockets,
+            .owner_socket_index = 0u,
+            .child_local_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.0f, 0.0f}),
+            .child_root_bind_translation = glm::vec3{0.0f, 0.0f, 2.0f},
+            .orientation = nw::render::ModelAttachmentOrientationPolicy::owner_root,
+            .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation,
+        },
+        root_transform));
+    EXPECT_NEAR(root_transform[3].x, 4.0f, 1.0e-5f);
+    EXPECT_NEAR(root_transform[3].y, 6.0f, 1.0e-5f);
+    EXPECT_NEAR(root_transform[3].z, 4.0f, 1.0e-5f);
+}
+
+TEST(RenderModelInstance, AttachmentBatchRejectsNonInvertibleChildBindTransform)
+{
+    nw::render::RenderModel owner_model;
+    owner_model.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "hand_r",
+    });
+    nw::render::RenderModel child_model;
+    child_model.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .bind_transform = glm::mat4{0.0f},
+        .name = "grip",
+    });
+    nw::render::ModelInstance owner_instance;
+    owner_instance.attachment_node_world_transforms = {glm::mat4{1.0f}};
+    owner_instance.attachment_node_transform_valid = {1u};
+    const std::array inputs{
+        nw::render::ModelAttachmentRootTransformInput{
+            .owner_instance = &owner_instance,
+            .owner_sockets = owner_model.sockets,
+            .child_sockets = child_model.sockets,
+            .owner_socket_index = 0u,
+            .child_source_socket_index = 0u,
+        },
+    };
+    std::array<nw::render::ModelAttachmentRootTransformOutput, 1> outputs{};
+
+    const auto stats = nw::render::build_model_attachment_root_transforms(inputs, outputs);
+
+    EXPECT_EQ(stats.resolved_count, 0u);
+    EXPECT_EQ(stats.invalid_socket_transform_count, 1u);
+    EXPECT_FALSE(outputs[0].valid);
 }
 
 TEST(RenderModelInstance, SkinBoneContractCapsPackedJointIndices)

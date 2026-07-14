@@ -9,7 +9,7 @@ common data.
 
 - `nw::render::nwn::ModelInstance` loads and owns the legacy NWN node tree,
   legacy meshes, PLT/source texture policy, emitter quirks, dangly execution,
-  anchor lookup, and compatibility animation behavior.
+  socket compilation, and compatibility animation behavior.
 - `nw::render::nwn::import_nwn_model_asset(mdl)` lowers the source MDL into
   `ModelAsset`.
 - `nw::render::nwn::import_nwn_render_model_from_asset(mdl, texture_upload)`
@@ -73,7 +73,7 @@ These remain sidecar-owned until explicit common contracts replace them:
 - legacy PLT rendering and resource-cache policy
 - legacy emitter quirks not yet represented by the particle IR
 - CPU dangly deformation parity/debug path
-- anchor lookup fallback and source MDL node tree
+- source MDL node tree for legacy loading, diagnostics, and unresolved behavior
 - area static batching compatibility payloads
 
 When a sidecar payload is missing at a bridge boundary, the path should drop,
@@ -111,9 +111,17 @@ rather than an importer guess.
 ## Sockets And Attachments
 
 NWN dummy nodes and anchors are useful source data. The modern representation is
-a socket table addressed by stable indices. Bridge code still keeps source-node
-names and sidecar lookup as fallback payload while attachments, particles, and
-VFX move toward cached socket indices.
+a socket table addressed by stable indices. Names are resolved during scene or
+VFX setup. Runtime model bindings contain common owner/child handles, socket
+indices, child placement/scale, and explicit orientation and source-offset
+policies. A plural transform consumes those flat rows and common node-world
+arrays; it does not query source names or the sidecar node tree.
+
+The modern common case applies child placement after the socket. NWN rows that
+require placement before the socket, position-only orientation, or root bind
+translation select those policies explicitly. Invalid socket rows are rejected
+by `validate_model_asset`; malformed legacy rows are dropped and counted during
+runtime resolution.
 
 ## Particles And Emitters
 
@@ -121,6 +129,8 @@ NWN emitter nodes lower into source-neutral particle definitions and compiled
 particle effects. The field-by-field map is maintained in
 [nwn_emitter_map.md](nwn_emitter_map.md). Runtime particle systems should use
 common owner handles and attachment bindings instead of sidecar pointers.
+Source node indices and names remain importer diagnostics only; compiled and
+runtime rows carry attachment-point indices and explicit default placement.
 
 ## Deformers
 

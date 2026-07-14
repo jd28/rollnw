@@ -261,8 +261,9 @@ inline constexpr uint32_t kInvalidModelNodeIndex = std::numeric_limits<uint32_t>
 struct ModelSocket {
     // Stable node index in the source/runtime asset. The bridge uses NWN
     // source node indices; modern compiled assets should use RenderModel node
-    // indices. Invalid means the socket is name-only and cannot resolve a
-    // transform without a source-specific fallback.
+    // indices. Names are setup/debug metadata and must be resolved to socket
+    // indices before frame evaluation. Asset validation rejects invalid source
+    // nodes, empty/duplicate names, and non-finite transforms.
     uint32_t source_node_index = kInvalidModelNodeIndex;
     glm::mat4 local_transform{1.0f};
     glm::mat4 bind_transform{1.0f};

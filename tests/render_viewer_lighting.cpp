@@ -547,10 +547,16 @@ TEST(RenderViewerShadow, SceneModelAttachmentBindingDrivesCommonRoot)
 
     ASSERT_EQ(scene.model_attachments.size(), 1u);
     const auto& binding = scene.model_attachments.front();
-    EXPECT_EQ(binding.child_model_index, 1u);
-    EXPECT_EQ(binding.owner_model_index, 0u);
     EXPECT_EQ(binding.owner_instance_handle, scene.model_instance_handles[0]);
     EXPECT_EQ(binding.child_instance_handle, scene.model_instance_handles[1]);
+    const auto* bound_owner = scene.model_instances.get(binding.owner_instance_handle);
+    ASSERT_NE(bound_owner, nullptr);
+    EXPECT_EQ(bound_owner->kind, nw::render::ModelInstanceKind::nwn_legacy);
+    EXPECT_EQ(bound_owner->nwn_legacy_model_index, 0u);
+    const auto* bound_child = scene.model_instances.get(binding.child_instance_handle);
+    ASSERT_NE(bound_child, nullptr);
+    EXPECT_EQ(bound_child->kind, nw::render::ModelInstanceKind::nwn_legacy);
+    EXPECT_EQ(bound_child->nwn_legacy_model_index, 1u);
     EXPECT_NE(binding.owner_socket_index, nw::render::kInvalidModelNodeIndex);
 
     scene.models[1]->transform_context_ = nullptr;

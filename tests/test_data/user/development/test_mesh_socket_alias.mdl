@@ -33,6 +33,10 @@ beginmodelgeom test_mesh_socket_alias
             1 0 0
             0 1 0
     endnode
+    node dummy rhand
+        parent rhand_g
+        scale 0.5
+    endnode
     node trimesh lhand_g
         parent test_mesh_socket_alias
         diffuse 1 1 1

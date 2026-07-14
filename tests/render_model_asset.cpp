@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -434,6 +435,33 @@ TEST(RenderModelAsset, ValidationCountsInvalidModelAssetRows)
     EXPECT_EQ(stats.invalid_skin_joint_count, 1u);
     EXPECT_EQ(stats.invalid_skin_inverse_bind_count, 1u);
     EXPECT_GT(stats.invalid_asset_row_count(), 0u);
+}
+
+TEST(RenderModelAsset, ValidationRejectsInvalidSocketRows)
+{
+    auto asset = make_minimal_valid_asset();
+    asset.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "Hand_R",
+    });
+    asset.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 9u,
+        .local_transform = glm::mat4{0.0f},
+        .name = "hand_r",
+    });
+    asset.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .bind_transform = glm::mat4{std::numeric_limits<float>::quiet_NaN()},
+    });
+
+    const auto stats = nw::render::validate_model_asset(asset);
+
+    EXPECT_FALSE(stats.passed());
+    EXPECT_EQ(stats.socket_count, 3u);
+    EXPECT_EQ(stats.invalid_socket_source_node_count, 1u);
+    EXPECT_EQ(stats.empty_socket_name_count, 1u);
+    EXPECT_EQ(stats.duplicate_socket_name_count, 1u);
+    EXPECT_EQ(stats.invalid_socket_transform_count, 2u);
 }
 
 TEST(RenderModelAsset, ValidationCountsInvalidSkeletonAndAnimationRows)

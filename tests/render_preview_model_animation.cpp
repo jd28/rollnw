@@ -245,12 +245,16 @@ TEST(PreviewModelAnimation, RenderModelAttachmentBindingDrivesCommonRoot)
     ASSERT_EQ(scene.static_models.size(), size_t{2});
     ASSERT_EQ(scene.model_attachments.size(), size_t{1});
     const auto& binding = scene.model_attachments.front();
-    EXPECT_EQ(binding.child_kind, nw::render::ModelInstanceKind::render_model);
-    EXPECT_EQ(binding.child_model_index, 1u);
     EXPECT_EQ(binding.child_instance_handle, scene.static_model_instance_handles[1]);
-    EXPECT_EQ(binding.owner_kind, nw::render::ModelInstanceKind::render_model);
-    EXPECT_EQ(binding.owner_model_index, 0u);
     EXPECT_EQ(binding.owner_instance_handle, scene.static_model_instance_handles[0]);
+    const auto* bound_child = scene.model_instances.get(binding.child_instance_handle);
+    ASSERT_NE(bound_child, nullptr);
+    EXPECT_EQ(bound_child->kind, nw::render::ModelInstanceKind::render_model);
+    EXPECT_EQ(bound_child->render_model_index, 1u);
+    const auto* bound_owner = scene.model_instances.get(binding.owner_instance_handle);
+    ASSERT_NE(bound_owner, nullptr);
+    EXPECT_EQ(bound_owner->kind, nw::render::ModelInstanceKind::render_model);
+    EXPECT_EQ(bound_owner->render_model_index, 0u);
     EXPECT_NE(binding.owner_socket_index, nw::render::kInvalidModelNodeIndex);
     EXPECT_NE(binding.child_source_socket_index, nw::render::kInvalidModelNodeIndex);
 

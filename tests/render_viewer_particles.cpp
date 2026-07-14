@@ -269,7 +269,7 @@ TEST(RenderViewerParticles, RenderModelParticleSystemsFollowSelectedClip)
     EXPECT_EQ(scene.particles.back().import.effect_events[0].burst_count, 1u);
 }
 
-TEST(RenderViewerParticles, OwnerSourceNodeIndexDrivesEmitterAttachment)
+TEST(RenderViewerParticles, CommonAttachmentPointsDriveEmitterAttachmentWithoutImportFallback)
 {
     nw::model::Mdl mdl{"test_data/user/development/vfx_lightning_test.mdl"};
     ASSERT_TRUE(mdl.valid());
@@ -299,21 +299,13 @@ TEST(RenderViewerParticles, OwnerSourceNodeIndexDrivesEmitterAttachment)
     ASSERT_NE(init.target_source_node_index, nw::model::kInvalidParticleImportNodeIndex);
     ASSERT_LT(init.target_source_node_index, scene_particles.owner->source_nodes_.size());
     EXPECT_EQ(compiled_attachment.emitter_attachment_point, init.emitter_source_node_index);
-    EXPECT_EQ(compiled_attachment.emitter_source_node_index, init.emitter_source_node_index);
     EXPECT_EQ(compiled_attachment.target_attachment_point, init.target_source_node_index);
-    EXPECT_EQ(compiled_attachment.target_source_node_index, init.target_source_node_index);
-    EXPECT_EQ(compiled_attachment.emitter_node_name, init.emitter_node_name);
-    EXPECT_EQ(compiled_attachment.target_node_name, init.target_node_name);
     EXPECT_EQ(binding.emitter_attachment_point, init.emitter_source_node_index);
-    EXPECT_EQ(binding.emitter_source_node_index, init.emitter_source_node_index);
     EXPECT_EQ(binding.target_attachment_point, init.target_source_node_index);
-    EXPECT_EQ(binding.target_source_node_index, init.target_source_node_index);
     const uint32_t emitter_source_node_index = init.emitter_source_node_index;
     const uint32_t target_source_node_index = init.target_source_node_index;
-    const nw::render::ModelAttachmentPointIndex emitter_attachment_point =
-        compiled_attachment.emitter_attachment_point;
-    const nw::render::ModelAttachmentPointIndex target_attachment_point =
-        compiled_attachment.target_attachment_point;
+    const nw::render::ModelAttachmentPointIndex emitter_attachment_point = compiled_attachment.emitter_attachment_point;
+    const nw::render::ModelAttachmentPointIndex target_attachment_point = compiled_attachment.target_attachment_point;
 
     auto* emitter_node = scene_particles.owner->source_nodes_[emitter_source_node_index];
     ASSERT_NE(emitter_node, nullptr);
@@ -323,12 +315,6 @@ TEST(RenderViewerParticles, OwnerSourceNodeIndexDrivesEmitterAttachment)
     init.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     init.emitter_node_name = "missing_emitter_name";
     init.target_node_name.clear();
-    compiled_attachment.emitter_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
-    compiled_attachment.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
-    compiled_attachment.emitter_node_name = "missing_compiled_emitter_name";
-    compiled_attachment.target_node_name.clear();
-    binding.emitter_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
-    binding.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     emitter_node->has_transform_ = true;
     emitter_node->position_ += glm::vec3{2.0f, 3.0f, 4.0f};
     target_node->has_transform_ = true;

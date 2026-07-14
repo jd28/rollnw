@@ -83,9 +83,8 @@ struct AppState {
         bool has_authored_axis = false;
         std::string caster_animation;
         std::string animation;
-        std::string source_anchor;
+        bool has_source_anchor = false;
         uint32_t source_anchor_socket_index = nw::render::kInvalidModelNodeIndex;
-        std::string target_anchor;
         float scale = 1.0f;
     };
 
@@ -218,16 +217,9 @@ inline glm::mat4 sequence_placement(const glm::vec3& position, const glm::quat& 
 
 inline glm::vec3 vfx_sequence_anchor_world_position(
     const nw::render::viewer::ModelInstance& model,
-    std::string_view anchor,
     uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
 {
-    if (anchor.empty()) {
-        return glm::vec3(model.root_transform()[3]);
-    }
     if (const auto* node = model.socket_node(anchor_socket_index)) {
-        return glm::vec3(model.root_transform() * node->get_transform()[3]);
-    }
-    if (const auto* node = model.find(anchor)) {
         return glm::vec3(model.root_transform() * node->get_transform()[3]);
     }
     return glm::vec3(model.root_transform()[3]);
@@ -242,14 +234,13 @@ inline void vfx_sequence_prime_model_animation(nw::render::viewer::ModelInstance
 inline glm::vec3 vfx_sequence_sample_anchor_world_position(
     nw::render::viewer::ModelInstance& model,
     std::string_view animation,
-    std::string_view anchor,
     uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
 {
     if (!animation.empty()) {
         model.load_animation(animation);
         vfx_sequence_prime_model_animation(model);
     }
-    return vfx_sequence_anchor_world_position(model, anchor, anchor_socket_index);
+    return vfx_sequence_anchor_world_position(model, anchor_socket_index);
 }
 
 inline bool vfx_sequence_load_preferred_model_animation(
@@ -273,36 +264,11 @@ inline bool vfx_sequence_load_preferred_model_animation(
     return false;
 }
 
-inline const nw::render::nwn::Node* vfx_sequence_model_source_node(
-    const nw::render::viewer::ModelInstance& model, uint32_t source_node_index) noexcept
-{
-    if (source_node_index == nw::model::kInvalidParticleImportNodeIndex
-        || source_node_index >= model.source_nodes_.size()) {
-        return nullptr;
-    }
-    return model.source_nodes_[source_node_index];
-}
-
-inline const nw::render::nwn::Node* vfx_sequence_particle_node(
+inline const nw::render::nwn::Node* vfx_sequence_socket_node(
     const nw::render::viewer::ModelInstance& model,
-    uint32_t source_node_index,
-    std::string_view fallback_name)
+    uint32_t socket_index)
 {
-    if (const auto* node = vfx_sequence_model_source_node(model, source_node_index)) {
-        return node;
-    }
-    return fallback_name.empty() ? nullptr : model.find(fallback_name);
-}
-
-inline const nw::render::nwn::Node* vfx_sequence_socket_or_node(
-    const nw::render::viewer::ModelInstance& model,
-    uint32_t socket_index,
-    std::string_view fallback_name)
-{
-    if (const auto* node = model.socket_node(socket_index)) {
-        return node;
-    }
-    return fallback_name.empty() ? nullptr : model.find(fallback_name);
+    return model.socket_node(socket_index);
 }
 
 struct VfxSequenceParticleOwnerKey {
@@ -333,34 +299,23 @@ inline VfxSequenceParticleOwnerKey vfx_sequence_particle_owner_key(
 
 inline bool vfx_sequence_particles_owned_by_model(
     const nw::render::viewer::SceneParticleSystem& particles,
-    const nw::render::viewer::ModelInstance& model,
     VfxSequenceParticleOwnerKey owner_key) noexcept
 {
-    if (owner_key.valid() && particles.owner_instance_handle.valid()) {
-        return particles.owner_instance_handle == owner_key.handle
-            && particles.owner_model_index == owner_key.model_index;
-    }
-    return particles.owner == &model;
+    return owner_key.valid()
+        && particles.owner_instance_handle == owner_key.handle
+        && particles.owner_model_index == owner_key.model_index;
 }
 
 inline const nw::render::ModelInstance* vfx_sequence_particle_common_instance(
     const nw::render::viewer::PreviewScene& scene,
     const nw::render::viewer::SceneParticleSystem& particles) noexcept
 {
-    if (particles.owner_instance_handle.valid()) {
-        const auto* instance = scene.model_instances.get(particles.owner_instance_handle);
-        if (!instance || instance->kind != nw::render::ModelInstanceKind::nwn_legacy
-            || instance->nwn_legacy_model_index != particles.owner_model_index) {
-            return nullptr;
-        }
-        return instance;
+    const auto* instance = scene.model_instances.get(particles.owner_instance_handle);
+    if (!instance || instance->kind != nw::render::ModelInstanceKind::nwn_legacy
+        || instance->nwn_legacy_model_index != particles.owner_model_index) {
+        return nullptr;
     }
-    for (size_t i = 0; i < scene.models.size() && i < scene.model_instance_handles.size(); ++i) {
-        if (scene.models[i].get() == particles.owner) {
-            return scene.model_instances.get(scene.model_instance_handles[i]);
-        }
-    }
-    return nullptr;
+    return instance;
 }
 
 inline bool vfx_sequence_common_attachment_local_transform(
@@ -386,35 +341,26 @@ inline std::optional<glm::vec3> vfx_sequence_authored_axis(const nw::render::vie
     const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model);
 
     for (const auto& particles : scene.particles) {
-        if (!vfx_sequence_particles_owned_by_model(particles, model, owner_key)) {
+        if (!vfx_sequence_particles_owned_by_model(particles, owner_key)) {
             continue;
         }
 
-        const size_t count = std::min(particles.import.emitter_inits.size(), particles.import.effect.emitters.size());
+        const size_t count = particles.compiled.effect.emitters.size();
         const auto* common_instance = vfx_sequence_particle_common_instance(scene, particles);
         for (size_t i = 0; i < count; ++i) {
-            const auto& init = particles.import.emitter_inits[i];
-            const auto& emitter = particles.import.effect.emitters[i];
-            const auto* compiled_emitter = i < particles.compiled.effect.emitters.size()
-                ? &particles.compiled.effect.emitters[i]
-                : nullptr;
-            const std::string_view emitter_node_name = init.emitter_node_name.empty()
-                ? std::string_view{emitter.name}
-                : std::string_view{init.emitter_node_name};
+            const auto& emitter = particles.compiled.effect.emitters[i];
+            const auto& attachment = emitter.attachment;
             if (emitter.targeting.mode == nw::render::ParticleTargetingMode::none) {
                 glm::vec3 axis{0.0f};
                 glm::mat4 local_transform{1.0f};
-                if (common_instance && compiled_emitter
+                if (common_instance
                     && vfx_sequence_common_attachment_local_transform(
-                        *common_instance, compiled_emitter->attachment.emitter_attachment_point, local_transform)) {
+                        *common_instance, attachment.emitter_attachment_point, local_transform)) {
                     axis = glm::vec3(local_transform * glm::vec4{0.0f, 0.0f, 1.0f, 0.0f});
-                } else if (const auto* emitter_node = vfx_sequence_particle_node(
-                               model, init.emitter_source_node_index, emitter_node_name)) {
-                    axis = glm::vec3(emitter_node->get_transform() * glm::vec4{0.0f, 0.0f, 1.0f, 0.0f});
-                } else if (init.has_default_transform) {
-                    axis = glm::vec3(init.default_transform * glm::vec4{0.0f, 0.0f, 1.0f, 0.0f});
-                } else if (init.has_default_orientation) {
-                    axis = init.default_orientation * glm::vec3{0.0f, 0.0f, 1.0f};
+                } else if (attachment.has_default_transform) {
+                    axis = glm::vec3(attachment.default_transform * glm::vec4{0.0f, 0.0f, 1.0f, 0.0f});
+                } else if (attachment.has_default_orientation) {
+                    axis = attachment.default_orientation * glm::vec3{0.0f, 0.0f, 1.0f};
                 }
 
                 if (glm::dot(axis, axis) > 1.0e-6f) {
@@ -427,29 +373,20 @@ inline std::optional<glm::vec3> vfx_sequence_authored_axis(const nw::render::vie
             std::optional<glm::vec3> source;
             std::optional<glm::vec3> target;
             glm::mat4 local_transform{1.0f};
-            if (common_instance && compiled_emitter
+            if (common_instance
                 && vfx_sequence_common_attachment_local_transform(
-                    *common_instance, compiled_emitter->attachment.emitter_attachment_point, local_transform)) {
+                    *common_instance, attachment.emitter_attachment_point, local_transform)) {
                 source = glm::vec3(local_transform[3]);
-            } else if (const auto* emitter_node = vfx_sequence_particle_node(
-                           model, init.emitter_source_node_index, emitter_node_name)) {
-                source = glm::vec3(emitter_node->get_transform()[3]);
-            } else if (init.has_default_position) {
-                source = init.default_position;
+            } else if (attachment.has_default_position) {
+                source = attachment.default_position;
             }
 
-            if (common_instance && compiled_emitter
+            if (common_instance
                 && vfx_sequence_common_attachment_local_transform(
-                    *common_instance, compiled_emitter->attachment.target_attachment_point, local_transform)) {
+                    *common_instance, attachment.target_attachment_point, local_transform)) {
                 target = glm::vec3(local_transform[3]);
-            } else if (init.target_source_node_index != nw::model::kInvalidParticleImportNodeIndex
-                || !init.target_node_name.empty()) {
-                if (const auto* target_node = vfx_sequence_particle_node(
-                        model, init.target_source_node_index, init.target_node_name)) {
-                    target = glm::vec3(target_node->get_transform()[3]);
-                }
-            } else if (init.has_default_target_offset) {
-                target = init.default_target_offset;
+            } else if (attachment.has_default_target_offset) {
+                target = attachment.default_target_offset;
             }
 
             if (!source || !target) {
@@ -586,15 +523,15 @@ inline glm::vec3 vfx_sequence_projectile_root_position(const nw::render::viewer:
     glm::vec3 local_offset{0.0f};
 
     if (model.anchor_uses_root_bind_offset) {
-        if (!step.source_anchor.empty()) {
-            if (const auto* anchor = vfx_sequence_socket_or_node(model, step.source_anchor_socket_index, step.source_anchor)) {
+        if (step.has_source_anchor) {
+            if (const auto* anchor = vfx_sequence_socket_node(model, step.source_anchor_socket_index)) {
                 local_offset = glm::vec3(anchor->bind_pose_[3]);
             }
         } else if (!model.nodes_.empty()) {
             local_offset = glm::vec3(model.nodes_.front()->bind_pose_[3]);
         }
-    } else if (!step.source_anchor.empty()) {
-        if (const auto* anchor = vfx_sequence_socket_or_node(model, step.source_anchor_socket_index, step.source_anchor)) {
+    } else if (step.has_source_anchor) {
+        if (const auto* anchor = vfx_sequence_socket_node(model, step.source_anchor_socket_index)) {
             local_offset = glm::vec3(anchor->get_transform()[3]);
         }
     }
@@ -607,7 +544,7 @@ inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
 {
     const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model);
     for (const auto& scene_particles : scene.particles) {
-        if (!vfx_sequence_particles_owned_by_model(scene_particles, model, owner_key)) {
+        if (!vfx_sequence_particles_owned_by_model(scene_particles, owner_key)) {
             continue;
         }
         for (const auto& emitter : scene_particles.compiled.effect.emitters) {
@@ -620,7 +557,7 @@ inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
 }
 
 inline glm::vec3 vfx_sequence_resolve_target_point(const nw::render::viewer::ModelInstance* target, const glm::vec3& fallback,
-    VfxTargetPointKind kind, std::string_view anchor = {}, uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
+    VfxTargetPointKind kind, uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
 {
     if (!target || kind == VfxTargetPointKind::none || kind == VfxTargetPointKind::point) {
         return fallback;
@@ -634,10 +571,8 @@ inline glm::vec3 vfx_sequence_resolve_target_point(const nw::render::viewer::Mod
         return 0.5f * (bounds.min + bounds.max);
     }
     case VfxTargetPointKind::anchor:
-        if (!anchor.empty()) {
-            if (const auto* node = vfx_sequence_socket_or_node(*target, anchor_socket_index, anchor)) {
-                return glm::vec3(target->root_transform() * node->get_transform()[3]);
-            }
+        if (const auto* node = vfx_sequence_socket_node(*target, anchor_socket_index)) {
+            return glm::vec3(target->root_transform() * node->get_transform()[3]);
         }
         {
             const auto bounds = target->current_bounds();
@@ -753,9 +688,17 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
         model->local_scale_ = sequence.steps[i].scale;
         model->anchor_position_only = sequence.steps[i].anchor_position_only;
         if (anchor_relative) {
-            model->set_transform_anchor(layout.caster, sequence.steps[i].anchor, sequence.steps[i].source_anchor);
+            scene.attach_model(
+                static_cast<uint32_t>(i + actor_model_count),
+                static_cast<uint32_t>(state.vfx_sequence_caster_model_index),
+                sequence.steps[i].anchor,
+                sequence.steps[i].source_anchor);
         } else if (target_anchor_relative) {
-            model->set_transform_anchor(layout.target, sequence.steps[i].anchor, sequence.steps[i].source_anchor);
+            scene.attach_model(
+                static_cast<uint32_t>(i + actor_model_count),
+                static_cast<uint32_t>(state.vfx_sequence_target_model_index),
+                sequence.steps[i].anchor,
+                sequence.steps[i].source_anchor);
         }
         vfx_sequence_load_preferred_model_animation(*model, animation_override, sequence.steps[i].animation);
     }
@@ -767,6 +710,7 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
         const bool is_projectile = sequence.steps[i].kind == VfxSequenceStepKind::projectile;
         const bool target_side = is_target_side_sequence_step(sequence.steps[i], layout.use_source_target_layout);
         const bool anchor_relative = layout.caster && !sequence.steps[i].anchor.empty() && !target_side;
+        const bool target_anchor_relative = layout.target && !sequence.steps[i].anchor.empty() && target_side;
         const uint32_t caster_anchor_socket_index = layout.caster && !sequence.steps[i].anchor.empty()
             ? layout.caster->socket_index(sequence.steps[i].anchor)
             : nw::render::kInvalidModelNodeIndex;
@@ -775,11 +719,11 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
             : nw::render::kInvalidModelNodeIndex;
         const glm::vec3 resolved_target_pos = vfx_sequence_resolve_target_point(
             layout.target, layout.target_root_pos,
-            sequence.steps[i].target_point_kind, sequence.steps[i].target_anchor, target_anchor_socket_index);
+            sequence.steps[i].target_point_kind, target_anchor_socket_index);
         const glm::vec3 start_pos = (is_projectile
                                             ? (layout.caster && !sequence.steps[i].anchor.empty()
                                                       ? vfx_sequence_sample_anchor_world_position(
-                                                            *layout.caster, sequence.steps[i].caster_animation, sequence.steps[i].anchor, caster_anchor_socket_index)
+                                                            *layout.caster, sequence.steps[i].caster_animation, caster_anchor_socket_index)
                                                       : layout.source_pos)
                                             : (target_side ? resolved_target_pos
                                                            : (anchor_relative ? glm::vec3{0.0f}
@@ -817,7 +761,7 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
         bool has_authored_axis = false;
         if (is_projectile) {
             if (!sequence.steps[i].source_anchor.empty()) {
-                if (const auto* source_anchor = vfx_sequence_socket_or_node(*model, source_anchor_socket_index, sequence.steps[i].source_anchor)) {
+                if (const auto* source_anchor = vfx_sequence_socket_node(*model, source_anchor_socket_index)) {
                     const glm::vec3 root_to_source = glm::vec3(source_anchor->bind_pose_[3]);
                     if (glm::dot(root_to_source, root_to_source) > 1.0e-6f) {
                         authored_axis = glm::normalize(root_to_source);
@@ -854,14 +798,26 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
                                                                           .has_authored_axis = has_authored_axis,
                                                                           .caster_animation = sequence.steps[i].caster_animation,
                                                                           .animation = sequence.steps[i].animation,
-                                                                          .source_anchor = sequence.steps[i].source_anchor,
+                                                                          .has_source_anchor = !sequence.steps[i].source_anchor.empty(),
                                                                           .source_anchor_socket_index = source_anchor_socket_index,
-                                                                          .target_anchor = sequence.steps[i].target_anchor,
                                                                           .scale = sequence.steps[i].scale,
                                                                       },
                             0.0f, state.vfx_sequence_loop_seed)
                       : start_pos);
         model->set_placement_transform(sequence_placement(placement_pos, step_rotation));
+        if (!is_projectile && anchor_relative) {
+            scene.attach_model(
+                static_cast<uint32_t>(i + actor_model_count),
+                static_cast<uint32_t>(state.vfx_sequence_caster_model_index),
+                sequence.steps[i].anchor,
+                sequence.steps[i].source_anchor);
+        } else if (!is_projectile && target_anchor_relative) {
+            scene.attach_model(
+                static_cast<uint32_t>(i + actor_model_count),
+                static_cast<uint32_t>(state.vfx_sequence_target_model_index),
+                sequence.steps[i].anchor,
+                sequence.steps[i].source_anchor);
+        }
         state.vfx_sequence_steps.push_back({
             .model_index = i + actor_model_count,
             .start_ms = step_start_ms,
@@ -881,9 +837,8 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
             .has_authored_axis = has_authored_axis,
             .caster_animation = sequence.steps[i].caster_animation,
             .animation = sequence.steps[i].animation,
-            .source_anchor = sequence.steps[i].source_anchor,
+            .has_source_anchor = !sequence.steps[i].source_anchor.empty(),
             .source_anchor_socket_index = source_anchor_socket_index,
-            .target_anchor = sequence.steps[i].target_anchor,
             .scale = sequence.steps[i].scale,
         });
         if (sequence.steps[i].uses_target_point) {

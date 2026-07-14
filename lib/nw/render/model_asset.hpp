@@ -113,6 +113,11 @@ struct ModelAssetValidationStats {
     uint32_t valid_primitive_count = 0;
     uint32_t node_count = 0;
     uint32_t invalid_node_parent_count = 0;
+    uint32_t socket_count = 0;
+    uint32_t invalid_socket_source_node_count = 0;
+    uint32_t empty_socket_name_count = 0;
+    uint32_t duplicate_socket_name_count = 0;
+    uint32_t invalid_socket_transform_count = 0;
     uint32_t deformer_count = 0;
     uint32_t invalid_deformer_source_node_count = 0;
     uint32_t empty_deformer_vertex_count = 0;
@@ -150,6 +155,10 @@ struct ModelAssetValidationStats {
     [[nodiscard]] uint32_t invalid_asset_row_count() const noexcept
     {
         return invalid_node_parent_count
+            + invalid_socket_source_node_count
+            + empty_socket_name_count
+            + duplicate_socket_name_count
+            + invalid_socket_transform_count
             + invalid_deformer_source_node_count
             + empty_deformer_vertex_count
             + unsupported_skin_bone_count

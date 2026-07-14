@@ -74,42 +74,37 @@ TEST(MudlAppRuntime, VfxSequenceRuntimeSyncsCommonInstancesAfterSidecarWrites)
     EXPECT_NEAR(instance->root_transform[3].x, 3.0f, 1.0e-5f);
 }
 
-TEST(MudlAppRuntime, VfxAuthoredAxisUsesParticleSourceNodeIndices)
+TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
 {
     auto model = make_sequence_model();
-    auto source_node = std::make_unique<nw::render::nwn::Node>();
-    source_node->has_transform_ = true;
-    source_node->position_ = glm::vec3{1.0f, 2.0f, 3.0f};
-    auto* source_node_ptr = source_node.get();
-
-    auto target_node = std::make_unique<nw::render::nwn::Node>();
-    target_node->has_transform_ = true;
-    target_node->position_ = glm::vec3{1.0f, 2.0f, 7.0f};
-    auto* target_node_ptr = target_node.get();
-
-    model->nodes_.push_back(std::move(source_node));
-    model->nodes_.push_back(std::move(target_node));
-    model->source_nodes_.push_back(source_node_ptr);
-    model->source_nodes_.push_back(target_node_ptr);
 
     nw::render::viewer::PreviewScene scene;
+    scene.add(std::move(model));
+    auto* owner = scene.models.front().get();
+    ASSERT_NE(owner, nullptr);
+
     nw::render::viewer::SceneParticleSystem particles;
-    particles.owner = model.get();
-    nw::render::ParticleEmitterDef emitter;
-    emitter.name = "missing_emitter_name";
-    emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
-    particles.import.effect.emitters.push_back(std::move(emitter));
+    particles.owner_model_index = 0u;
+    particles.owner_instance_handle = scene.model_instance_handles.front();
 
     nw::model::ParticleImportEmitterInit init;
     init.emitter = 0u;
-    init.emitter_source_node_index = 0u;
+    init.emitter_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     init.emitter_node_name = "also_missing_emitter_name";
-    init.target_source_node_index = 1u;
+    init.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     init.target_node_name = "missing_target_name";
     particles.import.emitter_inits.push_back(std::move(init));
+
+    nw::render::CompiledParticleEmitter emitter;
+    emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
+    emitter.attachment.has_default_position = true;
+    emitter.attachment.default_position = glm::vec3{1.0f, 2.0f, 3.0f};
+    emitter.attachment.has_default_target_offset = true;
+    emitter.attachment.default_target_offset = glm::vec3{1.0f, 2.0f, 7.0f};
+    particles.compiled.effect.emitters.push_back(std::move(emitter));
     scene.particles.push_back(std::move(particles));
 
-    const auto axis = mudl::vfx_sequence_authored_axis(scene, *model);
+    const auto axis = mudl::vfx_sequence_authored_axis(scene, *owner);
 
     ASSERT_TRUE(axis);
     EXPECT_NEAR(axis->x, 0.0f, 1.0e-5f);
@@ -117,7 +112,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesParticleSourceNodeIndices)
     EXPECT_NEAR(axis->z, 1.0f, 1.0e-5f);
 }
 
-TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPointsBeforeSourceFallback)
+TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
 {
     nw::render::viewer::PreviewScene scene;
     scene.add(make_sequence_model());
@@ -210,8 +205,8 @@ TEST(MudlAppRuntime, VfxProjectileRootPositionUsesCachedSourceSocket)
     step.end_ms = 1000;
     step.start_pos = glm::vec3{10.0f, 0.0f, 0.0f};
     step.end_pos = glm::vec3{20.0f, 0.0f, 0.0f};
-    step.source_anchor = "muzzle";
-    step.source_anchor_socket_index = model->socket_index(step.source_anchor);
+    step.has_source_anchor = true;
+    step.source_anchor_socket_index = model->socket_index("muzzle");
     model->sockets_.front().name = "renamed_after_binding";
 
     const glm::vec3 root_position = mudl::vfx_sequence_projectile_root_position(*model, step, 0.0f, 0u);
@@ -246,7 +241,6 @@ TEST(MudlAppRuntime, VfxResolveTargetPointUsesCachedTargetSocket)
         model.get(),
         glm::vec3{0.0f},
         mudl::VfxTargetPointKind::anchor,
-        "missing_after_binding",
         socket_index);
 
     EXPECT_NEAR(point.x, 12.0f, 1.0e-5f);
@@ -277,7 +271,6 @@ TEST(MudlAppRuntime, VfxAnchorWorldPositionUsesCachedSocket)
 
     const glm::vec3 point = mudl::vfx_sequence_anchor_world_position(
         *model,
-        "missing_after_binding",
         socket_index);
 
     EXPECT_NEAR(point.x, 11.0f, 1.0e-5f);
