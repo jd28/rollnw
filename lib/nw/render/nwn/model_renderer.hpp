@@ -74,6 +74,7 @@ struct PreparedDrawDataCache {
     nw::gfx::Handle<nw::gfx::Buffer> buffer;
     nw::gfx::StorageSpan span;
     uint64_t signature = 0;
+    uint64_t asset_cache_epoch = 0;
     uint32_t source_draw_count = std::numeric_limits<uint32_t>::max();
 
     PreparedDrawDataCache() = default;
@@ -87,6 +88,7 @@ struct PreparedDrawDataCache {
     [[nodiscard]] bool valid_for(
         size_t input_draw_count,
         uint64_t input_signature,
+        uint64_t input_asset_cache_epoch,
         size_t bytes_per_draw) const noexcept;
 };
 

@@ -55,16 +55,16 @@ fastest way to discover what data the compiler must emit.
 - `remove-legacy-render-paths.md`: once compiled assets feed prepared surfaces
   directly, live source adapters become tooling/parity inputs instead of runtime
   ownership.
-- `modern-runtime-sockets.md`: sockets and attachment bindings should become
-  compiled asset rows with stable indices, not per-load string lookup.
+- Sockets and attachment bindings should become compiled asset rows with stable
+  indices, not per-load string lookup.
 - Legacy dangly data should compile into explicit modern deformer records or
   diagnostics, matching the bridge policy documented in
   `lib/nw/render/docs/nwn_model_conversion.md`.
 - `nwn-modern-pbr-material-calibration.md`: source material calibration belongs
   in compiler material transforms and validation reports.
-- `render-asset-cache-lifecycle.md`: compiled packages can make asset lifetime
-  and residency policy more explicit, but cache eviction still needs measured
-  runtime data.
+- `render-asset-cache-residency-budget.md`: compiled packages can make asset
+  lifetime and residency policy more explicit, but cache eviction still needs
+  measured runtime data.
 
 ## Open Questions
 

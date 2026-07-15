@@ -68,7 +68,15 @@
     "BM_particles_burst_spawn/1024": {"domain": "cpp", "group": "particles"},
     "BM_particles_burst_spawn/5120": {"domain": "cpp", "group": "particles"},
     "BM_particles_burst_spawn/10240": {"domain": "cpp", "group": "particles"},
-    "BM_load_module": {"domain": "cpp", "group": "resources"}
+    "BM_load_module": {"domain": "cpp", "group": "resources"},
+    "BM_render_asset_cache_hot_texture_hits_resref/1": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_resref/3": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_resref/85": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_resref/137": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_string_boundary/1": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_string_boundary/3": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_string_boundary/85": {"domain": "cpp", "group": "render_cache"},
+    "BM_render_asset_cache_hot_texture_hits_string_boundary/137": {"domain": "cpp", "group": "render_cache"}
   },
   "profiles": {
     "bench-pr": {
@@ -114,7 +122,15 @@
         "BM_particles_burst_spawn/10240",
         "BM_smalls_gc_minor",
         "BM_smalls_gc_major",
-        "BM_load_module"
+        "BM_load_module",
+        "BM_render_asset_cache_hot_texture_hits_resref/1",
+        "BM_render_asset_cache_hot_texture_hits_resref/3",
+        "BM_render_asset_cache_hot_texture_hits_resref/85",
+        "BM_render_asset_cache_hot_texture_hits_resref/137",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/1",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/3",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/85",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/137"
       ],
       "thresholds": {
         "default": 8.0,
@@ -128,7 +144,8 @@
           "runtime": 8.0,
           "pipeline": 10.0,
           "itemprop": 8.0,
-          "particles": 10.0
+          "particles": 10.0,
+          "render_cache": 10.0
         },
         "benchmarks": {}
       }
@@ -185,7 +202,15 @@
         "BM_smalls_damage_resistance_scan/128",
         "BM_smalls_gc_minor",
         "BM_smalls_gc_major",
-        "BM_load_module"
+        "BM_load_module",
+        "BM_render_asset_cache_hot_texture_hits_resref/1",
+        "BM_render_asset_cache_hot_texture_hits_resref/3",
+        "BM_render_asset_cache_hot_texture_hits_resref/85",
+        "BM_render_asset_cache_hot_texture_hits_resref/137",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/1",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/3",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/85",
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/137"
       ],
       "thresholds": {
         "default": 10.0,
@@ -201,7 +226,8 @@
           "itemprop": 10.0,
           "particles": 12.0,
           "gc": 25.0,
-          "resources": 20.0
+          "resources": 20.0,
+          "render_cache": 12.0
         },
         "benchmarks": {}
       }

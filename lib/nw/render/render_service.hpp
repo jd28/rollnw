@@ -42,7 +42,7 @@ struct RenderService : public kernel::Service {
     ModelGpuBackend& model_backend();
     const ModelGpuBackend& model_backend() const;
     [[nodiscard]] ModelRenderContext model_render_context() const;
-    [[nodiscard]] nwn::ModelRenderContext nwn_model_render_context() const;
+    [[nodiscard]] nwn::ModelRenderContext nwn_model_render_context();
     nwn::RenderAssetCache& asset_cache();
     const nwn::RenderAssetCache& asset_cache() const;
 

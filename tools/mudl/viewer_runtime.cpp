@@ -3295,6 +3295,13 @@ int run_viewer_screenshot_command(AppState& state, std::string_view source,
         LOG_F(INFO, "Saved screenshot: {}", screenshot_output);
         log_prepared_model_surface_submission_stats(session.last_frame_stats());
         log_preview_scene_runtime_sync_stats(session.last_frame_stats());
+        const json render_service_stats = current_render_service_stats_json();
+        LOG_F(INFO, "Viewer screenshot cache snapshot: {}",
+            json{
+                {"asset_cache", render_asset_cache_stats_json(render_service_stats)},
+                {"nwn_model_loader_resource_cache", model_loader_resource_cache_stats_json(render_service_stats)},
+            }
+                .dump());
     } else {
         LOG_F(ERROR, "Failed to save screenshot: {}", screenshot_output);
     }

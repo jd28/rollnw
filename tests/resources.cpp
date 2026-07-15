@@ -754,6 +754,41 @@ TEST(KernelResources, AddContainer)
     delete rm;
 }
 
+TEST(KernelResources, RegistryGenerationAdvancesWhenVisibleResourcesChange)
+{
+    nw::ResourceManager resources{nwk::global_allocator()};
+    const uint64_t initial_generation = resources.generation();
+
+    nw::StaticErf container{"test_data/user/modules/DockerDemo.mod"};
+    ASSERT_TRUE(resources.add_custom_container(&container, false));
+    EXPECT_EQ(resources.generation(), initial_generation);
+
+    resources.build_registry();
+    const uint64_t built_generation = resources.generation();
+    EXPECT_GT(built_generation, initial_generation);
+
+    resources.unfreeze();
+    const uint64_t unfrozen_generation = resources.generation();
+    EXPECT_GT(unfrozen_generation, built_generation);
+
+    resources.build_registry();
+    EXPECT_GT(resources.generation(), unfrozen_generation);
+}
+
+TEST(KernelResources, RegistryGenerationAdvancesWhenModuleUnloads)
+{
+    nw::ResourceManager resources{nwk::global_allocator()};
+    ASSERT_TRUE(resources.load_module("test_data/user/modules/DockerDemo.mod"));
+    resources.build_registry();
+    const uint64_t loaded_generation = resources.generation();
+
+    resources.unload_module();
+
+    EXPECT_EQ(resources.generation(), loaded_generation + 2u);
+    EXPECT_EQ(resources.module_container(), nullptr);
+    EXPECT_TRUE(resources.is_frozen());
+}
+
 TEST(KernelResources, Extract)
 {
     auto rm = new nw::ResourceManager{nwk::global_allocator()};

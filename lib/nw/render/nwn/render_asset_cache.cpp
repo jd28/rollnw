@@ -150,37 +150,6 @@ void expand_rgb_to_rgba(uint8_t* dst, const uint8_t* src, uint32_t width, uint32
     }
 }
 
-std::string plt_cache_key(const std::string& name, const nw::PltColors& colors)
-{
-    std::string key = name;
-    key += "#plt:";
-    for (auto value : colors.data) {
-        key += std::to_string(value);
-        key.push_back(',');
-    }
-    return key;
-}
-
-std::string alpha_cache_key(const std::string& name, bool premultiply_alpha)
-{
-    return premultiply_alpha ? name + "#premul" : name + "#straight";
-}
-
-std::string raw_plt_cache_key(const std::string& name)
-{
-    return name + "#rawplt";
-}
-
-std::string linear_cache_key(const std::string& name)
-{
-    return name + "#linear";
-}
-
-std::string roughness_surface_cache_key(const std::string& name)
-{
-    return name + "#roughness_surface";
-}
-
 void copy_image_to_rgba(uint8_t* dst, const nw::Image& image, bool flip_rows)
 {
     const uint32_t channels = image.channels();
@@ -250,18 +219,27 @@ void log_warning_error_context()
     }
 }
 
-nw::ResourceData demand_texture_image_data(const std::string& name)
+nw::ResourceData demand_texture_image_data(nw::Resref name)
 {
-    ERRARE("[render] loading texture '{}' (search order: dds, tga)", std::string_view{name});
-    return nw::kernel::resman().demand_in_order(nw::Resref{name}, {nw::ResourceType::dds, nw::ResourceType::tga});
+    ERRARE("[render] loading texture '{}' (search order: dds, tga)", name.view());
+    return nw::kernel::resman().demand_in_order(name, {nw::ResourceType::dds, nw::ResourceType::tga});
 }
 
 } // namespace
 
-void RenderAssetCache::clear(nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
+RenderAssetCache::RenderAssetCache(nw::gfx::Context* ctx)
+    : ctx_{ctx}
+    , observed_resource_generation_{nw::kernel::resman().generation()}
 {
+}
+
+void RenderAssetCache::clear()
+{
+    if (ctx_) {
+        nw::gfx::wait_idle(ctx_);
+    }
     for (auto& [name, cached] : texture_cache_) {
-        if (cached.texture.valid() && cached.texture != fallback_texture) {
+        if (cached.owned && cached.texture.valid()) {
             nw::gfx::destroy_texture(ctx_, cached.texture);
         }
     }
@@ -270,21 +248,35 @@ void RenderAssetCache::clear(nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
     white_alpha_mask_cache_.clear();
     particle_mesh_cache_.clear();
     clear_model_loader_resource_caches();
+    if (epoch_ == std::numeric_limits<uint64_t>::max()
+        || invalidation_count_ == std::numeric_limits<uint64_t>::max()) {
+        LOG_F(FATAL, "render asset cache: lifecycle counter exhausted");
+    }
+    ++epoch_;
+    ++invalidation_count_;
+    observed_resource_generation_ = nw::kernel::resman().generation();
 }
 
-void RenderAssetCache::destroy(nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
+void RenderAssetCache::sync_resource_generation()
 {
-    clear(fallback_texture);
+    if (observed_resource_generation_ != nw::kernel::resman().generation()) {
+        clear();
+    }
 }
 
 RenderAssetCacheStats RenderAssetCache::stats() const noexcept
 {
     RenderAssetCacheStats result{
+        .epoch = epoch_,
+        .invalidation_count = invalidation_count_,
+        .observed_resource_generation = observed_resource_generation_,
+        .current_resource_generation = nw::kernel::resman().generation(),
         .texture_count = texture_cache_.size(),
         .source_image_count = image_cache_.size(),
         .particle_mesh_count = particle_mesh_cache_.size(),
     };
     for (const auto& [name, cached] : texture_cache_) {
+        result.owned_texture_count += cached.owned ? 1u : 0u;
         result.texture_upload_bytes = saturating_add(result.texture_upload_bytes, cached.upload_bytes);
     }
     for (const auto& [name, image] : image_cache_) {
@@ -296,28 +288,37 @@ RenderAssetCacheStats RenderAssetCache::stats() const noexcept
     return result;
 }
 
-bool RenderAssetCache::texture_rows_flipped_on_upload(const std::string& name, bool premultiply_alpha) const
+bool RenderAssetCache::texture_rows_flipped_on_upload(nw::Resref name, bool premultiply_alpha)
 {
-    const auto it = texture_cache_.find(alpha_cache_key(name, premultiply_alpha));
+    sync_resource_generation();
+    const TextureCacheKey cache_key{
+        .resref = name,
+        .variant = premultiply_alpha ? TextureVariant::srgb_premultiplied : TextureVariant::srgb_straight,
+    };
+    const auto it = texture_cache_.find(cache_key);
     return it != texture_cache_.end() && it->second.rows_flipped;
 }
 
 nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
-    const std::string& name, bool premultiply_alpha, nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
+    nw::Resref name, bool premultiply_alpha, nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return fallback_texture;
     }
 
-    const auto cache_key = alpha_cache_key(name, premultiply_alpha);
+    const TextureCacheKey cache_key{
+        .resref = name,
+        .variant = premultiply_alpha ? TextureVariant::srgb_premultiplied : TextureVariant::srgb_straight,
+    };
     if (auto it = texture_cache_.find(cache_key); it != texture_cache_.end()) {
         return it->second.texture;
     }
 
-    ERRARE("[render] loading texture '{}' (premultiply_alpha={})", std::string_view{name}, premultiply_alpha);
+    ERRARE("[render] loading texture '{}' (premultiply_alpha={})", name.view(), premultiply_alpha);
     auto data = demand_texture_image_data(name);
     if (data.bytes.size() == 0) {
-        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name, name, name);
+        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name.view(), name.view(), name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
         return fallback_texture;
@@ -326,7 +327,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
     const bool restore_tga_file_rows = nw::render::tga_texture_rows_need_file_order_restore(data);
     auto image = std::make_unique<nw::Image>(std::move(data), true);
     if (!image->valid()) {
-        LOG_F(WARNING, "Texture failed to load: {} (using fallback)", name);
+        LOG_F(WARNING, "Texture failed to load: {} (using fallback)", name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
         return fallback_texture;
@@ -356,7 +357,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
         nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
         upload_bytes = rgba.size();
     } else {
-        LOG_F(WARNING, "Texture {} has unsupported {} channels", name, image->channels());
+        LOG_F(WARNING, "Texture {} has unsupported {} channels", name.view(), image->channels());
         log_warning_error_context();
         nw::gfx::destroy_texture(ctx_, texture);
         texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
@@ -367,25 +368,27 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
         .texture = texture,
         .upload_bytes = upload_bytes,
         .rows_flipped = restore_tga_file_rows,
+        .owned = true,
     };
     return texture;
 }
 
-nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_linear_texture(const std::string& name)
+nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_linear_texture(nw::Resref name)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return {};
     }
 
-    const auto cache_key = linear_cache_key(name);
+    const TextureCacheKey cache_key{.resref = name, .variant = TextureVariant::linear};
     if (auto it = texture_cache_.find(cache_key); it != texture_cache_.end()) {
         return it->second.texture;
     }
 
-    ERRARE("[render] loading linear texture '{}'", std::string_view{name});
+    ERRARE("[render] loading linear texture '{}'", name.view());
     auto data = demand_texture_image_data(name);
     if (data.bytes.size() == 0) {
-        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name, name, name);
+        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name.view(), name.view(), name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = {};
         return {};
@@ -394,7 +397,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_linear_texture(c
     const bool restore_tga_file_rows = nw::render::tga_texture_rows_need_file_order_restore(data);
     auto image = std::make_unique<nw::Image>(std::move(data), true);
     if (!image->valid() || image->channels() == 0 || !image->data()) {
-        LOG_F(WARNING, "Texture failed to load: {} (using no material map)", name);
+        LOG_F(WARNING, "Texture failed to load: {} (using no material map)", name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = {};
         return {};
@@ -406,28 +409,29 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_linear_texture(c
 
     auto texture = create_uploaded_rgba_texture(ctx_, image->width(), image->height(), nw::gfx::Fmt::RGBA8, rgba);
     if (texture.valid()) {
-        texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size()};
+        texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size(), .owned = true};
     } else {
         texture_cache_[cache_key] = {};
     }
     return texture;
 }
 
-nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_roughness_surface_texture(const std::string& name)
+nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_roughness_surface_texture(nw::Resref name)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return {};
     }
 
-    const auto cache_key = roughness_surface_cache_key(name);
+    const TextureCacheKey cache_key{.resref = name, .variant = TextureVariant::roughness_surface};
     if (auto it = texture_cache_.find(cache_key); it != texture_cache_.end()) {
         return it->second.texture;
     }
 
-    ERRARE("[render] loading roughness surface texture '{}'", std::string_view{name});
+    ERRARE("[render] loading roughness surface texture '{}'", name.view());
     auto data = demand_texture_image_data(name);
     if (data.bytes.size() == 0) {
-        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name, name, name);
+        LOG_F(WARNING, "Texture not found: {} (searched: {}.dds, {}.tga)", name.view(), name.view(), name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = {};
         return {};
@@ -436,7 +440,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_roughness_surfac
     const bool restore_tga_file_rows = nw::render::tga_texture_rows_need_file_order_restore(data);
     auto image = std::make_unique<nw::Image>(std::move(data), true);
     if (!image->valid() || image->channels() == 0 || !image->data()) {
-        LOG_F(WARNING, "Texture failed to load: {} (using no roughness map)", name);
+        LOG_F(WARNING, "Texture failed to load: {} (using no roughness map)", name.view());
         log_warning_error_context();
         texture_cache_[cache_key] = {};
         return {};
@@ -448,7 +452,7 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_roughness_surfac
 
     auto texture = create_uploaded_rgba_texture(ctx_, image->width(), image->height(), nw::gfx::Fmt::RGBA8, surface);
     if (texture.valid()) {
-        texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = surface.size()};
+        texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = surface.size(), .owned = true};
     } else {
         texture_cache_[cache_key] = {};
     }
@@ -456,21 +460,25 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_roughness_surfac
 }
 
 nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
-    const std::string& name, const nw::PltColors& colors, bool premultiply_alpha,
+    nw::Resref name, const nw::PltColors& colors, bool premultiply_alpha,
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return fallback_texture;
     }
 
-    auto cache_key = plt_cache_key(name, colors);
-    cache_key += premultiply_alpha ? "#premul" : "#straight";
+    const TextureCacheKey cache_key{
+        .resref = name,
+        .plt_colors = colors,
+        .variant = premultiply_alpha ? TextureVariant::plt_premultiplied : TextureVariant::plt_straight,
+    };
     if (auto it = texture_cache_.find(cache_key); it != texture_cache_.end()) {
         return it->second.texture;
     }
 
-    ERRARE("[render] loading PLT texture '{}'", std::string_view{name});
-    auto plt_data = nw::kernel::resman().demand({nw::Resref{name}, nw::ResourceType::plt});
+    ERRARE("[render] loading PLT texture '{}'", name.view());
+    auto plt_data = nw::kernel::resman().demand({name, nw::ResourceType::plt});
     nw::Plt plt{std::move(plt_data)};
     if (!plt.valid()) {
         return get_or_load_texture(name, premultiply_alpha, fallback_texture);
@@ -497,23 +505,24 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
     std::vector<uint8_t> rgba(pixel_count * 4);
     copy_rgba_pixels(rgba.data(), image.data(), image.width(), image.height(), premultiply_alpha, false);
     nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
-    texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size()};
+    texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size(), .owned = true};
     return texture;
 }
 
-nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_raw_plt_texture(const std::string& name)
+nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_raw_plt_texture(nw::Resref name)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return {};
     }
 
-    const auto cache_key = raw_plt_cache_key(name);
+    const TextureCacheKey cache_key{.resref = name, .variant = TextureVariant::raw_plt};
     if (auto it = texture_cache_.find(cache_key); it != texture_cache_.end()) {
         return it->second.texture;
     }
 
-    ERRARE("[render] loading raw PLT texture '{}'", std::string_view{name});
-    auto plt_data = nw::kernel::resman().demand({nw::Resref{name}, nw::ResourceType::plt});
+    ERRARE("[render] loading raw PLT texture '{}'", name.view());
+    auto plt_data = nw::kernel::resman().demand({name, nw::ResourceType::plt});
     nw::Plt plt{std::move(plt_data)};
     if (!plt.valid()) {
         log_warning_error_context();
@@ -541,12 +550,13 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_raw_plt_texture(
     }
 
     nw::gfx::upload_texture_rgba8(ctx_, texture, packed.data(), packed.size());
-    texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = packed.size()};
+    texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = packed.size(), .owned = true};
     return texture;
 }
 
-const nw::Image* RenderAssetCache::get_or_load_source_image(const std::string& name)
+const nw::Image* RenderAssetCache::get_or_load_source_image(nw::Resref name)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return nullptr;
     }
@@ -567,8 +577,9 @@ const nw::Image* RenderAssetCache::get_or_load_source_image(const std::string& n
     return result;
 }
 
-bool RenderAssetCache::source_image_is_white_alpha_mask(const std::string& name)
+bool RenderAssetCache::source_image_is_white_alpha_mask(nw::Resref name)
 {
+    sync_resource_generation();
     if (name.empty()) {
         return false;
     }
@@ -582,8 +593,9 @@ bool RenderAssetCache::source_image_is_white_alpha_mask(const std::string& name)
     return result;
 }
 
-ModelInstance* RenderAssetCache::get_or_load_particle_mesh(const std::string& resref)
+ModelInstance* RenderAssetCache::get_or_load_particle_mesh(nw::Resref resref)
 {
+    sync_resource_generation();
     if (resref.empty()) {
         return nullptr;
     }
@@ -593,7 +605,7 @@ ModelInstance* RenderAssetCache::get_or_load_particle_mesh(const std::string& re
     }
 
     ModelLoader loader(ctx_);
-    auto model = loader.load(resref);
+    auto model = loader.load(resref.view());
     auto* result = model.get();
     particle_mesh_cache_.emplace(resref, std::move(model));
     return result;

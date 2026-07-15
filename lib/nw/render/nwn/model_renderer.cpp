@@ -31,11 +31,13 @@ PreparedDrawDataCache::PreparedDrawDataCache(PreparedDrawDataCache&& other) noex
     : buffer(other.buffer)
     , span(other.span)
     , signature(other.signature)
+    , asset_cache_epoch(other.asset_cache_epoch)
     , source_draw_count(other.source_draw_count)
 {
     other.buffer = {};
     other.span = {};
     other.signature = 0;
+    other.asset_cache_epoch = 0;
     other.source_draw_count = std::numeric_limits<uint32_t>::max();
 }
 
@@ -46,10 +48,12 @@ PreparedDrawDataCache& PreparedDrawDataCache::operator=(PreparedDrawDataCache&& 
         buffer = other.buffer;
         span = other.span;
         signature = other.signature;
+        asset_cache_epoch = other.asset_cache_epoch;
         source_draw_count = other.source_draw_count;
         other.buffer = {};
         other.span = {};
         other.signature = 0;
+        other.asset_cache_epoch = 0;
         other.source_draw_count = std::numeric_limits<uint32_t>::max();
     }
     return *this;
@@ -63,12 +67,14 @@ void PreparedDrawDataCache::clear()
     buffer = {};
     span = {};
     signature = 0;
+    asset_cache_epoch = 0;
     source_draw_count = std::numeric_limits<uint32_t>::max();
 }
 
 bool PreparedDrawDataCache::valid_for(
     size_t input_draw_count,
     uint64_t input_signature,
+    uint64_t input_asset_cache_epoch,
     size_t bytes_per_draw) const noexcept
 {
     if (input_draw_count > std::numeric_limits<uint32_t>::max()) {
@@ -83,6 +89,7 @@ bool PreparedDrawDataCache::valid_for(
     return span.buffer.valid()
         && span.buffer == buffer
         && signature == input_signature
+        && asset_cache_epoch == input_asset_cache_epoch
         && source_draw_count == count
         && static_cast<uint64_t>(span.size) >= bytes;
 }
@@ -287,16 +294,30 @@ void collect_local_light_indices_for_bounds(
 
 static void ensure_mesh_texture(ModelRenderContext& render_ctx, Mesh& mesh)
 {
+    const uint64_t cache_epoch = render_ctx.assets->epoch();
+    if (mesh.asset_cache_epoch != cache_epoch) {
+        mesh.texture = {};
+        mesh.texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        mesh.normal_texture = {};
+        mesh.normal_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        mesh.surface_texture = {};
+        mesh.surface_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        mesh.emissive_texture = {};
+        mesh.emissive_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        mesh.specular_texture = {};
+        mesh.specular_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+        mesh.asset_cache_epoch = cache_epoch;
+    }
     if (mesh.texture.valid() || mesh.bitmap_name.empty()) {
         return;
     }
 
     if (mesh.uses_plt) {
-        mesh.texture = render_ctx.assets->get_or_load_raw_plt_texture(mesh.bitmap_name);
+        mesh.texture = render_ctx.assets->get_or_load_raw_plt_texture(nw::Resref{mesh.bitmap_name});
     } else {
         const bool premultiply_alpha = mesh.material_mode == MaterialMode::transparent;
         mesh.texture = render_ctx.assets->get_or_load_texture(
-            mesh.bitmap_name, premultiply_alpha, render_ctx.gpu->fallback_texture());
+            nw::Resref{mesh.bitmap_name}, premultiply_alpha, render_ctx.gpu->fallback_texture());
     }
     mesh.texture_index = nw::gfx::get_bindless_texture_index(render_ctx.gfx, mesh.texture);
 }
@@ -309,23 +330,24 @@ static nw::gfx::BindlessTextureIndex bindless_index_or_invalid(
 
 static void ensure_mesh_material_textures(ModelRenderContext& render_ctx, Mesh& mesh)
 {
+    ensure_mesh_texture(render_ctx, mesh);
     if (!mesh.normal_texture.valid() && !mesh.normal_map_name.empty()) {
-        mesh.normal_texture = render_ctx.assets->get_or_load_linear_texture(mesh.normal_map_name);
+        mesh.normal_texture = render_ctx.assets->get_or_load_linear_texture(nw::Resref{mesh.normal_map_name});
         mesh.normal_texture_index = bindless_index_or_invalid(render_ctx.gfx, mesh.normal_texture);
     }
     if (!mesh.surface_texture.valid() && !mesh.roughness_map_name.empty()) {
-        mesh.surface_texture = render_ctx.assets->get_or_load_roughness_surface_texture(mesh.roughness_map_name);
+        mesh.surface_texture = render_ctx.assets->get_or_load_roughness_surface_texture(nw::Resref{mesh.roughness_map_name});
         mesh.surface_texture_index = bindless_index_or_invalid(render_ctx.gfx, mesh.surface_texture);
     }
     if (!mesh.emissive_texture.valid() && !mesh.emissive_map_name.empty()) {
         const auto fallback = render_ctx.gpu->fallback_texture();
-        mesh.emissive_texture = render_ctx.assets->get_or_load_texture(mesh.emissive_map_name, false, fallback);
+        mesh.emissive_texture = render_ctx.assets->get_or_load_texture(nw::Resref{mesh.emissive_map_name}, false, fallback);
         mesh.emissive_texture_index = mesh.emissive_texture != fallback
             ? bindless_index_or_invalid(render_ctx.gfx, mesh.emissive_texture)
             : nw::gfx::kInvalidBindlessTextureIndex;
     }
     if (!mesh.specular_texture.valid() && !mesh.specular_map_name.empty()) {
-        mesh.specular_texture = render_ctx.assets->get_or_load_linear_texture(mesh.specular_map_name);
+        mesh.specular_texture = render_ctx.assets->get_or_load_linear_texture(nw::Resref{mesh.specular_map_name});
         mesh.specular_texture_index = bindless_index_or_invalid(render_ctx.gfx, mesh.specular_texture);
     }
 }
@@ -376,7 +398,6 @@ static void draw_mesh_item(ModelRenderContext& render_ctx, nw::gfx::CommandList*
         return;
     }
 
-    ensure_mesh_texture(render_ctx, *mesh);
     ensure_mesh_material_textures(render_ctx, *mesh);
 
     auto pipeline = model_pipeline_for(render_ctx, ModelPipelineMeshKind::static_mesh, MaterialMode::opaque, offscreen_pass);
@@ -505,14 +526,8 @@ static void draw_shadow_mesh_item(ModelRenderContext& render_ctx, nw::gfx::Comma
     }
 
     const bool is_cutout = mesh->material_mode == MaterialMode::cutout;
-    if (is_cutout && !mesh->texture.valid() && !mesh->bitmap_name.empty()) {
-        if (mesh->uses_plt) {
-            mesh->texture = render_ctx.assets->get_or_load_raw_plt_texture(mesh->bitmap_name);
-        } else {
-            mesh->texture = render_ctx.assets->get_or_load_texture(
-                mesh->bitmap_name, false, render_ctx.gpu->fallback_texture());
-        }
-        mesh->texture_index = nw::gfx::get_bindless_texture_index(render_ctx.gfx, mesh->texture);
+    if (is_cutout) {
+        ensure_mesh_texture(render_ctx, *mesh);
     }
 
     auto pipeline = model_pipeline_for(render_ctx, ModelPipelineMeshKind::static_mesh, mesh->material_mode, false, ModelPipelinePass::shadow);
@@ -950,7 +965,6 @@ static PreparedStaticDrawConstants make_static_draw_constants(
         return result;
     }
 
-    ensure_mesh_texture(render_ctx, *mesh);
     ensure_mesh_material_textures(render_ctx, *mesh);
     const glm::mat4 model_matrix = item.world;
     result.model = model_matrix;
@@ -1021,7 +1035,8 @@ bool refresh_prepared_static_draw_data(
         return false;
     }
 
-    if (cache.valid_for(draws.size(), signature, sizeof(PreparedStaticDrawConstants))) {
+    const uint64_t asset_cache_epoch = render_ctx.assets->epoch();
+    if (cache.valid_for(draws.size(), signature, asset_cache_epoch, sizeof(PreparedStaticDrawConstants))) {
         return true;
     }
 
@@ -1073,6 +1088,7 @@ bool refresh_prepared_static_draw_data(
         static_cast<uint32_t>(draw_data_bytes),
     };
     cache.signature = signature;
+    cache.asset_cache_epoch = asset_cache_epoch;
     cache.source_draw_count = draw_count;
     return true;
 }
@@ -1089,7 +1105,8 @@ bool refresh_prepared_static_shadow_draw_data(
         return false;
     }
 
-    if (cache.valid_for(draws.size(), signature, sizeof(PreparedStaticShadowDrawConstants))) {
+    const uint64_t asset_cache_epoch = render_ctx.assets->epoch();
+    if (cache.valid_for(draws.size(), signature, asset_cache_epoch, sizeof(PreparedStaticShadowDrawConstants))) {
         return true;
     }
 
@@ -1139,6 +1156,7 @@ bool refresh_prepared_static_shadow_draw_data(
         static_cast<uint32_t>(draw_data_bytes),
     };
     cache.signature = signature;
+    cache.asset_cache_epoch = asset_cache_epoch;
     cache.source_draw_count = draw_count;
     return true;
 }

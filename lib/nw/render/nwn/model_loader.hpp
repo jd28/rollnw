@@ -98,6 +98,9 @@ struct Mesh : public Node {
     nw::gfx::BindlessTextureIndex emissive_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::Handle<nw::gfx::Texture> specular_texture;
     nw::gfx::BindlessTextureIndex specular_texture_index = nw::gfx::kInvalidBindlessTextureIndex;
+    // Epoch of the RenderAssetCache handles above. A mismatch invalidates all
+    // captured handles before the next material lookup.
+    uint64_t asset_cache_epoch = 0;
     std::string bitmap_name;
     std::string normal_map_name;
     std::string specular_map_name;

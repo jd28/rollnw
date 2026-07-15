@@ -6,6 +6,7 @@
 #include "../formats/Plt.hpp"
 #include "../kernel/Kernel.hpp"
 
+#include <cstdint>
 #include <variant>
 
 namespace nw {
@@ -87,6 +88,10 @@ struct ResourceManager final : public kernel::Service {
     /// Returns true if the registry has been built and frozen.
     bool is_frozen() const noexcept { return frozen_; }
 
+    /// Monotonic generation of the visible resource registry. Consumers that
+    /// cache demanded resource data use this to detect registry replacement.
+    [[nodiscard]] uint64_t generation() const noexcept { return generation_; }
+
     /// Clears frozen state and registry so new containers can be added and the registry rebuilt.
     void unfreeze();
 
@@ -109,6 +114,7 @@ struct ResourceManager final : public kernel::Service {
     void visit(std::function<void(Resource)> visitor) const;
 
 private:
+    void advance_generation();
     void load_palette_textures();
     void update_container_search();
 
@@ -132,6 +138,7 @@ private:
     std::array<std::unique_ptr<Image>, plt_layer_size> palette_textures_;
 
     ResourceRegistry registry_;
+    uint64_t generation_ = 1;
     bool frozen_ = false;
 };
 

@@ -164,7 +164,6 @@ same diagnostics.
 
 ## Related Issues
 
-- [Modern Runtime Sockets And Attachments](../../../../issues/modern-runtime-sockets.md)
 - [NWN Modern PBR Material Calibration](../../../../issues/nwn-modern-pbr-material-calibration.md)
 - [NWN Zero-Duration Animation Clips](../../../../issues/nwn-zero-duration-animation-clips.md)
 - [Remove Legacy Render Paths](../../../../issues/remove-legacy-render-paths.md)

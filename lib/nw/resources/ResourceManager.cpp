@@ -17,6 +17,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <optional>
 
@@ -219,6 +220,7 @@ nlohmann::json ResourceManager::stats() const
     nlohmann::json j;
     j["name"] = "resources service";
     j["total_static_assets"] = registry_.size();
+    j["generation"] = generation_;
     return j;
 }
 
@@ -231,6 +233,7 @@ void ResourceManager::unfreeze()
 {
     frozen_ = false;
     registry_.clear();
+    advance_generation();
 }
 
 void ResourceManager::unload_module()
@@ -240,6 +243,8 @@ void ResourceManager::unload_module()
     module_haks_.clear();
     module_.reset();
     registry_.clear();
+    frozen_ = false;
+    advance_generation();
     update_container_search();
     build_registry();
 }
@@ -348,6 +353,7 @@ void ResourceManager::build_registry()
     }
 
     frozen_ = true;
+    advance_generation();
 }
 
 bool ResourceManager::contains(Resource uri) const noexcept
@@ -462,6 +468,14 @@ Image* ResourceManager::texture(Resref resref) const
 {
     auto data = demand_in_order(resref, {ResourceType::dds, ResourceType::tga});
     return data.bytes.size() > 0 ? new Image(std::move(data)) : nullptr;
+}
+
+void ResourceManager::advance_generation()
+{
+    if (generation_ == std::numeric_limits<uint64_t>::max()) {
+        LOG_F(FATAL, "resman: resource generation exhausted");
+    }
+    ++generation_;
 }
 
 void ResourceManager::update_container_search()

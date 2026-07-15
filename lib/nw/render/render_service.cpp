@@ -63,14 +63,13 @@ void RenderService::clear_asset_cache()
         return;
     }
 
-    const auto fallback_texture = model_backend_ ? model_backend_->fallback_texture() : nw::gfx::Handle<nw::gfx::Texture>{};
-    asset_cache_->clear(fallback_texture);
+    asset_cache_->clear();
 }
 
 void RenderService::shutdown_renderer()
 {
-    if (asset_cache_ && model_backend_) {
-        asset_cache_->destroy(model_backend_->fallback_texture());
+    if (asset_cache_) {
+        asset_cache_->clear();
     }
     asset_cache_.reset();
     nwn_model_gpu_resources_.reset();
@@ -145,6 +144,7 @@ const ModelGpuBackend& RenderService::model_backend() const
 
 nwn::RenderAssetCache& RenderService::asset_cache()
 {
+    asset_cache_->sync_resource_generation();
     return *asset_cache_;
 }
 
@@ -153,8 +153,9 @@ ModelRenderContext RenderService::model_render_context() const
     return {.gfx = ctx_, .gpu = model_backend_.get()};
 }
 
-nwn::ModelRenderContext RenderService::nwn_model_render_context() const
+nwn::ModelRenderContext RenderService::nwn_model_render_context()
 {
+    asset_cache_->sync_resource_generation();
     return {
         .gfx = ctx_,
         .gpu = model_backend_.get(),
@@ -190,7 +191,12 @@ nlohmann::json RenderService::stats() const
     j["configured"] = ctx_ != nullptr && shader_provider_ != nullptr;
     if (asset_cache_) {
         const auto cache_stats = asset_cache_->stats();
+        j["asset_cache"]["epoch"] = cache_stats.epoch;
+        j["asset_cache"]["invalidation_count"] = cache_stats.invalidation_count;
+        j["asset_cache"]["observed_resource_generation"] = cache_stats.observed_resource_generation;
+        j["asset_cache"]["current_resource_generation"] = cache_stats.current_resource_generation;
         j["asset_cache"]["texture_count"] = cache_stats.texture_count;
+        j["asset_cache"]["owned_texture_count"] = cache_stats.owned_texture_count;
         j["asset_cache"]["texture_upload_bytes"] = cache_stats.texture_upload_bytes;
         j["asset_cache"]["source_image_count"] = cache_stats.source_image_count;
         j["asset_cache"]["source_image_pixel_bytes"] = cache_stats.source_image_pixel_bytes;

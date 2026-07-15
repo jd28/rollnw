@@ -129,6 +129,56 @@ The viewer is not the production scene graph. It is where source adapters and
 common renderer contracts are exercised against real NWN/glTF data until a
 compiled runtime asset path exists.
 
+### Render Asset Cache Lifecycle
+
+`RenderService` owns one `nwn::RenderAssetCache` for its graphics context. Its
+keys are resource identities, not source strings: DDS/TGA search-order lookups
+use `Resref`, and texture interpretation and PLT colors are explicit key fields.
+An empty resref returns the documented fallback, empty handle, or null pointer.
+
+The common lookup path compares the observed `ResourceManager` generation,
+hashes the resource/variant key, and returns the resident entry. The resource
+generation advances whenever the visible registry is cleared or rebuilt. A
+generation mismatch clears the cache before the next renderer context or cache
+lookup can use stale data.
+
+Within one resource generation, residency is retain-until-explicit-clear.
+Individual `ViewerSession` instances do not invalidate the service cache;
+applications clear it when replacing an exclusively owned scene, and renderer
+shutdown clears it unconditionally. This keeps multiple live sessions correct
+without assigning cache ownership to whichever session happens to load last.
+
+`RenderAssetCache::clear()` is the batch lifecycle transform:
+
+- Input: all cached texture rows, decoded images, particle models, and NWN
+  model-loader resource analysis rows for the current epoch.
+- Output: empty caches and a new nonzero epoch. Counter exhaustion fails
+  loudly.
+- Ownership: the cache destroys only textures it created. Fallback handles are
+  caller-owned. Images and particle models are cache-owned.
+- Ordering: mutation is serialized on the render thread. Clear waits for the
+  graphics device to become idle before destroying GPU payloads.
+- Cost: one device-idle wait plus linear work over resident texture, image, and
+  particle-model entries. This is paid only at explicit clear, renderer
+  shutdown, or resource-registry generation change.
+
+Legacy `nwn::Mesh` texture handles and prepared draw-data caches record the
+asset-cache epoch. They discard captured handles, bindless indices, or prepared
+GPU data before reuse when the epoch differs. A mesh carries 8 bytes of epoch
+state, and each prepared draw-data cache carries another 8 bytes.
+
+`get_or_load_source_image()` and `get_or_load_particle_mesh()` return pointers
+into cache-owned storage. These are frame-local borrows: callers must not retain
+them across `clear()` or a resource reload. The current particle renderer and
+mesh-particle bridge consume them in the same render call. Stable owning
+pointers are used because the parsed `Image` and `ModelInstance` payloads must
+survive hash-table rehash; they are not pointer-chased inside the cache clear
+loop.
+
+No LRU, per-session cache, reference-counted asset handle, or residency budget
+is part of this contract. The current measurements and remaining decision are
+tracked in [Render Asset Cache Residency Budget](../../../issues/render-asset-cache-residency-budget.md).
+
 ## Source Conversion Notes
 
 - [Visual Asset Protocol](docs/visual_asset_protocol.md): Smalls to C++ to
@@ -147,9 +197,8 @@ compiled runtime asset path exists.
 
 ## Open Issues
 
-- [Modern Runtime Sockets And Attachments](../../../issues/modern-runtime-sockets.md)
 - [NWN Modern PBR Material Calibration](../../../issues/nwn-modern-pbr-material-calibration.md)
 - [NWN Zero-Duration Animation Clips](../../../issues/nwn-zero-duration-animation-clips.md)
 - [Offline Model Compiler](../../../issues/offline-model-compiler.md)
 - [Remove Legacy Render Paths](../../../issues/remove-legacy-render-paths.md)
-- [Render Asset Cache Lifecycle](../../../issues/render-asset-cache-lifecycle.md)
+- [Render Asset Cache Residency Budget](../../../issues/render-asset-cache-residency-budget.md)

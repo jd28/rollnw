@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/formats/Image.hpp>
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -10,6 +11,8 @@
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
+#include <nw/render/nwn/model_renderer.hpp>
+#include <nw/render/render_service.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/render/viewer/preview_nwn_creature.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
@@ -19,6 +22,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -143,6 +147,28 @@ bool render_viewer_frame(
     session.render(cmd, viewport);
     nw::gfx::end_frame(context);
     nw::gfx::wait_idle(context);
+    return true;
+}
+
+bool capture_viewer_frame(
+    nw::gfx::Context* context,
+    nw::render::viewer::ViewerSession& session,
+    const nw::render::viewer::ViewerViewport& viewport,
+    const std::filesystem::path& path,
+    std::string& failure)
+{
+    auto* cmd = nw::gfx::begin_frame(context);
+    if (!cmd) {
+        failure = "begin_frame failed";
+        return false;
+    }
+
+    session.tick(0);
+    session.render(cmd, viewport);
+    if (!nw::gfx::capture_screenshot(context, cmd, path.string().c_str())) {
+        failure = "capture_screenshot failed";
+        return false;
+    }
     return true;
 }
 
@@ -723,6 +749,149 @@ TEST(RenderViewerPreparedDraws, PreparedRenderModelSurfacePathSubmitsCesiumManWi
     EXPECT_GT(stats.prepared_render_model_surface_submission.submitted_run_count, 0u);
     EXPECT_EQ(stats.prepared_render_model_surface_submission.dropped_invalid_surface_count, 0u);
     EXPECT_TRUE(stats.prepared_render_model_surface_submission.valid());
+}
+
+TEST(RenderViewerPreparedDraws, PreparedDrawDataRejectsStaleAssetCacheEpoch)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    nw::render::nwn::PreparedDrawDataCache cache;
+    nw::gfx::BufferDesc desc{};
+    desc.size = sizeof(nw::render::nwn::PreparedStaticDrawConstants);
+    desc.usage = nw::gfx::BufferUsage::Storage;
+    desc.cpu_visible = true;
+    cache.buffer = nw::gfx::create_buffer(gfx.context, desc);
+    ASSERT_TRUE(cache.buffer.valid());
+    cache.span = nw::gfx::StorageSpan{
+        cache.buffer,
+        0u,
+        static_cast<uint32_t>(desc.size),
+    };
+    cache.signature = 7u;
+    cache.asset_cache_epoch = 11u;
+    cache.source_draw_count = 1u;
+
+    EXPECT_TRUE(cache.valid_for(1u, 7u, 11u, sizeof(nw::render::nwn::PreparedStaticDrawConstants)));
+    EXPECT_FALSE(cache.valid_for(1u, 7u, 12u, sizeof(nw::render::nwn::PreparedStaticDrawConstants)));
+}
+
+TEST(RenderViewerPreparedDraws, LiveLegacySceneRebindsTexturesAfterCacheAndResourceInvalidation)
+{
+    namespace viewer = nw::render::viewer;
+
+    const std::filesystem::path model_path{"test_data/user/development/PLC_C04.mdl"};
+    if (!std::filesystem::exists(model_path)) {
+        GTEST_SKIP() << "development fixture unavailable: " << model_path.string();
+    }
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    session->set_preview_scene_load_options(viewer::PreviewSceneLoadOptions{
+        .nwn_model_path = viewer::NwnModelPreviewPath::legacy,
+    });
+    ASSERT_TRUE(session->load_model(model_path.string()));
+
+    constexpr viewer::ViewerViewport viewport{
+        .x = 0,
+        .y = 0,
+        .width = 256,
+        .height = 256,
+    };
+    session->fit_to_scene(viewport);
+    const auto before_path = std::filesystem::temp_directory_path() / "rollnw_asset_cache_before.png";
+    const auto after_path = std::filesystem::temp_directory_path() / "rollnw_asset_cache_after.png";
+    const auto reloaded_path = std::filesystem::temp_directory_path() / "rollnw_asset_cache_reloaded.png";
+    std::string failure;
+    ASSERT_TRUE(capture_viewer_frame(gfx.context, *session, viewport, before_path, failure)) << failure;
+    nw::Image before{before_path};
+    ASSERT_TRUE(before.valid());
+
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_EQ(scene->models.size(), 1u);
+    nw::render::nwn::Mesh* mesh = nullptr;
+    for (const auto& node : scene->models[0]->nodes_) {
+        auto* candidate = dynamic_cast<nw::render::nwn::Mesh*>(node.get());
+        if (candidate && !candidate->bitmap_name.empty()) {
+            mesh = candidate;
+            break;
+        }
+    }
+    ASSERT_NE(mesh, nullptr);
+
+    auto& render_service = nw::render::render_service();
+    const uint64_t loaded_epoch = render_service.asset_cache().epoch();
+    EXPECT_EQ(mesh->asset_cache_epoch, loaded_epoch);
+    EXPECT_GT(render_service.asset_cache().stats().owned_texture_count, 0u);
+
+    render_service.clear_asset_cache();
+    const uint64_t cleared_epoch = render_service.asset_cache().epoch();
+    ASSERT_GT(cleared_epoch, loaded_epoch);
+    EXPECT_NE(mesh->asset_cache_epoch, cleared_epoch);
+
+    ASSERT_TRUE(capture_viewer_frame(gfx.context, *session, viewport, after_path, failure)) << failure;
+    EXPECT_EQ(mesh->asset_cache_epoch, cleared_epoch);
+    EXPECT_TRUE(mesh->texture.valid());
+    EXPECT_GT(render_service.asset_cache().stats().owned_texture_count, 0u);
+
+    nw::Image after{after_path};
+    ASSERT_TRUE(after.valid());
+    ASSERT_EQ(after.width(), before.width());
+    ASSERT_EQ(after.height(), before.height());
+    ASSERT_EQ(after.channels(), before.channels());
+    const size_t pixel_bytes = static_cast<size_t>(before.width()) * before.height() * before.channels();
+    EXPECT_EQ(std::memcmp(before.data(), after.data(), pixel_bytes), 0);
+
+    auto& resources = nw::kernel::resman();
+    const uint64_t resource_generation = resources.generation();
+    resources.unfreeze();
+    resources.build_registry();
+    ASSERT_GT(resources.generation(), resource_generation);
+
+    ASSERT_TRUE(capture_viewer_frame(gfx.context, *session, viewport, reloaded_path, failure)) << failure;
+    const uint64_t reloaded_epoch = render_service.asset_cache().epoch();
+    EXPECT_GT(reloaded_epoch, cleared_epoch);
+    EXPECT_EQ(mesh->asset_cache_epoch, reloaded_epoch);
+
+    nw::Image reloaded{reloaded_path};
+    ASSERT_TRUE(reloaded.valid());
+    ASSERT_EQ(reloaded.width(), before.width());
+    ASSERT_EQ(reloaded.height(), before.height());
+    ASSERT_EQ(reloaded.channels(), before.channels());
+    EXPECT_EQ(std::memcmp(before.data(), reloaded.data(), pixel_bytes), 0);
+
+    bool has_visible_range = false;
+    const size_t compare_channels = std::min<size_t>(before.channels(), 3u);
+    for (size_t offset = before.channels(); offset < pixel_bytes; offset += before.channels()) {
+        if (std::memcmp(before.data(), before.data() + offset, compare_channels) != 0) {
+            has_visible_range = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_visible_range);
+
+    std::error_code ec;
+    std::filesystem::remove(before_path, ec);
+    std::filesystem::remove(after_path, ec);
+    std::filesystem::remove(reloaded_path, ec);
 }
 
 TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelPreview)

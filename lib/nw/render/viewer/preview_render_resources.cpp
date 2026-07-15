@@ -43,17 +43,17 @@ RenderAssetCache& PreviewRenderResources::asset_cache() const
 
 nw::gfx::Handle<nw::gfx::Texture> PreviewRenderResources::get_or_load_texture(const std::string& name, bool premultiply_alpha)
 {
-    return asset_cache().get_or_load_texture(name, premultiply_alpha, model_backend().fallback_texture());
+    return asset_cache().get_or_load_texture(nw::Resref{name}, premultiply_alpha, model_backend().fallback_texture());
 }
 
 nw::gfx::Handle<nw::gfx::Texture> PreviewRenderResources::get_or_load_texture(const std::string& name, const nw::PltColors& colors, bool premultiply_alpha)
 {
-    return asset_cache().get_or_load_texture(name, colors, premultiply_alpha, model_backend().fallback_texture());
+    return asset_cache().get_or_load_texture(nw::Resref{name}, colors, premultiply_alpha, model_backend().fallback_texture());
 }
 
 nw::gfx::Handle<nw::gfx::Texture> PreviewRenderResources::get_or_load_raw_plt_texture(const std::string& name)
 {
-    return asset_cache().get_or_load_raw_plt_texture(name);
+    return asset_cache().get_or_load_raw_plt_texture(nw::Resref{name});
 }
 
 } // namespace nw::render::viewer
