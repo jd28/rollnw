@@ -147,6 +147,49 @@ binding, debug drawing, screenshots, and parity toggles.</p>
 <p>The viewer is not the production scene graph. It is where source adapters and
 common renderer contracts are exercised against real NWN/glTF data until a
 compiled runtime asset path exists.</p>
+<h3 id="render-asset-cache-lifecycle">Render Asset Cache Lifecycle</h3>
+<p><code>RenderService</code> owns one <code>nwn::RenderAssetCache</code> for its graphics context. Its
+keys are resource identities, not source strings: DDS/TGA search-order lookups
+use <code>Resref</code>, and texture interpretation and PLT colors are explicit key fields.
+An empty resref returns the documented fallback, empty handle, or null pointer.</p>
+<p>The common lookup path compares the observed <code>ResourceManager</code> generation,
+hashes the resource/variant key, and returns the resident entry. The resource
+generation advances whenever the visible registry is cleared or rebuilt. A
+generation mismatch clears the cache before the next renderer context or cache
+lookup can use stale data.</p>
+<p>Within one resource generation, residency is retain-until-explicit-clear.
+Individual <code>ViewerSession</code> instances do not invalidate the service cache;
+applications clear it when replacing an exclusively owned scene, and renderer
+shutdown clears it unconditionally. This keeps multiple live sessions correct
+without assigning cache ownership to whichever session happens to load last.</p>
+<p><code>RenderAssetCache::clear()</code> is the batch lifecycle transform:</p>
+<ul>
+<li>Input: all cached texture rows, decoded images, particle models, and NWN
+  model-loader resource analysis rows for the current epoch.</li>
+<li>Output: empty caches and a new nonzero epoch. Counter exhaustion fails
+  loudly.</li>
+<li>Ownership: the cache destroys only textures it created. Fallback handles are
+  caller-owned. Images and particle models are cache-owned.</li>
+<li>Ordering: mutation is serialized on the render thread. Clear waits for the
+  graphics device to become idle before destroying GPU payloads.</li>
+<li>Cost: one device-idle wait plus linear work over resident texture, image, and
+  particle-model entries. This is paid only at explicit clear, renderer
+  shutdown, or resource-registry generation change.</li>
+</ul>
+<p>Legacy <code>nwn::Mesh</code> texture handles and prepared draw-data caches record the
+asset-cache epoch. They discard captured handles, bindless indices, or prepared
+GPU data before reuse when the epoch differs. A mesh carries 8 bytes of epoch
+state, and each prepared draw-data cache carries another 8 bytes.</p>
+<p><code>get_or_load_source_image()</code> and <code>get_or_load_particle_mesh()</code> return pointers
+into cache-owned storage. These are frame-local borrows: callers must not retain
+them across <code>clear()</code> or a resource reload. The current particle renderer and
+mesh-particle bridge consume them in the same render call. Stable owning
+pointers are used because the parsed <code>Image</code> and <code>ModelInstance</code> payloads must
+survive hash-table rehash; they are not pointer-chased inside the cache clear
+loop.</p>
+<p>No LRU, per-session cache, reference-counted asset handle, or residency budget
+is part of this contract. The current measurements and remaining decision are
+tracked in <a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-residency-budget.md">Render Asset Cache Residency Budget</a>.</p>
 <h2 id="source-conversion-notes">Source Conversion Notes</h2>
 <ul>
 <li><a href="visual_asset_protocol.html">Visual Asset Protocol</a>: Smalls to C++ to
@@ -165,12 +208,11 @@ compiled runtime asset path exists.</p>
 </ul>
 <h2 id="open-issues">Open Issues</h2>
 <ul>
-<li><a href="https://github.com/jd28/rollnw/blob/main/issues/modern-runtime-sockets.md">Modern Runtime Sockets And Attachments</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-modern-pbr-material-calibration.md">NWN Modern PBR Material Calibration</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
-<li><a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-lifecycle.md">Render Asset Cache Lifecycle</a></li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-residency-budget.md">Render Asset Cache Residency Budget</a></li>
 </ul>
       </article>
     </main>

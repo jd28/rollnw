@@ -126,6 +126,11 @@ runtime glTF preview switch.</p>
 </tr>
 </tbody>
 </table>
+<p>glTF socket markers are intentionally not inferred from node or bone names.
+glTF does not define locator semantics, so a separate authoring contract must
+specify the accepted node or <code>extras</code> annotation and its validation rules before
+the importer emits <code>ModelSocket</code> rows. See
+<a href="https://github.com/jd28/rollnw/blob/main/issues/gltf-socket-authoring-contract.md">gltf-socket-authoring-contract.md</a>.</p>
 <p>The source texture table stores file paths or encoded bytes. GPU texture handles
 are not created until upload.</p>
 <h2 id="materials-and-textures">Materials And Textures</h2>
@@ -162,8 +167,9 @@ Reference sampling remains a debug fallback.</p>
 <h2 id="validation-and-fallbacks">Validation And Fallbacks</h2>
 <p><code>GltfImportStats</code> counts importer-boundary drops and repairs, including repeated
 or over-depth node graph references and non-finite accessor payloads.
-<code>validate_model_asset</code> counts invalid primitive/material/skin/animation rows
-before upload. Upload stats then count geometry and texture upload failures.</p>
+<code>validate_model_asset</code> counts invalid primitive, material, socket, skin, and
+animation rows before upload. Upload stats then count geometry and texture
+upload failures.</p>
 <p>Out-of-range or unsupported data should be rejected, dropped, or counted at the
 conversion/upload boundary. It should not reach Vulkan submission as undefined
 state.</p>

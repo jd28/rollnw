@@ -49,7 +49,7 @@ common data.</p>
 <ul>
 <li><code>nw::render::nwn::ModelInstance</code> loads and owns the legacy NWN node tree,
   legacy meshes, PLT/source texture policy, emitter quirks, dangly execution,
-  anchor lookup, and compatibility animation behavior.</li>
+  socket compilation, and compatibility animation behavior.</li>
 <li><code>nw::render::nwn::import_nwn_model_asset(mdl)</code> lowers the source MDL into
   <code>ModelAsset</code>.</li>
 <li><code>nw::render::nwn::import_nwn_render_model_from_asset(mdl, texture_upload)</code>
@@ -143,7 +143,7 @@ decisions by name.</p>
 <li>legacy PLT rendering and resource-cache policy</li>
 <li>legacy emitter quirks not yet represented by the particle IR</li>
 <li>CPU dangly deformation parity/debug path</li>
-<li>anchor lookup fallback and source MDL node tree</li>
+<li>source MDL node tree for legacy loading, diagnostics, and unresolved behavior</li>
 <li>area static batching compatibility payloads</li>
 </ul>
 <p>When a sidecar payload is missing at a bridge boundary, the path should drop,
@@ -174,14 +174,23 @@ rigid primitive node rows. Zero-duration clips remain an explicit open issue
 rather than an importer guess.</p>
 <h2 id="sockets-and-attachments">Sockets And Attachments</h2>
 <p>NWN dummy nodes and anchors are useful source data. The modern representation is
-a socket table addressed by stable indices. Bridge code still keeps source-node
-names and sidecar lookup as fallback payload while attachments, particles, and
-VFX move toward cached socket indices.</p>
+a socket table addressed by stable indices. Names are resolved during scene or
+VFX setup. Runtime model bindings contain common owner/child handles, socket
+indices, child placement/scale, and explicit orientation and source-offset
+policies. A plural transform consumes those flat rows and common node-world
+arrays; it does not query source names or the sidecar node tree.</p>
+<p>The modern common case applies child placement after the socket. NWN rows that
+require placement before the socket, position-only orientation, or root bind
+translation select those policies explicitly. Invalid socket rows are rejected
+by <code>validate_model_asset</code>; malformed legacy rows are dropped and counted during
+runtime resolution.</p>
 <h2 id="particles-and-emitters">Particles And Emitters</h2>
 <p>NWN emitter nodes lower into source-neutral particle definitions and compiled
 particle effects. The field-by-field map is maintained in
 <a href="nwn_emitter_map.html">nwn_emitter_map.md</a>. Runtime particle systems should use
-common owner handles and attachment bindings instead of sidecar pointers.</p>
+common owner handles and attachment bindings instead of sidecar pointers.
+Source node indices and names remain importer diagnostics only; compiled and
+runtime rows carry attachment-point indices and explicit default placement.</p>
 <h2 id="deformers">Deformers</h2>
 <p>NWN dangly meshes contain useful deformation intent, but CPU vertex mutation is
 not the production target. The bridge records deformer intent beside common
@@ -207,7 +216,6 @@ They should explain dropped, skipped, unsupported, repaired, or fallback rows.</
 same diagnostics.</p>
 <h2 id="related-issues">Related Issues</h2>
 <ul>
-<li><a href="https://github.com/jd28/rollnw/blob/main/issues/modern-runtime-sockets.md">Modern Runtime Sockets And Attachments</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-modern-pbr-material-calibration.md">NWN Modern PBR Material Calibration</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
