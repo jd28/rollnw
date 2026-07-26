@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <string_view>
 
 using namespace std::literals;
@@ -1148,4 +1149,48 @@ TEST_F(SmallsRuntime, ReloadInvalidatesExternalScriptFunctionIndices)
     auto second = rt.execute_script(consumer, "main");
     ASSERT_TRUE(second.ok()) << second.error_message;
     EXPECT_EQ(second.value.data.ival, 2);
+}
+
+TEST_F(SmallsRuntime, EvictModulesInvalidatesNamedCoreModuleAndDependents)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* provider = rt.load_module_from_source("core.reload_target", R"(
+        fn value(): int {
+            return 1;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+
+    auto* consumer = rt.load_module_from_source("core.reload_dependent", R"(
+        from core.reload_target import { value };
+
+        fn main(): int {
+            return value();
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+
+    std::array<nw::StringView, 1> changed_modules{"core.reload_target"};
+    rt.evict_modules(changed_modules);
+
+    auto* reloaded_provider = rt.load_module_from_source("core.reload_target", R"(
+        fn value(): int {
+            return 2;
+        }
+    )");
+    ASSERT_NE(reloaded_provider, nullptr);
+
+    auto* reloaded_consumer = rt.load_module_from_source("core.reload_dependent", R"(
+        from core.reload_target import { value };
+
+        fn main(): int {
+            return value() + 10;
+        }
+    )");
+    ASSERT_NE(reloaded_consumer, nullptr);
+
+    auto result = rt.execute_script(reloaded_consumer, "main");
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 12);
 }

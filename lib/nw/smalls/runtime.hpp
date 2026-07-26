@@ -376,6 +376,9 @@ struct Runtime : public nw::kernel::Service {
     /// Evicts all user-authored modules from the cache (keeping core.*)
     void evict_user_modules();
 
+    /// Evicts the named modules and their cached transitive dependents.
+    void evict_modules(std::span<const StringView> module_names);
+
     /// Clears the user cache and resets line offset tracking
     void clear_user_cache();
 
@@ -1233,6 +1236,7 @@ private:
     };
 
     CompilerStateRetention compiler_state_retention() const noexcept;
+    void evict_cached_modules(const absl::flat_hash_set<String>& module_names);
     void maybe_compact_script_state(Script* script);
     static String normalize_module_name(StringView path);
 

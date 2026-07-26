@@ -278,6 +278,33 @@ fn main() {
     EXPECT_EQ(hints.size(), 0);
 }
 
+TEST_F(SmallsLSP, InlayHintsElseBranch)
+{
+    auto script = make_script(R"(fn consume(value: int) {
+}
+
+fn main(flag: bool) {
+    if (flag) {
+        consume(1);
+    } else {
+        consume(2);
+    }
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_EQ(script.errors(), 0);
+    EXPECT_NO_THROW(script.resolve());
+    EXPECT_EQ(script.errors(), 0);
+
+    auto hints = script.inlay_hints({{1, 0}, {11, 0}});
+
+    ASSERT_EQ(hints.size(), 2);
+    EXPECT_EQ(hints[0].message, "value");
+    EXPECT_EQ(hints[0].position.line, 6);
+    EXPECT_EQ(hints[1].message, "value");
+    EXPECT_EQ(hints[1].position.line, 8);
+}
+
 // ============================================================================
 // Signature Help
 // ============================================================================
@@ -1124,6 +1151,6 @@ TEST_F(SmallsLSP, LocateExportViewNonEmpty)
 
     // After discard, decl is null but the export name (view) is still accessible
     auto sym = script.locate_export("my_func", false);
-    EXPECT_EQ(sym.decl, nullptr);    // decl was cleared
-    EXPECT_FALSE(sym.view.empty());  // view (name) should still be non-empty
+    EXPECT_EQ(sym.decl, nullptr);   // decl was cleared
+    EXPECT_FALSE(sym.view.empty()); // view (name) should still be non-empty
 }

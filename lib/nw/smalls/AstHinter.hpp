@@ -211,7 +211,7 @@ struct AstHinter : public BaseVisitor {
         if (stmt->expr) { stmt->expr->accept(this); }
         if (stmt->if_branch) { stmt->if_branch->accept(this); }
         if (stmt->else_branch) {
-            stmt->if_branch->accept(this);
+            stmt->else_branch->accept(this);
         }
     }
     virtual void visit(ForStatement* stmt) override

@@ -2037,12 +2037,12 @@ void Runtime::fail(StringView msg)
     vm_->fail(msg);
 }
 
-void Runtime::evict_user_modules()
+void Runtime::evict_cached_modules(const absl::flat_hash_set<String>& module_names)
 {
     absl::flat_hash_set<BytecodeModule*> evicted_modules;
 
     for (auto it = modules_.begin(); it != modules_.end();) {
-        if (!it->first.starts_with("core.")) {
+        if (module_names.contains(it->first)) {
             auto bytecode_it = bytecode_cache_.find(it->second);
             if (bytecode_it != bytecode_cache_.end()) {
                 if (bytecode_it->second) {
@@ -2088,6 +2088,49 @@ void Runtime::evict_user_modules()
     }
 
     instantiation_cache_.clear();
+}
+
+void Runtime::evict_user_modules()
+{
+    absl::flat_hash_set<String> module_names;
+    for (const auto& [name, _] : modules_) {
+        if (!name.starts_with("core.")) {
+            module_names.insert(name);
+        }
+    }
+    evict_cached_modules(module_names);
+}
+
+void Runtime::evict_modules(std::span<const StringView> module_names)
+{
+    if (module_names.empty()) {
+        return;
+    }
+
+    absl::flat_hash_set<String> selected;
+    selected.reserve(module_names.size());
+    for (StringView name : module_names) {
+        selected.insert(normalize_module_name(name));
+    }
+
+    bool added_dependent = true;
+    while (added_dependent) {
+        added_dependent = false;
+        for (const auto& [name, script] : modules_) {
+            if (selected.contains(name) || !script) {
+                continue;
+            }
+            for (const auto& dependency : script->dependencies()) {
+                if (selected.contains(normalize_module_name(dependency))) {
+                    selected.insert(name);
+                    added_dependent = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    evict_cached_modules(selected);
 }
 
 void Runtime::clear_user_cache()

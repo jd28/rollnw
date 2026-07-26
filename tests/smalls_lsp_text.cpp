@@ -59,6 +59,12 @@ TEST(LspText, IdentifierAt_PastEndOfLine)
     EXPECT_EQ(identifier_at(text, 0, 100), "");
 }
 
+TEST(LspText, IdentifierAt_DoesNotCrossLineBoundary)
+{
+    std::string text = "a\nsecond";
+    EXPECT_EQ(identifier_at(text, 0, 2), "");
+}
+
 TEST(LspText, IdentifierAt_OnOperator)
 {
     std::string text = "a + b";
@@ -134,6 +140,12 @@ TEST(LspText, IdentifierBefore_ChainedDots)
     EXPECT_EQ(identifier_before(text, 0, 4), "b");
 }
 
+TEST(LspText, IdentifierBefore_RequiresDot)
+{
+    std::string text = "foobar";
+    EXPECT_EQ(identifier_before(text, 0, 4), "");
+}
+
 // ============================================================================
 // detect_dot_trigger — detects dot-completion context from buffer position
 // ============================================================================
@@ -207,6 +219,13 @@ TEST(LspText, DetectDotTrigger_CursorAtStartOfLine)
     EXPECT_FALSE(detect_dot_trigger(text, 0, 0, dot_col));
 }
 
+TEST(LspText, DetectDotTrigger_RejectsPositionPastLine)
+{
+    std::string text = "a\nfoo.bar";
+    int dot_col = 0;
+    EXPECT_FALSE(detect_dot_trigger(text, 0, 7, dot_col));
+}
+
 TEST(LspText, IdentifierBefore_ModuleAlias)
 {
     // "import foo.bar as utils;" and then usage: "utils.Vec2"
@@ -236,4 +255,33 @@ TEST(LspText, DetectDotTrigger_DotAtStartOfLine)
     int dot_col = 0;
     EXPECT_TRUE(detect_dot_trigger(text, 0, 4, dot_col));
     EXPECT_EQ(dot_col, 1);
+}
+
+TEST(LspText, PositionEncodingUtf8UsesByteColumns)
+{
+    std::string text = "ascii é 😀 tail";
+    EXPECT_EQ(lsp_character_to_byte(text, 0, 9, PositionEncoding::utf8), 9);
+    EXPECT_EQ(byte_character_to_lsp(text, 0, 9, PositionEncoding::utf8), 9);
+}
+
+TEST(LspText, PositionEncodingUtf16CountsCodeUnits)
+{
+    std::string text = "ascii é 😀 tail";
+    EXPECT_EQ(lsp_character_to_byte(text, 0, 10, PositionEncoding::utf16), 13);
+    EXPECT_EQ(byte_character_to_lsp(text, 0, 13, PositionEncoding::utf16), 10);
+}
+
+TEST(LspText, PositionEncodingRejectsSplitCodePoints)
+{
+    std::string text = "é😀";
+    EXPECT_EQ(lsp_character_to_byte(text, 0, 2, PositionEncoding::utf16), std::nullopt);
+    EXPECT_EQ(byte_character_to_lsp(text, 0, 1, PositionEncoding::utf16), std::nullopt);
+    EXPECT_EQ(byte_character_to_lsp(text, 0, 3, PositionEncoding::utf8), std::nullopt);
+}
+
+TEST(LspText, PositionEncodingRejectsInvalidUtf8)
+{
+    std::string text{"a\xFFz", 3};
+    EXPECT_EQ(lsp_character_to_byte(text, 0, 2, PositionEncoding::utf16), std::nullopt);
+    EXPECT_EQ(byte_character_to_lsp(text, 0, 2, PositionEncoding::utf16), std::nullopt);
 }

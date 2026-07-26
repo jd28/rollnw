@@ -1,7 +1,10 @@
 include(GNUInstallDirs)
 find_package(Threads)
 
-add_executable(smalls-lsp main.cpp)
+add_executable(smalls-lsp
+    main.cpp
+    server.cpp
+)
 
 target_include_directories(smalls-lsp PRIVATE ../../lib)
 

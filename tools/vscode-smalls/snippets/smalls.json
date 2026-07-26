@@ -2,7 +2,7 @@
 	"Function Definition": {
 		"prefix": "fn",
 		"body": [
-			"fn ${1:name}(${2:params}): ${3:void} {",
+			"fn ${1:name}(${2:params}) {",
 			"\t$0",
 			"}"
 		],

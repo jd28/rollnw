@@ -477,31 +477,48 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
         return;
     }
 
-    // Otherwise, handle struct field completions
-    if (!decl->type) { return; }
-    String struct_id(decl->type->str());
+    // Otherwise, handle struct field completions. Prefer the resolved type so
+    // locals with inferred types take the same path as explicitly typed locals.
     const StructDecl* struct_decl = nullptr;
     const Script* provider = this;
 
-    auto exp2 = node->env_.find(struct_id);
-    if (exp2 && exp2->decl) {
-        struct_decl = dynamic_cast<const StructDecl*>(exp2->decl);
+    auto& rt = nw::kernel::runtime();
+    const Type* resolved_type = rt.get_type(decl->type_id_);
+    if (resolved_type && resolved_type->type_kind == TK_struct
+        && resolved_type->type_params[0].is<StructID>()) {
+        const StructDef* struct_def = rt.type_table_.get(
+            resolved_type->type_params[0].as<StructID>());
+        if (struct_def) {
+            struct_decl = struct_def->decl;
+            provider = provider_for_decl(struct_decl);
+        }
     }
 
-    if (!struct_decl) {
-        auto symbol = locate_export(struct_id, true);
-        provider = symbol.provider;
-        struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
+    if (!struct_decl && decl->type) {
+        String struct_name(decl->type->str());
+        auto type_export = node->env_.find(struct_name);
+        if (type_export && type_export->decl) {
+            struct_decl = dynamic_cast<const StructDecl*>(type_export->decl);
+            provider = provider_for_decl(struct_decl);
+        } else {
+            auto symbol = locate_export(struct_name, true);
+            provider = symbol.provider;
+            struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
+        }
     }
 
-    if (struct_decl) {
+    if (struct_decl && provider) {
         for (auto decl : struct_decl->decls) {
             if (auto vdl = dynamic_cast<const DeclList*>(decl)) {
                 for (auto vd : vdl->decls) {
-                    out.push_back(provider->declaration_to_symbol(vd));
+                    auto symbol = provider->declaration_to_symbol(vd);
+                    symbol.kind = SymbolKind::field;
+                    out.push_back(std::move(symbol));
                 }
             } else {
-                out.push_back(provider->declaration_to_symbol(decl));
+                auto symbol = provider->declaration_to_symbol(decl);
+                symbol.kind = SymbolKind::field;
+                out.push_back(std::move(symbol));
             }
         }
     }

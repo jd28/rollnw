@@ -91,7 +91,9 @@ add_executable(rollnw_test
     smalls_resolver_array.cpp
     smalls_resolver_types.cpp
     smalls_lsp.cpp
+    smalls_lsp_protocol.cpp
     smalls_lsp_text.cpp
+    ../tools/smalls-lsp/server.cpp
     smalls_runtime.cpp
     smalls_const_eval.cpp
     smalls_corpus.cpp
