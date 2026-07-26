@@ -134,14 +134,16 @@ struct FStringContext : public Context {
         return adjusted;
     }
 
-    void parse_diagnostic(Script* script, StringView msg, bool warning, SourceRange range) override
+    void parse_diagnostic(Script* script, StringView msg, bool warning, SourceRange range,
+        const DiagnosticInfo& info = {}) override
     {
-        parent_ctx->parse_diagnostic(script, msg, warning, adjust_range(range));
+        parent_ctx->parse_diagnostic(script, msg, warning, adjust_range(range), info);
     }
 
-    void semantic_diagnostic(Script* script, StringView msg, bool warning, SourceRange range) override
+    void semantic_diagnostic(Script* script, StringView msg, bool warning, SourceRange range,
+        const DiagnosticInfo& info = {}) override
     {
-        parent_ctx->semantic_diagnostic(script, msg, warning, adjust_range(range));
+        parent_ctx->semantic_diagnostic(script, msg, warning, adjust_range(range), info);
     }
 };
 
@@ -1940,6 +1942,9 @@ String Parser::parse_module_path()
 
 ImportDecl* Parser::parse_import()
 {
+    // The caller rewinds so that the 'from' or 'import' token is current.
+    auto start = peek().loc.range.start;
+
     // from core.math.vector import { Vector, Point };
     if (match({TokenType::FROM})) {
         String module_path = parse_module_path();
@@ -1961,6 +1966,10 @@ ImportDecl* Parser::parse_import()
         consume(TokenType::BRACE_CLOSE, "Expected '}' after import list.");
         consume(TokenType::SEMICOLON, "Expected ';' after import statement.");
 
+        decl->range_.start = start;
+        decl->range_.end = previous().loc.range.end;
+        // No single symbol is introduced, so the selection is the declaration.
+        decl->range_selection_ = decl->range_;
         return decl;
     }
 
@@ -1975,7 +1984,10 @@ ImportDecl* Parser::parse_import()
             auto decl = ast_.create_node<AliasedImportDecl>();
             decl->module_path = module_path;
             decl->alias = previous();
+            decl->range_selection_ = decl->alias.loc.range;
             consume(TokenType::SEMICOLON, "Expected ';' after import statement.");
+            decl->range_.start = start;
+            decl->range_.end = previous().loc.range.end;
             return decl;
         } else {
             diagnostic("Expected 'as' after module path. Use 'import <module> as <alias>' or 'from <module> import { ... }'", peek());

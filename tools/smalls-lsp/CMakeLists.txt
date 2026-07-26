@@ -2,6 +2,8 @@ include(GNUInstallDirs)
 find_package(Threads)
 
 add_executable(smalls-lsp
+    ast_providers.cpp
+    lsp_uri.cpp
     main.cpp
     server.cpp
 )

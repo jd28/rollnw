@@ -49,6 +49,8 @@ rollnw.egg-info/
 tools/vscode-smalls/node_modules/
 tools/vscode-smalls/*.vsix
 tools/vscode-smalls/stdlib/
+tools/vscode-smalls/bin/
+tools/vscode-smalls/dist/
 
 # jupyter
 .ipynb_checkpoints

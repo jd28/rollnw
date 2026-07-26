@@ -93,6 +93,9 @@ add_executable(rollnw_test
     smalls_lsp.cpp
     smalls_lsp_protocol.cpp
     smalls_lsp_text.cpp
+    smalls_lsp_uri.cpp
+    ../tools/smalls-lsp/ast_providers.cpp
+    ../tools/smalls-lsp/lsp_uri.cpp
     ../tools/smalls-lsp/server.cpp
     smalls_runtime.cpp
     smalls_const_eval.cpp

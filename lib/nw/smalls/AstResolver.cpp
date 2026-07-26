@@ -129,15 +129,16 @@ void AstResolver::sync_operator_alias_summaries()
     }
 }
 
-void AstResolver::report(SourceRange range, StringView message, bool is_warning) const
+void AstResolver::report(SourceRange range, StringView message, bool is_warning,
+    DiagnosticInfo info) const
 {
     if (!ctx_) { return; }
-    ctx_->semantic_diagnostic(parent_, message, is_warning, range);
+    ctx_->semantic_diagnostic(parent_, message, is_warning, range, info);
 }
 
-void AstResolver::error(SourceRange range, StringView message) const
+void AstResolver::error(SourceRange range, StringView message, DiagnosticInfo info) const
 {
-    report(range, message, false);
+    report(range, message, false, std::move(info));
 }
 
 void AstResolver::warn(SourceRange range, StringView message) const
@@ -384,7 +385,22 @@ void AstResolver::declare_local(Token token, Declaration* decl)
     auto s = String(token.loc.view());
     auto it = scope_stack_.back().find(s);
     if (it != std::end(scope_stack_.back())) {
-        errorf(token.loc.range, "declaring '{}' in the same scope twice", token.loc.view());
+        // Point at the declaration already holding the name; without it the
+        // message says a name is taken but not by what.
+        DiagnosticRelated previous;
+        previous.message = "previous declaration is here";
+        if (it->second.decl) {
+            previous.script = parent_ ? String(parent_->name()) : String{};
+            previous.location = it->second.decl->selection_range();
+        }
+        if (previous.location.start.line != 0) {
+            errorf_related(DiagnosticCode::duplicate_declaration, token.loc.range,
+                std::move(previous), "declaring '{}' in the same scope twice",
+                token.loc.view());
+        } else {
+            errorf_coded(DiagnosticCode::duplicate_declaration, token.loc.range,
+                "declaring '{}' in the same scope twice", token.loc.view());
+        }
         return;
     }
     scope_stack_.back().insert({s, {true, decl}});
@@ -759,7 +775,7 @@ TypeID AstResolver::resolve_type(TypeExpression* type_name, SourceRange range)
         } else {
             TypeID base_type_id = resolve_type(base_name, range);
             if (base_type_id == invalid_type_id) {
-                errorf(range, "unknown type '{}'", base_name);
+                errorf_coded(DiagnosticCode::unknown_type, range, "unknown type '{}'", base_name);
                 return invalid_type_id;
             }
 

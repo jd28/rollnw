@@ -6,6 +6,50 @@
 
 namespace nw::smalls {
 
+StringView diagnostic_code_name(DiagnosticCode code) noexcept
+{
+    switch (code) {
+    case DiagnosticCode::lexical:
+        return "lexical";
+    case DiagnosticCode::syntax:
+        return "syntax";
+    case DiagnosticCode::semantic:
+        return "semantic";
+    case DiagnosticCode::unresolved_identifier:
+        return "unresolved-identifier";
+    case DiagnosticCode::unknown_type:
+        return "unknown-type";
+    case DiagnosticCode::unknown_field:
+        return "unknown-field";
+    case DiagnosticCode::module_load_failed:
+        return "module-load-failed";
+    case DiagnosticCode::duplicate_declaration:
+        return "duplicate-declaration";
+    case DiagnosticCode::argument_count_mismatch:
+        return "argument-count-mismatch";
+    case DiagnosticCode::argument_type_mismatch:
+        return "argument-type-mismatch";
+    case DiagnosticCode::const_assignment:
+        return "const-assignment";
+    case DiagnosticCode::none:
+        break;
+    }
+    return {};
+}
+
+DiagnosticCode diagnostic_category(DiagnosticType type) noexcept
+{
+    switch (type) {
+    case DiagnosticType::lexical:
+        return DiagnosticCode::lexical;
+    case DiagnosticType::parse:
+        return DiagnosticCode::syntax;
+    case DiagnosticType::semantic:
+        return DiagnosticCode::semantic;
+    }
+    return DiagnosticCode::none;
+}
+
 size_t edit_distance(StringView a, StringView b)
 {
     size_t n = a.size();
@@ -37,7 +81,7 @@ size_t edit_distance(StringView a, StringView b)
     return prev[m];
 }
 
-String format_suggestions(StringView needle, const Vector<StringView>& candidates)
+Vector<String> suggestion_candidates(StringView needle, const Vector<StringView>& candidates)
 {
     if (needle.empty() || candidates.empty()) { return {}; }
 
@@ -59,10 +103,6 @@ String format_suggestions(StringView needle, const Vector<StringView>& candidate
         }
     }
 
-    if (suggestions.empty()) {
-        return {};
-    }
-
     std::sort(suggestions.begin(), suggestions.end(), [](const Suggestion& a, const Suggestion& b) {
         if (a.score != b.score) {
             return a.score < b.score;
@@ -70,13 +110,26 @@ String format_suggestions(StringView needle, const Vector<StringView>& candidate
         return a.name.size() < b.name.size();
     });
 
+    Vector<String> result;
     size_t limit = std::min<size_t>(3, suggestions.size());
-    String result = " Did you mean ";
+    result.reserve(limit);
     for (size_t i = 0; i < limit; ++i) {
+        result.emplace_back(suggestions[i].name);
+    }
+    return result;
+}
+
+String format_suggestions(StringView needle, const Vector<StringView>& candidates)
+{
+    auto ranked = suggestion_candidates(needle, candidates);
+    if (ranked.empty()) { return {}; }
+
+    String result = " Did you mean ";
+    for (size_t i = 0; i < ranked.size(); ++i) {
         if (i > 0) {
-            result += (i == limit - 1) ? " or " : ", ";
+            result += (i == ranked.size() - 1) ? " or " : ", ";
         }
-        result += fmt::format("'{}'", suggestions[i].name);
+        result += fmt::format("'{}'", ranked[i]);
     }
     result += "?";
     return result;

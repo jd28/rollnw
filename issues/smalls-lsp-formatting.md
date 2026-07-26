@@ -20,6 +20,12 @@ Comments are the reason formatters are hard. The Smalls parser produces
 print-from-AST silently deletes every comment in the file. Any formatter
 design that does not state where comments attach is not yet a design.
 
+## Tier
+
+Tier 2. This is not a language-server correctness gap; it is a language-tooling
+project whose home is `lib/nw/smalls`. The server is one caller, a CLI and a CI
+check are others, and none of it is blocked on the server.
+
 ## Direction
 
 Build the formatter in the library (`lib/nw/smalls`), not in the server. It

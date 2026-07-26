@@ -50,6 +50,17 @@ which field, so hovering a generated field can name its origin table and
 column. That provenance is the part a user cannot reconstruct by reading the
 source.
 
+## Blocks workspace diagnostics (2026-07-27)
+
+`workspace/diagnostic` is implemented and measured: a full pass over the corpus
+takes 0.37 s and 108 MiB, and a repeat poll answers 2,192 `unchanged` in
+0.18 s. It is not advertised, because that pass reports 4,222 syntax errors
+across 2,117 files, essentially all of them 2da-generated config data that is
+not Smalls source. The cost is fine; the file identity is missing.
+
+Flipping `workspaceDiagnostics` to true is a one-line change once config files
+declare what they are.
+
 ## Required decision
 
 Whether a config file's type binding is declared in the file itself — a header

@@ -17,7 +17,8 @@ namespace fs = std::filesystem;
 
 namespace {
 struct CountingSmallsContext : nw::smalls::Context {
-    void lexical_diagnostic(nw::smalls::Script*, nw::StringView, bool, nw::smalls::SourceRange) override
+    void lexical_diagnostic(nw::smalls::Script*, nw::StringView, bool, nw::smalls::SourceRange,
+        const nw::smalls::DiagnosticInfo&) override
     {
         ++lexical_calls;
     }

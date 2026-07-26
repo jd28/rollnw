@@ -50,9 +50,42 @@ struct AstResolver {
     TypeID get_or_instantiate_type(TypeID generic_type_id, const Vector<TypeID>& type_args, SourceRange range);
     std::optional<int32_t> eval_const_int(Expression* expr, SourceRange range);
 
-    void report(SourceRange range, StringView message, bool is_warning) const;
-    void error(SourceRange range, StringView message) const;
+    void report(SourceRange range, StringView message, bool is_warning,
+        DiagnosticInfo info = {}) const;
+    void error(SourceRange range, StringView message, DiagnosticInfo info = {}) const;
     void warn(SourceRange range, StringView message) const;
+
+    /// Reports an error naming the rule that produced it.
+    template <typename... Args>
+    void errorf_coded(DiagnosticCode code, SourceRange range, const char* fmt_str,
+        Args&&... args) const
+    {
+        error(range, fmt::format(fmt::runtime(fmt_str), std::forward<Args>(args)...),
+            DiagnosticInfo{code, {}});
+    }
+
+    /// Reports an error naming the rule and the names a fix could substitute.
+    template <typename... Args>
+    void errorf_suggest(DiagnosticCode code, SourceRange range, Vector<String> candidates,
+        const char* fmt_str, Args&&... args) const
+    {
+        DiagnosticInfo info;
+        info.code = code;
+        info.candidates = std::move(candidates);
+        error(range, fmt::format(fmt::runtime(fmt_str), std::forward<Args>(args)...),
+            std::move(info));
+    }
+
+    /// Reports an error naming the rule and pointing at a second location.
+    template <typename... Args>
+    void errorf_related(DiagnosticCode code, SourceRange range, DiagnosticRelated related,
+        const char* fmt_str, Args&&... args) const
+    {
+        Vector<DiagnosticRelated> links;
+        links.push_back(std::move(related));
+        error(range, fmt::format(fmt::runtime(fmt_str), std::forward<Args>(args)...),
+            DiagnosticInfo{code, std::move(links)});
+    }
     bool will_emit_semantic_diagnostic() const noexcept;
 
     template <typename... Args>

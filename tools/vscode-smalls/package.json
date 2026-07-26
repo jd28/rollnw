@@ -20,6 +20,16 @@
   "categories": [
     "Programming Languages"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The language server executable and module search paths are only honored in trusted workspaces, because both cause code to be loaded from paths a repository controls.",
+      "restrictedConfigurations": [
+        "smalls.lsp.path",
+        "smalls.modulePaths"
+      ]
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -47,6 +57,13 @@
         "path": "./snippets/smalls.json"
       }
     ],
+    "commands": [
+      {
+        "command": "smalls.restartServer",
+        "title": "Restart Language Server",
+        "category": "Smalls"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "Smalls configuration",
@@ -54,7 +71,8 @@
         "smalls.lsp.path": {
           "type": "string",
           "default": "smalls-lsp",
-          "description": "Path to the smalls-lsp executable"
+          "scope": "machine-overridable",
+          "description": "Path to the smalls-lsp executable. Leave unset to use the binary bundled with the extension. Machine-scoped so that a repository cannot point the extension at an executable of its choosing."
         },
         "smalls.modulePaths": {
           "type": "array",
@@ -62,13 +80,49 @@
             "type": "string"
           },
           "default": [],
-          "description": "Additional module search paths"
+          "scope": "machine-overridable",
+          "markdownDescription": "Additional module search paths. Relative entries resolve against each workspace folder, and `${workspaceFolder}` is substituted."
+        },
+        "smalls.inlayHints.parameterNames": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show parameter names at call sites. Suppressed when the argument already reads as the parameter name."
+        },
+        "smalls.inlayHints.variableTypes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show the inferred type of a var declared without one."
+        },
+        "smalls.inlayHints.foreachTypes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show the inferred type of a foreach binding."
+        },
+        "smalls.inlayHints.lambdaReturnTypes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show the inferred return type of a lambda declared without one."
+        },
+        "smalls.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "scope": "window",
+          "description": "Traces the communication between VS Code and the Smalls language server."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run check-types && npm run bundle -- --minify",
     "compile": "npm run check-types && npm run bundle",
     "bundle": "esbuild ./src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --outfile=dist/extension.js --sourcemap",
     "watch": "npm run bundle -- --watch",

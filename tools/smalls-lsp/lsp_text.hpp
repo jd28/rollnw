@@ -141,6 +141,47 @@ inline std::optional<int> byte_character_to_lsp(
     return utf8_prefix_units(line_text, byte, encoding);
 }
 
+/// True for characters the Smalls lexer accepts inside an identifier.
+/// `$` leads a generic parameter and is accepted by `Lexer::next`, so the
+/// editor-side word boundary must accept it too or hover, definition, and
+/// completion disagree with the lexer about where a name starts.
+inline bool is_identifier_char(char c) noexcept
+{
+    return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '$';
+}
+
+/// Converts an LSP position to an absolute byte offset into `text`.
+inline std::optional<size_t> lsp_position_to_offset(
+    std::string_view text, int line, int character, PositionEncoding encoding)
+{
+    auto bounds = line_bounds(text, line);
+    if (!bounds) {
+        return std::nullopt;
+    }
+    auto byte = lsp_character_to_byte(text, line, character, encoding);
+    if (!byte) {
+        return std::nullopt;
+    }
+    return bounds->first + static_cast<size_t>(*byte);
+}
+
+/// Applies one incremental content change in place.
+///
+/// Returns false and leaves `text` untouched when the range is unusable, so a
+/// rejected change cannot leave a partially edited buffer behind.
+inline bool apply_content_change(std::string& text, int start_line, int start_character,
+    int end_line, int end_character, std::string_view replacement,
+    PositionEncoding encoding)
+{
+    auto start = lsp_position_to_offset(text, start_line, start_character, encoding);
+    auto end = lsp_position_to_offset(text, end_line, end_character, encoding);
+    if (!start || !end || *start > *end || *end > text.size()) {
+        return false;
+    }
+    text.replace(*start, *end - *start, replacement);
+    return true;
+}
+
 /// Returns the identifier that contains column `col` on line `line` of `text`.
 /// Returns empty string if the position is not on an identifier character.
 inline std::string identifier_at(std::string_view text, int line, int col)
@@ -151,16 +192,16 @@ inline std::string identifier_at(std::string_view text, int line, int col)
     }
 
     size_t pos = bounds->first;
-    if (!std::isalnum(static_cast<unsigned char>(text[pos + col])) && text[pos + col] != '_') {
+    if (!is_identifier_char(text[pos + col])) {
         return {};
     }
 
     int start = col;
-    while (start > 0 && (std::isalnum(static_cast<unsigned char>(text[pos + start - 1])) || text[pos + start - 1] == '_')) {
+    while (start > 0 && is_identifier_char(text[pos + start - 1])) {
         --start;
     }
     int end = col;
-    while (pos + end < bounds->second && (std::isalnum(static_cast<unsigned char>(text[pos + end])) || text[pos + end] == '_')) {
+    while (pos + end < bounds->second && is_identifier_char(text[pos + end])) {
         ++end;
     }
     if (start == end) return {};
@@ -182,10 +223,10 @@ inline std::string identifier_before(std::string_view text, int line, int dot_co
     int end = dot_col - 1; // exclusive end of identifier = the dot's column
     if (end <= 0) return {};
     // Character immediately before the dot must be an identifier char
-    if (!std::isalnum(static_cast<unsigned char>(text[pos + end - 1])) && text[pos + end - 1] != '_')
+    if (!is_identifier_char(text[pos + end - 1]))
         return {};
     int start = end - 1;
-    while (start > 0 && (std::isalnum(static_cast<unsigned char>(text[pos + start - 1])) || text[pos + start - 1] == '_')) {
+    while (start > 0 && is_identifier_char(text[pos + start - 1])) {
         --start;
     }
     if (start == end) return {};
@@ -207,8 +248,7 @@ inline bool detect_dot_trigger(std::string_view text, int line, int character, i
     // Scan left past any partial identifier the user has typed after the dot
     int scan = character;
     while (scan > 0) {
-        char c = text[line_start + scan - 1];
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
+        if (is_identifier_char(text[line_start + scan - 1])) {
             --scan;
         } else {
             break;

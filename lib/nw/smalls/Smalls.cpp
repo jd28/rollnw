@@ -418,6 +418,32 @@ void Script::complete_at(const String& needle, size_t line, size_t character, Co
     }
 }
 
+namespace {
+
+/// Finds the script that actually declared a struct.
+///
+/// A struct reached through the runtime type table -- which is how a
+/// `get_propset!(T)` local resolves -- is usually absent from the current
+/// script's provider map, and falling back to "this" makes every member report
+/// source text sliced out of the file being edited.
+const Script* resolve_struct_provider_impl(const Script* self, const StructDecl* struct_decl)
+{
+    if (!struct_decl) { return self; }
+
+    const Script* provider = self->provider_for_decl(struct_decl);
+    if (provider && provider->owns_declaration(struct_decl)) {
+        return provider;
+    }
+
+    auto symbol = self->locate_export(struct_decl->identifier(), true);
+    if (symbol.provider && symbol.provider->owns_declaration(struct_decl)) {
+        return symbol.provider;
+    }
+    return provider;
+}
+
+} // namespace
+
 void Script::complete_dot(const String& needle, size_t line, size_t character, Vector<Symbol>& out,
     bool)
 {
@@ -490,7 +516,7 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
             resolved_type->type_params[0].as<StructID>());
         if (struct_def) {
             struct_decl = struct_def->decl;
-            provider = provider_for_decl(struct_decl);
+            provider = resolve_struct_provider_impl(this, struct_decl);
         }
     }
 
@@ -499,7 +525,7 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
         auto type_export = node->env_.find(struct_name);
         if (type_export && type_export->decl) {
             struct_decl = dynamic_cast<const StructDecl*>(type_export->decl);
-            provider = provider_for_decl(struct_decl);
+            provider = resolve_struct_provider_impl(this, struct_decl);
         } else {
             auto symbol = locate_export(struct_name, true);
             provider = symbol.provider;
@@ -536,15 +562,67 @@ const Script* Script::provider_for_decl(const Declaration* decl) const noexcept
     return it != decl_providers_.end() ? it->second : this;
 }
 
+namespace {
+
+/// A pointer into the source buffer that declared this node, or null when the
+/// declaration kind carries no token we can anchor on.
+const char* declaration_source_pointer(const Declaration* decl)
+{
+    if (!decl) { return nullptr; }
+
+    if (auto* function = dynamic_cast<const FunctionDefinition*>(decl)) {
+        return function->identifier_.loc.start;
+    }
+    if (auto* variable = dynamic_cast<const VarDecl*>(decl)) {
+        return variable->identifier_.loc.start;
+    }
+    if (auto* aliased = dynamic_cast<const AliasedImportDecl*>(decl)) {
+        return aliased->alias.loc.start;
+    }
+    if (auto* selective = dynamic_cast<const SelectiveImportDecl*>(decl)) {
+        return selective->imported_symbols.empty()
+            ? nullptr
+            : selective->imported_symbols.front().loc.start;
+    }
+    if (decl->type && decl->type->name) {
+        if (auto* identifier = dynamic_cast<const IdentifierExpression*>(decl->type->name)) {
+            return identifier->ident.loc.start;
+        }
+        if (auto* path = dynamic_cast<const PathExpression*>(decl->type->name)) {
+            if (!path->parts.empty()) {
+                if (auto* first = dynamic_cast<const IdentifierExpression*>(path->parts[0])) {
+                    return first->ident.loc.start;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+bool Script::owns_declaration(const Declaration* decl) const noexcept
+{
+    const char* pointer = declaration_source_pointer(decl);
+    if (!pointer || text_.empty()) { return false; }
+    return pointer >= text_.data() && pointer < text_.data() + text_.size();
+}
+
 Symbol Script::declaration_to_symbol(const Declaration* decl) const
 {
     Symbol result;
     result.decl = decl;
     const Script* owner = provider_for_decl(decl);
-    result.comment = owner->ast().find_comment(decl->range_.start.line);
     result.type = nw::kernel::runtime().type_name(decl->type_id_);
     result.provider = owner;
-    result.view = owner->view_from_range(decl->range_);
+
+    // Never slice text we do not own; the coordinates would land on an
+    // unrelated declaration and be reported as this symbol's source.
+    const bool owned = owner->owns_declaration(decl);
+    if (owned) {
+        result.comment = owner->ast().find_comment(decl->range_.start.line);
+        result.view = owner->view_from_range(decl->range_);
+    }
 
     if (dynamic_cast<const StructDecl*>(decl)
         || dynamic_cast<const TypeAlias*>(decl)
@@ -553,7 +631,9 @@ Symbol Script::declaration_to_symbol(const Declaration* decl) const
         result.kind = SymbolKind::type;
     } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
         result.kind = SymbolKind::function;
-        result.view = owner->view_from_range(fd->range_selection_);
+        if (owned) {
+            result.view = owner->view_from_range(fd->range_selection_);
+        }
     } else if (auto alias = dynamic_cast<const AliasedImportDecl*>(decl)) {
         result.kind = SymbolKind::module;
         result.type = "module";
@@ -616,12 +696,12 @@ const Vector<Diagnostic>& Script::diagnostics() const noexcept
     return diagnostics_;
 }
 
-Vector<InlayHint> Script::inlay_hints(SourceRange range)
+Vector<InlayHint> Script::inlay_hints(SourceRange range, InlayHintOptions options)
 {
     if (emit_tooling_disabled_diagnostic("inlay_hints")) {
         return {};
     }
-    AstHinter hinter{this, range};
+    AstHinter hinter{this, range, options};
     hinter.visit(&ast_);
     return hinter.result_;
 }

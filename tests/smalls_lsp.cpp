@@ -274,8 +274,13 @@ fn main() {
     // Get inlay hints - should be empty or minimal
     auto hints = script.inlay_hints({{5, 0}, {7, 0}});
 
-    // Function with no parameters should not produce parameter hints
-    EXPECT_EQ(hints.size(), 0);
+    // A call with no parameters produces no parameter hints. The inferred type
+    // of `result` is a separate category and is expected.
+    size_t parameter_hints = 0;
+    for (const auto& hint : hints) {
+        if (hint.kind == nw::smalls::InlayHintKind::parameter) { ++parameter_hints; }
+    }
+    EXPECT_EQ(parameter_hints, 0);
 }
 
 TEST_F(SmallsLSP, InlayHintsElseBranch)
@@ -1153,4 +1158,118 @@ TEST_F(SmallsLSP, LocateExportViewNonEmpty)
     auto sym = script.locate_export("my_func", false);
     EXPECT_EQ(sym.decl, nullptr);   // decl was cleared
     EXPECT_FALSE(sym.view.empty()); // view (name) should still be non-empty
+}
+
+// The previous hinter derived from BaseVisitor with explicit no-ops for
+// DeclList and LabelStatement, so every hint inside a multi-declarator
+// statement or a `case` arm was silently dropped.
+TEST_F(SmallsLSP, InlayHintsReachCasePatternsAndForeachBindings)
+{
+    auto script = make_script(R"(type Shape = Circle(int) | Square(int);
+
+fn take(amount: int): int {
+    return amount;
+}
+
+fn probe(shape: Shape, items: array!(int)): int {
+    var total = 0;
+    for (var item in items) {
+        total = total + take(item);
+    }
+    switch (shape) {
+        case Circle(radius): {
+            total = take(radius);
+        }
+    }
+    return total;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_NO_THROW(script.resolve());
+
+    auto hints = script.inlay_hints({{1, 0}, {19, 0}});
+
+    bool foreach_binding = false;
+    bool inside_foreach_body = false;
+    bool inside_case_body = false;
+    for (const auto& hint : hints) {
+        if (hint.kind == nw::smalls::InlayHintKind::type && hint.position.line == 9) {
+            foreach_binding = true;
+        }
+        if (hint.kind == nw::smalls::InlayHintKind::parameter && hint.position.line == 10) {
+            inside_foreach_body = true;
+        }
+        if (hint.kind == nw::smalls::InlayHintKind::parameter && hint.position.line == 14) {
+            inside_case_body = true;
+        }
+    }
+    EXPECT_TRUE(foreach_binding) << "foreach binding type";
+    EXPECT_TRUE(inside_foreach_body) << "parameter hint inside a foreach body";
+    EXPECT_TRUE(inside_case_body) << "parameter hint inside a case body";
+}
+
+// A hint that restates what is already written is noise.
+TEST_F(SmallsLSP, InlayHintsSuppressRedundantHints)
+{
+    auto script = make_script(R"(fn take(count: int): int {
+    return count;
+}
+
+fn probe(): int {
+    var written: int = 1;
+    var count = 2;
+    return take(count) + written;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_NO_THROW(script.resolve());
+
+    auto hints = script.inlay_hints({{1, 0}, {9, 0}});
+
+    for (const auto& hint : hints) {
+        // `var written: int` already says int.
+        EXPECT_FALSE(hint.kind == nw::smalls::InlayHintKind::type && hint.position.line == 6)
+            << "type hint on a var with a written type";
+        // `take(count)` already reads as the parameter name.
+        EXPECT_FALSE(hint.kind == nw::smalls::InlayHintKind::parameter && hint.position.line == 8)
+            << "parameter hint restating the argument";
+    }
+
+    // The var without a written type still gets one.
+    bool inferred = false;
+    for (const auto& hint : hints) {
+        if (hint.kind == nw::smalls::InlayHintKind::type && hint.position.line == 7) {
+            inferred = true;
+        }
+    }
+    EXPECT_TRUE(inferred);
+}
+
+// Each category is switchable on its own, or a user who dislikes one turns all
+// of them off.
+TEST_F(SmallsLSP, InlayHintCategoriesAreIndependentlyDisabled)
+{
+    auto script = make_script(R"(fn take(amount: int): int {
+    return amount;
+}
+
+fn probe(): int {
+    var total = take(1);
+    return total;
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_NO_THROW(script.resolve());
+
+    nw::smalls::InlayHintOptions no_types;
+    no_types.variable_types = false;
+    for (const auto& hint : script.inlay_hints({{1, 0}, {8, 0}}, no_types)) {
+        EXPECT_NE(hint.kind, nw::smalls::InlayHintKind::type);
+    }
+
+    nw::smalls::InlayHintOptions no_parameters;
+    no_parameters.parameter_names = false;
+    for (const auto& hint : script.inlay_hints({{1, 0}, {8, 0}}, no_parameters)) {
+        EXPECT_NE(hint.kind, nw::smalls::InlayHintKind::parameter);
+    }
 }

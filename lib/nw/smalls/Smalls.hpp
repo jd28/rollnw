@@ -97,9 +97,26 @@ struct Symbol {
     StringView view;                   ///< View of declaration
 };
 
+enum struct InlayHintKind {
+    type = 1,
+    parameter = 2,
+};
+
+/// Which categories of hint to produce. Inlay hints are divisive, and a user
+/// who cannot switch one category off switches all of them off.
+struct InlayHintOptions {
+    bool parameter_names = true;
+    bool variable_types = true;
+    bool foreach_types = true;
+    bool lambda_return_types = true;
+};
+
 struct InlayHint {
     String message;
     SourcePosition position;
+    InlayHintKind kind = InlayHintKind::parameter;
+    /// The declaration the hinted text names, so a client can make it clickable.
+    const Declaration* target = nullptr;
 };
 
 struct SignatureHelp {
@@ -218,7 +235,7 @@ struct Script {
     /// Marks the semantic diagnostic cap notice as emitted.
     void mark_semantic_diagnostic_limit_reported() noexcept { semantic_diagnostic_limit_reported_ = true; }
 
-    Vector<InlayHint> inlay_hints(SourceRange range);
+    Vector<InlayHint> inlay_hints(SourceRange range, InlayHintOptions options = {});
 
     /// Locate export, i.e. a top level symbol
     Symbol locate_export(const String& symbol, bool search_dependencies = false) const;
@@ -245,6 +262,14 @@ struct Script {
 
     /// Gets a view of source file in specified range
     StringView view_from_range(SourceRange range) const noexcept;
+
+    /// True when a declaration's tokens point into this script's source buffer.
+    ///
+    /// A ``SourceRange`` is line and column only, so slicing one against the
+    /// wrong script does not fail -- it returns text from whatever unrelated
+    /// declaration happens to sit at those coordinates. Only the token pointers
+    /// can say who actually owns a declaration.
+    bool owns_declaration(const Declaration* decl) const noexcept;
 
     /// Returns how many warnings were found during parsing
     size_t warnings() const noexcept { return warnings_; }

@@ -53,7 +53,8 @@ void NameResolver::visit(AliasedImportDecl* decl)
     String resource_path = module_path_to_resource_path(decl->module_path);
     decl->loaded_module = nw::kernel::runtime().get_module(resource_path);
     if (!decl->loaded_module) {
-        ctx.errorf(decl->alias.loc.range, "failed to load module '{}'", decl->module_path);
+        ctx.errorf_coded(DiagnosticCode::module_load_failed, decl->alias.loc.range,
+            "failed to load module '{}'", decl->module_path);
         // Still declare the alias so env_ contains it for tooling (e.g. LSP dot-completion)
     }
 
@@ -115,7 +116,23 @@ void NameResolver::visit(SelectiveImportDecl* decl)
         auto git = ctx.global_decls_.find(symbol_name);
         auto existing_env = ctx.env_stack_.back().find(symbol_name);
         if (git != ctx.global_decls_.end() || existing_env) {
-            ctx.errorf(symbol_token.loc.range, "importing '{}' would redeclare existing symbol", symbol_name);
+            const Declaration* existing = git != ctx.global_decls_.end()
+                ? git->second
+                : (existing_env ? existing_env->decl : nullptr);
+            DiagnosticRelated previous;
+            previous.message = "existing symbol is declared here";
+            if (existing) {
+                previous.location = existing->selection_range();
+            }
+            if (previous.location.start.line != 0) {
+                ctx.errorf_related(DiagnosticCode::duplicate_declaration,
+                    symbol_token.loc.range, std::move(previous),
+                    "importing '{}' would redeclare existing symbol", symbol_name);
+            } else {
+                ctx.errorf_coded(DiagnosticCode::duplicate_declaration,
+                    symbol_token.loc.range,
+                    "importing '{}' would redeclare existing symbol", symbol_name);
+            }
             continue;
         }
 

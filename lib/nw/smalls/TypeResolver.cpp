@@ -534,7 +534,8 @@ struct TypeCompatibility {
         auto result = check_types_compatible(expected_type, actual_type, range);
         if (result == ArgCheckResult::type_mismatch
             && expected_type != invalid_type_id && actual_type != invalid_type_id) {
-            ctx.errorf(range, "arg {}: expected '{}', got '{}'", index, expected_type, actual_type);
+            ctx.errorf_coded(DiagnosticCode::argument_type_mismatch, range,
+                "arg {}: expected '{}', got '{}'", index, expected_type, actual_type);
         }
         return result;
     }
@@ -545,9 +546,11 @@ struct TypeCompatibility {
         if (result == ArgCheckResult::type_mismatch
             && expected_type != invalid_type_id && actual_type != invalid_type_id) {
             if (!param_name.empty()) {
-                ctx.errorf(range, "call '{}': arg {} ('{}') expected '{}', got '{}'", func_name, index, param_name, expected_type, actual_type);
+                ctx.errorf_coded(DiagnosticCode::argument_type_mismatch, range,
+                    "call '{}': arg {} ('{}') expected '{}', got '{}'", func_name, index, param_name, expected_type, actual_type);
             } else {
-                ctx.errorf(range, "call '{}': arg {} expected '{}', got '{}'", func_name, index, expected_type, actual_type);
+                ctx.errorf_coded(DiagnosticCode::argument_type_mismatch, range,
+                    "call '{}': arg {} expected '{}', got '{}'", func_name, index, expected_type, actual_type);
             }
         }
         return result;
@@ -600,7 +603,8 @@ struct ArgValidator {
         }
 
         if (args.size() > expected_types.size()) {
-            ctx.errorf(call_range, "call '{}': expected {} args, got {}", func_def->identifier_.loc.view(), expected_types.size(), args.size());
+            ctx.errorf_coded(DiagnosticCode::argument_count_mismatch, call_range,
+                "call '{}': expected {} args, got {}", func_def->identifier_.loc.view(), expected_types.size(), args.size());
         }
     }
 
@@ -868,7 +872,8 @@ struct CallResolver {
 
         size_t param_count = rt.get_function_param_count(func_type_id);
         if (expr->args.size() != param_count) {
-            resolver.ctx.errorf(expr->range_, "expected {} args, got {}", param_count, expr->args.size());
+            resolver.ctx.errorf_coded(DiagnosticCode::argument_count_mismatch, expr->range_,
+                "expected {} args, got {}", param_count, expr->args.size());
             return true;
         }
 
@@ -1091,12 +1096,18 @@ struct CallResolver {
 
             if (ve) {
                 String suggestions;
+                Vector<String> candidates;
                 if (resolver.ctx.will_emit_semantic_diagnostic()) {
-                    suggestions = format_suggestions(func_name, resolver.ctx.collect_env_names(resolver.ctx.env_stack_.back()));
+                    auto names = resolver.ctx.collect_env_names(resolver.ctx.env_stack_.back());
+                    candidates = suggestion_candidates(func_name, names);
+                    suggestions = format_suggestions(func_name, names);
                 }
-                resolver.ctx.errorf(ve->range_, "unable to resolve identifier '{}'{}", func_name, suggestions);
+                resolver.ctx.errorf_suggest(DiagnosticCode::unresolved_identifier, ve->range_,
+                    std::move(candidates), "unable to resolve identifier '{}'{}", func_name,
+                    suggestions);
             } else {
-                resolver.ctx.error(expr->expr->range_, fmt::format("unable to resolve identifier '{}'", func_name));
+                resolver.ctx.errorf_coded(DiagnosticCode::unresolved_identifier,
+                    expr->expr->range_, "unable to resolve identifier '{}'", func_name);
             }
             return;
         }
@@ -1242,7 +1253,8 @@ void validate_brace_init(AstResolver& ctx, BraceInitLiteral* expr)
                 if (auto var_expr = dynamic_cast<IdentifierExpression*>(item.key)) {
                     StringView field_name = var_expr->ident.loc.view();
                     if (!find_struct_field(struct_def, field_name)) {
-                        ctx.errorf(var_expr->ident.loc.range, "'{}' has no field named '{}'", type_name, field_name);
+                        ctx.errorf_coded(DiagnosticCode::unknown_field, var_expr->ident.loc.range,
+                            "'{}' has no field named '{}'", type_name, field_name);
                     }
                 }
             }
@@ -2474,7 +2486,8 @@ void TypeResolver::visit(AssignExpression* expr)
             target->accept(this);
 
             if (!is_mutable_lvalue(target)) {
-                ctx.errorf(target->range_, "cannot assign to const variable");
+                ctx.errorf_coded(DiagnosticCode::const_assignment, target->range_,
+                    "cannot assign to const variable");
             }
 
             TypeID elem_type = rt.get_tuple_element_type(expr->rhs->type_id_, i);
@@ -2493,7 +2506,8 @@ void TypeResolver::visit(AssignExpression* expr)
     expr->lhs->accept(this);
 
     if (!is_mutable_lvalue(expr->lhs)) {
-        ctx.errorf(expr->lhs->range_, "cannot assign to const variable");
+        ctx.errorf_coded(DiagnosticCode::const_assignment, expr->lhs->range_,
+            "cannot assign to const variable");
     }
 
     // Check for assignment to propset array fields (unmanaged arrays cannot be reassigned)
@@ -2574,7 +2588,8 @@ void TypeResolver::visit(BraceInitLiteral* expr)
     if (expr->type.type != TokenType::INVALID) {
         expr->type_id_ = ctx.resolve_type(expr->type.loc.view(), expr->type.loc.range);
         if (expr->type_id_ == invalid_type_id) {
-            ctx.errorf(expr->type.loc.range, "unknown type in struct literal '{}'", expr->type.loc.view());
+            ctx.errorf_coded(DiagnosticCode::unknown_type, expr->type.loc.range,
+                "unknown type in struct literal '{}'", expr->type.loc.view());
             return;
         }
     }
@@ -3118,10 +3133,15 @@ void TypeResolver::visit(IdentifierExpression* expr)
             }
         } else {
             String suggestions;
+            Vector<String> candidates;
             if (ctx.will_emit_semantic_diagnostic()) {
-                suggestions = format_suggestions(expr->ident.loc.view(), ctx.collect_env_names(ctx.env_stack_.back()));
+                auto names = ctx.collect_env_names(ctx.env_stack_.back());
+                candidates = suggestion_candidates(expr->ident.loc.view(), names);
+                suggestions = format_suggestions(expr->ident.loc.view(), names);
             }
-            ctx.errorf(expr->range_, "unable to resolve identifier '{}'{}", expr->ident.loc.view(), suggestions);
+            ctx.errorf_suggest(DiagnosticCode::unresolved_identifier, expr->range_,
+                std::move(candidates), "unable to resolve identifier '{}'{}",
+                expr->ident.loc.view(), suggestions);
         }
     }
 

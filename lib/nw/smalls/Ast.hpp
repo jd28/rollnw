@@ -271,7 +271,8 @@ struct BraceInitLiteral : Expression {
     explicit BraceInitLiteral(MemoryResource* allocator);
 
     Token type;
-    BraceInitType init_type;
+    /// Inferred from the first item, so an empty literal stays `none`.
+    BraceInitType init_type = BraceInitType::none;
     PVector<BraceInitItem> items;
 
     DEFINE_ACCEPT_VISITOR
@@ -508,7 +509,9 @@ struct Annotation {
 // ---- Declaration -----------------------------------------------------------
 
 struct Declaration : public Statement {
-    TypeExpression* type;
+    /// @note Never assigned for ``FunctionDefinition``, which carries its
+    /// signature in ``return_type`` and ``params`` instead.
+    TypeExpression* type = nullptr;
     SourceRange range_selection_;
     StringView view;
     Vector<Annotation> annotations_;
@@ -737,7 +740,10 @@ struct Comment {
     {
         if (comment_.empty()) {
             comment_ = String(comment);
-            range_ = merge_source_location(range_, range);
+            // Take the range outright. Merging here would fold in the
+            // default-constructed range and report the comment as starting on
+            // line 0.
+            range_ = range;
         } else {
             comment_ = fmt::format("{}\n{}", comment_, comment);
             range_ = merge_source_location(range_, range);

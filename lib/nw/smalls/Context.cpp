@@ -77,16 +77,23 @@ bool find_line_bounds(const Script* script, StringView text, size_t target_line,
         || find_line_by_scan(text, target_line, start, end);
 }
 
-void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is_warning, SourceRange range, DiagnosticType type)
+void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is_warning, SourceRange range, DiagnosticType type, const DiagnosticInfo& info)
 {
     bool use_color = ctx ? ctx->config.use_color : true;
     if (script) {
         Diagnostic result;
         result.type = type;
         result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
+        // An unclassified site still reports its category, so every published
+        // diagnostic carries a code.
+        result.code = info.code == DiagnosticCode::none
+            ? diagnostic_category(type)
+            : info.code;
         result.script = script->name();
         result.message = String(msg);
         result.location = range;
+        result.related = info.related;
+        result.candidates = info.candidates;
         script->add_diagnostic(std::move(result));
 
         if (is_warning) {
@@ -196,14 +203,16 @@ void print_diagnostic_impl(Context* ctx, Script* script, StringView msg, bool is
 
 } // namespace
 
-void Context::lexical_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range)
+void Context::lexical_diagnostic(Script* script, StringView msg, bool is_warning,
+    SourceRange range, const DiagnosticInfo& info)
 {
-    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::lexical);
+    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::lexical, info);
 }
 
-void Context::parse_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range)
+void Context::parse_diagnostic(Script* script, StringView msg, bool is_warning,
+    SourceRange range, const DiagnosticInfo& info)
 {
-    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::parse);
+    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::parse, info);
 }
 
 bool Context::will_emit_semantic_diagnostic(const Script* script) const noexcept
@@ -212,7 +221,8 @@ bool Context::will_emit_semantic_diagnostic(const Script* script) const noexcept
         || script->semantic_diagnostics() < limits.max_semantic_diagnostics;
 }
 
-void Context::semantic_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range)
+void Context::semantic_diagnostic(Script* script, StringView msg, bool is_warning,
+    SourceRange range, const DiagnosticInfo& info)
 {
     if (script && limits.max_semantic_diagnostics != 0
         && script->semantic_diagnostics() >= limits.max_semantic_diagnostics) {
@@ -221,11 +231,12 @@ void Context::semantic_diagnostic(Script* script, StringView msg, bool is_warnin
             String limit_message = fmt::format(
                 "too many semantic diagnostics, suppressing further diagnostics (limit {})",
                 limits.max_semantic_diagnostics);
-            print_diagnostic_impl(this, script, limit_message, false, range, DiagnosticType::semantic);
+            print_diagnostic_impl(this, script, limit_message, false, range,
+                DiagnosticType::semantic, {});
         }
         return;
     }
-    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::semantic);
+    print_diagnostic_impl(this, script, msg, is_warning, range, DiagnosticType::semantic, info);
 }
 
 } // nw::smalls

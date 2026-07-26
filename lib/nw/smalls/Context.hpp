@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../kernel/Memory.hpp"
+#include "Diagnostic.hpp"
 #include "types.hpp"
 
 #include <cstdint>
@@ -33,9 +34,12 @@ struct Limits {
 struct Context {
     virtual ~Context() = default;
 
-    virtual void lexical_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
-    virtual void parse_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
-    virtual void semantic_diagnostic(Script* script, StringView msg, bool is_warning, SourceRange range);
+    virtual void lexical_diagnostic(Script* script, StringView msg, bool is_warning,
+        SourceRange range, const DiagnosticInfo& info = {});
+    virtual void parse_diagnostic(Script* script, StringView msg, bool is_warning,
+        SourceRange range, const DiagnosticInfo& info = {});
+    virtual void semantic_diagnostic(Script* script, StringView msg, bool is_warning,
+        SourceRange range, const DiagnosticInfo& info = {});
     bool will_emit_semantic_diagnostic(const Script* script) const noexcept;
 
     MemoryArena* arena = nullptr;
