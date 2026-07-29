@@ -61,12 +61,12 @@ void register_core_effects(Runtime& rt)
 
             const size_t count = std::min(values->size(), size_t(nw::Effect::ints_count));
             Value temp;
-            auto& rt = nw::kernel::runtime();
+            auto& runtime = nw::kernel::runtime();
             for (size_t i = 0; i < count; ++i) {
-                if (!values->get_value(i, temp, rt)) {
+                if (!values->get_value(i, temp, runtime)) {
                     break;
                 }
-                if (temp.type_id != rt.int_type()) {
+                if (temp.type_id != runtime.int_type()) {
                     continue;
                 }
                 e->set_int(i, temp.data.ival);

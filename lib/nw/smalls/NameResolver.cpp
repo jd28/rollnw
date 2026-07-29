@@ -2,8 +2,8 @@
 
 namespace nw::smalls {
 
-NameResolver::NameResolver(AstResolver& ctx)
-    : ctx(ctx)
+NameResolver::NameResolver(AstResolver& resolver)
+    : ctx(resolver)
 {
 }
 
@@ -12,26 +12,26 @@ void NameResolver::visit(Ast* script)
     for (const auto& decl : script->decls) {
         if (auto import_decl = dynamic_cast<AliasedImportDecl*>(decl)) {
             import_decl->accept(this);
-        } else if (auto import_decl = dynamic_cast<SelectiveImportDecl*>(decl)) {
-            import_decl->accept(this);
+        } else if (auto selective = dynamic_cast<SelectiveImportDecl*>(decl)) {
+            selective->accept(this);
         } else if (auto struct_decl = dynamic_cast<StructDecl*>(decl)) {
-            String qualified = String(ctx.parent_->name()) + "." + String(struct_decl->identifier());
+            String qualified = String(ctx.parent_->name()) + "." + struct_decl->identifier();
             ctx.declare_global(struct_decl->identifier(), struct_decl);
             struct_decl->type_id_ = nw::kernel::runtime().type_table_.reserve(qualified);
         } else if (auto type_alias = dynamic_cast<TypeAlias*>(decl)) {
-            String qualified = String(ctx.parent_->name()) + "." + String(type_alias->identifier());
+            String qualified = String(ctx.parent_->name()) + "." + type_alias->identifier();
             ctx.declare_global(type_alias->identifier(), type_alias);
             type_alias->type_id_ = nw::kernel::runtime().type_table_.reserve(qualified);
         } else if (auto newtype = dynamic_cast<NewtypeDecl*>(decl)) {
-            String qualified = String(ctx.parent_->name()) + "." + String(newtype->identifier());
+            String qualified = String(ctx.parent_->name()) + "." + newtype->identifier();
             ctx.declare_global(newtype->identifier(), newtype);
             newtype->type_id_ = nw::kernel::runtime().type_table_.reserve(qualified);
         } else if (auto opaque = dynamic_cast<OpaqueTypeDecl*>(decl)) {
-            String qualified = String(ctx.parent_->name()) + "." + String(opaque->identifier());
+            String qualified = String(ctx.parent_->name()) + "." + opaque->identifier();
             ctx.declare_global(opaque->identifier(), opaque);
             opaque->type_id_ = nw::kernel::runtime().type_table_.reserve(qualified);
         } else if (auto sum_decl = dynamic_cast<SumDecl*>(decl)) {
-            String qualified = String(ctx.parent_->name()) + "." + String(sum_decl->identifier());
+            String qualified = String(ctx.parent_->name()) + "." + sum_decl->identifier();
             ctx.declare_global(sum_decl->identifier(), sum_decl);
             sum_decl->type_id_ = nw::kernel::runtime().type_table_.reserve(qualified);
         } else if (auto func = dynamic_cast<FunctionDefinition*>(decl)) {

@@ -282,7 +282,7 @@ NssToken NssLexer::handle_number()
                 break;
             }
         } else if (base == 8) {
-            if (cur >= '0' || cur <= '7') {
+            if (cur >= '0' && cur <= '7') {
                 pos_++;
             } else {
                 break;

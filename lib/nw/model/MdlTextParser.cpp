@@ -392,10 +392,10 @@ void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
                             if (string::icmp(model->nodes[j]->name, bones[i])) {
                                 for (size_t k = 0; k < 64; ++k) {
                                     if (n->bone_nodes[k] == int16_t(j)) {
-                                        n->vertices[ivert].bones[i] = k;
+                                        n->vertices[ivert].bones[static_cast<glm::length_t>(i)] = static_cast<int>(k);
                                         break;
                                     } else if (n->bone_nodes[k] == -1) {
-                                        n->vertices[ivert].bones[i] = k;
+                                        n->vertices[ivert].bones[static_cast<glm::length_t>(i)] = static_cast<int>(k);
                                         n->bone_nodes[k] = int16_t(j);
                                         break;
                                     }
@@ -949,7 +949,6 @@ bool TextParser::parse_node(Geometry* geometry)
         }
 
         if (node->type & NodeFlags::skin) {
-            SkinNode* n = static_cast<SkinNode*>(node.get());
             if (icmp(tk, "weights")) {
                 uint32_t size;
                 if (!parse_tokens(tokens_, "weights: size", size)) { return false; }
@@ -973,8 +972,8 @@ bool TextParser::parse_node(Geometry* geometry)
                         }
                     }
                 }
-                auto tk = tokens_.next();
-                if (!icmp(tk, "endlist")) { tokens_.put_back(tk); }
+                auto end_tk = tokens_.next();
+                if (!icmp(end_tk, "endlist")) { tokens_.put_back(end_tk); }
                 continue;
             }
         }

@@ -263,7 +263,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
         uint32_t size = 0;
 
         if (std::holds_alternative<fs::path>(it->second)) {
-            size = fs::file_size(std::get<fs::path>(it->second));
+            size = static_cast<uint32_t>(fs::file_size(std::get<fs::path>(it->second)));
         } else {
             size = std::get<ErfElementInfo>(it->second).size;
         }

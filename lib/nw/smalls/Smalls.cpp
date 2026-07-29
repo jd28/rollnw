@@ -534,15 +534,15 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
     }
 
     if (struct_decl && provider) {
-        for (auto decl : struct_decl->decls) {
-            if (auto vdl = dynamic_cast<const DeclList*>(decl)) {
+        for (auto member : struct_decl->decls) {
+            if (auto vdl = dynamic_cast<const DeclList*>(member)) {
                 for (auto vd : vdl->decls) {
                     auto symbol = provider->declaration_to_symbol(vd);
                     symbol.kind = SymbolKind::field;
                     out.push_back(std::move(symbol));
                 }
             } else {
-                auto symbol = provider->declaration_to_symbol(decl);
+                auto symbol = provider->declaration_to_symbol(member);
                 symbol.kind = SymbolKind::field;
                 out.push_back(std::move(symbol));
             }
@@ -706,7 +706,7 @@ Vector<InlayHint> Script::inlay_hints(SourceRange range, InlayHintOptions option
     return hinter.result_;
 }
 
-Symbol Script::locate_export(const String& symbol, bool search_dependencies) const
+Symbol Script::locate_export(const String& symbol, bool /*search_dependencies*/) const
 {
     auto sym = symbol_table_.find(symbol);
 

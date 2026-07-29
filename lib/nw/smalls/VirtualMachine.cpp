@@ -183,7 +183,6 @@ uint8_t* VirtualMachine::current_frame_stack_data()
 
 String VirtualMachine::get_stack_trace() const
 {
-    auto& rt = nw::kernel::runtime();
     auto config = rt_->diagnostic_config();
 
     if (frames_.empty()) {
@@ -519,7 +518,7 @@ void VirtualMachine::setup_script_call(uint8_t dest_reg, uint8_t argc,
 }
 
 Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
-    uint32_t base_offset, uint32_t field_offset, Runtime& rt)
+    uint32_t base_offset, uint32_t field_offset, Runtime& /*rt*/)
 {
     if (field_type == rt_->int_type()) {
         return Value::make_int(*reinterpret_cast<int32_t*>(ptr));
@@ -847,7 +846,7 @@ void VirtualMachine::execute_module_init(BytecodeModule* module, uint64_t gas_li
 }
 
 template <bool StepLimited>
-bool VirtualMachine::run_impl(BytecodeModule* module, size_t entry_depth)
+bool VirtualMachine::run_impl(BytecodeModule* /*module*/, size_t entry_depth)
 {
 #if defined(__GNUC__) || defined(__clang__)
     // =========================================================================

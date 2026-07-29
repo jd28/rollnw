@@ -204,7 +204,7 @@ uint32_t get_or_add_material(const ParticleMaterialDef& material, ParticleEffect
     return static_cast<uint32_t>(effect.materials.size() - 1);
 }
 
-ParticleCurveF32 make_linear_curve(float start, float end)
+[[maybe_unused]] ParticleCurveF32 make_linear_curve(float start, float end)
 {
     ParticleCurveF32 result;
     result.keys.push_back({0.0f, start});
@@ -212,7 +212,7 @@ ParticleCurveF32 make_linear_curve(float start, float end)
     return result;
 }
 
-ParticleGradient make_linear_gradient(const glm::vec4& start, const glm::vec4& end)
+[[maybe_unused]] ParticleGradient make_linear_gradient(const glm::vec4& start, const glm::vec4& end)
 {
     ParticleGradient result;
     result.keys.push_back({0.0f, start});
@@ -455,9 +455,9 @@ float maybe_import_effect_events(
     } else if (!fallback_all_animations) {
         return 0.0f;
     } else {
-        for (const auto& anim : mdl.model.animations) {
-            if (!anim) { continue; }
-            collect_animation_effect_events(*anim, mdl, grouped);
+        for (const auto& animation : mdl.model.animations) {
+            if (!animation) { continue; }
+            collect_animation_effect_events(*animation, mdl, grouped);
         }
     }
 

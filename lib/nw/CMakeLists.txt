@@ -220,7 +220,22 @@ endif()
 include(../../cmake/ProjectSettings.cmake)
 
 include(../../cmake/CompilerWarnings.cmake)
-set_project_warnings(nw)
+set_project_warnings(nw OWN_SOURCES)
+
+if(NOT MSVC)
+  # -Wuseless-cast resolves typedefs on the compiling platform, so what it calls
+  # redundant here can be a real widening on Windows, where size_t is unsigned
+  # long long rather than unsigned long. Enabling it would mean deciding it per
+  # platform. See issues/nw-library-warnings-unchecked.md.
+  target_compile_options(nw PRIVATE -Wno-useless-cast)
+
+  # The VM dispatches through a computed goto, which ISO C++ does not have. It
+  # is a deliberate optimization behind a __GNUC__/__clang__ guard, with a
+  # switch-based fallback for MSVC, so -Wpedantic reports the design rather than
+  # a defect.
+  set_source_files_properties(smalls/VirtualMachine.cpp
+    PROPERTIES COMPILE_OPTIONS -Wno-pedantic)
+endif()
 
 include(../../cmake/Sanitizers.cmake)
 enable_sanitizers(nw)

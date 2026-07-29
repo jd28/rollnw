@@ -43,53 +43,53 @@ void register_core_test(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.test",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
-            if (args[0].type_id != rt->string_type() || args[1].type_id != rt->bool_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
+            if (args[0].type_id != runtime->string_type() || args[1].type_id != runtime->bool_type()) {
                 return Value{};
             }
 
             StringView name = "<test>";
             if (args[0].data.hptr.value != 0) {
-                name = rt->get_string_view(args[0].data.hptr);
+                name = runtime->get_string_view(args[0].data.hptr);
             }
 
-            rt->record_test_result(name, args[1].data.bval);
-            return Value(rt->void_type());
+            runtime->record_test_result(name, args[1].data.bval);
+            return Value(runtime->void_type());
         },
         .metadata = test_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.reset",
-        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
-            if (!rt || argc != 0) { return Value{}; }
-            rt->reset_test_state();
-            return Value(rt->void_type());
+        .wrapper = +[](Runtime* runtime, const Value*, uint8_t argc) -> Value {
+            if (!runtime || argc != 0) { return Value{}; }
+            runtime->reset_test_state();
+            return Value(runtime->void_type());
         },
         .metadata = reset_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.summary",
-        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
-            if (!rt || argc != 0) { return Value{}; }
-            rt->report_test_summary();
-            return Value(rt->void_type());
+        .wrapper = +[](Runtime* runtime, const Value*, uint8_t argc) -> Value {
+            if (!runtime || argc != 0) { return Value{}; }
+            runtime->report_test_summary();
+            return Value(runtime->void_type());
         },
         .metadata = summary_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.failures",
-        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
-            if (!rt || argc != 0) { return Value{}; }
-            return Value::make_int(static_cast<int32_t>(rt->test_failures()));
+        .wrapper = +[](Runtime* runtime, const Value*, uint8_t argc) -> Value {
+            if (!runtime || argc != 0) { return Value{}; }
+            return Value::make_int(static_cast<int32_t>(runtime->test_failures()));
         },
         .metadata = failures_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.test.count",
-        .wrapper = +[](Runtime* rt, const Value*, uint8_t argc) -> Value {
-            if (!rt || argc != 0) { return Value{}; }
-            return Value::make_int(static_cast<int32_t>(rt->test_count()));
+        .wrapper = +[](Runtime* runtime, const Value*, uint8_t argc) -> Value {
+            if (!runtime || argc != 0) { return Value{}; }
+            return Value::make_int(static_cast<int32_t>(runtime->test_count()));
         },
         .metadata = count_meta});
 }

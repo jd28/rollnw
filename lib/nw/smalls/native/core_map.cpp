@@ -33,11 +33,11 @@ void register_core_map(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.has_key",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
-            const Type* mtype = rt->get_type(args[0].type_id);
+            const Type* mtype = runtime->get_type(args[0].type_id);
             if (!mtype || mtype->type_kind != TK_map) {
                 return Value{};
             }
@@ -47,75 +47,75 @@ void register_core_map(Runtime& rt)
                 return Value{};
             }
 
-            return Value::make_bool(rt->map_contains(args[0].data.hptr, args[1]));
+            return Value::make_bool(runtime->map_contains(args[0].data.hptr, args[1]));
         },
         .metadata = has_key_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.keys",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
-            const Type* mtype = rt->get_type(args[0].type_id);
+            const Type* mtype = runtime->get_type(args[0].type_id);
             if (!mtype || mtype->type_kind != TK_map) {
                 return Value{};
             }
 
             TypeID key_type = mtype->type_params[0].as<TypeID>();
 
-            HeapPtr out_ptr = rt->create_array_typed(key_type, rt->map_size(args[0].data.hptr));
+            HeapPtr out_ptr = runtime->create_array_typed(key_type, runtime->map_size(args[0].data.hptr));
             if (out_ptr.value == 0) {
                 return Value{};
             }
-            IArray* out = rt->get_array_typed(out_ptr);
+            IArray* out = runtime->get_array_typed(out_ptr);
             if (!out) {
                 return Value{};
             }
 
-            HeapPtr iter = rt->map_iter_begin(args[0].data.hptr);
+            HeapPtr iter = runtime->map_iter_begin(args[0].data.hptr);
             Value k;
             Value v;
-            while (rt->map_iter_next(iter, k, v)) {
-                out->append_value(k, *rt);
+            while (runtime->map_iter_next(iter, k, v)) {
+                out->append_value(k, *runtime);
             }
-            rt->map_iter_end(args[0].data.hptr, iter);
+            runtime->map_iter_end(args[0].data.hptr, iter);
 
-            return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+            return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
         },
         .metadata = keys_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.map.values",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
-            const Type* mtype = rt->get_type(args[0].type_id);
+            const Type* mtype = runtime->get_type(args[0].type_id);
             if (!mtype || mtype->type_kind != TK_map) {
                 return Value{};
             }
 
             TypeID val_type = mtype->type_params[1].as<TypeID>();
 
-            HeapPtr out_ptr = rt->create_array_typed(val_type, rt->map_size(args[0].data.hptr));
+            HeapPtr out_ptr = runtime->create_array_typed(val_type, runtime->map_size(args[0].data.hptr));
             if (out_ptr.value == 0) {
                 return Value{};
             }
-            IArray* out = rt->get_array_typed(out_ptr);
+            IArray* out = runtime->get_array_typed(out_ptr);
             if (!out) {
                 return Value{};
             }
 
-            HeapPtr iter = rt->map_iter_begin(args[0].data.hptr);
+            HeapPtr iter = runtime->map_iter_begin(args[0].data.hptr);
             Value k;
             Value v;
-            while (rt->map_iter_next(iter, k, v)) {
-                out->append_value(v, *rt);
+            while (runtime->map_iter_next(iter, k, v)) {
+                out->append_value(v, *runtime);
             }
-            rt->map_iter_end(args[0].data.hptr, iter);
+            runtime->map_iter_end(args[0].data.hptr, iter);
 
-            return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+            return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
         },
         .metadata = values_meta});
 }

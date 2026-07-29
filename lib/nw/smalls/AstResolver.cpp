@@ -506,7 +506,7 @@ TypeID AstResolver::get_or_instantiate_type(TypeID generic_type_id, const Vector
     return nw::kernel::runtime().get_or_instantiate_type(generic_type_id, type_args);
 }
 
-std::optional<int32_t> AstResolver::eval_const_int(Expression* expr, SourceRange range)
+std::optional<int32_t> AstResolver::eval_const_int(Expression* expr, SourceRange /*range*/)
 {
     if (!expr) {
         return std::nullopt;

@@ -21,9 +21,9 @@ DialogPtr* DialogPtr::add()
     return add_ptr(ptr);
 }
 
-DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
+DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool link)
 {
-    if (is_link) {
+    if (link) {
         auto new_ptr = parent->create_ptr();
         *new_ptr = *ptr;
         new_ptr->is_link = true;
@@ -114,9 +114,9 @@ void DialogPtr::remove_condition_param(const String& key)
 }
 
 /// Removes condition parameter by index
-void DialogPtr::remove_condition_param(size_t index)
+void DialogPtr::remove_condition_param(size_t param_index)
 {
-    condition_params.erase(std::begin(condition_params) + index);
+    condition_params.erase(std::begin(condition_params) + param_index);
 }
 
 /// Sets condition parameter, if key does not exist key and value are appended
@@ -170,8 +170,8 @@ void DialogNode::set_action_param(const String& key, const String& value)
 }
 
 Dialog::Dialog()
-    : arena_(MB(1))
-    , is_valid_{true}
+    : is_valid_{true}
+    , arena_(MB(1))
 {
 }
 

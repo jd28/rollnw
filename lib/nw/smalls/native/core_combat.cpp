@@ -148,7 +148,7 @@ const nw::ObjectBase* as_object_const(nw::ObjectHandle obj)
     return nw::kernel::objects().get_object_base(obj);
 }
 
-nw::ObjectBase* as_object_base(nw::ObjectHandle obj)
+[[maybe_unused]] nw::ObjectBase* as_object_base(nw::ObjectHandle obj)
 {
     return nw::kernel::objects().get_object_base(obj);
 }
@@ -244,7 +244,7 @@ int32_t object_find_first_effect_of(nw::ObjectHandle obj, int32_t effect_type, i
 
     auto it = find_first_effect_of(begin + start_index, end, EffectType::make(effect_type), subtype);
     if (it == end) { return -1; }
-    return std::distance(begin, it);
+    return static_cast<int32_t>(std::distance(begin, it));
 }
 
 nw::Effect* effect_best_damage_reduction(nw::ObjectHandle obj, int32_t power)
@@ -325,7 +325,7 @@ int32_t roll_dice_amount(int32_t dice, int32_t sides, int32_t bonus, int32_t mul
     return nw::roll_dice(roll, multiplier);
 }
 
-int32_t object_id(nw::ObjectHandle obj)
+[[maybe_unused]] int32_t object_id(nw::ObjectHandle obj)
 {
     return static_cast<int32_t>(static_cast<uint32_t>(obj.id));
 }

@@ -12,46 +12,46 @@ PaletteTreeNode::PaletteTreeNode(nw::MemoryResource*)
 {
 }
 
-PaletteTreeNode* PaletteTreeNode::add_blueprint(String name, Resref resref, uint32_t strref)
+PaletteTreeNode* PaletteTreeNode::add_blueprint(String node_name, Resref node_resref, uint32_t node_strref)
 {
     if (type != PaletteNodeType::category) {
-        throw std::runtime_error(fmt::format("attempting to add a blueprint node '{}' to non-category node", name));
+        throw std::runtime_error(fmt::format("attempting to add a blueprint node '{}' to non-category node", node_name));
     }
 
     auto node = parent->make_node();
     node->type = PaletteNodeType::blueprint;
-    node->name = std::move(name);
-    node->strref = strref;
-    node->resref = resref;
+    node->name = std::move(node_name);
+    node->strref = node_strref;
+    node->resref = node_resref;
     children.push_back(node);
     return node;
 }
 
-PaletteTreeNode* PaletteTreeNode::add_branch(String name, uint32_t strref)
+PaletteTreeNode* PaletteTreeNode::add_branch(String node_name, uint32_t node_strref)
 {
     if (type != PaletteNodeType::branch) {
-        throw std::runtime_error(fmt::format("attempting to add a branch '{}' to non-branch node", name));
+        throw std::runtime_error(fmt::format("attempting to add a branch '{}' to non-branch node", node_name));
     }
 
     auto node = parent->make_node();
     node->type = PaletteNodeType::branch;
-    node->name = std::move(name);
-    node->strref = strref;
+    node->name = std::move(node_name);
+    node->strref = node_strref;
     children.push_back(node);
     return node;
 }
 
-PaletteTreeNode* PaletteTreeNode::add_category(String name, uint32_t strref, int id)
+PaletteTreeNode* PaletteTreeNode::add_category(String node_name, uint32_t node_strref, int node_id)
 {
     if (type != PaletteNodeType::branch) {
-        throw std::runtime_error(fmt::format("attempting to add a category node '{}' to non-branch node", name));
+        throw std::runtime_error(fmt::format("attempting to add a category node '{}' to non-branch node", node_name));
     }
 
     auto node = parent->make_node();
     node->type = PaletteNodeType::category;
-    node->name = std::move(name);
-    node->strref = strref;
-    node->id = id < 0 ? parent->next_id_++ : id;
+    node->name = std::move(node_name);
+    node->strref = node_strref;
+    node->id = static_cast<uint8_t>(node_id < 0 ? parent->next_id_++ : node_id);
     children.push_back(node);
     parent->node_map_.insert({node->id, node});
     return node;
@@ -108,7 +108,7 @@ PaletteTreeNode* Palette::add_category(String name, uint32_t strref, int id)
     node->type = PaletteNodeType::category;
     node->name = std::move(name);
     node->strref = strref;
-    node->id = id < 0 ? next_id_++ : id;
+    node->id = static_cast<uint8_t>(id < 0 ? next_id_++ : id);
     children.push_back(node);
     node_map_.insert({node->id, node});
     return node;
@@ -135,11 +135,11 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
 
     if (archive.find("id") != std::end(archive)) {
         node->type = PaletteNodeType::category;
-        node->id = archive.at("id").get<int>();
+        node->id = static_cast<uint8_t>(archive.at("id").get<int>());
 
         auto it = archive.find("display");
         if (it != archive.end()) {
-            node->display = archive["display"].get<int>();
+            node->display = static_cast<uint8_t>(archive["display"].get<int>());
         }
 
         self.node_map_.insert({node->id, node});
@@ -149,14 +149,14 @@ PaletteTreeNode* read_node(Palette& self, const nlohmann::json& archive)
 
         if (self.resource_type == ResourceType::utc) {
             node->cr = archive.at("cr").get<float>();
-            node->faction = archive.at("faction").get<int>();
+            node->faction = archive.at("faction").get<std::string>();
         }
     } else {
         node->type = PaletteNodeType::branch;
 
         auto it = archive.find("display");
         if (it != archive.end()) {
-            node->display = archive["display"].get<int>();
+            node->display = static_cast<uint8_t>(archive["display"].get<int>());
         }
     }
 
@@ -177,14 +177,14 @@ void Palette::from_json(const nlohmann::json& archive)
         auto it = archive.find("resource_type");
         if (it != archive.end()) {
             resource_type = ResourceType::from_extension(it->get<std::string>());
-            next_id_ = archive.at("next_available_id").get<int>();
+            next_id_ = static_cast<uint8_t>(archive.at("next_available_id").get<int>());
             if (resource_type == ResourceType::set) {
                 tileset = Resref(archive.at("tileset").get<std::string>());
             }
         }
 
-        for (const auto& it : archive.at("root")) {
-            children.push_back(read_node(*this, it));
+        for (const auto& entry : archive.at("root")) {
+            children.push_back(read_node(*this, entry));
         }
         is_valid_ = true;
     } catch (nlohmann::json::exception&) {

@@ -81,11 +81,10 @@ bool StaticTwoDA::parse()
 
     tk = tknz.next(); // Drop row number
 
-    size_t cur = 0, row = 0;
+    size_t row = 0;
     for (; !tk.empty(); tk = tknz.next()) {
         if (!is_newline(tk)) {
             rows_.push_back(tk);
-            ++cur;
         } else {
             ++row;
 

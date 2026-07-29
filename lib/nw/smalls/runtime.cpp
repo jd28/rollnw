@@ -195,13 +195,13 @@ const std::type_index Runtime::type_index{typeid(Runtime)};
 
 Runtime::Runtime(MemoryResource* scope)
     : Service(scope)
+    , propsets_{std::make_unique<PropsetPoolManager>()}
     , type_table_(scope)
+    , gc_{std::make_unique<GarbageCollector>(&heap_, this)}
+    , vm_{std::make_unique<VirtualMachine>()}
     , arena_(MB(256))
     , scope_(&arena_)
     , resman_{nw::kernel::global_allocator(), &kernel::resman()}
-    , gc_{std::make_unique<GarbageCollector>(&heap_, this)}
-    , vm_{std::make_unique<VirtualMachine>()}
-    , propsets_{std::make_unique<PropsetPoolManager>()}
 {
     void* mem = allocator()->allocate(sizeof(Context), alignof(Context));
     diagnostic_context_ = new (mem) Context();
@@ -1133,11 +1133,13 @@ TypeID Runtime::type_check_binary_op(Token op, TypeID lhs, TypeID rhs) const
         if (is_type_convertible(lhs, rhs)) {
             return lhs;
         }
+        [[fallthrough]];
     case TokenType::MODEQ:
     case TokenType::MOD:
         if (lhs == int_id_ && rhs == int_id_) {
             return int_id_;
         }
+        [[fallthrough]];
     case TokenType::PLUS:
     case TokenType::PLUSEQ:
         is_eq = op.type == TokenType::PLUSEQ;
@@ -4687,8 +4689,8 @@ bool Runtime::native_types_compatible(TypeID cpp_type, TypeID script_type) const
 
     // Wildcard for native structs (invalid_type_id from C++ accepts a registered native struct)
     if (cpp_type == invalid_type_id) {
-        const Type* script_info = get_type(script_type);
-        if (script_info && native_struct_layouts_.contains(script_info->name.view())) {
+        const Type* wildcard_info = get_type(script_type);
+        if (wildcard_info && native_struct_layouts_.contains(wildcard_info->name.view())) {
             return true;
         }
     }
@@ -5005,6 +5007,9 @@ void* Runtime::get_value_data_ptr(const Value& v) noexcept
 namespace {
 
 struct GenericAstSnapshot : NullVisitor {
+    /// Declaring a subset of the overloads hides the rest of the base's set.
+    using NullVisitor::visit;
+
     struct NodeState {
         TypeID type_id{};
         bool is_const = false;
@@ -6337,7 +6342,7 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                     if (!elem_obj || elem_obj->type_kind != TK_primitive) continue;
 
                     uint8_t* fptr = data + fd.offset;
-                    for (size_t j = 0; j < sec_nrows && j < (size_t)fixed_size; ++j) {
+                    for (size_t j = 0; j < sec_nrows && j < static_cast<size_t>(fixed_size); ++j) {
                         uint8_t* eptr = fptr + j * elem_obj->size;
                         if (elem_type == int_type()) {
                             int32_t v = 0;

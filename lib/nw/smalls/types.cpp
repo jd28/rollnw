@@ -139,17 +139,17 @@ TypeID TypeTable::reserve(StringView qualified_name)
     return TypeID{idx};
 }
 
-void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path)
+void TypeTable::define(TypeID id, const StructDecl* decl, StringView /*module_path*/)
 {
-    if (id == invalid_type_id || id.value < 1 || id.value > types_.size()) {
+    if (id == invalid_type_id || id.value < 1 || static_cast<size_t>(id.value) > types_.size()) {
         return;
     }
 
     uint32_t field_count = 0;
     for (auto* d : decl->decls) {
         if (auto* vdl = dynamic_cast<const DeclList*>(d)) {
-            field_count += vdl->decls.size();
-        } else if (auto* vd = dynamic_cast<const VarDecl*>(d)) {
+            field_count += static_cast<uint32_t>(vdl->decls.size());
+        } else if (dynamic_cast<const VarDecl*>(d)) {
             field_count++;
         }
     }
@@ -241,9 +241,9 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView module_path
     type_to_index_.insert({type, id.value});
 }
 
-void TypeTable::define(TypeID id, const TypeAlias* decl, StringView module_path, TypeID aliased_type_id)
+void TypeTable::define(TypeID id, const TypeAlias* /*decl*/, StringView /*module_path*/, TypeID aliased_type_id)
 {
-    if (id == invalid_type_id || id.value < 1 || id.value > types_.size()) {
+    if (id == invalid_type_id || id.value < 1 || static_cast<size_t>(id.value) > types_.size()) {
         return;
     }
 
@@ -259,9 +259,9 @@ void TypeTable::define(TypeID id, const TypeAlias* decl, StringView module_path,
     type_to_index_.insert({type, id.value});
 }
 
-void TypeTable::define(TypeID id, const NewtypeDecl* decl, StringView module_path, TypeID wrapped_type_id)
+void TypeTable::define(TypeID id, const NewtypeDecl* /*decl*/, StringView /*module_path*/, TypeID wrapped_type_id)
 {
-    if (id == invalid_type_id || id.value < 1 || id.value > types_.size()) {
+    if (id == invalid_type_id || id.value < 1 || static_cast<size_t>(id.value) > types_.size()) {
         return;
     }
 
@@ -282,8 +282,8 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
     uint32_t field_count = 0;
     for (auto* d : decl->decls) {
         if (auto* vdl = dynamic_cast<const DeclList*>(d)) {
-            field_count += vdl->decls.size();
-        } else if (auto* vd = dynamic_cast<const VarDecl*>(d)) {
+            field_count += static_cast<uint32_t>(vdl->decls.size());
+        } else if (dynamic_cast<const VarDecl*>(d)) {
             field_count++;
         }
     }
@@ -368,9 +368,9 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
 
     String qualified_name;
     if (!module_path.empty()) {
-        qualified_name = String(module_path) + "." + String(decl->identifier());
+        qualified_name = String(module_path) + "." + decl->identifier();
     } else {
-        qualified_name = String(decl->identifier());
+        qualified_name = decl->identifier();
     }
 
     Type type{
@@ -387,7 +387,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
 
 const StructDef* TypeTable::get(StructID id) const noexcept
 {
-    if (id.value < 1 || id.value > structs_.size()) {
+    if (id.value < 1 || static_cast<size_t>(id.value) > structs_.size()) {
         return nullptr;
     }
     return structs_[id.value - 1];
@@ -395,7 +395,7 @@ const StructDef* TypeTable::get(StructID id) const noexcept
 
 const TupleDef* TypeTable::get(TupleID id) const noexcept
 {
-    if (id.value < 1 || id.value > tuples_.size()) {
+    if (id.value < 1 || static_cast<size_t>(id.value) > tuples_.size()) {
         return nullptr;
     }
     return tuples_[id.value - 1];
@@ -403,7 +403,7 @@ const TupleDef* TypeTable::get(TupleID id) const noexcept
 
 const SumDef* TypeTable::get(SumID id) const noexcept
 {
-    if (id.value < 1 || id.value > sums_.size()) {
+    if (id.value < 1 || static_cast<size_t>(id.value) > sums_.size()) {
         return nullptr;
     }
     return sums_[id.value - 1];
@@ -411,7 +411,7 @@ const SumDef* TypeTable::get(SumID id) const noexcept
 
 const FunctionDef* TypeTable::get(FunctionID id) const noexcept
 {
-    if (id.value < 1 || id.value > functions_.size()) {
+    if (id.value < 1 || static_cast<size_t>(id.value) > functions_.size()) {
         return nullptr;
     }
     return functions_[id.value - 1];
@@ -474,9 +474,9 @@ TypeID TypeTable::add(const TypeAlias* decl, StringView module_path, TypeID alia
 {
     String qualified_name;
     if (!module_path.empty()) {
-        qualified_name = String(module_path) + "." + String(decl->identifier());
+        qualified_name = String(module_path) + "." + decl->identifier();
     } else {
-        qualified_name = String(decl->identifier());
+        qualified_name = decl->identifier();
     }
 
     const Type* aliased = get(aliased_type_id);
@@ -495,9 +495,9 @@ TypeID TypeTable::add(const NewtypeDecl* decl, StringView module_path, TypeID wr
 {
     String qualified_name;
     if (!module_path.empty()) {
-        qualified_name = String(module_path) + "." + String(decl->identifier());
+        qualified_name = String(module_path) + "." + decl->identifier();
     } else {
-        qualified_name = String(decl->identifier());
+        qualified_name = decl->identifier();
     }
 
     return add({
@@ -524,7 +524,7 @@ TypeID TypeTable::add(Type type)
 
 const Type* TypeTable::get(TypeID id) const
 {
-    if (id == invalid_type_id || id.value < 1 || id.value > types_.size()) {
+    if (id == invalid_type_id || id.value < 1 || static_cast<size_t>(id.value) > types_.size()) {
         return nullptr;
     }
 
@@ -538,9 +538,9 @@ const Type* TypeTable::get(std::string_view name) const
     return &types_[it->second - 1];
 }
 
-void TypeTable::define(TypeID id, const SumDecl* decl, StringView module_path)
+void TypeTable::define(TypeID id, const SumDecl* decl, StringView /*module_path*/)
 {
-    if (id == invalid_type_id || id.value < 1 || id.value > types_.size()) {
+    if (id == invalid_type_id || id.value < 1 || static_cast<size_t>(id.value) > types_.size()) {
         return;
     }
 
@@ -710,9 +710,9 @@ TypeID TypeTable::add(const SumDecl* decl, StringView module_path)
 
     String qualified_name;
     if (!module_path.empty()) {
-        qualified_name = String(module_path) + "." + String(decl->identifier());
+        qualified_name = String(module_path) + "." + decl->identifier();
     } else {
-        qualified_name = String(decl->identifier());
+        qualified_name = decl->identifier();
     }
 
     return add({

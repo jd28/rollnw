@@ -100,13 +100,13 @@ ObjectBase* ObjectArray::alloc(ObjectType type)
             auto& payload = internal.array[idx];
             version = payload.version; // version is bumped on destruction so no stale objects
             payload.obj = result;
-            internal.free_list_head_ = payload.next_free;
+            internal.free_list_head_ = static_cast<uint32_t>(payload.next_free);
         }
 
         ObjectHandle hndl;
         hndl.id = static_cast<ObjectID>(idx);
         hndl.type = type;
-        hndl.version = version;
+        hndl.version = version & 0xFFFFFF;
         result->set_handle(hndl);
     }
     return result;

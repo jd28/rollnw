@@ -32,7 +32,7 @@
         VkResult err = x;                                                    \
         if (err != VK_SUCCESS) {                                             \
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,                       \
-                "Vulkan error %d at %s:%d", (int)(err), __FILE__, __LINE__); \
+                "Vulkan error %d at %s:%d", static_cast<int>(err), __FILE__, __LINE__); \
             std::abort();                                                    \
         }                                                                    \
     } while (0)

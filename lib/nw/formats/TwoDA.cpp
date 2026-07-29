@@ -211,15 +211,14 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     }
     out << std::endl;
 
-    size_t cur = 0;
 
     size_t rows = tda.rows();
     for (size_t i = 0; i < rows; ++i) {
-        char buffer[24] = {0};
-        auto res = std::to_chars(buffer, buffer + 24, i);
-        size_t cur_size = res.ptr - buffer;
+        char row_buffer[24] = {0};
+        auto row_res = std::to_chars(row_buffer, row_buffer + 24, i);
+        size_t cur_size = row_res.ptr - row_buffer;
         sep.resize(pad + max_size - cur_size, ' ');
-        out << buffer << sep;
+        out << row_buffer << sep;
 
         for (size_t j = 0; j < tda.columns(); ++j) {
             bool quote = needs_quote(tda.rows_[i][j].view);
@@ -234,7 +233,6 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
         }
 
         out << std::endl;
-        ++cur;
     }
 
     return out;

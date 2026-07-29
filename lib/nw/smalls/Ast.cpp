@@ -123,7 +123,7 @@ CallExpression::CallExpression(Expression* expr_, MemoryResource* allocator)
 {
 }
 
-CastExpression::CastExpression(MemoryResource* allocator)
+CastExpression::CastExpression(MemoryResource* /*allocator*/)
 {
 }
 

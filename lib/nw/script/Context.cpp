@@ -16,8 +16,8 @@ Context::Context(Vector<String> include_paths, String command_script)
     , scope(&arena)
     , include_paths_{std::move(include_paths)}
     , dependencies_{}
-    , command_script_name_{std::move(command_script)}
     , resman_{nw::kernel::global_allocator(), &kernel::resman()}
+    , command_script_name_{std::move(command_script)}
     , type_map_{}
 {
     register_default_types();
@@ -51,8 +51,8 @@ Nss* Context::get(Resref resref, bool command_script)
     if (data.bytes.size()) {
         auto nss = std::make_unique<Nss>(std::move(data), this, command_script);
         nss->parse();
-        auto it = dependencies_.insert({res, std::move(nss)});
-        return it.first->second.get();
+        auto inserted = dependencies_.insert({res, std::move(nss)});
+        return inserted.first->second.get();
     }
 
     return nullptr;
@@ -82,9 +82,9 @@ void Context::register_engine_types()
 
     for (size_t i = 0; i < count; ++i) {
         auto lookup = fmt::format("ENGINE_STRUCTURE_{}", i);
-        auto it = command_script_->ast().defines.find(lookup);
-        if (it != std::end(command_script_->ast().defines)) {
-            type_id(it->second, true);
+        auto define = command_script_->ast().defines.find(lookup);
+        if (define != std::end(command_script_->ast().defines)) {
+            type_id(define->second, true);
         }
     }
 }
@@ -136,11 +136,13 @@ size_t Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
         if (is_type_convertible(lhs, rhs)) {
             return lhs;
         }
+        [[fallthrough]];
     case NssTokenType::MODEQ:
     case NssTokenType::MOD:
         if (lhs == int_ && rhs == int_) {
             return int_;
         }
+        [[fallthrough]];
     case NssTokenType::PLUS:
     case NssTokenType::PLUSEQ:
         is_eq = op.type == NssTokenType::PLUSEQ;

@@ -251,7 +251,7 @@ bool PropsetPoolManager::is_propset_type(const Runtime& rt, TypeID type_id) cons
     return has_annotation(def, "propset");
 }
 
-Value PropsetPoolManager::find(Runtime& rt, TypeID propset_type, ObjectHandle obj)
+Value PropsetPoolManager::find(Runtime& /*rt*/, TypeID propset_type, ObjectHandle obj)
 {
     if (!nw::kernel::objects().valid(obj)) {
         return Value{};

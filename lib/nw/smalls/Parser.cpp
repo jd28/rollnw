@@ -823,7 +823,6 @@ TypeExpression* Parser::parse_type()
     }
 
     auto* t = ast_.create_node<TypeExpression>();
-    Token first_ident = previous();
     // Don't use full expression parser to avoid parsing brace-init like `int { ... }`
     if (!check({TokenType::IDENTIFIER})) {
         diagnostic("expected type name", peek());
@@ -841,7 +840,6 @@ TypeExpression* Parser::parse_type()
     t->range_.start = name_token.loc.range.start;
 
     while (match({TokenType::DOT})) {
-        auto dot_token = previous();
         if (!check({TokenType::IDENTIFIER})) {
             diagnostic("expected identifier after '.'", peek());
             break;
@@ -878,7 +876,6 @@ TypeExpression* Parser::parse_type()
 
     // Check for fixed-size array syntax: T[N]
     if (match({TokenType::BRACKET_OPEN})) {
-        auto bracket_token = previous();
 
         // Parse array size (must be a constant expression)
         Expression* size_expr = parse_expr_shift();

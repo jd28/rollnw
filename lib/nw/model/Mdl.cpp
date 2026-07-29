@@ -341,19 +341,19 @@ Model::Model()
 {
 }
 
-Animation* Model::find_animation(StringView name)
+Animation* Model::find_animation(StringView anim_name)
 {
     for (auto& node : animations) {
-        if (string::icmp(node->name, name)) {
+        if (string::icmp(node->name, anim_name)) {
             return node.get();
         }
     }
     return nullptr;
 }
 
-const Animation* Model::find_animation(StringView name) const
+const Animation* Model::find_animation(StringView anim_name) const
 {
-    return const_cast<Model*>(this)->find_animation(name);
+    return const_cast<Model*>(this)->find_animation(anim_name);
 }
 
 Animation::Animation(String name_)

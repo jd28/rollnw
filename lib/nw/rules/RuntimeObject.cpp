@@ -206,7 +206,7 @@ TypedHandle RuntimeObjectPool::allocate_unmanaged_array(smalls::TypeID elem_type
     TypedHandle th;
     th.id = wrapper->generic_handle.id;
     th.type = TYPE_UNMANAGED_ARRAY;
-    th.generation = wrapper->generic_handle.generation;
+    th.generation = wrapper->generic_handle.generation & 0xFFFFFF;
     return th;
 }
 

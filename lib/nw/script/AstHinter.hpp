@@ -26,7 +26,7 @@ struct AstHinter : public BaseVisitor {
                 return sym.decl;
             }
         }
-        for (const auto it : reverse(parent_->ctx()->preprocessed_)) {
+        for (const auto& it : reverse(parent_->ctx()->preprocessed_)) {
             if (it.resref == parent_->name()) { break; }
             if (!it.script) { continue; }
             auto sym = it.script->locate_export(needle, false);
@@ -46,7 +46,7 @@ struct AstHinter : public BaseVisitor {
     }
 
     // Decls
-    virtual void visit(FunctionDecl* decl)
+    virtual void visit(FunctionDecl* /*decl*/)
     {
         // No op
     }
@@ -56,7 +56,7 @@ struct AstHinter : public BaseVisitor {
         if (decl->block) { decl->block->accept(this); }
     }
 
-    virtual void visit(StructDecl* decl)
+    virtual void visit(StructDecl* /*decl*/)
     {
         // No op
     }
@@ -96,8 +96,8 @@ struct AstHinter : public BaseVisitor {
             const FunctionDecl* fd = nullptr;
             if (auto d = dynamic_cast<const FunctionDecl*>(decl)) {
                 fd = d;
-            } else if (auto d = dynamic_cast<const FunctionDefinition*>(decl)) {
-                fd = d->decl_inline;
+            } else if (auto fdef = dynamic_cast<const FunctionDefinition*>(decl)) {
+                fd = fdef->decl_inline;
             }
             if (!fd) { return; }
 
@@ -131,7 +131,7 @@ struct AstHinter : public BaseVisitor {
         if (expr->rhs) { expr->rhs->accept(this); }
     }
 
-    virtual void visit(EmptyExpression* expr)
+    virtual void visit(EmptyExpression* /*expr*/)
     {
         // No Op
     }
@@ -141,12 +141,12 @@ struct AstHinter : public BaseVisitor {
         if (expr->expr) { expr->expr->accept(this); }
     }
 
-    virtual void visit(LiteralExpression* expr)
+    virtual void visit(LiteralExpression* /*expr*/)
     {
         // No op
     }
 
-    virtual void visit(LiteralVectorExpression* expr)
+    virtual void visit(LiteralVectorExpression* /*expr*/)
     {
         // No op
     }
@@ -167,7 +167,7 @@ struct AstHinter : public BaseVisitor {
         if (expr->rhs) { expr->rhs->accept(this); }
     }
 
-    virtual void visit(VariableExpression* expr)
+    virtual void visit(VariableExpression* /*expr*/)
     {
         // No op
     }
@@ -180,7 +180,7 @@ struct AstHinter : public BaseVisitor {
         }
     }
 
-    virtual void visit(DeclList* stmt)
+    virtual void visit(DeclList* /*stmt*/)
     {
         // No op
     }
@@ -192,7 +192,7 @@ struct AstHinter : public BaseVisitor {
         if (stmt->block) { stmt->block->accept(this); }
     }
 
-    virtual void visit(EmptyStatement* stmt)
+    virtual void visit(EmptyStatement* /*stmt*/)
     {
     }
 
@@ -222,7 +222,7 @@ struct AstHinter : public BaseVisitor {
         if (stmt->expr) { stmt->expr->accept(this); }
     }
 
-    virtual void visit(LabelStatement* stmt)
+    virtual void visit(LabelStatement* /*stmt*/)
     {
         // No Op
     }

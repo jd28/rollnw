@@ -8,14 +8,14 @@ namespace nw::smalls {
 // == TypedArray<int32_t> =====================================================
 
 template <>
-void TypedArray<int32_t>::append_value(const Value& v, Runtime& rt)
+void TypedArray<int32_t>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
     elements.push_back(v.data.ival);
 }
 
 template <>
-bool TypedArray<int32_t>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool TypedArray<int32_t>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     out = Value::make_int(elements[index]);
@@ -23,7 +23,7 @@ bool TypedArray<int32_t>::get_value(size_t index, Value& out, const Runtime& rt)
 }
 
 template <>
-bool TypedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& rt)
+bool TypedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
@@ -34,14 +34,14 @@ bool TypedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& rt)
 // == TypedArray<float> =======================================================
 
 template <>
-void TypedArray<float>::append_value(const Value& v, Runtime& rt)
+void TypedArray<float>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
     elements.push_back(v.data.fval);
 }
 
 template <>
-bool TypedArray<float>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool TypedArray<float>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     out = Value::make_float(elements[index]);
@@ -49,7 +49,7 @@ bool TypedArray<float>::get_value(size_t index, Value& out, const Runtime& rt) c
 }
 
 template <>
-bool TypedArray<float>::set_value(size_t index, const Value& v, Runtime& rt)
+bool TypedArray<float>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
@@ -60,14 +60,14 @@ bool TypedArray<float>::set_value(size_t index, const Value& v, Runtime& rt)
 // == TypedArray<bool> ========================================================
 
 template <>
-void TypedArray<bool>::append_value(const Value& v, Runtime& rt)
+void TypedArray<bool>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
     elements.push_back(v.data.bval);
 }
 
 template <>
-bool TypedArray<bool>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool TypedArray<bool>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     out = Value::make_bool(elements[index]);
@@ -75,7 +75,7 @@ bool TypedArray<bool>::get_value(size_t index, Value& out, const Runtime& rt) co
 }
 
 template <>
-bool TypedArray<bool>::set_value(size_t index, const Value& v, Runtime& rt)
+bool TypedArray<bool>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
@@ -86,14 +86,14 @@ bool TypedArray<bool>::set_value(size_t index, const Value& v, Runtime& rt)
 // == TypedArray<HeapPtr> (for strings, objects, etc.) =======================
 
 template <>
-void TypedArray<HeapPtr>::append_value(const Value& v, Runtime& rt)
+void TypedArray<HeapPtr>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);
     elements.push_back(v.data.hptr);
 }
 
 template <>
-bool TypedArray<HeapPtr>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool TypedArray<HeapPtr>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     out = Value::make_heap(elements[index], elem_type_id);
@@ -101,7 +101,7 @@ bool TypedArray<HeapPtr>::get_value(size_t index, Value& out, const Runtime& rt)
 }
 
 template <>
-bool TypedArray<HeapPtr>::set_value(size_t index, const Value& v, Runtime& rt)
+bool TypedArray<HeapPtr>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_id, "Type mismatch: expected {}, got {}", elem_type_id.value, v.type_id.value);

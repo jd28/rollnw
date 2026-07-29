@@ -13,7 +13,7 @@ struct TwoDATokenizer {
     StringView next()
     {
         StringView result;
-        size_t start, end;
+        size_t start = 0, end = 0;
         while (pos < buffer.size()) {
             switch (buffer[pos]) {
             default:

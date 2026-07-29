@@ -2,7 +2,19 @@
 #
 # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md
 
+# set_project_warnings(<target> [OWN_SOURCES] [NO_INTERFACE])
+#
+# Adds the project warning set to <target>'s INTERFACE, so anything linking it
+# is warned. INTERFACE never applies to the target's own translation units, so a
+# library checked this way does not check itself; pass OWN_SOURCES to also
+# compile the target's own sources with the set. For an executable, OWN_SOURCES
+# is the only form that does anything, since nothing links an executable.
+#
+# NO_INTERFACE skips the INTERFACE half. Use it when a target's consumers should
+# not inherit the set -- for example when a consumer compiles vendored sources
+# that the flags would then flood.
 function(set_project_warnings project_name)
+  cmake_parse_arguments(SPW "OWN_SOURCES;NO_INTERFACE" "" "" ${ARGN})
   option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 
   set(MSVC_WARNINGS
@@ -77,6 +89,12 @@ function(set_project_warnings project_name)
     message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
   endif()
 
-  target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
+  get_target_property(_target_type ${project_name} TYPE)
+  if(SPW_OWN_SOURCES AND NOT _target_type STREQUAL "INTERFACE_LIBRARY")
+    target_compile_options(${project_name} PRIVATE ${PROJECT_WARNINGS})
+  endif()
+  if(NOT SPW_NO_INTERFACE AND NOT _target_type STREQUAL "EXECUTABLE")
+    target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
+  endif()
 
 endfunction()

@@ -61,11 +61,11 @@ Image::Image(ResourceData data, bool log_errors)
 
 Image::Image(const Plt& plt, const PltColors& colors)
     : bytes_{nullptr}
+    , channels_(4)
+    , height_(plt.height())
+    , width_(plt.width())
     , is_dds_(false)
     , is_bio_dds_(false)
-    , width_(plt.width())
-    , height_(plt.height())
-    , channels_(4)
 {
     if (!plt.valid()) {
         is_loaded_ = false;

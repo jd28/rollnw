@@ -432,7 +432,6 @@ void CompiledFunction::disassemble(String* result, const BytecodeModule* module)
             uint16_t bx = instr.arg_bx();
             fmt::format_to(std::back_inserter(*result), "r{}, k({})", instr.arg_a(), bx);
             if (module && bx < module->constants.size()) {
-                const auto& k = module->constants[bx];
                 absl::StrAppend(result, " ; ");
                 // This assumes we can inspect constant types, which relies on the Variant or tracking
                 // Since Constant is a struct with a union, we need type_id or some way to know.
@@ -495,12 +494,12 @@ void CompiledFunction::disassemble(String* result, const BytecodeModule* module)
 
         case Opcode::CLOSURE: {
             uint16_t func_idx = instr.arg_bx();
-            size_t upvalue_count = 0;
+            size_t upvalues = 0;
             if (module && func_idx < module->functions.size()) {
-                upvalue_count = module->functions[func_idx]->upvalue_count;
+                upvalues = module->functions[func_idx]->upvalue_count;
             }
 
-            fmt::format_to(std::back_inserter(*result), "r{}, func={}, upvalues={}", instr.arg_a(), func_idx, upvalue_count);
+            fmt::format_to(std::back_inserter(*result), "r{}, func={}, upvalues={}", instr.arg_a(), func_idx, upvalues);
             absl::StrAppend(result, "\n");
 
             size_t words = (upvalue_count + 3) / 4;

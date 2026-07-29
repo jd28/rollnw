@@ -125,7 +125,7 @@ String path_to_string(const std::filesystem::path& path)
 #ifdef _MSC_VER
     return nowide::narrow(path.c_str());
 #else
-    return String(path.string());
+    return path.string();
 #endif
 }
 

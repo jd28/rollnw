@@ -1,5 +1,7 @@
 #include "Validator.hpp"
 
+#include "WalkVisitor.hpp"
+
 #include "AstConstEvaluator.hpp"
 #include "runtime.hpp"
 
@@ -175,9 +177,52 @@ bool switch_all_paths_return(const SwitchStatement* stmt)
 
 // == Validator ================================================================
 
-Validator::Validator(AstResolver& ctx)
-    : ctx(ctx)
+Validator::Validator(AstResolver& resolver)
+    : ctx(resolver)
 {
+}
+
+namespace {
+
+/// Collects every lambda in a subtree, including nested ones.
+struct LambdaCollector : WalkVisitor {
+    using WalkVisitor::visit;
+
+    Vector<LambdaExpression*> lambdas;
+
+    void visit(LambdaExpression* expr) override
+    {
+        lambdas.push_back(expr);
+        WalkVisitor::visit(expr);
+    }
+};
+
+} // namespace
+
+void Validator::validate_lambda_bodies(BlockStatement* block)
+{
+    if (!block) { return; }
+
+    LambdaCollector collector;
+    block->accept(&collector);
+
+    for (auto* lambda : collector.lambdas) {
+        if (!lambda->body) { continue; }
+
+        // A lambda body is its own function scope: `return` is valid inside it,
+        // and an enclosing loop or switch does not make `break` valid.
+        int saved_loop = loop_depth_;
+        int saved_switch = switch_depth_;
+        loop_depth_ = 0;
+        switch_depth_ = 0;
+        ++function_depth_;
+
+        lambda->body->accept(this);
+
+        --function_depth_;
+        switch_depth_ = saved_switch;
+        loop_depth_ = saved_loop;
+    }
 }
 
 void Validator::visit(Ast* script)
@@ -198,6 +243,7 @@ void Validator::visit(FunctionDefinition* decl)
 {
     ++function_depth_;
     decl->block->accept(this);
+    validate_lambda_bodies(decl->block);
 
     if (decl->type_id_ != nw::kernel::runtime().void_type()
         && !all_control_flow_paths_return(decl->block)) {

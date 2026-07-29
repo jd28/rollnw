@@ -88,104 +88,104 @@ void register_core_math(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.sin",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::sin(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::sin(args[0].data.fval));
         },
         .metadata = sin_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.cos",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::cos(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::cos(args[0].data.fval));
         },
         .metadata = cos_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.sqrt",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::sqrt(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::sqrt(args[0].data.fval));
         },
         .metadata = sqrt_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.log",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::log(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::log(args[0].data.fval));
         },
         .metadata = log_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.exp",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::exp(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::exp(args[0].data.fval));
         },
         .metadata = exp_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.ceil",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::ceil(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::ceil(args[0].data.fval));
         },
         .metadata = ceil_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.floor",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::floor(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::floor(args[0].data.fval));
         },
         .metadata = floor_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.round",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::round(args[0].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::round(args[0].data.fval));
         },
         .metadata = round_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.pow",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 2 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            if (args[1].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::pow(args[0].data.fval, args[1].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 2 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            if (args[1].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::pow(args[0].data.fval, args[1].data.fval));
         },
         .metadata = pow_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.atan2",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 2 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            if (args[1].type_id != rt->float_type()) { return Value{}; }
-            return Value::make_float(static_cast<float>(std::atan2(args[0].data.fval, args[1].data.fval)));
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 2 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            if (args[1].type_id != runtime->float_type()) { return Value{}; }
+            return Value::make_float(std::atan2(args[0].data.fval, args[1].data.fval));
         },
         .metadata = atan2_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.math.make_vec3",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 3 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->float_type()) { return Value{}; }
-            if (args[1].type_id != rt->float_type()) { return Value{}; }
-            if (args[2].type_id != rt->float_type()) { return Value{}; }
-            return detail::make_value(rt, glm::vec3{args[0].data.fval, args[1].data.fval, args[2].data.fval});
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 3 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->float_type()) { return Value{}; }
+            if (args[1].type_id != runtime->float_type()) { return Value{}; }
+            if (args[2].type_id != runtime->float_type()) { return Value{}; }
+            return detail::make_value(runtime, glm::vec3{args[0].data.fval, args[1].data.fval, args[2].data.fval});
         },
         .metadata = make_vec3_meta});
 }

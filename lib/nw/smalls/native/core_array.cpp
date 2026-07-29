@@ -244,28 +244,28 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.map",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
 
-            IArray* in = rt->get_array_typed(args[0].data.hptr);
+            IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
             TypeID in_elem = in->element_type();
 
-            const Type* ftype = rt->get_type(args[1].type_id);
+            const Type* ftype = runtime->get_type(args[1].type_id);
             if (!ftype || ftype->type_kind != TK_function) { return Value{}; }
-            if (rt->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
-            TypeID param0 = rt->get_function_param_type(args[1].type_id, 0);
-            if (param0 != rt->any_type() && param0 != in_elem) { return Value{}; }
+            if (runtime->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
+            TypeID param0 = runtime->get_function_param_type(args[1].type_id, 0);
+            if (param0 != runtime->any_type() && param0 != in_elem) { return Value{}; }
 
-            TypeID out_elem = rt->get_function_return_type(args[1].type_id);
-            if (out_elem == invalid_type_id || out_elem == rt->any_type()) { return Value{}; }
+            TypeID out_elem = runtime->get_function_return_type(args[1].type_id);
+            if (out_elem == invalid_type_id || out_elem == runtime->any_type()) { return Value{}; }
 
-            HeapPtr out_ptr = rt->create_array_typed(out_elem, in->size());
+            HeapPtr out_ptr = runtime->create_array_typed(out_elem, in->size());
             if (out_ptr.value == 0) { return Value{}; }
 
-            IArray* out = rt->get_array_typed(out_ptr);
+            IArray* out = runtime->get_array_typed(out_ptr);
             if (!out) { return Value{}; }
 
             ScriptClosure closure{args[1].data.hptr};
@@ -274,43 +274,43 @@ void register_core_array(Runtime& rt)
 
             Value v;
             for (size_t i = 0; i < in->size(); ++i) {
-                if (!in->get_value(i, v, *rt)) {
+                if (!in->get_value(i, v, *runtime)) {
                     return Value{};
                 }
                 call_args.clear();
                 call_args.push_back(v);
-                Value r = rt->call_closure(closure, call_args);
+                Value r = runtime->call_closure(closure, call_args);
                 if (r.type_id != out_elem) {
                     return Value{};
                 }
-                out->append_value(r, *rt);
+                out->append_value(r, *runtime);
             }
 
-            return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+            return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
         },
         .metadata = map_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.filter",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
 
-            IArray* in = rt->get_array_typed(args[0].data.hptr);
+            IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
             TypeID elem_type = in->element_type();
 
-            const Type* ptype = rt->get_type(args[1].type_id);
+            const Type* ptype = runtime->get_type(args[1].type_id);
             if (!ptype || ptype->type_kind != TK_function) { return Value{}; }
-            if (rt->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
-            TypeID param0 = rt->get_function_param_type(args[1].type_id, 0);
-            if (param0 != rt->any_type() && param0 != elem_type) { return Value{}; }
-            if (rt->get_function_return_type(args[1].type_id) != rt->bool_type()) { return Value{}; }
+            if (runtime->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
+            TypeID param0 = runtime->get_function_param_type(args[1].type_id, 0);
+            if (param0 != runtime->any_type() && param0 != elem_type) { return Value{}; }
+            if (runtime->get_function_return_type(args[1].type_id) != runtime->bool_type()) { return Value{}; }
 
-            HeapPtr out_ptr = rt->create_array_typed(elem_type, 0);
+            HeapPtr out_ptr = runtime->create_array_typed(elem_type, 0);
             if (out_ptr.value == 0) { return Value{}; }
-            IArray* out = rt->get_array_typed(out_ptr);
+            IArray* out = runtime->get_array_typed(out_ptr);
             if (!out) { return Value{}; }
 
             ScriptClosure closure{args[1].data.hptr};
@@ -319,47 +319,47 @@ void register_core_array(Runtime& rt)
 
             Value v;
             for (size_t i = 0; i < in->size(); ++i) {
-                if (!in->get_value(i, v, *rt)) {
+                if (!in->get_value(i, v, *runtime)) {
                     return Value{};
                 }
                 call_args.clear();
                 call_args.push_back(v);
-                Value r = rt->call_closure(closure, call_args);
-                if (r.type_id != rt->bool_type()) {
+                Value r = runtime->call_closure(closure, call_args);
+                if (r.type_id != runtime->bool_type()) {
                     return Value{};
                 }
                 if (r.data.bval) {
-                    out->append_value(v, *rt);
+                    out->append_value(v, *runtime);
                 }
             }
 
-            return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+            return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
         },
         .metadata = filter_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.reduce",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 3) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 3) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[2].storage != ValueStorage::heap || args[2].data.hptr.value == 0) { return Value{}; }
 
-            IArray* in = rt->get_array_typed(args[0].data.hptr);
+            IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
 
             TypeID elem_type = in->element_type();
             TypeID acc_type = args[1].type_id;
-            if (acc_type == invalid_type_id || acc_type == rt->any_type()) { return Value{}; }
+            if (acc_type == invalid_type_id || acc_type == runtime->any_type()) { return Value{}; }
 
-            const Type* stype = rt->get_type(args[2].type_id);
+            const Type* stype = runtime->get_type(args[2].type_id);
             if (!stype || stype->type_kind != TK_function) { return Value{}; }
-            if (rt->get_function_param_count(args[2].type_id) != 2) { return Value{}; }
+            if (runtime->get_function_param_count(args[2].type_id) != 2) { return Value{}; }
 
-            TypeID p0 = rt->get_function_param_type(args[2].type_id, 0);
-            TypeID p1 = rt->get_function_param_type(args[2].type_id, 1);
-            if (p0 != rt->any_type() && p0 != acc_type) { return Value{}; }
-            if (p1 != rt->any_type() && p1 != elem_type) { return Value{}; }
-            if (rt->get_function_return_type(args[2].type_id) != acc_type) { return Value{}; }
+            TypeID p0 = runtime->get_function_param_type(args[2].type_id, 0);
+            TypeID p1 = runtime->get_function_param_type(args[2].type_id, 1);
+            if (p0 != runtime->any_type() && p0 != acc_type) { return Value{}; }
+            if (p1 != runtime->any_type() && p1 != elem_type) { return Value{}; }
+            if (runtime->get_function_return_type(args[2].type_id) != acc_type) { return Value{}; }
 
             Value acc = args[1];
             ScriptClosure closure{args[2].data.hptr};
@@ -368,13 +368,13 @@ void register_core_array(Runtime& rt)
 
             Value v;
             for (size_t i = 0; i < in->size(); ++i) {
-                if (!in->get_value(i, v, *rt)) {
+                if (!in->get_value(i, v, *runtime)) {
                     return Value{};
                 }
                 call_args.clear();
                 call_args.push_back(acc);
                 call_args.push_back(v);
-                Value r = rt->call_closure(closure, call_args);
+                Value r = runtime->call_closure(closure, call_args);
                 if (r.type_id != acc_type) {
                     return Value{};
                 }
@@ -387,53 +387,53 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.sort",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
 
-            IArray* arr = rt->get_array_typed(args[0].data.hptr);
+            IArray* arr = runtime->get_array_typed(args[0].data.hptr);
             if (!arr) { return Value{}; }
             TypeID elem_type = arr->element_type();
 
-            const Type* ltype = rt->get_type(args[1].type_id);
+            const Type* ltype = runtime->get_type(args[1].type_id);
             if (!ltype || ltype->type_kind != TK_function) { return Value{}; }
-            if (rt->get_function_param_count(args[1].type_id) != 2) { return Value{}; }
-            TypeID p0 = rt->get_function_param_type(args[1].type_id, 0);
-            TypeID p1 = rt->get_function_param_type(args[1].type_id, 1);
-            if (p0 != rt->any_type() && p0 != elem_type) { return Value{}; }
-            if (p1 != rt->any_type() && p1 != elem_type) { return Value{}; }
-            if (rt->get_function_return_type(args[1].type_id) != rt->bool_type()) { return Value{}; }
+            if (runtime->get_function_param_count(args[1].type_id) != 2) { return Value{}; }
+            TypeID p0 = runtime->get_function_param_type(args[1].type_id, 0);
+            TypeID p1 = runtime->get_function_param_type(args[1].type_id, 1);
+            if (p0 != runtime->any_type() && p0 != elem_type) { return Value{}; }
+            if (p1 != runtime->any_type() && p1 != elem_type) { return Value{}; }
+            if (runtime->get_function_return_type(args[1].type_id) != runtime->bool_type()) { return Value{}; }
 
             ScriptClosure closure{args[1].data.hptr};
             Vector<Value> call_args;
             call_args.reserve(2);
 
-            SortContext ctx{arr, rt, &closure, &call_args};
+            SortContext ctx{arr, runtime, &closure, &call_args};
             introsort(ctx, arr->size());
             if (ctx.failed) { return Value{}; }
 
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = sort_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.find",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 2) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 2) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
 
-            IArray* in = rt->get_array_typed(args[0].data.hptr);
+            IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
             TypeID elem_type = in->element_type();
 
-            const Type* ptype = rt->get_type(args[1].type_id);
+            const Type* ptype = runtime->get_type(args[1].type_id);
             if (!ptype || ptype->type_kind != TK_function) { return Value{}; }
-            if (rt->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
-            TypeID param0 = rt->get_function_param_type(args[1].type_id, 0);
-            if (param0 != rt->any_type() && param0 != elem_type) { return Value{}; }
-            if (rt->get_function_return_type(args[1].type_id) != rt->bool_type()) { return Value{}; }
+            if (runtime->get_function_param_count(args[1].type_id) != 1) { return Value{}; }
+            TypeID param0 = runtime->get_function_param_type(args[1].type_id, 0);
+            if (param0 != runtime->any_type() && param0 != elem_type) { return Value{}; }
+            if (runtime->get_function_return_type(args[1].type_id) != runtime->bool_type()) { return Value{}; }
 
             ScriptClosure closure{args[1].data.hptr};
             Vector<Value> call_args;
@@ -441,11 +441,11 @@ void register_core_array(Runtime& rt)
 
             Value v;
             for (size_t i = 0; i < in->size(); ++i) {
-                if (!in->get_value(i, v, *rt)) { return Value{}; }
+                if (!in->get_value(i, v, *runtime)) { return Value{}; }
                 call_args.clear();
                 call_args.push_back(v);
-                Value r = rt->call_closure(closure, call_args);
-                if (r.type_id != rt->bool_type()) { return Value{}; }
+                Value r = runtime->call_closure(closure, call_args);
+                if (r.type_id != runtime->bool_type()) { return Value{}; }
                 if (r.data.bval) {
                     return Value::make_int(static_cast<int32_t>(i));
                 }
@@ -456,35 +456,35 @@ void register_core_array(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.reverse",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
 
-            IArray* arr = rt->get_array_typed(args[0].data.hptr);
+            IArray* arr = runtime->get_array_typed(args[0].data.hptr);
             if (!arr) { return Value{}; }
 
             size_t n = arr->size();
             Value lo_val, hi_val;
             for (size_t i = 0; i < n / 2; ++i) {
                 size_t j = n - 1 - i;
-                if (!arr->get_value(i, lo_val, *rt)) { return Value{}; }
-                if (!arr->get_value(j, hi_val, *rt)) { return Value{}; }
-                if (!arr->set_value(i, hi_val, *rt)) { return Value{}; }
-                if (!arr->set_value(j, lo_val, *rt)) { return Value{}; }
+                if (!arr->get_value(i, lo_val, *runtime)) { return Value{}; }
+                if (!arr->get_value(j, hi_val, *runtime)) { return Value{}; }
+                if (!arr->set_value(i, hi_val, *runtime)) { return Value{}; }
+                if (!arr->set_value(j, lo_val, *runtime)) { return Value{}; }
             }
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = reverse_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.array.slice",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 3) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 3) { return Value{}; }
             if (args[0].storage != ValueStorage::heap || args[0].data.hptr.value == 0) { return Value{}; }
-            if (args[1].type_id != rt->int_type()) { return Value{}; }
-            if (args[2].type_id != rt->int_type()) { return Value{}; }
+            if (args[1].type_id != runtime->int_type()) { return Value{}; }
+            if (args[2].type_id != runtime->int_type()) { return Value{}; }
 
-            IArray* in = rt->get_array_typed(args[0].data.hptr);
+            IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
             TypeID elem_type = in->element_type();
 
@@ -497,24 +497,24 @@ void register_core_array(Runtime& rt)
             if (start > len) { start = len; }
             if (end > len) { end = len; }
             if (start >= end) {
-                HeapPtr out_ptr = rt->create_array_typed(elem_type, 0);
+                HeapPtr out_ptr = runtime->create_array_typed(elem_type, 0);
                 if (out_ptr.value == 0) { return Value{}; }
-                return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+                return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
             }
 
             size_t count = static_cast<size_t>(end - start);
-            HeapPtr out_ptr = rt->create_array_typed(elem_type, count);
+            HeapPtr out_ptr = runtime->create_array_typed(elem_type, count);
             if (out_ptr.value == 0) { return Value{}; }
-            IArray* out = rt->get_array_typed(out_ptr);
+            IArray* out = runtime->get_array_typed(out_ptr);
             if (!out) { return Value{}; }
 
             Value v;
             for (size_t i = 0; i < count; ++i) {
-                if (!in->get_value(static_cast<size_t>(start) + i, v, *rt)) { return Value{}; }
-                out->append_value(v, *rt);
+                if (!in->get_value(static_cast<size_t>(start) + i, v, *runtime)) { return Value{}; }
+                out->append_value(v, *runtime);
             }
 
-            return Value::make_heap(out_ptr, rt->heap_.get_header(out_ptr)->type_id);
+            return Value::make_heap(out_ptr, runtime->heap_.get_header(out_ptr)->type_id);
         },
         .metadata = slice_meta});
 }

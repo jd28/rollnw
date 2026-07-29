@@ -15,7 +15,7 @@ LevelHistory::LevelHistory()
 {
 }
 
-LevelHistory::LevelHistory(nw::MemoryResource* allocator)
+LevelHistory::LevelHistory(nw::MemoryResource* /*allocator*/)
 {
 }
 

@@ -671,6 +671,16 @@ TEST(Nss, Lexer)
     script::NssLexer lexer6{"0x123456789abCdEf", ctx.get()};
     EXPECT_EQ(lexer6.next().type, script::NssTokenType::INTEGER_CONST);
 
+    // An octal literal must stop at the first non-octal digit. The bound was
+    // written `cur >= '0' || cur <= '7'`, which is true for every character, so
+    // the literal swallowed the rest of the buffer.
+    script::NssLexer octal{"0o17 + 1", ctx.get()};
+    EXPECT_EQ(octal.next().loc.view(), "0o17");
+    EXPECT_EQ(octal.next().type, script::NssTokenType::PLUS);
+
+    script::NssLexer octal_stop{"0o189", ctx.get()};
+    EXPECT_EQ(octal_stop.next().loc.view(), "0o1") << "8 is not an octal digit";
+
     script::NssLexer lexer7{"~value", ctx.get()};
     EXPECT_EQ(lexer7.next().type, script::NssTokenType::TILDE);
 

@@ -163,7 +163,7 @@ uint16_t eval_sprite_frame(const ParticleSpriteSheet& sheet, float age, float no
     return static_cast<uint16_t>(frame_begin + frame_index);
 }
 
-glm::vec3 initial_emission_direction(const CompiledParticleEmitter& emitter, ParticleEmitterState& state, float spread_radians)
+glm::vec3 initial_emission_direction(const CompiledParticleEmitter& /*emitter*/, ParticleEmitterState& state, float spread_radians)
 {
     glm::vec3 direction = transform_direction(state.world_transform, glm::vec3{0.0f, 0.0f, 1.0f});
     if (spread_radians > 0.0f) {
@@ -1197,7 +1197,7 @@ void spawn_continuous_particles(ParticleSystemInstance& system, uint16_t emitter
     if (emitter.emission.metric == ParticleSpawnMetric::per_second) {
         state.spawn_accumulator += emission_rate * dt;
         const auto requested_count = static_cast<uint32_t>(state.spawn_accumulator);
-        state.spawn_accumulator -= requested_count;
+        state.spawn_accumulator -= static_cast<float>(requested_count);
         const auto range = reserve_spawn_range(system, emitter_id, requested_count);
 
         for (uint32_t n = 0; n < range.count; ++n) {
@@ -1214,7 +1214,7 @@ void spawn_continuous_particles(ParticleSystemInstance& system, uint16_t emitter
         const float distance = glm::distance(previous_pos, current_pos);
         state.distance_accumulator += distance * emission_rate;
         const auto requested_count = static_cast<uint32_t>(state.distance_accumulator);
-        state.distance_accumulator -= requested_count;
+        state.distance_accumulator -= static_cast<float>(requested_count);
         const auto range = reserve_spawn_range(system, emitter_id, requested_count);
 
         for (uint32_t n = 0; n < range.count; ++n) {
@@ -1588,7 +1588,6 @@ void tick_particle_system(ParticleSystemInstance& system, float dt, const Partic
             const uint32_t end = system.tick_offsets[emitter_index + 1];
             if (begin == end) { continue; }
 
-            const auto emitter_id = static_cast<uint16_t>(emitter_index);
             const auto& emitter = system.effect->emitters[emitter_index];
             const auto& emitter_state = system.emitters[emitter_index];
 

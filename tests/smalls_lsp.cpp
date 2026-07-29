@@ -1273,3 +1273,44 @@ fn probe(): int {
         EXPECT_NE(hint.kind, nw::smalls::InlayHintKind::parameter);
     }
 }
+
+// Validator never enters an expression, so a lambda body was not validated at
+// all. The -Woverloaded-virtual warning on Validator pointed straight at it.
+TEST_F(SmallsLSP, ValidatorChecksControlFlowInsideLambdaBodies)
+{
+    auto invalid = make_script(R"(fn probe(): int {
+    var f = fn(): int {
+        break;
+        return 1;
+    };
+    return 1;
+})"sv);
+    EXPECT_NO_THROW(invalid.parse());
+    EXPECT_NO_THROW(invalid.resolve());
+    EXPECT_GT(invalid.errors(), 0u) << "break inside a lambda is not in any loop";
+
+    // An enclosing loop does not reach into the lambda.
+    auto enclosed = make_script(R"(fn probe(items: array!(int)): int {
+    for (var i in items) {
+        var f = fn(): int {
+            break;
+            return 1;
+        };
+    }
+    return 1;
+})"sv);
+    EXPECT_NO_THROW(enclosed.parse());
+    EXPECT_NO_THROW(enclosed.resolve());
+    EXPECT_GT(enclosed.errors(), 0u) << "the lambda is its own scope";
+
+    // A lambda body is a function scope, so `return` in one is fine.
+    auto valid = make_script(R"(fn probe(): int {
+    var f = fn(): int {
+        return 1;
+    };
+    return 1;
+})"sv);
+    EXPECT_NO_THROW(valid.parse());
+    EXPECT_NO_THROW(valid.resolve());
+    EXPECT_EQ(valid.errors(), 0u);
+}

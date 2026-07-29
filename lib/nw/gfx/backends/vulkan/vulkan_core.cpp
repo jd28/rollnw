@@ -118,12 +118,12 @@ inline void get_default_device_extensions(std::vector<const char*>& exts)
     exts.push_back(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
 }
 
-inline void get_platform_surface_extensions_unused(std::vector<const char*>& exts)
+inline void get_platform_surface_extensions_unused(std::vector<const char*>& /*exts*/)
 {
 #if defined(VK_USE_PLATFORM_DISPLAY_KHR)
     exts.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
 #else
-#pragma error Platform not supported
+    // No display surface extension for this platform; this helper is unused.
 #endif
 }
 
@@ -307,7 +307,7 @@ Core* create_core(const CoreConfig& desc)
 
     VkResult volk_result = volkInitialize();
     if (volk_result != VK_SUCCESS) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "volkInitialize failed: %d", (int)volk_result);
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "volkInitialize failed: %d", static_cast<int>(volk_result));
         std::abort();
     }
 

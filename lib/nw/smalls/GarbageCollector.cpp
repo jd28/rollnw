@@ -92,7 +92,7 @@ void GarbageCollector::try_emergency_collect_minor()
     emergency_collecting_ = false;
 }
 
-void GarbageCollector::on_allocation(size_t size)
+void GarbageCollector::on_allocation(size_t /*size*/)
 {
     // Don't do major GC work while a minor cycle is in progress.
     // Minor sub-phases (scan_remembered, trace_gray) set phase_ = mark_incremental
@@ -101,7 +101,8 @@ void GarbageCollector::on_allocation(size_t size)
         return;
     }
 
-    if (phase_ == GCPhase::idle && heap_->old_bytes() > config_.major_threshold_percent * heap_->committed()) {
+    if (phase_ == GCPhase::idle && heap_->old_bytes() > static_cast<size_t>(config_.major_threshold_percent
+                * static_cast<float>(heap_->committed()))) {
         start_major_gc();
     }
 

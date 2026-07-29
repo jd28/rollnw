@@ -73,7 +73,7 @@ TypedHandle TypedHandlePool::allocate()
     header->free_list_next = sentinal;
     TypedHandle result;
     result.id = index;
-    result.generation = header->generation;
+    result.generation = header->generation & 0xFFFFFF;
 
     uint8_t* data_start = reinterpret_cast<uint8_t*>(header) + sizeof(TypedHandleHeader);
     std::memset(data_start, 0, object_size_);

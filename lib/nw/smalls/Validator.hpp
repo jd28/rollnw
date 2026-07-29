@@ -8,6 +8,9 @@ namespace nw::smalls {
 struct Validator : NullVisitor {
     explicit Validator(AstResolver& ctx);
 
+    /// Declaring a subset of the overloads hides the rest of the base's set.
+    using NullVisitor::visit;
+
     void visit(Ast* script) override;
     void visit(FunctionDefinition* decl) override;
     void visit(BlockStatement* stmt) override;
@@ -24,6 +27,11 @@ private:
     int loop_depth_ = 0;
     int switch_depth_ = 0;
     int function_depth_ = 0;
+
+    /// Validates each lambda body in a function as its own function scope.
+    /// Validator's own traversal never enters an expression, so without this a
+    /// `break` inside a lambda is never checked.
+    void validate_lambda_bodies(BlockStatement* block);
 
     void validate_operator_consistency();
     void validate_map_key_types();

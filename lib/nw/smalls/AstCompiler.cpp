@@ -333,8 +333,8 @@ bool AstCompiler::try_emit_export_const(const ExportConstValue& exported, TypeID
             emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
         }
         emitted = true;
-    } else if (const auto* v = std::get_if<float>(&exported.value)) {
-        uint32_t k_idx = add_constant_float(*v);
+    } else if (const auto* fval = std::get_if<float>(&exported.value)) {
+        uint32_t k_idx = add_constant_float(*fval);
         if (k_idx > 65535) {
             registers_.free(result);
             fail("Constant pool overflow");
@@ -342,11 +342,11 @@ bool AstCompiler::try_emit_export_const(const ExportConstValue& exported, TypeID
         }
         emit_abx(Opcode::LOADK, result, static_cast<uint16_t>(k_idx));
         emitted = true;
-    } else if (const auto* v = std::get_if<bool>(&exported.value)) {
-        emit_abc(Opcode::LOADB, result, *v ? 1 : 0, 0);
+    } else if (const auto* bval = std::get_if<bool>(&exported.value)) {
+        emit_abc(Opcode::LOADB, result, *bval ? 1 : 0, 0);
         emitted = true;
-    } else if (const auto* v = std::get_if<String>(&exported.value)) {
-        uint32_t k_idx = add_constant_string(*v);
+    } else if (const auto* sval = std::get_if<String>(&exported.value)) {
+        uint32_t k_idx = add_constant_string(*sval);
         if (k_idx > 65535) {
             registers_.free(result);
             fail("Constant pool overflow");
@@ -422,13 +422,13 @@ bool AstCompiler::compile()
     uint16_t global_slot = 0;
     for (auto* decl : script_->ast().decls) {
         if (auto* var = dynamic_cast<VarDecl*>(decl)) {
-            module_globals_[String(var->identifier())] = {global_slot, var->is_const_};
-            module_->global_slot_map[String(var->identifier())] = global_slot;
+            module_globals_[var->identifier()] = {global_slot, var->is_const_};
+            module_->global_slot_map[var->identifier()] = global_slot;
             ++global_slot;
         } else if (auto* decl_list = dynamic_cast<DeclList*>(decl)) {
             for (auto& d : decl_list->decls) {
-                module_globals_[String(d->identifier())] = {global_slot, d->is_const_};
-                module_->global_slot_map[String(d->identifier())] = global_slot;
+                module_globals_[d->identifier()] = {global_slot, d->is_const_};
+                module_->global_slot_map[d->identifier()] = global_slot;
                 ++global_slot;
             }
         }
@@ -467,7 +467,7 @@ bool AstCompiler::compile()
 
         for (auto* decl : script_->ast().decls) {
             if (auto* var = dynamic_cast<VarDecl*>(decl)) {
-                auto git = module_globals_.find(String(var->identifier()));
+                auto git = module_globals_.find(var->identifier());
                 if (git == module_globals_.end()) { continue; }
                 uint16_t slot = git->second.slot;
 
@@ -1216,13 +1216,13 @@ bool AstCompiler::emit_script_operator_call(const ScriptFunctionRef& ref,
     uint8_t base_reg = registers_.allocate_contiguous(count);
 
     for (uint8_t i = 0; i < argc; ++i) {
-        emit_abc(Opcode::MOVE, base_reg + 1 + i, arg_regs[i], 0);
+        emit_abc(Opcode::MOVE, static_cast<uint8_t>(base_reg + 1 + i), arg_regs[i], 0);
     }
 
     emit_abc(Opcode::CALLEXT, base_reg, static_cast<uint8_t>(ext_idx), argc);
 
     for (uint8_t i = 0; i < argc; ++i) {
-        registers_.free(base_reg + 1 + i);
+        registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
     }
 
     out_result = base_reg;
@@ -1231,12 +1231,12 @@ bool AstCompiler::emit_script_operator_call(const ScriptFunctionRef& ref,
 
 // == Visitor Methods (Declarations) ==========================================
 
-void AstCompiler::visit(Ast* ast)
+void AstCompiler::visit(Ast* /*ast*/)
 {
     // Top-level - should not be visited directly
 }
 
-void AstCompiler::visit(FunctionDefinition* decl)
+void AstCompiler::visit(FunctionDefinition* /*decl*/)
 {
     // Handled by compile_function, should not be visited recursively
 }
@@ -1309,14 +1309,14 @@ void AstCompiler::visit(VarDecl* decl)
     }
 }
 
-void AstCompiler::visit(StructDecl* decl) { }
-void AstCompiler::visit(SumDecl* decl) { }
-void AstCompiler::visit(VariantDecl* decl) { }
-void AstCompiler::visit(TypeAlias* decl) { }
-void AstCompiler::visit(NewtypeDecl* decl) { }
-void AstCompiler::visit(OpaqueTypeDecl* decl) { }
-void AstCompiler::visit(AliasedImportDecl* decl) { }
-void AstCompiler::visit(SelectiveImportDecl* decl) { }
+void AstCompiler::visit(StructDecl* /*decl*/) { }
+void AstCompiler::visit(SumDecl* /*decl*/) { }
+void AstCompiler::visit(VariantDecl* /*decl*/) { }
+void AstCompiler::visit(TypeAlias* /*decl*/) { }
+void AstCompiler::visit(NewtypeDecl* /*decl*/) { }
+void AstCompiler::visit(OpaqueTypeDecl* /*decl*/) { }
+void AstCompiler::visit(AliasedImportDecl* /*decl*/) { }
+void AstCompiler::visit(SelectiveImportDecl* /*decl*/) { }
 
 // == Visitor Methods (Statements) ============================================
 
@@ -1568,7 +1568,6 @@ void AstCompiler::visit(ForEachStatement* stmt)
         emit_abc(Opcode::CALLINTR, cleanup_reg, static_cast<uint8_t>(IntrinsicId::MapIterEnd), 2);
         registers_.free(cleanup_reg);
 
-        uint32_t loop_end = static_cast<uint32_t>(current_func_->instructions.size());
 
         // Patch exit jump and breaks to cleanup
         patch_jump(exit_jump_idx, static_cast<int32_t>(cleanup_pc));
@@ -1638,9 +1637,9 @@ void AstCompiler::visit(ForEachStatement* stmt)
             patch_jump(idx, static_cast<int32_t>(continue_target));
         }
         if (is_value_type(stmt->element_type) && !local_scope_stack_.empty()) {
-            const auto& scope = local_scope_stack_.back();
-            if (scope.has_stack_mark) {
-                emit_abc(Opcode::STACK_RESTORE, scope.stack_mark_register, 0, 0);
+            const auto& inner_scope = local_scope_stack_.back();
+            if (inner_scope.has_stack_mark) {
+                emit_abc(Opcode::STACK_RESTORE, inner_scope.stack_mark_register, 0, 0);
             }
         }
 
@@ -1968,7 +1967,7 @@ void AstCompiler::visit(JumpStatement* stmt)
 
             // Move values to consecutive registers starting at tuple_reg + 1
             for (size_t i = 0; i < value_regs.size(); ++i) {
-                uint8_t target_reg = tuple_reg + 1 + static_cast<uint8_t>(i);
+                uint8_t target_reg = static_cast<uint8_t>(tuple_reg + 1 + i);
                 if (value_regs[i] != target_reg) {
                     emit_abc(Opcode::MOVE, target_reg, value_regs[i], 0);
                 }
@@ -2060,7 +2059,7 @@ void AstCompiler::visit(DeclList* stmt)
     }
 }
 
-void AstCompiler::visit(EmptyStatement* stmt)
+void AstCompiler::visit(EmptyStatement* /*stmt*/)
 {
     // No code to emit
 }
@@ -3387,13 +3386,13 @@ void AstCompiler::visit(CallExpression* expr)
         }
 
         uint8_t hidden_arg_count = append_propset_type_arg ? 1 : 0;
-        uint8_t count = 1 + static_cast<uint8_t>(expr->args.size()) + hidden_arg_count;
+        uint8_t count = static_cast<uint8_t>(1 + expr->args.size() + hidden_arg_count);
         uint8_t base_reg = registers_.allocate_contiguous(count);
         uint8_t dest_reg = base_reg;
 
         for (size_t i = 0; i < expr->args.size(); ++i) {
             expr->args[i]->accept(this);
-            uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+            uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
             if (result_reg_ != target_reg) {
                 emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
                 registers_.free(result_reg_);
@@ -3401,7 +3400,7 @@ void AstCompiler::visit(CallExpression* expr)
         }
 
         if (append_propset_type_arg) {
-            uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(expr->args.size());
+            uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + expr->args.size());
             TypeID tid = expr->inferred_type_args[0];
             if (tid.value <= std::numeric_limits<int16_t>::max()) {
                 emit_asbx(Opcode::LOADI, target_reg, static_cast<int16_t>(tid.value));
@@ -3436,7 +3435,7 @@ void AstCompiler::visit(CallExpression* expr)
         }
 
         for (size_t i = 0; i < expr->args.size() + hidden_arg_count; ++i) {
-            registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
+            registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
         }
 
         result_reg_ = dest_reg;
@@ -3486,7 +3485,7 @@ void AstCompiler::visit(CallExpression* expr)
 
         for (size_t i = 0; i < expr->args.size(); ++i) {
             expr->args[i]->accept(this);
-            uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+            uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
             if (result_reg_ != target_reg) {
                 emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
                 registers_.free(result_reg_);
@@ -3497,7 +3496,7 @@ void AstCompiler::visit(CallExpression* expr)
         emit_abc(Opcode::CALLCLOSURE, dest_reg, closure_reg, argc);
 
         for (size_t i = 0; i < expr->args.size(); ++i) {
-            registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
+            registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
         }
         registers_.free(closure_reg);
 
@@ -3661,7 +3660,7 @@ void AstCompiler::visit(CallExpression* expr)
 
         for (size_t i = 0; i < expr->args.size(); ++i) {
             expr->args[i]->accept(this);
-            uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+            uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
             if (result_reg_ != target_reg) {
                 emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
                 registers_.free(result_reg_);
@@ -3672,7 +3671,7 @@ void AstCompiler::visit(CallExpression* expr)
             for (size_t i = expr->args.size(); i < func_def->params.size(); ++i) {
                 if (func_def->params[i]->init) {
                     func_def->params[i]->init->accept(this);
-                    uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+                    uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
                     if (result_reg_ != target_reg) {
                         emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
                         registers_.free(result_reg_);
@@ -3701,7 +3700,7 @@ void AstCompiler::visit(CallExpression* expr)
         }
 
         for (size_t i = 0; i < total_args; ++i) {
-            registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
+            registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
         }
 
         result_reg_ = dest_reg;
@@ -3815,7 +3814,7 @@ void AstCompiler::visit(CallExpression* expr)
     // 3. Compile provided arguments and move to proper slots
     for (size_t i = 0; i < expr->args.size(); ++i) {
         expr->args[i]->accept(this);
-        uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+        uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
 
         if (result_reg_ != target_reg) {
             emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
@@ -3828,7 +3827,7 @@ void AstCompiler::visit(CallExpression* expr)
         for (size_t i = expr->args.size(); i < func_def->params.size(); ++i) {
             if (func_def->params[i]->init) {
                 func_def->params[i]->init->accept(this);
-                uint8_t target_reg = base_reg + 1 + static_cast<uint8_t>(i);
+                uint8_t target_reg = static_cast<uint8_t>(base_reg + 1 + i);
                 if (result_reg_ != target_reg) {
                     emit_abc(Opcode::MOVE, target_reg, result_reg_, 0);
                     registers_.free(result_reg_);
@@ -3847,7 +3846,7 @@ void AstCompiler::visit(CallExpression* expr)
 
     // 6. Free argument registers
     for (size_t i = 0; i < total_args; ++i) {
-        registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
+        registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
     }
 
     result_reg_ = dest_reg;
@@ -3958,7 +3957,7 @@ void AstCompiler::visit(TupleLiteral* expr)
     // 2. Compile elements
     for (size_t i = 0; i < expr->elements.size(); ++i) {
         expr->elements[i]->accept(this);
-        uint8_t target = base_reg + 1 + static_cast<uint8_t>(i);
+        uint8_t target = static_cast<uint8_t>(base_reg + 1 + i);
         if (result_reg_ != target) {
             emit_abc(Opcode::MOVE, target, result_reg_, 0);
             registers_.free(result_reg_);
@@ -3970,7 +3969,7 @@ void AstCompiler::visit(TupleLiteral* expr)
 
     // 4. Free element registers
     for (size_t i = 0; i < count; ++i) {
-        registers_.free(base_reg + 1 + static_cast<uint8_t>(i));
+        registers_.free(static_cast<uint8_t>(base_reg + 1 + i));
     }
 
     result_reg_ = base_reg;
@@ -4212,12 +4211,12 @@ void AstCompiler::visit(GroupingExpression* expr)
     }
 }
 
-void AstCompiler::visit(TypeExpression* expr)
+void AstCompiler::visit(TypeExpression* /*expr*/)
 {
     // Type expressions don't generate code
 }
 
-void AstCompiler::visit(EmptyExpression* expr)
+void AstCompiler::visit(EmptyExpression* /*expr*/)
 {
     // No code to emit
 }

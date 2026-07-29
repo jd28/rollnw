@@ -53,7 +53,7 @@ FieldGffPolicy import_only(FieldGffPolicy fp)
     return fp;
 }
 
-FieldGffPolicy blueprint_only(FieldGffPolicy fp)
+[[maybe_unused]] FieldGffPolicy blueprint_only(FieldGffPolicy fp)
 {
     fp.blueprint_only = true;
     return fp;

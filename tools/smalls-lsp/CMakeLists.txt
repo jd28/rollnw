@@ -12,6 +12,9 @@ target_include_directories(smalls-lsp PRIVATE ../../lib)
 
 target_link_libraries(smalls-lsp PRIVATE nw Threads::Threads)
 
+include(../../cmake/CompilerWarnings.cmake)
+set_project_warnings(smalls-lsp OWN_SOURCES)
+
 if(CMAKE_HOST_UNIX)
     target_link_libraries(smalls-lsp PRIVATE dl)
 endif()

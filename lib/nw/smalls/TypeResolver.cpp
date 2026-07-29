@@ -120,11 +120,11 @@ struct TypeCompatibility;
 struct ExpectedTypeScope {
     AstResolver& ctx;
     bool active = false;
-    ExpectedTypeScope(AstResolver& ctx, TypeID expected)
-        : ctx(ctx)
+    ExpectedTypeScope(AstResolver& resolver, TypeID expected)
+        : ctx(resolver)
         , active(true)
     {
-        ctx.expected_type_stack_.push_back(expected);
+        resolver.expected_type_stack_.push_back(expected);
     }
     ~ExpectedTypeScope()
     {
@@ -136,8 +136,8 @@ struct ExpectedTypeScope {
 
 struct TypeContext {
     AstResolver& ctx;
-    explicit TypeContext(AstResolver& ctx)
-        : ctx(ctx)
+    explicit TypeContext(AstResolver& resolver)
+        : ctx(resolver)
     {
     }
 
@@ -164,10 +164,10 @@ struct TypeContext {
 
 struct LoopScope {
     AstResolver& ctx;
-    LoopScope(AstResolver& ctx)
-        : ctx(ctx)
+    LoopScope(AstResolver& resolver)
+        : ctx(resolver)
     {
-        ++ctx.loop_stack_;
+        ++resolver.loop_stack_;
     }
     ~LoopScope()
     {
@@ -260,20 +260,20 @@ struct GenericTypeScope {
     Declaration* prev_generic;
     absl::flat_hash_set<String> prev_params;
 
-    GenericTypeScope(AstResolver& ctx, Decl* decl)
-        : ctx(ctx)
-        , prev_generic(ctx.resolving_generic_type_)
-        , prev_params(ctx.current_type_params_)
+    GenericTypeScope(AstResolver& resolver, Decl* decl)
+        : ctx(resolver)
+        , prev_generic(resolver.resolving_generic_type_)
+        , prev_params(resolver.current_type_params_)
     {
         if (decl->type && !decl->type->params.empty()) {
-            ctx.resolving_generic_type_ = decl;
-            ctx.current_type_params_.clear();
+            resolver.resolving_generic_type_ = decl;
+            resolver.current_type_params_.clear();
             for (auto* param : decl->type->params) {
                 if (auto type_expr = dynamic_cast<TypeExpression*>(param)) {
                     if (auto ident = extract_tail_identifier(type_expr->name)) {
                         auto name = ident->ident.loc.view();
                         if (is_type_param_name(name)) {
-                            ctx.current_type_params_.insert(String(name));
+                            resolver.current_type_params_.insert(String(name));
                             decl->type_params.push_back(String(name));
                         }
                     }
@@ -821,6 +821,9 @@ struct GenericInference {
 };
 
 struct TypeExpressionSnapshot : NullVisitor {
+    /// Declaring a subset of the overloads hides the rest of the base's set.
+    using NullVisitor::visit;
+
     struct State {
         TypeID type_id{};
         String qualified_name;
@@ -1295,8 +1298,8 @@ TokenType parse_operator_name(StringView name)
 
 // == TypeResolver Implementation =============================================
 
-TypeResolver::TypeResolver(AstResolver& ctx)
-    : ctx(ctx)
+TypeResolver::TypeResolver(AstResolver& resolver)
+    : ctx(resolver)
 {
 }
 
@@ -2134,8 +2137,8 @@ static bool validate_struct_field_layouts(TypeResolver& resolver, const StructDe
         if (auto* vd = dynamic_cast<VarDecl*>(it)) {
             ok &= validate_struct_field_layout(resolver, decl, vd);
         } else if (auto* vdl = dynamic_cast<DeclList*>(it)) {
-            for (auto* vd : vdl->decls) {
-                ok &= validate_struct_field_layout(resolver, decl, vd);
+            for (auto* list_field : vdl->decls) {
+                ok &= validate_struct_field_layout(resolver, decl, list_field);
             }
         }
     }
@@ -2263,9 +2266,9 @@ void TypeResolver::visit(StructDecl* decl)
                             return false;
                         }
                         StructID sid = t->type_params[0].as<StructID>();
-                        const StructDef* def = rt.type_table_.get(sid);
-                        if (!def || !def->decl) return false;
-                        for (const auto& ann : def->decl->annotations_) {
+                        const StructDef* sdef = rt.type_table_.get(sid);
+                        if (!sdef || !sdef->decl) return false;
+                        for (const auto& ann : sdef->decl->annotations_) {
                             if (ann.name.loc.view() == "value_type") {
                                 return true;
                             }
@@ -2334,7 +2337,7 @@ void TypeResolver::visit(StructDecl* decl)
             const StructDef* struct_def = rt.type_table_.get(struct_id);
 
             if (struct_def) {
-                String qualified_name = String(ctx.parent_->name()) + "." + String(decl->identifier());
+                String qualified_name = String(ctx.parent_->name()) + "." + decl->identifier();
                 if (!rt.validate_native_struct(qualified_name, struct_def)) {
                     ctx.errorf(decl->range_, "[[native]] struct '{}' layout does not match registered C++ struct",
                         decl->identifier());
@@ -2371,7 +2374,7 @@ void TypeResolver::visit(SumDecl* decl)
     nw::kernel::runtime().type_table_.define(decl->type_id_, decl, ctx.parent_->name());
 }
 
-void TypeResolver::visit(VariantDecl* decl) { }
+void TypeResolver::visit(VariantDecl* /*decl*/) { }
 
 void TypeResolver::visit(VarDecl* decl)
 {
@@ -2449,7 +2452,7 @@ void TypeResolver::visit(OpaqueTypeDecl* decl)
         return;
     }
 
-    auto type_name = String(decl->identifier());
+    auto type_name = decl->identifier();
     auto it = std::find(native_module->opaque_types.begin(), native_module->opaque_types.end(), type_name);
     if (it == native_module->opaque_types.end()) {
         ctx.errorf(decl->range_, "Native type '{}' is not registered in C++ module '{}'",
@@ -2457,8 +2460,8 @@ void TypeResolver::visit(OpaqueTypeDecl* decl)
     }
 }
 
-void TypeResolver::visit(AliasedImportDecl* decl) { }
-void TypeResolver::visit(SelectiveImportDecl* decl) { }
+void TypeResolver::visit(AliasedImportDecl* /*decl*/) { }
+void TypeResolver::visit(SelectiveImportDecl* /*decl*/) { }
 
 void TypeResolver::visit(AssignExpression* expr)
 {
@@ -2876,7 +2879,7 @@ void TypeResolver::visit(PathExpression* expr)
     expr->type_id_ = current_type;
 }
 
-void TypeResolver::visit(EmptyExpression* expr) { }
+void TypeResolver::visit(EmptyExpression* /*expr*/) { }
 
 void TypeResolver::visit(GroupingExpression* expr)
 {
@@ -3242,7 +3245,6 @@ static bool resolve_sumtype_switch(TypeResolver& resolver, SwitchStatement* stmt
     ctx.begin_scope();
 
     absl::flat_hash_set<StringView> matched_variants;
-    bool has_default = false;
 
     for (auto* node : stmt->block->nodes) {
         auto* label = dynamic_cast<LabelStatement*>(node);
@@ -3251,7 +3253,6 @@ static bool resolve_sumtype_switch(TypeResolver& resolver, SwitchStatement* stmt
         }
 
         if (label->type.type == TokenType::DEFAULT) {
-            has_default = true;
             continue;
         }
 

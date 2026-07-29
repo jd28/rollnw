@@ -175,13 +175,13 @@ void Nss::complete_dot(const String& needle, size_t line, size_t character, Vect
     }
 
     if (struct_decl) {
-        for (auto decl : struct_decl->decls) {
-            if (auto vdl = dynamic_cast<const DeclList*>(decl)) {
+        for (auto member : struct_decl->decls) {
+            if (auto vdl = dynamic_cast<const DeclList*>(member)) {
                 for (auto vd : vdl->decls) {
                     out.push_back(provider->declaration_to_symbol(vd));
                 }
             } else {
-                out.push_back(provider->declaration_to_symbol(decl));
+                out.push_back(provider->declaration_to_symbol(member));
             }
         }
     }
@@ -352,8 +352,10 @@ void Nss::process_includes(Nss* parent)
             return false;
         };
 
-        auto it = std::remove_if(std::rbegin(ctx_->preprocessed_),
-            std::rend(ctx_->preprocessed_), test);
+        // Called for the partition it performs; the erase below is driven by
+        // `count` from the predicate rather than by the returned iterator.
+        static_cast<void>(std::remove_if(std::rbegin(ctx_->preprocessed_),
+            std::rend(ctx_->preprocessed_), test));
 
         ctx_->preprocessed_.erase(std::begin(ctx_->preprocessed_), std::begin(ctx_->preprocessed_) + count);
     }

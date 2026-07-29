@@ -96,7 +96,7 @@ Item* unequip_item_in_slot(Creature* obj, EquipIndex slot)
     return result;
 }
 
-Equips::Equips(Creature* owner, nw::MemoryResource* allocator)
+Equips::Equips(Creature* owner, nw::MemoryResource* /*allocator*/)
     : owner_{owner}
 {
 }

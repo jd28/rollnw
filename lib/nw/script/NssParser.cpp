@@ -548,7 +548,7 @@ Expression* NssParser::parse_expr_primary()
         } else if (expr->literal.type == NssTokenType::STRING_RAW_CONST) {
             expr->data = PString(expr->literal.loc.view(), &ctx_->arena);
         } else if (expr->literal.type == NssTokenType::STRING_HASH_LITERAL) {
-            const static int32_t nullhash = (int32_t)XXH32("", 0, 0);
+            const static int32_t nullhash = static_cast<int32_t>(XXH32("", 0, 0));
             expr->data = static_cast<int32_t>(XXH32(expr->literal.loc.view().data(), expr->literal.loc.view().size(), 0)) ^ nullhash;
 
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
@@ -722,8 +722,8 @@ BlockStatement* NssParser::parse_stmt_block()
             auto n = parse_decl();
             if (auto fdef = dynamic_cast<FunctionDefinition*>(n)) {
                 diagnostic("blocks cannot contain nested function definitions", fdef->decl_inline->identifier_);
-            } else if (auto fdef = dynamic_cast<FunctionDecl*>(n)) {
-                diagnostic("blocks cannot contain nested function declarations", fdef->identifier_);
+            } else if (auto fdecl = dynamic_cast<FunctionDecl*>(n)) {
+                diagnostic("blocks cannot contain nested function declarations", fdecl->identifier_);
             } else if (auto sd = dynamic_cast<StructDecl*>(n)) {
                 diagnostic("blocks cannot contain nested other struct declarations", sd->type.struct_id);
             } else if (n) {
@@ -972,8 +972,8 @@ StructDecl* NssParser::parse_decl_struct()
             decl->decls.push_back(vdl);
         } else if (auto fdef = dynamic_cast<FunctionDefinition*>(var_decl)) {
             diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier_);
-        } else if (auto fdef = dynamic_cast<FunctionDecl*>(var_decl)) {
-            diagnostic("structs cannot contain function declarations", fdef->identifier_);
+        } else if (auto fdecl = dynamic_cast<FunctionDecl*>(var_decl)) {
+            diagnostic("structs cannot contain function declarations", fdecl->identifier_);
         } else if (auto sd = dynamic_cast<StructDecl*>(var_decl)) {
             diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
         }

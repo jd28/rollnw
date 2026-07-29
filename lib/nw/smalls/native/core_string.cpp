@@ -73,26 +73,26 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.pad_left",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 3 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type() || args[1].type_id != rt->int_type()
-                || args[2].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 3 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type() || args[1].type_id != runtime->int_type()
+                || args[2].type_id != runtime->string_type()) {
                 return Value{};
             }
             String str;
             if (args[0].data.hptr.value != 0) {
-                str = String(rt->get_string_view(args[0].data.hptr));
+                str = String(runtime->get_string_view(args[0].data.hptr));
             }
             int32_t width = args[1].data.ival;
             StringView pad_str = " ";
             if (args[2].data.hptr.value != 0) {
-                pad_str = rt->get_string_view(args[2].data.hptr);
+                pad_str = runtime->get_string_view(args[2].data.hptr);
             }
             if (width > max_pad_width) {
                 return Value{};
             }
             if (width <= static_cast<int32_t>(str.size()) || pad_str.empty()) {
-                return Value::make_string(rt->alloc_string(str));
+                return Value::make_string(runtime->alloc_string(str));
             }
             size_t pad_count = static_cast<size_t>(width) - str.size();
             String result;
@@ -101,32 +101,32 @@ void register_core_string(Runtime& rt)
                 result += pad_str[i % pad_str.size()];
             }
             result += str;
-            return Value::make_string(rt->alloc_string(result));
+            return Value::make_string(runtime->alloc_string(result));
         },
         .metadata = pad_left_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.pad_right",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 3 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type() || args[1].type_id != rt->int_type()
-                || args[2].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 3 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type() || args[1].type_id != runtime->int_type()
+                || args[2].type_id != runtime->string_type()) {
                 return Value{};
             }
             String str;
             if (args[0].data.hptr.value != 0) {
-                str = String(rt->get_string_view(args[0].data.hptr));
+                str = String(runtime->get_string_view(args[0].data.hptr));
             }
             int32_t width = args[1].data.ival;
             StringView pad_str = " ";
             if (args[2].data.hptr.value != 0) {
-                pad_str = rt->get_string_view(args[2].data.hptr);
+                pad_str = runtime->get_string_view(args[2].data.hptr);
             }
             if (width > max_pad_width) {
                 return Value{};
             }
             if (width <= static_cast<int32_t>(str.size()) || pad_str.empty()) {
-                return Value::make_string(rt->alloc_string(str));
+                return Value::make_string(runtime->alloc_string(str));
             }
             size_t pad_count = static_cast<size_t>(width) - str.size();
             String result = str;
@@ -134,24 +134,24 @@ void register_core_string(Runtime& rt)
             for (size_t i = 0; i < pad_count; ++i) {
                 result += pad_str[i % pad_str.size()];
             }
-            return Value::make_string(rt->alloc_string(result));
+            return Value::make_string(runtime->alloc_string(result));
         },
         .metadata = pad_right_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.last_index_of",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 2 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type() || args[1].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 2 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type() || args[1].type_id != runtime->string_type()) {
                 return Value{};
             }
             StringView haystack;
             if (args[0].data.hptr.value != 0) {
-                haystack = rt->get_string_view(args[0].data.hptr);
+                haystack = runtime->get_string_view(args[0].data.hptr);
             }
             StringView needle;
             if (args[1].data.hptr.value != 0) {
-                needle = rt->get_string_view(args[1].data.hptr);
+                needle = runtime->get_string_view(args[1].data.hptr);
             }
             if (needle.empty()) {
                 return Value::make_int(static_cast<int32_t>(haystack.size()));
@@ -166,18 +166,18 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.count",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 2 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type() || args[1].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 2 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type() || args[1].type_id != runtime->string_type()) {
                 return Value{};
             }
             StringView haystack;
             if (args[0].data.hptr.value != 0) {
-                haystack = rt->get_string_view(args[0].data.hptr);
+                haystack = runtime->get_string_view(args[0].data.hptr);
             }
             StringView needle;
             if (args[1].data.hptr.value != 0) {
-                needle = rt->get_string_view(args[1].data.hptr);
+                needle = runtime->get_string_view(args[1].data.hptr);
             }
             if (needle.empty()) {
                 return Value::make_int(0);
@@ -194,56 +194,56 @@ void register_core_string(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.trim_start",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) {
                 return Value{};
             }
             StringView str;
             if (args[0].data.hptr.value != 0) {
-                str = rt->get_string_view(args[0].data.hptr);
+                str = runtime->get_string_view(args[0].data.hptr);
             }
             size_t start = 0;
             while (start < str.size() && std::isspace(static_cast<unsigned char>(str[start]))) {
                 ++start;
             }
-            return Value::make_string(rt->alloc_string(str.substr(start)));
+            return Value::make_string(runtime->alloc_string(str.substr(start)));
         },
         .metadata = trim_start_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.trim_end",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 1 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) {
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 1 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) {
                 return Value{};
             }
             StringView str;
             if (args[0].data.hptr.value != 0) {
-                str = rt->get_string_view(args[0].data.hptr);
+                str = runtime->get_string_view(args[0].data.hptr);
             }
             size_t end = str.size();
             while (end > 0 && std::isspace(static_cast<unsigned char>(str[end - 1]))) {
                 --end;
             }
-            return Value::make_string(rt->alloc_string(str.substr(0, end)));
+            return Value::make_string(runtime->alloc_string(str.substr(0, end)));
         },
         .metadata = trim_end_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.string.format",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (argc != 2 || !rt) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (argc != 2 || !runtime) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
             if (args[1].storage != ValueStorage::heap || args[1].data.hptr.value == 0) { return Value{}; }
 
             StringView fmt_sv;
             if (args[0].data.hptr.value != 0) {
-                fmt_sv = rt->get_string_view(args[0].data.hptr);
+                fmt_sv = runtime->get_string_view(args[0].data.hptr);
             }
 
-            IArray* arr = rt->get_array_typed(args[1].data.hptr);
-            if (!arr || arr->element_type() != rt->string_type()) {
+            IArray* arr = runtime->get_array_typed(args[1].data.hptr);
+            if (!arr || arr->element_type() != runtime->string_type()) {
                 return Value{};
             }
 
@@ -263,9 +263,9 @@ void register_core_string(Runtime& rt)
                         continue;
                     }
                     if (i + 1 < fmt_sv.size() && fmt_sv[i + 1] == '}') {
-                        if (arg_idx < arg_count && arr->get_value(arg_idx, elem, *rt)
-                            && elem.type_id == rt->string_type() && elem.data.hptr.value != 0) {
-                            out.append(rt->get_string_view(elem.data.hptr));
+                        if (arg_idx < arg_count && arr->get_value(arg_idx, elem, *runtime)
+                            && elem.type_id == runtime->string_type() && elem.data.hptr.value != 0) {
+                            out.append(runtime->get_string_view(elem.data.hptr));
                         } else if (arg_idx < arg_count) {
                             // Present but empty/invalid element.
                         } else {
@@ -286,7 +286,7 @@ void register_core_string(Runtime& rt)
                 out.push_back(ch);
             }
 
-            return Value::make_string(rt->alloc_string(out));
+            return Value::make_string(runtime->alloc_string(out));
         },
         .metadata = format_meta});
 }

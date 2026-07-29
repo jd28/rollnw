@@ -297,7 +297,6 @@ struct AstResolver : BaseVisitor {
     {
         if (!node) { return false; }
 
-        bool has_returned = false;
         if (auto block = dynamic_cast<const BlockStatement*>(node)) {
             for (const auto& decl : block->nodes) {
                 if (all_control_flow_paths_return(decl)) {
@@ -315,7 +314,7 @@ struct AstResolver : BaseVisitor {
                 && all_control_flow_paths_return(ifs->else_branch)) {
                 return true;
             }
-        } else if (auto ifs = dynamic_cast<const SwitchStatement*>(node)) {
+        } else if (dynamic_cast<const SwitchStatement*>(node)) {
             // [TODO] - Fix this
             // Every block most return - the game seems really stupid about this
             // So do nothing for now.
@@ -335,7 +334,7 @@ struct AstResolver : BaseVisitor {
         define(decl->identifier_);
 
         // Multiple declarations...
-        if (auto d = dynamic_cast<const FunctionDecl*>(fd)) { return; }
+        if (dynamic_cast<const FunctionDecl*>(fd)) { return; }
 
         begin_scope();
         for (auto& p : decl->params) {
@@ -516,9 +515,9 @@ struct AstResolver : BaseVisitor {
         auto decl = resolve(ve->var.loc.view(), ve->var.loc.range, false);
         if (auto fd = dynamic_cast<const FunctionDecl*>(decl)) {
             func_decl = fd;
-        } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
-            func_decl = fd->decl_inline;
-            orig_decl = fd->decl_external;
+        } else if (auto fdef = dynamic_cast<const FunctionDefinition*>(decl)) {
+            func_decl = fdef->decl_inline;
+            orig_decl = fdef->decl_external;
         } else {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("unable to resolve identifier '{}'", ve->var.loc.view()),
@@ -646,7 +645,7 @@ struct AstResolver : BaseVisitor {
 
         const StructDecl* struct_decl = nullptr;
         StringView struct_type;
-        if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
+        if (dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
             struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc.range, true));
@@ -687,7 +686,7 @@ struct AstResolver : BaseVisitor {
         expr->type_id_ = expr->rhs->type_id_;
     }
 
-    virtual void visit(EmptyExpression* expr) override
+    virtual void visit(EmptyExpression* /*expr*/) override
     {
         // No op
     }

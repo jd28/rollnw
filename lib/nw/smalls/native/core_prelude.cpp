@@ -51,85 +51,85 @@ void register_core_prelude(Runtime& rt)
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.print",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
 
             StringView msg;
             if (args[0].data.hptr.value != 0) {
-                msg = rt->get_string_view(args[0].data.hptr);
+                msg = runtime->get_string_view(args[0].data.hptr);
             }
             LOG_F(INFO, "[smalls] {}", msg);
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = print_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.println",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
 
             StringView msg;
             if (args[0].data.hptr.value != 0) {
-                msg = rt->get_string_view(args[0].data.hptr);
+                msg = runtime->get_string_view(args[0].data.hptr);
             }
             LOG_F(INFO, "[smalls] {}", msg);
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = println_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.assert",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
-            if (args[0].type_id != rt->bool_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->bool_type()) { return Value{}; }
 
             if (!args[0].data.bval) {
-                rt->fail("assert failed");
+                runtime->fail("assert failed");
             }
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = assert_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.error",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
 
             StringView msg = "error";
             if (args[0].data.hptr.value != 0) {
-                msg = rt->get_string_view(args[0].data.hptr);
+                msg = runtime->get_string_view(args[0].data.hptr);
             }
-            rt->fail(msg);
-            return Value(rt->void_type());
+            runtime->fail(msg);
+            return Value(runtime->void_type());
         },
         .metadata = error_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.panic",
-        .wrapper = +[](Runtime* rt, const Value* args, uint8_t argc) -> Value {
-            if (!rt || argc != 1) { return Value{}; }
-            if (args[0].type_id != rt->string_type()) { return Value{}; }
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
 
             StringView msg = "panic";
             if (args[0].data.hptr.value != 0) {
-                msg = rt->get_string_view(args[0].data.hptr);
+                msg = runtime->get_string_view(args[0].data.hptr);
             }
-            rt->fail(msg);
-            return Value(rt->void_type());
+            runtime->fail(msg);
+            return Value(runtime->void_type());
         },
         .metadata = panic_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.gc_collect",
-        .wrapper = +[](Runtime* rt, const Value*, uint8_t) -> Value {
-            if (!rt) { return Value{}; }
-            if (auto* gc = rt->gc()) {
+        .wrapper = +[](Runtime* runtime, const Value*, uint8_t) -> Value {
+            if (!runtime) { return Value{}; }
+            if (auto* gc = runtime->gc()) {
                 gc->collect_minor();
             }
-            return Value(rt->void_type());
+            return Value(runtime->void_type());
         },
         .metadata = gc_collect_meta});
 }

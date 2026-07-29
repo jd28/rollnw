@@ -8,7 +8,7 @@ namespace nw::smalls {
 // == UnmanagedArray<int32_t> =================================================
 
 template <>
-void UnmanagedArray<int32_t>::append_value(const Value& v, Runtime& rt)
+void UnmanagedArray<int32_t>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);
     if (size_ == capacity_) {
@@ -18,7 +18,7 @@ void UnmanagedArray<int32_t>::append_value(const Value& v, Runtime& rt)
 }
 
 template <>
-bool UnmanagedArray<int32_t>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool UnmanagedArray<int32_t>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     out = Value::make_int(data_[index]);
@@ -26,7 +26,7 @@ bool UnmanagedArray<int32_t>::get_value(size_t index, Value& out, const Runtime&
 }
 
 template <>
-bool UnmanagedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& rt)
+bool UnmanagedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);
@@ -37,7 +37,7 @@ bool UnmanagedArray<int32_t>::set_value(size_t index, const Value& v, Runtime& r
 // == UnmanagedArray<float> ===================================================
 
 template <>
-void UnmanagedArray<float>::append_value(const Value& v, Runtime& rt)
+void UnmanagedArray<float>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);
     if (size_ == capacity_) {
@@ -47,7 +47,7 @@ void UnmanagedArray<float>::append_value(const Value& v, Runtime& rt)
 }
 
 template <>
-bool UnmanagedArray<float>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool UnmanagedArray<float>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     out = Value::make_float(data_[index]);
@@ -55,7 +55,7 @@ bool UnmanagedArray<float>::get_value(size_t index, Value& out, const Runtime& r
 }
 
 template <>
-bool UnmanagedArray<float>::set_value(size_t index, const Value& v, Runtime& rt)
+bool UnmanagedArray<float>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);
@@ -66,7 +66,7 @@ bool UnmanagedArray<float>::set_value(size_t index, const Value& v, Runtime& rt)
 // == UnmanagedArray<bool> ====================================================
 
 template <>
-void UnmanagedArray<bool>::append_value(const Value& v, Runtime& rt)
+void UnmanagedArray<bool>::append_value(const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);
     if (size_ == capacity_) {
@@ -76,7 +76,7 @@ void UnmanagedArray<bool>::append_value(const Value& v, Runtime& rt)
 }
 
 template <>
-bool UnmanagedArray<bool>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool UnmanagedArray<bool>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     out = Value::make_bool(data_[index]);
@@ -84,7 +84,7 @@ bool UnmanagedArray<bool>::get_value(size_t index, Value& out, const Runtime& rt
 }
 
 template <>
-bool UnmanagedArray<bool>::set_value(size_t index, const Value& v, Runtime& rt)
+bool UnmanagedArray<bool>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
 {
     ENSURE_OR_RETURN_FALSE(index < size_, "out of bounds");
     ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_, "Type mismatch: expected {}, got {}", elem_type_.value, v.type_id.value);

@@ -173,6 +173,9 @@ target_include_directories(rollnw_test PRIVATE
     ../tools/smalls-lsp
 )
 
+include(../cmake/CompilerWarnings.cmake)
+set_project_warnings(rollnw_test OWN_SOURCES)
+
 target_link_libraries(rollnw_test PRIVATE
     nw
     Threads::Threads
