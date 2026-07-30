@@ -7,7 +7,7 @@
 
 rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
 
-**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Until there is a real release, assume APIs and subsystem boundaries can move.
+**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
 
 ## Features
 

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
+# C++ API version. Repository snapshot releases use YYYY.MM.DD tags and do not
+# change this value.
 project(rollNW VERSION 0.45.0 LANGUAGES CXX C)
+
 set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 include(cmake/Sanitizers.cmake)
@@ -219,6 +222,7 @@ endif()
 if(PROJECT_IS_TOP_LEVEL)
 install(FILES LICENSE README.md DESTINATION .)
 
+set(CPACK_PACKAGE_NAME "rollnw-tools")
 set(CPACK_PACKAGE_VENDOR "rollNW")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "rollNW tools and runtime")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")

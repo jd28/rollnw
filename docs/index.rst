@@ -22,8 +22,9 @@ or open an IDE in browser in the quickstart section below.
    with ``nw::gfx`` as the low-level graphics layer, ``lib/nw/render``
    and ``mudl`` for renderer-backed asset validation, and Smalls as the
    rule/script authoring path. Networking and runtime services are part
-   of the long-term foundation. Until there is a real release, assume
-   APIs and subsystem boundaries can move.
+   of the long-term foundation. Repository snapshots use date tags,
+   while independently shipped packages keep their own versions. Assume
+   APIs and subsystem boundaries can move between snapshots.
 
 -----------------------------------------
 

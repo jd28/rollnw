@@ -479,14 +479,15 @@ jobs:
 
       - name: linux - package install tree
         env:
-          PACKAGE_VERSION: ${{ github.ref_name }}
+          SNAPSHOT_ID: ${{ github.event_name == 'release' && github.ref_name || github.sha }}
         run: |
           ARCHIVE_DIR="${{ github.workspace }}/tmp/release"
-          PACKAGE_ROOT="rollnw-tools-linux-x64-${PACKAGE_VERSION}"
+          PACKAGE_ROOT="rollnw-tools-linux-x64-${SNAPSHOT_ID}"
           mkdir -p "$ARCHIVE_DIR"
           cpack -G TGZ \
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
+            -D CPACK_PACKAGE_VERSION="$SNAPSHOT_ID" \
             --config build-ci-linux-tools-package/CPackConfig.cmake
           ARCHIVE_COUNT="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' | wc -l | tr -d ' ')"
           if [ "$ARCHIVE_COUNT" -ne 1 ]; then
@@ -497,6 +498,7 @@ jobs:
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
       - name: upload linux tools artifact
@@ -566,16 +568,17 @@ jobs:
 
       - name: windows - package install tree
         env:
-          PACKAGE_VERSION: ${{ github.ref_name }}
+          SNAPSHOT_ID: ${{ github.event_name == 'release' && github.ref_name || github.sha }}
         shell: pwsh
         run: |
-          $packageRoot = "rollnw-tools-windows-x64-$env:PACKAGE_VERSION"
+          $packageRoot = "rollnw-tools-windows-x64-$env:SNAPSHOT_ID"
           $releaseDir = Join-Path "${{ github.workspace }}" "tmp/release"
           New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
           Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $releaseDir "*.zip")
           cpack -G ZIP `
             -B $releaseDir `
             -D "CPACK_PACKAGE_FILE_NAME=$packageRoot" `
+            -D "CPACK_PACKAGE_VERSION=$env:SNAPSHOT_ID" `
             --config build-ci-windows-tools-package/CPackConfig.cmake
           $archives = @(Get-ChildItem -Path $releaseDir -Filter "*.zip" -File)
           if ($archives.Count -ne 1) {
@@ -585,6 +588,7 @@ jobs:
           $artifactDir = Join-Path "${{ github.workspace }}" "tmp/artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
           Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
+          Set-Content -Path (Join-Path $artifactDir "package-root.txt") -Value $packageRoot -NoNewline
           "PACKAGE_ARTIFACT=$artifactDir" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: upload windows tools artifact
@@ -656,14 +660,15 @@ jobs:
 
       - name: macOS - package install tree
         env:
-          PACKAGE_VERSION: ${{ github.ref_name }}
+          SNAPSHOT_ID: ${{ github.event_name == 'release' && github.ref_name || github.sha }}
         run: |
           ARCHIVE_DIR="${{ github.workspace }}/tmp/release"
-          PACKAGE_ROOT="rollnw-tools-macos-universal-${PACKAGE_VERSION}"
+          PACKAGE_ROOT="rollnw-tools-macos-universal-${SNAPSHOT_ID}"
           mkdir -p "$ARCHIVE_DIR"
           cpack -G TGZ \
             -B "$ARCHIVE_DIR" \
             -D CPACK_PACKAGE_FILE_NAME="$PACKAGE_ROOT" \
+            -D CPACK_PACKAGE_VERSION="$SNAPSHOT_ID" \
             --config build-ci-macos-tools-package/CPackConfig.cmake
           ARCHIVE_COUNT="$(find "$ARCHIVE_DIR" -maxdepth 1 -type f -name '*.tar.gz' | wc -l | tr -d ' ')"
           if [ "$ARCHIVE_COUNT" -ne 1 ]; then
@@ -674,6 +679,7 @@ jobs:
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
       - name: upload macOS tools artifact
@@ -695,6 +701,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
+
+      - name: validate dated release tag
+        env:
+          ROLLNW_RELEASE: ${{ github.ref_name }}
+        run: bash scripts/ci/validate_release_tag.sh "$ROLLNW_RELEASE"
+
       - name: download linux tools artifact
         uses: actions/download-artifact@v8
         with:
@@ -714,14 +727,16 @@ jobs:
           path: tmp/release/macos
 
       - name: pack release assets
-        env:
-          PACKAGE_VERSION: ${{ github.ref_name }}
         run: |
           mkdir -p tmp/release/assets
 
-          LINUX_PACKAGE="rollnw-tools-linux-x64-${PACKAGE_VERSION}"
-          WINDOWS_PACKAGE="rollnw-tools-windows-x64-${PACKAGE_VERSION}"
-          MACOS_PACKAGE="rollnw-tools-macos-universal-${PACKAGE_VERSION}"
+          LINUX_PACKAGE="$(<tmp/release/linux/package-root.txt)"
+          WINDOWS_PACKAGE="$(<tmp/release/windows/package-root.txt)"
+          MACOS_PACKAGE="$(<tmp/release/macos/package-root.txt)"
+
+          test -d "tmp/release/linux/$LINUX_PACKAGE"
+          test -d "tmp/release/windows/$WINDOWS_PACKAGE"
+          test -d "tmp/release/macos/$MACOS_PACKAGE"
 
           tar -C tmp/release/linux -czf "tmp/release/assets/${LINUX_PACKAGE}.tar.gz" "$LINUX_PACKAGE"
           (cd tmp/release/windows && zip -qr "${{ github.workspace }}/tmp/release/assets/${WINDOWS_PACKAGE}.zip" "$WINDOWS_PACKAGE")
