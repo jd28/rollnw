@@ -1,5 +1,6 @@
 #include "smalls_fixtures.hpp"
 
+#include "../tools/smalls-lsp/lsp_uri.hpp"
 #include "../tools/smalls-lsp/server.hpp"
 
 #include <nlohmann/json.hpp>
@@ -359,7 +360,8 @@ TEST_F(SmallsLSP, ProtocolCompletesInferredMembersAndRefreshesCoreDiagnostics)
         std::filesystem::path{__FILE__}.parent_path().parent_path()
         / "lib/nw/smalls/scripts/core");
     nw::kernel::runtime().add_module_path(core_path);
-    std::string uri = "file://" + (core_path / "lsp_inferred_completion.smalls").generic_string();
+    std::string uri = smalls_lsp::native_path_to_uri(
+        (core_path / "lsp_inferred_completion.smalls").string());
     constexpr std::string_view incomplete_source = R"([[propset(Door)]]
 type DoorState {
     test: int;
@@ -1053,8 +1055,8 @@ TEST_F(SmallsLSP, ProtocolReportsAndFixesUnusedImports)
     nw::kernel::runtime().add_module_path(scripts / "core");
     nw::kernel::runtime().add_module_path(scripts / "nwn1");
 
-    std::string uri = "file://"
-        + (scripts / "nwn1" / "lsp_unused_import_probe.smalls").generic_string();
+    std::string uri = smalls_lsp::native_path_to_uri(
+        (scripts / "nwn1" / "lsp_unused_import_probe.smalls").string());
     constexpr std::string_view source = R"(import core.array as Array;
 
 fn probe(a: int): int {
@@ -1322,7 +1324,7 @@ TEST_F(SmallsLSP, ProtocolNamesModulesFromTheMostSpecificRoot)
     runtime.add_module_path(scripts / "nwn1");
 
     auto target = scripts / "core" / "array.smalls";
-    std::string uri = "file://" + target.generic_string();
+    std::string uri = smalls_lsp::native_path_to_uri(target.string());
     std::ifstream stream{target};
     std::string source{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
     ASSERT_FALSE(source.empty());
@@ -1385,12 +1387,12 @@ struct ScratchPackage {
         auto path = root / name;
         std::ofstream out{path};
         out << contents;
-        return "file://" + path.generic_string();
+        return smalls_lsp::native_path_to_uri(path.string());
     }
 
     std::string uri_for(std::string_view name) const
     {
-        return "file://" + (root / name).generic_string();
+        return smalls_lsp::native_path_to_uri((root / name).string());
     }
 
     std::filesystem::path root;
@@ -1660,7 +1662,7 @@ TEST_F(SmallsLSP, ProtocolCompletionDetailComesFromTheResolvedType)
 
     int probe_line = static_cast<int>(
         std::count(source.begin(), source.begin() + static_cast<long>(line_end) + 1, '\n'));
-    std::string uri = "file://" + target.generic_string();
+    std::string uri = smalls_lsp::native_path_to_uri(target.string());
 
     json completion{{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/completion"},
         {"params", {{"textDocument", {{"uri", uri}}},
