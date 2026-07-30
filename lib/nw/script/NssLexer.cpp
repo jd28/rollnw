@@ -333,7 +333,6 @@ NssToken NssLexer::next()
             } else if (char_map[get(pos_)] == CharType::digit) {
                 t = handle_number();
             } else {
-                SourceLocation loc;
                 ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
                     true,
                     {start_pos, SourcePosition{line_, pos_ - last_line_pos_}});

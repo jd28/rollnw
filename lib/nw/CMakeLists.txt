@@ -227,7 +227,11 @@ if(NOT MSVC)
   # redundant here can be a real widening on Windows, where size_t is unsigned
   # long long rather than unsigned long. Enabling it would mean deciding it per
   # platform. See issues/nw-library-warnings-unchecked.md.
-  target_compile_options(nw PRIVATE -Wno-useless-cast)
+  #
+  # The flag is GCC-only, so clang rejects -Wno-useless-cast as unknown.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(nw PRIVATE -Wno-useless-cast)
+  endif()
 
   # The VM dispatches through a computed goto, which ISO C++ does not have. It
   # is a deliberate optimization behind a __GNUC__/__clang__ guard, with a

@@ -1623,7 +1623,8 @@ struct ModuleBuilder {
 private:
     Runtime* runtime_;
     String path_;
-    Script* script_;
+    /// Reserved for the not-yet-written script allocation in the constructor.
+    [[maybe_unused]] Script* script_;
     ModuleInterface interface_;
     bool finalized_ = false;
     std::unique_ptr<NativeStructBuilder> current_struct_builder_;

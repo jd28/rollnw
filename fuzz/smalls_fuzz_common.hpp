@@ -19,7 +19,8 @@ struct FuzzContext final : public nw::smalls::Context {
     nw::MemoryArena arena_storage{nw::MB(64)};
     nw::MemoryScope scope_storage{&arena_storage};
 
-    void record_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range, nw::smalls::DiagnosticType type)
+    void record_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range,
+        const nw::smalls::DiagnosticInfo& info, nw::smalls::DiagnosticType type)
     {
         if (!script) { return; }
 
@@ -44,22 +45,27 @@ struct FuzzContext final : public nw::smalls::Context {
         result.script = nw::String(script->name());
         result.message = nw::String(msg);
         result.location = range;
+        result.code = info.code;
+        result.related = info.related;
         script->add_diagnostic(std::move(result));
     }
 
-    void lexical_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range) override
+    void lexical_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range,
+        const nw::smalls::DiagnosticInfo& info = {}) override
     {
-        record_diagnostic(script, msg, is_warning, range, nw::smalls::DiagnosticType::lexical);
+        record_diagnostic(script, msg, is_warning, range, info, nw::smalls::DiagnosticType::lexical);
     }
 
-    void parse_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range) override
+    void parse_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range,
+        const nw::smalls::DiagnosticInfo& info = {}) override
     {
-        record_diagnostic(script, msg, is_warning, range, nw::smalls::DiagnosticType::parse);
+        record_diagnostic(script, msg, is_warning, range, info, nw::smalls::DiagnosticType::parse);
     }
 
-    void semantic_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range) override
+    void semantic_diagnostic(nw::smalls::Script* script, nw::StringView msg, bool is_warning, nw::smalls::SourceRange range,
+        const nw::smalls::DiagnosticInfo& info = {}) override
     {
-        record_diagnostic(script, msg, is_warning, range, nw::smalls::DiagnosticType::semantic);
+        record_diagnostic(script, msg, is_warning, range, info, nw::smalls::DiagnosticType::semantic);
     }
 
     FuzzContext()

@@ -38,7 +38,8 @@ TEST(LspUri, PosixRoundTripsAwkwardBytes)
     expect_round_trip("/tmp/hash#name/a.smalls", PathStyle::posix);
     expect_round_trip("/tmp/percent%20literal/a.smalls", PathStyle::posix);
     expect_round_trip("/tmp/héllo/wörld.smalls", PathStyle::posix);
-    expect_round_trip("/tmp/emoji\U0001F600/a.smalls", PathStyle::posix);
+    // UTF-8 bytes rather than a UCN, which MSVC cannot encode in CP-1252.
+    expect_round_trip("/tmp/emoji\xF0\x9F\x98\x80/a.smalls", PathStyle::posix);
     expect_round_trip("/tmp/quote'and\"quote/a.smalls", PathStyle::posix);
     expect_round_trip("/tmp/plus+amp&/a.smalls", PathStyle::posix);
     expect_round_trip("/tmp/colon:name/a.smalls", PathStyle::posix);

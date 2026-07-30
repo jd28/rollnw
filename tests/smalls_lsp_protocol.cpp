@@ -95,9 +95,9 @@ std::string inlay_label(const json& hint)
 /// Indices into the legend the server advertises, mirroring
 /// `smalls_lsp::TokenType`.
 constexpr int token_type_variable = 7;
-constexpr int token_type_function = 9;
+[[maybe_unused]] constexpr int token_type_function = 9;
 constexpr int token_type_string = 10;
-constexpr int token_type_number = 11;
+[[maybe_unused]] constexpr int token_type_number = 11;
 
 struct DecodedSemanticToken {
     int line = 0;
@@ -728,7 +728,9 @@ fn main(): int {
 TEST_F(SmallsLSP, ProtocolAppliesIncrementalEditBatches)
 {
     constexpr std::string_view uri = "file:///tmp/smalls_lsp_incremental.smalls";
-    constexpr std::string_view source = "fn main() {\n    var a = \"é\U0001F600\";\n    var b = 0;\n}\n";
+    // Spelled as UTF-8 bytes, not a universal-character-name: MSVC converts a
+    // UCN to the compiling machine's code page, which cannot represent U+1F600.
+    constexpr std::string_view source = "fn main() {\n    var a = \"é\xF0\x9F\x98\x80\";\n    var b = 0;\n}\n";
 
     // Two edits in one batch, the first on a line containing multi-byte text.
     json changes = json::array(
@@ -920,7 +922,7 @@ fn main(): int {
     ASSERT_NE(definition, nullptr);
     const json& result = (*definition)["result"];
     ASSERT_TRUE(result.is_object()) << "expected a Location, not a LocationLink";
-    EXPECT_EQ(result["uri"], uri);
+    EXPECT_EQ(result["uri"].get<std::string_view>(), uri);
     EXPECT_TRUE(result.contains("range"));
     EXPECT_FALSE(result.contains("targetUri"));
 
@@ -1264,7 +1266,7 @@ TEST_F(SmallsLSP, ProtocolPublishesDiagnosticCodesAndRelatedInformation)
     // "declared twice" is useless without saying where the first one is.
     ASSERT_TRUE(duplicate->contains("relatedInformation"));
     const json& related = (*duplicate)["relatedInformation"][0];
-    EXPECT_EQ(related["location"]["uri"], uri);
+    EXPECT_EQ(related["location"]["uri"].get<std::string_view>(), uri);
     EXPECT_EQ(related["location"]["range"]["start"]["line"], 1);
     EXPECT_FALSE(related["message"].get<std::string>().empty());
 }
@@ -1617,7 +1619,7 @@ fn probe(): int {
     // clickable rather than inert text.
     ASSERT_TRUE(parameter_hint->at("label").is_array());
     ASSERT_TRUE((*parameter_hint)["label"][0].contains("location"));
-    EXPECT_EQ((*parameter_hint)["label"][0]["location"]["uri"], uri);
+    EXPECT_EQ((*parameter_hint)["label"][0]["location"]["uri"].get<std::string_view>(), uri);
 
     // Tooltips are deferred to resolve.
     EXPECT_FALSE(parameter_hint->contains("tooltip"));

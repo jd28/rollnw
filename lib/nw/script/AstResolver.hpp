@@ -624,7 +624,7 @@ struct AstResolver : BaseVisitor {
     {
         expr->env_ = env_stack_.back();
 
-        auto resolve_struct_member = [this](VariableExpression* var, const StructDecl* str) {
+        auto resolve_struct_member = [](VariableExpression* var, const StructDecl* str) {
             auto vd = str->locate_member_decl(var->var.loc.view());
             if (vd) {
                 var->type_id_ = vd->type_id_;

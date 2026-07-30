@@ -102,7 +102,8 @@ struct MasterFeatRegistry {
 private:
     Vector<MasterFeatEntry> entries_;
     Vector<ModifierVariant> bonuses_;
-    MemoryResource* allocator_ = nullptr;
+    /// Retained from construction; the bonus tables are not yet allocator-aware.
+    [[maybe_unused]] MemoryResource* allocator_ = nullptr;
 };
 
 template <typename T>

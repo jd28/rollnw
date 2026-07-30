@@ -4276,20 +4276,53 @@ uint16_t AstCompiler::compile_lambda(LambdaExpression* lambda)
     compiled->upvalue_count = static_cast<uint8_t>(lambda->captures.size());
     compiled->function_type = lambda->type_id_;
 
+    String capture_overflow;
     for (size_t i = 0; i < lambda->captures.size(); ++i) {
         const auto& cap = lambda->captures[i];
         uint8_t descriptor = 0;
 
+        // A descriptor is one byte: a 7-bit index plus the is_local bit, so an
+        // index of 128 or more does not fit. Registers go up to max_registers
+        // (256), so this is reachable; truncating it would silently capture a
+        // different variable than the one written.
+        constexpr uint8_t max_capture_index = 0x7F;
+
         auto local_it = saved_locals.find(cap.name);
         if (local_it != saved_locals.end()) {
-            descriptor = (local_it->second.register_index << 1) | 0x01;
+            uint8_t index = local_it->second.register_index;
+            if (index > max_capture_index) {
+                capture_overflow = fmt::format(
+                    "Cannot capture '{}': register index {} exceeds the {} an upvalue descriptor can encode",
+                    cap.name, index, max_capture_index);
+                break;
+            }
+            descriptor = static_cast<uint8_t>((index << 1) | 0x01);
         } else {
             auto upval_it = saved_upvalues.find(cap.name);
             if (upval_it != saved_upvalues.end()) {
-                descriptor = upval_it->second << 1;
+                uint8_t index = upval_it->second;
+                if (index > max_capture_index) {
+                    capture_overflow = fmt::format(
+                        "Cannot capture '{}': upvalue index {} exceeds the {} an upvalue descriptor can encode",
+                        cap.name, index, max_capture_index);
+                    break;
+                }
+                descriptor = static_cast<uint8_t>(index << 1);
             }
         }
         compiled->upvalue_descriptors.push_back(descriptor);
+    }
+
+    if (!capture_overflow.empty()) {
+        fail(capture_overflow);
+        delete compiled;
+        current_func_ = saved_func;
+        registers_ = saved_registers;
+        local_vars_ = std::move(saved_locals);
+        local_scope_stack_ = std::move(saved_local_scopes);
+        upvalue_indices_ = std::move(saved_upvalues);
+        current_lambda_ = saved_lambda;
+        return 0;
     }
 
     current_func_ = compiled;

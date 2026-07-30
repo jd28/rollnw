@@ -288,7 +288,6 @@ Token Lexer::next()
             } else if (char_map[static_cast<unsigned char>(get(pos_))] == CharType::digit) {
                 t = handle_number();
             } else {
-                SourceLocation loc;
                 ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
                     true,
                     {start_pos, {line_, pos_ - last_line_pos_}});

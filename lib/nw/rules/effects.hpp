@@ -147,7 +147,8 @@ struct EffectArray {
     uint32_t effect_version = 0;
 
 private:
-    nw::MemoryResource* allocator_ = nullptr;
+    /// Retained from construction; this registry's storage is not yet allocator-aware.
+    [[maybe_unused]] nw::MemoryResource* allocator_ = nullptr;
     storage effects_;
 };
 

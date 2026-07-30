@@ -427,7 +427,7 @@ nlohmann::json Runtime::stats() const
         if (script->ast_discarded()) {
             ++ast_discarded_count;
         }
-        for (const auto& [_, exp] : script->exports()) {
+        for (const auto& [_export_name, exp] : script->exports()) {
             ++export_count;
             if (exp.decl) {
                 ++export_with_decl_count;

@@ -252,7 +252,8 @@ struct ModifierRegistry {
 
 private:
     Storage entries_;
-    MemoryResource* allocator_ = nullptr;
+    /// Retained from construction; this registry's storage is not yet allocator-aware.
+    [[maybe_unused]] MemoryResource* allocator_ = nullptr;
 };
 
 } // namespace nw

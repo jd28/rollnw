@@ -1360,7 +1360,8 @@ struct LspServer {
                 auto written = std::filesystem::last_write_time(it->path(), ec);
                 std::string result_id = ec
                     ? std::string{}
-                    : std::to_string(written.time_since_epoch().count());
+                    : std::to_string(
+                          static_cast<long long>(written.time_since_epoch().count()));
                 if (!result_id.empty()) {
                     auto known = previous_ids.find(uri);
                     if (known != previous_ids.end() && known->second == result_id) {

@@ -471,8 +471,6 @@ private:
     std::chrono::high_resolution_clock::time_point minor_start_time_;
 
     HeapPtr all_objects_{0};
-    size_t young_bytes_ = 0;
-    size_t old_bytes_ = 0;
 };
 
 inline void gc_write_barrier(
