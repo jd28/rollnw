@@ -136,5 +136,8 @@
   },
   "dependencies": {
     "vscode-languageclient": "^10.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }
