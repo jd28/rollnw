@@ -495,9 +495,7 @@ void Script::complete_dot(const String& needle, size_t line, size_t character, V
     if (auto import_decl = dynamic_cast<const AliasedImportDecl*>(decl)) {
         if (import_decl->loaded_module) {
             for (const auto& [name, exp] : import_decl->loaded_module->exports()) {
-                if (exp.decl) {
-                    out.push_back(import_decl->loaded_module->declaration_to_symbol(exp.decl));
-                }
+                out.push_back(import_decl->loaded_module->export_to_symbol(name, exp));
             }
         }
         return;

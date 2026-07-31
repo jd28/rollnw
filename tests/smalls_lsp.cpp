@@ -951,6 +951,52 @@ fn test() {
     EXPECT_TRUE(has_subtract);
 }
 
+TEST_F(SmallsLSP, CompletionModuleDotAfterProviderAstDiscarded)
+{
+    auto& runtime = nw::kernel::runtime();
+
+    auto* base_module = runtime.load_module_from_source("test/lsp/compact_array", R"(
+fn push(value: int) {
+}
+
+fn len(): int {
+    return 0;
+}
+)");
+    ASSERT_NE(base_module, nullptr);
+    ASSERT_EQ(base_module->errors(), 0);
+
+    base_module->discard_ast();
+    for (const auto& [_, exp] : base_module->exports()) {
+        ASSERT_EQ(exp.decl, nullptr);
+    }
+
+    auto script = make_script(R"(import test.lsp.compact_array as Array;
+
+fn test() {
+    Array.
+})"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_NO_THROW(script.resolve());
+
+    nw::Vector<nw::smalls::Symbol> completions;
+    script.complete_dot("Array", 4, 10, completions, true);
+
+    ASSERT_EQ(completions.size(), 2);
+    EXPECT_EQ(completions[0].kind, nw::smalls::SymbolKind::function);
+    EXPECT_EQ(completions[1].kind, nw::smalls::SymbolKind::function);
+
+    bool has_push = false;
+    bool has_len = false;
+    for (const auto& completion : completions) {
+        has_push |= completion.view == "push";
+        has_len |= completion.view == "len";
+    }
+    EXPECT_TRUE(has_push);
+    EXPECT_TRUE(has_len);
+}
+
 TEST_F(SmallsLSP, CompletionSelectiveImport)
 {
     auto& runtime = nw::kernel::runtime();
