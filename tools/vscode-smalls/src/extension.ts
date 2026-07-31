@@ -4,7 +4,7 @@ import * as os from 'os';
 import {
     commands,
     ExtensionContext,
-    OutputChannel,
+    LogOutputChannel,
     window,
     workspace,
     WorkspaceFolder,
@@ -18,7 +18,7 @@ import {
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient | undefined;
-let outputChannel: OutputChannel | undefined;
+let outputChannel: LogOutputChannel | undefined;
 
 /// Locates the server binary.
 ///
@@ -265,7 +265,7 @@ async function stopClient(): Promise<void> {
 }
 
 export async function activate(context: ExtensionContext): Promise<void> {
-    outputChannel = window.createOutputChannel('Smalls Language Server');
+    outputChannel = window.createOutputChannel('Smalls Language Server', { log: true });
     context.subscriptions.push(outputChannel);
 
     context.subscriptions.push(
