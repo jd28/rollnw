@@ -243,8 +243,13 @@ Runtime::~Runtime()
 void Runtime::initialize(nw::kernel::ServiceInitTime time)
 {
     if (time == nw::kernel::ServiceInitTime::kernel_start || time == kernel::ServiceInitTime::module_pre_load) {
-        // Enable filesystem module loading for stdlib imports.
-        add_module_path(std::filesystem::path("stdlib") / "core");
+        const bool language_only = kernel::services().mode() == kernel::ServiceMode::language;
+
+        // Language tooling supplies explicit package paths. Game runtimes
+        // bootstrap the shipped core package.
+        if (!language_only) {
+            add_module_path(std::filesystem::path("stdlib") / "core");
+        }
 
         LOG_F(INFO, "[runtime] Initializing Runtime and registering internal types");
         register_internal_types();
@@ -264,6 +269,10 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_player(*this);
         register_core_combat(*this);
         register_core_visual(*this);
+
+        if (language_only) {
+            return;
+        }
 
         // Force-load core propset schemas so pools are primed before object creation
         load_module("core.creature");

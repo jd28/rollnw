@@ -51,6 +51,11 @@ enum struct ServiceInitTime {
     module_post_instantiation,
 };
 
+enum struct ServiceMode {
+    game,
+    language,
+};
+
 /// Abstract base class of all services
 struct Service {
     Service(MemoryResource* memory_);
@@ -82,17 +87,20 @@ struct Services {
     /// Sets that a module is loading.
     void set_module_loading(bool value);
 
-    /// Creates services
-    void create();
+    /// Creates services for the selected process mode.
+    void create(ServiceMode mode = ServiceMode::game);
 
-    /// Initializes kernel services
-    void start();
+    /// Initializes services for the selected process mode.
+    void start(ServiceMode mode = ServiceMode::game);
 
     /// Shutsdown kernel services
     void shutdown();
 
     /// Gets current game profile
     GameProfile* profile() const;
+
+    /// Gets the selected process service mode.
+    [[nodiscard]] ServiceMode mode() const noexcept;
 
     /// Adds a service
     template <typename T>
@@ -124,6 +132,7 @@ private:
     bool serices_started_ = false;
     bool module_loaded_ = false;
     bool module_loading_ = false;
+    ServiceMode mode_ = ServiceMode::game;
 
     void load_services();
 };

@@ -52,8 +52,7 @@ int main(int argc, char* argv[])
     loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
     nw::init_logger(argc, argv);
 
-    nw::kernel::config().initialize();
-    nw::kernel::services().create();
+    nw::kernel::services().create(nw::kernel::ServiceMode::language);
 
     auto& rt = nw::kernel::runtime();
     rt.set_diagnostic_config({lsp::DebugLevel::full});
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
             rt.add_module_path(argv[++i]);
         }
     }
-    nw::kernel::services().start();
+    nw::kernel::services().start(nw::kernel::ServiceMode::language);
 
     run_smalls_lsp(std::cin, std::cout, stdin_has_pending_input);
 

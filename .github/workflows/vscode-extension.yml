@@ -176,9 +176,9 @@ jobs:
 
       - name: Prepare bundled stdlib
         run: |
+          cmake -E remove_directory tools/vscode-smalls/stdlib
           mkdir -p tools/vscode-smalls/stdlib
           cp -R lib/nw/smalls/scripts/core tools/vscode-smalls/stdlib/
-          cp -R lib/nw/smalls/scripts/nwn1 tools/vscode-smalls/stdlib/
 
       - name: Build extension
         working-directory: tools/vscode-smalls
@@ -207,8 +207,6 @@ jobs:
               'extension/bin/smalls-lsp-win32-x64.exe',
               'extension/bin/smalls-lsp-darwin-universal',
               'extension/stdlib/core/package.json',
-              'extension/stdlib/nwn1/package.json',
-              'extension/stdlib/nwn1/item_state.smalls',
           }
           forbidden = {
               'extension/bin/smalls-lsp-darwin-arm64',
@@ -216,7 +214,14 @@ jobs:
           }
 
           missing = sorted(required - entries)
-          unexpected = sorted(forbidden & entries)
+          unexpected = sorted(
+              (forbidden & entries)
+              | {
+                  entry
+                  for entry in entries
+                  if entry.startswith('extension/stdlib/nwn1/')
+              }
+          )
 
           if missing:
               print('VSIX missing required binaries:')

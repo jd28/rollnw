@@ -16,6 +16,7 @@
 #include "TwoDACache.hpp"
 
 #include <optional>
+#include <stdexcept>
 
 namespace nw::kernel {
 
@@ -158,10 +159,17 @@ void Services::set_module_loading(bool value)
     module_loading_ = value;
 }
 
-void Services::create()
+void Services::create(ServiceMode mode)
 {
-    if (services_created_) { return; }
-    if (!profile_) {
+    if (services_created_) {
+        if (mode != mode_) {
+            throw std::logic_error("kernel: services already created for a different mode");
+        }
+        return;
+    }
+
+    mode_ = mode;
+    if (mode_ == ServiceMode::game && !profile_) {
         if (config().profile() == "nwn1"
             && (config().version() == GameVersion::vEE
                 || config().version() == GameVersion::v1_69)) {
@@ -176,23 +184,32 @@ void Services::create()
     services_created_ = true;
 }
 
-void Services::start()
+void Services::start(ServiceMode mode)
 {
     NW_PROFILE_SCOPE_N("kernel.services.start");
 
-    if (serices_started_) { return; }
+    if (serices_started_) {
+        if (mode != mode_) {
+            throw std::logic_error("kernel: services already started for a different mode");
+        }
+        return;
+    }
 
     LOG_F(INFO, "kernel: starting kernel services");
 
     {
         NW_PROFILE_SCOPE_N("kernel.services.create");
-        create();
+        create(mode);
     }
 
     if (!module_loading_) {
         NW_PROFILE_SCOPE_N("kernel.services.init.kernel_start");
         for (auto& entry : services_) {
             if (!entry.service) { break; }
+            if (mode_ == ServiceMode::language
+                && entry.index != smalls::Runtime::type_index) {
+                continue;
+            }
             profile_service_init(entry, ServiceInitTime::kernel_start);
         }
     }
@@ -203,6 +220,11 @@ void Services::start()
 GameProfile* Services::profile() const
 {
     return profile_;
+}
+
+ServiceMode Services::mode() const noexcept
+{
+    return mode_;
 }
 
 void Services::shutdown()
@@ -218,6 +240,7 @@ void Services::shutdown()
     services_created_ = false;
     module_loaded_ = false;
     module_loading_ = false;
+    mode_ = ServiceMode::game;
 }
 
 void Services::load_services()
@@ -226,6 +249,9 @@ void Services::load_services()
     add<Strings>();
     add<ResourceManager>();
     add<smalls::Runtime>();
+    if (mode_ == ServiceMode::language) {
+        return;
+    }
     add<TwoDACache>();
     add<EffectSystem>();
     add<Rules>();
