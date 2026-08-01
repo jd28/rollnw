@@ -174,6 +174,12 @@ jobs:
             fi
           done
 
+      - name: Prepare bundled stdlib
+        run: |
+          mkdir -p tools/vscode-smalls/stdlib
+          cp -R lib/nw/smalls/scripts/core tools/vscode-smalls/stdlib/
+          cp -R lib/nw/smalls/scripts/nwn1 tools/vscode-smalls/stdlib/
+
       - name: Build extension
         working-directory: tools/vscode-smalls
         run: |
@@ -200,6 +206,9 @@ jobs:
               'extension/bin/smalls-lsp-linux-x64',
               'extension/bin/smalls-lsp-win32-x64.exe',
               'extension/bin/smalls-lsp-darwin-universal',
+              'extension/stdlib/core/package.json',
+              'extension/stdlib/nwn1/package.json',
+              'extension/stdlib/nwn1/item_state.smalls',
           }
           forbidden = {
               'extension/bin/smalls-lsp-darwin-arm64',
@@ -221,7 +230,7 @@ jobs:
                   print(f'  - {item}')
               sys.exit(1)
 
-          print(f'Validated VSIX binary layout: {matches[0]}')
+          print(f'Validated VSIX binary and stdlib layout: {matches[0]}')
           PY
 
       - name: Upload VSIX
