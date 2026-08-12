@@ -1,0 +1,408 @@
+from core.types import { Class, Feat };
+import core.array as arr;
+from nwn1.propsets import { CreatureAppearance, CreatureLevels, CreatureStats };
+
+const body_part_belt = 0;
+const body_part_bicep_left = 1;
+const body_part_bicep_right = 2;
+const body_part_foot_left = 3;
+const body_part_foot_right = 4;
+const body_part_forearm_left = 5;
+const body_part_forearm_right = 6;
+const body_part_hand_left = 7;
+const body_part_hand_right = 8;
+const body_part_head = 9;
+const body_part_neck = 10;
+const body_part_pelvis = 11;
+const body_part_shin_left = 12;
+const body_part_shin_right = 13;
+const body_part_shoulder_left = 14;
+const body_part_shoulder_right = 15;
+const body_part_thigh_left = 16;
+const body_part_thigh_right = 17;
+const body_part_torso = 18;
+const body_part_robe = 19;
+const body_part_segment_count = 19;
+const body_part_count = 20;
+
+const color_hair = 0;
+const color_skin = 1;
+const color_tattoo1 = 2;
+const color_tattoo2 = 3;
+const color_count = 4;
+
+const accessory_wings = 0;
+const accessory_tail = 1;
+const accessory_count = 2;
+
+fn get_appearance(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.appearance;
+}
+
+fn get_wings(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.wings;
+}
+
+fn get_tail(obj: Creature): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    return appearance.tail;
+}
+
+fn get_accessory(obj: Creature, accessory: int): int {
+    if (accessory == accessory_wings) { return get_wings(obj); }
+    if (accessory == accessory_tail) { return get_tail(obj); }
+    return 0;
+}
+
+fn get_accessories(obj: Creature): array!(int) {
+    var result: array!(int) = {};
+    arr.reserve(result, accessory_count);
+    for (var accessory = 0; accessory < accessory_count; accessory += 1) {
+        arr.push(result, get_accessory(obj, accessory));
+    }
+    return result;
+}
+
+fn set_accessory(obj: Creature, accessory: int, value: int): bool {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (accessory == accessory_wings) { appearance.wings = value; return true; }
+    if (accessory == accessory_tail) { appearance.tail = value; return true; }
+    return false;
+}
+
+fn get_color(obj: Creature, color: int): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (color == color_hair) { return appearance.color_hair; }
+    if (color == color_skin) { return appearance.color_skin; }
+    if (color == color_tattoo1) { return appearance.color_tattoo1; }
+    if (color == color_tattoo2) { return appearance.color_tattoo2; }
+    return 0;
+}
+
+fn get_colors(obj: Creature): array!(int) {
+    var result: array!(int) = {};
+    arr.reserve(result, color_count);
+    for (var color = 0; color < color_count; color += 1) {
+        arr.push(result, get_color(obj, color));
+    }
+    return result;
+}
+
+fn set_color(obj: Creature, color: int, value: int): bool {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (color == color_hair) { appearance.color_hair = value; return true; }
+    if (color == color_skin) { appearance.color_skin = value; return true; }
+    if (color == color_tattoo1) { appearance.color_tattoo1 = value; return true; }
+    if (color == color_tattoo2) { appearance.color_tattoo2 = value; return true; }
+    return false;
+}
+
+fn get_body_part(obj: Creature, part: int): int {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (part == body_part_belt) { return appearance.body_part_belt; }
+    if (part == body_part_bicep_left) { return appearance.body_part_bicep_left; }
+    if (part == body_part_bicep_right) { return appearance.body_part_bicep_right; }
+    if (part == body_part_foot_left) { return appearance.body_part_foot_left; }
+    if (part == body_part_foot_right) { return appearance.body_part_foot_right; }
+    if (part == body_part_forearm_left) { return appearance.body_part_forearm_left; }
+    if (part == body_part_forearm_right) { return appearance.body_part_forearm_right; }
+    if (part == body_part_hand_left) { return appearance.body_part_hand_left; }
+    if (part == body_part_hand_right) { return appearance.body_part_hand_right; }
+    if (part == body_part_head) { return appearance.body_part_head; }
+    if (part == body_part_neck) { return appearance.body_part_neck; }
+    if (part == body_part_pelvis) { return appearance.body_part_pelvis; }
+    if (part == body_part_shin_left) { return appearance.body_part_shin_left; }
+    if (part == body_part_shin_right) { return appearance.body_part_shin_right; }
+    if (part == body_part_shoulder_left) { return appearance.body_part_shoulder_left; }
+    if (part == body_part_shoulder_right) { return appearance.body_part_shoulder_right; }
+    if (part == body_part_thigh_left) { return appearance.body_part_thigh_left; }
+    if (part == body_part_thigh_right) { return appearance.body_part_thigh_right; }
+    if (part == body_part_torso) { return appearance.body_part_torso; }
+    if (part == body_part_robe) { return appearance.body_part_robe; }
+    return 0;
+}
+
+fn get_body_parts(obj: Creature): array!(int) {
+    var result: array!(int) = {};
+    arr.reserve(result, body_part_count);
+    for (var part = 0; part < body_part_count; part += 1) {
+        arr.push(result, get_body_part(obj, part));
+    }
+    return result;
+}
+
+fn set_body_part(obj: Creature, part: int, value: int): bool {
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    if (part == body_part_belt) { appearance.body_part_belt = value; return true; }
+    if (part == body_part_bicep_left) { appearance.body_part_bicep_left = value; return true; }
+    if (part == body_part_bicep_right) { appearance.body_part_bicep_right = value; return true; }
+    if (part == body_part_foot_left) { appearance.body_part_foot_left = value; return true; }
+    if (part == body_part_foot_right) { appearance.body_part_foot_right = value; return true; }
+    if (part == body_part_forearm_left) { appearance.body_part_forearm_left = value; return true; }
+    if (part == body_part_forearm_right) { appearance.body_part_forearm_right = value; return true; }
+    if (part == body_part_hand_left) { appearance.body_part_hand_left = value; return true; }
+    if (part == body_part_hand_right) { appearance.body_part_hand_right = value; return true; }
+    if (part == body_part_head) { appearance.body_part_head = value; return true; }
+    if (part == body_part_neck) { appearance.body_part_neck = value; return true; }
+    if (part == body_part_pelvis) { appearance.body_part_pelvis = value; return true; }
+    if (part == body_part_shin_left) { appearance.body_part_shin_left = value; return true; }
+    if (part == body_part_shin_right) { appearance.body_part_shin_right = value; return true; }
+    if (part == body_part_shoulder_left) { appearance.body_part_shoulder_left = value; return true; }
+    if (part == body_part_shoulder_right) { appearance.body_part_shoulder_right = value; return true; }
+    if (part == body_part_thigh_left) { appearance.body_part_thigh_left = value; return true; }
+    if (part == body_part_thigh_right) { appearance.body_part_thigh_right = value; return true; }
+    if (part == body_part_torso) { appearance.body_part_torso = value; return true; }
+    if (part == body_part_robe) { appearance.body_part_robe = value; return true; }
+    return false;
+}
+
+fn get_total_levels(obj: Creature): int {
+    var levels = get_propset!(CreatureLevels)(obj);
+    var result = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.class_levels[i] > 0) {
+            result += levels.class_levels[i];
+        }
+    }
+    return result;
+}
+
+fn progression_version(obj: Creature): int {
+    const progression_mod = 1000003;
+    var levels = get_propset!(CreatureLevels)(obj);
+    var stats = get_propset!(CreatureStats)(obj);
+    var v = arr.len(stats.feats) % progression_mod;
+
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            var class_id = levels.classes[i] % 2048;
+            var class_level = levels.class_levels[i] % 2048;
+            v = ((v * 257) + (class_id * 31) + class_level) % progression_mod;
+        }
+    }
+    return v;
+}
+
+fn get_level_by_class(obj: Creature, class_type: Class): int {
+    var class_id = class_type as int;
+    if (class_id < 0) {
+        return 0;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] == class_id && levels.class_levels[i] > 0) {
+            return levels.class_levels[i];
+        }
+    }
+    return 0;
+}
+
+fn get_class_count(obj: Creature): int {
+    var levels = get_propset!(CreatureLevels)(obj);
+    var result = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            result += 1;
+        }
+    }
+    return result;
+}
+
+fn get_class_at(obj: Creature, index: int): Class {
+    if (index < 0) {
+        return Class(-1);
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    var current = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            if (current == index) {
+                return Class(levels.classes[i]);
+            }
+            current += 1;
+        }
+    }
+    return Class(-1);
+}
+
+fn get_class_levels_at(obj: Creature, index: int): int {
+    if (index < 0) {
+        return 0;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    var current = 0;
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] >= 0 && levels.class_levels[i] > 0) {
+            if (current == index) {
+                return levels.class_levels[i];
+            }
+            current += 1;
+        }
+    }
+    return 0;
+}
+
+fn get_race(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.race;
+}
+
+fn get_gender(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.gender;
+}
+
+fn get_good_evil(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.good_evil;
+}
+
+fn get_lawful_chaotic(obj: Creature): int {
+    var stats = get_propset!(CreatureStats)(obj);
+    return stats.lawful_chaotic;
+}
+
+fn get_levelup_class_position(obj: Creature, level_index: int): int {
+    if (level_index < 0) {
+        return -1;
+    }
+
+    var levels = get_propset!(CreatureLevels)(obj);
+    if (level_index >= arr.len(levels.levelup_classes)) {
+        return -1;
+    }
+    return levels.levelup_classes[level_index];
+}
+
+fn _feat_lower_bound(feats: array!(int), needle: int): int {
+    var lo = 0;
+    var hi = arr.len(feats);
+    for (lo < hi) {
+        var mid = (lo + hi) / 2;
+        if (feats[mid] < needle) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+fn _feat_upper_bound(feats: array!(int), needle: int): int {
+    var lo = 0;
+    var hi = arr.len(feats);
+    for (lo < hi) {
+        var mid = (lo + hi) / 2;
+        if (feats[mid] <= needle) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+fn has_feat(obj: Creature, feat: Feat): bool {
+    var stats = get_propset!(CreatureStats)(obj);
+    var needle = feat as int;
+    var index = _feat_lower_bound(stats.feats, needle);
+    return index < arr.len(stats.feats) && stats.feats[index] == needle;
+}
+
+// Inserts one feat while preserving the sorted, unique storage contract.
+fn add_feat(obj: Creature, feat: Feat): bool {
+    var needle = feat as int;
+    if (needle < 0) {
+        return false;
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var index = _feat_lower_bound(stats.feats, needle);
+    if (index < arr.len(stats.feats) && stats.feats[index] == needle) {
+        return false;
+    }
+
+    arr.push(stats.feats, needle);
+    for (var i = arr.len(stats.feats) - 1; i > index; i -= 1) {
+        arr.set(stats.feats, i, stats.feats[i - 1]);
+    }
+    arr.set(stats.feats, index, needle);
+    return true;
+}
+
+// Removes one feat while preserving the sorted, unique storage contract.
+fn remove_feat(obj: Creature, feat: Feat): bool {
+    var needle = feat as int;
+    if (needle < 0) {
+        return false;
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var index = _feat_lower_bound(stats.feats, needle);
+    if (index >= arr.len(stats.feats) || stats.feats[index] != needle) {
+        return false;
+    }
+
+    for (var i = index + 1; i < arr.len(stats.feats); i += 1) {
+        arr.set(stats.feats, i - 1, stats.feats[i]);
+    }
+    arr.pop(stats.feats);
+    return true;
+}
+
+// Returns true only when the requested assignment changed the object.
+fn set_feat(obj: Creature, feat: Feat, assigned: bool): bool {
+    if (assigned) {
+        return add_feat(obj, feat);
+    }
+    return remove_feat(obj, feat);
+}
+
+// Returns the highest feat in [start, stop] that obj has, or Feat(-1) if none.
+fn highest_feat_in_range(obj: Creature, start: Feat, stop: Feat): Feat {
+    var start_id = start as int;
+    var stop_id = stop as int;
+    if (stop_id < start_id) {
+        return Feat(-1);
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var index = _feat_upper_bound(stats.feats, stop_id);
+    if (index <= 0) {
+        return Feat(-1);
+    }
+
+    var value = stats.feats[index - 1];
+    return value >= start_id ? Feat(value) : Feat(-1);
+}
+
+// Returns the number of distinct known feats in [start, stop].
+fn count_feats_in_range(obj: Creature, start: Feat, stop: Feat): int {
+    var start_id = start as int;
+    var stop_id = stop as int;
+    if (stop_id < start_id) {
+        return 0;
+    }
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var first = _feat_lower_bound(stats.feats, start_id);
+    var last = _feat_upper_bound(stats.feats, stop_id);
+
+    var result = 0;
+    var previous = 0;
+    var have_previous = false;
+    for (var i = first; i < last; i += 1) {
+        var current = stats.feats[i];
+        if (!have_previous || current != previous) {
+            result += 1;
+            previous = current;
+            have_previous = true;
+        }
+    }
+    return result;
+}

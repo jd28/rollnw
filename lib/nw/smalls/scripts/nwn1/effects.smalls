@@ -1,7 +1,8 @@
 import core.effects as eff;
-import core.creature as Cre;
-from core.creature import { CreatureCombat, CreatureHealth };
-from core.creature import { CreatureCombatCache };
+import core.creature as NativeCreature;
+import nwn1.creature_state as Cre;
+from nwn1.propsets import { CreatureCombat, CreatureHealth };
+from nwn1.propsets import { CreatureCombatCache };
 
 from core.math import { abs, clamp, max };
 from core.types import { ObjectMask };
@@ -80,14 +81,14 @@ fn _on_temp_hitpoints_effect(cre: Creature, effect: eff.Effect, is_apply: bool) 
         health.hp_current += amount;
         health.hp_temp += amount;
         health.hp_max += amount;
-        Cre.set_vitals(cre, health.hp_current, health.hp_max);
+        NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
         return;
     }
 
     health.hp_current -= amount;
     health.hp_temp -= amount;
     health.hp_max = max(1, health.hp_max - amount);
-    Cre.set_vitals(cre, health.hp_current, health.hp_max);
+    NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
 }
 
 fn on_effects(obj: object, effects_batch: array!(eff.Effect), is_apply: bool) {

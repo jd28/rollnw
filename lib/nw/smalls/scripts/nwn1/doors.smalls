@@ -1,7 +1,7 @@
 import core.array as Array;
 import core.types as T;
 import core.visual as Visual;
-from core.door import { DoorState };
+from nwn1.propsets import { DoorState };
 from nwn1.rules import { DoorTypeEntry, GenericDoorEntry };
 
 type DoorResolvedModel {

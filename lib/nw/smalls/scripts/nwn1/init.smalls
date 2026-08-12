@@ -1,12 +1,13 @@
 import core.array as arr;
 import core.bit as bit;
 import core.combat as C;
-import core.creature as Cre;
+import nwn1.creature_state as Cre;
 import core.item as Item;
 import core.object as Obj;
 import core.effects as effects;
-from core.creature import { CreatureCombat, CreatureStats };
-from core.types import { BaseItemType, Feat };
+from nwn1.propsets import { CreatureCombat, CreatureStats };
+from core.item import { BaseItemType };
+from core.types import { Feat };
 
 import nwn1.creature as NCre;
 import nwn1.combat_modes as combat_modes;
@@ -218,13 +219,13 @@ fn _is_ranged_weapon_base_item(base_item: BaseItemType): bool {
 }
 
 fn _mode_can_use_flurry(obj: Creature): bool {
-    var rh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_righthand));
-    var lh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_lefthand));
+    var rh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_righthand));
+    var lh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_lefthand));
     return _is_monk_weapon_base_item(rh) && _is_monk_weapon_base_item(lh);
 }
 
 fn _mode_can_use_rapid_shot(obj: Creature): bool {
-    var rh = Item.get_baseitem_type(Cre.get_equipped_item(obj, Const.equip_index_righthand));
+    var rh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_righthand));
     return _is_ranged_weapon_base_item(rh);
 }
 

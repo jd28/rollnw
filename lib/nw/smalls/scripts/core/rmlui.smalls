@@ -1,0 +1,27 @@
+type Event {
+    event_type: string;
+    element_id: string;
+    document_id: string;
+    text: string;
+    value: string;
+    checked: bool;
+    active_object: object;
+};
+
+type Command {
+    operation: int;
+    element_id: string;
+    value: string;
+    state: bool;
+};
+
+const command_set_text = 0;
+const command_set_value = 1;
+const command_set_checked = 2;
+const command_set_class = 3;
+const command_set_visible = 4;
+const command_focus = 5;
+const command_set_rml = 6;
+
+[[native]] fn active_object(): object;
+[[native]] fn active_object_type(): int;

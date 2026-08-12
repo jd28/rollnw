@@ -157,11 +157,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     PropsetGffPolicyRegistry reg;
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureDescriptor
+    // nwn1.propsets.CreatureDescriptor
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureDescriptor";
+        p.qualified_name = "nwn1.propsets.CreatureDescriptor";
         p.fields = {
             scalar("on_attacked", "ScriptAttacked", ST::resref),
             scalar("on_blocked", "ScriptOnBlocked", ST::resref),
@@ -190,11 +190,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureAppearance
+    // nwn1.propsets.CreatureAppearance
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureAppearance";
+        p.qualified_name = "nwn1.propsets.CreatureAppearance";
         p.fields = {
             scalar("appearance", "Appearance_Type", ST::uint16),
             scalar("phenotype", "Phenotype", ST::int32),
@@ -251,11 +251,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureStats
+    // nwn1.propsets.CreatureStats
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureStats";
+        p.qualified_name = "nwn1.propsets.CreatureStats";
         p.fields = {
             // abilities[6] → Str, Dex, Con, Int, Wis, Cha (uint8 each in GFF)
             spread("abilities",
@@ -299,11 +299,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureHealth
+    // nwn1.propsets.CreatureHealth
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureHealth";
+        p.qualified_name = "nwn1.propsets.CreatureHealth";
         p.fields = {
             scalar("hp", "HitPoints", ST::int16),
             import_only(scalar("hp_base_for_max", "HitPoints", ST::int16)),
@@ -324,11 +324,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureLevels
+    // nwn1.propsets.CreatureLevels
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureLevels";
+        p.qualified_name = "nwn1.propsets.CreatureLevels";
         p.fields = {
             // classes[8] + class_levels[8] → ClassList (struct_id=3 matches serialize)
             list_paired("classes", "class_levels", "ClassList", "Class", "ClassLevel", /*struct_id=*/3),
@@ -341,11 +341,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.creature.CreatureCombat — all transient, none serialized to GFF
+    // nwn1.propsets.CreatureCombat — all transient, none serialized to GFF
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.creature.CreatureCombat";
+        p.qualified_name = "nwn1.propsets.CreatureCombat";
         p.instance_only = true;
         p.fields = {
             skip("attack_current"),
@@ -369,11 +369,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.item.ItemDescriptor
+    // nwn1.propsets.ItemDescriptor
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.item.ItemDescriptor";
+        p.qualified_name = "nwn1.propsets.ItemDescriptor";
         p.fields = {
             scalar("description", "Description", ST::locstring),
             scalar("description_id", "DescIdentified", ST::locstring),
@@ -382,22 +382,13 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.item.ItemStats
+    // nwn1.propsets.ItemStats
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.item.ItemStats";
+        p.qualified_name = "nwn1.propsets.ItemStats";
         p.fields = {
             scalar("base_item", "BaseItem", ST::int32),
-            list_struct("item_properties", "PropertiesList", {
-                                                                 {"prop_type", "PropertyName", ST::uint16},
-                                                                 {"subtype", "Subtype", ST::uint16},
-                                                                 {"cost_table", "CostTable", ST::uint8},
-                                                                 {"cost_value", "CostValue", ST::uint16},
-                                                                 {"param_table", "Param1", ST::uint8},
-                                                                 {"param_value", "Param1Value", ST::uint8},
-                                                             },
-                /*struct_id=*/0),
             scalar("cost", "Cost", ST::uint32),
             scalar("cost_additional", "AddCost", ST::uint32),
             scalar("stack_size", "StackSize", ST::uint16),
@@ -411,25 +402,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.item.ItemVisuals
+    // nwn1.propsets.StoreState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.item.ItemVisuals";
-        p.fields = {
-            skip("model_colors"),
-            skip("model_parts"),
-            skip("part_colors"),
-        };
-        reg.register_policy(std::move(p));
-    }
-
-    // -------------------------------------------------------------------------
-    // core.store.StoreState
-    // -------------------------------------------------------------------------
-    {
-        PropsetGffPolicy p;
-        p.qualified_name = "core.store.StoreState";
+        p.qualified_name = "nwn1.propsets.StoreState";
         p.fields = {
             scalar("on_opened", "OnOpenStore", ST::resref),
             scalar("on_closed", "OnStoreClosed", ST::resref),
@@ -445,11 +422,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.sound.SoundState
+    // nwn1.propsets.SoundState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.sound.SoundState";
+        p.qualified_name = "nwn1.propsets.SoundState";
         p.fields = {
             list_scalar("sounds", "Sounds", "Sound", ST::resref, /*struct_id=*/0),
             scalar("distance_max", "MaxDistance", ST::float_),
@@ -477,11 +454,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.waypoint.WaypointState
+    // nwn1.propsets.WaypointState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.waypoint.WaypointState";
+        p.qualified_name = "nwn1.propsets.WaypointState";
         p.fields = {
             scalar("description", "Description", ST::locstring),
             scalar("linked_to", "LinkedTo", ST::string),
@@ -494,11 +471,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.trigger.TriggerState
+    // nwn1.propsets.TriggerState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.trigger.TriggerState";
+        p.qualified_name = "nwn1.propsets.TriggerState";
         p.fields = {
             scalar("linked_to", "LinkedTo", ST::string),
             scalar("on_click", "OnClick", ST::resref),
@@ -527,11 +504,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.encounter.EncounterState
+    // nwn1.propsets.EncounterState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.encounter.EncounterState";
+        p.qualified_name = "nwn1.propsets.EncounterState";
         p.fields = {
             scalar("on_entered", "OnEntered", ST::resref),
             scalar("on_exhausted", "OnExhausted", ST::resref),
@@ -561,11 +538,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.door.DoorState
+    // nwn1.propsets.DoorState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.door.DoorState";
+        p.qualified_name = "nwn1.propsets.DoorState";
         p.fields = {
             scalar("key_name", "KeyName", ST::string),
             scalar("key_required", "KeyRequired", ST::uint8),
@@ -623,11 +600,11 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
     }
 
     // -------------------------------------------------------------------------
-    // core.placeable.PlaceableState
+    // nwn1.propsets.PlaceableState
     // -------------------------------------------------------------------------
     {
         PropsetGffPolicy p;
-        p.qualified_name = "core.placeable.PlaceableState";
+        p.qualified_name = "nwn1.propsets.PlaceableState";
         p.fields = {
             scalar("key_name", "KeyName", ST::string),
             scalar("key_required", "KeyRequired", ST::uint8),

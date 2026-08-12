@@ -20,6 +20,8 @@ constexpr uint32_t object_visual_model_known_flags = static_cast<uint32_t>(Objec
     | static_cast<uint32_t>(ObjectVisualModelFlags::hidden_in_game)
     | static_cast<uint32_t>(ObjectVisualModelFlags::hidden_in_toolset);
 constexpr uint32_t object_visual_plt_color_known_mask = (1u << plt_layer_size) - 1u;
+constexpr uint8_t object_item_icon_known_flags = ObjectItemIconFlags::plt
+    | ObjectItemIconFlags::allow_default;
 
 bool is_finite(glm::vec3 value) noexcept
 {
@@ -39,6 +41,31 @@ bool has_geometry_payload(const ObjectGeometryState& row) noexcept
 bool is_valid_scale(glm::vec3 value) noexcept
 {
     return is_finite(value) && value.x > 0.0f && value.y > 0.0f && value.z > 0.0f;
+}
+
+bool read_scale(const nlohmann::json& archive, glm::vec3& out)
+{
+    const auto it = archive.find("scale");
+    if (it == archive.end()) {
+        out = glm::vec3{1.0f};
+        return true;
+    }
+    if (!it->is_array() || it->size() != 3) {
+        return false;
+    }
+
+    glm::vec3 parsed;
+    for (size_t i = 0; i < 3; ++i) {
+        if (!(*it)[i].is_number()) {
+            return false;
+        }
+        parsed[i] = (*it)[i].get<float>();
+    }
+    if (!is_valid_scale(parsed)) {
+        return false;
+    }
+    out = parsed;
+    return true;
 }
 
 bool use_handle_key(const ObjectBase& obj) noexcept
@@ -236,7 +263,20 @@ bool ObjectComponentSystem::from_json_spatial(ObjectHandle obj, const nlohmann::
     }
 
     Location parsed = it->get<Location>();
-    return set_location(obj, parsed);
+    glm::vec3 scale;
+    if (!read_scale(component_archive, scale)) {
+        return false;
+    }
+
+    ObjectSpatialState* row = get_or_create_spatial(obj);
+    if (!row) {
+        return false;
+    }
+    row->area = parsed.area;
+    row->position = parsed.position;
+    row->orientation = parsed.orientation;
+    row->scale = scale;
+    return true;
 }
 
 bool ObjectComponentSystem::serialize_position(ObjectHandle obj, GffBuilderStruct& archive, SerializationProfile profile) const
@@ -273,6 +313,9 @@ void ObjectComponentSystem::to_json_spatial(ObjectHandle obj, nlohmann::json& co
     if (profile == SerializationProfile::instance
         || profile == SerializationProfile::savegame) {
         component_archive["location"] = location(obj);
+        if (const auto* row = find_spatial(obj); row && row->scale != glm::vec3{1.0f}) {
+            component_archive["scale"] = {row->scale.x, row->scale.y, row->scale.z};
+        }
     }
 }
 
@@ -591,6 +634,7 @@ bool ObjectComponentSystem::clear_visual(ObjectHandle obj, int32_t appearance)
 
     row->appearance = appearance;
     row->body_variant = 0;
+    row->hold_animation = {};
     row->base_plt_colors = {};
     row->base_plt_color_mask = 0;
     row->models.clear();
@@ -612,6 +656,19 @@ bool ObjectComponentSystem::clear_visual_slot(ObjectHandle obj, int32_t slot)
             return model.slot == slot;
         });
     row->models.erase(tail, row->models.end());
+    return true;
+}
+
+bool ObjectComponentSystem::set_visual_hold_animation(ObjectHandle obj, Resref animation)
+{
+    if (animation.empty()) { return false; }
+
+    ObjectVisualState* row = get_or_create_visual(obj);
+    if (!row) {
+        return false;
+    }
+
+    row->hold_animation = animation;
     return true;
 }
 
@@ -784,6 +841,290 @@ bool ObjectComponentSystem::set_item_layout(ObjectHandle obj,
 
     row->inventory_width = inventory_width;
     row->inventory_height = inventory_height;
+    return true;
+}
+
+ObjectItemPropertyState* ObjectComponentSystem::get_or_create_item_properties(ObjectHandle obj)
+{
+    if (auto* existing = find_item_properties(obj)) {
+        return existing;
+    }
+
+    auto* base = kernel::objects().get_object_base(obj);
+    if (!base || !base->as_item()) {
+        return nullptr;
+    }
+
+    const uint64_t key = obj.to_ull();
+    auto index = item_property_index_.emplace(key, item_properties_.size()).first;
+    item_properties_.push_back(ObjectItemPropertyState{.owner = obj});
+    return &item_properties_[index->second];
+}
+
+ObjectItemPropertyState* ObjectComponentSystem::find_item_properties(ObjectHandle obj) noexcept
+{
+    auto it = item_property_index_.find(obj.to_ull());
+    return it != item_property_index_.end() ? &item_properties_[it->second] : nullptr;
+}
+
+const ObjectItemPropertyState* ObjectComponentSystem::find_item_properties(ObjectHandle obj) const noexcept
+{
+    auto it = item_property_index_.find(obj.to_ull());
+    return it != item_property_index_.end() ? &item_properties_[it->second] : nullptr;
+}
+
+bool ObjectComponentSystem::set_item_properties(
+    ObjectHandle obj, std::span<const ItemProperty> properties)
+{
+    ObjectItemPropertyState* row = get_or_create_item_properties(obj);
+    if (!row) {
+        return false;
+    }
+
+    row->entries.assign(properties.begin(), properties.end());
+    return true;
+}
+
+bool ObjectComponentSystem::from_json_item_properties(
+    ObjectHandle obj, const nlohmann::json& archive)
+{
+    if (!archive.is_array()) {
+        return false;
+    }
+
+    Vector<ItemProperty> parsed;
+    parsed.reserve(archive.size());
+    for (const auto& entry : archive) {
+        if (!entry.is_object()
+            || !entry.contains("type") || !entry["type"].is_number_unsigned()
+            || !entry.contains("subtype") || !entry["subtype"].is_number_unsigned()
+            || !entry.contains("cost_table") || !entry["cost_table"].is_number_unsigned()
+            || !entry.contains("cost_value") || !entry["cost_value"].is_number_unsigned()
+            || !entry.contains("param_table") || !entry["param_table"].is_number_unsigned()
+            || !entry.contains("param_value") || !entry["param_value"].is_number_unsigned()
+            || !entry.contains("tag") || !entry["tag"].is_string()) {
+            return false;
+        }
+
+        const uint64_t type = entry["type"].get<uint64_t>();
+        const uint64_t subtype = entry["subtype"].get<uint64_t>();
+        const uint64_t cost_table = entry["cost_table"].get<uint64_t>();
+        const uint64_t cost_value = entry["cost_value"].get<uint64_t>();
+        const uint64_t param_table = entry["param_table"].get<uint64_t>();
+        const uint64_t param_value = entry["param_value"].get<uint64_t>();
+        if (type > std::numeric_limits<uint16_t>::max()
+            || subtype > std::numeric_limits<uint16_t>::max()
+            || cost_table > std::numeric_limits<uint8_t>::max()
+            || cost_value > std::numeric_limits<uint16_t>::max()
+            || param_table > std::numeric_limits<uint8_t>::max()
+            || param_value > std::numeric_limits<uint8_t>::max()) {
+            return false;
+        }
+
+        parsed.push_back(ItemProperty{
+            .type = static_cast<uint16_t>(type),
+            .subtype = static_cast<uint16_t>(subtype),
+            .cost_table = static_cast<uint8_t>(cost_table),
+            .cost_value = static_cast<uint16_t>(cost_value),
+            .param_table = static_cast<uint8_t>(param_table),
+            .param_value = static_cast<uint8_t>(param_value),
+            .tag = entry["tag"].get<std::string>(),
+        });
+    }
+
+    return set_item_properties(obj, parsed);
+}
+
+nlohmann::json ObjectComponentSystem::item_properties_to_json(ObjectHandle obj) const
+{
+    nlohmann::json result = nlohmann::json::array();
+    const ObjectItemPropertyState* row = find_item_properties(obj);
+    if (!row) {
+        return result;
+    }
+
+    for (const auto& property : row->entries) {
+        result.push_back({
+            {"type", property.type},
+            {"subtype", property.subtype},
+            {"cost_table", property.cost_table},
+            {"cost_value", property.cost_value},
+            {"param_table", property.param_table},
+            {"param_value", property.param_value},
+            {"tag", property.tag},
+        });
+    }
+    return result;
+}
+
+ObjectItemVisualState* ObjectComponentSystem::get_or_create_item_visuals(ObjectHandle obj)
+{
+    if (auto* existing = find_item_visuals(obj)) {
+        return existing;
+    }
+
+    auto* base = kernel::objects().get_object_base(obj);
+    if (!base || !base->as_item()) {
+        return nullptr;
+    }
+
+    const uint64_t key = obj.to_ull();
+    auto index = item_visual_index_.emplace(key, item_visuals_.size()).first;
+    item_visuals_.push_back(ObjectItemVisualState{.owner = obj});
+    return &item_visuals_[index->second];
+}
+
+ObjectItemVisualState* ObjectComponentSystem::find_item_visuals(ObjectHandle obj) noexcept
+{
+    auto it = item_visual_index_.find(obj.to_ull());
+    return it != item_visual_index_.end() ? &item_visuals_[it->second] : nullptr;
+}
+
+const ObjectItemVisualState* ObjectComponentSystem::find_item_visuals(ObjectHandle obj) const noexcept
+{
+    auto it = item_visual_index_.find(obj.to_ull());
+    return it != item_visual_index_.end() ? &item_visuals_[it->second] : nullptr;
+}
+
+bool ObjectComponentSystem::set_item_visuals(ObjectHandle obj,
+    std::span<const uint8_t> model_colors,
+    std::span<const uint16_t> model_parts,
+    std::span<const uint8_t> part_colors)
+{
+    if (model_colors.size() != ObjectItemVisualState::model_color_count
+        || model_parts.size() != ObjectItemVisualState::model_part_count
+        || part_colors.size() != ObjectItemVisualState::part_color_count) {
+        return false;
+    }
+
+    ObjectItemVisualState* row = get_or_create_item_visuals(obj);
+    if (!row) {
+        return false;
+    }
+
+    std::copy(model_colors.begin(), model_colors.end(), row->model_colors.begin());
+    std::copy(model_parts.begin(), model_parts.end(), row->model_parts.begin());
+    std::copy(part_colors.begin(), part_colors.end(), row->part_colors.begin());
+    return true;
+}
+
+bool ObjectComponentSystem::from_json_item_visuals(ObjectHandle obj, const nlohmann::json& archive)
+{
+    if (!archive.is_object()) { return false; }
+
+    auto parse_array = [&archive]<typename T, size_t N>(
+                           const char* name, std::array<T, N>& result) {
+        auto it = archive.find(name);
+        if (it == archive.end() || !it->is_array() || it->size() != N) {
+            return false;
+        }
+        for (size_t i = 0; i < N; ++i) {
+            if (!(*it)[i].is_number_unsigned()) {
+                return false;
+            }
+            const uint64_t value = (*it)[i].get<uint64_t>();
+            if (value > std::numeric_limits<T>::max()) {
+                return false;
+            }
+            result[i] = static_cast<T>(value);
+        }
+        return true;
+    };
+
+    ObjectItemVisualState parsed{.owner = obj};
+    if (!parse_array("model_colors", parsed.model_colors)
+        || !parse_array("model_parts", parsed.model_parts)
+        || !parse_array("part_colors", parsed.part_colors)) {
+        return false;
+    }
+
+    return set_item_visuals(obj, parsed.model_colors, parsed.model_parts, parsed.part_colors);
+}
+
+nlohmann::json ObjectComponentSystem::item_visuals_to_json(ObjectHandle obj) const
+{
+    ObjectItemVisualState defaults{.owner = obj};
+    const ObjectItemVisualState* row = find_item_visuals(obj);
+    if (!row) { row = &defaults; }
+
+    return {
+        {"model_colors", row->model_colors},
+        {"model_parts", row->model_parts},
+        {"part_colors", row->part_colors},
+    };
+}
+
+std::span<const ObjectItemIconLayer> ObjectItemIconState::variant(uint8_t index) const noexcept
+{
+    if (index >= variant_count) {
+        return {};
+    }
+    const size_t offset = index == 0 ? 0 : layer_counts[0];
+    const size_t count = layer_counts[index];
+    if (offset > layers.size() || count > layers.size() - offset) {
+        return {};
+    }
+    return std::span<const ObjectItemIconLayer>{layers}.subspan(offset, count);
+}
+
+ObjectItemIconState* ObjectComponentSystem::get_or_create_item_icons(ObjectHandle obj)
+{
+    if (auto* existing = find_item_icons(obj)) {
+        return existing;
+    }
+    auto* base = kernel::objects().get_object_base(obj);
+    if (!base || !base->as_item()) {
+        return nullptr;
+    }
+
+    const uint64_t key = obj.to_ull();
+    auto index = item_icon_index_.emplace(key, item_icons_.size()).first;
+    item_icons_.push_back(ObjectItemIconState{.owner = obj});
+    return &item_icons_[index->second];
+}
+
+ObjectItemIconState* ObjectComponentSystem::find_item_icons(ObjectHandle obj) noexcept
+{
+    auto it = item_icon_index_.find(obj.to_ull());
+    return it != item_icon_index_.end() ? &item_icons_[it->second] : nullptr;
+}
+
+const ObjectItemIconState* ObjectComponentSystem::find_item_icons(ObjectHandle obj) const noexcept
+{
+    auto it = item_icon_index_.find(obj.to_ull());
+    return it != item_icon_index_.end() ? &item_icons_[it->second] : nullptr;
+}
+
+bool ObjectComponentSystem::clear_item_icons(ObjectHandle obj)
+{
+    auto* row = get_or_create_item_icons(obj);
+    if (!row) {
+        return false;
+    }
+    row->layers.clear();
+    row->layer_counts = {};
+    return true;
+}
+
+bool ObjectComponentSystem::add_item_icon_layer(
+    ObjectHandle obj, uint8_t variant, ObjectItemIconLayer layer)
+{
+    if (variant >= ObjectItemIconState::variant_count
+        || layer.part < 0 || layer.part >= 19
+        || (layer.flags & ~object_item_icon_known_flags) != 0
+        || (layer.resource.empty()
+            && ((layer.flags & ObjectItemIconFlags::allow_default) == 0
+                || layer.fallback.empty()))) {
+        return false;
+    }
+    auto* row = get_or_create_item_icons(obj);
+    if (!row || row->layer_counts[variant] >= ObjectItemIconState::max_layers_per_variant
+        || (variant == 0 && row->layer_counts[1] != 0)) {
+        return false;
+    }
+
+    row->layers.push_back(std::move(layer));
+    ++row->layer_counts[variant];
     return true;
 }
 
@@ -1378,6 +1719,9 @@ void ObjectComponentSystem::remove(ObjectHandle obj) noexcept
     remove_geometry(obj);
     remove_visual(obj);
     remove_item_layout(obj);
+    remove_item_properties(obj);
+    remove_item_visuals(obj);
+    remove_item_icons(obj);
     remove_inventory(obj);
     remove_store_inventory(obj);
     remove_ability_loadout(obj);
@@ -1521,6 +1865,70 @@ void ObjectComponentSystem::remove_item_layout(ObjectHandle obj) noexcept
     }
 
     item_layouts_.pop_back();
+}
+
+void ObjectComponentSystem::remove_item_properties(ObjectHandle obj) noexcept
+{
+    auto it = item_property_index_.find(obj.to_ull());
+    if (it == item_property_index_.end()) {
+        return;
+    }
+
+    const size_t index = it->second;
+    const size_t last = item_properties_.size() - 1;
+    item_property_index_.erase(it);
+
+    if (index != last) {
+        item_properties_[index] = std::move(item_properties_[last]);
+        auto moved = item_property_index_.find(item_properties_[index].owner.to_ull());
+        if (moved != item_property_index_.end()) {
+            moved->second = index;
+        }
+    }
+
+    item_properties_.pop_back();
+}
+
+void ObjectComponentSystem::remove_item_visuals(ObjectHandle obj) noexcept
+{
+    auto it = item_visual_index_.find(obj.to_ull());
+    if (it == item_visual_index_.end()) {
+        return;
+    }
+
+    const size_t index = it->second;
+    const size_t last = item_visuals_.size() - 1;
+    item_visual_index_.erase(it);
+
+    if (index != last) {
+        item_visuals_[index] = item_visuals_[last];
+        auto moved = item_visual_index_.find(item_visuals_[index].owner.to_ull());
+        if (moved != item_visual_index_.end()) {
+            moved->second = index;
+        }
+    }
+
+    item_visuals_.pop_back();
+}
+
+void ObjectComponentSystem::remove_item_icons(ObjectHandle obj) noexcept
+{
+    auto it = item_icon_index_.find(obj.to_ull());
+    if (it == item_icon_index_.end()) {
+        return;
+    }
+
+    const size_t index = it->second;
+    const size_t last = item_icons_.size() - 1;
+    item_icon_index_.erase(it);
+    if (index != last) {
+        item_icons_[index] = std::move(item_icons_[last]);
+        auto moved = item_icon_index_.find(item_icons_[index].owner.to_ull());
+        if (moved != item_icon_index_.end()) {
+            moved->second = index;
+        }
+    }
+    item_icons_.pop_back();
 }
 
 void ObjectComponentSystem::remove_inventory(ObjectHandle obj) noexcept
@@ -1697,6 +2105,12 @@ void ObjectComponentSystem::clear() noexcept
     visual_.clear();
     item_layout_index_.clear();
     item_layouts_.clear();
+    item_property_index_.clear();
+    item_properties_.clear();
+    item_visual_index_.clear();
+    item_visuals_.clear();
+    item_icon_index_.clear();
+    item_icons_.clear();
     inventory_handle_index_.clear();
     inventory_ptr_index_.clear();
     inventory_.clear();
@@ -1716,6 +2130,9 @@ nlohmann::json ObjectComponentSystem::stats() const
         {"geometry", geometry_.size()},
         {"visual", visual_.size()},
         {"item_layout", item_layouts_.size()},
+        {"item_property", item_properties_.size()},
+        {"item_visual", item_visuals_.size()},
+        {"item_icon", item_icons_.size()},
         {"inventory", inventory_.size()},
         {"store_inventory", store_inventory_.size()},
         {"ability_loadout", ability_loadouts_.size()},

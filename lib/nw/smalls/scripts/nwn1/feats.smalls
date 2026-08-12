@@ -1,7 +1,7 @@
 from nwn1.rules import { FeatEntry, StrRef };
 from core.types import { Feat };
 import core.array as Array;
-import core.creature as Cre;
+import nwn1.creature_state as Cre;
 import nwn1.constants as Const;
 import nwn1.creature as NCre;
 

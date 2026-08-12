@@ -2,6 +2,7 @@
 
 #include "../formats/Plt.hpp"
 #include "../resources/assets.hpp"
+#include "../rules/items.hpp"
 #include "Inventory.hpp"
 #include "LocalData.hpp"
 #include "ObjectHandle.hpp"
@@ -9,6 +10,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <glm/glm.hpp>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -89,6 +91,7 @@ enum class ObjectVisualRenderMode : uint8_t {
 
 struct ObjectVisualModel {
     Resref model;
+    Resref plt_texture;
     Resref attach_to;
     Resref attach_from;
     int32_t kind = ObjectVisualModelKind::root;
@@ -110,6 +113,7 @@ struct ObjectVisualState {
     ObjectHandle owner{};
     Vector<ObjectVisualModel> models;
     Vector<ObjectVisualLight> lights;
+    Resref hold_animation;
     PltColors base_plt_colors{};
     uint32_t base_plt_color_mask = 0;
     int32_t appearance = -1;
@@ -132,6 +136,54 @@ struct ObjectItemLayoutState {
     ObjectHandle owner{};
     int32_t inventory_width = 0;
     int32_t inventory_height = 0;
+};
+
+struct ObjectItemPropertyState {
+    ObjectHandle owner{};
+    Vector<ItemProperty> entries;
+};
+
+struct ObjectItemVisualState {
+    static constexpr size_t model_color_count = 6;
+    static constexpr size_t model_part_count = 19;
+    static constexpr size_t part_color_count = model_part_count * model_color_count;
+    static constexpr uint8_t inherit_part_color = 255;
+
+    ObjectHandle owner{};
+    std::array<uint8_t, model_color_count> model_colors{};
+    std::array<uint16_t, model_part_count> model_parts{};
+    std::array<uint8_t, part_color_count> part_colors = [] {
+        std::array<uint8_t, part_color_count> result{};
+        result.fill(inherit_part_color);
+        return result;
+    }();
+};
+
+struct ObjectItemIconFlags {
+    enum type : uint8_t {
+        none = 0,
+        plt = 1u << 0,
+        allow_default = 1u << 1,
+    };
+};
+
+struct ObjectItemIconLayer {
+    Resref resource;
+    Resref fallback;
+    PltColors plt_colors{};
+    int32_t part = 0;
+    uint8_t flags = ObjectItemIconFlags::none;
+};
+
+struct ObjectItemIconState {
+    static constexpr uint8_t variant_count = 2;
+    static constexpr uint8_t max_layers_per_variant = 6;
+
+    ObjectHandle owner{};
+    Vector<ObjectItemIconLayer> layers;
+    std::array<uint8_t, variant_count> layer_counts{};
+
+    [[nodiscard]] std::span<const ObjectItemIconLayer> variant(uint8_t index) const noexcept;
 };
 
 struct ObjectStoreInventoryState {
@@ -196,6 +248,7 @@ struct ObjectComponentSystem {
     const ObjectVisualState* find_visual(ObjectHandle obj) const noexcept;
     bool clear_visual(ObjectHandle obj, int32_t appearance);
     bool clear_visual_slot(ObjectHandle obj, int32_t slot);
+    bool set_visual_hold_animation(ObjectHandle obj, Resref animation);
     bool set_visual_body_variant(ObjectHandle obj, int32_t body_variant);
     bool set_visual_base_plt_colors(ObjectHandle obj, uint32_t mask, PltColors colors);
     bool add_visual_model(ObjectHandle obj, ObjectVisualModel model);
@@ -211,6 +264,32 @@ struct ObjectComponentSystem {
     const ObjectItemLayoutState* find_item_layout(ObjectHandle obj) const noexcept;
     bool set_item_layout(ObjectHandle obj, int32_t inventory_width, int32_t inventory_height);
     void remove_item_layout(ObjectHandle obj) noexcept;
+
+    ObjectItemPropertyState* get_or_create_item_properties(ObjectHandle obj);
+    ObjectItemPropertyState* find_item_properties(ObjectHandle obj) noexcept;
+    const ObjectItemPropertyState* find_item_properties(ObjectHandle obj) const noexcept;
+    bool set_item_properties(ObjectHandle obj, std::span<const ItemProperty> properties);
+    bool from_json_item_properties(ObjectHandle obj, const nlohmann::json& archive);
+    nlohmann::json item_properties_to_json(ObjectHandle obj) const;
+    void remove_item_properties(ObjectHandle obj) noexcept;
+
+    ObjectItemVisualState* get_or_create_item_visuals(ObjectHandle obj);
+    ObjectItemVisualState* find_item_visuals(ObjectHandle obj) noexcept;
+    const ObjectItemVisualState* find_item_visuals(ObjectHandle obj) const noexcept;
+    bool set_item_visuals(ObjectHandle obj,
+        std::span<const uint8_t> model_colors,
+        std::span<const uint16_t> model_parts,
+        std::span<const uint8_t> part_colors);
+    bool from_json_item_visuals(ObjectHandle obj, const nlohmann::json& archive);
+    nlohmann::json item_visuals_to_json(ObjectHandle obj) const;
+    void remove_item_visuals(ObjectHandle obj) noexcept;
+
+    ObjectItemIconState* get_or_create_item_icons(ObjectHandle obj);
+    ObjectItemIconState* find_item_icons(ObjectHandle obj) noexcept;
+    const ObjectItemIconState* find_item_icons(ObjectHandle obj) const noexcept;
+    bool clear_item_icons(ObjectHandle obj);
+    bool add_item_icon_layer(ObjectHandle obj, uint8_t variant, ObjectItemIconLayer layer);
+    void remove_item_icons(ObjectHandle obj) noexcept;
 
     Inventory* get_or_create_inventory(ObjectBase& obj, int pages, int rows, int columns);
     Inventory* find_inventory(ObjectBase& obj) noexcept;
@@ -260,6 +339,9 @@ struct ObjectComponentSystem {
     size_t geometry_count() const noexcept { return geometry_.size(); }
     size_t visual_count() const noexcept { return visual_.size(); }
     size_t item_layout_count() const noexcept { return item_layouts_.size(); }
+    size_t item_property_count() const noexcept { return item_properties_.size(); }
+    size_t item_visual_count() const noexcept { return item_visuals_.size(); }
+    size_t item_icon_count() const noexcept { return item_icons_.size(); }
     size_t inventory_count() const noexcept { return inventory_.size(); }
     size_t store_inventory_count() const noexcept { return store_inventory_.size(); }
     size_t ability_loadout_count() const noexcept { return ability_loadouts_.size(); }
@@ -291,6 +373,15 @@ private:
 
     absl::flat_hash_map<uint64_t, size_t> item_layout_index_;
     Vector<ObjectItemLayoutState> item_layouts_;
+
+    absl::flat_hash_map<uint64_t, size_t> item_property_index_;
+    Vector<ObjectItemPropertyState> item_properties_;
+
+    absl::flat_hash_map<uint64_t, size_t> item_visual_index_;
+    Vector<ObjectItemVisualState> item_visuals_;
+
+    absl::flat_hash_map<uint64_t, size_t> item_icon_index_;
+    Vector<ObjectItemIconState> item_icons_;
 
     absl::flat_hash_map<uint64_t, size_t> inventory_handle_index_;
     absl::flat_hash_map<uintptr_t, size_t> inventory_ptr_index_;

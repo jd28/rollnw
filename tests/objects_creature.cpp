@@ -218,7 +218,7 @@ bool seed_creature_appearance_propset(nw::Creature* creature,
 
     auto& rt = nw::kernel::runtime();
     rt.init_object_propsets(creature->handle());
-    auto tid = rt.type_id("core.creature.CreatureAppearance", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureAppearance", false);
     if (tid == nw::smalls::invalid_type_id) { return false; }
 
     auto ref = rt.get_or_create_propset_ref(tid, creature->handle());
@@ -237,7 +237,7 @@ bool seed_creature_appearance_propset(nw::Creature* creature,
 float imported_creature_cr(nw::Creature* creature)
 {
     auto& rt = nw::kernel::runtime();
-    auto stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     if (stats.type_id == nw::smalls::invalid_type_id) {
         ADD_FAILURE() << "missing CreatureStats propset";
         return 0.0f;
@@ -361,7 +361,7 @@ bool knows_feat_from_script(const nw::Creature* creature, nw::Feat feat)
     nw::Vector<nw::smalls::Value> args;
     args.push_back(nwn1::bridge::make_object_arg(creature->handle()));
     args.push_back(nw::smalls::Value::make_int(*feat));
-    return nwn1::bridge::call_nwn1_module_bool("core.creature", "has_feat", args).value_or(false);
+    return nwn1::bridge::call_nwn1_module_bool("nwn1.creature_state", "has_feat", args).value_or(false);
 }
 
 std::pair<nw::Feat, int32_t> feat_successor_from_script(const nw::Creature* creature, nw::Feat feat)
@@ -411,8 +411,8 @@ nw::Feat highest_feat_in_range_from_script(const nw::Creature* creature, nw::Fea
     args.push_back(nw::smalls::Value::make_int(*start));
     args.push_back(nw::smalls::Value::make_int(*end));
     return nw::Feat::make(nwn1::bridge::call_nwn1_module_int(
-        "core.creature", "highest_feat_in_range", args)
-                              .value_or(*nw::Feat::invalid()));
+        "nwn1.creature_state", "highest_feat_in_range", args)
+            .value_or(*nw::Feat::invalid()));
 }
 
 int32_t count_feats_in_range_from_script(const nw::Creature* creature, nw::Feat start, nw::Feat end)
@@ -423,7 +423,7 @@ int32_t count_feats_in_range_from_script(const nw::Creature* creature, nw::Feat 
     args.push_back(nwn1::bridge::make_object_arg(creature->handle()));
     args.push_back(nw::smalls::Value::make_int(*start));
     args.push_back(nw::smalls::Value::make_int(*end));
-    return nwn1::bridge::call_nwn1_module_int("core.creature", "count_feats_in_range", args).value_or(0);
+    return nwn1::bridge::call_nwn1_module_int("nwn1.creature_state", "count_feats_in_range", args).value_or(0);
 }
 
 void push_creature_class_args(nw::Vector<nw::smalls::Value>& args,
@@ -549,7 +549,7 @@ void creature_remove_known_spell_from_script(const nw::Creature* creature, nw::C
 int32_t creature_alignment_flags_from_script(nw::Creature* creature)
 {
     auto& rt = nw::kernel::runtime();
-    auto stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     if (stats.type_id == nw::smalls::invalid_type_id) {
         ADD_FAILURE() << "missing CreatureStats propset";
         return 0;
@@ -559,7 +559,7 @@ int32_t creature_alignment_flags_from_script(nw::Creature* creature)
     args.push_back(nw::smalls::Value::make_int(script_int_field(rt, stats, "good_evil")));
     args.push_back(nw::smalls::Value::make_int(script_int_field(rt, stats, "lawful_chaotic")));
 
-    auto result = rt.execute_script("core.combat", "alignment_flags_from_values", args);
+    auto result = rt.execute_script("nwn1.combat_primitives", "alignment_flags_from_values", args);
     if (!result.ok()) {
         ADD_FAILURE() << result.error_message;
         return 0;
@@ -575,44 +575,21 @@ bool add_creature_propset_feat(nw::Creature* creature, nw::Feat feat)
 {
     if (!creature) { return false; }
 
-    auto& rt = nw::kernel::runtime();
-    nw::smalls::Value stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
-    if (stats.type_id == nw::smalls::invalid_type_id) { return false; }
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nwn1::bridge::make_object_arg(creature->handle()));
+    args.push_back(nw::smalls::Value::make_int(*feat));
+    return nwn1::bridge::call_nwn1_module_bool("nwn1.creature_state", "add_feat", args).value_or(false);
+}
 
-    const nw::smalls::StructDef* def = rt.get_struct_def(stats.type_id);
-    if (!def) { return false; }
+bool set_creature_propset_feat(nw::Creature* creature, nw::Feat feat, bool assigned)
+{
+    if (!creature) { return false; }
 
-    uint32_t field_index = def->field_index("feats");
-    if (field_index == UINT32_MAX) { return false; }
-
-    const nw::smalls::FieldDef& field = def->fields[field_index];
-    if (!field.is_unmanaged_array) { return false; }
-
-    nw::smalls::Value arr_value = rt.read_value_field_at_offset(stats, field.offset, field.type_id);
-    nw::TypedHandle handle = nw::TypedHandle::from_ull(arr_value.data.handle);
-    nw::smalls::IArray* arr = rt.object_pool().get_unmanaged_array(handle);
-    if (!arr) { return false; }
-
-    nw::Vector<int32_t> values;
-    values.reserve(arr->size() + 1);
-    for (size_t i = 0; i < arr->size(); ++i) {
-        nw::smalls::Value value;
-        if (arr->get_value(i, value, rt) && value.type_id == rt.int_type()) {
-            values.push_back(value.data.ival);
-        }
-    }
-
-    int32_t feat_id = *feat;
-    auto it = std::lower_bound(values.begin(), values.end(), feat_id);
-    if (it != values.end() && *it == feat_id) { return false; }
-    values.insert(it, feat_id);
-
-    arr->clear();
-    arr->reserve(values.size());
-    for (int32_t value : values) {
-        arr->append_value(nw::smalls::Value::make_int(value), rt);
-    }
-    return true;
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nwn1::bridge::make_object_arg(creature->handle()));
+    args.push_back(nw::smalls::Value::make_int(*feat));
+    args.push_back(nw::smalls::Value::make_bool(assigned));
+    return nwn1::bridge::call_nwn1_module_bool("nwn1.creature_state", "set_feat", args).value_or(false);
 }
 
 int32_t script_fixed_int_field(nw::smalls::Runtime& rt, const nw::smalls::Value& value,
@@ -689,13 +666,13 @@ TEST(Creature, GffDeserialize)
 
     EXPECT_EQ(obj1->resref, "nw_chicken");
     auto& rt = nw::kernel::runtime();
-    auto descriptor1 = find_creature_propset(rt, obj1, "core.creature.CreatureDescriptor");
+    auto descriptor1 = find_creature_propset(rt, obj1, "nwn1.propsets.CreatureDescriptor");
     ASSERT_NE(descriptor1.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_resref_field(rt, descriptor1, "on_attacked"), nw::Resref{"nw_c2_default5"});
-    auto appearance1 = find_creature_propset(rt, obj1, "core.creature.CreatureAppearance");
+    auto appearance1 = find_creature_propset(rt, obj1, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance1.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, appearance1, "appearance"), 31);
-    auto stats1 = find_creature_propset(rt, obj1, "core.creature.CreatureStats");
+    auto stats1 = find_creature_propset(rt, obj1, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats1.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats1, "abilities", *nwn1::ability_dexterity), 7);
     EXPECT_EQ(script_int_field(rt, stats1, "gender"), 1);
@@ -706,16 +683,16 @@ TEST(Creature, GffDeserialize)
     EXPECT_TRUE(obj2);
 
     EXPECT_EQ(obj2->resref, "pl_agent_001");
-    auto descriptor2 = find_creature_propset(rt, obj2, "core.creature.CreatureDescriptor");
+    auto descriptor2 = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureDescriptor");
     ASSERT_NE(descriptor2.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_resref_field(rt, descriptor2, "on_attacked"), nw::Resref{"mon_ai_5attacked"});
-    auto appearance2 = find_creature_propset(rt, obj2, "core.creature.CreatureAppearance");
+    auto appearance2 = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance2.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, appearance2, "appearance"), 6);
     EXPECT_EQ(script_int_field(rt, appearance2, "body_part_shin_left"), 1);
     EXPECT_EQ(script_int_field(rt, descriptor2, "soundset"), 171);
     EXPECT_TRUE(nw::get_equipped_item(obj2, nw::EquipIndex::chest));
-    auto stats2 = find_creature_propset(rt, obj2, "core.creature.CreatureStats");
+    auto stats2 = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats2.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats2, "abilities", *nwn1::ability_dexterity), 13);
     EXPECT_EQ(script_int_field(rt, stats2, "ac_natural_bonus"), 0);
@@ -753,21 +730,21 @@ TEST(Creature, GffDeserializeImportsPropsets)
     ASSERT_TRUE(nw::deserialize(creature, gff_top, nw::SerializationProfile::blueprint));
 
     auto& rt = nw::kernel::runtime();
-    auto descriptor = find_creature_propset(rt, creature, "core.creature.CreatureDescriptor");
+    auto descriptor = find_creature_propset(rt, creature, "nwn1.propsets.CreatureDescriptor");
     ASSERT_NE(descriptor.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_resref_field(rt, descriptor, "on_attacked"), script_attacked);
     EXPECT_EQ(script_int_field(rt, descriptor, "soundset"), soundset);
 
-    auto stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
 
-    auto health = find_creature_propset(rt, creature, "core.creature.CreatureHealth");
+    auto health = find_creature_propset(rt, creature, "nwn1.propsets.CreatureHealth");
     ASSERT_NE(health.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, health, "hp_current"), hp_current);
     EXPECT_EQ(script_int_field(rt, health, "faction_id"), faction_id);
 
-    auto levels = find_creature_propset(rt, creature, "core.creature.CreatureLevels");
+    auto levels = find_creature_propset(rt, creature, "nwn1.propsets.CreatureLevels");
     ASSERT_NE(levels.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, levels, "walkrate"), walkrate);
 
@@ -791,17 +768,17 @@ TEST(Creature, InstantiatePreservesImportedPropsetsWithoutLegacyCombatMirrors)
     ASSERT_TRUE(nw::deserialize(creature, gff_top, nw::SerializationProfile::blueprint));
 
     auto& rt = nw::kernel::runtime();
-    auto stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
 
     ASSERT_TRUE(creature->instantiate());
 
-    stats = find_creature_propset(rt, creature, "core.creature.CreatureStats");
+    stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
 
-    auto combat = find_creature_propset(rt, creature, "core.creature.CreatureCombat");
+    auto combat = find_creature_propset(rt, creature, "nwn1.propsets.CreatureCombat");
     ASSERT_NE(combat.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, combat, "attack_current"), 0);
     EXPECT_EQ(script_int_field(rt, combat, "attacks_onhand"), 0);
@@ -822,12 +799,15 @@ TEST(Creature, InstantiatePreservesImportedPropsetsWithoutLegacyCombatMirrors)
     auto size_result = rt.execute_script("nwn1.creature", "creature_size", args);
     ASSERT_TRUE(size_result.ok()) << size_result.error_message;
     ASSERT_TRUE(size_result.value.type_id == rt.int_type());
-    auto appearance_propset = find_creature_propset(rt, creature, "core.creature.CreatureAppearance");
+    auto appearance_propset = find_creature_propset(rt, creature, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance_propset.type_id, nw::smalls::invalid_type_id);
-    const auto* appearance = nw::kernel::rules().appearances.get(
-        nw::Appearance::make(script_int_field(rt, appearance_propset, "appearance")));
-    ASSERT_NE(appearance, nullptr);
-    EXPECT_EQ(size_result.value.data.ival, appearance->size);
+    auto* appearances = nw::kernel::twodas().get("appearance");
+    ASSERT_NE(appearances, nullptr);
+    int32_t expected_size = 0;
+    ASSERT_TRUE(appearances->get_to(
+        static_cast<size_t>(script_int_field(rt, appearance_propset, "appearance")),
+        "SIZECATEGORY", expected_size));
+    EXPECT_EQ(size_result.value.data.ival, expected_size);
 
     auto* creature_sizes = nw::kernel::twodas().get("creaturesize");
     ASSERT_NE(creature_sizes, nullptr);
@@ -845,7 +825,7 @@ TEST(Creature, InstantiatePreservesImportedPropsetsWithoutLegacyCombatMirrors)
     ASSERT_TRUE(armor_modifier.value.type_id == rt.int_type());
     EXPECT_EQ(armor_modifier.value.data.ival, expected_size_modifier);
 
-    auto health = find_creature_propset(rt, creature, "core.creature.CreatureHealth");
+    auto health = find_creature_propset(rt, creature, "nwn1.propsets.CreatureHealth");
     ASSERT_NE(health.type_id, nw::smalls::invalid_type_id);
     const auto* vitals = nw::kernel::objects().components().find_vitals(creature->handle());
     ASSERT_NE(vitals, nullptr);
@@ -864,7 +844,7 @@ TEST(Creature, CreatureStatsFeatsImportAndInsert)
     EXPECT_TRUE(ent);
 
     auto& rt = nw::kernel::runtime();
-    auto stats = find_creature_propset(rt, ent, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, ent, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
     ASSERT_EQ(script_array_size(rt, stats, "feats"), 37);
 
@@ -879,7 +859,44 @@ TEST(Creature, CreatureStatsFeatsImportAndInsert)
     EXPECT_TRUE(knows_feat_from_script(ent, nwn1::feat_epic_toughness_1));
 }
 
-TEST(Creature, ResolveModelUsesSmallsAppearanceConfig)
+TEST(Creature, CreatureStatsFeatOperationsPreserveSortedUniqueStorage)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_TRUE(ent);
+
+    auto& rt = nw::kernel::runtime();
+    auto stats = find_creature_propset(rt, ent, "nwn1.propsets.CreatureStats");
+    ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
+    const size_t initial_count = script_array_size(rt, stats, "feats");
+
+    auto existing_value = script_array_value(rt, stats, "feats", initial_count / 2);
+    ASSERT_EQ(existing_value.type_id, rt.int_type());
+    const auto existing = nw::Feat::make(static_cast<uint32_t>(existing_value.data.ival));
+
+    EXPECT_TRUE(set_creature_propset_feat(ent, existing, false));
+    EXPECT_FALSE(knows_feat_from_script(ent, existing));
+    EXPECT_FALSE(set_creature_propset_feat(ent, existing, false));
+    EXPECT_TRUE(set_creature_propset_feat(ent, existing, true));
+    EXPECT_TRUE(knows_feat_from_script(ent, existing));
+    EXPECT_FALSE(set_creature_propset_feat(ent, existing, true));
+
+    stats = find_creature_propset(rt, ent, "nwn1.propsets.CreatureStats");
+    ASSERT_EQ(script_array_size(rt, stats, "feats"), initial_count);
+    int32_t previous = -1;
+    for (size_t i = 0; i < initial_count; ++i) {
+        const auto value = script_array_value(rt, stats, "feats", i);
+        ASSERT_EQ(value.type_id, rt.int_type());
+        EXPECT_GT(value.data.ival, previous);
+        previous = value.data.ival;
+    }
+
+    EXPECT_FALSE(set_creature_propset_feat(ent, nw::Feat::invalid(), true));
+}
+
+TEST(Creature, ResolveModelUsesNativeAppearanceData)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
@@ -903,7 +920,7 @@ TEST(Creature, ResolveModelUsesSmallsAppearanceConfig)
     EXPECT_FLOAT_EQ(human.hand_item_scale, 1.0f);
 }
 
-TEST(Creature, UpdateVisualUsesNonHumanoidSmallsModelRow)
+TEST(Creature, UpdateVisualUsesNonHumanoidNativeModelRow)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
@@ -1137,7 +1154,7 @@ TEST(Creature, Ability)
     EXPECT_TRUE(obj2->instantiate());
 
     auto& rt = nw::kernel::runtime();
-    auto obj2_stats = find_creature_propset(rt, obj2, "core.creature.CreatureStats");
+    auto obj2_stats = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(obj2_stats.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, obj2_stats, "abilities", *nwn1::ability_strength), 15);
     EXPECT_EQ(creature_ability_score_from_script(obj2, nwn1::ability_strength), 23);
@@ -1329,8 +1346,7 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
 
     auto& rt = nw::kernel::runtime();
     auto* script = rt.load_module_from_source("test.custom_combat_policy_attack_full_payload", R"(
-        import core.combat as C;
-        from core.combat import { AttackData, DamageResult };
+        from nwn1.combat_primitives import { AttackData, DamageResult };
         from core.types import { Damage, DamageRoll };
         from nwn1.constants import { attack_type_offhand };
 
@@ -1386,7 +1402,7 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
     EXPECT_EQ(attack.iteration_penalty, 5);
     EXPECT_TRUE(attack.is_ranged_attack);
     EXPECT_TRUE(attack.target_is_creature);
-    nwk::config().set_combat_policy_module("core.combat");
+    nwk::config().set_combat_policy_module("nwn1.combat");
 }
 
 TEST(Creature, CombatPolicyModuleDamageMitigationEffectConsumption)
@@ -1713,16 +1729,16 @@ TEST(Creature, JsonSerialization)
     EXPECT_TRUE(ent2);
 
     auto& rt = nw::kernel::runtime();
-    auto stats = find_creature_propset(rt, ent2, "core.creature.CreatureStats");
+    auto stats = find_creature_propset(rt, ent2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), 13);
 
-    auto descriptor = find_creature_propset(rt, ent2, "core.creature.CreatureDescriptor");
+    auto descriptor = find_creature_propset(rt, ent2, "nwn1.propsets.CreatureDescriptor");
     ASSERT_NE(descriptor.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_resref_field(rt, descriptor, "on_attacked"), nw::Resref{"mon_ai_5attacked"});
     EXPECT_EQ(script_int_field(rt, descriptor, "soundset"), 171);
 
-    auto appearance = find_creature_propset(rt, ent2, "core.creature.CreatureAppearance");
+    auto appearance = find_creature_propset(rt, ent2, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, appearance, "appearance"), 6);
     EXPECT_EQ(script_int_field(rt, appearance, "body_part_shin_left"), 1);
@@ -1754,8 +1770,8 @@ TEST(Creature, JsonRoundTrip)
 
     nlohmann::json j;
     nw::serialize(ent, j, nw::SerializationProfile::blueprint);
-    EXPECT_FALSE(j.contains("core.creature.CreatureCombat"));
-    EXPECT_FALSE(j.contains("core.creature.CreatureCombatCache"));
+    EXPECT_FALSE(j.contains("nwn1.propsets.CreatureCombat"));
+    EXPECT_FALSE(j.contains("nwn1.propsets.CreatureCombatCache"));
 
     auto ent2 = nw::kernel::objects().make<nw::Creature>();
     EXPECT_TRUE(ent2);
@@ -1812,7 +1828,7 @@ TEST(Creature, Equips)
     auto item = nwk::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(item);
 
-    EXPECT_FALSE(nw::can_equip_item(obj, item, nw::EquipIndex::invalid));
+    EXPECT_FALSE(nwn1::equip_item(obj, item, nw::EquipIndex::invalid));
     EXPECT_FALSE(nw::equip_item_in_slot(obj, item, nw::EquipIndex::invalid));
     EXPECT_EQ(nw::get_equipped_item(obj, nw::EquipIndex::invalid), nullptr);
     EXPECT_EQ(nw::unequip_item_in_slot(obj, nw::EquipIndex::invalid), nullptr);
@@ -1924,7 +1940,7 @@ TEST(Creature, Casting)
 
     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
     EXPECT_TRUE(obj2);
-    auto obj2_levels = find_creature_propset(nw::kernel::runtime(), obj2, "core.creature.CreatureLevels");
+    auto obj2_levels = find_creature_propset(nw::kernel::runtime(), obj2, "nwn1.propsets.CreatureLevels");
     ASSERT_NE(obj2_levels.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nwn1::class_type_wizard), 15);
     EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nwn1::class_type_palemaster), 6);
@@ -2000,8 +2016,8 @@ TEST(Creature, AbilityLoadout)
         ASSERT_TRUE(saved["components"]["ability_loadout"].front().contains("slot"));
         ASSERT_TRUE(saved["components"]["ability_loadout"].front().contains("ability"));
         EXPECT_FALSE(saved.contains("levels"));
-        ASSERT_TRUE(saved.contains("core.creature.CreatureLevels"));
-        EXPECT_FALSE(saved["core.creature.CreatureLevels"].contains("spellbook"));
+        ASSERT_TRUE(saved.contains("nwn1.propsets.CreatureLevels"));
+        EXPECT_FALSE(saved["nwn1.propsets.CreatureLevels"].contains("spellbook"));
     }
     EXPECT_TRUE(components.find_ability_loadout(obj4->handle()));
     EXPECT_EQ(components.count_slotted_ability(obj4->handle(), *nwn1::class_type_cleric,
@@ -2037,7 +2053,7 @@ TEST(Creature, SpecialAbilities)
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     constexpr std::string_view src = R"(
-        from core.creature import { SpecialAbility };
+        from nwn1.propsets import { SpecialAbility };
         from core.types import { Spell };
         import nwn1.creature as NCre;
 

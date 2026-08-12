@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <span>
 #include <utility>
@@ -201,6 +202,11 @@ void serialize_component_json_sections(const ObjectBase* obj,
         components["inventory"] = inventory->to_json(profile);
     }
 
+    if (obj->as_item()) {
+        components["item_properties"] = component_system.item_properties_to_json(obj->handle());
+        components["item_visuals"] = component_system.item_visuals_to_json(obj->handle());
+    }
+
     if (const Creature* creature = obj->as_creature()) {
         components["equipment"] = creature->equipment.to_json(profile);
     }
@@ -351,6 +357,38 @@ bool deserialize_creature_equipment_json_section(Creature& creature, const nlohm
     return true;
 }
 
+bool deserialize_item_visuals_json_section(Item& item, const nlohmann::json& components_json,
+    std::string& error)
+{
+    auto visuals = components_json.find("item_visuals");
+    if (visuals == components_json.end()) {
+        error = "missing item_visuals component";
+        return false;
+    }
+    if (!kernel::objects().components().from_json_item_visuals(item.handle(), *visuals)) {
+        error = "item_visuals component must contain exact unsigned model_colors[6], "
+                "model_parts[19], and part_colors[114] arrays";
+        return false;
+    }
+    return true;
+}
+
+bool deserialize_item_properties_json_section(Item& item, const nlohmann::json& components_json,
+    std::string& error)
+{
+    auto properties = components_json.find("item_properties");
+    if (properties == components_json.end()) {
+        error = "missing item_properties component";
+        return false;
+    }
+    if (!kernel::objects().components().from_json_item_properties(item.handle(), *properties)) {
+        error = "item_properties component must be an array of unsigned type, subtype, "
+                "cost_table, cost_value, param_table, and param_value fields plus a string tag";
+        return false;
+    }
+    return true;
+}
+
 bool deserialize_component_json_sections(ObjectBase* obj, const nlohmann::json& in,
     SerializationProfile profile, std::string& error)
 {
@@ -395,6 +433,10 @@ bool deserialize_component_json_sections(ObjectBase* obj, const nlohmann::json& 
 
     if (auto* creature = obj->as_creature()) {
         return deserialize_creature_equipment_json_section(*creature, *components_it, profile, error);
+    }
+    if (auto* item = obj->as_item()) {
+        return deserialize_item_properties_json_section(*item, *components_it, error)
+            && deserialize_item_visuals_json_section(*item, *components_it, error);
     }
 
     return true;
@@ -446,6 +488,24 @@ bool deserialize_propset_json_sections(ObjectBase* obj, const nlohmann::json& in
     if (propset_types.empty()) {
         error = fmt::format("no propsets registered for object type '{}'", int(obj->handle().type));
         return false;
+    }
+
+    std::vector<std::string> expected_sections;
+    expected_sections.reserve(propset_types.size());
+    for (smalls::TypeID tid : propset_types) {
+        const smalls::StructDef* def = rt->get_struct_def(tid);
+        if (!def || !def->is_propset || def->is_transient) { continue; }
+        expected_sections.push_back(type_name_string(*rt, tid));
+    }
+
+    for (auto section_it = in.begin(); section_it != in.end(); ++section_it) {
+        const std::string& section = section_it.key();
+        if (section == "object" || section == "components") { continue; }
+        if (std::find(expected_sections.begin(), expected_sections.end(), section)
+            == expected_sections.end()) {
+            error = fmt::format("unexpected component/propset JSON section '{}'", section);
+            return false;
+        }
     }
 
     rt->init_object_propsets(obj->handle());

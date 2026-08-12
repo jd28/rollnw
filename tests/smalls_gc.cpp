@@ -512,6 +512,49 @@ TEST_F(SmallsGCTest, ArrayElementSurvival)
     EXPECT_EQ(result.value.data.ival, 2);
 }
 
+TEST_F(SmallsGCTest, ValueTypeArrayTracesInlineHeapReferences)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    constexpr StringView source = R"(
+        [[value_type]]
+        type Named {
+            id: int;
+            name: string;
+        };
+    )";
+
+    auto* script = runtime.load_module_from_source("test/gc/value_type_array", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    TypeID named_type = runtime.type_id("test.gc.value_type_array.Named", false);
+    ASSERT_NE(named_type, invalid_type_id);
+    EXPECT_FALSE(runtime.type_table_.is_heap_type(named_type));
+
+    HeapPtr element = runtime.alloc_struct(named_type);
+    HeapPtr name = runtime.alloc_string("persistent");
+    ASSERT_TRUE(runtime.write_struct_field(element, named_type, "id", Value::make_int(0)));
+    ASSERT_TRUE(runtime.write_struct_field(element, named_type, "name", Value::make_string(name)));
+
+    HeapPtr array = runtime.create_array_typed(named_type, 1);
+    IArray* values = runtime.get_array_typed(array);
+    ASSERT_NE(values, nullptr);
+    values->resize(1);
+    ASSERT_TRUE(values->set_value(0, Value::make_heap(element, named_type), runtime));
+
+    TypeID array_type = runtime.heap_.get_header(array)->type_id;
+    runtime.push(Value::make_heap(array, array_type));
+    gc->collect_minor();
+
+    EXPECT_TRUE(heap_contains(runtime, name));
+    EXPECT_EQ(runtime.get_string_view(name), "persistent");
+
+    runtime.pop();
+}
+
 TEST_F(SmallsGCTest, FixedArrayRootsSurviveMinorGC)
 {
     auto& runtime = nw::kernel::runtime();

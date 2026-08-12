@@ -1,11 +1,44 @@
 #include "../stdlib.hpp"
 
 #include "../../kernel/Kernel.hpp"
+#include "../../kernel/Strings.hpp"
 #include "../../objects/ObjectBase.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../rules/effects.hpp"
 
 namespace nw::smalls {
+
+namespace {
+
+nw::Resref get_resref(nw::ObjectHandle obj)
+{
+    const auto* base = nw::kernel::objects().get_object_base(obj);
+    return base ? base->resref : nw::Resref{};
+}
+
+ScriptString get_name(nw::ObjectHandle obj)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto* base = nw::kernel::objects().get_object_base(obj);
+    return ScriptString{rt.alloc_string(
+        base ? nw::kernel::strings().get(base->name) : nw::String{})};
+}
+
+ScriptString get_tag(nw::ObjectHandle obj)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto* base = nw::kernel::objects().get_object_base(obj);
+    return ScriptString{rt.alloc_string(base ? base->tag.view() : nw::StringView{})};
+}
+
+ScriptString get_comment(nw::ObjectHandle obj)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto* base = nw::kernel::objects().get_object_base(obj);
+    return ScriptString{rt.alloc_string(base ? nw::StringView{base->comment} : nw::StringView{})};
+}
+
+} // namespace
 
 void register_core_object(Runtime& rt)
 {
@@ -14,8 +47,12 @@ void register_core_object(Runtime& rt)
     }
 
     rt.module("core.object")
-        .function("__invalid", +[]() -> nw::ObjectHandle { return nw::ObjectHandle{}; })
+        .function("make_invalid", +[]() -> nw::ObjectHandle { return nw::ObjectHandle{}; })
         .function("is_valid", +[](nw::ObjectHandle obj) -> bool { return nw::kernel::objects().get_object_base(obj) != nullptr; })
+        .function("get_resref", &get_resref)
+        .function("get_name", &get_name)
+        .function("get_tag", &get_tag)
+        .function("get_comment", &get_comment)
         .function("apply_effect", +[](nw::ObjectHandle obj, nw::TypedHandle eff) -> bool {
             auto* target = nw::kernel::objects().get_object_base(obj);
             auto* effect = nw::kernel::effects().get(eff);

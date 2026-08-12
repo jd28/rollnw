@@ -1,9 +1,7 @@
 import core.bit as bit;
-import core.combat as CoreCombat;
-import core.creature as Cre;
-import nwn1.combat as Combat;
-import nwn1.constants as Const;
-import nwn1.creature as NCre;
+import nwn1.combat_primitives as CoreCombat;
+import nwn1.creature_state as Cre;
+from core.types import { Feat };
 
 const req_type_ability = 0;
 const req_type_alignment = 2;
@@ -27,6 +25,14 @@ const qualifier_match_no_bits = 8;
 const alignment_axis_law_chaos = 1;
 const alignment_axis_good_evil = 2;
 const alignment_axis_both = 3;
+
+[[value_type]]
+type RequirementQualifier {
+    req_type: int;
+    subtype:  int;
+    match:    int;
+    value:    int;
+};
 
 fn match_value(actual: int, match: int, expected: int): bool {
     switch (match) {
@@ -90,38 +96,9 @@ fn alignment_flags_for_axis(obj: Creature, axis: int): int {
     }
 }
 
-fn match_qualifier(obj: Creature, req_type: int, subtype: int, match: int, value: int): bool {
-    switch (req_type) {
-        case req_type_ability: {
-            if (subtype < 0) { return false; }
-            return match_value(NCre.get_ability_score(obj, Const.Ability(subtype)), match, value);
-        }
-        case req_type_alignment: {
-            return match_value(alignment_flags_for_axis(obj, subtype), match, value);
-        }
-        case req_type_bab: {
-            return match_value(Combat.base_attack_bonus(obj), match, value);
-        }
-        case req_type_class_level: {
-            if (subtype < 0) { return false; }
-            return match_value(Cre.get_level_by_class(obj, Const.Class(subtype)), match, value);
-        }
-        case req_type_feat: {
-            if (subtype < 0) { return false; }
-            return match_value(Cre.has_feat(obj, Const.Feat(subtype)) ? 1 : 0, match, value);
-        }
-        case req_type_level: {
-            return match_value(Cre.get_total_levels(obj), match, value);
-        }
-        case req_type_race: {
-            return match_value(Cre.get_race(obj), match, value);
-        }
-        case req_type_skill: {
-            if (subtype < 0) { return false; }
-            return match_value(NCre.get_skill_rank(obj, Const.Skill(subtype)), match, value);
-        }
-        default: {
-            return false;
-        }
+fn match_feat(obj: Creature, feat: int, match: int, value: int): bool {
+    if (feat < 0) {
+        return false;
     }
+    return match_value(Cre.has_feat(obj, Feat(feat)) ? 1 : 0, match, value);
 }

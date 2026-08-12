@@ -36,9 +36,15 @@ const visual_plt_mask_creature = 771;
 
 const visual_creature_attachment_wing = 1;
 const visual_creature_attachment_tail = 2;
+const item_icon_variant_default = 0;
+const item_icon_variant_alternate = 1;
+const item_icon_flag_none = 0;
+const item_icon_flag_plt = 1;
+const item_icon_flag_allow_default = 2;
 
 type VisualModelRow {
     model: ResRef;
+    plt_texture: ResRef;
     attach_to: ResRef;
     attach_from: ResRef;
     kind: int;
@@ -60,6 +66,8 @@ type VisualLightRow {
 
 [[native]] fn clear_visual_slot(obj: object, slot: int): bool;
 
+[[native]] fn set_visual_hold_animation(obj: object, animation: ResRef): bool;
+
 [[native]] fn set_visual_body_variant(obj: object, body_variant: int): bool;
 
 [[native]] fn add_visual_model(
@@ -75,6 +83,7 @@ type VisualLightRow {
 [[native]] fn add_visual_model_row(
     obj: object,
     model: ResRef,
+    plt_texture: ResRef,
     attach_to: ResRef,
     attach_from: ResRef,
     kind: int,
@@ -132,3 +141,19 @@ type VisualLightRow {
     offset_x: float,
     offset_y: float,
     offset_z: float): bool;
+
+[[native]] fn clear_item_icons(obj: object): bool;
+
+[[native]] fn add_item_icon_layer(
+    obj: object,
+    variant: int,
+    resource: ResRef,
+    fallback: ResRef,
+    part: int,
+    flags: int,
+    metal1: int,
+    metal2: int,
+    cloth1: int,
+    cloth2: int,
+    leather1: int,
+    leather2: int): bool;

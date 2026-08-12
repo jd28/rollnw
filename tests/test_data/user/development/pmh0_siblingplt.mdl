@@ -1,0 +1,60 @@
+#MAXMODEL ASCII
+newmodel pmh0_siblingplt
+setsupermodel pmh0_siblingplt NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom pmh0_siblingplt
+    node dummy pmh0_siblingplt
+        parent NULL
+    endnode
+    node trimesh colored
+        parent pmh0_siblingplt
+        bitmap pmh0_testplt
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+    node trimesh inherited
+        parent pmh0_siblingplt
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            -1 0 0
+            0 -1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom pmh0_siblingplt
+donemodel pmh0_siblingplt

@@ -1,0 +1,11 @@
+#MAXMODEL ASCII
+newmodel pmh16_chest001
+setsupermodel pmh16_chest001 NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom pmh16_chest001
+    node dummy pmh16_chest001
+        parent NULL
+    endnode
+endmodelgeom pmh16_chest001
+donemodel pmh16_chest001

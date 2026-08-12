@@ -181,6 +181,8 @@ void Services::create(ServiceMode mode)
 
     // Load all the default services.
     load_services();
+    CHECK_F(generation_ != UINT64_MAX, "kernel: service generation overflow");
+    ++generation_;
     services_created_ = true;
 }
 
@@ -241,6 +243,11 @@ void Services::shutdown()
     module_loaded_ = false;
     module_loading_ = false;
     mode_ = ServiceMode::game;
+}
+
+uint64_t Services::generation() const noexcept
+{
+    return generation_;
 }
 
 void Services::load_services()
@@ -394,8 +401,12 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
 
     if (instantiate) {
         NW_PROFILE_SCOPE_N("kernel.load_module.instantiate");
-        if (mod) {
-            mod->instantiate();
+        if (mod && !mod->instantiate()) {
+            services().module_loading_ = false;
+            services().module_loaded_ = false;
+            services().shutdown();
+            services().start();
+            return nullptr;
         }
 
         {

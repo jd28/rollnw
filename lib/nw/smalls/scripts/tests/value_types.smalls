@@ -1,4 +1,5 @@
 from core.test import { test, reset, summary };
+import core.array as arr;
 
 [[value_type]]
 type Vec2 {
@@ -42,6 +43,11 @@ fn test_value_type_string_copy(): bool {
     return a.id == 1 && b.id == 2 && a.name == "test" && b.name == "test";
 }
 
+fn test_value_type_array_get_with_string(): bool {
+    var values: array!(Named) = { Named{ 1, "first" }, Named{ 2, "second" } };
+    return arr.get(values, 1).id == 2 && arr.get(values, 1).name == "second";
+}
+
 [[test("tests.value_types corpus")]]
 fn corpus() {
     reset();
@@ -51,6 +57,7 @@ fn corpus() {
     test("value_type_copy", test_value_type_copy());
     test("value_type_with_string", test_value_type_with_string());
     test("value_type_string_copy", test_value_type_string_copy());
+    test("value_type_array_get_with_string", test_value_type_array_get_with_string());
 
     summary();
 }

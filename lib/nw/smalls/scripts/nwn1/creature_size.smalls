@@ -1,21 +1,12 @@
-from core.creature import { CreatureStats };
+from nwn1.propsets import { CreatureStats };
 import core.array as arr;
-import core.creature as Cre;
+import nwn1.creature_state as Cre;
+import nwn1.appearances as Appearances;
 import nwn1.races as races;
-from nwn1.rules import { AppearanceEntry, CreatureSizeEntry };
+from nwn1.rules import { CreatureSizeEntry };
 
-var _appearances_loaded = false;
-var _appearances: array!(AppearanceEntry);
 var _creature_sizes_loaded = false;
 var _creature_sizes: array!(CreatureSizeEntry);
-
-fn _ensure_appearances_loaded() {
-    if (_appearances_loaded) {
-        return;
-    }
-    _appearances = load_config!(AppearanceEntry)("nwn1.data.appearance");
-    _appearances_loaded = true;
-}
 
 fn _ensure_creature_sizes_loaded() {
     if (_creature_sizes_loaded) {
@@ -26,10 +17,10 @@ fn _ensure_creature_sizes_loaded() {
 }
 
 fn creature_size(obj: Creature): int {
-    _ensure_appearances_loaded();
     var appearance = Cre.get_appearance(obj);
-    if (appearance >= 0 && appearance < arr.len(_appearances)) {
-        var size = arr.get(_appearances, appearance).size;
+    if (appearance >= 0 && appearance < Appearances.count()) {
+        var appearance_rules = Appearances.get_rules(appearance);
+        var size = appearance_rules.size;
         if (size > 0) {
             return size;
         }

@@ -1,0 +1,479 @@
+from core.types import { ResRef, Spell, TextRef };
+
+[[value_type]]
+type SpecialAbility {
+    spell: Spell;
+    uses: int;
+    level: int;
+};
+
+[[value_type]]
+type CombatWeapon {
+    ab_ability: int;
+    ab_mod: int;
+    dmg_ability: int;
+    iter: int;
+    power: int;
+    base_dice: int;
+    base_sides: int;
+    base_bonus: int;
+    base_dmg_flags: int;
+    crit_range: int;
+    crit_mult: int;
+};
+
+type CombatEpochKeys {
+    effect_epoch: int;
+    equip_epoch: int;
+    progression_epoch: int;
+    mode_epoch: int;
+};
+
+[[propset(Creature)]]
+type CreatureDescriptor {
+    on_attacked: ResRef;
+    on_blocked: ResRef;
+    on_conversation: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disturbed: ResRef;
+    on_endround: ResRef;
+    on_heartbeat: ResRef;
+    on_perceived: ResRef;
+    on_rested: ResRef;
+    on_spawn: ResRef;
+    on_spell_cast_at: ResRef;
+    on_user_defined: ResRef;
+    conversation: ResRef;
+    description: TextRef;
+    name_first: TextRef;
+    name_last: TextRef;
+    deity: string;
+    subrace: string;
+    soundset: int;
+    decay_time: int;
+};
+
+[[propset(Creature)]]
+type CreatureAppearance {
+    appearance: int;
+    phenotype: int;
+    tail: int;
+    wings: int;
+    portrait: ResRef;
+    portrait_id: int;
+    color_hair: int;
+    color_skin: int;
+    color_tattoo1: int;
+    color_tattoo2: int;
+    body_part_belt: int;
+    body_part_bicep_left: int;
+    body_part_bicep_right: int;
+    body_part_foot_left: int;
+    body_part_foot_right: int;
+    body_part_forearm_left: int;
+    body_part_forearm_right: int;
+    body_part_hand_left: int;
+    body_part_hand_right: int;
+    body_part_head: int;
+    body_part_neck: int;
+    body_part_pelvis: int;
+    body_part_shin_left: int;
+    body_part_shin_right: int;
+    body_part_shoulder_left: int;
+    body_part_shoulder_right: int;
+    body_part_thigh_left: int;
+    body_part_thigh_right: int;
+    body_part_torso: int;
+    body_part_robe: int;
+};
+
+[[propset(Creature)]]
+type CreatureStats {
+    abilities: int[6];
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
+    skills: array!(int);
+    feats: array!(int);
+    race: int;
+    gender: int;
+    good_evil: int;
+    lawful_chaotic: int;
+    ac_natural_bonus: int;
+    cr: float;
+    cr_adjust: int;
+    perception_range: int;
+    disarmable: int;
+    immortal: int;
+    interruptable: int;
+    lootable: int;
+    pc: int;
+    plot: int;
+    chunk_death: int;
+    bodybag: int;
+    special_abilities: array!(SpecialAbility);
+};
+
+[[propset(Creature)]]
+type CreatureHealth {
+    hp: int;
+    hp_base_for_max: int;
+    hp_current: int;
+    hp_max: int;
+    hp_temp: int;
+    faction_id: int;
+    starting_package: int;
+};
+
+[[propset(Creature)]]
+type CreatureLevels {
+    classes: int[8];
+    class_levels: int[8];
+    levelup_classes: array!(int);
+    xp: int;
+    walkrate: int;
+};
+
+[[transient, propset(Creature)]]
+type CreatureCombat {
+    attack_current: int;
+    attacks_onhand: int;
+    attacks_offhand: int;
+    attacks_extra: int;
+    combat_mode: int;
+    effect_epoch: int;
+    equip_epoch: int;
+    progression_epoch: int;
+    ac_armor_base: int;
+    ac_shield_base: int;
+    size_ab_modifier: int;
+    size_ac_modifier: int;
+    target_distance_sq: float;
+    target_state: int;
+    hasted: int;
+    size: int;
+    slot_valid_mask: int;
+    slot_values: int[32];
+    off_target: object;
+    off_target_effect_epoch: int;
+    off_effect_epoch: int;
+    off_equip_epoch: int;
+    off_mode_epoch: int;
+    off_progression_epoch: int;
+    off_effect_delta_target: object;
+    off_effect_delta_self_epoch: int;
+    off_effect_delta_target_epoch: int;
+    off_effect_delta_subtype: int;
+    off_effect_delta_value: int;
+    def_self_effect_epoch: int;
+    def_equip_epoch: int;
+    def_progression_epoch: int;
+    def_mode_epoch: int;
+    def_target: object;
+    def_target_effect_epoch: int;
+    special_attack_request: int;
+    special_attack_ab: int;
+    defense_window_attacker: object;
+    defense_window_seq: int;
+    parry_uses: int;
+    deflect_used: int;
+    epic_dodge_used: int;
+    ability_cache_valid: bool;
+    ability_cache_effect_epoch: int;
+    ability_cache_progression_epoch: int;
+    ability_scores: int[6];
+    weapons: CombatWeapon[7];
+};
+
+[[transient, propset(Creature)]]
+type CreatureCombatCache {
+    ab_onhand: int;
+    ab_offhand: int;
+    ab_cweapon: int;
+    ab_unarmed: int;
+    ab_target: int;
+    ab_nt_cache_valid: int;
+    ab_nt_effect_epoch: int;
+    ab_nt_progression_epoch: int;
+    ab_nt_equip_epoch: int;
+    ab_nt_mode_epoch: int;
+    base_attack_bonus: int;
+    feat_flags: int;
+    dual_wield_penalty_on: int;
+    dual_wield_penalty_off: int;
+    monk_power_bonus: int;
+    enchant_arrow_bonus: int;
+    off_effect_epoch: int;
+    off_progression_epoch: int;
+    off_equip_epoch: int;
+    off_mode_epoch: int;
+    base_dice: int;
+    base_sides: int;
+    base_bonus: int;
+    crit_threat: int;
+    crit_mult: int;
+    weapon_power: int;
+    immune_slashing: int;
+    immune_piercing: int;
+    immune_bludgeoning: int;
+    immune_fire: int;
+    immune_cold: int;
+    immune_electrical: int;
+    immune_acid: int;
+    immune_sonic: int;
+    immune_divine: int;
+    immune_magical: int;
+    immune_positive: int;
+    immune_negative: int;
+    effect_epoch: int;
+    progression_epoch: int;
+    equip_epoch: int;
+    mode_epoch: int;
+};
+
+[[propset(Item)]]
+type ItemDescriptor {
+    description: TextRef;
+    description_id: TextRef;
+};
+
+[[propset(Item)]]
+type ItemStats {
+    base_item: int;
+    armor_id: int;
+    armor_dex_bonus: int;
+    armor_dex_bonus_valid: int;
+    armor_ac_bonus: int;
+    armor_ac_bonus_valid: int;
+    cost: int;
+    cost_additional: int;
+    stack_size: int;
+    charges: int;
+    cursed: int;
+    identified: int;
+    plot: int;
+    stolen: int;
+};
+
+[[propset(Door)]]
+type DoorState {
+    on_click: ResRef;
+    on_closed: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disarm: ResRef;
+    on_heartbeat: ResRef;
+    on_lock: ResRef;
+    on_melee_attacked: ResRef;
+    on_open: ResRef;
+    on_open_failure: ResRef;
+    on_spell_cast_at: ResRef;
+    on_trap_triggered: ResRef;
+    on_unlock: ResRef;
+    on_user_defined: ResRef;
+    key_name: string;
+    key_required: int;
+    lockable: int;
+    locked: int;
+    lock_dc: int;
+    unlock_dc: int;
+    remove_key: int;
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+    conversation: ResRef;
+    description: TextRef;
+    linked_to: string;
+    hp: int;
+    hp_current: int;
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
+    appearance: int;
+    faction: int;
+    generic_type: int;
+    loadscreen: int;
+    portrait_id: int;
+    hardness: int;
+    bash_dc: int;
+    open_state: int;
+    plot: int;
+    interruptable: int;
+    linked_to_flags: int;
+};
+
+// == Encounter ===============================================================
+// ============================================================================
+
+[[value_type]]
+type EncounterSpawn {
+    appearance: int;
+    cr: float;
+    resref: ResRef;
+    single_spawn: int;
+};
+
+[[propset(Encounter)]]
+type EncounterState {
+    on_entered: ResRef;
+    on_exhausted: ResRef;
+    on_exit: ResRef;
+    on_heartbeat: ResRef;
+    on_user_defined: ResRef;
+    creatures: array!(EncounterSpawn);
+    creatures_max: int;
+    creatures_recommended: int;
+    difficulty: int;
+    difficulty_index: int;
+    faction: int;
+    reset_time: int;
+    respawns: int;
+    spawn_option: int;
+    active: int;
+    player_only: int;
+    reset: int;
+};
+
+// == Placeable ===============================================================
+// ============================================================================
+
+[[propset(Placeable)]]
+type PlaceableState {
+    on_click: ResRef;
+    on_closed: ResRef;
+    on_damaged: ResRef;
+    on_death: ResRef;
+    on_disarm: ResRef;
+    on_heartbeat: ResRef;
+    on_inventory_disturbed: ResRef;
+    on_lock: ResRef;
+    on_melee_attacked: ResRef;
+    on_open: ResRef;
+    on_spell_cast_at: ResRef;
+    on_trap_triggered: ResRef;
+    on_unlock: ResRef;
+    on_used: ResRef;
+    on_user_defined: ResRef;
+    key_name: string;
+    key_required: int;
+    lockable: int;
+    locked: int;
+    lock_dc: int;
+    unlock_dc: int;
+    remove_key: int;
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+    conversation: ResRef;
+    description: TextRef;
+    hp: int;
+    hp_current: int;
+    save_fort: int;
+    save_reflex: int;
+    save_will: int;
+    appearance: int;
+    faction: int;
+    portrait_id: int;
+    legacy_type: int;
+    animation_state: int;
+    bodybag: int;
+    hardness: int;
+    interruptable: int;
+    plot: int;
+    useable: int;
+    has_inventory: int;
+    static: int;
+    light_color: int;
+};
+
+// == Sound ===================================================================
+// ============================================================================
+
+[[propset(Sound)]]
+type SoundState {
+    sounds: array!(ResRef);
+    distance_min: float;
+    distance_max: float;
+    elevation: float;
+    generated_type: int;
+    hours: int;
+    interval: int;
+    interval_variation: int;
+    pitch_variation: float;
+    random_x: float;
+    random_y: float;
+    active: int;
+    continuous: int;
+    looping: int;
+    positional: int;
+    priority: int;
+    random: int;
+    random_position: int;
+    times: int;
+    volume: int;
+    volume_variation: int;
+};
+
+[[propset(Store)]]
+type StoreState {
+    on_closed: ResRef;
+    on_opened: ResRef;
+    blackmarket_markdown: int;
+    identify_price: int;
+    markdown: int;
+    markup: int;
+    max_price: int;
+    gold: int;
+    blackmarket: int;
+};
+
+// == Trigger =================================================================
+// ============================================================================
+
+[[propset(Trigger)]]
+type TriggerState {
+    on_click: ResRef;
+    on_disarm: ResRef;
+    on_enter: ResRef;
+    on_exit: ResRef;
+    on_heartbeat: ResRef;
+    on_trap_triggered: ResRef;
+    on_user_defined: ResRef;
+    linked_to: string;
+    trap_type: int;
+    is_trapped: int;
+    trap_detectable: int;
+    trap_detect_dc: int;
+    trap_disarmable: int;
+    trap_disarm_dc: int;
+    trap_one_shot: int;
+    faction: int;
+    highlight_height: float;
+    trigger_type: int;
+    loadscreen: int;
+    portrait: int;
+    cursor: int;
+    linked_to_flags: int;
+};
+
+// == Waypoint ================================================================
+// ============================================================================
+
+[[propset(Waypoint)]]
+type WaypointState {
+    description: TextRef;
+    linked_to: string;
+    map_note: TextRef;
+    appearance: int;
+    has_map_note: int;
+    map_note_enabled: int;
+};

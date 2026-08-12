@@ -1,9 +1,10 @@
-import core.creature as Cre;
+import nwn1.creature_state as Cre;
+import core.creature as NativeCreature;
 import core.math as Math;
 import core.object as O;
-from core.creature import { CreatureHealth };
-from core.door import { DoorState };
-from core.placeable import { PlaceableState };
+from nwn1.propsets import { CreatureHealth };
+from nwn1.propsets import { DoorState };
+from nwn1.propsets import { PlaceableState };
 
 import nwn1.constants as Const;
 import nwn1.creature as NCre;
@@ -59,12 +60,12 @@ fn get_max_hitpoints(obj: object): int {
 fn sync_creature_vitals(cre: Creature): bool {
     var health = get_propset!(CreatureHealth)(cre);
     health.hp_max = get_max_hitpoints(cre);
-    return Cre.set_vitals(cre, health.hp_current, health.hp_max);
+    return NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
 }
 
 fn initialize_creature_health(cre: Creature): bool {
     var health = get_propset!(CreatureHealth)(cre);
     health.hp_max = get_max_hitpoints(cre);
     health.hp_current = health.hp_max;
-    return Cre.set_vitals(cre, health.hp_current, health.hp_max);
+    return NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
 }

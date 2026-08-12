@@ -21,6 +21,8 @@ Rules::Rules(MemoryResource* scope)
     , spellschools{allocator()}
     , skills{allocator()}
     , appearances{allocator()}
+    , baseitems{allocator()}
+    , placeables{allocator()}
 {
 }
 

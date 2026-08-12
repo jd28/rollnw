@@ -2,7 +2,6 @@ from core.types import {
     Ability,
     ArmorClass,
     AttackType,
-    BaseItemType,
     Class,
     Damage,
     DamageCategory,
@@ -17,9 +16,8 @@ from core.types import {
     SaveVersus,
     SpellSchool,
     Skill,
-    EquipIndex,
-    ItemPropertyType,
 };
+from core.item import { BaseItemType, EquipIndex, ItemPropertyType };
 
 const ability_strength = Ability(0);
 const ability_dexterity = Ability(1);

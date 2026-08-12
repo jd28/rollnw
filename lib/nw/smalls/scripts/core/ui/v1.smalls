@@ -1,0 +1,15 @@
+from core.ui import { ListConfig, ListItem, ListSelection };
+
+[[native]] fn list_create(list_id: string, config: ListConfig): bool;
+[[native]] fn list_set_items(list_id: string, items: array!(ListItem)): bool;
+[[native]] fn list_set_selected(list_id: string, selection: ListSelection): bool;
+[[native]] fn list_get_selected(list_id: string): ListSelection;
+[[native]] fn list_destroy(list_id: string): bool;
+[[native]] fn list_set_visible(list_id: string, visible: bool): bool;
+[[native]] fn list_set_title(list_id: string, title: string): bool;
+[[native]] fn list_on_refresh(qualified_function: string): bool;
+
+[[native]] fn list_on_hover(list_id: string, function_name: string): bool;
+[[native]] fn list_on_select(list_id: string, function_name: string): bool;
+[[native]] fn list_on_activate(list_id: string, function_name: string): bool;
+[[native]] fn list_on_scroll(list_id: string, function_name: string): bool;

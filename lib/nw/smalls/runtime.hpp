@@ -376,6 +376,11 @@ struct Runtime : public nw::kernel::Service {
     /// Evicts all user-authored modules from the cache (keeping core.*)
     void evict_user_modules();
 
+    /// Evicts one module without disturbing unrelated cached modules.
+    /// References from retained bytecode are invalidated and resolve again if
+    /// the module is subsequently reloaded.
+    bool evict_module(StringView module_name);
+
     /// Evicts the named modules and their cached transitive dependents.
     void evict_modules(std::span<const StringView> module_names);
 
@@ -942,6 +947,14 @@ public:
     /// Reads a field from a struct Value, handling both heap and stack (value_type) storage
     Value read_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index);
 
+    /// Copies a typed field from caller-owned inline struct storage without allocating.
+    /// Returns false for null storage, an invalid field index, a type mismatch, or an
+    /// out-of-bounds field layout; output is unchanged on failure. The caller owns
+    /// the storage and must keep at least def->size bytes alive for the call.
+    template <typename T>
+    [[nodiscard]] bool read_struct_data_field(
+        const void* struct_data, const StructDef* def, uint32_t field_index, T& output) const;
+
     /// Reads the variant tag from a sum Value, handling both heap and stack storage
     uint32_t read_sum_value_tag(const Value& sum_val, const SumDef* def);
 
@@ -993,18 +1006,29 @@ public:
         String secondary_grid_column_prefix;
         int32_t secondary_grid_column_count = 0;
         String secondary_grid_limit_column;
+        /// Resource type used when `field` is core.types.Resource.
+        ResourceType::type resource_type = ResourceType::invalid;
     };
 
-    /// Registered converter for a config-array path: read from a .2da instead of .smalls files.
+    enum class TwoDAConfigMerge : uint8_t {
+        twoda_only,
+        replace_rows,
+        seed_rows,
+    };
+
+    /// Registered converter for a config-array path.
     struct TwoDAConverterSpec {
         String twoda_name;
         Vector<TwoDAColumnMapping> mappings;
+        TwoDAConfigMerge merge = TwoDAConfigMerge::twoda_only;
     };
 
     /// Register a 2da-based converter for a load_config! path.
-    /// When load_config!(T)(path) is called, it reads from the named 2da instead of .smalls data files.
+    /// When load_config!(T)(path) is called, it reads the named 2da. Matching
+    /// .smalls entries may replace rows or seed fields absent from the 2da.
     void register_twoda_converter(StringView path, StringView twoda_name,
-        Vector<TwoDAColumnMapping> mappings);
+        Vector<TwoDAColumnMapping> mappings,
+        TwoDAConfigMerge merge = TwoDAConfigMerge::twoda_only);
 
     /// Load all .smalls files from a directory path as an array!(T).
     /// Assembles entries using the [[index]] field. Caches permanently.
@@ -1236,7 +1260,7 @@ private:
     };
 
     CompilerStateRetention compiler_state_retention() const noexcept;
-    void evict_cached_modules(const absl::flat_hash_set<String>& module_names);
+    size_t evict_cached_modules(const absl::flat_hash_set<String>& module_names);
     void maybe_compact_script_state(Script* script);
     static String normalize_module_name(StringView path);
 
@@ -1408,7 +1432,7 @@ private:
     Value load_config_value(StringView path, StringView prelude_module);
     Value load_twoda_as_config_array(StringView path, TypeID config_type,
         const StructDef* def, uint32_t index_field_idx,
-        const TwoDAConverterSpec& conv);
+        const TwoDAConverterSpec& conv, std::span<const Value> seed_rows = {});
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;
@@ -1931,6 +1955,33 @@ Value make_value(Runtime* rt, const T& val)
 }
 
 } // namespace detail
+
+template <typename T>
+bool Runtime::read_struct_data_field(
+    const void* struct_data, const StructDef* def, uint32_t field_index, T& output) const
+{
+    using Bare = std::remove_cv_t<std::remove_reference_t<T>>;
+    static_assert(std::is_trivially_copyable_v<Bare>,
+        "inline Smalls fields must be copied into trivially copyable C++ types");
+
+    if (!struct_data || !def || field_index >= def->field_count) {
+        return false;
+    }
+
+    const FieldDef& field = def->fields[field_index];
+    const TypeID cpp_type = detail::cpp_to_typeid<Bare>(const_cast<Runtime*>(this));
+    const Type* field_type = get_type(field.type_id);
+    if (cpp_type == invalid_type_id || !field_type
+        || !native_types_compatible(cpp_type, field.type_id)
+        || field_type->size != sizeof(Bare)
+        || field.offset > def->size
+        || sizeof(Bare) > def->size - field.offset) {
+        return false;
+    }
+
+    std::memcpy(&output, static_cast<const uint8_t*>(struct_data) + field.offset, sizeof(Bare));
+    return true;
+}
 
 /// ModuleBuilder::function() implementation with signature extraction
 template <typename Ret, typename... Args>

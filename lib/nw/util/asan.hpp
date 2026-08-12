@@ -1,6 +1,6 @@
 #pragma once
 
-// Central sanitizer poisoning helpers for rollNW's custom allocators.
+// Central sanitizer poisoning helpers for rollnw's custom allocators.
 //
 // Our arenas and pools (MemoryArena, MemoryPool, ObjectPool, smalls::ScriptHeap)
 // carve objects out of memory they own via malloc/mmap. AddressSanitizer only

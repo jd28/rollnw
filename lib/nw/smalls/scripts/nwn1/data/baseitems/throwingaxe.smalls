@@ -1,0 +1,38 @@
+BaseItemDefinition {
+    id = 63,
+    info = BaseItemInfo {
+        label = "throwingaxe",
+        name = 1557,
+        model_type = 2,
+        item_class = resref("WThAx"),
+        default_model = resref("it_bag"),
+        default_icon = resref("iwthax"),
+        item_property_column = 2,
+        inventory_width = 1,
+        inventory_height = 2,
+        equipable_slots = 16,
+        stack_size = 50,
+        is_container = false
+    },
+    rules = BaseItemRules {
+        base_cost = 1,
+        cost_multiplier = 0.01,
+        requirements = {feat_requirement(45)},
+        base_ac = 0,
+        damage_num = 1,
+        damage_die = 6,
+        crit_threat = 1,
+        crit_multiplier = 2,
+        weapon_type = 3,
+        ranged = true,
+        weapon_size = 2,
+        weapon_focus_feat = 109,
+        epic_weapon_focus_feat = 639,
+        weapon_specialization_feat = 147,
+        epic_weapon_specialization_feat = 677,
+        weapon_improved_critical_feat = 71,
+        epic_weapon_overwhelming_critical_feat = 729,
+        epic_weapon_devastating_critical_feat = 515,
+        weapon_of_choice_feat = -1
+    }
+}

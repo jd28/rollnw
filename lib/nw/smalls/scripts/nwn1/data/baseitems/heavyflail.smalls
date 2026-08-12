@@ -1,0 +1,38 @@
+BaseItemDefinition {
+    id = 35,
+    info = BaseItemInfo {
+        label = "heavyflail",
+        name = 1529,
+        model_type = 2,
+        item_class = resref("WBlFh"),
+        default_model = resref("it_bag"),
+        default_icon = resref("iwblfh"),
+        item_property_column = 0,
+        inventory_width = 2,
+        inventory_height = 4,
+        equipable_slots = 114704,
+        stack_size = 1,
+        is_container = false
+    },
+    rules = BaseItemRules {
+        base_cost = 15,
+        cost_multiplier = 2.0,
+        requirements = {feat_requirement(45)},
+        base_ac = 0,
+        damage_num = 1,
+        damage_die = 10,
+        crit_threat = 2,
+        crit_multiplier = 2,
+        weapon_type = 2,
+        ranged = false,
+        weapon_size = 4,
+        weapon_focus_feat = 116,
+        epic_weapon_focus_feat = 646,
+        weapon_specialization_feat = 154,
+        epic_weapon_specialization_feat = 684,
+        weapon_improved_critical_feat = 78,
+        epic_weapon_overwhelming_critical_feat = 736,
+        epic_weapon_devastating_critical_feat = 522,
+        weapon_of_choice_feat = 937
+    }
+}

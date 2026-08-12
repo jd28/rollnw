@@ -41,7 +41,7 @@ protected:
 TEST_F(Nwn1GffPropsetComponentJson, ConvertsBlueprintGffToPropsetsAndComponentsOnly)
 {
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     nlohmann::json out;
     auto result = nwn1::gff_file_to_propset_component_json(
@@ -58,7 +58,7 @@ TEST_F(Nwn1GffPropsetComponentJson, ConvertsBlueprintGffToPropsetsAndComponentsO
     EXPECT_FALSE(out.contains("$version"));
     EXPECT_TRUE(out.contains("object"));
     EXPECT_TRUE(out.contains("components"));
-    EXPECT_TRUE(out.contains("core.trigger.TriggerState"));
+    EXPECT_TRUE(out.contains("nwn1.propsets.TriggerState"));
     EXPECT_FALSE(out.contains("core.object.ObjectCommon"));
     EXPECT_FALSE(out.contains("scripts"));
     EXPECT_FALSE(out.contains("trap"));
@@ -74,14 +74,14 @@ TEST_F(Nwn1GffPropsetComponentJson, ConvertsBlueprintGffToPropsetsAndComponentsO
     EXPECT_TRUE(out.at("object").contains("tag"));
     EXPECT_TRUE(out.at("object").contains("name"));
 
-    EXPECT_TRUE(out.at("core.trigger.TriggerState").contains("linked_to"));
-    EXPECT_TRUE(out.at("core.trigger.TriggerState").contains("faction"));
+    EXPECT_TRUE(out.at("nwn1.propsets.TriggerState").contains("linked_to"));
+    EXPECT_TRUE(out.at("nwn1.propsets.TriggerState").contains("faction"));
 }
 
 TEST_F(Nwn1GffPropsetComponentJson, ConvertsInstanceGffSpatialComponent)
 {
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     nlohmann::json out;
     auto result = nwn1::gff_file_to_propset_component_json(
@@ -104,7 +104,7 @@ TEST_F(Nwn1GffPropsetComponentJson, ConvertsInstanceGffSpatialComponent)
 TEST_F(Nwn1GffPropsetComponentJson, MissingFileFails)
 {
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     nlohmann::json out = nlohmann::json::object({{"sentinel", true}});
     auto result = nwn1::gff_file_to_propset_component_json(

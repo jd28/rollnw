@@ -104,7 +104,7 @@ struct FieldGffPolicy {
 // -- Per-propset policy ------------------------------------------------------
 
 struct PropsetGffPolicy {
-    const char* qualified_name = nullptr; // e.g. "core.creature.CreatureStats"
+    const char* qualified_name = nullptr; // e.g. "nwn1.propsets.CreatureStats"
     std::vector<FieldGffPolicy> fields;
     // No TypeID here — pure data, resolved lazily in importer/exporter.
 
@@ -118,7 +118,7 @@ class PropsetGffPolicyRegistry {
 public:
     void register_policy(PropsetGffPolicy policy);
 
-    /// Find by qualified name (e.g. "core.creature.CreatureStats").
+    /// Find by qualified name (e.g. "nwn1.propsets.CreatureStats").
     const PropsetGffPolicy* find(std::string_view qualified_name) const;
 
     const std::vector<PropsetGffPolicy>& policies() const { return policies_; }

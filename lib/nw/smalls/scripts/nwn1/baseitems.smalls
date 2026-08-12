@@ -1,204 +1,287 @@
-from nwn1.rules import { BaseItemEntry };
-from core.types import { BaseItemType, DiceRoll };
+from nwn1.rules import { BaseItemDefinition, BaseItemRules };
+from core.item import {
+    BaseItemInfo,
+    BaseItemType,
+    publish_baseitem_info,
+};
+from core.types import { DiceRoll };
 
 import core.array as Array;
-
-type BaseItemLookup = Some(BaseItemEntry) | None;
+import core.object as O;
+import nwn1.requirements as Requirements;
 
 var _loaded = false;
-var _baseitems: array!(BaseItemEntry);
+var _infos: array!(BaseItemInfo);
+var _rules: array!(BaseItemRules);
+var _valid: array!(bool);
 
-fn _ensure_loaded() {
+fn _ensure_loaded(): bool {
     if (_loaded) {
-        return;
+        return true;
     }
-    _baseitems = load_config!(BaseItemEntry)("nwn1.data.baseitems");
+
+    var definitions = load_config!(BaseItemDefinition)("nwn1.data.baseitems");
+    var infos: array!(BaseItemInfo) = {};
+    var rules: array!(BaseItemRules) = {};
+    var valid: array!(bool) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        if (definition.id == index) {
+            Array.push(infos, definition.info);
+            Array.push(rules, definition.rules);
+            Array.push(valid, true);
+        } else {
+            var invalid_info: BaseItemInfo;
+            var invalid_rules: BaseItemRules;
+            Array.push(infos, invalid_info);
+            Array.push(rules, invalid_rules);
+            Array.push(valid, false);
+        }
+    }
+
+    if (!publish_baseitem_info(infos)) {
+        return false;
+    }
+
+    _infos = infos;
+    _rules = rules;
+    _valid = valid;
     _loaded = true;
+    return true;
+}
+
+fn _is_valid_index(index: int): bool {
+    _ensure_loaded();
+    return index >= 0
+        && index < Array.len(_valid)
+        && Array.get(_valid, index);
+}
+
+fn _get_info(index: int): BaseItemInfo {
+    if (_is_valid_index(index)) {
+        return Array.get(_infos, index);
+    }
+
+    var invalid: BaseItemInfo;
+    return invalid;
+}
+
+fn _get_rules(index: int): BaseItemRules {
+    if (_is_valid_index(index)) {
+        return Array.get(_rules, index);
+    }
+
+    var invalid: BaseItemRules;
+    return invalid;
+}
+
+fn init(): bool {
+    return _ensure_loaded();
 }
 
 fn count(): int {
     _ensure_loaded();
-    return Array.len(_baseitems);
+    return Array.len(_valid);
 }
 
 fn exists(base_item: BaseItemType): bool {
-    _ensure_loaded();
-    var index = base_item as int;
-    return index >= 0 && index < Array.len(_baseitems);
+    return _is_valid_index(base_item as int);
 }
 
-fn try_get_baseitem(base_item: BaseItemType): BaseItemLookup {
-    if (!exists(base_item)) {
-        return BaseItemLookup.None;
+fn get_info(base_item: BaseItemType): BaseItemInfo {
+    return _get_info(base_item as int);
+}
+
+fn get_rules(base_item: BaseItemType): BaseItemRules {
+    return _get_rules(base_item as int);
+}
+
+fn requirements_met(creature: Creature, base_item: BaseItemType): bool {
+    if ((creature as object) == O.invalid) {
+        return false;
     }
-    return BaseItemLookup.Some(Array.get(_baseitems, base_item as int));
+
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
+        return false;
+    }
+
+    var requirements = Array.get(_rules, index).requirements;
+    for (var requirement_index = 0;
+         requirement_index < Array.len(requirements);
+         requirement_index += 1) {
+        var requirement = Array.get(requirements, requirement_index);
+        if (requirement.req_type != Requirements.req_type_feat
+            || !Requirements.match_feat(
+                creature,
+                requirement.subtype,
+                requirement.match,
+                requirement.value)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn ranged(base_item: BaseItemType): bool {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return false;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.ranged;
+    return Array.get(_rules, index).ranged;
 }
 
 fn weapon_type(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_type;
+    return Array.get(_rules, index).weapon_type;
 }
 
 fn is_weapon(base_item: BaseItemType): bool {
-    _ensure_loaded();
     var index = base_item as int;
-    if (index < 0 || index >= Array.len(_baseitems)) {
-        return false;
-    }
-    var entry = Array.get(_baseitems, index);
+    var entry = _get_rules(index);
     return entry.weapon_type > 0;
 }
 
 fn weapon_size(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return 0;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_size;
+    return Array.get(_rules, index).weapon_size;
 }
 
 fn base_ac(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return 0;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.base_ac;
+    return Array.get(_rules, index).base_ac;
 }
 
 fn crit_threat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return 0;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.crit_threat;
+    return Array.get(_rules, index).crit_threat;
 }
 
 fn crit_multiplier(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return 0;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.crit_multiplier;
+    return Array.get(_rules, index).crit_multiplier;
 }
 
 fn base_damage_roll(base_item: BaseItemType): DiceRoll {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return DiceRoll{0, 0, 0};
     }
-    var entry = Array.get(_baseitems, base_item as int);
+    var entry = Array.get(_rules, index);
     return DiceRoll{entry.damage_num, entry.damage_die, 0};
 }
 
 fn damage_has_bludgeoning(base_item: BaseItemType): bool {
-    _ensure_loaded();
     var index = base_item as int;
     if (index < 0) {
         return true;
     }
-    if (index >= Array.len(_baseitems)) {
+    if (!_is_valid_index(index)) {
         return false;
     }
-    var wt = Array.get(_baseitems, index).weapon_type;
+    var wt = Array.get(_rules, index).weapon_type;
     return wt == 2 || wt == 5;
 }
 
 fn damage_has_piercing(base_item: BaseItemType): bool {
-    _ensure_loaded();
     var index = base_item as int;
     if (index < 0) {
         return false;
     }
-    if (index >= Array.len(_baseitems)) {
+    if (!_is_valid_index(index)) {
         return false;
     }
-    var wt = Array.get(_baseitems, index).weapon_type;
+    var wt = Array.get(_rules, index).weapon_type;
     return wt == 1 || wt == 4 || wt == 5;
 }
 
 fn damage_has_slashing(base_item: BaseItemType): bool {
-    _ensure_loaded();
     var index = base_item as int;
     if (index < 0) {
         return false;
     }
-    if (index >= Array.len(_baseitems)) {
+    if (!_is_valid_index(index)) {
         return false;
     }
-    var wt = Array.get(_baseitems, index).weapon_type;
+    var wt = Array.get(_rules, index).weapon_type;
     return wt == 3 || wt == 4;
 }
 
 fn weapon_focus_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_focus_feat;
+    return Array.get(_rules, index).weapon_focus_feat;
 }
 
 fn epic_weapon_focus_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.epic_weapon_focus_feat;
+    return Array.get(_rules, index).epic_weapon_focus_feat;
 }
 
 fn weapon_specialization_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_specialization_feat;
+    return Array.get(_rules, index).weapon_specialization_feat;
 }
 
 fn epic_weapon_specialization_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.epic_weapon_specialization_feat;
+    return Array.get(_rules, index).epic_weapon_specialization_feat;
 }
 
 fn weapon_improved_critical_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_improved_critical_feat;
+    return Array.get(_rules, index).weapon_improved_critical_feat;
 }
 
 fn epic_weapon_overwhelming_critical_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.epic_weapon_overwhelming_critical_feat;
+    return Array.get(_rules, index).epic_weapon_overwhelming_critical_feat;
 }
 
 fn epic_weapon_devastating_critical_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.epic_weapon_devastating_critical_feat;
+    return Array.get(_rules, index).epic_weapon_devastating_critical_feat;
 }
 
 fn weapon_of_choice_feat(base_item: BaseItemType): int {
-    if (!exists(base_item)) {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
         return -1;
     }
-    var entry = Array.get(_baseitems, base_item as int);
-    return entry.weapon_of_choice_feat;
+    return Array.get(_rules, index).weapon_of_choice_feat;
 }

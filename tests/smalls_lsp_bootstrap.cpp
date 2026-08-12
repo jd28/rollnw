@@ -21,7 +21,7 @@ TEST(SmallsLspBootstrap, LanguageModeDoesNotCreateOrLoadAGameProfile)
     EXPECT_NO_THROW(services.start(nw::kernel::ServiceMode::language));
     EXPECT_EQ(services.profile(), nullptr);
     EXPECT_EQ(services.get<nw::EffectSystem>(), nullptr);
-    EXPECT_EQ(runtime.type_id("nwn1.item_state.ItemStats", false),
+    EXPECT_EQ(runtime.type_id("nwn1.propsets.ItemStats", false),
         nw::smalls::invalid_type_id);
 
     auto* core_item = runtime.load_module("core.item");

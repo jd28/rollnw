@@ -1344,56 +1344,56 @@ in [load-config.md](load-config.md).
 
 ### Property Sets
 
-Property sets are script-defined components for the "Entity-Component-System" (ECS)-like architecture. They allow game data layout to be defined in script while memory is managed by the engine's object manager.
+Property sets are profile-defined object data schemas. They allow game data
+layout to be defined in Smalls while memory is managed by the engine's propset
+pool. The normative ownership and native-component boundary is documented in
+[propset-architecture.md](propset-architecture.md).
 
 ```smalls
-[[propset]]
+[[propset(Creature)]]
 type CreatureStats {
     hp, max_hp: int;
     str, dex, con, int, wis, cha: int;
     level: int;
     xp: int;
 };
-
-[[propset]]
-type Position {
-    x, y, z: float;
-    area_id: int;
-};
 ```
 
 **Key Characteristics**:
-- **Schema in script** — Data layout defined using Smalls type system
-- **Memory in engine** — Object manager allocates components in contiguous chunks for cache efficiency
-- **C++-compatible layout** — Memory matches C struct layout for zero-overhead access
+- **Schema in profile script** — Data layout is selected with the game profile
+- **Memory in engine** — `PropsetPoolManager` allocates object-keyed slab rows
+- **Explicit native boundary** — C++ runtime policy does not read propset fields directly
 
 #### Property Sets: v1 Contract (Normative)
 
-**Contract (v1)**: `[[propset]]` storage is **not GC-rooted**.
-To keep propsets invisible to GC, propset fields MUST NOT store `HeapPtr` values.
+**Contract (v1)**: `[[propset]]` storage may contain tracked direct heap fields
+and engine-owned unmanaged arrays. `PropsetPoolManager` owns their lifecycle
+for the object row. A propset must not contain an untracked heap pointer.
 
 **Allowed Field Forms (v1)**:
 | Field form | Allowed | Storage | Reassignable | Indexable |
 |---|---:|---|---:|---|
 | `int`, `float`, `bool` | Yes | Inline POD bytes | Yes | N/A |
+| `string` | Yes | Tracked `HeapPtr` owned by the propset row | Yes | N/A |
+| Object handle subtype | Yes | Inline immediate handle | Yes | N/A |
+| Registered native value type | Yes | Validated native value layout | Yes | N/A |
 | `int[N]`, `float[N]`, `bool[N]` (N > 0) | Yes | Inline POD bytes | Yes | Yes (variable index) |
 | `[[value_type]]` struct (no heap references) | Yes | Inline POD bytes | Yes | N/A |
-| `T[N]` where T is `[[value_type]]` POD struct | Yes | Inline POD bytes | Yes | Yes (variable index) |
-| `array!(int\|float\|bool)` | Yes | Inline `TypedHandle` to unmanaged `IArray` | No | Yes (via IArray API) |
+| `T[N]` where T is a supported POD/native value | Yes | Inline fixed array | Yes | Yes (variable index) |
+| `array!(T)` where T is a supported primitive, POD struct, or native value | Yes | Inline `TypedHandle` to unmanaged `IArray` | No | Yes (via IArray API) |
 | All other forms | **No** | N/A | N/A | N/A |
 
 **Explicitly Rejected**:
-- `string` (requires GC pointer)
-- `array!(string)` or `array!(non-primitive)`
+- `array!(string)` or an array element containing Smalls heap references
 - `map!(...)`, `tuple`, `sum`, `function`
-- Any heap-backed handle type
-- Regular structs (not marked `[[value_type]]`)
-- `[[value_type]]` structs containing heap references (strings, arrays, maps, etc.)
+- Unregistered or unsupported heap-backed handle types
+- Direct regular structs not marked `[[value_type]]`
+- Direct `[[value_type]]` structs containing heap references
 
 **Lifecycle Rules**:
 1. Propset-owned unmanaged arrays are created by engine/runtime and destroyed deterministically when the owning object is destroyed.
 2. Script aliases to those arrays become stale after owner destruction; operations fail with a deterministic runtime error.
-3. Because propset storage has no GC pointers in v1, propset slots are excluded from GC root enumeration.
+3. Direct heap fields are registered as propset-owned GC roots and released or rebound when the row changes or is destroyed.
 
 **Fixed Array Semantics**:
 - Fixed arrays `T[N]` in propsets are stored inline (contiguous POD bytes) matching C struct layout.
@@ -1406,19 +1406,19 @@ To keep propsets invisible to GC, propset fields MUST NOT store `HeapPtr` values
 - Mutation is via IArray API (`push`, `set`, `clear`, etc.).
 - Direct assignment (`ps.arr = other_arr`) is a compile-time error.
 
-#### Native Property Sets
+#### Native Component Bridges
 
-For engine-managed data or functionality not yet in script, native property sets use bridge functions:
+Engine-managed data is not a second kind of propset. Native components use
+bridge functions that preserve their C++ ownership and mutation invariants:
 
 ```smalls
-[[native]] fn has_feat(obj: object, feat: Feat): bool;
-[[native]] fn add_feat(obj: object, feat: Feat);
+[[native]] fn get_position(obj: object): vec3;
+[[native]] fn set_position(obj: object, position: vec3): bool;
 ```
 
-**Native vs Script Property Sets**:
-- **Native propsets** — Always exist for engine systems (physics, rendering, pathfinding)
-- **Script propsets** — Gameplay data (stats, skills, etc.)
-- **Bridge pattern** — Native functions provide interface to native propsets
+`[[native]]` value types are copied ABI values, not native propsets. They may
+appear in a profile propset when their registered layout is an allowed field
+or array-element type. The containing propset remains profile-owned.
 
 ### Native Interfaces
 
@@ -1905,22 +1905,29 @@ GC behavior is configurable via `GCConfig`: `young_threshold` (default 256KB), `
 ### Migration Strategy
 
 **Current Phase:**
-1. C++ structs loaded from GFF/JSON files
-2. Native property sets for engine systems
-3. Script types defined but not yet used for data
+1. C++ owns the native ABI, native object components, resource decoding, and
+   invariant-preserving operations.
+2. Shared `core.*` modules own reusable profile-neutral implementations and
+   registries on top of that ABI; consumers opt into them by calling or
+   registering with them.
+3. Selected profile modules own propset schemas, shared rules/config data, and
+   gameplay policy.
+4. Imported source tables are partitioned into native `Info` facts and profile
+   `Rules` data by actual consumer.
+5. Selected toolset modules own replaceable authoring projections consumed by
+   RML and RCSS.
 
-**Medium-term:**
-1. Write converters: GFF/JSON → `.smalls` files with struct literals
-2. Dual loading: Keep C++ loaders, add script config loading
-3. Property sets with value types only
-4. Native bridge functions for complex collections
+**Per-domain migration:**
+1. Classify each datum from its readers, writers, frequency, and invariants.
+2. Choose one authoritative native component, native ABI fact/value, profile
+   propset/rules row, or toolset projection.
+3. Move runtime consumers to the chosen owner.
+4. Update exact serialization keys and legacy conversion in the same slice.
+5. Remove the old representation and reject old serialized layouts; do not
+   retain dual loading or compatibility aliases.
 
-**Long-term:**
-1. Remove C++ data loaders
-2. All game data in `.smalls` config files
-3. Property sets with heap-allocated collections
-4. Native property sets only for engine integration (physics, rendering, etc.)
-5. Gameplay logic entirely in script (combat, AI, dialogue, etc.)
+The normative decision procedure and completion test are in
+[propset-architecture.md](propset-architecture.md).
 
 ### Future Language Features
 

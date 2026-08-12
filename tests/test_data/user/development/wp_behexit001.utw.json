@@ -2,7 +2,7 @@
     "components": {
         "locals": {}
     },
-    "core.waypoint.WaypointState": {
+    "nwn1.propsets.WaypointState": {
         "appearance": 2,
         "description": {
             "strings": [],

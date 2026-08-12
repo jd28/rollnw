@@ -1,4 +1,4 @@
-from nwn1.rules import { SkillEntry };
+from nwn1.rules import { SkillEntry, StrRef };
 from core.types import { Skill, Ability };
 
 import core.array as Array;
@@ -23,6 +23,13 @@ fn exists(skill: Skill): bool {
     _ensure_loaded();
     var index = skill as int;
     return index >= 0 && index < Array.len(_skills);
+}
+
+fn name_strref(skill: Skill): StrRef {
+    if (!exists(skill)) {
+        return StrRef(-1);
+    }
+    return Array.get(_skills, skill as int).name;
 }
 
 // Returns the ability governing the skill's modifier contribution.

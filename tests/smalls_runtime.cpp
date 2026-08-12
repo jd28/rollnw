@@ -49,6 +49,36 @@ TEST_F(SmallsRuntime, RegisterInternalTypes)
     EXPECT_FALSE(!!rt.type_table_.get("no_exist_type"));
 }
 
+TEST_F(SmallsRuntime, TypedObjectSubtypeArrayStoresInlineHandles)
+{
+    using namespace nw::smalls;
+
+    auto& rt = nw::kernel::runtime();
+    const TypeID item_type = rt.register_object_subtype(
+        "TestArrayItem", nw::ObjectType::item);
+    const HeapPtr array_ptr = rt.create_array_typed(item_type, 2);
+    auto* items = rt.get_array_typed(array_ptr);
+    ASSERT_NE(items, nullptr);
+
+    nw::ObjectHandle first;
+    first.id = static_cast<nw::ObjectID>(17);
+    first.type = nw::ObjectType::item;
+    first.version = 3;
+    Value first_value = Value::make_object(first);
+    first_value.type_id = item_type;
+    items->append_value(first_value, rt);
+
+    Value result;
+    ASSERT_TRUE(items->get_value(0, result, rt));
+    EXPECT_EQ(result.type_id, item_type);
+    EXPECT_EQ(result.storage, ValueStorage::immediate);
+    EXPECT_EQ(result.data.oval, first);
+
+    Value wrong_type = Value::make_object(first);
+    EXPECT_FALSE(items->set_value(0, wrong_type, rt));
+    EXPECT_FALSE(items->get_value(1, result, rt));
+}
+
 TEST_F(SmallsRuntime, CapturesGenericFunctionTemplates)
 {
     auto& rt = nw::kernel::runtime();
@@ -1192,5 +1222,86 @@ TEST_F(SmallsRuntime, EvictModulesInvalidatesNamedCoreModuleAndDependents)
 
     auto result = rt.execute_script(reloaded_consumer, "main");
     ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 12);
+}
+
+TEST_F(SmallsRuntime, EvictModuleLeavesUnrelatedModulesLoaded)
+{
+    auto& rt = nw::kernel::runtime();
+
+    auto* stable = rt.load_module_from_source("core.single_reload_stable", R"(
+        fn value(): int {
+            return 100;
+        }
+    )");
+    ASSERT_NE(stable, nullptr);
+    ASSERT_NE(rt.get_or_compile_module(stable), nullptr);
+
+    auto* provider = rt.load_module_from_source("test.single_reload_provider", R"(
+        fn initial(): int {
+            return 3;
+        }
+
+        var shared = initial();
+
+        fn value(): int {
+            return 3;
+        }
+    )");
+    ASSERT_NE(provider, nullptr);
+    auto* provider_module = rt.get_or_compile_module(provider);
+    ASSERT_NE(provider_module, nullptr);
+
+    auto* consumer = rt.load_module_from_source("core.single_reload_consumer", R"(
+        import core.single_reload_stable as stable;
+        import test.single_reload_provider as provider;
+
+        fn unused(): int {
+            return stable.value();
+        }
+
+        fn main(): int {
+            return provider.value() + provider.shared;
+        }
+    )");
+    ASSERT_NE(consumer, nullptr);
+    auto* consumer_module = rt.get_or_compile_module(consumer);
+    ASSERT_NE(consumer_module, nullptr);
+    ASSERT_EQ(consumer_module->external_refs.size(), 2u);
+    ASSERT_EQ(consumer_module->global_refs.size(), 1u);
+    EXPECT_EQ(consumer_module->global_refs[0].resolved_module, provider_module);
+    auto initial = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(initial.ok()) << initial.error_message;
+    EXPECT_EQ(initial.value.data.ival, 6);
+
+    EXPECT_TRUE(rt.evict_module("test.single_reload_provider"));
+    EXPECT_FALSE(rt.evict_module("test.single_reload_provider"));
+    EXPECT_EQ(rt.get_module("core.single_reload_consumer"), consumer);
+    EXPECT_EQ(rt.find_external_function("test.single_reload_provider.value"), UINT32_MAX);
+    ASSERT_EQ(consumer_module->external_indices.size(), 2u);
+    EXPECT_NE(consumer_module->external_indices[0], UINT32_MAX);
+    EXPECT_EQ(consumer_module->external_indices[1], UINT32_MAX);
+    EXPECT_EQ(consumer_module->global_refs[0].resolved_module, nullptr);
+    EXPECT_FALSE(consumer_module->external_refs_resolved);
+
+    auto* replacement = rt.load_module_from_source("test.single_reload_provider", R"(
+        fn initial(): int {
+            return 5;
+        }
+
+        var shared = initial();
+
+        fn value(): int {
+            return 7;
+        }
+    )");
+    ASSERT_NE(replacement, nullptr);
+    auto* replacement_module = rt.get_or_compile_module(replacement);
+    ASSERT_NE(replacement_module, nullptr);
+
+    auto result = rt.execute_script(consumer, "main");
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(consumer_module->global_refs[0].resolved_module, replacement_module);
+    EXPECT_TRUE(consumer_module->external_refs_resolved);
     EXPECT_EQ(result.value.data.ival, 12);
 }

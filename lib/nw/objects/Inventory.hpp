@@ -79,6 +79,12 @@ struct Inventory {
     /// Gets current number of pages
     int pages() const noexcept { return pages_; }
 
+    /// Gets the number of rows per page.
+    int rows() const noexcept { return rows_; }
+
+    /// Gets the number of columns per page.
+    int columns() const noexcept { return columns_; }
+
     /// Remove item from inventory
     bool remove_item(nw::Item* item);
 

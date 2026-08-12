@@ -146,7 +146,7 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
 using EquipItem = Variant<Resref, ObjectHandle>;
 
 Item* equip_item_ptr(const EquipItem& item) noexcept;
-bool can_equip_item(const Creature* obj, Item* item, EquipIndex slot);
+// Policy-free storage mutation; callers own compatibility and lifecycle checks.
 bool equip_item_in_slot(Creature* obj, Item* item, EquipIndex slot);
 Item* get_equipped_item(const Creature* obj, EquipIndex slot);
 Item* unequip_item_in_slot(Creature* obj, EquipIndex slot);

@@ -1,7 +1,5 @@
 #include "Equips.hpp"
 
-#include "../rules/effects.hpp"
-#include "../smalls/runtime.hpp"
 #include "../util/profile.hpp"
 #include "Creature.hpp"
 #include "Item.hpp"
@@ -38,26 +36,10 @@ Item* equip_item_ptr(const EquipItem& item) noexcept
     return item_from_handle(item.as<ObjectHandle>());
 }
 
-bool can_equip_item(const Creature* obj, Item* item, EquipIndex slot)
-{
-    if (!obj || !item) { return false; }
-    if (!equip_index_valid(slot)) { return false; }
-
-    auto& rt = nw::kernel::runtime();
-    nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
-    args.push_back(nw::smalls::detail::make_value(&rt, item->handle()));
-    args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(slot)));
-
-    auto result = rt.execute_script("core.item", "can_equip_item", args);
-    return result.ok() && result.value.type_id == rt.bool_type() && result.value.data.bval;
-}
-
 bool equip_item_in_slot(Creature* obj, Item* item, EquipIndex slot)
 {
     if (!obj || !item) { return false; }
     if (!equip_index_valid(slot)) { return false; }
-    if (!can_equip_item(obj, item, slot)) { return false; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
     if (nw::equip_item_ptr(it) == item) {

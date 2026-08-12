@@ -1,0 +1,11 @@
+from core.commands import { CommandSpec, CommandResult };
+
+[[native]] fn command_register(
+    module_path: string,
+    spec: CommandSpec,
+    execute_handler: string,
+    undo_handler: string = "",
+    redo_handler: string = ""
+): bool;
+
+[[native]] fn command_execute(command_id: string, args: array!(string)): CommandResult;

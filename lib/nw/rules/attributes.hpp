@@ -76,16 +76,27 @@ constexpr AlignmentFlags align_chaotic_evil = AlignmentFlags::chaotic | Alignmen
 
 DECLARE_RULE_TYPE(Appearance);
 
+enum struct AppearanceModelType : int32_t {
+    invalid = -1,
+    parts = 0,
+    simple = 1,
+    full = 2,
+    large = 3,
+    full_tail = 4,
+    full_wings = 5,
+    full_wings_tail = 6,
+    large_wings_tail = 7,
+    simple_wings_tail = 8,
+};
+
 struct AppearanceInfo {
     AppearanceInfo(const TwoDARowView& tda);
 
     String label;
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
     String base_name;
-    String model_name;
-    String model_type;
-    int size = 0;
-    int walkrate = 4;
+    Resref model;
+    AppearanceModelType model_type = AppearanceModelType::invalid;
 
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;
@@ -94,6 +105,25 @@ struct AppearanceInfo {
 };
 
 using AppearanceArray = RuleTypeArray<Appearance, AppearanceInfo>;
+
+// -- Placeable Appearance ---------------------------------------------------
+// ----------------------------------------------------------------------------
+
+DECLARE_RULE_TYPE(PlaceableAppearance);
+
+struct PlaceableAppearanceInfo {
+    PlaceableAppearanceInfo() = default;
+    explicit PlaceableAppearanceInfo(const TwoDARowView& tda);
+
+    String label;
+    uint32_t string_ref = std::numeric_limits<uint32_t>::max();
+    Resref model;
+
+    String editor_name() const;
+    bool valid() const noexcept { return !model.empty(); }
+};
+
+using PlaceableAppearanceArray = RuleTypeArray<PlaceableAppearance, PlaceableAppearanceInfo>;
 
 // -- Armor Class -------------------------------------------------------------
 // ----------------------------------------------------------------------------

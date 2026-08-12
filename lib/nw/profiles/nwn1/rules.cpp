@@ -4,6 +4,7 @@
 
 #include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
+#include "../../smalls/runtime.hpp"
 
 namespace nwn1 {
 
@@ -34,7 +35,7 @@ bool match_qualifier(const nw::Qualifier& qual, const nw::ObjectBase* obj)
     args.push_back(nw::smalls::Value::make_int(qual.subtype));
     args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(qual.match)));
     args.push_back(nw::smalls::Value::make_int(qual.value));
-    return bridge::call_nwn1_module_bool("nwn1.requirements", "match_qualifier", args).value_or(false);
+    return bridge::call_nwn1_module_bool("nwn1.requirement_matching", "match_qualifier", args).value_or(false);
 }
 
 } // namespace

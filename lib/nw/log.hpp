@@ -6,7 +6,7 @@
 
 #include <filesystem>
 
-/// rollNW namespace
+/// rollnw namespace
 namespace nw {
 
 /// Initialize logger

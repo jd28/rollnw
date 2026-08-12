@@ -17,7 +17,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include <cstring>
 #include <filesystem>
 #include <fstream>
 
@@ -79,7 +78,7 @@ bool update_item_standalone_visual(nw::Item* item, const char* module_name)
     return execute_item_bool_script(rt, module_name, source, args);
 }
 
-bool item_has_propset_properties(nw::Item* item, const char* module_name)
+bool item_has_native_properties(nw::Item* item, const char* module_name)
 {
     if (!item) { return false; }
 
@@ -89,8 +88,7 @@ bool item_has_propset_properties(nw::Item* item, const char* module_name)
         import core.item as I;
 
         fn main(item: Item): bool {
-            var stats = get_propset!(I.ItemStats)(item);
-            return Array.len(stats.item_properties) > 0;
+            return Array.len(I.item_properties(item)) > 0;
         }
     )";
 
@@ -105,7 +103,7 @@ bool script_has_item_property(nw::Item* item, nw::ItemPropertyType type, int32_t
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        import core.item as I;
+        import nwn1.item as I;
 
         fn main(item: Item, prop_type: int, subtype: int): bool {
             return I.has_property(item, prop_type, subtype);
@@ -185,21 +183,19 @@ std::pair<int, int> item_inventory_dimensions(nw::Item* item, const char* module
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        import core.array as A;
-        import core.item as I;
-        import nwn1.rules as R;
+        import core.item as Base;
+        import nwn1.baseitems as B;
+        import nwn1.propsets as State;
 
         fn main(item: Item): int {
-            var stats = get_propset!(I.ItemStats)(item);
-            var baseitems = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
-            if (stats.base_item < 0 || stats.base_item >= A.len(baseitems)) {
+            var stats = get_propset!(State.ItemStats)(item);
+            var base_item_type = Base.BaseItemType(stats.base_item);
+            if (!B.exists(base_item_type)) {
                 return -1;
             }
-            var baseitem = A.get(baseitems, stats.base_item);
-            if (baseitem.id != stats.base_item) {
-                return -1;
-            }
-            return baseitem.inventory_width * 100 + baseitem.inventory_height;
+            var info = B.get_info(base_item_type);
+            return info.inventory_width * 100
+                + info.inventory_height;
         }
     )";
 
@@ -232,9 +228,10 @@ bool invalidate_base_item_and_sync_layout(nw::Item* item)
     std::string_view source = R"(
         import core.item as Base;
         import nwn1.item as I;
+        import nwn1.propsets as State;
 
         fn main(item: Item): bool {
-            var stats = get_propset!(Base.ItemStats)(item);
+            var stats = get_propset!(State.ItemStats)(item);
             stats.base_item = -1;
             return !I.sync_native_layout(item);
         }
@@ -385,13 +382,12 @@ TEST(Item, ResolveCompositeVisual)
     EXPECT_TRUE(execute_item_bool_script(rt, "test.item_resolve_composite_visual", source));
 }
 
-TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
+TEST(Item, ResolveVisualUsesPropsetBaseItemAndNativeInfo)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(mod);
 
     auto& rt = nw::kernel::runtime();
-    rt.add_module_path(fs::path("test_data/user/development/nwn1"));
 
     rollnw::tests::TestItemGff item_spec{
         .base_item = nw::BaseItem::make(0),
@@ -402,10 +398,10 @@ TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
     ASSERT_NE(item, nullptr);
 
     std::string_view source = R"(
-        import core.item as I;
+        import nwn1.propsets as State;
 
         fn main(item: Item, base_item: int): int {
-            var stats = get_propset!(I.ItemStats)(item);
+            var stats = get_propset!(State.ItemStats)(item);
             stats.base_item = base_item;
             return stats.base_item;
         }
@@ -419,13 +415,13 @@ TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
     auto item_value = nw::smalls::Value::make_object(item->handle());
     item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
     args.push_back(item_value);
-    args.push_back(nw::smalls::Value::make_int(112));
+    args.push_back(nw::smalls::Value::make_int(1));
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
-    ASSERT_EQ(result.value.data.ival, 112);
+    ASSERT_EQ(result.value.data.ival, 1);
 
-    auto stats_tid = rt.type_id("core.item.ItemStats", false);
+    auto stats_tid = rt.type_id("nwn1.propsets.ItemStats", false);
     ASSERT_NE(stats_tid, nw::smalls::invalid_type_id);
     auto stats_ref = rt.find_propset_ref(stats_tid, item->handle());
     ASSERT_NE(stats_ref.type_id, nw::smalls::invalid_type_id);
@@ -439,33 +435,11 @@ TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
         stats_ref,
         stats_def->fields[base_item_field].offset,
         stats_def->fields[base_item_field].type_id);
-    ASSERT_EQ(base_item_value.data.ival, 112);
+    ASSERT_EQ(base_item_value.data.ival, 1);
 
-    auto baseitem_tid = rt.type_id("nwn1.rules.BaseItemEntry", false);
-    ASSERT_NE(baseitem_tid, nw::smalls::invalid_type_id);
-    auto config_array_value = rt.load_config_array_value("nwn1.data.baseitems", baseitem_tid);
-    ASSERT_NE(config_array_value.type_id, nw::smalls::invalid_type_id);
-    auto* config_array = rt.get_array_typed(config_array_value.data.hptr);
-    ASSERT_NE(config_array, nullptr);
-    const void* config_entry = config_array->element_data(112);
-    ASSERT_NE(config_entry, nullptr);
-    auto* baseitem_type = rt.get_type(baseitem_tid);
-    ASSERT_NE(baseitem_type, nullptr);
-    auto* baseitem_def = rt.type_table_.get(baseitem_type->type_params[0].as<nw::smalls::StructID>());
-    ASSERT_NE(baseitem_def, nullptr);
-    auto read_config_int = [&](const char* field_name) {
-        int32_t value = -1;
-        uint32_t field_index = baseitem_def->field_index(field_name);
-        EXPECT_NE(field_index, UINT32_MAX);
-        if (field_index != UINT32_MAX) {
-            std::memcpy(&value,
-                static_cast<const uint8_t*>(config_entry) + baseitem_def->fields[field_index].offset,
-                sizeof(value));
-        }
-        return value;
-    };
-    ASSERT_EQ(read_config_int("id"), 112);
-    ASSERT_EQ(read_config_int("model_type"), 2);
+    const auto* baseitem = nw::kernel::rules().baseitems.get(nw::BaseItem::make(1));
+    ASSERT_NE(baseitem, nullptr);
+    EXPECT_EQ(baseitem->model_type, nw::ItemModelType::composite);
 
     std::string_view visual_source = R"(
         import core.types as T;
@@ -483,21 +457,21 @@ TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
             var a0 = I.resolve_visual_row(item, 0);
             if (a0.slot != I.equip_index_invalid
                 || T.resref_to_string(a0.attach_to) != ""
-                || T.resref_to_string(a0.model) != "tstbi_b_001") {
+                || T.resref_to_string(a0.model) != "wswls_b_001") {
                 return false;
             }
 
             var a1 = I.resolve_visual_row(item, 1);
             var a2 = I.resolve_visual_row(item, 2);
-            if (T.resref_to_string(a1.model) != "tstbi_m_002"
-                || T.resref_to_string(a2.model) != "tstbi_t_003") {
+            if (T.resref_to_string(a1.model) != "wswls_m_002"
+                || T.resref_to_string(a2.model) != "wswls_t_003") {
                 return false;
             }
 
             var icon = I.resolve_icon(item, I.item_model_part_model2, false);
             return icon.baseitem_valid
-                && T.resref_to_string(icon.resref) == "itstbi_m_002"
-                && T.resref_to_string(icon.default_icon) == "it_test";
+                && T.resref_to_string(icon.resref) == "iwswls_m_002"
+                && T.resref_to_string(icon.default_icon) == "iwswls";
         }
     )";
     nw::Vector<nw::smalls::Value> visual_args;
@@ -507,7 +481,7 @@ TEST(Item, ResolveVisualUsesPropsetBaseItemAndSmallsConfig)
     nw::kernel::objects().destroy(item->handle());
 }
 
-TEST(Item, ResolveVisualUsesItemVisualsPropset)
+TEST(Item, ResolveVisualUsesNativeItemVisualComponent)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(mod);
@@ -522,7 +496,7 @@ TEST(Item, ResolveVisualUsesItemVisualsPropset)
     auto& rt = nw::kernel::runtime();
 
     std::string_view source = R"(
-        import core.item as I;
+        import nwn1.item as I;
 
         fn main(item: Item): int {
             if (!I.set_visual_model_part(item, 0, 4)) { return 0; }
@@ -533,11 +507,28 @@ TEST(Item, ResolveVisualUsesItemVisualsPropset)
             if (I.get_visual_model_part(item, 1) != 5) { return 0; }
             if (I.get_visual_model_color(item, 0) != 11) { return 0; }
             if (I.get_visual_part_color(item, 1, 0) != 12) { return 0; }
+
+            var duplicate_parts: array!(int) = {-1, -1};
+            var duplicate_colors: array!(int) = {0, 0};
+            var duplicate_values: array!(int) = {13, 14};
+            if (I.set_visual_colors(
+                    item, duplicate_parts, duplicate_colors, duplicate_values)
+                || I.get_visual_model_color(item, 0) != 11) {
+                return 0;
+            }
+
+            var parts: array!(int) = {0, 1};
+            var invalid_models: array!(int) = {7, 65536};
+            if (I.set_visual_model_parts(item, parts, invalid_models)
+                || I.get_visual_model_part(item, 0) != 4
+                || I.get_visual_model_part(item, 1) != 5) {
+                return 0;
+            }
             return 1;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.item_visuals_propset_override", source);
+    auto* script = rt.load_module_from_source("test.item_visuals_native_override", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
@@ -574,8 +565,8 @@ TEST(Item, ResolveVisualUsesItemVisualsPropset)
                 && T.resref_to_string(icon.resref) == "iwswss_m_005";
         }
     )";
-    EXPECT_TRUE(execute_item_bool_script(rt, "test.item_visuals_propset_visual", visual_source, args));
-    ASSERT_TRUE(update_item_standalone_visual(item, "test.item_visuals_propset_update_visual"));
+    EXPECT_TRUE(execute_item_bool_script(rt, "test.item_visuals_native_visual", visual_source, args));
+    ASSERT_TRUE(update_item_standalone_visual(item, "test.item_visuals_native_update_visual"));
 
     const auto* model_row = find_item_visual_row(item, nw::ItemModelParts::model1);
     ASSERT_NE(model_row, nullptr);
@@ -586,8 +577,9 @@ TEST(Item, ResolveVisualUsesItemVisualsPropset)
 
     nlohmann::json json;
     ASSERT_TRUE(nw::serialize(item, json, nw::SerializationProfile::blueprint));
-    ASSERT_TRUE(json.contains("core.item.ItemVisuals"));
-    const auto& visuals = json.at("core.item.ItemVisuals");
+    ASSERT_TRUE(json.contains("components"));
+    ASSERT_TRUE(json.at("components").contains("item_visuals"));
+    const auto& visuals = json.at("components").at("item_visuals");
     EXPECT_EQ(visuals.at("model_parts")[0], 4);
     EXPECT_EQ(visuals.at("model_parts")[1], 5);
     EXPECT_EQ(visuals.at("model_colors")[0], 11);
@@ -609,47 +601,6 @@ TEST(Item, ResolveVisualUsesItemVisualsPropset)
     EXPECT_EQ(cloth1, 11);
 
     nw::kernel::objects().destroy(item->handle());
-}
-
-TEST(Item, ResolveVisualUsesSmallsModelPolicy)
-{
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    ASSERT_TRUE(mod);
-
-    auto& rt = nw::kernel::runtime();
-    rt.add_module_path(fs::path("test_data/user/development/nwn1"));
-
-    std::string_view source = R"(
-        import core.types as T;
-        import nwn1.item as I;
-
-        fn main(): bool {
-            var visual = I.resolve_visual_by_state(112, 1, 2, 3);
-            if (!visual.baseitem_valid || visual.attachment_count != 3) {
-                return false;
-            }
-            var a0 = I.resolve_visual_row_by_state(112, 1, 2, 3, 0, T.EquipIndex(-1), T.resref(""));
-            var a1 = I.resolve_visual_row_by_state(112, 1, 2, 3, 1, T.EquipIndex(-1), T.resref(""));
-            var a2 = I.resolve_visual_row_by_state(112, 1, 2, 3, 2, T.EquipIndex(-1), T.resref(""));
-            return T.resref_to_string(a0.model) == "tstbi_b_001"
-                && T.resref_to_string(a1.model) == "tstbi_m_002"
-                && T.resref_to_string(a2.model) == "tstbi_t_003";
-        }
-    )";
-    EXPECT_TRUE(execute_item_bool_script(rt, "test.item_smalls_model_policy_visual", source));
-
-    std::string_view icon_source = R"(
-        import core.types as T;
-        import nwn1.item as I;
-
-        fn main(): bool {
-            var icon = I.resolve_icon_by_state(112, I.item_model_part_model2, 2, false);
-            return icon.baseitem_valid
-                && T.resref_to_string(icon.resref) == "itstbi_m_002"
-                && T.resref_to_string(icon.default_icon) == "it_test";
-        }
-    )";
-    EXPECT_TRUE(execute_item_bool_script(rt, "test.item_smalls_model_policy_icon", icon_source));
 }
 
 TEST(Item, ResolveArmorVisualRequiresWearerContext)
@@ -694,6 +645,7 @@ TEST(Item, ResolveCloakVisualUsesSmallsCloakModelPolicy)
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
         import core.types as T;
+        import core.item as Base;
         import core.visual as V;
         import nwn1.constants as Const;
         import nwn1.item as I;
@@ -726,14 +678,15 @@ TEST(Item, ResolveCloakVisualUsesSmallsCloakModelPolicy)
                 return false;
             }
 
-            var sword_attachment = I.resolve_visual_row_by_state(0, 1, 0, 0, 0, T.EquipIndex(-1), T.resref(""));
+            var sword_attachment = I.resolve_visual_row_by_state(
+                0, 1, 0, 0, 0, Base.EquipIndex(-1), T.resref(""));
             return sword_attachment.kind == V.visual_model_kind_item_model;
         }
     )";
     EXPECT_TRUE(execute_item_bool_script(rt, "test.item_cloak_visual_model_policy", source));
 }
 
-TEST(Item, ResolveCloakVisualUsesItemVisualsPropset)
+TEST(Item, ResolveCloakVisualUsesNativeItemVisualComponent)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(mod);
@@ -749,7 +702,7 @@ TEST(Item, ResolveCloakVisualUsesItemVisualsPropset)
     auto& rt = nw::kernel::runtime();
 
     std::string_view source = R"(
-        import core.item as I;
+        import nwn1.item as I;
 
         fn main(item: Item): int {
             if (!I.set_visual_model_part(item, 0, 1)) { return 0; }
@@ -757,7 +710,7 @@ TEST(Item, ResolveCloakVisualUsesItemVisualsPropset)
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.item_cloak_visual_propset_override", source);
+    auto* script = rt.load_module_from_source("test.item_cloak_visual_native_override", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
@@ -813,7 +766,7 @@ TEST(Item, GffDeserializeArmor)
     EXPECT_TRUE(heavy2);
 
     EXPECT_EQ(ent->resref, "cloth028");
-    EXPECT_TRUE(item_has_propset_properties(ent, "test.item_armor_has_propset_properties"));
+    EXPECT_TRUE(item_has_native_properties(ent, "test.item_armor_has_native_properties"));
     EXPECT_EQ(item_model_type(ent, "test.item_armor_model_type"),
         static_cast<int>(nw::ItemModelType::armor));
     expect_native_item_layout(ent, "test.item_armor_native_layout");
@@ -868,7 +821,7 @@ TEST(Item, GffDeserializeLayered)
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->resref, "wduersc004");
-    EXPECT_TRUE(item_has_propset_properties(ent, "test.item_layered_has_propset_properties"));
+    EXPECT_TRUE(item_has_native_properties(ent, "test.item_layered_has_native_properties"));
     EXPECT_EQ(item_model_type(ent, "test.item_layered_model_type"),
         static_cast<int>(nw::ItemModelType::composite));
     expect_native_item_layout(ent, "test.item_layered_native_layout");
@@ -880,7 +833,7 @@ TEST(Item, GffDeserializeSimple)
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->resref, "pl_aleu_shuriken");
-    EXPECT_TRUE(item_has_propset_properties(ent, "test.item_simple_has_propset_properties"));
+    EXPECT_TRUE(item_has_native_properties(ent, "test.item_simple_has_native_properties"));
     EXPECT_EQ(item_model_type(ent, "test.item_simple_model_type"),
         static_cast<int>(nw::ItemModelType::simple));
     expect_native_item_layout(ent, "test.item_simple_native_layout");
@@ -896,7 +849,7 @@ TEST(Item, SyncNativeLayoutClearsStaleLayoutOnInvalidBaseItem)
     EXPECT_EQ(nw::kernel::objects().components().find_item_layout(ent->handle()), nullptr);
 }
 
-TEST(Item, SmallsHasPropertyReadsPropset)
+TEST(Item, SmallsHasPropertyReadsNativeComponent)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(mod);
@@ -916,6 +869,122 @@ TEST(Item, SmallsHasPropertyReadsPropset)
     EXPECT_TRUE(script_has_item_property(item, nwn1::ip_keen, -1, "test.has_item_property_any"));
     EXPECT_TRUE(script_has_item_property(item, nwn1::ip_keen, 7, "test.has_item_property_subtype"));
     EXPECT_FALSE(script_has_item_property(item, nwn1::ip_keen, 8, "test.has_item_property_missing_subtype"));
+
+    nw::kernel::objects().destroy(item->handle());
+}
+
+TEST(Item, NativeItemPropertiesSmallsRoundTrip)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+
+    const std::array<nw::ItemProperty, 2> original{{
+        {
+            .type = 6,
+            .subtype = 3,
+            .cost_table = 2,
+            .cost_value = 11,
+            .param_table = 1,
+            .param_value = 7,
+            .tag = "first",
+        },
+        {
+            .type = 16,
+            .subtype = 9,
+            .cost_table = 4,
+            .cost_value = 23,
+            .param_table = 5,
+            .param_value = 2,
+            .tag = "second",
+        },
+    }};
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_item_properties(item->handle(), original));
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        import core.array as Array;
+        import core.item as I;
+
+        fn main(item: Item): bool {
+            var before = I.item_properties(item);
+            if (Array.len(before) != 2
+                || before[0].prop_type != 6
+                || before[0].tag != "first"
+                || before[1].cost_value != 23
+                || before[1].tag != "second") {
+                return false;
+            }
+
+            var invalid_property: I.ItemProperty = {
+                prop_type = 1,
+                subtype = 2,
+                cost_table = 256,
+                cost_value = 3,
+                param_table = 4,
+                param_value = 5,
+                tag = "invalid",
+            };
+            var invalid: array!(I.ItemProperty) = {invalid_property};
+            if (I.set_item_properties(item, invalid)) {
+                return false;
+            }
+            if (Array.len(I.item_properties(item)) != 2) {
+                return false;
+            }
+
+            var replacement_property: I.ItemProperty = {
+                prop_type = 42,
+                subtype = 12,
+                cost_table = 6,
+                cost_value = 99,
+                param_table = 8,
+                param_value = 10,
+                tag = "replacement",
+            };
+            var replacement: array!(I.ItemProperty) = {replacement_property};
+            if (!I.set_item_properties(item, replacement)) {
+                return false;
+            }
+
+            var after = I.item_properties(item);
+            return Array.len(after) == 1
+                && after[0].prop_type == 42
+                && after[0].cost_value == 99
+                && after[0].tag == "replacement";
+        }
+    )";
+
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, item->handle()));
+    EXPECT_TRUE(execute_item_bool_script(
+        rt, "test.native_item_properties_roundtrip", source, args));
+
+    const auto* properties = components.find_item_properties(item->handle());
+    ASSERT_NE(properties, nullptr);
+    ASSERT_EQ(properties->entries.size(), 1);
+    EXPECT_EQ(properties->entries[0].type, 42);
+    EXPECT_EQ(properties->entries[0].cost_value, 99);
+    EXPECT_EQ(properties->entries[0].tag, "replacement");
+
+    const auto archive = components.item_properties_to_json(item->handle());
+    components.remove_item_properties(item->handle());
+    ASSERT_TRUE(components.from_json_item_properties(item->handle(), archive));
+    properties = components.find_item_properties(item->handle());
+    ASSERT_NE(properties, nullptr);
+    ASSERT_EQ(properties->entries.size(), 1);
+    EXPECT_EQ(properties->entries[0].tag, "replacement");
+
+    auto malformed = archive;
+    malformed[0]["cost_table"] = 256u;
+    EXPECT_FALSE(components.from_json_item_properties(item->handle(), malformed));
+    properties = components.find_item_properties(item->handle());
+    ASSERT_NE(properties, nullptr);
+    ASSERT_EQ(properties->entries.size(), 1);
+    EXPECT_EQ(properties->entries[0].tag, "replacement");
 
     nw::kernel::objects().destroy(item->handle());
 }
@@ -954,6 +1023,60 @@ TEST(Item, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
     nw::kernel::objects().destroy(ent2->handle());
+}
+
+TEST(Item, JsonRejectsMissingOrMalformedNativeItemComponents)
+{
+    auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_TRUE(ent);
+
+    nlohmann::json valid;
+    ASSERT_TRUE(nw::serialize(ent, valid, nw::SerializationProfile::blueprint));
+
+    auto expect_rejected = [](const nlohmann::json& archive) {
+        auto* item = nw::kernel::objects().make<nw::Item>();
+        ASSERT_NE(item, nullptr);
+        EXPECT_FALSE(nw::deserialize(item, archive, nw::SerializationProfile::blueprint));
+        nw::kernel::objects().destroy(item->handle());
+    };
+
+    auto missing = valid;
+    missing["components"].erase("item_visuals");
+    expect_rejected(missing);
+
+    missing = valid;
+    missing["components"].erase("item_properties");
+    expect_rejected(missing);
+
+    auto obsolete = valid;
+    obsolete["core.item.ItemDescriptor"] = obsolete["nwn1.propsets.ItemDescriptor"];
+    expect_rejected(obsolete);
+
+    obsolete.erase("nwn1.propsets.ItemDescriptor");
+    expect_rejected(obsolete);
+
+    auto malformed_property = valid;
+    malformed_property["components"]["item_properties"] = nlohmann::json::array({
+        {
+            {"type", 0u},
+            {"subtype", 0u},
+            {"cost_table", 256u},
+            {"cost_value", 0u},
+            {"param_table", 0u},
+            {"param_value", 0u},
+            {"tag", ""},
+        },
+    });
+    expect_rejected(malformed_property);
+
+    auto wrong_count = valid;
+    wrong_count["components"]["item_visuals"]["model_parts"].erase(
+        wrong_count["components"]["item_visuals"]["model_parts"].end() - 1);
+    expect_rejected(wrong_count);
+
+    auto out_of_range = valid;
+    out_of_range["components"]["item_visuals"]["model_colors"][0] = 256u;
+    expect_rejected(out_of_range);
 }
 
 TEST(Item, GffRoundTrip)

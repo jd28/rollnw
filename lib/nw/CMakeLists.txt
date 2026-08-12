@@ -141,6 +141,7 @@ add_library(nw STATIC
     smalls/native/core_math.cpp
     smalls/native/core_module.cpp
     smalls/native/core_object.cpp
+    smalls/native/core_placeable.cpp
     smalls/native/core_player.cpp
     smalls/native/core_prelude.cpp
     smalls/native/core_string.cpp

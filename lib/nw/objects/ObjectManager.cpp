@@ -1,5 +1,6 @@
 #include "ObjectManager.hpp"
 
+#include "../log.hpp"
 #include "../objects/Area.hpp"
 #include "../objects/Creature.hpp"
 #include "../objects/Door.hpp"
@@ -14,7 +15,10 @@
 #include "../objects/Store.hpp"
 #include "../objects/Trigger.hpp"
 #include "../objects/Waypoint.hpp"
+#include "../resources/ResourceManager.hpp"
 #include "../util/profile.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <chrono>
 
@@ -264,15 +268,51 @@ Area* ObjectManager::make_area(Resref area, ObjectManager::AreaLoadProfile* prof
 {
     NW_PROFILE_SCOPE_N("ObjectManager::make_area");
     auto t0 = std::chrono::high_resolution_clock::now();
-    Gff are{kernel::resman().demand({area, ResourceType::are})};
-    Gff git{kernel::resman().demand({area, ResourceType::git})};
-    Gff gic{kernel::resman().demand({area, ResourceType::gic})};
-    auto t1 = std::chrono::high_resolution_clock::now();
+    const auto format = kernel::resman().module_format();
+    if (format == ModuleResourceFormat::invalid) {
+        LOG_F(ERROR, "Unable to load area '{}': no module resource format is active", area.view());
+        return nullptr;
+    }
 
-    Area* obj = make<Area>();
-
-    deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
+    auto t1 = t0;
+    Area* obj = nullptr;
+    bool loaded = false;
+    if (format == ModuleResourceFormat::native_json) {
+        auto caf = kernel::resman().demand({area, ResourceType::caf});
+        t1 = std::chrono::high_resolution_clock::now();
+        obj = make<Area>();
+        try {
+            const auto json = nlohmann::json::parse(caf.bytes.string_view());
+            loaded = json.value("$type", "") == "CAF"
+                && json.value("$version", 0) == Area::json_archive_version
+                && deserialize(obj, json);
+        } catch (const std::exception& e) {
+            LOG_F(ERROR, "Failed to parse area CAF '{}': {}", area.view(), e.what());
+        }
+    } else {
+        auto are_data = kernel::resman().demand({area, ResourceType::are});
+        auto git_data = kernel::resman().demand({area, ResourceType::git});
+        auto gic_data = kernel::resman().demand({area, ResourceType::gic});
+        t1 = std::chrono::high_resolution_clock::now();
+        Gff are{std::move(are_data)};
+        Gff git{std::move(git_data)};
+        Gff gic{std::move(gic_data)};
+        obj = make<Area>();
+        if (are.valid() && git.valid()) {
+            loaded = deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
+        }
+    }
     auto t2 = std::chrono::high_resolution_clock::now();
+
+    if (!loaded) {
+        LOG_F(ERROR, "Failed to deserialize area '{}' from {}", area.view(),
+            format == ModuleResourceFormat::native_json ? "CAF" : "ARE/GIT");
+        if (obj) {
+            obj->clear();
+            destroy(obj->handle());
+        }
+        return nullptr;
+    }
 
     if (profile) {
         profile->demand_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
@@ -295,10 +335,18 @@ Module* ObjectManager::make_module()
 {
     Module* obj = make<Module>();
     auto cont = nw::kernel::resman().module_container();
+    const auto format = nw::kernel::resman().module_format();
     ResourceData data;
-    auto cb = [cont, &data](Resource uri, const ContainerKey* key) {
-        if (uri.type != ResourceType::ifo || data.bytes.size()) { return; }
-        data = cont->demand(key);
+    auto cb = [cont, format, &data](Resource uri, const ContainerKey* key) {
+        if (uri != Resource{StringView{"module"}, ResourceType::ifo} || data.bytes.size()) { return; }
+
+        auto candidate = cont->demand(key);
+        const bool is_gff = candidate.bytes.size() > 8
+            && memcmp(candidate.bytes.data(), "IFO V3.2", 8) == 0;
+        if ((format == ModuleResourceFormat::legacy_gff && is_gff)
+            || (format == ModuleResourceFormat::native_json && !is_gff)) {
+            data = std::move(candidate);
+        }
     };
 
     cont->visit(cb);
@@ -309,7 +357,7 @@ Module* ObjectManager::make_module()
         return nullptr;
     }
 
-    if (data.bytes.size() > 8 && memcmp(data.bytes.data(), "IFO V3.2", 8) == 0) {
+    if (format == ModuleResourceFormat::legacy_gff) {
         Gff in{std::move(data)};
         if (in.valid()) {
             deserialize(obj, in.toplevel());

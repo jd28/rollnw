@@ -4,14 +4,35 @@
 
 #include <tracy/Tracy.hpp>
 
+#include <concepts>
+#include <cstdint>
 #include <cstring>
+#include <type_traits>
+
+namespace nw::profile {
+
+template <std::integral T>
+inline void plot(const char* name, T value)
+{
+    static_assert(std::is_signed_v<T> || sizeof(T) < sizeof(int64_t),
+        "Tracy plots cannot represent uint64_t values");
+    TracyPlot(name, static_cast<int64_t>(value));
+}
+
+template <std::floating_point T>
+inline void plot(const char* name, T value)
+{
+    TracyPlot(name, static_cast<double>(value));
+}
+
+}
 
 #define NW_PROFILE_SCOPE() ZoneScoped
 #define NW_PROFILE_SCOPE_N(name) ZoneScopedN(name)
 #define NW_PROFILE_MSG(msg) TracyMessageL(msg)
 #define NW_PROFILE_VALUE(value) ZoneValue(value)
 #define NW_PROFILE_TEXT(text, size) ZoneText(text, size)
-#define NW_PROFILE_PLOT(name, value) TracyPlot(name, value)
+#define NW_PROFILE_PLOT(name, value) ::nw::profile::plot(name, value)
 
 #define NW_PROFILE_TEXT_CSTR(cstr)                     \
     do {                                               \

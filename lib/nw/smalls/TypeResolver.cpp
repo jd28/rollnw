@@ -2597,6 +2597,13 @@ void TypeResolver::visit(BraceInitLiteral* expr)
         }
     }
 
+    if (nw::kernel::runtime().is_propset_type(expr->type_id_)) {
+        ctx.errorf(expr->range_,
+            "propset values cannot be constructed directly; use get_propset!");
+        expr->type_id_ = invalid_type_id;
+        return;
+    }
+
     for (size_t idx = 0; idx < expr->items.size(); ++idx) {
         auto& item = expr->items[idx];
         if (item.key) {

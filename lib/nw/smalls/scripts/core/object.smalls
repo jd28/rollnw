@@ -1,9 +1,14 @@
 import core.effects as Eff;
+import core.types as T;
 
-[[native]] fn __invalid(): object;
-const invalid: object = __invalid();
+[[native]] fn make_invalid(): object;
+const invalid: object = make_invalid();
 
 [[native]] fn is_valid(obj: object): bool;
+[[native]] fn get_resref(obj: object): T.ResRef;
+[[native]] fn get_name(obj: object): string;
+[[native]] fn get_tag(obj: object): string;
+[[native]] fn get_comment(obj: object): string;
 [[native]] fn apply_effect(obj: object, effect: Eff.Effect): bool;
 [[native]] fn has_effect_applied(obj: object, effect: Eff.Effect): bool;
 [[native]] fn remove_effect(obj: object, effect: Eff.Effect): bool;

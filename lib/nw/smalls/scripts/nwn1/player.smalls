@@ -1,0 +1,34 @@
+import core.array as arr;
+import core.player as Native;
+from nwn1.propsets import { CreatureLevels };
+
+fn _class_slot(levels: CreatureLevels, class_id: int): int {
+    if (class_id < 0) {
+        return -1;
+    }
+
+    for (var i = 0; i < 8; i += 1) {
+        if (levels.classes[i] == class_id) {
+            return i;
+        }
+        if (levels.classes[i] == -1) {
+            break;
+        }
+    }
+    return -1;
+}
+
+fn sync_levelup_class_slots(obj: Player): bool {
+    var levels = get_propset!(CreatureLevels)(obj);
+    var count = Native.history_entry_count(obj);
+    if (count < 0) {
+        return false;
+    }
+
+    arr.clear(levels.levelup_classes);
+    arr.reserve(levels.levelup_classes, count);
+    for (var i = 0; i < count; i += 1) {
+        arr.push(levels.levelup_classes, _class_slot(levels, Native.history_entry_class(obj, i)));
+    }
+    return true;
+}

@@ -1,0 +1,7 @@
+{
+  "nwn1.propsets.PlaceableState": {
+    "animation_state": 5,
+    "appearance": 109,
+    "light_color": -1
+  }
+}

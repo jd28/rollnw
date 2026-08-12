@@ -68,7 +68,7 @@ nw::smalls::Value find_creature_appearance_propset(nw::smalls::Runtime& rt, cons
 {
     if (!creature) { return {}; }
 
-    const auto tid = rt.type_id("core.creature.CreatureAppearance", false);
+    const auto tid = rt.type_id("nwn1.propsets.CreatureAppearance", false);
     if (tid == nw::smalls::invalid_type_id) { return {}; }
     return rt.find_propset_ref(tid, creature->handle());
 }
@@ -280,6 +280,28 @@ TEST(ObjectSystem, ObjectComponentsTrackSpatialState)
     ASSERT_TRUE(components.set_geometry(handle2, std::span<const glm::vec3>{geometry_points}));
     EXPECT_EQ(components.spatial_count(), initial_count + 2);
     EXPECT_EQ(components.geometry_count(), initial_geometry_count + 2);
+
+    nlohmann::json spatial_json = nlohmann::json::object();
+    components.to_json_spatial(handle, spatial_json, nw::SerializationProfile::instance);
+    ASSERT_TRUE(spatial_json.contains("scale"));
+    EXPECT_EQ(spatial_json["scale"], nlohmann::json({2.0f, 3.0f, 4.0f}));
+    ASSERT_TRUE(components.from_json_spatial(
+        handle2, spatial_json, nw::SerializationProfile::instance));
+    row = components.find_spatial(handle2);
+    ASSERT_NE(row, nullptr);
+    EXPECT_EQ(row->position, glm::vec3(4.0f, 5.0f, 6.0f));
+    EXPECT_EQ(row->scale, glm::vec3(2.0f, 3.0f, 4.0f));
+
+    auto invalid_spatial_json = spatial_json;
+    invalid_spatial_json["scale"] = {1.0f, 0.0f, 1.0f};
+    EXPECT_FALSE(components.from_json_spatial(
+        handle2, invalid_spatial_json, nw::SerializationProfile::instance));
+    EXPECT_EQ(components.find_spatial(handle2)->scale, glm::vec3(2.0f, 3.0f, 4.0f));
+
+    spatial_json.erase("scale");
+    ASSERT_TRUE(components.from_json_spatial(
+        handle2, spatial_json, nw::SerializationProfile::instance));
+    EXPECT_EQ(components.find_spatial(handle2)->scale, glm::vec3(1.0f));
 
     nwk::objects().destroy(handle);
     EXPECT_EQ(components.find_spatial(handle), nullptr);

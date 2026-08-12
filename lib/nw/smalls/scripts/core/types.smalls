@@ -3,7 +3,6 @@ type ObjectMask(int);
 type ObjectType(int);
 type ArmorClass(int);
 type AttackType(int);
-type BaseItemType(int);
 type Class(int);
 type Damage(int);
 type DamageCategory(int);
@@ -16,8 +15,6 @@ type SaveVersus(int);
 type Spell(int);
 type SpellSchool(int);
 type Skill(int);
-type EquipIndex(int);
-type ItemPropertyType(int);
 type RacialType(int);
 
 [[native, value_type]]
@@ -36,7 +33,7 @@ const resource_type_mdl = 2002;
 const resource_type_uti = 2025;
 const resource_type_dds = 2033;
 
-[[native]] fn __resref_from_string(value: string): ResRef;
+[[native]] fn resref(value: string): ResRef;
 [[native]] fn resref_to_string(value: ResRef): string;
 [[native]] fn resource(resref: ResRef, resource_type: int): Resource;
 [[native]] fn resource_resref(value: Resource): ResRef;
@@ -50,20 +47,10 @@ const resource_type_dds = 2033;
 [[native]] fn set_text_override(value: TextRef, text: string, language: int): bool;
 [[native]] fn clear_text_override(value: TextRef, language: int);
 [[native]] fn resolve_text(value: TextRef, language: int): string;
+[[native]] fn resolve_strref(strref: int): string;
 
-fn resref(value: string): ResRef {
-    return __resref_from_string(value);
-}
-
-[[operator(str)]]
-fn str_resref(value: ResRef): string {
-    return resref_to_string(value);
-}
-
-[[operator(str)]]
-fn str_resource(value: Resource): string {
-    return resource_filename(value);
-}
+[[native, operator(str)]] fn str_resref(value: ResRef): string;
+[[native, operator(str)]] fn str_resource(value: Resource): string;
 
 [[value_type]]
 type DiceRoll {

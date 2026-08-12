@@ -16,6 +16,7 @@
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -57,13 +58,14 @@ bool set_int_propset_field(nw::smalls::Runtime& rt, nw::smalls::Value ref,
 bool seed_creature_appearance_propset(nw::Creature* creature,
     nw::Appearance appearance,
     int32_t head,
-    int32_t torso)
+    int32_t torso,
+    int32_t phenotype = 0)
 {
     if (!creature) { return false; }
 
     auto& rt = nw::kernel::runtime();
     rt.init_object_propsets(creature->handle());
-    const auto tid = rt.type_id("core.creature.CreatureAppearance", false);
+    const auto tid = rt.type_id("nwn1.propsets.CreatureAppearance", false);
     if (tid == nw::smalls::invalid_type_id) { return false; }
 
     auto ref = rt.get_or_create_propset_ref(tid, creature->handle());
@@ -71,7 +73,8 @@ bool seed_creature_appearance_propset(nw::Creature* creature,
 
     return set_int_propset_field(rt, ref, "appearance", *appearance)
         && set_int_propset_field(rt, ref, "body_part_head", head)
-        && set_int_propset_field(rt, ref, "body_part_torso", torso);
+        && set_int_propset_field(rt, ref, "body_part_torso", torso)
+        && set_int_propset_field(rt, ref, "phenotype", phenotype);
 }
 
 void remove_known_spell_from_script(nw::Creature* creature, nw::Class class_, nw::Spell spell)
@@ -216,6 +219,9 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
 
         fn invalid_rows_rejected(placeable: Placeable): int {
             if (!V.clear_visual(placeable, 44)) { return 0; }
+            if (V.set_visual_hold_animation(placeable, T.resref(""))) {
+                return 0;
+            }
             if (V.set_visual_body_variant(placeable, -1)) {
                 return 0;
             }
@@ -235,6 +241,7 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
                 T.resref(""),
                 T.resref(""),
                 T.resref(""),
+                T.resref(""),
                 V.visual_model_kind_root,
                 V.visual_model_slot_none,
                 0,
@@ -246,6 +253,7 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
             if (V.add_visual_model_row(
                 placeable,
                 T.resref("plc_o01"),
+                T.resref(""),
                 T.resref(""),
                 T.resref(""),
                 V.visual_model_kind_root,
@@ -320,6 +328,7 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
 
         fn main(placeable: Placeable, door: Door, creature: Creature): int {
             if (!V.clear_visual(placeable, 11)) { return 0; }
+            if (!V.set_visual_hold_animation(placeable, T.resref("default"))) { return 0; }
             if (!V.add_visual_model(
                 placeable,
                 T.resref("plc_o01"),
@@ -453,6 +462,7 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
     const auto* placeable_visual = components.find_visual(placeable->handle());
     ASSERT_NE(placeable_visual, nullptr);
     EXPECT_EQ(placeable_visual->appearance, 11);
+    EXPECT_EQ(placeable_visual->hold_animation, nw::Resref{"default"});
     ASSERT_EQ(placeable_visual->models.size(), 1);
     EXPECT_EQ(placeable_visual->models[0].model, nw::Resref{"plc_o01"});
     EXPECT_EQ(placeable_visual->models[0].plt_color_mask, material_plt_mask);
@@ -487,6 +497,7 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
     placeable_visual = components.find_visual(placeable->handle());
     ASSERT_NE(placeable_visual, nullptr);
     EXPECT_EQ(placeable_visual->appearance, 44);
+    EXPECT_TRUE(placeable_visual->hold_animation.empty());
     EXPECT_TRUE(placeable_visual->models.empty());
 
     nw::Vector<nw::smalls::Value> mode_args;
@@ -516,6 +527,42 @@ TEST_F(SmallsEngineIntegration, CoreVisualAcceptsObjectSubtypes)
     nw::kernel::objects().destroy(placeable->handle());
     nw::kernel::objects().destroy(door->handle());
     nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1PlaceableAnimationStatesResolveToExplicitHoldNames)
+{
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        import core.types as T;
+        import nwn1.placeables as P;
+
+        fn matches(state: int, expected: string): bool {
+            var result = P.resolve_placeable_animation_state(state);
+            return result.valid
+                && result.error == ""
+                && T.resref_to_string(result.hold_animation) == expected;
+        }
+
+        fn main(): int {
+            if (!matches(0, "default")) { return 0; }
+            if (!matches(1, "open")) { return 0; }
+            if (!matches(2, "close")) { return 0; }
+            if (!matches(3, "dead")) { return 0; }
+            if (!matches(4, "on")) { return 0; }
+            if (!matches(5, "off")) { return 0; }
+            if (P.resolve_placeable_animation_state(-1).valid) { return 0; }
+            if (P.resolve_placeable_animation_state(6).valid) { return 0; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_placeable_animation_states", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main");
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
 }
 
 TEST_F(SmallsEngineIntegration, CoreObjectSpatialApisReadAndWriteNativeComponents)
@@ -604,7 +651,7 @@ TEST_F(SmallsEngineIntegration, CoreObjectSpatialApisReadAndWriteNativeComponent
     EXPECT_EQ(nw::kernel::objects().components().find_spatial(handle), nullptr);
 }
 
-TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
+TEST_F(SmallsEngineIntegration, Nwn1ItemEquipApisProcessItemProperties)
 {
     auto& rt = nw::kernel::runtime();
 
@@ -622,26 +669,27 @@ TEST_F(SmallsEngineIntegration, CoreCreatureEquipApisProcessItemProperties)
 
     std::string_view source = R"(
         from nwn1.constants import { Ability, ability_strength, equip_index_arms };
-        import core.creature as C;
+        import core.item as Base;
         import nwn1.creature as NC;
+        import nwn1.item as I;
 
         fn main(target: Creature, item: Item): int {
-            if (!C.can_equip_item(target, item, equip_index_arms)) {
+            if (!I.can_equip_item(target, item, equip_index_arms)) {
                 return 0;
             }
 
             var before = NC.get_ability_score(target, ability_strength);
-            if (!C.equip_item(target, item, equip_index_arms)) {
+            if (!I.equip_item(target, item, equip_index_arms)) {
                 return 0;
             }
 
-            var equipped = C.get_equipped_item(target, equip_index_arms);
+            var equipped = Base.get_equipped_item(target, equip_index_arms);
             if (equipped != item) {
                 return 0;
             }
 
             var after = NC.get_ability_score(target, ability_strength);
-            var removed = C.unequip_item(target, equip_index_arms);
+            var removed = I.unequip_item(target, equip_index_arms);
             if (removed != item) {
                 return 0;
             }
@@ -706,29 +754,29 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot
     cloak->instantiate();
 
     std::string_view source = R"(
-        import core.creature as C;
         import core.object as O;
         import nwn1.init as Init;
+        import nwn1.item as I;
         from nwn1.constants import { equip_index_arms, equip_index_cloak };
 
         fn equip_both(target: Creature, gloves: Item, cloak: Item): int {
             Init.init();
-            if (!C.equip_item(target, gloves, equip_index_arms)) {
+            if (!I.equip_item(target, gloves, equip_index_arms)) {
                 return 0;
             }
-            if (!C.equip_item(target, cloak, equip_index_cloak)) {
+            if (!I.equip_item(target, cloak, equip_index_cloak)) {
                 return 0;
             }
             return 1;
         }
 
         fn unequip_arms(target: Creature): int {
-            var removed = C.unequip_item(target, equip_index_arms);
+            var removed = I.unequip_item(target, equip_index_arms);
             return removed != O.invalid ? 1 : 0;
         }
 
         fn unequip_cloak(target: Creature): int {
-            var removed = C.unequip_item(target, equip_index_cloak);
+            var removed = I.unequip_item(target, equip_index_cloak);
             return removed != O.invalid ? 1 : 0;
         }
     )";
@@ -766,6 +814,8 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot
     EXPECT_EQ(cloak_row.slot, static_cast<int32_t>(nw::EquipIndex::cloak));
     EXPECT_FALSE(cloak_row.model.empty());
     EXPECT_TRUE(nw::kernel::resman().contains({cloak_row.model, nw::ResourceType::mdl}));
+    EXPECT_EQ(cloak_row.plt_texture, nw::Resref{"cloak_004"});
+    EXPECT_TRUE(nw::kernel::resman().contains({cloak_row.plt_texture, nw::ResourceType::plt}));
     EXPECT_EQ(cloak_row.source_part, 1);
     EXPECT_EQ(cloak_row.model_part, 4);
     EXPECT_EQ(cloak_row.flags, nw::ObjectVisualModelFlags::requires_wearer);
@@ -854,18 +904,18 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksRebuildHumanoidBodyRowsForHead
     ASSERT_TRUE(has_visual_model(visual, nw::Resref{"pmh0_head001"}));
 
     std::string_view source = R"(
-        import core.creature as C;
         import core.object as O;
         import nwn1.init as Init;
+        import nwn1.item as I;
         from nwn1.constants import { equip_index_head };
 
         fn equip_head(target: Creature, helmet: Item): int {
             Init.init();
-            return C.equip_item(target, helmet, equip_index_head) ? 1 : 0;
+            return I.equip_item(target, helmet, equip_index_head) ? 1 : 0;
         }
 
         fn unequip_head(target: Creature): int {
-            var removed = C.unequip_item(target, equip_index_head);
+            var removed = I.unequip_item(target, equip_index_head);
             return removed != O.invalid ? 1 : 0;
         }
     )";
@@ -890,6 +940,12 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksRebuildHumanoidBodyRowsForHead
     visual = nw::kernel::objects().components().find_visual(creature->handle());
     ASSERT_FALSE(has_visual_model(visual, nw::Resref{"pmh0_head001"}));
     ASSERT_TRUE(has_slot_model(visual, nw::EquipIndex::head, nw::Resref{"helm_001"}));
+    const auto helmet_row = std::find_if(visual->models.begin(), visual->models.end(), [](const auto& row) {
+        return row.slot == static_cast<int32_t>(nw::EquipIndex::head)
+            && row.kind == nw::ObjectVisualModelKind::item_model;
+    });
+    ASSERT_NE(helmet_row, visual->models.end());
+    EXPECT_EQ(helmet_row->attach_to, nw::Resref{"head_g"});
 
     nw::Vector<nw::smalls::Value> creature_arg;
     creature_arg.push_back(object_arg(creature));
@@ -902,6 +958,418 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksRebuildHumanoidBodyRowsForHead
     ASSERT_FALSE(has_slot_model(visual, nw::EquipIndex::head, nw::Resref{"helm_001"}));
 
     nw::kernel::objects().destroy(helmet->handle());
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1SetAppearanceDefaultsMissingDynamicBodyParts)
+{
+    auto& rt = nw::kernel::runtime();
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_bodak, 0, 0));
+    ASSERT_TRUE(creature->instantiate());
+
+    std::string_view source = R"(
+        import nwn1.creature_state as Cre;
+        import nwn1.creature as NwnCre;
+
+        fn main(target: Creature, appearance: int): int {
+            if (!NwnCre.set_appearance(target, appearance)) { return -1; }
+            for (var part = 0; part < Cre.body_part_count; part += 1) {
+                var expected = 1;
+                if (part == Cre.body_part_belt
+                    || part == Cre.body_part_shoulder_left
+                    || part == Cre.body_part_shoulder_right
+                    || part == Cre.body_part_robe) {
+                    expected = 0;
+                }
+                if (Cre.get_body_part(target, part) != expected) {
+                    return -2 - part;
+                }
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_default_dynamic_body_parts", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    nw::Vector<nw::smalls::Value> args;
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(object);
+    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_human));
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_EQ(result.value.data.ival, 1);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+    ASSERT_NE(visual, nullptr);
+    const auto has_model = [visual](nw::Resref model) {
+        return std::any_of(visual->models.begin(), visual->models.end(), [model](const auto& row) {
+            return row.model == model;
+        });
+    };
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_head001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_chest001"}));
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1HumanoidVisualRowsUseCreaturePhenotypeBeforeFallback)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pmh16_chest001"}, nw::ResourceType::mdl}));
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(seed_creature_appearance_propset(
+        creature, nwn1::appearance_type_human, 1, 1, 16));
+    ASSERT_TRUE(creature->instantiate());
+
+    const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+    ASSERT_NE(visual, nullptr);
+    const auto has_model = [visual](nw::Resref model) {
+        return std::any_of(visual->models.begin(), visual->models.end(), [model](const auto& row) {
+            return row.model == model;
+        });
+    };
+    EXPECT_TRUE(has_model(nw::Resref{"pmh16_chest001"}));
+    EXPECT_FALSE(has_model(nw::Resref{"pmh0_chest001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_head001"}));
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1HumanoidArmorPreservesMissingSegmentsAndSuppliesBaseMaterialColors)
+{
+    auto& rt = nw::kernel::runtime();
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pmh0_legl001"}, nw::ResourceType::mdl}));
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pmh0_shol001"}, nw::ResourceType::mdl}));
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pmh0_shor001"}, nw::ResourceType::mdl}));
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(seed_creature_appearance_propset(
+        creature, nwn1::appearance_type_human, 1, 1));
+    ASSERT_TRUE(creature->instantiate());
+
+    rollnw::tests::TestItemGff armor_spec{
+        .base_item = nwn1::base_item_armor,
+        .model_shape = rollnw::tests::TestItemModelShape::layered,
+        .model_colors = {31, 32, 33, 34, 35, 36},
+    };
+    nw::GffBuilder armor_builder{nw::Item::serial_id};
+    rollnw::tests::add_test_item_fields(armor_builder.top, armor_spec);
+    armor_builder.top.add_field("ArmorPart_Belt", uint8_t{0})
+        .add_field("ArmorPart_LFoot", uint8_t{1})
+        .add_field("ArmorPart_RFoot", uint8_t{1})
+        .add_field("ArmorPart_LShin", uint8_t{1})
+        .add_field("ArmorPart_RShin", uint8_t{1})
+        .add_field("ArmorPart_LThigh", uint8_t{1})
+        .add_field("ArmorPart_RThigh", uint8_t{1})
+        .add_field("ArmorPart_LShoul", uint8_t{1})
+        .add_field("ArmorPart_RShoul", uint8_t{1})
+        .add_field("ArmorPart_Torso", uint8_t{1});
+    armor_builder.build();
+
+    nw::ResourceData armor_data;
+    armor_data.bytes = armor_builder.to_byte_array();
+    nw::Gff armor_gff{std::move(armor_data)};
+    ASSERT_TRUE(armor_gff.valid()) << armor_gff.error();
+
+    auto* armor = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(armor, nullptr);
+    ASSERT_TRUE(nw::deserialize(
+        armor, armor_gff.toplevel(), nw::SerializationProfile::blueprint));
+    ASSERT_TRUE(armor->instantiate());
+    ASSERT_TRUE(nw::equip_item_in_slot(creature, armor, nw::EquipIndex::chest));
+
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    auto result = rt.execute_script("nwn1.creature", "update_visual", {creature_value});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_TRUE(result.value.data.bval);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+    ASSERT_NE(visual, nullptr);
+    const std::array missing_anchors{
+        nw::Resref{"lfoot_g"},
+        nw::Resref{"rfoot_g"},
+        nw::Resref{"lshin_g"},
+        nw::Resref{"rshin_g"},
+        nw::Resref{"lthigh_g"},
+        nw::Resref{"rthigh_g"},
+    };
+    for (const auto anchor : missing_anchors) {
+        EXPECT_FALSE(std::any_of(visual->models.begin(), visual->models.end(), [anchor](const auto& row) {
+            return row.attach_to == anchor;
+        })) << anchor;
+    }
+    for (const auto anchor : {nw::Resref{"lshoulder_g"}, nw::Resref{"rshoulder_g"}}) {
+        EXPECT_TRUE(std::any_of(visual->models.begin(), visual->models.end(), [anchor](const auto& row) {
+            return row.attach_to == anchor;
+        })) << anchor;
+    }
+
+    constexpr uint32_t material_plt_mask = (1u << nw::plt_layer_metal1)
+        | (1u << nw::plt_layer_metal2)
+        | (1u << nw::plt_layer_cloth1)
+        | (1u << nw::plt_layer_cloth2)
+        | (1u << nw::plt_layer_leather1)
+        | (1u << nw::plt_layer_leather2);
+    EXPECT_EQ(visual->base_plt_color_mask & material_plt_mask, material_plt_mask);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_metal1], 35);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_metal2], 36);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_cloth1], 31);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_cloth2], 32);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_leather1], 33);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_leather2], 34);
+
+    nw::kernel::objects().destroy(armor->handle());
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1HumanoidArmorKeepsSideSpecificThighModels)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pma0_legl004"}, nw::ResourceType::mdl}));
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"pma0_legr004"}, nw::ResourceType::mdl}));
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(creature, nullptr);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+    ASSERT_NE(visual, nullptr);
+    const auto find_model_at = [visual](nw::Resref anchor) {
+        return std::find_if(visual->models.begin(), visual->models.end(), [anchor](const auto& row) {
+            return row.attach_to == anchor;
+        });
+    };
+
+    const auto left_thigh = find_model_at(nw::Resref{"lthigh_g"});
+    ASSERT_NE(left_thigh, visual->models.end());
+    EXPECT_EQ(left_thigh->model, nw::Resref{"pma0_legl004"});
+
+    const auto right_thigh = find_model_at(nw::Resref{"rthigh_g"});
+    ASSERT_NE(right_thigh, visual->models.end());
+    EXPECT_EQ(right_thigh->model, nw::Resref{"pma0_legr004"});
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1SetBodyPartsOwnsBatchValidationAndVisualUpdate)
+{
+    auto& rt = nw::kernel::runtime();
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    const auto* initial_visual = nw::kernel::objects().components().find_visual(
+        creature->handle());
+    ASSERT_NE(initial_visual, nullptr);
+    EXPECT_TRUE(std::any_of(initial_visual->models.begin(), initial_visual->models.end(), [](const auto& row) {
+        return row.model == nw::Resref{"pmh0_robe020"};
+    }));
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.creature_state as Cre;
+        import nwn1.creature as NwnCre;
+
+        fn edit_dynamic(target: Creature): int {
+            var parts: array!(int) = {Cre.body_part_head, Cre.body_part_torso, Cre.body_part_robe};
+            var values: array!(int) = {1, 2, 255};
+            if (!NwnCre.set_body_parts(target, parts, values)) { return -1; }
+
+            var current = NwnCre.get_editable_body_parts(target);
+            if (arr.len(current) != Cre.body_part_count
+                || current[Cre.body_part_head] != 1
+                || current[Cre.body_part_torso] != 2
+                || current[Cre.body_part_robe] != 255) {
+                return -2;
+            }
+
+            var invalid_parts: array!(int) = {Cre.body_part_head};
+            var invalid_values: array!(int) = {256};
+            if (NwnCre.set_body_parts(target, invalid_parts, invalid_values)) { return -3; }
+            if (Cre.get_body_part(target, Cre.body_part_head) != 1) { return -4; }
+            return 1;
+        }
+
+        fn reject_static(target: Creature, appearance: int): int {
+            if (!NwnCre.set_appearance(target, appearance)) { return -1; }
+            if (arr.len(NwnCre.get_editable_body_parts(target)) != 0) { return -2; }
+            if (NwnCre.set_body_part(target, Cre.body_part_head, 1)) { return -3; }
+            if (arr.len(NwnCre.get_body_part_options(target, Cre.body_part_head)) != 0) { return -4; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_body_part_edits", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    auto result = rt.execute_script(script, "edit_dynamic", {object});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_EQ(result.value.data.ival, 1);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(
+        creature->handle());
+    ASSERT_NE(visual, nullptr);
+    EXPECT_TRUE(std::any_of(visual->models.begin(), visual->models.end(), [](const auto& row) {
+        return row.model == nw::Resref{"pmh0_head001"};
+    }));
+    EXPECT_FALSE(std::any_of(visual->models.begin(), visual->models.end(), [](const auto& row) {
+        return row.model == nw::Resref{"pmh0_robe020"};
+    }));
+
+    result = rt.execute_script(script,
+        "reject_static",
+        {object, nw::smalls::Value::make_int(*nwn1::appearance_type_bodak)});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1SetCreatureColorsOwnsBatchValidationAndVisualUpdate)
+{
+    auto& rt = nw::kernel::runtime();
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.creature_state as Cre;
+        import nwn1.creature as NwnCre;
+
+        fn edit_dynamic(target: Creature): int {
+            var rows = NwnCre.get_color_editor_rows(target);
+            if (arr.len(rows) != Cre.color_count
+                || rows[Cre.color_hair].label != "Hair"
+                || rows[Cre.color_hair].palette != NwnCre.creature_color_palette_hair
+                || rows[Cre.color_skin].palette != NwnCre.creature_color_palette_skin) {
+                return -1;
+            }
+
+            var colors: array!(int) = {
+                Cre.color_hair,
+                Cre.color_skin,
+                Cre.color_tattoo1,
+                Cre.color_tattoo2,
+            };
+            var values: array!(int) = {62, 29, 52, 91};
+            if (!NwnCre.set_colors(target, colors, values)) { return -2; }
+
+            var current = NwnCre.get_editable_colors(target);
+            if (arr.len(current) != Cre.color_count
+                || current[Cre.color_hair] != 62
+                || current[Cre.color_skin] != 29
+                || current[Cre.color_tattoo1] != 52
+                || current[Cre.color_tattoo2] != 91) {
+                return -3;
+            }
+
+            var invalid_colors: array!(int) = {Cre.color_hair};
+            var invalid_values: array!(int) = {NwnCre.creature_color_value_count};
+            if (NwnCre.set_colors(target, invalid_colors, invalid_values)) { return -4; }
+            if (Cre.get_color(target, Cre.color_hair) != 62) { return -5; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_creature_color_edits", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    const auto result = rt.execute_script(script, "edit_dynamic", {object});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_EQ(result.value.data.ival, 1);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(
+        creature->handle());
+    ASSERT_NE(visual, nullptr);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_hair], 62);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_skin], 29);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_tattoo1], 52);
+    EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_tattoo2], 91);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1AppearancePreviewHidesAndRestoresEquipmentRows)
+{
+    auto& rt = nw::kernel::runtime();
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    auto* equipped_chest = nw::get_equipped_item(creature, nw::EquipIndex::chest);
+    ASSERT_NE(equipped_chest, nullptr);
+
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    const auto update_preview = [&](bool equipment_visible) {
+        return rt.execute_script("nwn1.creature", "update_appearance_preview",
+            {object, nw::smalls::Value::make_bool(equipment_visible)});
+    };
+    const auto has_model = [creature](nw::Resref model) {
+        const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+        return visual && std::any_of(visual->models.begin(), visual->models.end(), [model](const auto& row) {
+            return row.model == model;
+        });
+    };
+    const auto has_equipment_row = [creature]() {
+        const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+        return visual && std::any_of(visual->models.begin(), visual->models.end(), [](const auto& row) {
+            return row.slot != nw::ObjectVisualModelSlot::none;
+        });
+    };
+
+    EXPECT_TRUE(has_equipment_row());
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_robe020"}));
+
+    auto result = update_preview(false);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_TRUE(result.value.data.bval);
+    EXPECT_FALSE(has_equipment_row());
+    EXPECT_FALSE(has_model(nw::Resref{"pmh0_robe020"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_chest001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_handl001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_handr001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_legl001"}));
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_legr001"}));
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::chest), equipped_chest);
+
+    result = update_preview(true);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_TRUE(result.value.data.bval);
+    EXPECT_TRUE(has_equipment_row());
+    EXPECT_TRUE(has_model(nw::Resref{"pmh0_robe020"}));
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::chest), equipped_chest);
+
     nw::kernel::objects().destroy(creature->handle());
 }
 
@@ -924,7 +1392,8 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemResolveVisualReturnsAttachmentValues)
         import core.visual as V;
         import nwn1.item as I;
         import core.types as T;
-        from nwn1.constants import { equip_index_righthand, EquipIndex };
+        from core.item import { EquipIndex };
+        from nwn1.constants import { equip_index_righthand };
 
         fn main(item: Item): int {
             var visual = I.resolve_visual(item);
@@ -1061,10 +1530,81 @@ TEST_F(SmallsEngineIntegration, Nwn1StandaloneItemVisualWritesVisualRows)
     EXPECT_EQ(row.plt_colors.data[nw::plt_layer_metal1], 15);
     EXPECT_EQ(row.plt_colors.data[nw::plt_layer_metal2], 16);
 
+    const auto* icons = nw::kernel::objects().components().find_item_icons(item->handle());
+    ASSERT_NE(icons, nullptr);
+    const auto default_icon = icons->variant(0);
+    const auto alternate_icon = icons->variant(1);
+    ASSERT_EQ(default_icon.size(), 1);
+    ASSERT_EQ(alternate_icon.size(), 1);
+    EXPECT_EQ(default_icon[0].resource, nw::Resref{"iit_glove_001"});
+    EXPECT_EQ(default_icon[0].resource, alternate_icon[0].resource);
+    EXPECT_EQ(default_icon[0].flags, nw::ObjectItemIconFlags::allow_default);
+
+    nw::Vector<nw::smalls::Value> mutation_args;
+    mutation_args.push_back(item_value);
+    mutation_args.push_back(nw::smalls::Value::make_int(0));
+    mutation_args.push_back(nw::smalls::Value::make_int(2));
+    auto mutation = rt.execute_script("nwn1.item", "set_visual_model_part", mutation_args);
+    ASSERT_TRUE(mutation.ok()) << mutation.error_message;
+    ASSERT_TRUE(mutation.value.data.bval);
+
+    icons = nw::kernel::objects().components().find_item_icons(item->handle());
+    ASSERT_NE(icons, nullptr);
+    ASSERT_EQ(icons->variant(0).size(), 1);
+    EXPECT_EQ(icons->variant(0)[0].resource, nw::Resref{"iit_glove_002"});
+    visual = nw::kernel::objects().components().find_visual(item->handle());
+    ASSERT_NE(visual, nullptr);
+    ASSERT_EQ(visual->models.size(), 1);
+    EXPECT_EQ(visual->models[0].model, nw::Resref{"it_glove_002"});
+
     nw::kernel::objects().destroy(item->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
+TEST_F(SmallsEngineIntegration, CoreItemIconProtocolCarriesMaterialColors)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+
+    constexpr std::string_view source = R"(
+        import core.types as T;
+        import core.visual as V;
+
+        fn main(item: Item): bool {
+            if (!V.clear_item_icons(item)) { return false; }
+            return V.add_item_icon_layer(
+                item, 0, T.resref("direct_icon"), T.resref("fallback"), 0,
+                V.item_icon_flag_plt, 15, 16, 11, 12, 13, 14);
+        }
+    )";
+    auto* script = rt.load_module_from_source("test.item_icon_protocol", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto item_value = nw::smalls::Value::make_object(item->handle());
+    item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
+    args.push_back(item_value);
+    auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    ASSERT_TRUE(result.value.data.bval);
+
+    const auto* icons = nw::kernel::objects().components().find_item_icons(item->handle());
+    ASSERT_NE(icons, nullptr);
+    const auto rows = icons->variant(0);
+    ASSERT_EQ(rows.size(), 1);
+    EXPECT_EQ(rows[0].flags, nw::ObjectItemIconFlags::plt);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_cloth1], 11);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_cloth2], 12);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_leather1], 13);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_leather2], 14);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_metal1], 15);
+    EXPECT_EQ(rows[0].plt_colors.data[nw::plt_layer_metal2], 16);
+
+    nw::kernel::objects().destroy(item->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1ItemGeneratorCanTranslateItemProperty)
 {
     auto& rt = nw::kernel::runtime();
 
@@ -1081,52 +1621,54 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
     item->instantiate();
 
     std::string_view source = R"(
-        from nwn1.constants import { Ability, ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
-        import core.creature as C;
+        from core.item import { EquipIndex, ItemPropertyType };
+        from core.types import { Ability };
+        from nwn1.constants import { ability_strength, equip_index_arms };
+        import core.item as Base;
         import nwn1.creature as NC;
-        import core.item as I;
+        import nwn1.item as I;
 
-        fn itemprop_to_row(ip: I.ItemProperty, _equip: EquipIndex): I.ItemEffectRow {
+        fn itemprop_to_row(ip: Base.ItemProperty, _equip: EquipIndex): Base.ItemEffectRow {
             return I.ability_modifier(Ability(ip.subtype), ip.cost_value);
         }
 
         fn main(target: Creature, item: Item): int {
             var probe = itemprop_to_row({ 65000, 0, 0, 2, 0, 0 }, EquipIndex(0));
             const test_prop_type = ItemPropertyType(65000);
-            if (probe.op != I.item_effect_op_ability_modifier
+            if (probe.op != Base.item_effect_op_ability_modifier
                 || probe.subject != ability_strength as int
                 || probe.value0 != 2) {
                 return 0;
             }
 
-            I.set_generator_for_type(test_prop_type, itemprop_to_row);
+            Base.set_generator_for_type(test_prop_type, itemprop_to_row);
 
             var before = NC.get_ability_score(target, ability_strength);
-            if (!C.can_equip_item(target, item, equip_index_arms)) {
-                I.clear_generator_for_type(test_prop_type);
+            if (!I.can_equip_item(target, item, equip_index_arms)) {
+                Base.clear_generator_for_type(test_prop_type);
                 return 0;
             }
 
-            if (!C.equip_item(target, item, equip_index_arms)) {
-                I.clear_generator_for_type(test_prop_type);
+            if (!I.equip_item(target, item, equip_index_arms)) {
+                Base.clear_generator_for_type(test_prop_type);
                 return 0;
             }
 
-            var equipped = C.get_equipped_item(target, equip_index_arms);
+            var equipped = Base.get_equipped_item(target, equip_index_arms);
             if (equipped != item) {
-                I.clear_generator_for_type(test_prop_type);
+                Base.clear_generator_for_type(test_prop_type);
                 return 0;
             }
 
             var after = NC.get_ability_score(target, ability_strength);
-            var removed = C.unequip_item(target, equip_index_arms);
+            var removed = I.unequip_item(target, equip_index_arms);
             if (removed != item) {
-                I.clear_generator_for_type(test_prop_type);
+                Base.clear_generator_for_type(test_prop_type);
                 return 0;
             }
 
             var final = NC.get_ability_score(target, ability_strength);
-            I.clear_generator_for_type(test_prop_type);
+            Base.clear_generator_for_type(test_prop_type);
             return (after == before + 2 && final == before) ? 1 : 0;
         }
     )";
@@ -1151,24 +1693,25 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorCanTranslateItemProperty)
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemEffectRowsUseTypedConstructors)
+TEST_F(SmallsEngineIntegration, Nwn1ItemEffectRowsUseTypedConstructors)
 {
     auto& rt = nw::kernel::runtime();
 
     std::string_view source = R"(
         from nwn1.constants import { ability_strength };
-        import core.item as I;
+        import core.item as Base;
+        import nwn1.item as I;
 
         fn main(): int {
             var row = I.ability_modifier(ability_strength, 2);
-            if (row.op != I.item_effect_op_ability_modifier) { return 0; }
-            if (row.timing != I.item_effect_timing_equipped) { return 0; }
+            if (row.op != Base.item_effect_op_ability_modifier) { return 0; }
+            if (row.timing != Base.item_effect_timing_equipped) { return 0; }
             if (row.subject != ability_strength as int) { return 0; }
             if (row.value0 != 2 || row.value1 != 0 || row.value2 != 0) { return 0; }
-            if (row.condition != I.item_effect_condition_none) { return 0; }
-            if (row.flags != I.item_effect_flag_none) { return 0; }
+            if (row.condition != Base.item_effect_condition_none) { return 0; }
+            if (row.flags != Base.item_effect_flag_none) { return 0; }
 
-            var explicit: I.ItemEffectRow = {
+            var explicit: Base.ItemEffectRow = {
                 op = 99,
                 timing = 7,
                 subject = 6,
@@ -1195,24 +1738,25 @@ TEST_F(SmallsEngineIntegration, CoreItemEffectRowsUseTypedConstructors)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemEffectRowsTranslateDefaultOps)
+TEST_F(SmallsEngineIntegration, Nwn1ItemEffectRowsTranslateDefaultOps)
 {
     auto& rt = nw::kernel::runtime();
 
     std::string_view source = R"(
         import core.effects as E;
-        import core.item as I;
+        import core.item as Base;
+        import nwn1.item as I;
         import nwn1.constants as C;
 
         fn check(
-            row: I.ItemEffectRow,
+            row: Base.ItemEffectRow,
             effect_type: int,
             subtype: int,
             int0: int,
             int1: int,
             int2: int,
             int3: int): bool {
-            var effect = I.item_effect_to_effect(row);
+            var effect = Base.item_effect_to_effect(row);
             if (!E.is_valid(effect)) { return false; }
 
             var ok = E.get_type(effect) == effect_type
@@ -1698,7 +2242,7 @@ TEST_F(SmallsEngineIntegration, PropsetFixedArrayFieldVariableIndexBounds)
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
+TEST_F(SmallsEngineIntegration, Nwn1ItemGeneratorTypeSpecificOverCppFallback)
 {
     auto& rt = nw::kernel::runtime();
 
@@ -1715,33 +2259,34 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
 
     // Type-specific smalls generator should take precedence over C++ EffectSystem::generate()
     std::string_view source = R"(
-        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
-        import core.creature as C;
+        from core.item import { EquipIndex, ItemPropertyType };
+        from nwn1.constants import { ability_strength, equip_index_arms };
+        import core.item as Base;
         import nwn1.creature as NC;
-        import core.item as I;
+        import nwn1.item as I;
 
-        fn typed_generator(ip: I.ItemProperty, _equip: EquipIndex): I.ItemEffectRow {
+        fn typed_generator(ip: Base.ItemProperty, _equip: EquipIndex): Base.ItemEffectRow {
             return I.ability_modifier(ability_strength, 2);
         }
 
         fn main(target: Creature, item: Item): int {
             const test_prop_type = ItemPropertyType(65001);
-            I.set_generator_for_type(test_prop_type, typed_generator);
+            Base.set_generator_for_type(test_prop_type, typed_generator);
             var before = NC.get_ability_score(target, ability_strength);
-            if (!C.equip_item(target, item, equip_index_arms)) {
-                I.clear_generators();
+            if (!I.equip_item(target, item, equip_index_arms)) {
+                Base.clear_generators();
                 return 0;
             }
 
             var after = NC.get_ability_score(target, ability_strength);
-            var removed = C.unequip_item(target, equip_index_arms);
+            var removed = I.unequip_item(target, equip_index_arms);
             if (removed != item) {
-                I.clear_generators();
+                Base.clear_generators();
                 return 0;
             }
 
             var final = NC.get_ability_score(target, ability_strength);
-            I.clear_generators();
+            Base.clear_generators();
             return (after == before + 2 && final == before) ? 1 : 0;
         }
     )";
@@ -1766,7 +2311,7 @@ TEST_F(SmallsEngineIntegration, CoreItemGeneratorTypeSpecificOverCppFallback)
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemProcessCallsSmallsDirectly)
+TEST_F(SmallsEngineIntegration, Nwn1ItemProcessCallsSmallsDirectly)
 {
     auto& rt = nw::kernel::runtime();
 
@@ -1783,30 +2328,32 @@ TEST_F(SmallsEngineIntegration, CoreItemProcessCallsSmallsDirectly)
 
     // Register a type-specific generator, then call process_item_properties from smalls
     std::string_view source = R"(
-        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex, ItemPropertyType };
+        from core.item import { EquipIndex, ItemPropertyType };
+        from nwn1.constants import { ability_strength, equip_index_arms };
+        import core.item as Base;
         import nwn1.creature as C;
-        import core.item as I;
+        import nwn1.item as I;
 
-        fn typed_generator(ip: I.ItemProperty, _equip: EquipIndex): I.ItemEffectRow {
+        fn typed_generator(ip: Base.ItemProperty, _equip: EquipIndex): Base.ItemEffectRow {
             return I.ability_modifier(ability_strength, 3);
         }
 
         fn main(target: Creature, item: Item): int {
             const test_prop_type = ItemPropertyType(65002);
-            I.set_generator_for_type(test_prop_type, typed_generator);
+            Base.set_generator_for_type(test_prop_type, typed_generator);
 
             var before = C.get_ability_score(target, ability_strength);
-            var applied = I.process_item_properties(target, item, EquipIndex(3), false);
+            var applied = Base.process_item_properties(target, item, EquipIndex(3), false);
             if (applied != 1) {
-                I.clear_generators();
+                Base.clear_generators();
                 return 0;
             }
 
             var after = C.get_ability_score(target, ability_strength);
-            var removed = I.process_item_properties(target, item, EquipIndex(3), true);
+            var removed = Base.process_item_properties(target, item, EquipIndex(3), true);
 
             var final = C.get_ability_score(target, ability_strength);
-            I.clear_generators();
+            Base.clear_generators();
             return (after == before + 3 && final == before) ? 1 : 0;
         }
     )";
@@ -1831,7 +2378,7 @@ TEST_F(SmallsEngineIntegration, CoreItemProcessCallsSmallsDirectly)
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
+TEST_F(SmallsEngineIntegration, Nwn1ItemSmallsGeneratorsReplaceDefaultPath)
 {
     auto& rt = nw::kernel::runtime();
 
@@ -1849,19 +2396,21 @@ TEST_F(SmallsEngineIntegration, CoreItemSmallsGeneratorsReplaceDefaultPath)
 
     // Default smalls generators handle ip_ability_bonus directly (no C++ fallback)
     std::string_view source = R"(
-        from nwn1.constants import { ability_strength, equip_index_arms, EquipIndex };
+        from core.item import { EquipIndex };
+        from nwn1.constants import { ability_strength, equip_index_arms };
+        import core.item as Base;
         import nwn1.creature as C;
-        import core.item as I;
+        import nwn1.item as I;
 
         fn main(target: Creature, item: Item): int {
             var before = C.get_ability_score(target, ability_strength);
-            var applied = I.process_item_properties(target, item, equip_index_arms, false);
+            var applied = Base.process_item_properties(target, item, equip_index_arms, false);
             if (applied != 1) {
                 return 0;
             }
 
             var after = C.get_ability_score(target, ability_strength);
-            I.process_item_properties(target, item, EquipIndex(0), true);
+            Base.process_item_properties(target, item, EquipIndex(0), true);
 
             var final = C.get_ability_score(target, ability_strength);
             return (applied == 1 && after == before + 2 && final == before) ? 1 : 0;
@@ -1906,10 +2455,11 @@ TEST_F(SmallsEngineIntegration, Nwn1MonsterDamageItemPropertyAppliesBaseWeaponDa
 
     std::string_view source = R"(
         from nwn1.constants import { equip_index_creature_left };
-        import core.item as I;
+        import core.item as Base;
+        import nwn1.item as I;
 
         fn main(target: Creature, item: Item): int {
-            return I.process_item_properties(target, item, equip_index_creature_left, false);
+            return Base.process_item_properties(target, item, equip_index_creature_left, false);
         }
     )";
 
@@ -2055,7 +2605,7 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatExplainAttackIsDeterministicAndSideEff
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        from core.creature import { CreatureCombat };
+        from nwn1.propsets import { CreatureCombat };
         import nwn1.combat as NC;
 
         fn main(attacker: Creature, target: Creature): int {
@@ -2137,9 +2687,8 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipmentArmorClassProducerUsesEquippedItems
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        from core.creature import { CreatureCombat };
+        from nwn1.propsets import { CreatureCombat };
         from nwn1.constants import { equip_index_chest, equip_index_lefthand };
-        import core.creature as C;
         import core.object as O;
         import nwn1.init as Init;
         import nwn1.item as NItem;
@@ -2149,8 +2698,8 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipmentArmorClassProducerUsesEquippedItems
             Init.init();
 
             if (NItem.calculate_item_ac(shield) != 1) { return -1; }
-            if (!C.equip_item(target, armor, equip_index_chest)) { return -2; }
-            if (!C.equip_item(target, shield, equip_index_lefthand)) { return -3; }
+            if (!NItem.equip_item(target, armor, equip_index_chest)) { return -2; }
+            if (!NItem.equip_item(target, shield, equip_index_lefthand)) { return -3; }
 
             var combat = get_propset!(CreatureCombat)(target);
             if (combat.ac_armor_base != 1) { return -4; }
@@ -2170,7 +2719,7 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipmentArmorClassProducerUsesEquippedItems
             if (!armor_seen || !shield_seen) { return -6; }
             if (trace.armor_class != Mod.compute_armor_class(target, O.invalid)) { return -7; }
 
-            var removed = C.unequip_item(target, equip_index_lefthand);
+            var removed = NItem.unequip_item(target, equip_index_lefthand);
             if (removed != shield) { return -8; }
             combat = get_propset!(CreatureCombat)(target);
             if (combat.ac_shield_base != 0) { return -9; }
@@ -2216,7 +2765,7 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatUsesPropsetCombatRoundState)
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        from core.creature import { CreatureCombat };
+        from nwn1.propsets import { CreatureCombat };
         import core.math as Math;
         import core.object as Obj;
         import nwn1.combat as NC;
@@ -2296,7 +2845,7 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatModeReadsCreatureCombatPropset)
 
     auto& rt = nw::kernel::runtime();
     std::string_view source = R"(
-        from core.creature import { CreatureCombat };
+        from nwn1.propsets import { CreatureCombat };
         from nwn1.constants import { attack_type_onhand, combat_mode_power_attack };
         import nwn1.combat as NC;
 
@@ -2603,7 +3152,7 @@ TEST_F(SmallsEngineIntegration, PropsetDestroyCallbackFreesCreatureSlots)
     nw::smalls::Value ref;
     const nw::smalls::StructDef* def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureStats", ref, def));
+        "nwn1.propsets.CreatureStats", ref, def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, ref, def, "abilities", 0, 18));
 
     // Destroy triggers the destroy callback -> free_object_propsets
@@ -2617,7 +3166,7 @@ TEST_F(SmallsEngineIntegration, PropsetDestroyCallbackFreesCreatureSlots)
     nw::smalls::Value ref2;
     const nw::smalls::StructDef* def2 = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre2->handle(),
-        "core.creature.CreatureStats", ref2, def2));
+        "nwn1.propsets.CreatureStats", ref2, def2));
     uint32_t ai = def2->field_index("abilities");
     ASSERT_NE(ai, UINT32_MAX);
     nw::smalls::Value fresh = rt.read_value_field_at_offset(ref2, def2->fields[ai].offset, rt.int_type());
@@ -2642,7 +3191,7 @@ TEST_F(SmallsEngineIntegration, PropsetScript_AbilityScoreFromPropset)
     nw::smalls::Value stats_ref;
     const nw::smalls::StructDef* stats_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureStats", stats_ref, stats_def));
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, stats_ref, stats_def,
         "abilities", 0, 18));
     ASSERT_NO_FATAL_FAILURE(write_propset_int(rt, stats_ref, stats_def, "race", -1));
@@ -2703,7 +3252,7 @@ TEST_F(SmallsEngineIntegration, PropsetScript_SavingThrowBaseFromPropset)
     nw::smalls::Value stats_ref;
     const nw::smalls::StructDef* stats_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureStats", stats_ref, stats_def));
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int(rt, stats_ref, stats_def, "save_fort", 3));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, stats_ref, stats_def,
         "abilities", 2, 14));
@@ -2747,7 +3296,7 @@ TEST_F(SmallsEngineIntegration, PropsetScript_SkillRankFromPropset)
     nw::smalls::Value stats_ref;
     const nw::smalls::StructDef* stats_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureStats", stats_ref, stats_def));
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def,
         "skills", {7}));
 
@@ -2789,7 +3338,7 @@ TEST_F(SmallsEngineIntegration, PropsetScript_CreatureProgressionFromPropsets)
     nw::smalls::Value levels_ref;
     const nw::smalls::StructDef* levels_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureLevels", levels_ref, levels_def));
+        "nwn1.propsets.CreatureLevels", levels_ref, levels_def));
     for (size_t i = 0; i < 8; ++i) {
         ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, levels_ref, levels_def,
             "classes", i, -1));
@@ -2808,13 +3357,12 @@ TEST_F(SmallsEngineIntegration, PropsetScript_CreatureProgressionFromPropsets)
     nw::smalls::Value stats_ref;
     const nw::smalls::StructDef* stats_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
-        "core.creature.CreatureStats", stats_ref, stats_def));
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def,
-        "feats", {*nwn1::feat_epic_toughness_1, *nwn1::feat_epic_toughness_1,
-                     *nwn1::feat_epic_toughness_4}));
+        "feats", {*nwn1::feat_epic_toughness_1, *nwn1::feat_epic_toughness_1, *nwn1::feat_epic_toughness_4}));
 
     std::string_view source = R"(
-        import core.creature as Cre;
+        import nwn1.creature_state as Cre;
         from core.types import { Class, Feat };
         from nwn1.constants import { class_type_fighter, class_type_rogue, class_type_wizard };
 
@@ -2890,6 +3438,58 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBuildsClassArray)
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LegacyClassTableRetainsMissingSmallsFields)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* types = rt.load_module_from_source("test.legacy_class_types", R"(
+        [[value_type]]
+        type LegacyClassEntry {
+            [[index]]
+            id: int;
+            hit_die: int;
+            spellcaster: bool;
+            memorizes_spells: bool;
+            spell_table: int;
+        };
+    )");
+    ASSERT_NE(types, nullptr);
+    ASSERT_EQ(types->errors(), 0);
+
+    rt.add_module_path(fs::path("test_data/smalls_config/test"));
+    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
+    using Merge = nw::smalls::Runtime::TwoDAConfigMerge;
+    rt.register_twoda_converter("test.data.legacy_classes", "legacy_classes", {
+                                                                                  CM{"HitDie", "hit_die"},
+                                                                                  CM{"SpellCaster", "spellcaster"},
+                                                                                  CM{"MemorizesSpells", "memorizes_spells"},
+                                                                                  CM{"SpellTableColumn", "spell_table"},
+                                                                              },
+        Merge::seed_rows);
+
+    const auto entry_type = rt.type_id("test.legacy_class_types.LegacyClassEntry", false);
+    ASSERT_NE(entry_type, nw::smalls::invalid_type_id);
+    const auto entries_value = rt.load_config_array_value("test.data.legacy_classes", entry_type);
+    ASSERT_NE(entries_value.type_id, nw::smalls::invalid_type_id);
+    auto* entries = rt.get_array_typed(entries_value.data.hptr);
+    ASSERT_NE(entries, nullptr);
+    ASSERT_EQ(entries->size(), 11);
+
+    nw::smalls::Value wizard;
+    ASSERT_TRUE(entries->get_value(10, wizard, rt));
+    const auto* definition = rt.get_struct_def(entry_type);
+    ASSERT_NE(definition, nullptr);
+    auto read = [&](std::string_view field) {
+        const uint32_t index = definition->field_index(field);
+        EXPECT_NE(index, UINT32_MAX);
+        return rt.read_struct_value_field(wizard, definition, index);
+    };
+
+    EXPECT_EQ(read("hit_die").data.ival, 7);
+    EXPECT_TRUE(read("spellcaster").data.bval);
+    EXPECT_TRUE(read("memorizes_spells").data.bval);
+    EXPECT_EQ(read("spell_table").data.ival, 5);
 }
 
 TEST_F(SmallsEngineIntegration, Nwn1ClassSaveBonusUsesSmallsConfig)
@@ -3207,7 +3807,7 @@ TEST_F(SmallsEngineIntegration, Nwn1FeatRequirementsUseSmallsConfig)
         import nwn1.constants as Const;
         import nwn1.feats as Feats;
         import nwn1.init as Init;
-        from core.creature import { CreatureCombat, CreatureStats };
+        from nwn1.propsets import { CreatureCombat, CreatureStats };
 
         fn main(creature: Creature): int {
             Init.init();
@@ -3241,44 +3841,66 @@ TEST_F(SmallsEngineIntegration, Nwn1FeatRequirementsUseSmallsConfig)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBaseItemEntry)
+TEST_F(SmallsEngineIntegration, CanonicalBaseItemDefinitionBuildsRuntimeProjections)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
-        import core.array as arr;
+        import core.array as Array;
+        import core.item as Item;
         import core.types as T;
-        import nwn1.rules as R;
+        import nwn1.baseitems as B;
+        import nwn1.requirements as Requirements;
 
         fn main(base_item: int, expected_ranged: int, expected_model_type: int): int {
-            var items = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
-            if (arr.len(items) <= base_item) { return -1; }
-            var entry = arr.get(items, base_item);
-            if (entry.id != base_item) { return -2; }
-            if ((entry.ranged ? 1 : 0) != expected_ranged) { return -3; }
-            if (entry.damage_num <= 0 || entry.damage_die <= 0) { return -4; }
-            if (entry.model_type != expected_model_type) { return -5; }
-            if (T.resref_to_string(entry.item_class) != "wswss") { return -6; }
-            if (!T.resource_valid(entry.default_model)) { return -7; }
-            if (T.resource_type(entry.default_model) != T.resource_type_mdl) { return -8; }
-            if (T.resref_to_string(T.resource_resref(entry.default_model)) != "it_bag") { return -9; }
-            if (T.resref_to_string(entry.default_icon) != "iwswss") { return -10; }
-            if (entry.req_feat0 != 45) { return -11; }
-            if (entry.req_feat1 != 50) { return -12; }
-            if (entry.req_feat2 != -1 || entry.req_feat3 != -1 || entry.req_feat4 != -1) { return -13; }
-            if (entry.inventory_width <= 0 || entry.inventory_height <= 0) { return -14; }
-            if (entry.equipable_slots == 0) { return -15; }
-            if (entry.base_cost <= 0) { return -16; }
-            if (entry.stack_size <= 0) { return -17; }
-            if (entry.cost_multiplier <= 0.0) { return -18; }
+            if (B.count() <= base_item) { return -1; }
+            var base_item_type = Item.BaseItemType(base_item);
+            if (!B.exists(base_item_type)) { return -2; }
+            var info = B.get_info(base_item_type);
+            var rules = B.get_rules(base_item_type);
+            if ((rules.ranged ? 1 : 0) != expected_ranged) { return -4; }
+            if (rules.damage_num <= 0 || rules.damage_die <= 0) { return -5; }
+            if (info.model_type != expected_model_type) { return -6; }
+            if (T.resref_to_string(info.item_class) != "wswss") { return -7; }
+            if (T.resref_to_string(info.default_model) != "it_bag") { return -8; }
+            if (T.resref_to_string(info.default_icon) != "iwswss") { return -11; }
+            if (Array.len(rules.requirements) != 2) { return -12; }
+            var requirement0 = Array.get(rules.requirements, 0);
+            var requirement1 = Array.get(rules.requirements, 1);
+            if (requirement0.req_type != Requirements.req_type_feat
+                || requirement0.subtype != 45
+                || requirement0.match != Requirements.qualifier_match_eq
+                || requirement0.value != 1) { return -13; }
+            if (requirement1.req_type != Requirements.req_type_feat
+                || requirement1.subtype != 50
+                || requirement1.match != Requirements.qualifier_match_eq
+                || requirement1.value != 1) { return -14; }
+            if (info.inventory_width <= 0 || info.inventory_height <= 0) { return -15; }
+            if (info.equipable_slots == 0) { return -16; }
+            if (rules.base_cost <= 0) { return -17; }
+            if (info.stack_size <= 0) { return -18; }
+            if (rules.cost_multiplier <= 0.0) { return -19; }
             return 1;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.load_config_baseitems", source);
+    auto* script = rt.load_module_from_source("test.canonical_baseitems", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto definition_type = rt.type_id("nwn1.rules.BaseItemDefinition", false);
+    const auto info_type = rt.type_id("core.item.BaseItemInfo", false);
+    const auto rules_type = rt.type_id("nwn1.rules.BaseItemRules", false);
+    ASSERT_NE(definition_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(info_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rules_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rt.get_struct_def(definition_type), nullptr);
+    ASSERT_NE(rt.get_struct_def(info_type), nullptr);
+    ASSERT_NE(rt.get_struct_def(rules_type), nullptr);
+    EXPECT_TRUE(rt.get_struct_def(definition_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(info_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
 
     nw::Vector<nw::smalls::Value> args;
     args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
@@ -3288,9 +3910,73 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBaseItemEntry)
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+
+    const auto* native_info = nw::kernel::rules().baseitems.get(
+        nw::BaseItem::make(*nwn1::base_item_shortsword));
+    ASSERT_NE(native_info, nullptr);
+    EXPECT_EQ(native_info->label, "shortsword");
+    EXPECT_EQ(native_info->model_type, nw::ItemModelType::composite);
+    EXPECT_EQ(native_info->item_property_column, 0);
 }
 
-TEST_F(SmallsEngineIntegration, Nwn1BaseItemEquipRequirementsUseSmallsConfig)
+TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTable)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    const auto* before = nw::kernel::rules().baseitems.get(
+        nw::BaseItem::make(*nwn1::base_item_shortsword));
+    ASSERT_NE(before, nullptr);
+    const auto before_label = before->label;
+
+    std::string_view source = R"(
+        import core.array as Array;
+        from core.item import { BaseItemInfo, publish_baseitem_info };
+
+        fn main(invalid_field: int): bool {
+            var invalid: BaseItemInfo;
+            invalid.label = "wrong-index";
+            invalid.name = 0;
+            invalid.model_type = 0;
+            invalid.item_property_column = 0;
+            invalid.inventory_width = 1;
+            invalid.inventory_height = 1;
+            invalid.equipable_slots = 0;
+            invalid.stack_size = 1;
+
+            if (invalid_field == 0) { invalid.model_type = 99; }
+            elif (invalid_field == 1) { invalid.name = -2; }
+            elif (invalid_field == 2) { invalid.item_property_column = -2; }
+            elif (invalid_field == 3) { invalid.inventory_width = 11; }
+            elif (invalid_field == 4) { invalid.inventory_height = 11; }
+            elif (invalid_field == 5) { invalid.equipable_slots = -1; }
+            else { invalid.stack_size = 0; }
+
+            var entries: array!(BaseItemInfo) = {};
+            Array.push(entries, invalid);
+            return publish_baseitem_info(entries);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.invalid_baseitem_info_publication", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    for (int32_t invalid_field = 0; invalid_field < 7; ++invalid_field) {
+        auto result = rt.execute_script(script, "main",
+            {nw::smalls::Value::make_int(invalid_field)});
+        ASSERT_TRUE(result.ok()) << result.error_message;
+        EXPECT_FALSE(result.value.data.bval);
+    }
+
+    const auto* after = nw::kernel::rules().baseitems.get(
+        nw::BaseItem::make(*nwn1::base_item_shortsword));
+    ASSERT_NE(after, nullptr);
+    EXPECT_EQ(after->label, before_label);
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1BaseItemRequirementsUseSmallsRules)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
@@ -3299,28 +3985,21 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemEquipRequirementsUseSmallsConfig)
         "test_data/user/development/drorry.utc");
     ASSERT_NE(creature, nullptr);
 
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_shortsword};
-    auto* item = rollnw::tests::make_item_from_gff(item_spec);
-    ASSERT_NE(item, nullptr);
-    item->instantiate();
-
     nw::smalls::Value stats_ref;
     const nw::smalls::StructDef* stats_def = nullptr;
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, creature->handle(),
-        "core.creature.CreatureStats", stats_ref, stats_def));
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
 
     std::string_view source = R"(
-        from nwn1.constants import { equip_index_righthand };
-        import core.creature as C;
-        import nwn1.init as Init;
+        from core.item import { BaseItemType };
+        import nwn1.baseitems as BaseItems;
 
-        fn main(target: Creature, item: Item): int {
-            Init.init();
-            return C.can_equip_item(target, item, equip_index_righthand) ? 1 : 0;
+        fn main(target: Creature, base_item: int): int {
+            return BaseItems.requirements_met(target, BaseItemType(base_item)) ? 1 : 0;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.nwn1_baseitem_equip_requirements", source);
+    auto* script = rt.load_module_from_source("test.nwn1_baseitem_requirements", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
@@ -3329,9 +4008,7 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemEquipRequirementsUseSmallsConfig)
         auto creature_value = nw::smalls::Value::make_object(creature->handle());
         creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
         args.push_back(creature_value);
-        auto item_value = nw::smalls::Value::make_object(item->handle());
-        item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
-        args.push_back(item_value);
+        args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
 
         return rt.execute_script(script, "main", args);
     };
@@ -3346,37 +4023,44 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemEquipRequirementsUseSmallsConfig)
     ASSERT_TRUE(allowed.ok()) << allowed.error_message;
     EXPECT_EQ(allowed.value.data.ival, 1);
 
-    nw::kernel::objects().destroy(item->handle());
     nw::kernel::objects().destroy(creature->handle());
 }
 
-TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPlaceableEntry)
+TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
-        import core.array as arr;
         import core.types as T;
-        import nwn1.rules as R;
+        import nwn1.placeables as P;
 
         fn main(): int {
-            var placeables = load_config!(R.PlaceableEntry)("nwn1.data.placeables");
-            if (arr.len(placeables) <= 109) { return -1; }
-
-            var entry = arr.get(placeables, 109);
-            if (entry.id != 109) { return -2; }
-            if (T.resref_to_string(entry.model) != "plc_o01") { return -3; }
-            if (entry.light_color != -1) { return -4; }
-            if (!entry.static) { return -5; }
+            if (P.count() <= 109) { return -1; }
+            var info = P.get_info(109);
+            var rules = P.get_rules(109);
+            if (info.id != 109) { return -2; }
+            if (rules.id != 109) { return -3; }
+            if (T.resref_to_string(info.model) != "plc_o01") { return -4; }
+            if (rules.light_color != -1) { return -5; }
+            if (!rules.static) { return -6; }
 
             return 1;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.load_config_placeables", source);
+    auto* script = rt.load_module_from_source("test.split_placeables", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto info_type = rt.type_id("core.placeable.PlaceableAppearanceInfo", false);
+    const auto rules_type = rt.type_id("nwn1.rules.PlaceableRules", false);
+    ASSERT_NE(info_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rules_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rt.get_struct_def(info_type), nullptr);
+    ASSERT_NE(rt.get_struct_def(rules_type), nullptr);
+    EXPECT_FALSE(rt.get_struct_def(info_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
 
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
@@ -3444,34 +4128,35 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicArmorEntry)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicAppearanceEntry)
+TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
-        import core.array as arr;
         import core.types as T;
+        import nwn1.appearances as A;
         import nwn1.creature as C;
         import nwn1.rules as R;
 
         fn main(bodak: int, human: int): int {
-            var appearances = load_config!(R.AppearanceEntry)("nwn1.data.appearance");
-            if (arr.len(appearances) <= bodak) { return -1; }
+            if (A.count() <= bodak) { return -1; }
 
-            var entry = arr.get(appearances, bodak);
-            if (entry.id != bodak) { return -2; }
-            if (T.resref_to_string(entry.model) != "c_bodak") { return -3; }
-            if (entry.model_type != R.appearance_model_type_full) { return -4; }
-            if (entry.size != 3) { return -5; }
-            if (entry.walkrate != 5) { return -6; }
-            if (entry.weapon_scale != 1.0) { return -7; }
-            if (!entry.has_arms) { return -8; }
+            var info = A.get_info(bodak);
+            var rules = A.get_rules(bodak);
+            if (info.id != bodak) { return -2; }
+            if (rules.id != bodak) { return -3; }
+            if (T.resref_to_string(info.model) != "c_bodak") { return -4; }
+            if (info.model_type != R.appearance_model_type_full) { return -5; }
+            if (rules.size != 3) { return -6; }
+            if (rules.walkrate != 5) { return -7; }
+            if (rules.weapon_scale != 1.0) { return -8; }
+            if (!rules.has_arms) { return -9; }
 
             var resolved = C.resolve_creature_model(bodak);
-            if (!resolved.valid) { return -9; }
-            if (resolved.humanoid) { return -10; }
-            if (T.resref_to_string(resolved.model) != "c_bodak") { return -11; }
+            if (!resolved.valid) { return -10; }
+            if (resolved.humanoid) { return -11; }
+            if (T.resref_to_string(resolved.model) != "c_bodak") { return -12; }
             if (T.resref_to_string(resolved.race) != "c_bodak") { return -13; }
             if (!resolved.hand_item_visible) { return -14; }
             if (resolved.hand_item_scale != 1.0) { return -15; }
@@ -3490,15 +4175,51 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicAppearanceEntry)
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.load_config_appearance", source);
+    auto* script = rt.load_module_from_source("test.split_appearance", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto info_type = rt.type_id("core.creature.AppearanceInfo", false);
+    const auto rules_type = rt.type_id("nwn1.rules.AppearanceRules", false);
+    ASSERT_NE(info_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rules_type, nw::smalls::invalid_type_id);
+    ASSERT_NE(rt.get_struct_def(info_type), nullptr);
+    ASSERT_NE(rt.get_struct_def(rules_type), nullptr);
+    EXPECT_FALSE(rt.get_struct_def(info_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
 
     nw::Vector<nw::smalls::Value> args;
     args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_bodak));
     args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_human));
 
     auto result = rt.execute_script(script, "main", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPhenotypeEntry)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.rules as R;
+
+        fn main(): int {
+            var phenotypes = load_config!(R.PhenotypeEntry)("nwn1.data.phenotype");
+            if (arr.len(phenotypes) == 0) { return -1; }
+            var normal = arr.get(phenotypes, 0);
+            if (normal.id != 0) { return -2; }
+            if (normal.fallback != 0) { return -3; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.load_config_phenotype", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
 }
@@ -3589,7 +4310,51 @@ TEST_F(SmallsEngineIntegration, Nwn1RulesItemModelResrefPolicy)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPathNormalizationForBaseItems)
+TEST_F(SmallsEngineIntegration, CanonicalDefinitionsRejectOutOfRangeIds)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import core.item as Item;
+        import core.creature as NativeCreature;
+        import core.placeable as NativePlaceable;
+        import core.types as T;
+        import nwn1.appearances as A;
+        import nwn1.baseitems as B;
+        import nwn1.placeables as P;
+        import nwn1.rules as R;
+
+        fn main(): int {
+            var invalid_creature = NativeCreature.appearance_info(-1);
+            var invalid_appearance_rules = A.get_rules(A.count());
+            var invalid_placeable = NativePlaceable.placeable_info(P.count());
+            var invalid_placeable_rules = P.get_rules(P.count());
+            var invalid_base_item = B.get_info(Item.BaseItemType(-1));
+            var invalid_base_item_rules = B.get_rules(Item.BaseItemType(B.count()));
+
+            if (B.exists(Item.BaseItemType(-1))) { return -1; }
+            if (B.exists(Item.BaseItemType(B.count()))) { return -2; }
+            if (invalid_creature.id != -1) { return -3; }
+            if (invalid_appearance_rules.id != -1) { return -4; }
+            if (invalid_placeable.id != -1) { return -5; }
+            if (invalid_placeable_rules.id != -1) { return -6; }
+            if (invalid_base_item.label != "") { return -7; }
+            if (invalid_base_item_rules.base_cost != 0) { return -8; }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.native_rules_bounds", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPathNormalizationForBaseItemDefinitions)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
@@ -3599,23 +4364,23 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPathNormalizationForBaseItems
         import nwn1.rules as R;
 
         fn main(base_item: int): int {
-            var dot_path = load_config!(R.BaseItemEntry)("nwn1.data.baseitems");
-            var slash_path = load_config!(R.BaseItemEntry)("nwn1/data/baseitems");
+            var dot_path = load_config!(R.BaseItemDefinition)("nwn1.data.baseitems");
+            var slash_path = load_config!(R.BaseItemDefinition)("nwn1/data/baseitems");
             if (arr.len(dot_path) != arr.len(slash_path)) { return -1; }
             if (arr.len(dot_path) <= base_item) { return -2; }
 
             var a = arr.get(dot_path, base_item);
             var b = arr.get(slash_path, base_item);
-
-            if (a.name != b.name) { return -3; }
-            if (a.weapon_focus_feat != b.weapon_focus_feat) { return -4; }
-            if (a.weapon_of_choice_feat != b.weapon_of_choice_feat) { return -5; }
-
+            if (a.id != b.id) { return -3; }
+            if (a.rules.weapon_focus_feat != b.rules.weapon_focus_feat) { return -4; }
+            if (a.rules.weapon_of_choice_feat != b.rules.weapon_of_choice_feat) { return -5; }
+            if (a.id != base_item || b.id != base_item) { return -6; }
             return 1;
         }
     )";
 
-    auto* script = rt.load_module_from_source("test.load_config_path_normalization_baseitems", source);
+    auto* script = rt.load_module_from_source(
+        "test.load_config_path_normalization_baseitem_definitions", source);
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 

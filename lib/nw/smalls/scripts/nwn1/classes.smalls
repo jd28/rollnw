@@ -1,4 +1,4 @@
-from nwn1.rules import { ClassEntry };
+from nwn1.rules import { ClassEntry, StrRef };
 from core.types import { Class, Ability, Save, Spell };
 import core.array as Array;
 import nwn1.savetables as SaveTables;
@@ -30,6 +30,13 @@ fn exists(class_id: Class): bool {
     return index >= 0 && index < Array.len(_classes);
 }
 
+fn name_strref(class_id: Class): StrRef {
+    if (!exists(class_id)) {
+        return StrRef(-1);
+    }
+    return Array.get(_classes, class_id as int).name;
+}
+
 fn hit_die(class_id: Class): int {
     if (!exists(class_id)) {
         return 0;
@@ -56,6 +63,14 @@ fn spellbook_restricted(class_id: Class): bool {
         return false;
     }
     return Array.get(_classes, class_id as int).spellbook_restricted;
+}
+
+fn spell_table(class_id: Class): int {
+    if (!exists(class_id)) {
+        return -1;
+    }
+    var entry = Array.get(_classes, class_id as int);
+    return entry.spellcaster ? entry.spell_table : -1;
 }
 
 fn arcane(class_id: Class): bool {
@@ -113,14 +128,14 @@ fn attack_bonus(class_id: Class, level: int): int {
 
 // Returns this class's spell level for spell, or -1 when not a class spell.
 fn spell_level(class_id: Class, spell: Spell): int {
-    if (!exists(class_id) || (spell as int) < 0) {
+    if ((spell as int) < 0) {
         return -1;
     }
-    var entry = Array.get(_classes, class_id as int);
-    if (!entry.spellcaster || entry.spell_table < 0) {
+    var table = spell_table(class_id);
+    if (table < 0) {
         return -1;
     }
-    return Spells.class_level(spell, entry.spell_table);
+    return Spells.class_level(spell, table);
 }
 
 fn _spell_progression_index(class_level: int, spell_level: int): int {
