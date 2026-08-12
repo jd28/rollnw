@@ -1,12 +1,9 @@
 #pragma once
 
-#include "nw/kernel/Config.hpp"
 #include "nw/kernel/Kernel.hpp"
 #include "nw/smalls/Context.hpp"
 #include "nw/smalls/Smalls.hpp"
 #include "nw/smalls/runtime.hpp"
-
-#include <nowide/cstdlib.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -87,23 +84,16 @@ inline void ensure_kernel_started()
     static bool started = false;
     if (!started) {
         const fs::path repo_root = fs::path(__FILE__).parent_path().parent_path();
-        const fs::path user_root = repo_root / "tests" / "test_data" / "user";
 
-        fs::path install_root;
-        if (auto p = nowide::getenv("NWN_ROOT")) {
-            install_root = fs::path(p);
-        } else {
-            install_root = repo_root / "nwn";
-        }
-
-        nw::kernel::config().set_paths(install_root, user_root);
-        nw::kernel::config().initialize();
-        nw::kernel::services().start();
-
-        // Enable filesystem module loading for stdlib imports.
-        // scripts/core has a package.json so modules resolve as core.*
-        const fs::path stdlib_root = repo_root / "lib" / "nw" / "smalls" / "scripts" / "core";
-        nw::kernel::runtime().add_module_path(stdlib_root);
+        // These fuzzers exercise the language pipeline, not game-service startup.
+        // Register the source packages before Runtime initialization so imports can
+        // resolve without loading game resources or bootstrapping profile propsets.
+        nw::kernel::services().create(nw::kernel::ServiceMode::language);
+        auto& runtime = nw::kernel::runtime();
+        const fs::path scripts_root = repo_root / "lib" / "nw" / "smalls" / "scripts";
+        runtime.add_module_path(scripts_root / "core");
+        runtime.add_module_path(scripts_root / "nwn1");
+        nw::kernel::services().start(nw::kernel::ServiceMode::language);
 
         started = true;
     }

@@ -29,14 +29,15 @@ timeout="${FUZZ_TIMEOUT:-3}"
 mkdir -p "${artifact_dir}"
 
 rm -rf "${run_corpus_root}"
-mkdir -p "${run_corpus_root}/format_parsers" "${run_corpus_root}/mdl" "${run_corpus_root}/text_mdl" "${run_corpus_root}/smalls_parse" "${run_corpus_root}/smalls_resolve" "${run_corpus_root}/smalls_vm"
-
-cp -a "${seed_corpus_root}/format_parsers/." "${run_corpus_root}/format_parsers/" || true
-cp -a "${seed_corpus_root}/mdl/." "${run_corpus_root}/mdl/" || true
-cp -a "${seed_corpus_root}/text_mdl/." "${run_corpus_root}/text_mdl/" || true
-cp -a "${seed_corpus_root}/smalls_parse/." "${run_corpus_root}/smalls_parse/" || true
-cp -a "${seed_corpus_root}/smalls_resolve/." "${run_corpus_root}/smalls_resolve/" || true
-cp -a "${seed_corpus_root}/smalls_vm/." "${run_corpus_root}/smalls_vm/" || true
+corpora=(format_parsers mdl text_mdl smalls_parse smalls_resolve smalls_vm)
+for corpus in "${corpora[@]}"; do
+  mkdir -p "${run_corpus_root}/${corpus}"
+  if [[ -d "${seed_corpus_root}/${corpus}" ]]; then
+    cp -a "${seed_corpus_root}/${corpus}/." "${run_corpus_root}/${corpus}/"
+  else
+    echo "No seed corpus for ${corpus}; starting empty."
+  fi
+done
 
 dict_arg=()
 if [[ -f "${dict_path}" ]]; then
