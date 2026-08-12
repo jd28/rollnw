@@ -1,0 +1,38 @@
+BaseItemDefinition {
+    id = 45,
+    info = BaseItemInfo {
+        label = "magicstaff",
+        name = 1539,
+        model_type = 2,
+        item_class = resref("WMgSt"),
+        default_model = resref("it_bag"),
+        default_icon = resref("iwmgst"),
+        item_property_column = 3,
+        inventory_width = 1,
+        inventory_height = 5,
+        equipable_slots = 114704,
+        stack_size = 1,
+        is_container = false
+    },
+    rules = BaseItemRules {
+        base_cost = 1,
+        cost_multiplier = 1.0,
+        requirements = {},
+        base_ac = 0,
+        damage_num = 1,
+        damage_die = 6,
+        crit_threat = 1,
+        crit_multiplier = 2,
+        weapon_type = 2,
+        ranged = false,
+        weapon_size = 3,
+        weapon_focus_feat = -1,
+        epic_weapon_focus_feat = -1,
+        weapon_specialization_feat = -1,
+        epic_weapon_specialization_feat = -1,
+        weapon_improved_critical_feat = -1,
+        epic_weapon_overwhelming_critical_feat = -1,
+        epic_weapon_devastating_critical_feat = -1,
+        weapon_of_choice_feat = -1
+    }
+}

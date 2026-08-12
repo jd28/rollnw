@@ -1653,7 +1653,7 @@ TEST_F(SmallsLSP, ProtocolCompletionDetailComesFromTheResolvedType)
 
     // Insert a member access on a propset local, whose struct lives in another
     // module and is reached through the runtime type table.
-    constexpr std::string_view anchor = "get_propset!(base.ItemStats)";
+    constexpr std::string_view anchor = "var stats = get_propset!(ItemStats)(item_obj);";
     size_t anchor_offset = source.find(anchor);
     ASSERT_NE(anchor_offset, std::string::npos);
     size_t line_end = source.find('\n', anchor_offset);
@@ -1665,9 +1665,7 @@ TEST_F(SmallsLSP, ProtocolCompletionDetailComesFromTheResolvedType)
     std::string uri = smalls_lsp::native_path_to_uri(target.string());
 
     json completion{{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/completion"},
-        {"params", {{"textDocument", {{"uri", uri}}},
-            {"position", {{"line", probe_line}, {"character", 10}}},
-            {"context", {{"triggerKind", 2}, {"triggerCharacter", "."}}}}}};
+        {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", probe_line}, {"character", 10}}}, {"context", {{"triggerKind", 2}, {"triggerCharacter", "."}}}}}};
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         completion});

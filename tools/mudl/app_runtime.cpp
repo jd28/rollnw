@@ -7,6 +7,7 @@
 #include <nw/objects/Module.hpp>
 #include <nw/render/render_service.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/smalls/runtime.hpp>
 #include <nw/util/game_install.hpp>
 
 #include <SDL3/SDL.h>
@@ -738,6 +739,20 @@ void register_shader_resources()
     }
 }
 
+void register_smalls_packages()
+{
+    const char* base_path = SDL_GetBasePath();
+    if (!base_path || base_path[0] == '\0') {
+        LOG_F(WARNING, "Unable to resolve the mudl executable directory for SmallS packages");
+        return;
+    }
+
+    const auto stdlib_path = std::filesystem::path{base_path} / "stdlib";
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(stdlib_path / "core");
+    runtime.add_module_path(stdlib_path / nw::kernel::config().profile());
+}
+
 } // namespace
 
 bool init_kernel_services(std::string_view module_path, std::string_view user_path, nw::Module** loaded_module)
@@ -763,6 +778,7 @@ bool init_kernel_services(std::string_view module_path, std::string_view user_pa
     }
     nw::kernel::config().set_paths(install_info.install, user_dir);
     register_shader_resources();
+    register_smalls_packages();
 
     if (!module_path.empty()) {
         auto* mod = nw::kernel::load_module(std::filesystem::path{module_path}, false);
@@ -912,7 +928,7 @@ bool command_is_headless(std::string_view command)
     return command == "frames" || command == "screenshot" || command == "turntable"
         || command == "compute-smoke" || command == "nwn-animation-smoke"
         || command == "area-screenshot" || command == "area-benchmark" || command == "area-sweep"
-        || command == "report";
+        || command == "spell-export-live" || command == "spell-preview-live" || command == "report";
 }
 
 void shutdown_graphics(AppState& state)

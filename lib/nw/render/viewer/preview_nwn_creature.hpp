@@ -16,7 +16,6 @@
 
 namespace nw {
 struct Creature;
-struct StaticTwoDA;
 struct Item;
 }
 
@@ -93,12 +92,6 @@ std::string_view visual_creature_attachment_name(const nw::ObjectVisualModel& ro
 
 std::string anchor_name_for_equipped_item(nw::EquipIndex slot);
 
-float appearance_wing_tail_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id);
-float appearance_helmet_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id, uint8_t gender);
-
-NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
-    const nw::StaticTwoDA* appearance_tda,
-    nw::Appearance appearance_id);
 PreviewCreatureModelLoad resolve_creature_model_from_appearance(nw::Appearance appearance);
 NwnAppearanceHandItemVisualPolicy hand_item_visual_policy_from_creature_model(
     const PreviewCreatureModelLoad& model_ref);
@@ -108,9 +101,6 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
     nw::Appearance appearance_id,
     uint32_t wing_row);
 
-size_t apply_nwn_wing_attachment_visual_policy(
-    nw::render::nwn::ModelInstance& model,
-    NwnWingAttachmentVisualPolicy policy);
 size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(const nw::model::Mdl& mdl, NwnWingAttachmentVisualPolicy policy);
 
 std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& appearance, std::string_view race, char sex);

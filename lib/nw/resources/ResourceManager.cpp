@@ -20,6 +20,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string_view>
 
 namespace fs = std::filesystem;
 using namespace std::literals;
@@ -59,13 +60,18 @@ String format_search_roots(const Vector<fs::path>& roots)
     return result;
 }
 
-std::optional<fs::path> arclight_module_directory(const fs::path& path)
+struct ClientModuleLocation {
+    fs::path directory;
+    ModuleResourceFormat format = ModuleResourceFormat::invalid;
+};
+
+std::optional<ClientModuleLocation> client_module_location(const fs::path& path)
 {
     if (!fs::is_directory(path)) {
         return std::nullopt;
     }
 
-    const fs::path manifest_path = path / "arclight.json";
+    const fs::path manifest_path = path / "rollnw.json";
     if (!fs::exists(manifest_path)) {
         return std::nullopt;
     }
@@ -75,14 +81,17 @@ std::optional<fs::path> arclight_module_directory(const fs::path& path)
         nlohmann::json manifest;
         input >> manifest;
         if (!manifest.is_object()
-            || manifest.value("format", "") != "arclight.module"
+            || manifest.value("format", "") != "rollnw.module"
             || !manifest.contains("module")) {
             return std::nullopt;
         }
 
         const fs::path module_path = path / manifest.value("module", std::string{});
         if (fs::exists(module_path)) {
-            return module_path.parent_path();
+            const auto format = module_path.extension() == ".json"
+                ? ModuleResourceFormat::native_json
+                : ModuleResourceFormat::legacy_gff;
+            return ClientModuleLocation{module_path.parent_path(), format};
         }
     } catch (const std::exception&) {
         return std::nullopt;
@@ -141,30 +150,43 @@ bool ResourceManager::load_module(std::filesystem::path path)
 
     LOG_F(INFO, "resman: loading module container: {}", path);
 
+    unique_container next_module{nullptr, ContainerDeleter{allocator()}};
+    ModuleResourceFormat next_format = ModuleResourceFormat::invalid;
+
     {
         NW_PROFILE_SCOPE_N("resman.load_module.resolve_container");
-        if (fs::is_directory(path) && (fs::exists(path / "module.ifo") || fs::exists(path / "module.ifo.json"))) {
+        const bool has_legacy_module = fs::is_directory(path) && fs::exists(path / "module.ifo");
+        const bool has_native_module = fs::is_directory(path) && fs::exists(path / "module.ifo.json");
+        if (has_legacy_module != has_native_module) {
             auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
-            module_ = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
-        } else if (const auto arclight_module_dir = arclight_module_directory(path)) {
+            next_module = make_unique_container(new (ptr) StaticDirectory(path, allocator()));
+            next_format = has_native_module
+                ? ModuleResourceFormat::native_json
+                : ModuleResourceFormat::legacy_gff;
+        } else if (const auto location = client_module_location(path)) {
             auto ptr = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
-            module_ = make_unique_container(new (ptr) StaticDirectory(*arclight_module_dir, allocator()));
+            next_module = make_unique_container(new (ptr) StaticDirectory(location->directory, allocator()));
+            next_format = location->format;
         } else if (fs::exists(path)
             && (string::icmp(path_to_string(path.extension()), ".mod")
                 || string::icmp(path_to_string(path.extension()), ".nwm"))) {
             auto ptr = allocator()->allocate(sizeof(StaticErf), alignof(StaticErf));
-            module_ = make_unique_container(new (ptr) StaticErf(path, allocator()));
+            next_module = make_unique_container(new (ptr) StaticErf(path, allocator()));
+            next_format = ModuleResourceFormat::legacy_gff;
         } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
             auto ptr = allocator()->allocate(sizeof(StaticZip), alignof(StaticZip));
-            module_ = make_unique_container(new (ptr) StaticZip(path, allocator()));
+            next_module = make_unique_container(new (ptr) StaticZip(path, allocator()));
+            next_format = ModuleResourceFormat::legacy_gff;
         }
     }
 
-    if (!module_ || !module_->valid()) {
+    if (!next_module || !next_module->valid() || next_format == ModuleResourceFormat::invalid) {
         LOG_F(ERROR, "Failed to load module at '{}'", path);
         return false;
     }
 
+    module_ = std::move(next_module);
+    module_format_ = next_format;
     module_path_ = std::move(path);
     {
         NW_PROFILE_SCOPE_N("resman.load_module.update_search");
@@ -240,6 +262,7 @@ void ResourceManager::unload_module()
 {
     LOG_F(INFO, "resman: unloading module container: {}", module_path_);
     module_path_.clear();
+    module_format_ = ModuleResourceFormat::invalid;
     module_haks_.clear();
     module_.reset();
     registry_.clear();

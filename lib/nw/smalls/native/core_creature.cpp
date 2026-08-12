@@ -1,14 +1,32 @@
 #include "../runtime.hpp"
 
+#include "../../kernel/Rules.hpp"
 #include "../../objects/ObjectComponentSystem.hpp"
-#include "../../objects/Equips.hpp"
 #include "../../objects/ObjectManager.hpp"
 
+#include <algorithm>
 #include <limits>
 
 namespace nw::smalls {
 
 namespace {
+
+struct ScriptAppearanceInfo {
+    int32_t id = -1;
+    nw::Resref model;
+    int32_t model_type = -1;
+};
+
+ScriptAppearanceInfo appearance_info(int32_t id)
+{
+    const auto* info = nw::kernel::rules().appearances.get(nw::Appearance::make(id));
+    if (!info) { return {}; }
+    return {
+        .id = id,
+        .model = info->model,
+        .model_type = static_cast<int32_t>(info->model_type),
+    };
+}
 
 nw::Creature* as_creature(nw::ObjectHandle obj)
 {
@@ -17,15 +35,6 @@ nw::Creature* as_creature(nw::ObjectHandle obj)
         return nullptr;
     }
     return base->as_creature();
-}
-
-nw::Item* as_item(nw::ObjectHandle obj)
-{
-    auto* base = nw::kernel::objects().get_object_base(obj);
-    if (!base) {
-        return nullptr;
-    }
-    return base->as_item();
 }
 
 const nw::ObjectAbilityLoadoutEntry* ability_loadout_entry(nw::ObjectHandle obj, int32_t index)
@@ -45,6 +54,12 @@ void register_core_creature(Runtime& rt)
     }
 
     rt.module("core.creature")
+        .native_struct<ScriptAppearanceInfo>("AppearanceInfo")
+        .field("id", &ScriptAppearanceInfo::id)
+        .field("model", &ScriptAppearanceInfo::model)
+        .field("model_type", &ScriptAppearanceInfo::model_type)
+        .end_struct()
+        .function("appearance_info", &appearance_info)
         .function("set_vitals", +[](nw::ObjectHandle obj, int32_t hp_current, int32_t hp_max) -> bool {
             if (!as_creature(obj)) { return false; }
             return nw::kernel::objects().components().set_vitals(obj, hp_current, hp_max); })
@@ -93,28 +108,37 @@ void register_core_creature(Runtime& rt)
             if (!as_creature(obj) || flags < 0) { return false; }
             return nw::kernel::objects().components().add_slotted_ability(
                 obj, source, tier, ability, modifier, static_cast<uint32_t>(flags)); })
+        .function("set_slotted_ability", +[](nw::ObjectHandle obj, int32_t source, int32_t tier, int32_t slot, int32_t ability, int32_t modifier, int32_t flags) -> bool {
+            if (!as_creature(obj) || flags < 0) { return false; }
+            return nw::kernel::objects().components().set_slotted_ability(
+                obj, source, tier, slot, ability, modifier, static_cast<uint32_t>(flags)); })
+        .function("clear_slotted_ability", +[](nw::ObjectHandle obj, int32_t source, int32_t tier, int32_t slot, int32_t ability, int32_t modifier, int32_t flags) -> bool {
+            if (!as_creature(obj) || flags < 0) { return false; }
+            auto& components = nw::kernel::objects().components();
+            const auto* loadout = components.find_ability_loadout(obj);
+            if (!loadout) { return false; }
+            const auto entry = std::find_if(loadout->entries.begin(), loadout->entries.end(),
+                [=](const auto& candidate) {
+                    return candidate.source == source && candidate.tier == tier
+                        && candidate.slot == slot && candidate.ability == ability
+                        && candidate.modifier == modifier
+                        && candidate.flags == static_cast<uint32_t>(flags);
+                });
+            if (entry == loadout->entries.end()) { return false; }
+            components.clear_slotted_ability(obj, source, tier, slot);
+            return true; })
+        .function("remove_slotted_ability", +[](nw::ObjectHandle obj, int32_t source, int32_t tier, int32_t ability, int32_t modifier) -> bool {
+            if (!as_creature(obj)) { return false; }
+            auto& components = nw::kernel::objects().components();
+            const int32_t slot = components.find_slotted_ability_slot(
+                obj, source, tier, ability, modifier);
+            if (slot < 0) { return false; }
+            components.clear_slotted_ability(obj, source, tier, slot);
+            return true; })
         .function("clear_slotted_ability_from_tier", +[](nw::ObjectHandle obj, int32_t source, int32_t min_tier, int32_t ability) -> bool {
             if (!as_creature(obj)) { return false; }
             nw::kernel::objects().components().clear_slotted_ability_from_tier(obj, source, min_tier, ability);
             return true; })
-        .function("equip_item_in_slot", +[](nw::ObjectHandle creature, nw::ObjectHandle item, int32_t slot) -> bool { return nw::equip_item_in_slot(as_creature(creature), as_item(item), static_cast<nw::EquipIndex>(slot)); })
-        .function("get_equipped_item", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nw::get_equipped_item(as_creature(creature), static_cast<nw::EquipIndex>(slot));
-            return item ? item->handle() : nw::ObjectHandle{}; })
-        .function("unequip_item_in_slot", +[](nw::ObjectHandle creature, int32_t slot) -> nw::ObjectHandle {
-            auto* item = nw::unequip_item_in_slot(as_creature(creature), static_cast<nw::EquipIndex>(slot));
-            return item ? item->handle() : nw::ObjectHandle{}; })
-        .function("inventory_add_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item) -> bool {
-            auto* cre = as_creature(creature);
-            auto* it = as_item(item);
-            if (!cre || !it) { return false; }
-            return cre->inventory().add_item(it); })
-        .function("inventory_remove_item", +[](nw::ObjectHandle creature, nw::ObjectHandle item) -> bool {
-            auto* cre = as_creature(creature);
-            auto* it = as_item(item);
-            if (!cre || !it) { return false; }
-            return cre->inventory().remove_item(it); })
-
         // The end.
         .finalize();
 }

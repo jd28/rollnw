@@ -1,5 +1,6 @@
 #include "runtime.hpp"
 
+#include "../kernel/GameProfile.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../kernel/Strings.hpp"
 #include "../log.hpp"
@@ -246,9 +247,10 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         const bool language_only = kernel::services().mode() == kernel::ServiceMode::language;
 
         // Language tooling supplies explicit package paths. Game runtimes
-        // bootstrap the shipped core package.
+        // bootstrap the shipped core and exactly one selected profile.
         if (!language_only) {
             add_module_path(std::filesystem::path("stdlib") / "core");
+            add_module_path(std::filesystem::path("stdlib") / kernel::config().profile());
         }
 
         LOG_F(INFO, "[runtime] Initializing Runtime and registering internal types");
@@ -265,6 +267,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_object(*this);
         register_core_area(*this);
         register_core_creature(*this);
+        register_core_placeable(*this);
         register_core_module(*this);
         register_core_player(*this);
         register_core_combat(*this);
@@ -274,24 +277,29 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
             return;
         }
 
-        // Force-load core propset schemas so pools are primed before object creation
-        load_module("core.creature");
-        load_module("core.item");
-        load_module("core.door");
-        load_module("core.encounter");
-        load_module("core.placeable");
-        load_module("core.sound");
-        load_module("core.store");
-        load_module("core.trigger");
-        load_module("core.waypoint");
+        const auto& profile_root = kernel::config().profile();
+        const auto propsets_module = fmt::format("{}.propsets", profile_root);
+        auto* propsets = load_module(propsets_module);
+        if (!propsets || propsets->errors() != 0) {
+            throw std::runtime_error(fmt::format(
+                "runtime: failed to load required propset module '{}'", propsets_module));
+        }
         prime_propset_pools();
 
         const auto& init_mod = kernel::config().init_module();
         if (!init_mod.empty()) {
             auto* init = load_module(init_mod);
-            if (init && init->errors() == 0) {
-                constexpr uint64_t init_module_gas_limit = 100'000'000;
-                execute_script(init, "init", {}, init_module_gas_limit);
+            if (!init || init->errors() != 0) {
+                throw std::runtime_error(fmt::format(
+                    "runtime: failed to load required init module '{}'", init_mod));
+            }
+
+            constexpr uint64_t init_module_gas_limit = 100'000'000;
+            auto result = execute_script(init, "init", {}, init_module_gas_limit);
+            if (!result.ok()) {
+                throw std::runtime_error(fmt::format(
+                    "runtime: profile init module '{}' failed: {}",
+                    init_mod, result.error_message));
             }
         }
     }
@@ -2048,57 +2056,94 @@ void Runtime::fail(StringView msg)
     vm_->fail(msg);
 }
 
-void Runtime::evict_cached_modules(const absl::flat_hash_set<String>& module_names)
+bool Runtime::evict_module(StringView module_name)
 {
-    absl::flat_hash_set<BytecodeModule*> evicted_modules;
+    absl::flat_hash_set<String> selected;
+    selected.insert(normalize_module_name(module_name));
+    return evict_cached_modules(selected) == 1;
+}
 
-    for (auto it = modules_.begin(); it != modules_.end();) {
-        if (module_names.contains(it->first)) {
-            auto bytecode_it = bytecode_cache_.find(it->second);
-            if (bytecode_it != bytecode_cache_.end()) {
-                if (bytecode_it->second) {
-                    evicted_modules.insert(bytecode_it->second.get());
-                }
-                bytecode_cache_.erase(bytecode_it);
-            }
-            line_offsets_.erase(it->first);
-            it->second->~Script();
-            // Note: The memory itself is part of the arena and not individually freed here.
-            modules_.erase(it++);
-        } else {
-            ++it;
+size_t Runtime::evict_cached_modules(const absl::flat_hash_set<String>& module_names)
+{
+    absl::flat_hash_set<String> evicted_paths;
+    absl::flat_hash_set<BytecodeModule*> evicted_modules;
+    for (const auto& module_name : module_names) {
+        auto script_it = modules_.find(module_name);
+        if (script_it == modules_.end()) {
+            continue;
         }
+
+        auto bytecode_it = bytecode_cache_.find(script_it->second);
+        if (bytecode_it != bytecode_cache_.end()) {
+            if (bytecode_it->second) {
+                evicted_modules.insert(bytecode_it->second.get());
+            }
+            bytecode_cache_.erase(bytecode_it);
+        }
+
+        line_offsets_.erase(module_name);
+        script_it->second->~Script();
+        // Script storage is arena-backed and remains high-water memory until runtime shutdown.
+        modules_.erase(script_it);
+        evicted_paths.insert(module_name);
     }
 
-    if (!evicted_modules.empty()) {
-        for (uint32_t i = 0; i < external_functions_.size(); ++i) {
-            auto& ext = external_functions_[i];
-            if (ext.is_native() || !evicted_modules.contains(ext.script_module)) {
-                continue;
-            }
+    if (evicted_paths.empty()) {
+        return 0;
+    }
 
-            auto name_it = external_function_names_.find(ext.qualified_name);
-            if (name_it != external_function_names_.end() && name_it->second == i) {
-                external_function_names_.erase(name_it);
+    absl::flat_hash_set<uint32_t> evicted_external_indices;
+    for (uint32_t i = 0; i < external_functions_.size(); ++i) {
+        auto& ext = external_functions_[i];
+        if (ext.is_native() || !evicted_modules.contains(ext.script_module)) {
+            continue;
+        }
+
+        auto name_it = external_function_names_.find(ext.qualified_name);
+        if (name_it != external_function_names_.end() && name_it->second == i) {
+            external_function_names_.erase(name_it);
+        }
+        evicted_external_indices.insert(i);
+        ext.qualified_name = {};
+        ext.script_module = nullptr;
+        ext.func_idx = UINT32_MAX;
+        ext.native_wrapper = {};
+        ext.native_fast_wrapper = nullptr;
+    }
+
+    for (auto& [_, module] : bytecode_cache_) {
+        if (!module) { continue; }
+        bool invalidated = false;
+        for (uint32_t& ext_idx : module->external_indices) {
+            if (evicted_external_indices.contains(ext_idx)) {
+                ext_idx = UINT32_MAX;
+                invalidated = true;
             }
-            for (auto& entry : bytecode_cache_) {
-                auto& module = entry.second;
-                if (!module) { continue; }
-                for (uint32_t& ext_idx : module->external_indices) {
-                    if (ext_idx == i) {
-                        ext_idx = UINT32_MAX;
-                    }
-                }
+        }
+        for (auto& ref : module->global_refs) {
+            if (evicted_modules.contains(ref.resolved_module)) {
+                ref.resolved_module = nullptr;
+                ref.resolved_slot = UINT32_MAX;
+                invalidated = true;
             }
-            ext.qualified_name = {};
-            ext.script_module = nullptr;
-            ext.func_idx = UINT32_MAX;
-            ext.native_wrapper = {};
-            ext.native_fast_wrapper = nullptr;
+        }
+        if (invalidated) {
+            module->external_refs_resolved = false;
         }
     }
 
     instantiation_cache_.clear();
+    for (const auto& path : evicted_paths) {
+        generic_template_module_sources_.erase(path);
+    }
+    for (auto it = generic_function_templates_.begin(); it != generic_function_templates_.end();) {
+        if (evicted_paths.contains(it->first.module)) {
+            generic_function_templates_.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+    return evicted_paths.size();
 }
 
 void Runtime::evict_user_modules()
@@ -2670,6 +2715,8 @@ ModuleBuilder Runtime::module(StringView path)
 
 Script* Runtime::load_module(StringView path)
 {
+    if (path.empty()) { return nullptr; }
+
     String path_str = normalize_module_name(path);
 
     auto it = modules_.find(path_str);
@@ -3263,8 +3310,10 @@ Value read_field_as_value(void* ptr, TypeID type_id, const Runtime& rt)
         return Value::make_bool(*static_cast<bool*>(ptr));
     } else if (type_id == rt.string_type()) {
         return Value::make_string(*static_cast<HeapPtr*>(ptr));
-    } else if (type_id == rt.object_type()) {
-        return Value::make_object(*static_cast<ObjectHandle*>(ptr));
+    } else if (rt.is_object_like_type(type_id)) {
+        Value result = Value::make_object(*static_cast<ObjectHandle*>(ptr));
+        result.type_id = type_id;
+        return result;
     } else if (rt.is_native_value_type(type_id)) {
         const Type* type = rt.get_type(type_id);
         if (!type) { return Value{}; }
@@ -3300,7 +3349,7 @@ void write_value_to_field(void* ptr, TypeID type_id, const Value& value, const R
         *static_cast<bool*>(ptr) = value.data.bval;
     } else if (type_id == rt.string_type()) {
         *static_cast<HeapPtr*>(ptr) = value.data.hptr;
-    } else if (type_id == rt.object_type()) {
+    } else if (rt.is_object_like_type(type_id)) {
         *static_cast<ObjectHandle*>(ptr) = value.data.oval;
     } else if (rt.is_native_value_type(type_id)) {
         Runtime& mut_rt = const_cast<Runtime&>(rt);
@@ -4089,7 +4138,10 @@ HeapPtr Runtime::create_array_typed(TypeID element_type_id, size_t initial_capac
     } else if (element_type_id == bool_type()) {
         ptr = heap_.allocate(sizeof(TypedArray<bool>), alignof(TypedArray<bool>), array_type_id);
         new (heap_.get_ptr(ptr)) TypedArray<bool>(element_type_id, initial_capacity);
-    } else if (element_type_id == string_type() || element_type_id == object_type()) {
+    } else if (is_object_like_type(element_type_id)) {
+        ptr = heap_.allocate(sizeof(TypedArray<ObjectHandle>), alignof(TypedArray<ObjectHandle>), array_type_id);
+        new (heap_.get_ptr(ptr)) TypedArray<ObjectHandle>(element_type_id, initial_capacity);
+    } else if (element_type_id == string_type()) {
         ptr = heap_.allocate(sizeof(TypedArray<HeapPtr>), alignof(TypedArray<HeapPtr>), array_type_id);
         new (heap_.get_ptr(ptr)) TypedArray<HeapPtr>(element_type_id, initial_capacity);
     } else if (is_value_type(element_type_id)) {
@@ -6053,6 +6105,62 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
         return Value{};
     }
 
+    Vector<TypeID> visited_types;
+    const auto contains_propset = [&](const auto& self, TypeID type_id) -> bool {
+        if (type_id == invalid_type_id
+            || std::ranges::find(visited_types, type_id) != visited_types.end()) {
+            return false;
+        }
+        visited_types.push_back(type_id);
+
+        if (is_propset_type(type_id)) { return true; }
+
+        const Type* current = get_type(type_id);
+        if (!current) { return false; }
+
+        switch (current->type_kind) {
+        case TK_alias:
+        case TK_newtype:
+        case TK_array:
+        case TK_fixed_array:
+            return self(self, current->type_params[0].as<TypeID>());
+        case TK_map:
+            return self(self, current->type_params[0].as<TypeID>())
+                || self(self, current->type_params[1].as<TypeID>());
+        case TK_struct: {
+            const StructDef* current_def = get_struct_def(type_id);
+            if (!current_def) { return false; }
+            for (uint32_t i = 0; i < current_def->field_count; ++i) {
+                if (self(self, current_def->fields[i].type_id)) { return true; }
+            }
+            return false;
+        }
+        case TK_tuple: {
+            const TupleDef* tuple = type_table_.get(current->type_params[0].as<TupleID>());
+            if (!tuple) { return false; }
+            for (uint32_t i = 0; i < tuple->element_count; ++i) {
+                if (self(self, tuple->element_types[i])) { return true; }
+            }
+            return false;
+        }
+        case TK_sum: {
+            const SumDef* sum = type_table_.get(current->type_params[0].as<SumID>());
+            if (!sum) { return false; }
+            for (uint32_t i = 0; i < sum->variant_count; ++i) {
+                if (self(self, sum->variants[i].payload_type)) { return true; }
+            }
+            return false;
+        }
+        default:
+            return false;
+        }
+    };
+
+    if (contains_propset(contains_propset, config_type)) {
+        LOG_F(ERROR, "[config] load_config! struct '{}' contains a propset type", type->name.view());
+        return Value{};
+    }
+
     StructID sid = type->type_params[0].as<StructID>();
     const StructDef* def = type_table_.get(sid);
     if (!def || !def->decl) {
@@ -6081,10 +6189,11 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
         return Value{};
     }
 
-    // If a 2da converter is registered for this path, use it instead of .smalls files
     auto conv_it = twoda_converters_.find(canonical_path);
-    if (conv_it != twoda_converters_.end()) {
-        return load_twoda_as_config_array(canonical_path, config_type, def, index_field_idx, conv_it->second);
+    if (conv_it != twoda_converters_.end()
+        && conv_it->second.merge == TwoDAConfigMerge::twoda_only) {
+        return load_twoda_as_config_array(
+            canonical_path, config_type, def, index_field_idx, conv_it->second);
     }
 
     // Build resref prefix: "nwn1.data.classes" → "nwn1/data/classes/"
@@ -6112,6 +6221,10 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     };
 
     if (matching_resrefs.empty()) {
+        if (conv_it != twoda_converters_.end()) {
+            return load_twoda_as_config_array(
+                canonical_path, config_type, def, index_field_idx, conv_it->second);
+        }
         LOG_F(WARNING, "[config] load_config! no entries found for path '{}'", canonical_path);
         return make_empty_array();
     }
@@ -6174,15 +6287,45 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     // Restore prelude
     user_prelude_ = prev_prelude;
 
-    // Build the array
-    size_t arr_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
-    HeapPtr array_ptr = create_array_typed(config_type, arr_size);
-    if (array_ptr.value == 0) return Value{};
+    if (conv_it != twoda_converters_.end()
+        && conv_it->second.merge == TwoDAConfigMerge::seed_rows) {
+        const size_t seed_count = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
+        Vector<Value> seed_rows(seed_count);
+        for (const auto& entry : entries) {
+            seed_rows[static_cast<size_t>(entry.index)] = entry.val;
+        }
+        return load_twoda_as_config_array(
+            canonical_path, config_type, def, index_field_idx, conv_it->second, seed_rows);
+    }
 
-    IArray* arr = get_array_typed(array_ptr);
-    if (!arr) return Value{};
+    Value base_array;
+    if (conv_it != twoda_converters_.end()) {
+        base_array = load_twoda_as_config_array(
+            canonical_path, config_type, def, index_field_idx, conv_it->second);
+        if (base_array.type_id == invalid_type_id) {
+            return Value{};
+        }
+    }
 
-    arr->resize(arr_size);
+    HeapPtr array_ptr;
+    IArray* arr = nullptr;
+    if (base_array.type_id != invalid_type_id) {
+        array_ptr = base_array.data.hptr;
+        arr = get_array_typed(array_ptr);
+        if (!arr) { return Value{}; }
+    } else {
+        const size_t initial_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
+        array_ptr = create_array_typed(config_type, initial_size);
+        if (array_ptr.value == 0) { return Value{}; }
+        arr = get_array_typed(array_ptr);
+        if (!arr) { return Value{}; }
+        arr->resize(initial_size);
+    }
+
+    const size_t required_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
+    if (arr->size() < required_size) {
+        arr->resize(required_size);
+    }
 
     // For duplicate indices, later entries (sorted by filename) win
     for (const auto& e : entries) {
@@ -6192,21 +6335,24 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     auto* header = heap_.get_header(array_ptr);
     if (!header) return Value{};
 
-    config_roots_.push_back(array_ptr);
-    config_array_cache_.emplace(cache_key, array_ptr);
+    if (base_array.type_id == invalid_type_id) {
+        config_roots_.push_back(array_ptr);
+        config_array_cache_.emplace(cache_key, array_ptr);
+    }
 
     return Value::make_heap(array_ptr, header->type_id);
 }
 
 void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
-    Vector<TwoDAColumnMapping> mappings)
+    Vector<TwoDAColumnMapping> mappings, TwoDAConfigMerge merge)
 {
     twoda_converters_.insert_or_assign(normalize_module_name(path),
-        TwoDAConverterSpec{String(twoda_name), std::move(mappings)});
+        TwoDAConverterSpec{String(twoda_name), std::move(mappings), merge});
 }
 
 Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
-    const StructDef* def, uint32_t index_field_idx, const TwoDAConverterSpec& conv)
+    const StructDef* def, uint32_t index_field_idx, const TwoDAConverterSpec& conv,
+    std::span<const Value> seed_rows)
 {
     auto cache_key = std::make_pair(String(path), config_type);
 
@@ -6228,22 +6374,53 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
     if (!arr) return Value{};
     arr->resize(nrows);
 
+    const Type* config_struct_type = get_type(config_type);
+    if (!config_struct_type) { return Value{}; }
+
     const TypeID resref_type = type_id("core.types.ResRef", false);
+    const TypeID resource_type = type_id("core.types.Resource", false);
+
+    Vector<size_t> primary_columns;
+    primary_columns.reserve(conv.mappings.size());
+    for (const auto& mapping : conv.mappings) {
+        const size_t column = tda.column_index(mapping.column);
+        primary_columns.push_back(column);
+        if (column == StaticTwoDA::npos) {
+            LOG_F(WARNING, "[config] twoda converter '{}': missing column '{}'",
+                conv.twoda_name, mapping.column);
+        }
+    }
 
     for (size_t i = 0; i < nrows; ++i) {
         HeapPtr entry = alloc_struct(config_type);
         if (!entry.value) continue;
         uint8_t* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
 
+        const bool has_seed = i < seed_rows.size()
+            && seed_rows[i].type_id == config_type;
+        if (has_seed) {
+            Value seed = seed_rows[i];
+            if (const void* seed_data = get_value_data_ptr(seed)) {
+                std::memcpy(data, seed_data, config_struct_type->size);
+            }
+        }
+
         // Write [[index]] field = row index
         *reinterpret_cast<int32_t*>(data + def->fields[index_field_idx].offset) = static_cast<int32_t>(i);
 
         // Write each mapped column into the corresponding field
-        for (const auto& m : conv.mappings) {
+        for (size_t mapping_index = 0; mapping_index < conv.mappings.size(); ++mapping_index) {
+            const auto& m = conv.mappings[mapping_index];
+            const size_t primary_column = primary_columns[mapping_index];
+            const bool has_primary_column = primary_column != StaticTwoDA::npos;
+            if (!has_primary_column && has_seed) { continue; }
+
             // Handle secondary 2DA row-major fixed-array loading.
             if (!m.secondary_grid_column_prefix.empty() && m.secondary_grid_column_count > 0) {
                 StringView table_name;
-                if (!tda.get_to(i, m.column, table_name) || table_name.empty() || table_name == "****") {
+                if (!has_primary_column
+                    || !tda.get_to(i, primary_column, table_name)
+                    || table_name.empty() || table_name == "****") {
                     continue;
                 }
 
@@ -6315,7 +6492,9 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
             // Handle secondary 2DA loading (column names a 2DA resource; rows fill fixed arrays)
             if (!m.secondary_columns.empty()) {
                 StringView table_name;
-                if (!tda.get_to(i, m.column, table_name) || table_name.empty() || table_name == "****") {
+                if (!has_primary_column
+                    || !tda.get_to(i, primary_column, table_name)
+                    || table_name.empty() || table_name == "****") {
                     continue;
                 }
                 StaticTwoDA sec{kernel::resman().demand({String(table_name), ResourceType::twoda})};
@@ -6431,15 +6610,15 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                 uint8_t* eptr = fptr + static_cast<size_t>(fixed_index) * elem_type_obj->size;
                 if (elem_type == int_type()) {
                     int32_t v = m.int_default;
-                    tda.get_to(i, m.column, v);
+                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
                     *reinterpret_cast<int32_t*>(eptr) = v;
                 } else if (elem_type == float_type()) {
                     float v = m.float_default;
-                    tda.get_to(i, m.column, v);
+                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
                     *reinterpret_cast<float*>(eptr) = v;
                 } else if (elem_type == bool_type()) {
                     int32_t v = m.bool_default ? 1 : 0;
-                    tda.get_to(i, m.column, v);
+                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
                     *reinterpret_cast<bool*>(eptr) = (v != 0);
                 }
                 continue;
@@ -6456,10 +6635,31 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
             if (is_native_value_type(field_type)) {
                 if (field_type == resref_type) {
                     StringView value;
-                    if (tda.get_to(i, m.column, value) && !value.empty() && value != "****") {
+                    if (has_primary_column
+                        && tda.get_to(i, primary_column, value)
+                        && !value.empty() && value != "****") {
                         nw::Resref resref{value};
                         std::memcpy(fptr, &resref, sizeof(resref));
                     }
+                } else if (field_type == resource_type && m.resource_type != ResourceType::invalid) {
+                    StringView value;
+                    if (has_primary_column
+                        && tda.get_to(i, primary_column, value)
+                        && !value.empty() && value != "****") {
+                        nw::Resource resource{value, m.resource_type};
+                        std::memcpy(fptr, &resource, sizeof(resource));
+                    }
+                }
+                continue;
+            }
+
+            if (field_type == string_type()) {
+                StringView value;
+                if (has_primary_column
+                    && tda.get_to(i, primary_column, value)
+                    && value != "****") {
+                    const HeapPtr string = alloc_string(value);
+                    write_struct_field_by_index(entry, def, fidx, Value::make_string(string));
                 }
                 continue;
             }
@@ -6469,7 +6669,7 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
             if (field_type == int_type()) {
                 if (!m.string_enum.empty()) {
                     StringView sv;
-                    tda.get_to(i, m.column, sv);
+                    if (has_primary_column) { tda.get_to(i, primary_column, sv); }
                     int32_t v = -1;
                     for (const auto& [k, kv] : m.string_enum) {
                         if (nw::string::icmp(k, sv)) {
@@ -6480,16 +6680,16 @@ Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
                     *reinterpret_cast<int32_t*>(fptr) = v;
                 } else {
                     int32_t v = m.int_default;
-                    tda.get_to(i, m.column, v);
+                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
                     *reinterpret_cast<int32_t*>(fptr) = v;
                 }
             } else if (field_type == float_type()) {
                 float v = m.float_default;
-                tda.get_to(i, m.column, v);
+                if (has_primary_column) { tda.get_to(i, primary_column, v); }
                 *reinterpret_cast<float*>(fptr) = v;
             } else if (field_type == bool_type()) {
                 int32_t v = m.bool_default ? 1 : 0;
-                tda.get_to(i, m.column, v);
+                if (has_primary_column) { tda.get_to(i, primary_column, v); }
                 *reinterpret_cast<bool*>(fptr) = (v != 0);
             }
         }

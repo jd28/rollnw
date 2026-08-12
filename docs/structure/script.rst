@@ -7,7 +7,7 @@ The script module provides a lexer, recursive descent parser, and type-checker f
 
     This page documents the NWScript compatibility parser. That parser is
     still useful for reading and analyzing existing NWN content, but it is
-    not the only scripting direction in rollNW anymore. New rule and
+    not the only scripting direction in rollnw anymore. New rule and
     scripting work for authored RPG toolsets/games is moving through Smalls under
     ``lib/nw/smalls``.
 

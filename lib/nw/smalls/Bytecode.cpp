@@ -688,6 +688,7 @@ uint32_t BytecodeModule::add_external_ref(InternedString qualified_name)
     external_refs.push_back(qualified_name);
     external_indices.push_back(UINT32_MAX); // unresolved
     external_ref_map[qualified_name] = idx;
+    external_refs_resolved = false;
     return idx;
 }
 
@@ -701,6 +702,7 @@ uint32_t BytecodeModule::add_global_ref(StringView mod_name, StringView var_name
     uint32_t idx = static_cast<uint32_t>(global_refs.size());
     global_refs.push_back({String(mod_name), String(var_name)});
     global_ref_map[std::move(key)] = idx;
+    external_refs_resolved = false;
     return idx;
 }
 
@@ -720,6 +722,8 @@ bool BytecodeModule::resolve_external_refs(Runtime* runtime)
     }
 
     for (auto& ref : global_refs) {
+        ref.resolved_module = nullptr;
+        ref.resolved_slot = UINT32_MAX;
         Script* provider = runtime->get_module(ref.module_name);
         if (!provider) {
             LOG_F(ERROR, "[bytecode] Failed to resolve global ref '{}::{}' in module '{}': provider not found",
@@ -745,6 +749,7 @@ bool BytecodeModule::resolve_external_refs(Runtime* runtime)
         ref.resolved_slot = sit->second;
     }
 
+    external_refs_resolved = all_resolved;
     return all_resolved;
 }
 

@@ -32,12 +32,11 @@ void set_vfx_sequence_time(AppState& state, int time_ms, bool stop_after_seek = 
 bool has_area_day_night_controls(const AppState& state);
 bool supports_gltf_animation_controls(const AppState& state);
 bool supports_vfx_sequence_controls(const AppState& state);
-bool scene_uses_shared_nwn_animation_source(const nw::render::viewer::PreviewScene& scene);
 std::string_view static_pbr_environment_policy_name(StaticPbrEnvironmentPolicy policy) noexcept;
 void set_area_day_night_elapsed_seconds(AppState& state, float elapsed_seconds, bool log_transition = false);
 void reset_area_day_night_cycle(AppState& state);
 void reload_current_scene(AppState& state);
-bool select_model_animation(AppState& state, size_t model_index, std::string_view animation_name);
+bool select_model_animation(AppState& state, std::string_view animation_name);
 void set_gltf_animation_clip(AppState& state, uint32_t clip_index);
 bool run_screenshot_capture(AppState& state, const std::filesystem::path& screenshot_path,
     int warmup_frames = 2, int max_frames = 8);

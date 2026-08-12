@@ -2,6 +2,8 @@
 
 #include <nw/render/shader_provider.hpp>
 
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <string>
 
@@ -126,4 +128,26 @@ TEST(ShaderIncludes, NoTrailingNewline)
     ASSERT_TRUE(result);
     EXPECT_NE(result->find("int a;"), std::string::npos);
     EXPECT_NE(result->find("void main() {}"), std::string::npos);
+}
+
+TEST(ShaderIncludes, WaterShadersUseCommonRenderModelContracts)
+{
+    const std::filesystem::path shader_root = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "lib/nw/render/shaders";
+    const auto read_shader = [&](std::string_view name) {
+        std::ifstream input{shader_root / name};
+        return std::string{std::istreambuf_iterator<char>{input}, {}};
+    };
+
+    const auto vertex = read_shader("render_water.vs.hlsl");
+    const auto pixel = read_shader("render_water.ps.hlsl");
+
+    ASSERT_FALSE(vertex.empty());
+    ASSERT_FALSE(pixel.empty());
+    EXPECT_NE(vertex.find("scene_constants.inc.hlsl"), std::string::npos);
+    EXPECT_NE(pixel.find("scene_constants.inc.hlsl"), std::string::npos);
+    EXPECT_NE(pixel.find("scene_shadow.inc.hlsl"), std::string::npos);
+    EXPECT_NE(pixel.find("cbuffer SurfaceConstants : register(b4)"), std::string::npos);
+    EXPECT_NE(pixel.find("sc_albedo_index"), std::string::npos);
+    EXPECT_NE(pixel.find("sc_albedo.a"), std::string::npos);
+    EXPECT_EQ(pixel.find("#include \"shadow.inc.hlsl\""), std::string::npos);
 }

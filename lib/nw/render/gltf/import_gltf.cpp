@@ -1,7 +1,5 @@
 #include "import_gltf.hpp"
 
-#include <stb/stb_image.h>
-
 #include <cgltf.h>
 
 #include <nw/log.hpp>
@@ -22,36 +20,6 @@ namespace nw::render::gltf {
 namespace {
 
 const glm::mat4 kGltfToMudl = glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-
-using TextureHandle = nw::gfx::Handle<nw::gfx::Texture>;
-
-struct TextureKey {
-    const cgltf_texture* texture = nullptr;
-    nw::gfx::Fmt format = nw::gfx::Fmt::RGBA8;
-
-    bool operator==(const TextureKey& other) const noexcept
-    {
-        return texture == other.texture && format == other.format;
-    }
-};
-
-struct TextureKeyHash {
-    size_t operator()(const TextureKey& key) const noexcept
-    {
-        return std::hash<const void*>{}(key.texture) ^ (static_cast<size_t>(key.format) << 1u);
-    }
-};
-
-struct LoadedImage {
-    int width = 0;
-    int height = 0;
-    std::vector<uint8_t> pixels;
-};
-
-struct SurfaceTextureImport {
-    nw::gfx::BindlessTextureIndex index = nw::gfx::kInvalidBindlessTextureIndex;
-    bool material_uses_fallback = false;
-};
 
 struct GltfNodeVisit {
     int32_t node_index = -1;
@@ -205,17 +173,6 @@ bool skin_accessors_supported_by_renderer(
         }
     }
     return true;
-}
-
-uint32_t full_mip_count(uint32_t width, uint32_t height)
-{
-    uint32_t levels = 1;
-    while (width > 1 || height > 1) {
-        width = std::max(width / 2u, 1u);
-        height = std::max(height / 2u, 1u);
-        ++levels;
-    }
-    return levels;
 }
 
 bool load_matrix(const cgltf_node* node, glm::mat4& local)
@@ -598,88 +555,6 @@ void import_animations(const cgltf_data* data, Model& model, GltfImportStats& st
     }
 }
 
-TextureHandle load_texture_from_memory(nw::gfx::Context* ctx, const uint8_t* bytes, size_t size, nw::gfx::Fmt fmt)
-{
-    int width = 0;
-    int height = 0;
-    int channels = 0;
-    stbi_uc* pixels = stbi_load_from_memory(bytes, static_cast<int>(size), &width, &height, &channels, 4);
-    if (!pixels) {
-        return {};
-    }
-
-    nw::gfx::TextureDesc desc{};
-    desc.width = static_cast<uint32_t>(width);
-    desc.height = static_cast<uint32_t>(height);
-    desc.mip_levels = full_mip_count(desc.width, desc.height);
-    desc.format = fmt;
-    auto texture = nw::gfx::create_texture(ctx, desc);
-    if (texture.valid()) {
-        nw::gfx::upload_texture_rgba8(ctx, texture, pixels, static_cast<size_t>(width) * height * 4);
-    }
-    stbi_image_free(pixels);
-    return texture;
-}
-
-LoadedImage load_image_pixels(const cgltf_image* image, const std::filesystem::path& base_dir)
-{
-    LoadedImage out{};
-    if (!image) return out;
-
-    int width = 0;
-    int height = 0;
-    int channels = 0;
-    stbi_uc* pixels = nullptr;
-    if (image->buffer_view && image->buffer_view->buffer && image->buffer_view->buffer->data) {
-        const auto* data = static_cast<const uint8_t*>(image->buffer_view->buffer->data) + image->buffer_view->offset;
-        pixels = stbi_load_from_memory(data, static_cast<int>(image->buffer_view->size), &width, &height, &channels, 4);
-    } else if (image->uri) {
-        auto path = base_dir / image->uri;
-        pixels = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
-    }
-
-    if (!pixels) return out;
-    out.width = width;
-    out.height = height;
-    out.pixels.assign(pixels, pixels + static_cast<size_t>(width) * height * 4);
-    stbi_image_free(pixels);
-    return out;
-}
-
-TextureHandle load_image(nw::gfx::Context* ctx, const cgltf_image* image,
-    const std::filesystem::path& base_dir, nw::gfx::Fmt fmt)
-{
-    if (!image) return {};
-    if (image->buffer_view && image->buffer_view->buffer && image->buffer_view->buffer->data) {
-        const auto* data = static_cast<const uint8_t*>(image->buffer_view->buffer->data) + image->buffer_view->offset;
-        return load_texture_from_memory(ctx, data, image->buffer_view->size, fmt);
-    }
-
-    if (image->uri) {
-        auto path = base_dir / image->uri;
-        int width = 0;
-        int height = 0;
-        int channels = 0;
-        stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
-        if (!pixels) {
-            return {};
-        }
-        nw::gfx::TextureDesc desc{};
-        desc.width = static_cast<uint32_t>(width);
-        desc.height = static_cast<uint32_t>(height);
-        desc.mip_levels = full_mip_count(desc.width, desc.height);
-        desc.format = fmt;
-        auto texture = nw::gfx::create_texture(ctx, desc);
-        if (texture.valid()) {
-            nw::gfx::upload_texture_rgba8(ctx, texture, pixels, static_cast<size_t>(width) * height * 4);
-        }
-        stbi_image_free(pixels);
-        return texture;
-    }
-
-    return {};
-}
-
 void generate_flat_normals(std::vector<nw::render::Vertex>& vertices, const std::vector<uint32_t>& indices)
 {
     for (auto& v : vertices)
@@ -747,122 +622,6 @@ void generate_tangents(std::vector<nw::render::Vertex>& vertices, const std::vec
         float handedness = (glm::dot(glm::cross(n, t), tan2[i]) < 0.0f) ? -1.0f : 1.0f;
         vertices[i].tangent = glm::vec4{t, handedness};
     }
-}
-
-nw::gfx::BindlessTextureIndex lookup_texture_index(
-    const std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash>& tex_map,
-    const cgltf_texture* tex, nw::gfx::Fmt format, nw::gfx::BindlessTextureIndex fallback)
-{
-    if (!tex) return fallback;
-    auto it = tex_map.find(TextureKey{tex, format});
-    return it != tex_map.end() && nw::gfx::bindless_texture_index_valid(it->second) ? it->second : fallback;
-}
-
-bool texture_reference_uses_fallback(
-    const std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash>& tex_map,
-    const cgltf_texture* tex, nw::gfx::Fmt format)
-{
-    return tex && !tex_map.contains(TextureKey{tex, format});
-}
-
-SurfaceTextureImport create_surface_texture(const cgltf_material* mat, const std::filesystem::path& base_dir,
-    nw::render::RenderModel& model, const ImportGltfDesc& desc)
-{
-    const cgltf_texture* mr_tex = mat && mat->pbr_metallic_roughness.metallic_roughness_texture.texture
-        ? mat->pbr_metallic_roughness.metallic_roughness_texture.texture
-        : nullptr;
-    const cgltf_texture* ao_tex = mat && mat->occlusion_texture.texture ? mat->occlusion_texture.texture : nullptr;
-    if (!mr_tex && !ao_tex) {
-        return SurfaceTextureImport{.index = desc.fallback_surface};
-    }
-
-    LoadedImage mr = mr_tex ? load_image_pixels(mr_tex->image, base_dir) : LoadedImage{};
-    LoadedImage ao = ao_tex ? load_image_pixels(ao_tex->image, base_dir) : LoadedImage{};
-    const bool source_payload_missing = (mr_tex && mr.pixels.empty()) || (ao_tex && ao.pixels.empty());
-
-    int width = mr.width ? mr.width : ao.width;
-    int height = mr.height ? mr.height : ao.height;
-    if (width <= 0 || height <= 0) {
-        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
-    }
-    if ((mr.width && (mr.width != width || mr.height != height)) || (ao.width && (ao.width != width || ao.height != height))) {
-        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
-    }
-
-    std::vector<uint8_t> pixels(static_cast<size_t>(width) * height * 4, 255);
-    for (size_t i = 0; i < static_cast<size_t>(width) * height; ++i) {
-        pixels[i * 4 + 0] = ao.pixels.empty() ? 255 : ao.pixels[i * 4 + 0];
-        pixels[i * 4 + 1] = mr.pixels.empty() ? 128 : mr.pixels[i * 4 + 1];
-        pixels[i * 4 + 2] = mr.pixels.empty() ? 0 : mr.pixels[i * 4 + 2];
-        pixels[i * 4 + 3] = 255;
-    }
-
-    nw::gfx::TextureDesc desc_tex{};
-    desc_tex.width = static_cast<uint32_t>(width);
-    desc_tex.height = static_cast<uint32_t>(height);
-    desc_tex.mip_levels = full_mip_count(desc_tex.width, desc_tex.height);
-    desc_tex.format = nw::gfx::Fmt::RGBA8;
-    auto handle = nw::gfx::create_texture(desc.ctx, desc_tex);
-    if (!handle.valid()) {
-        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
-    }
-    nw::gfx::upload_texture_rgba8(desc.ctx, handle, pixels.data(), pixels.size());
-    const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
-    if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
-        nw::gfx::destroy_texture(desc.ctx, handle);
-        return SurfaceTextureImport{.index = desc.fallback_surface, .material_uses_fallback = true};
-    }
-    model.textures.push_back(handle);
-    return SurfaceTextureImport{
-        .index = texture_index,
-        .material_uses_fallback = source_payload_missing,
-    };
-}
-
-nw::render::Material import_material(const cgltf_material* mat,
-    const std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash>& tex_map,
-    const ImportGltfDesc& desc, const SurfaceTextureImport& surface)
-{
-    nw::render::Material m{};
-    if (!mat) {
-        m.albedo_index = desc.fallback_albedo;
-        m.normal_index = desc.fallback_normal;
-        m.surface_index = desc.fallback_surface;
-        m.emissive_index = desc.fallback_emissive;
-        return m;
-    }
-
-    const auto& pbr = mat->pbr_metallic_roughness;
-    m.albedo = glm::vec4(pbr.base_color_factor[0], pbr.base_color_factor[1], pbr.base_color_factor[2], pbr.base_color_factor[3]);
-    m.roughness = pbr.roughness_factor;
-    m.metallic = pbr.metallic_factor;
-    m.emissive = glm::vec3(mat->emissive_factor[0], mat->emissive_factor[1], mat->emissive_factor[2]);
-    m.normal_scale = mat->normal_texture.scale;
-    m.occlusion_strength = mat->occlusion_texture.scale;
-
-    m.albedo_index = lookup_texture_index(tex_map, pbr.base_color_texture.texture, nw::gfx::Fmt::RGBA8Srgb, desc.fallback_albedo);
-    m.normal_index = lookup_texture_index(tex_map, mat->normal_texture.texture, nw::gfx::Fmt::RGBA8, desc.fallback_normal);
-    m.surface_index = surface.index;
-    m.emissive_index = lookup_texture_index(tex_map, mat->emissive_texture.texture, nw::gfx::Fmt::RGBA8Srgb, desc.fallback_emissive);
-    m.material_uses_fallback = texture_reference_uses_fallback(tex_map, pbr.base_color_texture.texture, nw::gfx::Fmt::RGBA8Srgb)
-        || texture_reference_uses_fallback(tex_map, mat->normal_texture.texture, nw::gfx::Fmt::RGBA8)
-        || texture_reference_uses_fallback(tex_map, mat->emissive_texture.texture, nw::gfx::Fmt::RGBA8Srgb)
-        || surface.material_uses_fallback;
-
-    switch (mat->alpha_mode) {
-    case cgltf_alpha_mode_mask:
-        m.alpha_mode = nw::render::MaterialMode::cutout;
-        break;
-    case cgltf_alpha_mode_blend:
-        m.alpha_mode = nw::render::MaterialMode::transparent;
-        break;
-    default:
-        m.alpha_mode = nw::render::MaterialMode::opaque;
-        break;
-    }
-    m.alpha_cutoff = mat->alpha_cutoff;
-    m.double_sided = mat->double_sided;
-    return m;
 }
 
 nw::render::Material import_model_asset_material(const cgltf_material* mat)
@@ -1232,36 +991,6 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
     return true;
 }
 
-void import_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
-    const glm::mat4& world,
-    const ImportGltfDesc& desc, GltfImportStats& stats, nw::render::RenderModel& model)
-{
-    nw::render::ModelAssetPrimitive decoded{};
-    if (!decode_model_asset_primitive(primitive,
-            material_index,
-            skin_index,
-            node_index,
-            world,
-            model.skins,
-            model.nodes,
-            model.name,
-            model.primitives.size(),
-            stats,
-            decoded)) {
-        add_saturating(stats.dropped_primitive_count);
-        return;
-    }
-
-    nw::render::Primitive out{};
-    if (!nw::render::upload_model_asset_primitive(desc.ctx, decoded, out)) {
-        LOG_F(WARNING, "glTF '{}': primitive {} GPU upload failed; dropping primitive",
-            model.name, model.primitives.size());
-        add_saturating(stats.dropped_primitive_count);
-        return;
-    }
-    model.primitives.push_back(out);
-}
-
 void import_model_asset_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
     const glm::mat4& world, GltfImportStats& stats, nw::render::ModelAsset& asset)
 {
@@ -1470,129 +1199,6 @@ GltfRenderModelImportResult import_gltf_render_model_from_asset(
         *imported.asset, texture_upload, *uploaded.model);
     result.model = std::move(uploaded.model);
     return result;
-}
-
-std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path& path, const ImportGltfDesc& desc)
-{
-    if (!desc.ctx || path.empty()) return {};
-
-    cgltf_options options{};
-    cgltf_data* data = nullptr;
-    if (cgltf_parse_file(&options, path.string().c_str(), &data) != cgltf_result_success || !data) {
-        LOG_F(ERROR, "Failed to parse glTF: {}", path.string());
-        return {};
-    }
-
-    auto cleanup = [&]() {
-        if (data) cgltf_free(data);
-    };
-
-    if (cgltf_validate(data) != cgltf_result_success) {
-        LOG_F(ERROR, "Invalid glTF: {}", path.string());
-        cleanup();
-        return {};
-    }
-
-    if (cgltf_load_buffers(&options, data, path.string().c_str()) != cgltf_result_success) {
-        LOG_F(ERROR, "Failed to load glTF buffers: {}", path.string());
-        cleanup();
-        return {};
-    }
-
-    auto model = std::make_unique<nw::render::RenderModel>();
-    model->name = path.filename().string();
-    model->nodes.resize(data->nodes_count);
-    GltfImportStats import_stats{};
-    import_stats.source_node_count = saturating_gltf_count(data->nodes_count);
-
-    std::unordered_map<TextureKey, nw::gfx::BindlessTextureIndex, TextureKeyHash> tex_map;
-    const auto base_dir = path.parent_path();
-    auto load_material_texture = [&](const cgltf_texture* texture, nw::gfx::Fmt fmt) {
-        if (!texture) return;
-        TextureKey key{texture, fmt};
-        if (tex_map.contains(key)) return;
-        auto handle = load_image(desc.ctx, texture->image, base_dir, fmt);
-        if (handle.valid()) {
-            const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
-            if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
-                nw::gfx::destroy_texture(desc.ctx, handle);
-                return;
-            }
-            model->textures.push_back(handle);
-            tex_map[key] = texture_index;
-        }
-    };
-
-    for (cgltf_size i = 0; i < data->materials_count; ++i) {
-        const auto& material = data->materials[i];
-        load_material_texture(material.pbr_metallic_roughness.base_color_texture.texture, nw::gfx::Fmt::RGBA8Srgb);
-        load_material_texture(material.normal_texture.texture, nw::gfx::Fmt::RGBA8);
-        load_material_texture(material.pbr_metallic_roughness.metallic_roughness_texture.texture, nw::gfx::Fmt::RGBA8);
-        load_material_texture(material.emissive_texture.texture, nw::gfx::Fmt::RGBA8Srgb);
-    }
-
-    if (data->materials_count == 0) {
-        for (cgltf_size i = 0; i < data->textures_count; ++i) {
-            const auto& texture = data->textures[i];
-            auto handle = load_image(desc.ctx, texture.image, base_dir, nw::gfx::Fmt::RGBA8Srgb);
-            if (handle.valid()) {
-                const auto texture_index = nw::gfx::get_bindless_texture_index(desc.ctx, handle);
-                if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
-                    nw::gfx::destroy_texture(desc.ctx, handle);
-                    continue;
-                }
-                model->textures.push_back(handle);
-                tex_map[TextureKey{&texture, nw::gfx::Fmt::RGBA8Srgb}] = texture_index;
-            }
-        }
-    }
-
-    model->materials.reserve(data->materials_count > 0 ? data->materials_count : 1);
-    if (data->materials_count == 0) {
-        nw::render::Material material{};
-        material.albedo_index = desc.fallback_albedo;
-        material.normal_index = desc.fallback_normal;
-        material.surface_index = desc.fallback_surface;
-        material.emissive_index = desc.fallback_emissive;
-        model->materials.push_back(material);
-    } else {
-        for (cgltf_size i = 0; i < data->materials_count; ++i) {
-            const auto surface = create_surface_texture(&data->materials[i], base_dir, *model, desc);
-            model->materials.push_back(import_material(&data->materials[i], tex_map, desc, surface));
-        }
-    }
-
-    auto node_visits = import_selected_scene_node_hierarchy(data, kGltfToMudl, *model, import_stats);
-
-    import_skins(data, *model, import_stats);
-    build_skeletons(data, *model);
-    import_animations(data, *model, import_stats);
-
-    // Skinned glTF meshes can have misleading raw mesh bounds relative to the final posed model,
-    // especially when the asset carries authoring-space root transforms (for example CesiumMan's
-    // Z_UP / Armature chain). Expand the model bounds by retained joint world positions so camera
-    // fitting uses a sane envelope for skinned assets.
-    expand_model_bounds_from_skin_joints(*model);
-
-    auto import_render_primitive = [&](const cgltf_primitive& primitive,
-                                       uint32_t material_index,
-                                       uint32_t skin_index,
-                                       int32_t node_index,
-                                       const glm::mat4& world) {
-        import_primitive(primitive, material_index, skin_index, node_index, world, desc, import_stats, *model);
-    };
-
-    import_node_primitives(data, node_visits, model->materials.size(), import_render_primitive);
-
-    // Merge primitive bounds into any existing joint-expanded bounds.
-    merge_model_primitive_bounds(*model);
-    model->shadow = nw::render::summarize_render_model_shadows(*model);
-
-    cleanup();
-    if (model->primitives.empty()) {
-        return {};
-    }
-    return model;
 }
 
 } // namespace nw::render::gltf

@@ -1,4 +1,4 @@
-// Depth-only shadow pixel shader for glTF PBR primitives.
+// Depth-only shadow pixel shader for common PBR model primitives.
 // SurfaceConstants layout must match nw::render::SurfaceConstants exactly.
 
 Texture2D<float4> g_textures[] : register(t2, space1);

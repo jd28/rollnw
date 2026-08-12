@@ -131,6 +131,16 @@ ScriptString resolve_text(nw::TextRef ref, int32_t language)
     return ScriptString{rt.alloc_string(nw::kernel::strings().get(ref, language_from_int(language)))};
 }
 
+ScriptString resolve_strref(int32_t strref)
+{
+    auto& rt = nw::kernel::runtime();
+    if (strref < 0) {
+        return ScriptString{rt.alloc_string("")};
+    }
+    return ScriptString{rt.alloc_string(
+        nw::kernel::strings().get(static_cast<uint32_t>(strref)))};
+}
+
 } // namespace
 
 void register_core_types(Runtime& rt)
@@ -143,13 +153,15 @@ void register_core_types(Runtime& rt)
         .value_type<nw::Resref>("ResRef")
         .value_type<nw::Resource>("Resource")
         .value_type<nw::TextRef>("TextRef")
-        .function("__resref_from_string", &resref_from_string)
+        .function("resref", &resref_from_string)
         .function("resref_to_string", &resref_to_string)
+        .function("str_resref", &resref_to_string)
         .function("resource", &make_resource)
         .function("resource_resref", &resource_resref)
         .function("resource_type", &resource_type)
         .function("resource_valid", &resource_valid)
         .function("resource_filename", &resource_filename)
+        .function("str_resource", &resource_filename)
         .function("resource_exists", &resource_exists)
         .function("make_text_ref", &make_text_ref)
         .function("make_inline_text_ref", &make_inline_text_ref)
@@ -157,6 +169,7 @@ void register_core_types(Runtime& rt)
         .function("set_text_override", &set_text_override)
         .function("clear_text_override", &clear_text_override)
         .function("resolve_text", &resolve_text)
+        .function("resolve_strref", &resolve_strref)
         .finalize();
 
     TypeID resref_type = rt.type_id("core.types.ResRef");

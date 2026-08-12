@@ -64,9 +64,8 @@ fn resolve_weapon_on_hit(
     is_ranged: bool,
 ): OnHitResult {
     var result = _result(false, 0);
-    var stats = get_propset!(item.ItemStats)(weapon);
-
-    for (var ip in stats.item_properties) {
+    var properties = item.item_properties(weapon);
+    for (var ip in properties) {
         for (var h in handlers) {
             if (h.property_type != ip.prop_type) {
                 continue;

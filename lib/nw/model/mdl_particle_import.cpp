@@ -44,6 +44,21 @@ float scalar_or(const Node& node, uint32_t type, float fallback = 0.0f)
     return fallback;
 }
 
+float lower_nwn_particle_lifetime(float value)
+{
+    if (std::isfinite(value) && value < 0.0f) { return kParticlePerpetualLifetimeSeconds; }
+    return value;
+}
+
+void lower_nwn_particle_lifetimes(ParticleRangeF32& initial, ParticleCurveF32& spawn_over_time)
+{
+    initial.min = lower_nwn_particle_lifetime(initial.min);
+    initial.max = lower_nwn_particle_lifetime(initial.max);
+    for (auto& key : spawn_over_time.keys) {
+        key.value = lower_nwn_particle_lifetime(key.value);
+    }
+}
+
 glm::vec3 vec3_or(const Node& node, uint32_t type, const glm::vec3& fallback = glm::vec3{0.0f})
 {
     if (auto value = get_vec3_controller(node, type)) { return *value; }
@@ -106,11 +121,38 @@ ParticleRenderMode map_render_mode(const EmitterNode& emitter, ParticleImportRes
     return ParticleRenderMode::billboard;
 }
 
+float motion_blur_opacity_scale(const EmitterNode& emitter, ParticleImportResult& result)
+{
+    // Zero is both the parser default and the legacy "unspecified" value.
+    if (emitter.opacity == 0.0f) { return 1.0f; }
+
+    if (!std::isfinite(emitter.opacity)) {
+        result.warnings.push_back({emitter.name.c_str(), "opacity", "non-finite motion blur opacity; defaulting to 1"});
+        return 1.0f;
+    }
+
+    const float opacity = std::clamp(emitter.opacity, 0.0f, 1.0f);
+    if (opacity != emitter.opacity) {
+        result.warnings.push_back({emitter.name.c_str(), "opacity", "motion blur opacity outside [0, 1]; clamping"});
+    }
+    return opacity;
+}
+
 ParticleBlendMode map_blend_mode(const EmitterNode& emitter, ParticleImportResult& result)
 {
     if (string::icmp(emitter.blend, "normal")) return ParticleBlendMode::alpha;
     if (string::icmp(emitter.blend, "punch-through")) return ParticleBlendMode::cutout;
     if (string::icmp(emitter.blend, "lighten")) return ParticleBlendMode::additive;
+
+    if (emitter.blend.empty()) {
+        if (!emitter.texture.empty() && emitter.chunkname.empty()) {
+            result.warnings.push_back({emitter.name.c_str(), "blend", "missing blend mode on texture emitter; defaulting to additive"});
+            return ParticleBlendMode::additive;
+        }
+
+        result.warnings.push_back({emitter.name.c_str(), "blend", "missing blend mode; defaulting to alpha"});
+        return ParticleBlendMode::alpha;
+    }
 
     result.warnings.push_back({emitter.name.c_str(), "blend", "unsupported blend mode; defaulting to alpha"});
     return ParticleBlendMode::alpha;
@@ -615,7 +657,11 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
         } else if (should_lower_stationary_normal_rect_to_local_plane(emitter, out, material)) {
             out.render.mode = ParticleRenderMode::billboard_local_z;
         }
-        out.render.opacity_scale = emitter.opacity == 0.0f ? 1.0f : emitter.opacity;
+        // NWN's opacity field scales motion blur. Some non-motion emitters carry
+        // arbitrary finite data here, so it is not a general particle opacity.
+        out.render.opacity_scale = out.render.mode == ParticleRenderMode::stretched
+            ? motion_blur_opacity_scale(emitter, result)
+            : 1.0f;
         out.render.blur_length = scalar_or(emitter, ControllerType::BlurLength, 0.0f);
         out.render.deadspace_radians = emitter.deadspace;
         out.render.tint_to_scene_ambient = (emitter.flags & EmitterFlag::IsTinted) != 0;
@@ -647,6 +693,10 @@ ParticleImportResult import_particle_effect(const Mdl& mdl, StringView animation
                 : std::max(peak_emission_rate * 4.0f, 1.0f);
             out.max_particles = std::max<uint32_t>(static_cast<uint32_t>(estimated + 1.0f), 1);
         }
+
+        // NWN uses a negative lifeExp as a no-expiry sentinel. Lower it only
+        // after deriving the finite runtime capacity from the authored rate.
+        lower_nwn_particle_lifetimes(out.initial.lifetime, out.spawn_over_time.lifetime);
 
         if ((emitter.flags & EmitterFlag::InheritPart) != 0) {
             result.warnings.push_back({

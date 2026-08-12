@@ -151,7 +151,7 @@ DoorLookup resolve_door_model_by_state(int32_t appearance, int32_t generic_type)
 int32_t door_state_int(nw::Door* door, const char* field)
 {
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.door.DoorState", false);
+    auto tid = rt.type_id("nwn1.propsets.DoorState", false);
     if (!door || tid == nw::smalls::invalid_type_id) { return 0; }
 
     auto ref = rt.find_propset_ref(tid, door->handle());

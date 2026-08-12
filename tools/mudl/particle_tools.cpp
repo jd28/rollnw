@@ -417,7 +417,51 @@ json make_particle_preview_frame_json(const ParticlePreviewAsset& asset,
     return result;
 }
 
-json make_scene_particle_frame_json(const nw::render::viewer::SceneParticleSystem& scene_particles, int frame_index, float time_seconds)
+const nw::render::ModelInstance* scene_particle_owner_instance(
+    const nw::render::viewer::PreviewScene& scene,
+    const nw::render::viewer::SceneParticleSystem& scene_particles)
+{
+    if (!scene_particles.owner_instance_handle.valid()) {
+        return nullptr;
+    }
+    const auto* instance = scene.model_instances.get(scene_particles.owner_instance_handle);
+    return instance
+            && instance->render_model_index == scene_particles.owner_model_index
+        ? instance
+        : nullptr;
+}
+
+std::string_view scene_particle_owner_name(
+    const nw::render::viewer::PreviewScene& scene,
+    const nw::render::viewer::SceneParticleSystem& scene_particles)
+{
+    if (scene_particles.owner_model_index < scene.static_models.size()
+        && scene.static_models[scene_particles.owner_model_index]) {
+        return scene.static_models[scene_particles.owner_model_index]->name;
+    }
+    return {};
+}
+
+std::string_view scene_particle_owner_animation(
+    const nw::render::viewer::PreviewScene& scene,
+    const nw::render::viewer::SceneParticleSystem& scene_particles,
+    const nw::render::ModelInstance* instance)
+{
+    if (instance && scene_particles.owner_model_index < scene.static_models.size()) {
+        const auto& model = scene.static_models[scene_particles.owner_model_index];
+        if (model && !model->animations.empty()) {
+            const uint32_t clip = instance->animation.clip % static_cast<uint32_t>(model->animations.size());
+            return model->animations[clip].name;
+        }
+    }
+    return {};
+}
+
+json make_scene_particle_frame_json(
+    const nw::render::viewer::PreviewScene& scene,
+    const nw::render::viewer::SceneParticleSystem& scene_particles,
+    int frame_index,
+    float time_seconds)
 {
     std::vector<uint32_t> live_by_emitter(scene_particles.system.emitters.size(), 0);
     std::vector<glm::vec3> min_by_emitter(scene_particles.system.emitters.size(), glm::vec3{std::numeric_limits<float>::max()});
@@ -468,11 +512,12 @@ json make_scene_particle_frame_json(const nw::render::viewer::SceneParticleSyste
         });
     }
 
+    const auto* owner_instance = scene_particle_owner_instance(scene, scene_particles);
     json result = {
-        {"owner_model", scene_particles.owner && scene_particles.owner->mdl_ ? scene_particles.owner->mdl_->model.name : ""},
-        {"owner_render_enabled", scene_particles.owner ? scene_particles.owner->render_enabled : false},
-        {"owner_root_transform", scene_particles.owner ? mat4_json(scene_particles.owner->root_transform()) : json::array()},
-        {"owner_animation", scene_particles.owner && scene_particles.owner->anim_ ? scene_particles.owner->anim_->name : ""},
+        {"owner_model", scene_particle_owner_name(scene, scene_particles)},
+        {"owner_render_enabled", owner_instance ? owner_instance->visible : false},
+        {"owner_root_transform", owner_instance ? mat4_json(owner_instance->root_transform) : json::array()},
+        {"owner_animation", scene_particle_owner_animation(scene, scene_particles, owner_instance)},
         {"owner_animation_time_seconds", scene_particles.animation_time},
         {"frame", frame_index},
         {"time_seconds", time_seconds},
@@ -566,26 +611,29 @@ void update_live_vfx_sequence(AppState& state, int32_t dt_ms)
 std::unique_ptr<nw::render::viewer::PreviewScene> build_live_spell_scene(AppState& state, const VfxSequence& sequence)
 {
     vfx_sequence_clear_state(state);
-
-    auto scene = std::make_unique<nw::render::viewer::PreviewScene>();
-    if (sequence.use_spell_actors) {
-        if (auto caster = nw::render::nwn::load_model(kVfxSequenceCasterModel)) {
-            scene->add(std::move(caster));
-        }
-        if (auto target = nw::render::nwn::load_model(kVfxSequenceTargetModel)) {
-            scene->add(std::move(target));
-        }
-    }
-    for (const auto& step : sequence.steps) {
-        if (auto model = nw::render::nwn::load_model(step.source)) {
-            scene->add(std::move(model));
-        }
-    }
-    if (scene->models.empty()) {
+    if (!state.preview_resources) {
         return {};
     }
 
-    vfx_sequence_prepare_scene(state, *scene, sequence);
+    std::vector<std::string> sources;
+    sources.reserve(sequence.steps.size() + (sequence.use_spell_actors ? 2u : 0u));
+    if (sequence.use_spell_actors) {
+        sources.emplace_back(kVfxSequenceCasterModel);
+        sources.emplace_back(kVfxSequenceTargetModel);
+    }
+    for (const auto& step : sequence.steps) {
+        sources.push_back(step.source);
+    }
+
+    auto scene = nw::render::viewer::load_preview_scene(*state.preview_resources, sources);
+    if (!scene || scene->static_models.size() != sources.size()) {
+        return {};
+    }
+
+    if (!vfx_sequence_prepare_scene(state, *scene, sequence)) {
+        vfx_sequence_clear_state(state);
+        return {};
+    }
     return scene;
 }
 
@@ -1509,11 +1557,11 @@ ParticlePreviewBounds spell_preview_compute_bounds(const nw::render::viewer::Pre
 }
 
 ParticlePreviewAsset* spell_preview_asset_for_particles(
-    std::vector<ParticlePreviewAsset>& assets, const nw::render::viewer::SceneParticleSystem& scene_particles)
+    std::vector<ParticlePreviewAsset>& assets,
+    const nw::render::viewer::PreviewScene& scene,
+    const nw::render::viewer::SceneParticleSystem& scene_particles)
 {
-    const auto owner_name = scene_particles.owner && scene_particles.owner->mdl_
-        ? std::string_view(scene_particles.owner->mdl_->model.name)
-        : std::string_view{};
+    const auto owner_name = scene_particle_owner_name(scene, scene_particles);
     for (auto& asset : assets) {
         if (asset.mdl && std::string_view(asset.mdl->model.name) == owner_name) {
             return &asset;
@@ -1532,7 +1580,7 @@ bool write_spell_preview_live_frame(std::vector<ParticlePreviewAsset>& assets, c
     particle_preview_clear(rgba, width, height, {0.19f, 0.27f, 0.42f, 1.0f});
 
     for (const auto& scene_particles : scene.particles) {
-        auto* asset = spell_preview_asset_for_particles(assets, scene_particles);
+        auto* asset = spell_preview_asset_for_particles(assets, scene, scene_particles);
         if (!asset) {
             continue;
         }
@@ -1820,20 +1868,28 @@ int run_spell_export_live_command(AppState& state, const VfxSequence& sequence, 
             {"particles", json::array()},
         };
 
-        for (size_t i = 0; i < state.current_scene->models.size(); ++i) {
-            const auto& model = state.current_scene->models[i];
+        for (size_t i = 0; i < state.current_scene->static_models.size(); ++i) {
+            const auto& model = state.current_scene->static_models[i];
+            const auto* instance = state.current_scene->static_model_instance(i);
+            std::string_view animation;
+            if (model && instance && !model->animations.empty()) {
+                const uint32_t clip = instance->animation.clip % static_cast<uint32_t>(model->animations.size());
+                animation = model->animations[clip].name;
+            }
             frame_json["models"].push_back({
                 {"index", i},
-                {"name", model && model->mdl_ ? model->mdl_->model.name : ""},
-                {"render_enabled", model ? model->render_enabled : false},
-                {"animation", model && model->anim_ ? model->anim_->name : ""},
-                {"animation_time_seconds", model ? static_cast<float>(model->anim_cursor_) * 0.001f : 0.0f},
-                {"root_transform", model ? mat4_json(model->root_transform()) : json::array()},
+                {"kind", "render_model"},
+                {"name", model ? model->name : ""},
+                {"render_enabled", instance ? instance->visible : false},
+                {"animation", animation},
+                {"animation_time_seconds", instance ? instance->animation.time : 0.0f},
+                {"root_transform", instance ? mat4_json(instance->root_transform) : json::array()},
             });
         }
 
         for (const auto& particles : state.current_scene->particles) {
-            frame_json["particles"].push_back(make_scene_particle_frame_json(particles, frame_index, elapsed_seconds));
+            frame_json["particles"].push_back(
+                make_scene_particle_frame_json(*state.current_scene, particles, frame_index, elapsed_seconds));
         }
 
         payload["frames"].push_back(std::move(frame_json));
@@ -1902,7 +1958,8 @@ int run_spell_preview_live_command(AppState& state, const VfxSequence& sequence,
             {"particles", json::array()},
         };
         for (const auto& particles : state.current_scene->particles) {
-            payload["particles"].push_back(make_scene_particle_frame_json(particles, frame_index, elapsed_seconds));
+            payload["particles"].push_back(
+                make_scene_particle_frame_json(*state.current_scene, particles, frame_index, elapsed_seconds));
         }
         if (!write_text_file(particle_preview_metadata_path(out_path), payload.dump(2))) {
             return 1;

@@ -210,6 +210,7 @@ struct VulkanCommandList {
         bool valid = false;
     };
     BoundResources bound_resources;
+    bool resource_bind_failed = false;
     bool recording = false;
     bool in_render_pass = false;
     bool rendered = false;
@@ -340,6 +341,7 @@ inline void begin_command_buffer(VulkanContext* ctx, uint32_t frame_index)
     frame.cmds.bound_index_size = 0;
     frame.cmds.descriptor_buffers_bound = false;
     frame.cmds.bound_resources = {};
+    frame.cmds.resource_bind_failed = false;
     frame.cmds.recording = true;
     frame.cmds.in_render_pass = false;
     frame.cmds.rendered = false;

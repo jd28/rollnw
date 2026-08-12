@@ -38,11 +38,11 @@ Open.
   completed on the default NWN `ModelAsset -> RenderModel` path on Vulkan,
   built an Ozz RenderModel animation backend for `c_bodak`, and
   submitted 16 RenderModel surfaces with zero invalid surface drops.
-- Matched `c_aribeth` Vulkan screenshot captures show legacy direct and legacy
-  prepared NWN rendering are pixel-identical (`AE=0`, `RMSE=0`), while legacy
-  prepared vs. NWN `ModelAsset -> RenderModel` differs (`AE=48196`, normalized
-  `AE=0.052296`, `RMSE=7045.74`, normalized `RMSE=0.107511`). The prepared
-  legacy path selected 36 sidecar draws with zero missing or invalid sidecars.
+- Matched `c_aribeth` Vulkan screenshot captures from before the migration show
+  direct and prepared NWN rendering were pixel-identical (`AE=0`, `RMSE=0`),
+  while prepared vs. NWN `ModelAsset -> RenderModel` differed (`AE=48196`,
+  normalized `AE=0.052296`, `RMSE=7045.74`, normalized `RMSE=0.107511`). The
+  prepared renderer selected 36 draws with zero missing or invalid records.
 - `mudl screenshot c_aribeth
   /tmp/rollnw_c_aribeth_render_model_tangent_recomputed.png` completed on
   Vulkan after import-time non-orthogonal tangent rejection was added. It

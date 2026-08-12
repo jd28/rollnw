@@ -742,13 +742,18 @@ bool TypeTable::is_heap_type(TypeID tid) const
     switch (type->type_kind) {
     case TK_primitive:
         return type->primitive_kind == PK_string;
+    case TK_struct: {
+        if (!type->type_params[0].is<StructID>()) {
+            return true;
+        }
+        const StructDef* def = get(type->type_params[0].as<StructID>());
+        return !def || !def->is_value_type;
+    }
     case TK_array:
     case TK_map:
     case TK_tuple:
     case TK_sum:
     case TK_function:
-        return true;
-    case TK_struct:
         return true;
     default:
         return false;

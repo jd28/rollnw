@@ -1,9 +1,10 @@
-import core.combat as Comb;
-import core.creature as Cre;
+import core.combat as NativeCombat;
+import nwn1.combat_primitives as Comb;
+import nwn1.creature_state as Cre;
 import core.math as Math;
 import core.object as O;
-from core.door import { DoorState };
-from core.placeable import { PlaceableState };
+from nwn1.propsets import { DoorState };
+from nwn1.propsets import { PlaceableState };
 
 import nwn1.classes as Classes;
 import nwn1.constants as Const;
@@ -89,7 +90,7 @@ fn get_saving_throw(obj: object, save_type: Const.Save, save_vs: Const.SaveVersu
 
 fn resolve_saving_throw(obj: object, save_type: Const.Save, dc: int,
     save_vs: Const.SaveVersus, versus: object): bool {
-    var roll = Comb.roll_uniform_int(1, 20);
+    var roll = NativeCombat.roll_uniform_int(1, 20);
     if (roll == 1) { return false; }
     if (roll == 20) { return true; }
 

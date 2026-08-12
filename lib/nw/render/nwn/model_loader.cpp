@@ -11,7 +11,6 @@
 #include <nw/log.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/Tokenizer.hpp>
-#include <nw/util/error_context.hpp>
 #include <nw/util/string.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -31,17 +30,52 @@
 namespace nw::render::nwn {
 
 namespace nwm = nw::model;
+using Bounds = nw::render::Bounds;
+using MaterialMode = nw::render::MaterialMode;
+using Vertex = nw::render::Vertex;
 
 namespace {
 
-float g_dangly_debug_scale = 1.0f;
-DanglyMode g_dangly_mode = DanglyMode::legacy;
-constexpr uint8_t kOpaqueCutoutPassMask = 0x1u;
-constexpr uint8_t kWaterPassMask = 0x2u;
-constexpr uint8_t kTransparentPassMask = 0x4u;
 constexpr float kNwnFoliageMotionScale = 0.1f;
-constexpr float kLegacyDefaultRoughness = 0.78f;
-constexpr float kLegacyDefaultSpecularStrength = 0.12f;
+constexpr float kNwnDefaultRoughness = 0.78f;
+constexpr float kNwnDefaultSpecularStrength = 0.12f;
+
+struct NwnMeshImportData {
+    std::string bitmap_name;
+    std::string normal_map_name;
+    std::string specular_map_name;
+    std::string roughness_map_name;
+    std::string emissive_map_name;
+    std::string renderhint;
+    std::string materialname;
+    std::vector<Vertex> source_vertices;
+    std::optional<nw::render::ModelDeformer> deformer;
+    Bounds local_bounds{};
+    int transparencyhint = 0;
+    MaterialMode material_mode = MaterialMode::opaque;
+    float opacity = 1.0f;
+    float alpha_cutout_threshold = 0.5f;
+    glm::vec3 color_key{0.0f};
+    float color_key_threshold = 0.0f;
+    glm::vec3 emissive{0.0f};
+    float roughness = kNwnDefaultRoughness;
+    float common_pbr_roughness = kNwnDefaultRoughness;
+    float specular_strength = kNwnDefaultSpecularStrength;
+    bool albedo_prefers_plt = false;
+    bool material_uses_fallback = false;
+    bool two_sided_lighting = false;
+};
+
+float inherited_animation_translation_scale(const nwm::Mdl& mdl)
+{
+    const float scale = mdl.model.animationscale;
+    if (std::isfinite(scale) && scale > 0.0f) {
+        return scale;
+    }
+
+    LOG_F(WARNING, "NWN model '{}': invalid animation scale {}; using 1.0", mdl.model.name, scale);
+    return 1.0f;
+}
 
 std::string_view nwn_equipped_item_socket_alias(std::string_view source_name) noexcept
 {
@@ -105,29 +139,6 @@ void append_model_asset_socket_if_missing(
         name);
 }
 
-void append_sidecar_socket_if_missing(
-    std::vector<nw::render::ModelSocket>& sockets,
-    const Node& node,
-    size_t source_node_index,
-    size_t source_node_count,
-    std::string_view name)
-{
-    append_model_socket_if_missing(
-        sockets,
-        source_node_index,
-        source_node_count,
-        node.get_local_transform(),
-        node.bind_pose_,
-        name);
-}
-
-void log_error_context()
-{
-    if (nw::error_context_stack) {
-        LOG_F(ERROR, "\n{}", nw::get_error_context());
-    }
-}
-
 Vertex convert_vertex(const nwm::Vertex& vertex)
 {
     return Vertex{
@@ -136,39 +147,6 @@ Vertex convert_vertex(const nwm::Vertex& vertex)
         .texcoord = vertex.tex_coords,
         .tangent = vertex.tangent,
     };
-}
-
-std::vector<uint16_t> validated_triangle_indices(
-    const std::vector<uint16_t>& source,
-    size_t vertex_count,
-    std::string_view node_name)
-{
-    std::vector<uint16_t> result;
-    result.reserve(source.size());
-
-    size_t dropped = 0;
-    size_t i = 0;
-    for (; i + 2 < source.size(); i += 3) {
-        const auto i0 = static_cast<size_t>(source[i + 0]);
-        const auto i1 = static_cast<size_t>(source[i + 1]);
-        const auto i2 = static_cast<size_t>(source[i + 2]);
-        if (i0 >= vertex_count || i1 >= vertex_count || i2 >= vertex_count) {
-            ++dropped;
-            continue;
-        }
-
-        result.push_back(source[i + 0]);
-        result.push_back(source[i + 1]);
-        result.push_back(source[i + 2]);
-    }
-
-    if (i != source.size()) {
-        ++dropped;
-    }
-    if (dropped != 0) {
-        LOG_F(WARNING, "model loader: dropped {} invalid triangles for node '{}'", dropped, node_name);
-    }
-    return result;
 }
 
 void expand_bounds(Bounds& bounds, const glm::vec3& position, bool first)
@@ -186,44 +164,6 @@ void expand_bounds(Bounds& bounds, const glm::vec3& position, bool first)
 glm::vec3 transform_point(const glm::mat4& transform, const glm::vec3& point)
 {
     return glm::vec3{transform * glm::vec4{point, 1.0f}};
-}
-
-glm::vec3 transform_vector(const glm::mat4& transform, const glm::vec3& value)
-{
-    return glm::vec3{transform * glm::vec4{value, 0.0f}};
-}
-
-uint64_t next_cache_revision(uint64_t revision) noexcept
-{
-    ++revision;
-    return revision == 0 ? 1 : revision;
-}
-
-bool vec3_equal(const glm::vec3& lhs, const glm::vec3& rhs) noexcept
-{
-    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
-}
-
-bool quat_equal(const glm::quat& lhs, const glm::quat& rhs) noexcept
-{
-    return lhs.w == rhs.w && lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
-}
-
-bool mat4_equal(const glm::mat4& lhs, const glm::mat4& rhs) noexcept
-{
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            if (lhs[col][row] != rhs[col][row]) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-glm::mat4 normal_matrix_for(const glm::mat4& model_matrix)
-{
-    return glm::mat4(glm::mat3(glm::transpose(glm::inverse(model_matrix))));
 }
 
 float mesh_alpha_value(const nwm::TrimeshNode* node)
@@ -244,13 +184,6 @@ glm::vec3 mesh_self_illum_value(const nwm::TrimeshNode* node)
         return glm::vec3{value.data[0], value.data[1], value.data[2]};
     }
     return glm::vec3{0.0f};
-}
-
-glm::vec3 rotate_axis_angle(const glm::vec3& value, const glm::vec3& axis, float angle)
-{
-    const float s = std::sin(angle);
-    const float c = std::cos(angle);
-    return value * c + glm::cross(axis, value) * s + axis * glm::dot(axis, value) * (1.0f - c);
 }
 
 bool finite_vec3(const glm::vec3& value)
@@ -469,18 +402,6 @@ uint32_t pack_unorm8x4(const glm::vec4& values)
         | (to_u8(values.w) << 24u);
 }
 
-SkinnedVertex convert_vertex(const nwm::SkinVertex& vertex)
-{
-    return SkinnedVertex{
-        .position = vertex.position,
-        .normal = vertex.normal,
-        .texcoord = vertex.tex_coords,
-        .tangent = vertex.tangent,
-        .joint_indices = pack_u8x4(vertex.bones),
-        .joint_weights = pack_unorm8x4(vertex.weights),
-    };
-}
-
 float hash_phase(std::string_view name)
 {
     uint32_t value = 2166136261u;
@@ -491,83 +412,14 @@ float hash_phase(std::string_view name)
     return static_cast<float>(value & 0xffffu) / 65535.0f * glm::two_pi<float>();
 }
 
-float safe_debug_scale()
-{
-    return std::max(0.0f, g_dangly_debug_scale);
-}
-
-bool use_modern_dangly_mode()
-{
-    return g_dangly_mode == DanglyMode::modern;
-}
-
 bool casts_shadow_material(MaterialMode mode)
 {
     return mode != MaterialMode::transparent && mode != MaterialMode::water;
 }
 
-bool has_declared_texture(const nwm::TrimeshNode* node)
-{
-    if (!node) {
-        return false;
-    }
-    return (!node->bitmap.empty() && node->bitmap != "null")
-        || (!node->textures[0].empty() && node->textures[0] != "null");
-}
-
-bool should_create_mesh_node(const nwm::TrimeshNode* node, nwm::ModelClass model_class)
-{
-    if (!node || node->vertices.empty() || node->indices.empty()) {
-        return false;
-    }
-    if (node->render) {
-        return true;
-    }
-
-    // Many NWN tile sets mark visible tilefade/detail meshes as render=0. Keep
-    // collision/AABB meshes hidden, but preserve textured tile geometry.
-    return model_class == nwm::ModelClass::tile && has_declared_texture(node);
-}
-
-bool should_create_mesh_node(const nwm::SkinNode* node, nwm::ModelClass model_class)
-{
-    if (!node || node->vertices.empty() || node->indices.empty()) {
-        return false;
-    }
-    if (node->render) {
-        return true;
-    }
-
-    // Skin nodes keep their vertex stream on SkinNode, not TrimeshNode, so this
-    // overload preserves the tile detail exception without losing skinned meshes.
-    return model_class == nwm::ModelClass::tile && has_declared_texture(node);
-}
-
-bool should_register_shadow_caster(const nwm::TrimeshNode* node, const Mesh& mesh)
+bool should_register_shadow_caster(const nwm::TrimeshNode* node, const NwnMeshImportData& mesh)
 {
     return node && node->render && node->shadow && casts_shadow_material(mesh.material_mode);
-}
-
-uint8_t material_pass_mask(MaterialMode mode) noexcept
-{
-    switch (mode) {
-    case MaterialMode::opaque:
-    case MaterialMode::cutout:
-        return kOpaqueCutoutPassMask;
-    case MaterialMode::water:
-        return kWaterPassMask;
-    case MaterialMode::transparent:
-        return kTransparentPassMask;
-    }
-    return 0;
-}
-
-nw::render::Transform node_bind_local_transform(const Node& node)
-{
-    if (node.parent_) {
-        return nw::render::Transform::from_matrix(glm::inverse(node.parent_->bind_pose_) * node.bind_pose_);
-    }
-    return nw::render::Transform::from_matrix(node.bind_pose_);
 }
 
 std::string ascii_lower(std::string_view value)
@@ -599,7 +451,7 @@ bool has_foliage_token(std::string_view text)
 DanglyDeformPolicy select_dangly_deform_policy(const nwm::DanglymeshNode* node)
 {
     if (!node) {
-        return DanglyDeformPolicy::legacy_spring_cpu;
+        return DanglyDeformPolicy::secondary_motion_chain;
     }
 
     // NWN dangly nodes do not distinguish foliage cards from other spring-like
@@ -609,17 +461,17 @@ DanglyDeformPolicy select_dangly_deform_policy(const nwm::DanglymeshNode* node)
         || has_foliage_token(ascii_lower(node->bitmap))
         || has_foliage_token(ascii_lower(node->textures[0]));
     return foliage_hint
-        ? DanglyDeformPolicy::foliage_sway_cpu
-        : DanglyDeformPolicy::legacy_spring_cpu;
+        ? DanglyDeformPolicy::foliage_sway
+        : DanglyDeformPolicy::secondary_motion_chain;
 }
 
 std::string_view dangly_deform_policy_name_impl(DanglyDeformPolicy policy) noexcept
 {
     switch (policy) {
-    case DanglyDeformPolicy::legacy_spring_cpu:
-        return "legacy_spring_cpu";
-    case DanglyDeformPolicy::foliage_sway_cpu:
-        return "foliage_sway_cpu";
+    case DanglyDeformPolicy::secondary_motion_chain:
+        return "secondary_motion_chain";
+    case DanglyDeformPolicy::foliage_sway:
+        return "foliage_sway";
     }
     return "unknown";
 }
@@ -627,12 +479,12 @@ std::string_view dangly_deform_policy_name_impl(DanglyDeformPolicy policy) noexc
 nw::render::ModelDeformerKind model_deformer_kind_for_impl(DanglyDeformPolicy policy) noexcept
 {
     switch (policy) {
-    case DanglyDeformPolicy::legacy_spring_cpu:
+    case DanglyDeformPolicy::secondary_motion_chain:
         return nw::render::ModelDeformerKind::secondary_motion_chain;
-    case DanglyDeformPolicy::foliage_sway_cpu:
+    case DanglyDeformPolicy::foliage_sway:
         return nw::render::ModelDeformerKind::vertex_shader_sway;
     }
-    return nw::render::ModelDeformerKind::legacy_reference_cpu;
+    return nw::render::ModelDeformerKind::secondary_motion_chain;
 }
 
 bool looks_like_foliage_texture(std::string_view texture_name)
@@ -688,20 +540,20 @@ bool looks_like_water_material(const nwm::TrimeshNode* node, std::string_view bi
         || contains_water_token(node->materialname);
 }
 
-float nwn_shininess_to_legacy_roughness(float shininess) noexcept
+float nwn_shininess_to_roughness(float shininess) noexcept
 {
     if (!std::isfinite(shininess) || shininess <= 0.0f) {
-        return kLegacyDefaultRoughness;
+        return kNwnDefaultRoughness;
     }
 
     const float spec_power = std::clamp(shininess, 4.0f, 52.0f);
     return std::clamp(1.0f - ((spec_power - 4.0f) / 48.0f), 0.18f, 0.95f);
 }
 
-float nwn_specular_to_legacy_strength(const glm::vec3& specular) noexcept
+float nwn_specular_to_strength(const glm::vec3& specular) noexcept
 {
     if (!std::isfinite(specular.x) || !std::isfinite(specular.y) || !std::isfinite(specular.z)) {
-        return kLegacyDefaultSpecularStrength;
+        return kNwnDefaultSpecularStrength;
     }
 
     const float max_channel = std::max({specular.x, specular.y, specular.z});
@@ -822,7 +674,7 @@ void apply_mtr_scalar(MtrMaterialInfo& info, std::string_view key, float value)
     if (key == "roughness" || key == "roughnessfactor" || key == "roughnessvalue") {
         info.roughness = std::clamp(value, 0.05f, 1.0f);
     } else if (key == "shininess") {
-        info.roughness = nwn_shininess_to_legacy_roughness(value);
+        info.roughness = nwn_shininess_to_roughness(value);
     } else if (key == "specularity" || key == "specularstrength" || key == "specularvalue") {
         info.specular_strength = std::clamp(value, 0.0f, 1.0f);
     } else if (key == "alphacutoff" || key == "alphacutout"
@@ -840,7 +692,7 @@ void apply_mtr_vec3(MtrMaterialInfo& info, std::string_view key, const glm::vec3
     }
 
     if (key == "specular" || key == "specularcolor") {
-        info.specular_strength = nwn_specular_to_legacy_strength(value);
+        info.specular_strength = nwn_specular_to_strength(value);
     } else if (key == "selfillumcolor" || key == "emissive" || key == "emissivecolor") {
         info.emissive = clamp_material_color(value);
     }
@@ -1079,19 +931,17 @@ struct TxiMaterialInfo {
     bool has_txi = false;
     std::string blending;
     float alphamean = 0.5f;
+    bool has_alphamean = false;
     bool decal = false;
 };
 
 struct TextureAnalysis {
     NwnMaterialAlphaProfile alpha_profile = NwnMaterialAlphaProfile::opaque;
-    bool has_color_key = false;
-    glm::vec3 color_key{0.0f};
-    float color_key_threshold = 0.0f;
-    float alpha_coverage_50 = 0.0f;
-    float alpha_coverage_75 = 0.0f;
     int width = 0;
     int height = 0;
 };
+
+constexpr float mostly_binary_alpha_coverage_gap = 0.03f;
 
 std::unordered_map<std::string, TextureAnalysis>& texture_analysis_cache()
 {
@@ -1134,6 +984,34 @@ bool source_texture_exists(std::string_view raw_name)
     return false;
 }
 
+bool should_create_mesh_node(const nwm::TrimeshNode* node, nwm::ModelClass model_class)
+{
+    if (!node || node->vertices.empty() || node->indices.empty()) {
+        return false;
+    }
+    if (node->render) {
+        return true;
+    }
+
+    // Some tile sets mark visible detail meshes as render=0. Preserve that
+    // exception only when the mesh has source imagery to render.
+    return model_class == nwm::ModelClass::tile
+        && source_texture_exists(resolve_bitmap_name(node));
+}
+
+bool should_create_mesh_node(const nwm::SkinNode* node, nwm::ModelClass model_class)
+{
+    if (!node || node->vertices.empty() || node->indices.empty()) {
+        return false;
+    }
+    if (node->render) {
+        return true;
+    }
+
+    return model_class == nwm::ModelClass::tile
+        && source_texture_exists(resolve_bitmap_name(node));
+}
+
 bool source_image_texture_exists(std::string_view raw_name)
 {
     return source_resource_exists(raw_name, nw::ResourceType::dds)
@@ -1149,7 +1027,7 @@ bool explicit_texture_reference_missing(std::string_view raw_name, bool allow_pl
     return allow_plt ? !source_texture_exists(name) : !source_image_texture_exists(name);
 }
 
-bool material_uses_fallback_resources(const Mesh& mesh)
+bool material_uses_fallback_resources(const NwnMeshImportData& mesh)
 {
     return explicit_texture_reference_missing(mesh.bitmap_name, true)
         || explicit_texture_reference_missing(mesh.normal_map_name, false)
@@ -1181,7 +1059,7 @@ TxiMaterialInfo load_txi_material_info(std::string_view bitmap_name)
         nw::string::tolower(&blending);
         result.blending = blending;
     }
-    txi.get_to("alphamean", result.alphamean);
+    result.has_alphamean = txi.get_to("alphamean", result.alphamean);
     int decal = 0;
     if (txi.get_to("decal", decal)) {
         result.decal = decal != 0;
@@ -1228,46 +1106,14 @@ TextureAnalysis analyze_texture(std::string_view bitmap_name)
             coverage_75 += alpha >= 192;
         }
 
-        result.alpha_coverage_50 = static_cast<float>(coverage_50) / static_cast<float>(pixel_count);
-        result.alpha_coverage_75 = static_cast<float>(coverage_75) / static_cast<float>(pixel_count);
         if (has_partial) {
-            result.alpha_profile = NwnMaterialAlphaProfile::graded;
+            const float coverage_gap = static_cast<float>(coverage_50 - coverage_75)
+                / static_cast<float>(pixel_count);
+            result.alpha_profile = has_zero && coverage_gap < mostly_binary_alpha_coverage_gap
+                ? NwnMaterialAlphaProfile::mostly_binary
+                : NwnMaterialAlphaProfile::graded;
         } else {
             result.alpha_profile = has_zero ? NwnMaterialAlphaProfile::binary : NwnMaterialAlphaProfile::opaque;
-        }
-    }
-
-    const auto sample_rgb = [&](size_t index) {
-        const size_t base = index * img->channels();
-        return glm::vec3{
-            src[base + 0] / 255.0f,
-            src[base + 1] / 255.0f,
-            src[base + 2] / 255.0f,
-        };
-    };
-
-    if (img->channels() >= 3 && img->width() > 2 && img->height() > 2) {
-        const size_t w = img->width();
-        const size_t h = img->height();
-        const auto c0 = sample_rgb(0);
-        const auto c1 = sample_rgb(w - 1);
-        const auto c2 = sample_rgb((h - 1) * w);
-        const auto c3 = sample_rgb(h * w - 1);
-        const auto average = (c0 + c1 + c2 + c3) * 0.25f;
-        const float corner_variation = std::max({glm::length(c0 - average), glm::length(c1 - average), glm::length(c2 - average), glm::length(c3 - average)});
-        if (corner_variation < 0.08f) {
-            size_t foreground_pixels = 0;
-            for (size_t i = 0; i < pixel_count; ++i) {
-                if (glm::length(sample_rgb(i) - average) > 0.18f) {
-                    ++foreground_pixels;
-                }
-            }
-
-            if (foreground_pixels > pixel_count / 64) {
-                result.has_color_key = true;
-                result.color_key = average;
-                result.color_key_threshold = 0.12f;
-            }
         }
     }
 
@@ -1276,7 +1122,7 @@ TextureAnalysis analyze_texture(std::string_view bitmap_name)
 }
 
 template <typename TVertex>
-void inset_transparent_subrect_uvs(const Mesh& mesh, std::vector<TVertex>& vertices)
+void inset_transparent_subrect_uvs(const NwnMeshImportData& mesh, std::vector<TVertex>& vertices)
 {
     if (mesh.material_mode != MaterialMode::transparent || mesh.transparencyhint <= 0 || vertices.empty()) {
         return;
@@ -1524,25 +1370,26 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         if (input.txi_decal && input.alpha_profile != NwnMaterialAlphaProfile::opaque) {
             return MaterialMode::cutout;
         }
-    }
-
-    if (web_texture && (input.alpha_profile != NwnMaterialAlphaProfile::opaque || input.has_color_key)) {
-        return MaterialMode::cutout;
-    }
-
-    if (input.has_color_key && input.alpha_profile == NwnMaterialAlphaProfile::opaque) {
-        switch (input.model_class) {
-        case nwm::ModelClass::tile:
-            break;
-        case nwm::ModelClass::effect:
-        case nwm::ModelClass::gui:
-        case nwm::ModelClass::invalid:
-        case nwm::ModelClass::character:
-        case nwm::ModelClass::door:
-        case nwm::ModelClass::item:
-        default:
-            return MaterialMode::cutout;
+        const bool valid_alphamean = input.txi_has_alphamean
+            && std::isfinite(input.txi_alphamean)
+            && input.txi_alphamean > 0.0f
+            && input.txi_alphamean < 1.0f;
+        if (valid_alphamean) {
+            switch (input.alpha_profile) {
+            case NwnMaterialAlphaProfile::binary:
+            case NwnMaterialAlphaProfile::mostly_binary:
+                return MaterialMode::cutout;
+            case NwnMaterialAlphaProfile::graded:
+                return MaterialMode::transparent;
+            case NwnMaterialAlphaProfile::opaque:
+            default:
+                break;
+            }
         }
+    }
+
+    if (web_texture && input.alpha_profile != NwnMaterialAlphaProfile::opaque) {
+        return MaterialMode::cutout;
     }
 
     if (input.node) {
@@ -1559,6 +1406,7 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         if (input.node->transparencyhint > 0) {
             switch (input.alpha_profile) {
             case NwnMaterialAlphaProfile::binary:
+            case NwnMaterialAlphaProfile::mostly_binary:
                 return MaterialMode::cutout;
             case NwnMaterialAlphaProfile::graded:
                 return MaterialMode::transparent;
@@ -1569,9 +1417,28 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         }
     }
 
+    if (input.model_class == nwm::ModelClass::tile && input.is_planar_quad) {
+        switch (input.alpha_profile) {
+        case NwnMaterialAlphaProfile::binary:
+        case NwnMaterialAlphaProfile::mostly_binary:
+            return MaterialMode::cutout;
+        case NwnMaterialAlphaProfile::graded:
+            return MaterialMode::transparent;
+        case NwnMaterialAlphaProfile::opaque:
+        default:
+            break;
+        }
+    }
+
     switch (input.alpha_profile) {
     case NwnMaterialAlphaProfile::binary:
         return MaterialMode::cutout;
+    case NwnMaterialAlphaProfile::mostly_binary:
+        if (input.model_class == nwm::ModelClass::tile
+            || input.model_class == nwm::ModelClass::character) {
+            return MaterialMode::cutout;
+        }
+        [[fallthrough]];
     case NwnMaterialAlphaProfile::graded:
         switch (input.model_class) {
         case nwm::ModelClass::effect:
@@ -1591,36 +1458,21 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
     }
 }
 
-MaterialMode classify_material(const nwm::TrimeshNode* node, std::string_view bitmap_name,
-    nwm::ModelClass model_class)
-{
-    const auto texture = analyze_texture(bitmap_name);
-    const auto txi = load_txi_material_info(bitmap_name);
-    return classify_nwn_material_impl(NwnMaterialClassificationInput{
-        .node = node,
-        .bitmap_name = bitmap_name,
-        .model_class = model_class,
-        .alpha_profile = texture.alpha_profile,
-        .has_color_key = texture.has_color_key,
-        .has_txi = txi.has_txi,
-        .txi_blending = txi.blending,
-        .txi_decal = txi.decal,
-    });
-}
-
-void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::ModelClass model_class,
-    NwnModelAssetImportStats* stats = nullptr)
+void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* node, nwm::ModelClass model_class,
+    std::string_view model_resref, NwnModelAssetImportStats* stats = nullptr)
 {
     if (!node) {
         return;
     }
 
-    mesh.bitmap_name = resolve_bitmap_name(node);
+    mesh.bitmap_name = resolve_nwn_model_albedo_resref(model_resref, resolve_bitmap_name(node));
+    const auto humanoid_palette = nwn_humanoid_palette_resref(model_resref);
+    mesh.albedo_prefers_plt = mesh.bitmap_name == humanoid_palette
+        && source_resource_exists(humanoid_palette, nw::ResourceType::plt);
     mesh.renderhint = std::string(node->renderhint);
     mesh.materialname = std::string(node->materialname);
     mesh.transparencyhint = node->transparencyhint;
     mesh.opacity = mesh_alpha_value(node);
-    mesh.is_ground_overlay = false;
     mesh.alpha_cutout_threshold = 0.5f;
 
     const auto mtr = load_mtr_material_info(node);
@@ -1629,6 +1481,7 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
     }
     if (mtr.diffuse_texture) {
         mesh.bitmap_name = *mtr.diffuse_texture;
+        mesh.albedo_prefers_plt = false;
     }
     mesh.normal_map_name = mtr.normal_texture.value_or(std::string{});
     mesh.specular_map_name = mtr.specular_texture.value_or(std::string{});
@@ -1636,10 +1489,61 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
     mesh.emissive_map_name = mtr.emissive_texture.value_or(std::string{});
     mesh.material_uses_fallback = material_uses_fallback_resources(mesh);
 
+    glm::vec3 min_v{0.0f};
+    glm::vec3 max_v{0.0f};
+    size_t source_vertex_count = 0;
+    bool has_finite_position = false;
+    bool bounds_valid = true;
+    const auto update_bounds = [&](const glm::vec3& position) {
+        ++source_vertex_count;
+        if (!finite_vec3(position)) {
+            bounds_valid = false;
+            return;
+        }
+        if (!has_finite_position) {
+            min_v = position;
+            max_v = position;
+            has_finite_position = true;
+            return;
+        }
+        min_v = glm::min(min_v, position);
+        max_v = glm::max(max_v, position);
+    };
+    if (const auto* skin = dynamic_cast<const nwm::SkinNode*>(node)) {
+        for (const auto& vertex : skin->vertices) {
+            update_bounds(vertex.position);
+        }
+    } else {
+        for (const auto& vertex : node->vertices) {
+            update_bounds(vertex.position);
+        }
+    }
+    bounds_valid = bounds_valid && has_finite_position;
+    if (bounds_valid) {
+        mesh.local_bounds = Bounds{.min = min_v, .max = max_v};
+    } else {
+        mesh.local_bounds = {};
+        min_v = {};
+        max_v = {};
+    }
+    const glm::vec3 span = max_v - min_v;
+    const float horizontal_span = std::max(span.x, span.y);
+    const bool valid_quad_indices = node->indices.size() == 6
+        && std::all_of(node->indices.begin(), node->indices.end(), [source_vertex_count](uint16_t index) {
+               return index < source_vertex_count;
+           });
+    const bool is_planar_tile_quad = model_class == nwm::ModelClass::tile
+        && source_vertex_count == 4
+        && valid_quad_indices
+        && bounds_valid
+        && horizontal_span >= 0.5f
+        && span.z <= 0.2f
+        && span.z <= horizontal_span * 0.1f;
+
     const bool water_material = looks_like_water_material(node, mesh.bitmap_name, model_class);
     const auto* dangly_node = dynamic_cast<const nwm::DanglymeshNode*>(node);
     const bool foliage_dangly = dangly_node
-        && dangly_deform_policy_for(dangly_node) == DanglyDeformPolicy::foliage_sway_cpu;
+        && dangly_deform_policy_for(dangly_node) == DanglyDeformPolicy::foliage_sway;
     const bool foliage_texture_hint = looks_like_foliage_texture(mesh.bitmap_name);
     if (stats) {
         if (water_material) {
@@ -1653,35 +1557,47 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
     TextureAnalysis texture{};
     if (!water_material) {
         texture = analyze_texture(mesh.bitmap_name);
-        if (txi.has_txi && txi.alphamean > 0.0f && txi.alphamean < 1.0f) {
+        if (txi.has_alphamean && std::isfinite(txi.alphamean)
+            && txi.alphamean > 0.0f && txi.alphamean < 1.0f) {
             mesh.alpha_cutout_threshold = txi.alphamean;
         } else if ((foliage_dangly || foliage_texture_hint)
-            && texture.alpha_profile == NwnMaterialAlphaProfile::graded
-            && texture.alpha_coverage_50 - texture.alpha_coverage_75 < 0.03f) {
+            && texture.alpha_profile == NwnMaterialAlphaProfile::mostly_binary) {
             // Mostly-binary foliage alpha benefits from a stronger cutout threshold.
             mesh.alpha_cutout_threshold = 0.75f;
         }
         if (txi.blending == "lighten") {
             mesh.color_key = glm::vec3(0.0f);
             mesh.color_key_threshold = 0.18f;
-        } else if (texture.alpha_profile == NwnMaterialAlphaProfile::opaque) {
-            mesh.color_key = texture.color_key;
-            mesh.color_key_threshold = texture.color_key_threshold;
         }
     }
-    mesh.material_mode = water_material ? MaterialMode::water : classify_material(node, mesh.bitmap_name, model_class);
+    if (water_material) {
+        mesh.material_mode = MaterialMode::water;
+    } else {
+        mesh.material_mode = classify_nwn_material_impl(NwnMaterialClassificationInput{
+            .node = node,
+            .bitmap_name = mesh.bitmap_name,
+            .model_class = model_class,
+            .alpha_profile = texture.alpha_profile,
+            .is_planar_quad = is_planar_tile_quad,
+            .has_txi = txi.has_txi,
+            .txi_blending = txi.blending,
+            .txi_decal = txi.decal,
+            .txi_has_alphamean = txi.has_alphamean,
+            .txi_alphamean = txi.alphamean,
+        });
+    }
     if (!water_material
         && foliage_dangly
         && texture.alpha_profile != NwnMaterialAlphaProfile::opaque
         && mesh.material_mode == MaterialMode::opaque) {
         mesh.material_mode = MaterialMode::cutout;
     }
-    mesh.roughness = nwn_shininess_to_legacy_roughness(node->shininess);
-    mesh.specular_strength = nwn_specular_to_legacy_strength(node->specular);
-    // Do not translate legacy Blinn shininess directly into the common PBR
+    mesh.roughness = nwn_shininess_to_roughness(node->shininess);
+    mesh.specular_strength = nwn_specular_to_strength(node->specular);
+    // Do not translate NWN Blinn shininess directly into the common PBR
     // asset. Diffuse-only NWN meshes use a neutral roughness; authored MTR
     // roughness maps/scalars keep explicit PBR intent.
-    mesh.common_pbr_roughness = !mesh.roughness_map_name.empty() ? 1.0f : kLegacyDefaultRoughness;
+    mesh.common_pbr_roughness = !mesh.roughness_map_name.empty() ? 1.0f : kNwnDefaultRoughness;
     if (mtr.roughness) {
         mesh.roughness = *mtr.roughness;
         mesh.common_pbr_roughness = *mtr.roughness;
@@ -1717,52 +1633,150 @@ void initialize_mesh_material(Mesh& mesh, const nwm::TrimeshNode* node, nwm::Mod
             mesh.emissive = glm::vec3(1.0f);
         }
     }
-
-    glm::vec3 min_v{std::numeric_limits<float>::max()};
-    glm::vec3 max_v{std::numeric_limits<float>::lowest()};
-    if (auto skin = dynamic_cast<const nwm::SkinNode*>(node)) {
-        for (const auto& vertex : skin->vertices) {
-            min_v = glm::min(min_v, vertex.position);
-            max_v = glm::max(max_v, vertex.position);
-        }
-    } else {
-        for (const auto& vertex : node->vertices) {
-            min_v = glm::min(min_v, vertex.position);
-            max_v = glm::max(max_v, vertex.position);
-        }
-    }
-    mesh.local_bounds = Bounds{.min = min_v, .max = max_v};
-    const glm::vec3 span = max_v - min_v;
-    const float horizontal_span = std::max(span.x, span.y);
-    mesh.is_ground_overlay = (mesh.material_mode == MaterialMode::transparent
-                                 || mesh.material_mode == MaterialMode::water)
-        && horizontal_span >= 0.5f
-        && span.z <= 0.2f
-        && span.z <= horizontal_span * 0.1f;
 }
 
-size_t vertex_count(const nwm::TrimeshNode* node)
-{
-    if (auto skin = dynamic_cast<const nwm::SkinNode*>(node)) {
-        return skin->vertices.size();
-    }
-    return node ? node->vertices.size() : 0;
-}
-
-void for_each_vertex_position(const nwm::TrimeshNode* node, const std::function<void(const glm::vec3&)>& fn)
+void initialize_dangly_import_data(
+    NwnMeshImportData& mesh,
+    const nwm::DanglymeshNode* node,
+    NwnModelAssetImportStats& stats)
 {
     if (!node) {
         return;
     }
-    if (auto skin = dynamic_cast<const nwm::SkinNode*>(node)) {
-        for (const auto& vertex : skin->vertices) {
-            fn(vertex.position);
+
+    const auto policy = select_dangly_deform_policy(node);
+    const bool foliage_sway = policy == DanglyDeformPolicy::foliage_sway;
+    mesh.two_sided_lighting = foliage_sway;
+    mesh.source_vertices.reserve(node->vertices.size());
+
+    std::vector<glm::vec3> rest_positions;
+    rest_positions.reserve(node->vertices.size());
+    for (const auto& vertex : node->vertices) {
+        mesh.source_vertices.push_back(convert_vertex(vertex));
+        rest_positions.push_back(vertex.position);
+    }
+
+    const bool constraints_valid = node->constraints.size() == node->vertices.size();
+    if (!constraints_valid && !node->constraints.empty()) {
+        LOG_F(WARNING,
+            "Dangly mesh {} has {} constraints for {} vertices; dropping its deformer",
+            node->name,
+            node->constraints.size(),
+            node->vertices.size());
+    }
+
+    std::vector<float> freedom;
+    freedom.reserve(node->vertices.size());
+    for (size_t i = 0; i < node->vertices.size(); ++i) {
+        freedom.push_back(constraints_valid
+                ? std::clamp(node->constraints[i] / 255.0f, 0.0f, 1.0f)
+                : 0.0f);
+    }
+
+    glm::vec3 pinned_center{0.0f};
+    glm::vec3 loose_center{0.0f};
+    size_t pinned_count = 0;
+    size_t loose_count = 0;
+    for (size_t i = 0; i < rest_positions.size(); ++i) {
+        if (freedom[i] <= 0.05f) {
+            pinned_center += rest_positions[i];
+            ++pinned_count;
+        } else {
+            loose_center += rest_positions[i];
+            ++loose_count;
         }
+    }
+    if (pinned_count > 0) {
+        pinned_center /= static_cast<float>(pinned_count);
+    }
+    if (loose_count > 0) {
+        loose_center /= static_cast<float>(loose_count);
+    } else {
+        loose_center = pinned_center;
+    }
+
+    glm::vec3 pivot = pinned_center;
+    glm::vec3 axis = loose_center - pinned_center;
+    if (foliage_sway && !rest_positions.empty()) {
+        if (rest_positions.size() == 3) {
+            std::array<size_t, 3> order = {0, 1, 2};
+            std::sort(order.begin(), order.end(), [&](size_t lhs, size_t rhs) {
+                return rest_positions[lhs].z < rest_positions[rhs].z;
+            });
+            pivot = (rest_positions[order[0]] + rest_positions[order[1]]) * 0.5f;
+            axis = rest_positions[order[2]] - pivot;
+        } else {
+            size_t root_index = 0;
+            for (size_t i = 1; i < rest_positions.size(); ++i) {
+                if (rest_positions[i].z < rest_positions[root_index].z) {
+                    root_index = i;
+                }
+            }
+
+            pivot = rest_positions[root_index];
+            glm::vec3 tip_center{0.0f};
+            size_t tip_count = 0;
+            for (size_t i = 0; i < rest_positions.size(); ++i) {
+                if (i != root_index) {
+                    tip_center += rest_positions[i];
+                    ++tip_count;
+                }
+            }
+            if (tip_count > 0) {
+                axis = tip_center / static_cast<float>(tip_count) - pivot;
+            }
+        }
+    }
+
+    if (glm::length2(axis) < 1.0e-6f) {
+        axis = glm::vec3{0.0f, 0.0f, 1.0f};
+    }
+    const float extent = std::max(glm::length(axis), 0.05f);
+
+    if (foliage_sway && mesh.source_vertices.size() == 3) {
+        float min_u = mesh.source_vertices.front().texcoord.x;
+        float max_u = min_u;
+        for (const auto& vertex : mesh.source_vertices) {
+            min_u = std::min(min_u, vertex.texcoord.x);
+            max_u = std::max(max_u, vertex.texcoord.x);
+        }
+        if (max_u > 1.25f && min_u >= 0.5f) {
+            for (auto& vertex : mesh.source_vertices) {
+                vertex.texcoord.x -= 0.5f;
+                vertex.texcoord.y = 1.0f - vertex.texcoord.y;
+            }
+        }
+    }
+
+    if (!constraints_valid || rest_positions.empty() || freedom.size() != rest_positions.size()) {
+        ++stats.unsupported_deformer_count;
         return;
     }
-    for (const auto& vertex : node->vertices) {
-        fn(vertex.position);
+
+    nw::render::ModelDeformer deformer{};
+    deformer.kind = model_deformer_kind_for_impl(policy);
+    deformer.vertex_count = rest_positions.size() > std::numeric_limits<uint32_t>::max()
+        ? std::numeric_limits<uint32_t>::max()
+        : static_cast<uint32_t>(rest_positions.size());
+    deformer.pivot = pivot;
+    deformer.axis = glm::normalize(axis);
+    deformer.amplitude = std::clamp(extent * 0.45f * kNwnFoliageMotionScale, 0.012f, 0.035f);
+    deformer.displacement = std::max(0.0f, node->displacement);
+    deformer.period = std::max(0.0f, node->period);
+    deformer.tightness = std::max(0.0f, node->tightness);
+    deformer.phase = hash_phase(node->name);
+
+    float total = 0.0f;
+    deformer.weight_min = freedom.front();
+    deformer.weight_max = freedom.front();
+    for (float value : freedom) {
+        const float clamped = std::clamp(value, 0.0f, 1.0f);
+        deformer.weight_min = std::min(deformer.weight_min, clamped);
+        deformer.weight_max = std::max(deformer.weight_max, clamped);
+        total += clamped;
     }
+    deformer.weight_average = total / static_cast<float>(freedom.size());
+    mesh.deformer = deformer;
 }
 
 uint32_t saturated_model_asset_import_count(size_t count) noexcept
@@ -1808,6 +1822,131 @@ glm::mat4 source_node_local_transform(const nwm::Node& node)
     auto result = glm::translate(glm::mat4{1.0f}, position);
     result *= glm::toMat4(rotation);
     return glm::scale(result, scale);
+}
+
+std::optional<float> source_light_scalar(const nwm::LightNode& light, uint32_t type)
+{
+    const auto controller = light.get_controller(type, false);
+    if (!controller.key || controller.data.empty()) {
+        return std::nullopt;
+    }
+    return controller.data[0];
+}
+
+std::optional<glm::vec3> source_light_color(const nwm::LightNode& light)
+{
+    const auto controller = light.get_controller(nwm::ControllerType::Color, false);
+    if (!controller.key || controller.data.size() < 3) {
+        return std::nullopt;
+    }
+    return glm::vec3{controller.data[0], controller.data[1], controller.data[2]};
+}
+
+bool finite_light_color(const glm::vec3& color) noexcept
+{
+    return std::isfinite(color.x) && std::isfinite(color.y) && std::isfinite(color.z);
+}
+
+bool visible_light_color(const glm::vec3& color) noexcept
+{
+    return std::max(color.x, std::max(color.y, color.z)) > 1.0e-4f;
+}
+
+struct SourceTileLightSlot {
+    bool valid = false;
+    bool source = false;
+    bool second = false;
+};
+
+SourceTileLightSlot source_tile_light_slot(std::string_view name) noexcept
+{
+    if (name.size() < 3) {
+        return {};
+    }
+
+    const char category = static_cast<char>(std::tolower(
+        static_cast<unsigned char>(name[name.size() - 3])));
+    const char marker = static_cast<char>(std::tolower(
+        static_cast<unsigned char>(name[name.size() - 2])));
+    const char lane = name.back();
+    if ((category != 'm' && category != 's')
+        || marker != 'l'
+        || (lane != '1' && lane != '2')) {
+        return {};
+    }
+    return SourceTileLightSlot{
+        .valid = true,
+        .source = category == 's',
+        .second = lane == '2',
+    };
+}
+
+float source_light_classification_radius(const nwm::LightNode& light) noexcept
+{
+    const float radius = source_light_scalar(light, nwm::ControllerType::Radius)
+                             .value_or(source_light_scalar(light, nwm::ControllerType::ShadowRadius)
+                                     .value_or(light.flareradius));
+    return std::isfinite(radius) ? radius : 0.0f;
+}
+
+void append_nwn_model_asset_lights(
+    const nwm::Model& model,
+    nw::render::ModelAsset& asset,
+    NwnModelAssetImportStats& stats)
+{
+    asset.lights.reserve(model.nodes.size());
+    for (size_t node_index = 0; node_index < model.nodes.size(); ++node_index) {
+        const auto* light = dynamic_cast<const nwm::LightNode*>(model.nodes[node_index].get());
+        if (!light || node_index >= nw::render::kInvalidModelNodeIndex) {
+            continue;
+        }
+
+        glm::vec3 color = source_light_color(*light).value_or(light->color);
+        if (!finite_light_color(color)) {
+            color = glm::vec3{0.0f};
+        } else if (!visible_light_color(color) && finite_light_color(light->color)) {
+            color = light->color;
+        }
+
+        const auto slot = source_tile_light_slot(light->name);
+        const float classification_radius = source_light_classification_radius(*light);
+        const bool main_contribution = !slot.source && classification_radius >= 8.0f;
+        uint8_t external_color_slot = nw::render::kModelLightNoExternalColor;
+        if (slot.valid) {
+            external_color_slot = static_cast<uint8_t>(
+                (main_contribution ? 0u : 2u) + (slot.second ? 1u : 0u));
+        }
+
+        float radius = source_light_scalar(*light, nwm::ControllerType::Radius)
+                           .value_or(source_light_scalar(*light, nwm::ControllerType::ShadowRadius)
+                                   .value_or(0.0f));
+        if (!std::isfinite(radius) || radius < 0.0f) {
+            radius = 0.0f;
+        }
+
+        float intensity = source_light_scalar(*light, nwm::ControllerType::Multiplier)
+                              .value_or(light->multiplier > 0.0f ? light->multiplier : 1.0f);
+        if (!std::isfinite(intensity)) {
+            intensity = 1.0f;
+        } else {
+            intensity = std::max(0.0f, intensity);
+        }
+
+        asset.lights.push_back(nw::render::ModelLight{
+            .node = static_cast<uint32_t>(node_index),
+            .color = color,
+            .radius = radius,
+            .intensity = intensity,
+            .external_color_slot = external_color_slot,
+            .main_contribution = main_contribution,
+            .dynamic = light->dynamic,
+            .affect_dynamic = light->affectdynamic != 0,
+            .ambient = light->ambientonly != 0,
+            .casts_shadow = light->shadow != 0,
+            .fading = light->fadinglight != 0,
+        });
+    }
+    stats.light_count = saturated_model_asset_import_count(asset.lights.size());
 }
 
 void initialize_nwn_model_asset_nodes(const nwm::Model& model, nw::render::ModelAsset& asset)
@@ -1927,7 +2066,11 @@ void append_nwn_model_asset_animations(const nwm::Mdl& mdl, nw::render::ModelAss
     const auto& asset_skeleton = asset.skeletons.back();
     const size_t animation_count_before = asset.animations.size();
     std::vector<std::string> imported_clip_names;
+    const float inherited_translation_scale = mdl.model.supermodel
+        ? inherited_animation_translation_scale(mdl)
+        : 1.0f;
     for (const nwm::Mdl* source = &mdl; source; source = source->model.supermodel.get()) {
+        const float translation_scale = source == &mdl ? 1.0f : inherited_translation_scale;
         for (const auto& animation : source->model.animations) {
             if (!animation) {
                 continue;
@@ -1940,7 +2083,8 @@ void append_nwn_model_asset_animations(const nwm::Mdl& mdl, nw::render::ModelAss
                 continue;
             }
 
-            asset.animations.push_back(build_nwn_clip(*animation, asset_skeleton, skeleton_index));
+            asset.animations.push_back(
+                build_nwn_clip(*animation, asset_skeleton, skeleton_index, translation_scale));
             if (!clip_name.empty()) {
                 imported_clip_names.push_back(clip_name);
             }
@@ -2096,20 +2240,27 @@ bool texture_resource_is_plt(std::string_view name)
 uint32_t append_nwn_model_asset_texture_source(std::string_view raw_name,
     std::unordered_map<std::string, uint32_t>& texture_source_indices,
     nw::render::ModelAsset& asset,
-    NwnModelAssetImportStats& stats)
+    NwnModelAssetImportStats& stats,
+    bool prefer_plt = false)
 {
     const auto name = clean_mtr_resource_name(raw_name);
     if (name.empty()) {
         return nw::render::kInvalidModelAssetTextureSourceIndex;
     }
 
-    const auto existing = texture_source_indices.find(name);
+    std::string cache_key;
+    cache_key.reserve(name.size() + 4);
+    cache_key.append(prefer_plt ? "plt:" : "any:");
+    cache_key.append(name);
+    const auto existing = texture_source_indices.find(cache_key);
     if (existing != texture_source_indices.end()) {
         return existing->second;
     }
 
-    auto data = nw::kernel::resman().demand_in_order(
-        nw::Resref{name}, {nw::ResourceType::dds, nw::ResourceType::tga, nw::ResourceType::plt});
+    auto data = prefer_plt && texture_resource_is_plt(name)
+        ? nw::kernel::resman().demand({nw::Resref{name}, nw::ResourceType::plt})
+        : nw::kernel::resman().demand_in_order(
+              nw::Resref{name}, {nw::ResourceType::dds, nw::ResourceType::tga, nw::ResourceType::plt});
     if (data.bytes.size() == 0) {
         if (texture_resource_is_plt(name)) {
             ++stats.unsupported_plt_texture_count;
@@ -2130,17 +2281,19 @@ uint32_t append_nwn_model_asset_texture_source(std::string_view raw_name,
 
     const uint32_t index = static_cast<uint32_t>(asset.texture_sources.size());
     asset.texture_sources.push_back(std::move(source));
-    texture_source_indices.emplace(name, index);
+    texture_source_indices.emplace(std::move(cache_key), index);
     return index;
 }
 
-nw::render::ModelAssetMaterialTextureSources append_nwn_model_asset_material_texture_sources(const Mesh& mesh,
+nw::render::ModelAssetMaterialTextureSources append_nwn_model_asset_material_texture_sources(const NwnMeshImportData& mesh,
     std::unordered_map<std::string, uint32_t>& texture_source_indices,
     nw::render::ModelAsset& asset,
     NwnModelAssetImportStats& stats)
 {
     nw::render::ModelAssetMaterialTextureSources sources{};
-    sources.albedo = append_nwn_model_asset_texture_source(mesh.bitmap_name, texture_source_indices, asset, stats);
+    sources.albedo_srgb = false;
+    sources.albedo = append_nwn_model_asset_texture_source(
+        mesh.bitmap_name, texture_source_indices, asset, stats, mesh.albedo_prefers_plt);
     sources.normal = append_nwn_model_asset_texture_source(mesh.normal_map_name, texture_source_indices, asset, stats);
     sources.metallic_roughness = append_nwn_model_asset_texture_source(
         mesh.roughness_map_name, texture_source_indices, asset, stats);
@@ -2151,9 +2304,10 @@ nw::render::ModelAssetMaterialTextureSources append_nwn_model_asset_material_tex
     return sources;
 }
 
-nw::render::Material nwn_model_asset_material_from_mesh(const Mesh& mesh)
+nw::render::Material nwn_model_asset_material_from_mesh(const NwnMeshImportData& mesh)
 {
     nw::render::Material material{};
+    material.lighting_model = nw::render::MaterialLightingModel::nwn_diffuse;
     material.albedo = glm::vec4{1.0f, 1.0f, 1.0f, mesh.opacity};
     material.roughness = mesh.common_pbr_roughness;
     material.specular_strength = std::clamp(mesh.specular_strength, 0.0f, 1.0f);
@@ -2179,7 +2333,7 @@ bool model_asset_source_is_plt(const nw::render::ModelAsset& asset, uint32_t sou
 }
 
 void append_nwn_model_asset_material(
-    const Mesh& mesh,
+    const NwnMeshImportData& mesh,
     std::unordered_map<std::string, uint32_t>& texture_source_indices,
     nw::render::ModelAsset& asset,
     NwnModelAssetImportStats& stats)
@@ -2193,13 +2347,12 @@ void append_nwn_model_asset_material(
 
 std::vector<Vertex> build_nwn_model_asset_vertices(
     const nwm::TrimeshNode* node,
-    const Mesh& mesh,
+    const NwnMeshImportData& mesh,
     NwnModelAssetImportStats& stats)
 {
     std::vector<Vertex> vertices;
-    const auto* dangly = dynamic_cast<const DanglyMesh*>(&mesh);
-    if (dangly && dangly->cpu_vertices_.size() == node->vertices.size()) {
-        vertices = dangly->cpu_vertices_;
+    if (mesh.source_vertices.size() == node->vertices.size()) {
+        vertices = mesh.source_vertices;
     } else {
         vertices.reserve(node->vertices.size());
         for (const auto& vertex : node->vertices) {
@@ -2246,7 +2399,8 @@ bool build_nwn_model_asset_skin(
                 return false;
             }
             const int16_t source_bone = source->bone_nodes[static_cast<size_t>(source_slot)];
-            if (source_bone < 0 || static_cast<size_t>(source_bone) >= asset.nodes.size()) {
+            if (source_bone != nw::render::kModelSkinIdentityJoint
+                && (source_bone < 0 || static_cast<size_t>(source_bone) >= asset.nodes.size())) {
                 return false;
             }
             used_slots[static_cast<size_t>(source_slot)] = 1u;
@@ -2263,14 +2417,16 @@ bool build_nwn_model_asset_skin(
         }
 
         const int16_t source_bone = source->bone_nodes[source_slot];
-        if (source_bone < 0 || static_cast<size_t>(source_bone) >= asset.nodes.size()) {
+        if (source_bone != nw::render::kModelSkinIdentityJoint
+            && (source_bone < 0 || static_cast<size_t>(source_bone) >= asset.nodes.size())) {
             return false;
         }
 
         out_slot_remap[source_slot] = static_cast<uint8_t>(out_skin.joints.size());
         out_skin.joints.push_back(static_cast<int32_t>(source_bone));
-        out_skin.inverse_bind_matrices.push_back(
-            glm::inverse(asset.nodes[static_cast<size_t>(source_bone)].world_transform) * mesh_bind);
+        out_skin.inverse_bind_matrices.push_back(source_bone == nw::render::kModelSkinIdentityJoint
+                ? glm::mat4{1.0f}
+                : glm::inverse(asset.nodes[static_cast<size_t>(source_bone)].world_transform) * mesh_bind);
     }
 
     return !out_skin.joints.empty();
@@ -2355,12 +2511,12 @@ nw::render::Bounds transformed_vertex_bounds(const std::vector<TVertex>& vertice
     return bounds;
 }
 
-uint32_t append_nwn_model_asset_deformer(const DanglyMesh* dangly,
+uint32_t append_nwn_model_asset_deformer(const NwnMeshImportData& mesh,
     uint32_t source_node_index,
     nw::render::ModelAsset& asset,
     NwnModelAssetImportStats& stats)
 {
-    if (!dangly || dangly->rest_positions_.empty() || source_node_index >= nw::render::kInvalidModelNodeIndex) {
+    if (!mesh.deformer || source_node_index >= nw::render::kInvalidModelNodeIndex) {
         return nw::render::kInvalidModelDeformerIndex;
     }
     if (asset.deformers.size() >= nw::render::kInvalidModelDeformerIndex) {
@@ -2369,13 +2525,11 @@ uint32_t append_nwn_model_asset_deformer(const DanglyMesh* dangly,
     }
 
     const uint32_t index = static_cast<uint32_t>(asset.deformers.size());
-    auto deformer = dangly->make_deformer_record(source_node_index);
+    auto deformer = *mesh.deformer;
+    deformer.source_node_index = source_node_index;
     switch (deformer.kind) {
     case nw::render::ModelDeformerKind::secondary_motion_chain:
         ++stats.secondary_motion_deformer_count;
-        break;
-    case nw::render::ModelDeformerKind::legacy_reference_cpu:
-        ++stats.legacy_reference_deformer_count;
         break;
     case nw::render::ModelDeformerKind::vertex_shader_sway:
     case nw::render::ModelDeformerKind::gpu_vertex_sim:
@@ -2397,10 +2551,28 @@ void merge_nwn_model_asset_bounds(nw::render::ModelAsset& asset)
             asset.bounds.max = glm::max(asset.bounds.max, primitive.bounds.max);
         }
     }
+
+    if (!first) {
+        return;
+    }
+
+    for (const auto& particles : asset.particle_systems) {
+        const auto particle_bounds = nw::render::particle_emitter_spawn_bounds(particles.effect.emitters);
+        if (!particle_bounds) {
+            continue;
+        }
+        if (first) {
+            asset.bounds = *particle_bounds;
+            first = false;
+        } else {
+            asset.bounds.min = glm::min(asset.bounds.min, particle_bounds->min);
+            asset.bounds.max = glm::max(asset.bounds.max, particle_bounds->max);
+        }
+    }
 }
 
 bool append_nwn_model_asset_primitive(const nwm::TrimeshNode* source,
-    Mesh& mesh,
+    NwnMeshImportData& mesh,
     uint32_t source_node_index,
     std::unordered_map<std::string, uint32_t>& texture_source_indices,
     nw::render::ModelAsset& asset,
@@ -2435,8 +2607,7 @@ bool append_nwn_model_asset_primitive(const nwm::TrimeshNode* source,
     primitive.casts_shadow = should_register_shadow_caster(source, mesh);
     primitive.transform = asset.nodes[source_node_index].world_transform;
     primitive.bounds = transformed_vertex_bounds(primitive.vertices, primitive.transform);
-    primitive.deformer = append_nwn_model_asset_deformer(
-        dynamic_cast<const DanglyMesh*>(&mesh), source_node_index, asset, stats);
+    primitive.deformer = append_nwn_model_asset_deformer(mesh, source_node_index, asset, stats);
 
     append_nwn_model_asset_material(mesh, texture_source_indices, asset, stats);
     asset.primitives.push_back(std::move(primitive));
@@ -2444,7 +2615,7 @@ bool append_nwn_model_asset_primitive(const nwm::TrimeshNode* source,
 }
 
 bool append_nwn_model_asset_skin_primitive(const nwm::SkinNode* source,
-    Mesh& mesh,
+    NwnMeshImportData& mesh,
     uint32_t source_node_index,
     std::unordered_map<std::string, uint32_t>& texture_source_indices,
     nw::render::ModelAsset& asset,
@@ -2505,8 +2676,8 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
         if (source_node->type & nwm::NodeFlags::skin) {
             const auto* skin = static_cast<const nwm::SkinNode*>(source_node);
             if (should_create_mesh_node(skin, model.classification)) {
-                Mesh mesh;
-                initialize_mesh_material(mesh, skin, model.classification, &stats);
+                NwnMeshImportData mesh;
+                initialize_mesh_material(mesh, skin, model.classification, model.name, &stats);
                 if (!append_nwn_model_asset_skin_primitive(
                         skin, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats)) {
                     ++stats.skipped_skin_mesh_count;
@@ -2529,22 +2700,61 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
 
         if (source_node->type & nwm::NodeFlags::dangly) {
             const auto* dangly_node = static_cast<const nwm::DanglymeshNode*>(source_node);
-            DanglyMesh mesh;
-            mesh.initialize_dangly(dangly_node);
-            initialize_mesh_material(mesh, dangly_node, model.classification, &stats);
+            NwnMeshImportData mesh;
+            initialize_dangly_import_data(mesh, dangly_node, stats);
+            initialize_mesh_material(mesh, dangly_node, model.classification, model.name, &stats);
             append_nwn_model_asset_primitive(
                 dangly_node, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
             continue;
         }
 
-        Mesh mesh;
-        initialize_mesh_material(mesh, trimesh, model.classification, &stats);
+        NwnMeshImportData mesh;
+        initialize_mesh_material(mesh, trimesh, model.classification, model.name, &stats);
         append_nwn_model_asset_primitive(
             trimesh, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
     }
 }
 
 } // namespace
+
+std::string nwn_humanoid_palette_resref(std::string_view model_resref)
+{
+    const auto separator = model_resref.find('_');
+    if (model_resref.size() < 5
+        || model_resref[0] != 'p'
+        || (model_resref[1] != 'm' && model_resref[1] != 'f')
+        || separator == std::string_view::npos
+        || separator < 4
+        || separator + 1 >= model_resref.size()) {
+        return {};
+    }
+
+    for (size_t i = 3; i < separator; ++i) {
+        if (model_resref[i] < '0' || model_resref[i] > '9') {
+            return {};
+        }
+    }
+
+    std::string result;
+    result.reserve(model_resref.size());
+    result.append(model_resref.substr(0, 2));
+    result.append("h0");
+    result.append(model_resref.substr(separator));
+    return result;
+}
+
+std::string resolve_nwn_model_albedo_resref(
+    std::string_view model_resref, std::string_view albedo_resref)
+{
+    // A selected humanoid body-part model identifies its PLT. Its MDL bitmap
+    // may name shared geometry data from another part and is only the fallback.
+    auto palette_resref = nwn_humanoid_palette_resref(model_resref);
+    if (texture_resource_is_plt(palette_resref)) {
+        return palette_resref;
+    }
+
+    return std::string(albedo_resref);
+}
 
 MaterialMode classify_nwn_material(const NwnMaterialClassificationInput& input)
 {
@@ -2559,7 +2769,7 @@ NwnModelAssetImportResult import_nwn_model_asset(const nwm::Mdl& mdl)
     }
 
     auto asset = std::make_unique<nw::render::ModelAsset>();
-    asset->source_kind = nw::render::ModelAssetSourceKind::nwn_legacy;
+    asset->source_kind = nw::render::ModelAssetSourceKind::nwn;
     asset->name = std::string(mdl.model.name);
     asset->nodes.reserve(mdl.model.nodes.size());
     asset->sockets.reserve(mdl.model.nodes.size());
@@ -2571,6 +2781,7 @@ NwnModelAssetImportResult import_nwn_model_asset(const nwm::Mdl& mdl)
     initialize_nwn_model_asset_nodes(mdl.model, *asset);
     append_nwn_model_asset_sockets(mdl.model, *asset);
     append_nwn_model_asset_animations(mdl, *asset);
+    append_nwn_model_asset_lights(mdl.model, *asset, result.stats);
     append_nwn_model_asset_particles(mdl, *asset, result.stats);
     append_nwn_model_asset_meshes(mdl.model, *asset, result.stats);
     merge_nwn_model_asset_bounds(*asset);
@@ -2640,1560 +2851,6 @@ nw::render::ModelDeformerKind model_deformer_kind_for(DanglyDeformPolicy policy)
 {
     return model_deformer_kind_for_impl(policy);
 }
-
-// ============================================================================
-// Node
-// ============================================================================
-
-glm::mat4 Node::get_transform() const
-{
-    // Walk up parent chain to get world transform
-    glm::mat4 parent = glm::mat4{1.0f};
-    if (!has_transform_) { return parent; }
-    if (parent_) {
-        parent = parent_->get_transform();
-    }
-
-    return parent * get_local_transform();
-}
-
-glm::mat4 Node::get_local_transform() const
-{
-    auto trans = glm::translate(glm::mat4{1.0f}, position_);
-    trans = trans * glm::toMat4(rotation_);
-    return glm::scale(trans, scale_);
-}
-
-const glm::mat4& Node::refresh_model_transform_cache(const glm::mat4& parent_transform, uint64_t parent_revision) const
-{
-    const bool cache_current = cached_model_transform_valid_
-        && cached_parent_model_transform_revision_ == parent_revision
-        && cached_has_transform_ == has_transform_
-        && vec3_equal(cached_position_, position_)
-        && quat_equal(cached_rotation_, rotation_)
-        && vec3_equal(cached_scale_, scale_);
-
-    if (cache_current) {
-        return cached_model_transform_;
-    }
-
-    cached_model_transform_ = has_transform_ ? parent_transform * get_local_transform() : parent_transform;
-    cached_parent_model_transform_revision_ = parent_revision;
-    cached_position_ = position_;
-    cached_rotation_ = rotation_;
-    cached_scale_ = scale_;
-    cached_has_transform_ = has_transform_;
-    cached_model_transform_revision_ = next_cache_revision(cached_model_transform_revision_);
-    cached_model_transform_valid_ = true;
-    return cached_model_transform_;
-}
-
-const glm::mat4& Node::refresh_model_transform_cache() const
-{
-    static const glm::mat4 identity{1.0f};
-    if (!parent_) {
-        return refresh_model_transform_cache(identity, 0);
-    }
-
-    const auto& parent_transform = parent_->refresh_model_transform_cache();
-    return refresh_model_transform_cache(parent_transform, parent_->model_transform_cache_revision());
-}
-
-// ============================================================================
-// Mesh
-// ============================================================================
-
-Mesh::~Mesh()
-{
-    if (owns_gpu_buffers && vertices.valid()) {
-        nw::gfx::destroy_buffer(vertices);
-    }
-    if (owns_gpu_buffers && indices.valid()) {
-        nw::gfx::destroy_buffer(indices);
-    }
-}
-
-const glm::mat4& Mesh::refresh_normal_matrix_cache(
-    const glm::mat4& world_transform, uint64_t model_revision, uint64_t root_revision) const
-{
-    const bool cache_current = cached_normal_matrix_valid_
-        && cached_normal_model_transform_revision_ == model_revision
-        && cached_normal_root_transform_revision_ == root_revision;
-
-    if (cache_current) {
-        return cached_normal_matrix_;
-    }
-
-    cached_normal_matrix_ = normal_matrix_for(world_transform);
-    cached_normal_model_transform_revision_ = model_revision;
-    cached_normal_root_transform_revision_ = root_revision;
-    cached_normal_matrix_valid_ = true;
-    return cached_normal_matrix_;
-}
-
-void SkinMesh::initialize_skinning()
-{
-    for (auto& bind : inverse_bind_pose_) {
-        bind = glm::mat4(1.0f);
-    }
-
-    for (size_t i = 0; i < bone_nodes.size(); ++i) {
-        auto* bone = owner_ ? owner_->node_from_source_index(bone_nodes[i]) : nullptr;
-        if (!bone) {
-            continue;
-        }
-        inverse_bind_pose_[i] = glm::inverse(bone->bind_pose_) * bind_pose_;
-    }
-}
-
-void SkinMesh::fill_skin_matrices(glm::mat4* out, size_t count) const
-{
-    if (!out) {
-        return;
-    }
-
-    const auto limit = std::min(count, bone_nodes.size());
-    for (size_t i = 0; i < limit; ++i) {
-        auto* bone = owner_ ? owner_->node_from_source_index(bone_nodes[i]) : nullptr;
-        out[i] = bone ? bone->get_transform() * inverse_bind_pose_[i] : glm::mat4(1.0f);
-    }
-}
-
-bool DanglyMesh::uses_foliage_sway() const noexcept
-{
-    return deform_policy_ == DanglyDeformPolicy::foliage_sway_cpu;
-}
-
-nw::render::ModelDeformer DanglyMesh::make_deformer_record(uint32_t source_node_index) const noexcept
-{
-    nw::render::ModelDeformer result{};
-    result.kind = model_deformer_kind_for(deform_policy_);
-    result.source_node_index = source_node_index;
-    result.vertex_count = rest_positions_.size() > std::numeric_limits<uint32_t>::max()
-        ? std::numeric_limits<uint32_t>::max()
-        : static_cast<uint32_t>(rest_positions_.size());
-    result.pivot = foliage_pivot_;
-    result.axis = glm::length2(foliage_axis_) > 1.0e-6f ? glm::normalize(foliage_axis_) : glm::vec3{0.0f, 0.0f, 1.0f};
-    result.amplitude = std::max(0.0f, foliage_amplitude_);
-    result.displacement = std::max(0.0f, displacement_);
-    result.period = std::max(0.0f, period_);
-    result.tightness = std::max(0.0f, tightness_);
-    result.phase = phase_;
-
-    if (!freedom_.empty()) {
-        float total = 0.0f;
-        result.weight_min = freedom_.front();
-        result.weight_max = freedom_.front();
-        for (float value : freedom_) {
-            const float clamped = std::clamp(value, 0.0f, 1.0f);
-            result.weight_min = std::min(result.weight_min, clamped);
-            result.weight_max = std::max(result.weight_max, clamped);
-            total += clamped;
-        }
-        result.weight_average = total / static_cast<float>(freedom_.size());
-    }
-
-    if (source_node_index == nw::render::kInvalidModelNodeIndex || !constraints_valid_ || rest_positions_.empty()
-        || freedom_.size() != rest_positions_.size()) {
-        result.kind = nw::render::ModelDeformerKind::legacy_reference_cpu;
-    }
-
-    return result;
-}
-
-void DanglyMesh::initialize_dangly(const nwm::DanglymeshNode* node)
-{
-    initialize_dangly(node, dangly_deform_policy_for(node));
-}
-
-void DanglyMesh::initialize_dangly(const nwm::DanglymeshNode* node, DanglyDeformPolicy policy)
-{
-    cpu_vertices_.clear();
-    rest_positions_.clear();
-    offsets_.clear();
-    velocities_.clear();
-    freedom_.clear();
-    deform_policy_ = policy;
-    deformer_index_ = nw::render::kInvalidModelDeformerIndex;
-    constraints_valid_ = false;
-    two_sided_lighting = uses_foliage_sway();
-
-    if (!node) {
-        return;
-    }
-
-    displacement_ = std::max(0.0f, node->displacement);
-    period_ = std::max(0.0f, node->period);
-    tightness_ = std::max(0.0f, node->tightness);
-    phase_ = hash_phase(node->name);
-
-    cpu_vertices_.reserve(node->vertices.size());
-    rest_positions_.reserve(node->vertices.size());
-    offsets_.assign(node->vertices.size(), glm::vec3{0.0f});
-    velocities_.assign(node->vertices.size(), glm::vec3{0.0f});
-
-    for (const auto& vertex : node->vertices) {
-        cpu_vertices_.push_back(convert_vertex(vertex));
-        rest_positions_.push_back(vertex.position);
-    }
-
-    const bool valid_constraints = node->constraints.size() == node->vertices.size();
-    constraints_valid_ = valid_constraints;
-    if (!valid_constraints && !node->constraints.empty()) {
-        LOG_F(WARNING,
-            "Dangly mesh {} has {} constraints for {} vertices; pinning mesh",
-            node->name,
-            node->constraints.size(),
-            node->vertices.size());
-    }
-
-    freedom_.reserve(node->vertices.size());
-    for (size_t i = 0; i < node->vertices.size(); ++i) {
-        if (!valid_constraints) {
-            freedom_.push_back(0.0f);
-            continue;
-        }
-        freedom_.push_back(std::clamp(node->constraints[i] / 255.0f, 0.0f, 1.0f));
-    }
-
-    glm::vec3 pinned_sum{0.0f};
-    glm::vec3 loose_sum{0.0f};
-    size_t pinned_count = 0;
-    size_t loose_count = 0;
-    for (size_t i = 0; i < rest_positions_.size(); ++i) {
-        if (freedom_[i] <= 0.05f) {
-            pinned_sum += rest_positions_[i];
-            ++pinned_count;
-        }
-        if (freedom_[i] > 0.05f) {
-            loose_sum += rest_positions_[i];
-            ++loose_count;
-        }
-    }
-    if (pinned_count > 0) {
-        pinned_center_ = pinned_sum / static_cast<float>(pinned_count);
-    }
-    if (loose_count > 0) {
-        loose_center_ = loose_sum / static_cast<float>(loose_count);
-    } else {
-        loose_center_ = pinned_center_;
-    }
-
-    foliage_pivot_ = pinned_center_;
-    glm::vec3 axis = loose_center_ - pinned_center_;
-
-    if (uses_foliage_sway() && !rest_positions_.empty()) {
-        if (rest_positions_.size() == 3) {
-            std::array<size_t, 3> order = {0, 1, 2};
-            std::sort(order.begin(), order.end(), [&](size_t lhs, size_t rhs) {
-                return rest_positions_[lhs].z < rest_positions_[rhs].z;
-            });
-
-            const auto& root_a = rest_positions_[order[0]];
-            const auto& root_b = rest_positions_[order[1]];
-            const auto& tip = rest_positions_[order[2]];
-            foliage_pivot_ = (root_a + root_b) * 0.5f;
-            axis = tip - foliage_pivot_;
-        } else {
-            size_t root_index = 0;
-            for (size_t i = 1; i < rest_positions_.size(); ++i) {
-                if (rest_positions_[i].z < rest_positions_[root_index].z) {
-                    root_index = i;
-                }
-            }
-
-            foliage_pivot_ = rest_positions_[root_index];
-            glm::vec3 tip_center{0.0f};
-            size_t tip_count = 0;
-            for (size_t i = 0; i < rest_positions_.size(); ++i) {
-                if (i == root_index) {
-                    continue;
-                }
-                tip_center += rest_positions_[i];
-                ++tip_count;
-            }
-            if (tip_count > 0) {
-                tip_center /= static_cast<float>(tip_count);
-                axis = tip_center - foliage_pivot_;
-            }
-        }
-    }
-
-    if (glm::length2(axis) < 1.0e-6f) {
-        axis = glm::vec3{0.0f, 0.0f, 1.0f};
-    }
-    foliage_extent_ = std::max(glm::length(axis), 0.05f);
-    foliage_axis_ = glm::normalize(axis);
-    foliage_amplitude_ = std::clamp(foliage_extent_ * 0.45f * kNwnFoliageMotionScale, 0.012f, 0.035f);
-
-    if (!freedom_.empty()) {
-        float min_freedom = freedom_.front();
-        float max_freedom = freedom_.front();
-        float total_freedom = 0.0f;
-        for (float value : freedom_) {
-            min_freedom = std::min(min_freedom, value);
-            max_freedom = std::max(max_freedom, value);
-            total_freedom += value;
-        }
-        LOG_F(INFO,
-            "Dangly mesh {}: displacement={} period={} tightness={} freedom[min={}, avg={}, max={}] policy={} amp={}",
-            node->name,
-            displacement_,
-            period_,
-            tightness_,
-            min_freedom,
-            total_freedom / static_cast<float>(freedom_.size()),
-            max_freedom,
-            dangly_deform_policy_name(deform_policy_),
-            foliage_amplitude_);
-    }
-
-    if (uses_foliage_sway() && cpu_vertices_.size() == 3) {
-        float min_u = cpu_vertices_[0].texcoord.x;
-        float max_u = cpu_vertices_[0].texcoord.x;
-        for (const auto& vertex : cpu_vertices_) {
-            min_u = std::min(min_u, vertex.texcoord.x);
-            max_u = std::max(max_u, vertex.texcoord.x);
-        }
-
-        // Some NWN1 bush cards appear to reference the same cutout with a +0.5 U
-        // offset and flipped V relative to their mirrored siblings.
-        if (max_u > 1.25f && min_u >= 0.5f) {
-            for (auto& vertex : cpu_vertices_) {
-                vertex.texcoord.x -= 0.5f;
-                vertex.texcoord.y = 1.0f - vertex.texcoord.y;
-            }
-        }
-    }
-}
-
-void DanglyMesh::update_dangly(const glm::mat4& world_transform, int32_t dt_ms)
-{
-    if (cpu_vertices_.empty() || rest_positions_.size() != cpu_vertices_.size()) {
-        return;
-    }
-
-    if (uses_foliage_sway()) {
-        if (use_modern_dangly_mode()) {
-            update_modern_foliage(world_transform, dt_ms);
-        } else {
-            update_legacy_foliage(world_transform, dt_ms);
-        }
-        return;
-    }
-
-    const auto world_origin = transform_point(world_transform, glm::vec3{0.0f});
-    if (!has_previous_world_origin_) {
-        previous_world_origin_ = world_origin;
-        has_previous_world_origin_ = true;
-    }
-
-    if (dt_ms <= 0 || displacement_ <= 0.0f || period_ <= 0.0f) {
-        previous_world_origin_ = world_origin;
-        upload_vertices();
-        return;
-    }
-
-    const float dt = std::min(static_cast<float>(dt_ms) / 1000.0f, 0.05f);
-    const float debug_scale = safe_debug_scale();
-    const float body_motion_scale = 0.35f / (1.0f + tightness_ * 0.2f);
-    time_ += dt;
-
-    const auto inverse_world = glm::inverse(world_transform);
-    const glm::vec3 breeze_world = glm::normalize(glm::vec3{0.9f, 0.25f, 0.08f});
-    glm::vec3 breeze_local = transform_vector(inverse_world, breeze_world);
-    if (glm::length2(breeze_local) < 1.0e-6f) {
-        breeze_local = glm::vec3{1.0f, 0.0f, 0.0f};
-    } else {
-        breeze_local = glm::normalize(breeze_local);
-    }
-
-    glm::vec3 flutter_local = glm::cross(breeze_local, glm::vec3{0.0f, 0.0f, 1.0f});
-    if (glm::length2(flutter_local) < 1.0e-6f) {
-        flutter_local = glm::vec3{0.0f, 1.0f, 0.0f};
-    } else {
-        flutter_local = glm::normalize(flutter_local);
-    }
-
-    const glm::vec3 motion_delta_world = world_origin - previous_world_origin_;
-    glm::vec3 inertia_local = transform_vector(inverse_world, -motion_delta_world);
-    if (glm::length2(inertia_local) > 1.0e-6f) {
-        inertia_local = glm::normalize(inertia_local);
-    }
-
-    const float gust = 0.5f + 0.5f * std::sin(time_ * 0.8f + phase_);
-    const float pulse = std::sin(time_ * (1.2f + std::min(period_, 20.0f) * 0.045f) + phase_);
-    const float flutter = std::sin(time_ * 2.4f + phase_ * 1.7f);
-    const float wind_strength = 0.18f + 0.32f * gust;
-    const float inertia_strength = glm::min(glm::length(motion_delta_world) * 5.0f, 0.12f);
-    const float stiffness = 8.5f + tightness_ * 0.8f + period_ * 0.18f;
-    const float damping = 4.0f + tightness_ * 0.6f;
-    glm::vec3 mesh_axis = loose_center_ - pinned_center_;
-    if (glm::length2(mesh_axis) < 1.0e-6f) {
-        mesh_axis = glm::vec3{0.0f, 0.0f, 1.0f};
-    } else {
-        mesh_axis = glm::normalize(mesh_axis);
-    }
-
-    for (size_t i = 0; i < cpu_vertices_.size(); ++i) {
-        const float freedom = i < freedom_.size() ? freedom_[i] : 0.0f;
-        if (freedom <= 0.0f) {
-            offsets_[i] = glm::vec3{0.0f};
-            velocities_[i] = glm::vec3{0.0f};
-            cpu_vertices_[i].position = rest_positions_[i];
-            continue;
-        }
-
-        const float effective_freedom = std::sqrt(freedom);
-        const float max_offset = displacement_ * freedom * body_motion_scale * debug_scale;
-        const glm::vec3& rest = rest_positions_[i];
-        const float vertex_phase = rest.x * 0.35f + rest.y * 0.2f + rest.z * 0.1f;
-        glm::vec3 root_dir = rest - pinned_center_;
-        if (glm::length2(root_dir) < 1.0e-6f) {
-            root_dir = mesh_axis;
-        } else {
-            root_dir = glm::normalize(root_dir);
-        }
-
-        glm::vec3 sway_dir = breeze_local;
-        if (glm::length2(inertia_local) > 1.0e-6f) {
-            sway_dir += inertia_local * 0.8f;
-        }
-        sway_dir += root_dir * (0.2f * glm::max(0.0f, glm::dot(root_dir, breeze_local)));
-        if (glm::length2(sway_dir) < 1.0e-6f) {
-            sway_dir = breeze_local;
-        } else {
-            sway_dir = glm::normalize(sway_dir);
-        }
-
-        const float bend = wind_strength * (0.65f + 0.35f * pulse * std::sin(phase_ + vertex_phase));
-        const float flutter_amount = 0.025f * flutter * effective_freedom * std::sin(vertex_phase + phase_ * 0.5f);
-
-        glm::vec3 target = sway_dir * (bend * max_offset);
-        target += flutter_local * (flutter_amount * max_offset);
-        target += inertia_local * (inertia_strength * max_offset);
-
-        // Keep dangly motion on the outward side of the rooted rest direction so
-        // head-attached meshes like hair do not fold back through the face.
-        const float inward_component = glm::dot(target, root_dir);
-        if (inward_component < 0.0f) {
-            target -= root_dir * inward_component;
-        }
-
-        glm::vec3 accel = (target - offsets_[i]) * stiffness - velocities_[i] * damping;
-        velocities_[i] += accel * dt;
-        offsets_[i] += velocities_[i] * dt;
-
-        const float inward_offset = glm::dot(offsets_[i], root_dir);
-        if (inward_offset < 0.0f) {
-            offsets_[i] -= root_dir * inward_offset;
-            velocities_[i] -= root_dir * glm::dot(velocities_[i], root_dir);
-        }
-
-        const float offset_len = glm::length(offsets_[i]);
-        if (offset_len > max_offset && offset_len > 0.0f) {
-            offsets_[i] *= max_offset / offset_len;
-            velocities_[i] *= 0.5f;
-        }
-
-        cpu_vertices_[i].position = rest + offsets_[i];
-    }
-
-    previous_world_origin_ = world_origin;
-    recompute_normals();
-    upload_vertices();
-}
-
-void DanglyMesh::update_legacy_foliage(const glm::mat4& world_transform, int32_t dt_ms)
-{
-    if (cpu_vertices_.empty() || rest_positions_.size() != cpu_vertices_.size()) {
-        return;
-    }
-
-    const float dt = std::min(std::max(static_cast<float>(dt_ms), 0.0f) / 1000.0f, 0.05f);
-    time_ += dt;
-
-    const auto inverse_world = glm::inverse(world_transform);
-    glm::vec3 breeze_local = transform_vector(inverse_world, glm::normalize(glm::vec3{0.95f, 0.18f, 0.04f}));
-    if (glm::length2(breeze_local) < 1.0e-6f) {
-        breeze_local = glm::vec3{1.0f, 0.0f, 0.0f};
-    } else {
-        breeze_local = glm::normalize(breeze_local);
-    }
-
-    glm::vec3 bend_axis = glm::cross(foliage_axis_, breeze_local);
-    if (glm::length2(bend_axis) < 1.0e-6f) {
-        bend_axis = glm::vec3{0.0f, 1.0f, 0.0f};
-    } else {
-        bend_axis = glm::normalize(bend_axis);
-    }
-
-    const float gust = 0.6f + 0.4f * std::sin(time_ * 0.8f + phase_);
-    const float sway = std::sin(time_ * 1.35f + phase_);
-    const float flutter = std::sin(time_ * 2.6f + phase_ * 0.7f);
-    const float motion_scale = dangly_debug_scale() * kNwnFoliageMotionScale;
-    const float max_angle = 0.22f * motion_scale * (0.75f + 0.25f * gust);
-
-    const bool rigid_card = cpu_vertices_.size() == 3;
-    const float rigid_angle = max_angle * sway + 0.03f * motion_scale * flutter;
-
-    for (size_t i = 0; i < cpu_vertices_.size(); ++i) {
-        const glm::vec3 local = rest_positions_[i] - foliage_pivot_;
-        const float height = std::clamp(glm::dot(local, foliage_axis_) / std::max(foliage_extent_, 0.001f), 0.0f, 1.0f);
-        const float freedom = i < freedom_.size() ? freedom_[i] : height;
-        const float angle = rigid_card
-            ? rigid_angle
-            : (max_angle * sway * std::max(height, freedom) + 0.03f * motion_scale * flutter * height);
-        const glm::vec3 rotated = rotate_axis_angle(local, bend_axis, angle);
-        cpu_vertices_[i].position = foliage_pivot_ + rotated;
-    }
-
-    recompute_normals();
-    upload_vertices();
-}
-
-void DanglyMesh::update_modern_foliage(const glm::mat4& world_transform, int32_t dt_ms)
-{
-    if (cpu_vertices_.empty() || rest_positions_.size() != cpu_vertices_.size()) {
-        return;
-    }
-
-    const float dt = std::min(std::max(static_cast<float>(dt_ms), 0.0f) / 1000.0f, 0.05f);
-    time_ += dt;
-
-    const auto inverse_world = glm::inverse(world_transform);
-    glm::vec3 breeze_local = transform_vector(inverse_world, glm::normalize(glm::vec3{0.88f, 0.26f, 0.06f}));
-    if (glm::length2(breeze_local) < 1.0e-6f) {
-        breeze_local = glm::vec3{1.0f, 0.0f, 0.0f};
-    } else {
-        breeze_local = glm::normalize(breeze_local);
-    }
-
-    glm::vec3 lift_local = glm::normalize(glm::vec3{0.0f, 0.0f, 1.0f} + breeze_local * 0.15f);
-    glm::vec3 bend_axis = glm::cross(foliage_axis_, breeze_local);
-    if (glm::length2(bend_axis) < 1.0e-6f) {
-        bend_axis = glm::vec3{0.0f, 1.0f, 0.0f};
-    } else {
-        bend_axis = glm::normalize(bend_axis);
-    }
-
-    const float gust = 0.55f + 0.45f * std::sin(time_ * 0.62f + phase_);
-    const float swell = std::sin(time_ * 0.95f + phase_ * 0.7f);
-    const float flutter = std::sin(time_ * 2.8f + phase_ * 1.3f);
-    const float motion_scale = dangly_debug_scale() * kNwnFoliageMotionScale;
-    const float max_angle = 0.34f * motion_scale * (0.8f + 0.2f * gust);
-    const bool rigid_card = cpu_vertices_.size() == 3;
-
-    for (size_t i = 0; i < cpu_vertices_.size(); ++i) {
-        const glm::vec3 local = rest_positions_[i] - foliage_pivot_;
-        const float height = std::clamp(glm::dot(local, foliage_axis_) / std::max(foliage_extent_, 0.001f), 0.0f, 1.0f);
-        const float lateral_phase = local.x * 0.31f + local.y * 0.19f + phase_;
-        const float wave = swell + 0.35f * std::sin(lateral_phase + time_ * 1.1f);
-        const float angle = rigid_card
-            ? max_angle * wave
-            : max_angle * wave * (0.35f + 0.65f * height);
-
-        glm::vec3 rotated = rotate_axis_angle(local, bend_axis, angle);
-        rotated += lift_local * (0.025f * motion_scale * flutter * height * foliage_extent_);
-        cpu_vertices_[i].position = foliage_pivot_ + rotated;
-    }
-
-    recompute_normals();
-    upload_vertices();
-}
-
-void DanglyMesh::recompute_normals()
-{
-    auto* trimesh = dynamic_cast<const nwm::TrimeshNode*>(orig_);
-    if (!trimesh || trimesh->indices.empty() || cpu_vertices_.empty()) {
-        return;
-    }
-
-    if (uses_foliage_sway() && cpu_vertices_.size() == 3) {
-        const auto face_normal = glm::cross(
-            cpu_vertices_[1].position - cpu_vertices_[0].position,
-            cpu_vertices_[2].position - cpu_vertices_[0].position);
-        glm::vec3 normal = glm::vec3{0.0f, 0.0f, 1.0f};
-        if (glm::length2(face_normal) > 1.0e-10f && finite_vec3(face_normal)) {
-            normal = glm::normalize(face_normal);
-        } else if (auto* dangly = dynamic_cast<const nwm::DanglymeshNode*>(orig_);
-            dangly && dangly->vertices.size() >= 3) {
-            const auto fallback = glm::cross(
-                dangly->vertices[1].position - dangly->vertices[0].position,
-                dangly->vertices[2].position - dangly->vertices[0].position);
-            if (glm::length2(fallback) > 1.0e-10f && finite_vec3(fallback)) {
-                normal = glm::normalize(fallback);
-            }
-        }
-
-        for (auto& vertex : cpu_vertices_) {
-            vertex.normal = normal;
-        }
-        return;
-    }
-
-    for (auto& vertex : cpu_vertices_) {
-        vertex.normal = glm::vec3{0.0f};
-    }
-
-    for (size_t i = 0; i + 2 < trimesh->indices.size(); i += 3) {
-        const auto i0 = static_cast<size_t>(trimesh->indices[i]);
-        const auto i1 = static_cast<size_t>(trimesh->indices[i + 1]);
-        const auto i2 = static_cast<size_t>(trimesh->indices[i + 2]);
-        if (i0 >= cpu_vertices_.size() || i1 >= cpu_vertices_.size() || i2 >= cpu_vertices_.size()) {
-            continue;
-        }
-
-        const auto& p0 = cpu_vertices_[i0].position;
-        const auto& p1 = cpu_vertices_[i1].position;
-        const auto& p2 = cpu_vertices_[i2].position;
-        const auto face_normal = glm::cross(p1 - p0, p2 - p0);
-        if (glm::length2(face_normal) < 1.0e-10f) {
-            continue;
-        }
-
-        cpu_vertices_[i0].normal += face_normal;
-        cpu_vertices_[i1].normal += face_normal;
-        cpu_vertices_[i2].normal += face_normal;
-    }
-
-    for (size_t i = 0; i < cpu_vertices_.size(); ++i) {
-        if (glm::length2(cpu_vertices_[i].normal) > 1.0e-10f && finite_vec3(cpu_vertices_[i].normal)) {
-            cpu_vertices_[i].normal = glm::normalize(cpu_vertices_[i].normal);
-        } else if (auto* dangly = dynamic_cast<const nwm::DanglymeshNode*>(orig_); dangly && i < dangly->vertices.size()) {
-            if (finite_vec3(dangly->vertices[i].normal) && glm::length2(dangly->vertices[i].normal) > 1.0e-10f) {
-                cpu_vertices_[i].normal = dangly->vertices[i].normal;
-            } else {
-                cpu_vertices_[i].normal = glm::vec3{0.0f, 0.0f, 1.0f};
-            }
-        }
-    }
-}
-
-void DanglyMesh::upload_vertices() const
-{
-    if (!vertices.valid() || cpu_vertices_.empty()) {
-        return;
-    }
-
-    auto* vertex_buffer = nw::gfx::map_buffer(vertices);
-    if (!vertex_buffer) {
-        return;
-    }
-
-    std::memcpy(vertex_buffer, cpu_vertices_.data(), cpu_vertices_.size() * sizeof(Vertex));
-    nw::gfx::unmap_buffer(vertices);
-}
-
-// ============================================================================
-// Model
-// ============================================================================
-
-Node* ModelInstance::find(std::string_view name)
-{
-    for (const auto& node : nodes_) {
-        if (node->orig_ && nw::string::icmp(node->orig_->name, name)) {
-            return node.get();
-        }
-    }
-    return nullptr;
-}
-
-const Node* ModelInstance::find(std::string_view name) const
-{
-    for (const auto& node : nodes_) {
-        if (node->orig_ && nw::string::icmp(node->orig_->name, name)) {
-            return node.get();
-        }
-    }
-    return nullptr;
-}
-
-uint32_t ModelInstance::socket_index(std::string_view name) const noexcept
-{
-    if (name.empty()) {
-        return nw::render::kInvalidModelNodeIndex;
-    }
-    for (size_t i = 0; i < sockets_.size(); ++i) {
-        if (nw::string::icmp(sockets_[i].name, name)) {
-            return i >= nw::render::kInvalidModelNodeIndex
-                ? nw::render::kInvalidModelNodeIndex
-                : static_cast<uint32_t>(i);
-        }
-    }
-    return nw::render::kInvalidModelNodeIndex;
-}
-
-const nw::render::ModelSocket* ModelInstance::socket(uint32_t index) const noexcept
-{
-    return index < sockets_.size() ? &sockets_[index] : nullptr;
-}
-
-const Node* ModelInstance::socket_node(uint32_t index) const noexcept
-{
-    const auto* record = socket(index);
-    if (!record || record->source_node_index >= source_nodes_.size()) {
-        return nullptr;
-    }
-    return source_nodes_[record->source_node_index];
-}
-
-const nw::render::ModelDeformer* ModelInstance::deformer(uint32_t index) const noexcept
-{
-    return index < deformers_.size() ? &deformers_[index] : nullptr;
-}
-
-const Node* ModelInstance::deformer_node(uint32_t index) const noexcept
-{
-    const auto* record = deformer(index);
-    if (!record || record->source_node_index >= source_nodes_.size()) {
-        return nullptr;
-    }
-    return source_nodes_[record->source_node_index];
-}
-
-bool ModelInstance::load(const nwm::Mdl* mdl, nw::gfx::Context* ctx, std::string_view root_name)
-{
-    const nwm::Node* root_node = nullptr;
-    auto desired_root = root_name.empty() ? std::string_view{mdl->model.name} : root_name;
-    for (const auto& node : mdl->model.nodes) {
-        if (node && nw::string::icmp(node->name, desired_root)) {
-            root_node = node.get();
-            break;
-        }
-    }
-    if (!root_node) {
-        LOG_F(INFO, "No root dummy");
-        return false;
-    }
-    mdl_ = mdl;
-    ctx_ = ctx;
-    if (load_node(root_node, nullptr)) {
-        source_nodes_.resize(mdl->model.nodes.size(), nullptr);
-        for (auto& node : nodes_) {
-            node->owner_ = this;
-            for (size_t i = 0; i < mdl->model.nodes.size(); ++i) {
-                if (mdl->model.nodes[i].get() == node->orig_) {
-                    source_nodes_[i] = node.get();
-                    break;
-                }
-            }
-        }
-        capture_bind_pose();
-        build_socket_records();
-        build_deformer_records();
-        build_ozz_data();
-        return true;
-    }
-    return false;
-}
-
-Node* ModelInstance::load_node(const nwm::Node* node, Node* parent)
-{
-    std::unique_ptr<Node> result;
-
-    // Create appropriate node type
-    if (node->type & nwm::NodeFlags::skin) {
-        auto n = static_cast<const nwm::SkinNode*>(node);
-        if (should_create_mesh_node(n, mdl_->model.classification)) {
-            auto mesh = std::make_unique<SkinMesh>();
-            mesh->bone_nodes = n->bone_nodes;
-            initialize_mesh_material(*mesh, n, mdl_->model.classification);
-            result = std::move(mesh);
-        }
-    } else if (node->type & nwm::NodeFlags::dangly) {
-        auto n = static_cast<const nwm::DanglymeshNode*>(node);
-        if (should_create_mesh_node(n, mdl_->model.classification)) {
-            auto mesh = std::make_unique<DanglyMesh>();
-            mesh->initialize_dangly(n);
-            initialize_mesh_material(*mesh, n, mdl_->model.classification);
-            result = std::move(mesh);
-        }
-    } else if (node->type & nwm::NodeFlags::mesh && !(node->type & nwm::NodeFlags::aabb)) {
-        auto n = static_cast<const nwm::TrimeshNode*>(node);
-        if (should_create_mesh_node(n, mdl_->model.classification)) {
-            auto mesh = std::make_unique<Mesh>();
-            initialize_mesh_material(*mesh, n, mdl_->model.classification);
-            result = std::move(mesh);
-        }
-    }
-
-    if (!result) {
-        result = std::make_unique<Node>();
-    }
-
-    // Setup hierarchy
-    result->parent_ = parent;
-    result->orig_ = node;
-
-    // Initialize from static controllers
-    auto pos = node->get_controller(nwm::ControllerType::Position, false);
-    if (pos.data.size() >= 3) {
-        result->has_transform_ = true;
-        result->position_ = glm::vec3{pos.data[0], pos.data[1], pos.data[2]};
-    }
-
-    auto ori = node->get_controller(nwm::ControllerType::Orientation, false);
-    if (ori.data.size() >= 4) {
-        result->has_transform_ = true;
-        result->rotation_ = glm::quat{ori.data[3], ori.data[0], ori.data[1], ori.data[2]};
-    }
-
-    auto scale = node->get_controller(nwm::ControllerType::Scale, false);
-    if (!scale.data.empty()) {
-        result->has_transform_ = true;
-        if (scale.data.size() >= 3) {
-            result->scale_ = glm::vec3{scale.data[0], scale.data[1], scale.data[2]};
-        } else {
-            result->scale_ = glm::vec3{scale.data[0]};
-        }
-    }
-
-    Node* result_ptr = result.get();
-    nodes_.push_back(std::move(result));
-
-    // Add to parent's children
-    if (parent) {
-        parent->children_.push_back(result_ptr);
-    }
-
-    // Load children recursively
-    for (const auto* child : node->children) {
-        load_node(child, result_ptr);
-    }
-
-    return result_ptr;
-}
-
-void ModelInstance::capture_bind_pose()
-{
-    for (auto& node : nodes_) {
-        node->bind_pose_ = node->get_transform();
-    }
-
-    for (auto& node : nodes_) {
-        if (auto* skin = dynamic_cast<SkinMesh*>(node.get())) {
-            skin->initialize_skinning();
-        }
-    }
-}
-
-void ModelInstance::build_socket_records()
-{
-    sockets_.clear();
-    sockets_.reserve(source_nodes_.size());
-
-    for (size_t i = 0; i < source_nodes_.size(); ++i) {
-        const auto* node = source_nodes_[i];
-        if (!node || !node->orig_ || node->orig_->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
-            continue;
-        }
-
-        if (node->orig_->type == nwm::NodeType::dummy) {
-            append_sidecar_socket_if_missing(
-                sockets_,
-                *node,
-                i,
-                source_nodes_.size(),
-                std::string_view{node->orig_->name});
-        }
-    }
-
-    for (size_t i = 0; i < source_nodes_.size(); ++i) {
-        const auto* node = source_nodes_[i];
-        if (!node || !node->orig_ || node->orig_->name.empty() || i >= nw::render::kInvalidModelNodeIndex) {
-            continue;
-        }
-
-        // NWN source compatibility only: some single-body creature MDLs use
-        // mesh nodes as equipped item anchors. Authored dummy sockets were
-        // collected first, so these aliases are fallback rows only.
-        append_sidecar_socket_if_missing(
-            sockets_,
-            *node,
-            i,
-            source_nodes_.size(),
-            nwn_equipped_item_socket_alias(node->orig_->name));
-    }
-}
-
-void ModelInstance::build_deformer_records()
-{
-    deformers_.clear();
-    deformers_.reserve(source_nodes_.size());
-    for (size_t i = 0; i < source_nodes_.size(); ++i) {
-        auto* node = source_nodes_[i];
-        auto* dangly = dynamic_cast<DanglyMesh*>(node);
-        if (dangly) {
-            dangly->deformer_index_ = nw::render::kInvalidModelDeformerIndex;
-        }
-        if (!dangly || dangly->rest_positions_.empty() || i >= nw::render::kInvalidModelNodeIndex
-            || deformers_.size() >= nw::render::kInvalidModelDeformerIndex) {
-            continue;
-        }
-
-        dangly->deformer_index_ = static_cast<uint32_t>(deformers_.size());
-        deformers_.push_back(dangly->make_deformer_record(static_cast<uint32_t>(i)));
-    }
-}
-
-void ModelInstance::build_ozz_data(const nwm::Mdl* skeleton_source)
-{
-    if (nodes_.empty()) return;
-
-    skeleton_source = skeleton_source ? skeleton_source : mdl_;
-    if (!skeleton_source) {
-        return;
-    }
-
-    nwn_backend_ = nw::render::make_animation_backend(nw::render::AnimationBackendKind::ozz);
-    if (skeleton_source == mdl_) {
-        nwn_skeleton_ = build_nwn_skeleton(*this, joint_to_source_node_);
-    } else {
-        nwn_skeleton_ = build_nwn_skeleton(*skeleton_source, joint_to_source_node_, skeleton_source->model.name);
-    }
-    if (nwn_skeleton_.joints.empty() || !nwn_backend_->build_skeleton(0, nwn_skeleton_)) {
-        nwn_backend_.reset();
-        joint_target_nodes_.clear();
-        nwn_skeleton_source_ = nullptr;
-        return;
-    }
-    joint_target_nodes_.clear();
-    joint_target_nodes_.reserve(nwn_skeleton_.joints.size());
-    for (const auto& joint : nwn_skeleton_.joints) {
-        joint_target_nodes_.push_back(find(joint.name));
-    }
-    nwn_skeleton_source_ = skeleton_source;
-    nwn_clips_.clear();
-    nwn_pose_ = {};
-    nwn_clip_index_ = -1;
-    nwn_clip_name_to_index_.clear();
-    nwn_clip_has_translation_.clear();
-    nwn_clip_has_rotation_.clear();
-    nwn_clip_has_scale_.clear();
-    LOG_F(INFO, "NWN animation backend: ozz ({} nodes)", nwn_skeleton_.joints.size());
-}
-
-Node* ModelInstance::node_from_source_index(int32_t idx) const
-{
-    if (idx < 0 || static_cast<size_t>(idx) >= source_nodes_.size()) {
-        return nullptr;
-    }
-    return source_nodes_[idx];
-}
-
-Bounds ModelInstance::current_bounds() const
-{
-    return current_bounds(root_transform());
-}
-
-Bounds ModelInstance::current_bounds(const glm::mat4& root) const
-{
-    Bounds result{};
-    bool first = true;
-
-    for (const auto& node : nodes_) {
-        auto* mesh = dynamic_cast<const Mesh*>(node.get());
-        auto* trimesh = mesh ? dynamic_cast<const nwm::TrimeshNode*>(mesh->orig_) : nullptr;
-        if (!mesh || !trimesh) {
-            continue;
-        }
-
-        const auto world_transform = root * mesh->get_transform();
-        if (auto* dangly = dynamic_cast<const DanglyMesh*>(mesh)) {
-            for (const auto& vertex : dangly->cpu_vertices_) {
-                expand_bounds(result, transform_point(world_transform, vertex.position), first);
-                first = false;
-            }
-        } else if (auto* skin = dynamic_cast<const SkinMesh*>(mesh)) {
-            std::array<glm::mat4, nw::render::kModelMaxSkinBones> skin_matrices{};
-            for (auto& bone : skin_matrices) {
-                bone = glm::mat4(1.0f);
-            }
-            skin->fill_skin_matrices(skin_matrices.data(), skin_matrices.size());
-
-            const auto* skin_node = dynamic_cast<const nwm::SkinNode*>(skin->orig_);
-            if (!skin_node) {
-                continue;
-            }
-
-            for (const auto& vertex : skin_node->vertices) {
-                const glm::vec4& weights = vertex.weights;
-                const glm::uvec4 indices = glm::uvec4{vertex.bones.x, vertex.bones.y, vertex.bones.z, vertex.bones.w};
-                const auto matrix_for = [&](uint32_t idx) -> const glm::mat4& {
-                    static const glm::mat4 identity{1.0f};
-                    return idx < skin_matrices.size() ? skin_matrices[idx] : identity;
-                };
-                glm::mat4 skin_matrix = matrix_for(indices.x) * weights.x
-                    + matrix_for(indices.y) * weights.y
-                    + matrix_for(indices.z) * weights.z
-                    + matrix_for(indices.w) * weights.w;
-                const glm::vec3 skinned = glm::vec3(skin_matrix * glm::vec4(vertex.position, 1.0f));
-                expand_bounds(result, transform_point(root, skinned), first);
-                first = false;
-            }
-        } else {
-            for_each_vertex_position(trimesh, [&](const glm::vec3& position) {
-                expand_bounds(result, transform_point(world_transform, position), first);
-                first = false;
-            });
-        }
-    }
-
-    return first ? this->bounds : result;
-}
-
-bool ModelInstance::load_animation(std::string_view name)
-{
-    anim_ = nullptr;
-    const nwm::Mdl* m = animation_source_ ? animation_source_ : mdl_;
-    while (m) {
-        for (const auto& it : m->model.animations) {
-            if (it->name == name) {
-                anim_ = it.get();
-                break;
-            }
-        }
-        if (!m->model.supermodel || anim_) { break; }
-        m = m->model.supermodel.get();
-    }
-    if (anim_) {
-        const nwm::Mdl* skeleton_source = animation_source_ ? animation_source_ : mdl_;
-        if (!nwn_backend_ || nwn_skeleton_source_ != skeleton_source) {
-            build_ozz_data(skeleton_source);
-        }
-        LOG_F(INFO, "Loaded animation: {}", name);
-
-        const char* backend_name = "custom";
-        if (nwn_backend_) {
-            nwn_clip_has_translation_.assign(nwn_skeleton_.joints.size(), 0);
-            nwn_clip_has_rotation_.assign(nwn_skeleton_.joints.size(), 0);
-            nwn_clip_has_scale_.assign(nwn_skeleton_.joints.size(), 0);
-            std::unordered_map<std::string_view, uint32_t> name_to_joint;
-            name_to_joint.reserve(nwn_skeleton_.joints.size());
-            for (uint32_t ji = 0; ji < static_cast<uint32_t>(nwn_skeleton_.joints.size()); ++ji) {
-                name_to_joint[nwn_skeleton_.joints[ji].name] = ji;
-            }
-            for (const auto& anim_node_ptr : anim_->nodes) {
-                if (!anim_node_ptr) {
-                    continue;
-                }
-                auto it = name_to_joint.find(std::string_view(anim_node_ptr->name));
-                if (it == name_to_joint.end()) {
-                    continue;
-                }
-                const auto ji = it->second;
-                nwn_clip_has_translation_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Position, true).key ? 1 : 0;
-                nwn_clip_has_rotation_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Orientation, true).key ? 1 : 0;
-                nwn_clip_has_scale_[ji] = anim_node_ptr->get_controller(nwm::ControllerType::Scale, true).key ? 1 : 0;
-            }
-
-            const std::string name_str(name);
-            auto it = nwn_clip_name_to_index_.find(name_str);
-            if (it != nwn_clip_name_to_index_.end()) {
-                nwn_clip_index_ = static_cast<int32_t>(it->second);
-                backend_name = "ozz";
-            } else {
-                const uint32_t clip_idx = static_cast<uint32_t>(nwn_clips_.size());
-                auto clip = build_nwn_clip(*anim_, nwn_skeleton_, 0);
-                if (nwn_backend_->build_clip(clip_idx, clip)) {
-                    nwn_clip_name_to_index_[name_str] = clip_idx;
-                    nwn_clips_.push_back(std::move(clip));
-                    nwn_clip_index_ = static_cast<int32_t>(clip_idx);
-                    backend_name = "ozz";
-                } else {
-                    nwn_clip_index_ = -1;
-                }
-            }
-        }
-        LOG_F(INFO, "NWN animation sampler: {}", backend_name);
-    }
-    return !!anim_;
-}
-
-glm::mat4 ModelInstance::root_transform() const
-{
-    auto base = placement_transform_;
-    const bool has_local_scale = this->local_scale_ != 1.0f;
-    const glm::mat4 local_scale = has_local_scale
-        ? glm::scale(glm::mat4(1.0f), glm::vec3(this->local_scale_))
-        : glm::mat4(1.0f);
-    if (!transform_context_ || transform_anchor_socket_index_ == nw::render::kInvalidModelNodeIndex) {
-        return has_local_scale ? base * local_scale : base;
-    }
-
-    auto* anchor = transform_context_->socket_node(transform_anchor_socket_index_);
-    glm::mat4 anchor_transform = transform_context_->root_transform() * base;
-    if (anchor_position_only) {
-        const glm::mat4 context_root = transform_context_->root_transform();
-        glm::vec3 anchor_world = glm::vec3(context_root[3]);
-        if (anchor) {
-            anchor_world = glm::vec3(context_root * anchor->get_transform()[3]);
-        }
-
-        glm::mat3 root_basis{context_root};
-        for (int i = 0; i < 3; ++i) {
-            const float length = glm::length(root_basis[i]);
-            if (length > 0.0f) {
-                root_basis[i] /= length;
-            }
-        }
-        const glm::quat root_rotation = glm::normalize(glm::quat_cast(root_basis));
-        anchor_transform = glm::translate(glm::mat4(1.0f), anchor_world) * glm::mat4_cast(root_rotation) * base;
-    } else if (anchor) {
-        anchor_transform = anchor_transform * anchor->get_transform();
-    }
-
-    // Scale the attached model, not the destination anchor translation.
-    if (has_local_scale) {
-        anchor_transform = anchor_transform * local_scale;
-    }
-
-    if (this->anchor_uses_root_bind_offset && !nodes_.empty()) {
-        const Node* local_anchor = socket_node(transform_source_anchor_socket_index_);
-        if (local_anchor) {
-            anchor_transform = anchor_transform * glm::inverse(local_anchor->bind_pose_);
-        } else {
-            auto bind_translation = glm::vec3(nodes_.front()->bind_pose_[3]);
-            anchor_transform = anchor_transform * glm::translate(glm::mat4(1.0f), -bind_translation);
-        }
-    }
-
-    return anchor_transform;
-}
-
-uint64_t ModelInstance::root_transform_cache_revision(const glm::mat4& model_root) const
-{
-    if (cached_root_transform_valid_ && mat4_equal(cached_root_transform_, model_root)) {
-        return cached_root_transform_revision_;
-    }
-
-    cached_root_transform_ = model_root;
-    cached_root_transform_revision_ = next_cache_revision(cached_root_transform_revision_);
-    cached_root_transform_valid_ = true;
-    return cached_root_transform_revision_;
-}
-
-const glm::mat4& ModelInstance::refresh_root_normal_matrix_cache(
-    const glm::mat4& model_root, uint64_t root_revision) const
-{
-    const bool cache_current = cached_root_normal_matrix_valid_
-        && cached_root_normal_transform_revision_ == root_revision;
-
-    if (cache_current) {
-        return cached_root_normal_matrix_;
-    }
-
-    cached_root_normal_matrix_ = normal_matrix_for(model_root);
-    cached_root_normal_transform_revision_ = root_revision;
-    cached_root_normal_matrix_valid_ = true;
-    return cached_root_normal_matrix_;
-}
-
-void ModelInstance::update(int32_t dt_ms)
-{
-    if (anim_) {
-        // Update animation cursor with wrapping.
-        if (dt_ms + anim_cursor_ > int32_t(anim_->length * 1000)) {
-            anim_cursor_ = dt_ms + anim_cursor_ - int32_t(anim_->length * 1000);
-        } else {
-            anim_cursor_ += dt_ms;
-        }
-
-        float time_ms = static_cast<float>(anim_cursor_);
-
-        // Use the unified ozz backend when a clip is loaded.
-        bool ozz_sampled = false;
-        if (nwn_backend_ && nwn_clip_index_ >= 0) {
-            const float time_s = time_ms / 1000.0f;
-            if (nwn_backend_->sample(static_cast<uint32_t>(nwn_clip_index_), time_s, nwn_pose_, true)) {
-                const bool cross_skeleton = nwn_skeleton_source_ && nwn_skeleton_source_ != mdl_;
-                for (size_t ji = 0; ji < joint_target_nodes_.size(); ++ji) {
-                    Node* bone = joint_target_nodes_[ji];
-                    if (!bone) continue;
-                    const auto& local = nwn_pose_.local[ji];
-                    if (cross_skeleton) {
-                        const auto bind_local = node_bind_local_transform(*bone);
-                        bone->position_ = (ji < nwn_clip_has_translation_.size() && nwn_clip_has_translation_[ji])
-                            ? local.translation
-                            : bind_local.translation;
-                        bone->rotation_ = (ji < nwn_clip_has_rotation_.size() && nwn_clip_has_rotation_[ji])
-                            ? local.rotation
-                            : bind_local.rotation;
-                        bone->scale_ = (ji < nwn_clip_has_scale_.size() && nwn_clip_has_scale_[ji])
-                            ? local.scale
-                            : bind_local.scale;
-                    } else {
-                        bone->position_ = local.translation;
-                        bone->rotation_ = local.rotation;
-                        bone->scale_ = local.scale;
-                    }
-                    bone->has_transform_ = true;
-                }
-                ozz_sampled = true;
-            }
-        }
-
-        if (!ozz_sampled) {
-            // Update all animated nodes
-            for (const auto& anim_node : anim_->nodes) {
-                if (!anim_node) continue;
-
-                auto node = find(anim_node->name);
-                if (!node) { continue; }
-
-                // Position controller (keyed)
-                auto poskey = anim_node->get_controller(nwm::ControllerType::Position, true);
-                if (poskey.time.size() > 0) {
-                    int idx1 = -1, idx2 = 0;
-
-                    for (size_t i = 0; i < poskey.time.size(); ++i) {
-                        if (time_ms >= poskey.time[i] * 1000) {
-                            idx1 = static_cast<int>(i);
-                        } else {
-                            idx2 = static_cast<int>(i);
-                            break;
-                        }
-                    }
-
-                    if (idx1 == -1) {
-                        idx1 = static_cast<int>(poskey.time.size() - 1);
-                        idx2 = 0;
-                    } else if (idx2 == 0 && idx1 != -1) {
-                        idx2 = 0;
-                    }
-
-                    float time1 = poskey.time[idx1] * 1000;
-                    float time2 = (idx2 > idx1) ? poskey.time[idx2] * 1000
-                                                : poskey.time[0] * 1000 + anim_->length * 1000;
-
-                    float t = 0.0f;
-                    if (time2 > time1) {
-                        t = (time_ms - time1) / (time2 - time1);
-                    } else {
-                        t = (time_ms - time1) / ((anim_->length * 1000) - time1);
-                    }
-                    t = std::max(0.0f, std::min(1.0f, t));
-
-                    glm::vec3 pos1(poskey.data[idx1 * 3], poskey.data[idx1 * 3 + 1], poskey.data[idx1 * 3 + 2]);
-                    glm::vec3 pos2;
-                    if (idx2 < static_cast<int>(poskey.time.size())) {
-                        pos2 = glm::vec3(poskey.data[idx2 * 3], poskey.data[idx2 * 3 + 1], poskey.data[idx2 * 3 + 2]);
-                    } else {
-                        pos2 = glm::vec3(poskey.data[0], poskey.data[1], poskey.data[2]);
-                    }
-
-                    node->position_ = glm::mix(pos1, pos2, t);
-                    node->has_transform_ = true;
-                }
-
-                // Orientation controller (keyed)
-                auto orikey = anim_node->get_controller(nwm::ControllerType::Orientation, true);
-                if (orikey.time.size() > 0) {
-                    int idx1 = -1, idx2 = 0;
-
-                    for (size_t i = 0; i < orikey.time.size(); ++i) {
-                        if (time_ms >= orikey.time[i] * 1000) {
-                            idx1 = static_cast<int>(i);
-                        } else {
-                            idx2 = static_cast<int>(i);
-                            break;
-                        }
-                    }
-
-                    if (idx1 == -1) {
-                        idx1 = static_cast<int>(orikey.time.size() - 1);
-                        idx2 = 0;
-                    } else if (idx2 == 0 && idx1 != -1) {
-                        idx2 = 0;
-                    }
-
-                    float time1 = orikey.time[idx1] * 1000;
-                    float time2 = (idx2 > idx1) ? orikey.time[idx2] * 1000
-                                                : orikey.time[0] * 1000 + anim_->length * 1000;
-
-                    float t = 0.0f;
-                    if (time2 > time1) {
-                        t = (time_ms - time1) / (time2 - time1);
-                    } else {
-                        t = (time_ms - time1) / ((anim_->length * 1000) - time1);
-                    }
-                    t = std::max(0.0f, std::min(1.0f, t));
-
-                    glm::quat rot1(orikey.data[idx1 * 4 + 3], orikey.data[idx1 * 4],
-                        orikey.data[idx1 * 4 + 1], orikey.data[idx1 * 4 + 2]);
-                    glm::quat rot2;
-                    if (idx2 < static_cast<int>(orikey.time.size())) {
-                        rot2 = glm::quat(orikey.data[idx2 * 4 + 3], orikey.data[idx2 * 4],
-                            orikey.data[idx2 * 4 + 1], orikey.data[idx2 * 4 + 2]);
-                    } else {
-                        rot2 = glm::quat(orikey.data[3], orikey.data[0],
-                            orikey.data[1], orikey.data[2]);
-                    }
-                    node->rotation_ = glm::slerp(rot1, rot2, t);
-                    node->has_transform_ = true;
-                }
-            }
-        } // if (!ozz_sampled)
-    }
-
-    const auto root = root_transform();
-    for (const auto& node : nodes_) {
-        auto* dangly = dynamic_cast<DanglyMesh*>(node.get());
-        if (!dangly) {
-            continue;
-        }
-        dangly->update_dangly(root * dangly->get_transform(), dt_ms);
-    }
-}
-
-// ============================================================================
-// ModelLoader
-// ============================================================================
-
-ModelLoader::ModelLoader(nw::gfx::Context* ctx)
-    : ctx_(ctx)
-{
-}
-
-std::unique_ptr<ModelInstance> ModelLoader::load(const nwm::Mdl* mdl, std::string_view root_name)
-{
-    if (!mdl) {
-        return nullptr;
-    }
-
-    auto model = std::make_unique<ModelInstance>();
-    if (!model->load(mdl, ctx_, root_name)) {
-        return nullptr;
-    }
-
-    for (const auto& node : model->nodes_) {
-        if (!node->is_mesh) continue;
-        auto* mesh = static_cast<Mesh*>(node.get());
-
-        auto* trimesh = dynamic_cast<const nwm::TrimeshNode*>(mesh->orig_);
-        if (!trimesh) {
-            continue;
-        }
-
-        bool created = true;
-        if (ctx_) {
-            if (auto* skin = dynamic_cast<SkinMesh*>(mesh)) {
-                created = create_skin_buffers(*skin, static_cast<const nwm::SkinNode*>(trimesh));
-            } else {
-                created = create_mesh_buffers(*mesh, trimesh);
-            }
-        }
-        if (!created) {
-            LOG_F(WARNING, "Failed to create mesh buffers for node {}", mesh->orig_->name);
-        }
-        if (created && should_register_shadow_caster(trimesh, *mesh)) {
-            model->shadow_casters_.push_back(mesh);
-        }
-        if (created && !trimesh->indices.empty()) {
-            model->material_pass_mask |= material_pass_mask(mesh->material_mode);
-        }
-
-        const auto world_transform = mesh->get_transform();
-        const bool first_vertex = model->vertex_count == 0;
-        model->vertex_count += vertex_count(trimesh);
-        model->index_count += trimesh->indices.size();
-        bool is_first = first_vertex;
-        for_each_vertex_position(trimesh, [&](const glm::vec3& position) {
-            expand_bounds(model->bounds, transform_point(world_transform, position), is_first);
-            is_first = false;
-        });
-    }
-
-    return model;
-}
-
-std::unique_ptr<ModelInstance> ModelLoader::load(std::string_view resref, std::string_view root_name)
-{
-    auto* mdl = nw::kernel::models().load(resref);
-    if (!mdl) {
-        LOG_F(ERROR, "Failed to load model: {}", resref);
-        log_error_context();
-        return nullptr;
-    }
-
-    auto model = load(mdl, root_name);
-    if (!model) {
-        LOG_F(ERROR, "Failed to load model: {}", resref);
-        log_error_context();
-    }
-    return model;
-}
-
-bool ModelLoader::create_mesh_buffers(Mesh& mesh, const nwm::TrimeshNode* node)
-{
-    if (!ctx_ || !node || node->vertices.empty() || node->indices.empty()) {
-        return false;
-    }
-
-    auto* dangly = dynamic_cast<DanglyMesh*>(&mesh);
-    std::vector<Vertex> vertices;
-    if (dangly && dangly->cpu_vertices_.size() == node->vertices.size()) {
-        vertices = dangly->cpu_vertices_;
-    } else {
-        vertices.reserve(node->vertices.size());
-        for (const auto& vertex : node->vertices) {
-            vertices.push_back(convert_vertex(vertex));
-        }
-    }
-
-    std::vector<uint16_t> indices = validated_triangle_indices(node->indices, vertices.size(), node->name);
-    if (indices.empty()) {
-        return false;
-    }
-
-    if (has_invalid_normals(vertices)) {
-        recompute_static_vertex_normals_for_indices(indices, vertices);
-    }
-    if (has_invalid_tangents(vertices)) {
-        recompute_vertex_tangents_for_indices(indices, vertices);
-    }
-
-    inset_transparent_subrect_uvs(mesh, vertices);
-    if (mesh.material_mode == MaterialMode::water) {
-        subdivide_water_mesh(vertices, indices);
-    }
-    if (dangly && dangly->cpu_vertices_.size() == vertices.size()) {
-        dangly->cpu_vertices_ = vertices;
-    }
-
-    nw::gfx::BufferDesc vertex_desc{};
-    vertex_desc.size = vertices.size() * sizeof(Vertex);
-    vertex_desc.usage = nw::gfx::BufferUsage::Vertex;
-    vertex_desc.cpu_visible = true;
-    mesh.vertices = nw::gfx::create_buffer(ctx_, vertex_desc);
-
-    nw::gfx::BufferDesc index_desc{};
-    index_desc.size = indices.size() * sizeof(uint16_t);
-    index_desc.usage = nw::gfx::BufferUsage::Index;
-    index_desc.cpu_visible = true;
-    mesh.indices = nw::gfx::create_buffer(ctx_, index_desc);
-
-    auto* vertex_buffer = nw::gfx::map_buffer(mesh.vertices);
-    auto* index_buffer = nw::gfx::map_buffer(mesh.indices);
-    if (!vertex_buffer || !index_buffer) {
-        return false;
-    }
-
-    std::memcpy(vertex_buffer, vertices.data(), vertex_desc.size);
-    std::memcpy(index_buffer, indices.data(), index_desc.size);
-    nw::gfx::unmap_buffer(mesh.vertices);
-    nw::gfx::unmap_buffer(mesh.indices);
-
-    mesh.vertex_count = static_cast<uint32_t>(vertices.size());
-    mesh.index_count = static_cast<uint32_t>(indices.size());
-    return true;
-}
-
-bool ModelLoader::create_skin_buffers(SkinMesh& mesh, const nwm::SkinNode* node)
-{
-    if (!ctx_ || !node || node->vertices.empty() || node->indices.empty()) {
-        return false;
-    }
-
-    std::vector<SkinnedVertex> vertices;
-    vertices.reserve(node->vertices.size());
-    for (const auto& vertex : node->vertices) {
-        vertices.push_back(convert_vertex(vertex));
-    }
-
-    std::vector<uint16_t> indices = validated_triangle_indices(node->indices, vertices.size(), node->name);
-    if (indices.empty()) {
-        return false;
-    }
-
-    if (has_invalid_normals(vertices)) {
-        std::vector<Vertex> static_vertices;
-        static_vertices.reserve(vertices.size());
-        for (const auto& vertex : vertices) {
-            static_vertices.push_back(Vertex{
-                .position = vertex.position,
-                .normal = vertex.normal,
-                .texcoord = vertex.texcoord,
-                .tangent = vertex.tangent,
-            });
-        }
-        recompute_static_vertex_normals_for_indices(indices, static_vertices);
-        for (size_t i = 0; i < vertices.size(); ++i) {
-            vertices[i].normal = static_vertices[i].normal;
-        }
-    }
-
-    if (has_invalid_tangents(vertices)) {
-        recompute_vertex_tangents_for_indices(indices, vertices);
-    }
-
-    inset_transparent_subrect_uvs(mesh, vertices);
-
-    nw::gfx::BufferDesc vertex_desc{};
-    vertex_desc.size = vertices.size() * sizeof(SkinnedVertex);
-    vertex_desc.usage = nw::gfx::BufferUsage::Vertex;
-    vertex_desc.cpu_visible = true;
-    mesh.vertices = nw::gfx::create_buffer(ctx_, vertex_desc);
-
-    nw::gfx::BufferDesc index_desc{};
-    index_desc.size = indices.size() * sizeof(uint16_t);
-    index_desc.usage = nw::gfx::BufferUsage::Index;
-    index_desc.cpu_visible = true;
-    mesh.indices = nw::gfx::create_buffer(ctx_, index_desc);
-
-    auto* vertex_buffer = nw::gfx::map_buffer(mesh.vertices);
-    auto* index_buffer = nw::gfx::map_buffer(mesh.indices);
-    if (!vertex_buffer || !index_buffer) {
-        return false;
-    }
-
-    std::memcpy(vertex_buffer, vertices.data(), vertex_desc.size);
-    std::memcpy(index_buffer, indices.data(), index_desc.size);
-    nw::gfx::unmap_buffer(mesh.vertices);
-    nw::gfx::unmap_buffer(mesh.indices);
-
-    mesh.vertex_count = static_cast<uint32_t>(vertices.size());
-    mesh.index_count = static_cast<uint32_t>(indices.size());
-    return true;
-}
-
-// ============================================================================
-// Helper
-// ============================================================================
-
-std::unique_ptr<ModelInstance> load_model(std::string_view resref, std::string_view root_name)
-{
-    auto* mdl = nw::kernel::models().load(resref);
-    if (!mdl) { return {}; }
-
-    auto model = std::make_unique<ModelInstance>();
-    if (!model->load(mdl, nullptr, root_name)) {
-        return {};
-    }
-    return model;
-}
-
-void set_dangly_debug_scale(float scale)
-{
-    g_dangly_debug_scale = std::max(0.0f, scale);
-}
-
-float dangly_debug_scale()
-{
-    return safe_debug_scale();
-}
-
-void set_dangly_mode(DanglyMode mode)
-{
-    g_dangly_mode = mode;
-}
-
-DanglyMode dangly_mode()
-{
-    return g_dangly_mode;
-}
-
 void clear_model_loader_resource_caches()
 {
     mtr_material_cache().clear();

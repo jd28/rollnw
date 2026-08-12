@@ -30,7 +30,7 @@ const smalls::StructDef* get_attack_data_def(smalls::Runtime& rt, const smalls::
         return nullptr;
     }
 
-    if (rt.type_name(value.type_id) != "core.combat.AttackData") {
+    if (rt.type_name(value.type_id) != "nwn1.combat_primitives.AttackData") {
         return nullptr;
     }
 
@@ -308,7 +308,7 @@ bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
     if (!cache.offsets.valid) {
         const auto* def = get_attack_data_def(rt, exec_result.value);
         if (!def) {
-            LOG_F(ERROR, "[combat] {}.resolve_attack returned invalid core.combat.AttackData", module_sv);
+            LOG_F(ERROR, "[combat] {}.resolve_attack returned invalid nwn1.combat_primitives.AttackData", module_sv);
             return false;
         }
         auto& c = cache.offsets;

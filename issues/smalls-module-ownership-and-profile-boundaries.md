@@ -1,0 +1,938 @@
+# SmallS Module Ownership and Profile Boundary Standard
+
+Status: package and runtime ownership implemented; toolset presentation
+migration remains. Tier 2. The Item and appearance slices prove the runtime
+boundary; remaining work is the Smalls-first managed presentation path tracked
+by `issues/smalls-first-rmlui-managed-lists.md`.
+
+## Goal
+
+Rewrite the project standard for ownership across C++, SmallS, the toolset, and
+RmlUi.
+
+The initial propset work proved that SmallS can own object schemas and policy.
+At that stage, putting every schema under `core.*` was sufficient to prove the
+storage and serialization machinery. It is no longer sufficient. Qualified
+SmallS type names are durable serialization keys, module imports define policy
+dependencies, and the toolset now edits live objects through those APIs. Module
+ownership is therefore part of the data protocol.
+
+The target is not merely a clean built-in item editor. A project author must be
+able to replace the default toolset presentation and workflow composition
+without recompiling the engine, while native storage and mutation invariants
+remain explicit and testable.
+
+The item domain is the first reference implementation because it exercises all
+required boundaries:
+
+- native inventory and visual storage;
+- profile-specific base-item and item-property data;
+- profile-owned propsets and rules;
+- virtualized editor projections;
+- RML/RCSS presentation;
+- live preview refresh; and
+- complete undo/redo transactions.
+
+The normative ownership and package conventions are published in
+`lib/nw/smalls/docs/conventions.md` and
+`lib/nw/smalls/docs/profile-packages.md`. The exhaustive datum-by-datum Item
+decision is
+`issues/item-native-profile-cross-section.md`. This standard controls the
+project-wide dependency rules; that issue controls the Item migration details.
+The canonical native/component/propset classification and per-domain
+refactoring procedure is published in
+`lib/nw/smalls/docs/propset-architecture.md`. This issue tracks repository
+migration to that standard.
+
+The limit of this issue is the ownership standard and staged migration. It
+does not introduce a general plugin framework, a universal reflected editor,
+or runtime hot reload.
+
+## Patterns and Conventions Found
+
+### Real Platform and Observed Data
+
+The runtime platform is one native process, one SmallS runtime, one selected
+game profile, and, in the client, one RmlUi thread with one published
+`active_object`. Profile and schema initialization occur once per runtime.
+Object JSON is loaded many times. Tool projections are rebuilt on invalidation,
+not per frame.
+
+At issue creation, the repository contained the following concrete inputs:
+
+- The repository has 16 production `[[propset]]` declarations. Fourteen remain
+  under `lib/nw/smalls/scripts/core/`; seven are creature propsets, including
+  two transient propsets, and seven cover door, encounter, placeable, sound,
+  store, trigger, and waypoint data. The two Item propsets are under
+  `nwn1.item_state`.
+- Runtime initialization hard-loads nine `core.*` modules, the NWN profile hook
+  separately hard-loads `nwn1.item_state`, and pools are primed twice
+  (`lib/nw/smalls/runtime.cpp:244-292`,
+  `lib/nw/profiles/nwn1/Profile.cpp:339-348`).
+- `ConfigOptions::profile` already contains `nwn1`, but configuration and profile
+  code repeat full `nwn1.combat`, `nwn1.effects`, `nwn1.init`,
+  `nwn1.baseitems`, and `nwn1.item_state` names. There is no single package-root
+  convention (`lib/nw/kernel/Config.hpp:9-17`).
+- `BaseItemInfo` is registered by native `core.item`; profile SmallS publishes
+  its positional batch. Appearance and placeable facts still use the
+  `nwn1.rules` native boundary. No general profile-native registry is
+  required.
+- The client currently declares 16 native infrastructure functions under
+  `toolset.rmlui`, `toolset.ui.v1`, and `toolset.commands.v1`
+  (`tools/ui/rml_smalls_bridge.cpp:542-570`). These are current namespace
+  violations: their native declarations and signature types move to
+  `core.rmlui`, `core.ui`, `core.ui.v1`, `core.commands`, and
+  `core.commands.v1`; only scripted authoring workflow remains under
+  `toolset.*`. Together with the six `nwn1.rules` declarations, the shipped
+  source tree has 22 native declarations outside `core.*` to migrate.
+- `core.item` now contains native Item values and operations. The Item propsets
+  and policy have moved out, proving that native ABI and profile state can be
+  separated without a profile-native ABI category.
+- `core.creature` imports and invokes item equip policy, so the nominally
+  universal layer depends on one game's rules
+  (`lib/nw/smalls/scripts/core/creature.smalls:3-118`).
+- The NWN GFF adapter identifies profile schemas by `core.*` qualified names
+  (`lib/nw/profiles/nwn1/propset_gff_policy.cpp:153-197`,
+  `lib/nw/profiles/nwn1/propset_gff_policy.cpp:372-616`).
+- Component/propset JSON writes the full qualified type name as the section key
+  and rejects missing sections
+  (`lib/nw/serialization/component_propset_json.cpp:426-448`,
+  `lib/nw/serialization/component_propset_json.cpp:451-509`).
+- The client undo layer contains profile/editor-specific edit kinds and a C++
+  transaction record for the complete NWN item-property row
+  (`tools/client/object_edits.hpp:25-47`,
+  `tools/client/object_edits.hpp:97-131`).
+- The managed-list host already owns copied rows, stable keys, selection, and
+  bounded windows on the UI thread
+  (`tools/ui/ui_v1.hpp:22-70`, `tools/ui/ui_v1.hpp:88-148`).
+- Client packaging currently installs only `core`, `nwn1`, and `toolset`
+  SmallS trees
+  (`tools/client/CMakeLists.txt:134-152`,
+  `tools/client/CMakeLists.txt:199-210`).
+
+The native ABI is the most stable data. Profile schemas and qualified type names
+change deliberately and require data migration. Toolset projections and RML
+layout are the most volatile and must be replaceable without changing the
+profile or engine.
+
+ASSUMPTION: one workspace selects exactly one profile and one toolset package
+for the runtime lifetime. This permits deterministic startup resolution and
+excludes hot reload from the first implementation.
+
+ASSUMPTION: a presentation/workflow mod can reuse the selected profile's named
+operations and the fixed `core.*` ABI. A mod that requires a new native
+operation still requires a `core.*` ABI addition. This bounds the promise that
+a better toolset experience requires no engine rebuild without pretending
+native ownership invariants are script data.
+
+No runtime-frequency or latency regression has been measured for this
+reorganization. Performance claims are therefore out of scope. The design must
+preserve the existing common path: contiguous native/profile fact batches,
+SmallS transforms on invalidation, and viewport-bounded RmlUi rows.
+
+## Architecture Decision
+
+The shared/profile boundary determines module ownership. `core.*` is the
+batteries-included shared package: every native SmallS function and native type
+lives there, along with reusable profile-neutral implementations. Profile and
+toolset modules own the schema, constants, interpretation, policy, and workflow
+that give those operations game-specific meaning.
+
+Use this fixed import/dependency graph:
+
+```text
+RML / RCSS
+    -> toolset.*
+    -> <profile>.*
+    -> core.*
+
+The arrow means "may depend on".
+```
+
+Dependencies may point to the right only. The renderer is parallel to the
+toolset and consumes resolved native visual rows; it does not import profile
+policy or toolset modules.
+
+### `core.*`: Shared ABI And Reusable Library
+
+`core.*` contains every declaration whose implementation or representation is
+owned by the VM or engine, plus reusable transforms over that shared surface:
+
+- `[[native]]` functions;
+- `[[native]]` structs and opaque native values;
+- intrinsic declarations; and
+- object handle/value declarations required by those signatures;
+- ordinary profile-neutral SmallS functions; and
+- reusable registries and callback-driven transforms.
+
+`core.*` must not contain:
+
+- propsets, including transient propsets;
+- profile constants, table interpretations, or gameplay policy;
+- editor projections or presentation strings; or
+- imports of a profile or `toolset.*`.
+
+Native data may be populated from the active profile's resources. That does not
+move its SmallS declaration out of `core.*`: `core.*` names the native ABI, not
+a claim that every profile gives the returned integers the same meaning.
+Native functions expose facts and mechanical operations. Profile scripts name,
+validate, and compose those facts.
+
+Consumers opt into supplied implementations by calling them or populating their
+registries. They may use a different transform without shadowing or forking the
+package. `core.item.process_item_properties` is the reference case: core owns
+the item-property batch loop and row protocols, while `nwn1.item` installs the
+NWN1 property and effect generators.
+
+### `<profile>.*`: Schema, Interpretation, and Policy
+
+Each selected game profile owns:
+
+- every persistent and transient propset schema used by that profile;
+- scripted profile newtypes, constants, and fixed-format value structs;
+- table/resource interpretation;
+- gameplay policy and callbacks; and
+- conversion policy for legacy formats.
+
+For NWN, these live under `nwn1.*`. Every persistent and transient propset moves
+to the single required `nwn1.propsets` module. The native
+`core.item.ItemProperty` type remains in core; NWN assigns meaning to its six
+integer fields.
+
+Profile C++ may load data and implement a backing service, but every native
+SmallS declaration it supplies is registered under the relevant `core.*`
+module. There is no profile-native SmallS ABI category.
+
+### `toolset.*`: Authoring Workflow
+
+Generic native authoring primitives such as managed lists, virtualization,
+focus, command publication, and the active-object bridge live under
+`core.ui.v1`, `core.commands.v1`, and `core.rmlui`. The current native
+declarations under `toolset.ui.v1`, `toolset.commands.v1`, and
+`toolset.rmlui` move to those core modules, together with every value type
+required by their signatures. Shared signature values live in `core.ui` and
+`core.commands`; versioned native calls remain in the matching `.v1` modules.
+There are no forwarding modules or aliases.
+
+Profile-specific default workflows live under an explicit profile package, for
+example `toolset.nwn1.item_editor`.
+
+Toolset SmallS owns:
+
+- filtering and sorting authoring catalogs;
+- task-specific row projection and display labels;
+- editor-local selection and filter state;
+- composition of profile operations into authoring commands; and
+- refresh requests after accepted mutations.
+
+Toolset code must not own a second copy of live object data. It reads the
+published object and profile APIs.
+
+### RML and RCSS: Presentation
+
+RML owns static view structure and event wiring. RCSS owns layout and styling.
+SmallS supplies data rows and state, not generated copies of the complete
+widget markup. C++ owns only generic RmlUi operations that scripts cannot
+perform directly.
+
+RML is also the workbench composition mechanism. Generic client C++ must not
+enumerate object-editor surfaces, generate their tabs or panels, retain
+surface-specific presentation state, or dispatch input by surface name. In the
+current client, `ObjectWorkbenchSurface`, `append_object_workbench_markup`, and
+the spell-, feat-, appearance-, and inventory-specific branches in
+`tools/client/main.cpp` violate this boundary and are explicit migration
+targets.
+
+The replacement path is:
+
+```text
+published active_object + native/profile capabilities
+    -> selected toolset SmallS view model
+    -> RmlUi data-model variables and virtual arrays
+    -> toolset RML document
+    -> RCSS presentation
+```
+
+The toolset RML document owns which surfaces exist and how they are arranged.
+Toolset SmallS owns surface-local state and behavior. Tab identifiers do not
+cross the C++ boundary. A surface may call generic native UI and transaction
+capabilities, but no native function or row type is named after that surface.
+
+The project-wide replacement test is:
+
+> Remove the creature `Spells` surface and replace it with a differently
+> shaped `Talents` workflow using only a selected toolset package's Smalls,
+> RML, and RCSS, with no client rebuild.
+
+The replacement must use the same live `active_object`, dirty tracking,
+undo/redo history, and preview refresh as the shipped workflow. If it needs a
+new native resource, renderer, ownership, or invariant-preserving operation,
+that operation is added to the relevant `core.*` ABI without adding a
+`Talents` tab or widget API to C++.
+
+The default toolset workflow modules and their RML/RCSS assets must be
+replaceable as one selected toolset package at workspace open. Workflow
+resolution order must be explicit and tested:
+
+1. selected project toolset package;
+2. selected profile's default toolset package;
+3. shipped fallback toolset package.
+
+`core.*` is not a shadowable project asset. Profile replacement is
+performed by selecting a profile, not by silently shadowing individual
+`nwn1.*` modules. Toolset hot reload is not part of this issue; changing the
+selected workflow package requires reopening the workspace.
+
+## Ownership Classification
+
+Classify data by answering these questions in order:
+
+1. Is the function or type native? If yes, its SmallS declaration belongs in
+   the relevant `core.*` module.
+2. Is it a reusable scripted transform over core data and operations, with no
+   dependency on profile schema, constants, or table meaning? If yes, it belongs
+   in `core.*`; callers opt into it at the call or registration boundary.
+3. Does a profile define a propset, scripted schema, range, table meaning, or
+   resource interpretation? If yes, that scripted declaration or transform
+   belongs in the profile.
+4. Is the data only an authoring projection or interaction state? If yes, it
+   belongs in replaceable toolset workflow code.
+5. Is it only structure, styling, or event wiring? If yes, it belongs in
+   RML/RCSS.
+
+Do not classify data from model names, texture names, resource-name prefixes,
+or other naming heuristics.
+
+The item reference classifications are:
+
+| Data or operation | Owner | Reason |
+|---|---|---|
+| `Item` handle and native Item subtype | `core.item` / C++ | Item-specific native declarations share one ABI; generic handle storage remains engine-owned |
+| Inventory ownership and mutation invariants | C++ native component | Native ownership graph and spatial/lifetime side effects |
+| Materialized per-Item inventory footprint | native `core.item` | Native occupancy input copied from selected profile facts |
+| Native `ItemProperty` row with six bounded integers and an opaque tag | `core.item` | It is a C++-registered value copied across the native ABI |
+| `ItemDescriptor` and `ItemStats` propsets | `nwn1.propsets` | NWN persisted schema |
+| `BaseItemInfo` visual/model/icon/slot facts | canonical NWN SmallS definitions, published to native `core.item` | Native consumers need the copied facts, not the rules schema |
+| `BaseItemRules` combat and requirement policy | `nwn1.item` SmallS | Moddable game rules |
+| Fixed indexed Item visual source storage and batch mutation | native `core.item` | Native Item data plane with mechanical bounds and invalidation invariants |
+| NWN meaning of visual indices/values, valid choices, and GFF mapping | `nwn1.item` | Profile vocabulary and resource interpretation |
+| Resolved renderer visual rows | native visual protocol | Renderer input with no game-policy meaning |
+| Item editor rows and filters | `toolset.nwn1.item_editor` | Authoring projection |
+| Tabs, selectors, columns, and colors | RML/RCSS | Presentation |
+
+The same split applies later to appearance and placeable catalogs: native facts
+are exposed from the matching `core.*` ABI even when profile C++ loads them,
+profile SmallS owns rules and selection policy, and renderers consume only
+resolved visual rows. The current native `AppearanceInfo` and
+`PlaceableAppearanceInfo` declarations under `nwn1.rules` are therefore
+migration targets, not precedent.
+
+## Data Protocols
+
+### Profile Schema Bootstrap
+
+Use one root-derived profile schema contract:
+
+```text
+configured profile root
+    -> resolve and load required <root>.propsets
+    -> validate complete PropsetSchema[]
+    -> register all schema rows
+    -> prime propset pools once
+```
+
+The configured profile and its schema module are true singletons for the runtime
+lifetime. The declarations inside `<root>.propsets` are the schema batch. One
+module is sufficient because all 16 observed production propsets are required
+for normal NWN object conversion and persistence; a configurable module-name
+batch adds states without removing startup work.
+
+All schema rows are required. A missing module, a module with diagnostics, a
+duplicate qualified propset name, or a propset targeting an unsupported object
+type fails runtime/profile initialization. The runtime must not fall back to a
+`core.*` schema.
+
+### Native Fact Projection
+
+Native C++ exposes facts as copied flat batches, not editor widgets:
+
+```text
+profile resource tables + native component state
+    -> ProfileFactRow[]
+    -> profile SmallS policy transform
+    -> Toolset ListItem[]
+    -> generic bounded managed-list host
+    -> visible RML rows
+```
+
+Rows use stable scalar keys or stable resource identifiers. The producer owns
+source tables; the bridge copies the output batch; the managed-list host owns
+all copied strings and rows until that named list is replaced or destroyed.
+No C++ metadata pointer, VM arena pointer, or RmlUi element pointer crosses the
+protocol.
+
+Invalid table rows are rejected or omitted with a bounded diagnostic before the
+batch is published. Duplicate stable keys reject the entire published batch.
+An invalid or stale active object publishes an empty view. UI indices are never
+used as object or resource identity.
+
+The common access pattern is linear over a table or contiguous component row.
+Classification occurs once during profile load or view invalidation. The UI
+materializes only the viewport plus bounded overscan.
+
+### Mutation and Undo
+
+Do not create one universal opaque command payload. Use two explicit command
+paths based on the data being mutated:
+
+1. Generic propset scalar batches use the existing reflected patch machinery
+   after profile qualified names replace `core.*` names.
+2. Structured native state and ownership changes use typed adapters over the
+   owning `core.*` ABI, as with Item visuals, properties, inventory, and
+   equipment.
+
+A typed adapter:
+
+- receives a contiguous, homogeneous value-semantic row batch;
+- validates the complete batch before applying any row;
+- captures exact before and after rows owned by the C++ undo action;
+- applies through the same owning operation on commit, undo, and redo;
+- returns mutation flags for dirty state, preview refresh, and selection
+  refresh; and
+- contains no RML or widget state.
+
+The command bus owns history order and lifetime. Core C++ owns native component
+and transaction invariants. Profile SmallS owns game-policy validation and
+side-effect composition.
+Toolset SmallS chooses which operation to invoke and supplies the
+author-facing label. RML owns neither mutation nor undo.
+
+Core Item model/color and structured Item-property/ownership patches are routed
+through typed native adapters without editor labels or widgets. Profile scripts
+validate and compose these operations. Future profile-specific edit kinds do
+not enter the generic switch.
+
+A stale handle, stale before value, invalid range, duplicate destination, or
+failed policy callback rejects the whole command and creates no undo entry.
+Undo and redo use the captured rows and fail loudly if their preconditions no
+longer hold. Project/profile reload clears the workspace history.
+
+## Serialization and Migration
+
+Qualified propset names are serialized protocol identifiers. Moving
+`core.item.ItemStats` to `nwn1.propsets.ItemStats` intentionally changes the
+JSON section key.
+
+Migration policy is:
+
+- no aliases;
+- no compatibility propsets;
+- no old-name lookup;
+- no GFF or native-layout fallback for component/propset JSON; and
+- no guessing a profile from section names.
+
+The current authoring data is reimported after each object-domain schema move.
+Old JSON fails with the existing missing-section diagnostic. The NWN GFF policy,
+importers, exporters, fixtures, and tests move to the new qualified names in
+the same slice.
+
+Transient propsets follow the same namespace rule but remain absent from
+durable JSON.
+
+## Component Design
+
+### Core Shared Surface
+
+Files:
+
+- `lib/nw/smalls/scripts/core/*.smalls`
+- native registration units under `lib/nw/smalls/`
+
+Responsibilities:
+
+- declare every native and intrinsic ABI;
+- provide reusable profile-neutral implementations;
+- expose batch operations over native engine-owned data; and
+- preserve native ownership and range invariants.
+
+Ownership and lifetime:
+
+- native components remain owned by `ObjectComponentSystem`;
+- returned SmallS values are copied values or arrays owned by the runtime;
+- returned native fact rows may be backed by the selected profile's tables;
+  and
+- no profile table interpretation or propset schema lives here.
+
+Error model:
+
+- reject invalid handles, counts, ranges, and duplicate destinations;
+- never partially apply a rejected batch.
+
+### Profile Schema Bootstrap
+
+Files:
+
+- `lib/nw/kernel/GameProfile.hpp`
+- `lib/nw/smalls/runtime.cpp`
+- each profile implementation
+
+Responsibilities:
+
+- derive and load one required `<root>.propsets` module;
+- validate its complete schema batch before any object creation or
+  deserialization; and
+- prime propset pools once.
+
+The existing profile singleton is reused for schema bootstrap and active data
+loading. `ConfigOptions::profile` is the package root; consumers derive their
+conventional module roles from it. Remove `GameProfile::register_smalls_modules`
+after moving its only six registrations to core. No schema-module registry,
+second profile registry, profile-native ABI layer, or plugin manager is
+introduced.
+
+### NWN Item Reference
+
+Files:
+
+- `lib/nw/smalls/scripts/core/item.smalls`
+- `lib/nw/smalls/scripts/core/creature.smalls`
+- `lib/nw/smalls/scripts/nwn1/item.smalls`
+- `lib/nw/smalls/scripts/nwn1/creature.smalls`
+- NWN native SmallS registration and GFF policy units
+
+Responsibilities:
+
+- keep every native Item function and native Item type in `core.item`,
+  including `ItemProperty`, `BaseItemInfo`, native catalogs, layout, visuals,
+  inventory, and equipment operations;
+- move only the Item propsets, visual/property meaning, candidate enumeration,
+  GFF mapping, effect policy, equip policy, and callbacks to `nwn1.item`;
+- move equip orchestration out of `core.creature` into the NWN profile;
+- load one canonical `BaseItemDefinition` batch in profile SmallS and publish
+  only its `BaseItemInfo` values to native `core.item`; and
+- keep rendering isolated behind resolved visual rows.
+
+Checked-in label-named SmallS definitions are the authoritative base-item
+source. `baseitems.2da` is a legacy offline import format, not a runtime input.
+The outer definition owns the sole ID; C++ does not know the rules schema.
+
+### Toolset Item Reference
+
+Files:
+
+- `tools/ui/scripts/toolset/item_editor.smalls`
+- `tools/client/ui/item_editor.rml`
+- `tools/client/ui/item_editor.rcss`
+- generic managed-list and command-host units
+
+Responsibilities:
+
+- move the default workflow to `toolset.nwn1.item_editor`;
+- keep item catalogs, filtering, sorting, labels, and workflow state in
+  SmallS;
+- keep selector structure in RML and styling in RCSS;
+- reuse the existing owned managed-list host and bounded virtualization; and
+- route every structured native Item edit through typed core adapters and
+  remove profile-specific edit kinds from generic client switches.
+
+The selected project toolset package may replace this entire workflow and its
+RML/RCSS while reusing the same profile operations and native `core.ui.v1`,
+`core.commands.v1`, and `core.rmlui` APIs.
+
+## Implementation Map
+
+Create:
+
+- `lib/nw/smalls/scripts/nwn1/propsets.smalls`: the complete NWN persistent and
+  transient propset schema batch.
+- `tools/ui/scripts/core/ui.smalls`,
+  `tools/ui/scripts/core/ui/v1.smalls`,
+  `tools/ui/scripts/core/commands.smalls`,
+  `tools/ui/scripts/core/commands/v1.smalls`, and
+  `tools/ui/scripts/core/rmlui.smalls`: client-only native ABI declarations
+  and the value types used by their signatures.
+- architecture tests under `tests/`: source ownership and import-DAG
+  enforcement.
+- typed core Item visual, ItemProperty, inventory, and equipment transaction
+  adapters in the existing command integration areas.
+
+Modify:
+
+- `lib/nw/kernel/Config.*`: treat `profile` as the selected package root and
+  derive default module roles from it once.
+- `lib/nw/kernel/GameProfile.hpp`: remove `register_smalls_modules`.
+- `lib/nw/smalls/runtime.cpp`: load `core` and the selected profile in
+  dependency order; load `<root>.propsets`; remove the profile-native
+  registration call and hardcoded object schema names; reject propset-containing
+  `load_config!` entry types.
+- `lib/nw/smalls/TypeResolver.cpp`: reject direct construction of propset struct
+  literals; live propset values come only from `get_propset!`.
+- `lib/nw/smalls/scripts/core/*.smalls`: retain native/intrinsic ABI declarations
+  and profile-neutral reusable implementations.
+- `lib/nw/smalls/scripts/nwn1/*.smalls`: import all NWN propsets from
+  `nwn1.propsets` and own scripted fixed-format values, interpretation, and
+  policy.
+- `lib/nw/profiles/nwn1/rules.cpp` and native core registration units: keep
+  `BaseItemInfo` publication in `core.item`; move remaining appearance and
+  placeable native facts to their relevant `core.*` ABI modules.
+- `lib/nw/profiles/nwn1/propset_gff_policy.cpp`: use exact
+  `nwn1.propsets.*` schema names.
+- `lib/nw/serialization/component_propset_json.cpp`: preserve exact qualified
+  names and explicit rejection; no compatibility lookup is added.
+- `lib/nw/smalls/scripts/core/`: own the generic UI, command, and RmlUi ABI
+  modules directly so packaging has one core source tree; package the selected
+  profile and selected default toolset separately.
+- `tools/ui/rml_smalls_bridge.cpp`: load `core.ui.v1`,
+  `core.commands.v1`, and `core.rmlui` through the non-shadowable core module
+  path; reserve `load_toolset_module` for the selected replaceable workflow.
+- `tools/ui/smalls_ui_v1.cpp`, `tools/client/script_commands.cpp`, and
+  `tools/ui/smalls_rmlui.cpp`: register native functions under their new
+  `core.*` module names.
+- `tools/client/object_edits.*` and `tools/client/toolset_backend.cpp`: route
+  typed core Item batches and remove profile-specific item cases.
+- `lib/nw/smalls/scripts/core/`, `tools/ui/scripts/toolset/`, and
+  `tools/client/ui/`: move native declarations and their signature types to
+  `core.ui`, `core.ui.v1`, `core.commands`, `core.commands.v1`, and
+  `core.rmlui`; retain only workflow, static RML structure, and RCSS
+  presentation under the replaceable toolset package.
+- object, serialization, profile, SmallS, and client tests: update qualified
+  names and cover the new boundary.
+- `lib/nw/smalls/docs/propset-architecture.md` and the SmallS module
+  documentation: publish this standard after the item proof.
+
+Delete after each successful domain slice:
+
+- old `core.*` propset declarations and profile-dependent script
+  implementations;
+- forwarding imports, aliases, and dual-name fixtures;
+- generic-client profile edit kinds and presentation mirrors; and
+- obsolete numeric-named or split base-item inputs.
+
+## Data Flow
+
+Item load:
+
+```text
+NWN resource
+    -> NWN GFF adapter
+    -> native item components + nwn1.propsets rows
+    -> live Item handle
+```
+
+Item appearance view:
+
+```text
+live Item + BaseItemInfo
+    -> nwn1.item valid visual choices
+    -> toolset.nwn1.item_editor rows
+    -> toolset.ui owned/virtualized list
+    -> RML visible rows
+```
+
+Item visual mutation:
+
+```text
+RML stable-key event
+    -> toolset.nwn1.item_editor named action
+    -> nwn1.item semantic choice validation
+    -> core.item typed visual patch batch
+    -> native source mutation + one visual-source invalidation
+    -> selected-profile resolution
+    -> generic resolved visual refresh
+    -> dirty state + owned undo action
+```
+
+Item-property mutation follows the same path, with complete
+`core.item.ItemProperty` rows, including opaque tags, captured for
+insert/remove/value changes and profile validation performed before the
+native batch.
+
+JSON save:
+
+```text
+native components + registered nwn1.propsets rows
+    -> component/propset JSON
+    -> unchanged components.item_visuals + exact nwn1.propsets.* section keys
+```
+
+## Build Sequence
+
+### Phase 0: Freeze and Enforce the Standard
+
+- [x] Publish `conventions.md`, `profile-packages.md`, and the detailed
+      ownership/config documentation.
+- [ ] Add a source-level architecture test that rejects propsets and
+      profile/toolset imports under `core.*`.
+- [ ] Add a source-level architecture test that rejects every `[[native]]`
+      declaration outside `core.*` in the shipped SmallS module roots. Compiler
+      and runtime test fixtures are not production architecture modules.
+- [ ] Add an import-DAG test for `core -> profile -> toolset`.
+- [ ] Inventory every current `core.*` declaration and classify it before
+      moving files.
+- [ ] Record the current component/propset JSON fixture corpus that must be
+      reimported; do not add compatibility code.
+
+### Phase 1: Establish Profile Schema Bootstrap
+
+- [x] Make `ConfigOptions::profile` the package root and derive conventional
+      module roles from it.
+- [x] Load and validate the single required `<root>.propsets` schema module.
+- [x] Reject propsets as `load_config!` rows or nested config fields and reject
+      direct propset struct literals.
+- [x] Move the only six profile-native registrations into core and remove
+      `GameProfile::register_smalls_modules`.
+- [x] Move native toolset UI, command, and RmlUi declarations plus their
+      signature types into `core.ui`, `core.ui.v1`, `core.commands`,
+      `core.commands.v1`, and `core.rmlui`.
+- [x] Place those generic sources directly in the library core tree, package
+      that one tree as `stdlib/core`, and reserve toolset resolution for
+      scripted workflows.
+- [x] Keep one core source tree, eliminating duplicate relative module paths
+      and copy-order selection of the ABI.
+- [x] Update native C++ registration names and all imports atomically; leave
+      no `toolset.ui`, `toolset.commands`, or `toolset.rmlui` forwarding
+      modules.
+- [x] Remove the nine hardcoded core schema loads from `Runtime::initialize`.
+- [x] Fail initialization on missing or invalid required profile schemas.
+- [x] Verify schema pools are ready before the first object is instantiated.
+
+### Phase 2: Migrate Item as the Reference Domain
+
+- [x] Register every native Item function and native Item type as `core.item`.
+- [x] Move the current `nwn1.rules` native Item fact type and lookup to
+      `core.item`; do not create a replacement native `nwn1.item` module.
+- [x] Keep indexed Item visual storage, per-Item inventory footprint, native
+      property catalogs, and plural mutation APIs in `core.item`.
+- [x] Move `ItemDescriptor`, `ItemStats`, visual/property meaning and
+      resolution, item-property policy, and equip callbacks to the profile.
+- [x] Load canonical SmallS `BaseItemDefinition` rows and publish one native
+      `BaseItemInfo` batch without exposing `BaseItemRules` to C++.
+- [x] Move equip orchestration out of `core.creature`.
+- [x] Update GFF policy, import/export, JSON fixtures, docs, and tests to the
+      new qualified names.
+- [x] Reimport the module data and prove that old `core.item.*` JSON is rejected.
+
+### Phase 3: Prove the Toolset Boundary with Item
+
+- [ ] Move the default item workflow to `toolset.nwn1.item_editor`.
+- [ ] Replace SmallS-generated widget markup with static RML structure.
+- [ ] Publish native facts as owned flat batches with stable keys.
+- [ ] Keep all variable-length item catalogs virtualized.
+- [ ] Route Item visuals, properties, inventory, and equipment through typed
+      core command adapters with complete undo/redo.
+- [ ] Delete profile-specific generic-client item edit kinds, C++
+      presentation mirrors, and profile-name tests made obsolete by the new
+      protocol.
+- [ ] Verify a replacement project toolset package can restyle and rearrange
+      the item editor without a C++ rebuild.
+
+### Phase 3B: Remove Native Workbench Composition
+
+- [ ] Move object-workbench tabs and panels from `tools/client/main.cpp` into
+      the selected toolset RML document.
+- [ ] Move editor-local tab selection, filters, and presentation state from
+      `AppState` into toolset SmallS data models.
+- [ ] Replace editor-specific C++ row mirrors and markup functions with typed
+      SmallS arrays consumed by RML `data-for`.
+- [ ] Expose fixed-height virtual arrays through the generic RmlUi data-model
+      adapter; do not call Smalls per row, frame, or scroll position.
+- [ ] Route RML events through typed Smalls handlers and the generic
+      transaction transport; remove input branches keyed by surface name.
+- [ ] Delete `ObjectWorkbenchSurface`,
+      `append_object_workbench_markup`, and superseded spell-, feat-,
+      appearance-, and inventory-presentation state from generic client C++.
+- [ ] Prove that a replacement toolset package can remove `Spells`, add a
+      `Talents` surface over supported data, commit an edit, undo it, redo it,
+      and refresh the preview without recompiling the client.
+
+### Phase 4: Migrate Remaining Profile Schemas
+
+- [x] Creature, including transient combat/cache propsets.
+- [x] Door, encounter, placeable, sound, store, trigger, and waypoint.
+- [x] Appearance and placeable native fact catalogs.
+- [x] Every GFF policy, importer/exporter, fixture, and test in the same
+      per-domain slice.
+
+Each slice must leave no forwarding module, alias, or dual-name load path.
+
+### Phase 5: Remove Old Paths and Publish the Standard
+
+- [x] Delete obsolete profile-dependent `core.*` implementations and propset
+      references; retain reusable profile-neutral core implementations.
+- [ ] Delete old editor-specific branches superseded by named profile
+      validation and typed core adapters.
+- [x] Make the library architecture/import tests mandatory.
+- [x] Revise `lib/nw/smalls/docs/propset-architecture.md`.
+- [x] Document the native `core.ui`, `core.ui.v1`, `core.commands`,
+      `core.commands.v1`, and `core.rmlui` ABI separately from the selected
+      workflow package layout and replacement order.
+- [ ] Close or rewrite earlier issues whose assumptions conflict with this
+      standard.
+
+## Cost
+
+Implementation cost is high because this is a repository-wide protocol
+migration, not a namespace rename. The observed change surface includes 16
+propsets, nine hardcoded schema-module loads, the NWN GFF policy table, imports
+across core and NWN scripts, object/serialization tests, client command types,
+16 native toolset declarations and their signature types, toolset modules,
+packaging, and the authoring JSON corpus.
+
+The Item reference slice is estimated at 8 to 15 focused development days in
+`issues/item-native-profile-cross-section.md`. The remaining domain schedule is
+intentionally not extrapolated until that slice measures the real migration
+and test cost; each domain is a separate batch with different data.
+
+Runtime cost should remain structurally equivalent:
+
+- one root-derived schema module is loaded and its schema rows are validated
+  once at startup;
+- native fact tables remain loaded once and traversed linearly on invalidation;
+- SmallS row batches and managed-list ownership already exist; and
+- RmlUi materialization remains bounded by viewport plus overscan.
+
+This is a structural expectation, not a measured performance result. Verification
+requires startup module-load counters and the existing managed-list row-count
+tests. If representative startup time or retained memory regresses, measure the
+module and batch responsible before changing the boundary.
+
+Maintenance cost increases through explicit native ABI and profile-policy
+surfaces. The rejected `std.*` split would add an installed module tree, module
+search state, packaging, and import churn without changing ownership of the
+data. Keeping reusable implementations in core removes those states while the
+profile boundary still prevents shared code from accumulating game policy.
+
+The deliberate data-migration cost is reimporting current component/propset
+JSON. No permanent compatibility cost is accepted.
+
+## Critical Details
+
+Concurrency:
+
+- profile registration and schema bootstrap run on the existing startup thread;
+- tool projections, RmlUi events, mutation commit, undo, and redo run on the
+  existing client UI thread; and
+- this issue adds no shared mutable state, worker queue, or synchronization.
+
+Ownership and lifetime:
+
+- native components remain owned by the object component system;
+- profile table rows remain owned by the selected profile for the runtime
+  lifetime;
+- bridge and managed-list outputs are copied, contiguous value batches; and
+- undo actions own complete before/after rows and retain no SmallS arena or
+  RmlUi pointers.
+
+Robustness:
+
+- module resolution is explicit and package-scoped;
+- `core.*` cannot be project-shadowed;
+- every batch validates counts, ranges, stable-key uniqueness, and stale
+  preconditions before mutation; and
+- failures reject a complete load, projection, or transaction rather than
+  leaving partially initialized state.
+
+Style and layout:
+
+- use existing `Vector`, `std::span`, value rows, result/status types, logging,
+  and command-bus conventions in the files being changed;
+- use indices or stable keys in stored batches, not retained pointers;
+- keep cold profile classification outside renderer and per-frame loops; and
+- follow the repository clang-format and local include/error conventions.
+
+## Simplification Pass
+
+- Do not build a general plugin manager. Reuse the existing profile singleton,
+  module loader, managed-list host, and command bus.
+- Do not migrate every object type at once. Enforce the rule, prove item, then
+  move one domain per slice.
+- Do not maintain two base-item sources. Keep checked-in SmallS definitions
+  canonical and the 2DA converter offline-only.
+- Do not build one opaque universal undo payload. Use generic propset patches
+  and explicit typed core native batches.
+- Do not teach RML about propsets, JSON, native components, or game policy.
+- Do not teach the renderer about base-item, appearance, or placeable tables.
+  Preserve resolved visual rows as the renderer boundary.
+- Do not support old propset qualified names. Reimport removes a permanent
+  compatibility branch.
+- Do not add hot reload. Toolset replacement is selected once at workspace
+  open for this issue.
+- Do not preserve native `toolset.*` forwarding modules. Move declarations and
+  imports atomically so native namespace ownership has one state.
+
+## Verification
+
+Required tests:
+
+- architecture lint rejects a propset, profile import, or profile-owned policy
+  added to `core.*`; ordinary profile-neutral function bodies are allowed;
+- architecture lint rejects every native declaration outside `core.*` in
+  shipped module roots;
+- import-DAG tests reject upward dependencies;
+- packaged client core modules resolve before any replaceable toolset path,
+  cannot be project-shadowed, and import no `toolset.*` module;
+- packaging rejects duplicate relative paths across its two core source trees;
+- profile initialization loads `<root>.propsets` and fails atomically on
+  missing, invalid, or duplicate schemas;
+- `load_config!` rejects direct and nested propset entry types, while registered
+  native value fields continue to load;
+- direct propset struct literals fail type resolution and `get_propset!` remains
+  the only live propset construction path;
+- item GFF import and component/propset JSON round-trip use
+  `components.item_visuals` plus only `nwn1.propsets.*` propsets;
+- legacy `core.item.*` propset JSON fails explicitly;
+- core Item visual patch batches reject duplicates and invalid ranges;
+- `core.item` visual setters contain no NWN labels, table/resource lookups,
+  sentinel interpretation, profile calls, or renderer calls;
+- item selectors remain viewport-bounded with a large synthetic catalog;
+- fixed-height workbench lists expose no more than the viewport plus overscan
+  through RmlUi, independent of source count;
+- item visual and item-property commit, undo, and redo preserve exact live
+  object state and refresh the preview;
+- stale targets and stale before values create no undo entry;
+- project toolset replacement changes item RML/RCSS and workflow composition
+  without recompiling C++; and
+- project toolset replacement removes the creature `Spells` surface and adds a
+  functional `Talents` surface without changing or recompiling C++; and
+- renderer tests continue to consume only resolved visual rows.
+
+The item slice is not complete while a duplicate client
+`ItemPropertyRecord`, NWN equip/property edit kinds, profile-specific item
+markup generation, or `core.item.ItemStats` remains in the generic path.
+Native Item patch rows remain under `core.item`; generic client code only
+routes them.
+
+## Done Criteria
+
+- `core.*` contains every native/intrinsic ABI declaration, reusable
+  profile-neutral scripted implementations, and no propset or profile policy.
+- Client native UI, command, and RmlUi declarations and their signature types
+  are packaged under non-shadowable `stdlib/core`; no native declaration is
+  loaded through toolset package resolution.
+- Portable scripted helpers live under `core.*`.
+- Every propset is owned by the selected profile namespace.
+- Runtime schema bootstrap derives `<root>.propsets` from the configured profile
+  root and contains no object-domain module names.
+- Config loading and type resolution reject detached propset values.
+- The item reference path demonstrates C++ native facts and invariants, SmallS
+  profile policy, replaceable tool workflow, and RML/RCSS presentation without
+  duplicate policy.
+- Qualified JSON names, GFF conversion, and tests agree on the profile schema;
+  no compatibility path exists.
+- Generic client code contains no NWN item edit kinds, item-property mirror
+  policy, or item widget markup.
+- Generic client code contains no object-workbench surface enum,
+  editor-specific tab or panel markup, editor-specific presentation row
+  mirrors, or input dispatch keyed by surface name.
+- Variable-length tool surfaces remain virtualized.
+- The selected toolset package can replace the default item experience without
+  changing engine or profile code.
+- The published architecture documentation and mandatory tests make violations
+  fail during development.
+
+Evidence against the design would be an item operation that cannot be expressed
+as either a generic propset patch batch or a typed `core.item` native
+transaction without exposing native pointers, VM arena pointers, JSON, or
+widget state across the boundary. If observed, stop the migration at the item
+slice, record the concrete input/output and frequency in a new local issue,
+and revise this standard before moving another object domain.

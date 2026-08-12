@@ -257,6 +257,24 @@ enum class VfxLookupStage {
     cessation,
 };
 
+std::string_view vfx_stage_animation(VfxLookupStage stage) noexcept
+{
+    switch (stage) {
+    case VfxLookupStage::impact:
+        return "impact";
+    case VfxLookupStage::duration:
+        return "duration";
+    case VfxLookupStage::cessation:
+        return "cessation";
+    case VfxLookupStage::auto_select:
+    case VfxLookupStage::projectile:
+    case VfxLookupStage::cast:
+    case VfxLookupStage::conjure:
+        return {};
+    }
+    return {};
+}
+
 std::optional<std::string> resolve_visualeffect_vfx_source(std::string_view query, VfxLookupStage stage);
 
 std::string format_debug_origin(std::string_view table, size_t row, std::string_view detail)
@@ -314,15 +332,18 @@ int estimate_burst_step_duration_ms(std::string_view model_spec, int authored_ms
     return std::max(authored_ms, settle_ms);
 }
 
-std::optional<int> preferred_model_animation_duration_ms(std::string_view model_spec)
+std::optional<int> preferred_model_animation_duration_ms(
+    std::string_view model_spec, std::string_view animation_name = {})
 {
     auto* mdl = nw::kernel::models().load(model_spec);
     if (!mdl) {
         return std::nullopt;
     }
 
-    const auto animation_name = nw::render::viewer::preferred_model_animation_name(
-        *mdl, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
+    if (animation_name.empty()) {
+        animation_name = nw::render::viewer::preferred_model_animation_name(
+            *mdl, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
+    }
     if (animation_name.empty()) {
         return std::nullopt;
     }
@@ -534,9 +555,12 @@ int default_vfx_stage_duration_ms(VfxLookupStage stage, std::string_view model_s
     switch (stage) {
     case VfxLookupStage::impact:
     case VfxLookupStage::cessation:
-        return estimate_burst_step_duration_ms(model_spec, 1000);
+        if (auto duration = preferred_model_animation_duration_ms(model_spec, vfx_stage_animation(stage))) {
+            return *duration;
+        }
+        return 1000;
     case VfxLookupStage::duration:
-        if (auto duration = preferred_model_animation_duration_ms(model_spec)) {
+        if (auto duration = preferred_model_animation_duration_ms(model_spec, vfx_stage_animation(stage))) {
             return std::max(*duration, 1000);
         }
         return 3000;
@@ -782,7 +806,8 @@ void append_sequence_step(VfxSequence& sequence, std::optional<VfxSequenceStep> 
     step->duration_ms = std::max(duration_ms, 1);
     if (!sequence.steps.empty()
         && sequence.steps.back().source == step->source
-        && sequence.steps.back().anchor == step->anchor) {
+        && sequence.steps.back().anchor == step->anchor
+        && sequence.steps.back().animation == step->animation) {
         sequence.steps.back().duration_ms += step->duration_ms;
         return;
     }
@@ -919,6 +944,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
             step.source = std::move(*resolved);
             step.debug_origin = format_debug_origin("visualeffects", row, "impact direct");
             step.kind = VfxSequenceStepKind::model;
+            step.animation = std::string(vfx_stage_animation(stage));
             step.duration_ms = default_vfx_stage_duration_ms(stage, step.source);
             step.target_side = true;
             return step;
@@ -931,6 +957,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
             step.source = std::move(*resolved);
             step.debug_origin = format_debug_origin("visualeffects", row, "duration direct");
             step.kind = VfxSequenceStepKind::model;
+            step.animation = std::string(vfx_stage_animation(stage));
             step.duration_ms = default_vfx_stage_duration_ms(stage, step.source);
             step.target_side = true;
             return step;
@@ -943,6 +970,7 @@ std::optional<VfxSequenceStep> resolve_visualeffect_direct_step(const nw::Static
             step.source = std::move(*resolved);
             step.debug_origin = format_debug_origin("visualeffects", row, "cessation direct");
             step.kind = VfxSequenceStepKind::model;
+            step.animation = std::string(vfx_stage_animation(stage));
             step.duration_ms = default_vfx_stage_duration_ms(stage, step.source);
             step.target_side = true;
             return step;
@@ -1369,7 +1397,7 @@ bool run_nwn_animation_smoke_case(const NwnAnimationSmokeCase& smoke_case)
         return false;
     }
 
-    auto clip = build_nwn_clip(*animation, skeleton, 0);
+    auto clip = build_nwn_clip(*animation, skeleton, 0, 1.0f);
     if (!backend->build_clip(0, clip)) {
         LOG_F(ERROR, "NWN animation smoke failed to build ozz clip {} for {}",
             animation->name, smoke_case.resref);
@@ -2575,7 +2603,12 @@ int run_area_lights_command(std::string_view area_resref, std::string_view modul
 
     auto shutdown = [] { nw::kernel::services().shutdown(); };
     const nw::Resref area{area_resref};
-    if (!nw::kernel::resman().contains({area, nw::ResourceType::are})) {
+    const auto format = nw::kernel::resman().module_format();
+    const auto area_type = format == nw::ModuleResourceFormat::native_json
+        ? nw::ResourceType::caf
+        : nw::ResourceType::are;
+    if (format == nw::ModuleResourceFormat::invalid
+        || !nw::kernel::resman().contains({area, area_type})) {
         LOG_F(ERROR, "Area does not exist: {}", area_resref);
         shutdown();
         return 1;

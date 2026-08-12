@@ -5,6 +5,7 @@
 #include <nw/log.hpp>
 
 #include <algorithm>
+#include <array>
 #include <limits>
 #include <span>
 #include <string>
@@ -14,6 +15,17 @@
 namespace nw::render::viewer {
 
 namespace {
+
+constexpr std::array<std::string_view, 8> kPreferredRenderModelHoldAnimations{{
+    "cpause1",
+    "pause1",
+    "closed",
+    "opened1",
+    "open",
+    "default",
+    "on",
+    "impact",
+}};
 
 uint32_t find_render_model_animation_clip(const nw::render::RenderModel& model, std::string_view clip_name) noexcept
 {
@@ -88,7 +100,11 @@ void rebuild_render_model_animation_instances(PreviewScene& scene, uint32_t clip
             continue;
         }
 
+        const bool scene_animation_enabled = instance->scene_animation_enabled;
         instance->animation = {};
+        if (!scene_animation_enabled) {
+            continue;
+        }
         instance->animation.looping = true;
         instance->animation.clip = clip_index;
         instance->animation.time = time;
@@ -109,7 +125,8 @@ void set_render_model_animation_time(PreviewScene& scene, float time)
         if (!model || model->animations.empty()) {
             continue;
         }
-        if (auto* instance = scene.static_model_instance(model_index)) {
+        if (auto* instance = scene.static_model_instance(model_index);
+            instance && instance->scene_animation_enabled) {
             instance->animation.time = time;
         }
     }
@@ -123,7 +140,8 @@ void set_render_model_animation_clip(PreviewScene& scene, uint32_t clip_index, f
         if (!model || model->animations.empty()) {
             continue;
         }
-        if (auto* instance = scene.static_model_instance(model_index)) {
+        if (auto* instance = scene.static_model_instance(model_index);
+            instance && instance->scene_animation_enabled) {
             instance->animation.clip = clip_index;
             instance->animation.time = time;
             instance->animation.looping = true;
@@ -148,7 +166,7 @@ bool set_render_model_animation_clip_by_name(PreviewScene& scene, std::string_vi
         }
 
         auto* instance = scene.static_model_instance(model_index);
-        if (!instance) {
+        if (!instance || !instance->scene_animation_enabled) {
             continue;
         }
 
@@ -208,10 +226,6 @@ bool set_default_render_model_animation_clip(
     std::span<const std::string_view> preferred_clip_names,
     float time)
 {
-    if (set_render_model_animation_clip_by_first_name(scene, preferred_clip_names, time)) {
-        return true;
-    }
-
     time = std::max(0.0f, time);
     bool selected = false;
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
@@ -221,15 +235,24 @@ bool set_default_render_model_animation_clip(
         }
 
         auto* instance = scene.static_model_instance(model_index);
-        if (!instance) {
+        if (!instance || !instance->scene_animation_enabled) {
             continue;
+        }
+
+        uint32_t clip_index = 0;
+        for (const auto clip_name : preferred_clip_names) {
+            const uint32_t candidate = find_render_model_animation_clip(*model, clip_name);
+            if (candidate != std::numeric_limits<uint32_t>::max()) {
+                clip_index = candidate;
+                break;
+            }
         }
 
         const bool can_sample_model_animation = !model->skeletons.empty();
         if (can_sample_model_animation && !ensure_render_model_animation_backend(*instance, *model, model_index)) {
             continue;
         }
-        instance->animation.clip = 0;
+        instance->animation.clip = clip_index;
         instance->animation.time = time;
         instance->animation.looping = true;
         instance->animation.enabled = can_sample_model_animation;
@@ -241,6 +264,31 @@ bool set_default_render_model_animation_clip(
     return selected;
 }
 
+bool prime_scene_hold_animation(PreviewScene& scene)
+{
+    bool loaded_render_model_animation = false;
+    if (!scene.hold_animation.empty()) {
+        const std::string_view animation = scene.hold_animation;
+        for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+            if (auto* instance = scene.static_model_instance(model_index)) {
+                const bool scene_animation_enabled = instance->scene_animation_enabled;
+                instance->animation = {};
+                instance->scene_animation_enabled = scene_animation_enabled;
+            }
+        }
+        loaded_render_model_animation = set_render_model_animation_clip_by_name(scene, animation, 0.0f);
+    } else {
+        rebuild_render_model_animation_instances(scene, 0, 0.0f);
+        loaded_render_model_animation = set_default_render_model_animation_clip(
+            scene, kPreferredRenderModelHoldAnimations, 0.0f);
+    }
+    if (loaded_render_model_animation) {
+        advance_render_model_animation_times(scene, 0.033f);
+        scene.update(33);
+    }
+    return loaded_render_model_animation;
+}
+
 void advance_render_model_animation_times(PreviewScene& scene, float dt)
 {
     dt = std::max(0.0f, dt);
@@ -249,7 +297,8 @@ void advance_render_model_animation_times(PreviewScene& scene, float dt)
         if (!model || model->animations.empty()) {
             continue;
         }
-        if (auto* instance = scene.static_model_instance(model_index)) {
+        if (auto* instance = scene.static_model_instance(model_index);
+            instance && instance->scene_animation_enabled) {
             instance->animation.time += dt;
         }
     }

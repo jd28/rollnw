@@ -71,7 +71,6 @@ struct GltfRenderModelImportResult {
     nw::render::ModelAssetTextureUploadStats texture_upload_stats;
 };
 
-std::unique_ptr<nw::render::RenderModel> import_gltf(const std::filesystem::path& path, const ImportGltfDesc& desc);
 std::unique_ptr<nw::render::ModelAsset> import_gltf_model_asset(const std::filesystem::path& path);
 GltfModelAssetImportResult import_gltf_model_asset_with_stats(const std::filesystem::path& path);
 GltfRenderModelImportResult import_gltf_render_model_from_asset(

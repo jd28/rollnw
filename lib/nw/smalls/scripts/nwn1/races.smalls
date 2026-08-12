@@ -17,6 +17,13 @@ fn size(race_id: int): int {
     return size;
 }
 
+fn name_strref(race_id: int): StrRef {
+    if (race_id < 0 || race_id >= Array.len(_races)) {
+        return StrRef(-1);
+    }
+    return Array.get(_races, race_id).name;
+}
+
 fn ability_modifier(race_id: int, ability: int): int {
     if (ability < 0 || ability >= 6 || race_id < 0 || race_id >= Array.len(_races)) {
         return 0;

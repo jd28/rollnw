@@ -22,7 +22,7 @@ nw::smalls::Value encounter_state_ref(nw::Encounter* encounter, const nw::smalls
 {
     def = nullptr;
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.encounter.EncounterState", false);
+    auto tid = rt.type_id("nwn1.propsets.EncounterState", false);
     if (!encounter || tid == nw::smalls::invalid_type_id) { return {}; }
 
     auto ref = rt.find_propset_ref(tid, encounter->handle());
@@ -83,7 +83,7 @@ nw::Resref encounter_spawn_resref(nw::Encounter* encounter, size_t index)
     if (!array || index >= array->size()) { return {}; }
 
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.encounter.EncounterSpawn", false);
+    auto tid = rt.type_id("nwn1.propsets.EncounterSpawn", false);
     const auto* def = rt.get_struct_def(tid);
     if (tid == nw::smalls::invalid_type_id || !def) { return {}; }
 
@@ -155,7 +155,7 @@ TEST(Encounter, InstanceJsonRoundTripStoresGeometryComponent)
 {
     auto* enc = nw::kernel::objects().make<nw::Encounter>();
     ASSERT_NE(enc, nullptr);
-    ASSERT_NE(nw::kernel::runtime().load_module("core.encounter"), nullptr);
+    ASSERT_NE(nw::kernel::runtime().load_module("nwn1.propsets"), nullptr);
     nw::kernel::runtime().init_object_propsets(enc->handle());
 
     const std::array<glm::vec3, 3> points{

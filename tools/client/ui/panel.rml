@@ -1,0 +1,132 @@
+<rml>
+<head>
+  <link type="text/rcss" href="panel.rcss" />
+  <link type="text/rcss" href="creature_appearance.rcss" />
+  <link type="text/rcss" href="creature_classes.rcss" />
+  <link type="text/rcss" href="dialog.rcss" />
+  <link type="text/rcss" href="item_editor.rcss" />
+  <link type="text/template" href="item_editor.rml" />
+  <script>
+from core.commands.v1 import { command_execute };
+from core.rmlui import { Event, Command, command_set_checked };
+from toolset.item_editor import {
+    add_selected_property,
+    appearance_refresh,
+    apply_color,
+    close_property_options,
+    close_appearance_selector,
+    details_refresh,
+    inherit_color,
+    open_color_selector,
+    open_model_selector,
+    remove_selected_property,
+    select_color_channel,
+};
+
+fn rollnw_client_set_plot(event: Event): array!(Command) {
+    var desired = "0";
+    if (event.checked) {
+        desired = "1";
+    }
+    var result = command_execute("object.creature.set_plot", { desired });
+    if (result.status == 0 || result.status == 4) {
+        return {};
+    }
+    return {{
+        operation = command_set_checked,
+        element_id = event.element_id,
+        value = "",
+        state = !event.checked
+    }};
+}
+
+fn rollnw_item_property_add(event: Event): array!(Command) {
+    add_selected_property();
+    return {};
+}
+
+fn rollnw_item_property_remove(event: Event): array!(Command) {
+    remove_selected_property();
+    return {};
+}
+
+fn rollnw_item_property_close(event: Event): array!(Command) {
+    close_property_options();
+    return {};
+}
+
+fn rollnw_item_appearance_refresh(event: Event): array!(Command) {
+    return appearance_refresh(event);
+}
+
+fn rollnw_item_details_refresh(event: Event): array!(Command) {
+    return details_refresh(event);
+}
+
+fn rollnw_item_model_open(event: Event): array!(Command) {
+    return open_model_selector(event);
+}
+
+fn rollnw_item_selector_close(event: Event): array!(Command) {
+    return close_appearance_selector(event);
+}
+
+fn rollnw_item_color_open(event: Event): array!(Command) {
+    return open_color_selector(event);
+}
+
+fn rollnw_item_color_channel(event: Event): array!(Command) {
+    return select_color_channel(event);
+}
+
+fn rollnw_item_color_apply(event: Event): array!(Command) {
+    return apply_color(event);
+}
+
+fn rollnw_item_color_inherit(event: Event): array!(Command) {
+    return inherit_color(event);
+}
+
+  </script>
+</head>
+<body>
+  <div id="panel">
+    <div id="title">
+      <span id="title_areas">Module Areas</span>
+      <span id="title_project">Project</span>
+    </div>
+    <input id="recent_search" type="text" value="" placeholder="Search..." />
+    <div id="recent_list"></div>
+    <div id="left_dock_resize_grabber"></div>
+  </div>
+  <div id="workspace_shell">
+    <div id="workspace_tabs"></div>
+    <div id="workspace_content"></div>
+  </div>
+  <div id="bottom_dock">
+    <div id="bottom_dock_resize_grabber"></div>
+    <div id="output_panel" class="dock_widget">
+      <div id="output_header">
+        <button id="output_info" class="output_toggle active">info</button>
+        <button id="output_warn" class="output_toggle active">warn</button>
+        <button id="output_error" class="output_toggle active">error</button>
+        <button id="output_script" class="output_toggle active">script</button>
+        <input id="output_filter" type="text" value="" placeholder="Filter output..." />
+      </div>
+      <div id="output_list">
+        <div id="output_list_lines"></div>
+      </div>
+    </div>
+    <div id="terminal_panel" class="dock_widget">
+      <div id="terminal_output">
+        <div id="terminal_output_lines"></div>
+      </div>
+      <input id="terminal_input" type="text" value="" placeholder="Type command and press Enter..." />
+    </div>
+    <div id="bottom_dock_tabs">
+      <button id="bottom_tab_output" class="dock_tab" data-widget="output">Output</button>
+      <button id="bottom_tab_terminal" class="dock_tab" data-widget="terminal">Terminal</button>
+    </div>
+  </div>
+</body>
+</rml>

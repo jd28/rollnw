@@ -89,7 +89,7 @@ TEST(Player, LevelHistory)
     EXPECT_EQ(pl->history.entries[0].known_spells.size(), 6);
 
     auto& rt = nwk::runtime();
-    auto tid = rt.type_id("core.creature.CreatureLevels", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureLevels", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto ref = rt.get_or_create_propset_ref(tid, pl->handle());
     ASSERT_EQ(ref.type_id, tid);
@@ -113,7 +113,7 @@ TEST(Player, LevelHistory)
     EXPECT_EQ(levels["levelup_classes"][0].get<int32_t>(), first_slot);
 
     auto* script = rt.load_module_from_source("test.player_levelup_classes", R"(
-        import core.creature as C;
+        import nwn1.creature_state as C;
 
         fn main(obj: Creature): int {
             return C.get_levelup_class_position(obj, 0);
@@ -164,7 +164,7 @@ TEST(Player, Colors)
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
     auto& rt = nwk::runtime();
-    auto appearance = find_player_propset(rt, pl, "core.creature.CreatureAppearance");
+    auto appearance = find_player_propset(rt, pl, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance.type_id, nw::smalls::invalid_type_id);
     EXPECT_EQ(script_int_field(rt, appearance, "color_hair"), 20);
     EXPECT_EQ(script_int_field(rt, appearance, "color_skin"), 2);
@@ -226,7 +226,7 @@ TEST(Player, Portrait)
     EXPECT_TRUE(pl);
 
     auto& rt = nwk::runtime();
-    auto appearance = find_player_propset(rt, pl, "core.creature.CreatureAppearance");
+    auto appearance = find_player_propset(rt, pl, "nwn1.propsets.CreatureAppearance");
     ASSERT_NE(appearance.type_id, nw::smalls::invalid_type_id);
     const auto portrait = script_resref_field(rt, appearance, "portrait");
     EXPECT_EQ(portrait.view(), "po_dw_m_02_");

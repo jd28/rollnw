@@ -11,9 +11,9 @@ struct ConfigOptions {
     bool include_install = true; ///< Load Game install files
     bool include_user = true;    ///< Load User files, note: if false, value overrides ``include_nwsync``
     std::string profile = "nwn1";
-    std::string combat_policy_module = "nwn1.combat";
-    std::string effects_policy_module = "nwn1.effects";
-    std::string init_module = "nwn1.init";
+    std::string combat_policy_module;
+    std::string effects_policy_module;
+    std::string init_module;
 };
 
 namespace kernel {
@@ -50,9 +50,6 @@ struct Config {
 
     /// Sets init module path
     void set_init_module(std::string module);
-
-    /// Sets game profile id
-    void set_profile(std::string profile);
 
     /// Sets game paths.
     /// @note If paths are unset, the kernel will attempt to find them.

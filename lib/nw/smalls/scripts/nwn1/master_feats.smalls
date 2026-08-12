@@ -1,13 +1,14 @@
 from core.types import { Feat, AttackType };
-import core.creature as Cre;
-import core.item as item;
+import nwn1.creature_state as Cre;
+import core.item as CoreItem;
 import core.object as Obj;
 import core.array as arr;
 import core.map as map;
-from core.creature import { CreatureStats };
+from nwn1.propsets import { CreatureStats };
 
 import nwn1.baseitems as baseitems;
 import nwn1.constants as Const;
+import nwn1.item as item;
 from nwn1.constants import { MasterFeat };
 
 const _mfeat_count = 18;
@@ -47,12 +48,12 @@ fn has_feat_check(obj: Creature, mfeat: MasterFeat, rule_type: $T): bool {
 }
 
 fn weapon_for_attack(obj: Creature, attack_type: AttackType): Item {
-    if (attack_type == Const.attack_type_onhand) { return Cre.get_equipped_item(obj, Const.equip_index_righthand); }
-    if (attack_type == Const.attack_type_offhand) { return Cre.get_equipped_item(obj, Const.equip_index_lefthand); }
-    if (attack_type == Const.attack_type_unarmed) { return Cre.get_equipped_item(obj, Const.equip_index_arms); }
-    if (attack_type == Const.attack_type_cweapon1) { return Cre.get_equipped_item(obj, Const.equip_index_creature_bite); }
-    if (attack_type == Const.attack_type_cweapon2) { return Cre.get_equipped_item(obj, Const.equip_index_creature_left); }
-    if (attack_type == Const.attack_type_cweapon3) { return Cre.get_equipped_item(obj, Const.equip_index_creature_right); }
+    if (attack_type == Const.attack_type_onhand) { return CoreItem.get_equipped_item(obj, Const.equip_index_righthand); }
+    if (attack_type == Const.attack_type_offhand) { return CoreItem.get_equipped_item(obj, Const.equip_index_lefthand); }
+    if (attack_type == Const.attack_type_unarmed) { return CoreItem.get_equipped_item(obj, Const.equip_index_arms); }
+    if (attack_type == Const.attack_type_cweapon1) { return CoreItem.get_equipped_item(obj, Const.equip_index_creature_bite); }
+    if (attack_type == Const.attack_type_cweapon2) { return CoreItem.get_equipped_item(obj, Const.equip_index_creature_left); }
+    if (attack_type == Const.attack_type_cweapon3) { return CoreItem.get_equipped_item(obj, Const.equip_index_creature_right); }
     return Obj.invalid as Item;
 }
 

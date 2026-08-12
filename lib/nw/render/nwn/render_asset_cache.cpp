@@ -1,6 +1,9 @@
 #include "render_asset_cache.hpp"
 
+#include "model_loader.hpp"
+
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/ModelCache.hpp>
 #include <nw/log.hpp>
 #include <nw/render/texture_decode.hpp>
 #include <nw/resources/ResourceManager.hpp>
@@ -54,21 +57,21 @@ size_t image_pixel_bytes(const nw::Image* image) noexcept
         image->channels());
 }
 
-size_t particle_mesh_payload_bytes(const ModelInstance* model) noexcept
+size_t particle_mesh_payload_bytes(const nw::render::RenderModel* model) noexcept
 {
     if (!model) {
         return 0;
     }
 
     size_t result = 0;
-    for (const auto& node : model->nodes_) {
-        if (!node || !node->is_mesh) {
-            continue;
-        }
-        const auto* mesh = static_cast<const Mesh*>(node.get());
-        const size_t vertex_stride = mesh->is_skin ? sizeof(SkinnedVertex) : sizeof(Vertex);
-        result = saturating_add(result, saturating_multiply(mesh->vertex_count, vertex_stride));
-        result = saturating_add(result, saturating_multiply(mesh->index_count, sizeof(uint16_t)));
+    for (const auto& primitive : model->primitives) {
+        const size_t vertex_stride = primitive.skinned
+            ? sizeof(nw::render::SkinnedVertex)
+            : sizeof(nw::render::Vertex);
+        result = saturating_add(
+            result, saturating_multiply(primitive.vertex_count, vertex_stride));
+        result = saturating_add(
+            result, saturating_multiply(primitive.index_count, primitive.index_stride));
     }
     return result;
 }
@@ -105,8 +108,7 @@ bool is_white_alpha_mask_texture(const nw::Image& image)
     return saw_low_alpha && saw_high_alpha && min_rgb >= 0.96f && max_channel_delta <= 0.02f;
 }
 
-void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t height,
-    bool premultiply, bool flip_rows)
+void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t height, bool flip_rows)
 {
     const size_t row_bytes = static_cast<size_t>(width) * 4;
     for (uint32_t y = 0; y < height; ++y) {
@@ -116,17 +118,10 @@ void copy_rgba_pixels(uint8_t* dst, const uint8_t* src, uint32_t width, uint32_t
         for (uint32_t x = 0; x < width; ++x) {
             const size_t src_i = src_row + static_cast<size_t>(x) * 4;
             const size_t dst_i = dst_row + static_cast<size_t>(x) * 4;
-            const uint8_t a = src[src_i + 3];
-            if (premultiply) {
-                dst[dst_i + 0] = static_cast<uint8_t>((uint16_t(src[src_i + 0]) * a + 127) / 255);
-                dst[dst_i + 1] = static_cast<uint8_t>((uint16_t(src[src_i + 1]) * a + 127) / 255);
-                dst[dst_i + 2] = static_cast<uint8_t>((uint16_t(src[src_i + 2]) * a + 127) / 255);
-            } else {
-                dst[dst_i + 0] = src[src_i + 0];
-                dst[dst_i + 1] = src[src_i + 1];
-                dst[dst_i + 2] = src[src_i + 2];
-            }
-            dst[dst_i + 3] = a;
+            dst[dst_i + 0] = src[src_i + 0];
+            dst[dst_i + 1] = src[src_i + 1];
+            dst[dst_i + 2] = src[src_i + 2];
+            dst[dst_i + 3] = src[src_i + 3];
         }
     }
 }
@@ -348,7 +343,12 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
     size_t upload_bytes = 0;
     if (image->channels() == 4) {
         std::vector<uint8_t> rgba(pixel_count * 4);
-        copy_rgba_pixels(rgba.data(), image->data(), image->width(), image->height(), premultiply_alpha, restore_tga_file_rows);
+        copy_rgba_pixels(rgba.data(), image->data(), image->width(), image->height(), restore_tga_file_rows);
+        if (premultiply_alpha && !nw::render::premultiply_rgba8_pixels(rgba)) {
+            nw::gfx::destroy_texture(ctx_, texture);
+            texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
+            return fallback_texture;
+        }
         nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
         upload_bytes = rgba.size();
     } else if (image->channels() == 3) {
@@ -503,7 +503,12 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
 
     const size_t pixel_count = static_cast<size_t>(image.width()) * image.height();
     std::vector<uint8_t> rgba(pixel_count * 4);
-    copy_rgba_pixels(rgba.data(), image.data(), image.width(), image.height(), premultiply_alpha, false);
+    copy_rgba_pixels(rgba.data(), image.data(), image.width(), image.height(), false);
+    if (premultiply_alpha && !nw::render::premultiply_rgba8_pixels(rgba)) {
+        nw::gfx::destroy_texture(ctx_, texture);
+        texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
+        return fallback_texture;
+    }
     nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
     texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size(), .owned = true};
     return texture;
@@ -593,7 +598,8 @@ bool RenderAssetCache::source_image_is_white_alpha_mask(nw::Resref name)
     return result;
 }
 
-ModelInstance* RenderAssetCache::get_or_load_particle_mesh(nw::Resref resref)
+nw::render::RenderModel* RenderAssetCache::get_or_load_particle_mesh(
+    nw::Resref resref, const nw::render::ModelAssetTextureUploadDesc& texture_upload)
 {
     sync_resource_generation();
     if (resref.empty()) {
@@ -604,10 +610,25 @@ ModelInstance* RenderAssetCache::get_or_load_particle_mesh(nw::Resref resref)
         return it->second.get();
     }
 
-    ModelLoader loader(ctx_);
-    auto model = loader.load(resref.view());
-    auto* result = model.get();
-    particle_mesh_cache_.emplace(resref, std::move(model));
+    if (!ctx_ || texture_upload.ctx != ctx_) {
+        LOG_F(ERROR,
+            "render asset cache: particle mesh '{}' requires the cache graphics context",
+            resref.view());
+        return nullptr;
+    }
+
+    const auto* source = nw::kernel::models().load(resref.view());
+    if (!source) {
+        particle_mesh_cache_.emplace(resref, nullptr);
+        return nullptr;
+    }
+
+    auto imported = import_nwn_render_model(*source, texture_upload);
+    if (!imported.model) {
+        LOG_F(ERROR, "render asset cache: failed to import particle mesh '{}'", resref.view());
+    }
+    auto* result = imported.model.get();
+    particle_mesh_cache_.emplace(resref, std::move(imported.model));
     return result;
 }
 

@@ -20,6 +20,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
@@ -30,12 +31,14 @@
 #include <nw/profiles/nwn1/propset_gff_importer.hpp>
 #include <nw/profiles/nwn1/propset_gff_policy.hpp>
 #include <nw/resources/assets.hpp>
+#include <nw/rules/items.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -311,34 +314,34 @@ TEST_F(SmallsPropsetParity, RegistryFieldNamesUnique)
 TEST_F(SmallsPropsetParity, RegistryKnownPropsets)
 {
     EXPECT_EQ(registry_->find("core.object.ObjectCommon"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureDescriptor"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureAppearance"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureStats"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureHealth"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureLevels"), nullptr);
-    EXPECT_NE(registry_->find("core.creature.CreatureCombat"), nullptr);
-    EXPECT_NE(registry_->find("core.item.ItemDescriptor"), nullptr);
-    EXPECT_NE(registry_->find("core.item.ItemStats"), nullptr);
-    EXPECT_NE(registry_->find("core.item.ItemVisuals"), nullptr);
-    EXPECT_NE(registry_->find("core.sound.SoundState"), nullptr);
-    EXPECT_NE(registry_->find("core.store.StoreState"), nullptr);
-    EXPECT_NE(registry_->find("core.trigger.TriggerState"), nullptr);
-    EXPECT_NE(registry_->find("core.encounter.EncounterState"), nullptr);
-    EXPECT_NE(registry_->find("core.waypoint.WaypointState"), nullptr);
-    EXPECT_NE(registry_->find("core.door.DoorState"), nullptr);
-    EXPECT_NE(registry_->find("core.placeable.PlaceableState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureDescriptor"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureAppearance"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureStats"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureHealth"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureLevels"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.CreatureCombat"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.ItemDescriptor"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.ItemStats"), nullptr);
+    EXPECT_EQ(registry_->find("core.item.ItemVisuals"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.SoundState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.StoreState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.TriggerState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.EncounterState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.WaypointState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.DoorState"), nullptr);
+    EXPECT_NE(registry_->find("nwn1.propsets.PlaceableState"), nullptr);
 }
 
 TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 {
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.sound"), nullptr);
-    ASSERT_NE(rt.load_module("core.waypoint"), nullptr);
-    ASSERT_NE(rt.load_module("core.store"), nullptr);
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
-    ASSERT_NE(rt.load_module("core.door"), nullptr);
-    ASSERT_NE(rt.load_module("core.placeable"), nullptr);
-    ASSERT_NE(rt.load_module("core.encounter"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto find_ref = [&rt](const nw::ObjectBase* obj, const char* type_name) {
         if (!obj) { return nw::smalls::Value{}; }
@@ -359,7 +362,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* sound = make_sound(sound_path);
     ASSERT_NE(sound, nullptr);
-    auto sound_ref = find_ref(sound, "core.sound.SoundState");
+    auto sound_ref = find_ref(sound, "nwn1.propsets.SoundState");
     ASSERT_NE(sound_ref.type_id, nw::smalls::invalid_type_id);
     auto sound_def = sdef(rt, sound_ref.type_id);
     ASSERT_NE(sound_def, nullptr);
@@ -376,7 +379,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* waypoint = make_waypoint(waypoint_path);
     ASSERT_NE(waypoint, nullptr);
-    auto waypoint_ref = find_ref(waypoint, "core.waypoint.WaypointState");
+    auto waypoint_ref = find_ref(waypoint, "nwn1.propsets.WaypointState");
     ASSERT_NE(waypoint_ref.type_id, nw::smalls::invalid_type_id);
     auto waypoint_def = sdef(rt, waypoint_ref.type_id);
     ASSERT_NE(waypoint_def, nullptr);
@@ -391,7 +394,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* store = make_store(store_path);
     ASSERT_NE(store, nullptr);
-    auto store_ref = find_ref(store, "core.store.StoreState");
+    auto store_ref = find_ref(store, "nwn1.propsets.StoreState");
     ASSERT_NE(store_ref.type_id, nw::smalls::invalid_type_id);
     auto store_def = sdef(rt, store_ref.type_id);
     ASSERT_NE(store_def, nullptr);
@@ -405,7 +408,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* trigger = make_trigger(trigger_path);
     ASSERT_NE(trigger, nullptr);
-    auto trigger_ref = find_ref(trigger, "core.trigger.TriggerState");
+    auto trigger_ref = find_ref(trigger, "nwn1.propsets.TriggerState");
     ASSERT_NE(trigger_ref.type_id, nw::smalls::invalid_type_id);
     auto trigger_def = sdef(rt, trigger_ref.type_id);
     ASSERT_NE(trigger_def, nullptr);
@@ -419,7 +422,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* door = make_door(door_path);
     ASSERT_NE(door, nullptr);
-    auto door_ref = find_ref(door, "core.door.DoorState");
+    auto door_ref = find_ref(door, "nwn1.propsets.DoorState");
     ASSERT_NE(door_ref.type_id, nw::smalls::invalid_type_id);
     auto door_def = sdef(rt, door_ref.type_id);
     ASSERT_NE(door_def, nullptr);
@@ -427,7 +430,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* placeable = make_placeable("test_data/user/development/arrowcorpse001.utp");
     ASSERT_NE(placeable, nullptr);
-    auto placeable_ref = find_ref(placeable, "core.placeable.PlaceableState");
+    auto placeable_ref = find_ref(placeable, "nwn1.propsets.PlaceableState");
     ASSERT_NE(placeable_ref.type_id, nw::smalls::invalid_type_id);
     auto placeable_def = sdef(rt, placeable_ref.type_id);
     ASSERT_NE(placeable_def, nullptr);
@@ -442,7 +445,7 @@ TEST_F(SmallsPropsetParity, GffDeserializeInitializesSimpleObjectPropsets)
 
     auto* encounter = make_encounter(encounter_path);
     ASSERT_NE(encounter, nullptr);
-    auto encounter_ref = find_ref(encounter, "core.encounter.EncounterState");
+    auto encounter_ref = find_ref(encounter, "nwn1.propsets.EncounterState");
     ASSERT_NE(encounter_ref.type_id, nw::smalls::invalid_type_id);
     auto encounter_def = sdef(rt, encounter_ref.type_id);
     ASSERT_NE(encounter_def, nullptr);
@@ -472,7 +475,7 @@ static void check_item_descriptor_parity(
     nw::smalls::Runtime& rt,
     nw::Item* item_legacy, nw::Item* item_import)
 {
-    auto tid = rt.type_id("core.item.ItemDescriptor", false);
+    auto tid = rt.type_id("nwn1.propsets.ItemDescriptor", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -496,7 +499,7 @@ static void check_item_stats_parity(
     nw::smalls::Runtime& rt,
     nw::Item* item_legacy, nw::Item* item_import)
 {
-    auto tid = rt.type_id("core.item.ItemStats", false);
+    auto tid = rt.type_id("nwn1.propsets.ItemStats", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -522,7 +525,7 @@ static void check_creature_descriptor_parity(
     nw::smalls::Runtime& rt,
     nw::Creature* cre_legacy, nw::Creature* cre_import)
 {
-    auto tid = rt.type_id("core.creature.CreatureDescriptor", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureDescriptor", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -570,7 +573,7 @@ static void check_creature_stats_parity(
     nw::smalls::Runtime& rt,
     nw::Creature* cre_legacy, nw::Creature* cre_import)
 {
-    auto tid = rt.type_id("core.creature.CreatureStats", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureStats", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -615,7 +618,7 @@ static void check_creature_health_parity(
     nw::smalls::Runtime& rt,
     nw::Creature* cre_legacy, nw::Creature* cre_import)
 {
-    auto tid = rt.type_id("core.creature.CreatureHealth", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureHealth", false);
     if (tid == nw::smalls::invalid_type_id) { return; }
     auto def = sdef(rt, tid);
     if (!def) { return; }
@@ -634,7 +637,7 @@ static void check_creature_levels_parity(
     nw::smalls::Runtime& rt,
     nw::Creature* cre_legacy, nw::Creature* cre_import)
 {
-    auto tid = rt.type_id("core.creature.CreatureLevels", false);
+    auto tid = rt.type_id("nwn1.propsets.CreatureLevels", false);
     if (tid == nw::smalls::invalid_type_id) { return; }
     auto def = sdef(rt, tid);
     if (!def) { return; }
@@ -730,7 +733,7 @@ TEST_F(SmallsPropsetParity, SkipFieldsStayZero)
     importer_->import_creature(cre, gff.toplevel(), nw::SerializationProfile::blueprint);
 
     // hp_temp should be zero (skip field in CreatureHealth)
-    auto tid_h = rt.type_id("core.creature.CreatureHealth", false);
+    auto tid_h = rt.type_id("nwn1.propsets.CreatureHealth", false);
     if (tid_h != nw::smalls::invalid_type_id) {
         auto def_h = sdef(rt, tid_h);
         auto ref_h = rt.get_or_create_propset_ref(tid_h, cre->handle());
@@ -738,7 +741,7 @@ TEST_F(SmallsPropsetParity, SkipFieldsStayZero)
     }
 
     // xp should be zero (skip field in CreatureLevels — not on Creature GFF)
-    auto tid_l = rt.type_id("core.creature.CreatureLevels", false);
+    auto tid_l = rt.type_id("nwn1.propsets.CreatureLevels", false);
     if (tid_l != nw::smalls::invalid_type_id) {
         auto def_l = sdef(rt, tid_l);
         auto ref_l = rt.get_or_create_propset_ref(tid_l, cre->handle());
@@ -746,7 +749,7 @@ TEST_F(SmallsPropsetParity, SkipFieldsStayZero)
     }
 
     // CreatureCombat — all fields should stay at zero after import
-    auto tid_c = rt.type_id("core.creature.CreatureCombat", false);
+    auto tid_c = rt.type_id("nwn1.propsets.CreatureCombat", false);
     if (tid_c != nw::smalls::invalid_type_id) {
         auto def_c = sdef(rt, tid_c);
         auto ref_c = rt.get_or_create_propset_ref(tid_c, cre->handle());
@@ -835,7 +838,7 @@ static void check_sound_state_parity(
     nw::smalls::Runtime& rt,
     nw::Sound* sound_legacy, nw::Sound* sound_import)
 {
-    auto tid = rt.type_id("core.sound.SoundState", false);
+    auto tid = rt.type_id("nwn1.propsets.SoundState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -878,7 +881,7 @@ static void check_waypoint_state_parity(
     nw::smalls::Runtime& rt,
     nw::Waypoint* waypoint_legacy, nw::Waypoint* waypoint_import)
 {
-    auto tid = rt.type_id("core.waypoint.WaypointState", false);
+    auto tid = rt.type_id("nwn1.propsets.WaypointState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -908,7 +911,7 @@ static void check_store_state_parity(
     nw::smalls::Runtime& rt,
     nw::Store* store_legacy, nw::Store* store_import)
 {
-    auto tid = rt.type_id("core.store.StoreState", false);
+    auto tid = rt.type_id("nwn1.propsets.StoreState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -940,7 +943,7 @@ static void check_trigger_state_parity(
     nw::smalls::Runtime& rt,
     nw::Trigger* trigger_legacy, nw::Trigger* trigger_import)
 {
-    auto tid = rt.type_id("core.trigger.TriggerState", false);
+    auto tid = rt.type_id("nwn1.propsets.TriggerState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -981,7 +984,7 @@ static void check_door_state_parity(
     nw::smalls::Runtime& rt,
     nw::Door* door_legacy, nw::Door* door_import)
 {
-    auto tid = rt.type_id("core.door.DoorState", false);
+    auto tid = rt.type_id("nwn1.propsets.DoorState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -1029,7 +1032,7 @@ static void check_placeable_state_parity(
     nw::smalls::Runtime& rt,
     nw::Placeable* placeable_legacy, nw::Placeable* placeable_import)
 {
-    auto tid = rt.type_id("core.placeable.PlaceableState", false);
+    auto tid = rt.type_id("nwn1.propsets.PlaceableState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -1075,7 +1078,7 @@ static void check_encounter_state_parity(
     nw::smalls::Runtime& rt,
     nw::Encounter* encounter_legacy, nw::Encounter* encounter_import)
 {
-    auto tid = rt.type_id("core.encounter.EncounterState", false);
+    auto tid = rt.type_id("nwn1.propsets.EncounterState", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
     auto def = sdef(rt, tid);
     ASSERT_NE(def, nullptr);
@@ -1109,7 +1112,7 @@ static void check_encounter_state_parity(
     ASSERT_NE(creatures_i, nullptr);
     ASSERT_EQ(creatures_l->size(), creatures_i->size());
 
-    auto spawn_tid = rt.type_id("core.encounter.EncounterSpawn", false);
+    auto spawn_tid = rt.type_id("nwn1.propsets.EncounterSpawn", false);
     ASSERT_NE(spawn_tid, nw::smalls::invalid_type_id);
     const auto* spawn_def = sdef(rt, spawn_tid);
     ASSERT_NE(spawn_def, nullptr);
@@ -1141,7 +1144,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedSoundState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.sound"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* sound_legacy = make_sound(path);
     ASSERT_NE(sound_legacy, nullptr);
@@ -1163,7 +1166,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedWaypointState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.waypoint"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* waypoint_legacy = make_waypoint(path);
     ASSERT_NE(waypoint_legacy, nullptr);
@@ -1185,7 +1188,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedStoreState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.store"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* store_legacy = make_store(path);
     ASSERT_NE(store_legacy, nullptr);
@@ -1207,7 +1210,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedTriggerState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* trigger_legacy = make_trigger(path);
     ASSERT_NE(trigger_legacy, nullptr);
@@ -1229,7 +1232,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedDoorState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.door"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* door_legacy = make_door(path);
     ASSERT_NE(door_legacy, nullptr);
@@ -1251,7 +1254,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedPlaceableState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.placeable"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* placeable_legacy = make_placeable(path);
     ASSERT_NE(placeable_legacy, nullptr);
@@ -1273,7 +1276,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedEncounterState)
     ASSERT_TRUE(gff.valid());
 
     auto& rt = nw::kernel::runtime();
-    ASSERT_NE(rt.load_module("core.encounter"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* encounter_legacy = make_encounter(path);
     ASSERT_NE(encounter_legacy, nullptr);
@@ -1296,6 +1299,20 @@ TEST_F(SmallsPropsetParity, GffRoundTripItemPropsets)
 
     auto* item_ref = make_item(path);
     ASSERT_NE(item_ref, nullptr);
+    const std::array<nw::ItemProperty, 1> properties{{
+        {
+            .type = 16,
+            .subtype = 7,
+            .cost_table = 4,
+            .cost_value = 11,
+            .param_table = 255,
+            .param_value = 0,
+            .tag = "gff-roundtrip",
+        },
+    }};
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_item_properties(item_ref->handle(), properties));
+    const auto expected_properties = components.item_properties_to_json(item_ref->handle());
 
     nw::GffBuilder builder(nw::Item::serial_id);
     exporter_->export_item(item_ref, builder.top, nw::SerializationProfile::blueprint);
@@ -1314,13 +1331,15 @@ TEST_F(SmallsPropsetParity, GffRoundTripItemPropsets)
     check_common_parity(rt, item_ref, item_rt);
     check_item_descriptor_parity(rt, item_ref, item_rt);
     check_item_stats_parity(rt, item_ref, item_rt);
+    EXPECT_EQ(components.item_properties_to_json(item_rt->handle()),
+        expected_properties);
 }
 
 TEST_F(SmallsPropsetParity, GffRoundTripSoundState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/blue_bell.uts";
-    ASSERT_NE(rt.load_module("core.sound"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* sound_ref = make_sound(path);
     ASSERT_NE(sound_ref, nullptr);
@@ -1348,7 +1367,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripWaypointState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/wp_behexit001.utw";
-    ASSERT_NE(rt.load_module("core.waypoint"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* waypoint_ref = make_waypoint(path);
     ASSERT_NE(waypoint_ref, nullptr);
@@ -1376,7 +1395,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripStoreState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/storethief002.utm";
-    ASSERT_NE(rt.load_module("core.store"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* store_ref = make_store(path);
     ASSERT_NE(store_ref, nullptr);
@@ -1404,7 +1423,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripTriggerState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/pl_spray_sewage.utt";
-    ASSERT_NE(rt.load_module("core.trigger"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* trigger_ref = make_trigger(path);
     ASSERT_NE(trigger_ref, nullptr);
@@ -1432,7 +1451,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripDoorState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/door_ttr_002.utd";
-    ASSERT_NE(rt.load_module("core.door"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* door_ref = make_door(path);
     ASSERT_NE(door_ref, nullptr);
@@ -1460,7 +1479,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripPlaceableState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/arrowcorpse001.utp";
-    ASSERT_NE(rt.load_module("core.placeable"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* placeable_ref = make_placeable(path);
     ASSERT_NE(placeable_ref, nullptr);
@@ -1488,7 +1507,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripEncounterState)
 {
     auto& rt = nw::kernel::runtime();
     const char* path = "test_data/user/development/boundelementallo.ute";
-    ASSERT_NE(rt.load_module("core.encounter"), nullptr);
+    ASSERT_NE(rt.load_module("nwn1.propsets"), nullptr);
 
     auto* encounter_ref = make_encounter(path);
     ASSERT_NE(encounter_ref, nullptr);

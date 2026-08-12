@@ -2,7 +2,6 @@
 
 #include "preview_nwn_creature.hpp"
 #include "preview_object.hpp"
-#include "preview_plt.hpp"
 #include "preview_scene.hpp"
 
 #include <nw/formats/Image.hpp>
@@ -342,6 +341,7 @@ void add_model_asset_geometry_report(
         .skin_count = asset.skins.size(),
         .skeleton_count = asset.skeletons.size(),
         .animation_count = asset.animations.size(),
+        .light_count = asset.lights.size(),
         .deformer_count = asset.deformers.size(),
         .particle_system_count = asset.particle_systems.size(),
     };
@@ -423,6 +423,7 @@ void add_render_model_geometry_report(
         .skin_count = model.skins.size(),
         .skeleton_count = model.skeletons.size(),
         .animation_count = model.animations.size(),
+        .light_count = model.lights.size(),
         .deformer_count = model.deformers.size(),
         .particle_system_count = model.particle_systems.size(),
     };
@@ -448,11 +449,11 @@ void add_render_model_geometry_report(
 
 std::string mesh_texture_name(const nw::model::TrimeshNode& node)
 {
-    if (!node.bitmap.empty() && !is_null_preview_resource_name(node.bitmap)) {
-        return std::string(node.bitmap);
-    }
     if (!node.textures[0].empty() && !is_null_preview_resource_name(node.textures[0])) {
         return std::string(node.textures[0]);
+    }
+    if (!node.bitmap.empty() && !is_null_preview_resource_name(node.bitmap)) {
+        return std::string(node.bitmap);
     }
     return {};
 }
@@ -533,9 +534,11 @@ void scan_preview_node_dependencies(PreviewLoadReportBuilder& builder, const nw:
 
     const auto origin = std::string(model_name) + ":" + std::string(node->name);
     if (const auto* trimesh = dynamic_cast<const nw::model::TrimeshNode*>(node)) {
-        add_texture_family(builder, mesh_texture_name(*trimesh), origin);
-        for (const auto& texture : trimesh->textures) {
-            add_texture_family(builder, texture, origin);
+        const auto albedo = nw::render::nwn::resolve_nwn_model_albedo_resref(
+            model_name, mesh_texture_name(*trimesh));
+        add_texture_family(builder, albedo, origin);
+        for (size_t i = 1; i < trimesh->textures.size(); ++i) {
+            add_texture_family(builder, trimesh->textures[i], origin);
         }
         add_material_resource(builder, trimesh->materialname, origin);
     } else if (const auto* emitter = dynamic_cast<const nw::model::EmitterNode*>(node)) {
@@ -590,10 +593,15 @@ void scan_preview_model_dependencies(
     }
 }
 
-std::string preview_particle_owner_name(const SceneParticleSystem& scene_particles)
+std::string preview_particle_owner_name(
+    const PreviewScene& scene,
+    const SceneParticleSystem& scene_particles)
 {
-    if (scene_particles.owner && scene_particles.owner->mdl_ && !scene_particles.owner->mdl_->model.name.empty()) {
-        return scene_particles.owner->mdl_->model.name.c_str();
+    if (scene_particles.owner_model_index < scene.static_models.size()) {
+        const auto& model = scene.static_models[scene_particles.owner_model_index];
+        if (model && !model->name.empty()) {
+            return model->name;
+        }
     }
     if (!scene_particles.import.effect.name.empty()) {
         return scene_particles.import.effect.name;
@@ -1097,7 +1105,7 @@ static void add_dynamic_creature_report(
         if (!app) {
             builder.add_event(PreviewLoadEventSeverity::error,
                 "appearance",
-                fmt::format("Dynamic creature preview '{}' has missing legacy humanoid appearance {}",
+                fmt::format("Dynamic creature preview '{}' has missing humanoid appearance {}",
                     path.string(),
                     appearance_id.idx()));
             return;
@@ -1362,23 +1370,21 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
     }
 
     const nw::Resref area{source};
-    if (nw::kernel::resman().contains({area, nw::ResourceType::are})
+    const auto module_format = nw::kernel::resman().module_format();
+    const auto area_type = module_format == nw::ModuleResourceFormat::native_json
+        ? nw::ResourceType::caf
+        : nw::ResourceType::are;
+    if (module_format != nw::ModuleResourceFormat::invalid
+        && nw::kernel::resman().contains({area, area_type})
         && !nw::kernel::resman().contains({area, nw::ResourceType::mdl})) {
         report.kind = "area";
-        builder.add_existing_or_missing_resource({area, nw::ResourceType::are}, "area");
-        builder.add_existing_or_missing_resource({area, nw::ResourceType::git}, "area");
-        builder.add_existing_or_missing_resource({area, nw::ResourceType::gic}, "area");
-
-        nw::Gff are{nw::kernel::resman().demand({area, nw::ResourceType::are})};
-        nw::Resref tileset_resref;
-        if (!are.valid() || !are.toplevel().get_to("Tileset", tileset_resref) || tileset_resref.empty()) {
-            builder.add_event(PreviewLoadEventSeverity::error,
-                "area",
-                fmt::format("Area '{}' is missing a valid tileset", source));
-            finalize_load_report(report, builder);
-            return report;
+        if (module_format == nw::ModuleResourceFormat::native_json) {
+            builder.add_existing_or_missing_resource({area, nw::ResourceType::caf}, "area");
+        } else {
+            builder.add_existing_or_missing_resource({area, nw::ResourceType::are}, "area");
+            builder.add_existing_or_missing_resource({area, nw::ResourceType::git}, "area");
+            builder.add_existing_or_missing_resource({area, nw::ResourceType::gic}, "area");
         }
-        builder.add_existing_or_missing_resource({tileset_resref, nw::ResourceType::set}, "area:tileset");
 
         nw::ObjectManager::AreaLoadProfile profile{};
         auto* loaded_area = nw::kernel::objects().make_area(area, &profile);
@@ -1389,6 +1395,17 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
             finalize_load_report(report, builder);
             return report;
         }
+
+        if (loaded_area->tileset_resref.empty()) {
+            builder.add_event(PreviewLoadEventSeverity::error,
+                "area",
+                fmt::format("Area '{}' is missing a valid tileset", source));
+            loaded_area->clear();
+            nw::kernel::objects().destroy(loaded_area->handle());
+            finalize_load_report(report, builder);
+            return report;
+        }
+        builder.add_existing_or_missing_resource({loaded_area->tileset_resref, nw::ResourceType::set}, "area:tileset");
 
         bool instantiated = false;
         try {
@@ -1450,6 +1467,7 @@ PreviewLoadReport build_preview_load_report(std::string_view source, std::string
                 fmt::format("Failed to instantiate area '{}'", source));
         }
 
+        loaded_area->clear();
         nw::kernel::objects().destroy(loaded_area->handle());
         finalize_load_report(report, builder);
         return report;
@@ -1517,14 +1535,6 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
     };
 
     std::set<std::string> scanned_models;
-    for (const auto& model : models) {
-        if (!model || !model->mdl_) {
-            continue;
-        }
-        const std::string model_name = model->mdl_->model.name.c_str();
-        add_model_name(model_name);
-        scan_preview_model_dependencies(builder, *model->mdl_, scanned_models);
-    }
     for (size_t model_index = 0; model_index < static_models.size(); ++model_index) {
         const auto& model = static_models[model_index];
         if (model) {
@@ -1537,7 +1547,7 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
 
     for (const auto& scene_particles : particles) {
         load_report.particles.push_back({
-            .owner = preview_particle_owner_name(scene_particles),
+            .owner = preview_particle_owner_name(*this, scene_particles),
             .emitter_count = scene_particles.import.effect.emitters.size(),
             .max_particles_total = scene_particles.compiled.effect.max_particles_total,
             .import_warning_count = scene_particles.import.warnings.size(),
@@ -1548,7 +1558,7 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
             builder.add_event(PreviewLoadEventSeverity::warning,
                 "particle_import",
                 fmt::format("{}: {}.{}: {}",
-                    preview_particle_owner_name(scene_particles),
+                    preview_particle_owner_name(*this, scene_particles),
                     warning.emitter,
                     warning.field,
                     warning.message));
@@ -1557,7 +1567,7 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
             builder.add_event(PreviewLoadEventSeverity::warning,
                 "particle_compile",
                 fmt::format("{}: emitter {}: {}",
-                    preview_particle_owner_name(scene_particles),
+                    preview_particle_owner_name(*this, scene_particles),
                     warning.emitter,
                     warning.message));
         }

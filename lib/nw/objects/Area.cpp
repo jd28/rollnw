@@ -157,9 +157,11 @@ Area::Area(MemoryResource* allocator)
 
 void Area::clear()
 {
-#define DESTROY_OBJECTS(thing)                       \
-    for (auto it : thing) {                          \
-        nw::kernel::objects().destroy(it->handle()); \
+#define DESTROY_OBJECTS(thing)                           \
+    for (auto* it : thing) {                             \
+        if (it) {                                        \
+            nw::kernel::objects().destroy(it->handle()); \
+        }                                                \
     }
     DESTROY_OBJECTS(creatures);
     DESTROY_OBJECTS(doors);
@@ -171,6 +173,15 @@ void Area::clear()
     DESTROY_OBJECTS(triggers);
     DESTROY_OBJECTS(waypoints);
 #undef DESTROY_OBJECTS
+    creatures.clear();
+    doors.clear();
+    encounters.clear();
+    items.clear();
+    placeables.clear();
+    sounds.clear();
+    stores.clear();
+    triggers.clear();
+    waypoints.clear();
 }
 
 bool Area::instantiate()
@@ -242,23 +253,26 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
-    // [TODO] Load this..
-    ROLLNW_UNUSED(gic);
 
     nwn1::obj_compat_fields_from_gff(*obj, are, SerializationProfile::any, ObjectType::area);
     nw::kernel::objects().components().deserialize_spatial(obj->handle(), are, SerializationProfile::any);
     nw::kernel::objects().components().deserialize_locals(obj->handle(), are);
     deserialize(obj->scripts, are);
     deserialize(obj->weather, are);
+    gic.get_to("Comment", obj->comments, false);
 
 #define GIT_LIST(name, holder, type)                                   \
     do {                                                               \
         auto st = git[name];                                           \
+        auto comments = gic[name];                                     \
         auto sz = st.size();                                           \
         holder.reserve(sz);                                            \
         for (size_t i = 0; i < sz; ++i) {                              \
             auto o = nw::kernel::objects().load_instance<type>(st[i]); \
             if (o) {                                                   \
+                if (i < comments.size()) {                             \
+                    comments[i].get_to("Comment", o->comment, false);  \
+                }                                                      \
                 holder.push_back(o);                                   \
             } else {                                                   \
                 LOG_F(WARNING, "Something dreadfully wrong.");         \

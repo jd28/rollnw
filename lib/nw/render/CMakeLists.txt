@@ -13,7 +13,6 @@ add_library(nw-render STATIC
     local_shadow_renderer.cpp
     model_gpu_backend_common.cpp
     model_instance_attachment.cpp
-    nwn/model_gpu_backend.cpp
     model_renderer.cpp
     model_pipeline_desc.cpp
     pipeline_cache.cpp
@@ -125,7 +124,6 @@ target_link_libraries(nw-render-ozz PUBLIC nw-render ozz_base ozz_animation ozz_
 
 add_library(nw-render-nwn STATIC
     nwn/model_loader.cpp
-    nwn/model_renderer.cpp
     nwn/render_asset_cache.cpp
     nwn/nwn_animation.cpp)
 target_include_directories(nw-render-nwn PUBLIC ${CMAKE_SOURCE_DIR}/lib)

@@ -4,6 +4,7 @@
 
 #include <nw/render/viewer/camera.hpp>
 #include <nw/render/viewer/forward_plus.hpp>
+#include <nw/render/viewer/preview_model_animation.hpp>
 #include <nw/render/viewer/preview_model_draws.hpp>
 #include <nw/render/viewer/preview_render_resources.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
@@ -29,6 +30,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,6 +44,7 @@ namespace mudl {
 static constexpr float kVfxSequenceDefaultDistance = 10.0f;
 static constexpr std::string_view kVfxSequenceCasterModel = "c_aribeth";
 static constexpr std::string_view kVfxSequenceTargetModel = "c_aribeth";
+inline constexpr size_t kInvalidVfxSequenceModelIndex = std::numeric_limits<size_t>::max();
 inline constexpr const char* kDefaultStaticPbrEnvironmentPath = "tests/test_data/renderer/MetalRoughSpheres/glTF/papermill.ktx";
 inline constexpr float kStaticPbrReferenceIblStrength = 0.80f;
 inline constexpr float kStaticPbrReferenceExposure = 1.0f;
@@ -115,10 +118,7 @@ struct AppState {
     std::unique_ptr<nw::render::viewer::PreviewScene> current_scene;
     nw::render::viewer::PreviewPreparedModelDraws prepared_model_draws;
     nw::render::PreparedModelSurfaceDrawList prepared_model_surfaces;
-    std::vector<const nw::render::nwn::PreparedDrawItem*> nwn_prepared_draw_items;
-    nw::render::nwn::PreparedDrawScratch prepared_draw_scratch;
     std::vector<nw::render::ModelInstanceAnimationSample> render_model_animation_samples;
-    std::vector<std::vector<std::string>> model_animation_names;
     std::vector<std::vector<std::string>> gltf_animation_names;
     LoadedSceneKind loaded_scene_kind = LoadedSceneKind::none;
     std::string loaded_scene_source;
@@ -151,8 +151,6 @@ struct AppState {
     bool screenshot_captured = false;
     int screenshot_delay_frames = 0;
     std::string animation_override;
-    float dangly_scale = 1.0f;
-    nw::render::nwn::DanglyMode dangly_mode = nw::render::nwn::DanglyMode::legacy;
     bool area_navigation = false;
     bool area_day_night_autoplay = true;
     float area_day_night_elapsed = 0.0f;
@@ -171,8 +169,8 @@ struct AppState {
     int vfx_sequence_loop_ms = 0;
     uint32_t vfx_sequence_loop_seed = 0x12345678u;
     size_t vfx_sequence_static_models = 0;
-    size_t vfx_sequence_caster_model_index = static_cast<size_t>(-1);
-    size_t vfx_sequence_target_model_index = static_cast<size_t>(-1);
+    size_t vfx_sequence_caster_model_index = kInvalidVfxSequenceModelIndex;
+    size_t vfx_sequence_target_model_index = kInvalidVfxSequenceModelIndex;
     int vfx_sequence_active_step = -1;
     bool vfx_sequence_autoplay = true;
 
@@ -215,60 +213,132 @@ inline glm::mat4 sequence_placement(const glm::vec3& position, const glm::quat& 
     return glm::translate(glm::mat4{1.0f}, position) * glm::toMat4(rotation);
 }
 
-inline glm::vec3 vfx_sequence_anchor_world_position(
-    const nw::render::viewer::ModelInstance& model,
-    uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
+struct VfxSequenceAnimationSelection {
+    size_t model_index = kInvalidVfxSequenceModelIndex;
+    std::array<std::string_view, 7> preferred_names{};
+    size_t preferred_name_count = 0;
+};
+
+struct VfxSequenceAnimationSelectionStats {
+    size_t input_count = 0;
+    size_t selected_count = 0;
+    size_t invalid_model_count = 0;
+    size_t static_model_count = 0;
+    size_t backend_failed_count = 0;
+    size_t sample_failed_count = 0;
+};
+
+inline VfxSequenceAnimationSelectionStats vfx_sequence_select_model_animations(
+    nw::render::viewer::PreviewScene& scene,
+    std::span<const VfxSequenceAnimationSelection> selections)
 {
-    if (const auto* node = model.socket_node(anchor_socket_index)) {
-        return glm::vec3(model.root_transform() * node->get_transform()[3]);
+    VfxSequenceAnimationSelectionStats stats{.input_count = selections.size()};
+    for (const auto& selection : selections) {
+        if (selection.model_index >= scene.static_models.size()) {
+            ++stats.invalid_model_count;
+            continue;
+        }
+        const auto& model = scene.static_models[selection.model_index];
+        auto* instance = scene.static_model_instance(selection.model_index);
+        if (!model || !instance) {
+            ++stats.invalid_model_count;
+            continue;
+        }
+        if (model->animations.empty()) {
+            instance->animation = {};
+            nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
+            ++stats.static_model_count;
+            continue;
+        }
+
+        uint32_t clip_index = 0;
+        const size_t candidate_count = std::min(selection.preferred_name_count, selection.preferred_names.size());
+        for (size_t candidate = 0; candidate < candidate_count; ++candidate) {
+            if (selection.preferred_names[candidate].empty()) {
+                continue;
+            }
+            const auto found = std::find_if(model->animations.begin(), model->animations.end(),
+                [&](const auto& clip) { return clip.name == selection.preferred_names[candidate]; });
+            if (found != model->animations.end()) {
+                clip_index = static_cast<uint32_t>(std::distance(model->animations.begin(), found));
+                break;
+            }
+        }
+
+        instance->animation.clip = clip_index;
+        instance->animation.time = 0.0f;
+        instance->animation.looping = true;
+        instance->animation.enabled = !model->skeletons.empty();
+        if (!instance->animation.enabled) {
+            nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
+            ++stats.selected_count;
+            continue;
+        }
+        if (!instance->animation.backend) {
+            instance->animation.backend = nw::render::make_render_model_animation_backend(*model);
+        }
+        if (!instance->animation.backend) {
+            instance->animation.enabled = false;
+            nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
+            ++stats.backend_failed_count;
+            continue;
+        }
+        if (!nw::render::sample_model_instance_animation(*instance, *model)) {
+            ++stats.sample_failed_count;
+        }
+        ++stats.selected_count;
     }
-    return glm::vec3(model.root_transform()[3]);
+    return stats;
 }
 
-inline void vfx_sequence_prime_model_animation(nw::render::viewer::ModelInstance& model)
+inline bool vfx_sequence_select_model_animation(
+    nw::render::viewer::PreviewScene& scene,
+    size_t model_index,
+    std::span<const std::string_view> preferred_names)
 {
-    model.anim_cursor_ = 0;
-    model.update(0);
+    VfxSequenceAnimationSelection selection{.model_index = model_index};
+    selection.preferred_name_count = std::min(preferred_names.size(), selection.preferred_names.size());
+    std::copy_n(preferred_names.begin(), selection.preferred_name_count, selection.preferred_names.begin());
+    const auto stats = vfx_sequence_select_model_animations(
+        scene, std::span<const VfxSequenceAnimationSelection>{&selection, 1});
+    return stats.selected_count == 1;
+}
+
+inline glm::vec3 vfx_sequence_anchor_world_position(
+    const nw::render::viewer::PreviewScene& scene,
+    size_t model_index,
+    uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
+{
+    if (model_index >= scene.static_models.size()) {
+        return glm::vec3{0.0f};
+    }
+    const auto& model = scene.static_models[model_index];
+    const auto* instance = scene.static_model_instance(model_index);
+    if (!model || !instance) {
+        return glm::vec3{0.0f};
+    }
+    if (const auto* socket = model->socket(anchor_socket_index)) {
+        glm::mat4 socket_world{1.0f};
+        if (socket->source_node_index <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max())
+            && nw::render::model_instance_node_world_transform(
+                *instance, static_cast<int32_t>(socket->source_node_index), socket_world)) {
+            return glm::vec3{socket_world[3]};
+        }
+    }
+    return glm::vec3{instance->root_transform[3]};
 }
 
 inline glm::vec3 vfx_sequence_sample_anchor_world_position(
-    nw::render::viewer::ModelInstance& model,
+    nw::render::viewer::PreviewScene& scene,
+    size_t model_index,
     std::string_view animation,
     uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
 {
+    const std::array preferred_names{animation};
     if (!animation.empty()) {
-        model.load_animation(animation);
-        vfx_sequence_prime_model_animation(model);
+        vfx_sequence_select_model_animation(scene, model_index, preferred_names);
     }
-    return vfx_sequence_anchor_world_position(model, anchor_socket_index);
-}
-
-inline bool vfx_sequence_load_preferred_model_animation(
-    nw::render::viewer::ModelInstance& model, std::string_view override_animation = {}, std::string_view step_animation = {})
-{
-    if (!override_animation.empty() && model.load_animation(override_animation)) {
-        return true;
-    }
-    if (!step_animation.empty() && model.load_animation(step_animation)) {
-        return true;
-    }
-
-    if (model.mdl_) {
-        const auto animation = nw::render::viewer::preferred_model_animation_name(
-            *model.mdl_, nw::render::viewer::PreferredModelAnimationContext::sequence_effect);
-        if (!animation.empty()) {
-            return model.load_animation(animation);
-        }
-    }
-
-    return false;
-}
-
-inline const nw::render::nwn::Node* vfx_sequence_socket_node(
-    const nw::render::viewer::ModelInstance& model,
-    uint32_t socket_index)
-{
-    return model.socket_node(socket_index);
+    return vfx_sequence_anchor_world_position(scene, model_index, anchor_socket_index);
 }
 
 struct VfxSequenceParticleOwnerKey {
@@ -283,18 +353,17 @@ struct VfxSequenceParticleOwnerKey {
 
 inline VfxSequenceParticleOwnerKey vfx_sequence_particle_owner_key(
     const nw::render::viewer::PreviewScene& scene,
-    const nw::render::viewer::ModelInstance& model) noexcept
+    size_t model_index) noexcept
 {
-    for (size_t i = 0; i < scene.models.size() && i < scene.model_instance_handles.size(); ++i) {
-        if (scene.models[i].get() != &model) {
-            continue;
-        }
-        return VfxSequenceParticleOwnerKey{
-            .handle = scene.model_instance_handles[i],
-            .model_index = static_cast<uint32_t>(std::min<size_t>(i, std::numeric_limits<uint32_t>::max())),
-        };
+    if (model_index >= scene.static_models.size()
+        || model_index >= scene.static_model_instance_handles.size()
+        || model_index >= std::numeric_limits<uint32_t>::max()) {
+        return {};
     }
-    return {};
+    return VfxSequenceParticleOwnerKey{
+        .handle = scene.static_model_instance_handles[model_index],
+        .model_index = static_cast<uint32_t>(model_index),
+    };
 }
 
 inline bool vfx_sequence_particles_owned_by_model(
@@ -311,8 +380,7 @@ inline const nw::render::ModelInstance* vfx_sequence_particle_common_instance(
     const nw::render::viewer::SceneParticleSystem& particles) noexcept
 {
     const auto* instance = scene.model_instances.get(particles.owner_instance_handle);
-    if (!instance || instance->kind != nw::render::ModelInstanceKind::nwn_legacy
-        || instance->nwn_legacy_model_index != particles.owner_model_index) {
+    if (!instance || instance->render_model_index != particles.owner_model_index) {
         return nullptr;
     }
     return instance;
@@ -334,11 +402,13 @@ inline bool vfx_sequence_common_attachment_local_transform(
     return true;
 }
 
-inline std::optional<glm::vec3> vfx_sequence_authored_axis(const nw::render::viewer::PreviewScene& scene, const nw::render::viewer::ModelInstance& model)
+inline std::optional<glm::vec3> vfx_sequence_authored_axis(
+    const nw::render::viewer::PreviewScene& scene,
+    size_t model_index)
 {
     glm::vec3 fallback_axis{0.0f};
     bool have_fallback_axis = false;
-    const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model);
+    const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model_index);
 
     for (const auto& particles : scene.particles) {
         if (!vfx_sequence_particles_owned_by_model(particles, owner_key)) {
@@ -515,34 +585,28 @@ inline glm::quat vfx_sequence_projectile_rotation(
     return glm::normalize(glm::rotation(step.authored_axis, desired));
 }
 
-inline glm::vec3 vfx_sequence_projectile_root_position(const nw::render::viewer::ModelInstance& model,
+inline glm::vec3 vfx_sequence_projectile_root_position(const nw::render::RenderModel& model,
     const AppState::VfxSequencePlaybackStep& step, float t, uint32_t loop_seed)
 {
     const glm::vec3 source_position = vfx_sequence_projectile_position(step, t, loop_seed);
     const glm::quat rotation = vfx_sequence_projectile_rotation(step, t, loop_seed);
     glm::vec3 local_offset{0.0f};
 
-    if (model.anchor_uses_root_bind_offset) {
-        if (step.has_source_anchor) {
-            if (const auto* anchor = vfx_sequence_socket_node(model, step.source_anchor_socket_index)) {
-                local_offset = glm::vec3(anchor->bind_pose_[3]);
-            }
-        } else if (!model.nodes_.empty()) {
-            local_offset = glm::vec3(model.nodes_.front()->bind_pose_[3]);
+    if (step.has_source_anchor) {
+        if (const auto* anchor = model.socket(step.source_anchor_socket_index)) {
+            local_offset = glm::vec3{anchor->bind_transform[3]};
         }
-    } else if (step.has_source_anchor) {
-        if (const auto* anchor = vfx_sequence_socket_node(model, step.source_anchor_socket_index)) {
-            local_offset = glm::vec3(anchor->get_transform()[3]);
-        }
+    } else if (!model.nodes.empty()) {
+        local_offset = glm::vec3{model.nodes.front().world_transform[3]};
     }
 
     return source_position - (rotation * (local_offset * step.scale));
 }
 
 inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
-    const nw::render::viewer::PreviewScene& scene, const nw::render::viewer::ModelInstance& model)
+    const nw::render::viewer::PreviewScene& scene, size_t model_index)
 {
-    const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model);
+    const VfxSequenceParticleOwnerKey owner_key = vfx_sequence_particle_owner_key(scene, model_index);
     for (const auto& scene_particles : scene.particles) {
         if (!vfx_sequence_particles_owned_by_model(scene_particles, owner_key)) {
             continue;
@@ -556,26 +620,32 @@ inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
     return VfxProjectileTransportKind::moving_root;
 }
 
-inline glm::vec3 vfx_sequence_resolve_target_point(const nw::render::viewer::ModelInstance* target, const glm::vec3& fallback,
+inline glm::vec3 vfx_sequence_resolve_target_point(
+    const nw::render::viewer::PreviewScene& scene,
+    size_t target_model_index,
+    const glm::vec3& fallback,
     VfxTargetPointKind kind, uint32_t anchor_socket_index = nw::render::kInvalidModelNodeIndex)
 {
+    const auto* target = scene.static_model_instance(target_model_index);
     if (!target || kind == VfxTargetPointKind::none || kind == VfxTargetPointKind::point) {
         return fallback;
     }
 
     switch (kind) {
     case VfxTargetPointKind::root:
-        return glm::vec3(target->root_transform()[3]);
+        return glm::vec3{target->root_transform[3]};
     case VfxTargetPointKind::center: {
-        const auto bounds = target->current_bounds();
+        const auto bounds = target->current_bounds;
         return 0.5f * (bounds.min + bounds.max);
     }
     case VfxTargetPointKind::anchor:
-        if (const auto* node = vfx_sequence_socket_node(*target, anchor_socket_index)) {
-            return glm::vec3(target->root_transform() * node->get_transform()[3]);
+        if (target_model_index < scene.static_models.size()
+            && scene.static_models[target_model_index]
+            && scene.static_models[target_model_index]->socket(anchor_socket_index)) {
+            return vfx_sequence_anchor_world_position(scene, target_model_index, anchor_socket_index);
         }
         {
-            const auto bounds = target->current_bounds();
+            const auto bounds = target->current_bounds;
             return 0.5f * (bounds.min + bounds.max);
         }
     case VfxTargetPointKind::none:
@@ -589,30 +659,40 @@ inline glm::vec3 vfx_sequence_resolve_target_point(const nw::render::viewer::Mod
 inline void vfx_sequence_set_particle_target_point(
     nw::render::viewer::PreviewScene& scene, size_t model_index, const glm::vec3& target_point)
 {
-    if (model_index >= scene.model_instance_handles.size()) {
+    if (model_index >= scene.static_model_instance_handles.size()) {
         return;
     }
     const uint32_t owner_model_index = model_index >= std::numeric_limits<uint32_t>::max()
         ? std::numeric_limits<uint32_t>::max()
         : static_cast<uint32_t>(model_index);
-    scene.set_particle_target_point(scene.model_instance_handles[model_index], owner_model_index, target_point);
+    scene.set_particle_target_point(scene.static_model_instance_handles[model_index], owner_model_index, target_point);
 }
 
-inline void vfx_sequence_apply_playback_step(nw::render::viewer::PreviewScene& scene, nw::render::viewer::ModelInstance& model,
+inline bool vfx_sequence_apply_playback_step(nw::render::viewer::PreviewScene& scene,
     const AppState::VfxSequencePlaybackStep& step, uint32_t loop_seed, int time_ms)
 {
-    model.local_scale_ = step.scale;
+    if (step.model_index >= scene.static_models.size()) {
+        return false;
+    }
+    const auto& model = scene.static_models[step.model_index];
+    auto* instance = scene.static_model_instance(step.model_index);
+    if (!model || !instance) {
+        return false;
+    }
+
+    glm::vec3 position = step.start_pos;
+    glm::quat rotation = step.rotation;
     if (step.projectile_transport == VfxProjectileTransportKind::moving_root) {
         const float t = vfx_sequence_step_progress(step, time_ms);
-        const glm::quat rotation = vfx_sequence_projectile_rotation(step, t, loop_seed);
-        const glm::vec3 position = vfx_sequence_projectile_root_position(model, step, t, loop_seed);
-        model.set_placement_transform(sequence_placement(position, rotation));
-    } else {
-        model.set_placement_transform(sequence_placement(step.start_pos, step.rotation));
+        rotation = vfx_sequence_projectile_rotation(step, t, loop_seed);
+        position = vfx_sequence_projectile_root_position(*model, step, t, loop_seed);
     }
+    instance->root_transform = sequence_placement(position, rotation)
+        * glm::scale(glm::mat4{1.0f}, glm::vec3{step.scale});
     if (step.uses_target_point) {
         vfx_sequence_set_particle_target_point(scene, step.model_index, step.end_pos);
     }
+    return true;
 }
 
 inline void vfx_sequence_clear_state(AppState& state)
@@ -622,8 +702,8 @@ inline void vfx_sequence_clear_state(AppState& state)
     state.vfx_sequence_time_ms = 0;
     state.vfx_sequence_loop_ms = 0;
     state.vfx_sequence_static_models = 0;
-    state.vfx_sequence_caster_model_index = static_cast<size_t>(-1);
-    state.vfx_sequence_target_model_index = static_cast<size_t>(-1);
+    state.vfx_sequence_caster_model_index = kInvalidVfxSequenceModelIndex;
+    state.vfx_sequence_target_model_index = kInvalidVfxSequenceModelIndex;
     state.vfx_sequence_active_step = -1;
 }
 
@@ -632,11 +712,11 @@ struct VfxSequenceSceneLayout {
     float distance = kVfxSequenceDefaultDistance;
     glm::vec3 source_pos{0.0f};
     glm::vec3 target_root_pos{0.0f};
-    nw::render::viewer::ModelInstance* caster = nullptr;
-    nw::render::viewer::ModelInstance* target = nullptr;
+    size_t caster_model_index = kInvalidVfxSequenceModelIndex;
+    size_t target_model_index = kInvalidVfxSequenceModelIndex;
 };
 
-inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
+inline std::optional<VfxSequenceSceneLayout> vfx_sequence_prepare_scene(
     AppState& state, nw::render::viewer::PreviewScene& scene, const VfxSequence& sequence, std::string_view animation_override = {})
 {
     VfxSequenceSceneLayout layout;
@@ -650,87 +730,121 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
     const glm::quat caster_rotation = glm::angleAxis(-glm::half_pi<float>(), glm::vec3{0.0f, 0.0f, 1.0f});
     const glm::quat target_rotation = glm::angleAxis(glm::half_pi<float>(), glm::vec3{0.0f, 0.0f, 1.0f});
 
-    size_t actor_model_count = 0;
-    const size_t step_model_limit = scene.models.size();
-    state.vfx_sequence_caster_model_index = static_cast<size_t>(-1);
-    state.vfx_sequence_target_model_index = static_cast<size_t>(-1);
-    if (sequence.use_spell_actors && !scene.models.empty()) {
-        layout.caster = scene.models.front().get();
-        state.vfx_sequence_caster_model_index = 0;
-        layout.caster->set_placement_transform(sequence_placement(layout.source_pos, caster_rotation));
-        layout.caster->render_enabled = true;
-        actor_model_count = 1;
-        if (scene.models.size() >= 2) {
-            state.vfx_sequence_target_model_index = 1;
-            layout.target = scene.models[state.vfx_sequence_target_model_index].get();
-            layout.target->set_placement_transform(sequence_placement(layout.target_root_pos, target_rotation));
-            layout.target->render_enabled = true;
-            if (layout.target->mdl_) {
-                vfx_sequence_load_preferred_model_animation(
-                    *layout.target, {},
-                    nw::render::viewer::preferred_model_animation_name(*layout.target->mdl_, nw::render::viewer::PreferredModelAnimationContext::hold));
-            }
-            vfx_sequence_prime_model_animation(*layout.target);
-            actor_model_count = 2;
+    const size_t actor_model_count = sequence.use_spell_actors ? 2u : 0u;
+    const size_t expected_model_count = actor_model_count + sequence.steps.size();
+    if (scene.static_models.size() != expected_model_count
+        || scene.static_model_instance_handles.size() != expected_model_count
+        || expected_model_count >= nw::render::kInvalidModelInstanceIndex) {
+        return std::nullopt;
+    }
+    const auto finite_vec3 = [](glm::vec3 value) {
+        return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+    };
+    for (const auto& step : sequence.steps) {
+        if (!finite_vec3(step.start_offset)
+            || !finite_vec3(step.end_offset)
+            || !std::isfinite(step.scale)
+            || step.scale <= 0.0f) {
+            return std::nullopt;
         }
+    }
+
+    state.vfx_sequence_steps.clear();
+    state.vfx_sequence_caster_model_index = kInvalidVfxSequenceModelIndex;
+    state.vfx_sequence_target_model_index = kInvalidVfxSequenceModelIndex;
+    if (sequence.use_spell_actors) {
+        auto* caster = scene.static_model_instance(0u);
+        auto* target = scene.static_model_instance(1u);
+        if (!caster || !target) {
+            return std::nullopt;
+        }
+        layout.caster_model_index = 0u;
+        layout.target_model_index = 1u;
+        state.vfx_sequence_caster_model_index = layout.caster_model_index;
+        state.vfx_sequence_target_model_index = layout.target_model_index;
+        caster->root_transform = sequence_placement(layout.source_pos, caster_rotation);
+        caster->visible = true;
+        target->root_transform = sequence_placement(layout.target_root_pos, target_rotation);
+        target->visible = true;
+
+        constexpr std::array<std::string_view, 5> target_animations{
+            "cpause1", "pause1", "default", "on", "impact"};
+        vfx_sequence_select_model_animation(scene, layout.target_model_index, target_animations);
     }
     state.vfx_sequence_static_models = actor_model_count;
 
+    std::vector<VfxSequenceAnimationSelection> animation_selections;
+    animation_selections.reserve(sequence.steps.size());
     int start_ms = 0;
     int max_end_ms = 0;
-    for (size_t i = 0; i < sequence.steps.size() && (i + actor_model_count) < step_model_limit; ++i) {
-        auto& model = scene.models[i + actor_model_count];
-        model->render_enabled = false;
-        const bool is_projectile = sequence.steps[i].kind == VfxSequenceStepKind::projectile;
-        const bool target_side = is_target_side_sequence_step(sequence.steps[i], layout.use_source_target_layout);
-        const bool anchor_relative = !is_projectile && layout.caster && !sequence.steps[i].anchor.empty() && !target_side;
-        const bool target_anchor_relative = !is_projectile && layout.target && !sequence.steps[i].anchor.empty() && target_side;
-        model->local_scale_ = sequence.steps[i].scale;
-        model->anchor_position_only = sequence.steps[i].anchor_position_only;
-        if (anchor_relative) {
-            scene.attach_model(
-                static_cast<uint32_t>(i + actor_model_count),
-                static_cast<uint32_t>(state.vfx_sequence_caster_model_index),
-                sequence.steps[i].anchor,
-                sequence.steps[i].source_anchor);
-        } else if (target_anchor_relative) {
-            scene.attach_model(
-                static_cast<uint32_t>(i + actor_model_count),
-                static_cast<uint32_t>(state.vfx_sequence_target_model_index),
-                sequence.steps[i].anchor,
-                sequence.steps[i].source_anchor);
+    for (size_t i = 0; i < sequence.steps.size(); ++i) {
+        const size_t model_index = i + actor_model_count;
+        auto* instance = scene.static_model_instance(model_index);
+        if (!scene.static_models[model_index] || !instance) {
+            return std::nullopt;
         }
-        vfx_sequence_load_preferred_model_animation(*model, animation_override, sequence.steps[i].animation);
+        instance->visible = false;
+        animation_selections.push_back({
+            .model_index = model_index,
+            .preferred_names = {
+                animation_override,
+                sequence.steps[i].animation,
+                "default",
+                "on",
+                "cast01",
+                "impact",
+                "pause1",
+            },
+            .preferred_name_count = 7u,
+        });
     }
+    vfx_sequence_select_model_animations(scene, animation_selections);
 
     scene.rebuild_particles();
+    nw::render::viewer::sync_model_instance_runtime_state(scene);
 
-    for (size_t i = 0; i < sequence.steps.size() && (i + actor_model_count) < step_model_limit; ++i) {
-        auto& model = scene.models[i + actor_model_count];
+    std::vector<nw::render::viewer::RenderModelAttachmentSetup> attachment_setups;
+    attachment_setups.reserve(sequence.steps.size());
+    for (size_t i = 0; i < sequence.steps.size(); ++i) {
+        const size_t model_index = i + actor_model_count;
+        const auto& model = *scene.static_models[model_index];
+        auto* instance = scene.static_model_instance(model_index);
+        if (!instance) {
+            return std::nullopt;
+        }
         const bool is_projectile = sequence.steps[i].kind == VfxSequenceStepKind::projectile;
         const bool target_side = is_target_side_sequence_step(sequence.steps[i], layout.use_source_target_layout);
-        const bool anchor_relative = layout.caster && !sequence.steps[i].anchor.empty() && !target_side;
-        const bool target_anchor_relative = layout.target && !sequence.steps[i].anchor.empty() && target_side;
-        const uint32_t caster_anchor_socket_index = layout.caster && !sequence.steps[i].anchor.empty()
-            ? layout.caster->socket_index(sequence.steps[i].anchor)
+        const bool anchor_relative = layout.caster_model_index != kInvalidVfxSequenceModelIndex
+            && !sequence.steps[i].anchor.empty() && !target_side;
+        const bool target_anchor_relative = layout.target_model_index != kInvalidVfxSequenceModelIndex
+            && !sequence.steps[i].anchor.empty() && target_side;
+        const uint32_t caster_anchor_socket_index = anchor_relative || is_projectile
+            ? (layout.caster_model_index < scene.static_models.size()
+                          && scene.static_models[layout.caster_model_index]
+                      ? scene.static_models[layout.caster_model_index]->socket_index(sequence.steps[i].anchor)
+                      : nw::render::kInvalidModelNodeIndex)
             : nw::render::kInvalidModelNodeIndex;
-        const uint32_t target_anchor_socket_index = layout.target && !sequence.steps[i].target_anchor.empty()
-            ? layout.target->socket_index(sequence.steps[i].target_anchor)
+        const uint32_t target_anchor_socket_index = layout.target_model_index < scene.static_models.size()
+                && scene.static_models[layout.target_model_index]
+                && !sequence.steps[i].target_anchor.empty()
+            ? scene.static_models[layout.target_model_index]->socket_index(sequence.steps[i].target_anchor)
             : nw::render::kInvalidModelNodeIndex;
         const glm::vec3 resolved_target_pos = vfx_sequence_resolve_target_point(
-            layout.target, layout.target_root_pos,
+            scene, layout.target_model_index, layout.target_root_pos,
             sequence.steps[i].target_point_kind, target_anchor_socket_index);
         const glm::vec3 start_pos = (is_projectile
-                                            ? (layout.caster && !sequence.steps[i].anchor.empty()
+                                            ? (layout.caster_model_index != kInvalidVfxSequenceModelIndex
+                                                          && !sequence.steps[i].anchor.empty()
                                                       ? vfx_sequence_sample_anchor_world_position(
-                                                            *layout.caster, sequence.steps[i].caster_animation, caster_anchor_socket_index)
+                                                            scene, layout.caster_model_index,
+                                                            sequence.steps[i].caster_animation, caster_anchor_socket_index)
                                                       : layout.source_pos)
                                             : (target_side ? resolved_target_pos
                                                            : (anchor_relative ? glm::vec3{0.0f}
                                                                               : (layout.use_source_target_layout ? layout.source_pos : glm::vec3{0.0f}))))
             + sequence.steps[i].start_offset;
         const auto projectile_transport = is_projectile
-            ? vfx_sequence_classify_projectile_transport(scene, *model)
+            ? vfx_sequence_classify_projectile_transport(scene, model_index)
             : VfxProjectileTransportKind::none;
         const glm::vec3 end_pos = ((is_projectile || sequence.steps[i].uses_target_point) ? resolved_target_pos : start_pos)
             + sequence.steps[i].end_offset;
@@ -744,7 +858,7 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
                 : glm::inverse(caster_rotation) * world_forward;
             if (glm::dot(desired_local, desired_local) > 1.0e-6f) {
                 desired_local = glm::normalize(desired_local);
-                if (auto authored_axis = vfx_sequence_authored_axis(scene, *model)) {
+                if (auto authored_axis = vfx_sequence_authored_axis(scene, model_index)) {
                     step_rotation = glm::normalize(glm::rotation(*authored_axis, desired_local));
                 }
             }
@@ -756,13 +870,13 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
         const int step_end_ms = step_start_ms + std::max(sequence.steps[i].duration_ms, 1);
         const uint32_t source_anchor_socket_index = sequence.steps[i].source_anchor.empty()
             ? nw::render::kInvalidModelNodeIndex
-            : model->socket_index(sequence.steps[i].source_anchor);
+            : model.socket_index(sequence.steps[i].source_anchor);
         glm::vec3 authored_axis{0.0f, 0.0f, 1.0f};
         bool has_authored_axis = false;
         if (is_projectile) {
             if (!sequence.steps[i].source_anchor.empty()) {
-                if (const auto* source_anchor = vfx_sequence_socket_node(*model, source_anchor_socket_index)) {
-                    const glm::vec3 root_to_source = glm::vec3(source_anchor->bind_pose_[3]);
+                if (const auto* source_anchor = model.socket(source_anchor_socket_index)) {
+                    const glm::vec3 root_to_source = glm::vec3{source_anchor->bind_transform[3]};
                     if (glm::dot(root_to_source, root_to_source) > 1.0e-6f) {
                         authored_axis = glm::normalize(root_to_source);
                         has_authored_axis = true;
@@ -770,7 +884,7 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
                 }
             }
             if (!has_authored_axis) {
-                if (auto axis = vfx_sequence_authored_axis(scene, *model)) {
+                if (auto axis = vfx_sequence_authored_axis(scene, model_index)) {
                     authored_axis = glm::normalize(*axis);
                     has_authored_axis = true;
                 }
@@ -780,46 +894,61 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
         const glm::vec3 placement_pos = projectile_transport == VfxProjectileTransportKind::source_rooted_target_point
             ? start_pos
             : (is_projectile
-                      ? vfx_sequence_projectile_root_position(*model, {
-                                                                          .model_index = i + actor_model_count,
-                                                                          .start_ms = step_start_ms,
-                                                                          .end_ms = step_end_ms,
-                                                                          .start_pos = start_pos,
-                                                                          .end_pos = end_pos,
-                                                                          .target_side = target_side,
-                                                                          .kind = sequence.steps[i].kind,
-                                                                          .uses_target_point = sequence.steps[i].uses_target_point,
-                                                                          .projectile_transport = VfxProjectileTransportKind::moving_root,
-                                                                          .target_point_kind = sequence.steps[i].target_point_kind,
-                                                                          .projectile_path = sequence.steps[i].projectile_path,
-                                                                          .projectile_orientation = sequence.steps[i].projectile_orientation,
-                                                                          .rotation = step_rotation,
-                                                                          .authored_axis = authored_axis,
-                                                                          .has_authored_axis = has_authored_axis,
-                                                                          .caster_animation = sequence.steps[i].caster_animation,
-                                                                          .animation = sequence.steps[i].animation,
-                                                                          .has_source_anchor = !sequence.steps[i].source_anchor.empty(),
-                                                                          .source_anchor_socket_index = source_anchor_socket_index,
-                                                                          .scale = sequence.steps[i].scale,
-                                                                      },
+                      ? vfx_sequence_projectile_root_position(model, {
+                                                                         .model_index = model_index,
+                                                                         .start_ms = step_start_ms,
+                                                                         .end_ms = step_end_ms,
+                                                                         .start_pos = start_pos,
+                                                                         .end_pos = end_pos,
+                                                                         .target_side = target_side,
+                                                                         .kind = sequence.steps[i].kind,
+                                                                         .uses_target_point = sequence.steps[i].uses_target_point,
+                                                                         .projectile_transport = VfxProjectileTransportKind::moving_root,
+                                                                         .target_point_kind = sequence.steps[i].target_point_kind,
+                                                                         .projectile_path = sequence.steps[i].projectile_path,
+                                                                         .projectile_orientation = sequence.steps[i].projectile_orientation,
+                                                                         .rotation = step_rotation,
+                                                                         .authored_axis = authored_axis,
+                                                                         .has_authored_axis = has_authored_axis,
+                                                                         .caster_animation = sequence.steps[i].caster_animation,
+                                                                         .animation = sequence.steps[i].animation,
+                                                                         .has_source_anchor = !sequence.steps[i].source_anchor.empty(),
+                                                                         .source_anchor_socket_index = source_anchor_socket_index,
+                                                                         .scale = sequence.steps[i].scale,
+                                                                     },
                             0.0f, state.vfx_sequence_loop_seed)
                       : start_pos);
-        model->set_placement_transform(sequence_placement(placement_pos, step_rotation));
+        instance->root_transform = sequence_placement(placement_pos, step_rotation)
+            * glm::scale(glm::mat4{1.0f}, glm::vec3{sequence.steps[i].scale});
         if (!is_projectile && anchor_relative) {
-            scene.attach_model(
-                static_cast<uint32_t>(i + actor_model_count),
-                static_cast<uint32_t>(state.vfx_sequence_caster_model_index),
-                sequence.steps[i].anchor,
-                sequence.steps[i].source_anchor);
+            attachment_setups.push_back({
+                .child_model_index = static_cast<uint32_t>(model_index),
+                .owner_model_index = static_cast<uint32_t>(state.vfx_sequence_caster_model_index),
+                .owner_socket = sequence.steps[i].anchor,
+                .child_source_socket = sequence.steps[i].source_anchor,
+                .child_local_transform = sequence_placement(placement_pos, step_rotation),
+                .child_local_scale = sequence.steps[i].scale,
+                .orientation = sequence.steps[i].anchor_position_only
+                    ? nw::render::ModelAttachmentOrientationPolicy::owner_root
+                    : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+                .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation,
+            });
         } else if (!is_projectile && target_anchor_relative) {
-            scene.attach_model(
-                static_cast<uint32_t>(i + actor_model_count),
-                static_cast<uint32_t>(state.vfx_sequence_target_model_index),
-                sequence.steps[i].anchor,
-                sequence.steps[i].source_anchor);
+            attachment_setups.push_back({
+                .child_model_index = static_cast<uint32_t>(model_index),
+                .owner_model_index = static_cast<uint32_t>(state.vfx_sequence_target_model_index),
+                .owner_socket = sequence.steps[i].anchor,
+                .child_source_socket = sequence.steps[i].source_anchor,
+                .child_local_transform = sequence_placement(placement_pos, step_rotation),
+                .child_local_scale = sequence.steps[i].scale,
+                .orientation = sequence.steps[i].anchor_position_only
+                    ? nw::render::ModelAttachmentOrientationPolicy::owner_root
+                    : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+                .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation,
+            });
         }
         state.vfx_sequence_steps.push_back({
-            .model_index = i + actor_model_count,
+            .model_index = model_index,
             .start_ms = step_start_ms,
             .end_ms = step_end_ms,
             .start_pos = start_pos,
@@ -842,20 +971,28 @@ inline VfxSequenceSceneLayout vfx_sequence_prepare_scene(
             .scale = sequence.steps[i].scale,
         });
         if (sequence.steps[i].uses_target_point) {
-            vfx_sequence_set_particle_target_point(scene, i + actor_model_count, end_pos);
+            vfx_sequence_set_particle_target_point(scene, model_index, end_pos);
         }
         start_ms = std::max(start_ms, step_end_ms);
         max_end_ms = std::max(max_end_ms, step_end_ms);
     }
 
-    if (layout.caster && !state.vfx_sequence_steps.empty() && !state.vfx_sequence_steps.front().caster_animation.empty()) {
-        layout.caster->load_animation(state.vfx_sequence_steps.front().caster_animation);
-        vfx_sequence_prime_model_animation(*layout.caster);
+    const auto attachment_stats = scene.attach_render_models(attachment_setups);
+    if (attachment_stats.attached_count != attachment_setups.size()) {
+        return std::nullopt;
+    }
+
+    if (layout.caster_model_index != kInvalidVfxSequenceModelIndex
+        && !state.vfx_sequence_steps.empty()
+        && !state.vfx_sequence_steps.front().caster_animation.empty()) {
+        const std::array preferred_names{std::string_view{state.vfx_sequence_steps.front().caster_animation}};
+        vfx_sequence_select_model_animation(scene, layout.caster_model_index, preferred_names);
     }
 
     state.vfx_sequence_label = sequence.label;
     state.vfx_sequence_loop_ms = std::max(max_end_ms, 1);
     state.vfx_sequence_loop_seed = 0x12345678u;
+    nw::render::viewer::sample_render_model_animations(state.render_model_animation_samples, scene);
     nw::render::viewer::sync_model_instance_runtime_state(scene);
     return layout;
 }
@@ -867,23 +1004,31 @@ inline void vfx_sequence_reset_runtime(AppState& state)
         return;
     }
 
-    for (auto& model : state.current_scene->models) {
-        model->anim_cursor_ = 0;
-        model->render_enabled = false;
+    for (size_t model_index = 0; model_index < state.current_scene->static_models.size(); ++model_index) {
+        auto* instance = state.current_scene->static_model_instance(model_index);
+        if (!instance) {
+            continue;
+        }
+        instance->animation.time = 0.0f;
+        instance->visible = false;
     }
-    for (size_t i = 0; i < state.vfx_sequence_static_models && i < state.current_scene->models.size(); ++i) {
-        state.current_scene->models[i]->render_enabled = true;
+    for (size_t i = 0; i < state.vfx_sequence_static_models && i < state.current_scene->static_models.size(); ++i) {
+        if (auto* instance = state.current_scene->static_model_instance(i)) {
+            instance->visible = true;
+        }
     }
     state.vfx_sequence_active_step = -1;
     for (const auto& step : state.vfx_sequence_steps) {
-        if (step.model_index >= state.current_scene->models.size()) {
+        auto* instance = state.current_scene->static_model_instance(step.model_index);
+        if (!instance) {
             continue;
         }
-        auto& model = *state.current_scene->models[step.model_index];
-        model.render_enabled = false;
-        vfx_sequence_apply_playback_step(*state.current_scene, model, step, state.vfx_sequence_loop_seed, 0);
+        instance->visible = false;
+        vfx_sequence_apply_playback_step(*state.current_scene, step, state.vfx_sequence_loop_seed, 0);
     }
     state.current_scene->rebuild_particles();
+    nw::render::viewer::sample_render_model_animations(
+        state.render_model_animation_samples, *state.current_scene);
     nw::render::viewer::sync_model_instance_runtime_state(*state.current_scene);
 }
 
@@ -902,14 +1047,20 @@ inline void vfx_sequence_update_runtime(AppState& state, int32_t dt_ms)
     }
 
     for (const auto& step : state.vfx_sequence_steps) {
-        if (step.model_index >= state.current_scene->models.size()) {
+        auto* instance = state.current_scene->static_model_instance(step.model_index);
+        if (!instance) {
             continue;
         }
-        auto& model = *state.current_scene->models[step.model_index];
-        model.render_enabled = state.vfx_sequence_time_ms >= step.start_ms
+        const bool was_enabled = instance->visible;
+        instance->visible = state.vfx_sequence_time_ms >= step.start_ms
             && state.vfx_sequence_time_ms < step.end_ms;
+        if (instance->visible) {
+            instance->animation.time = static_cast<float>(state.vfx_sequence_time_ms - step.start_ms) * 0.001f;
+        } else if (was_enabled) {
+            instance->animation.time = 0.0f;
+        }
         vfx_sequence_apply_playback_step(
-            *state.current_scene, model, step, state.vfx_sequence_loop_seed, state.vfx_sequence_time_ms);
+            *state.current_scene, step, state.vfx_sequence_loop_seed, state.vfx_sequence_time_ms);
     }
 
     int active_step = -1;
@@ -923,13 +1074,26 @@ inline void vfx_sequence_update_runtime(AppState& state, int32_t dt_ms)
     if (active_step != state.vfx_sequence_active_step) {
         state.vfx_sequence_active_step = active_step;
         if (active_step >= 0
-            && state.vfx_sequence_caster_model_index < state.current_scene->models.size()
+            && state.vfx_sequence_caster_model_index < state.current_scene->static_models.size()
             && !state.vfx_sequence_steps[active_step].caster_animation.empty()
-            && !state.current_scene->models.empty()) {
-            state.current_scene->models[state.vfx_sequence_caster_model_index]->load_animation(
-                state.vfx_sequence_steps[active_step].caster_animation);
+            && !state.current_scene->static_models.empty()) {
+            const std::array preferred_names{
+                std::string_view{state.vfx_sequence_steps[active_step].caster_animation}};
+            vfx_sequence_select_model_animation(
+                *state.current_scene, state.vfx_sequence_caster_model_index, preferred_names);
         }
     }
+    if (auto* caster = state.current_scene->static_model_instance(state.vfx_sequence_caster_model_index)) {
+        const int caster_start_ms = active_step >= 0
+            ? state.vfx_sequence_steps[static_cast<size_t>(active_step)].start_ms
+            : 0;
+        caster->animation.time = static_cast<float>(state.vfx_sequence_time_ms - caster_start_ms) * 0.001f;
+    }
+    if (auto* target = state.current_scene->static_model_instance(state.vfx_sequence_target_model_index)) {
+        target->animation.time = static_cast<float>(state.vfx_sequence_time_ms) * 0.001f;
+    }
+    nw::render::viewer::sample_render_model_animations(
+        state.render_model_animation_samples, *state.current_scene);
     nw::render::viewer::sync_model_instance_runtime_state(*state.current_scene);
 }
 

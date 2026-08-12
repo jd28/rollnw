@@ -153,33 +153,6 @@ void destroy_render_model_test_textures(nw::gfx::Context* context, nw::render::R
 
 } // namespace
 
-TEST(RenderModelLoader, CreatesSkinMeshNodes)
-{
-    nw::model::Mdl mdl{"test_data/user/development/c_satyr.mdl"};
-    ASSERT_TRUE(mdl.valid());
-
-    nw::render::nwn::ModelInstance model;
-    ASSERT_TRUE(model.load(&mdl, nullptr));
-
-    size_t parsed_skin_nodes = 0;
-    for (const auto& node : mdl.model.nodes) {
-        const auto* skin = dynamic_cast<const nw::model::SkinNode*>(node.get());
-        if (skin && skin->render && !skin->vertices.empty() && !skin->indices.empty()) {
-            ++parsed_skin_nodes;
-        }
-    }
-    ASSERT_GT(parsed_skin_nodes, 0u);
-
-    size_t loaded_skin_meshes = 0;
-    for (const auto& node : model.nodes_) {
-        if (dynamic_cast<const nw::render::nwn::SkinMesh*>(node.get())) {
-            ++loaded_skin_meshes;
-        }
-    }
-
-    EXPECT_EQ(loaded_skin_meshes, parsed_skin_nodes);
-}
-
 TEST(RenderModelLoader, ImportsNwnModelAssetSkinMeshes)
 {
     namespace nwn = nw::render::nwn;
@@ -252,7 +225,6 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSkinMeshes)
     runtime_model.skins = asset.skins;
 
     nw::render::ModelInstance instance;
-    instance.kind = nw::render::ModelInstanceKind::render_model;
     instance.animation.enabled = true;
     instance.animation.clip = 0;
     instance.animation.time = 0.25f;
@@ -265,119 +237,49 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSkinMeshes)
     EXPECT_EQ(instance.animation.skin_matrices[first_skin].size(), asset.skins[first_skin].joints.size());
 }
 
-TEST(RenderModelLoader, LegacyUploadDropsInvalidFaceIndices)
+TEST(RenderModelLoader, ImportsNwnIdentitySkinBoneRows)
 {
     namespace nwn = nw::render::nwn;
 
-    TestGfxRuntime runtime;
-    if (!runtime.initialize()) {
-        GTEST_SKIP() << "graphics context unavailable";
-    }
-
-    {
-        nw::model::Mdl mdl{"test_data/user/development/test_mtr_material.mdl"};
-        ASSERT_TRUE(mdl.valid());
-
-        nw::model::TrimeshNode* source = nullptr;
-        for (const auto& node : mdl.model.nodes) {
-            source = dynamic_cast<nw::model::TrimeshNode*>(node.get());
-            if (source && !dynamic_cast<nw::model::SkinNode*>(source)
-                && source->vertices.size() >= 3 && source->indices.size() >= 3) {
-                break;
-            }
-            source = nullptr;
-        }
-        ASSERT_NE(source, nullptr);
-
-        const auto valid_index_count = source->indices.size();
-        source->indices.push_back(0);
-        source->indices.push_back(1);
-        source->indices.push_back(static_cast<uint16_t>(source->vertices.size()));
-
-        nwn::ModelLoader loader{runtime.context};
-        auto model = loader.load(&mdl);
-        ASSERT_TRUE(model);
-
-        const nwn::Mesh* loaded = nullptr;
-        for (const auto& node : model->nodes_) {
-            const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-            if (candidate && candidate->orig_ == source) {
-                loaded = candidate;
-                break;
-            }
-        }
-        ASSERT_NE(loaded, nullptr);
-        EXPECT_EQ(loaded->index_count, valid_index_count);
-    }
-
-    {
-        nw::model::Mdl mdl{"test_data/user/development/c_satyr.mdl"};
-        ASSERT_TRUE(mdl.valid());
-
-        nw::model::SkinNode* source = nullptr;
-        for (const auto& node : mdl.model.nodes) {
-            source = dynamic_cast<nw::model::SkinNode*>(node.get());
-            if (source && source->vertices.size() >= 3 && source->indices.size() >= 3) {
-                break;
-            }
-            source = nullptr;
-        }
-        ASSERT_NE(source, nullptr);
-
-        const auto valid_index_count = source->indices.size();
-        source->indices.push_back(0);
-        source->indices.push_back(1);
-        source->indices.push_back(static_cast<uint16_t>(source->vertices.size()));
-
-        nwn::ModelLoader loader{runtime.context};
-        auto model = loader.load(&mdl);
-        ASSERT_TRUE(model);
-
-        const nwn::SkinMesh* loaded = nullptr;
-        for (const auto& node : model->nodes_) {
-            const auto* candidate = dynamic_cast<const nwn::SkinMesh*>(node.get());
-            if (candidate && candidate->orig_ == source) {
-                loaded = candidate;
-                break;
-            }
-        }
-        ASSERT_NE(loaded, nullptr);
-        EXPECT_EQ(loaded->index_count, valid_index_count);
-    }
-}
-
-TEST(RenderModelLoader, AppliesMtrMaterialnameSidecarScalars)
-{
-    namespace nwn = nw::render::nwn;
-
-    nw::model::Mdl mdl{"test_data/user/development/test_mtr_material.mdl"};
+    nw::model::Mdl mdl{"test_data/user/development/c_satyr.mdl"};
     ASSERT_TRUE(mdl.valid());
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-
-    const nwn::Mesh* mesh = nullptr;
-    for (const auto& node : model->nodes_) {
-        const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-        if (candidate && candidate->materialname == "test_mtr_material") {
-            mesh = candidate;
+    size_t source_node_index = 0;
+    nw::model::SkinNode* source_skin = nullptr;
+    for (; source_node_index < mdl.model.nodes.size(); ++source_node_index) {
+        source_skin = dynamic_cast<nw::model::SkinNode*>(mdl.model.nodes[source_node_index].get());
+        if (source_skin && source_skin->render && !source_skin->vertices.empty()
+            && !source_skin->indices.empty()) {
             break;
         }
     }
+    ASSERT_NE(source_skin, nullptr);
+    ASSERT_LT(source_node_index, mdl.model.nodes.size());
 
-    ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->bitmap_name, "test_mtr_diffuse");
-    EXPECT_EQ(mesh->materialname, "test_mtr_material");
-    EXPECT_EQ(mesh->material_mode, nw::render::MaterialMode::transparent);
-    EXPECT_TRUE(mesh->two_sided_lighting);
-    EXPECT_NEAR(mesh->roughness, 0.32f, 0.001f);
-    EXPECT_NEAR(mesh->common_pbr_roughness, 0.32f, 0.001f);
-    EXPECT_NEAR(mesh->specular_strength, 0.18f, 0.001f);
-    EXPECT_NEAR(mesh->alpha_cutout_threshold, 0.42f, 0.001f);
-    EXPECT_NEAR(mesh->emissive.x, 0.10f, 0.001f);
-    EXPECT_NEAR(mesh->emissive.y, 0.20f, 0.001f);
-    EXPECT_NEAR(mesh->emissive.z, 0.30f, 0.001f);
+    constexpr int32_t identity_source_slot = 17;
+    source_skin->bone_nodes[identity_source_slot] = -1;
+    source_skin->vertices[0].bones = glm::ivec4{identity_source_slot, -1, -1, -1};
+    source_skin->vertices[0].weights = glm::vec4{1.0f, 0.0f, 0.0f, 0.0f};
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    EXPECT_EQ(result.stats.skipped_skin_mesh_count, 0u);
+
+    const auto primitive = std::find_if(
+        result.asset->primitives.begin(), result.asset->primitives.end(), [&](const auto& candidate) {
+            return candidate.skinned && candidate.node == static_cast<int32_t>(source_node_index);
+        });
+    ASSERT_NE(primitive, result.asset->primitives.end());
+    ASSERT_LT(primitive->skin, result.asset->skins.size());
+    const auto& skin = result.asset->skins[primitive->skin];
+    const auto identity_joint = std::find(
+        skin.joints.begin(), skin.joints.end(), nw::render::kModelSkinIdentityJoint);
+    ASSERT_NE(identity_joint, skin.joints.end());
+    const auto identity_joint_index = static_cast<uint32_t>(std::distance(skin.joints.begin(), identity_joint));
+    ASSERT_FALSE(primitive->skinned_vertices.empty());
+    EXPECT_EQ(packed_u8_lane(primitive->skinned_vertices[0].joint_indices, 0), identity_joint_index);
+    EXPECT_EQ(packed_u8_lane(primitive->skinned_vertices[0].joint_weights, 0), 255u);
+    EXPECT_TRUE(nw::render::validate_model_asset(*result.asset).passed());
 }
 
 TEST(RenderModelLoader, ResourceCacheStatsTrackMtrAndClear)
@@ -390,15 +292,77 @@ TEST(RenderModelLoader, ResourceCacheStatsTrackMtrAndClear)
     nw::model::Mdl mdl{"test_data/user/development/test_mtr_material.mdl"};
     ASSERT_TRUE(mdl.valid());
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
 
     const auto stats = nwn::model_loader_resource_cache_stats();
     EXPECT_GE(stats.mtr_material_count, 1u);
 
     nwn::clear_model_loader_resource_caches();
     EXPECT_TRUE(nwn::model_loader_resource_cache_stats().empty());
+}
+
+TEST(RenderModelLoader, DerivesCanonicalHumanoidPaletteResref)
+{
+    namespace nwn = nw::render::nwn;
+
+    EXPECT_EQ(nwn::nwn_humanoid_palette_resref("pmo2_belt151"), "pmh0_belt151");
+    EXPECT_EQ(nwn::nwn_humanoid_palette_resref("pfe16_chest001"), "pfh0_chest001");
+    EXPECT_EQ(nwn::nwn_humanoid_palette_resref("pmh0_chest001"), "pmh0_chest001");
+}
+
+TEST(RenderModelLoader, RejectsInvalidHumanoidPaletteIdentity)
+{
+    namespace nwn = nw::render::nwn;
+
+    EXPECT_TRUE(nwn::nwn_humanoid_palette_resref("pmo2belt151").empty());
+    EXPECT_TRUE(nwn::nwn_humanoid_palette_resref("pmoX_belt151").empty());
+    EXPECT_TRUE(nwn::nwn_humanoid_palette_resref("c_belt151").empty());
+}
+
+TEST(RenderModelLoader, ResolvesMissingHumanoidAlbedoToCanonicalPlt)
+{
+    namespace nwn = nw::render::nwn;
+
+    EXPECT_EQ(
+        nwn::resolve_nwn_model_albedo_resref("pme2_testplt", "pme2_testplt"),
+        "pmh0_testplt");
+    EXPECT_EQ(
+        nwn::resolve_nwn_model_albedo_resref("pmh0_testplt", "pmh0_testplt"),
+        "pmh0_testplt");
+    EXPECT_EQ(
+        nwn::resolve_nwn_model_albedo_resref("not_a_humanoid_part", "missing_albedo"),
+        "missing_albedo");
+}
+
+TEST(RenderModelLoader, PrefersSelectedHumanoidBodyPartPaletteOverSharedBitmap)
+{
+    namespace nwn = nw::render::nwn;
+
+    const std::array body_parts{
+        nw::Resref{"pmh0_handl001"},
+        nw::Resref{"pmh0_legl003"},
+    };
+    for (const auto body_part : body_parts) {
+        const nw::Resource model_resource{body_part, nw::ResourceType::mdl};
+        const nw::Resource palette_resource{body_part, nw::ResourceType::plt};
+        if (!nw::kernel::resman().contains(model_resource)
+            || !nw::kernel::resman().contains(palette_resource)) {
+            GTEST_SKIP() << "installed humanoid body-part resources unavailable";
+        }
+
+        nw::model::Mdl mdl{nw::kernel::resman().demand(model_resource)};
+        ASSERT_TRUE(mdl.valid());
+
+        auto result = nwn::import_nwn_model_asset(mdl);
+        ASSERT_TRUE(result.asset);
+        ASSERT_EQ(result.asset->materials.size(), 1u);
+        ASSERT_EQ(result.asset->material_texture_sources.size(), 1u);
+        const auto source_index = result.asset->material_texture_sources.front().albedo;
+        ASSERT_LT(source_index, result.asset->texture_sources.size());
+        EXPECT_TRUE(result.asset->materials.front().albedo_uses_plt);
+        EXPECT_EQ(result.asset->texture_sources[source_index].resource, palette_resource);
+    }
 }
 
 TEST(RenderModelLoader, TileGradedAlphaWithoutExplicitHintStaysOpaque)
@@ -413,6 +377,93 @@ TEST(RenderModelLoader, TileGradedAlphaWithoutExplicitHintStaysOpaque)
         .node = &node,
         .bitmap_name = node.bitmap,
         .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::opaque);
+}
+
+TEST(RenderModelLoader, TilePlanarQuadGradedAlphaUsesTransparency)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"tile_overlay"};
+    node.bitmap = "snow_overlay";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
+        .is_planar_quad = true,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::transparent);
+}
+
+TEST(RenderModelLoader, TilePlanarQuadMostlyBinaryAlphaUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"tile_overlay"};
+    node.bitmap = "cutout_overlay";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::mostly_binary,
+        .is_planar_quad = true,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
+}
+
+TEST(RenderModelLoader, TileMostlyBinaryAlphaWithoutExplicitHintUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"tile_mesh"};
+    node.bitmap = "cutout_mesh";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::mostly_binary,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
+}
+
+TEST(RenderModelLoader, CharacterMostlyBinaryAlphaUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"character_mesh"};
+    node.bitmap = "character_cutout";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::character,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::mostly_binary,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
+}
+
+TEST(RenderModelLoader, CharacterContinuousGradedAlphaStaysOpaque)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"character_mesh"};
+    node.bitmap = "character_smooth_alpha";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::character,
         .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
     });
 
@@ -455,130 +506,98 @@ TEST(RenderModelLoader, TileGradedAlphaUsesExplicitTransparencyHint)
     EXPECT_EQ(mode, nw::render::MaterialMode::transparent);
 }
 
-TEST(RenderModelLoader, NonTileOpaqueColorKeyUsesCutout)
+TEST(RenderModelLoader, TileGradedAlphaUsesAuthoredAlphaMean)
 {
     namespace nwn = nw::render::nwn;
 
-    nw::model::TrimeshNode node{"keyed_mesh"};
-    node.bitmap = "keyed_sprite";
-
-    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
-        .node = &node,
-        .bitmap_name = node.bitmap,
-        .model_class = nw::model::ModelClass::invalid,
-        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
-        .has_color_key = true,
-    });
-
-    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
-}
-
-TEST(RenderModelLoader, TileOpaqueColorKeyStaysOpaque)
-{
-    namespace nwn = nw::render::nwn;
-
-    nw::model::TrimeshNode node{"tile_mesh"};
-    node.bitmap = "keyed_floor";
+    nw::model::TrimeshNode node{"tile_overlay"};
+    node.bitmap = "alpha_overlay";
 
     const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
         .node = &node,
         .bitmap_name = node.bitmap,
         .model_class = nw::model::ModelClass::tile,
-        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
-        .has_color_key = true,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
+        .has_txi = true,
+        .txi_has_alphamean = true,
+        .txi_alphamean = 0.233f,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::transparent);
+}
+
+TEST(RenderModelLoader, TileGradedAlphaRejectsInvalidAuthoredAlphaMean)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"tile_mesh"};
+    node.bitmap = "alpha_noise";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
+        .has_txi = true,
+        .txi_has_alphamean = true,
+        .txi_alphamean = 1.0f,
     });
 
     EXPECT_EQ(mode, nw::render::MaterialMode::opaque);
 }
 
-TEST(RenderModelLoader, ExtractsDummyNodesAsSocketRecords)
+TEST(RenderModelLoader, TileMostlyBinaryAlphaUsesExplicitTransparencyHint)
 {
     namespace nwn = nw::render::nwn;
 
-    nw::model::Mdl mdl{"test_data/user/development/test_mtr_material.mdl"};
-    ASSERT_TRUE(mdl.valid());
+    nw::model::TrimeshNode node{"tile_overlay"};
+    node.bitmap = "cutout_overlay";
+    node.transparencyhint = 1;
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::tile,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::mostly_binary,
+    });
 
-    ASSERT_EQ(model->sockets().size(), 1u);
-    const uint32_t socket_index = model->socket_index("test_mtr_material");
-    ASSERT_NE(socket_index, nw::render::kInvalidModelNodeIndex);
-
-    const auto* socket = model->socket(socket_index);
-    ASSERT_NE(socket, nullptr);
-    EXPECT_EQ(socket->name, "test_mtr_material");
-    ASSERT_LT(socket->source_node_index, model->source_nodes_.size());
-    EXPECT_EQ(model->socket_node(socket_index), model->source_nodes_[socket->source_node_index]);
-    EXPECT_EQ(model->socket_node(99u), nullptr);
-    EXPECT_EQ(model->socket_index("missing_socket"), nw::render::kInvalidModelNodeIndex);
-    EXPECT_FLOAT_EQ(socket->local_transform[0][0], 1.0f);
-    EXPECT_FLOAT_EQ(socket->bind_transform[0][0], 1.0f);
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
 }
 
-TEST(RenderModelLoader, AuthoredHandDummyOverridesMeshAliasFallback)
+TEST(RenderModelLoader, CharacterOpaqueTextureStaysOpaque)
 {
     namespace nwn = nw::render::nwn;
 
-    nw::model::Mdl mdl{"test_data/user/development/test_mesh_socket_alias.mdl"};
-    ASSERT_TRUE(mdl.valid());
+    nw::model::TrimeshNode node{"character_mesh"};
+    node.bitmap = "opaque_diffuse";
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::character,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
+    });
 
-    ASSERT_EQ(model->sockets().size(), 3u);
-    EXPECT_EQ(model->socket_index("rhand_g"), nw::render::kInvalidModelNodeIndex);
-    EXPECT_EQ(model->socket_index("lhand_g"), nw::render::kInvalidModelNodeIndex);
+    EXPECT_EQ(mode, nw::render::MaterialMode::opaque);
+}
 
-    const uint32_t right_index = model->socket_index("rhand");
-    const uint32_t left_index = model->socket_index("lhand");
-    ASSERT_NE(right_index, nw::render::kInvalidModelNodeIndex);
-    ASSERT_NE(left_index, nw::render::kInvalidModelNodeIndex);
+TEST(RenderModelLoader, OpaqueTextureWithLightenTxiUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
 
-    const auto* right_socket = model->socket(right_index);
-    const auto* left_socket = model->socket(left_index);
-    ASSERT_NE(right_socket, nullptr);
-    ASSERT_NE(left_socket, nullptr);
-    ASSERT_LT(right_socket->source_node_index, model->source_nodes_.size());
-    ASSERT_LT(left_socket->source_node_index, model->source_nodes_.size());
+    nw::model::TrimeshNode node{"lighten_mesh"};
+    node.bitmap = "lighten_diffuse";
 
-    const auto* right_node = model->socket_node(right_index);
-    const auto* left_node = model->socket_node(left_index);
-    ASSERT_NE(right_node, nullptr);
-    ASSERT_NE(left_node, nullptr);
-    ASSERT_NE(right_node->orig_, nullptr);
-    ASSERT_NE(left_node->orig_, nullptr);
-    EXPECT_EQ(right_node->orig_->name, "rhand");
-    EXPECT_EQ(left_node->orig_->name, "lhand_g");
-    EXPECT_FLOAT_EQ(right_socket->local_transform[0][0], 0.5f);
-    EXPECT_FLOAT_EQ(right_socket->bind_transform[0][0], 0.75f);
-    EXPECT_FLOAT_EQ(left_socket->local_transform[0][0], 0.75f);
-    EXPECT_FLOAT_EQ(left_socket->bind_transform[0][0], 0.75f);
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::character,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::opaque,
+        .has_txi = true,
+        .txi_blending = "lighten",
+    });
 
-    auto result = nwn::import_nwn_model_asset(mdl);
-    ASSERT_TRUE(result.asset);
-    const auto& asset = *result.asset;
-
-    auto find_asset_socket = [&](std::string_view name) -> const nw::render::ModelSocket* {
-        const auto it = std::find_if(asset.sockets.begin(), asset.sockets.end(), [name](const auto& socket) {
-            return nw::string::icmp(socket.name, name);
-        });
-        return it == asset.sockets.end() ? nullptr : &*it;
-    };
-
-    ASSERT_EQ(asset.sockets.size(), 3u);
-    const auto* asset_right_socket = find_asset_socket("rhand");
-    const auto* asset_left_socket = find_asset_socket("lhand");
-    ASSERT_NE(asset_right_socket, nullptr);
-    ASSERT_NE(asset_left_socket, nullptr);
-    EXPECT_EQ(asset_right_socket->source_node_index, right_socket->source_node_index);
-    EXPECT_EQ(asset_left_socket->source_node_index, left_socket->source_node_index);
-    EXPECT_FLOAT_EQ(asset_right_socket->local_transform[0][0], 0.5f);
-    EXPECT_FLOAT_EQ(asset_right_socket->bind_transform[0][0], 0.75f);
-    EXPECT_FLOAT_EQ(asset_left_socket->local_transform[0][0], 0.75f);
-    EXPECT_FLOAT_EQ(asset_left_socket->bind_transform[0][0], 0.75f);
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
 }
 
 TEST(RenderModelLoader, ImportsStaticNwnModelAssetPayloads)
@@ -592,13 +611,16 @@ TEST(RenderModelLoader, ImportsStaticNwnModelAssetPayloads)
     ASSERT_TRUE(result.asset);
     const auto& asset = *result.asset;
 
-    EXPECT_EQ(asset.source_kind, nw::render::ModelAssetSourceKind::nwn_legacy);
+    EXPECT_EQ(asset.source_kind, nw::render::ModelAssetSourceKind::nwn);
     EXPECT_EQ(asset.name, mdl.model.name);
     EXPECT_EQ(result.stats.source_node_count, mdl.model.nodes.size());
     EXPECT_GT(result.stats.primitive_count, 0u);
     EXPECT_EQ(result.stats.primitive_count, asset.primitives.size());
     EXPECT_EQ(result.stats.material_count, asset.materials.size());
     EXPECT_EQ(asset.material_texture_sources.size(), asset.materials.size());
+    for (const auto& sources : asset.material_texture_sources) {
+        EXPECT_FALSE(sources.albedo_srgb);
+    }
     ASSERT_EQ(asset.sockets.size(), 1u);
     EXPECT_EQ(asset.sockets.front().name, "test_mtr_material");
     EXPECT_TRUE(asset.shadow.valid);
@@ -660,6 +682,7 @@ TEST(RenderModelLoader, ImportsNwnModelAssetParticleSystems)
     EXPECT_FALSE(asset.shadow.casts_shadow);
     EXPECT_EQ(asset.shadow.caster_count, 0u);
     ASSERT_EQ(asset.particle_systems.size(), 2u);
+    EXPECT_GT(asset.bounds.radius(), 0.0f);
 
     const auto base = std::find_if(asset.particle_systems.begin(), asset.particle_systems.end(), [](const auto& it) {
         return it.animation_name.empty();
@@ -711,6 +734,55 @@ TEST(RenderModelLoader, ImportsNwnModelAssetParticleAnimationCurves)
     EXPECT_GT(emitter->emission.rate_over_time.keys[1].value, 0.0f);
 }
 
+// NWN node names are case-insensitive and the stock humanoid rigs mix casing
+// (pmh0 carries Lbicep_g beside lforearm_g/lhand_g). Binding clip tracks by
+// exact name drops the track for any node whose casing differs from the
+// animation source, freezing that joint at bind pose -- which is what left the
+// assembled creature's hands unrotated while every other part animated.
+TEST(RenderModelLoader, ClipTracksBindToJointsCaseInsensitively)
+{
+    namespace nwn = nw::render::nwn;
+
+    const nw::Resource rig{nw::Resref{"pmh0"}, nw::ResourceType::mdl};
+    if (!nw::kernel::resman().contains(rig)) {
+        GTEST_SKIP() << "installed humanoid base rig unavailable";
+    }
+
+    nw::model::Mdl mdl{nw::kernel::resman().demand(rig)};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->skeletons.size(), 1u);
+    ASSERT_FALSE(result.asset->animations.empty());
+
+    const auto& skeleton = result.asset->skeletons.front();
+    const auto joint_index = [&](std::string_view name) -> size_t {
+        for (size_t i = 0; i < skeleton.joints.size(); ++i) {
+            if (nw::string::icmp(skeleton.joints[i].name, name)) {
+                return i;
+            }
+        }
+        return skeleton.joints.size();
+    };
+
+    // Mixed-case joints must still receive keys from the supermodel clips.
+    for (const auto* name : {"lhand_g", "rhand_g", "lbicep_g", "rbicep_g"}) {
+        const size_t joint = joint_index(name);
+        ASSERT_LT(joint, skeleton.joints.size()) << "missing joint " << name;
+
+        const bool any_track_keyed = std::any_of(
+            result.asset->animations.begin(),
+            result.asset->animations.end(),
+            [&](const auto& clip) {
+                return joint < clip.tracks.size()
+                    && (!clip.tracks[joint].rotations.empty()
+                        || !clip.tracks[joint].translations.empty());
+            });
+        EXPECT_TRUE(any_track_keyed) << "no clip keys joint " << name;
+    }
+}
+
 TEST(RenderModelLoader, ImportsNwnModelAssetSupermodelAnimationClips)
 {
     namespace nwn = nw::render::nwn;
@@ -749,7 +821,6 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSupermodelAnimationClips)
     runtime_model.skins = asset.skins;
 
     nw::render::ModelInstance instance;
-    instance.kind = nw::render::ModelInstanceKind::render_model;
     instance.root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{3.0f, 4.0f, 0.0f});
     instance.animation.enabled = true;
     instance.animation.clip = static_cast<uint32_t>(std::distance(asset.animations.begin(), clip_it));
@@ -767,6 +838,52 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSupermodelAnimationClips)
         valid_row_count += valid != 0u ? 1u : 0u;
     }
     EXPECT_EQ(valid_row_count, skeleton.joints.size());
+}
+
+TEST(RenderModelLoader, ScalesInheritedNwnAnimationTranslations)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::Mdl mdl{"test_data/user/development/c_satyr.mdl"};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_TRUE(mdl.model.supermodel);
+    ASSERT_GT(mdl.model.animationscale, 1.0f);
+
+    const auto* source_animation = mdl.model.supermodel->model.find_animation("walk");
+    ASSERT_NE(source_animation, nullptr);
+    const auto source_node = std::find_if(
+        source_animation->nodes.begin(), source_animation->nodes.end(), [](const auto& candidate) {
+            return candidate && candidate->name == "rootdummy";
+        });
+    ASSERT_NE(source_node, source_animation->nodes.end());
+    const auto source_positions = (*source_node)->get_controller(nw::model::ControllerType::Position, true);
+    ASSERT_FALSE(source_positions.time.empty());
+    ASSERT_GE(source_positions.data.size(), 3u);
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    const auto& asset = *result.asset;
+    ASSERT_EQ(asset.skeletons.size(), 1u);
+
+    const auto clip = std::find_if(asset.animations.begin(), asset.animations.end(), [](const auto& candidate) {
+        return candidate.name == "walk";
+    });
+    ASSERT_NE(clip, asset.animations.end());
+
+    const auto& skeleton = asset.skeletons.front();
+    const auto joint = std::find_if(skeleton.joints.begin(), skeleton.joints.end(), [](const auto& candidate) {
+        return candidate.name == "rootdummy";
+    });
+    ASSERT_NE(joint, skeleton.joints.end());
+    const auto joint_index = static_cast<size_t>(std::distance(skeleton.joints.begin(), joint));
+    ASSERT_LT(joint_index, clip->tracks.size());
+    ASSERT_FALSE(clip->tracks[joint_index].translations.empty());
+
+    const glm::vec3 source_translation{
+        source_positions.data[0], source_positions.data[1], source_positions.data[2]};
+    EXPECT_TRUE(same_vec3(
+        clip->tracks[joint_index].translations.front().value,
+        source_translation * mdl.model.animationscale));
 }
 
 TEST(RenderModelLoader, ImportsNwnModelAssetTextureSourcesAsEncodedBytes)
@@ -801,6 +918,7 @@ TEST(RenderModelLoader, ImportsNwnModelAssetTextureSourcesAsEncodedBytes)
         EXPECT_EQ(sources.emissive, nw::render::kInvalidModelAssetTextureSourceIndex);
     }
     for (const auto& material : asset.materials) {
+        EXPECT_EQ(material.lighting_model, nw::render::MaterialLightingModel::nwn_diffuse);
         EXPECT_FLOAT_EQ(material.roughness, 1.0f);
         EXPECT_FLOAT_EQ(material.metallic, 0.0f);
     }
@@ -890,7 +1008,7 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
     const auto& asset = *result.asset;
 
     EXPECT_EQ(result.stats.secondary_motion_deformer_count, 2u);
-    EXPECT_EQ(result.stats.legacy_reference_deformer_count, 0u);
+    EXPECT_EQ(result.stats.unsupported_deformer_count, 0u);
     EXPECT_EQ(result.stats.missing_texture_source_count, 0u);
     EXPECT_EQ(result.stats.unsupported_plt_texture_count, 0u);
     ASSERT_EQ(asset.texture_sources.size(), 1u);
@@ -938,7 +1056,6 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
     runtime_model.skins = asset.skins;
 
     nw::render::ModelInstance instance;
-    instance.kind = nw::render::ModelInstanceKind::render_model;
     instance.animation.enabled = true;
     instance.animation.clip = static_cast<uint32_t>(std::distance(asset.animations.begin(), pause1));
     instance.animation.time = 0.033f;
@@ -947,16 +1064,7 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
     ASSERT_TRUE(instance.animation.backend);
     ASSERT_TRUE(nw::render::sample_model_instance_animation(instance, runtime_model));
 
-    namespace nwn = nw::render::nwn;
-    nwn::ModelLoader loader{nullptr};
-    auto legacy = loader.load(&mdl);
-    ASSERT_TRUE(legacy);
-    ASSERT_TRUE(legacy->load_animation("pause1"));
-    legacy->update(33);
-
     size_t transformed_rigid_primitives = 0;
-    size_t legacy_matching_primitives = 0;
-    float max_legacy_delta = 0.0f;
     for (const auto& primitive : asset.primitives) {
         glm::mat4 sampled_world{1.0f};
         if (!nw::render::model_instance_node_world_transform(instance, primitive.node, sampled_world)) {
@@ -967,21 +1075,8 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
         if (max_abs_matrix_delta(sampled_world, static_world) > 1.0e-4f) {
             ++transformed_rigid_primitives;
         }
-
-        const auto* legacy_node = legacy->node_from_source_index(primitive.node);
-        if (!legacy_node) {
-            continue;
-        }
-        const glm::mat4 legacy_world = legacy_node->get_transform();
-        const float legacy_delta = max_abs_matrix_delta(sampled_world, legacy_world);
-        max_legacy_delta = std::max(max_legacy_delta, legacy_delta);
-        if (legacy_delta <= 1.0e-4f) {
-            ++legacy_matching_primitives;
-        }
     }
     EXPECT_GT(transformed_rigid_primitives, 0u);
-    EXPECT_LE(max_legacy_delta, 1.0e-4f);
-    EXPECT_EQ(legacy_matching_primitives, asset.primitives.size());
 
     size_t deformed_primitive_count = 0;
     bool saw_torso_g = false;
@@ -1052,6 +1147,27 @@ TEST(RenderModelLoader, NwnRenderModelImportRejectsMissingContextAfterCpuImport)
     EXPECT_EQ(result.texture_upload_stats.material_count, 0u);
 }
 
+TEST(RenderModelLoader, ImportsNwnSocketCarrierWithoutGpuWork)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::Mdl mdl{"test_data/user/development/test_socket_carrier.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_render_model(mdl, nw::render::ModelAssetTextureUploadDesc{});
+
+    ASSERT_TRUE(result.model);
+    EXPECT_TRUE(result.geometry_upload_stats.passed());
+    EXPECT_TRUE(result.texture_upload_stats.passed());
+    EXPECT_EQ(result.import_stats.primitive_count, 0u);
+    EXPECT_EQ(result.geometry_upload_stats.primitive_count, 0u);
+    EXPECT_EQ(result.geometry_upload_stats.uploaded_primitive_count, 0u);
+    EXPECT_EQ(result.geometry_upload_stats.missing_context_count, 0u);
+    EXPECT_TRUE(result.model->primitives.empty());
+    EXPECT_EQ(result.model->socket_index("tail"), 1u);
+    EXPECT_EQ(result.model->socket_index("wings"), 2u);
+}
+
 TEST(RenderModelLoader, NwnRenderModelImportUsesCommonUploadWhenGraphicsAvailable)
 {
     namespace nwn = nw::render::nwn;
@@ -1083,63 +1199,6 @@ TEST(RenderModelLoader, NwnRenderModelImportUsesCommonUploadWhenGraphicsAvailabl
     destroy_render_model_test_buffers(*result.model);
 }
 
-TEST(RenderModelLoader, TransformAnchorUsesCachedSocketIndices)
-{
-    namespace nwn = nw::render::nwn;
-
-    nwn::ModelInstance context;
-    auto anchor_node = std::make_unique<nwn::Node>();
-    anchor_node->has_transform_ = true;
-    anchor_node->position_ = glm::vec3{2.0f, 3.0f, 4.0f};
-    auto* anchor_node_ptr = anchor_node.get();
-    context.nodes_.push_back(std::move(anchor_node));
-    context.source_nodes_.push_back(anchor_node_ptr);
-    context.sockets_.push_back(nw::render::ModelSocket{
-        .source_node_index = 0u,
-        .local_transform = anchor_node_ptr->get_local_transform(),
-        .bind_transform = anchor_node_ptr->bind_pose_,
-        .name = "hand",
-    });
-
-    nwn::ModelInstance attached;
-    attached.set_transform_anchor(&context, "hand");
-    context.sockets_.front().name = "renamed_after_binding";
-
-    const glm::mat4 transform = attached.root_transform();
-
-    EXPECT_NEAR(transform[3].x, 2.0f, 1.0e-5f);
-    EXPECT_NEAR(transform[3].y, 3.0f, 1.0e-5f);
-    EXPECT_NEAR(transform[3].z, 4.0f, 1.0e-5f);
-}
-
-TEST(RenderModelLoader, AppliesTextureStackMtrFromTextureReference)
-{
-    namespace nwn = nw::render::nwn;
-
-    nw::model::Mdl mdl{"test_data/user/development/PLC_C04.mdl"};
-    ASSERT_TRUE(mdl.valid());
-
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-
-    size_t mesh_count = 0;
-    for (const auto& node : model->nodes_) {
-        const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-        if (candidate) {
-            ++mesh_count;
-            EXPECT_EQ(candidate->bitmap_name, "bones");
-            EXPECT_EQ(candidate->renderhint, "normalandspecmapped");
-            EXPECT_EQ(candidate->normal_map_name, "bones_n");
-            EXPECT_EQ(candidate->specular_map_name, "bones_s");
-            EXPECT_EQ(candidate->roughness_map_name, "bones_r");
-            EXPECT_TRUE(candidate->emissive_map_name.empty());
-            EXPECT_FALSE(candidate->material_uses_fallback);
-        }
-    }
-    EXPECT_EQ(mesh_count, 3u);
-}
-
 TEST(RenderModelLoader, FlagsMissingExplicitTextureFallback)
 {
     namespace nwn = nw::render::nwn;
@@ -1147,74 +1206,31 @@ TEST(RenderModelLoader, FlagsMissingExplicitTextureFallback)
     nw::model::Mdl mdl{"test_data/user/development/test_missing_texture_fallback.mdl"};
     ASSERT_TRUE(mdl.valid());
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-
-    const nwn::Mesh* mesh = nullptr;
-    for (const auto& node : model->nodes_) {
-        const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-        if (candidate) {
-            mesh = candidate;
-            break;
-        }
-    }
-
-    ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->bitmap_name, "zz_no_tex_fbk");
-    EXPECT_TRUE(mesh->material_uses_fallback);
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->materials.size(), 1u);
+    EXPECT_TRUE(result.asset->materials.front().material_uses_fallback);
+    EXPECT_GT(result.stats.missing_texture_source_count, 0u);
 }
 
-TEST(RenderModelLoader, MtrWithoutTexture0PreservesMdlDiffuse)
+TEST(RenderModelLoader, DropsNonRenderedTileMeshesWithoutSourceImagery)
 {
     namespace nwn = nw::render::nwn;
 
-    nw::model::Mdl mdl{"test_data/user/development/test_mtr_preserve_diffuse.mdl"};
+    nw::model::Mdl mdl{"test_data/user/development/test_tile_render_zero_visibility.mdl"};
     ASSERT_TRUE(mdl.valid());
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-
-    const nwn::Mesh* mesh = nullptr;
-    for (const auto& node : model->nodes_) {
-        const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-        if (candidate) {
-            mesh = candidate;
-            break;
-        }
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    EXPECT_EQ(result.asset->primitives.size(), 2u);
+    for (const auto& primitive : result.asset->primitives) {
+        ASSERT_GE(primitive.node, 0);
+        ASSERT_LT(static_cast<size_t>(primitive.node), mdl.model.nodes.size());
+        const auto* source = dynamic_cast<const nw::model::TrimeshNode*>(
+            mdl.model.nodes[static_cast<size_t>(primitive.node)].get());
+        ASSERT_NE(source, nullptr);
+        EXPECT_NE(source->bitmap, "zz_hidden_missing");
     }
-
-    ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->bitmap_name, "preserved_diffuse");
-    EXPECT_EQ(mesh->renderhint, "normalandspecmapped");
-    EXPECT_EQ(mesh->normal_map_name, "preserved_normal");
-    EXPECT_EQ(mesh->specular_map_name, "preserved_specular");
-    EXPECT_EQ(mesh->roughness_map_name, "preserved_roughness");
-}
-
-TEST(RenderModelLoader, Texture0OverridesBitmapDiffuse)
-{
-    namespace nwn = nw::render::nwn;
-
-    nw::model::Mdl mdl{"test_data/user/development/test_texture0_override.mdl"};
-    ASSERT_TRUE(mdl.valid());
-
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-
-    const nwn::Mesh* mesh = nullptr;
-    for (const auto& node : model->nodes_) {
-        const auto* candidate = dynamic_cast<const nwn::Mesh*>(node.get());
-        if (candidate) {
-            mesh = candidate;
-            break;
-        }
-    }
-
-    ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->bitmap_name, "texture0_diffuse");
 }
 
 TEST(RenderModelLoader, SelectsDanglyDeformPolicy)
@@ -1233,32 +1249,20 @@ TEST(RenderModelLoader, SelectsDanglyDeformPolicy)
     };
     foliage_node.constraints = {0.0f, 0.0f, 255.0f};
 
-    EXPECT_EQ(nwn::dangly_deform_policy_for(&foliage_node), nwn::DanglyDeformPolicy::foliage_sway_cpu);
-    EXPECT_EQ(nwn::dangly_deform_policy_name(nwn::DanglyDeformPolicy::foliage_sway_cpu), "foliage_sway_cpu");
-    EXPECT_EQ(nwn::model_deformer_kind_for(nwn::DanglyDeformPolicy::foliage_sway_cpu),
+    EXPECT_EQ(nwn::dangly_deform_policy_for(&foliage_node), nwn::DanglyDeformPolicy::foliage_sway);
+    EXPECT_EQ(nwn::dangly_deform_policy_name(nwn::DanglyDeformPolicy::foliage_sway), "foliage_sway");
+    EXPECT_EQ(nwn::model_deformer_kind_for(nwn::DanglyDeformPolicy::foliage_sway),
         nw::render::ModelDeformerKind::vertex_shader_sway);
-
-    nwn::DanglyMesh foliage_mesh;
-    foliage_mesh.initialize_dangly(&foliage_node);
-    EXPECT_EQ(foliage_mesh.deform_policy_, nwn::DanglyDeformPolicy::foliage_sway_cpu);
-    EXPECT_TRUE(foliage_mesh.two_sided_lighting);
-    const auto foliage_deformer = foliage_mesh.make_deformer_record(7u);
-    EXPECT_EQ(foliage_deformer.kind, nw::render::ModelDeformerKind::vertex_shader_sway);
-    EXPECT_EQ(foliage_deformer.source_node_index, 7u);
-    EXPECT_EQ(foliage_deformer.vertex_count, 3u);
-    EXPECT_FLOAT_EQ(foliage_deformer.weight_min, 0.0f);
-    EXPECT_FLOAT_EQ(foliage_deformer.weight_max, 1.0f);
-    EXPECT_GT(foliage_deformer.amplitude, 0.0f);
 
     nw::model::DanglymeshNode palm_node{"Leaves01"};
     palm_node.bitmap = "plc_palmfrond";
 
-    EXPECT_EQ(nwn::dangly_deform_policy_for(&palm_node), nwn::DanglyDeformPolicy::foliage_sway_cpu);
+    EXPECT_EQ(nwn::dangly_deform_policy_for(&palm_node), nwn::DanglyDeformPolicy::foliage_sway);
 
     nw::model::DanglymeshNode plant_node{"1_plant00"};
     plant_node.bitmap = "tcm02_plants";
 
-    EXPECT_EQ(nwn::dangly_deform_policy_for(&plant_node), nwn::DanglyDeformPolicy::foliage_sway_cpu);
+    EXPECT_EQ(nwn::dangly_deform_policy_for(&plant_node), nwn::DanglyDeformPolicy::foliage_sway);
 
     nw::model::DanglymeshNode robe_node{"coat_top"};
     robe_node.bitmap = "pfh0_robe020";
@@ -1272,79 +1276,15 @@ TEST(RenderModelLoader, SelectsDanglyDeformPolicy)
     };
     robe_node.constraints = {0.0f, 128.0f, 255.0f};
 
-    EXPECT_EQ(nwn::dangly_deform_policy_for(&robe_node), nwn::DanglyDeformPolicy::legacy_spring_cpu);
-    EXPECT_EQ(nwn::dangly_deform_policy_name(nwn::DanglyDeformPolicy::legacy_spring_cpu), "legacy_spring_cpu");
-    EXPECT_EQ(nwn::model_deformer_kind_for(nwn::DanglyDeformPolicy::legacy_spring_cpu),
+    EXPECT_EQ(nwn::dangly_deform_policy_for(&robe_node), nwn::DanglyDeformPolicy::secondary_motion_chain);
+    EXPECT_EQ(nwn::dangly_deform_policy_name(nwn::DanglyDeformPolicy::secondary_motion_chain), "secondary_motion_chain");
+    EXPECT_EQ(nwn::model_deformer_kind_for(nwn::DanglyDeformPolicy::secondary_motion_chain),
         nw::render::ModelDeformerKind::secondary_motion_chain);
-
-    nwn::DanglyMesh robe_mesh;
-    robe_mesh.initialize_dangly(&robe_node);
-    EXPECT_EQ(robe_mesh.deform_policy_, nwn::DanglyDeformPolicy::legacy_spring_cpu);
-    EXPECT_FALSE(robe_mesh.two_sided_lighting);
-    const auto robe_deformer = robe_mesh.make_deformer_record(11u);
-    EXPECT_EQ(robe_deformer.kind, nw::render::ModelDeformerKind::secondary_motion_chain);
-    EXPECT_EQ(robe_deformer.source_node_index, 11u);
-    EXPECT_EQ(robe_deformer.vertex_count, 3u);
 
     nw::model::DanglymeshNode banner_node{"banner"};
     banner_node.bitmap = "dag_flag01";
 
-    EXPECT_EQ(nwn::dangly_deform_policy_for(&banner_node), nwn::DanglyDeformPolicy::legacy_spring_cpu);
-
-    nwn::DanglyMesh explicit_mesh;
-    explicit_mesh.initialize_dangly(&robe_node, nwn::DanglyDeformPolicy::foliage_sway_cpu);
-    EXPECT_EQ(explicit_mesh.deform_policy_, nwn::DanglyDeformPolicy::foliage_sway_cpu);
-    EXPECT_TRUE(explicit_mesh.two_sided_lighting);
-
-    nw::model::DanglymeshNode malformed_node{"bad_leaf"};
-    malformed_node.bitmap = "plc_palmfrond";
-    malformed_node.displacement = 0.2f;
-    malformed_node.period = 1.0f;
-    malformed_node.tightness = 1.0f;
-    malformed_node.vertices = foliage_node.vertices;
-    malformed_node.constraints = {255.0f};
-
-    nwn::DanglyMesh malformed_mesh;
-    malformed_mesh.initialize_dangly(&malformed_node);
-    const auto malformed_deformer = malformed_mesh.make_deformer_record(12u);
-    EXPECT_EQ(malformed_deformer.kind, nw::render::ModelDeformerKind::legacy_reference_cpu);
-}
-
-TEST(RenderModelLoader, FoliageDanglyMotionUsesNwnScale)
-{
-    namespace nwn = nw::render::nwn;
-
-    nwn::set_dangly_debug_scale(1.0f);
-    nwn::set_dangly_mode(nwn::DanglyMode::legacy);
-
-    nw::model::DanglymeshNode node{"leaf_card"};
-    node.bitmap = "plc_palmfrond";
-    node.period = 1.0f;
-    node.tightness = 1.0f;
-    node.displacement = 0.2f;
-    node.vertices = {
-        make_test_vertex(glm::vec3{-1.0f, 0.0f, 0.0f}),
-        make_test_vertex(glm::vec3{1.0f, 0.0f, 0.0f}),
-        make_test_vertex(glm::vec3{0.0f, 0.0f, 2.0f}),
-    };
-    node.indices = {0, 1, 2};
-    node.constraints = {255.0f, 255.0f, 255.0f};
-
-    nwn::DanglyMesh mesh;
-    mesh.initialize_dangly(&node);
-    ASSERT_EQ(mesh.deform_policy_, nwn::DanglyDeformPolicy::foliage_sway_cpu);
-    ASSERT_EQ(mesh.cpu_vertices_.size(), node.vertices.size());
-
-    mesh.update_dangly(glm::mat4{1.0f}, 1000);
-
-    float max_delta = 0.0f;
-    for (size_t i = 0; i < mesh.cpu_vertices_.size(); ++i) {
-        max_delta = std::max(max_delta, glm::length(mesh.cpu_vertices_[i].position - node.vertices[i].position));
-    }
-
-    EXPECT_GT(max_delta, 0.0001f);
-    EXPECT_LT(max_delta, 0.08f);
-    EXPECT_LE(mesh.foliage_amplitude_, 0.035f);
+    EXPECT_EQ(nwn::dangly_deform_policy_for(&banner_node), nwn::DanglyDeformPolicy::secondary_motion_chain);
 }
 
 TEST(RenderModelLoader, FoliageDanglyMeshesDoNotCastShadows)
@@ -1354,50 +1294,36 @@ TEST(RenderModelLoader, FoliageDanglyMeshesDoNotCastShadows)
     nw::model::Mdl mdl{"test_data/user/development/plc_palm02.mdl"};
     ASSERT_TRUE(mdl.valid());
 
-    nwn::ModelLoader loader{nullptr};
-    auto model = loader.load(&mdl);
-    ASSERT_TRUE(model);
-    ASSERT_FALSE(model->shadow_casters_.empty());
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    const auto& asset = *result.asset;
+    ASSERT_FALSE(asset.deformers.empty());
 
     bool saw_foliage_mesh = false;
-    size_t dangly_deformer_count = 0;
     bool saw_non_foliage_caster = false;
-    ASSERT_FALSE(model->deformers().empty());
-    for (const auto& node : model->nodes_) {
-        const auto* dangly = dynamic_cast<const nwn::DanglyMesh*>(node.get());
-        if (dangly && !dangly->rest_positions_.empty()) {
-            ASSERT_NE(dangly->deformer_index_, nw::render::kInvalidModelDeformerIndex);
-            const auto* deformer = model->deformer(dangly->deformer_index_);
-            ASSERT_NE(deformer, nullptr);
-            EXPECT_EQ(model->deformer_node(dangly->deformer_index_), static_cast<const nwn::Node*>(dangly));
-            EXPECT_EQ(deformer->vertex_count, dangly->rest_positions_.size());
-            if (dangly->uses_foliage_sway() && dangly->constraints_valid_) {
-                EXPECT_EQ(deformer->kind, nw::render::ModelDeformerKind::vertex_shader_sway);
+    for (const auto& primitive : asset.primitives) {
+        if (primitive.deformer != nw::render::kInvalidModelDeformerIndex) {
+            ASSERT_LT(primitive.deformer, asset.deformers.size());
+            const auto& deformer = asset.deformers[primitive.deformer];
+            if (deformer.kind == nw::render::ModelDeformerKind::vertex_shader_sway) {
+                ASSERT_LT(primitive.material, asset.materials.size());
+                EXPECT_TRUE(asset.materials[primitive.material].double_sided);
+                EXPECT_FALSE(primitive.casts_shadow);
+                saw_foliage_mesh = true;
             }
-            ++dangly_deformer_count;
         }
-        if (dangly && dangly->uses_foliage_sway()) {
-            saw_foliage_mesh = true;
-            EXPECT_TRUE(dangly->two_sided_lighting);
-        }
-    }
-
-    for (const auto* mesh : model->shadow_casters_) {
-        ASSERT_NE(mesh, nullptr);
-        const auto* source = dynamic_cast<const nw::model::TrimeshNode*>(mesh->orig_);
-        ASSERT_NE(source, nullptr);
-        EXPECT_TRUE(source->shadow);
-        if (const auto* dangly = dynamic_cast<const nwn::DanglyMesh*>(mesh)) {
-            EXPECT_FALSE(dangly->uses_foliage_sway());
-        } else {
+        if (primitive.casts_shadow) {
             saw_non_foliage_caster = true;
         }
     }
 
+    for (const auto& deformer : asset.deformers) {
+        if (deformer.kind == nw::render::ModelDeformerKind::vertex_shader_sway) {
+            saw_foliage_mesh = true;
+        }
+    }
+
     EXPECT_TRUE(saw_foliage_mesh);
-    EXPECT_GT(dangly_deformer_count, 0u);
-    EXPECT_EQ(model->deformer(9999u), nullptr);
-    EXPECT_EQ(model->deformer_node(9999u), nullptr);
     EXPECT_TRUE(saw_non_foliage_caster);
 }
 
@@ -1496,75 +1422,4 @@ TEST(RenderModelLoader, ImportsPalmFoliageLeavesAsCutoutAlpha)
     }
 
     EXPECT_GT(foliage_primitive_count, 0u);
-}
-
-TEST(RenderModelLoader, ModelTransformCacheRefreshesAfterDirectNodeEdits)
-{
-    namespace nwn = nw::render::nwn;
-
-    nwn::Node root;
-    root.has_transform_ = true;
-    root.position_ = glm::vec3{1.0f, 0.0f, 0.0f};
-
-    nwn::Mesh mesh;
-    mesh.parent_ = &root;
-    mesh.has_transform_ = true;
-    mesh.position_ = glm::vec3{0.0f, 2.0f, 0.0f};
-    root.children_.push_back(&mesh);
-
-    const glm::mat4 identity{1.0f};
-    const auto& root_transform = root.refresh_model_transform_cache(identity, 0);
-    glm::mat4 mesh_transform = mesh.refresh_model_transform_cache(root_transform, root.model_transform_cache_revision());
-    const uint64_t first_revision = mesh.model_transform_cache_revision();
-
-    EXPECT_FLOAT_EQ(mesh_transform[3].x, 1.0f);
-    EXPECT_FLOAT_EQ(mesh_transform[3].y, 2.0f);
-
-    mesh.refresh_model_transform_cache(root_transform, root.model_transform_cache_revision());
-    EXPECT_EQ(mesh.model_transform_cache_revision(), first_revision);
-
-    mesh.position_ = glm::vec3{0.0f, 3.0f, 0.0f};
-    mesh_transform = mesh.refresh_model_transform_cache(root_transform, root.model_transform_cache_revision());
-    const uint64_t local_edit_revision = mesh.model_transform_cache_revision();
-
-    EXPECT_NE(local_edit_revision, first_revision);
-    EXPECT_FLOAT_EQ(mesh_transform[3].x, 1.0f);
-    EXPECT_FLOAT_EQ(mesh_transform[3].y, 3.0f);
-
-    root.position_ = glm::vec3{2.0f, 0.0f, 0.0f};
-    const auto& moved_root_transform = root.refresh_model_transform_cache(identity, 0);
-    mesh_transform = mesh.refresh_model_transform_cache(moved_root_transform, root.model_transform_cache_revision());
-
-    EXPECT_NE(mesh.model_transform_cache_revision(), local_edit_revision);
-    EXPECT_FLOAT_EQ(mesh_transform[3].x, 2.0f);
-    EXPECT_FLOAT_EQ(mesh_transform[3].y, 3.0f);
-}
-
-TEST(RenderModelLoader, NormalMatrixCachesRefreshForRootRevision)
-{
-    namespace nwn = nw::render::nwn;
-
-    nwn::ModelInstance model;
-    const glm::mat4 first_root = glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f, 3.0f, 4.0f});
-    const uint64_t first_revision = model.root_transform_cache_revision(first_root);
-    glm::mat4 normal = model.refresh_root_normal_matrix_cache(first_root, first_revision);
-
-    EXPECT_FLOAT_EQ(normal[0][0], 0.5f);
-    EXPECT_FLOAT_EQ(normal[1][1], 1.0f / 3.0f);
-    EXPECT_FLOAT_EQ(normal[2][2], 0.25f);
-    EXPECT_EQ(model.root_transform_cache_revision(first_root), first_revision);
-
-    const glm::mat4 second_root = glm::scale(glm::mat4{1.0f}, glm::vec3{4.0f, 3.0f, 4.0f});
-    const uint64_t second_revision = model.root_transform_cache_revision(second_root);
-    normal = model.refresh_root_normal_matrix_cache(second_root, second_revision);
-
-    EXPECT_NE(second_revision, first_revision);
-    EXPECT_FLOAT_EQ(normal[0][0], 0.25f);
-
-    nwn::Mesh mesh;
-    normal = mesh.refresh_normal_matrix_cache(first_root, 1, first_revision);
-    EXPECT_FLOAT_EQ(normal[0][0], 0.5f);
-
-    normal = mesh.refresh_normal_matrix_cache(second_root, 1, second_revision);
-    EXPECT_FLOAT_EQ(normal[0][0], 0.25f);
 }

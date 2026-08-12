@@ -869,7 +869,11 @@ uint8_t AstCompiler::get_local_register(StringView name)
 void AstCompiler::emit_field_get(uint8_t dest, uint8_t struct_reg, uint32_t offset, TypeID type_id)
 {
     auto& rt = *runtime_;
-    bool is_heap = (type_id != rt.int_type() && type_id != rt.float_type() && type_id != rt.bool_type() && type_id != rt.string_type() && type_id != rt.object_type());
+    bool is_heap = type_id != rt.int_type()
+        && type_id != rt.float_type()
+        && type_id != rt.bool_type()
+        && type_id != rt.string_type()
+        && !rt.is_object_like_type(type_id);
     uint32_t ref_idx = module_->add_field_ref(offset, type_id);
 
     if (is_heap) {
@@ -928,7 +932,11 @@ void AstCompiler::emit_field_get(uint8_t dest, uint8_t struct_reg, uint32_t offs
 void AstCompiler::emit_field_set(uint8_t struct_reg, uint32_t offset, TypeID type_id, uint8_t val_reg)
 {
     auto& rt = *runtime_;
-    bool is_heap = (type_id != rt.int_type() && type_id != rt.float_type() && type_id != rt.bool_type() && type_id != rt.string_type() && type_id != rt.object_type());
+    bool is_heap = type_id != rt.int_type()
+        && type_id != rt.float_type()
+        && type_id != rt.bool_type()
+        && type_id != rt.string_type()
+        && !rt.is_object_like_type(type_id);
     uint32_t ref_idx = module_->add_field_ref(offset, type_id);
 
     if (is_heap) {

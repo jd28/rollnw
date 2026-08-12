@@ -18,7 +18,7 @@ namespace {
 int32_t store_state_int(nw::Store* store, const char* field)
 {
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.store.StoreState", false);
+    auto tid = rt.type_id("nwn1.propsets.StoreState", false);
     if (!store || tid == nw::smalls::invalid_type_id) { return 0; }
 
     auto ref = rt.find_propset_ref(tid, store->handle());

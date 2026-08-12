@@ -1,18 +1,25 @@
-from core.creature import { CreatureStats, CreatureCombat, CreatureHealth, CreatureLevels, SpecialAbility };
-from core.types import { BaseItemType, Class, Spell };
+from nwn1.propsets import { CreatureDescriptor, CreatureAppearance, CreatureStats, CreatureCombat, CreatureHealth, CreatureLevels, SpecialAbility };
+from core.item import { BaseItemType };
+from core.types import { Class, Feat, Skill, Spell };
 import nwn1.constants as Const;
-from nwn1.rules import { AppearanceEntry, FeatEntry, RobePartsEntry, WingModelEntry, TailModelEntry, appearance_model_type_parts };
+from nwn1.rules import { AppearanceRules, FeatEntry, PhenotypeEntry, RobePartsEntry, WingModelEntry, TailModelEntry, appearance_model_type_parts };
 
 import core.array as arr;
-import core.combat as Comb;
-import core.creature as Cre;
+import core.bit as bit;
+import core.combat as NativeCombat;
+import core.creature as NativeCreature;
+import nwn1.combat_primitives as Comb;
+import nwn1.creature_state as Cre;
 import core.effects as Effects;
 import core.item as Item;
 import core.object as O;
+import core.string as String;
 import core.types as T;
 import core.visual as Visual;
+import nwn1.appearances as Appearances;
 import nwn1.item as NwnItem;
 import nwn1.equipment as Equipment;
+from nwn1.propsets import { ItemStats };
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as Mod;
 import nwn1.rules as Rules;
@@ -55,8 +62,73 @@ type CreatureResolvedModel {
     error:             string;
 };
 
-var _appearance_loaded = false;
-var _appearances: array!(AppearanceEntry);
+type CreatureBodyPartEditorRow {
+    part: int;
+    label: string;
+    value: int;
+    display: string;
+};
+
+type CreatureBodyPartOptionRow {
+    key: int;
+    label: string;
+    detail: string;
+};
+
+type CreatureColorEditorRow {
+    color: int;
+    label: string;
+    value: int;
+    palette: int;
+};
+
+type CreatureSpellClassEditorRow {
+    class_id: int;
+    name_strref: int;
+    memorizes: bool;
+};
+
+type CreatureSpellMetamagicEditorRow {
+    code: int;
+    name_strref: int;
+};
+
+type CreatureSpellEditorRow {
+    spell: int;
+    level: int;
+    uses: int;
+    known: bool;
+};
+
+type CreaturePropertyEditorGroup {
+    propset: string;
+    label: string;
+    first_field: int;
+    field_count: int;
+};
+
+type CreaturePropertyEditorRow {
+    surface: int;
+    group: string;
+    label: string;
+    value: string;
+    class_slot: int;
+    class_level: int;
+    class_level_min: int;
+    class_level_max: int;
+};
+
+const property_editor_surface_properties = 0;
+const property_editor_surface_classes = 1;
+const property_editor_class_level_min = 1;
+const property_editor_class_level_max = 60;
+
+const creature_color_palette_skin = 0;
+const creature_color_palette_hair = 1;
+const creature_color_value_count = 176;
+
+var _phenotype_loaded = false;
+var _phenotypes: array!(PhenotypeEntry);
 var _parts_robe_loaded = false;
 var _parts_robe: array!(RobePartsEntry);
 var _wingmodel_loaded = false;
@@ -65,14 +137,204 @@ var _tailmodel_loaded = false;
 var _tailmodels: array!(TailModelEntry);
 var _feat_loaded = false;
 var _feats: array!(FeatEntry);
+var _body_part_editor_order_loaded = false;
+var _body_part_editor_order: array!(int);
 var did_install_creature_visual_callbacks = false;
 
-fn _ensure_appearances_loaded() {
-    if (_appearance_loaded) {
+fn get_property_editor_groups(): array!(CreaturePropertyEditorGroup) {
+    var rows: array!(CreaturePropertyEditorGroup) = {};
+    var scripts: CreaturePropertyEditorGroup = {
+        propset = "nwn1.propsets.CreatureDescriptor",
+        label = "Scripts",
+        first_field = 0,
+        field_count = 13,
+    };
+    arr.push(rows, scripts);
+    return rows;
+}
+
+fn _property_editor_row(surface: int, group: string, label: string, value: string,
+    class_slot: int = -1, class_level: int = 0,
+    class_level_min: int = 0, class_level_max: int = 0): CreaturePropertyEditorRow {
+    return CreaturePropertyEditorRow {
+        surface = surface,
+        group = group,
+        label = label,
+        value = value,
+        class_slot = class_slot,
+        class_level = class_level,
+        class_level_min = class_level_min,
+        class_level_max = class_level_max,
+    };
+}
+
+fn _localized_editor_name(strref: int, fallback: string): string {
+    if (strref < 0) {
+        return fallback;
+    }
+    var result = T.resolve_strref(strref);
+    if (result == "" || String.starts_with(result, "Bad Strref")) {
+        return fallback;
+    }
+    return result;
+}
+
+fn _gender_editor_name(gender: int): string {
+    if (gender == 0) { return "Male"; }
+    if (gender == 1) { return "Female"; }
+    return f"Gender {gender}";
+}
+
+fn _bool_editor_value(value: int): string {
+    if (value != 0) { return "True"; }
+    return "False";
+}
+
+fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
+    var descriptor = get_propset!(CreatureDescriptor)(obj);
+    var appearance = get_propset!(CreatureAppearance)(obj);
+    var stats = get_propset!(CreatureStats)(obj);
+    var health = get_propset!(CreatureHealth)(obj);
+    var levels = get_propset!(CreatureLevels)(obj);
+    var rows: array!(CreaturePropertyEditorRow) = {};
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "First Name", T.resolve_text(descriptor.name_first, 0)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Last Name", T.resolve_text(descriptor.name_last, 0)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Gender", _gender_editor_name(stats.gender)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Race",
+        _localized_editor_name(races.name_strref(stats.race) as int, f"Race {stats.race}")));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Subrace", descriptor.subrace));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Faction", f"{health.faction_id}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Deity", descriptor.deity));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Portrait", T.resref_to_string(appearance.portrait)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Conversation", T.resref_to_string(descriptor.conversation)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Default Package", f"{health.starting_package}"));
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Strength", f"{stats.abilities[0]}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Dexterity", f"{stats.abilities[1]}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Constitution", f"{stats.abilities[2]}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Intelligence", f"{stats.abilities[3]}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Wisdom", f"{stats.abilities[4]}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Charisma", f"{stats.abilities[5]}"));
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Fortitude", f"{stats.save_fort}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Reflex", f"{stats.save_reflex}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Will", f"{stats.save_will}"));
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Blocked", T.resref_to_string(descriptor.on_blocked)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Combat End Round", T.resref_to_string(descriptor.on_endround)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Conversation", T.resref_to_string(descriptor.on_conversation)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Damaged", T.resref_to_string(descriptor.on_damaged)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Death", T.resref_to_string(descriptor.on_death)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Disturbed", T.resref_to_string(descriptor.on_disturbed)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Heartbeat", T.resref_to_string(descriptor.on_heartbeat)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Perception", T.resref_to_string(descriptor.on_perceived)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Physically Attacked", T.resref_to_string(descriptor.on_attacked)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Rested", T.resref_to_string(descriptor.on_rested)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Spawn", T.resref_to_string(descriptor.on_spawn)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Spell Cast At", T.resref_to_string(descriptor.on_spell_cast_at)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On User Defined", T.resref_to_string(descriptor.on_user_defined)));
+
+    var skill_rows: array!(CreaturePropertyEditorRow) = {};
+    for (var skill_id = 0; skill_id < Skills.count(); skill_id += 1) {
+        var skill = Skill(skill_id);
+        if (Skills.exists(skill)) {
+            var skill_value = 0;
+            if (skill_id < arr.len(stats.skills)) {
+                skill_value = stats.skills[skill_id];
+            }
+            arr.push(skill_rows, _property_editor_row(property_editor_surface_properties, "Skills",
+                _localized_editor_name(Skills.name_strref(skill) as int, f"Skill {skill_id}"), f"{skill_value}"));
+        }
+    }
+    arr.sort(skill_rows, fn(a: CreaturePropertyEditorRow, b: CreaturePropertyEditorRow): bool {
+        return a.label < b.label;
+    });
+    for (var skill_row = 0; skill_row < arr.len(skill_rows); skill_row += 1) {
+        arr.push(rows, arr.get(skill_rows, skill_row));
+    }
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Corpse Decay Time", f"{descriptor.decay_time / 1000}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Disarmable", _bool_editor_value(stats.disarmable)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Immortal", _bool_editor_value(stats.immortal)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Lootable Corpse", _bool_editor_value(stats.lootable)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "No Permanent Death", _bool_editor_value(stats.chunk_death)));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Plot", _bool_editor_value(stats.plot)));
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Movement Rate", f"{levels.walkrate}"));
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Perception Range", f"{stats.perception_range}"));
+
+    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Description", "Description",
+        T.resolve_text(descriptor.description, 0)));
+
+    for (var slot = 0; slot < 8; slot += 1) {
+        var class_id = levels.classes[slot];
+        var level = levels.class_levels[slot];
+        if (class_id >= 0 && level > 0) {
+            var class_name = _localized_editor_name(
+                Classes.name_strref(Class(class_id)) as int, f"Class {class_id}");
+            arr.push(rows, _property_editor_row(property_editor_surface_classes, "", class_name, f"{level}",
+                slot, level, property_editor_class_level_min, property_editor_class_level_max));
+        }
+    }
+    return rows;
+}
+
+fn get_class_slot_levels(creature: Creature): array!(int) {
+    var levels = get_propset!(CreatureLevels)(creature);
+    var result: array!(int) = {};
+    arr.reserve(result, 8);
+    for (var slot = 0; slot < 8; slot += 1) {
+        arr.push(result, levels.class_levels[slot]);
+    }
+    return result;
+}
+
+fn can_set_class_levels(creature: Creature, slots: array!(int), values: array!(int)): bool {
+    var count = arr.len(slots);
+    if (count <= 0 || count != arr.len(values) || count > 8) {
+        return false;
+    }
+
+    var levels = get_propset!(CreatureLevels)(creature);
+    for (var i = 0; i < count; i += 1) {
+        var slot = slots[i];
+        var value = values[i];
+        if (slot < 0 || slot >= 8
+            || !Classes.exists(Class(levels.classes[slot]))
+            || value < property_editor_class_level_min
+            || value > property_editor_class_level_max) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (slots[j] == slot) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn set_class_levels(creature: Creature, slots: array!(int), values: array!(int)): bool {
+    if (!can_set_class_levels(creature, slots, values)) {
+        return false;
+    }
+
+    var levels = get_propset!(CreatureLevels)(creature);
+    for (var i = 0; i < arr.len(slots); i += 1) {
+        var slot = slots[i];
+        var value = values[i];
+        levels.class_levels[slot] = value;
+    }
+    return true;
+}
+
+fn _ensure_phenotypes_loaded() {
+    if (_phenotype_loaded) {
         return;
     }
-    _appearances = load_config!(AppearanceEntry)("nwn1.data.appearance");
-    _appearance_loaded = true;
+    _phenotypes = load_config!(PhenotypeEntry)("nwn1.data.phenotype");
+    _phenotype_loaded = true;
 }
 
 fn _ensure_parts_robe_loaded() {
@@ -170,7 +432,74 @@ fn _body_part_token(part: int): string {
     if (part == Cre.body_part_thigh_left) { return "legl"; }
     if (part == Cre.body_part_thigh_right) { return "legr"; }
     if (part == Cre.body_part_torso) { return "chest"; }
+    if (part == Cre.body_part_robe) { return "robe"; }
     return "";
+}
+
+fn _body_part_editor_label(part: int): string {
+    if (part == Cre.body_part_head) { return "Head"; }
+    if (part == Cre.body_part_neck) { return "Neck"; }
+    if (part == Cre.body_part_torso) { return "Torso"; }
+    if (part == Cre.body_part_pelvis) { return "Pelvis"; }
+    if (part == Cre.body_part_bicep_left) { return "Bicep, Left"; }
+    if (part == Cre.body_part_bicep_right) { return "Bicep, Right"; }
+    if (part == Cre.body_part_forearm_left) { return "Forearm, Left"; }
+    if (part == Cre.body_part_forearm_right) { return "Forearm, Right"; }
+    if (part == Cre.body_part_hand_left) { return "Hand, Left"; }
+    if (part == Cre.body_part_hand_right) { return "Hand, Right"; }
+    if (part == Cre.body_part_thigh_left) { return "Thigh, Left"; }
+    if (part == Cre.body_part_thigh_right) { return "Thigh, Right"; }
+    if (part == Cre.body_part_shin_left) { return "Shin, Left"; }
+    if (part == Cre.body_part_shin_right) { return "Shin, Right"; }
+    if (part == Cre.body_part_foot_left) { return "Foot, Left"; }
+    if (part == Cre.body_part_foot_right) { return "Foot, Right"; }
+    if (part == Cre.body_part_belt) { return "Belt"; }
+    if (part == Cre.body_part_shoulder_left) { return "Shoulder, Left"; }
+    if (part == Cre.body_part_shoulder_right) { return "Shoulder, Right"; }
+    return "";
+}
+
+fn _body_part_value_display(value: int): string {
+    return f"{value}";
+}
+
+fn _body_part_option_detail(part: int, value: int): string {
+    if (part == Cre.body_part_robe) {
+        if (value == 0) { return "Armor"; }
+        if (value == 255) { return "None"; }
+        return "";
+    }
+    if (value == 0) { return "None"; }
+    if (value == 255) { return "Mirror"; }
+    return "";
+}
+
+fn _ensure_body_part_editor_order() {
+    if (_body_part_editor_order_loaded) {
+        return;
+    }
+    _body_part_editor_order = {
+        Cre.body_part_head,
+        Cre.body_part_neck,
+        Cre.body_part_torso,
+        Cre.body_part_pelvis,
+        Cre.body_part_bicep_left,
+        Cre.body_part_bicep_right,
+        Cre.body_part_forearm_left,
+        Cre.body_part_forearm_right,
+        Cre.body_part_hand_left,
+        Cre.body_part_hand_right,
+        Cre.body_part_thigh_left,
+        Cre.body_part_thigh_right,
+        Cre.body_part_shin_left,
+        Cre.body_part_shin_right,
+        Cre.body_part_foot_left,
+        Cre.body_part_foot_right,
+        Cre.body_part_belt,
+        Cre.body_part_shoulder_left,
+        Cre.body_part_shoulder_right,
+    };
+    _body_part_editor_order_loaded = true;
 }
 
 fn _body_part_anchor(part: int): T.ResRef {
@@ -280,6 +609,12 @@ fn _resolve_armor_skin_tattoo_model_part(part: int, creature_model_part: int, ar
     return armor_model_part;
 }
 
+fn _armor_can_supply_missing_body_part(part: int): bool {
+    return part == Cre.body_part_belt
+        || part == Cre.body_part_shoulder_left
+        || part == Cre.body_part_shoulder_right;
+}
+
 fn _normalized_body_part(creature: Creature, part: int): int {
     var value = Cre.get_body_part(creature, part);
     var mirror = _mirrored_body_part(part);
@@ -338,7 +673,20 @@ fn _creature_part_model(sex: string, race: T.ResRef, phenotype: int, token: stri
     return _empty_resref();
 }
 
-fn _resolve_creature_part_model(
+fn _phenotype_fallback(phenotype: int): int {
+    _ensure_phenotypes_loaded();
+    if (phenotype < 0 || phenotype >= arr.len(_phenotypes)) {
+        return 0;
+    }
+
+    var fallback = arr.get(_phenotypes, phenotype).fallback;
+    if (fallback < 0 || fallback >= arr.len(_phenotypes)) {
+        return 0;
+    }
+    return fallback;
+}
+
+fn _resolve_creature_part_model_for_phenotype(
     sex: string,
     race: T.ResRef,
     phenotype: int,
@@ -364,45 +712,80 @@ fn _resolve_creature_part_model(
     return _empty_resref();
 }
 
-fn count_appearances(): int {
-    _ensure_appearances_loaded();
-    return arr.len(_appearances);
+fn _resolve_creature_part_model(
+    sex: string,
+    race: T.ResRef,
+    phenotype: int,
+    fallback_phenotype: int,
+    token: string,
+    mirror_token: string,
+    prefer_mirror: bool,
+    model_part: int): T.ResRef {
+    var exact = _resolve_creature_part_model_for_phenotype(
+        sex,
+        race,
+        phenotype,
+        token,
+        mirror_token,
+        prefer_mirror,
+        model_part);
+    if (!_resref_empty(exact) || fallback_phenotype == phenotype) {
+        return exact;
+    }
+    return _resolve_creature_part_model_for_phenotype(
+        sex,
+        race,
+        fallback_phenotype,
+        token,
+        mirror_token,
+        prefer_mirror,
+        model_part);
 }
 
-fn _hand_item_reason(entry: AppearanceEntry): int {
-    if (!entry.has_arms) {
+fn count_appearances(): int {
+    return Appearances.count();
+}
+
+fn _hand_item_reason(appearance_rules: AppearanceRules): int {
+    if (!appearance_rules.has_arms) {
         return appearance_hand_item_hidden_no_arms;
     }
-    if (entry.weapon_scale < 0.0) {
+    if (appearance_rules.weapon_scale < 0.0) {
         return appearance_hand_item_hidden_null_weapon_scale;
     }
-    if (entry.weapon_scale <= 0.0) {
+    if (appearance_rules.weapon_scale <= 0.0) {
         return appearance_hand_item_hidden_invalid_weapon_scale;
     }
     return appearance_hand_item_visible;
 }
 
-fn _hand_item_scale(entry: AppearanceEntry, reason: int): float {
+fn _hand_item_scale(appearance_rules: AppearanceRules, reason: int): float {
     if (reason == appearance_hand_item_visible) {
-        return entry.weapon_scale;
+        return appearance_rules.weapon_scale;
     }
     return 1.0;
 }
 
 fn resolve_creature_model(appearance: int): CreatureResolvedModel {
-    _ensure_appearances_loaded();
-
     if (appearance < 0) {
         return _invalid_model(appearance, -1, f"appearance {appearance} is invalid");
     }
-    if (appearance >= arr.len(_appearances)) {
+    if (appearance >= Appearances.count()) {
         return _invalid_model(appearance, -1, f"appearance {appearance} was not found in appearance.2da");
     }
 
-    var entry = arr.get(_appearances, appearance);
-    var hand_reason = _hand_item_reason(entry);
+    var entry = Appearances.get_info(appearance);
+    var appearance_rules = Appearances.get_rules(appearance);
+    if (entry.id != appearance || appearance_rules.id != appearance) {
+        return _invalid_model(appearance, -1, f"appearance {appearance} was not found in appearance.2da");
+    }
+    if (_model_name_is_null(entry.model)) {
+        return _invalid_model(appearance, entry.model_type, f"appearance {appearance} has no model in appearance.2da");
+    }
+
+    var hand_reason = _hand_item_reason(appearance_rules);
     var hand_visible = hand_reason == appearance_hand_item_visible;
-    var hand_scale = _hand_item_scale(entry, hand_reason);
+    var hand_scale = _hand_item_scale(appearance_rules, hand_reason);
 
     if (entry.model_type == appearance_model_type_parts) {
         return CreatureResolvedModel {
@@ -410,9 +793,9 @@ fn resolve_creature_model(appearance: int): CreatureResolvedModel {
             race = entry.model,
             appearance = appearance,
             model_type = entry.model_type,
-            wing_tail_scale = entry.wing_tail_scale,
-            helmet_scale_m = entry.helmet_scale_m,
-            helmet_scale_f = entry.helmet_scale_f,
+            wing_tail_scale = appearance_rules.wing_tail_scale,
+            helmet_scale_m = appearance_rules.helmet_scale_m,
+            helmet_scale_f = appearance_rules.helmet_scale_f,
             hand_item_visible = hand_visible,
             hand_item_scale = hand_scale,
             hand_item_reason = hand_reason,
@@ -425,18 +808,15 @@ fn resolve_creature_model(appearance: int): CreatureResolvedModel {
     if (entry.model_type < 0) {
         return _invalid_model(appearance, entry.model_type, f"appearance {appearance} has an unsupported MODELTYPE");
     }
-    if (_model_name_is_null(entry.model)) {
-        return _invalid_model(appearance, entry.model_type, f"appearance {appearance} has no model in appearance.2da");
-    }
 
     return CreatureResolvedModel {
         model = entry.model,
         race = entry.model,
         appearance = appearance,
         model_type = entry.model_type,
-        wing_tail_scale = entry.wing_tail_scale,
-        helmet_scale_m = entry.helmet_scale_m,
-        helmet_scale_f = entry.helmet_scale_f,
+        wing_tail_scale = appearance_rules.wing_tail_scale,
+        helmet_scale_m = appearance_rules.helmet_scale_m,
+        helmet_scale_f = appearance_rules.helmet_scale_f,
         hand_item_visible = hand_visible,
         hand_item_scale = hand_scale,
         hand_item_reason = hand_reason,
@@ -444,6 +824,10 @@ fn resolve_creature_model(appearance: int): CreatureResolvedModel {
         valid = true,
         error = "",
     };
+}
+
+fn appearance_exists(appearance: int): bool {
+    return resolve_creature_model(appearance).valid;
 }
 
 fn _append_humanoid_visual_row(
@@ -457,6 +841,7 @@ fn _append_humanoid_visual_row(
     return Visual.add_visual_model_row(
         creature,
         model,
+        _empty_resref(),
         anchor,
         _empty_resref(),
         Visual.visual_model_kind_creature_model_part,
@@ -467,19 +852,41 @@ fn _append_humanoid_visual_row(
         Visual.visual_model_flag_none);
 }
 
-fn _set_creature_base_plt_colors(creature: Creature): bool {
-    var appearance = get_propset!(Cre.CreatureAppearance)(creature);
+fn _set_creature_base_plt_colors(creature: Creature, equipment_visible: bool): bool {
+    var appearance = get_propset!(CreatureAppearance)(creature);
+    var mask = Visual.visual_plt_mask_creature;
+    var metal1 = 0;
+    var metal2 = 0;
+    var cloth1 = 0;
+    var cloth2 = 0;
+    var leather1 = 0;
+    var leather2 = 0;
+
+    if (equipment_visible) {
+        var chest_item = Item.get_equipped_item(creature, Const.equip_index_chest);
+        if ((chest_item as object) != O.invalid
+            && NwnItem.get_baseitem_type(chest_item) == Const.base_item_armor) {
+            mask = bit.or(mask, Visual.visual_plt_mask_material);
+            metal1 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_metal1);
+            metal2 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_metal2);
+            cloth1 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_cloth1);
+            cloth2 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_cloth2);
+            leather1 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_leather1);
+            leather2 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_leather2);
+        }
+    }
+
     return Visual.set_visual_base_plt_colors(
         creature,
-        Visual.visual_plt_mask_creature,
+        mask,
         appearance.color_skin,
         appearance.color_hair,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
+        metal1,
+        metal2,
+        cloth1,
+        cloth2,
+        leather1,
+        leather2,
         appearance.color_tattoo1,
         appearance.color_tattoo2);
 }
@@ -488,13 +895,23 @@ fn _update_humanoid_visual_robe(
     creature: Creature,
     model: CreatureResolvedModel,
     sex: string,
+    phenotype: int,
+    fallback_phenotype: int,
     chest_item: Item,
     robe_part: int): bool {
     if (robe_part <= 0 || robe_part == 255) {
         return true;
     }
 
-    var robe_model = _creature_part_model(sex, model.race, 0, "robe", robe_part);
+    var robe_model = _resolve_creature_part_model(
+        sex,
+        model.race,
+        phenotype,
+        fallback_phenotype,
+        "robe",
+        "",
+        false,
+        robe_part);
     if (_resref_empty(robe_model)) {
         return true;
     }
@@ -521,6 +938,8 @@ fn _update_humanoid_visual_body_part(
     creature: Creature,
     model: CreatureResolvedModel,
     sex: string,
+    phenotype: int,
+    fallback_phenotype: int,
     part: int,
     chest_is_armor: bool,
     chest_item: Item): bool {
@@ -530,6 +949,10 @@ fn _update_humanoid_visual_body_part(
     }
 
     var creature_model_part = _normalized_body_part(creature, part);
+    if ((creature_model_part == 0 || creature_model_part == 255)
+        && !_armor_can_supply_missing_body_part(part)) {
+        return true;
+    }
     var model_part = creature_model_part;
     var slot = Visual.visual_model_slot_none;
     var item_part = -1;
@@ -543,22 +966,18 @@ fn _update_humanoid_visual_body_part(
     if (chest_is_armor) {
         var armor_part = _body_part_armor_part(part);
         if (armor_part >= 0) {
-            var raw_armor_model_part = Item.get_visual_model_part(chest_item, armor_part);
+            var raw_armor_model_part = NwnItem.get_visual_model_part(chest_item, armor_part);
             var armor_model_part = raw_armor_model_part;
             var inherited_from_mirror = false;
             if (mirror_part >= 0) {
                 var mirror_armor_part = _body_part_armor_part(mirror_part);
                 if (mirror_armor_part >= 0) {
-                    var mirrored_model_part = Item.get_visual_model_part(chest_item, mirror_armor_part);
+                    var mirrored_model_part = NwnItem.get_visual_model_part(chest_item, mirror_armor_part);
                     armor_model_part = _resolve_armor_part_value(armor_model_part, mirrored_model_part);
                     inherited_from_mirror = (raw_armor_model_part == 0 || raw_armor_model_part == 255)
                         && mirrored_model_part != 0
                         && mirrored_model_part != 255;
-                    var symmetric_right_thigh = part == Cre.body_part_thigh_right
-                        && armor_model_part != 0
-                        && armor_model_part != 255
-                        && armor_model_part == mirrored_model_part;
-                    prefer_mirror = inherited_from_mirror || symmetric_right_thigh;
+                    prefer_mirror = inherited_from_mirror;
                     if (inherited_from_mirror) {
                         item_part = mirror_armor_part;
                     }
@@ -578,7 +997,8 @@ fn _update_humanoid_visual_body_part(
     var resolved = _resolve_creature_part_model(
         sex,
         model.race,
-        0,
+        phenotype,
+        fallback_phenotype,
         token,
         mirror_token,
         prefer_mirror,
@@ -608,31 +1028,63 @@ fn _update_humanoid_visual_body_part(
     return true;
 }
 
-fn update_humanoid_visual_parts(creature: Creature, model: CreatureResolvedModel): bool {
+fn update_humanoid_visual_parts(
+    creature: Creature,
+    model: CreatureResolvedModel,
+    equipment_visible: bool): bool {
     var sex = _sex_for_gender(Cre.get_gender(creature));
-    var head_item = Cre.get_equipped_item(creature, Const.equip_index_head);
-    var chest_item = Cre.get_equipped_item(creature, Const.equip_index_chest);
+    var appearance = get_propset!(CreatureAppearance)(creature);
+    var phenotype = appearance.phenotype;
+    var fallback_phenotype = _phenotype_fallback(phenotype);
+    var head_item = O.invalid as Item;
+    var chest_item = O.invalid as Item;
+    if (equipment_visible) {
+        head_item = Item.get_equipped_item(creature, Const.equip_index_head);
+        chest_item = Item.get_equipped_item(creature, Const.equip_index_chest);
+    }
     var chest_is_armor = (chest_item as object) != O.invalid
-        && Item.get_baseitem_type(chest_item) == Const.base_item_armor;
-    var robe_part = 0;
+        && NwnItem.get_baseitem_type(chest_item) == Const.base_item_armor;
+    var equipped_robe_part = 0;
     if (chest_is_armor) {
-        robe_part = Item.get_visual_model_part(chest_item, NwnItem.item_model_part_armor_robe);
+        equipped_robe_part = NwnItem.get_visual_model_part(chest_item, NwnItem.item_model_part_armor_robe);
+    }
+    var robe_part = Cre.get_body_part(creature, Cre.body_part_robe);
+    if (robe_part == 0) {
+        robe_part = equipped_robe_part;
+    }
+    if (!chest_is_armor) {
+        robe_part = 0;
     }
 
     var ok = true;
-    for (var part = 0; part < Cre.body_part_count; part += 1) {
+    for (var part = 0; part < Cre.body_part_segment_count; part += 1) {
         if ((head_item as object) != O.invalid && part == Cre.body_part_head) {
             continue;
         }
         if (_robe_hides_body_part(robe_part, part)) {
             continue;
         }
-        if (!_update_humanoid_visual_body_part(creature, model, sex, part, chest_is_armor, chest_item)) {
+        if (!_update_humanoid_visual_body_part(
+            creature,
+            model,
+            sex,
+            phenotype,
+            fallback_phenotype,
+            part,
+            chest_is_armor,
+            chest_item)) {
             ok = false;
         }
     }
 
-    if (!_update_humanoid_visual_robe(creature, model, sex, chest_item, robe_part)) {
+    if (!_update_humanoid_visual_robe(
+        creature,
+        model,
+        sex,
+        phenotype,
+        fallback_phenotype,
+        chest_item,
+        robe_part)) {
         ok = false;
     }
     return ok;
@@ -654,7 +1106,8 @@ fn _creature_attachment_model(part: int, row: int): T.ResRef {
         if (row >= arr.len(_wingmodels)) {
             return _empty_resref();
         }
-        return arr.get(_wingmodels, row).model;
+        var entry = arr.get(_wingmodels, row);
+        return entry.model;
     }
 
     if (part == Visual.visual_creature_attachment_tail) {
@@ -662,7 +1115,8 @@ fn _creature_attachment_model(part: int, row: int): T.ResRef {
         if (row >= arr.len(_tailmodels)) {
             return _empty_resref();
         }
-        return arr.get(_tailmodels, row).model;
+        var entry = arr.get(_tailmodels, row);
+        return entry.model;
     }
 
     return _empty_resref();
@@ -693,6 +1147,7 @@ fn _update_creature_attachment_visual(creature: Creature, part: int, row: int): 
     return Visual.add_visual_model_row(
         creature,
         _creature_attachment_model(part, row),
+        _empty_resref(),
         anchor,
         anchor,
         Visual.visual_model_kind_creature_attachment,
@@ -703,7 +1158,10 @@ fn _update_creature_attachment_visual(creature: Creature, part: int, row: int): 
         Visual.visual_model_flag_none);
 }
 
-fn update_visual_by_appearance(creature: Creature, appearance: int): bool {
+fn _update_visual_by_appearance(
+    creature: Creature,
+    appearance: int,
+    equipment_visible: bool): bool {
     var model = resolve_creature_model(appearance);
     if (!model.valid) {
         return false;
@@ -714,13 +1172,13 @@ fn update_visual_by_appearance(creature: Creature, appearance: int): bool {
     if (!Visual.set_visual_body_variant(creature, Cre.get_gender(creature))) {
         return false;
     }
-    if (!_set_creature_base_plt_colors(creature)) {
+    if (!_set_creature_base_plt_colors(creature, equipment_visible)) {
         return false;
     }
 
     var ok = true;
     if (model.humanoid) {
-        if (!update_humanoid_visual_parts(creature, model)) {
+        if (!update_humanoid_visual_parts(creature, model, equipment_visible)) {
             ok = false;
         }
     } else {
@@ -744,11 +1202,15 @@ fn update_visual_by_appearance(creature: Creature, appearance: int): bool {
     return ok;
 }
 
-fn _visual_body_slot(slot: T.EquipIndex): bool {
+fn update_visual_by_appearance(creature: Creature, appearance: int): bool {
+    return _update_visual_by_appearance(creature, appearance, true);
+}
+
+fn _visual_body_slot(slot: Item.EquipIndex): bool {
     return slot == Const.equip_index_chest || slot == Const.equip_index_head;
 }
 
-fn _rebuild_visual_after_body_slot_change(creature: Creature, slot: T.EquipIndex) {
+fn _rebuild_visual_after_body_slot_change(creature: Creature, slot: Item.EquipIndex) {
     if (!_visual_body_slot(slot)) {
         return;
     }
@@ -756,11 +1218,11 @@ fn _rebuild_visual_after_body_slot_change(creature: Creature, slot: T.EquipIndex
     NwnItem.update_creature_visual_equipment(creature);
 }
 
-fn _on_item_equipped_update_creature_visual(creature: Creature, _equipped: Item, slot: T.EquipIndex) {
+fn _on_item_equipped_update_creature_visual(creature: Creature, _equipped: Item, slot: Item.EquipIndex) {
     _rebuild_visual_after_body_slot_change(creature, slot);
 }
 
-fn _on_item_unequipped_update_creature_visual(creature: Creature, _removed: Item, slot: T.EquipIndex) {
+fn _on_item_unequipped_update_creature_visual(creature: Creature, _removed: Item, slot: Item.EquipIndex) {
     _rebuild_visual_after_body_slot_change(creature, slot);
 }
 
@@ -769,14 +1231,497 @@ fn _ensure_creature_visual_callbacks() {
         return;
     }
 
-    Item.add_on_equip_callback(_on_item_equipped_update_creature_visual);
-    Item.add_on_unequip_callback(_on_item_unequipped_update_creature_visual);
+    NwnItem.add_on_equip_callback(_on_item_equipped_update_creature_visual);
+    NwnItem.add_on_unequip_callback(_on_item_unequipped_update_creature_visual);
     did_install_creature_visual_callbacks = true;
 }
 
 fn update_visual(creature: Creature): bool {
     _ensure_creature_visual_callbacks();
     return update_visual_by_appearance(creature, Cre.get_appearance(creature));
+}
+
+fn update_appearance_preview(creature: Creature, equipment_visible: bool): bool {
+    _ensure_creature_visual_callbacks();
+    if (!_update_visual_by_appearance(
+        creature,
+        Cre.get_appearance(creature),
+        equipment_visible)) {
+        return false;
+    }
+    return !equipment_visible || NwnItem.update_creature_visual_equipment(creature);
+}
+
+fn get_editable_colors(creature: Creature): array!(int) {
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid || !model.humanoid) {
+        var empty: array!(int) = {};
+        return empty;
+    }
+    var values = Cre.get_colors(creature);
+    for (var value in values) {
+        if (value < 0 || value >= creature_color_value_count) {
+            var empty: array!(int) = {};
+            return empty;
+        }
+    }
+    return values;
+}
+
+fn get_color_editor_rows(creature: Creature): array!(CreatureColorEditorRow) {
+    var rows: array!(CreatureColorEditorRow) = {};
+    var values = get_editable_colors(creature);
+    if (arr.len(values) != Cre.color_count) {
+        return rows;
+    }
+
+    var hair: CreatureColorEditorRow = {
+        color = Cre.color_hair,
+        label = "Hair",
+        value = values[Cre.color_hair],
+        palette = creature_color_palette_hair,
+    };
+    var skin: CreatureColorEditorRow = {
+        color = Cre.color_skin,
+        label = "Skin",
+        value = values[Cre.color_skin],
+        palette = creature_color_palette_skin,
+    };
+    var tattoo1: CreatureColorEditorRow = {
+        color = Cre.color_tattoo1,
+        label = "Tattoo 1",
+        value = values[Cre.color_tattoo1],
+        palette = creature_color_palette_skin,
+    };
+    var tattoo2: CreatureColorEditorRow = {
+        color = Cre.color_tattoo2,
+        label = "Tattoo 2",
+        value = values[Cre.color_tattoo2],
+        palette = creature_color_palette_skin,
+    };
+    arr.push(rows, hair);
+    arr.push(rows, skin);
+    arr.push(rows, tattoo1);
+    arr.push(rows, tattoo2);
+    return rows;
+}
+
+fn can_set_colors(creature: Creature, colors: array!(int), values: array!(int)): bool {
+    var count = arr.len(colors);
+    if (count <= 0 || count != arr.len(values) || count > Cre.color_count) {
+        return false;
+    }
+
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid || !model.humanoid) {
+        return false;
+    }
+
+    for (var i = 0; i < count; i += 1) {
+        var color = colors[i];
+        var value = values[i];
+        if (color < 0 || color >= Cre.color_count
+            || value < 0 || value >= creature_color_value_count) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (colors[j] == color) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn set_colors(creature: Creature, colors: array!(int), values: array!(int)): bool {
+    if (!can_set_colors(creature, colors, values)) {
+        return false;
+    }
+
+    var previous: array!(int) = {};
+    arr.reserve(previous, arr.len(colors));
+    var changed = false;
+    for (var i = 0; i < arr.len(colors); i += 1) {
+        var value = Cre.get_color(creature, colors[i]);
+        arr.push(previous, value);
+        if (value != values[i]) {
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return true;
+    }
+
+    var applied = 0;
+    for (applied < arr.len(colors)) {
+        if (!Cre.set_color(creature, colors[applied], values[applied])) {
+            for (var rollback = 0; rollback < applied; rollback += 1) {
+                Cre.set_color(creature, colors[rollback], previous[rollback]);
+            }
+            return false;
+        }
+        applied += 1;
+    }
+
+    if (update_visual(creature)
+        && NwnItem.update_creature_visual_equipment(creature)) {
+        return true;
+    }
+
+    for (var rollback = 0; rollback < arr.len(colors); rollback += 1) {
+        Cre.set_color(creature, colors[rollback], previous[rollback]);
+    }
+    update_visual(creature);
+    NwnItem.update_creature_visual_equipment(creature);
+    return false;
+}
+
+fn set_color(creature: Creature, color: int, value: int): bool {
+    var colors: array!(int) = {color};
+    var values: array!(int) = {value};
+    return set_colors(creature, colors, values);
+}
+
+fn _accessory_value_available(accessory: int, value: int): bool {
+    if (value < 0) {
+        return false;
+    }
+    if (value == 0) {
+        return true;
+    }
+    if (accessory == Cre.accessory_wings) {
+        _ensure_wingmodel_loaded();
+        if (value >= arr.len(_wingmodels)) {
+            return false;
+        }
+        var entry = arr.get(_wingmodels, value);
+        return entry.label != "" || T.resref_to_string(entry.model) != "";
+    }
+    if (accessory == Cre.accessory_tail) {
+        _ensure_tailmodel_loaded();
+        if (value >= arr.len(_tailmodels)) {
+            return false;
+        }
+        var entry = arr.get(_tailmodels, value);
+        return entry.label != "" || T.resref_to_string(entry.model) != "";
+    }
+    return false;
+}
+
+fn get_editable_accessories(creature: Creature): array!(int) {
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid) {
+        var empty: array!(int) = {};
+        return empty;
+    }
+    return Cre.get_accessories(creature);
+}
+
+fn can_set_accessories(creature: Creature, accessories: array!(int), values: array!(int)): bool {
+    var count = arr.len(accessories);
+    if (count <= 0 || count != arr.len(values) || count > Cre.accessory_count) {
+        return false;
+    }
+
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid) {
+        return false;
+    }
+
+    for (var i = 0; i < count; i += 1) {
+        var accessory = accessories[i];
+        if (accessory < 0 || accessory >= Cre.accessory_count
+            || !_accessory_value_available(accessory, values[i])) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (accessories[j] == accessory) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn set_accessories(creature: Creature, accessories: array!(int), values: array!(int)): bool {
+    if (!can_set_accessories(creature, accessories, values)) {
+        return false;
+    }
+
+    var previous: array!(int) = {};
+    arr.reserve(previous, arr.len(accessories));
+    var changed = false;
+    for (var i = 0; i < arr.len(accessories); i += 1) {
+        var value = Cre.get_accessory(creature, accessories[i]);
+        arr.push(previous, value);
+        if (value != values[i]) {
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return true;
+    }
+
+    var applied = 0;
+    for (applied < arr.len(accessories)) {
+        if (!Cre.set_accessory(creature, accessories[applied], values[applied])) {
+            for (var rollback = 0; rollback < applied; rollback += 1) {
+                Cre.set_accessory(creature, accessories[rollback], previous[rollback]);
+            }
+            return false;
+        }
+        applied += 1;
+    }
+
+    if (update_visual(creature)
+        && NwnItem.update_creature_visual_equipment(creature)) {
+        return true;
+    }
+
+    for (var rollback = 0; rollback < arr.len(accessories); rollback += 1) {
+        Cre.set_accessory(creature, accessories[rollback], previous[rollback]);
+    }
+    update_visual(creature);
+    NwnItem.update_creature_visual_equipment(creature);
+    return false;
+}
+
+fn set_accessory(creature: Creature, accessory: int, value: int): bool {
+    var accessories: array!(int) = {accessory};
+    var values: array!(int) = {value};
+    return set_accessories(creature, accessories, values);
+}
+
+fn get_editable_body_parts(creature: Creature): array!(int) {
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid || !model.humanoid) {
+        var empty: array!(int) = {};
+        return empty;
+    }
+    return Cre.get_body_parts(creature);
+}
+
+fn get_body_part_editor_rows(creature: Creature): array!(CreatureBodyPartEditorRow) {
+    var rows: array!(CreatureBodyPartEditorRow) = {};
+    var values = get_editable_body_parts(creature);
+    if (arr.len(values) != Cre.body_part_count) {
+        return rows;
+    }
+
+    _ensure_body_part_editor_order();
+    arr.reserve(rows, arr.len(_body_part_editor_order));
+    for (var part in _body_part_editor_order) {
+        var value = values[part];
+        var row: CreatureBodyPartEditorRow = {
+            part = part,
+            label = _body_part_editor_label(part),
+            value = value,
+            display = _body_part_value_display(value),
+        };
+        arr.push(rows, row);
+    }
+    return rows;
+}
+
+fn get_body_part_options(creature: Creature, part: int): array!(int) {
+    var options: array!(int) = {};
+    if (part < 0 || part >= Cre.body_part_count) {
+        return options;
+    }
+
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid || !model.humanoid) {
+        return options;
+    }
+
+    var token = _body_part_token(part);
+    if (token == "") {
+        return options;
+    }
+    var mirror = _mirrored_body_part(part);
+    var mirror_token = "";
+    if (mirror >= 0) {
+        mirror_token = _body_part_token(mirror);
+    }
+
+    var current = Cre.get_body_part(creature, part);
+    var sex = _sex_for_gender(Cre.get_gender(creature));
+    var appearance = get_propset!(CreatureAppearance)(creature);
+    var phenotype = appearance.phenotype;
+    var fallback_phenotype = _phenotype_fallback(phenotype);
+    arr.push(options, 0);
+    for (var value = 1; value < 255; value += 1) {
+        var resource = _resolve_creature_part_model(
+            sex,
+            model.race,
+            phenotype,
+            fallback_phenotype,
+            token,
+            mirror_token,
+            false,
+            value);
+        if (value == current || !_resref_empty(resource)) {
+            arr.push(options, value);
+        }
+    }
+    if (mirror >= 0 || part == Cre.body_part_robe || current == 255) {
+        arr.push(options, 255);
+    }
+    return options;
+}
+
+fn get_body_part_option_rows(creature: Creature, part: int): array!(CreatureBodyPartOptionRow) {
+    var rows: array!(CreatureBodyPartOptionRow) = {};
+    var options = get_body_part_options(creature, part);
+    arr.reserve(rows, arr.len(options));
+    for (var value in options) {
+        var row: CreatureBodyPartOptionRow = {
+            key = value,
+            label = f"{value}",
+            detail = _body_part_option_detail(part, value),
+        };
+        arr.push(rows, row);
+    }
+    return rows;
+}
+
+fn can_set_body_parts(creature: Creature, parts: array!(int), values: array!(int)): bool {
+    var count = arr.len(parts);
+    if (count <= 0 || count != arr.len(values) || count > Cre.body_part_count) {
+        return false;
+    }
+
+    var model = resolve_creature_model(Cre.get_appearance(creature));
+    if (!model.valid || !model.humanoid) {
+        return false;
+    }
+
+    for (var i = 0; i < count; i += 1) {
+        var part = parts[i];
+        var value = values[i];
+        if (part < 0 || part >= Cre.body_part_count || value < 0 || value > 255) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (parts[j] == part) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn set_body_parts(creature: Creature, parts: array!(int), values: array!(int)): bool {
+    if (!can_set_body_parts(creature, parts, values)) {
+        return false;
+    }
+
+    var previous: array!(int) = {};
+    arr.reserve(previous, arr.len(parts));
+    var changed = false;
+    for (var i = 0; i < arr.len(parts); i += 1) {
+        var value = Cre.get_body_part(creature, parts[i]);
+        arr.push(previous, value);
+        if (value != values[i]) {
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return true;
+    }
+
+    var applied = 0;
+    for (applied < arr.len(parts)) {
+        if (!Cre.set_body_part(creature, parts[applied], values[applied])) {
+            for (var rollback = 0; rollback < applied; rollback += 1) {
+                Cre.set_body_part(creature, parts[rollback], previous[rollback]);
+            }
+            return false;
+        }
+        applied += 1;
+    }
+
+    if (update_visual(creature)
+        && NwnItem.update_creature_visual_equipment(creature)) {
+        return true;
+    }
+
+    for (var rollback = 0; rollback < arr.len(parts); rollback += 1) {
+        Cre.set_body_part(creature, parts[rollback], previous[rollback]);
+    }
+    update_visual(creature);
+    NwnItem.update_creature_visual_equipment(creature);
+    return false;
+}
+
+fn set_body_part(creature: Creature, part: int, value: int): bool {
+    var parts: array!(int) = {part};
+    var values: array!(int) = {value};
+    return set_body_parts(creature, parts, values);
+}
+
+fn _has_body_parts(creature: Creature): bool {
+    for (var part = 0; part < Cre.body_part_segment_count; part += 1) {
+        if (Cre.get_body_part(creature, part) != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn _default_body_part(part: int): int {
+    // Dynamic bodies use model 1; belts, shoulders, and the robe override are optional.
+    if (part == Cre.body_part_belt
+        || part == Cre.body_part_shoulder_left
+        || part == Cre.body_part_shoulder_right
+        || part == Cre.body_part_robe) {
+        return 0;
+    }
+    return 1;
+}
+
+fn _set_default_body_parts(creature: Creature): bool {
+    for (var part = 0; part < Cre.body_part_count; part += 1) {
+        if (!Cre.set_body_part(creature, part, _default_body_part(part))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn _clear_body_parts(creature: Creature) {
+    for (var part = 0; part < Cre.body_part_count; part += 1) {
+        Cre.set_body_part(creature, part, 0);
+    }
+}
+
+fn set_appearance(creature: Creature, appearance: int): bool {
+    var model = resolve_creature_model(appearance);
+    if (!model.valid) {
+        return false;
+    }
+
+    var state = get_propset!(CreatureAppearance)(creature);
+    var previous = state.appearance;
+    if (previous == appearance) {
+        return true;
+    }
+
+    var initialize_body_parts = model.humanoid && !_has_body_parts(creature);
+    state.appearance = appearance;
+    if ((!initialize_body_parts || _set_default_body_parts(creature))
+        && update_visual(creature)
+        && NwnItem.update_creature_visual_equipment(creature)) {
+        return true;
+    }
+
+    state.appearance = previous;
+    if (initialize_body_parts) {
+        _clear_body_parts(creature);
+    }
+    update_visual(creature);
+    NwnItem.update_creature_visual_equipment(creature);
+    return false;
 }
 
 // == Const.Ability scores ==========================================================
@@ -810,7 +1755,7 @@ fn get_ability_score(obj: Creature, ability: Const.Ability, base: bool = false):
 
     var combat = get_propset!(CreatureCombat)(obj);
     var progression_epoch = Cre.progression_version(obj);
-    var effect_epoch = Comb.creature_effect_version(obj);
+    var effect_epoch = NativeCombat.creature_effect_version(obj);
     if (!combat.ability_cache_valid
         || combat.ability_cache_effect_epoch != effect_epoch
         || combat.ability_cache_progression_epoch != progression_epoch) {
@@ -846,10 +1791,12 @@ fn _challenge_rating_walkrate_row(obj: Creature, raw_walkrate: int): int {
         return raw_walkrate;
     }
 
-    _ensure_appearances_loaded();
     var appearance = Cre.get_appearance(obj);
-    if (appearance >= 0 && appearance < arr.len(_appearances)) {
-        return arr.get(_appearances, appearance).walkrate;
+    if (appearance >= 0 && appearance < Appearances.count()) {
+        var appearance_rules = Appearances.get_rules(appearance);
+        if (appearance_rules.id == appearance) {
+            return appearance_rules.walkrate;
+        }
     }
     return raw_walkrate;
 }
@@ -859,7 +1806,7 @@ fn _challenge_rating_equipment_value(obj: Creature): float {
     var slot = 0;
     var stop = Const.equip_index_creature_left as int;
     for (slot < stop) {
-        var equipped = Cre.get_equipped_item(obj, T.EquipIndex(slot));
+        var equipped = Item.get_equipped_item(obj, Item.EquipIndex(slot));
         if (equipped != O.invalid) {
             result += NwnItem.calculate_value(equipped) as float;
         }
@@ -883,9 +1830,9 @@ fn _challenge_rating_special_ability_levels(stats: CreatureStats): float {
 
 fn _challenge_rating_total_spell_levels(obj: Creature): float {
     var result = 0.0;
-    var count = Cre.get_ability_loadout_count(obj);
+    var count = NativeCreature.get_ability_loadout_count(obj);
     for (var i = 0; i < count; i += 1) {
-        var ability = Cre.get_ability_loadout_ability(obj, i);
+        var ability = NativeCreature.get_ability_loadout_ability(obj, i);
         if (ability < 0) { continue; }
 
         var innate = Spells.innate_level(Spell(ability));
@@ -1077,14 +2024,14 @@ fn get_available_spell_uses(obj: Creature, class_: Class, spell: Spell, min_spel
     var result = 0;
     var class_id = class_ as int;
     var spell_id = spell as int;
-    var count = Cre.get_ability_loadout_count(obj);
+    var count = NativeCreature.get_ability_loadout_count(obj);
 
     for (var i = 0; i < count; i = i + 1) {
-        if (Cre.get_ability_loadout_slot(obj, i) < 0) { continue; }
-        if (Cre.get_ability_loadout_source(obj, i) != class_id) { continue; }
-        if (Cre.get_ability_loadout_tier(obj, i) < min_spell_level) { continue; }
-        if (Cre.get_ability_loadout_ability(obj, i) != spell_id) { continue; }
-        if (meta != Metamagic.metamagic_any && Cre.get_ability_loadout_modifier(obj, i) != meta) { continue; }
+        if (NativeCreature.get_ability_loadout_slot(obj, i) < 0) { continue; }
+        if (NativeCreature.get_ability_loadout_source(obj, i) != class_id) { continue; }
+        if (NativeCreature.get_ability_loadout_tier(obj, i) < min_spell_level) { continue; }
+        if (NativeCreature.get_ability_loadout_ability(obj, i) != spell_id) { continue; }
+        if (meta != Metamagic.metamagic_any && NativeCreature.get_ability_loadout_modifier(obj, i) != meta) { continue; }
         result = result + 1;
     }
 
@@ -1098,11 +2045,11 @@ fn effective_spell_level(class_: Class, spell: Spell, meta: int): int {
 fn _unslotted_spell_tier_count(obj: Creature, class_: Class, spell_level: int): int {
     var result = 0;
     var class_id = class_ as int;
-    var count = Cre.get_ability_loadout_count(obj);
+    var count = NativeCreature.get_ability_loadout_count(obj);
     for (var i = 0; i < count; i = i + 1) {
-        if (Cre.get_ability_loadout_slot(obj, i) >= 0) { continue; }
-        if (Cre.get_ability_loadout_source(obj, i) != class_id) { continue; }
-        if (Cre.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
+        if (NativeCreature.get_ability_loadout_slot(obj, i) >= 0) { continue; }
+        if (NativeCreature.get_ability_loadout_source(obj, i) != class_id) { continue; }
+        if (NativeCreature.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
         result = result + 1;
     }
     return result;
@@ -1111,12 +2058,12 @@ fn _unslotted_spell_tier_count(obj: Creature, class_: Class, spell_level: int): 
 fn _available_spell_slot_count(obj: Creature, class_: Class, spell_level: int): int {
     var result = 0;
     var class_id = class_ as int;
-    var count = Cre.get_ability_loadout_count(obj);
+    var count = NativeCreature.get_ability_loadout_count(obj);
     for (var i = 0; i < count; i = i + 1) {
-        if (Cre.get_ability_loadout_slot(obj, i) < 0) { continue; }
-        if (Cre.get_ability_loadout_source(obj, i) != class_id) { continue; }
-        if (Cre.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
-        if (Cre.get_ability_loadout_ability(obj, i) >= 0) { continue; }
+        if (NativeCreature.get_ability_loadout_slot(obj, i) < 0) { continue; }
+        if (NativeCreature.get_ability_loadout_source(obj, i) != class_id) { continue; }
+        if (NativeCreature.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
+        if (NativeCreature.get_ability_loadout_ability(obj, i) >= 0) { continue; }
         result = result + 1;
     }
     return result;
@@ -1124,9 +2071,9 @@ fn _available_spell_slot_count(obj: Creature, class_: Class, spell_level: int): 
 
 fn _bonus_spell_slot_count(obj: Creature, class_: Class, spell_level: int): int {
     var result = 0;
-    var count = Comb.object_effect_count(obj);
+    var count = NativeCombat.object_effect_count(obj);
     for (var i = 0; i < count; i = i + 1) {
-        var effect = Comb.object_effect_at(obj, i);
+        var effect = NativeCombat.object_effect_at(obj, i);
         if (!Effects.is_valid(effect)) { continue; }
         if (Effects.get_type(effect) != (Const.effect_type_bonus_spell_of_level as int)) { continue; }
         if (Effects.get_subtype(effect) != (class_ as int)) { continue; }
@@ -1191,7 +2138,7 @@ fn recompute_all_available_spell_slots(obj: Creature) {
         }
 
         for (var tier = 0; tier < Classes.spell_progression_tier_count; tier = tier + 1) {
-            Cre.set_slotted_ability_count(obj, class_, tier, compute_total_spell_slots(obj, class_, tier));
+            NativeCreature.set_slotted_ability_count(obj, class_, tier, compute_total_spell_slots(obj, class_, tier));
         }
     }
 }
@@ -1231,7 +2178,7 @@ fn add_known_spell(obj: Creature, class_: Class, spell: Spell): bool {
     if (spell_level < 0) {
         return false;
     }
-    return Cre.add_unslotted_ability(obj, class_, spell_level, spell);
+    return NativeCreature.add_unslotted_ability(obj, class_, spell_level, spell);
 }
 
 fn add_memorized_spell(obj: Creature, class_: Class, spell: Spell, meta: int): bool {
@@ -1248,23 +2195,86 @@ fn add_memorized_spell(obj: Creature, class_: Class, spell: Spell, meta: int): b
         return false;
     }
 
-    if (Cre.available_ability_slots(obj, class_, spell_level) == 0) {
+    if (NativeCreature.available_ability_slots(obj, class_, spell_level) == 0) {
         return false;
     }
-    return Cre.add_slotted_ability(obj, class_, spell_level, spell, meta, spell_flag_readied);
+    return NativeCreature.add_slotted_ability(obj, class_, spell_level, spell, meta, spell_flag_readied);
 }
 
-fn remove_known_spell(obj: Creature, class_: Class, spell: Spell) {
-    if ((class_ as int) < 0 || (spell as int) < 0) {
-        return;
+fn get_memorized_spell_uses(obj: Creature, class_: Class, spell: Spell, meta: int): int {
+    if (!Classes.spellcaster(class_) || !Classes.memorizes_spells(class_)) {
+        return 0;
+    }
+    if (meta == Metamagic.metamagic_any) {
+        meta = Metamagic.metamagic_none;
+    }
+    var spell_level = Metamagic.effective_spell_level(class_, spell, meta);
+    if (spell_level < 0) {
+        return 0;
+    }
+    return get_available_spell_uses(obj, class_, spell, spell_level, meta);
+}
+
+fn get_memorized_spell_editor_value(obj: Creature, class_: Class, spell: Spell, meta: int): int {
+    if (Cre.get_level_by_class(obj, class_) <= 0
+        || !Classes.spellcaster(class_)
+        || !Classes.memorizes_spells(class_)
+        || Metamagic.effective_spell_level(class_, spell, meta) < 0) {
+        return -1;
+    }
+    return get_memorized_spell_uses(obj, class_, spell, meta);
+}
+
+fn remove_memorized_spell(obj: Creature, class_: Class, spell: Spell, meta: int): bool {
+    if (!Classes.spellcaster(class_) || !Classes.memorizes_spells(class_)) {
+        return false;
+    }
+
+    if (meta == Metamagic.metamagic_any) {
+        meta = Metamagic.metamagic_none;
+    }
+
+    var spell_level = Metamagic.effective_spell_level(class_, spell, meta);
+    if (spell_level < 0) {
+        return false;
+    }
+    return NativeCreature.remove_slotted_ability(obj, class_, spell_level, spell, meta);
+}
+
+fn set_memorized_spell_slot(obj: Creature, class_: Class, spell: Spell, meta: int,
+    spell_level: int, slot: int, flags: int, assigned: bool): bool {
+    if (Cre.get_level_by_class(obj, class_) <= 0
+        || !Classes.spellcaster(class_)
+        || !Classes.memorizes_spells(class_)
+        || slot < 0 || flags < 0 || flags > 255) {
+        return false;
+    }
+    if (meta == Metamagic.metamagic_any) {
+        meta = Metamagic.metamagic_none;
+    }
+    var effective_level = Metamagic.effective_spell_level(class_, spell, meta);
+    if (effective_level < 0 || effective_level > spell_level || spell_level >= 10) {
+        return false;
+    }
+    if (assigned) {
+        return NativeCreature.set_slotted_ability(obj, class_, spell_level, slot, spell, meta, flags);
+    }
+    return NativeCreature.clear_slotted_ability(obj, class_, spell_level, slot, spell, meta, flags);
+}
+
+fn remove_known_spell(obj: Creature, class_: Class, spell: Spell): bool {
+    if ((class_ as int) < 0 || (spell as int) < 0
+        || Cre.get_level_by_class(obj, class_) <= 0) {
+        return false;
     }
 
     var spell_level = Classes.spell_level(class_, spell);
-    if (spell_level < 0) {
-        return;
+    if (spell_level < 0 || !get_knows_spell(obj, class_, spell)) {
+        return false;
     }
-    Cre.remove_unslotted_ability(obj, class_, spell_level, spell);
-    Cre.clear_slotted_ability_from_tier(obj, class_, spell_level, spell);
+    NativeCreature.remove_unslotted_ability(obj, class_, spell_level, spell);
+    NativeCreature.clear_slotted_ability_from_tier(obj, class_, spell_level, spell);
+    return true;
 }
 
 fn get_knows_spell(obj: Creature, class_: Class, spell: Spell): bool {
@@ -1282,16 +2292,136 @@ fn get_knows_spell(obj: Creature, class_: Class, spell: Spell): bool {
 
     var class_id = class_ as int;
     var spell_id = spell as int;
-    var count = Cre.get_ability_loadout_count(obj);
+    var count = NativeCreature.get_ability_loadout_count(obj);
     for (var i = 0; i < count; i = i + 1) {
-        if (Cre.get_ability_loadout_slot(obj, i) >= 0) { continue; }
-        if (Cre.get_ability_loadout_source(obj, i) != class_id) { continue; }
-        if (Cre.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
-        if (Cre.get_ability_loadout_ability(obj, i) == spell_id) {
+        if (NativeCreature.get_ability_loadout_slot(obj, i) >= 0) { continue; }
+        if (NativeCreature.get_ability_loadout_source(obj, i) != class_id) { continue; }
+        if (NativeCreature.get_ability_loadout_tier(obj, i) != spell_level) { continue; }
+        if (NativeCreature.get_ability_loadout_ability(obj, i) == spell_id) {
             return true;
         }
     }
     return false;
+}
+
+fn get_known_spell_editor_value(obj: Creature, class_: Class, spell: Spell): int {
+    if (Cre.get_level_by_class(obj, class_) <= 0
+        || !Classes.spellcaster(class_)
+        || Classes.memorizes_spells(class_)
+        || Classes.spell_level(class_, spell) < 0) {
+        return -1;
+    }
+    return get_knows_spell(obj, class_, spell) ? 1 : 0;
+}
+
+fn get_spell_class_editor_rows(obj: Creature): array!(CreatureSpellClassEditorRow) {
+    var rows: array!(CreatureSpellClassEditorRow) = {};
+    var count = Cre.get_class_count(obj);
+    arr.reserve(rows, count);
+    for (var i = 0; i < count; i += 1) {
+        var class_ = Cre.get_class_at(obj, i);
+        if (!Classes.spellcaster(class_)) {
+            continue;
+        }
+        var row: CreatureSpellClassEditorRow = {
+            class_id = class_ as int,
+            name_strref = Classes.name_strref(class_) as int,
+            memorizes = Classes.memorizes_spells(class_),
+        };
+        arr.push(rows, row);
+    }
+    return rows;
+}
+
+fn get_spell_metamagic_editor_rows(obj: Creature): array!(CreatureSpellMetamagicEditorRow) {
+    var rows: array!(CreatureSpellMetamagicEditorRow) = {};
+    var count = Metamagic.count();
+    arr.reserve(rows, count);
+    for (var index = 0; index < count; index += 1) {
+        var code = Metamagic.code_for_row(index);
+        var feat = Metamagic.feat(code);
+        if (code < 0 || (feat >= 0 && !Cre.has_feat(obj, Feat(feat)))) {
+            continue;
+        }
+        var row: CreatureSpellMetamagicEditorRow = {
+            code = code,
+            name_strref = Metamagic.name_strref(code) as int,
+        };
+        arr.push(rows, row);
+    }
+    return rows;
+}
+
+fn get_spell_editor_rows(obj: Creature, class_: Class, meta: int): array!(CreatureSpellEditorRow) {
+    var rows: array!(CreatureSpellEditorRow) = {};
+    if (Cre.get_level_by_class(obj, class_) <= 0 || !Classes.spellcaster(class_)) {
+        return rows;
+    }
+
+    var memorizes = Classes.memorizes_spells(class_);
+    var restricted = Classes.spellbook_restricted(class_);
+    var spell_table = Classes.spell_table(class_);
+    if (spell_table < 0) {
+        return rows;
+    }
+
+    var level_adjustment = 0;
+    if (meta != Metamagic.metamagic_none && meta != Metamagic.metamagic_any) {
+        if (!Metamagic.is_specific_code(meta)) {
+            return rows;
+        }
+        level_adjustment = Metamagic.level_adjustment(meta);
+    }
+
+    var count = Spells.count();
+    arr.reserve(rows, count);
+    var row_indices: array!(int) = {};
+    arr.reserve(row_indices, count);
+    for (var spell_id = 0; spell_id < count; spell_id += 1) {
+        var spell = Spell(spell_id);
+        var base_level = Spells.class_level(spell, spell_table);
+        var level = base_level + level_adjustment;
+        if (base_level < 0 || level < 0 || level >= Classes.spell_progression_tier_count) {
+            arr.push(row_indices, -1);
+            continue;
+        }
+        arr.push(row_indices, arr.len(rows));
+        var row: CreatureSpellEditorRow = {
+            spell = spell_id,
+            level = level,
+            uses = 0,
+            known = !restricted,
+        };
+        arr.push(rows, row);
+    }
+
+    var class_id = class_ as int;
+    var loadout_count = NativeCreature.get_ability_loadout_count(obj);
+    for (var index = 0; index < loadout_count; index += 1) {
+        if (NativeCreature.get_ability_loadout_source(obj, index) != class_id) { continue; }
+        var spell_id = NativeCreature.get_ability_loadout_ability(obj, index);
+        if (spell_id < 0 || spell_id >= count) { continue; }
+        var row_index = arr.get(row_indices, spell_id);
+        if (row_index < 0) { continue; }
+
+        var row = arr.get(rows, row_index);
+        var slot = NativeCreature.get_ability_loadout_slot(obj, index);
+        if (slot < 0) {
+            if (restricted
+                && NativeCreature.get_ability_loadout_tier(obj, index) == row.level - level_adjustment) {
+                row.known = true;
+                arr.set(rows, row_index, row);
+            }
+            continue;
+        }
+        if (memorizes
+            && NativeCreature.get_ability_loadout_tier(obj, index) >= row.level
+            && NativeCreature.get_ability_loadout_modifier(obj, index) == meta) {
+            row.uses += 1;
+            arr.set(rows, row_index, row);
+        }
+    }
+    return rows;
 }
 
 fn get_monk_ability_level(obj: Creature): int {
@@ -1312,12 +2442,12 @@ fn _is_monk_weapon_base_item(base_item: BaseItemType): bool {
 
 fn weapon_for_attack(obj: Creature, attack_type: Const.AttackType): Item {
     var attack = attack_type as int;
-    if (attack == Const.attack_type_onhand) { return Cre.get_equipped_item(obj, Const.equip_index_righthand); }
-    if (attack == Const.attack_type_offhand) { return Cre.get_equipped_item(obj, Const.equip_index_lefthand); }
-    if (attack == Const.attack_type_unarmed) { return Cre.get_equipped_item(obj, Const.equip_index_arms); }
-    if (attack == Const.attack_type_cweapon1) { return Cre.get_equipped_item(obj, Const.equip_index_creature_bite); }
-    if (attack == Const.attack_type_cweapon2) { return Cre.get_equipped_item(obj, Const.equip_index_creature_left); }
-    if (attack == Const.attack_type_cweapon3) { return Cre.get_equipped_item(obj, Const.equip_index_creature_right); }
+    if (attack == Const.attack_type_onhand) { return Item.get_equipped_item(obj, Const.equip_index_righthand); }
+    if (attack == Const.attack_type_offhand) { return Item.get_equipped_item(obj, Const.equip_index_lefthand); }
+    if (attack == Const.attack_type_unarmed) { return Item.get_equipped_item(obj, Const.equip_index_arms); }
+    if (attack == Const.attack_type_cweapon1) { return Item.get_equipped_item(obj, Const.equip_index_creature_bite); }
+    if (attack == Const.attack_type_cweapon2) { return Item.get_equipped_item(obj, Const.equip_index_creature_left); }
+    if (attack == Const.attack_type_cweapon3) { return Item.get_equipped_item(obj, Const.equip_index_creature_right); }
     return O.invalid as Item;
 }
 
@@ -1331,7 +2461,7 @@ fn attack_sequence_index(obj: Creature, attack_type: Const.AttackType): int {
 
 fn weapon_iteration_for_attack(obj: Creature, attack_type: Const.AttackType): int {
     var weapon = weapon_for_attack(obj, attack_type);
-    var base_item = Item.get_baseitem_type(weapon);
+    var base_item = NwnItem.get_baseitem_type(weapon);
     if (get_monk_ability_level(obj) > 0 && _is_monk_weapon_base_item(base_item)) {
         return 3;
     }
@@ -1349,10 +2479,10 @@ fn creature_size(obj: Creature): int {
 
 fn get_dex_modifier(obj: Creature): int {
     var result = get_ability_modifier(obj, Const.ability_dexterity);
-    var chest = Cre.get_equipped_item(obj, Const.equip_index_chest);
+    var chest = Item.get_equipped_item(obj, Const.equip_index_chest);
     if (chest == O.invalid) { return result; }
 
-    var stats = get_propset!(Item.ItemStats)(chest);
+    var stats = get_propset!(ItemStats)(chest);
     if (stats.armor_id != -1 && stats.armor_dex_bonus_valid != 0) {
         return Math.min(result, stats.armor_dex_bonus);
     }
@@ -1411,7 +2541,7 @@ fn get_skill_rank_full(obj: Creature, skill: Const.Skill, versus: object): int {
 fn resolve_skill_check(obj: Creature, skill: Const.Skill, dc: int, versus: object): bool {
     var rank = get_skill_rank_full(obj, skill, versus);
     if (rank + 20 < dc) { return false; }
-    return rank + Comb.roll_uniform_int(1, 20) >= dc;
+    return rank + NativeCombat.roll_uniform_int(1, 20) >= dc;
 }
 
 // == Special Abilities =======================================================

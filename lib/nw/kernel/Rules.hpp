@@ -50,6 +50,8 @@ struct Rules : public Service {
     SpellSchoolArray spellschools;
     SkillArray skills;
     AppearanceArray appearances;
+    BaseItemArray baseitems;
+    PlaceableAppearanceArray placeables;
 
 private:
     QualifierMatcher qualifier_matcher_ = nullptr;

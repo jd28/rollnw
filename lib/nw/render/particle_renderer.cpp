@@ -39,20 +39,6 @@ glm::vec3 normalized_transform_direction(const glm::mat4& transform, const glm::
     return world / std::sqrt(length2);
 }
 
-float particle_emitter_uniform_scale(const ParticleSystemInstance& system, uint16_t emitter_id)
-{
-    if (emitter_id >= system.emitters.size()) {
-        return 1.0f;
-    }
-
-    const glm::mat4& transform = system.emitters[emitter_id].world_transform;
-    const float sx = glm::length(glm::vec3(transform[0]));
-    const float sy = glm::length(glm::vec3(transform[1]));
-    const float sz = glm::length(glm::vec3(transform[2]));
-    const float scale = (sx + sy + sz) / 3.0f;
-    return scale > 1.0e-6f ? scale : 1.0f;
-}
-
 glm::vec3 ambient_tint_hue(const glm::vec3& ambient)
 {
     const float max_component = std::max({ambient.x, ambient.y, ambient.z});
@@ -557,15 +543,16 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
                 const size_t i = order_[ordered_index];
 
                 const glm::vec3 position = core.position[i];
-                const float emitter_scale = particle_emitter_uniform_scale(system, core.emitter_id[i]);
                 const bool projectile_body_sprite = packet.semantic == ParticleRenderSemantic::projectile_body_sprite;
                 const ParticleBillboardAxes packet_axes = resolve_particle_billboard_axes(particle_view, system, packet,
                     static_cast<uint32_t>(i), ParticleBillboardAxes{.right = camera_right, .up = camera_up});
                 glm::vec3 quad_right = packet_axes.right;
                 glm::vec3 quad_up = packet_axes.up;
 
-                float sx = 0.5f * std::max(core.size_x[i] * emitter_scale, 0.001f);
-                float sy = 0.5f * std::max(core.size_y[i] * emitter_scale, 0.001f);
+                // Particle sizes are authored in world-space meters. The emitter
+                // transform places and orients the particle but does not resize it.
+                float sx = 0.5f * std::max(core.size_x[i], 0.001f);
+                float sy = 0.5f * std::max(core.size_y[i], 0.001f);
                 if (packet.mode == ParticleRenderMode::velocity_aligned
                     || packet.mode == ParticleRenderMode::stretched) {
                     const glm::vec3 velocity = core.velocity[i];
@@ -580,7 +567,7 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
                     } else if ((packet.mode == ParticleRenderMode::stretched
                                    || (packet.mode == ParticleRenderMode::velocity_aligned
                                        && core.emitter_id[i] < system.emitters.size()
-                                       && core.size_y[i] * emitter_scale <= 1.0e-3f))
+                                       && core.size_y[i] <= 1.0e-3f))
                         && core.emitter_id[i] < system.emitters.size()) {
                         const auto& emitter_state = system.emitters[core.emitter_id[i]];
                         const float emitter_speed = glm::length(emitter_state.linear_velocity);
@@ -611,7 +598,7 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
                                     * kProjectileBodySpriteSizeScale
                                     * (kProjectileBodySpriteTailSizeFloor
                                         + (1.0f - kProjectileBodySpriteTailSizeFloor) * head_t);
-                                sx = 0.5f * std::max(body_size * emitter_scale, 0.001f);
+                                sx = 0.5f * std::max(body_size, 0.001f);
                                 sy = sx;
                             } else {
                                 plane_aligned_billboard_axes(

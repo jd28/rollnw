@@ -1,0 +1,290 @@
+from core.ui import { UiListBinding };
+import core.array as Array;
+import core.module as ModulePolicy;
+import core.object as Object;
+import core.types as Types;
+import nwn1.creature as CreaturePolicy;
+from nwn1.propsets import { DoorState, EncounterState, ItemDescriptor, ItemStats,
+    PlaceableState, SoundState, StoreState, TriggerState, WaypointState };
+
+type ObjectDetailsRow {
+    group: string;
+    label: string;
+    value: string;
+};
+
+fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
+    return { group = group, label = label, value = value };
+}
+
+fn _append_details_row(rows: array!(ObjectDetailsRow),
+    group: string, label: string, value: string) {
+    Array.push(rows, _details_row(group, label, value));
+}
+
+fn _append_identity(rows: array!(ObjectDetailsRow), obj: object) {
+    _append_details_row(rows, "Identity", "Name", Object.get_name(obj));
+    _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
+    _append_details_row(rows, "Identity", "Resref",
+        Types.resref_to_string(Object.get_resref(obj)));
+}
+
+fn _bool_details_value(value: int): string {
+    return value != 0 ? "Yes" : "No";
+}
+
+fn _vec3_details_value(value: vec3): string {
+    return f"{value.x}, {value.y}, {value.z}";
+}
+
+fn _append_module_details(rows: array!(ObjectDetailsRow), obj: Module) {
+    _append_details_row(rows, "Identity", "Name", ModulePolicy.get_name(obj));
+    _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
+    _append_details_row(rows, "Basic", "Areas", f"{ModulePolicy.get_area_count(obj)}");
+    _append_details_row(rows, "Basic", "Save Game", ModulePolicy.is_save_game(obj) ? "Yes" : "No");
+    _append_details_row(rows, "Basic", "Creator ID", f"{ModulePolicy.get_creator_id(obj)}");
+    _append_details_row(rows, "Basic", "Module Version", f"{ModulePolicy.get_version(obj)}");
+    _append_details_row(rows, "Rules", "Expansion Pack", f"{ModulePolicy.get_expansion_pack(obj)}");
+    _append_details_row(rows, "Rules", "Minimum Game Version", ModulePolicy.get_minimum_game_version(obj));
+    _append_details_row(rows, "Rules", "XP Scale", f"{ModulePolicy.get_xp_scale(obj)}");
+    _append_details_row(rows, "Resources", "Custom TLK", ModulePolicy.get_custom_tlk(obj));
+    _append_details_row(rows, "Entry", "Area", Types.resref_to_string(ModulePolicy.get_entry_area(obj)));
+    _append_details_row(rows, "Entry", "Position", _vec3_details_value(ModulePolicy.get_entry_position(obj)));
+    _append_details_row(rows, "Entry", "Orientation", _vec3_details_value(ModulePolicy.get_entry_orientation(obj)));
+    _append_details_row(rows, "Entry", "Start Movie", Types.resref_to_string(ModulePolicy.get_start_movie(obj)));
+    _append_details_row(rows, "Time", "Dawn Hour", f"{ModulePolicy.get_dawn_hour(obj)}");
+    _append_details_row(rows, "Time", "Dusk Hour", f"{ModulePolicy.get_dusk_hour(obj)}");
+    _append_details_row(rows, "Time", "Minutes Per Hour", f"{ModulePolicy.get_minutes_per_hour(obj)}");
+    _append_details_row(rows, "Time", "Start Year", f"{ModulePolicy.get_start_year(obj)}");
+    _append_details_row(rows, "Time", "Start Month", f"{ModulePolicy.get_start_month(obj)}");
+    _append_details_row(rows, "Time", "Start Day", f"{ModulePolicy.get_start_day(obj)}");
+    _append_details_row(rows, "Time", "Start Hour", f"{ModulePolicy.get_start_hour(obj)}");
+    _append_details_row(rows, "Scripts", "On Client Enter", Types.resref_to_string(ModulePolicy.get_on_client_enter(obj)));
+    _append_details_row(rows, "Scripts", "On Client Leave", Types.resref_to_string(ModulePolicy.get_on_client_leave(obj)));
+    _append_details_row(rows, "Scripts", "On Cutscene Abort", Types.resref_to_string(ModulePolicy.get_on_cutscene_abort(obj)));
+    _append_details_row(rows, "Scripts", "On Heartbeat", Types.resref_to_string(ModulePolicy.get_on_heartbeat(obj)));
+    _append_details_row(rows, "Scripts", "On Item Acquired", Types.resref_to_string(ModulePolicy.get_on_item_acquired(obj)));
+    _append_details_row(rows, "Scripts", "On Item Activated", Types.resref_to_string(ModulePolicy.get_on_item_activated(obj)));
+    _append_details_row(rows, "Scripts", "On Item Unacquired", Types.resref_to_string(ModulePolicy.get_on_item_unacquired(obj)));
+    _append_details_row(rows, "Scripts", "On Load", Types.resref_to_string(ModulePolicy.get_on_load(obj)));
+    _append_details_row(rows, "Scripts", "On Player Chat", Types.resref_to_string(ModulePolicy.get_on_player_chat(obj)));
+    _append_details_row(rows, "Scripts", "On Player Death", Types.resref_to_string(ModulePolicy.get_on_player_death(obj)));
+    _append_details_row(rows, "Scripts", "On Player Dying", Types.resref_to_string(ModulePolicy.get_on_player_dying(obj)));
+    _append_details_row(rows, "Scripts", "On Player Equip", Types.resref_to_string(ModulePolicy.get_on_player_equip(obj)));
+    _append_details_row(rows, "Scripts", "On Player Level Up", Types.resref_to_string(ModulePolicy.get_on_player_level_up(obj)));
+    _append_details_row(rows, "Scripts", "On Player Rest", Types.resref_to_string(ModulePolicy.get_on_player_rest(obj)));
+    _append_details_row(rows, "Scripts", "On Player Unequip", Types.resref_to_string(ModulePolicy.get_on_player_unequip(obj)));
+    _append_details_row(rows, "Scripts", "On Spawn Button Down", Types.resref_to_string(ModulePolicy.get_on_spawn_button_down(obj)));
+    _append_details_row(rows, "Scripts", "On Start", Types.resref_to_string(ModulePolicy.get_on_start(obj)));
+    _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(ModulePolicy.get_on_user_defined(obj)));
+    _append_details_row(rows, "Description", "Description", ModulePolicy.get_description(obj));
+    _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
+}
+
+fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
+    var state = get_propset!(DoorState)(obj);
+    _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
+    _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
+    _append_details_row(rows, "Basic", "Plot", _bool_details_value(state.plot));
+    _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
+    _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
+    _append_details_row(rows, "Lock", "Lockable", _bool_details_value(state.lockable));
+    _append_details_row(rows, "Lock", "Locked", _bool_details_value(state.locked));
+    _append_details_row(rows, "Lock", "Key Name", state.key_name);
+    _append_details_row(rows, "Lock", "Key Required", _bool_details_value(state.key_required));
+    _append_details_row(rows, "Lock", "Lock DC", f"{state.lock_dc}");
+    _append_details_row(rows, "Lock", "Unlock DC", f"{state.unlock_dc}");
+    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
+    _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
+    _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
+    _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
+    _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
+    _append_details_row(rows, "Scripts", "On Damaged", Types.resref_to_string(state.on_damaged));
+    _append_details_row(rows, "Scripts", "On Death", Types.resref_to_string(state.on_death));
+    _append_details_row(rows, "Scripts", "On Disarm", Types.resref_to_string(state.on_disarm));
+    _append_details_row(rows, "Scripts", "On Heartbeat", Types.resref_to_string(state.on_heartbeat));
+    _append_details_row(rows, "Scripts", "On Lock", Types.resref_to_string(state.on_lock));
+    _append_details_row(rows, "Scripts", "On Melee Attacked", Types.resref_to_string(state.on_melee_attacked));
+    _append_details_row(rows, "Scripts", "On Open", Types.resref_to_string(state.on_open));
+    _append_details_row(rows, "Scripts", "On Open Failure", Types.resref_to_string(state.on_open_failure));
+    _append_details_row(rows, "Scripts", "On Spell Cast At", Types.resref_to_string(state.on_spell_cast_at));
+    _append_details_row(rows, "Scripts", "On Trap Triggered", Types.resref_to_string(state.on_trap_triggered));
+    _append_details_row(rows, "Scripts", "On Unlock", Types.resref_to_string(state.on_unlock));
+    _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
+    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+}
+
+fn _append_item_details(rows: array!(ObjectDetailsRow), obj: Item) {
+    var descriptor = get_propset!(ItemDescriptor)(obj);
+    var stats = get_propset!(ItemStats)(obj);
+    _append_identity(rows, obj);
+    _append_details_row(rows, "Basic", "Base Item Type", f"{stats.base_item}");
+    _append_details_row(rows, "Basic", "Additional Cost", f"{stats.cost_additional}");
+    _append_details_row(rows, "Basic", "Plot", _bool_details_value(stats.plot));
+    _append_details_row(rows, "Basic", "Stack Size", f"{stats.stack_size}");
+    _append_details_row(rows, "Description", "Description",
+        Types.resolve_text(descriptor.description, 0));
+    _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
+}
+
+fn _append_encounter_details(rows: array!(ObjectDetailsRow), obj: Encounter) {
+    var state = get_propset!(EncounterState)(obj);
+    _append_details_row(rows, "Basic", "Active", _bool_details_value(state.active));
+    _append_details_row(rows, "Basic", "Difficulty", f"{state.difficulty}");
+    _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
+    _append_details_row(rows, "Basic", "Player Only", _bool_details_value(state.player_only));
+    _append_details_row(rows, "Spawns", "Creature Types", f"{Array.len(state.creatures)}");
+    _append_details_row(rows, "Spawns", "Maximum Creatures", f"{state.creatures_max}");
+    _append_details_row(rows, "Spawns", "Recommended Creatures", f"{state.creatures_recommended}");
+    _append_details_row(rows, "Spawns", "Respawns", f"{state.respawns}");
+    _append_details_row(rows, "Spawns", "Reset", _bool_details_value(state.reset));
+    _append_details_row(rows, "Spawns", "Reset Time", f"{state.reset_time}");
+    _append_details_row(rows, "Scripts", "On Entered", Types.resref_to_string(state.on_entered));
+    _append_details_row(rows, "Scripts", "On Exhausted", Types.resref_to_string(state.on_exhausted));
+    _append_details_row(rows, "Scripts", "On Exit", Types.resref_to_string(state.on_exit));
+    _append_details_row(rows, "Scripts", "On Heartbeat", Types.resref_to_string(state.on_heartbeat));
+    _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
+}
+
+fn _append_placeable_details(rows: array!(ObjectDetailsRow), obj: Placeable) {
+    var state = get_propset!(PlaceableState)(obj);
+    _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
+    _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
+    _append_details_row(rows, "Basic", "Plot", _bool_details_value(state.plot));
+    _append_details_row(rows, "Basic", "Usable", _bool_details_value(state.useable));
+    _append_details_row(rows, "Basic", "Static", _bool_details_value(state.static));
+    _append_details_row(rows, "Basic", "Has Inventory", _bool_details_value(state.has_inventory));
+    _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
+    _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
+    _append_details_row(rows, "Lock", "Lockable", _bool_details_value(state.lockable));
+    _append_details_row(rows, "Lock", "Locked", _bool_details_value(state.locked));
+    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
+    _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
+    _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
+    _append_details_row(rows, "Scripts", "On Damaged", Types.resref_to_string(state.on_damaged));
+    _append_details_row(rows, "Scripts", "On Death", Types.resref_to_string(state.on_death));
+    _append_details_row(rows, "Scripts", "On Disarm", Types.resref_to_string(state.on_disarm));
+    _append_details_row(rows, "Scripts", "On Heartbeat", Types.resref_to_string(state.on_heartbeat));
+    _append_details_row(rows, "Scripts", "On Inventory Disturbed", Types.resref_to_string(state.on_inventory_disturbed));
+    _append_details_row(rows, "Scripts", "On Lock", Types.resref_to_string(state.on_lock));
+    _append_details_row(rows, "Scripts", "On Melee Attacked", Types.resref_to_string(state.on_melee_attacked));
+    _append_details_row(rows, "Scripts", "On Open", Types.resref_to_string(state.on_open));
+    _append_details_row(rows, "Scripts", "On Spell Cast At", Types.resref_to_string(state.on_spell_cast_at));
+    _append_details_row(rows, "Scripts", "On Trap Triggered", Types.resref_to_string(state.on_trap_triggered));
+    _append_details_row(rows, "Scripts", "On Unlock", Types.resref_to_string(state.on_unlock));
+    _append_details_row(rows, "Scripts", "On Used", Types.resref_to_string(state.on_used));
+    _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
+    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+}
+
+fn _append_sound_details(rows: array!(ObjectDetailsRow), obj: Sound) {
+    var state = get_propset!(SoundState)(obj);
+    _append_details_row(rows, "Basic", "Active", _bool_details_value(state.active));
+    _append_details_row(rows, "Basic", "Sounds", f"{Array.len(state.sounds)}");
+    _append_details_row(rows, "Playback", "Volume", f"{state.volume}");
+    _append_details_row(rows, "Playback", "Priority", f"{state.priority}");
+    _append_details_row(rows, "Playback", "Continuous", _bool_details_value(state.continuous));
+    _append_details_row(rows, "Playback", "Looping", _bool_details_value(state.looping));
+    _append_details_row(rows, "Playback", "Positional", _bool_details_value(state.positional));
+    _append_details_row(rows, "Playback", "Random", _bool_details_value(state.random));
+    _append_details_row(rows, "Range", "Minimum Distance", f"{state.distance_min}");
+    _append_details_row(rows, "Range", "Maximum Distance", f"{state.distance_max}");
+    _append_details_row(rows, "Timing", "Interval", f"{state.interval}");
+    _append_details_row(rows, "Timing", "Interval Variation", f"{state.interval_variation}");
+}
+
+fn _append_store_details(rows: array!(ObjectDetailsRow), obj: Store) {
+    var state = get_propset!(StoreState)(obj);
+    _append_details_row(rows, "Basic", "Gold", f"{state.gold}");
+    _append_details_row(rows, "Pricing", "Markup", f"{state.markup}");
+    _append_details_row(rows, "Pricing", "Markdown", f"{state.markdown}");
+    _append_details_row(rows, "Pricing", "Maximum Price", f"{state.max_price}");
+    _append_details_row(rows, "Pricing", "Identify Price", f"{state.identify_price}");
+    _append_details_row(rows, "Black Market", "Enabled", _bool_details_value(state.blackmarket));
+    _append_details_row(rows, "Black Market", "Markdown", f"{state.blackmarket_markdown}");
+    _append_details_row(rows, "Scripts", "On Opened", Types.resref_to_string(state.on_opened));
+    _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
+}
+
+fn _append_trigger_details(rows: array!(ObjectDetailsRow), obj: Trigger) {
+    var state = get_propset!(TriggerState)(obj);
+    _append_details_row(rows, "Basic", "Type", f"{state.trigger_type}");
+    _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
+    _append_details_row(rows, "Basic", "Highlight Height", f"{state.highlight_height}");
+    _append_details_row(rows, "Transition", "Linked To", state.linked_to);
+    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
+    _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
+    _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
+    _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
+    _append_details_row(rows, "Scripts", "On Disarm", Types.resref_to_string(state.on_disarm));
+    _append_details_row(rows, "Scripts", "On Enter", Types.resref_to_string(state.on_enter));
+    _append_details_row(rows, "Scripts", "On Exit", Types.resref_to_string(state.on_exit));
+    _append_details_row(rows, "Scripts", "On Heartbeat", Types.resref_to_string(state.on_heartbeat));
+    _append_details_row(rows, "Scripts", "On Trap Triggered", Types.resref_to_string(state.on_trap_triggered));
+    _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
+}
+
+fn _append_waypoint_details(rows: array!(ObjectDetailsRow), obj: Waypoint) {
+    var state = get_propset!(WaypointState)(obj);
+    _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
+    _append_details_row(rows, "Map Note", "Enabled", _bool_details_value(state.map_note_enabled));
+    _append_details_row(rows, "Map Note", "Has Map Note", _bool_details_value(state.has_map_note));
+    _append_details_row(rows, "Map Note", "Text", Types.resolve_text(state.map_note, 0));
+    _append_details_row(rows, "Transition", "Linked To", state.linked_to);
+    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+}
+
+fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
+    var rows: array!(ObjectDetailsRow) = {};
+    if (!Object.is_valid(obj)) {
+        return rows;
+    }
+
+    if (obj is Creature) {
+        for (var source in CreaturePolicy.get_property_editor_rows(obj)) {
+            if (source.surface == CreaturePolicy.property_editor_surface_properties) {
+                _append_details_row(rows, source.group, source.label, source.value);
+            }
+        }
+        _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
+        return rows;
+    }
+    if (obj is Item) {
+        _append_item_details(rows, obj);
+        return rows;
+    }
+    if (obj is Module) {
+        _append_module_details(rows, obj);
+        return rows;
+    }
+
+    _append_identity(rows, obj);
+    if (obj is Door) { _append_door_details(rows, obj); }
+    elif (obj is Encounter) { _append_encounter_details(rows, obj); }
+    elif (obj is Placeable) { _append_placeable_details(rows, obj); }
+    elif (obj is Sound) { _append_sound_details(rows, obj); }
+    elif (obj is Store) { _append_store_details(rows, obj); }
+    elif (obj is Trigger) { _append_trigger_details(rows, obj); }
+    elif (obj is Waypoint) { _append_waypoint_details(rows, obj); }
+    _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
+    return rows;
+}
+
+fn __toolset_ui_bindings(): array!(UiListBinding) {
+    return {};
+}
+
+fn on_apply(input: string): string {
+    return "Smalls apply: " + input;
+}
+
+fn on_enter(input: string): string {
+    return "Smalls enter: " + input;
+}
+
+fn on_ui_event(event_key: string, input: string): string {
+    return "Smalls event [" + event_key + "]: " + input;
+}

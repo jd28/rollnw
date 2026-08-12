@@ -53,7 +53,7 @@ bool read_json_object_name(const nlohmann::json& j, nw::LocString& out)
 bool read_json_creature_name(const nlohmann::json& j, nw::LocString& first,
     nw::LocString& last)
 {
-    auto descriptor = j.find("core.creature.CreatureDescriptor");
+    auto descriptor = j.find("nwn1.propsets.CreatureDescriptor");
     if (descriptor == j.end() || !descriptor->is_object()) { return false; }
 
     descriptor->at("name_first").get_to(first);

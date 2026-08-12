@@ -75,6 +75,7 @@ private:
         const PropsetGffPolicy& policy,
         nw::GffBuilderStruct& out,
         nw::SerializationProfile profile) const;
+    void export_item_properties(const nw::Item* obj, nw::GffBuilderStruct& out) const;
     void export_item_visuals(const nw::Item* obj, nw::GffBuilderStruct& out,
         nw::SerializationProfile profile) const;
 

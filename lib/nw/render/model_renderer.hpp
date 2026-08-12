@@ -14,13 +14,15 @@ struct CommandList;
 
 namespace nw::render {
 
-// Bridge-phase common RenderModel renderer API. Modern RenderModel/PBR call
-// sites should use this namespace and nw::render::ModelRenderContext directly;
-// NWN sidecar renderers keep their legacy context for source-specific payloads.
-void render_render_model_with_root(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
-    const RenderModel& model, const glm::mat4& model_root, const RenderContext& ctx,
-    RenderPassSelection pass = RenderPassSelection::all,
-    const ModelInstance* instance = nullptr);
+// Common RenderModel renderer API. Source formats are lowered before this
+// boundary; submission consumes only source-neutral model and frame records.
+// Submits one immutable model for a batch of transient root transforms. This is
+// used by mesh particles, whose instance state already lives in particle SoA
+// storage and therefore does not belong in the persistent ModelInstanceStore.
+// The caller owns the transform span for the duration of this call.
+void render_render_model_instances(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
+    const RenderModel& model, std::span<const glm::mat4> model_roots,
+    const RenderContext& ctx, RenderPassSelection pass = RenderPassSelection::all);
 void collect_prepared_render_model_surface_packets(
     PreparedRenderModelSurfacePacketList& out,
     const RenderModel& model,

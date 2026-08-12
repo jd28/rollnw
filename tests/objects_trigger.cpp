@@ -21,7 +21,7 @@ namespace {
 int32_t trigger_state_int(nw::Trigger* trigger, const char* field)
 {
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.trigger.TriggerState", false);
+    auto tid = rt.type_id("nwn1.propsets.TriggerState", false);
     if (!trigger || tid == nw::smalls::invalid_type_id) { return 0; }
 
     auto ref = rt.find_propset_ref(tid, trigger->handle());
@@ -40,7 +40,7 @@ int32_t trigger_state_int(nw::Trigger* trigger, const char* field)
 nw::Resref trigger_state_resref(nw::Trigger* trigger, const char* field)
 {
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.trigger.TriggerState", false);
+    auto tid = rt.type_id("nwn1.propsets.TriggerState", false);
     if (!trigger || tid == nw::smalls::invalid_type_id) { return {}; }
 
     auto ref = rt.find_propset_ref(tid, trigger->handle());
@@ -106,7 +106,7 @@ TEST(Trigger, InstanceJsonRoundTripStoresGeometryComponent)
 {
     auto* ent = nw::kernel::objects().make<nw::Trigger>();
     ASSERT_NE(ent, nullptr);
-    ASSERT_NE(nw::kernel::runtime().load_module("core.trigger"), nullptr);
+    ASSERT_NE(nw::kernel::runtime().load_module("nwn1.propsets"), nullptr);
     nw::kernel::runtime().init_object_propsets(ent->handle());
 
     const std::array<glm::vec3, 3> points{

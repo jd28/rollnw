@@ -13,6 +13,12 @@ namespace nw {
 
 struct Module;
 
+enum class ModuleResourceFormat : uint8_t {
+    invalid,
+    legacy_gff,
+    native_json,
+};
+
 using LocatorVariant = std::variant<Container*, unique_container>;
 
 struct LocatorPayload {
@@ -82,6 +88,12 @@ struct ResourceManager final : public kernel::Service {
     /// Gets module container
     Container* module_container() const;
 
+    /// Gets the number of module hak containers opened for the active module.
+    size_t module_hak_count() const noexcept { return module_haks_.size(); }
+
+    /// Gets the format selected when the module container was opened.
+    ModuleResourceFormat module_format() const noexcept { return module_format_; }
+
     /// Unloads module
     void unload_module();
 
@@ -134,6 +146,7 @@ private:
     // currentgame, savegame, nwsync_savegame - Not dealing with this for now..
 
     std::filesystem::path module_path_;
+    ModuleResourceFormat module_format_ = ModuleResourceFormat::invalid;
 
     std::array<std::unique_ptr<Image>, plt_layer_size> palette_textures_;
 

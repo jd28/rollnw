@@ -15,10 +15,6 @@ struct PreparedModelSurfaceDrawList;
 struct RenderService;
 } // namespace nw::render
 
-namespace nw::render::nwn {
-struct PreparedDrawScratch;
-} // namespace nw::render::nwn
-
 namespace nw::render::viewer {
 
 class AreaRenderFrame;
@@ -34,8 +30,6 @@ struct ShadowRenderStats {
     uint32_t culled_model_count = 0;
     uint32_t prepared_surface_shadow_range_count = 0;
     uint32_t prepared_surface_invalid_range_count = 0;
-    AreaPreparedSurfaceSidecarStats area_indirect_sidecar_bridge{};
-    AreaPreparedSurfaceSidecarStats area_sidecar_bridge{};
 };
 
 [[nodiscard]] uint32_t viewer_shadow_map_resolution();
@@ -56,7 +50,6 @@ bool render_scene_shadow_maps(
     uint32_t shadow_map_resolution = kSceneShadowMapResolution,
     ShadowRenderStats* stats = nullptr,
     AreaRenderFrame* area_frame = nullptr,
-    nw::render::nwn::PreparedDrawScratch* scratch = nullptr,
     const PreviewPreparedModelDraws* prepared_model_draws = nullptr,
     const nw::render::PreparedModelSurfaceDrawList* prepared_model_surfaces = nullptr);
 
@@ -66,7 +59,6 @@ struct LocalShadowRenderStats {
     uint32_t caster_light_count = 0; // shadow-casting lights selected (= slots used)
     uint32_t submitted_model_count = 0;
     uint32_t culled_model_count = 0;
-    AreaPreparedSurfaceSidecarStats area_sidecar_bridge{};
 };
 
 // Select the top-K shadow-casting local lights, assign each a shadow slot
@@ -87,7 +79,6 @@ bool render_local_shadow_maps(
     SceneLocalShadows& local_shadows,
     uint32_t shadow_map_resolution = kLocalShadowMapResolution,
     LocalShadowRenderStats* stats = nullptr,
-    nw::render::nwn::PreparedDrawScratch* scratch = nullptr,
     AreaRenderFrame* area_frame = nullptr,
     const PreviewPreparedModelDraws* prepared_model_draws = nullptr,
     const nw::render::PreparedModelSurfaceDrawList* prepared_model_surfaces = nullptr);

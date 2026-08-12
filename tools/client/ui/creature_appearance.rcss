@@ -1,0 +1,148 @@
+.creature_accessory_editor {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  box-sizing: border-box;
+}
+.creature_accessory_editor .appearance_catalog_editor {
+  margin-bottom: 8px;
+}
+.creature_accessory_title {
+  height: 24px;
+  color: #dce3ea;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.creature_color_editor {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  box-sizing: border-box;
+}
+.creature_color_title {
+  height: 24px;
+  color: #dce3ea;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.creature_color_fields {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  border-top: 1px #36414c;
+  border-bottom: 1px #36414c;
+  background: #151b21;
+  box-sizing: border-box;
+}
+.creature_color_field {
+  display: flex;
+  flex: 1;
+  min-width: 0px;
+  height: 40px;
+  padding: 7px 5px;
+  border-right: 1px #303b45;
+  color: #cbd3da;
+  font-size: 11px;
+  line-height: 24px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.creature_color_field:hover {
+  background: #202930;
+}
+.creature_color_field * {
+  pointer-events: none;
+}
+.creature_color_field span {
+  flex: 1;
+  min-width: 0px;
+  margin-left: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.creature_color_swatch {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px #56616b;
+  box-sizing: border-box;
+}
+.creature_color_selector {
+  background: #171d23;
+}
+.creature_color_channels {
+  display: flex;
+  flex: 0 0 37px;
+  width: 100%;
+  min-width: 0px;
+  height: 37px;
+  padding: 4px 10px 5px 10px;
+  border-bottom: 1px #303943;
+  background: #171d23;
+  box-sizing: border-box;
+}
+.creature_color_channel {
+  flex: 1;
+  min-width: 0px;
+  height: 28px;
+  padding: 0px 5px;
+  border-bottom: 2px transparent;
+  color: #9faab5;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.creature_color_channel:hover {
+  background: #202930;
+  color: #e2e7eb;
+}
+.creature_color_channel.active {
+  border-bottom-color: #a78d62;
+  color: #f0f3f6;
+}
+.creature_color_palette_body {
+  display: flex;
+  flex: 1;
+  min-width: 0px;
+  min-height: 0px;
+  padding: 10px;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  background: #13191e;
+  box-sizing: border-box;
+}
+.creature_color_palette {
+  position: relative;
+  display: block;
+  flex: 0 0 384px;
+  width: 384px;
+  height: 264px;
+  background: #0b0f12;
+  cursor: pointer;
+}
+.creature_color_palette img {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 384px;
+  height: 264px;
+  pointer-events: none;
+}
+.creature_color_selection {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px #31f36a;
+  box-sizing: border-box;
+  pointer-events: none;
+}

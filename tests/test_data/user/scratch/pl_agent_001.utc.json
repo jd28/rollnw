@@ -29,7 +29,7 @@
             }
         }
     },
-    "core.creature.CreatureAppearance": {
+    "nwn1.propsets.CreatureAppearance": {
         "appearance": 6,
         "body_part_belt": 0,
         "body_part_bicep_left": 1,
@@ -60,7 +60,7 @@
         "tail": 0,
         "wings": 0
     },
-    "core.creature.CreatureDescriptor": {
+    "nwn1.propsets.CreatureDescriptor": {
         "conversation": "",
         "decay_time": 5000,
         "deity": "",
@@ -97,7 +97,7 @@
         "soundset": 171,
         "subrace": ""
     },
-    "core.creature.CreatureHealth": {
+    "nwn1.propsets.CreatureHealth": {
         "faction_id": 1,
         "hp": 894,
         "hp_base_for_max": 894,
@@ -106,7 +106,7 @@
         "hp_temp": 0,
         "starting_package": 4
     },
-    "core.creature.CreatureLevels": {
+    "nwn1.propsets.CreatureLevels": {
         "class_levels": [
             10,
             30,
@@ -131,7 +131,7 @@
         "walkrate": 4,
         "xp": 0
     },
-    "core.creature.CreatureStats": {
+    "nwn1.propsets.CreatureStats": {
         "abilities": [
             40,
             13,

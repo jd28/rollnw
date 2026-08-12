@@ -189,7 +189,7 @@ def load_manifest(path: Path, repo_root: Path) -> dict[str, Any]:
 
 def parse_manifest(path: Path, repo_root: Path, output_root: Path) -> SiteContext:
     data = load_manifest(path, repo_root)
-    site_title = require_string(data, "site_title", "rollNW")
+    site_title = require_string(data, "site_title", "rollnw")
     repo_url = require_string(data, "repo_url", "https://github.com/jd28/rollnw").rstrip("/")
     source_branch = require_string(data, "source_branch", "main")
 
@@ -786,7 +786,7 @@ def build_site(manifest: Path, repo_root: Path, output_root: Path) -> SiteContex
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build the rollNW inline Markdown docs site")
+    parser = argparse.ArgumentParser(description="Build the rollnw inline Markdown docs site")
     parser.add_argument("--manifest", type=Path, default=Path("docs.toml"))
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, default=Path("build/docs/site"))

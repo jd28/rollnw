@@ -63,7 +63,6 @@ TEST(RenderModelInstance, HandlesRejectStaleGenerations)
     nw::render::ModelInstanceStore store;
 
     nw::render::ModelInstance first;
-    first.kind = nw::render::ModelInstanceKind::render_model;
     first.render_model_index = 7;
     const auto first_handle = store.create(std::move(first));
 
@@ -76,7 +75,6 @@ TEST(RenderModelInstance, HandlesRejectStaleGenerations)
     EXPECT_EQ(store.get(first_handle), nullptr);
 
     nw::render::ModelInstance second;
-    second.kind = nw::render::ModelInstanceKind::render_model;
     second.render_model_index = 9;
     const auto second_handle = store.create(std::move(second));
 
@@ -341,12 +339,56 @@ TEST(RenderModelInstance, SkinBoneContractCapsPackedJointIndices)
     EXPECT_EQ(nw::render::clamp_model_skin_joint_index(255), nw::render::kModelMaxSkinBoneIndex);
 }
 
+TEST(RenderModelInstance, SkinnedPrimitiveWorldTransformStaysAtMeshBindTransform)
+{
+    nw::render::ModelInstance instance;
+    instance.root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f});
+    instance.attachment_node_world_transforms = {
+        glm::translate(glm::mat4{1.0f}, glm::vec3{100.0f, 0.0f, 0.0f}),
+    };
+    instance.attachment_node_transform_valid = {1u};
+
+    nw::render::Primitive primitive;
+    primitive.node = 0;
+    primitive.transform = glm::translate(glm::mat4{1.0f}, glm::vec3{2.0f, 0.0f, 0.0f});
+    primitive.skinned = true;
+
+    const auto skinned_world = nw::render::model_instance_primitive_world_transform(
+        &instance, instance.root_transform, primitive);
+    EXPECT_FLOAT_EQ(skinned_world[3].x, 12.0f);
+
+    primitive.skinned = false;
+    const auto static_world = nw::render::model_instance_primitive_world_transform(
+        &instance, instance.root_transform, primitive);
+    EXPECT_FLOAT_EQ(static_world[3].x, 100.0f);
+}
+
+TEST(RenderModelInstance, IdentitySkinJointPreservesModelSpaceLane)
+{
+    auto model = make_two_clip_render_model();
+    model.skins[0].joints.push_back(nw::render::kModelSkinIdentityJoint);
+    model.skins[0].inverse_bind_matrices.push_back(glm::mat4{1.0f});
+
+    nw::render::ModelInstance instance;
+    instance.animation.enabled = true;
+    instance.animation.clip = 0;
+    instance.animation.time = 0.5f;
+    instance.animation.looping = true;
+    instance.animation.backend = nw::render::make_render_model_animation_backend(model);
+    ASSERT_TRUE(instance.animation.backend);
+
+    ASSERT_TRUE(nw::render::sample_model_instance_animation(instance, model));
+    ASSERT_EQ(instance.animation.skin_matrices.size(), 1u);
+    ASSERT_EQ(instance.animation.skin_matrices[0].size(), 2u);
+    EXPECT_NEAR(instance.animation.skin_matrices[0][0][3].x, 1.0f, 1.0e-3f);
+    EXPECT_EQ(instance.animation.skin_matrices[0][1], glm::mat4{1.0f});
+}
+
 TEST(RenderModelInstance, SharedAssetInstancesHoldIndependentGltfAnimationState)
 {
     const auto model = make_two_clip_render_model();
 
     nw::render::ModelInstance first;
-    first.kind = nw::render::ModelInstanceKind::render_model;
     first.render_model_index = 0;
     first.root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f});
     first.animation.enabled = true;
@@ -357,7 +399,6 @@ TEST(RenderModelInstance, SharedAssetInstancesHoldIndependentGltfAnimationState)
     ASSERT_TRUE(first.animation.backend);
 
     nw::render::ModelInstance second;
-    second.kind = nw::render::ModelInstanceKind::render_model;
     second.render_model_index = 0;
     second.root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{20.0f, 0.0f, 0.0f});
     second.animation.enabled = true;
@@ -417,7 +458,6 @@ TEST(RenderModelInstance, SharedSkeletonSamplesMultipleSkinTables)
     });
 
     nw::render::ModelInstance instance;
-    instance.kind = nw::render::ModelInstanceKind::render_model;
     instance.animation.enabled = true;
     instance.animation.clip = 0;
     instance.animation.time = 0.5f;

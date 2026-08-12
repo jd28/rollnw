@@ -181,7 +181,7 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     push_object_arg(args, item);
     args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(slot)));
 
-    if (auto result = bridge::call_nwn1_module_value("core.creature", "equip_item", args)) {
+    if (auto result = bridge::call_nwn1_module_value("nwn1.item", "equip_item", args)) {
         if (result->type_id == rt.bool_type()) {
             return result->data.bval;
         }
@@ -201,7 +201,7 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     push_object_arg(args, obj);
     args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(slot)));
 
-    if (auto result = bridge::call_nwn1_module_value("core.creature", "unequip_item", args)) {
+    if (auto result = bridge::call_nwn1_module_value("nwn1.item", "unequip_item", args)) {
         auto handle = result->data.oval;
         if (handle.type == nw::ObjectType::item && nw::kernel::objects().valid(handle)) {
             return nw::kernel::objects().get<nw::Item>(handle);

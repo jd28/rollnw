@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <array>
+#include <exception>
 
 namespace nw {
 
@@ -136,14 +137,37 @@ bool Module::instantiate()
     auto& area_list = areas.as<Vector<Resref>>();
     Vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
+    const auto destroy_loaded_areas = [&area_objects] {
+        for (auto* loaded : area_objects) {
+            loaded->clear();
+            nw::kernel::objects().destroy(loaded->handle());
+        }
+        area_objects.clear();
+    };
     for (auto& area : area_list) {
         auto t0 = std::chrono::high_resolution_clock::now();
         auto a = nw::kernel::objects().make_area(area, &profile);
+        if (!a) {
+            LOG_F(ERROR, "kernel: failed to load area '{}'", area.view());
+            destroy_loaded_areas();
+            return false;
+        }
         auto t1 = std::chrono::high_resolution_clock::now();
         area_make_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
 
         auto t2 = std::chrono::high_resolution_clock::now();
-        a->instantiate();
+        area_objects.push_back(a);
+        try {
+            if (!a->instantiate()) {
+                LOG_F(ERROR, "kernel: failed to instantiate area '{}'", area.view());
+                destroy_loaded_areas();
+                return false;
+            }
+        } catch (const std::exception& e) {
+            LOG_F(ERROR, "kernel: failed to instantiate area '{}': {}", area.view(), e.what());
+            destroy_loaded_areas();
+            return false;
+        }
         auto t3 = std::chrono::high_resolution_clock::now();
         area_instantiate_ms += std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count();
 
@@ -163,8 +187,6 @@ bool Module::instantiate()
                 }
             }
         }
-
-        area_objects.push_back(a);
     }
     areas = std::move(area_objects);
 

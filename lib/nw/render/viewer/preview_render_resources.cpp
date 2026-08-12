@@ -56,4 +56,43 @@ nw::gfx::Handle<nw::gfx::Texture> PreviewRenderResources::get_or_load_raw_plt_te
     return asset_cache().get_or_load_raw_plt_texture(nw::Resref{name});
 }
 
+void PreviewRenderResources::prepare_area_static_models(uint64_t resource_generation)
+{
+    if (area_static_model_resource_generation_ != resource_generation) {
+        area_static_models_.clear();
+        area_static_model_resource_generation_ = resource_generation;
+        return;
+    }
+
+    for (auto it = area_static_models_.begin(); it != area_static_models_.end();) {
+        if (it->second.expired()) {
+            area_static_models_.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+}
+
+std::shared_ptr<nw::render::RenderModel> PreviewRenderResources::find_area_static_model(nw::Resref name)
+{
+    const auto cached = area_static_models_.find(name);
+    if (cached == area_static_models_.end()) {
+        return {};
+    }
+    auto model = cached->second.lock();
+    if (!model) {
+        area_static_models_.erase(cached);
+    }
+    return model;
+}
+
+void PreviewRenderResources::store_area_static_model(
+    nw::Resref name, const std::shared_ptr<nw::render::RenderModel>& model)
+{
+    if (!model) {
+        return;
+    }
+    area_static_models_.insert_or_assign(name, model);
+}
+
 } // namespace nw::render::viewer

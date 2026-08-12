@@ -1,9 +1,9 @@
 |License: MIT| |ci| |CodeQL| |codecov| |Documentation Status|
 
-rollNW
+rollnw
 ======
 
-rollNW is an homage to Neverwinter Nights in C++. It started
+rollnw is an homage to Neverwinter Nights in C++. It started
 as reusable NWN infrastructure and is broadening toward support for a
 modern authored RPG toolset/game: content formats, rules, scripting,
 rendering validation, networking foundations, and the runtime services
@@ -15,7 +15,7 @@ or open an IDE in browser in the quickstart section below.
 
 .. warning::
 
-   rollNW is in active transition. Older docs and APIs may show a
+   rollnw is in active transition. Older docs and APIs may show a
    narrower NWN library cross section of the project. Current work is
    reframing the codebase as a foundation for an authored RPG
    toolset/game,
@@ -31,6 +31,12 @@ or open an IDE in browser in the quickstart section below.
 features
 --------
 
+- ``rollnw-client`` is the local module viewer and bounded authoring
+  workbench. It imports modules into JSON projects, navigates areas and
+  resources, renders areas and blueprints, selects placed objects, and exposes
+  focused editing paths with undo/redo and save. It is viewer-first rather
+  than a claim of complete NWToolset parity; the current contracts and limits
+  live in the `client README <https://github.com/jd28/rollnw/tree/main/tools/client>`__.
 - The beginnings of a novel `Rules System <https://rollnw.readthedocs.io/en/latest/structure/rules.html>`__ designed for
   easily adding, overriding, expanding, or removing any rule and reasonable performance
 - A `combat engine <https://github.com/jd28/rollnw/blob/main/api/combat.cpp>`__ that's very
@@ -86,19 +92,14 @@ that was pretty positive: a decade ahead, at least, of nwscript.
 
 -----------------------------------------
 
-Moonshots
----------
+Current direction
+-----------------
 
-You make ask yourself, why? But, to paraphrase Tennyson, ours isn't to
-question why, it's but to do and die and learn and maybe make neat
-things. In that spirit, here is a list of crazy projects that this
-library hopes to facilitate and that all fly in the face of “WHY?”.
-
--  A nwscript `Language
-   Server <https://en.wikipedia.org/wiki/Language_Server_Protocol>`__
--  A modern, cross-platform nwexplorer.
--  And, of course, the ever elusive open source NWN Toolset, with
-   plugins, scripting, and a built-in console.
+The repository now contains the concrete pieces that earlier roadmaps treated
+as moonshots: a Smalls language server, renderer-backed asset tools, and the
+``rollnw-client`` viewer/workbench. Work proceeds as tested vertical slices;
+unimplemented editor workflows remain explicit limits instead of implied
+features.
 
 -----------------------------------------
 
@@ -110,7 +111,8 @@ Credits
 -  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics
 -  `Vulkan <https://www.vulkan.org/>`__,
-   `Dear ImGui <https://github.com/ocornut/imgui>`__ - Graphics and tool UI
+   `Dear ImGui <https://github.com/ocornut/imgui>`__,
+   `RmlUi <https://github.com/mikke89/RmlUi>`__ - Graphics and tool UI
 -  `loguru <https://github.com/emilk/loguru>`__,
    `fmt <https://github.com/fmtlib/fmt>`__ - Logging
 -  `stbi_image <https://github.com/nothings/stb>`__,

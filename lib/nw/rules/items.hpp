@@ -22,6 +22,28 @@ enum struct ItemModelType : uint8_t {
     armor
 };
 
+struct BaseItemInfo {
+    String label;
+    uint32_t name = std::numeric_limits<uint32_t>::max();
+    ItemModelType model_type = ItemModelType::simple;
+    Resref item_class;
+    Resref default_model;
+    Resref default_icon;
+    int32_t item_property_column = -1;
+    int32_t inventory_width = 0;
+    int32_t inventory_height = 0;
+    int32_t equipable_slots = 0;
+    int32_t stack_size = 1;
+    bool is_container = false;
+
+    bool valid() const noexcept
+    {
+        return !label.empty();
+    }
+};
+
+using BaseItemArray = RuleTypeArray<BaseItem, BaseItemInfo>;
+
 struct ItemColors {
     enum type : uint8_t {
         cloth1 = 0,

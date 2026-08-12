@@ -1,0 +1,14 @@
+2DA V2.0
+
+     Label                    HitDie     SpellCaster
+0    Barbarian                12         0
+1    Bard                     6          1
+2    Cleric                   8          1
+3    Druid                    8          1
+4    Fighter                  10         0
+5    Monk                     8          0
+6    Paladin                  10         1
+7    Ranger                   10         1
+8    Rogue                    6          0
+9    Sorcerer                 4          1
+10   Wizard                   7          1

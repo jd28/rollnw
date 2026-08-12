@@ -1,0 +1,36 @@
+type ListConfig {
+    row_height: int;
+    overscan: int;
+    columns: int;
+};
+
+type ListItem {
+    key: string;
+    icon_source: string;
+    cell0: string;
+    cell1: string;
+    cell2: string;
+    cell3: string;
+    cell_count: int;
+    enabled_mask: int;
+};
+
+type ListSelection {
+    list_id: string;
+    key: string;
+    index: int;
+    cell: int;
+};
+
+type ListScroll {
+    list_id: string;
+    top: int;
+    start: int;
+    end: int;
+};
+
+type UiListBinding {
+    list_id: string;
+    event: string;
+    fn_name: string;
+};

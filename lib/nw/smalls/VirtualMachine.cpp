@@ -532,8 +532,10 @@ Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
     if (field_type == rt_->string_type()) {
         return Value::make_string(*reinterpret_cast<HeapPtr*>(ptr));
     }
-    if (field_type == rt_->object_type()) {
-        return Value::make_object(*reinterpret_cast<ObjectHandle*>(ptr));
+    if (rt_->is_object_like_type(field_type)) {
+        Value result = Value::make_object(*reinterpret_cast<ObjectHandle*>(ptr));
+        result.type_id = field_type;
+        return result;
     }
 
     const Type* ft = rt_->get_type(field_type);
@@ -566,7 +568,7 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
         }
     } else if (field_type == rt_->string_type()) {
         *reinterpret_cast<HeapPtr*>(ptr) = val.data.hptr;
-    } else if (field_type == rt_->object_type()) {
+    } else if (rt_->is_object_like_type(field_type)) {
         *reinterpret_cast<ObjectHandle*>(ptr) = val.data.oval;
     } else if (rt_->is_native_value_type(field_type)) {
         const Type* type = rt_->get_type(field_type);
@@ -708,9 +710,9 @@ Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* fu
         saved_reg0_valid = true;
     }
 
-    if (!module->external_refs.empty() && (module->external_indices.empty() || module->external_indices[0] == UINT32_MAX)) {
+    if (!module->external_refs_resolved) {
         if (!const_cast<BytecodeModule*>(module)->resolve_external_refs(&nw::kernel::runtime())) {
-            fail("Failed to resolve external function references");
+            fail("Failed to resolve external references");
             return {};
         }
     }
@@ -4402,12 +4404,10 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
 
         const Type* elem_type_info = rt_->get_type(elem_type);
         const void* raw = arr->element_data(idx);
-        if (raw && elem_type_info
-            && ((elem_type_info->type_kind == TK_struct && !elem_type_info->contains_heap_refs)
-                || rt_->is_native_value_type(elem_type))) {
+        if (raw && elem_type_info) {
             CallFrame& frame = frames_.back();
             uint32_t offset = frame.stack_alloc(elem_type_info->size, elem_type_info->alignment, elem_type,
-                /*tracks_heap_refs=*/false);
+                type_may_hold_heap_refs(rt_, elem_type));
             std::memcpy(frame.stack_.data() + offset, raw, elem_type_info->size);
             reg(dest_reg) = Value::make_stack(offset, elem_type);
         } else {

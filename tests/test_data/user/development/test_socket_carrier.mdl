@@ -1,0 +1,17 @@
+#MAXMODEL ASCII
+newmodel test_socket_carrier
+setsupermodel test_socket_carrier NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_socket_carrier
+    node dummy test_socket_carrier
+        parent NULL
+    endnode
+    node dummy tail
+        parent test_socket_carrier
+    endnode
+    node dummy wings
+        parent test_socket_carrier
+    endnode
+endmodelgeom test_socket_carrier
+donemodel test_socket_carrier

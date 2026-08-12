@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -44,6 +46,9 @@ struct ModelAssetMaterialTextureSources {
     uint32_t metallic_roughness = kInvalidModelAssetTextureSourceIndex;
     uint32_t occlusion = kInvalidModelAssetTextureSourceIndex;
     uint32_t emissive = kInvalidModelAssetTextureSourceIndex;
+    // PBR albedo sources decode sRGB on sample. NWN fixed-function sources keep
+    // their authored code values during material conversion.
+    bool albedo_srgb = true;
 };
 
 struct ModelAssetPrimitive {
@@ -86,6 +91,7 @@ struct ModelAsset {
     // RenderModel GPU buffers. This is source-agnostic by construction: NWN
     // quirks must already be lowered to sockets, particles, deformers, material
     // fallback flags, or source-side diagnostics before data reaches this record.
+    // Geometry is optional: socket-only assets remain valid attachment carriers.
     ModelAssetSourceKind source_kind = ModelAssetSourceKind::native;
     std::string name;
     std::vector<Material> materials;
@@ -98,15 +104,23 @@ struct ModelAsset {
     std::vector<Skin> skins;
     std::vector<Skeleton> skeletons;
     std::vector<AnimationClip> animations;
+    std::vector<ModelLight> lights;
     std::vector<ModelAssetParticleSystem> particle_systems;
     ModelShadowSummary shadow{};
     Bounds bounds{};
 
     [[nodiscard]] bool empty() const noexcept
     {
-        return primitives.empty() && particle_systems.empty();
+        return primitives.empty() && lights.empty() && particle_systems.empty() && sockets.empty();
     }
 };
+
+// Computes one conservative model-space bound for the authored spawn footprint
+// of a batch of particle emitters. Negative extents are clamped to zero and
+// non-finite extent samples are ignored. Emitters with non-finite placement
+// data are dropped.
+[[nodiscard]] std::optional<Bounds> particle_emitter_spawn_bounds(
+    std::span<const ParticleEmitterDef> emitters) noexcept;
 
 struct ModelAssetValidationStats {
     uint32_t primitive_count = 0;
@@ -134,6 +148,9 @@ struct ModelAssetValidationStats {
     uint32_t invalid_animation_skeleton_count = 0;
     uint32_t invalid_animation_track_count = 0;
     uint32_t invalid_animation_duration_count = 0;
+    uint32_t light_count = 0;
+    uint32_t invalid_light_node_count = 0;
+    uint32_t invalid_light_value_count = 0;
     uint32_t empty_vertex_payload_count = 0;
     uint32_t empty_index_payload_count = 0;
     uint32_t index_out_of_range_count = 0;
@@ -171,7 +188,9 @@ struct ModelAssetValidationStats {
             + invalid_skeleton_node_to_joint_count
             + invalid_animation_skeleton_count
             + invalid_animation_track_count
-            + invalid_animation_duration_count;
+            + invalid_animation_duration_count
+            + invalid_light_node_count
+            + invalid_light_value_count;
     }
 
     [[nodiscard]] bool passed() const noexcept
@@ -192,6 +211,9 @@ struct ModelAssetValidationStats {
 struct ModelAssetUploadStats {
     uint32_t primitive_count = 0;
     uint32_t uploaded_primitive_count = 0;
+    uint32_t socket_count = 0;
+    uint32_t light_count = 0;
+    uint32_t particle_system_count = 0;
     uint32_t invalid_primitive_count = 0;
     uint32_t invalid_asset_row_count = 0;
     uint32_t invalid_material_texture_binding_count = 0;
@@ -202,7 +224,7 @@ struct ModelAssetUploadStats {
 
     [[nodiscard]] bool passed() const noexcept
     {
-        return primitive_count != 0
+        return (primitive_count != 0 || socket_count != 0 || light_count != 0 || particle_system_count != 0)
             && uploaded_primitive_count == primitive_count
             && invalid_primitive_count == 0
             && invalid_asset_row_count == 0
@@ -234,6 +256,7 @@ struct ModelAssetTextureUploadStats {
     uint32_t texture_create_failure_count = 0;
     uint32_t texture_upload_failure_count = 0;
     uint32_t bindless_failure_count = 0;
+    uint32_t resource_context_mismatch_count = 0;
 
     [[nodiscard]] bool passed() const noexcept
     {
@@ -244,7 +267,8 @@ struct ModelAssetTextureUploadStats {
             && surface_size_mismatch_count == 0
             && texture_create_failure_count == 0
             && texture_upload_failure_count == 0
-            && bindless_failure_count == 0;
+            && bindless_failure_count == 0
+            && resource_context_mismatch_count == 0;
     }
 };
 
@@ -264,24 +288,21 @@ struct ModelAssetUploadResult {
     ModelAssetUploadStats stats;
 };
 
-// Bridge helper for existing stream-oriented importers. The complete model
-// upload path is upload_model_asset(), which validates and uploads a primitive
-// batch. The output primitive must not already own live GPU buffers.
-[[nodiscard]] bool upload_model_asset_primitive(nw::gfx::Context* ctx, const ModelAssetPrimitive& source, Primitive& out);
-
-// Uploads a validated CPU ModelAsset into the current RenderModel GPU buffer
-// representation. This copies source-agnostic asset metadata and creates
-// primitive vertex/index buffers. Texture loading is intentionally outside this
-// boundary; material bindless indices are copied as supplied by the source
-// adapter. Invalid assets are rejected before GPU work. Missing context or any
-// buffer upload failure rejects the whole model and reports the reason in stats.
+// Uploads a validated CPU ModelAsset into the current RenderModel representation.
+// This copies source-agnostic asset metadata and creates primitive vertex/index
+// buffers when geometry is present. Socket- and particle-only assets require no
+// graphics context. Texture loading is intentionally outside this boundary;
+// material bindless indices are copied as supplied by the source adapter.
+// Invalid assets are rejected before GPU work. Missing context for geometry or
+// any buffer upload failure rejects the whole model and reports the reason in
+// stats.
 [[nodiscard]] ModelAssetUploadResult upload_model_asset(const ModelAsset& asset, nw::gfx::Context* ctx);
 
 // Uploads ModelAsset source textures into an existing RenderModel material
 // table. Input texture rows are decoded only inside this batch transform; the
 // output model owns created GPU textures and receives bindless material indices.
-// Bottom-origin TGA rows are restored to file order to match the NWN legacy
-// texture path. Existing model textures are preserved. Missing/invalid source
+// Bottom-origin TGA rows are restored to the file order expected by NWN UVs.
+// Existing model textures are preserved. Missing/invalid source
 // payloads use supplied fallbacks and increment stats.
 [[nodiscard]] ModelAssetTextureUploadStats upload_model_asset_material_textures(
     const ModelAsset& asset, const ModelAssetTextureUploadDesc& desc, RenderModel& model);

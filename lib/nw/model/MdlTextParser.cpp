@@ -6,9 +6,8 @@
 #include "../util/templates.hpp"
 #include "Mdl.hpp"
 
-#include <absl/container/flat_hash_set.h>
-#include <glm/gtx/normal.hpp>
-
+#include <cmath>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
 
@@ -262,174 +261,226 @@ bool parse_tokens(Tokenizer& tokens, StringView name, Vector<T>& out)
 }
 
 template <typename T, typename VertType>
-void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
+bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
 {
-    if (geomctx.verts.size()) {
-        // Create vertex buffer
-        n->vertices.reserve(geomctx.verts.size());
-        for (auto v : geomctx.verts) {
-            VertType nv;
-            nv.position = v;
-            n->vertices.push_back(nv);
-        }
+    if (geomctx.verts.empty()) {
+        return true;
+    }
 
-        n->indices.reserve(geomctx.faces.size() * 3);
+    const size_t source_vertex_count = geomctx.verts.size();
+    const bool has_texcoords = !geomctx.tverts[0].empty();
+    constexpr auto max_vertex_index = std::numeric_limits<uint16_t>::max();
 
-        absl::flat_hash_set<size_t> visited_indices;
-        auto contains_vert = [](const Face& face, uint32_t idx) {
-            for (auto i : face.vert_idx) {
-                if (i == idx) { return true; }
-            }
-            return false;
-        };
-
-        // Tangents..
-        glm::vec3* tan1 = nullptr;
-        glm::vec3* tan2 = nullptr;
-
-        if (geomctx.tangents.empty()) {
-            tan1 = new glm::vec3[n->vertices.size() * 2];
-            tan2 = tan1 + n->vertices.size();
-            std::memset(tan1, 0, n->vertices.size() * sizeof(glm::vec3) * 2);
-        }
-
-        for (size_t iface = 0; iface < geomctx.faces.size(); ++iface) {
-            // Gollect texture coordinates
-            auto i1 = geomctx.faces[iface].vert_idx[0];
-            auto i2 = geomctx.faces[iface].vert_idx[1];
-            auto i3 = geomctx.faces[iface].vert_idx[2];
-
-            auto t1 = geomctx.faces[iface].tvert_idx[0];
-            auto t2 = geomctx.faces[iface].tvert_idx[1];
-            auto t3 = geomctx.faces[iface].tvert_idx[2];
-
-            auto& v1 = n->vertices.at(i1);
-            auto& v2 = n->vertices.at(i2);
-            auto& v3 = n->vertices.at(i3);
-
-            // Get tex coords
-            if (geomctx.tverts[0].size()) { // dummys don't have textures..
-                if (t1 < geomctx.tverts[0].size()) {
-                    v1.tex_coords = glm::vec2{geomctx.tverts[0].at(t1).x, geomctx.tverts[0].at(t1).y};
-                }
-
-                if (t2 < geomctx.tverts[0].size()) {
-                    v2.tex_coords = glm::vec2{geomctx.tverts[0].at(t2).x, geomctx.tverts[0].at(t2).y};
-                }
-
-                if (t3 < geomctx.tverts[0].size()) {
-                    v3.tex_coords = glm::vec2{geomctx.tverts[0].at(t3).x, geomctx.tverts[0].at(t3).y};
-                }
-            }
-
-            // Tangents - Not sure if this is right.. just copy pasta from
-            // https://gamedev.stackexchange.com/questions/68612/how-to-compute-tangent-and-bitangent-vectors
-            if (geomctx.tangents.empty()) {
-                float x1 = v2.position.x - v1.position.x;
-                float x2 = v3.position.x - v1.position.x;
-                float y1 = v2.position.y - v1.position.y;
-                float y2 = v3.position.y - v1.position.y;
-                float z1 = v2.position.z - v1.position.z;
-                float z2 = v3.position.z - v1.position.z;
-
-                float s1 = v2.tex_coords.x - v1.tex_coords.x;
-                float s2 = v3.tex_coords.x - v1.tex_coords.x;
-                float tn1 = v2.tex_coords.y - v1.tex_coords.y;
-                float tn2 = v3.tex_coords.y - v1.tex_coords.y;
-
-                float r = 1.0f / (s1 * tn2 - s2 * tn1);
-                glm::vec3 sdir((tn2 * x1 - tn1 * x2) * r, (tn2 * y1 - tn1 * y2) * r,
-                    (tn2 * z1 - tn1 * z2) * r);
-                glm::vec3 tdir((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
-                    (s1 * z2 - s2 * z1) * r);
-
-                tan1[i1] += sdir;
-                tan1[i2] += sdir;
-                tan1[i3] += sdir;
-
-                tan2[i1] += tdir;
-                tan2[i2] += tdir;
-                tan2[i3] += tdir;
-            }
-
-            for (auto ivert : geomctx.faces[iface].vert_idx) {
-                // Create indices
-                n->indices.push_back(uint16_t(ivert));
-
-                // Everything else should be done if it's been visited once.
-                if (visited_indices.contains(ivert)) { continue; }
-
-                // Generate vertex normals - Code here is basically what is in nwnexplorer..
-                // not sure if it's right or not.. and there are different ways of calculating vertex
-                // normals.
-                if (ivert >= geomctx.normals.size()) {
-                    glm::vec3 sum{0.0f, 0.0f, 0.0f};
-                    for (size_t jface = iface; jface < geomctx.faces.size(); ++jface) {
-                        if (contains_vert(geomctx.faces[jface], ivert)) {
-                            auto p1 = n->vertices.at(geomctx.faces[jface].vert_idx[0]).position;
-                            auto p2 = n->vertices.at(geomctx.faces[jface].vert_idx[1]).position;
-                            auto p3 = n->vertices.at(geomctx.faces[jface].vert_idx[2]).position;
-                            sum += glm::triangleNormal(p1, p2, p3);
-                        }
-                    }
-                    n->vertices[ivert].normal = glm::normalize(sum);
-                } else {
-                    n->vertices[ivert].normal = geomctx.normals.at(ivert);
-                }
-
-                if (ivert < geomctx.tangents.size()) {
-                    n->vertices[ivert].tangent = geomctx.tangents.at(ivert);
-                }
-
-                if constexpr (std::is_same_v<T, SkinNode>) {
-                    n->vertices[ivert].weights = geomctx.weights.at(ivert);
-
-                    const auto& bones = geomctx.bones.at(ivert);
-                    n->vertices[ivert].bones = glm::ivec4{-1};
-                    for (size_t i = 0; i < 4; ++i) {
-                        if (bones[i].empty()) { break; }
-                        for (size_t j = 0; j < model->nodes.size(); ++j) {
-                            if (string::icmp(model->nodes[j]->name, bones[i])) {
-                                for (size_t k = 0; k < 64; ++k) {
-                                    if (n->bone_nodes[k] == int16_t(j)) {
-                                        n->vertices[ivert].bones[static_cast<glm::length_t>(i)] = static_cast<int>(k);
-                                        break;
-                                    } else if (n->bone_nodes[k] == -1) {
-                                        n->vertices[ivert].bones[static_cast<glm::length_t>(i)] = static_cast<int>(k);
-                                        n->bone_nodes[k] = int16_t(j);
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                visited_indices.insert(ivert);
+    auto face_valid = [&](const Face& face) {
+        for (size_t corner = 0; corner < 3; ++corner) {
+            if (face.vert_idx[corner] >= source_vertex_count
+                || face.vert_idx[corner] > max_vertex_index
+                || (has_texcoords && face.tvert_idx[corner] >= geomctx.tverts[0].size())) {
+                return false;
             }
         }
+        return true;
+    };
 
-        // More tangent crap..
-        if (geomctx.tangents.empty()) {
-            for (size_t i = 0; i < n->vertices.size(); ++i) {
-                auto& vert = n->vertices[i];
-                const auto& t = tan1[i];
+    std::vector<uint8_t> valid_faces(geomctx.faces.size(), 0);
+    size_t dropped_faces = 0;
+    for (size_t i = 0; i < geomctx.faces.size(); ++i) {
+        valid_faces[i] = face_valid(geomctx.faces[i]);
+        dropped_faces += valid_faces[i] == 0;
+    }
+    if (dropped_faces != 0) {
+        LOG_F(WARNING, "invalid text mdl: dropped {} mesh faces with invalid position or texture indices", dropped_faces);
+    }
 
-                // Gram-Schmidt orthogonalize
-                auto temp = glm::normalize(t - vert.normal * glm::dot(vert.normal, t));
-                vert.tangent.x = temp.x;
-                vert.tangent.y = temp.y;
-                vert.tangent.z = temp.z;
-
-                // Calculate handedness
-                vert.tangent.w = (glm::dot(glm::cross(vert.normal, t), tan2[i]) < 0.0f)
-                    ? -1.0f
-                    : 1.0f;
-            }
-            delete[] tan1;
+    std::vector<glm::vec3> generated_normals(source_vertex_count, glm::vec3{0.0f});
+    for (size_t i = 0; i < geomctx.faces.size(); ++i) {
+        if (!valid_faces[i]) {
+            continue;
+        }
+        const auto& face = geomctx.faces[i];
+        const auto& p0 = geomctx.verts[face.vert_idx[0]];
+        const auto& p1 = geomctx.verts[face.vert_idx[1]];
+        const auto& p2 = geomctx.verts[face.vert_idx[2]];
+        const glm::vec3 cross = glm::cross(p1 - p0, p2 - p0);
+        const float length_squared = glm::dot(cross, cross);
+        if (!std::isfinite(length_squared) || length_squared <= 1.0e-12f) {
+            continue;
+        }
+        const glm::vec3 normal = cross / std::sqrt(length_squared);
+        for (const auto vertex_index : face.vert_idx) {
+            generated_normals[vertex_index] += normal;
         }
     }
+
+    std::vector<VertType> source_vertices(source_vertex_count);
+    for (size_t i = 0; i < source_vertex_count; ++i) {
+        auto& vertex = source_vertices[i];
+        vertex.position = geomctx.verts[i];
+        if (i < geomctx.normals.size()) {
+            vertex.normal = geomctx.normals[i];
+        } else {
+            const float length_squared = glm::dot(generated_normals[i], generated_normals[i]);
+            vertex.normal = std::isfinite(length_squared) && length_squared > 1.0e-12f
+                ? generated_normals[i] / std::sqrt(length_squared)
+                : glm::vec3{0.0f, 0.0f, 1.0f};
+        }
+        if (i < geomctx.tangents.size()) {
+            vertex.tangent = geomctx.tangents[i];
+        }
+    }
+
+    if constexpr (std::is_same_v<T, SkinNode>) {
+        if (geomctx.weights.size() != source_vertex_count || geomctx.bones.size() != source_vertex_count) {
+            LOG_F(ERROR, "invalid text mdl: skin vertex, weight, and bone counts differ");
+            return false;
+        }
+        for (size_t vertex_index = 0; vertex_index < source_vertex_count; ++vertex_index) {
+            auto& vertex = source_vertices[vertex_index];
+            vertex.weights = geomctx.weights[vertex_index];
+            vertex.bones = glm::ivec4{-1};
+            const auto& bones = geomctx.bones[vertex_index];
+            for (size_t lane = 0; lane < bones.size(); ++lane) {
+                if (bones[lane].empty()) {
+                    break;
+                }
+                for (size_t node_index = 0; node_index < model->nodes.size(); ++node_index) {
+                    if (!string::icmp(model->nodes[node_index]->name, bones[lane])) {
+                        continue;
+                    }
+                    for (size_t bone_index = 0; bone_index < n->bone_nodes.size(); ++bone_index) {
+                        if (n->bone_nodes[bone_index] == static_cast<int16_t>(node_index)) {
+                            vertex.bones[static_cast<glm::length_t>(lane)] = static_cast<int>(bone_index);
+                            break;
+                        }
+                        if (n->bone_nodes[bone_index] == -1) {
+                            vertex.bones[static_cast<glm::length_t>(lane)] = static_cast<int>(bone_index);
+                            n->bone_nodes[bone_index] = static_cast<int16_t>(node_index);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    n->indices.clear();
+    n->indices.reserve((geomctx.faces.size() - dropped_faces) * 3);
+    std::vector<uint32_t> output_source_indices;
+    if (!has_texcoords) {
+        n->vertices = std::move(source_vertices);
+        for (size_t i = 0; i < geomctx.faces.size(); ++i) {
+            if (!valid_faces[i]) {
+                continue;
+            }
+            for (const auto vertex_index : geomctx.faces[i].vert_idx) {
+                n->indices.push_back(static_cast<uint16_t>(vertex_index));
+            }
+        }
+    } else {
+        const size_t corner_count = (geomctx.faces.size() - dropped_faces) * 3;
+        n->vertices.clear();
+        n->vertices.reserve(std::min(corner_count, static_cast<size_t>(max_vertex_index) + 1));
+        output_source_indices.reserve(n->vertices.capacity());
+        std::unordered_map<uint64_t, uint16_t> corner_vertices;
+        corner_vertices.reserve(corner_count);
+
+        // The render vertex stream has one index, so every distinct position/UV pair is a vertex.
+        for (size_t i = 0; i < geomctx.faces.size(); ++i) {
+            if (!valid_faces[i]) {
+                continue;
+            }
+            const auto& face = geomctx.faces[i];
+            for (size_t corner = 0; corner < 3; ++corner) {
+                const uint32_t source_index = face.vert_idx[corner];
+                const uint32_t texcoord_index = face.tvert_idx[corner];
+                const uint64_t key = (static_cast<uint64_t>(source_index) << 32u) | texcoord_index;
+                auto [it, inserted] = corner_vertices.try_emplace(key, 0);
+                if (inserted) {
+                    if (n->vertices.size() > max_vertex_index) {
+                        LOG_F(ERROR, "invalid text mdl: expanded mesh exceeds 16-bit vertex index range");
+                        return false;
+                    }
+                    it->second = static_cast<uint16_t>(n->vertices.size());
+                    auto vertex = source_vertices[source_index];
+                    const auto& texcoord = geomctx.tverts[0][texcoord_index];
+                    vertex.tex_coords = glm::vec2{texcoord.x, texcoord.y};
+                    n->vertices.push_back(vertex);
+                    output_source_indices.push_back(source_index);
+                }
+                n->indices.push_back(it->second);
+            }
+        }
+
+        const auto remap_vertex_values = [&](auto& values) {
+            if (values.size() != source_vertex_count) {
+                return;
+            }
+            using Value = typename std::decay_t<decltype(values)>::value_type;
+            std::vector<Value> remapped;
+            remapped.reserve(output_source_indices.size());
+            for (const auto source_index : output_source_indices) {
+                remapped.push_back(values[source_index]);
+            }
+            values = std::move(remapped);
+        };
+        remap_vertex_values(n->colors);
+        if (auto* animmesh = dynamic_cast<AnimeshNode*>(n)) {
+            remap_vertex_values(animmesh->animverts);
+            remap_vertex_values(animmesh->animtverts);
+        }
+        if (auto* danglymesh = dynamic_cast<DanglymeshNode*>(n)) {
+            remap_vertex_values(danglymesh->constraints);
+        }
+    }
+
+    if (geomctx.tangents.empty()) {
+        std::vector<glm::vec3> tangent_sums(n->vertices.size(), glm::vec3{0.0f});
+        std::vector<glm::vec3> bitangent_sums(n->vertices.size(), glm::vec3{0.0f});
+        for (size_t i = 0; i + 2 < n->indices.size(); i += 3) {
+            const auto i0 = n->indices[i];
+            const auto i1 = n->indices[i + 1];
+            const auto i2 = n->indices[i + 2];
+            const auto& v0 = n->vertices[i0];
+            const auto& v1 = n->vertices[i1];
+            const auto& v2 = n->vertices[i2];
+            const glm::vec3 edge1 = v1.position - v0.position;
+            const glm::vec3 edge2 = v2.position - v0.position;
+            const glm::vec2 uv1 = v1.tex_coords - v0.tex_coords;
+            const glm::vec2 uv2 = v2.tex_coords - v0.tex_coords;
+            const float determinant = uv1.x * uv2.y - uv2.x * uv1.y;
+            if (!std::isfinite(determinant) || std::abs(determinant) <= 1.0e-12f) {
+                continue;
+            }
+            const float inverse = 1.0f / determinant;
+            const glm::vec3 tangent = (edge1 * uv2.y - edge2 * uv1.y) * inverse;
+            const glm::vec3 bitangent = (edge2 * uv1.x - edge1 * uv2.x) * inverse;
+            tangent_sums[i0] += tangent;
+            tangent_sums[i1] += tangent;
+            tangent_sums[i2] += tangent;
+            bitangent_sums[i0] += bitangent;
+            bitangent_sums[i1] += bitangent;
+            bitangent_sums[i2] += bitangent;
+        }
+
+        for (size_t i = 0; i < n->vertices.size(); ++i) {
+            auto& vertex = n->vertices[i];
+            const glm::vec3 orthogonal = tangent_sums[i]
+                - vertex.normal * glm::dot(vertex.normal, tangent_sums[i]);
+            const float length_squared = glm::dot(orthogonal, orthogonal);
+            if (!std::isfinite(length_squared) || length_squared <= 1.0e-12f) {
+                vertex.tangent = glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
+                continue;
+            }
+            const glm::vec3 tangent = orthogonal / std::sqrt(length_squared);
+            const float handedness = glm::dot(glm::cross(vertex.normal, tangent), bitangent_sums[i]) < 0.0f
+                ? -1.0f
+                : 1.0f;
+            vertex.tangent = glm::vec4{tangent, handedness};
+        }
+    }
+
+    return true;
 }
 
 bool TextParser::parse_controller(Node* node, StringView name, uint32_t type)
@@ -1000,10 +1051,14 @@ bool TextParser::parse_node(Geometry* geometry)
     // Cleanup geometry data
     if (node->type & NodeFlags::skin) {
         SkinNode* n = static_cast<SkinNode*>(node.get());
-        cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx);
+        if (!cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx)) {
+            return false;
+        }
     } else if (node->type & NodeFlags::mesh) {
         TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
-        cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx);
+        if (!cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx)) {
+            return false;
+        }
     }
 
     geometry->nodes.push_back(std::move(node));

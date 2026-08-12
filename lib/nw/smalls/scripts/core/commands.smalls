@@ -1,0 +1,18 @@
+type CommandSpec {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    aliases: array!(string);
+    scope: int;
+    flags: int;
+    default_binding: string;
+    usage: string;
+};
+
+type CommandResult {
+    status: int;
+    message: string;
+    channel: string;
+    undo_token: string;
+};

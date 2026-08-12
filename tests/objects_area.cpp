@@ -46,6 +46,13 @@ TEST(Area, GffDeserialize)
     nw::Gff gic{"test_data/user/development/test_area.gic"};
     EXPECT_TRUE(gic.valid());
 
+    const auto encounter_list = git.toplevel()["Encounter List"];
+    ASSERT_EQ(encounter_list.size(), 1);
+    glm::vec3 encounter_anchor{};
+    ASSERT_TRUE(encounter_list[0].get_to("XPosition", encounter_anchor.x, false));
+    ASSERT_TRUE(encounter_list[0].get_to("YPosition", encounter_anchor.y, false));
+    ASSERT_TRUE(encounter_list[0].get_to("ZPosition", encounter_anchor.z, false));
+
     deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
 
     EXPECT_EQ(ent->tileset_resref, "ttf02");
@@ -59,6 +66,28 @@ TEST(Area, GffDeserialize)
     EXPECT_TRUE(ent->creatures.size() > 0);
     EXPECT_EQ(ent->creatures[0]->resref, "test_creature");
     EXPECT_EQ(creature_ability_score_from_script(ent->creatures[0], nwn1::ability_strength, true), 20);
+
+    size_t comment_count = 0;
+    const auto count_comments = [&comment_count](const auto& objects) {
+        for (const auto* object : objects) {
+            comment_count += object && !object->comment.empty();
+        }
+    };
+    count_comments(ent->creatures);
+    count_comments(ent->doors);
+    count_comments(ent->encounters);
+    count_comments(ent->items);
+    count_comments(ent->placeables);
+    count_comments(ent->sounds);
+    count_comments(ent->stores);
+    count_comments(ent->triggers);
+    count_comments(ent->waypoints);
+    EXPECT_GT(comment_count, 0);
+
+    ASSERT_EQ(ent->encounters.size(), encounter_list.size());
+    const auto* encounter_spatial = nw::kernel::objects().components().find_spatial(ent->encounters[0]->handle());
+    ASSERT_NE(encounter_spatial, nullptr);
+    EXPECT_EQ(encounter_spatial->position, encounter_anchor);
 }
 
 TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)
@@ -88,8 +117,8 @@ TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)
     EXPECT_FALSE(creature.contains("$type"));
     EXPECT_FALSE(creature.contains("$version"));
     EXPECT_TRUE(creature.contains("components"));
-    EXPECT_TRUE(creature.contains("core.creature.CreatureDescriptor"));
-    EXPECT_TRUE(creature.contains("core.creature.CreatureStats"));
+    EXPECT_TRUE(creature.contains("nwn1.propsets.CreatureDescriptor"));
+    EXPECT_TRUE(creature.contains("nwn1.propsets.CreatureStats"));
 
     for (const char* list : {
              "creatures",
@@ -111,6 +140,27 @@ TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)
         }
     }
 
+    const auto count_json_comments = [](const nlohmann::json& archive) {
+        size_t count = 0;
+        for (const char* list : {
+                 "creatures",
+                 "doors",
+                 "encounters",
+                 "items",
+                 "placeables",
+                 "sounds",
+                 "stores",
+                 "triggers",
+                 "waypoints",
+             }) {
+            for (const auto& embedded : archive.at(list)) {
+                count += embedded.at("object").value("comment", "").empty() ? 0 : 1;
+            }
+        }
+        return count;
+    };
+    EXPECT_GT(count_json_comments(j), 0);
+
     auto roundtrip = new nw::Area;
     ASSERT_TRUE(nw::deserialize(roundtrip, j));
     ASSERT_FALSE(roundtrip->creatures.empty());
@@ -126,8 +176,9 @@ TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)
     EXPECT_TRUE(roundtrip_creature.at("object").contains("resref"));
     EXPECT_TRUE(roundtrip_creature.contains("components"));
     EXPECT_FALSE(roundtrip_creature.at("components").contains("resref"));
-    EXPECT_TRUE(roundtrip_creature.contains("core.creature.CreatureDescriptor"));
-    EXPECT_TRUE(roundtrip_creature.contains("core.creature.CreatureStats"));
+    EXPECT_TRUE(roundtrip_creature.contains("nwn1.propsets.CreatureDescriptor"));
+    EXPECT_TRUE(roundtrip_creature.contains("nwn1.propsets.CreatureStats"));
+    EXPECT_EQ(count_json_comments(roundtrip_json), count_json_comments(j));
 }
 
 TEST(Location, DeserializeGitBareCoordinates)
@@ -185,4 +236,24 @@ TEST(Location, DeserializeGitBareCoordinatesWithoutArea)
     EXPECT_FLOAT_EQ(loc.orientation.x, std::cos(bearing));
     EXPECT_FLOAT_EQ(loc.orientation.y, std::sin(bearing));
     EXPECT_FLOAT_EQ(loc.orientation.z, 0.0f);
+}
+
+TEST(Location, DeserializeGitCoordinatesWithoutOrientation)
+{
+    fs::create_directories("tmp");
+
+    nw::GffBuilder out{"GFF"};
+    out.top.add_field("XPosition", 12.5f)
+        .add_field("YPosition", 34.25f)
+        .add_field("ZPosition", -0.5f);
+    out.build();
+    ASSERT_TRUE(out.write_to("tmp/location_without_orientation.gff"));
+
+    nw::Gff gff{"tmp/location_without_orientation.gff"};
+    ASSERT_TRUE(gff.valid());
+
+    nw::Location location;
+    ASSERT_TRUE(nw::deserialize(location, gff.toplevel(), nw::SerializationProfile::instance));
+    EXPECT_EQ(location.position, glm::vec3(12.5f, 34.25f, -0.5f));
+    EXPECT_EQ(location.orientation, glm::vec3(0.0f));
 }

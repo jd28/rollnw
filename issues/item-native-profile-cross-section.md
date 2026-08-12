@@ -1,0 +1,1281 @@
+# Item Native and Profile Ownership Cross-Section
+
+Status: runtime/profile ownership implemented; toolset presentation migration
+remains. Tier 2. This is the reference-domain decision for
+`issues/smalls-module-ownership-and-profile-boundaries.md`.
+
+## Goal
+
+Classify the complete Item domain by the data it stores and transforms, then
+use that classification as the first enforceable example of the project-wide
+C++ / SmallS / toolset / RmlUi boundary.
+
+The first question is whether an Item operation or Item type is native. All
+native Item declarations form one ABI under `core.item`; profile scripts
+define the meaning and policy layered over that ABI.
+
+The chosen rule is:
+
+```text
+core.item SmallS ABI = every native Item function and native Item type
+profile SmallS policy = profile-defined scripted transforms
+toolset SmallS = authoring projections and workflow
+RML / RCSS = static view structure and presentation
+```
+
+`[[native]]` on an Item function or Item type is sufficient to determine
+namespace ownership: the declaration lives in `core.item`. A profile may load
+the backing data, but it does not create a second native Item namespace.
+
+The first concrete consequence is that Item visual source state is a native
+data plane. It is not a propset and it is not SmallS rules data. C++
+owns the fixed 6/19/114 indexed storage and atomic mutation;
+`core.item` exposes that numeric API. NWN assigns meaning to the indices,
+enumerates valid authoring choices, maps UTI fields, and resolves the source
+state into generic visual rows. The renderer consumes only those resolved
+rows.
+
+## Scope and Limit
+
+This issue covers:
+
+- Item identity, lifetime, and native component storage;
+- `ItemDescriptor` and `ItemStats`;
+- base-item facts and rules;
+- item-property rows, catalogs, effects, and authoring operations;
+- visual source state, resolved model rows, and resolved icon layers;
+- inventory ownership and container layout;
+- creature equipment ownership and NWN slot meaning;
+- JSON and NWN GFF persistence;
+- materialization after load;
+- typed mutation, undo, redo, and invalidation;
+- default item editor projections; and
+- the dependency direction between all of those systems.
+
+This issue does not:
+
+- add a generic native-component plugin registry;
+- preserve old `core.item.*` JSON keys;
+- support GFF fallback when component/propset JSON is selected;
+- replace the existing 6/19/114 native Item visual record with a dynamic
+  schema for an unobserved second profile;
+- put editor widgets or display strings in C++; or
+- move renderer asset loading into SmallS.
+
+Plan B, if a real second profile cannot use the fixed indexed Item visual
+record, is a deliberate core component protocol migration backed by that
+profile's concrete data. No profile-component registry is added now.
+
+## Patterns and Conventions Found
+
+### Real Platform
+
+The platform is one native process with:
+
+- one active game profile for the runtime lifetime;
+- one SmallS runtime;
+- native `ObjectManager` and `ObjectComponentSystem` services;
+- one client UI thread when the toolset is running; and
+- renderer-facing visual rows rebuilt on object invalidation, not per frame.
+
+The fixed properties that constrain this decision are:
+
+1. Native object handles and component rows must survive across SmallS calls,
+   undo records, renderer refreshes, and UI refreshes.
+2. Qualified propset names are serialized data keys
+   (`lib/nw/serialization/component_propset_json.cpp:426-509`).
+3. The renderer already consumes source-neutral visual rows rather than
+   reading item propsets or NWN tables
+   (`lib/nw/render/docs/visual_asset_protocol.md`).
+
+There is no measured latency or throughput requirement for this migration.
+The implementation must preserve the current invalidation-driven transforms
+and must not introduce per-frame SmallS resolution. Any performance effect is
+unverified until measured.
+
+### Actual Persisted Item Data
+
+The inspected corpus is the sibling authoring module at
+`../the_awakening/shared/blueprints/items`. This path records the source of the
+measurements; it is not a runtime or test input.
+
+Observed on 2026-07-24:
+
+- 1,460 component/propset Item JSON files;
+- every file has `core.item.ItemDescriptor`;
+- every file has `core.item.ItemStats`;
+- every file has `components.item_visuals`;
+- every visual section has exactly 6 `model_colors`, 19 `model_parts`, and
+  114 `part_colors`;
+- 8,481 total item-property rows;
+- median item-property count 4, mean approximately 5.8, and maximum 40;
+- the most common individual counts are 0 properties (318 items) and
+  1 property (247 items);
+- 1,338 items have stack size 1;
+- 790 items are identified and 670 are not;
+- 174 items are plot items and 1,286 are not; and
+- no inspected item blueprint has a nested `components.inventory` section.
+
+The absence of nested container inventories in this corpus is not evidence
+that Item containers should be removed. Native code and `BaseItemInfo` already
+support them. It does mean container editing is a rare path and must not add
+work to every Item view.
+
+Representative files show the current shape directly:
+
+- `pl_agent_grtsw.uti.json` is a composite weapon with three populated model
+  parts and seven item-property rows.
+- `ms_grumbhide_001.uti.json` is armor with global PLT colors, body-part model
+  values, inherited per-part colors, armor fields, and item properties.
+
+### Current Native Storage
+
+SmallS loads the checked-in `BaseItemDefinition` batch and publishes its
+`BaseItemInfo` values to C++ once. `BaseItemInfo` contains model type, item
+class, default model/icon, item-property column, inventory dimensions, equip
+slots, stack size, and container state (`lib/nw/rules/items.hpp`). The legacy
+`baseitems.2da` is used only by the offline generator.
+
+The native Item source visual record is fixed:
+
+```text
+model_colors:  uint8[6]
+model_parts:   uint16[19]
+part_colors:   uint8[19 * 6]
+inherit color: 255
+```
+
+That is 158 bytes of source payload per materialized Item before owner handle
+and alignment. The storage is contiguous in `ObjectComponentSystem`
+(`lib/nw/objects/ObjectComponentSystem.hpp:140-154`). This establishes the
+core storage capacity and access shape, not the semantic name of any part,
+channel, value, model, texture, or resource.
+
+`Inventory` stores item handles or unresolved resource references, coordinates,
+and page occupancy bitsets
+(`lib/nw/objects/Inventory.hpp:16-113`). Its ownership and occupancy mutation
+are native. Its current default of six pages and 10 by 10 maximum geometry is
+profile policy embedded in the native type.
+
+`Equips` stores exactly 18 NWN slots in a fixed array and increments a version
+on mutation
+(`lib/nw/objects/Equips.hpp:14-56`,
+`lib/nw/objects/Equips.hpp:146-171`). Slot names, indices, bit masks, and
+serialization keys are NWN data even though the storage mutation is native.
+
+### SmallS and C++ Mixing at Issue Creation
+
+`core.item` contained all of the following:
+
+- the native `ItemProperty` struct, with six bounded integer fields and an
+  opaque tag;
+- native item-property catalog queries;
+- native item visual access;
+- mutable equip and visual callback registries;
+- item-property-to-effect policy;
+- `ItemDescriptor` and `ItemStats` propsets; and
+- ordinary Item helper functions
+  (`lib/nw/smalls/scripts/core/item.smalls:1-453`).
+
+The C++ registration behind that module reads NWN `itempropdef`, `itemprops`,
+cost, parameter, fixed visual, and item layout data
+(`lib/nw/smalls/native/core_item.cpp:250-360`). The raw Item visual accessors
+and table catalog queries are native operations and therefore belong in
+`core.item`. The reusable property-row registry, effect-row registry, and batch
+processor also belong in `core.item`; they name no NWN property or effect.
+Profile callbacks, concrete mappings, property meaning, and valid-choice policy
+are scripted profile behavior and do not.
+
+`core.creature` owns the current equip workflow and imports `core.item`
+(`lib/nw/smalls/scripts/core/creature.smalls:1-119`). Its fixed 18-slot
+vocabulary and item effect callbacks make it NWN policy, not core policy.
+
+The generic client undo file branches on `item_model_part` and `item_color`,
+calls `nwn1.item`, and records the complete ItemProperty row
+(`tools/client/object_edits.hpp:22-131`,
+`tools/client/object_edits.cpp:972-1075`,
+`tools/client/object_edits.cpp:2667-2743`). The flat undo rows are useful. The
+generic file's knowledge of NWN edit kinds is not.
+
+The current default editor produces profile-specific row data and complete
+RML fragments in `toolset.item_editor`
+(`tools/ui/scripts/toolset/item_editor.smalls`). Profile row construction is
+currently in `nwn1.item`. Static widget structure already exists in
+`tools/client/ui/item_editor.rml`.
+
+### Stable Existing Capabilities to Reuse
+
+The following existing machinery is retained:
+
+- native `ObjectHandle` identity and `ObjectManager` lifetime;
+- contiguous `ObjectComponentSystem` storage and swap removal;
+- generic propset registration and qualified-name JSON serialization;
+- native `Inventory` occupancy and ownership mutation;
+- native equipment storage mutation;
+- flat `ObjectEditPatch`, item-property records, and command history;
+- `active_object`;
+- owned, virtualized managed lists;
+- RmlUi data models for stable structured rows;
+- the `BaseItemInfo` C++ projection and `BaseItemRules` SmallS projection; and
+- the resolved visual row protocol.
+
+No second object model, item mirror, editor database, or renderer policy API is
+introduced.
+
+## Architecture Decision
+
+### The Ownership Test
+
+Apply these questions in order to every Item datum or operation:
+
+1. Must it own a native handle, allocation, component lifetime, occupancy
+   invariant, or renderer-facing memory? If yes, implementation is native.
+2. Is it a native Item function or native Item type? If yes, its declaration
+   is `core.item`.
+3. Does NWN assign semantic names, legal choices, GFF fields, table meaning,
+   resource mapping, or slot meaning to that representation? If yes, those
+   scripted declarations and transforms are `nwn1.*`.
+4. Is it a view, filter, selector, command label, or authoring composition?
+   If yes, it is `toolset.nwn1.*`.
+5. Is it static document structure or styling? If yes, it is RML/RCSS.
+
+This separates where execution occurs from who assigns meaning. It prevents
+the native Item ABI from being split between `core.item` and profile
+namespaces.
+
+### Chosen Dependency Graph
+
+```text
+RML / RCSS
+    -> toolset.nwn1.item_editor
+    -> nwn1.item
+    -> core.*
+
+core native ABI   -> engine services and active-profile fact storage
+nwn1 profile C++ -> loads facts consumed by the core native ABI
+renderer          -> resolved core visual rows
+```
+
+The renderer does not depend on `nwn1.item`, base-item IDs, ItemProperty, NWN
+equipment slots, or source visual arrays.
+
+### Exhaustive Ownership Classification
+
+#### Identity, Lifetime, and Generic Object State
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| `Item` VM/object subtype | native `core.item` | Every native Item type shares the Item ABI; its value is an engine object handle |
+| `ObjectHandle` validity and lookup | native `core` | Universal native identity/lifetime |
+| object creation and destruction | native `core` | Owns allocations and dependent components |
+| object `resref`, tag, comment, localized name | native `core.object` | Generic object metadata already shared by object types |
+| effect allocation/application/removal | native `core.effects` | Generic effect lifetime, not ItemProperty meaning |
+| materialized Item inventory footprint | native `core.item` layout component | Native inventory occupancy reads width/height without profile policy |
+| item resource type UTI and GFF struct IDs | `nwn1` conversion C++ | NWN persistence identifiers |
+| item materialization after load | `nwn1` profile bridge | Selects NWN propsets, layout, visuals, and icons |
+
+`Item` is a true native object. That does not make every field associated with
+an Item a core field.
+
+#### Persistent Profile Schema
+
+| Data | Owner | Why |
+|---|---|---|
+| `ItemDescriptor` | `nwn1.propsets` propset | Its two description forms are NWN UTI fields |
+| `ItemStats` | `nwn1.propsets` propset | The field set and GFF encodings are NWN schema |
+| `base_item` | `nwn1.propsets.ItemStats` | Selects a canonical `BaseItemDefinition` by ID |
+| armor ID and armor AC/DEX override fields | `nwn1.propsets.ItemStats` | NWN armor/GFF rules state |
+| item-property array | native `components.item_properties` | Ordered rows cross the C++/SmallS boundary without a second propset source |
+| cost and additional cost | `nwn1.propsets.ItemStats` | NWN persisted value inputs |
+| stack size and charges | `nwn1.propsets.ItemStats` | NWN per-instance rules state |
+| cursed, identified, plot, stolen | `nwn1.propsets.ItemStats` | NWN per-instance flags |
+
+No propset belongs in `core.*`, including transient propsets. These fields move
+as a single schema migration so an Item can never contain half old and half new
+qualified names.
+
+#### Base-Item Data
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| `BaseItemInfo` | `core.item` native struct backed by active-profile data | Facts cross the native ABI; NWN scripts assign their meaning |
+| model type, item class, default model/icon | `BaseItemInfo` | Resource interpretation required by native visual/icon paths |
+| inventory width/height | `BaseItemInfo` | Native grid occupancy needs the dimensions |
+| copy base-item width/height to live Items | `nwn1.item` materializer over `core.item.set_item_layouts` | Profile interpretation composes native fact read and native write |
+| equipable slot mask | `BaseItemInfo` | Native slot transaction needs the allowed destination set |
+| stack limit and container flag | `BaseItemInfo` | Native inventory/lifetime behavior needs the facts |
+| item-property column | `BaseItemInfo` | Native NWN property catalog indexes it |
+| base cost, multiplier, weapon/armor combat data | `BaseItemRules` in SmallS | Gameplay calculation policy |
+| required feats and feat mappings | `BaseItemRules` in SmallS | Moddable gameplay requirements |
+
+`BaseItemDefinition` is the sole authored row. Its outer `id` is the only
+numeric identity; nested `BaseItemInfo` and `BaseItemRules` values contain no
+duplicate ID. SmallS retains the definition array and publishes only the dense
+positional info batch to C++. C++ never declares or reads the rules layout.
+No runtime join exists.
+
+The checked-in files are named from sanitized lowercase legacy labels. The
+offline importer absorbs fixed `ReqFeat0..4` columns into the semantic
+`requirements` array and emits `default_model` directly as a `ResRef`.
+
+The native declaration moves from the generic `nwn1.rules` bucket to
+`core.item`. `BaseItemRules` remains a SmallS profile projection under
+`nwn1.item` / `nwn1.baseitems`. The fact lookup is native; deciding how a fact
+affects rules or presentation is not.
+
+#### Item Properties
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| `ItemProperty` value with six bounded integers and an opaque tag | `core.item` native struct | C++-registered flat value copied across the native ABI |
+| ordered live property rows | native `ObjectItemPropertyState` | One handle-indexed contiguous source shared by GFF, JSON, SmallS, and tools |
+| property definition rows | `core.item` native catalog | Native facts loaded from NWN `itempropdef.2da` |
+| subtype/cost/parameter option tables | `core.item` native catalog | Native fact lookup; `nwn1.item` interprets returned values |
+| base-item/property allow matrix | `core.item` native catalog | Native fact lookup from NWN `itemprops.2da` |
+| property stable validation | `nwn1.item` | Ranges are defined by the loaded profile tables |
+| property-to-effect lowering | `nwn1.item` SmallS | Gameplay policy and callbacks |
+| Item effects on equip/unequip | `nwn1.item` SmallS over `core.effects` | NWN creator/category and property semantics |
+| cost and armor-value calculation | `nwn1.item` SmallS | Moddable rules |
+| available/applied authoring rows | `toolset.nwn1.item_editor` | Labels, sorting, filtering, and columns are editor projections |
+| insert/remove/value undo rows | typed `core.item` command adapter | Exact before/after state, including the opaque tag, is required for replay |
+
+The item-property catalogs currently stored in `EffectSystem`
+(`lib/nw/rules/effects.cpp:439-527`) move behind the native `core.item`
+catalog API. Generic `EffectSystem` retains effect storage and application
+only; active-profile loading supplies the facts.
+
+The native catalog publishes copied flat definition/option batches or scalar
+lookups. It does not return `StaticTwoDA*` or editor row objects across the
+SmallS ABI.
+
+#### Item Visual Source State
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| 6 global color values | native `core.item` source component | Fixed indexed Item source storage |
+| 19 model-part values | native `core.item` source component | Fixed indexed Item source storage |
+| 19 by 6 per-part colors | native `core.item` source component | Fixed indexed Item source storage |
+| indexed reads and atomic batch writes | native `core.item` API | Mechanical bounds, stale-value, and invalidation invariants |
+| inherited color sentinel 255 | `nwn1.item` | NWN assigns this value its inheritance meaning |
+| source visual JSON encoding | generic component serializer | The exact native array shape is a core protocol |
+| source visual GFF import/export | `nwn1` GFF adapter | NWN field names and model-type partitions |
+| part/channel labels and semantic validation | `nwn1.item` | NWN defines what each index and value means |
+| valid model choices from resources | `nwn1.item` profile facts/policy | Depends on NWN base-item/model layout |
+| color palette display choices | `toolset.nwn1.item_editor` | Authoring presentation over valid native values |
+
+`ItemVisualState` is not a propset. It is fixed-width source data present on
+every observed Item and already owned by native component storage. Moving it
+into a propset would add a second representation and synchronization work.
+
+The record and numeric mutation API are declared in `core.item`. Core
+interprets only owner validity, fixed bounds, destination identity, expected
+values, and generic invalidation. Core does not call an index "top model",
+decide that 255 means inherited, enumerate a resource, or choose PLT semantics.
+Those meanings remain in `nwn1.item`.
+
+Core zero-initializes a newly allocated source record. NWN materialization
+writes the complete profile default, including 255 in per-part color slots
+where NWN requires inheritance. The current
+`ObjectItemVisualState::inherit_part_color` constant therefore moves out of
+the core record; a profile sentinel is not a native storage invariant.
+
+#### Resolved Visuals and Icons
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| item source-state to model `ResRef` rows | `nwn1.item` resolver | NWN table and model-layout meaning |
+| equipment attachment/socket choice | `nwn1.item` resolver | NWN slot and appearance policy |
+| resolved model row storage | native `core.visual` | Generic renderer input |
+| model asset loading and GPU resources | renderer | Native resource lifetime |
+| item icon source/layer resolution | `nwn1.item` resolver | NWN icon naming, PLT, sex variant, and part order |
+| compositing resolved icon layers | native UI image service | Pixel transform independent of item rules |
+| current two variants, six layers, part 0..18 icon state | `core.item` native protocol | It is native storage; `nwn1.item` interprets its indices |
+
+The current `ObjectItemIconState` shape has two variants, at most six layers,
+NWN parts, and `PltColors`
+(`lib/nw/objects/ObjectComponentSystem.hpp:156-180`). Its native declarations
+belong in `core.item`; the compositor accepts resolved layer batches and NWN
+owns how those batches are produced.
+
+If a second producer later proves the same icon-layer representation, the
+resolved layer batch may be promoted to `core.image`. That generalization is
+not part of this issue.
+
+#### Inventory and Containers
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| item ownership in an inventory | native inventory component | Owns live handles and destruction |
+| page/row/column occupancy | native inventory component | Native bitset invariant |
+| add/remove/find/insert batch mutation | native inventory component | Must update ownership and occupancy atomically |
+| inventory item width/height fact | `core.item.BaseItemInfo` | Native fact populated from the active profile |
+| default page count and maximum grid shape | selected profile initialization | Current 6/10/10 constants are not universal |
+| container eligibility | `core.item.BaseItemInfo` | Native fact populated from the active profile |
+| can-carry/equip requirements | `nwn1.item` SmallS | Gameplay policy |
+| inventory grid rows and icon placement | `toolset.nwn1.item_editor` | Authoring view |
+
+The native inventory mechanism remains in `core.item` because it owns explicit
+grid occupancy over live item handles. The selected profile supplies geometry
+and item dimensions. Invalid dimensions, coordinates, overlap, stale handles,
+or ownership conflicts reject the complete mutation.
+
+The default Item editor does not construct a nested inventory projection until
+the selected item is a container. This keeps the unobserved nested-container
+case out of the common Item view.
+
+#### Equipment
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| raw slot storage and item handle lifetime | native C++ | Owns live handles and versioning |
+| native slot indices and masks | `core.item` native types | Every native Item type is part of the core ABI |
+| NWN slot names and legal meaning | `nwn1.item` | Profile vocabulary and policy |
+| slot serialization keys | `nwn1` component adapter | Exact NWN JSON/GFF layout |
+| base-item allowed slot check | `nwn1.item` | NWN `BaseItemInfo` meaning |
+| feat and other equip requirements | `nwn1.item` SmallS | Moddable rules |
+| move between inventory and equipment | `core.item` typed transaction adapter | Crosses two native ownership structures |
+| apply/remove item effects | `nwn1.item` SmallS | NWN gameplay policy |
+| visual refresh after equipment change | generic invalidation plus `nwn1` resolver | Renderer remains source-neutral |
+| equipment/inventory editor layout | `toolset.nwn1.creature_inventory` | Authoring projection |
+
+Native Item/equipment functions and slot types move to `core.item`; scripted
+equip policy moves out of `core.creature` into `nwn1.item`. A generic client
+file must not branch on `EquipIndex` values.
+
+#### Editor and RmlUi
+
+| Data or operation | Owner | Why |
+|---|---|---|
+| active live Item handle | native `core.rmlui` bridge | One selected object |
+| managed-list storage/windowing | native `core.ui.v1` service | UI-thread ownership and virtualization |
+| general property rows | `toolset.nwn1.item_editor` | Authoring grouping and labels |
+| appearance part/model/color rows | `toolset.nwn1.item_editor` | Authoring projection over `nwn1.item` facts |
+| item-property filter/sort/selection rows | `toolset.nwn1.item_editor` | Editor-local state |
+| add/remove/set commands | `toolset.nwn1.item_editor` | Workflow composition |
+| tabs, headers, list containers, selectors | RML | Static document structure |
+| dimensions, color, typography, visibility | RCSS | Presentation |
+| undo history and dirty state | native C++ command host exposed by `core.commands.v1` | Workspace lifecycle |
+| native Item edit apply/replay | typed `core.item` adapter | Native ownership and exact before/after rows |
+| NWN Item edit validation/composition | `nwn1.item` | Profile row meaning and side effects |
+
+SmallS must not generate the complete appearance widget as an escaped markup
+string. RML owns the repeated/static structure through data models. SmallS
+publishes typed rows and state. The managed-list host remains the bounded path
+for long filtered lists.
+
+## Item Visual Mutation Protocol
+
+### Source Contract
+
+Input is a homogeneous batch for one live Item:
+
+```text
+ItemModelPartPatch {
+    part:        int32,   // 0..18
+    expected:    uint16,
+    replacement: uint16
+}
+
+ItemColorPatch {
+    part:        int32,   // -1 for global, otherwise 0..18
+    channel:     int32,   // 0..5
+    expected:    uint8,
+    replacement: uint8
+}
+```
+
+The authoritative data-plane API is plural:
+
+```text
+core.item.set_item_model_parts(item, patches[]) -> mutation result
+core.item.set_item_colors(item, patches[])       -> mutation result
+```
+
+Convenience singular functions such as `set_item_color` are thin wrappers that
+submit a batch of one. They are native declarations implemented through the
+same C++ batch path, not ordinary `core.*` SmallS bodies.
+
+The core C++ adapter owns the source record and complete mechanical batch
+validation. The selected profile validates authoring semantics before the
+batch reaches core. The input batch is borrowed for the duration of the call.
+Captured before/after rows are copied into the undo action. No VM array, table
+pointer, or RmlUi pointer survives the call.
+
+### Apply Transform
+
+```text
+NWN candidate or typed value
+    -> validate semantic choice in nwn1.item
+    -> core Item visual patch batch
+    -> validate handle, fixed bounds, unique destinations, stale values
+    -> apply all source-state writes
+    -> publish one generic visual-source invalidation
+    -> selected profile resolves changed Item handles as a batch
+    -> publish generic resolved model/icon rows
+    -> renderer refreshes from resolved rows
+```
+
+The core setter calls neither `nwn1.item` nor the renderer. It publishes one
+generic source invalidation. The active profile materializer consumes changed
+Item handles, and the active session later reads the resulting generic rows.
+
+The common access pattern is one component lookup followed by linear traversal
+of a small contiguous patch batch and fixed arrays. Model type is selected once
+per materialization, then its straight-line resolver runs. The transformation
+does not run per frame.
+
+### Error and Rollback
+
+Reject the complete batch when:
+
+- the Item handle is invalid or stale;
+- a model part is outside 0..18;
+- a color part is outside -1..18;
+- a color channel is outside 0..5;
+- a model value is outside 0..65535;
+- a color value is outside 0..255;
+- two rows target the same destination;
+- any expected value is stale.
+
+No rejected core batch changes source state, emits invalidation, or creates
+undo history. The NWN authoring operation rejects a semantically invalid choice
+before invoking core.
+
+Resolution is downstream of a successful core write. A missing or invalid
+profile resource does not roll back valid native source data. The profile
+resolver publishes no row for the unresolved visual, records one bounded
+diagnostic, and preserves the source state so a later resource reload can
+invalidate and resolve it again. Old resolved rows are not retained as if they
+matched the new source.
+
+Undo and redo call the same batch API with expected and replacement exchanged.
+
+## Item Property Mutation Protocol
+
+The persisted row is:
+
+```text
+ItemProperty {
+    prop_type:   uint16
+    subtype:     uint16
+    cost_table:  uint8
+    cost_value:  uint16
+    param_table: uint8
+    param_value: uint8
+    tag:         string
+}
+```
+
+The authoritative native operations transfer whole ordered batches:
+
+```text
+core.item.item_properties(item)                  -> copied ItemProperty[]
+core.item.set_item_properties(item, properties)  -> bool
+```
+
+`nwn1.item` validates editor commands, changes a single snapshot, and performs
+one replacement write. Remove indices are strictly ordered; inserts initialize
+an empty tag; edits and removals preserve existing tags. The native adapter
+validates bounded integer widths before mutation and never exposes a live view
+of component storage.
+
+Invalid type, missing table, invalid option, duplicate index, stale row, or
+out-of-range index rejects the whole batch. The editor does not invent
+`Property X`; an invalid imported row is displayed as an explicit invalid row
+with its numeric data and cannot be silently rewritten.
+
+ItemProperty edits emit a properties mutation. They emit a visual mutation only
+when the selected profile operation declares that the changed property affects
+resolved visuals. The generic command host does not infer that dependency.
+
+## Equipment and Inventory Transaction Protocol
+
+Input is a flat homogeneous batch of ownership moves:
+
+```text
+ItemOwnershipMove {
+    item:        ObjectHandle
+    source_kind: inventory | equipment | detached
+    source_slot_or_position
+    target_kind: inventory | equipment
+    target_slot_or_position
+}
+```
+
+The `nwn1.item` operation validates profile rules, then submits the batch to a
+`core.item` adapter that:
+
+1. validates every owner, item, source, destination, base-item dimension, slot,
+   and native occupancy constraint;
+2. reserves/checks all target occupancy;
+3. applies native ownership changes;
+4. emits structure/properties/visual mutation flags; and
+5. returns copied before/after rows for undo.
+
+After a successful native transaction, `nwn1.item` applies/removes NWN item
+effects and resolves affected creature and item visuals once per owner. A
+profile side-effect failure invokes the inverse core batch before the command
+is accepted.
+
+Rows are partitioned by target kind before applying so the common inventory and
+equipment cases are straight-line. Failed policy or ownership mutation rolls
+back the already applied prefix in reverse order. A rollback failure is a hard
+transaction error.
+
+The current `CreatureInventoryEditBatch` and `ItemPlacement` records are close
+to the required data, but they move from the generic object-edit vocabulary to
+typed `core.item` rows. `nwn1.item` supplies slot meaning and validation without
+owning a second native adapter.
+
+## Serialization Contract
+
+### JSON
+
+Target Item JSON contains:
+
+```text
+object                         // generic native object metadata, when present
+components.locals              // generic native component
+components.inventory           // generic native inventory, for containers
+components.item_properties     // core native ordered Item property rows
+components.item_visuals        // core native Item visual source component
+nwn1.propsets.ItemDescriptor // profile propset
+nwn1.propsets.ItemStats      // profile propset
+```
+
+`components.item_visuals` remains the exact current key. The generic serializer
+owns its exact 6/19/114 array shape and rejects missing, short, or oversized
+arrays. It does not assign semantic names to any index or value. Qualified
+propset keys still migrate because those schemas are profile-owned.
+
+### NWN GFF
+
+The NWN importer/exporter owns:
+
+- UTI resource and struct IDs;
+- GFF field names and integer widths;
+- simple/layered/composite/armor partitions;
+- item-property lists with six numeric fields and optional `CustomTag`;
+- armor-specific fields; and
+- conversion between GFF visual fields and native source visual arrays.
+
+GFF import creates current `nwn1.propsets.*` propsets and writes the native
+`components.item_properties` and `components.item_visuals` records through the
+core Item API. GFF export reads those exact current sections. There is no lookup
+for old `core.item.*` propset names.
+
+### Migration
+
+The Item propset namespace change is a hard data migration:
+
+- no aliases;
+- no compatibility propsets;
+- no old-name fallback;
+- no duplicated old/new sections;
+- no GFF fallback for malformed component/propset JSON; and
+- reimport the authoring module after the new schema is installed.
+
+The native `components.item_visuals` key does not change, and
+`components.item_properties` replaces the former propset array. All Item
+propset fixtures, GFF policy entries, tests, and module data move in the same
+commit. A mixed propset corpus is invalid.
+
+## Materialization and Refresh
+
+Current Item load calls `nwn1.item.sync_native_layout` and
+`nwn1.item.update_standalone_visual`
+(`lib/nw/profiles/nwn1/item_materialization.cpp:38-67`). Keep one explicit
+profile bridge, but change its contract to a batch:
+
+```text
+ItemLayoutRow {
+    item:   ObjectHandle
+    width:  int32
+    height: int32
+}
+
+core.item.set_item_layouts(rows[]) -> mutation result
+core.item.clear_item_layouts(items[]) -> mutation result
+```
+
+Both operations validate the complete batch before mutation. They reject stale
+or non-Item handles, duplicate handles, non-positive dimensions, and
+dimensions larger than native inventory geometry. Singular functions are
+native one-row wrappers over these batch paths.
+
+```text
+loaded Item handles[]
+    -> validate nwn1.propsets propsets
+    -> lookup BaseItemInfo rows once per distinct base item
+    -> set native inventory layout facts
+    -> validate core Item visual source shape
+    -> interpret source indices through nwn1.item
+    -> resolve model rows and icon layer rows
+    -> publish all rows or fail the batch
+```
+
+A single loaded Item uses the same path with count 1. The loader must not call
+profile-specific functions directly from `Item.cpp`; it invokes the selected
+profile's materialization entry point.
+
+Missing propset sections, invalid base-item IDs, invalid fixed visual shapes,
+or structurally invalid profile mappings fail Item materialization. A missing
+render resource is reported at the resource-loading boundary, produces no
+resolved draw row for that asset, and does not cause policy fallback.
+
+## Component Design
+
+### Core Item ABI
+
+Files:
+
+- `lib/nw/smalls/scripts/core/item.smalls`
+- generic native registration units
+
+Responsibilities:
+
+- declare every native Item function and native Item type;
+- register `ItemProperty`, `BaseItemInfo`, native catalog fact rows, visual
+  patch rows, and ownership-move rows;
+- declare native per-Item inventory footprint storage and plural layout
+  mutation;
+- declare the fixed indexed Item visual source record and copied patch rows;
+- expose plural visual, property, inventory, and equipment operations with
+  singular one-row wrappers;
+- expose copied native facts loaded by the active profile;
+- validate native bounds, duplicate destinations, expected values, ownership,
+  and handle lifetime; and
+- contain no propsets, scripted callbacks, profile interpretation, or ordinary
+  SmallS bodies.
+
+`core.item` is the complete native Item ABI. It is allowed to return facts
+whose source is the active profile; it does not assign profile meaning to those
+facts.
+
+### Active-Profile Native Fact Providers
+
+Files:
+
+- `lib/nw/smalls/native/core_item.cpp`;
+- `lib/nw/profiles/nwn1/Profile.cpp`;
+- `lib/nw/rules/items.*`; and
+- the current native component and catalog storage implementations.
+
+Responsibilities:
+
+- import base-item visual/native facts once;
+- own item-property catalog tables;
+- back the native `core.item` fact queries;
+- leave ItemProperty and Item visual choice semantics to `nwn1.item`; and
+- resolve changed native Item visual sources into generic rows.
+
+These C++ providers do not register an `nwn1.*` native module. Physical source
+placement under `profiles/nwn1` records where the data is loaded, not the
+SmallS ABI namespace. Once `BaseItemInfo`, `AppearanceInfo`,
+`PlaceableAppearanceInfo`, and their lookups are registered by core, remove
+the now-empty `GameProfile::register_smalls_modules` hook.
+
+Ownership/lifetime:
+
+- profile tables live for the selected profile lifetime;
+- core native source visual rows live for the Item lifetime;
+- SmallS receives copied values and arrays; and
+- undo actions own copied before/after rows.
+
+Error model:
+
+- invalid catalog rows fail profile initialization or are omitted with a
+  bounded diagnostic according to the table's existing import contract;
+- invalid mutation input rejects the complete batch.
+
+### NWN Item Schema and Policy
+
+Files:
+
+- `lib/nw/smalls/scripts/nwn1/item.smalls`
+- `lib/nw/smalls/scripts/nwn1/baseitems.smalls`
+- `lib/nw/smalls/scripts/nwn1/rules.smalls`
+- move Item policy out of `lib/nw/smalls/scripts/core/item.smalls`; and
+- move equip policy out of `lib/nw/smalls/scripts/core/creature.smalls`.
+
+Responsibilities:
+
+- declare Item propsets and NWN newtypes;
+- own `BaseItemRules`;
+- own property-to-effect, value, AC, requirements, and equip policy;
+- resolve native source visual state to generic visual rows;
+- resolve item icon layer rows; and
+- expose named operations, not editor row types.
+
+### NWN Toolset Item Workflow
+
+Files:
+
+- move default workflow to
+  `tools/ui/scripts/toolset/nwn1/item_editor.smalls`;
+- `tools/client/ui/item_editor.rml`;
+- `tools/client/ui/item_editor.rcss`; and
+- native `core.ui.v1`, `core.commands.v1`, and `core.rmlui` bindings.
+
+Responsibilities:
+
+- project native/profile facts into sorted, filtered, labeled editor rows;
+- own selection and selector state;
+- issue named profile commands;
+- request focus and refresh; and
+- never retain a second copy of authoritative Item state.
+
+RML contains the general, appearance, properties, and inventory structures.
+RCSS contains their layout. SmallS publishes typed rows and visibility state.
+
+### Core Tooling ABI
+
+Files:
+
+- `tools/ui/scripts/core/ui.smalls`
+- `tools/ui/scripts/core/ui/v1.smalls`
+- `tools/ui/scripts/core/commands.smalls`
+- `tools/ui/scripts/core/commands/v1.smalls`
+- `tools/ui/scripts/core/rmlui.smalls`
+
+Responsibilities:
+
+- declare the native managed-list, command, active-object, focus, and refresh
+  APIs;
+- co-locate `ListConfig`, `ListItem`, and `ListSelection` in `core.ui`;
+- co-locate `CommandSpec` and `CommandResult` in `core.commands`;
+- keep versioned native entry points in the corresponding `.v1` modules;
+- contain no Item, NWN, workflow, or presentation policy; and
+- remain non-shadowable with the rest of `core.*`.
+
+### Generic Command Host
+
+Files:
+
+- `tools/client/command_bus.*`
+- `tools/client/object_edits.*`
+- `tools/client/toolset_backend.*`
+
+Responsibilities:
+
+- own undo/redo order, dirty state, and mutation epochs;
+- route named typed adapters;
+- retain generic propset scalar patching; and
+- route core Item visual patch batches without interpreting their indices; and
+- remove ItemProperty and NWN equip branches from the generic edit-kind switch.
+
+The host does not interpret profile payload bytes. Typed `core.item` adapters
+own visual, ItemProperty, inventory, and equipment apply/replay. `nwn1.item`
+owns validation and side-effect composition before a command is accepted.
+
+### Renderer and UI Image Consumer
+
+Files:
+
+- existing object visual protocol and renderer;
+- `tools/ui/smalls_item_icons.cpp`; and
+- inventory image consumers.
+
+Responsibilities:
+
+- consume already resolved model/light/icon layer rows;
+- own resource and GPU/image lifetimes; and
+- report missing resources without deriving replacement policy from names.
+
+## Implementation Map
+
+Create:
+
+- typed `core.item` visual, ItemProperty, inventory, and equipment command
+  adapters;
+- architecture tests for forbidden core declarations/imports; and
+- exact native Item visual component shape tests.
+
+Modify:
+
+- `lib/nw/smalls/scripts/core/item.smalls`: retain `ItemProperty` and every
+  native Item declaration; add `BaseItemInfo`, the neutral `ItemEffectRow`
+  protocol, registries, and the reusable batch processor; remove propsets, NWN
+  mappings, gameplay policy, and profile callbacks.
+- `lib/nw/smalls/scripts/core/creature.smalls`: remove NWN equip workflow and
+  fixed item-slot declarations.
+- `lib/nw/smalls/scripts/core/types.smalls`: move Item-specific ABI newtypes
+  such as `BaseItemType`, `ItemPropertyType`, and `EquipIndex` into
+  `core.item`; retain only cross-domain native primitives in `core.types`.
+- `lib/nw/smalls/scripts/nwn1/item.smalls`: own Item schema, rules,
+  materialization, choice validation, and named profile operations.
+- `lib/nw/smalls/scripts/nwn1/baseitems.smalls`: consume NWN-owned types and
+  retain `BaseItemRules` access.
+- `lib/nw/smalls/scripts/nwn1/rules.smalls`: stop acting as a generic bucket
+  for Item native facts.
+- `lib/nw/profiles/nwn1/rules.cpp`, `Profile.*`, and core registration units:
+  move the six native `nwn1.rules` registrations into relevant `core.*`
+  modules and remove the empty profile-native registration hook.
+- `lib/nw/smalls/native/core_item.cpp`: register the complete native Item ABI,
+  including fact catalogs and typed mutations, but no scripted policy.
+- `lib/nw/rules/effects.*`: move item-property catalog storage/access to the
+  NWN profile Item service.
+- `lib/nw/objects/Inventory.*`: receive profile-supplied geometry instead of
+  treating 6/10/10 as universal defaults.
+- `lib/nw/objects/ObjectComponentSystem.hpp`: keep Item layout/visual storage
+  numeric and move the NWN 255 inheritance default out of the core record.
+- `lib/nw/objects/Equips.*`: keep raw native storage mutation and expose it
+  through `core.item`; route slot meaning and policy through NWN.
+- `lib/nw/objects/Item.cpp`: call the selected profile materialization and
+  conversion interfaces, not NWN headers directly.
+- `lib/nw/serialization/component_propset_json.cpp`: retain
+  `components.item_visuals` and enforce its exact core array shape.
+- `lib/nw/profiles/nwn1/propset_gff_policy.cpp`: use
+  `nwn1.propsets.*` names.
+- `lib/nw/profiles/nwn1/item_materialization.*`: accept Item batches and
+  publish native facts/resolved rows atomically.
+- `tools/client/object_edits.*`: retain generic transactions, route typed core
+  Item batches, and remove profile-specific ItemProperty/equip edit kinds.
+- `tools/client/toolset_backend.*`: route named toolset operations to profile
+  validation and typed core Item commands.
+- `tools/ui/rml_smalls_bridge.cpp`: load `core.ui.v1`,
+  `core.commands.v1`, and `core.rmlui` through normal non-shadowable core
+  resolution; use `load_toolset_module` only for replaceable workflow.
+- `tools/ui/smalls_ui_v1.cpp`, `tools/client/script_commands.cpp`, and
+  `tools/ui/smalls_rmlui.cpp`: register native functions under the matching
+  `core.*` module names.
+- `tools/client/CMakeLists.txt`: merge `tools/ui/scripts/core/` into packaged
+  `stdlib/core` with the library core tree, reject duplicate relative module
+  paths, and package `tools/ui/scripts/toolset/` only as replaceable workflow.
+- `tools/ui/scripts/toolset/item_editor.smalls`: move to the NWN default
+  toolset package and publish typed data rather than complete widget markup.
+- Item editor RML/RCSS: retain presentation only.
+- tests and fixtures: use only new qualified propset names and the unchanged
+  `components.item_visuals` key.
+
+Delete after migration:
+
+- `core.item.ItemDescriptor`;
+- `core.item.ItemStats`;
+- calls to `core.item.can_equip_item`;
+- NWN ItemProperty/equip edit kinds in generic client code;
+- generic `EffectSystem` ItemProperty table access; and
+- obsolete numeric-named or split base-item data files.
+
+## Data Flow
+
+### Load
+
+```text
+Item JSON or NWN UTI
+    -> generic object identity/components
+    -> core Item visual source component
+    -> nwn1.propsets propsets
+    -> batch profile materialization
+    -> nwn1 interpretation of core source indices
+    -> generic resolved model/icon rows
+    -> live Item
+```
+
+### Inspect
+
+```text
+active Item
+    -> core Item visual source/facts + nwn1 propsets
+    -> toolset.nwn1.item_editor projection
+    -> owned/virtualized UI rows
+    -> RML data model
+```
+
+### Mutate Visual
+
+```text
+RML event
+    -> toolset.nwn1.item_editor named command
+    -> nwn1 semantic choice validation
+    -> core Item visual patch batch
+    -> atomic native source write + one visual-source invalidation
+    -> one selected-profile materialization
+    -> generic visual invalidation
+    -> command history
+```
+
+### Equip or Move
+
+```text
+drag/drop or command palette action
+    -> toolset named command
+    -> nwn1 rule validation
+    -> core Item ownership-move batch
+    -> validate native occupancy + transfer ownership
+    -> apply/remove effects
+    -> resolve affected visuals
+    -> mutation flags + undo row
+```
+
+### Save
+
+```text
+live Item
+    -> generic components
+    -> components.item_visuals
+    -> exact nwn1.propsets.* sections
+    -> component/propset JSON
+```
+
+## Build Sequence
+
+### Phase 0: Freeze the Item Contract
+
+- [ ] Add source tests proving `core.*` contains no propsets or profile imports.
+- [ ] Add a source test proving every native Item function, type, row, and
+      Item-specific ABI newtype is declared by `core.item`, never by
+      `core.types`, `core.creature`, `nwn1.*`, or `toolset.*`.
+- [ ] Add import-DAG tests.
+- [ ] Add corpus fixtures covering simple, layered, composite, armor,
+      container, zero-property, and maximum-observed-property Items.
+- [ ] Record the hard propset JSON migration and reimport command.
+
+### Phase 1: Move Schema Names
+
+- [ ] Keep native `ItemProperty` and Item ABI types in `core.item`; declare
+      `ItemDescriptor` and `ItemStats` propsets in `nwn1.item`.
+- [ ] Co-locate Item-specific native ABI rows and newtypes in `core.item`;
+      leave profile constants and interpretation in `nwn1.item`.
+- [ ] Update propset bootstrap and GFF policy.
+- [ ] Update all fixtures/tests.
+- [ ] Reimport the module.
+- [ ] Prove old propset keys fail explicitly while
+      `components.item_visuals` round-trips unchanged.
+
+### Phase 2: Split Native Facts from Rules
+
+- [x] Register `BaseItemInfo` under `core.item`.
+- [x] Keep `BaseItemRules` opaque to C++ in the canonical SmallS definition.
+- [x] Publish the positional `BaseItemInfo` batch once from SmallS.
+- [x] Retire runtime `baseitems.2da` loading and the second catalog/join.
+- [ ] Remove ItemProperty catalogs from generic `EffectSystem`.
+- [ ] Reduce `core.item` to native Item types, fact access, and native
+      access/mutation declarations only.
+- [ ] Add plural layout materialization and clear APIs with atomic rejection.
+- [ ] Move part/channel meaning, choice enumeration, GFF mapping, and
+      resolution to `nwn1.item`.
+- [ ] Add exact range/duplicate/batch rejection tests.
+
+### Phase 3: Install Native Visual Transactions
+
+- [ ] Add plural core model-part and color patch APIs.
+- [ ] Make singular setters one-row wrappers.
+- [ ] Emit one generic visual-source invalidation per successful core batch.
+- [ ] Resolve visual/icon rows once per invalidated Item batch in the selected
+      profile.
+- [ ] Prove commit/undo/redo preserve source and resolved state.
+- [ ] Prove failed resolution clears stale resolved rows, preserves source
+      state, and reports one bounded diagnostic.
+
+### Phase 4: Move Equipment and Item Effects
+
+- [ ] Move Item-specific native slot types and ownership operations to
+      `core.item`; move slot names and equip policy to `nwn1.item`.
+- [ ] Install typed `core.item` ownership-move transactions.
+- [ ] Move item-property-to-effect lowering and callbacks to `nwn1.item`.
+- [ ] Remove `core.creature` dependence on Item policy.
+- [ ] Test equip, replace, unequip, full inventory, invalid requirement,
+      undo, and redo.
+
+### Phase 5: Move Default Toolset Workflow
+
+- [ ] Move native managed-list, command, active-object, focus, and refresh
+      declarations plus their signature types from `toolset.*` to the
+      client-only `core.*` source tree.
+- [ ] Package those sources into `stdlib/core`, load them without toolset
+      resolution, and update the native C++ registration names atomically.
+- [ ] Reject duplicate relative module paths between library and client-only
+      core sources instead of relying on copy order.
+- [ ] Delete the old native toolset modules rather than forwarding them.
+- [ ] Move the shipped workflow to `toolset.nwn1.item_editor`.
+- [ ] Keep filters, labels, selectors, and row projections there.
+- [ ] Replace complete SmallS-generated widget markup with RML data models.
+- [ ] Preserve managed-list virtualization and stable-key selection.
+- [ ] Isolate numeric core Item visual replay in its typed adapter and remove
+      profile-specific Item knowledge from generic client edit switches.
+
+### Phase 6: Verify the Reference Boundary
+
+- [ ] Round-trip every representative Item through JSON.
+- [ ] Round-trip representative Items through UTI import and current JSON.
+- [ ] Compare source visual arrays and all ItemProperty rows exactly.
+- [ ] Exercise live editing, save, reload, undo, and redo.
+- [ ] Verify renderer code contains no base-item, ItemProperty, or fixed part
+      interpretation.
+- [ ] Run the architecture source gates.
+- [ ] Reinspect the full module corpus for old names.
+
+## Cost
+
+Implementation cost is high because this is a protocol migration, not a file
+rename:
+
+- one hard propset namespace migration and module reimport;
+- one native Item ABI consolidation;
+- one ItemProperty catalog ownership move;
+- core visual and ItemProperty mutation families;
+- one equipment/inventory ownership transaction family;
+- one generic client cleanup;
+- editor data-model conversion; and
+- broad fixture/test updates.
+
+Estimated engineering time is 8 to 15 focused development days for the Item
+reference slice, excluding migration of the remaining object domains. This is
+an estimate, not a measurement. The largest uncertainty is the
+equipment/inventory transaction move because it crosses ownership, effects,
+visuals, undo, and selection.
+
+Runtime cost target:
+
+- profile fact tables loaded once;
+- one source visual component lookup per edited Item batch;
+- linear traversal over the submitted patch rows;
+- one visual resolution per successfully changed Item or affected owner;
+- no per-frame SmallS resolution; and
+- bounded UI row materialization through the existing managed-list host.
+
+These are design constraints, not measured performance results. Verification
+requires comparing profile initialization time, Item load/materialization time,
+visual edit latency, and allocation counts before and after the migration on
+the same corpus and build.
+
+Memory remains the existing fixed 158-byte core Item visual source payload per
+materialized Item plus current component indexing overhead. Typed undo actions
+add copied rows only for commands retained in workspace history. Exact total
+memory impact is unverified until measured.
+
+The proposal adds no pointer-heavy stored protocol or hot loop. A transient
+pointer returned by one native component lookup is used only during the call;
+all retained identities are handles or indices, and all boundary rows are
+copied values.
+
+Maintenance cost decreases only if the source gates are enforced. Without
+them, `core.*` will accumulate profile policy again and the migration cost will
+have bought no durable boundary.
+
+## Simplification Pass
+
+Applied:
+
+1. **Do not add a native-component plugin registry.** The existing core Item
+   visual source record already stores the required data.
+2. **Load facts once.** Canonical base-item definitions are loaded once and
+   their `BaseItemInfo` projection is published once for the profile lifetime.
+3. **Resolve fewer times.** Visuals/icons resolve once after a successful
+   mutation batch, never per patch and never per frame.
+4. **Use fixed arrays.** The observed 6/19/114 source layout remains a small
+   fixed native record.
+5. **Use bounded UI windows.** Full catalogs are sorted/filtered once per
+   invalidation while RmlUi sees only the viewport plus overscan.
+6. **Keep explicit command paths.** Generic scalar propset patches and typed
+   core Item batches cover the observed mutations; no opaque universal payload
+   or second profile-native adapter family is added.
+7. **Keep only shared core work.** `core.item` retains the native Item ABI and
+   reusable profile-neutral registries/transforms; NWN mappings and gameplay
+   policy remain in the profile.
+8. **Reject compatibility work.** The only persisted corpus is reimportable,
+   so old names and layouts are not supported.
+
+Not built:
+
+- a profile-native SmallS ABI or registration layer;
+- toolset hot reload;
+- a universal reflected property editor; and
+- a renderer callback from `set_item_color`.
+
+The native setter publishes data and invalidation. It does not call a renderer.
+
+## Assumptions and Evidence That Would Disprove the Decision
+
+ASSUMPTION: one runtime selects one profile for its lifetime. If profiles must
+coexist in one object world, profile-qualified handles/components need a
+different protocol.
+
+ASSUMPTION: the fixed 6/19/114 Item visual source record is a supported engine
+contract, while profiles may leave indices unused or assign them different
+meanings. A real profile that cannot express its Item visuals in that record
+requires a new core protocol decision.
+
+ASSUMPTION: all NWN Item visual mutations can be resolved at object
+invalidation time. If gameplay requires per-frame source-state interpretation,
+the resolved-row cache contract must be revisited.
+
+ASSUMPTION: inventory grid occupancy is the current native Item storage
+contract and its geometry can be supplied by a profile. If a supported profile
+uses non-grid inventory, the native `core.item` protocol must be revised from
+that profile's concrete data; the operation still remains native core ABI.
+
+Evidence that would invalidate this plan:
+
+- a second profile cannot represent its native Item visual source in the fixed
+  core record;
+- an Item visual source mutation cannot be represented as an atomic fixed-row
+  patch;
+- renderer output requires reading ItemProperty or base-item tables after
+  materialization;
+- editor replacement requires native changes for presentation-only behavior;
+  or
+- measured regression shows invalidation-driven SmallS/profile resolution
+  violates the accepted authoring latency budget.
+
+## Verification
+
+Static:
+
+- no `[[propset]]`, profile constant, or profile policy remains under `core.*`;
+- no `core.*` import points to `nwn1.*` or `toolset.*`;
+- packaged client core modules cannot be shadowed by a project toolset and no
+  native module is loaded through `load_toolset_module`;
+- client packaging rejects duplicate relative paths across core source trees;
+- no native Item function, type, row, or Item-specific ABI newtype is declared
+  outside `core.item`;
+- `core.item.ItemProperty` remains the only native property type;
+- `ItemDescriptor` and `ItemStats` resolve only as `nwn1.propsets.*`;
+- `core.item` visual setters contain no NWN part names, resource queries,
+  sentinel interpretation, or renderer calls;
+- generic renderer and client edit switches contain no NWN Item field/slot
+  interpretation; and
+- no old Item propset JSON key is accepted.
+
+Behavioral:
+
+- all representative model types render after load;
+- model and color edits update the live preview without resetting unrelated
+  camera/orientation state;
+- property insert/remove/value edits preserve list order and exact fields;
+- inventory/equipment ownership remains singular;
+- commit, undo, and redo select and refresh the affected object;
+- save/reload round-trips the exact current state; and
+- malformed input fails with one bounded diagnostic and no partial state.
+
+Performance:
+
+- measure startup/profile fact import;
+- measure a 1,460-item JSON load/materialization batch in a dedicated harness;
+- measure visual patch commit/undo/redo for one-row and multi-row batches;
+- measure allocations and visible-row work for item-property catalogs; and
+- compare before/after on the same build type and module data.
+
+No performance result is claimed until those measurements exist.
+
+## Done Criteria
+
+- every Item datum and operation in this cross-section has the stated owner;
+- `core.item` contains every native Item function/type plus the reusable
+  profile-neutral property processor, and no propset or NWN gameplay policy;
+- all Item propsets and scripted NWN policy types are profile-qualified;
+- Item source visuals are native core data, not a propset;
+- plural core visual setters validate atomically and emit one source
+  invalidation without calling profile or renderer code;
+- the selected profile assigns meaning and resolves each invalidated Item once;
+- ItemProperty catalogs no longer live in generic `EffectSystem`;
+- fixed NWN equipment types and policy no longer live in `core.creature`;
+- generic command history contains no NWN Item edit-kind knowledge;
+- native client tooling declarations and their signature types live only in
+  non-shadowable `core.*` modules;
+- the default editor is replaceable as one toolset package;
+- only current qualified JSON loads;
+- module reimport and round-trip verification pass; and
+- the measured verification report records results or explicitly records any
+  unmeasured gate.

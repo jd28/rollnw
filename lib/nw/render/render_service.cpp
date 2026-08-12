@@ -1,8 +1,7 @@
 #include "render_service.hpp"
 
-#include <nw/render/nwn/model_renderer.hpp>
-
 #include <nw/log.hpp>
+#include <nw/render/nwn/model_loader.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -72,7 +71,6 @@ void RenderService::shutdown_renderer()
         asset_cache_->clear();
     }
     asset_cache_.reset();
-    nwn_model_gpu_resources_.reset();
     model_backend_.reset();
     particle_renderer_.reset();
     fog_renderer_.reset();
@@ -151,17 +149,6 @@ nwn::RenderAssetCache& RenderService::asset_cache()
 ModelRenderContext RenderService::model_render_context() const
 {
     return {.gfx = ctx_, .gpu = model_backend_.get()};
-}
-
-nwn::ModelRenderContext RenderService::nwn_model_render_context()
-{
-    asset_cache_->sync_resource_generation();
-    return {
-        .gfx = ctx_,
-        .gpu = model_backend_.get(),
-        .assets = asset_cache_.get(),
-        .legacy_gpu = nwn_model_gpu_resources_.get(),
-    };
 }
 
 const nwn::RenderAssetCache& RenderService::asset_cache() const
@@ -263,18 +250,6 @@ bool RenderService::initialize_runtime()
         local_shadow_renderer_.reset();
         fog_renderer_.reset();
         particle_renderer_.reset();
-        model_backend_.reset();
-        return false;
-    }
-
-    nwn_model_gpu_resources_ = std::make_unique<nwn::ModelGpuResources>(ctx_);
-    if (!nwn_model_gpu_resources_->initialize()) {
-        forward_plus_renderer_.reset();
-        shadow_renderer_.reset();
-        local_shadow_renderer_.reset();
-        fog_renderer_.reset();
-        particle_renderer_.reset();
-        nwn_model_gpu_resources_.reset();
         model_backend_.reset();
         return false;
     }

@@ -1,0 +1,38 @@
+BaseItemDefinition {
+    id = 36,
+    info = BaseItemInfo {
+        label = "gloves",
+        name = 1530,
+        model_type = 0,
+        item_class = resref("it_glove"),
+        default_model = resref("it_bag"),
+        default_icon = resref("iit_glove"),
+        item_property_column = 21,
+        inventory_width = 2,
+        inventory_height = 1,
+        equipable_slots = 8,
+        stack_size = 1,
+        is_container = false
+    },
+    rules = BaseItemRules {
+        base_cost = 1,
+        cost_multiplier = 1.0,
+        requirements = {},
+        base_ac = 0,
+        damage_num = 0,
+        damage_die = 0,
+        crit_threat = 0,
+        crit_multiplier = 0,
+        weapon_type = 2,
+        ranged = false,
+        weapon_size = 0,
+        weapon_focus_feat = 100,
+        epic_weapon_focus_feat = 630,
+        weapon_specialization_feat = 138,
+        epic_weapon_specialization_feat = 668,
+        weapon_improved_critical_feat = 62,
+        epic_weapon_overwhelming_critical_feat = 720,
+        epic_weapon_devastating_critical_feat = 506,
+        weapon_of_choice_feat = -1
+    }
+}

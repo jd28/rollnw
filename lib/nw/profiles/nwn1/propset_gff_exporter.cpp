@@ -18,7 +18,6 @@
 #include "../../resources/assets.hpp"
 #include "../../rules/RuntimeObject.hpp"
 #include "../../serialization/GffBuilder.hpp"
-#include "../../smalls/Array.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/HandlePool.hpp"
 #include "legacy_spellbook_gff.hpp"
@@ -26,14 +25,10 @@
 
 #include <fmt/format.h>
 
-#include <array>
-
 namespace nwn1 {
 
 namespace {
 
-constexpr size_t item_model_color_count = 6;
-constexpr size_t item_model_part_count = 19;
 constexpr size_t creature_class_slot_count = 8;
 
 struct ItemPartGffField {
@@ -79,21 +74,6 @@ constexpr const char* color_fields[] = {
     "Metal2Color",
 };
 
-struct ItemVisualData {
-    std::array<uint8_t, item_model_color_count> model_colors{};
-    std::array<uint16_t, item_model_part_count> model_parts{};
-    std::array<std::array<uint8_t, item_model_color_count>, item_model_part_count> part_colors{};
-};
-
-ItemVisualData default_item_visual_data()
-{
-    ItemVisualData result{};
-    for (auto& part_color : result.part_colors) {
-        part_color.fill(255);
-    }
-    return result;
-}
-
 LegacySpellBook export_ability_loadout_as_spellbook(nw::ObjectHandle owner, nw::Class class_id)
 {
     LegacySpellBook result;
@@ -135,149 +115,6 @@ LegacySpellBook export_ability_loadout_as_spellbook(nw::ObjectHandle owner, nw::
     }
 
     return result;
-}
-
-uint8_t clamp_visual_u8(int32_t value) noexcept
-{
-    if (value < 0) { return 0; }
-    if (value > 255) { return 255; }
-    return static_cast<uint8_t>(value);
-}
-
-uint16_t clamp_visual_u16(int32_t value) noexcept
-{
-    if (value < 0) { return 0; }
-    if (value > 65535) { return 65535; }
-    return static_cast<uint16_t>(value);
-}
-
-bool fixed_int_array_offset(
-    nw::smalls::Runtime& rt,
-    const nw::smalls::StructDef* def,
-    const char* name,
-    size_t expected_count,
-    uint32_t& out)
-{
-    if (!def) { return false; }
-
-    uint32_t field = def->field_index(name);
-    if (field == UINT32_MAX) { return false; }
-
-    const nw::smalls::Type* type = rt.get_type(def->fields[field].type_id);
-    if (!type || type->type_kind != nw::smalls::TK_fixed_array
-        || !type->type_params[0].is<nw::smalls::TypeID>()
-        || !type->type_params[1].is<int32_t>()) {
-        return false;
-    }
-
-    const nw::smalls::Type* elem = rt.get_type(type->type_params[0].as<nw::smalls::TypeID>());
-    if (!elem || elem->type_kind != nw::smalls::TK_primitive
-        || elem->primitive_kind != nw::smalls::PK_int) {
-        return false;
-    }
-
-    int32_t count = type->type_params[1].as<int32_t>();
-    if (count < 0 || static_cast<size_t>(count) < expected_count) {
-        return false;
-    }
-
-    out = def->fields[field].offset;
-    return true;
-}
-
-template <size_t N>
-bool read_visual_u8_array(
-    nw::smalls::Runtime& rt,
-    const nw::smalls::Value& ref,
-    const nw::smalls::StructDef* def,
-    const char* name,
-    std::array<uint8_t, N>& out)
-{
-    uint32_t offset = 0;
-    if (!fixed_int_array_offset(rt, def, name, N, offset)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < N; ++i) {
-        nw::smalls::Value value = rt.read_value_field_at_offset(
-            ref, offset + uint32_t(i) * 4u, rt.int_type());
-        out[i] = clamp_visual_u8(value.data.ival);
-    }
-    return true;
-}
-
-template <size_t N>
-bool read_visual_u16_array(
-    nw::smalls::Runtime& rt,
-    const nw::smalls::Value& ref,
-    const nw::smalls::StructDef* def,
-    const char* name,
-    std::array<uint16_t, N>& out)
-{
-    uint32_t offset = 0;
-    if (!fixed_int_array_offset(rt, def, name, N, offset)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < N; ++i) {
-        nw::smalls::Value value = rt.read_value_field_at_offset(
-            ref, offset + uint32_t(i) * 4u, rt.int_type());
-        out[i] = clamp_visual_u16(value.data.ival);
-    }
-    return true;
-}
-
-bool read_visual_part_colors(
-    nw::smalls::Runtime& rt,
-    const nw::smalls::Value& ref,
-    const nw::smalls::StructDef* def,
-    std::array<std::array<uint8_t, item_model_color_count>, item_model_part_count>& out)
-{
-    constexpr size_t total_count = item_model_part_count * item_model_color_count;
-
-    uint32_t offset = 0;
-    if (!fixed_int_array_offset(rt, def, "part_colors", total_count, offset)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < total_count; ++i) {
-        nw::smalls::Value value = rt.read_value_field_at_offset(
-            ref, offset + uint32_t(i) * 4u, rt.int_type());
-        out[i / item_model_color_count][i % item_model_color_count] = clamp_visual_u8(value.data.ival);
-    }
-    return true;
-}
-
-bool read_item_visual_data_from_propset(nw::smalls::Runtime& rt, nw::ObjectHandle handle, ItemVisualData& out)
-{
-    if (handle.id == nw::object_invalid || handle.type != nw::ObjectType::item) {
-        return false;
-    }
-
-    nw::smalls::TypeID tid = rt.type_id("core.item.ItemVisuals", false);
-    if (tid == nw::smalls::invalid_type_id) {
-        return false;
-    }
-
-    nw::smalls::Value ref = rt.find_propset_ref(tid, handle);
-    if (ref.type_id == nw::smalls::invalid_type_id) {
-        return false;
-    }
-
-    const nw::smalls::StructDef* def = rt.get_struct_def(tid);
-    if (!def) {
-        return false;
-    }
-
-    ItemVisualData data{};
-    if (!read_visual_u8_array(rt, ref, def, "model_colors", data.model_colors)
-        || !read_visual_u16_array(rt, ref, def, "model_parts", data.model_parts)
-        || !read_visual_part_colors(rt, ref, def, data.part_colors)) {
-        return false;
-    }
-
-    out = data;
-    return true;
 }
 
 nw::ItemModelType item_model_type_for_export(nw::smalls::Runtime& rt, nw::ObjectHandle handle)
@@ -347,11 +184,11 @@ void PropsetGffExporter::export_creature(const nw::Creature* obj, nw::GffBuilder
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.creature.CreatureDescriptor",
-        "core.creature.CreatureAppearance",
-        "core.creature.CreatureStats",
-        "core.creature.CreatureHealth",
-        "core.creature.CreatureCombat",
+        "nwn1.propsets.CreatureDescriptor",
+        "nwn1.propsets.CreatureAppearance",
+        "nwn1.propsets.CreatureStats",
+        "nwn1.propsets.CreatureHealth",
+        "nwn1.propsets.CreatureCombat",
     };
     for (auto* qname : names) {
         export_object_propset(obj, qname, out, profile);
@@ -368,7 +205,7 @@ void PropsetGffExporter::export_creature_levels(const nw::Creature* obj, nw::Gff
         return;
     }
 
-    nw::smalls::TypeID tid = rt_->type_id("core.creature.CreatureLevels", false);
+    nw::smalls::TypeID tid = rt_->type_id("nwn1.propsets.CreatureLevels", false);
     if (tid == nw::smalls::invalid_type_id) {
         out.add_field("WalkRate", 0);
         return;
@@ -415,8 +252,8 @@ void PropsetGffExporter::export_item(const nw::Item* obj, nw::GffBuilderStruct& 
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.item.ItemDescriptor",
-        "core.item.ItemStats",
+        "nwn1.propsets.ItemDescriptor",
+        "nwn1.propsets.ItemStats",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -434,7 +271,32 @@ void PropsetGffExporter::export_item(const nw::Item* obj, nw::GffBuilderStruct& 
         export_propset(ref, def, *policy, out, profile);
     }
 
+    export_item_properties(obj, out);
     export_item_visuals(obj, out, profile);
+}
+
+void PropsetGffExporter::export_item_properties(
+    const nw::Item* obj, nw::GffBuilderStruct& out) const
+{
+    if (!obj) { return; }
+
+    auto& list = out.add_list("PropertiesList");
+    const auto* properties = nw::kernel::objects().components().find_item_properties(
+        obj->handle());
+    if (!properties) { return; }
+
+    for (const auto& property : properties->entries) {
+        auto& entry = list.push_back(0);
+        entry.add_field("PropertyName", property.type)
+            .add_field("Subtype", property.subtype)
+            .add_field("CostTable", property.cost_table)
+            .add_field("CostValue", property.cost_value)
+            .add_field("Param1", property.param_table)
+            .add_field("Param1Value", property.param_value);
+        if (!property.tag.empty()) {
+            entry.add_field("CustomTag", nw::String{property.tag});
+        }
+    }
 }
 
 void PropsetGffExporter::export_item_visuals(const nw::Item* obj,
@@ -443,36 +305,38 @@ void PropsetGffExporter::export_item_visuals(const nw::Item* obj,
 {
     if (!obj || !rt_) { return; }
 
-    ItemVisualData visual_data = default_item_visual_data();
-    read_item_visual_data_from_propset(*rt_, obj->handle(), visual_data);
+    nw::ObjectItemVisualState defaults{.owner = obj->handle()};
+    const auto* visual_data = nw::kernel::objects().components().find_item_visuals(obj->handle());
+    if (!visual_data) { visual_data = &defaults; }
     nw::ItemModelType model_type = item_model_type_for_export(*rt_, obj->handle());
 
     if (model_type == nw::ItemModelType::armor) {
         for (const auto& field : armor_part_fields) {
-            out.add_field(field.legacy, static_cast<uint8_t>(visual_data.model_parts[field.part]));
-            out.add_field(field.extended, visual_data.model_parts[field.part]);
+            out.add_field(field.legacy, static_cast<uint8_t>(visual_data->model_parts[field.part]));
+            out.add_field(field.extended, visual_data->model_parts[field.part]);
         }
 
-        for (size_t part = 0; part < item_model_part_count; ++part) {
-            for (size_t color = 0; color < item_model_color_count; ++color) {
-                if (visual_data.part_colors[part][color] == 255) { continue; }
+        for (size_t part = 0; part < visual_data->model_parts.size(); ++part) {
+            for (size_t color = 0; color < visual_data->model_colors.size(); ++color) {
+                const uint8_t value = visual_data->part_colors[part * nw::ObjectItemVisualState::model_color_count + color];
+                if (value == nw::ObjectItemVisualState::inherit_part_color) { continue; }
                 out.add_field(fmt::format("APart_{}_Col_{}", part, color),
-                    visual_data.part_colors[part][color]);
+                    value);
             }
         }
     } else if (model_type == nw::ItemModelType::composite) {
         for (const auto& field : model_part_fields) {
-            out.add_field(field.legacy, static_cast<uint8_t>(visual_data.model_parts[field.part]));
-            out.add_field(field.extended, visual_data.model_parts[field.part]);
+            out.add_field(field.legacy, static_cast<uint8_t>(visual_data->model_parts[field.part]));
+            out.add_field(field.extended, visual_data->model_parts[field.part]);
         }
     } else {
-        out.add_field("ModelPart1", static_cast<uint8_t>(visual_data.model_parts[nw::ItemModelParts::model1]));
-        out.add_field("xModelPart1", visual_data.model_parts[nw::ItemModelParts::model1]);
+        out.add_field("ModelPart1", static_cast<uint8_t>(visual_data->model_parts[nw::ItemModelParts::model1]));
+        out.add_field("xModelPart1", visual_data->model_parts[nw::ItemModelParts::model1]);
     }
 
     bool composite_has_model_colors = false;
     if (model_type == nw::ItemModelType::composite) {
-        for (auto color : visual_data.model_colors) {
+        for (auto color : visual_data->model_colors) {
             if (color != 0) {
                 composite_has_model_colors = true;
                 break;
@@ -483,8 +347,8 @@ void PropsetGffExporter::export_item_visuals(const nw::Item* obj,
     if (model_type == nw::ItemModelType::layered
         || model_type == nw::ItemModelType::armor
         || composite_has_model_colors) {
-        for (size_t i = 0; i < item_model_color_count; ++i) {
-            out.add_field(color_fields[i], visual_data.model_colors[i]);
+        for (size_t i = 0; i < visual_data->model_colors.size(); ++i) {
+            out.add_field(color_fields[i], visual_data->model_colors[i]);
         }
     }
 }
@@ -494,7 +358,7 @@ void PropsetGffExporter::export_door(const nw::Door* obj, nw::GffBuilderStruct& 
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.door.DoorState",
+        "nwn1.propsets.DoorState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -518,7 +382,7 @@ void PropsetGffExporter::export_encounter(const nw::Encounter* obj, nw::GffBuild
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.encounter.EncounterState",
+        "nwn1.propsets.EncounterState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -542,7 +406,7 @@ void PropsetGffExporter::export_placeable(const nw::Placeable* obj, nw::GffBuild
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.placeable.PlaceableState",
+        "nwn1.propsets.PlaceableState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -566,7 +430,7 @@ void PropsetGffExporter::export_sound(const nw::Sound* obj, nw::GffBuilderStruct
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.sound.SoundState",
+        "nwn1.propsets.SoundState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -590,7 +454,7 @@ void PropsetGffExporter::export_store(const nw::Store* obj, nw::GffBuilderStruct
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.store.StoreState",
+        "nwn1.propsets.StoreState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -614,7 +478,7 @@ void PropsetGffExporter::export_trigger(const nw::Trigger* obj, nw::GffBuilderSt
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.trigger.TriggerState",
+        "nwn1.propsets.TriggerState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -638,7 +502,7 @@ void PropsetGffExporter::export_waypoint(const nw::Waypoint* obj, nw::GffBuilder
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.waypoint.WaypointState",
+        "nwn1.propsets.WaypointState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -883,7 +747,7 @@ void PropsetGffExporter::export_list_paired(const FieldGffPolicy& fp,
 
     // ClassList has 8 slots; skip trailing invalid entries (class value == -1).
     // We determine the count from field_a (classes fixed array).
-    // Max is 8 slots (core.creature.CreatureLevels.classes).
+    // Max is 8 slots (nwn1.propsets.CreatureLevels.classes).
     for (size_t i = 0; i < 8; ++i) {
         int32_t va = read_int(ref, field_a->offset + uint32_t(i) * 4u);
         if (va == -1) { continue; } // skip invalid (sparse) class slots
@@ -960,10 +824,10 @@ void export_creature_propsets_to_gff(nw::smalls::Runtime* rt, const nw::Creature
 
     PropsetGffExporter exporter{rt, &propset_gff_policy_registry()};
     exporter.export_creature_levels(obj, out, profile);
-    exporter.export_object_propset(obj, "core.creature.CreatureDescriptor", out, profile);
-    exporter.export_object_propset(obj, "core.creature.CreatureAppearance", out, profile);
-    exporter.export_object_propset(obj, "core.creature.CreatureStats", out, profile);
-    exporter.export_object_propset(obj, "core.creature.CreatureHealth", out, profile);
+    exporter.export_object_propset(obj, "nwn1.propsets.CreatureDescriptor", out, profile);
+    exporter.export_object_propset(obj, "nwn1.propsets.CreatureAppearance", out, profile);
+    exporter.export_object_propset(obj, "nwn1.propsets.CreatureStats", out, profile);
+    exporter.export_object_propset(obj, "nwn1.propsets.CreatureHealth", out, profile);
 }
 
 void export_item_propsets_to_gff(nw::smalls::Runtime* rt, const nw::Item* obj,

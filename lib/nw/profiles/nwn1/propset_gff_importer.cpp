@@ -8,6 +8,8 @@
 #include "../../objects/Encounter.hpp"
 #include "../../objects/Item.hpp"
 #include "../../objects/ObjectBase.hpp"
+#include "../../objects/ObjectComponentSystem.hpp"
+#include "../../objects/ObjectManager.hpp"
 #include "../../objects/Placeable.hpp"
 #include "../../objects/Sound.hpp"
 #include "../../objects/Store.hpp"
@@ -25,6 +27,7 @@
 
 #include <algorithm>
 #include <array>
+#include <limits>
 
 namespace nwn1 {
 
@@ -40,9 +43,6 @@ void import_object_propsets_from_gff(nw::smalls::Runtime* rt, T* obj,
     PropsetGffImporter importer{rt, &propset_gff_policy_registry()};
     (importer.*import_fn)(obj, gff, profile);
 }
-
-constexpr size_t item_model_color_count = 6;
-constexpr size_t item_model_part_count = 19;
 
 struct ItemPartGffField {
     size_t part = 0;
@@ -136,12 +136,12 @@ void PropsetGffImporter::import_creature(nw::Creature* obj, const nw::GffStruct&
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.creature.CreatureDescriptor",
-        "core.creature.CreatureAppearance",
-        "core.creature.CreatureStats",
-        "core.creature.CreatureHealth",
-        "core.creature.CreatureLevels",
-        "core.creature.CreatureCombat",
+        "nwn1.propsets.CreatureDescriptor",
+        "nwn1.propsets.CreatureAppearance",
+        "nwn1.propsets.CreatureStats",
+        "nwn1.propsets.CreatureHealth",
+        "nwn1.propsets.CreatureLevels",
+        "nwn1.propsets.CreatureCombat",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -165,8 +165,8 @@ void PropsetGffImporter::import_item(nw::Item* obj, const nw::GffStruct& gff,
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.item.ItemDescriptor",
-        "core.item.ItemStats",
+        "nwn1.propsets.ItemDescriptor",
+        "nwn1.propsets.ItemStats",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -183,6 +183,7 @@ void PropsetGffImporter::import_item(nw::Item* obj, const nw::GffStruct& gff,
 
         import_propset(ref, def, *policy, gff, profile);
     }
+    import_item_properties(obj, gff);
     import_item_visuals(obj, gff);
 }
 
@@ -191,7 +192,7 @@ void PropsetGffImporter::import_door(nw::Door* obj, const nw::GffStruct& gff,
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.door.DoorState",
+        "nwn1.propsets.DoorState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -215,7 +216,7 @@ void PropsetGffImporter::import_encounter(nw::Encounter* obj, const nw::GffStruc
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.encounter.EncounterState",
+        "nwn1.propsets.EncounterState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -239,7 +240,7 @@ void PropsetGffImporter::import_placeable(nw::Placeable* obj, const nw::GffStruc
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.placeable.PlaceableState",
+        "nwn1.propsets.PlaceableState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -263,7 +264,7 @@ void PropsetGffImporter::import_sound(nw::Sound* obj, const nw::GffStruct& gff,
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.sound.SoundState",
+        "nwn1.propsets.SoundState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -287,7 +288,7 @@ void PropsetGffImporter::import_store(nw::Store* obj, const nw::GffStruct& gff,
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.store.StoreState",
+        "nwn1.propsets.StoreState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -311,7 +312,7 @@ void PropsetGffImporter::import_trigger(nw::Trigger* obj, const nw::GffStruct& g
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.trigger.TriggerState",
+        "nwn1.propsets.TriggerState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -335,7 +336,7 @@ void PropsetGffImporter::import_waypoint(nw::Waypoint* obj, const nw::GffStruct&
 {
     if (!obj) { return; }
     const char* names[] = {
-        "core.waypoint.WaypointState",
+        "nwn1.propsets.WaypointState",
     };
     for (auto* qname : names) {
         const PropsetGffPolicy* policy = registry_->find(qname);
@@ -748,32 +749,39 @@ void PropsetGffImporter::import_list_struct(const FieldGffPolicy& fp,
     }
 }
 
+void PropsetGffImporter::import_item_properties(
+    nw::Item* obj, const nw::GffStruct& gff) const
+{
+    if (!obj) { return; }
+
+    auto list = gff["PropertiesList"];
+    nw::Vector<nw::ItemProperty> properties;
+    properties.reserve(list.valid() ? list.size() : 0);
+    for (size_t i = 0; list.valid() && i < list.size(); ++i) {
+        nw::ItemProperty property;
+        if (!list[i].get_to("PropertyName", property.type, false)
+            || !list[i].get_to("Subtype", property.subtype, false)
+            || !list[i].get_to("CostTable", property.cost_table, false)
+            || !list[i].get_to("CostValue", property.cost_value, false)
+            || !list[i].get_to("Param1", property.param_table, false)
+            || !list[i].get_to("Param1Value", property.param_value, false)) {
+            continue;
+        }
+        nw::String tag;
+        list[i].get_to("CustomTag", tag, false);
+        property.tag = std::move(tag);
+        properties.push_back(std::move(property));
+    }
+
+    nw::kernel::objects().components().set_item_properties(
+        obj->handle(), properties);
+}
+
 void PropsetGffImporter::import_item_visuals(nw::Item* obj, const nw::GffStruct& gff) const
 {
     if (!obj) { return; }
 
-    nw::smalls::TypeID tid = rt_->type_id("core.item.ItemVisuals", false);
-    if (tid == nw::smalls::invalid_type_id) {
-        write_item_armor_stats(obj, -1);
-        return;
-    }
-
-    nw::smalls::Value ref = rt_->get_or_create_propset_ref(tid, obj->handle());
-    if (ref.type_id == nw::smalls::invalid_type_id) {
-        write_item_armor_stats(obj, -1);
-        return;
-    }
-
-    const nw::smalls::StructDef* def = rt_->get_struct_def(tid);
-    if (!def) {
-        write_item_armor_stats(obj, -1);
-        return;
-    }
-
-    std::array<int32_t, item_model_color_count> model_colors{};
-    std::array<int32_t, item_model_part_count> model_parts{};
-    std::array<int32_t, item_model_part_count * item_model_color_count> part_colors{};
-    part_colors.fill(255);
+    nw::ObjectItemVisualState visual_state{.owner = obj->handle()};
 
     const bool is_armor = gff.has_field("ArmorPart_Belt");
     const bool is_composite = gff.has_field("ModelPart2");
@@ -782,64 +790,64 @@ void PropsetGffImporter::import_item_visuals(nw::Item* obj, const nw::GffStruct&
     if (is_armor) {
         for (const auto& field : armor_part_fields) {
             int32_t value = 0;
-            if (read_part_field(gff, field, value) && field.part < model_parts.size()) {
-                model_parts[field.part] = value;
+            if (read_part_field(gff, field, value)
+                && value >= 0 && value <= std::numeric_limits<uint16_t>::max()
+                && field.part < visual_state.model_parts.size()) {
+                visual_state.model_parts[field.part] = static_cast<uint16_t>(value);
             }
         }
     } else if (is_composite) {
         for (const auto& field : model_part_fields) {
             int32_t value = 0;
-            if (read_part_field(gff, field, value) && field.part < model_parts.size()) {
-                model_parts[field.part] = value;
+            if (read_part_field(gff, field, value)
+                && value >= 0 && value <= std::numeric_limits<uint16_t>::max()
+                && field.part < visual_state.model_parts.size()) {
+                visual_state.model_parts[field.part] = static_cast<uint16_t>(value);
             }
         }
     } else {
         int32_t value = 0;
-        if (read_part_field(gff, model_part_fields[0], value)) {
-            model_parts[nw::ItemModelParts::model1] = value;
+        if (read_part_field(gff, model_part_fields[0], value)
+            && value >= 0 && value <= std::numeric_limits<uint16_t>::max()) {
+            visual_state.model_parts[nw::ItemModelParts::model1] = static_cast<uint16_t>(value);
         }
     }
 
     if (is_armor || is_composite || has_model_colors) {
-        for (size_t i = 0; i < model_colors.size(); ++i) {
+        for (size_t i = 0; i < visual_state.model_colors.size(); ++i) {
             uint8_t value = 0;
             if (gff.get_to(color_fields[i], value, false)) {
-                model_colors[i] = value;
+                visual_state.model_colors[i] = value;
             }
         }
     }
 
     if (is_armor) {
-        for (size_t part = 0; part < item_model_part_count; ++part) {
-            for (size_t color = 0; color < item_model_color_count; ++color) {
+        for (size_t part = 0; part < visual_state.model_parts.size(); ++part) {
+            for (size_t color = 0; color < visual_state.model_colors.size(); ++color) {
                 uint8_t value = 255;
                 auto field_name = fmt::format("APart_{}_Col_{}", part, color);
                 if (gff.get_to(field_name, value, false)) {
-                    part_colors[part * item_model_color_count + color] = value;
+                    visual_state.part_colors[part * nw::ObjectItemVisualState::model_color_count + color] = value;
                 }
             }
         }
     }
 
-    auto write_fixed_array = [&](const char* name, const auto& values) {
-        uint32_t field = def->field_index(name);
-        if (field == UINT32_MAX) { return; }
-        uint32_t offset = def->fields[field].offset;
-        for (size_t i = 0; i < values.size(); ++i) {
-            write_int(ref, offset + uint32_t(i) * 4u, values[i]);
-        }
-    };
-
-    write_fixed_array("model_colors", model_colors);
-    write_fixed_array("model_parts", model_parts);
-    write_fixed_array("part_colors", part_colors);
+    nw::kernel::objects().components().set_item_visuals(
+        obj->handle(),
+        visual_state.model_colors,
+        visual_state.model_parts,
+        visual_state.part_colors);
 
     int32_t armor_id = -1;
     if (is_armor) {
         auto* parts_chest = nw::kernel::twodas().get("parts_chest");
         float value = 0.0f;
         if (parts_chest
-            && parts_chest->get_to(static_cast<size_t>(model_parts[nw::ItemModelParts::armor_torso]), "ACBonus", value)) {
+            && parts_chest->get_to(
+                static_cast<size_t>(visual_state.model_parts[nw::ItemModelParts::armor_torso]),
+                "ACBonus", value)) {
             armor_id = static_cast<int32_t>(value);
         }
     }
@@ -850,7 +858,7 @@ void PropsetGffImporter::write_item_armor_stats(nw::Item* obj, int32_t armor_id)
 {
     if (!obj) { return; }
 
-    nw::smalls::TypeID tid = rt_->type_id("core.item.ItemStats", false);
+    nw::smalls::TypeID tid = rt_->type_id("nwn1.propsets.ItemStats", false);
     if (tid == nw::smalls::invalid_type_id) { return; }
 
     nw::smalls::Value ref = rt_->get_or_create_propset_ref(tid, obj->handle());

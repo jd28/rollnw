@@ -1,0 +1,7 @@
+LegacyClassEntry {
+    id = 10,
+    hit_die = 4,
+    spellcaster = true,
+    memorizes_spells = true,
+    spell_table = 5
+}

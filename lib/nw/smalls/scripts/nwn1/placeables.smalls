@@ -1,8 +1,19 @@
-import core.array as Array;
 import core.types as T;
 import core.visual as Visual;
-from core.placeable import { PlaceableState };
-from nwn1.rules import { PlaceableEntry };
+import core.array as Array;
+import core.placeable as NativePlaceable;
+import nwn1.rules as Rules;
+from nwn1.propsets import { PlaceableState };
+
+const animation_state_none = 0;
+const animation_state_open = 1;
+const animation_state_closed = 2;
+const animation_state_destroyed = 3;
+const animation_state_activated = 4;
+const animation_state_deactivated = 5;
+
+var _loaded = false;
+var _placeables: array!(Rules.PlaceableRules);
 
 type PlaceableResolvedModel {
     model:      T.ResRef;
@@ -19,16 +30,11 @@ type PlaceableResolvedLighting {
     valid:    bool;
 };
 
-var _loaded = false;
-var _placeables: array!(PlaceableEntry);
-
-fn _ensure_loaded() {
-    if (_loaded) {
-        return;
-    }
-    _placeables = load_config!(PlaceableEntry)("nwn1.data.placeables");
-    _loaded = true;
-}
+type PlaceableResolvedAnimation {
+    hold_animation: T.ResRef;
+    valid:          bool;
+    error:          string;
+};
 
 fn _invalid_model(appearance: int, error: string): PlaceableResolvedModel {
     return PlaceableResolvedModel {
@@ -49,27 +55,57 @@ fn _invalid_lighting(): PlaceableResolvedLighting {
     };
 }
 
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _placeables = load_config!(Rules.PlaceableRules)("nwn1.data.placeables");
+    _loaded = true;
+}
+
+fn get_rules(appearance: int): Rules.PlaceableRules {
+    _ensure_loaded();
+    if (appearance >= 0 && appearance < Array.len(_placeables)) {
+        var result = Array.get(_placeables, appearance);
+        if (result.id == appearance) {
+            return result;
+        }
+    }
+
+    var invalid: Rules.PlaceableRules;
+    invalid.id = -1;
+    return invalid;
+}
+
+fn get_info(appearance: int): NativePlaceable.PlaceableAppearanceInfo {
+    return NativePlaceable.placeable_info(appearance);
+}
+
 fn count(): int {
     _ensure_loaded();
     return Array.len(_placeables);
 }
 
 fn exists(appearance: int): bool {
-    _ensure_loaded();
-    return appearance >= 0 && appearance < Array.len(_placeables);
+    if (appearance < 0 || appearance >= count()) {
+        return false;
+    }
+    return get_rules(appearance).id == appearance
+        && get_info(appearance).id == appearance;
 }
 
 fn resolve_placeable_model_by_appearance(appearance: int): PlaceableResolvedModel {
-    _ensure_loaded();
-
     if (appearance < 0) {
         return _invalid_model(appearance, f"appearance {appearance} is invalid");
     }
-    if (appearance >= Array.len(_placeables)) {
+    if (appearance >= count()) {
         return _invalid_model(appearance, f"appearance {appearance} was not found in placeables.2da");
     }
 
-    var entry = Array.get(_placeables, appearance);
+    var entry = get_info(appearance);
+    if (entry.id != appearance) {
+        return _invalid_model(appearance, f"appearance {appearance} was not found in placeables.2da");
+    }
     var model = T.resref_to_string(entry.model);
     if (model == "" || model == "****") {
         return _invalid_model(appearance, f"appearance {appearance} has no model in placeables.2da");
@@ -89,14 +125,15 @@ fn resolve_placeable_model(placeable: Placeable): PlaceableResolvedModel {
 }
 
 fn resolve_placeable_lighting_by_state(appearance: int, override_light_color: int): PlaceableResolvedLighting {
-    _ensure_loaded();
-
-    if (appearance < 0 || appearance >= Array.len(_placeables)) {
+    if (appearance < 0 || appearance >= count()) {
         return _invalid_lighting();
     }
 
-    var entry = Array.get(_placeables, appearance);
-    var color = entry.light_color;
+    var rules = get_rules(appearance);
+    if (rules.id != appearance) {
+        return _invalid_lighting();
+    }
+    var color = rules.light_color;
     if (color < 0 && override_light_color >= 0) {
         color = override_light_color;
     }
@@ -106,9 +143,9 @@ fn resolve_placeable_lighting_by_state(appearance: int, override_light_color: in
 
     return PlaceableResolvedLighting {
         color = color,
-        offset_x = entry.light_offset_x,
-        offset_y = entry.light_offset_y,
-        offset_z = entry.light_offset_z,
+        offset_x = rules.light_offset_x,
+        offset_y = rules.light_offset_y,
+        offset_z = rules.light_offset_z,
         valid = true,
     };
 }
@@ -118,13 +155,43 @@ fn resolve_placeable_lighting(placeable: Placeable): PlaceableResolvedLighting {
     return resolve_placeable_lighting_by_state(state.appearance, state.light_color);
 }
 
+fn resolve_placeable_animation_state(animation_state: int): PlaceableResolvedAnimation {
+    var animation = T.resref("");
+    switch (animation_state) {
+        case animation_state_none: { animation = T.resref("default"); }
+        case animation_state_open: { animation = T.resref("open"); }
+        case animation_state_closed: { animation = T.resref("close"); }
+        case animation_state_destroyed: { animation = T.resref("dead"); }
+        case animation_state_activated: { animation = T.resref("on"); }
+        case animation_state_deactivated: { animation = T.resref("off"); }
+        default: {
+            return PlaceableResolvedAnimation {
+                hold_animation = animation,
+                valid = false,
+                error = f"placeable animation state {animation_state} is out of range",
+            };
+        }
+    }
+
+    return PlaceableResolvedAnimation {
+        hold_animation = animation,
+        valid = true,
+        error = "",
+    };
+}
+
 fn update_visual(placeable: Placeable): bool {
     var model = resolve_placeable_model(placeable);
+    var state = get_propset!(PlaceableState)(placeable);
+    var animation = resolve_placeable_animation_state(state.animation_state);
+    if (!animation.valid) {
+        return false;
+    }
     if (!Visual.clear_visual(placeable, model.appearance)) {
         return false;
     }
 
-    var ok = true;
+    var ok = Visual.set_visual_hold_animation(placeable, animation.hold_animation);
     if (model.valid) {
         ok = Visual.add_visual_model(
             placeable,
@@ -150,4 +217,29 @@ fn update_visual(placeable: Placeable): bool {
     }
 
     return ok;
+}
+
+fn appearance_exists(appearance: int): bool {
+    return resolve_placeable_model_by_appearance(appearance).valid;
+}
+
+fn set_appearance(placeable: Placeable, appearance: int): bool {
+    if (!appearance_exists(appearance)) {
+        return false;
+    }
+
+    var state = get_propset!(PlaceableState)(placeable);
+    var previous = state.appearance;
+    if (previous == appearance) {
+        return true;
+    }
+
+    state.appearance = appearance;
+    if (update_visual(placeable)) {
+        return true;
+    }
+
+    state.appearance = previous;
+    update_visual(placeable);
+    return false;
 }

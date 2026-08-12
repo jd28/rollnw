@@ -43,7 +43,7 @@ Status legend: ✅ Implemented · ⚠️ Partial (parsed but not fully applied) 
 | `alphaStart` / `alphaEnd` | float [0–1] | `over_life.alpha` | Multiplied by texture alpha channel if present | ✅ |
 | `sizeStart` / `sizeEnd` | float (meters) | `over_life.size_x/y` | `sizeStart_Y` / `sizeEnd_Y` fall back to X value when zero | ✅ |
 | `birthrate` | particles/sec | `emission.rate` | Animatable via `BirthRate` controller keys | ✅ |
-| `lifeExp` | seconds | `initial.lifetime` | Animatable; particle removed at expiry | ✅ |
+| `lifeExp` | seconds | `initial.lifetime` | Animatable; particle removed at expiry. Negative values are NWN's no-expiry sentinel and lower once to a finite perpetual runtime lifetime. | ✅ |
 | `mass` | float | `initial.mass` | Positive = gravity pulls down; negative = particle rises | ✅ |
 | `spread` | degrees [0–360] | `initial.spread_radians` | Converted to radians; 360 = spherical emission | ✅ |
 | `particleRot` | rotations/sec | `initial.rotation_rate` | Sprite rotation in the active billboard plane. `aligned_to_world_z` applies this as axial rotation around world Z so vertical shaft slices stay upright. | ✅ |
@@ -117,6 +117,8 @@ What you should see on screen for each combination:
 | `lighten` | `additive` | `ParticleRenderer` additive pipeline | Additive blend; black pixels are transparent; creates glow/magic feel; white adds brightness |
 
 **Practical heuristic:** If the texture has a black background and uses lightness to define shape (fire, sparks, magic), use `lighten`. If the texture has an explicit alpha channel (smoke puff, debris), use `normal`. For leaves or hard-edged decals, use `punch-through`.
+
+Compiled texture emitters with a missing `blend` value are recovered as `lighten`/additive and reported as an import warning. Missing blend values on mesh emitters and unsupported non-empty values recover as `normal`/alpha. This keeps malformed black-backed particle atlases usable without applying color-key inference to ordinary model textures.
 
 ### P2P Reference Node Direction Convention
 

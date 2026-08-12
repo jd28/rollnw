@@ -18,7 +18,7 @@ namespace {
 int32_t placeable_state_int(nw::Placeable* placeable, const char* field)
 {
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.placeable.PlaceableState", false);
+    auto tid = rt.type_id("nwn1.propsets.PlaceableState", false);
     if (!placeable || tid == nw::smalls::invalid_type_id) { return 0; }
 
     auto ref = rt.find_propset_ref(tid, placeable->handle());

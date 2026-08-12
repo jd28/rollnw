@@ -5,9 +5,16 @@ add_custom_target(copy-files2 ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/test_data
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
 
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/stdlib
+
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/../lib/nw/smalls/scripts
     ${CMAKE_CURRENT_BINARY_DIR}/stdlib
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tools/ui/scripts/toolset
+    ${CMAKE_CURRENT_BINARY_DIR}/stdlib/toolset
 )
 
 # Need .cpp extension for ctest
@@ -15,6 +22,16 @@ add_executable(rollnw_test
     main.cpp
     nwn1_test_builders.cpp
 
+    rollnw_client_appearance_catalog.cpp
+    rollnw_client_commands.cpp
+    rollnw_client_dialog_document.cpp
+    rollnw_client_object_edits.cpp
+    rollnw_client_smalls_creature_feats.cpp
+    rollnw_client_smalls_creature_inventory.cpp
+    rollnw_client_smalls_item_editor.cpp
+    rollnw_client_smalls_creature_spells.cpp
+    rollnw_client_smalls_property_tree.cpp
+    rollnw_client_virtual_list.cpp
     formats_dialog.cpp
     formats_faction.cpp
     formats_ini.cpp
@@ -41,6 +58,16 @@ add_executable(rollnw_test
     model_particles.cpp
     ../tools/mudl/benchmark_report.cpp
     ../tools/mudl/mudl_cli.cpp
+    ../tools/ui/smalls_property_tree.cpp
+    ../tools/ui/smalls_creature_feats.cpp
+    ../tools/ui/smalls_creature_inventory.cpp
+    ../tools/ui/smalls_creature_properties.cpp
+    ../tools/ui/smalls_creature_spells.cpp
+    ../tools/ui/smalls_item_icons.cpp
+    ../tools/ui/ui_v1.cpp
+    ../tools/ui/rml_generated_texture.cpp
+    ../tools/ui/virtual_combobox.cpp
+    ../tools/ui/virtual_list.cpp
     mudl_benchmark_report.cpp
     mudl_cli.cpp
     nwn1_gff_propset_component_json.cpp
@@ -159,9 +186,11 @@ if(TARGET nw-render-viewer)
         render_prepared_model_draws.cpp
         render_preview_model_animation.cpp
         render_forward_plus.cpp
+        render_viewer_area_selection.cpp
         render_viewer_prepared_draws.cpp
         render_viewer_particles.cpp
         render_viewer_lighting.cpp
+        rollnw_client_viewer_camera.cpp
     )
     target_link_libraries(rollnw_test PRIVATE
         nw-render-viewer)
@@ -174,13 +203,37 @@ target_include_directories(rollnw_test PRIVATE
     ../tools/smalls-lsp
 )
 
+target_compile_definitions(rollnw_test PRIVATE
+    ROLLNW_TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 include(../cmake/CompilerWarnings.cmake)
 set_project_warnings(rollnw_test OWN_SOURCES)
 
 target_link_libraries(rollnw_test PRIVATE
+    rollnw_client_core
     nw
     Threads::Threads
     GTest::gtest)
+
+if(TARGET RmlUi::RmlUi)
+    target_sources(rollnw_test PRIVATE
+        rollnw_client_rml_smalls_data_model.cpp
+        rollnw_client_rml_smalls_language_binding.cpp
+        ../tools/ui/rml_smalls_data_model.cpp
+        ../tools/ui/rml_smalls_language_binding.cpp
+        ../tools/ui/rml_smalls_bridge.cpp
+        ../tools/ui/rml_managed_list.cpp
+        ../tools/ui/smalls_diagnostics.cpp
+        ../tools/ui/smalls_rmlui.cpp
+        ../tools/ui/smalls_ui_v1.cpp
+    )
+    target_include_directories(rollnw_test PRIVATE
+        ../tools/ui
+        ../external/RmlUi-6.2/Include
+    )
+    target_link_libraries(rollnw_test PRIVATE RmlUi::RmlUi)
+endif()
 
 if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test PRIVATE dl)

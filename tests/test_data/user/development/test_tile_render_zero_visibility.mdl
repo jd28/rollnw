@@ -1,0 +1,87 @@
+#MAXMODEL ASCII
+newmodel test_tile_render_zero_visibility
+setsupermodel test_tile_render_zero_visibility NULL
+classification TILE
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_tile_render_zero_visibility
+    node dummy test_tile_render_zero_visibility
+        parent NULL
+    endnode
+    node trimesh visible_detail
+        parent test_tile_render_zero_visibility
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 0
+        transparencyhint 0
+        bitmap bones
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+    node trimesh hidden_missing_detail
+        parent test_tile_render_zero_visibility
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 0
+        transparencyhint 0
+        bitmap zz_hidden_missing
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+    node trimesh visible_missing_detail
+        parent test_tile_render_zero_visibility
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap zz_visible_missing
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom test_tile_render_zero_visibility
+donemodel test_tile_render_zero_visibility

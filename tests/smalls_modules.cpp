@@ -6,11 +6,16 @@
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <filesystem>
+#include <fstream>
+#include <regex>
+#include <string>
 
 namespace fs = std::filesystem;
 
@@ -30,7 +35,7 @@ protected:
 
 // == Module Loading from Filesystem ==========================================
 
-TEST_F(SmallsModules, LoadModuleFromFilesystem)
+TEST_F(SmallsModules, LoadCoreMathModuleFromFilesystem)
 {
     auto* math_module = nw::kernel::runtime().load_module("core.math");
     ASSERT_NE(math_module, nullptr);
@@ -270,13 +275,27 @@ TEST_F(SmallsModules, LoadCoreCombatModule)
     auto* combat_module = rt.load_module("core.combat");
     ASSERT_NE(combat_module, nullptr);
 
-    EXPECT_NE(combat_module->exports().find("AttackData"), nullptr);
-    EXPECT_NE(combat_module->exports().find("DamageResult"), nullptr);
+    EXPECT_NE(combat_module->exports().find("roll_uniform_int"), nullptr);
+    EXPECT_NE(combat_module->exports().find("aggregate_effect_int"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("AttackData"), nullptr);
+    EXPECT_EQ(combat_module->exports().find("DamageResult"), nullptr);
     EXPECT_EQ(combat_module->exports().find("resolve_attack"), nullptr);
     EXPECT_EQ(combat_module->exports().find("attack_data_is_valid"), nullptr);
     EXPECT_EQ(combat_module->exports().find("attack_data_attack_type"), nullptr);
     EXPECT_EQ(combat_module->exports().find("attack_data_attack_result"), nullptr);
     EXPECT_EQ(combat_module->exports().find("attack_data_target_is_creature"), nullptr);
+}
+
+TEST_F(SmallsModules, LoadNwn1CombatPrimitivesModule)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* combat_module = rt.load_module("nwn1.combat_primitives");
+    ASSERT_NE(combat_module, nullptr);
+
+    EXPECT_NE(combat_module->exports().find("AttackData"), nullptr);
+    EXPECT_NE(combat_module->exports().find("DamageResult"), nullptr);
+    EXPECT_NE(combat_module->exports().find("aggregate_effect_int"), nullptr);
 }
 
 TEST_F(SmallsModules, LoadNwn1CreatureModule)
@@ -301,14 +320,107 @@ TEST_F(SmallsModules, LoadCoreItemModule)
     ASSERT_NE(item_module, nullptr);
 
     EXPECT_NE(item_module->exports().find("ItemProperty"), nullptr);
+    EXPECT_NE(item_module->exports().find("BaseItemInfo"), nullptr);
+    EXPECT_NE(item_module->exports().find("item_properties"), nullptr);
+    EXPECT_NE(item_module->exports().find("set_item_properties"), nullptr);
+    EXPECT_NE(item_module->exports().find("get_equipped_item"), nullptr);
     EXPECT_NE(item_module->exports().find("ItemEffectRow"), nullptr);
-    EXPECT_NE(item_module->exports().find("ability_modifier"), nullptr);
     EXPECT_NE(item_module->exports().find("set_effect_generator_for_op"), nullptr);
     EXPECT_NE(item_module->exports().find("item_effect_to_effect"), nullptr);
     EXPECT_NE(item_module->exports().find("set_generator_for_type"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_generator_for_type"), nullptr);
     EXPECT_NE(item_module->exports().find("clear_generators"), nullptr);
     EXPECT_NE(item_module->exports().find("process_item_properties"), nullptr);
+}
+
+TEST_F(SmallsModules, LoadNwn1ItemModule)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* item_module = rt.load_module("nwn1.item");
+    ASSERT_NE(item_module, nullptr);
+
+    EXPECT_NE(item_module->exports().find("ability_modifier"), nullptr);
+    EXPECT_NE(item_module->exports().find("register_default_generators"), nullptr);
+    EXPECT_EQ(item_module->exports().find("ItemEffectRow"), nullptr);
+    EXPECT_EQ(item_module->exports().find("process_item_properties"), nullptr);
+}
+
+TEST_F(SmallsModules, Nwn1ProfileRegistersItemSchemasWithoutInitModule)
+{
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_init_module = config.init_module();
+
+    services.shutdown();
+    config.set_init_module("");
+    const auto restore_runtime_config = create_scope_exit(
+        [&services, &config, previous_init_module]() {
+            services.shutdown();
+            config.set_init_module(previous_init_module);
+        });
+
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+
+    auto& rt = nw::kernel::runtime();
+    std::vector<nw::smalls::TypeID> item_propsets;
+    rt.object_propset_types(nw::ObjectType::item, item_propsets);
+
+    const auto descriptor_type = rt.type_id(
+        "nwn1.propsets.ItemDescriptor", false);
+    const auto stats_type = rt.type_id(
+        "nwn1.propsets.ItemStats", false);
+
+    ASSERT_EQ(item_propsets.size(), 2);
+    EXPECT_NE(descriptor_type, nw::smalls::invalid_type_id);
+    EXPECT_NE(stats_type, nw::smalls::invalid_type_id);
+    EXPECT_NE(std::find(item_propsets.begin(), item_propsets.end(), descriptor_type),
+        item_propsets.end());
+    EXPECT_NE(std::find(item_propsets.begin(), item_propsets.end(), stats_type),
+        item_propsets.end());
+}
+
+TEST_F(SmallsModules, DirectPropsetLiteralIsRejected)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("test.direct_propset_literal", R"(
+        [[propset]]
+        type State { value: int; };
+
+        fn main() {
+            var state = State { value: 1 };
+        }
+    )");
+
+    ASSERT_NE(script, nullptr);
+    EXPECT_GT(script->errors(), 0);
+}
+
+TEST_F(SmallsModules, ConfigStructContainingPropsetIsRejected)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* script = rt.load_module_from_source("test.config_propset", R"(
+        [[propset]]
+        type State { value: int; };
+
+        type Nested { state: State; };
+
+        type Config {
+            [[index]]
+            id: int;
+            nested: Nested;
+        };
+    )");
+
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+    const auto config_type = rt.type_id("test.config_propset.Config", false);
+    ASSERT_NE(config_type, nw::smalls::invalid_type_id);
+
+    const auto value = rt.load_config_array_value("test.config_propset_data", config_type);
+    EXPECT_EQ(value.type_id, nw::smalls::invalid_type_id);
 }
 
 TEST_F(SmallsModules, NamedFunctionDecaysToClosure)
@@ -382,39 +494,84 @@ TEST_F(SmallsModules, FunctionTypesInGenericContainers)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsModules, LoadObjectTypeStubModules)
+TEST_F(SmallsModules, PackageOwnershipModulesExposeExpectedLayers)
 {
     auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
 
-    std::array<std::string_view, 10> modules = {
-        "core.area",
-        "core.door",
-        "core.encounter",
-        "core.module",
-        "core.placeable",
-        "core.player",
-        "core.sound",
-        "core.store",
-        "core.trigger",
-        "core.waypoint",
+    auto* core_area = rt.load_module("core.area");
+    ASSERT_NE(core_area, nullptr);
+    EXPECT_NE(core_area->exports().find("get_width"), nullptr);
+    EXPECT_NE(core_area->exports().find("get_size"), nullptr);
+
+    auto* core_player = rt.load_module("core.player");
+    ASSERT_NE(core_player, nullptr);
+    EXPECT_NE(core_player->exports().find("history_entry_count"), nullptr);
+    EXPECT_EQ(core_player->exports().find("sync_levelup_class_slots"), nullptr);
+
+    auto* profile_player = rt.load_module("nwn1.player");
+    ASSERT_NE(profile_player, nullptr);
+    EXPECT_NE(profile_player->exports().find("sync_levelup_class_slots"), nullptr);
+
+    auto* propsets = rt.load_module("nwn1.propsets");
+    ASSERT_NE(propsets, nullptr);
+    EXPECT_NE(propsets->exports().find("CreatureStats"), nullptr);
+    EXPECT_NE(propsets->exports().find("ItemStats"), nullptr);
+    EXPECT_NE(propsets->exports().find("DoorState"), nullptr);
+}
+
+TEST(SmallsPackageConventions, SourceRootsConform)
+{
+    const fs::path scripts = fs::path{ROLLNW_TEST_SOURCE_DIR}
+        / "lib/nw/smalls/scripts";
+    const std::array roots = {
+        std::pair{scripts / "core", 0},
+        std::pair{scripts / "nwn1", 1},
+        std::pair{fs::path{ROLLNW_TEST_SOURCE_DIR} / "tools/ui/scripts/toolset", 2},
     };
+    const std::regex import_pattern{R"((?:^|\n)\s*(?:import|from)\s+([a-z0-9_-]+)\.)"};
+    const std::regex native_dunder_pattern{
+        R"(\[\[native(?:,[^\]]+)?\]\]\s*fn\s+__)"};
+    const std::regex propset_pattern{R"(\[\[[^\]]*\bpropset\()"};
 
-    for (auto module : modules) {
-        auto* loaded = rt.load_module(module);
-        ASSERT_NE(loaded, nullptr) << module;
+    size_t propset_count = 0;
+    for (const auto& [root, rank] : roots) {
+        ASSERT_TRUE(fs::is_directory(root)) << root;
+        for (const auto& entry : fs::recursive_directory_iterator(root)) {
+            if (!entry.is_regular_file() || entry.path().extension() != ".smalls") {
+                continue;
+            }
 
-        if (module == "core.area") {
-            EXPECT_NE(loaded->exports().find("get_width"), nullptr);
-            EXPECT_NE(loaded->exports().find("get_height"), nullptr);
-            EXPECT_NE(loaded->exports().find("get_size"), nullptr);
-        } else if (module == "core.module") {
-            EXPECT_NE(loaded->exports().find("get_area_count"), nullptr);
-            EXPECT_NE(loaded->exports().find("is_save_game"), nullptr);
-        } else if (module == "core.player") {
-            EXPECT_NE(loaded->exports().find("history_entry_count"), nullptr);
-            EXPECT_NE(loaded->exports().find("sync_levelup_class_slots"), nullptr);
+            std::ifstream stream{entry.path()};
+            ASSERT_TRUE(stream) << entry.path();
+            const std::string source{
+                std::istreambuf_iterator<char>{stream},
+                std::istreambuf_iterator<char>{}};
+
+            for (auto it = std::sregex_iterator{source.begin(), source.end(), propset_pattern};
+                it != std::sregex_iterator{}; ++it) {
+                ++propset_count;
+                EXPECT_EQ(entry.path(), scripts / "nwn1/propsets.smalls");
+            }
+
+            if (rank > 0) {
+                EXPECT_EQ(source.find("[[native"), std::string::npos) << entry.path();
+            }
+            EXPECT_FALSE(std::regex_search(source, native_dunder_pattern)) << entry.path();
+
+            for (auto it = std::sregex_iterator{source.begin(), source.end(), import_pattern};
+                it != std::sregex_iterator{}; ++it) {
+                const std::string imported_root = (*it)[1].str();
+                const int imported_rank = imported_root == "core" ? 0
+                    : imported_root == "nwn1"                     ? 1
+                                                                  : 2;
+                EXPECT_LE(imported_rank, rank)
+                    << entry.path() << " imports " << imported_root;
+            }
         }
     }
+
+    EXPECT_EQ(propset_count, 16);
 }
 
 TEST_F(SmallsModules, SelectiveImportFromFilesystemModule)

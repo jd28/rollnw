@@ -2,28 +2,39 @@ import nwn1.constants as Const;
 
 import core.array as Array;
 import core.bit as bit;
-import core.creature as Cre;
+import nwn1.creature_state as Cre;
 import core.item as base;
 import core.math as Math;
 import core.object as O;
+import core.string as String;
 import core.types as T;
 import core.visual as Visual;
 import core.effects as effects;
+from nwn1.propsets import { CreatureCombat };
 from core.visual import { VisualModelRow };
+import nwn1.appearances as Appearances;
+import nwn1.baseitems as BaseItems;
 import nwn1.effects as nwn1eff;
 import nwn1.equipment as Equipment;
 import nwn1.rules as Rules;
+from nwn1.propsets import { ItemDescriptor, ItemStats };
 
-var _baseitems_loaded = false;
-var _baseitems: array!(Rules.BaseItemEntry);
-var _appearances_loaded = false;
-var _appearances: array!(Rules.AppearanceEntry);
+const item_model_color_count = 6;
+const item_model_part_count = 19;
+const item_part_color_count = item_model_color_count * item_model_part_count;
+
+var can_equip_callbacks: array!(fn(Creature, Item, base.EquipIndex): bool) = {};
+var on_equip_callbacks: array!(fn(Creature, Item, base.EquipIndex)) = {};
+var on_unequip_callbacks: array!(fn(Creature, Item, base.EquipIndex)) = {};
+var on_visual_changed_callbacks: array!(fn(Item): bool) = {};
+
 var _cloakmodels_loaded = false;
 var _cloakmodels: array!(Rules.CloakModelEntry);
 var _armor_loaded = false;
 var _armor: array!(Rules.ArmorEntry);
 var did_install_can_equip_callbacks = false;
 var did_install_visual_callbacks = false;
+var did_install_equipment_ac_callbacks = false;
 
 const item_model_part_model1 = 0;
 const item_model_part_model2 = 1;
@@ -55,6 +66,16 @@ const item_color_leather2 = 3;
 const item_color_metal1 = 4;
 const item_color_metal2 = 5;
 const item_part_color_inherit = 255;
+const item_editor_color_count = 176;
+const item_editor_model_value_count = 256;
+const item_editor_composite_color_count = 10;
+const item_editor_composite_model_count = 26;
+const item_editor_model_axis_model = 0;
+const item_editor_model_axis_color = 1;
+const item_property_field_subtype = 0;
+const item_property_field_param = 1;
+const item_property_field_cost = 2;
+const item_property_value_invalid = 65535;
 
 type ItemResolvedVisual {
     attachment_count: int;
@@ -73,20 +94,441 @@ type ItemResolvedIcon {
     invalid_part: bool;
 };
 
-fn _ensure_baseitems_loaded() {
-    if (_baseitems_loaded) {
-        return;
+type ItemEditorPartRow {
+    part: int;
+    label: string;
+    value: int;
+    detail: string;
+    per_part_colors: bool;
+    split_model_color: bool;
+};
+
+type ItemEditorModelOptionRow {
+    value: int;
+    packed_value: int;
+    label: string;
+    detail: string;
+};
+
+type ItemEditorColorRow {
+    part: int;
+    color: int;
+    label: string;
+    value: int;
+    stored_value: int;
+    palette: int;
+    inherited: bool;
+};
+
+type ItemEditorPropertyDefinitionRow {
+    prop_type: int;
+    label: string;
+    subtype: int;
+    param_table: int;
+    param_value: int;
+    cost_table: int;
+    cost_value: int;
+};
+
+type ItemEditorPropertyRow {
+    index: int;
+    prop_type: int;
+    tag: string;
+    label: string;
+    subtype: int;
+    subtype_label: string;
+    param_table: int;
+    param_value: int;
+    param_label: string;
+    cost_table: int;
+    cost_value: int;
+    cost_label: string;
+    has_subtype: bool;
+    has_param: bool;
+    has_cost: bool;
+};
+
+type ItemEditorPropertyOptionRow {
+    value: int;
+    label: string;
+};
+
+type ItemEditorGeneralRow {
+    group: string;
+    label: string;
+    value: string;
+    multiline: bool;
+};
+
+type ItemEditorInventoryRow {
+    item: Item;
+    name: string;
+    resref: string;
+    stack_size: int;
+};
+
+fn has_property(item_obj: Item, prop_type: int, subtype: int): bool {
+    if ((item_obj as object) == O.invalid) {
+        return false;
     }
-    _baseitems = load_config!(Rules.BaseItemEntry)("nwn1.data.baseitems");
-    _baseitems_loaded = true;
+
+    var properties = base.item_properties(item_obj);
+    for (var ip in properties) {
+        if (ip.prop_type == prop_type && (subtype == -1 || ip.subtype == subtype)) {
+            return true;
+        }
+    }
+    return false;
 }
 
-fn _ensure_appearances_loaded() {
-    if (_appearances_loaded) {
-        return;
+fn can_equip_item(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
+    if ((creature as object) == O.invalid || (item_obj as object) == O.invalid) {
+        return false;
     }
-    _appearances = load_config!(Rules.AppearanceEntry)("nwn1.data.appearance");
-    _appearances_loaded = true;
+
+    for (var i = 0; i < Array.len(can_equip_callbacks); i += 1) {
+        var callback = can_equip_callbacks[i];
+        if (!callback(creature, item_obj, slot)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn add_can_equip_callback(callback: fn(Creature, Item, base.EquipIndex): bool) {
+    Array.push(can_equip_callbacks, callback);
+}
+
+fn ability_modifier(ability: Const.Ability, amount: int): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_ability_modifier,
+        timing = base.item_effect_timing_equipped,
+        subject = ability as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn attack_modifier(attack: Const.AttackType, amount: int): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_attack_modifier,
+        timing = base.item_effect_timing_equipped,
+        subject = attack as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn bonus_spell_slot(class_id: Const.Class, spell_level: int): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_bonus_spell_slot,
+        timing = base.item_effect_timing_equipped,
+        subject = class_id as int,
+        value0 = spell_level,
+        value1 = 0,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn damage_bonus(
+    damage_type: Const.Damage,
+    dice: int,
+    sides: int,
+    bonus: int,
+    category: Const.DamageCategory): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_damage_bonus,
+        timing = base.item_effect_timing_equipped,
+        subject = damage_type as int,
+        value0 = dice,
+        value1 = sides,
+        value2 = bonus,
+        condition = base.item_effect_condition_none,
+        flags = category as int,
+    };
+}
+
+fn haste(): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_haste,
+        timing = base.item_effect_timing_equipped,
+        subject = 0,
+        value0 = 0,
+        value1 = 0,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn save_modifier(save: Const.Save, amount: int, versus: Const.SaveVersus): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_save_modifier,
+        timing = base.item_effect_timing_equipped,
+        subject = save as int,
+        value0 = amount,
+        value1 = versus as int,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn skill_modifier(skill: Const.Skill, amount: int): base.ItemEffectRow {
+    return {
+        op = base.item_effect_op_skill_modifier,
+        timing = base.item_effect_timing_equipped,
+        subject = skill as int,
+        value0 = amount,
+        value1 = 0,
+        value2 = 0,
+        condition = base.item_effect_condition_none,
+        flags = base.item_effect_flag_none,
+    };
+}
+
+fn add_on_equip_callback(callback: fn(Creature, Item, base.EquipIndex)) {
+    Array.push(on_equip_callbacks, callback);
+}
+
+fn add_on_unequip_callback(callback: fn(Creature, Item, base.EquipIndex)) {
+    Array.push(on_unequip_callbacks, callback);
+}
+
+fn add_on_visual_changed_callback(callback: fn(Item): bool) {
+    Array.push(on_visual_changed_callbacks, callback);
+}
+
+fn _dispatch_on_equip(creature: Creature, equipped: Item, slot: base.EquipIndex) {
+    for (var i = 0; i < Array.len(on_equip_callbacks); i += 1) {
+        var callback = on_equip_callbacks[i];
+        callback(creature, equipped, slot);
+    }
+}
+
+fn _dispatch_on_unequip(creature: Creature, removed: Item, slot: base.EquipIndex) {
+    for (var i = 0; i < Array.len(on_unequip_callbacks); i += 1) {
+        var callback = on_unequip_callbacks[i];
+        callback(creature, removed, slot);
+    }
+}
+
+fn _dispatch_on_visual_changed(item: Item): bool {
+    var ok = true;
+    for (var i = 0; i < Array.len(on_visual_changed_callbacks); i += 1) {
+        var callback = on_visual_changed_callbacks[i];
+        if (!callback(item)) {
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+fn _equip_item_unchecked(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
+    if ((creature as object) == O.invalid || (equipped as object) == O.invalid) {
+        return false;
+    }
+
+    var current = base.get_equipped_item(creature, slot);
+    if ((current as object) != O.invalid) {
+        var removed = unequip_item(creature, slot);
+        if ((removed as object) == O.invalid) {
+            return false;
+        }
+    }
+
+    base.inventory_remove_item(creature as object, equipped);
+    if (!base.equip_item_in_slot(creature, equipped, slot)) {
+        base.inventory_add_item(creature as object, equipped);
+        return false;
+    }
+
+    base.process_item_properties(creature, equipped, slot, false);
+    _dispatch_on_equip(creature, equipped, slot);
+    return true;
+}
+
+fn equip_item(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
+    return can_equip_item(creature, equipped, slot)
+        && _equip_item_unchecked(creature, equipped, slot);
+}
+
+fn unequip_item(creature: Creature, slot: base.EquipIndex): Item {
+    var removed = base.unequip_item_in_slot(creature, slot);
+    if ((removed as object) == O.invalid) {
+        return O.invalid as Item;
+    }
+
+    base.process_item_properties(creature, removed, slot, true);
+    if (!base.inventory_add_item(creature as object, removed)) {
+        if (base.equip_item_in_slot(creature, removed, slot)) {
+            base.process_item_properties(creature, removed, slot, false);
+        }
+        return O.invalid as Item;
+    }
+
+    _dispatch_on_unequip(creature, removed, slot);
+    return removed;
+}
+
+fn valid_visual_color_index(color: int): bool {
+    return color >= 0 && color < item_model_color_count;
+}
+
+fn valid_visual_part_index(part: int): bool {
+    return part >= 0 && part < item_model_part_count;
+}
+
+fn get_visual_model_color(item: Item, color: int): int {
+    if (!valid_visual_color_index(color)) {
+        return 0;
+    }
+    return base.get_visual_color(item, -1, color);
+}
+
+fn set_visual_colors(
+    item: Item,
+    parts: array!(int),
+    colors: array!(int),
+    values: array!(int)): bool {
+    var count = Array.len(parts);
+    if (count != Array.len(colors) || count != Array.len(values)) {
+        return false;
+    }
+
+    for (var i = 0; i < count; i += 1) {
+        if ((parts[i] != -1 && !valid_visual_part_index(parts[i]))
+            || !valid_visual_color_index(colors[i])
+            || values[i] < 0 || values[i] > 255) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (parts[i] == parts[j] && colors[i] == colors[j]) {
+                return false;
+            }
+        }
+    }
+
+    var previous = base.get_visual_colors(item, parts, colors);
+    if (Array.len(previous) != count) {
+        return false;
+    }
+    var changed = false;
+    for (var i = 0; i < count; i += 1) {
+        if (previous[i] != values[i]) {
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return true;
+    }
+
+    if (!base.set_visual_colors_raw(item, parts, colors, values)) {
+        return false;
+    }
+    if (_dispatch_on_visual_changed(item)) {
+        return true;
+    }
+
+    if (!base.set_visual_colors_raw(item, parts, colors, previous)) {
+        return false;
+    }
+    _dispatch_on_visual_changed(item);
+    return false;
+}
+
+fn set_visual_model_color(item: Item, color: int, value: int): bool {
+    var parts: array!(int) = {-1};
+    var colors: array!(int) = {color};
+    var values: array!(int) = {value};
+    return set_visual_colors(item, parts, colors, values);
+}
+
+fn get_visual_model_part(item: Item, part: int): int {
+    if (!valid_visual_part_index(part)) {
+        return 0;
+    }
+    return base.get_visual_model_part(item, part);
+}
+
+fn set_visual_model_parts(item: Item, parts: array!(int), model_numbers: array!(int)): bool {
+    var count = Array.len(parts);
+    if (count != Array.len(model_numbers)) {
+        return false;
+    }
+    for (var i = 0; i < count; i += 1) {
+        if (!valid_visual_part_index(parts[i])
+            || model_numbers[i] < 0 || model_numbers[i] > 65535) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (parts[i] == parts[j]) {
+                return false;
+            }
+        }
+    }
+
+    var previous = base.get_visual_model_parts(item, parts);
+    if (Array.len(previous) != count) {
+        return false;
+    }
+    var changed = false;
+    for (var i = 0; i < count; i += 1) {
+        if (previous[i] != model_numbers[i]) {
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return true;
+    }
+
+    if (!base.set_visual_model_parts_raw(item, parts, model_numbers)) {
+        return false;
+    }
+    if (_dispatch_on_visual_changed(item)) {
+        return true;
+    }
+
+    if (!base.set_visual_model_parts_raw(item, parts, previous)) {
+        return false;
+    }
+    _dispatch_on_visual_changed(item);
+    return false;
+}
+
+fn set_visual_model_part(item: Item, part: int, model_number: int): bool {
+    var parts: array!(int) = {part};
+    var model_numbers: array!(int) = {model_number};
+    return set_visual_model_parts(item, parts, model_numbers);
+}
+
+fn get_visual_part_color(item: Item, part: int, color: int): int {
+    if (!valid_visual_part_index(part) || !valid_visual_color_index(color)) {
+        return 0;
+    }
+    return base.get_visual_color(item, part, color);
+}
+
+fn set_visual_part_color(item: Item, part: int, color: int, value: int): bool {
+    var parts: array!(int) = {part};
+    var colors: array!(int) = {color};
+    var values: array!(int) = {value};
+    return set_visual_colors(item, parts, colors, values);
+}
+
+fn get_baseitem_type(item: Item): base.BaseItemType {
+    if ((item as object) == O.invalid) {
+        return base.BaseItemType(-1);
+    }
+    return base.BaseItemType(get_propset!(ItemStats)(item).base_item);
 }
 
 fn _ensure_cloakmodels_loaded() {
@@ -174,13 +616,15 @@ fn _creature_part_model(sex: string, race: T.ResRef, phenotype: int, token: stri
 }
 
 fn _resolve_creature_cloak_model(creature: Creature, model_part: int): T.ResRef {
-    _ensure_appearances_loaded();
     var appearance = Cre.get_appearance(creature);
-    if (appearance < 0 || appearance >= Array.len(_appearances)) {
+    if (appearance < 0 || appearance >= Appearances.count()) {
         return _empty_resref();
     }
 
-    var entry = Array.get(_appearances, appearance);
+    var entry = Appearances.get_info(appearance);
+    if (entry.id != appearance) {
+        return _empty_resref();
+    }
     if (entry.model_type != Rules.appearance_model_type_parts) {
         return _empty_resref();
     }
@@ -191,6 +635,18 @@ fn _resolve_creature_cloak_model(creature: Creature, model_part: int): T.ResRef 
         return model;
     }
     return _creature_part_model(sex, entry.model, 0, "cloak", model_part);
+}
+
+fn _resolve_creature_cloak_plt(model_part: int): T.ResRef {
+    if (model_part <= 0) {
+        return _empty_resref();
+    }
+
+    var result = T.resref(f"cloak_{Rules.item_model_number_suffix(model_part)}");
+    if (T.resource_exists(result, T.resource_type_plt)) {
+        return result;
+    }
+    return _empty_resref();
 }
 
 fn _empty_visual(): ItemResolvedVisual {
@@ -205,6 +661,7 @@ fn _empty_visual(): ItemResolvedVisual {
 fn _empty_visual_row(): VisualModelRow {
     return VisualModelRow {
         model = _empty_resref(),
+        plt_texture = _empty_resref(),
         attach_to = _empty_resref(),
         attach_from = _empty_resref(),
         kind = Visual.visual_model_kind_root,
@@ -228,46 +685,34 @@ fn _empty_icon(part: int): ItemResolvedIcon {
     };
 }
 
-fn _find_baseitem(base_item: int): Rules.BaseItemEntry {
-    _ensure_baseitems_loaded();
-    if (base_item < 0 || base_item >= Array.len(_baseitems)) {
-        var invalid: Rules.BaseItemEntry;
-        invalid.id = -1;
-        return invalid;
-    }
-
-    var entry = Array.get(_baseitems, base_item);
-    if (entry.id != base_item) {
-        var invalid: Rules.BaseItemEntry;
-        invalid.id = -1;
-        return invalid;
-    }
-    return entry;
-}
-
-fn _baseitem_slot_can_equip(entry: Rules.BaseItemEntry, slot: T.EquipIndex): bool {
+fn _baseitem_slot_can_equip(
+    base_item: int, slot: base.EquipIndex): bool {
     var raw = slot as int;
-    if (entry.id < 0 || raw < 0 || raw >= 32) {
+    var base_item_type = base.BaseItemType(base_item);
+    if (raw < 0 || raw >= 32 || !BaseItems.exists(base_item_type)) {
         return false;
     }
-    return bit.and(entry.equipable_slots, bit.shl(1, raw)) != 0;
+    var info = BaseItems.get_info(base_item_type);
+    return bit.and(info.equipable_slots, bit.shl(1, raw)) != 0;
 }
 
 fn sync_native_layout(item_obj: Item): bool {
     if ((item_obj as object) == O.invalid) {
         return false;
     }
-    if (!base.__clear_item_layout(item_obj)) {
+    if (!base.clear_item_layout(item_obj)) {
         return false;
     }
 
-    var stats = get_propset!(base.ItemStats)(item_obj);
-    var entry = _find_baseitem(stats.base_item);
-    if (entry.id < 0) {
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return false;
     }
+    var info = BaseItems.get_info(base_item_type);
 
-    return base.__set_item_layout(item_obj, entry.inventory_width, entry.inventory_height);
+    return base.set_item_layout(
+        item_obj, info.inventory_width, info.inventory_height);
 }
 
 fn get_model_type(item_obj: Item): int {
@@ -275,41 +720,1044 @@ fn get_model_type(item_obj: Item): int {
         return 0;
     }
 
-    var stats = get_propset!(base.ItemStats)(item_obj);
-    var entry = _find_baseitem(stats.base_item);
-    if (entry.id < 0) {
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return 0;
     }
-    return entry.model_type;
+    return BaseItems.get_info(base_item_type).model_type;
 }
 
-fn _has_required_feat(creature: Creature, feat: int): bool {
-    if (feat < 0) {
+fn _item_editor_part_label(model_type: int, part: int): string {
+    if (model_type == Rules.item_model_type_simple
+        || model_type == Rules.item_model_type_layered) {
+        return "Model";
+    }
+    if (model_type == Rules.item_model_type_composite) {
+        if (part == item_model_part_model3) { return "Top"; }
+        if (part == item_model_part_model2) { return "Middle"; }
+        if (part == item_model_part_model1) { return "Bottom"; }
+        return "";
+    }
+    if (part == item_model_part_armor_belt) { return "Belt"; }
+    if (part == item_model_part_armor_lbicep) { return "Bicep, Left"; }
+    if (part == item_model_part_armor_rbicep) { return "Bicep, Right"; }
+    if (part == item_model_part_armor_lfoot) { return "Foot, Left"; }
+    if (part == item_model_part_armor_rfoot) { return "Foot, Right"; }
+    if (part == item_model_part_armor_lfarm) { return "Forearm, Left"; }
+    if (part == item_model_part_armor_rfarm) { return "Forearm, Right"; }
+    if (part == item_model_part_armor_lhand) { return "Hand, Left"; }
+    if (part == item_model_part_armor_rhand) { return "Hand, Right"; }
+    if (part == item_model_part_armor_neck) { return "Neck"; }
+    if (part == item_model_part_armor_pelvis) { return "Pelvis"; }
+    if (part == item_model_part_armor_robe) { return "Robe"; }
+    if (part == item_model_part_armor_lshin) { return "Shin, Left"; }
+    if (part == item_model_part_armor_rshin) { return "Shin, Right"; }
+    if (part == item_model_part_armor_lshoul) { return "Shoulder, Left"; }
+    if (part == item_model_part_armor_rshoul) { return "Shoulder, Right"; }
+    if (part == item_model_part_armor_lthigh) { return "Thigh, Left"; }
+    if (part == item_model_part_armor_rthigh) { return "Thigh, Right"; }
+    if (part == item_model_part_armor_torso) { return "Torso"; }
+    return "";
+}
+
+fn _item_editor_part_token(part: int): string {
+    if (part == item_model_part_armor_belt) { return "belt"; }
+    if (part == item_model_part_armor_lbicep) { return "bicepl"; }
+    if (part == item_model_part_armor_rbicep) { return "bicepr"; }
+    if (part == item_model_part_armor_lfoot) { return "footl"; }
+    if (part == item_model_part_armor_rfoot) { return "footr"; }
+    if (part == item_model_part_armor_lfarm) { return "forel"; }
+    if (part == item_model_part_armor_rfarm) { return "forer"; }
+    if (part == item_model_part_armor_lhand) { return "handl"; }
+    if (part == item_model_part_armor_rhand) { return "handr"; }
+    if (part == item_model_part_armor_neck) { return "neck"; }
+    if (part == item_model_part_armor_pelvis) { return "pelvis"; }
+    if (part == item_model_part_armor_robe) { return "robe"; }
+    if (part == item_model_part_armor_lshin) { return "shinl"; }
+    if (part == item_model_part_armor_rshin) { return "shinr"; }
+    if (part == item_model_part_armor_lshoul) { return "shol"; }
+    if (part == item_model_part_armor_rshoul) { return "shor"; }
+    if (part == item_model_part_armor_lthigh) { return "legl"; }
+    if (part == item_model_part_armor_rthigh) { return "legr"; }
+    if (part == item_model_part_armor_torso) { return "chest"; }
+    return "";
+}
+
+fn _append_item_editor_part(
+    rows: array!(ItemEditorPartRow), item_obj: Item,
+    model_type: int, part: int, per_part_colors: bool) {
+    var value = get_visual_model_part(item_obj, part);
+    var detail = "";
+    if (model_type == Rules.item_model_type_composite) {
+        detail = f"Model {value / 10}, variation {value % 10}";
+    } else {
+        if (value == 0) { detail = "None"; }
+    }
+    var row: ItemEditorPartRow = {
+        part = part,
+        label = _item_editor_part_label(model_type, part),
+        value = value,
+        detail = detail,
+        per_part_colors = per_part_colors,
+        split_model_color = model_type == Rules.item_model_type_composite,
+    };
+    Array.push(rows, row);
+}
+
+fn get_item_editor_parts(item_obj: Item): array!(ItemEditorPartRow) {
+    var rows: array!(ItemEditorPartRow) = {};
+    if ((item_obj as object) == O.invalid) {
+        return rows;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
+        return rows;
+    }
+    var entry = BaseItems.get_info(base_item_type);
+    if (entry.model_type == Rules.item_model_type_simple) {
+        _append_item_editor_part(rows, item_obj, entry.model_type, item_model_part_model1, false);
+        return rows;
+    }
+    if (entry.model_type == Rules.item_model_type_layered) {
+        _append_item_editor_part(rows, item_obj, entry.model_type, item_model_part_model1, true);
+        return rows;
+    }
+    if (entry.model_type == Rules.item_model_type_composite) {
+        _append_item_editor_part(rows, item_obj, entry.model_type, item_model_part_model3, false);
+        _append_item_editor_part(rows, item_obj, entry.model_type, item_model_part_model2, false);
+        _append_item_editor_part(rows, item_obj, entry.model_type, item_model_part_model1, false);
+        return rows;
+    }
+    if (entry.model_type != Rules.item_model_type_armor) {
+        return rows;
+    }
+
+    var order: array!(int) = {
+        item_model_part_armor_belt,
+        item_model_part_armor_lbicep,
+        item_model_part_armor_rbicep,
+        item_model_part_armor_lfoot,
+        item_model_part_armor_rfoot,
+        item_model_part_armor_lfarm,
+        item_model_part_armor_rfarm,
+        item_model_part_armor_lhand,
+        item_model_part_armor_rhand,
+        item_model_part_armor_neck,
+        item_model_part_armor_pelvis,
+        item_model_part_armor_robe,
+        item_model_part_armor_lshin,
+        item_model_part_armor_rshin,
+        item_model_part_armor_lshoul,
+        item_model_part_armor_rshoul,
+        item_model_part_armor_lthigh,
+        item_model_part_armor_rthigh,
+        item_model_part_armor_torso,
+    };
+    Array.reserve(rows, Array.len(order));
+    for (var part in order) {
+        _append_item_editor_part(rows, item_obj, entry.model_type, part, true);
+    }
+    return rows;
+}
+
+fn _item_editor_model_option_available(
+    base_item: int, entry: base.BaseItemInfo, part: int, value: int): bool {
+    if (value <= 0 || value >= item_editor_model_value_count) {
+        return value == 0;
+    }
+    if (entry.model_type == Rules.item_model_type_layered
+        && base_item == Const.base_item_cloak as int) {
+        return _find_cloakmodel(value).id == value;
+    }
+    if (entry.model_type == Rules.item_model_type_armor) {
+        var token = _item_editor_part_token(part);
+        if (token == "") {
+            return false;
+        }
+        return T.resref_to_string(_creature_part_model("m", T.resref("h"), 0, token, value)) != "";
+    }
+    var model = Rules.item_model_resref(entry.model_type, entry.item_class, part, value);
+    if (T.resource_exists(model, T.resource_type_mdl)) {
         return true;
     }
-    return Cre.has_feat(creature, Const.Feat(feat));
+    var icon = resolve_icon_by_state(base_item, part, value, false);
+    if (T.resref_to_string(icon.resref) == "") {
+        return false;
+    }
+    if (icon.is_plt) {
+        return T.resource_exists(icon.resref, T.resource_type_plt);
+    }
+    return T.resource_exists(icon.resref, T.resource_type_tga);
 }
 
-fn _baseitem_requirements_met(creature: Creature, item_obj: Item, _slot: T.EquipIndex): bool {
+fn _item_editor_model_option(
+    value: int, packed_value: int, detail: string): ItemEditorModelOptionRow {
+    return ItemEditorModelOptionRow {
+        value = value,
+        packed_value = packed_value,
+        label = f"{value}",
+        detail = detail,
+    };
+}
+
+fn _get_composite_model_options(
+    base_item: int,
+    entry: base.BaseItemInfo,
+    part: int,
+    current: int): array!(ItemEditorModelOptionRow) {
+    var rows: array!(ItemEditorModelOptionRow) = {};
+    var current_model = current / item_editor_composite_color_count;
+    var current_color = current % item_editor_composite_color_count;
+    if (current_model == 0) {
+        Array.push(rows, _item_editor_model_option(0, current, ""));
+    }
+    for (var model = 1; model < item_editor_composite_model_count; model += 1) {
+        var target = -1;
+        for (var color = 1; color < item_editor_composite_color_count; color += 1) {
+            var packed = model * item_editor_composite_color_count + color;
+            if (packed >= item_editor_model_value_count) {
+                break;
+            }
+            if (_item_editor_model_option_available(
+                    base_item, entry, part, packed)) {
+                if (target < 0 || color == current_color) {
+                    target = packed;
+                }
+            }
+        }
+        if (model == current_model) {
+            target = current;
+        }
+        if (target < 0) {
+            continue;
+        }
+        Array.push(rows, _item_editor_model_option(model, target, ""));
+    }
+    return rows;
+}
+
+fn _get_composite_color_options(
+    base_item: int,
+    entry: base.BaseItemInfo,
+    part: int,
+    current: int): array!(ItemEditorModelOptionRow) {
+    var rows: array!(ItemEditorModelOptionRow) = {};
+    var current_model = current / item_editor_composite_color_count;
+    var current_color = current % item_editor_composite_color_count;
+    if (current_color == 0) {
+        Array.push(rows, _item_editor_model_option(0, current, ""));
+    }
+    for (var color = 1; color < item_editor_composite_color_count; color += 1) {
+        var packed = current_model * item_editor_composite_color_count + color;
+        if (packed >= item_editor_model_value_count) {
+            break;
+        }
+        if (packed / 10 != current_model
+            || (packed != current
+                && !_item_editor_model_option_available(
+                    base_item, entry, part, packed))) {
+            continue;
+        }
+        Array.push(rows, _item_editor_model_option(color, packed, ""));
+    }
+    return rows;
+}
+
+fn get_item_model_editor_options(
+    item_obj: Item, part: int, axis: int): array!(ItemEditorModelOptionRow) {
+    var rows: array!(ItemEditorModelOptionRow) = {};
+    if ((item_obj as object) == O.invalid || !valid_visual_part_index(part)) {
+        return rows;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
+        return rows;
+    }
+    var info = BaseItems.get_info(base_item_type);
+    if ((axis != item_editor_model_axis_model
+            && axis != item_editor_model_axis_color)
+        || (info.model_type != Rules.item_model_type_composite
+            && axis != item_editor_model_axis_model)) {
+        return rows;
+    }
+    var current = get_visual_model_part(item_obj, part);
+    if (current < 0 || current >= item_editor_model_value_count) {
+        return rows;
+    }
+    if (info.model_type == Rules.item_model_type_composite) {
+        if (axis == item_editor_model_axis_color) {
+            return _get_composite_color_options(
+                stats.base_item, info, part, current);
+        }
+        return _get_composite_model_options(
+            stats.base_item, info, part, current);
+    }
+    for (var value = 0; value < item_editor_model_value_count; value += 1) {
+        if (value == current
+            || _item_editor_model_option_available(
+                stats.base_item, info, part, value)) {
+            var detail = value == 0 ? "None" : "";
+            Array.push(rows, _item_editor_model_option(value, value, detail));
+        }
+    }
+    return rows;
+}
+
+fn _item_editor_color_label(color: int): string {
+    if (color == item_color_cloth1) { return "Cloth 1"; }
+    if (color == item_color_cloth2) { return "Cloth 2"; }
+    if (color == item_color_leather1) { return "Leather 1"; }
+    if (color == item_color_leather2) { return "Leather 2"; }
+    if (color == item_color_metal1) { return "Metal 1"; }
+    if (color == item_color_metal2) { return "Metal 2"; }
+    return "";
+}
+
+fn _item_editor_color_palette(color: int): int {
+    if (color == item_color_cloth1 || color == item_color_cloth2) { return 0; }
+    if (color == item_color_leather1 || color == item_color_leather2) { return 1; }
+    return 2;
+}
+
+fn get_item_color_editor_rows(item_obj: Item, part: int): array!(ItemEditorColorRow) {
+    var rows: array!(ItemEditorColorRow) = {};
+    if ((item_obj as object) == O.invalid
+        || (part != -1 && !valid_visual_part_index(part))) {
+        return rows;
+    }
+    Array.reserve(rows, item_model_color_count);
+    for (var color = 0; color < item_model_color_count; color += 1) {
+        var stored = get_visual_model_color(item_obj, color);
+        var inherited = false;
+        if (part != -1) {
+            stored = get_visual_part_color(item_obj, part, color);
+            inherited = stored == item_part_color_inherit;
+        }
+        var value = stored;
+        if (inherited) {
+            value = get_visual_model_color(item_obj, color);
+        }
+        var row: ItemEditorColorRow = {
+            part = part,
+            color = color,
+            label = _item_editor_color_label(color),
+            value = value,
+            stored_value = stored,
+            palette = _item_editor_color_palette(color),
+            inherited = inherited,
+        };
+        Array.push(rows, row);
+    }
+    return rows;
+}
+
+fn get_item_editor_color_rows(item_obj: Item): array!(ItemEditorColorRow) {
+    var rows: array!(ItemEditorColorRow) = {};
+    if ((item_obj as object) == O.invalid) {
+        return rows;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
+        return rows;
+    }
+    var entry = BaseItems.get_info(base_item_type);
+    if (entry.model_type != Rules.item_model_type_layered
+        && entry.model_type != Rules.item_model_type_armor) {
+        return rows;
+    }
+    var parts = get_item_editor_parts(item_obj);
+    if (Array.len(parts) <= 0) {
+        return rows;
+    }
+    Array.reserve(rows, Array.len(parts) * item_model_color_count);
+    for (var part in parts) {
+        if (!part.per_part_colors) {
+            continue;
+        }
+        var part_rows = get_item_color_editor_rows(item_obj, part.part);
+        for (var row in part_rows) {
+            Array.push(rows, row);
+        }
+    }
+    return rows;
+}
+
+fn _valid_item_editor_model_parts(item_obj: Item, parts: array!(int)): bool {
+    if ((item_obj as object) == O.invalid
+        || Array.len(parts) <= 0
+        || Array.len(parts) > item_model_part_count) {
+        return false;
+    }
+    var available = get_item_editor_parts(item_obj);
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        if (!valid_visual_part_index(parts[i])
+            || (i > 0 && parts[i] <= parts[i - 1])) {
+            return false;
+        }
+        var found = false;
+        for (var row in available) {
+            if (row.part == parts[i]) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) { return false; }
+    }
+    return true;
+}
+
+fn prepare_item_model_parts(
+    item_obj: Item, parts: array!(int), values: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    if (Array.len(parts) != Array.len(values)
+        || !_valid_item_editor_model_parts(item_obj, parts)) {
+        return result;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) { return result; }
+    var info = BaseItems.get_info(base_item_type);
+    Array.reserve(result, Array.len(parts));
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        var current = get_visual_model_part(item_obj, parts[i]);
+        if (values[i] < 0 || values[i] >= item_editor_model_value_count
+            || (values[i] != current
+                && !_item_editor_model_option_available(
+                    stats.base_item, info, parts[i], values[i]))) {
+            Array.clear(result);
+            return result;
+        }
+        Array.push(result, current);
+    }
+    return result;
+}
+
+fn set_item_model_parts(item_obj: Item, parts: array!(int), values: array!(int)): bool {
+    if (Array.len(parts) <= 0
+        || Array.len(prepare_item_model_parts(item_obj, parts, values))
+        != Array.len(parts)) {
+        return false;
+    }
+    return set_visual_model_parts(item_obj, parts, values);
+}
+
+fn get_item_model_values(item_obj: Item, parts: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    if (!_valid_item_editor_model_parts(item_obj, parts)) {
+        return result;
+    }
+    Array.reserve(result, Array.len(parts));
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        Array.push(result, get_visual_model_part(item_obj, parts[i]));
+    }
+    return result;
+}
+
+fn _valid_item_editor_colors(
+    item_obj: Item, parts: array!(int), colors: array!(int)): bool {
+    if ((item_obj as object) == O.invalid
+        || Array.len(parts) <= 0
+        || Array.len(parts) != Array.len(colors)
+        || Array.len(parts) > item_part_color_count) {
+        return false;
+    }
+    var available = get_item_editor_color_rows(item_obj);
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        if ((parts[i] != -1 && !valid_visual_part_index(parts[i]))
+            || !valid_visual_color_index(colors[i])) {
+            return false;
+        }
+        var key = (parts[i] + 1) * item_model_color_count + colors[i];
+        if (i > 0) {
+            var previous = (parts[i - 1] + 1) * item_model_color_count
+                + colors[i - 1];
+            if (key <= previous) { return false; }
+        }
+        var found = false;
+        for (var row in available) {
+            if (row.part == parts[i] && row.color == colors[i]) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) { return false; }
+    }
+    return true;
+}
+
+fn prepare_item_colors(item_obj: Item, parts: array!(int), colors: array!(int),
+    values: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    if (Array.len(parts) != Array.len(values)
+        || !_valid_item_editor_colors(item_obj, parts, colors)) {
+        return result;
+    }
+    Array.reserve(result, Array.len(parts));
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        if (values[i] < 0
+            || (parts[i] == -1 && values[i] >= item_editor_color_count)
+            || (parts[i] != -1 && values[i] >= item_editor_color_count
+                && values[i] != item_part_color_inherit)) {
+            Array.clear(result);
+            return result;
+        }
+        if (parts[i] == -1) {
+            Array.push(result, get_visual_model_color(item_obj, colors[i]));
+        } else {
+            Array.push(result, get_visual_part_color(item_obj, parts[i], colors[i]));
+        }
+    }
+    return result;
+}
+
+fn set_item_colors(item_obj: Item, parts: array!(int), colors: array!(int), values: array!(int)): bool {
+    if (Array.len(parts) <= 0
+        || Array.len(prepare_item_colors(item_obj, parts, colors, values))
+        != Array.len(parts)) {
+        return false;
+    }
+    return set_visual_colors(item_obj, parts, colors, values);
+}
+
+fn get_item_color_values(item_obj: Item, parts: array!(int), colors: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    if (!_valid_item_editor_colors(item_obj, parts, colors)) {
+        return result;
+    }
+    Array.reserve(result, Array.len(parts));
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        if (parts[i] == -1) {
+            Array.push(result, get_visual_model_color(item_obj, colors[i]));
+        } else {
+            Array.push(result, get_visual_part_color(item_obj, parts[i], colors[i]));
+        }
+    }
+    return result;
+}
+
+// Flat transaction protocol: key = (part + 1) * color_count + color.
+// Part -1 therefore occupies the first color_count keys. C++ stores keys as
+// opaque undo data; this module owns their layout and validation.
+fn prepare_item_color_edit_data(item_obj: Item, parts: array!(int),
+    colors: array!(int), values: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    var before = prepare_item_colors(item_obj, parts, colors, values);
+    if (Array.len(before) != Array.len(parts)) {
+        return result;
+    }
+    Array.reserve(result, Array.len(parts) * 2);
+    for (var i = 0; i < Array.len(parts); i += 1) {
+        Array.push(result,
+            (parts[i] + 1) * item_model_color_count + colors[i]);
+        Array.push(result, before[i]);
+    }
+    return result;
+}
+
+fn _decode_item_color_patch_keys(keys: array!(int), parts: array!(int),
+    colors: array!(int)): bool {
+    if (Array.len(keys) <= 0) {
+        return false;
+    }
+    Array.reserve(parts, Array.len(keys));
+    Array.reserve(colors, Array.len(keys));
+    var key_count = (item_model_part_count + 1)
+        * item_model_color_count;
+    for (var i = 0; i < Array.len(keys); i += 1) {
+        if (keys[i] < 0 || keys[i] >= key_count
+            || (i > 0 && keys[i] <= keys[i - 1])) {
+            Array.clear(parts);
+            Array.clear(colors);
+            return false;
+        }
+        Array.push(parts, keys[i] / item_model_color_count - 1);
+        Array.push(colors, keys[i] % item_model_color_count);
+    }
+    return true;
+}
+
+fn prepare_item_color_patch_values(item_obj: Item, keys: array!(int),
+    values: array!(int)): array!(int) {
+    var result: array!(int) = {};
+    var parts: array!(int) = {};
+    var colors: array!(int) = {};
+    if (!_decode_item_color_patch_keys(keys, parts, colors)) {
+        return result;
+    }
+    return prepare_item_colors(item_obj, parts, colors, values);
+}
+
+fn set_item_color_patch_values(item_obj: Item, keys: array!(int),
+    values: array!(int)): bool {
+    var parts: array!(int) = {};
+    var colors: array!(int) = {};
+    if (!_decode_item_color_patch_keys(keys, parts, colors)) {
+        return false;
+    }
+    return set_item_colors(item_obj, parts, colors, values);
+}
+
+fn _localized_item_editor_name(strref: int, fallback: string): string {
+    if (strref < 0) {
+        return fallback;
+    }
+    var result = T.resolve_strref(strref);
+    if (result == "" || String.starts_with(result, "Bad Strref")) {
+        return fallback;
+    }
+    return result;
+}
+
+fn _item_editor_general_row(
+    group: string, label: string, value: string, multiline: bool = false): ItemEditorGeneralRow {
+    return {
+        group = group,
+        label = label,
+        value = value,
+        multiline = multiline,
+    };
+}
+
+fn get_item_editor_general_rows(item_obj: Item): array!(ItemEditorGeneralRow) {
+    var rows: array!(ItemEditorGeneralRow) = {};
+    if (!O.is_valid(item_obj as object)) {
+        return rows;
+    }
+
+    var base_object = item_obj as object;
+    var descriptor = get_propset!(ItemDescriptor)(item_obj);
+    var stats = get_propset!(ItemStats)(item_obj);
+    var baseitem_name = f"Base Item {stats.base_item}";
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (BaseItems.exists(base_item_type)) {
+        var info = BaseItems.get_info(base_item_type);
+        baseitem_name = _localized_item_editor_name(
+            info.name, baseitem_name);
+    }
+
+    Array.reserve(rows, 9);
+    Array.push(rows, _item_editor_general_row(
+        "Identity", "Name", O.get_name(base_object)));
+    Array.push(rows, _item_editor_general_row(
+        "Identity", "Tag", O.get_tag(base_object)));
+    Array.push(rows, _item_editor_general_row(
+        "Identity", "Resref", T.resref_to_string(O.get_resref(base_object))));
+    Array.push(rows, _item_editor_general_row(
+        "Basic", "Base Item Type", baseitem_name));
+    Array.push(rows, _item_editor_general_row(
+        "Basic", "Additional Cost", f"{stats.cost_additional}"));
+    Array.push(rows, _item_editor_general_row(
+        "Basic", "Plot", stats.plot != 0 ? "Yes" : "No"));
+    Array.push(rows, _item_editor_general_row(
+        "Basic", "Stack Size", f"{stats.stack_size}"));
+    Array.push(rows, _item_editor_general_row(
+        "Description", "Description", T.resolve_text(descriptor.description, 0), true));
+    Array.push(rows, _item_editor_general_row(
+        "Comments", "Comments", O.get_comment(base_object), true));
+    return rows;
+}
+
+fn item_editor_has_inventory(item_obj: Item): bool {
+    if (!O.is_valid(item_obj as object)) {
+        return false;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    return BaseItems.exists(base_item_type)
+        && BaseItems.get_info(base_item_type).is_container;
+}
+
+fn get_inventory_editor_rows(items: array!(Item)): array!(ItemEditorInventoryRow) {
+    var rows: array!(ItemEditorInventoryRow) = {};
+    Array.reserve(rows, Array.len(items));
+    for (var item_obj in items) {
+        if (!O.is_valid(item_obj as object)) {
+            continue;
+        }
+        var stats = get_propset!(ItemStats)(item_obj);
+        var resref = T.resref_to_string(O.get_resref(item_obj as object));
+        var name = O.get_name(item_obj as object);
+        if (name == "") {
+            name = O.get_tag(item_obj as object);
+        }
+        if (name == "") {
+            name = resref;
+        }
+        var row = ItemEditorInventoryRow {
+            item = item_obj,
+            name = name,
+            resref = resref,
+            stack_size = stats.stack_size,
+        };
+        Array.push(rows, row);
+    }
+    return rows;
+}
+
+fn _item_property_option_label(prop_type: int, field: int, value: int): string {
+    return _localized_item_editor_name(
+        base.ip_option_name(prop_type, field, value), f"Value {value}");
+}
+
+fn _item_property_definition_label(prop_type: int): string {
+    return _localized_item_editor_name(
+        base.ip_definition_name(prop_type), "");
+}
+
+fn _first_item_property_option(prop_type: int, field: int): int {
+    var count = base.ip_option_count(prop_type, field);
+    for (var value = 0; value < count; value += 1) {
+        if (base.ip_option_name(prop_type, field, value) >= 0) {
+            return value;
+        }
+    }
+    if (field == item_property_field_param) {
+        return 255;
+    }
+    return item_property_value_invalid;
+}
+
+fn _valid_item_property_option(prop_type: int, field: int, value: int): bool {
+    var count = base.ip_option_count(prop_type, field);
+    if (count <= 0) {
+        return value == (field == item_property_field_param
+            ? 255 : item_property_value_invalid);
+    }
+    return value >= 0 && value < count
+        && base.ip_option_name(prop_type, field, value) >= 0;
+}
+
+fn _item_property_type_allowed(item_obj: Item, prop_type: int): bool {
+    if ((item_obj as object) == O.invalid) {
+        return false;
+    }
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    return prop_type >= 0
+        && prop_type < base.ip_definition_count()
+        && BaseItems.exists(base_item_type)
+        && base.ip_definition_allowed(
+            prop_type, BaseItems.get_info(base_item_type).item_property_column);
+}
+
+fn get_available_item_property_rows(item_obj: Item): array!(ItemEditorPropertyDefinitionRow) {
+    var rows: array!(ItemEditorPropertyDefinitionRow) = {};
+    if ((item_obj as object) == O.invalid) {
+        return rows;
+    }
+    var count = base.ip_definition_count();
+    Array.reserve(rows, count);
+    for (var prop_type = 0; prop_type < count; prop_type += 1) {
+        if (!_item_property_type_allowed(item_obj, prop_type)) {
+            continue;
+        }
+        var label = _item_property_definition_label(prop_type);
+        if (label == "") {
+            continue;
+        }
+        var row: ItemEditorPropertyDefinitionRow = {
+            prop_type = prop_type,
+            label = label,
+            subtype = _first_item_property_option(prop_type, item_property_field_subtype),
+            param_table = base.ip_definition_table(
+                prop_type, item_property_field_param),
+            param_value = _first_item_property_option(prop_type, item_property_field_param),
+            cost_table = base.ip_definition_table(
+                prop_type, item_property_field_cost),
+            cost_value = _first_item_property_option(prop_type, item_property_field_cost),
+        };
+        Array.push(rows, row);
+    }
+    Array.sort(rows, fn(a: ItemEditorPropertyDefinitionRow, b: ItemEditorPropertyDefinitionRow): bool {
+        return a.label < b.label;
+    });
+    return rows;
+}
+
+fn _item_property_value_display(prop_type: int, field: int, value: int): string {
+    if (base.ip_option_count(prop_type, field) <= 0) {
+        return "";
+    }
+    return _item_property_option_label(prop_type, field, value);
+}
+
+fn get_applied_item_property_rows(item_obj: Item): array!(ItemEditorPropertyRow) {
+    var rows: array!(ItemEditorPropertyRow) = {};
+    if ((item_obj as object) == O.invalid) {
+        return rows;
+    }
+    var properties = base.item_properties(item_obj);
+    Array.reserve(rows, Array.len(properties));
+    for (var index = 0; index < Array.len(properties); index += 1) {
+        var ip = properties[index];
+        var subtype_count = base.ip_option_count(ip.prop_type, item_property_field_subtype);
+        var param_count = base.ip_option_count(ip.prop_type, item_property_field_param);
+        var cost_count = base.ip_option_count(ip.prop_type, item_property_field_cost);
+        var label = _item_property_definition_label(ip.prop_type);
+        if (label == "") {
+            label = f"Unknown item property ({ip.prop_type})";
+        }
+        var row: ItemEditorPropertyRow = {
+            index = index,
+            prop_type = ip.prop_type,
+            tag = ip.tag,
+            label = label,
+            subtype = ip.subtype,
+            subtype_label = _item_property_value_display(
+                ip.prop_type, item_property_field_subtype, ip.subtype),
+            param_table = ip.param_table,
+            param_value = ip.param_value,
+            param_label = _item_property_value_display(
+                ip.prop_type, item_property_field_param, ip.param_value),
+            cost_table = ip.cost_table,
+            cost_value = ip.cost_value,
+            cost_label = _item_property_value_display(
+                ip.prop_type, item_property_field_cost, ip.cost_value),
+            has_subtype = subtype_count > 0,
+            has_param = param_count > 0,
+            has_cost = cost_count > 0,
+        };
+        Array.push(rows, row);
+    }
+    return rows;
+}
+
+fn get_item_property_option_rows(
+    item_obj: Item, index: int, field: int): array!(ItemEditorPropertyOptionRow) {
+    var rows: array!(ItemEditorPropertyOptionRow) = {};
+    if ((item_obj as object) == O.invalid
+        || field < item_property_field_subtype
+        || field > item_property_field_cost) {
+        return rows;
+    }
+    var properties = base.item_properties(item_obj);
+    if (index < 0 || index >= Array.len(properties)) {
+        return rows;
+    }
+    var ip = properties[index];
+    var count = base.ip_option_count(ip.prop_type, field);
+    Array.reserve(rows, count);
+    for (var value = 0; value < count; value += 1) {
+        var strref = base.ip_option_name(ip.prop_type, field, value);
+        if (strref < 0) {
+            continue;
+        }
+        var row: ItemEditorPropertyOptionRow = {
+            value = value,
+            label = _localized_item_editor_name(strref, f"Value {value}"),
+        };
+        Array.push(rows, row);
+    }
+    return rows;
+}
+
+fn _insert_item_properties(item_obj: Item, indices: array!(int), prop_types: array!(int),
+    subtypes: array!(int), cost_tables: array!(int), cost_values: array!(int),
+    param_tables: array!(int), param_values: array!(int), tags: array!(string),
+    validate_profile: bool): bool {
+    var count = Array.len(indices);
+    if ((item_obj as object) == O.invalid
+        || count <= 0
+        || count != Array.len(prop_types)
+        || count != Array.len(subtypes)
+        || count != Array.len(cost_tables)
+        || count != Array.len(cost_values)
+        || count != Array.len(param_tables)
+        || count != Array.len(param_values)
+        || count != Array.len(tags)) {
+        return false;
+    }
+
+    var properties = base.item_properties(item_obj);
+    var old_count = Array.len(properties);
+    for (var i = 0; i < count; i += 1) {
+        if (indices[i] < 0 || indices[i] > old_count + i
+            || (i > 0 && indices[i] <= indices[i - 1])) {
+            return false;
+        }
+        if (validate_profile
+            && (prop_types[i] < 0 || prop_types[i] >= base.ip_definition_count()
+            || !_item_property_type_allowed(item_obj, prop_types[i])
+            || subtypes[i] < 0 || subtypes[i] > item_property_value_invalid
+            || cost_tables[i] < 0 || cost_tables[i] > item_property_value_invalid
+            || cost_values[i] < 0 || cost_values[i] > item_property_value_invalid
+            || param_tables[i] < 0 || param_tables[i] > item_property_value_invalid
+            || param_values[i] < 0 || param_values[i] > item_property_value_invalid
+            || cost_tables[i] != base.ip_definition_table(
+                prop_types[i], item_property_field_cost)
+            || param_tables[i] != base.ip_definition_table(
+                prop_types[i], item_property_field_param)
+            || !_valid_item_property_option(
+                prop_types[i], item_property_field_subtype, subtypes[i])
+            || !_valid_item_property_option(
+                prop_types[i], item_property_field_param, param_values[i])
+            || !_valid_item_property_option(
+                prop_types[i], item_property_field_cost, cost_values[i]))) {
+            return false;
+        }
+    }
+
+    var result: array!(base.ItemProperty) = {};
+    Array.reserve(result, old_count + count);
+    var old_index = 0;
+    var insert_index = 0;
+    for (var output_index = 0; output_index < old_count + count; output_index += 1) {
+        if (insert_index < count && indices[insert_index] == output_index) {
+            var ip: base.ItemProperty = {
+                prop_type = prop_types[insert_index],
+                subtype = subtypes[insert_index],
+                cost_table = cost_tables[insert_index],
+                cost_value = cost_values[insert_index],
+                param_table = param_tables[insert_index],
+                param_value = param_values[insert_index],
+                tag = tags[insert_index],
+            };
+            Array.push(result, ip);
+            insert_index += 1;
+        } else {
+            var old_property = properties[old_index];
+            Array.push(result, old_property);
+            old_index += 1;
+        }
+    }
+    return base.set_item_properties(item_obj, result);
+}
+
+fn insert_item_properties(item_obj: Item, indices: array!(int), prop_types: array!(int),
+    subtypes: array!(int), cost_tables: array!(int), cost_values: array!(int),
+    param_tables: array!(int), param_values: array!(int), tags: array!(string)): bool {
+    return _insert_item_properties(item_obj, indices, prop_types, subtypes,
+        cost_tables, cost_values, param_tables, param_values, tags, true);
+}
+
+fn restore_item_properties(item_obj: Item, indices: array!(int), prop_types: array!(int),
+    subtypes: array!(int), cost_tables: array!(int), cost_values: array!(int),
+    param_tables: array!(int), param_values: array!(int), tags: array!(string)): bool {
+    return _insert_item_properties(item_obj, indices, prop_types, subtypes,
+        cost_tables, cost_values, param_tables, param_values, tags, false);
+}
+
+fn remove_item_properties(item_obj: Item, indices: array!(int)): bool {
+    if ((item_obj as object) == O.invalid || Array.len(indices) <= 0) {
+        return false;
+    }
+    var properties = base.item_properties(item_obj);
+    for (var i = 0; i < Array.len(indices); i += 1) {
+        if (indices[i] < 0 || indices[i] >= Array.len(properties)
+            || (i > 0 && indices[i] <= indices[i - 1])) {
+            return false;
+        }
+    }
+    var old_count = Array.len(properties);
+    var remove_index = 0;
+    var write_index = 0;
+    for (var read_index = 0; read_index < old_count; read_index += 1) {
+        if (remove_index < Array.len(indices) && indices[remove_index] == read_index) {
+            remove_index += 1;
+        } else {
+            if (write_index != read_index) {
+                var property = properties[read_index];
+                Array.set(properties, write_index, property);
+            }
+            write_index += 1;
+        }
+    }
+    for (var index = write_index; index < old_count; index += 1) {
+        Array.pop(properties);
+    }
+    return base.set_item_properties(item_obj, properties);
+}
+
+fn set_item_property_values(item_obj: Item, indices: array!(int),
+    fields: array!(int), values: array!(int)): bool {
+    var count = Array.len(indices);
+    if ((item_obj as object) == O.invalid
+        || count <= 0 || count != Array.len(fields) || count != Array.len(values)) {
+        return false;
+    }
+    var properties = base.item_properties(item_obj);
+    for (var i = 0; i < count; i += 1) {
+        if (indices[i] < 0 || indices[i] >= Array.len(properties)
+            || fields[i] < item_property_field_subtype
+            || fields[i] > item_property_field_cost
+            || values[i] < 0 || values[i] > item_property_value_invalid) {
+            return false;
+        }
+        var property_index = indices[i];
+        var property = properties[property_index];
+        if (!_valid_item_property_option(property.prop_type, fields[i], values[i])) {
+            return false;
+        }
+        for (var j = 0; j < i; j += 1) {
+            if (indices[i] == indices[j] && fields[i] == fields[j]) {
+                return false;
+            }
+        }
+    }
+    for (var i = 0; i < count; i += 1) {
+        var index = indices[i];
+        var field = fields[i];
+        var value = values[i];
+        var ip = properties[index];
+        if (field == item_property_field_subtype) {
+            ip.subtype = value;
+        } else {
+            if (field == item_property_field_param) {
+                ip.param_value = value;
+            } else {
+                ip.cost_value = value;
+            }
+        }
+        Array.set(properties, index, ip);
+    }
+    return base.set_item_properties(item_obj, properties);
+}
+
+fn _baseitem_requirements_met(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
     if ((creature as object) == O.invalid || (item_obj as object) == O.invalid) {
         return false;
     }
 
-    var stats = get_propset!(base.ItemStats)(item_obj);
-    var entry = _find_baseitem(stats.base_item);
-    if (entry.id < 0) {
+    var stats = get_propset!(ItemStats)(item_obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return false;
     }
 
-    if (!_baseitem_slot_can_equip(entry, _slot)) {
+    if (!_baseitem_slot_can_equip(stats.base_item, slot)) {
         return false;
     }
 
-    return _has_required_feat(creature, entry.req_feat0)
-        && _has_required_feat(creature, entry.req_feat1)
-        && _has_required_feat(creature, entry.req_feat2)
-        && _has_required_feat(creature, entry.req_feat3)
-        && _has_required_feat(creature, entry.req_feat4);
+    return BaseItems.requirements_met(creature, base_item_type);
+}
+
+fn can_equip_item_for_authoring(item_obj: Item, slot: base.EquipIndex): bool {
+    if ((item_obj as object) == O.invalid) {
+        return false;
+    }
+
+    var stats = get_propset!(ItemStats)(item_obj);
+    return _baseitem_slot_can_equip(stats.base_item, slot);
+}
+
+fn equip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
+    if ((creature as object) == O.invalid || !can_equip_item_for_authoring(item_obj, slot)) {
+        return false;
+    }
+    return _equip_item_unchecked(creature, item_obj, slot);
+}
+
+fn unequip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
+    if ((creature as object) == O.invalid
+        || (item_obj as object) == O.invalid
+        || (base.get_equipped_item(creature, slot) as object) != (item_obj as object)) {
+        return false;
+    }
+    return (unequip_item(creature, slot) as object) == (item_obj as object);
 }
 
 fn _append_visual_row_count(
@@ -325,51 +1773,69 @@ fn _append_visual_row_count(
 
 fn resolve_visual_by_state(base_item: int, model_part0: int, model_part1: int, model_part2: int): ItemResolvedVisual {
     var result = _empty_visual();
-    var entry = _find_baseitem(base_item);
-    if (entry.id < 0) {
+    var base_item_type = base.BaseItemType(base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return result;
     }
+    var info = BaseItems.get_info(base_item_type);
 
     result.baseitem_valid = true;
-    result.default_model = T.resource_resref(entry.default_model);
+    result.default_model = info.default_model;
 
     if (base_item == Const.base_item_cloak as int
-        && entry.model_type == Rules.item_model_type_layered
+        && info.model_type == Rules.item_model_type_layered
         && model_part0 > 0) {
         result.requires_wearer_context = true;
         result.attachment_count = 1;
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_simple || entry.model_type == Rules.item_model_type_layered) {
+    if (info.model_type == Rules.item_model_type_simple
+        || info.model_type == Rules.item_model_type_layered) {
         if (model_part0 > 0) {
             result = _append_visual_row_count(
                 result,
-                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0));
+                Rules.item_model_resref(
+                    info.model_type,
+                    info.item_class,
+                    item_model_part_model1,
+                    model_part0));
         }
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_composite) {
+    if (info.model_type == Rules.item_model_type_composite) {
         if (model_part0 > 0) {
             result = _append_visual_row_count(
                 result,
-                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0));
+                Rules.item_model_resref(
+                    info.model_type,
+                    info.item_class,
+                    item_model_part_model1,
+                    model_part0));
         }
         if (model_part1 > 0) {
             result = _append_visual_row_count(
                 result,
-                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model2, model_part1));
+                Rules.item_model_resref(
+                    info.model_type,
+                    info.item_class,
+                    item_model_part_model2,
+                    model_part1));
         }
         if (model_part2 > 0) {
             result = _append_visual_row_count(
                 result,
-                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model3, model_part2));
+                Rules.item_model_resref(
+                    info.model_type,
+                    info.item_class,
+                    item_model_part_model3,
+                    model_part2));
         }
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_armor) {
+    if (info.model_type == Rules.item_model_type_armor) {
         result.requires_wearer_context = true;
     }
 
@@ -381,16 +1847,15 @@ fn resolve_visual(item: Item): ItemResolvedVisual {
         return _empty_visual();
     }
 
-    var stats = get_propset!(base.ItemStats)(item);
-    var visuals = get_propset!(base.ItemVisuals)(item);
+    var stats = get_propset!(ItemStats)(item);
     return resolve_visual_by_state(
         stats.base_item,
-        visuals.model_parts[item_model_part_model1],
-        visuals.model_parts[item_model_part_model2],
-        visuals.model_parts[item_model_part_model3]);
+        get_visual_model_part(item, item_model_part_model1),
+        get_visual_model_part(item, item_model_part_model2),
+        get_visual_model_part(item, item_model_part_model3));
 }
 
-fn _valid_target_slot(slot: T.EquipIndex): bool {
+fn _valid_target_slot(slot: base.EquipIndex): bool {
     var raw = slot as int;
     return raw >= 0 && raw <= Const.equip_index_creature_skin as int;
 }
@@ -398,7 +1863,7 @@ fn _valid_target_slot(slot: T.EquipIndex): bool {
 fn _model_visual_row(
     model: T.ResRef,
     part: int,
-    target_slot: T.EquipIndex,
+    target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
     if (T.resref_to_string(model) == "") {
         return _empty_visual_row();
@@ -418,7 +1883,7 @@ fn _model_visual_row(
 
 fn _wearer_visual_row(
     source_model_part: int,
-    target_slot: T.EquipIndex,
+    target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
     if (source_model_part <= 0) {
         return _empty_visual_row();
@@ -443,12 +1908,12 @@ fn _wearer_visual_row(
 }
 
 fn _composite_visual_row(
-    entry: Rules.BaseItemEntry,
+    entry: base.BaseItemInfo,
     model_part0: int,
     model_part1: int,
     model_part2: int,
     index: int,
-    target_slot: T.EquipIndex,
+    target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
     var at = 0;
     if (model_part0 > 0) {
@@ -487,29 +1952,35 @@ fn resolve_visual_row_by_state(
     model_part1: int,
     model_part2: int,
     index: int,
-    target_slot: T.EquipIndex,
+    target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
     var visual = resolve_visual_by_state(base_item, model_part0, model_part1, model_part2);
     if (index < 0 || index >= visual.attachment_count) {
         return _empty_visual_row();
     }
 
-    var entry = _find_baseitem(base_item);
-    if (entry.id < 0) {
+    var base_item_type = base.BaseItemType(base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return _empty_visual_row();
     }
+    var info = BaseItems.get_info(base_item_type);
 
     if (base_item == Const.base_item_cloak as int
-        && entry.model_type == Rules.item_model_type_layered
+        && info.model_type == Rules.item_model_type_layered
         && model_part0 > 0
         && index == 0) {
         return _wearer_visual_row(model_part0, target_slot, socket);
     }
 
-    if (entry.model_type == Rules.item_model_type_simple || entry.model_type == Rules.item_model_type_layered) {
+    if (info.model_type == Rules.item_model_type_simple
+        || info.model_type == Rules.item_model_type_layered) {
         if (index == 0 && model_part0 > 0) {
             return _model_visual_row(
-                Rules.item_model_resref(entry.model_type, entry.item_class, item_model_part_model1, model_part0),
+                Rules.item_model_resref(
+                    info.model_type,
+                    info.item_class,
+                    item_model_part_model1,
+                    model_part0),
                 item_model_part_model1,
                 target_slot,
                 socket);
@@ -517,9 +1988,9 @@ fn resolve_visual_row_by_state(
         return _empty_visual_row();
     }
 
-    if (entry.model_type == Rules.item_model_type_composite) {
+    if (info.model_type == Rules.item_model_type_composite) {
         return _composite_visual_row(
-            entry,
+            info,
             model_part0,
             model_part1,
             model_part2,
@@ -536,50 +2007,48 @@ fn resolve_visual_row(item: Item, index: int): VisualModelRow {
         return _empty_visual_row();
     }
 
-    var stats = get_propset!(base.ItemStats)(item);
-    var visuals = get_propset!(base.ItemVisuals)(item);
+    var stats = get_propset!(ItemStats)(item);
     return resolve_visual_row_by_state(
         stats.base_item,
-        visuals.model_parts[item_model_part_model1],
-        visuals.model_parts[item_model_part_model2],
-        visuals.model_parts[item_model_part_model3],
+        get_visual_model_part(item, item_model_part_model1),
+        get_visual_model_part(item, item_model_part_model2),
+        get_visual_model_part(item, item_model_part_model3),
         index,
-        T.EquipIndex(equip_index_invalid),
+        base.EquipIndex(equip_index_invalid),
         _empty_resref());
 }
 
 fn resolve_visual_row_for_slot(
     item: Item,
     index: int,
-    target_slot: T.EquipIndex,
+    target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
     if ((item as object) == O.invalid) {
         return _empty_visual_row();
     }
 
-    var stats = get_propset!(base.ItemStats)(item);
-    var visuals = get_propset!(base.ItemVisuals)(item);
+    var stats = get_propset!(ItemStats)(item);
     return resolve_visual_row_by_state(
         stats.base_item,
-        visuals.model_parts[item_model_part_model1],
-        visuals.model_parts[item_model_part_model2],
-        visuals.model_parts[item_model_part_model3],
+        get_visual_model_part(item, item_model_part_model1),
+        get_visual_model_part(item, item_model_part_model2),
+        get_visual_model_part(item, item_model_part_model3),
         index,
         target_slot,
         socket);
 }
 
-fn _visual_socket_for_slot(slot: T.EquipIndex): T.ResRef {
-    if (slot == Const.equip_index_head) { return T.resref("head"); }
+fn _visual_socket_for_slot(slot: base.EquipIndex): T.ResRef {
+    if (slot == Const.equip_index_head) { return T.resref("head_g"); }
     if (slot == Const.equip_index_righthand) { return T.resref("rhand"); }
     if (slot == Const.equip_index_lefthand) { return T.resref("lhand"); }
     return _empty_resref();
 }
 
-fn _item_plt_color(visuals: base.ItemVisuals, part: int, color: int): int {
-    var result = visuals.model_colors[color];
-    if (base.valid_visual_part_index(part)) {
-        var part_color = visuals.part_colors[base.visual_part_color_index(part, color)];
+fn _item_plt_color(item: Item, part: int, color: int): int {
+    var result = get_visual_model_color(item, color);
+    if (valid_visual_part_index(part)) {
+        var part_color = get_visual_part_color(item, part, color);
         if (part_color != item_part_color_inherit) {
             result = part_color;
         }
@@ -592,7 +2061,6 @@ fn set_visual_plt_colors_for_row(obj: object, item: Item, slot: int, kind: int, 
         return false;
     }
 
-    var visuals = get_propset!(base.ItemVisuals)(item);
     return Visual.set_visual_plt_colors(
         obj,
         slot,
@@ -601,12 +2069,12 @@ fn set_visual_plt_colors_for_row(obj: object, item: Item, slot: int, kind: int, 
         Visual.visual_plt_mask_material,
         0,
         0,
-        _item_plt_color(visuals, part, item_color_metal1),
-        _item_plt_color(visuals, part, item_color_metal2),
-        _item_plt_color(visuals, part, item_color_cloth1),
-        _item_plt_color(visuals, part, item_color_cloth2),
-        _item_plt_color(visuals, part, item_color_leather1),
-        _item_plt_color(visuals, part, item_color_leather2),
+        _item_plt_color(item, part, item_color_metal1),
+        _item_plt_color(item, part, item_color_metal2),
+        _item_plt_color(item, part, item_color_cloth1),
+        _item_plt_color(item, part, item_color_cloth2),
+        _item_plt_color(item, part, item_color_leather1),
+        _item_plt_color(item, part, item_color_leather2),
         0,
         0);
 }
@@ -621,6 +2089,7 @@ fn _append_visual_row(owner: object, item: Item, row: VisualModelRow): bool {
         if (!Visual.add_visual_model_row(
             owner,
             row.model,
+            row.plt_texture,
             row.attach_to,
             row.attach_from,
             row.kind,
@@ -645,7 +2114,7 @@ fn _append_default_visual(owner: object, item: Item, visual: ItemResolvedVisual)
     var row = _model_visual_row(
         visual.default_model,
         item_model_part_model1,
-        T.EquipIndex(equip_index_invalid),
+        base.EquipIndex(equip_index_invalid),
         _empty_resref());
     return _append_visual_row(owner, item, row);
 }
@@ -683,10 +2152,14 @@ fn update_standalone_visual(item: Item, use_default_fallback: bool): bool {
         }
     }
 
+    if (!update_item_icons(item)) {
+        ok = false;
+    }
+
     return ok;
 }
 
-fn update_visual_for_slot(creature: Creature, item: Item, slot: T.EquipIndex): bool {
+fn update_visual_for_slot(creature: Creature, item: Item, slot: base.EquipIndex): bool {
     if (!Visual.clear_visual_slot(creature, slot as int)) {
         return false;
     }
@@ -702,6 +2175,7 @@ fn update_visual_for_slot(creature: Creature, item: Item, slot: T.EquipIndex): b
         var row = resolve_visual_row_for_slot(item, i, slot, socket);
         if (slot == Const.equip_index_cloak && row.kind == Visual.visual_model_kind_creature_model_part) {
             row.model = _resolve_creature_cloak_model(creature, row.model_part);
+            row.plt_texture = _resolve_creature_cloak_plt(row.model_part);
         }
         if (!_append_visual_row(creature, item, row)) {
             ok = false;
@@ -712,27 +2186,31 @@ fn update_visual_for_slot(creature: Creature, item: Item, slot: T.EquipIndex): b
 
 fn update_creature_visual_equipment(creature: Creature): bool {
     var ok = true;
-    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_head), Const.equip_index_head)) {
+    if (!update_visual_for_slot(creature, base.get_equipped_item(creature, Const.equip_index_head), Const.equip_index_head)) {
         ok = false;
     }
-    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_righthand), Const.equip_index_righthand)) {
+    if (!update_visual_for_slot(creature, base.get_equipped_item(creature, Const.equip_index_righthand), Const.equip_index_righthand)) {
         ok = false;
     }
-    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_lefthand), Const.equip_index_lefthand)) {
+    if (!update_visual_for_slot(creature, base.get_equipped_item(creature, Const.equip_index_lefthand), Const.equip_index_lefthand)) {
         ok = false;
     }
-    if (!update_visual_for_slot(creature, Cre.get_equipped_item(creature, Const.equip_index_cloak), Const.equip_index_cloak)) {
+    if (!update_visual_for_slot(creature, base.get_equipped_item(creature, Const.equip_index_cloak), Const.equip_index_cloak)) {
         ok = false;
     }
     return ok;
 }
 
-fn _on_item_equipped_update_visual(creature: Creature, equipped: Item, slot: T.EquipIndex) {
+fn _on_item_equipped_update_visual(creature: Creature, equipped: Item, slot: base.EquipIndex) {
     update_visual_for_slot(creature, equipped, slot);
 }
 
-fn _on_item_unequipped_update_visual(creature: Creature, _removed: Item, slot: T.EquipIndex) {
+fn _on_item_unequipped_update_visual(creature: Creature, _removed: Item, slot: base.EquipIndex) {
     update_visual_for_slot(creature, O.invalid as Item, slot);
+}
+
+fn _on_item_visual_changed(item: Item): bool {
+    return update_standalone_visual(item, true);
 }
 
 fn _ensure_visual_callbacks() {
@@ -740,8 +2218,9 @@ fn _ensure_visual_callbacks() {
         return;
     }
 
-    base.add_on_equip_callback(_on_item_equipped_update_visual);
-    base.add_on_unequip_callback(_on_item_unequipped_update_visual);
+    add_on_equip_callback(_on_item_equipped_update_visual);
+    add_on_unequip_callback(_on_item_unequipped_update_visual);
+    add_on_visual_changed_callback(_on_item_visual_changed);
     did_install_visual_callbacks = true;
 }
 
@@ -750,7 +2229,7 @@ fn _ensure_can_equip_callbacks() {
         return;
     }
 
-    base.add_can_equip_callback(_baseitem_requirements_met);
+    add_can_equip_callback(_baseitem_requirements_met);
     did_install_can_equip_callbacks = true;
 }
 
@@ -766,53 +2245,54 @@ fn _armor_icon_part_token(part: int): string {
 
 fn resolve_icon_by_state(base_item: int, part: int, model_number: int, female: bool): ItemResolvedIcon {
     var result = _empty_icon(part);
-    var entry = _find_baseitem(base_item);
-    if (entry.id < 0) {
+    var base_item_type = base.BaseItemType(base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return result;
     }
+    var info = BaseItems.get_info(base_item_type);
 
     result.baseitem_valid = true;
-    result.default_icon = entry.default_icon;
+    result.default_icon = info.default_icon;
 
-    if (!base.valid_visual_part_index(part)) {
+    if (!valid_visual_part_index(part)) {
         result.invalid_part = true;
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_simple) {
+    if (info.model_type == Rules.item_model_type_simple) {
         if (part == item_model_part_model1) {
             result.allow_default = true;
-            result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_{Rules.item_model_number_suffix(model_number)}");
+            result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_{Rules.item_model_number_suffix(model_number)}");
         }
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_layered) {
+    if (info.model_type == Rules.item_model_type_layered) {
         if (part == item_model_part_model1) {
             result.allow_default = true;
             result.is_plt = true;
             if (base_item == Const.base_item_cloak as int) {
                 var icon = _find_cloakmodel(model_number).icon;
                 if (icon >= 0) {
-                    result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_m_{Rules.item_model_number_suffix(icon)}");
+                    result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_m_{Rules.item_model_number_suffix(icon)}");
                 }
             } else {
-                result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_{Rules.item_model_number_suffix(model_number)}");
+                result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_{Rules.item_model_number_suffix(model_number)}");
             }
         }
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_composite) {
+    if (info.model_type == Rules.item_model_type_composite) {
         result.allow_default = true;
         if (part == item_model_part_model1) {
-            result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_b_{Rules.item_model_number_suffix(model_number)}");
+            result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_b_{Rules.item_model_number_suffix(model_number)}");
         } else {
             if (part == item_model_part_model2) {
-                result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_m_{Rules.item_model_number_suffix(model_number)}");
+                result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_m_{Rules.item_model_number_suffix(model_number)}");
             } else {
                 if (part == item_model_part_model3) {
-                    result.resref = T.resref(f"i{T.resref_to_string(entry.item_class)}_t_{Rules.item_model_number_suffix(model_number)}");
+                    result.resref = T.resref(f"i{T.resref_to_string(info.item_class)}_t_{Rules.item_model_number_suffix(model_number)}");
                 } else {
                     result.allow_default = false;
                     result.invalid_part = true;
@@ -822,7 +2302,7 @@ fn resolve_icon_by_state(base_item: int, part: int, model_number: int, female: b
         return result;
     }
 
-    if (entry.model_type == Rules.item_model_type_armor) {
+    if (info.model_type == Rules.item_model_type_armor) {
         if (model_number == 0) {
             return result;
         }
@@ -850,13 +2330,134 @@ fn resolve_icon(item: Item, part: int, female: bool): ItemResolvedIcon {
         return _empty_icon(part);
     }
 
-    var stats = get_propset!(base.ItemStats)(item);
+    var stats = get_propset!(ItemStats)(item);
     var model_number = 0;
-    if (base.valid_visual_part_index(part)) {
-        var visuals = get_propset!(base.ItemVisuals)(item);
-        model_number = visuals.model_parts[part];
+    if (valid_visual_part_index(part)) {
+        model_number = get_visual_model_part(item, part);
     }
     return resolve_icon_by_state(stats.base_item, part, model_number, female);
+}
+
+fn _publish_icon_row(item: Item, part: int, variant: int, female: bool): bool {
+    var icon = resolve_icon(item, part, female);
+    if (!icon.baseitem_valid || icon.invalid_part) {
+        return false;
+    }
+
+    var flags = Visual.item_icon_flag_none;
+    if (icon.is_plt) {
+        flags = bit.or(flags, Visual.item_icon_flag_plt);
+    }
+    if (icon.allow_default) {
+        flags = bit.or(flags, Visual.item_icon_flag_allow_default);
+    }
+
+    var metal1 = 0;
+    var metal2 = 0;
+    var cloth1 = 0;
+    var cloth2 = 0;
+    var leather1 = 0;
+    var leather2 = 0;
+    if (icon.is_plt) {
+        metal1 = _item_plt_color(item, part, item_color_metal1);
+        metal2 = _item_plt_color(item, part, item_color_metal2);
+        cloth1 = _item_plt_color(item, part, item_color_cloth1);
+        cloth2 = _item_plt_color(item, part, item_color_cloth2);
+        leather1 = _item_plt_color(item, part, item_color_leather1);
+        leather2 = _item_plt_color(item, part, item_color_leather2);
+    }
+    return Visual.add_item_icon_layer(
+        item,
+        variant,
+        icon.resref,
+        icon.default_icon,
+        part,
+        flags,
+        metal1,
+        metal2,
+        cloth1,
+        cloth2,
+        leather1,
+        leather2);
+}
+
+fn _publish_fallback_icon(item: Item, variant: int, fallback: T.ResRef): bool {
+    return Visual.add_item_icon_layer(
+        item,
+        variant,
+        _empty_resref(),
+        fallback,
+        item_model_part_model1,
+        Visual.item_icon_flag_allow_default,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0);
+}
+
+fn _publish_icon_variant(item: Item, variant: int, female: bool): bool {
+    var stats = get_propset!(ItemStats)(item);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
+        return false;
+    }
+    var info = BaseItems.get_info(base_item_type);
+
+    if (info.model_type == Rules.item_model_type_simple
+        || info.model_type == Rules.item_model_type_layered) {
+        return _publish_icon_row(item, item_model_part_model1, variant, female);
+    }
+
+    if (info.model_type == Rules.item_model_type_composite) {
+        return _publish_icon_row(item, item_model_part_model1, variant, female)
+            && _publish_icon_row(item, item_model_part_model2, variant, female)
+            && _publish_icon_row(item, item_model_part_model3, variant, female);
+    }
+
+    if (info.model_type == Rules.item_model_type_armor) {
+        var appended = 0;
+        var ok = true;
+        if (get_visual_model_part(item, item_model_part_armor_pelvis) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_pelvis, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (get_visual_model_part(item, item_model_part_armor_belt) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_belt, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (get_visual_model_part(item, item_model_part_armor_torso) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_torso, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (get_visual_model_part(item, item_model_part_armor_lshoul) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_lshoul, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (get_visual_model_part(item, item_model_part_armor_rshoul) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_rshoul, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (get_visual_model_part(item, item_model_part_armor_robe) != 0) {
+            ok = _publish_icon_row(item, item_model_part_armor_robe, variant, female) && ok;
+            appended = appended + 1;
+        }
+        if (appended == 0) {
+            return _publish_fallback_icon(item, variant, info.default_icon);
+        }
+        return ok;
+    }
+
+    return _publish_fallback_icon(item, variant, info.default_icon);
+}
+
+fn update_item_icons(item: Item): bool {
+    if ((item as object) == O.invalid || !Visual.clear_item_icons(item)) {
+        return false;
+    }
+    return _publish_icon_variant(item, Visual.item_icon_variant_default, false)
+        && _publish_icon_variant(item, Visual.item_icon_variant_alternate, true);
 }
 
 // IP type constants
@@ -888,58 +2489,58 @@ fn equip_index_to_attack_type(equip_index: Const.EquipIndex): Const.AttackType {
 }
 
 fn ip_gen_ability_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return base.ability_modifier(Const.Ability(ip.subtype), value);
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return ability_modifier(Const.Ability(ip.subtype), value);
 }
 
 fn ip_gen_attack_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
     var attack = equip_index_to_attack_type(equip_index);
-    return base.attack_modifier(attack, value);
+    return attack_modifier(attack, value);
 }
 
 fn ip_gen_enhancement_modifier(ip: base.ItemProperty, equip_index: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
     var attack = equip_index_to_attack_type(equip_index);
-    return base.attack_modifier(attack, value);
+    return attack_modifier(attack, value);
 }
 
 fn ip_gen_bonus_spell_slot(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    return base.bonus_spell_slot(Const.Class(ip.subtype), ip.cost_value);
+    return bonus_spell_slot(Const.Class(ip.subtype), ip.cost_value);
 }
 
 fn ip_gen_damage_bonus(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var dice  = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
-    var sides = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+    var dice  = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+    var sides = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
     if (dice > 0) {
-        return base.damage_bonus(Const.Damage(ip.subtype), dice, sides, 0, Const.DamageCategory(0));
+        return damage_bonus(Const.Damage(ip.subtype), dice, sides, 0, Const.DamageCategory(0));
     }
-    return base.damage_bonus(Const.Damage(ip.subtype), 0, 0, sides, Const.DamageCategory(0));
+    return damage_bonus(Const.Damage(ip.subtype), 0, 0, sides, Const.DamageCategory(0));
 }
 
 fn ip_gen_monster_damage(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var dice = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
-    var sides = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
-    return base.damage_bonus(Const.damage_type_base_weapon, dice, sides, 0, Const.damage_category_none);
+    var dice = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "NumDice");
+    var sides = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Die");
+    return damage_bonus(Const.damage_type_base_weapon, dice, sides, 0, Const.damage_category_none);
 }
 
 fn ip_gen_haste(_ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    return base.haste();
+    return haste();
 }
 
 fn ip_gen_save_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return base.save_modifier(Const.Save(ip.subtype), value, Const.saving_throw_vs_all);
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return save_modifier(Const.Save(ip.subtype), value, Const.saving_throw_vs_all);
 }
 
 fn ip_gen_save_vs_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return base.save_modifier(Const.saving_throw_all, value, Const.SaveVersus(ip.subtype));
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return save_modifier(Const.saving_throw_all, value, Const.SaveVersus(ip.subtype));
 }
 
 fn ip_gen_skill_modifier(ip: base.ItemProperty, _equip: Const.EquipIndex): base.ItemEffectRow {
-    var value = base.__ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
-    return base.skill_modifier(Const.Skill(ip.subtype), value);
+    var value = base.ip_cost_table_int(ip.prop_type, ip.cost_value, "Value");
+    return skill_modifier(Const.Skill(ip.subtype), value);
 }
 
 fn item_row_to_ability_modifier(row: base.ItemEffectRow): effects.Effect {
@@ -1002,11 +2603,11 @@ fn register_default_generators() {
     base.set_generator_for_type(ip_decreased_skill_modifier,         ip_gen_skill_modifier);
     _ensure_visual_callbacks();
     _ensure_can_equip_callbacks();
-    Equipment.ensure_equipment_ac_callbacks();
+    ensure_equipment_ac_callbacks();
 }
 
 fn is_creature_weapon(it: Item): bool {
-    const bt = base.get_baseitem_type(it);
+    const bt = get_baseitem_type(it);
     return bt == Const.base_item_cbludgweapon
         || bt == Const.base_item_cpiercweapon
         || bt == Const.base_item_cslashweapon
@@ -1025,14 +2626,34 @@ fn sync_equipment_armor_class(creature: Creature): bool {
     return Equipment.sync_equipment_armor_class(creature);
 }
 
+fn _on_item_equipped_sync_equipment_ac(
+    creature: Creature, _equipped: Item, _slot: base.EquipIndex) {
+    sync_equipment_armor_class(creature);
+}
+
+fn _on_item_unequipped_sync_equipment_ac(
+    creature: Creature, _removed: Item, _slot: base.EquipIndex) {
+    sync_equipment_armor_class(creature);
+}
+
+fn ensure_equipment_ac_callbacks() {
+    if (did_install_equipment_ac_callbacks) {
+        return;
+    }
+
+    add_on_equip_callback(_on_item_equipped_sync_equipment_ac);
+    add_on_unequip_callback(_on_item_unequipped_sync_equipment_ac);
+    did_install_equipment_ac_callbacks = true;
+}
+
 fn _item_property_value(ip: base.ItemProperty): float {
-    var property_value = base.__ip_definition_cost(ip.prop_type);
-    var subtype_value = base.__ip_subtype_cost(ip.prop_type, ip.subtype);
+    var property_value = base.ip_definition_cost(ip.prop_type);
+    var subtype_value = base.ip_subtype_cost(ip.prop_type, ip.subtype);
     if (property_value == 0.0) {
         property_value = subtype_value;
     }
 
-    var cost_value = base.__ip_cost_table_float(ip.prop_type, ip.cost_value, "Cost");
+    var cost_value = base.ip_cost_table_float(ip.prop_type, ip.cost_value, "Cost");
     if (cost_value != 0.0) {
         property_value = property_value * cost_value;
     }
@@ -1044,11 +2665,13 @@ fn calculate_value(obj: Item): int {
         return 0;
     }
 
-    var stats = get_propset!(base.ItemStats)(obj);
-    var entry = _find_baseitem(stats.base_item);
-    if (entry.id < 0) {
+    var stats = get_propset!(ItemStats)(obj);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) {
         return 0;
     }
+    var baseitem_rules = BaseItems.get_rules(base_item_type);
+    var baseitem_info = BaseItems.get_info(base_item_type);
 
     var base_value = 0.0;
     if (stats.base_item == Const.base_item_armor as int) {
@@ -1057,14 +2680,15 @@ fn calculate_value(obj: Item): int {
         }
         base_value = _find_armor(stats.armor_id).cost;
     } else {
-        base_value = entry.base_cost as float;
+        base_value = baseitem_rules.base_cost as float;
     }
 
     var positive = 0.0;
     var negative = 0.0;
     var spell_values: array!(float) = {};
 
-    for (var ip in stats.item_properties) {
+    var properties = base.item_properties(obj);
+    for (var ip in properties) {
         var property_value = _item_property_value(ip);
         if (ip.prop_type == Const.ip_cast_spell as int) {
             Array.push(spell_values, property_value);
@@ -1092,8 +2716,8 @@ fn calculate_value(obj: Item): int {
 
     var result = base_value;
     result = result + 1000.0 * ((positive * positive) - (negative * negative)) + total_spell_value;
-    result = result * (entry.stack_size as float);
-    result = result * entry.cost_multiplier;
+    result = result * (baseitem_info.stack_size as float);
+    result = result * baseitem_rules.cost_multiplier;
     result = result + (stats.cost_additional as float);
     return Math.round(result) as int;
 }

@@ -11,6 +11,8 @@
 
 #include <nowide/cstdlib.hpp>
 
+#include <stdexcept>
+
 using namespace std::literals;
 
 namespace {
@@ -80,8 +82,21 @@ TEST(Kernel, LoadModuleWithIgnoredLegacyRenderScale)
 
 TEST(Kernel, ConfigProfileOption)
 {
-    auto previous = nw::kernel::config().profile();
-    nw::kernel::config().set_profile("nwn1");
-    EXPECT_EQ(nw::kernel::config().profile(), "nwn1");
-    nw::kernel::config().set_profile(previous);
+    nw::kernel::Config config;
+    config.set_paths(".", ".");
+
+    nw::ConfigOptions options;
+    options.profile = "custom_profile";
+    config.initialize(options);
+
+    EXPECT_EQ(config.profile(), "custom_profile");
+    EXPECT_EQ(config.combat_policy_module(), "custom_profile.combat");
+    EXPECT_EQ(config.effects_policy_module(), "custom_profile.effects");
+    EXPECT_EQ(config.init_module(), "custom_profile.init");
+
+    options.profile = "invalid-profile";
+    EXPECT_THROW(config.initialize(options), std::invalid_argument);
+
+    options.profile = "1invalid";
+    EXPECT_THROW(config.initialize(options), std::invalid_argument);
 }

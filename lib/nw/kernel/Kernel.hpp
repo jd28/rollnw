@@ -7,6 +7,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
+#include <cstdint>
 #include <filesystem>
 #include <typeindex>
 
@@ -96,6 +97,10 @@ struct Services {
     /// Shutsdown kernel services
     void shutdown();
 
+    /// Gets the generation of the current service set. Zero means services
+    /// have not been created yet.
+    [[nodiscard]] uint64_t generation() const noexcept;
+
     /// Gets current game profile
     GameProfile* profile() const;
 
@@ -133,6 +138,7 @@ private:
     bool module_loaded_ = false;
     bool module_loading_ = false;
     ServiceMode mode_ = ServiceMode::game;
+    uint64_t generation_ = 0;
 
     void load_services();
 };
@@ -192,7 +198,7 @@ EffectSystem& effects();
 /// Gets services
 [[nodiscard]] Services& services();
 
-/// Builds module dependency roots for an Arclight-style project directory.
+/// Builds module dependency roots for a rollnw project directory.
 [[nodiscard]] ModuleLoadOptions module_load_options_for_project(const std::filesystem::path& project_dir);
 
 /// Loads a module

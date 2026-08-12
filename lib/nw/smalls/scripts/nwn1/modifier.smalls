@@ -1,12 +1,13 @@
 import core.array as arr;
 import core.bit as bit;
-import core.combat as C;
-import core.creature as Cre;
+import core.combat as NativeCombat;
+import nwn1.combat_primitives as C;
+import nwn1.creature_state as Cre;
 import core.effects as effects;
 import core.item as item;
 import core.math as Math;
 import core.object as Obj;
-from core.creature import { CombatEpochKeys, CreatureCombat, CreatureCombatCache, CreatureStats };
+from nwn1.propsets import { CombatEpochKeys, CreatureCombat, CreatureCombatCache, CreatureStats };
 
 from nwn1.cachedefs import {
     slot_off_ab_nt_onhand, slot_off_ab_nt_offhand, slot_off_ab_nt_cweapon,
@@ -25,6 +26,7 @@ import nwn1.constants as Const;
 import nwn1.creature_size as CreatureSize;
 import nwn1.equipment as Equipment;
 import nwn1.races as races;
+from nwn1.propsets import { ItemStats };
 
 // Total number of modifier types (0..mod_type_damage_special_attack inclusive)
 const NUM_MOD_TYPES = 20;
@@ -413,15 +415,15 @@ fn get_defense_cache(creature: Creature): CreatureCombatCache {
 
 fn target_effect_epoch(obj: object): int {
     if (obj is Creature) {
-        return C.creature_effect_version(obj);
+        return NativeCombat.creature_effect_version(obj);
     }
     return 0;
 }
 
 fn combat_epoch_keys(combat: CreatureCombat, creature: Creature): CombatEpochKeys {
     return CombatEpochKeys {
-        effect_epoch = C.creature_effect_version(creature),
-        equip_epoch = C.creature_equip_version(creature),
+        effect_epoch = NativeCombat.creature_effect_version(creature),
+        equip_epoch = NativeCombat.creature_equip_version(creature),
         progression_epoch = Cre.progression_version(creature),
         mode_epoch = combat.combat_mode,
     };
@@ -591,10 +593,10 @@ fn _get_dex_modifier(obj: Creature): int {
     dex = dex + Math.clamp(bonus - decrease, -12, 12);
 
     var result = (dex - 10) / 2;
-    var chest = Cre.get_equipped_item(obj, Const.equip_index_chest);
+    var chest = item.get_equipped_item(obj, Const.equip_index_chest);
     if ((chest as object) == Obj.invalid) { return result; }
 
-    var item_stats = get_propset!(item.ItemStats)(chest);
+    var item_stats = get_propset!(ItemStats)(chest);
     if (item_stats.armor_id != -1 && item_stats.armor_dex_bonus_valid != 0) {
         return Math.min(result, item_stats.armor_dex_bonus);
     }

@@ -43,6 +43,11 @@ const Node* RenderModel::socket_node(uint32_t index) const noexcept
     return &nodes[record->source_node_index];
 }
 
+RenderModel::RenderModel(nw::gfx::Context* resource_context) noexcept
+    : resource_context_{resource_context}
+{
+}
+
 namespace {
 
 uint32_t saturating_asset_count(size_t count) noexcept
@@ -389,6 +394,7 @@ nw::gfx::BindlessTextureIndex upload_decoded_texture(nw::gfx::Context* ctx,
 
 nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
     nw::gfx::Fmt format,
+    bool premultiply_alpha,
     nw::gfx::BindlessTextureIndex fallback,
     const ModelAsset& asset,
     const ModelAssetTextureUploadDesc& desc,
@@ -418,8 +424,13 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
         return fallback;
     }
 
-    const auto decoded = decode_model_asset_texture_source_rgba8(asset.texture_sources[source_index], stats);
+    auto decoded = decode_model_asset_texture_source_rgba8(asset.texture_sources[source_index], stats);
     if (!decoded.valid()) {
+        material_uses_fallback = true;
+        return fallback;
+    }
+    if (premultiply_alpha && !premultiply_rgba8_pixels(decoded.pixels)) {
+        ++stats.decode_failure_count;
         material_uses_fallback = true;
         return fallback;
     }
@@ -567,7 +578,188 @@ bool model_socket_matrix_valid(const glm::mat4& value) noexcept
     return std::isfinite(determinant) && std::fabs(determinant) > 1.0e-8f;
 }
 
+bool finite_vec3(const glm::vec3& value) noexcept
+{
+    return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+}
+
+float max_finite_nonnegative(float current, float candidate) noexcept
+{
+    return std::isfinite(candidate) ? std::max(current, std::max(candidate, 0.0f)) : current;
+}
+
+float max_particle_curve_value(float current, const ParticleCurveF32& curve) noexcept
+{
+    for (const auto& key : curve.keys) {
+        current = max_finite_nonnegative(current, key.value);
+    }
+    return current;
+}
+
+float max_particle_size_x(const ParticleEmitterDef& emitter) noexcept
+{
+    float result = 0.0f;
+    result = max_finite_nonnegative(result, emitter.initial.size_x.min);
+    result = max_finite_nonnegative(result, emitter.initial.size_x.max);
+    result = max_particle_curve_value(result, emitter.spawn_over_time.size_start_x);
+    result = max_particle_curve_value(result, emitter.spawn_over_time.size_end_x);
+    return max_particle_curve_value(result, emitter.over_life.size_x);
+}
+
+float max_particle_size_y(const ParticleEmitterDef& emitter) noexcept
+{
+    float result = 0.0f;
+    result = max_finite_nonnegative(result, emitter.initial.size_y.min);
+    result = max_finite_nonnegative(result, emitter.initial.size_y.max);
+    result = max_particle_curve_value(result, emitter.spawn_over_time.size_start_y);
+    result = max_particle_curve_value(result, emitter.spawn_over_time.size_end_y);
+    return max_particle_curve_value(result, emitter.over_life.size_y);
+}
+
+bool particle_emitter_frame(
+    const ParticleEmitterAttachmentDef& attachment,
+    glm::vec3& center,
+    glm::vec3& axis_x,
+    glm::vec3& axis_y) noexcept
+{
+    if (attachment.has_default_transform) {
+        center = glm::vec3(attachment.default_transform[3]);
+        axis_x = glm::vec3(attachment.default_transform[0]);
+        axis_y = glm::vec3(attachment.default_transform[1]);
+        return finite_vec3(center) && finite_vec3(axis_x) && finite_vec3(axis_y);
+    }
+
+    center = attachment.has_default_position ? attachment.default_position : glm::vec3{0.0f};
+    axis_x = {1.0f, 0.0f, 0.0f};
+    axis_y = {0.0f, 1.0f, 0.0f};
+    if (!finite_vec3(center)) {
+        return false;
+    }
+    if (!attachment.has_default_orientation) {
+        return true;
+    }
+
+    const auto& orientation = attachment.default_orientation;
+    if (!std::isfinite(orientation.w) || !std::isfinite(orientation.x)
+        || !std::isfinite(orientation.y) || !std::isfinite(orientation.z)) {
+        return false;
+    }
+    const float length_squared = glm::dot(orientation, orientation);
+    if (!std::isfinite(length_squared) || length_squared <= 1.0e-8f) {
+        return false;
+    }
+    const glm::mat3 rotation = glm::mat3_cast(orientation / std::sqrt(length_squared));
+    axis_x = rotation[0];
+    axis_y = rotation[1];
+    return finite_vec3(axis_x) && finite_vec3(axis_y);
+}
+
 } // namespace
+
+RenderModel::~RenderModel()
+{
+    release_gpu_resources();
+}
+
+RenderModel::RenderModel(RenderModel&& other) noexcept
+{
+    *this = std::move(other);
+}
+
+RenderModel& RenderModel::operator=(RenderModel&& other) noexcept
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    release_gpu_resources();
+    materials = std::move(other.materials);
+    primitives = std::move(other.primitives);
+    nodes = std::move(other.nodes);
+    sockets = std::move(other.sockets);
+    deformers = std::move(other.deformers);
+    skins = std::move(other.skins);
+    skeletons = std::move(other.skeletons);
+    animations = std::move(other.animations);
+    lights = std::move(other.lights);
+    particle_systems = std::move(other.particle_systems);
+    textures = std::move(other.textures);
+    shadow = other.shadow;
+    bounds = other.bounds;
+    source_kind = other.source_kind;
+    name = std::move(other.name);
+    resource_context_ = other.resource_context_;
+
+    other.primitives.clear();
+    other.textures.clear();
+    other.resource_context_ = nullptr;
+    return *this;
+}
+
+bool RenderModel::set_resource_context(nw::gfx::Context* resource_context) noexcept
+{
+    if (!resource_context) {
+        return true;
+    }
+    if (resource_context_ && resource_context_ != resource_context) {
+        return false;
+    }
+    resource_context_ = resource_context;
+    return true;
+}
+
+void RenderModel::release_gpu_resources() noexcept
+{
+    destroy_render_model_buffers(*this);
+    if (resource_context_) {
+        for (auto& texture : textures) {
+            if (texture.valid()) {
+                nw::gfx::destroy_texture(resource_context_, texture);
+                texture = {};
+            }
+        }
+    }
+    textures.clear();
+    resource_context_ = nullptr;
+}
+
+std::optional<Bounds> particle_emitter_spawn_bounds(
+    std::span<const ParticleEmitterDef> emitters) noexcept
+{
+    Bounds result{};
+    bool initialized = false;
+    for (const auto& emitter : emitters) {
+        glm::vec3 center{0.0f};
+        glm::vec3 axis_x{1.0f, 0.0f, 0.0f};
+        glm::vec3 axis_y{0.0f, 1.0f, 0.0f};
+        if (!particle_emitter_frame(emitter.attachment, center, axis_x, axis_y)) {
+            continue;
+        }
+
+        const float region_x = 0.005f * max_finite_nonnegative(0.0f, emitter.region.size.x);
+        const float region_y = 0.005f * max_finite_nonnegative(0.0f, emitter.region.size.y);
+        const glm::vec3 region_extent = glm::abs(axis_x) * region_x + glm::abs(axis_y) * region_y;
+        const float sprite_radius = 0.5f * std::hypot(max_particle_size_x(emitter), max_particle_size_y(emitter));
+        const glm::vec3 extent = region_extent + glm::vec3{sprite_radius};
+        if (!finite_vec3(extent)) {
+            continue;
+        }
+
+        const Bounds emitter_bounds{
+            .min = center - extent,
+            .max = center + extent,
+        };
+        if (!initialized) {
+            result = emitter_bounds;
+            initialized = true;
+        } else {
+            result.min = glm::min(result.min, emitter_bounds.min);
+            result.max = glm::max(result.max, emitter_bounds.max);
+        }
+    }
+
+    return initialized ? std::optional<Bounds>{result} : std::nullopt;
+}
 
 ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
 {
@@ -579,6 +771,7 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
     stats.skin_count = saturating_asset_count(asset.skins.size());
     stats.skeleton_count = saturating_asset_count(asset.skeletons.size());
     stats.animation_count = saturating_asset_count(asset.animations.size());
+    stats.light_count = saturating_asset_count(asset.lights.size());
     stats.particle_system_count = saturating_asset_count(asset.particle_systems.size());
     stats.texture_source_count = saturating_asset_count(asset.texture_sources.size());
     stats.material_texture_binding_count = saturating_asset_count(asset.material_texture_sources.size());
@@ -622,6 +815,21 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
         }
     }
 
+    for (const auto& light : asset.lights) {
+        if (!source_node_index_valid(light.node, asset.nodes.size())) {
+            ++stats.invalid_light_node_count;
+        }
+        if (!finite_vec3(light.color)
+            || !std::isfinite(light.radius)
+            || light.radius < 0.0f
+            || !std::isfinite(light.intensity)
+            || light.intensity < 0.0f
+            || (light.external_color_slot != kModelLightNoExternalColor
+                && light.external_color_slot >= 4u)) {
+            ++stats.invalid_light_value_count;
+        }
+    }
+
     for (const auto& skin : asset.skins) {
         if (skin.skeleton >= asset.skeletons.size()) {
             ++stats.invalid_skin_skeleton_count;
@@ -633,7 +841,8 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
             ++stats.invalid_skin_joint_count;
         }
         for (const int32_t joint : skin.joints) {
-            if (joint < 0 || static_cast<size_t>(joint) >= asset.nodes.size()) {
+            if (joint != kModelSkinIdentityJoint
+                && (joint < 0 || static_cast<size_t>(joint) >= asset.nodes.size())) {
                 ++stats.invalid_skin_joint_count;
                 break;
             }
@@ -772,6 +981,8 @@ ModelShadowSummary summarize_render_model_shadows(const RenderModel& model) noex
     return result;
 }
 
+namespace {
+
 bool upload_model_asset_primitive(nw::gfx::Context* ctx, const ModelAssetPrimitive& source, Primitive& out)
 {
     if (!ctx) return false;
@@ -838,10 +1049,15 @@ bool upload_model_asset_primitive(nw::gfx::Context* ctx, const ModelAssetPrimiti
     return true;
 }
 
+} // namespace
+
 ModelAssetUploadResult upload_model_asset(const ModelAsset& asset, nw::gfx::Context* ctx)
 {
     ModelAssetUploadResult result{};
     result.stats.primitive_count = saturating_asset_count(asset.primitives.size());
+    result.stats.socket_count = saturating_asset_count(asset.sockets.size());
+    result.stats.light_count = saturating_asset_count(asset.lights.size());
+    result.stats.particle_system_count = saturating_asset_count(asset.particle_systems.size());
 
     const auto validation = validate_model_asset(asset);
     result.stats.invalid_primitive_count = validation.invalid_primitive_count();
@@ -850,15 +1066,15 @@ ModelAssetUploadResult upload_model_asset(const ModelAsset& asset, nw::gfx::Cont
     if (!validation.passed()) {
         return result;
     }
-    if (!ctx) {
+    if (asset.empty()) {
+        return result;
+    }
+    if (!asset.primitives.empty() && !ctx) {
         result.stats.missing_context_count = 1;
         return result;
     }
-    if (asset.primitives.empty()) {
-        return result;
-    }
 
-    auto model = std::make_unique<RenderModel>();
+    auto model = std::make_unique<RenderModel>(ctx);
     model->materials = asset.materials;
     model->nodes = asset.nodes;
     model->sockets = asset.sockets;
@@ -866,6 +1082,7 @@ ModelAssetUploadResult upload_model_asset(const ModelAsset& asset, nw::gfx::Cont
     model->skins = asset.skins;
     model->skeletons = asset.skeletons;
     model->animations = asset.animations;
+    model->lights = asset.lights;
     model->particle_systems = asset.particle_systems;
     model->shadow = summarize_model_asset_shadows(asset);
     model->bounds = asset.bounds;
@@ -902,6 +1119,10 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
     stats.material_texture_binding_count = saturating_asset_count(asset.material_texture_sources.size());
 
     model.materials = asset.materials;
+    if (!model.set_resource_context(desc.ctx)) {
+        stats.resource_context_mismatch_count = 1;
+        return stats;
+    }
 
     const auto validation = validate_model_asset(asset);
     stats.invalid_material_texture_binding_count = validation.invalid_material_texture_binding_count;
@@ -911,9 +1132,12 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
 
     std::vector<nw::gfx::BindlessTextureIndex> srgb_indices(
         asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
+    std::vector<nw::gfx::BindlessTextureIndex> premultiplied_albedo_indices(
+        asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
     std::vector<nw::gfx::BindlessTextureIndex> linear_indices(
         asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
     std::vector<uint8_t> srgb_attempted(asset.texture_sources.size(), 0);
+    std::vector<uint8_t> premultiplied_albedo_attempted(asset.texture_sources.size(), 0);
     std::vector<uint8_t> linear_attempted(asset.texture_sources.size(), 0);
 
     for (size_t i = 0; i < model.materials.size(); ++i) {
@@ -925,18 +1149,22 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
         auto& material = model.materials[i];
         material.albedo_uses_plt = source_index_valid(sources.albedo)
             && model_asset_texture_source_is_plt(asset.texture_sources[sources.albedo]);
+        const bool premultiply_albedo = material.alpha_mode == MaterialMode::transparent
+            && !material.albedo_uses_plt;
         material.albedo_index = upload_source_texture(sources.albedo,
-            nw::gfx::Fmt::RGBA8Srgb,
+            sources.albedo_srgb ? nw::gfx::Fmt::RGBA8Srgb : nw::gfx::Fmt::RGBA8,
+            premultiply_albedo,
             desc.fallback_albedo,
             asset,
             desc,
             model,
-            srgb_indices,
-            srgb_attempted,
+            premultiply_albedo ? premultiplied_albedo_indices : srgb_indices,
+            premultiply_albedo ? premultiplied_albedo_attempted : srgb_attempted,
             stats,
             material_uses_fallback);
         material.normal_index = upload_source_texture(sources.normal,
             nw::gfx::Fmt::RGBA8,
+            false,
             desc.fallback_normal,
             asset,
             desc,
@@ -948,6 +1176,7 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
         material.surface_index = upload_surface_texture(sources, asset, desc, model, stats, material_uses_fallback);
         material.emissive_index = upload_source_texture(sources.emissive,
             nw::gfx::Fmt::RGBA8Srgb,
+            false,
             desc.fallback_emissive,
             asset,
             desc,

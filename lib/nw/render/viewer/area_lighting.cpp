@@ -121,6 +121,7 @@ Lighting unlit_preview_lighting()
     return result;
 }
 
+// glTF previews carry their own authored lighting and render unlit.
 Lighting gltf_preview_lighting()
 {
     return unlit_preview_lighting();
@@ -244,19 +245,18 @@ Lighting resolve_preview_scene_lighting(
     float area_day_night_elapsed_seconds,
     AreaLightingMode mode)
 {
-    if (!scene.static_models.empty()) {
+    if (scene.is_area) {
+        if (mode == AreaLightingMode::inspection_daylight) {
+            return area_inspection_daylight_lighting(scene);
+        }
+        return area_authored_celestial_lighting(scene, area_day_night_elapsed_seconds);
+    }
+
+    if (scene.has_gltf_models) {
         return gltf_preview_lighting();
     }
 
-    if (!scene.is_area) {
-        return studio_preview_lighting();
-    }
-
-    if (mode == AreaLightingMode::inspection_daylight) {
-        return area_inspection_daylight_lighting(scene);
-    }
-
-    return area_authored_celestial_lighting(scene, area_day_night_elapsed_seconds);
+    return studio_preview_lighting();
 }
 
 LightingSpace resolve_preview_scene_lighting_space(const PreviewScene& scene, AreaLightingMode mode) noexcept

@@ -119,7 +119,6 @@ bool prepared_shadow_surface_matches_model(
     const ModelMaterialOverrideStore* material_overrides) noexcept
 {
     if (!surface.casts_shadow
-        || !prepared_model_surface_is_render_model(surface)
         || surface.instance_source_index == kInvalidPreparedModelDrawIndex
         || surface.source_draw_index >= model.primitives.size()) {
         return false;
@@ -211,8 +210,8 @@ nw::gfx::Handle<nw::gfx::Pipeline> model_pipeline_for(
     const ModelRenderContext& render_ctx,
     ModelPipelineMeshKind mesh_kind,
     MaterialMode material,
-    bool offscreen_pass = false,
-    ModelPipelinePass pass = ModelPipelinePass::color)
+    ModelPipelinePass pass = ModelPipelinePass::color,
+    MaterialLightingModel lighting = MaterialLightingModel::pbr)
 {
     if (!render_ctx.gpu) {
         return {};
@@ -220,22 +219,24 @@ nw::gfx::Handle<nw::gfx::Pipeline> model_pipeline_for(
     return render_ctx.gpu->pipeline({
         .mesh = mesh_kind,
         .material = material,
-        .target = offscreen_pass ? ModelPipelineTarget::offscreen : ModelPipelineTarget::onscreen,
         .pass = pass,
+        .lighting = lighting,
     });
 }
 
 bool render_model_material_visible_in_pass(MaterialMode mode, RenderPassSelection pass) noexcept
 {
-    const bool is_transparent = is_translucent_material(mode);
-    return !((pass == RenderPassSelection::opaque_cutout && is_transparent)
-        || (pass == RenderPassSelection::water)
-        || (pass == RenderPassSelection::transparent && !is_transparent));
-}
-
-bool render_model_skin_supported(const Skin& skin) noexcept
-{
-    return model_skin_bone_count_supported(skin.joints.size());
+    switch (pass) {
+    case RenderPassSelection::opaque_cutout:
+        return mode == MaterialMode::opaque || mode == MaterialMode::cutout;
+    case RenderPassSelection::water:
+        return mode == MaterialMode::water;
+    case RenderPassSelection::transparent:
+        return mode == MaterialMode::transparent;
+    case RenderPassSelection::all:
+        return true;
+    }
+    return false;
 }
 
 bool fill_render_model_bones(
@@ -245,44 +246,20 @@ bool fill_render_model_bones(
     const RenderModelSkinMatrices& skin_matrices,
     uint32_t& bone_count)
 {
-    if (prim.skin >= model.skins.size() || prim.node < 0
-        || static_cast<size_t>(prim.node) >= model.nodes.size()) {
-        return false;
-    }
-
-    const auto& skin = model.skins[prim.skin];
-    if (!render_model_skin_supported(skin)) {
-        return false;
-    }
-
-    for (auto& bone : bones) {
-        bone = glm::mat4(1.0f);
-    }
-    if (skin_matrices.available) {
-        const auto src = skin_matrices.matrices;
-        for (size_t i = 0; i < src.size() && i < bones.size(); ++i) {
-            bones[i] = prim.inverse_mesh_transform * src[i];
-        }
-        bone_count = static_cast<uint32_t>(std::min<size_t>(skin_matrices.matrices.size(), bones.size()));
-        return true;
-    }
-
-    for (size_t i = 0; i < skin.joints.size(); ++i) {
-        const int32_t joint = skin.joints[i];
-        if (joint < 0 || static_cast<size_t>(joint) >= model.nodes.size()
-            || i >= skin.inverse_bind_matrices.size()) {
-            continue;
-        }
-        bones[i] = prim.inverse_mesh_transform * model.nodes[joint].world_transform * skin.inverse_bind_matrices[i];
-    }
-    bone_count = static_cast<uint32_t>(skin.joints.size());
-    return true;
+    return build_model_primitive_skinning_matrices(
+        bones,
+        model,
+        prim,
+        skin_matrices.matrices,
+        skin_matrices.available,
+        bone_count);
 }
 
 Lighting render_model_lighting(const RenderContext& ctx)
 {
     Lighting lighting = ctx.lighting;
-    if (glm::dot(lighting.ambient, lighting.ambient) < 1.0e-6f
+    if (ctx.unlit_preview_key_light_enabled
+        && glm::dot(lighting.ambient, lighting.ambient) < 1.0e-6f
         && lighting.key_intensity < 1.0e-4f
         && lighting.fill_intensity < 1.0e-4f
         && lighting.rim_intensity < 1.0e-4f) {
@@ -313,7 +290,12 @@ bool render_render_model_primitive(const ModelRenderContext& render_ctx, nw::gfx
     const RenderModelSkinMatrices& skin_matrices)
 {
     const auto mesh_kind = prim.skinned ? ModelPipelineMeshKind::pbr_skinned : ModelPipelineMeshKind::pbr_static;
-    auto pipeline = model_pipeline_for(render_ctx, mesh_kind, material.alpha_mode);
+    auto pipeline = model_pipeline_for(
+        render_ctx,
+        mesh_kind,
+        material.alpha_mode,
+        ModelPipelinePass::color,
+        material.lighting_model);
     uint32_t vertex_stride = sizeof(Vertex);
     nw::gfx::StorageSpan bone_span{};
     if (prim.skinned) {
@@ -460,7 +442,7 @@ void render_render_model_shadow_primitive(const ModelRenderContext& render_ctx, 
 
     const auto mesh_kind = prim.skinned ? ModelPipelineMeshKind::pbr_skinned : ModelPipelineMeshKind::pbr_static;
     const auto pipeline = model_pipeline_for(
-        render_ctx, mesh_kind, material.alpha_mode, false, ModelPipelinePass::shadow);
+        render_ctx, mesh_kind, material.alpha_mode, ModelPipelinePass::shadow);
     if (!pipeline.valid()) {
         return;
     }
@@ -534,11 +516,11 @@ void add_prepared_render_model_surface_submission_stats(
 
 } // namespace
 
-void render_render_model_with_root(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
-    const RenderModel& model, const glm::mat4& model_root, const RenderContext& ctx,
-    RenderPassSelection pass, const ModelInstance* instance)
+void render_render_model_instances(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
+    const RenderModel& model, std::span<const glm::mat4> model_roots,
+    const RenderContext& ctx, RenderPassSelection pass)
 {
-    if (!render_ctx.gfx || !render_ctx.gpu || !cmd || model.primitives.empty()) {
+    if (!render_ctx.gfx || !render_ctx.gpu || !cmd || model.primitives.empty() || model_roots.empty()) {
         return;
     }
     const auto pbr_static_pipeline = model_pipeline_for(render_ctx, ModelPipelineMeshKind::pbr_static, MaterialMode::opaque);
@@ -549,27 +531,29 @@ void render_render_model_with_root(const ModelRenderContext& render_ctx, nw::gfx
     SceneConstants base_sc = make_scene_constants(ctx, render_model_lighting(ctx));
     apply_render_model_shadow_scene_constants(render_ctx, ctx, base_sc);
     // The common PBR shaders only read scene uniforms, bones, the forward+
-    // storage buffers and surface uniforms. The dummy buffer owns unused
-    // storage slots while the bind protocol is still shared with legacy shaders.
+    // storage buffers and surface uniforms. The dummy buffer owns unused slots
+    // in the stable common descriptor layout.
     const nw::gfx::StorageSpan dummy_storage{render_ctx.gpu->dummy_storage_buffer()};
     const auto forward_plus_bindings = make_forward_plus_storage_bindings(ctx.forward_plus, dummy_storage);
 
-    for (const auto& prim : model.primitives) {
-        if (prim.material >= model.materials.size()) {
-            continue;
-        }
-        const auto& material = model.materials[prim.material];
-        if (!render_model_material_visible_in_pass(material.alpha_mode, pass)) {
-            continue;
-        }
+    for (const auto& model_root : model_roots) {
+        for (const auto& prim : model.primitives) {
+            if (prim.material >= model.materials.size()) {
+                continue;
+            }
+            const auto& material = model.materials[prim.material];
+            if (!render_model_material_visible_in_pass(material.alpha_mode, pass)) {
+                continue;
+            }
 
-        const RenderModelSkinMatrices primitive_skin_matrices = source_skin_matrices_for_primitive(
-            instance,
-            prim.skin);
-        const glm::mat4 world = model_instance_primitive_world_transform(instance, model_root, prim);
-        const glm::mat4 normal_matrix = make_normal_matrix(world);
-        render_render_model_primitive(render_ctx, cmd, model, prim, material, ctx, base_sc,
-            dummy_storage, forward_plus_bindings, world, normal_matrix, primitive_skin_matrices);
+            const RenderModelSkinMatrices primitive_skin_matrices = source_skin_matrices_for_primitive(
+                nullptr,
+                prim.skin);
+            const glm::mat4 world = model_instance_primitive_world_transform(nullptr, model_root, prim);
+            const glm::mat4 normal_matrix = make_normal_matrix(world);
+            render_render_model_primitive(render_ctx, cmd, model, prim, material, ctx, base_sc,
+                dummy_storage, forward_plus_bindings, world, normal_matrix, primitive_skin_matrices);
+        }
     }
 }
 
@@ -601,11 +585,6 @@ void collect_prepared_render_model_surface_packets(
             continue;
         }
 
-        if (!prepared_model_surface_is_render_model(surface)) {
-            add_saturating(out.stats.non_render_model_surface_count, 1u);
-            add_saturating(out.stats.invalid_surface_count, 1u);
-            continue;
-        }
         if (surface.instance_source_index == kInvalidPreparedModelDrawIndex) {
             add_saturating(out.stats.invalid_source_index_count, 1u);
             add_saturating(out.stats.invalid_surface_count, 1u);

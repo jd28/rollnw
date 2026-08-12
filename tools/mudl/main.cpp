@@ -35,9 +35,6 @@
 
 namespace mudl {
 
-using nw::render::nwn::set_dangly_debug_scale;
-using nw::render::nwn::set_dangly_mode;
-
 static constexpr std::string_view kSmokeTestModel = "c_aribeth";
 
 static nw::render::ForwardPlusDebugMode to_render_forward_plus_debug_mode(ForwardPlusDebugMode mode) noexcept
@@ -72,13 +69,6 @@ static nw::render::viewer::ForwardPlusRenderPolicy to_render_forward_plus_policy
         .config = to_render_forward_plus_config(policy.config),
         .debug_mode = to_render_forward_plus_debug_mode(policy.debug_mode),
     };
-}
-
-static nw::render::nwn::DanglyMode to_render_dangly_mode(DanglyMode mode) noexcept
-{
-    return mode == DanglyMode::modern
-        ? nw::render::nwn::DanglyMode::modern
-        : nw::render::nwn::DanglyMode::legacy;
 }
 
 static nlohmann::json load_report_json(const nw::render::viewer::PreviewLoadReport& report)
@@ -229,12 +219,7 @@ static void configure_app_state(AppState& state, const ParsedArgs& args)
         state.static_pbr_environment_path = args.pbr_environment_path;
     }
     state.static_pbr_ibl_requested = args.pbr_ibl_enabled;
-    state.dangly_scale = args.dangly_scale;
-    state.dangly_mode = to_render_dangly_mode(args.dangly_mode);
     state.preview_scene_load_options = nw::render::viewer::default_preview_scene_load_options();
-    if (args.legacy_nwn_model_path) {
-        state.preview_scene_load_options.nwn_model_path = nw::render::viewer::NwnModelPreviewPath::legacy;
-    }
     if (args.command == "area-benchmark" || args.command == "area-sweep") {
         state.window_width = args.benchmark_width;
         state.window_height = args.benchmark_height;
@@ -332,31 +317,6 @@ int main(int argc, char* argv[])
                 return 1;
             }
             return run_spell_export_command(*sequence, args.initial_model, args.screenshot_path);
-        });
-    }
-
-    if (args.command == "spell-export-live") {
-        return run_kernel_command(args.module_path, args.user_path, [&] {
-            auto sequence = resolve_spell_sequence(args.initial_model);
-            if (!sequence) {
-                LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
-                return 1;
-            }
-            AppState state{};
-            return run_spell_export_live_command(state, *sequence, args.initial_model, args.live_export_output_path);
-        });
-    }
-
-    if (args.command == "spell-preview-live") {
-        return run_kernel_command(args.module_path, args.user_path, [&] {
-            auto sequence = resolve_spell_sequence(args.initial_model);
-            if (!sequence) {
-                LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
-                return 1;
-            }
-            AppState state{};
-            return run_spell_preview_live_command(state, *sequence, args.initial_model, args.screenshot_path,
-                args.particle_preview_frame, args.particle_preview_view, args.particle_preview_metadata);
         });
     }
 
@@ -470,8 +430,26 @@ int main(int argc, char* argv[])
         nw::kernel::services().shutdown();
         return 1;
     }
-    set_dangly_debug_scale(state.dangly_scale);
-    set_dangly_mode(state.dangly_mode);
+    if (args.command == "spell-export-live" || args.command == "spell-preview-live") {
+        const auto sequence = resolve_spell_sequence(args.initial_model);
+        int rc = 1;
+        if (!sequence) {
+            LOG_F(ERROR, "Failed to resolve spell row: {}", args.initial_model);
+        } else if (args.command == "spell-export-live") {
+            rc = run_spell_export_live_command(
+                state, *sequence, args.initial_model, args.live_export_output_path);
+        } else {
+            rc = run_spell_preview_live_command(state, *sequence, args.initial_model, args.screenshot_path,
+                args.particle_preview_frame, args.particle_preview_view, args.particle_preview_metadata);
+        }
+
+        reset_viewer_renderers(state);
+        state.shader_provider.reset();
+        shutdown_graphics(state);
+        if (window) { SDL_DestroyWindow(window); }
+        nw::kernel::services().shutdown();
+        return rc;
+    }
 
     if (args.command == "area-benchmark") {
         const auto forward_plus_policy = to_render_forward_plus_policy(args.benchmark_forward_plus_policy);

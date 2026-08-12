@@ -187,7 +187,7 @@ Dialog::Dialog(const nlohmann::json& archive)
     try {
         deserialize(archive, *this);
         is_valid_ = true;
-    } catch (nlohmann::json::parse_error& e) {
+    } catch (const std::exception& e) {
         LOG_F(ERROR, "[formats] failed deserializing dialog from json: {}", e.what());
         is_valid_ = false;
     }
@@ -497,17 +497,29 @@ bool Dialog::load(const GffStruct gff)
 
     for (auto entry : entries) {
         for (auto it : entry->pointers) {
+            if (it->index >= replies.size()) {
+                LOG_F(ERROR, "[formats] dialog reply index {} is out of range", it->index);
+                return false;
+            }
             it->node = replies[it->index];
         }
     }
 
     for (auto reply : replies) {
         for (auto it : reply->pointers) {
+            if (it->index >= entries.size()) {
+                LOG_F(ERROR, "[formats] dialog entry index {} is out of range", it->index);
+                return false;
+            }
             it->node = entries[it->index];
         }
     }
 
     for (auto start : starts) {
+        if (start->index >= entries.size()) {
+            LOG_F(ERROR, "[formats] dialog start index {} is out of range", start->index);
+            return false;
+        }
         start->node = entries[start->index];
     }
 
@@ -731,8 +743,7 @@ void serialize(nlohmann::json& archive, const DialogNode& node)
 void deserialize(const nlohmann::json& archive, Dialog& node)
 {
     if (archive["$type"].get<String>() != "DLG") {
-        LOG_F(ERROR, "invalid dlg json");
-        return;
+        throw std::runtime_error("invalid dialog JSON type");
     }
 
     auto& json_entries = archive["entries"];
@@ -770,17 +781,26 @@ void deserialize(const nlohmann::json& archive, Dialog& node)
 
     for (auto entry : node.entries) {
         for (auto it : entry->pointers) {
+            if (it->index >= node.replies.size()) {
+                throw std::out_of_range("dialog reply index is out of range");
+            }
             it->node = node.replies[it->index];
         }
     }
 
     for (auto reply : node.replies) {
         for (auto it : reply->pointers) {
+            if (it->index >= node.entries.size()) {
+                throw std::out_of_range("dialog entry index is out of range");
+            }
             it->node = node.entries[it->index];
         }
     }
 
     for (auto start : node.starts) {
+        if (start->index >= node.entries.size()) {
+            throw std::out_of_range("dialog start index is out of range");
+        }
         start->node = node.entries[start->index];
     }
 }

@@ -2,10 +2,43 @@
 
 #include "../log.hpp"
 
+#include <algorithm>
+#include <stdexcept>
+#include <string_view>
+
 namespace nw::kernel {
+
+namespace {
+
+bool valid_profile_root(std::string_view value)
+{
+    if (value.empty() || !((value.front() >= 'a' && value.front() <= 'z') || value.front() == '_')) {
+        return false;
+    }
+
+    return std::ranges::all_of(value.substr(1), [](char ch) {
+        return (ch >= 'a' && ch <= 'z')
+            || (ch >= '0' && ch <= '9')
+            || ch == '_';
+    });
+}
+
+} // namespace
 
 void Config::initialize(ConfigOptions options)
 {
+    if (!valid_profile_root(options.profile)) {
+        throw std::invalid_argument("profile root must match [a-z_][a-z0-9_]*");
+    }
+    if (options.combat_policy_module.empty()) {
+        options.combat_policy_module = options.profile + ".combat";
+    }
+    if (options.effects_policy_module.empty()) {
+        options.effects_policy_module = options.profile + ".effects";
+    }
+    if (options.init_module.empty()) {
+        options.init_module = options.profile + ".init";
+    }
     options_ = std::move(options);
 
     if (install_.empty()) {
@@ -72,11 +105,6 @@ void Config::set_combat_policy_module(std::string module)
 void Config::set_init_module(std::string module)
 {
     options_.init_module = std::move(module);
-}
-
-void Config::set_profile(std::string profile)
-{
-    options_.profile = std::move(profile);
 }
 
 void Config::set_paths(const std::filesystem::path install, const std::filesystem::path user)

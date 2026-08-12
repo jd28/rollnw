@@ -14,7 +14,7 @@ namespace nw::gfx {
 
 namespace {
 
-constexpr VkDeviceSize kDescriptorRingSize = 512 * 1024;
+constexpr VkDeviceSize kDescriptorRingSize = 2 * 1024 * 1024;
 constexpr VkDeviceSize kUniformRingSize = 16 * 1024 * 1024;
 constexpr VkDeviceSize kVertexRingSize = 16 * 1024 * 1024;
 constexpr uint32_t kBindlessTextureCapacity = 4096;
@@ -1516,6 +1516,7 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderL
     cmd->bound_index_buffer = {};
     cmd->bound_index_size = 0;
     cmd->bound_resources = {};
+    cmd->resource_bind_failed = false;
     cmd->descriptor_buffers_bound = false;
 
     VkDescriptorBufferBindingInfoEXT desc_bindings[2]{};
@@ -1762,6 +1763,16 @@ static bool resource_bind_matches(
         && lhs.texture_filter == rhs.texture_filter;
 }
 
+static void fail_resource_bind(VulkanCommandList* cmd) noexcept
+{
+    if (!cmd) {
+        return;
+    }
+    cmd->bound_resources = {};
+    cmd->resource_bind_failed = true;
+    ++cmd->stats.resource_bind_failure_count;
+}
+
 static bool bind_descriptor_buffers(VulkanCommandList* cmd)
 {
     auto* ctx = cmd ? cmd->context : nullptr;
@@ -1808,18 +1819,79 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     auto* ring = static_cast<uint8_t*>(ctx->descriptor_ring_mapped[cmd->pool_index]);
     VkDeviceSize& ring_offset = ctx->descriptor_ring_offset[cmd->pool_index];
 
+    if (pipeline->uses_draw_uniforms
+        && (!uniform || uniform_offset > uniform->size || uniform_size == 0
+            || uniform_size > uniform->size - uniform_offset)) {
+        return false;
+    }
+    if (pipeline->uses_draw_uniforms2
+        && (!uniform2 || uniform2_offset > uniform2->size || uniform2_size == 0
+            || uniform2_size > uniform2->size - uniform2_offset)) {
+        return false;
+    }
+
+    const StorageSpan storages[5] = {storage0, storage1, storage2, storage3, storage4};
+    const VulkanBuffer* storage_buffers[5] = {};
+    VkDeviceSize storage_ranges[5] = {};
+    if (pipeline->uses_storage_buffer) {
+        for (uint32_t i = 0; i < pipeline->storage_buffer_count; ++i) {
+            storage_buffers[i] = g_buffer_pool.get(storages[i].buffer);
+            if (!storage_buffers[i] || storages[i].offset > storage_buffers[i]->size) {
+                return false;
+            }
+            storage_ranges[i] = storages[i].size != 0
+                ? storages[i].size
+                : storage_buffers[i]->size - storages[i].offset;
+            if (storage_ranges[i] == 0
+                || storage_ranges[i] > storage_buffers[i]->size - storages[i].offset) {
+                return false;
+            }
+        }
+    }
+
+    const bool uses_set0 = pipeline->uses_draw_uniforms
+        || pipeline->uses_draw_uniforms2
+        || pipeline->uses_storage_buffer;
+    const bool uses_texture_descriptor = pipeline->uses_single_texture
+        && texture
+        && texture->view != VK_NULL_HANDLE;
+    const VkDeviceSize allocation_start = ring_offset;
+    VkDeviceSize next_ring_offset = ring_offset;
+    VkDeviceSize set0_offset = 0;
+    VkDeviceSize texture_offset = 0;
+    uint64_t descriptor_allocation_count = 0;
+    if (uses_set0) {
+        set0_offset = align_up(next_ring_offset, alignment);
+        next_ring_offset = set0_offset + align_up(pipeline->set0_size, alignment);
+        ++descriptor_allocation_count;
+    }
+    if (uses_texture_descriptor) {
+        texture_offset = align_up(next_ring_offset, alignment);
+        next_ring_offset = texture_offset + align_up(pipeline->texture_set_size, alignment);
+        ++descriptor_allocation_count;
+    }
+
+    cmd->stats.descriptor_ring_required_bytes = std::max<uint64_t>(
+        cmd->stats.descriptor_ring_required_bytes, next_ring_offset);
+    if (next_ring_offset > kDescriptorRingSize) {
+        ring_offset = next_ring_offset;
+        ++cmd->stats.descriptor_allocation_failure_count;
+        return false;
+    }
+    ring_offset = next_ring_offset;
+    cmd->stats.descriptor_allocation_count += descriptor_allocation_count;
+    cmd->stats.descriptor_allocation_bytes += next_ring_offset - allocation_start;
+
     VkDeviceSize set_offsets[2] = {};
     uint32_t buffer_indices[2] = {};
     uint32_t set_count = 0;
+    if (uses_set0) {
+        buffer_indices[set_count] = 0;
+        set_offsets[set_count] = set0_offset;
+        ++set_count;
+    }
 
     if (pipeline->uses_draw_uniforms) {
-        if (!uniform) {
-            return false;
-        }
-
-        const VkDeviceSize set0_offset = align_up(ring_offset, alignment);
-        ring_offset = set0_offset + align_up(pipeline->set0_size, alignment);
-
         VkDescriptorAddressInfoEXT ub_addr{};
         ub_addr.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
         ub_addr.address = uniform->device_address + uniform_offset;
@@ -1832,24 +1904,9 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
 
         vkGetDescriptorEXT(ctx->core->device, &ub_desc, props.uniformBufferDescriptorSize,
             ring + set0_offset + pipeline->set0_uniform_offset);
-
-        buffer_indices[set_count] = 0;
-        set_offsets[set_count] = set0_offset;
-        ++set_count;
     }
 
     if (pipeline->uses_draw_uniforms2) {
-        if (!uniform2) {
-            return false;
-        }
-
-        const VkDeviceSize set0_offset = pipeline->uses_draw_uniforms
-            ? set_offsets[0]
-            : align_up(ring_offset, alignment);
-        if (!pipeline->uses_draw_uniforms) {
-            ring_offset = set0_offset + align_up(pipeline->set0_size, alignment);
-        }
-
         VkDescriptorAddressInfoEXT ub_addr{};
         ub_addr.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
         ub_addr.address = uniform2->device_address + uniform2_offset;
@@ -1862,50 +1919,16 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
 
         vkGetDescriptorEXT(ctx->core->device, &ub_desc, props.uniformBufferDescriptorSize,
             ring + set0_offset + pipeline->set0_uniform2_offset);
-
-        if (!pipeline->uses_draw_uniforms) {
-            buffer_indices[set_count] = 0;
-            set_offsets[set_count] = set0_offset;
-            ++set_count;
-        }
     }
 
     if (pipeline->uses_storage_buffer) {
-        const StorageSpan storages[5] = {storage0, storage1, storage2, storage3, storage4};
         for (uint32_t i = 0; i < pipeline->storage_buffer_count; ++i) {
-            if (!storages[i].buffer.valid()) {
-                return false;
-            }
-        }
-
-        const VkDeviceSize set0_offset = pipeline->uses_draw_uniforms
-            ? set_offsets[0]
-            : align_up(ring_offset, alignment);
-        if (!pipeline->uses_draw_uniforms) {
-            ring_offset = set0_offset + align_up(pipeline->set0_size, alignment);
-        }
-
-        for (uint32_t i = 0; i < pipeline->storage_buffer_count; ++i) {
-            auto* storage = g_buffer_pool.get(storages[i].buffer);
-            if (!storage) {
-                return false;
-            }
-
             const VkDeviceSize storage_offset = storages[i].offset;
-            if (storage_offset > storage->size) {
-                return false;
-            }
-            const VkDeviceSize storage_range = storages[i].size != 0
-                ? storages[i].size
-                : (storage->size - storage_offset);
-            if (storage_offset + storage_range > storage->size) {
-                return false;
-            }
 
             VkDescriptorAddressInfoEXT storage_addr{};
             storage_addr.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
-            storage_addr.address = storage->device_address + storage_offset;
-            storage_addr.range = storage_range;
+            storage_addr.address = storage_buffers[i]->device_address + storage_offset;
+            storage_addr.range = storage_ranges[i];
 
             VkDescriptorGetInfoEXT storage_desc{};
             storage_desc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
@@ -1915,20 +1938,10 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
             vkGetDescriptorEXT(ctx->core->device, &storage_desc, props.storageBufferDescriptorSize,
                 ring + set0_offset + pipeline->set0_storage_offsets[i]);
         }
-
-        if (!pipeline->uses_draw_uniforms) {
-            buffer_indices[set_count] = 0;
-            set_offsets[set_count] = set0_offset;
-            ++set_count;
-        }
     }
 
     if (pipeline->uses_single_texture) {
-        VkDeviceSize tex_offset = 0;
-        if (texture && texture->view != VK_NULL_HANDLE) {
-            tex_offset = align_up(ring_offset, alignment);
-            ring_offset = tex_offset + align_up(pipeline->texture_set_size, alignment);
-
+        if (uses_texture_descriptor) {
             VkDescriptorImageInfo img_info{};
             img_info.sampler = texture_filter == TextureFilter::Nearest ? ctx->nearest_sampler : ctx->linear_sampler;
             img_info.imageView = texture->view;
@@ -1940,11 +1953,11 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
             tex_desc.data.pCombinedImageSampler = &img_info;
 
             vkGetDescriptorEXT(ctx->core->device, &tex_desc, props.combinedImageSamplerDescriptorSize,
-                ring + tex_offset + pipeline->texture_binding_offset);
+                ring + texture_offset + pipeline->texture_binding_offset);
         }
 
         buffer_indices[set_count] = 0;
-        set_offsets[set_count] = tex_offset;
+        set_offsets[set_count] = texture_offset;
         ++set_count;
     } else if (pipeline->uses_bindless_sampled_textures) {
         buffer_indices[set_count] = 1;
@@ -1968,6 +1981,7 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     auto* pipeline = g_pipeline_pool.get(pipeline_h);
     auto* uniform = g_buffer_pool.get(uniform_h);
     if (!cmd || !pipeline || !uniform) {
+        fail_resource_bind(cmd);
         return;
     }
 
@@ -1983,6 +1997,7 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     next_resources.texture_filter = filter;
     next_resources.valid = true;
     if (resource_bind_matches(cmd->bound_resources, next_resources)) {
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_skipped_count;
         return;
     }
@@ -1991,7 +2006,10 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     if (bind_pipeline_resources(cmd, pipeline, uniform, 0, static_cast<uint32_t>(uniform->size),
             {}, {}, {}, {}, {}, tex, filter, nullptr, 0, 0)) {
         cmd->bound_resources = next_resources;
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_count;
+    } else {
+        fail_resource_bind(cmd);
     }
 }
 
@@ -2004,6 +2022,7 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     auto* pipeline = g_pipeline_pool.get(pipeline_h);
     auto* uniform = g_buffer_pool.get(uniforms.buffer);
     if (!cmd || !pipeline || !uniform) {
+        fail_resource_bind(cmd);
         return;
     }
 
@@ -2014,6 +2033,7 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     next_resources.texture_filter = filter;
     next_resources.valid = true;
     if (resource_bind_matches(cmd->bound_resources, next_resources)) {
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_skipped_count;
         return;
     }
@@ -2022,7 +2042,10 @@ void cmd_bind_uniform_texture(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h,
     if (bind_pipeline_resources(cmd, pipeline, uniform, uniforms.offset, uniforms.size,
             {}, {}, {}, {}, {}, tex, filter, nullptr, 0, 0)) {
         cmd->bound_resources = next_resources;
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_count;
+    } else {
+        fail_resource_bind(cmd);
     }
 }
 
@@ -2043,6 +2066,7 @@ void cmd_bind_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const
     auto* uniform = g_buffer_pool.get(uniforms.buffer);
     auto* uniform2 = uniforms2.buffer.valid() ? g_buffer_pool.get(uniforms2.buffer) : nullptr;
     if (!cmd || !pipeline || !uniform) {
+        fail_resource_bind(cmd);
         return;
     }
 
@@ -2057,6 +2081,7 @@ void cmd_bind_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const
     next_resources.uniforms2 = uniforms2;
     next_resources.valid = true;
     if (resource_bind_matches(cmd->bound_resources, next_resources)) {
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_skipped_count;
         return;
     }
@@ -2065,7 +2090,10 @@ void cmd_bind_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_h, const
             storage0, storage1, storage2, storage3, storage4, nullptr,
             TextureFilter::Linear, uniform2, uniforms2.offset, uniforms2.size)) {
         cmd->bound_resources = next_resources;
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_count;
+    } else {
+        fail_resource_bind(cmd);
     }
 }
 
@@ -2076,6 +2104,7 @@ void cmd_bind_compute_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_
     auto* pipeline = g_pipeline_pool.get(pipeline_h);
     auto* uniform = uniforms.buffer.valid() ? g_buffer_pool.get(uniforms.buffer) : nullptr;
     if (!cmd || !pipeline) {
+        fail_resource_bind(cmd);
         return;
     }
 
@@ -2090,6 +2119,7 @@ void cmd_bind_compute_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_
     next_resources.compute = true;
     next_resources.valid = true;
     if (resource_bind_matches(cmd->bound_resources, next_resources)) {
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_skipped_count;
         return;
     }
@@ -2097,7 +2127,10 @@ void cmd_bind_compute_resources(CommandList* cmd_ptr, Handle<Pipeline> pipeline_
     if (bind_pipeline_resources(cmd, pipeline, uniform, uniforms.offset, uniforms.size,
             storage0, storage1, storage2, storage3, storage4, nullptr, TextureFilter::Linear, nullptr, 0, 0)) {
         cmd->bound_resources = next_resources;
+        cmd->resource_bind_failed = false;
         ++cmd->stats.resource_bind_count;
+    } else {
+        fail_resource_bind(cmd);
     }
 }
 
@@ -2125,6 +2158,10 @@ void cmd_draw(CommandList* cmd_ptr, uint32_t vertex_count, uint32_t instance_cou
     if (!cmd) {
         return;
     }
+    if (cmd->resource_bind_failed) {
+        ++cmd->stats.dropped_draw_count;
+        return;
+    }
     ++cmd->stats.draw_count;
     ++cmd->stats.nonindexed_draw_count;
     cmd->stats.draw_vertex_count += vertex_count;
@@ -2136,6 +2173,10 @@ void cmd_draw_indexed(CommandList* cmd_ptr, uint32_t index_count, uint32_t insta
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     if (!cmd) {
+        return;
+    }
+    if (cmd->resource_bind_failed) {
+        ++cmd->stats.dropped_draw_count;
         return;
     }
     ++cmd->stats.draw_count;
@@ -2152,6 +2193,10 @@ void cmd_draw_indexed_base_instance(CommandList* cmd_ptr, uint32_t index_count, 
     if (!cmd) {
         return;
     }
+    if (cmd->resource_bind_failed) {
+        ++cmd->stats.dropped_draw_count;
+        return;
+    }
     ++cmd->stats.draw_count;
     ++cmd->stats.indexed_draw_count;
     cmd->stats.draw_index_count += index_count;
@@ -2165,6 +2210,10 @@ void cmd_draw_indexed_indirect(CommandList* cmd_ptr, IndirectDrawSpan commands, 
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     auto* command_buffer = g_buffer_pool.get(commands.buffer);
     if (!cmd || !command_buffer || !command_buffer->buffer || draw_count == 0) {
+        return;
+    }
+    if (cmd->resource_bind_failed) {
+        cmd->stats.dropped_draw_count += draw_count;
         return;
     }
     if (stride < sizeof(IndexedIndirectDrawCommand)) {
@@ -2197,6 +2246,10 @@ void cmd_draw_indexed_indirect_count(CommandList* cmd_ptr, IndirectDrawSpan comm
     if (!cmd || !command_buffer || !command_buffer->buffer || !count || !count->buffer || max_draw_count == 0) {
         return;
     }
+    if (cmd->resource_bind_failed) {
+        cmd->stats.dropped_draw_count += max_draw_count;
+        return;
+    }
     if (stride < sizeof(IndexedIndirectDrawCommand)) {
         return;
     }
@@ -2214,6 +2267,10 @@ void cmd_dispatch(CommandList* cmd_ptr, uint32_t group_count_x, uint32_t group_c
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     if (!cmd) {
+        return;
+    }
+    if (cmd->resource_bind_failed) {
+        ++cmd->stats.dropped_dispatch_count;
         return;
     }
     ++cmd->stats.dispatch_count;
@@ -2693,6 +2750,7 @@ bool get_command_stats(CommandList* cmd_ptr, CommandStats& out) noexcept
     }
 
     out = cmd->stats;
+    out.descriptor_ring_capacity_bytes = kDescriptorRingSize;
     out.uniform_allocation_count += ctx->frame_stats.uniform_allocation_count;
     out.uniform_allocation_bytes += ctx->frame_stats.uniform_allocation_bytes;
     out.vertex_allocation_count += ctx->frame_stats.vertex_allocation_count;

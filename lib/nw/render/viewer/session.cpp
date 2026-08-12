@@ -7,13 +7,17 @@
 #include "scene_shadow.hpp"
 
 #include <nw/gfx/gfx.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Area.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/render/model_renderer.hpp>
 #include <nw/render/render_service.hpp>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -24,21 +28,8 @@ namespace nw::render::viewer {
 
 namespace {
 
-constexpr std::array<std::string_view, 8> kPreferredRenderModelHoldAnimations{{
-    "cpause1",
-    "pause1",
-    "closed",
-    "opened1",
-    "open",
-    "default",
-    "on",
-    "impact",
-}};
-
-bool load_default_scene_animation(PreviewScene& scene)
-{
-    return scene.load_default_animations(PreferredModelAnimationContext::hold);
-}
+constexpr glm::vec4 kObjectSelectionOutlineColor{0.12f, 1.0f, 0.28f, 1.0f};
+constexpr glm::vec4 kTileSelectionOutlineColor{0.12f, 0.42f, 1.0f, 1.0f};
 
 bool environment_flag_disabled(const char* name)
 {
@@ -72,6 +63,71 @@ bool viewer_water_enabled()
     return enabled;
 }
 
+bool finite_vec4(const glm::vec4& value) noexcept
+{
+    return std::isfinite(value.x) && std::isfinite(value.y)
+        && std::isfinite(value.z) && std::isfinite(value.w);
+}
+
+std::optional<AreaObjectRay> area_object_ray_from_viewport(
+    const Camera& camera, float pixel_x, float pixel_y, ViewerViewport viewport) noexcept
+{
+    if (!viewport.valid() || !std::isfinite(pixel_x) || !std::isfinite(pixel_y)) {
+        return std::nullopt;
+    }
+
+    const float left = static_cast<float>(viewport.x);
+    const float top = static_cast<float>(viewport.y);
+    const float width = static_cast<float>(viewport.width);
+    const float height = static_cast<float>(viewport.height);
+    if (pixel_x < left || pixel_y < top || pixel_x >= left + width || pixel_y >= top + height) {
+        return std::nullopt;
+    }
+
+    const float ndc_x = ((pixel_x - left) / width) * 2.0f - 1.0f;
+    const float ndc_y = ((pixel_y - top) / height) * 2.0f - 1.0f;
+    const glm::mat4 inverse_view_projection = glm::inverse(
+        camera.get_projection_matrix() * camera.get_view_matrix());
+    glm::vec4 near_point = inverse_view_projection * glm::vec4{ndc_x, ndc_y, 0.0f, 1.0f};
+    glm::vec4 far_point = inverse_view_projection * glm::vec4{ndc_x, ndc_y, 1.0f, 1.0f};
+    if (!finite_vec4(near_point) || !finite_vec4(far_point)
+        || std::abs(near_point.w) <= 1.0e-8f
+        || std::abs(far_point.w) <= 1.0e-8f) {
+        return std::nullopt;
+    }
+
+    near_point /= near_point.w;
+    far_point /= far_point.w;
+    const glm::vec3 origin{near_point};
+    const glm::vec3 direction = glm::vec3{far_point} - origin;
+    if (!finite_vec4(near_point) || !finite_vec4(far_point)
+        || glm::dot(direction, direction) <= 1.0e-12f) {
+        return std::nullopt;
+    }
+    return AreaObjectRay{.origin = origin, .direction = direction};
+}
+
+std::optional<uint32_t> debug_shape_selection_index(
+    const PreviewScene& scene, nw::ObjectHandle object) noexcept
+{
+    const size_t range_count = std::min<size_t>(
+        scene.debug_shape_selection_ranges.size(),
+        static_cast<size_t>(std::numeric_limits<uint32_t>::max()));
+    for (size_t range_index = 0; range_index < range_count; ++range_index) {
+        if (scene.debug_shape_selection_ranges[range_index].object == object) {
+            return static_cast<uint32_t>(range_index);
+        }
+    }
+    return std::nullopt;
+}
+
+bool placed_object_belongs_to_area(
+    nw::ObjectHandle object, nw::ObjectID area) noexcept
+{
+    const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+    return spatial && spatial->area == area;
+}
+
 // Forward+ GPU gather is the default; set ROLLNW_VIEWER_FORWARD_PLUS_GPU_CULL=0 to force CPU gather.
 bool viewer_forward_plus_gpu_cull_enabled()
 {
@@ -88,12 +144,6 @@ bool viewer_shadows_enabled()
 bool viewer_local_shadows_enabled()
 {
     static const bool enabled = !environment_flag_disabled("ROLLNW_VIEWER_LOCAL_SHADOWS");
-    return enabled;
-}
-
-bool viewer_depth_prepass_enabled()
-{
-    static const bool enabled = !environment_flag_disabled("ROLLNW_VIEWER_DEPTH_PREPASS");
     return enabled;
 }
 
@@ -115,7 +165,6 @@ void wait_for_preview_resources_idle(PreviewRenderResources* preview_resources)
 using Clock = std::chrono::steady_clock;
 
 constexpr const char* kGpuTimerShadow = "shadow";
-constexpr const char* kGpuTimerDepthPrepass = "depth_prepass";
 constexpr const char* kGpuTimerOpaque = "opaque";
 constexpr const char* kGpuTimerWater = "water";
 constexpr const char* kGpuTimerTransparent = "transparent";
@@ -165,16 +214,6 @@ void add_prepared_surface_submission_stats(
     ViewerFrameStats& target,
     const PreviewPreparedModelSurfaceSubmissionStats& source) noexcept
 {
-    add_saturating(
-        target.prepared_nwn_legacy_selected_draw_count,
-        source.nwn_legacy.selected_draw_count);
-    add_saturating(
-        target.prepared_nwn_legacy_missing_sidecar_draw_count,
-        source.nwn_legacy.missing_sidecar_draw_count);
-    add_saturating(
-        target.prepared_nwn_legacy_invalid_sidecar_draw_count,
-        source.nwn_legacy.invalid_sidecar_draw_count);
-
     auto& render_model = target.prepared_render_model_surface_submission;
     add_saturating(render_model.submitted_surface_count, source.render_model.submitted_surface_count);
     add_saturating(render_model.dropped_invalid_surface_count, source.render_model.dropped_invalid_surface_count);
@@ -215,8 +254,6 @@ void apply_gpu_timer_result(ViewerFrameStats& stats, const nw::gfx::GpuTimerResu
 
     if (std::strcmp(result.label, kGpuTimerShadow) == 0) {
         stats.gpu_shadow_seconds += result.seconds;
-    } else if (std::strcmp(result.label, kGpuTimerDepthPrepass) == 0) {
-        stats.gpu_depth_prepass_seconds += result.seconds;
     } else if (std::strcmp(result.label, kGpuTimerOpaque) == 0) {
         stats.gpu_opaque_seconds += result.seconds;
     } else if (std::strcmp(result.label, kGpuTimerWater) == 0) {
@@ -333,6 +370,14 @@ nw::gfx::CommandStats command_stats_delta(
     result.resource_bind_skipped_count = counter_delta(after.resource_bind_skipped_count, before.resource_bind_skipped_count);
     result.descriptor_buffer_bind_count = counter_delta(after.descriptor_buffer_bind_count, before.descriptor_buffer_bind_count);
     result.descriptor_buffer_bind_skipped_count = counter_delta(after.descriptor_buffer_bind_skipped_count, before.descriptor_buffer_bind_skipped_count);
+    result.descriptor_allocation_count = counter_delta(after.descriptor_allocation_count, before.descriptor_allocation_count);
+    result.descriptor_allocation_bytes = counter_delta(after.descriptor_allocation_bytes, before.descriptor_allocation_bytes);
+    result.descriptor_allocation_failure_count = counter_delta(after.descriptor_allocation_failure_count, before.descriptor_allocation_failure_count);
+    result.descriptor_ring_capacity_bytes = after.descriptor_ring_capacity_bytes;
+    result.descriptor_ring_required_bytes = counter_delta(after.descriptor_ring_required_bytes, before.descriptor_ring_required_bytes);
+    result.resource_bind_failure_count = counter_delta(after.resource_bind_failure_count, before.resource_bind_failure_count);
+    result.dropped_draw_count = counter_delta(after.dropped_draw_count, before.dropped_draw_count);
+    result.dropped_dispatch_count = counter_delta(after.dropped_dispatch_count, before.dropped_dispatch_count);
     result.draw_count = counter_delta(after.draw_count, before.draw_count);
     result.indexed_draw_count = counter_delta(after.indexed_draw_count, before.indexed_draw_count);
     result.nonindexed_draw_count = counter_delta(after.nonindexed_draw_count, before.nonindexed_draw_count);
@@ -387,17 +432,8 @@ ForwardPlusRenderPolicy resolve_scene_forward_plus_policy(
 
 void bootstrap_scene_playback(PreviewScene& scene)
 {
-    const bool loaded_legacy_animation = load_default_scene_animation(scene);
-    rebuild_render_model_animation_instances(scene, 0, 0.0f);
-    const bool loaded_render_model_animation = set_default_render_model_animation_clip(
-        scene,
-        kPreferredRenderModelHoldAnimations,
-        0.0f);
-    const bool loaded_animation = loaded_legacy_animation || loaded_render_model_animation;
-    if (loaded_animation) {
-        advance_render_model_animation_times(scene, 0.033f);
-        scene.update(33);
-    } else {
+    const bool loaded_animation = prime_scene_hold_animation(scene);
+    if (!loaded_animation) {
         scene.rebuild_particles();
     }
 
@@ -452,15 +488,19 @@ bool ViewerSession::load_model(std::string_view resref)
 
 bool ViewerSession::load_area(std::string_view resref)
 {
+    last_area_load_stats_ = {};
     if (!preview_resources_) {
         return false;
     }
 
+    const auto load_start = Clock::now();
     auto scene = load_area_scene(*preview_resources_, resref, preview_scene_load_options_);
     if (!scene) {
         LOG_F(ERROR, "Viewer session: failed to load area '{}'", resref);
         return false;
     }
+    const auto build_end = Clock::now();
+    const size_t model_count = scene->static_models.size();
     if (!set_scene(std::move(scene), ViewerSceneKind::area, std::string{resref})) {
         return false;
     }
@@ -469,7 +509,162 @@ bool ViewerSession::load_area(std::string_view resref)
         bootstrap_scene_playback(*scene_);
     }
 
+    const auto load_end = Clock::now();
+    last_area_load_stats_ = {
+        .build_seconds = std::chrono::duration<double>(build_end - load_start).count(),
+        .replace_seconds = std::chrono::duration<double>(load_end - build_end).count(),
+        .total_seconds = std::chrono::duration<double>(load_end - load_start).count(),
+        .model_count = model_count,
+    };
+    LOG_F(
+        INFO,
+        "Viewer session: loaded area '{}' models={} build={:.3f} ms replace={:.3f} ms total={:.3f} ms",
+        resref,
+        model_count,
+        last_area_load_stats_.build_seconds * 1000.0,
+        last_area_load_stats_.replace_seconds * 1000.0,
+        last_area_load_stats_.total_seconds * 1000.0);
+
     return true;
+}
+
+bool ViewerSession::rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
+{
+    if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area
+        || scene_->root_object != area) {
+        return false;
+    }
+
+    auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+    if (!live_area) {
+        return false;
+    }
+
+    const auto rebuild_start = Clock::now();
+    auto replacement = build_live_area_scene(
+        *preview_resources_, *live_area, loaded_source_, preview_scene_load_options_);
+    if (!replacement) {
+        LOG_F(ERROR, "Viewer session: failed to rebuild live area '{}'", loaded_source_);
+        return false;
+    }
+
+    const Camera saved_camera = camera_;
+    const float saved_scene_time = scene_time_seconds_;
+    const float saved_day_night_time = area_day_night_elapsed_seconds_;
+    AreaObjectSelection replacement_selection;
+    if (selected_object.type != nw::ObjectType::invalid) {
+        const auto handles = replacement->area_render_scene
+            ? replacement->area_render_scene->object_handles()
+            : std::span<const nw::ObjectHandle>{};
+        if (std::find(handles.begin(), handles.end(), selected_object) == handles.end()) {
+            const auto debug_range_index = debug_shape_selection_index(*replacement, selected_object);
+            if (debug_range_index) {
+                replacement_selection = {
+                    .record_index = *debug_range_index,
+                    .object = selected_object,
+                    .source = AreaObjectSelectionSource::debug_shape,
+                    .status = AreaObjectSelectionStatus::hit,
+                };
+            } else if (!placed_object_belongs_to_area(selected_object, area.id)) {
+                selected_object = nw::ObjectHandle{};
+            }
+        }
+    }
+    replacement->active_object = selected_object;
+
+    scene_->owns_root_object = false;
+    replacement->owns_root_object = true;
+    if (!set_scene(std::move(replacement), ViewerSceneKind::area, loaded_source_)) {
+        return false;
+    }
+    active_area_selection_ = replacement_selection;
+
+    camera_ = saved_camera;
+    scene_time_seconds_ = saved_scene_time;
+    if (supports_area_day_night_cycle(*scene_)) {
+        set_area_day_night_elapsed_seconds(saved_day_night_time, false);
+    }
+    bootstrap_scene_playback(*scene_);
+    const auto rebuild_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        Clock::now() - rebuild_start);
+    const size_t record_count = scene_->area_render_scene
+        ? scene_->area_render_scene->stats().record_count
+        : 0;
+    LOG_F(INFO, "Viewer session: rebuilt live area '{}' records={} in {}ms",
+        loaded_source_, record_count, rebuild_ms.count());
+    return true;
+}
+
+bool ViewerSession::rebuild_live_object(nw::ObjectHandle object)
+{
+    if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::object_file
+        || scene_->root_object != object) {
+        return false;
+    }
+
+    const auto rebuild_start = Clock::now();
+    auto replacement = build_live_object_scene(
+        *preview_resources_, object, loaded_source_, preview_scene_load_options_);
+    if (!replacement) {
+        LOG_F(ERROR, "Viewer session: failed to rebuild live object '{}'", loaded_source_);
+        return false;
+    }
+
+    const float saved_scene_time = scene_time_seconds_;
+    scene_->owns_root_object = false;
+    replacement->owns_root_object = true;
+    if (!set_scene(std::move(replacement), ViewerSceneKind::object_file, loaded_source_)) {
+        return false;
+    }
+
+    scene_time_seconds_ = saved_scene_time;
+    bootstrap_scene_playback(*scene_);
+    const auto rebuild_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        Clock::now() - rebuild_start);
+    LOG_F(INFO, "Viewer session: rebuilt live object '{}' models={} in {}ms",
+        loaded_source_, scene_->static_models.size(), rebuild_ms.count());
+    return true;
+}
+
+ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
+    std::span<const nw::ObjectHandle> objects)
+{
+    if (!preview_resources_ || !scene_
+        || (scene_kind_ != ViewerSceneKind::area
+            && scene_kind_ != ViewerSceneKind::object_file)) {
+        return {
+            .status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain an editable live scene",
+        };
+    }
+
+    // refresh_object_visuals removes scene-owned models. The gfx contract
+    // destroys their resources immediately, so prior frame use must complete.
+    wait_for_preview_resources_idle(preview_resources_);
+    const auto refresh_start = Clock::now();
+    auto result = viewer::refresh_object_visuals(
+        *scene_, *preview_resources_, objects, preview_scene_load_options_);
+    if (!result.ok()) {
+        LOG_F(WARNING, "Viewer session: failed to refresh live object visuals: {}",
+            result.diagnostic);
+        return result;
+    }
+
+    const auto refresh_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        Clock::now() - refresh_start);
+    LOG_F(INFO,
+        "Viewer session: refreshed {} live object visual(s), models {} -> {} in {}ms",
+        result.object_count,
+        result.removed_model_count,
+        result.added_model_count,
+        refresh_ms.count());
+    return result;
+}
+
+bool ViewerSession::refresh_live_object_visual(nw::ObjectHandle object)
+{
+    const std::array objects{object};
+    return refresh_live_object_visuals(objects).ok();
 }
 
 bool ViewerSession::load_object_file(const std::filesystem::path& path)
@@ -492,18 +687,182 @@ bool ViewerSession::load_object_file(const std::filesystem::path& path)
     return true;
 }
 
+AreaObjectSelection ViewerSession::select_area_object(
+    float pixel_x,
+    float pixel_y,
+    ViewerViewport viewport,
+    AreaObjectSelectionTarget target)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {};
+    }
+
+    update_viewport(viewport);
+    const auto ray = area_object_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
+    if (!ray) {
+        return {};
+    }
+
+    const auto& records = *scene_->area_render_scene;
+    const AreaObjectSelection result = nw::render::viewer::select_area_object(
+        *ray,
+        records,
+        *scene_,
+        {
+            .target = target,
+            .triggers_enabled = area_debug_enabled_ && area_triggers_enabled_,
+            .encounters_enabled = area_debug_enabled_ && area_encounters_enabled_,
+        });
+    if (result.status == AreaObjectSelectionStatus::hit) {
+        active_area_selection_ = result;
+        scene_->active_object = result.object;
+    } else if (result.status == AreaObjectSelectionStatus::miss) {
+        active_area_selection_ = {};
+        scene_->active_object = nw::ObjectHandle{};
+    }
+    return result;
+}
+
+bool ViewerSession::set_area_object_selection(nw::ObjectHandle object) noexcept
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
+        || !nw::kernel::objects().valid(object)) {
+        return false;
+    }
+
+    const auto handles = scene_->area_render_scene->object_handles();
+    if (std::find(handles.begin(), handles.end(), object) != handles.end()) {
+        active_area_selection_ = {};
+        scene_->active_object = object;
+        return true;
+    }
+
+    const auto debug_range_index = debug_shape_selection_index(*scene_, object);
+    if (debug_range_index) {
+        active_area_selection_ = {
+            .record_index = *debug_range_index,
+            .object = object,
+            .source = AreaObjectSelectionSource::debug_shape,
+            .status = AreaObjectSelectionStatus::hit,
+        };
+        scene_->active_object = object;
+        return true;
+    }
+
+    if (!placed_object_belongs_to_area(object, scene_->root_object.id)) {
+        return false;
+    }
+
+    // Some placed object kinds have no viewport geometry yet. They remain
+    // inspectable from the area's object list, without fabricating selection
+    // bounds for data the renderer does not have.
+    active_area_selection_ = {};
+    scene_->active_object = object;
+    return true;
+}
+
+bool ViewerSession::focus_area_object_selection() noexcept
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
+        || scene_->active_object.type == nw::ObjectType::invalid) {
+        return false;
+    }
+
+    const nw::ObjectHandle object = scene_->active_object;
+    const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+    const auto& records = *scene_->area_render_scene;
+    const auto object_bounds = collect_area_object_bounds(
+        object,
+        records.bounds(),
+        records.flags(),
+        records.kinds(),
+        records.object_handles());
+
+    std::optional<nw::render::Bounds> bounds;
+    if (object_bounds.status == AreaObjectBoundsStatus::found) {
+        bounds = object_bounds.bounds;
+    } else if (const auto debug_range_index = debug_shape_selection_index(*scene_, object)) {
+        bounds = scene_->debug_shape_selection_ranges[*debug_range_index].bounds;
+    } else if (spatial && spatial->area == scene_->root_object.id) {
+        bounds = nw::render::Bounds{
+            .min = spatial->position,
+            .max = spatial->position,
+        };
+    }
+
+    if (!bounds) {
+        return false;
+    }
+
+    return camera_.focus_on(*bounds);
+}
+
+std::optional<glm::vec3> ViewerSession::area_surface_point(
+    float pixel_x, float pixel_y, ViewerViewport viewport)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return std::nullopt;
+    }
+
+    update_viewport(viewport);
+    const auto ray = area_object_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
+    if (!ray) {
+        return std::nullopt;
+    }
+    const auto hit = scene_->area_render_scene->trace_surface(*ray);
+    return hit.status == AreaSurfaceHitStatus::hit
+        ? std::optional<glm::vec3>{hit.position}
+        : std::nullopt;
+}
+
+AreaObjectSpatialUpdateStats ViewerSession::update_area_object_spatial_states(
+    std::span<const nw::ObjectSpatialState> spatial_states)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {};
+    }
+    return viewer::update_area_object_spatial_states(*scene_, spatial_states);
+}
+
+AreaObjectPreviewAppendResult ViewerSession::append_area_object_previews(
+    std::span<const nw::ObjectHandle> objects, float opacity)
+{
+    if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {
+            .status = AreaObjectPreviewAppendStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene",
+        };
+    }
+    return viewer::append_area_object_previews(
+        *scene_, *preview_resources_, objects, opacity, preview_scene_load_options_);
+}
+
+bool ViewerSession::clear_area_object_selection() noexcept
+{
+    if (scene_kind_ != ViewerSceneKind::area || !scene_) {
+        return false;
+    }
+    const bool has_object_selection = scene_->active_object.type != nw::ObjectType::invalid;
+    const bool has_render_selection = active_area_selection_.status == AreaObjectSelectionStatus::hit;
+    if (!has_object_selection && !has_render_selection) {
+        return false;
+    }
+    active_area_selection_ = {};
+    scene_->active_object = nw::ObjectHandle{};
+    return true;
+}
+
 void ViewerSession::clear()
 {
     if (scene_) {
         wait_for_preview_resources_idle(preview_resources_);
     }
     scene_.reset();
+    active_area_selection_ = {};
     forward_plus_frame_.clear();
     area_frame_.clear();
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
-    area_visible_model_instance_handles_.clear();
-    prepared_draw_scratch_.clear();
     clear_area_visibility_mask();
     scene_kind_ = ViewerSceneKind::none;
     loaded_source_.clear();
@@ -545,37 +904,30 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             apply_gpu_timer_result(frame_stats, result);
         }
     }
-    frame_stats.model_count = saturating_count(scene_->models.size());
-    frame_stats.static_model_count = saturating_count(scene_->static_models.size());
+    frame_stats.model_count = saturating_count(scene_->static_models.size());
     frame_stats.particle_system_count = saturating_count(scene_->particles.size());
     frame_stats.prepared_render_model_draws_enabled = true;
-    frame_stats.prepared_nwn_legacy_draws_enabled = scene_kind_ != ViewerSceneKind::area;
     const bool shadows_enabled = viewer_shadows_enabled() && (area_shadows_enabled_ || scene_kind_ != ViewerSceneKind::area);
     const bool validate_prepared_model_draws_this_frame = viewer_prepared_model_draw_validation_enabled();
     const bool collect_prepared_model_surfaces_for_shadows = shadows_enabled
         && scene_kind_ != ViewerSceneKind::area;
-    const bool collect_all_prepared_model_draws_this_frame = frame_stats.prepared_nwn_legacy_draws_enabled
-        || validate_prepared_model_draws_this_frame
+    const bool collect_all_prepared_model_draws_this_frame = validate_prepared_model_draws_this_frame
         || collect_prepared_model_surfaces_for_shadows;
     const bool collect_area_visible_prepared_model_draws = scene_kind_ == ViewerSceneKind::area
         && scene_->area_render_scene;
 
+    frame_stats.render_model_animation_sample_stats = sample_render_model_animations(
+        render_model_animation_samples_, *scene_);
     if (!scene_->model_attachments.empty()) {
         frame_stats.runtime_sync_stats = sync_model_instance_runtime_state(*scene_);
     }
-    frame_stats.render_model_animation_sample_stats = sample_render_model_animations(
-        render_model_animation_samples_, *scene_);
 
     const auto apply_prepared_model_draw_stats = [&]() {
         if (frame_stats.prepared_render_model_draws_enabled) {
             frame_stats.prepared_render_model_draw_count = prepared_model_draws_.common.stats.render_model_draw_count;
         }
-        if (frame_stats.prepared_nwn_legacy_draws_enabled) {
-            frame_stats.prepared_nwn_legacy_draw_count = prepared_model_draws_.common.stats.nwn_legacy_draw_count;
-        }
         frame_stats.prepared_model_draw_material_fallback_count = prepared_model_draws_.common.stats.material_fallback_draw_count;
         frame_stats.prepared_model_draw_render_model_material_fallback_count = prepared_model_draws_.common.stats.render_model_material_fallback_draw_count;
-        frame_stats.prepared_model_draw_nwn_legacy_material_fallback_count = prepared_model_draws_.common.stats.nwn_legacy_material_fallback_draw_count;
         frame_stats.prepared_model_surface_stats_enabled = true;
         frame_stats.prepared_model_surface_stats = prepared_model_surfaces_.stats;
         frame_stats.prepared_render_model_skin_table_stats = prepared_model_surfaces_.render_model_skins.stats;
@@ -620,15 +972,9 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.area_cache_transparent_record_count = cache_stats.transparent_record_count;
         frame_stats.area_cache_shadow_caster_record_count = cache_stats.shadow_caster_record_count;
         frame_stats.area_cache_prepared_draw_count = cache_stats.prepared_draw_count;
-        frame_stats.area_cache_shadow_prepared_surface_count = cache_stats.shadow_prepared_surface_count;
-        frame_stats.area_cache_static_geometry_mesh_count = cache_stats.static_geometry_mesh_count;
-        frame_stats.area_cache_static_geometry_vertex_count = cache_stats.static_geometry_vertex_count;
-        frame_stats.area_cache_static_geometry_index_count = cache_stats.static_geometry_index_count;
-        frame_stats.area_cache_static_geometry_bytes = cache_stats.static_geometry_bytes;
         frame_stats.area_cache_light_index_count = cache_stats.light_index_count;
         frame_stats.area_cache_local_light_count = cache_stats.local_light_count;
         frame_stats.area_cache_max_light_indices_per_record = cache_stats.max_light_indices_per_record;
-        frame_stats.area_cache_max_shadow_prepared_surfaces_per_record = cache_stats.max_shadow_prepared_surfaces_per_record;
         frame_stats.area_cache_chunk_light_index_count = cache_stats.chunk_light_index_count;
         frame_stats.area_cache_max_light_indices_per_chunk = cache_stats.max_light_indices_per_chunk;
         frame_stats.area_cache_chunk_count = cache_stats.chunk_count;
@@ -686,7 +1032,6 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         AreaRenderCullContext area_cull{};
         area_cull.enabled = true;
         area_cull.view_projection = render_context.projection * render_context.view;
-        area_cull.collect_direct_render_model_records = false;
         if (area_visibility_mask_enabled_
             && area_visibility_mask_.size() >= scene_->area_render_scene->stats().chunk_count) {
             area_cull.chunk_visibility_enabled = true;
@@ -710,43 +1055,21 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.area_frame_visible_prepared_surface_count = area_frame_stats.visible_prepared_surface_count;
         frame_stats.area_frame_visible_light_count = area_frame_stats.visible_light_count;
         frame_stats.area_frame_uses_cached_draw_lists = area_frame_stats.uses_cached_draw_lists;
-        frame_stats.area_frame_uses_sorted_static_draw_lists = area_frame_stats.uses_sorted_static_draw_lists;
-        frame_stats.area_frame_material_indirect_sidecar_bridge =
-            area_frame_stats.material_indirect_sidecar_bridge;
-        frame_stats.area_frame_static_material_indirect_sidecar_bridge =
-            area_frame_stats.static_material_indirect_sidecar_bridge;
         frame_stats.area_prepare_seconds = elapsed_seconds(area_prepare_start, Clock::now());
         if (collect_area_visible_prepared_model_draws) {
-            const auto visible_nwn_legacy_handles = area_render_frame->visible_nwn_legacy_instance_handles();
             const auto visible_render_model_handles = area_render_frame->visible_render_model_instance_handles();
-            area_visible_model_instance_handles_.clear();
-            area_visible_model_instance_handles_.reserve(
-                visible_nwn_legacy_handles.size() + visible_render_model_handles.size());
-            area_visible_model_instance_handles_.insert(
-                area_visible_model_instance_handles_.end(),
-                visible_nwn_legacy_handles.begin(),
-                visible_nwn_legacy_handles.end());
-            area_visible_model_instance_handles_.insert(
-                area_visible_model_instance_handles_.end(),
-                visible_render_model_handles.begin(),
-                visible_render_model_handles.end());
-            frame_stats.prepared_nwn_legacy_draws_enabled = !visible_nwn_legacy_handles.empty();
             collect_prepared_model_surface_draws(
                 prepared_model_draws_,
                 prepared_model_surfaces_,
                 *scene_,
-                std::span<const nw::render::ModelInstanceHandle>{
-                    area_visible_model_instance_handles_.data(),
-                    area_visible_model_instance_handles_.size()});
+                visible_render_model_handles);
             apply_prepared_model_draw_stats();
             if (validate_prepared_model_draws_this_frame) {
                 frame_stats.prepared_model_draw_validation_enabled = true;
                 frame_stats.prepared_model_draw_validation = validate_prepared_model_draws(
                     *scene_,
                     prepared_model_draws_,
-                    std::span<const nw::render::ModelInstanceHandle>{
-                        area_visible_model_instance_handles_.data(),
-                        area_visible_model_instance_handles_.size()});
+                    visible_render_model_handles);
             }
         }
         const auto lights = std::span<const nw::render::LocalLight>{render_context.local_lights};
@@ -842,20 +1165,9 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         forward_plus_frame_.clear();
         render_context.forward_plus = {};
     }
-    nw::gfx::StorageSpan static_material_draw_data{};
     auto render_model_ctx = render_service.model_render_context();
-    if (area_render_scene && area_render_frame && area_render_frame->uses_sorted_static_draw_lists()) {
-        static_material_draw_data = refresh_area_static_material_draw_data(
-            render_service,
-            *area_render_scene,
-            *area_render_frame,
-            prepared_draw_scratch_,
-            &frame_stats.area_static_material_draw_data_sidecar_bridge);
-    }
     const auto setup_end = Clock::now();
     frame_stats.setup_seconds = elapsed_seconds(render_start, setup_end);
-
-    prepared_draw_scratch_.begin_frame();
 
     if (shadows_enabled) {
         const auto shadow_command_stats_start = command_stats_sample();
@@ -873,7 +1185,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             shadow_rendered = render_scene_shadow_maps(
                 render_service, render_model_ctx,
                 command_list, *scene_, render_context.shadow, shadow_resolution, &shadow_stats,
-                area_render_scene ? &area_frame_ : nullptr, &prepared_draw_scratch_,
+                area_render_scene ? &area_frame_ : nullptr,
                 &prepared_model_draws_,
                 &prepared_model_surfaces_);
         }
@@ -889,8 +1201,6 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.shadow_culled_model_count = shadow_stats.culled_model_count;
         frame_stats.shadow_prepared_surface_shadow_range_count = shadow_stats.prepared_surface_shadow_range_count;
         frame_stats.shadow_prepared_surface_invalid_range_count = shadow_stats.prepared_surface_invalid_range_count;
-        frame_stats.shadow_area_indirect_sidecar_bridge = shadow_stats.area_indirect_sidecar_bridge;
-        frame_stats.shadow_area_sidecar_bridge = shadow_stats.area_sidecar_bridge;
     }
 
     if (local_shadows_enabled && render_context.local_shadows.count > 0) {
@@ -903,7 +1213,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             local_shadow_rendered = render_local_shadow_maps(
                 render_service, render_model_ctx, command_list,
                 *scene_, render_context.local_shadows, viewer_shadow_map_resolution(), &local_shadow_stats,
-                &prepared_draw_scratch_, area_render_scene ? &area_frame_ : nullptr,
+                area_render_scene ? &area_frame_ : nullptr,
                 &prepared_model_draws_,
                 &prepared_model_surfaces_);
         }
@@ -914,39 +1224,15 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.local_shadow_caster_light_count = local_shadow_stats.caster_light_count;
         frame_stats.local_shadow_submitted_model_count = local_shadow_stats.submitted_model_count;
         frame_stats.local_shadow_culled_model_count = local_shadow_stats.culled_model_count;
-        frame_stats.local_shadow_area_sidecar_bridge = local_shadow_stats.area_sidecar_bridge;
     }
 
     const auto render_scene_pass = [&](const nw::render::RenderContext& pass_context,
                                        nw::render::RenderPassSelection pass) {
-        if (area_render_scene && area_render_frame) {
-            const auto static_material_batches = area_static_material_draw_batches_for_pass(
-                *area_render_frame, pass, static_material_draw_data);
-            frame_stats.area_static_material_sidecar_submission.add(
-                render_area_static_material_draw_batches(
-                    render_service,
-                    command_list,
-                    *area_render_scene,
-                    static_material_batches.span(),
-                    pass_context,
-                    prepared_draw_scratch_));
-        }
         const std::span<const nw::render::PreparedModelSurfaceDraw> surfaces{
             prepared_model_surfaces_.draws.data(),
             prepared_model_surfaces_.draws.size()};
         const auto* render_model_skin_table = &prepared_model_surfaces_.render_model_skins;
         PreviewPreparedModelSurfaceSubmissionStats submission_stats{};
-        if (frame_stats.prepared_nwn_legacy_draws_enabled) {
-            submission_stats.nwn_legacy = render_prepared_nwn_legacy_surface_draws(
-                render_service,
-                command_list,
-                prepared_model_draws_,
-                surfaces,
-                pass_context,
-                pass,
-                prepared_draw_scratch_,
-                nwn_prepared_draw_items_);
-        }
         submission_stats.render_model = render_prepared_render_model_surface_draws(
             render_model_ctx,
             command_list,
@@ -969,25 +1255,6 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         0.0f,
         1.0f);
     nw::gfx::cmd_set_scissor(command_list, viewport.x, viewport.y, viewport.width, viewport.height);
-
-    // Depth pre-pass: lay down opaque static depth so the opaque color pass (LESS_EQUAL)
-    // gets early-Z rejection of occluded fragments before the PBR + clustered-light shader.
-    if (viewer_depth_prepass_enabled() && area_render_scene && area_render_frame) {
-        const ScopedGpuTimer gpu_timer{command_list, kGpuTimerDepthPrepass};
-        const AreaStaticMaterialDrawBatch depth_batch = area_static_material_depth_prepass_batch(
-            *area_render_frame,
-            static_material_draw_data);
-        AreaPreparedSurfaceSidecarStats depth_sidecar_stats{};
-        render_area_static_material_depth_prepass(
-            render_service,
-            command_list,
-            *area_render_scene,
-            depth_batch,
-            render_context,
-            prepared_draw_scratch_,
-            &depth_sidecar_stats);
-        frame_stats.area_static_material_sidecar_submission.add(depth_sidecar_stats);
-    }
 
     const auto opaque_command_stats_start = command_stats_sample();
     const auto opaque_start = Clock::now();
@@ -1050,6 +1317,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
     frame_stats.particle_mesh_missing_resref_packet_count = particle_render_stats.mesh_missing_resref_packet_count;
     frame_stats.particle_mesh_missing_model_packet_count = particle_render_stats.mesh_missing_model_packet_count;
     frame_stats.particle_mesh_invalid_particle_index_count = particle_render_stats.mesh_invalid_particle_index_count;
+    frame_stats.particle_mesh_invalid_particle_data_count = particle_render_stats.mesh_invalid_particle_data_count;
     const auto debug_command_stats_start = command_stats_sample();
     const auto debug_start = Clock::now();
     const DebugShapeOptions debug_options{
@@ -1061,6 +1329,50 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         const ScopedGpuTimer gpu_timer{command_list, kGpuTimerDebug};
         if (debug_renderer_) {
             debug_renderer_->render_debug_shapes(command_list, *scene_, render_context, debug_options);
+            bool rendered_selection_bounds = false;
+            const auto tile_selection_bounds = area_render_scene
+                ? area_tile_selection_bounds(active_area_selection_, *area_render_scene)
+                : std::nullopt;
+            if (tile_selection_bounds) {
+                debug_renderer_->render_selection_bounds(
+                    command_list,
+                    *tile_selection_bounds,
+                    render_context,
+                    kTileSelectionOutlineColor);
+                rendered_selection_bounds = true;
+            } else if (active_area_selection_.status == AreaObjectSelectionStatus::hit
+                && active_area_selection_.source == AreaObjectSelectionSource::debug_shape
+                && active_area_selection_.record_index < scene_->debug_shape_selection_ranges.size()) {
+                const auto& range = scene_->debug_shape_selection_ranges[active_area_selection_.record_index];
+                const bool range_visible = area_debug_enabled_
+                    && ((range.category == DebugShapeCategory::trigger && area_triggers_enabled_)
+                        || (range.category == DebugShapeCategory::encounter && area_encounters_enabled_));
+                if (range_visible && range.object == active_area_selection_.object) {
+                    debug_renderer_->render_selection_bounds(
+                        command_list,
+                        range.bounds,
+                        render_context,
+                        kObjectSelectionOutlineColor);
+                    rendered_selection_bounds = true;
+                }
+            }
+            if (!rendered_selection_bounds
+                && area_render_scene
+                && scene_->active_object.type != nw::ObjectType::invalid) {
+                const auto selection_bounds = collect_area_object_bounds(
+                    scene_->active_object,
+                    area_render_scene->bounds(),
+                    area_render_scene->flags(),
+                    area_render_scene->kinds(),
+                    area_render_scene->object_handles());
+                if (selection_bounds.status == AreaObjectBoundsStatus::found) {
+                    debug_renderer_->render_selection_bounds(
+                        command_list,
+                        selection_bounds.bounds,
+                        render_context,
+                        kObjectSelectionOutlineColor);
+                }
+            }
         }
     }
     const auto debug_end = Clock::now();
@@ -1068,34 +1380,6 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
     frame_stats.debug_seconds = elapsed_seconds(debug_start, debug_end);
 
     nw::gfx::cmd_end_render(command_list);
-    const auto& batch_stats = prepared_draw_scratch_.batch_stats;
-    frame_stats.static_batch_material_batch_count = batch_stats.material_batch_count;
-    frame_stats.static_batch_material_input_draw_count = batch_stats.material_input_draw_count;
-    frame_stats.static_batch_material_instance_count = batch_stats.material_instance_count;
-    frame_stats.static_batch_material_draw_call_count = batch_stats.material_draw_call_count;
-    frame_stats.static_batch_material_fallback_draw_count = batch_stats.material_fallback_draw_count;
-    frame_stats.static_batch_material_failed_batch_attempt_draw_count = batch_stats.material_failed_batch_attempt_draw_count;
-    frame_stats.static_batch_material_indirect_call_count = batch_stats.material_indirect_call_count;
-    frame_stats.static_batch_material_indirect_command_count = batch_stats.material_indirect_command_count;
-    frame_stats.static_batch_material_max_instances_per_draw = batch_stats.material_max_instances_per_draw;
-    frame_stats.static_batch_material_indirect_command_upload_bytes = batch_stats.material_indirect_command_upload_bytes;
-    frame_stats.static_batch_material_cached_indirect_command_bytes = batch_stats.material_cached_indirect_command_bytes;
-    frame_stats.static_batch_material_draw_data_bytes = batch_stats.material_draw_data_bytes;
-    frame_stats.static_batch_material_draw_data_cache_hit_count = batch_stats.material_draw_data_cache_hit_count;
-    frame_stats.static_batch_material_cached_draw_data_bytes = batch_stats.material_cached_draw_data_bytes;
-    frame_stats.static_batch_shadow_batch_count = batch_stats.shadow_batch_count;
-    frame_stats.static_batch_shadow_input_draw_count = batch_stats.shadow_input_draw_count;
-    frame_stats.static_batch_shadow_instance_count = batch_stats.shadow_instance_count;
-    frame_stats.static_batch_shadow_draw_call_count = batch_stats.shadow_draw_call_count;
-    frame_stats.static_batch_shadow_failed_batch_attempt_draw_count = batch_stats.shadow_failed_batch_attempt_draw_count;
-    frame_stats.static_batch_shadow_indirect_call_count = batch_stats.shadow_indirect_call_count;
-    frame_stats.static_batch_shadow_indirect_command_count = batch_stats.shadow_indirect_command_count;
-    frame_stats.static_batch_shadow_max_instances_per_draw = batch_stats.shadow_max_instances_per_draw;
-    frame_stats.static_batch_shadow_indirect_command_upload_bytes = batch_stats.shadow_indirect_command_upload_bytes;
-    frame_stats.static_batch_shadow_cached_indirect_command_bytes = batch_stats.shadow_cached_indirect_command_bytes;
-    frame_stats.static_batch_shadow_draw_data_bytes = batch_stats.shadow_draw_data_bytes;
-    frame_stats.static_batch_shadow_draw_data_cache_hit_count = batch_stats.shadow_draw_data_cache_hit_count;
-    frame_stats.static_batch_shadow_cached_draw_data_bytes = batch_stats.shadow_cached_draw_data_bytes;
     frame_stats.total_command_stats = command_stats_delta(command_stats_sample(), render_command_stats_start);
     frame_stats.total_render_seconds = elapsed_seconds(render_start, Clock::now());
     last_frame_stats_ = frame_stats;
@@ -1103,9 +1387,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
 
 bool ViewerSession::select_animation(std::string_view animation)
 {
-    return scene_
-        && (scene_->load_animation(animation)
-            || set_render_model_animation_clip_by_name(*scene_, animation, 0.0f));
+    return scene_ && set_render_model_animation_clip_by_name(*scene_, animation, 0.0f);
 }
 
 void ViewerSession::set_area_day_night_elapsed_seconds(float elapsed_seconds, bool log_transition)
@@ -1234,11 +1516,11 @@ bool ViewerSession::set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKi
         wait_for_preview_resources_idle(preview_resources_);
     }
     scene_ = std::move(scene);
+    active_area_selection_ = {};
     forward_plus_frame_.clear();
     area_frame_.clear();
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
-    prepared_draw_scratch_.clear();
     clear_area_visibility_mask();
     scene_kind_ = kind;
     loaded_source_ = std::move(source);
@@ -1249,8 +1531,6 @@ bool ViewerSession::set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKi
     }
     if (scene_ && scene_->area_render_scene) {
         area_frame_.reserve_for_scene(*scene_->area_render_scene);
-        const auto& area_cache_stats = scene_->area_render_scene->stats();
-        prepared_draw_scratch_.reserve(area_cache_stats.max_prepared_draws_per_record);
     }
     fit_loaded_scene();
     return true;
@@ -1297,6 +1577,7 @@ nw::render::RenderContext ViewerSession::make_render_context() const
             : AreaLightingMode::authored;
         result.lighting = resolve_preview_scene_lighting(*scene_, area_day_night_elapsed_seconds_, lighting_mode);
         result.lighting_space = resolve_preview_scene_lighting_space(*scene_, lighting_mode);
+        result.unlit_preview_key_light_enabled = !scene_->is_area && scene_->has_gltf_models;
         result.fog = resolve_preview_scene_fog(*scene_, area_day_night_elapsed_seconds_, authored_area_fog_enabled_);
         result.environment = resolve_preview_scene_environment(*scene_, area_day_night_elapsed_seconds_);
         result.forward_plus_debug_mode = forward_plus_policy_.debug_mode;

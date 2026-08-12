@@ -339,6 +339,7 @@ struct TypeTable {
     void define(TypeID id, const SumDecl* decl, StringView module_path);
 
     void compute_heap_ref_info(StructDef* def, Type& type);
+    /// True when a value of this type is represented by a HeapPtr rather than inline bytes.
     bool is_heap_type(TypeID tid) const;
 
     MemoryResource* allocator_;

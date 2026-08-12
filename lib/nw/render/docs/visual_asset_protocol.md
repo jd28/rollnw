@@ -11,7 +11,7 @@ uploaded renderer data, not NWN table policy or model-name rules.
 ## Data Flow
 
 ```text
-propsets, load_config data, equipment, appearance state
+propsets, native Info rows, load_config Rules rows, equipment, appearance state
   -> Smalls resolver functions
      nwn1.placeables.update_visual
      nwn1.doors.update_visual
@@ -19,6 +19,7 @@ propsets, load_config data, equipment, appearance state
      nwn1.item.update_visual_for_slot
   -> core.visual native row functions
      clear_visual, clear_visual_slot
+     set_visual_hold_animation
      add_visual_model, add_visual_model_row, add_visual_part
      add_visual_light
   -> C++ object components
@@ -54,7 +55,7 @@ propsets and `load_config` data, then emits the rows the renderer needs:
 - creature body/loadout rows for the owner object
 - equipped item rows partitioned by slot
 - optional attachment rows such as wings, tails, shields, cloaks, and weapons
-- later row protocols for animation slate changes or other render-facing state
+- object-wide hold animation state for the assembled visual
 
 The renderer does not inspect equipment slots, base-item IDs, or NWN tables. It
 loads and submits the `ObjectVisualModel` rows already attached to the object.
@@ -92,6 +93,15 @@ placeable.
 - `light_color`: semantic palette/index value
 - `light_offset`: local-space offset
 
+`ObjectVisualState::hold_animation` is the object-wide steady-state animation
+selected by the rules layer. It is a true singleton rather than a row: one
+state applies to the object's root visual assembly. The renderer performs the
+named lookup once when the visual is loaded or refreshed. A missing named clip
+leaves the model in bind pose; it does not select an unrelated fallback clip.
+Standalone blueprint previews request the authored `default` hold pose instead
+of applying persisted gameplay state. Gameplay states can deliberately move
+meshes below the world floor, which is not a useful isolated authoring view.
+
 Out-of-range behavior is explicit at the producer boundary. Invalid appearance
 rows fail the resolver. Invalid attachment indices return an empty row. Empty
 model `ResRef`s are rejected by the row consumer. Missing resources are counted
@@ -108,11 +118,10 @@ That distinction is intentional:
 - C++ decides which concrete resource type and upload path satisfy that identity.
 - Renderer code sees uploaded model data and draw records.
 
-For NWN compatibility, `nwn1.*` modules may still construct legacy model names
-from table data. That is compatibility policy and should stay in `nwn1.*`, not
-inside `nw::render` and not in low-level object components. A future RPG or
-non-NWN rules module can emit different `ResRef`s or different row kinds without
-changing renderer passes.
+NWN `nwn1.*` modules construct model resource identities from table data. That
+source policy stays in `nwn1.*`, not inside `nw::render` and not in low-level
+object components. Another rules module can emit different `ResRef`s or row
+kinds without changing renderer passes.
 
 ## Icons
 
@@ -147,7 +156,7 @@ C++ object components own storage:
 `nw::render` owns renderer meaning:
 
 - validating and loading model assets
-- applying material, PLT, animation, socket, and compatibility sidecar data
+- applying material, PLT, animation, socket, and deformer data
 - creating `RenderModel` and `ModelInstance` data
 - collecting `PreparedModelDraw` and `PreparedModelSurfaceDraw` arrays
 - submitting renderer passes through `nw::gfx`

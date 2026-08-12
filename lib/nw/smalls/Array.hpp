@@ -55,7 +55,8 @@ struct IArray {
 };
 
 /// Typed array with native storage for primitives and inline structs
-/// Template parameter T can be: int32_t, float, bool, or value_type structs
+/// Template parameter T can be: int32_t, float, bool, ObjectHandle, HeapPtr,
+/// or a native value type.
 template <typename T>
 struct TypedArray : IArray {
     TypeID elem_type_id;

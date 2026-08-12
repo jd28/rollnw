@@ -4,8 +4,6 @@
 #include "preview_scene.hpp"
 
 #include <nw/render/model_renderer.hpp>
-#include <nw/render/nwn/model_loader.hpp>
-#include <nw/render/render_service.hpp>
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -85,17 +83,11 @@ void compare_prepared_stats(PreviewPreparedModelDrawValidation& validation) noex
     compare_stat(expected.missing_asset_count, prepared.missing_asset_count, validation);
     compare_stat(expected.invalid_draw_count, prepared.invalid_draw_count, validation);
     compare_stat(expected.render_model_instance_count, prepared.render_model_instance_count, validation);
-    compare_stat(expected.nwn_legacy_instance_count, prepared.nwn_legacy_instance_count, validation);
     compare_stat(expected.render_model_draw_count, prepared.render_model_draw_count, validation);
-    compare_stat(expected.nwn_legacy_draw_count, prepared.nwn_legacy_draw_count, validation);
     compare_stat(expected.material_fallback_draw_count, prepared.material_fallback_draw_count, validation);
     compare_stat(
         expected.render_model_material_fallback_draw_count,
         prepared.render_model_material_fallback_draw_count,
-        validation);
-    compare_stat(
-        expected.nwn_legacy_material_fallback_draw_count,
-        prepared.nwn_legacy_material_fallback_draw_count,
         validation);
     compare_stat(expected.material_override_draw_count, prepared.material_override_draw_count, validation);
     compare_stat(
@@ -175,14 +167,14 @@ void append_instance_offset(PreviewPreparedModelDraws& out)
     out.common.instance_offsets.push_back(saturating_count(out.common.draws.size()));
 }
 
-void append_render_model_draws(
-    PreviewPreparedModelDraws& out,
+void append_render_model_draws_impl(
+    nw::render::PreparedModelDrawList& out,
     const nw::render::ModelInstanceHandle handle,
     const nw::render::ModelInstance& instance,
     const nw::render::RenderModel& model,
     const nw::render::ModelMaterialOverrideStore& material_overrides)
 {
-    auto& stats = out.common.stats;
+    auto& stats = out.stats;
     ++stats.render_model_instance_count;
     for (size_t primitive_index = 0; primitive_index < model.primitives.size(); ++primitive_index) {
         const auto& primitive = model.primitives[primitive_index];
@@ -203,10 +195,8 @@ void append_render_model_draws(
             &instance,
             instance.root_transform,
             primitive);
-        out.common.draws.push_back(nw::render::PreparedModelDraw{
+        out.draws.push_back(nw::render::PreparedModelDraw{
             .instance = handle,
-            .instance_kind = instance.kind,
-            .kind = nw::render::PreparedModelDrawKind::render_model,
             .instance_source_index = instance.render_model_index,
             .source_draw_index = saturating_count(primitive_index),
             .material_index = primitive.material,
@@ -226,51 +216,6 @@ void append_render_model_draws(
         if (draw_material.material_uses_fallback) {
             add_saturating(stats.material_fallback_draw_count, 1u);
             add_saturating(stats.render_model_material_fallback_draw_count, 1u);
-        }
-    }
-}
-
-void append_nwn_legacy_draws(
-    PreviewPreparedModelDraws& out,
-    const nw::render::ModelInstanceHandle handle,
-    const nw::render::ModelInstance& instance,
-    const nw::render::nwn::ModelInstance& model)
-{
-    auto& stats = out.common.stats;
-    ++stats.nwn_legacy_instance_count;
-    const size_t begin = out.nwn_draws.size();
-    nw::render::nwn::collect_prepared_draws(out.nwn_draws, model, instance.root_transform);
-    const auto& shadow_casters = model.shadow_casters();
-    for (size_t draw_index = begin; draw_index < out.nwn_draws.size(); ++draw_index) {
-        const auto& sidecar_draw = out.nwn_draws[draw_index];
-        const auto* mesh = sidecar_draw.mesh;
-        if (!mesh) {
-            ++stats.invalid_draw_count;
-            continue;
-        }
-        out.common.draws.push_back(nw::render::PreparedModelDraw{
-            .instance = handle,
-            .instance_kind = instance.kind,
-            .kind = nw::render::PreparedModelDrawKind::nwn_legacy,
-            .instance_source_index = instance.nwn_legacy_model_index,
-            .source_draw_index = saturating_count(draw_index),
-            .material_override = {},
-            .material_mode = mesh->material_mode,
-            .material_uses_fallback = mesh->material_uses_fallback,
-            .material_payload = nw::render::prepared_nwn_legacy_material_payload_kind(
-                mesh->uses_plt,
-                mesh->material_uses_fallback),
-            .skinned = mesh->is_skin,
-            .instance_casts_shadow = instance.shadow.casts_shadow,
-            .primitive_casts_shadow = std::find(shadow_casters.begin(), shadow_casters.end(), mesh) != shadow_casters.end(),
-            .world = sidecar_draw.world,
-            .normal_matrix = sidecar_draw.normal_matrix,
-            .bounds = sidecar_draw.light_bounds,
-        });
-        ++stats.nwn_legacy_draw_count;
-        if (mesh->material_uses_fallback) {
-            add_saturating(stats.material_fallback_draw_count, 1u);
-            add_saturating(stats.nwn_legacy_material_fallback_draw_count, 1u);
         }
     }
 }
@@ -297,33 +242,18 @@ void append_prepared_model_draws(
         }
 
         ++out.common.stats.visible_instance_count;
-        switch (instance->kind) {
-        case nw::render::ModelInstanceKind::render_model:
-            if (instance->render_model_index >= scene.static_models.size()
-                || !scene.static_models[instance->render_model_index]) {
-                ++out.common.stats.missing_asset_count;
-                break;
-            }
-            append_render_model_draws(
-                out,
-                handle,
-                *instance,
-                *scene.static_models[instance->render_model_index],
-                scene.material_overrides);
-            break;
-        case nw::render::ModelInstanceKind::nwn_legacy:
-            if (instance->nwn_legacy_model_index >= scene.models.size()
-                || !scene.models[instance->nwn_legacy_model_index]) {
-                ++out.common.stats.missing_asset_count;
-                break;
-            }
-            append_nwn_legacy_draws(
-                out,
-                handle,
-                *instance,
-                *scene.models[instance->nwn_legacy_model_index]);
-            break;
+        if (instance->render_model_index >= scene.static_models.size()
+            || !scene.static_models[instance->render_model_index]) {
+            ++out.common.stats.missing_asset_count;
+            append_instance_offset(out);
+            continue;
         }
+        append_render_model_draws_impl(
+            out.common,
+            handle,
+            *instance,
+            *scene.static_models[instance->render_model_index],
+            scene.material_overrides);
         append_instance_offset(out);
     }
 }
@@ -359,38 +289,11 @@ void append_expected_render_model_draws(
     }
 }
 
-void append_expected_nwn_legacy_draws(
-    PreviewPreparedModelDrawValidation& validation,
-    const nw::render::ModelInstance& instance,
-    const nw::render::nwn::ModelInstance& model,
-    std::vector<nw::render::nwn::PreparedDrawItem>& scratch)
-{
-    auto& stats = validation.expected_stats;
-    ++stats.nwn_legacy_instance_count;
-    const size_t begin = scratch.size();
-    nw::render::nwn::collect_prepared_draws(scratch, model, instance.root_transform);
-    for (size_t draw_index = begin; draw_index < scratch.size(); ++draw_index) {
-        const auto& draw = scratch[draw_index];
-        if (!draw.mesh) {
-            ++stats.invalid_draw_count;
-            continue;
-        }
-
-        ++stats.nwn_legacy_draw_count;
-        if (draw.mesh->material_uses_fallback) {
-            add_saturating(stats.material_fallback_draw_count, 1u);
-            add_saturating(stats.nwn_legacy_material_fallback_draw_count, 1u);
-        }
-        add_material_stat(validation.expected_materials, draw.mesh->material_mode);
-    }
-}
-
 void append_expected_model_draws(
     PreviewPreparedModelDrawValidation& validation,
     const PreviewScene& scene,
     std::span<const nw::render::ModelInstanceHandle> handles)
 {
-    std::vector<nw::render::nwn::PreparedDrawItem> nwn_scratch;
     for (const auto handle : handles) {
         ++validation.expected_stats.handle_count;
         const auto* instance = scene.model_instances.get(handle);
@@ -404,32 +307,16 @@ void append_expected_model_draws(
         }
 
         ++validation.expected_stats.visible_instance_count;
-        switch (instance->kind) {
-        case nw::render::ModelInstanceKind::render_model:
-            if (instance->render_model_index >= scene.static_models.size()
-                || !scene.static_models[instance->render_model_index]) {
-                ++validation.expected_stats.missing_asset_count;
-                break;
-            }
-            append_expected_render_model_draws(
-                validation,
-                *instance,
-                *scene.static_models[instance->render_model_index],
-                scene.material_overrides);
-            break;
-        case nw::render::ModelInstanceKind::nwn_legacy:
-            if (instance->nwn_legacy_model_index >= scene.models.size()
-                || !scene.models[instance->nwn_legacy_model_index]) {
-                ++validation.expected_stats.missing_asset_count;
-                break;
-            }
-            append_expected_nwn_legacy_draws(
-                validation,
-                *instance,
-                *scene.models[instance->nwn_legacy_model_index],
-                nwn_scratch);
-            break;
+        if (instance->render_model_index >= scene.static_models.size()
+            || !scene.static_models[instance->render_model_index]) {
+            ++validation.expected_stats.missing_asset_count;
+            continue;
         }
+        append_expected_render_model_draws(
+            validation,
+            *instance,
+            *scene.static_models[instance->render_model_index],
+            scene.material_overrides);
     }
 }
 
@@ -470,9 +357,7 @@ void validate_render_model_draw(
     const nw::render::PreparedModelDraw& draw,
     const nw::render::ModelInstance& instance)
 {
-    if (draw.instance_kind != nw::render::ModelInstanceKind::render_model
-        || instance.kind != nw::render::ModelInstanceKind::render_model
-        || draw.instance_source_index != instance.render_model_index
+    if (draw.instance_source_index != instance.render_model_index
         || instance.render_model_index >= scene.static_models.size()
         || !scene.static_models[instance.render_model_index]) {
         add_protocol_mismatch(validation);
@@ -508,45 +393,6 @@ void validate_render_model_draw(
     }
 }
 
-void validate_nwn_legacy_draw(
-    PreviewPreparedModelDrawValidation& validation,
-    const PreviewScene& scene,
-    const PreviewPreparedModelDraws& prepared,
-    const nw::render::PreparedModelDraw& draw,
-    const nw::render::ModelInstance& instance)
-{
-    if (draw.instance_kind != nw::render::ModelInstanceKind::nwn_legacy
-        || instance.kind != nw::render::ModelInstanceKind::nwn_legacy
-        || draw.instance_source_index != instance.nwn_legacy_model_index
-        || instance.nwn_legacy_model_index >= scene.models.size()
-        || !scene.models[instance.nwn_legacy_model_index]) {
-        add_protocol_mismatch(validation);
-        return;
-    }
-    if (draw.source_draw_index >= prepared.nwn_draws.size()) {
-        add_protocol_mismatch(validation);
-        return;
-    }
-
-    const auto& sidecar_draw = prepared.nwn_draws[draw.source_draw_index];
-    const auto& model = *scene.models[instance.nwn_legacy_model_index];
-    const auto expected_payload = sidecar_draw.mesh
-        ? nw::render::prepared_nwn_legacy_material_payload_kind(
-              sidecar_draw.mesh->uses_plt,
-              sidecar_draw.mesh->material_uses_fallback)
-        : nw::render::PreparedModelMaterialPayloadKind::fallback;
-    const bool expected_casts_shadow = sidecar_draw.mesh
-        && std::find(model.shadow_casters().begin(), model.shadow_casters().end(), sidecar_draw.mesh)
-            != model.shadow_casters().end();
-    if (!sidecar_draw.mesh || draw.material_mode != sidecar_draw.mesh->material_mode
-        || draw.material_uses_fallback != sidecar_draw.mesh->material_uses_fallback
-        || draw.material_payload != expected_payload
-        || draw.skinned != sidecar_draw.mesh->is_skin
-        || draw.primitive_casts_shadow != expected_casts_shadow) {
-        add_protocol_mismatch(validation);
-    }
-}
-
 void validate_prepared_draw_records(
     PreviewPreparedModelDrawValidation& validation,
     const PreviewScene& scene,
@@ -561,49 +407,12 @@ void validate_prepared_draw_records(
         }
 
         add_material_stat(validation.prepared_materials, draw.material_mode);
-        switch (draw.kind) {
-        case nw::render::PreparedModelDrawKind::render_model:
-            ++draw_stats.render_model_draw_count;
-            validate_render_model_draw(validation, scene, draw, *instance);
-            break;
-        case nw::render::PreparedModelDrawKind::nwn_legacy:
-            ++draw_stats.nwn_legacy_draw_count;
-            validate_nwn_legacy_draw(validation, scene, prepared, draw, *instance);
-            break;
-        default:
-            add_protocol_mismatch(validation);
-            break;
-        }
+        ++draw_stats.render_model_draw_count;
+        validate_render_model_draw(validation, scene, draw, *instance);
     }
 
     compare_stat(draw_stats.render_model_draw_count, validation.prepared_stats.render_model_draw_count, validation);
-    compare_stat(draw_stats.nwn_legacy_draw_count, validation.prepared_stats.nwn_legacy_draw_count, validation);
-    uint32_t stats_draw_count = 0;
-    add_saturating(stats_draw_count, validation.prepared_stats.render_model_draw_count);
-    add_saturating(stats_draw_count, validation.prepared_stats.nwn_legacy_draw_count);
-    compare_stat(stats_draw_count, validation.prepared_draw_count, validation);
-}
-
-bool nwn_legacy_surface_matches_draw(
-    const nw::render::PreparedModelSurfaceDraw& surface,
-    const nw::render::PreparedModelDraw& draw) noexcept
-{
-    return surface.instance == draw.instance
-        && surface.instance_kind == nw::render::ModelInstanceKind::nwn_legacy
-        && surface.instance_kind == draw.instance_kind
-        && surface.payload_kind == nw::render::PreparedModelDrawKind::nwn_legacy
-        && surface.payload_kind == draw.kind
-        && surface.instance_source_index == draw.instance_source_index
-        && surface.source_draw_index == draw.source_draw_index
-        && surface.material_index == draw.material_index
-        && surface.material_override == draw.material_override
-        && surface.skin_index == draw.skin_index
-        && surface.material_mode == draw.material_mode
-        && surface.material_uses_fallback == draw.material_uses_fallback
-        && surface.material_payload == draw.material_payload
-        && surface.skinned == draw.skinned
-        && surface.world == draw.world
-        && surface.normal_matrix == draw.normal_matrix;
+    compare_stat(validation.prepared_stats.render_model_draw_count, validation.prepared_draw_count, validation);
 }
 
 void collect_sorted_surface_draws(
@@ -622,6 +431,16 @@ void collect_sorted_surface_draws(
 
 } // namespace
 
+void append_prepared_render_model_draws(
+    nw::render::PreparedModelDrawList& out,
+    nw::render::ModelInstanceHandle handle,
+    const nw::render::ModelInstance& instance,
+    const nw::render::RenderModel& model,
+    const nw::render::ModelMaterialOverrideStore& material_overrides)
+{
+    append_render_model_draws_impl(out, handle, instance, model, material_overrides);
+}
+
 void collect_prepared_model_draws(
     PreviewPreparedModelDraws& out,
     const PreviewScene& scene,
@@ -639,10 +458,9 @@ void collect_prepared_model_draws(
     const PreviewScene& scene)
 {
     out.clear();
-    const size_t handle_count = scene.model_instance_handles.size() + scene.static_model_instance_handles.size();
+    const size_t handle_count = scene.static_model_instance_handles.size();
     out.common.instance_offsets.reserve(handle_count + 1u);
     append_instance_offset(out);
-    append_prepared_model_draws(out, scene, scene.model_instance_handles);
     append_prepared_model_draws(out, scene, scene.static_model_instance_handles);
     nw::render::collect_prepared_model_draw_ranges(out.ranges, out.common);
 }
@@ -664,108 +482,6 @@ void collect_prepared_model_surface_draws(
 {
     collect_prepared_model_draws(prepared, scene);
     collect_sorted_surface_draws(surfaces, prepared, scene);
-}
-
-PreviewPreparedNwnLegacyDrawItemStats collect_nwn_legacy_prepared_draw_items(
-    std::vector<const nw::render::nwn::PreparedDrawItem*>& out,
-    const PreviewPreparedModelDraws& prepared,
-    std::span<const nw::render::PreparedModelDraw> draws)
-{
-    PreviewPreparedNwnLegacyDrawItemStats stats{};
-    stats.input_draw_count = saturating_count(draws.size());
-
-    out.clear();
-    out.reserve(draws.size());
-    for (const auto& draw : draws) {
-        if (draw.kind != nw::render::PreparedModelDrawKind::nwn_legacy
-            || draw.instance_kind != nw::render::ModelInstanceKind::nwn_legacy) {
-            add_saturating(stats.non_nwn_draw_count, 1u);
-            continue;
-        }
-        if (draw.source_draw_index >= prepared.nwn_draws.size()) {
-            add_saturating(stats.missing_sidecar_draw_count, 1u);
-            continue;
-        }
-
-        const auto& sidecar_draw = prepared.nwn_draws[draw.source_draw_index];
-        const auto* mesh = sidecar_draw.mesh;
-        const auto expected_payload = mesh
-            ? nw::render::prepared_nwn_legacy_material_payload_kind(mesh->uses_plt, mesh->material_uses_fallback)
-            : nw::render::PreparedModelMaterialPayloadKind::fallback;
-        if (!mesh || mesh->material_mode != draw.material_mode
-            || mesh->material_uses_fallback != draw.material_uses_fallback
-            || draw.material_payload != expected_payload
-            || mesh->is_skin != draw.skinned) {
-            add_saturating(stats.invalid_sidecar_draw_count, 1u);
-            continue;
-        }
-
-        out.push_back(&sidecar_draw);
-        add_saturating(stats.selected_draw_count, 1u);
-    }
-    return stats;
-}
-
-void collect_nwn_legacy_prepared_surface_packets(
-    PreviewPreparedNwnLegacySurfacePacketList& out,
-    const PreviewPreparedModelDraws& prepared,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces)
-{
-    out.clear();
-    out.stats.input_draw_count = saturating_count(surfaces.size());
-    out.surface_indices.reserve(surfaces.size());
-
-    for (size_t surface_index = 0; surface_index < surfaces.size(); ++surface_index) {
-        const auto& surface = surfaces[surface_index];
-        if (surface.payload_kind != nw::render::PreparedModelDrawKind::nwn_legacy
-            || surface.instance_kind != nw::render::ModelInstanceKind::nwn_legacy) {
-            add_saturating(out.stats.non_nwn_draw_count, 1u);
-            continue;
-        }
-        if (surface.draw_index >= prepared.common.draws.size()
-            || surface.source_draw_index >= prepared.nwn_draws.size()) {
-            add_saturating(out.stats.missing_sidecar_draw_count, 1u);
-            continue;
-        }
-
-        const auto& draw = prepared.common.draws[surface.draw_index];
-        const auto& sidecar_draw = prepared.nwn_draws[surface.source_draw_index];
-        const auto* mesh = sidecar_draw.mesh;
-        const auto expected_payload = mesh
-            ? nw::render::prepared_nwn_legacy_material_payload_kind(mesh->uses_plt, mesh->material_uses_fallback)
-            : nw::render::PreparedModelMaterialPayloadKind::fallback;
-        if (!nwn_legacy_surface_matches_draw(surface, draw)
-            || !mesh
-            || mesh->material_mode != surface.material_mode
-            || mesh->material_uses_fallback != surface.material_uses_fallback
-            || surface.material_payload != expected_payload
-            || mesh->is_skin != surface.skinned) {
-            add_saturating(out.stats.invalid_sidecar_draw_count, 1u);
-            continue;
-        }
-
-        out.surface_indices.push_back(saturating_count(surface_index));
-        add_saturating(out.stats.selected_draw_count, 1u);
-    }
-}
-
-PreviewPreparedNwnLegacyDrawItemStats collect_nwn_legacy_prepared_surface_draw_items(
-    std::vector<const nw::render::nwn::PreparedDrawItem*>& out,
-    const PreviewPreparedModelDraws& prepared,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces)
-{
-    PreviewPreparedNwnLegacySurfacePacketList packets;
-    collect_nwn_legacy_prepared_surface_packets(packets, prepared, surfaces);
-
-    out.clear();
-    out.reserve(packets.surface_indices.size());
-    for (const uint32_t surface_index : packets.surface_indices) {
-        if (surface_index >= surfaces.size()) {
-            continue;
-        }
-        out.push_back(&prepared.nwn_draws[surfaces[surface_index].source_draw_index]);
-    }
-    return packets.stats;
 }
 
 namespace {
@@ -855,51 +571,6 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         packet_scratch);
 }
 
-PreviewPreparedNwnLegacyDrawItemStats collect_nwn_legacy_prepared_surface_draw_items(
-    std::vector<const nw::render::nwn::PreparedDrawItem*>& out,
-    const PreviewPreparedModelDraws& prepared,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    nw::render::RenderPassSelection pass)
-{
-    return collect_nwn_legacy_prepared_surface_draw_items(
-        out,
-        prepared,
-        prepared_surface_pass_span(surfaces, pass));
-}
-
-PreviewPreparedNwnLegacyDrawItemStats render_prepared_nwn_legacy_surface_draws(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const PreviewPreparedModelDraws& prepared,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    const nw::render::RenderContext& ctx,
-    nw::render::RenderPassSelection pass,
-    nw::render::nwn::PreparedDrawScratch& scratch,
-    std::vector<const nw::render::nwn::PreparedDrawItem*>& nwn_draw_items)
-{
-    const auto pass_surfaces = prepared_surface_pass_span(surfaces, pass);
-    const auto stats = collect_nwn_legacy_prepared_surface_draw_items(
-        nwn_draw_items,
-        prepared,
-        pass_surfaces);
-    if (!cmd || nwn_draw_items.empty()) {
-        return stats;
-    }
-
-    auto nwn_render_ctx = render_service.nwn_model_render_context();
-    nw::render::nwn::render_prepared_model_draws(
-        nwn_render_ctx,
-        cmd,
-        std::span<const nw::render::nwn::PreparedDrawItem* const>{
-            nwn_draw_items.data(),
-            nwn_draw_items.size()},
-        ctx,
-        scratch,
-        pass);
-
-    return stats;
-}
-
 PreviewPreparedModelDrawValidation validate_prepared_model_draws(
     const PreviewScene& scene,
     const PreviewPreparedModelDraws& prepared,
@@ -908,7 +579,6 @@ PreviewPreparedModelDrawValidation validate_prepared_model_draws(
     PreviewPreparedModelDrawValidation validation{};
     validation.prepared_stats = prepared.common.stats;
     validation.prepared_draw_count = saturating_count(prepared.common.draws.size());
-    validation.nwn_sidecar_draw_count = saturating_count(prepared.nwn_draws.size());
     validation.instance_offset_count = saturating_count(prepared.common.instance_offsets.size());
 
     append_expected_model_draws(validation, scene, handles);
@@ -928,10 +598,8 @@ PreviewPreparedModelDrawValidation validate_prepared_model_draws(
     PreviewPreparedModelDrawValidation validation{};
     validation.prepared_stats = prepared.common.stats;
     validation.prepared_draw_count = saturating_count(prepared.common.draws.size());
-    validation.nwn_sidecar_draw_count = saturating_count(prepared.nwn_draws.size());
     validation.instance_offset_count = saturating_count(prepared.common.instance_offsets.size());
 
-    append_expected_model_draws(validation, scene, scene.model_instance_handles);
     append_expected_model_draws(validation, scene, scene.static_model_instance_handles);
     compare_prepared_stats(validation);
     validate_instance_offsets(validation, prepared);

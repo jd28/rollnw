@@ -1,0 +1,29 @@
+import nwn1.creature_state as Cre;
+from core.types import { Ability, Class, Skill };
+import nwn1.combat as Combat;
+import nwn1.creature as NCre;
+import nwn1.requirements as Requirements;
+
+fn match_qualifier(obj: Creature, req_type: int, subtype: int, match: int, value: int): bool {
+    if (req_type == Requirements.req_type_ability) {
+        if (subtype < 0) { return false; }
+        return Requirements.match_value(NCre.get_ability_score(obj, Ability(subtype)), match, value);
+    } elif (req_type == Requirements.req_type_alignment) {
+        return Requirements.match_value(Requirements.alignment_flags_for_axis(obj, subtype), match, value);
+    } elif (req_type == Requirements.req_type_bab) {
+        return Requirements.match_value(Combat.base_attack_bonus(obj), match, value);
+    } elif (req_type == Requirements.req_type_class_level) {
+        if (subtype < 0) { return false; }
+        return Requirements.match_value(Cre.get_level_by_class(obj, Class(subtype)), match, value);
+    } elif (req_type == Requirements.req_type_feat) {
+        return Requirements.match_feat(obj, subtype, match, value);
+    } elif (req_type == Requirements.req_type_level) {
+        return Requirements.match_value(Cre.get_total_levels(obj), match, value);
+    } elif (req_type == Requirements.req_type_race) {
+        return Requirements.match_value(Cre.get_race(obj), match, value);
+    } elif (req_type == Requirements.req_type_skill) {
+        if (subtype < 0) { return false; }
+        return Requirements.match_value(NCre.get_skill_rank(obj, Skill(subtype)), match, value);
+    }
+    return false;
+}

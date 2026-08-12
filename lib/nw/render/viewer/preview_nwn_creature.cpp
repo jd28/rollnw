@@ -1,10 +1,8 @@
 #include "preview_nwn_creature.hpp"
 
-#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/ModelCache.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/kernel/TwoDACache.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
@@ -15,7 +13,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <fmt/format.h>
 #include <limits>
@@ -199,70 +196,6 @@ std::string anchor_name_for_equipped_item(nw::EquipIndex slot)
     }
 }
 
-float appearance_wing_tail_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id)
-{
-    if (!appearance_tda || appearance_id == nw::Appearance::invalid()) {
-        return 1.0f;
-    }
-
-    float scale = 1.0f;
-    appearance_tda->get_to(*appearance_id, "WING_TAIL_SCALE", scale, false);
-    return scale;
-}
-
-float appearance_helmet_scale(const nw::StaticTwoDA* appearance_tda, nw::Appearance appearance_id, uint8_t gender)
-{
-    if (!appearance_tda || appearance_id == nw::Appearance::invalid()) {
-        return 1.0f;
-    }
-
-    float scale = 1.0f;
-    const auto* column = gender == 1 ? "HELMET_SCALE_F" : "HELMET_SCALE_M";
-    appearance_tda->get_to(*appearance_id, column, scale, false);
-    return scale;
-}
-
-NwnAppearanceHandItemVisualPolicy resolve_nwn_appearance_hand_item_visual_policy(
-    const nw::StaticTwoDA* appearance_tda,
-    nw::Appearance appearance_id)
-{
-    NwnAppearanceHandItemVisualPolicy result;
-    if (!appearance_tda
-        || appearance_id == nw::Appearance::invalid()
-        || appearance_id.idx() >= appearance_tda->rows()) {
-        return result;
-    }
-
-    int32_t has_arms = 1;
-    if (appearance_tda->get_to(*appearance_id, "HASARMS", has_arms, false) && has_arms == 0) {
-        result.visible = false;
-        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_no_arms;
-        return result;
-    }
-
-    const size_t weapon_scale_column = appearance_tda->column_index("WEAPONSCALE");
-    if (weapon_scale_column == nw::StaticTwoDA::npos) {
-        return result;
-    }
-
-    nw::StringView raw_scale;
-    if (!appearance_tda->get_to(*appearance_id, weapon_scale_column, raw_scale)) {
-        result.visible = false;
-        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_null_weapon_scale;
-        return result;
-    }
-
-    const auto scale = nw::string::from<float>(raw_scale);
-    if (!scale || !std::isfinite(*scale) || *scale <= 0.0f) {
-        result.visible = false;
-        result.reason = NwnAppearanceHandItemVisualPolicyReason::hidden_invalid_weapon_scale;
-        return result;
-    }
-
-    result.scale = *scale;
-    return result;
-}
-
 PreviewCreatureModelLoad resolve_creature_model_from_appearance(nw::Appearance appearance)
 {
     auto& rt = nw::kernel::runtime();
@@ -381,33 +314,6 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
         };
     }
     return {};
-}
-
-size_t apply_nwn_wing_attachment_visual_policy(
-    nw::render::nwn::ModelInstance& model,
-    NwnWingAttachmentVisualPolicy policy)
-{
-    if (!policy.strip_non_render_meshes) {
-        return 0;
-    }
-
-    size_t stripped_mesh_count = 0;
-    for (const auto& node : model.nodes_) {
-        if (!node || !node->orig_ || !node->is_mesh || node->is_skin) {
-            continue;
-        }
-        const auto* source_mesh = dynamic_cast<const nw::model::TrimeshNode*>(node->orig_);
-        if (!source_mesh || source_mesh->render) {
-            continue;
-        }
-        if (auto* mesh = dynamic_cast<nw::render::nwn::Mesh*>(node.get())) {
-            mesh->vertices = {};
-            mesh->indices = {};
-            mesh->index_count = 0;
-            ++stripped_mesh_count;
-        }
-    }
-    return stripped_mesh_count;
 }
 
 size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(

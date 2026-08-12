@@ -1,8 +1,8 @@
 #include "preview_scene.hpp"
 
+#include "preview_model_animation.hpp"
 #include "preview_nwn_creature.hpp"
 #include "preview_object.hpp"
-#include "preview_plt.hpp"
 #include "scene_debug.hpp"
 #include "scene_lights.hpp"
 #include "tile_light.hpp"
@@ -52,8 +52,65 @@
 #include <set>
 #include <span>
 #include <unordered_map>
+#include <utility>
 
 namespace nw::render::viewer {
+
+SceneParticleSystem::SceneParticleSystem(SceneParticleSystem&& other) noexcept
+    : owner_model_index(other.owner_model_index)
+    , owner_instance_handle(other.owner_instance_handle)
+    , import(std::move(other.import))
+    , compiled(std::move(other.compiled))
+    , system(std::move(other.system))
+    , animation_time(other.animation_time)
+    , particle_animation_length(other.particle_animation_length)
+    , animation_time_initialized(other.animation_time_initialized)
+    , owner_visible_last(other.owner_visible_last)
+{
+    if (system.effect) {
+        system.effect = &compiled.effect;
+    }
+    other.system.effect = nullptr;
+}
+
+SceneParticleSystem& SceneParticleSystem::operator=(SceneParticleSystem&& other) noexcept
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    const bool has_compiled_effect = other.system.effect != nullptr;
+    owner_model_index = other.owner_model_index;
+    owner_instance_handle = other.owner_instance_handle;
+    import = std::move(other.import);
+    compiled = std::move(other.compiled);
+    system = std::move(other.system);
+    animation_time = other.animation_time;
+    particle_animation_length = other.particle_animation_length;
+    animation_time_initialized = other.animation_time_initialized;
+    owner_visible_last = other.owner_visible_last;
+
+    system.effect = has_compiled_effect ? &compiled.effect : nullptr;
+    other.system.effect = nullptr;
+    return *this;
+}
+
+PreviewScene::~PreviewScene()
+{
+    active_object = nw::ObjectHandle{};
+    if (!owns_root_object || root_object.type == nw::ObjectType::invalid) {
+        root_object = nw::ObjectHandle{};
+        return;
+    }
+
+    if (root_object.type == nw::ObjectType::area) {
+        if (auto* area = nw::kernel::objects().get<nw::Area>(root_object)) {
+            area->clear();
+        }
+    }
+    nw::kernel::objects().destroy(root_object);
+    root_object = nw::ObjectHandle{};
+}
 
 namespace {
 
@@ -89,6 +146,14 @@ void append_preview_load_events(std::vector<PreviewLoadEvent>& target, std::vect
 nw::Location object_spatial_location(const nw::ObjectBase& object)
 {
     return nw::kernel::objects().components().location(object.handle());
+}
+
+glm::mat4 object_spatial_placement(const nw::ObjectBase& object)
+{
+    const auto& components = nw::kernel::objects().components();
+    const auto* spatial = components.find_spatial(object.handle());
+    return area_object_placement_transform(
+        components.location(object.handle()), spatial ? spatial->scale : glm::vec3{1.0f});
 }
 
 void append_scene_load_events(PreviewScene& scene, std::vector<PreviewLoadEvent>& events)
@@ -183,8 +248,7 @@ bool render_model_particles_match_owner(
     nw::render::ModelInstanceHandle owner_handle,
     uint32_t owner_model_index) noexcept
 {
-    if (scene_particles.owner_kind != nw::render::ModelInstanceKind::render_model
-        || scene_particles.owner_model_index != owner_model_index) {
+    if (scene_particles.owner_model_index != owner_model_index) {
         return false;
     }
     if (owner_handle.valid() && scene_particles.owner_instance_handle.valid()
@@ -221,7 +285,6 @@ PreviewRuntimeModelReports build_preview_runtime_model_reports(
 
         PreviewRuntimeModelReport row{
             .owner = model->name.empty() ? std::string{"<unnamed>"} : model->name,
-            .kind = nw::render::ModelInstanceKind::render_model,
             .model_index = owner_model_index,
             .instance_handle_valid = owner_handle.valid(),
             .instance_present = instance != nullptr,
@@ -309,78 +372,6 @@ LightingSpace studio_preview_lighting_space() noexcept
     return LightingSpace::camera_relative;
 }
 
-// Möller-Trumbore ray-triangle intersection returning the hit t value, or -1 if no hit.
-static float ray_triangle_intersect(glm::vec3 orig, glm::vec3 dir, glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
-{
-    constexpr float kEps = 1e-7f;
-    const glm::vec3 e1 = v1 - v0;
-    const glm::vec3 e2 = v2 - v0;
-    const glm::vec3 h = glm::cross(dir, e2);
-    const float a = glm::dot(e1, h);
-    if (std::fabs(a) < kEps) return -1.0f;
-    const float f = 1.0f / a;
-    const glm::vec3 s = orig - v0;
-    const float u = f * glm::dot(s, h);
-    if (u < 0.0f || u > 1.0f) return -1.0f;
-    const glm::vec3 q = glm::cross(s, e1);
-    const float v = f * glm::dot(dir, q);
-    if (v < 0.0f || u + v > 1.0f) return -1.0f;
-    const float t = f * glm::dot(e2, q);
-    return t >= kEps ? t : -1.0f;
-}
-
-nw::render::ParticleCollisionQuery ModelMeshCollisionProvider::trace_particle(glm::vec3 from, glm::vec3 to, float /*radius*/) const
-{
-    const glm::vec3 dir = to - from;
-    const float seg_len = glm::length(dir);
-    if (seg_len < 1e-7f || triangles.empty()) return {};
-    const glm::vec3 norm_dir = dir / seg_len;
-
-    float best_t = seg_len + 1.0f;
-    glm::vec3 best_normal{0.0f, 1.0f, 0.0f};
-    bool hit = false;
-
-    for (const auto& tri : triangles) {
-        const float t = ray_triangle_intersect(from, norm_dir, tri.v0, tri.v1, tri.v2);
-        if (t >= 0.0f && t <= seg_len && t < best_t) {
-            best_t = t;
-            best_normal = glm::normalize(glm::cross(tri.v1 - tri.v0, tri.v2 - tri.v0));
-            hit = true;
-        }
-    }
-
-    if (!hit) return {};
-    return {.hit = true, .position = from + norm_dir * best_t, .normal = best_normal};
-}
-
-static std::unique_ptr<ModelMeshCollisionProvider> build_mesh_collision(
-    const ModelInstance& model, glm::vec3& out_aabb_min, glm::vec3& out_aabb_max)
-{
-    auto provider = std::make_unique<ModelMeshCollisionProvider>();
-    const glm::mat4 root = model.root_transform();
-    out_aabb_min = glm::vec3{std::numeric_limits<float>::max()};
-    out_aabb_max = glm::vec3{std::numeric_limits<float>::lowest()};
-
-    for (const auto& node_ptr : model.nodes_) {
-        if (!node_ptr->is_mesh || !node_ptr->orig_) continue;
-        const auto* trim = dynamic_cast<const nw::model::TrimeshNode*>(node_ptr->orig_);
-        if (!trim || trim->vertices.empty() || trim->indices.empty()) continue;
-
-        const glm::mat4 world = root * node_ptr->get_transform();
-        const size_t tri_count = trim->indices.size() / 3;
-        for (size_t i = 0; i < tri_count; ++i) {
-            const glm::vec3 v0 = glm::vec3(world * glm::vec4(trim->vertices[trim->indices[i * 3 + 0]].position, 1.0f));
-            const glm::vec3 v1 = glm::vec3(world * glm::vec4(trim->vertices[trim->indices[i * 3 + 1]].position, 1.0f));
-            const glm::vec3 v2 = glm::vec3(world * glm::vec4(trim->vertices[trim->indices[i * 3 + 2]].position, 1.0f));
-            provider->triangles.push_back({v0, v1, v2});
-            out_aabb_min = glm::min(out_aabb_min, glm::min(v0, glm::min(v1, v2)));
-            out_aabb_max = glm::max(out_aabb_max, glm::max(v0, glm::max(v1, v2)));
-        }
-    }
-
-    return provider->triangles.empty() ? nullptr : std::move(provider);
-}
-
 namespace {
 
 bool model_has_animation(const nw::model::Mdl& mdl, std::string_view animation)
@@ -393,15 +384,6 @@ bool model_has_animation(const nw::model::Mdl& mdl, std::string_view animation)
         current = current->model.supermodel.get();
     }
     return false;
-}
-
-float local_model_animation_length(const nw::model::Mdl& mdl, std::string_view animation)
-{
-    if (animation.empty()) {
-        return 0.0f;
-    }
-    const auto* anim = mdl.model.find_animation(animation);
-    return anim ? anim->length : 0.0f;
 }
 
 std::string_view find_first_animation(const nw::model::Mdl& mdl, std::initializer_list<std::string_view> names)
@@ -451,7 +433,7 @@ std::string_view preferred_model_animation_name(const nw::model::Mdl& mdl, Prefe
         }
         break;
     case PreferredModelAnimationContext::hold:
-        if (auto animation = find_first_animation(mdl, {"default", "on", "impact"}); !animation.empty()) {
+        if (auto animation = find_first_animation(mdl, {"default", "pause1", "on", "impact"}); !animation.empty()) {
             return animation;
         }
         break;
@@ -466,34 +448,6 @@ std::string_view preferred_model_animation_name(const nw::model::Mdl& mdl, Prefe
 PreviewSceneLoadOptions default_preview_scene_load_options()
 {
     return {};
-}
-
-Bounds estimate_particle_bounds(const nw::render::ParticleEffectDef& effect)
-{
-    float radius = 1.0f;
-    for (const auto& emitter : effect.emitters) {
-        const float region_x = 0.5f * emitter.region.size.x * 0.01f;
-        const float region_y = 0.5f * emitter.region.size.y * 0.01f;
-        const float size = std::max({
-            emitter.initial.size_x.min,
-            emitter.initial.size_x.max,
-            emitter.initial.size_y.min,
-            emitter.initial.size_y.max,
-        });
-        const float speed = std::max(emitter.initial.speed.min, emitter.initial.speed.max);
-        const float lifetime = std::max(emitter.initial.lifetime.min, emitter.initial.lifetime.max);
-        const float path = std::max({
-            emitter.targeting.kill_radius,
-            emitter.targeting.source_tangent,
-            emitter.targeting.target_tangent,
-        });
-        radius = std::max(radius, region_x + region_y + size + speed * lifetime + path);
-    }
-
-    return Bounds{
-        .min = {-radius, -radius, -radius},
-        .max = {radius, radius, radius},
-    };
 }
 
 static Bounds transform_bounds(const Bounds& bounds, const glm::mat4& transform)
@@ -559,15 +513,10 @@ const nw::render::ModelInstance* scene_particle_owner_instance(
         return nullptr;
     }
     const auto* instance = scene.model_instances.get(scene_particles.owner_instance_handle);
-    if (!instance || instance->kind != scene_particles.owner_kind) {
+    if (!instance) {
         return nullptr;
     }
-    if (scene_particles.owner_kind == nw::render::ModelInstanceKind::nwn_legacy
-        && instance->nwn_legacy_model_index != scene_particles.owner_model_index) {
-        return nullptr;
-    }
-    if (scene_particles.owner_kind == nw::render::ModelInstanceKind::render_model
-        && instance->render_model_index != scene_particles.owner_model_index) {
+    if (instance->render_model_index != scene_particles.owner_model_index) {
         return nullptr;
     }
     return instance;
@@ -575,22 +524,16 @@ const nw::render::ModelInstance* scene_particle_owner_instance(
 
 const nw::render::ModelInstance* scene_particle_attachment_owner_instance(
     const PreviewScene& scene,
-    const SceneParticleSystem& scene_particles,
     const nw::render::ParticleEmitterAttachmentBinding& binding) noexcept
 {
     if (!binding.owner_instance_handle.valid()) {
         return nullptr;
     }
     const auto* instance = scene.model_instances.get(binding.owner_instance_handle);
-    if (!instance || instance->kind != scene_particles.owner_kind) {
+    if (!instance) {
         return nullptr;
     }
-    if (scene_particles.owner_kind == nw::render::ModelInstanceKind::nwn_legacy
-        && instance->nwn_legacy_model_index != binding.owner_model_index) {
-        return nullptr;
-    }
-    if (scene_particles.owner_kind == nw::render::ModelInstanceKind::render_model
-        && instance->render_model_index != binding.owner_model_index) {
+    if (instance->render_model_index != binding.owner_model_index) {
         return nullptr;
     }
     return instance;
@@ -602,7 +545,7 @@ bool scene_particle_owner_visible(const PreviewScene& scene, const SceneParticle
         const auto* instance = scene_particle_owner_instance(scene, scene_particles);
         return instance && instance->visible;
     }
-    return scene_particles.owner ? scene_particles.owner->render_enabled : true;
+    return true;
 }
 
 glm::mat4 scene_particle_owner_root(const PreviewScene& scene, const SceneParticleSystem& scene_particles)
@@ -610,7 +553,7 @@ glm::mat4 scene_particle_owner_root(const PreviewScene& scene, const ScenePartic
     if (const auto* instance = scene_particle_owner_instance(scene, scene_particles)) {
         return instance->root_transform;
     }
-    return scene_particles.owner ? scene_particles.owner->root_transform() : glm::mat4{1.0f};
+    return glm::mat4{1.0f};
 }
 
 glm::mat4 scene_particle_attachment_owner_root(
@@ -619,7 +562,7 @@ glm::mat4 scene_particle_attachment_owner_root(
     const nw::render::ParticleEmitterAttachmentBinding* binding)
 {
     if (binding) {
-        if (const auto* instance = scene_particle_attachment_owner_instance(scene, scene_particles, *binding)) {
+        if (const auto* instance = scene_particle_attachment_owner_instance(scene, *binding)) {
             return instance->root_transform;
         }
     }
@@ -638,7 +581,7 @@ bool scene_particle_common_attachment_world_transform(
     }
 
     const auto* instance = binding
-        ? scene_particle_attachment_owner_instance(scene, scene_particles, *binding)
+        ? scene_particle_attachment_owner_instance(scene, *binding)
         : scene_particle_owner_instance(scene, scene_particles);
     if (!instance
         || attachment_point >= instance->attachment_node_world_transforms.size()
@@ -766,7 +709,7 @@ void sync_scene_particle_emitters(
     SceneParticleSystem& scene_particles,
     bool reset_previous_positions = false)
 {
-    if (!scene_particles.owner && !scene_particles.owner_instance_handle.valid()) {
+    if (!scene_particles.owner_instance_handle.valid()) {
         return;
     }
 
@@ -843,21 +786,16 @@ std::string_view render_model_selected_particle_animation_name(
     return model.animations[clip].name;
 }
 
-bool render_model_particle_system_selected(
+bool render_model_has_particle_animation(
     const nw::render::RenderModel& model,
-    const nw::render::ModelAssetParticleSystem& particles,
     std::string_view selected_animation_name) noexcept
 {
-    if (particles.animation_name.empty()) {
-        return true;
-    }
-    if (!selected_animation_name.empty()) {
-        return particles.animation_name == selected_animation_name;
-    }
-
-    // No animation selector exists for this asset, so keep the old inclusive
-    // behavior instead of silently dropping authored particle payloads.
-    return model.animations.empty();
+    return !selected_animation_name.empty()
+        && std::any_of(model.particle_systems.begin(), model.particle_systems.end(),
+            [selected_animation_name](const nw::render::ModelAssetParticleSystem& particles) {
+                return !particles.effect.emitters.empty()
+                    && particles.animation_name == selected_animation_name;
+            });
 }
 
 void append_render_model_particle_systems(
@@ -867,24 +805,19 @@ void append_render_model_particle_systems(
     uint32_t owner_model_index,
     std::string_view selected_animation_name)
 {
+    const bool use_animation_particles = render_model_has_particle_animation(model, selected_animation_name);
     for (const auto& particle_system : model.particle_systems) {
-        if (particle_system.effect.emitters.empty()
-            || !render_model_particle_system_selected(model, particle_system, selected_animation_name)) {
+        const bool selected = use_animation_particles
+            ? particle_system.animation_name == selected_animation_name
+            : particle_system.animation_name.empty();
+        if (particle_system.effect.emitters.empty() || !selected) {
             continue;
         }
-        scene.particles.push_back(SceneParticleSystem{
-            .owner = nullptr,
-            .owner_kind = nw::render::ModelInstanceKind::render_model,
-            .owner_model_index = owner_model_index,
-            .owner_instance_handle = owner_handle,
-            .import = model_asset_particle_import(particle_system),
-            .compiled = {},
-            .system = {},
-            .collision = nullptr,
-            .particle_animation_length = particle_system.animation_length,
-        });
-
-        auto& scene_particles = scene.particles.back();
+        auto& scene_particles = scene.particles.emplace_back();
+        scene_particles.owner_model_index = owner_model_index;
+        scene_particles.owner_instance_handle = owner_handle;
+        scene_particles.import = model_asset_particle_import(particle_system);
+        scene_particles.particle_animation_length = particle_system.animation_length;
         scene_particles.compiled = nw::render::compile_particle_effect(scene_particles.import.effect);
         scene_particles.system = nw::render::create_particle_system(scene_particles.compiled.effect);
         scene_particles.system.effect = &scene_particles.compiled.effect;
@@ -901,62 +834,6 @@ void append_render_model_particle_systems(
     }
 }
 
-bool PreviewScene::load_animation(std::string_view name)
-{
-    bool had_animatable_model = false;
-    bool loaded = false;
-    for (auto& model : models) {
-        if (!model->scene_animation_enabled) {
-            continue;
-        }
-        had_animatable_model = true;
-        bool model_loaded = model->load_animation(name);
-        LOG_F(INFO, "scene animation {} on {}: {}",
-            name,
-            model->mdl_ ? model->mdl_->model.name : "<unknown>",
-            model_loaded ? "yes" : "no");
-        loaded = model_loaded || loaded;
-    }
-    if (had_animatable_model) {
-        rebuild_particles(loaded ? name : std::string_view{});
-    }
-    return loaded;
-}
-
-bool PreviewScene::load_default_animations(PreferredModelAnimationContext context)
-{
-    bool had_animatable_model = false;
-    bool loaded = false;
-    for (auto& model : models) {
-        if (!model || !model->scene_animation_enabled) {
-            continue;
-        }
-
-        had_animatable_model = true;
-        const auto* preference_source = model->mdl_ ? model->mdl_ : model->animation_source_;
-        if (!preference_source) {
-            continue;
-        }
-
-        const auto animation = preferred_model_animation_name(*preference_source, context);
-        if (animation.empty()) {
-            continue;
-        }
-
-        const bool model_loaded = model->load_animation(animation);
-        LOG_F(INFO, "scene default animation {} on {}: {}",
-            animation,
-            model->mdl_ ? model->mdl_->model.name : "<unknown>",
-            model_loaded ? "yes" : "no");
-        loaded = model_loaded || loaded;
-    }
-
-    if (had_animatable_model) {
-        rebuild_particles({});
-    }
-    return loaded;
-}
-
 void PreviewScene::rebuild_particles(std::string_view animation_name)
 {
     sync_model_instance_runtime_state(*this);
@@ -968,68 +845,7 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
             render_model_particle_count += model->particle_systems.size();
         }
     }
-    particles.reserve(models.size() + render_model_particle_count);
-
-    for (size_t model_index = 0; model_index < models.size(); ++model_index) {
-        const auto& model = models[model_index];
-        if (!model || !model->mdl_) {
-            continue;
-        }
-
-        auto particle_animation = model->scene_animation_enabled ? animation_name : std::string_view{};
-        if (particle_animation.empty() && model->anim_) {
-            particle_animation = model->anim_->name;
-        }
-        if (particle_animation.empty()) {
-            particle_animation = preferred_model_animation_name(
-                *model->mdl_, PreferredModelAnimationContext::particle_preview);
-        }
-        auto import = nw::model::import_particle_effect(*model->mdl_, particle_animation, false);
-        if (import.effect.emitters.empty()) {
-            continue;
-        }
-
-        const bool has_dynamic_attachment_anchor = model->transform_context_ != nullptr;
-        glm::vec3 aabb_min{0.0f}, aabb_max{0.0f};
-        auto collision = has_dynamic_attachment_anchor
-            ? nullptr
-            : build_mesh_collision(*model, aabb_min, aabb_max);
-        particles.push_back(SceneParticleSystem{
-            .owner = model.get(),
-            .owner_model_index = static_cast<uint32_t>(
-                std::min<size_t>(model_index, std::numeric_limits<uint32_t>::max())),
-            .owner_instance_handle = model_index < model_instance_handles.size()
-                ? model_instance_handles[model_index]
-                : nw::render::ModelInstanceHandle{},
-            .import = std::move(import),
-            .compiled = {},
-            .system = {},
-            .collision = std::move(collision),
-            .mesh_aabb_min = aabb_min,
-            .mesh_aabb_max = aabb_max,
-            .particle_animation_length = local_model_animation_length(*model->mdl_, particle_animation),
-        });
-    }
-
-    for (auto& scene_particles : particles) {
-        scene_particles.compiled = nw::render::compile_particle_effect(scene_particles.import.effect);
-        scene_particles.system = nw::render::create_particle_system(scene_particles.compiled.effect);
-        scene_particles.system.effect = &scene_particles.compiled.effect;
-        nw::render::apply_particle_attachment_defaults(scene_particles.system);
-        build_scene_particle_emitter_attachments(scene_particles);
-        if (scene_particles.owner && scene_particles.owner->anim_) {
-            scene_particles.animation_time = static_cast<float>(scene_particles.owner->anim_cursor_) * 0.001f;
-            scene_particles.animation_time_initialized = scene_particles.animation_time > 1.0e-6f;
-        }
-        scene_particles.owner_visible_last = scene_particle_owner_visible(*this, scene_particles);
-        if (!scene_particles.owner_visible_last) {
-            for (auto& emitter : scene_particles.system.emitters) {
-                emitter.active = false;
-            }
-        }
-        sync_scene_particle_emitters(*this, scene_particles, true);
-        nw::render::build_particle_render_packets(scene_particles.system);
-    }
+    particles.reserve(render_model_particle_count);
 
     for (size_t model_index = 0; model_index < static_models.size(); ++model_index) {
         const auto& model = static_models[model_index];
@@ -1054,12 +870,6 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
 
 void PreviewScene::update(int32_t dt_ms)
 {
-    for (auto& model : models) {
-        if (!model->scene_animation_enabled) {
-            continue;
-        }
-        model->update(dt_ms);
-    }
     sync_model_instance_runtime_state(*this);
     refresh_scene_dynamic_local_light_render_data(*this);
 
@@ -1075,11 +885,7 @@ void PreviewScene::update(int32_t dt_ms)
         float current_time = scene_particles.animation_time;
         bool has_animation_time = false;
         float animation_length = 0.0f;
-        if (owner_visible && scene_particles.owner && scene_particles.owner->anim_) {
-            current_time = static_cast<float>(scene_particles.owner->anim_cursor_) * 0.001f;
-            has_animation_time = true;
-            animation_length = scene_particles.owner->anim_->length;
-        } else if (owner_visible && scene_particles.particle_animation_length > 0.0f) {
+        if (owner_visible && scene_particles.particle_animation_length > 0.0f) {
             current_time = std::fmod(scene_particles.animation_time + dt, scene_particles.particle_animation_length);
             if (current_time < 0.0f) {
                 current_time += scene_particles.particle_animation_length;
@@ -1111,29 +917,7 @@ void PreviewScene::update(int32_t dt_ms)
                 emitter.active = false;
             }
         }
-        if (scene_particles.collision) {
-            nw::render::ParticleSimulationContext ctx;
-            ctx.collision = scene_particles.collision.get();
-            nw::render::tick_particle_system(scene_particles.system, dt, ctx);
-
-            // Kill particles that escape the model mesh bounds — the scene geometry
-            // would occlude them in NWN but we have no walls/floor/ceiling to do that.
-            constexpr float kMargin = 0.5f;
-            const float z_min = scene_particles.mesh_aabb_min.z - kMargin;
-            const float z_max = scene_particles.mesh_aabb_max.z + kMargin;
-            auto& core = scene_particles.system.particles.core;
-            size_t i = 0;
-            while (i < core.position.size()) {
-                const float z = core.position[i].z;
-                if (z < z_min || z > z_max) {
-                    nw::render::kill_particle(scene_particles.system, i);
-                    continue;
-                }
-                ++i;
-            }
-        } else {
-            nw::render::tick_particle_system(scene_particles.system, dt);
-        }
+        nw::render::tick_particle_system(scene_particles.system, dt);
         if (!owner_visible) {
             for (size_t i = 0; i < hidden_emitter_active.size() && i < scene_particles.system.emitters.size(); ++i) {
                 scene_particles.system.emitters[i].active = hidden_emitter_active[i];
@@ -1158,31 +942,9 @@ void PreviewScene::set_particle_target_point(
     }
 }
 
-void PreviewScene::set_particle_target_point(const ModelInstance* owner, const glm::vec3& target_point)
-{
-    for (size_t i = 0; i < models.size() && i < model_instance_handles.size(); ++i) {
-        if (models[i].get() == owner) {
-            const uint32_t owner_model_index = i >= std::numeric_limits<uint32_t>::max()
-                ? std::numeric_limits<uint32_t>::max()
-                : static_cast<uint32_t>(i);
-            set_particle_target_point(model_instance_handles[i], owner_model_index, target_point);
-            return;
-        }
-    }
-
-    for (auto& scene_particles : particles) {
-        if (scene_particles.owner != owner) {
-            continue;
-        }
-        for (auto& emitter : scene_particles.system.emitters) {
-            emitter.target_point = target_point;
-        }
-    }
-}
-
 Bounds PreviewScene::current_bounds() const
 {
-    if (models.empty() && static_models.empty()) {
+    if (static_models.empty()) {
         if (auto particle_bounds = live_particle_bounds(particles)) {
             return *particle_bounds;
         }
@@ -1190,19 +952,6 @@ Bounds PreviewScene::current_bounds() const
 
     Bounds result{};
     bool first = true;
-    for (size_t model_index = 0; model_index < models.size(); ++model_index) {
-        if (!models[model_index]) continue;
-        const auto* instance = nwn_model_instance(model_index);
-        if (!instance) continue;
-        auto current = instance->current_bounds;
-        if (first) {
-            result = current;
-            first = false;
-        } else {
-            result.min = glm::min(result.min, current.min);
-            result.max = glm::max(result.max, current.max);
-        }
-    }
     for (size_t model_index = 0; model_index < static_models.size(); ++model_index) {
         const auto& model = static_models[model_index];
         if (!model) continue;
@@ -1221,11 +970,6 @@ Bounds PreviewScene::current_bounds() const
         }
     }
     return first ? bounds : result;
-}
-
-static bool model_instance_contains_water(const ModelInstance& model) noexcept
-{
-    return model.has_water_pass();
 }
 
 static bool render_model_contains_water(const nw::render::RenderModel& model) noexcept
@@ -1260,52 +1004,11 @@ static nw::render::ModelInstanceShadowSummary render_model_shadow_summary(
     return result;
 }
 
-static nw::render::ModelInstanceShadowSummary nwn_model_shadow_summary(
-    const ModelInstance& model,
-    const Bounds& world_bounds) noexcept
-{
-    nw::render::ModelInstanceShadowSummary result{};
-    result.bounds = world_bounds;
-    result.casts_shadow = model.has_shadow_casters();
-    result.caster_count = static_cast<uint32_t>(
-        std::min<size_t>(model.shadow_casters().size(), std::numeric_limits<uint32_t>::max()));
-    return result;
-}
-
-static nw::render::ModelInstanceShadowSummary nwn_model_shadow_summary(const ModelInstance& model) noexcept
-{
-    return nwn_model_shadow_summary(model, model.current_bounds());
-}
-
-static uint32_t scene_nwn_model_index_for_pointer(const PreviewScene& scene, const ModelInstance* model) noexcept
-{
-    if (!model) {
-        return std::numeric_limits<uint32_t>::max();
-    }
-    for (size_t i = 0; i < scene.models.size() && i < scene.model_instance_handles.size(); ++i) {
-        if (scene.models[i].get() == model) {
-            return static_cast<uint32_t>(std::min<size_t>(i, std::numeric_limits<uint32_t>::max()));
-        }
-    }
-    return std::numeric_limits<uint32_t>::max();
-}
-
 static std::span<const nw::render::ModelSocket> scene_model_sockets(
     const PreviewScene& scene,
     nw::render::ModelInstanceHandle handle,
     const nw::render::ModelInstance& instance) noexcept
 {
-    if (instance.kind == nw::render::ModelInstanceKind::nwn_legacy) {
-        if (instance.nwn_legacy_model_index < scene.models.size()
-            && instance.nwn_legacy_model_index < scene.model_instance_handles.size()
-            && scene.model_instance_handles[instance.nwn_legacy_model_index] == handle) {
-            const auto& model = scene.models[instance.nwn_legacy_model_index];
-            if (model) {
-                return model->sockets();
-            }
-        }
-        return {};
-    }
     if (instance.render_model_index < scene.static_models.size()
         && instance.render_model_index < scene.static_model_instance_handles.size()
         && scene.static_model_instance_handles[instance.render_model_index] == handle) {
@@ -1317,48 +1020,17 @@ static std::span<const nw::render::ModelSocket> scene_model_sockets(
     return {};
 }
 
-static void sync_common_nwn_attachment_node_transforms(
-    nw::render::ModelInstance& instance,
-    const ModelInstance& model)
-{
-    const size_t count = model.source_nodes_.size();
-    instance.attachment_node_world_transforms.resize(count);
-    instance.attachment_node_transform_valid.assign(count, 0u);
-    for (size_t i = 0; i < count; ++i) {
-        const auto* node = model.source_nodes_[i];
-        if (!node) {
-            continue;
-        }
-        instance.attachment_node_world_transforms[i] = instance.root_transform * node->get_transform();
-        instance.attachment_node_transform_valid[i] = 1u;
-    }
-}
-
-static nw::render::ModelInstance make_common_nwn_model_instance(const ModelInstance& model, size_t model_index)
-{
-    nw::render::ModelInstance result{};
-    result.kind = nw::render::ModelInstanceKind::nwn_legacy;
-    result.visible = model.render_enabled;
-    result.root_transform = model.root_transform();
-    result.current_bounds = model.current_bounds();
-    result.shadow = nwn_model_shadow_summary(model);
-    result.nwn_legacy_model_index = static_cast<uint32_t>(
-        std::min<size_t>(model_index, std::numeric_limits<uint32_t>::max()));
-    sync_common_nwn_attachment_node_transforms(result, model);
-    return result;
-}
-
 static nw::render::ModelInstance make_common_render_model_instance(
     const nw::render::RenderModel& model, size_t model_index)
 {
     nw::render::ModelInstance result{};
-    result.kind = nw::render::ModelInstanceKind::render_model;
     result.visible = true;
     result.root_transform = glm::mat4{1.0f};
     result.current_bounds = model.bounds;
     result.shadow = render_model_shadow_summary(model, result.current_bounds);
     result.render_model_index = static_cast<uint32_t>(
         std::min<size_t>(model_index, std::numeric_limits<uint32_t>::max()));
+    result.scene_animation_enabled = !model.animations.empty();
     result.animation.enabled = !model.animations.empty() && !model.skeletons.empty();
     nw::render::publish_render_model_static_node_world_transforms(result, model);
     return result;
@@ -1367,23 +1039,6 @@ static nw::render::ModelInstance make_common_render_model_instance(
 PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& scene)
 {
     PreviewSceneRuntimeSyncStats stats{};
-    for (size_t model_index = 0; model_index < scene.models.size(); ++model_index) {
-        const auto& model = scene.models[model_index];
-        auto* instance = scene.nwn_model_instance(model_index);
-        if (!model || !instance) {
-            continue;
-        }
-        ++stats.nwn_model_count;
-
-        const glm::mat4 root_transform = model->root_transform();
-
-        instance->visible = model->render_enabled;
-        instance->root_transform = root_transform;
-        instance->current_bounds = model->current_bounds(root_transform);
-        instance->shadow = nwn_model_shadow_summary(*model, instance->current_bounds);
-        sync_common_nwn_attachment_node_transforms(*instance, *model);
-    }
-
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
         const auto& model = scene.static_models[model_index];
         auto* instance = scene.static_model_instance(model_index);
@@ -1407,11 +1062,7 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
         auto* child_instance = scene.model_instances.get(binding.child_instance_handle);
         const auto* owner_instance = scene.model_instances.get(binding.owner_instance_handle);
         if (child_instance) {
-            if (child_instance->kind == nw::render::ModelInstanceKind::nwn_legacy) {
-                ++stats.nwn_attachment_binding_count;
-            } else {
-                ++stats.render_model_attachment_binding_count;
-            }
+            ++stats.render_model_attachment_binding_count;
         }
         attachment_inputs.push_back(nw::render::ModelAttachmentRootTransformInput{
             .owner_instance = owner_instance,
@@ -1439,26 +1090,12 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
             continue;
         }
         if (!attachment_outputs[i].valid) {
-            if (instance->kind == nw::render::ModelInstanceKind::nwn_legacy) {
-                ++stats.nwn_attachment_root_failed_count;
-            } else {
-                ++stats.render_model_attachment_root_failed_count;
-            }
+            ++stats.render_model_attachment_root_failed_count;
             continue;
         }
 
         instance->root_transform = attachment_outputs[i].root_transform;
-        if (instance->kind == nw::render::ModelInstanceKind::nwn_legacy
-            && instance->nwn_legacy_model_index < scene.models.size()) {
-            const auto& model = scene.models[instance->nwn_legacy_model_index];
-            if (model) {
-                instance->current_bounds = model->current_bounds(instance->root_transform);
-                instance->shadow = nwn_model_shadow_summary(*model, instance->current_bounds);
-                sync_common_nwn_attachment_node_transforms(*instance, *model);
-            }
-            ++stats.nwn_attachment_root_resolved_count;
-        } else if (instance->kind == nw::render::ModelInstanceKind::render_model
-            && instance->render_model_index < scene.static_models.size()) {
+        if (instance->render_model_index < scene.static_models.size()) {
             const auto& model = scene.static_models[instance->render_model_index];
             if (model) {
                 if (!instance->animation.enabled) {
@@ -1473,39 +1110,77 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
     return stats;
 }
 
+AreaObjectSpatialUpdateStats update_area_object_spatial_states(
+    PreviewScene& scene, std::span<const nw::ObjectSpatialState> spatial_states)
+{
+    AreaObjectSpatialUpdateStats stats{
+        .input_count = static_cast<uint32_t>(
+            std::min<size_t>(spatial_states.size(), std::numeric_limits<uint32_t>::max())),
+    };
+    if (spatial_states.empty()) {
+        return stats;
+    }
+
+    const auto valid_spatial = [](const nw::ObjectSpatialState& row) {
+        const auto finite = [](glm::vec3 value) {
+            return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+        };
+        return row.owner.type != nw::ObjectType::invalid
+            && finite(row.position)
+            && finite(row.orientation)
+            && finite(row.scale)
+            && row.scale.x > 0.0f
+            && row.scale.y > 0.0f
+            && row.scale.z > 0.0f;
+    };
+    stats.rejected_input_count = static_cast<uint32_t>(std::min<size_t>(
+        std::count_if(spatial_states.begin(), spatial_states.end(),
+            [&valid_spatial](const auto& row) { return !valid_spatial(row); }),
+        std::numeric_limits<uint32_t>::max()));
+    const auto find_spatial = [&spatial_states, &valid_spatial](
+                                  nw::ObjectHandle object) -> const nw::ObjectSpatialState* {
+        const auto it = std::find_if(
+            spatial_states.begin(), spatial_states.end(), [object, &valid_spatial](const auto& row) {
+                return row.owner == object && valid_spatial(row);
+            });
+        return it == spatial_states.end() ? nullptr : &*it;
+    };
+    const auto placement_for = [](const nw::ObjectSpatialState& row) {
+        nw::Location location;
+        location.area = row.area;
+        location.position = row.position;
+        location.orientation = row.orientation;
+        return area_object_placement_transform(location, row.scale);
+    };
+
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        if (model_index >= scene.static_area_model_info.size()
+            || model_index >= scene.static_model_attachment_binding_indices.size()
+            || scene.static_model_attachment_binding_indices[model_index] != kInvalidSceneModelAttachmentBindingIndex) {
+            continue;
+        }
+        auto* instance = scene.static_model_instance(model_index);
+        const auto* spatial = find_spatial(scene.static_area_model_info[model_index].object);
+        if (!instance || !spatial) {
+            continue;
+        }
+        instance->root_transform = placement_for(*spatial);
+        ++stats.render_model_root_count;
+    }
+
+    if (stats.render_model_root_count != 0) {
+        sync_model_instance_runtime_state(scene);
+        refresh_scene_dynamic_local_light_render_data(scene);
+        if (scene.area_render_scene) {
+            scene.area_render_scene->refresh_light_indices(scene);
+        }
+    }
+    return stats;
+}
+
 bool PreviewScene::contains_water() const noexcept
 {
     return has_water;
-}
-
-nw::render::ModelInstance* PreviewScene::nwn_model_instance(size_t model_index) noexcept
-{
-    if (model_index >= models.size() || model_index >= model_instance_handles.size()
-        || model_index > std::numeric_limits<uint32_t>::max()) {
-        return nullptr;
-    }
-
-    auto* instance = model_instances.get(model_instance_handles[model_index]);
-    if (!instance || instance->kind != nw::render::ModelInstanceKind::nwn_legacy
-        || instance->nwn_legacy_model_index != static_cast<uint32_t>(model_index)) {
-        return nullptr;
-    }
-    return instance;
-}
-
-const nw::render::ModelInstance* PreviewScene::nwn_model_instance(size_t model_index) const noexcept
-{
-    if (model_index >= models.size() || model_index >= model_instance_handles.size()
-        || model_index > std::numeric_limits<uint32_t>::max()) {
-        return nullptr;
-    }
-
-    const auto* instance = model_instances.get(model_instance_handles[model_index]);
-    if (!instance || instance->kind != nw::render::ModelInstanceKind::nwn_legacy
-        || instance->nwn_legacy_model_index != static_cast<uint32_t>(model_index)) {
-        return nullptr;
-    }
-    return instance;
 }
 
 nw::render::ModelInstance* PreviewScene::static_model_instance(size_t model_index) noexcept
@@ -1516,8 +1191,7 @@ nw::render::ModelInstance* PreviewScene::static_model_instance(size_t model_inde
     }
 
     auto* instance = model_instances.get(static_model_instance_handles[model_index]);
-    if (!instance || instance->kind != nw::render::ModelInstanceKind::render_model
-        || instance->render_model_index != static_cast<uint32_t>(model_index)) {
+    if (!instance || instance->render_model_index != static_cast<uint32_t>(model_index)) {
         return nullptr;
     }
     return instance;
@@ -1531,143 +1205,23 @@ const nw::render::ModelInstance* PreviewScene::static_model_instance(size_t mode
     }
 
     const auto* instance = model_instances.get(static_model_instance_handles[model_index]);
-    if (!instance || instance->kind != nw::render::ModelInstanceKind::render_model
-        || instance->render_model_index != static_cast<uint32_t>(model_index)) {
+    if (!instance || instance->render_model_index != static_cast<uint32_t>(model_index)) {
         return nullptr;
     }
     return instance;
 }
 
-void PreviewScene::add(std::unique_ptr<ModelInstance> model)
-{
-    if (!model) {
-        return;
-    }
-    if (models.empty()) {
-        bounds = model->bounds;
-    } else {
-        bounds.min = glm::min(bounds.min, model->bounds.min);
-        bounds.max = glm::max(bounds.max, model->bounds.max);
-    }
-    vertex_count += model->vertex_count;
-    index_count += model->index_count;
-    has_water = has_water || model_instance_contains_water(*model);
-    const size_t model_index = models.size();
-    auto handle = model_instances.create(make_common_nwn_model_instance(*model, model_index));
-    model_instance_handles.push_back(handle);
-    model_attachment_binding_indices.push_back(kInvalidSceneModelAttachmentBindingIndex);
-    const uint32_t owner_model_index = scene_nwn_model_index_for_pointer(*this, model->transform_context_);
-    if (model_attachments.size() < kInvalidSceneModelAttachmentBindingIndex
-        && owner_model_index != std::numeric_limits<uint32_t>::max()
-        && owner_model_index < model_instance_handles.size()
-        && model_index <= std::numeric_limits<uint32_t>::max()
-        && model->transform_anchor_socket_index_ != nw::render::kInvalidModelNodeIndex) {
-        const glm::vec3 root_bind_translation = model->nodes_.empty()
-            ? glm::vec3{0.0f}
-            : glm::vec3{model->nodes_.front()->bind_pose_[3]};
-        const uint32_t binding_index = static_cast<uint32_t>(model_attachments.size());
-        model_attachments.push_back(nw::render::ModelInstanceAttachmentBinding{
-            .child_instance_handle = handle,
-            .owner_instance_handle = model_instance_handles[owner_model_index],
-            .owner_socket_index = model->transform_anchor_socket_index_,
-            .child_source_socket_index = model->transform_source_anchor_socket_index_,
-            .child_local_transform = model->placement_transform_,
-            .child_root_bind_translation = root_bind_translation,
-            .child_local_scale = model->local_scale_,
-            .orientation = model->anchor_position_only
-                ? nw::render::ModelAttachmentOrientationPolicy::owner_root
-                : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
-            .source_offset = model->anchor_uses_root_bind_offset
-                ? nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation
-                : nw::render::ModelAttachmentSourceOffsetPolicy::none,
-        });
-        model_attachment_binding_indices[model_index] = binding_index;
-    }
-    models.push_back(std::move(model));
-    area_model_info.emplace_back();
-}
-
-void PreviewScene::add_attached(std::unique_ptr<ModelInstance> model, uint32_t owner_model_index,
-    std::string_view owner_socket, std::string_view child_source_socket)
-{
-    if (!model) {
-        return;
-    }
-
-    // Bridge setup path: callers own scene model indices. The NWN sidecar keeps
-    // cached socket indices for compatibility; frame evaluation does not retain
-    // or search anchor names. Invalid owner/anchor adds the model unattached.
-    if (!owner_socket.empty() && owner_model_index < models.size()) {
-        if (const auto* owner = models[owner_model_index].get()) {
-            model->set_transform_anchor(owner, owner_socket, child_source_socket);
-        }
-    }
-
-    add(std::move(model));
-}
-
-bool PreviewScene::attach_model(uint32_t child_model_index, uint32_t owner_model_index,
-    std::string_view owner_socket, std::string_view child_source_socket)
-{
-    if (owner_socket.empty()
-        || child_model_index >= models.size()
-        || child_model_index >= model_instance_handles.size()
-        || child_model_index >= model_attachment_binding_indices.size()
-        || owner_model_index >= models.size()
-        || owner_model_index >= model_instance_handles.size()
-        || child_model_index == owner_model_index) {
-        return false;
-    }
-
-    auto* child = models[child_model_index].get();
-    const auto* owner = models[owner_model_index].get();
-    if (!child || !owner) {
-        return false;
-    }
-
-    child->set_transform_anchor(owner, owner_socket, child_source_socket);
-    if (child->transform_anchor_socket_index_ == nw::render::kInvalidModelNodeIndex) {
-        return false;
-    }
-
-    const glm::vec3 root_bind_translation = child->nodes_.empty()
-        ? glm::vec3{0.0f}
-        : glm::vec3{child->nodes_.front()->bind_pose_[3]};
-    const nw::render::ModelInstanceAttachmentBinding binding{
-        .child_instance_handle = model_instance_handles[child_model_index],
-        .owner_instance_handle = model_instance_handles[owner_model_index],
-        .owner_socket_index = child->transform_anchor_socket_index_,
-        .child_source_socket_index = child->transform_source_anchor_socket_index_,
-        .child_local_transform = child->placement_transform_,
-        .child_root_bind_translation = root_bind_translation,
-        .child_local_scale = child->local_scale_,
-        .orientation = child->anchor_position_only
-            ? nw::render::ModelAttachmentOrientationPolicy::owner_root
-            : nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
-        .source_offset = child->anchor_uses_root_bind_offset
-            ? nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation
-            : nw::render::ModelAttachmentSourceOffsetPolicy::none,
-    };
-
-    uint32_t& binding_index = model_attachment_binding_indices[child_model_index];
-    if (binding_index < model_attachments.size()) {
-        model_attachments[binding_index] = binding;
-        return true;
-    }
-    if (model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex) {
-        return false;
-    }
-    binding_index = static_cast<uint32_t>(model_attachments.size());
-    model_attachments.push_back(binding);
-    return true;
-}
-
 void PreviewScene::add(std::unique_ptr<nw::render::RenderModel> model)
 {
+    add(std::shared_ptr<nw::render::RenderModel>{std::move(model)});
+}
+
+void PreviewScene::add(std::shared_ptr<nw::render::RenderModel> model)
+{
     if (!model) {
         return;
     }
-    if (models.empty() && static_models.empty()) {
+    if (static_models.empty()) {
         bounds = model->bounds;
     } else {
         bounds.min = glm::min(bounds.min, model->bounds.min);
@@ -1678,6 +1232,7 @@ void PreviewScene::add(std::unique_ptr<nw::render::RenderModel> model)
         index_count += prim.index_count;
     }
     has_water = has_water || render_model_contains_water(*model);
+    has_gltf_models = has_gltf_models || model->source_kind == nw::render::ModelAssetSourceKind::gltf;
     const size_t model_index = static_models.size();
     const auto owner_handle = model_instances.create(make_common_render_model_instance(*model, model_index));
     static_model_instance_handles.push_back(owner_handle);
@@ -1705,56 +1260,107 @@ void PreviewScene::add_attached(std::unique_ptr<nw::render::RenderModel> model, 
     }
 
     const size_t child_model_index = static_models.size();
-    nw::render::ModelInstanceHandle owner_handle;
-    uint32_t owner_socket_index = nw::render::kInvalidModelNodeIndex;
-    if (!owner_socket.empty()
-        && owner_model_index < static_models.size()
-        && owner_model_index < static_model_instance_handles.size()) {
-        if (const auto& owner = static_models[owner_model_index]) {
-            owner_socket_index = owner->socket_index(owner_socket);
-            owner_handle = static_model_instance_handles[owner_model_index];
-        }
-    }
-    const uint32_t child_source_socket_index = model->socket_index(child_source_socket);
 
     add(std::move(model));
 
-    if (owner_socket_index == nw::render::kInvalidModelNodeIndex
-        || !owner_handle.valid()
-        || model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex
-        || child_model_index > std::numeric_limits<uint32_t>::max()
-        || child_model_index >= static_model_instance_handles.size()) {
+    if (child_model_index > std::numeric_limits<uint32_t>::max()) {
         return;
     }
 
-    const uint32_t binding_index = static_cast<uint32_t>(model_attachments.size());
-    model_attachments.push_back(nw::render::ModelInstanceAttachmentBinding{
-        .child_instance_handle = static_model_instance_handles[child_model_index],
-        .owner_instance_handle = owner_handle,
-        .owner_socket_index = owner_socket_index,
-        .child_source_socket_index = child_source_socket_index,
+    const RenderModelAttachmentSetup attachment{
+        .child_model_index = static_cast<uint32_t>(child_model_index),
+        .owner_model_index = owner_model_index,
+        .owner_socket = owner_socket,
+        .child_source_socket = child_source_socket,
         .child_local_scale = child_local_scale,
-    });
-    static_model_attachment_binding_indices[child_model_index] = binding_index;
+    };
+    attach_render_models(std::span<const RenderModelAttachmentSetup>{&attachment, 1});
+}
+
+RenderModelAttachmentSetupStats PreviewScene::attach_render_models(
+    std::span<const RenderModelAttachmentSetup> attachments)
+{
+    RenderModelAttachmentSetupStats stats{
+        .input_count = static_cast<uint32_t>(
+            std::min<size_t>(attachments.size(), std::numeric_limits<uint32_t>::max())),
+    };
+    const auto finite_transform = [](const glm::mat4& transform) {
+        for (int column = 0; column < 4; ++column) {
+            for (int row = 0; row < 4; ++row) {
+                if (!std::isfinite(transform[column][row])) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    for (const auto& attachment : attachments) {
+        if (attachment.child_model_index >= static_models.size()
+            || attachment.child_model_index >= static_model_instance_handles.size()
+            || attachment.child_model_index >= static_model_attachment_binding_indices.size()
+            || attachment.owner_model_index >= static_models.size()
+            || attachment.owner_model_index >= static_model_instance_handles.size()
+            || attachment.child_model_index == attachment.owner_model_index
+            || !static_models[attachment.child_model_index]
+            || !static_models[attachment.owner_model_index]) {
+            ++stats.invalid_model_count;
+            continue;
+        }
+        if (!finite_transform(attachment.child_local_transform)) {
+            ++stats.invalid_transform_count;
+            continue;
+        }
+        if (!std::isfinite(attachment.child_local_scale) || attachment.child_local_scale <= 0.0f) {
+            ++stats.invalid_scale_count;
+            continue;
+        }
+
+        const auto& owner_model = *static_models[attachment.owner_model_index];
+        const uint32_t owner_socket_index = owner_model.socket_index(attachment.owner_socket);
+        if (owner_socket_index == nw::render::kInvalidModelNodeIndex) {
+            ++stats.missing_owner_socket_count;
+            continue;
+        }
+
+        const auto& child_model = *static_models[attachment.child_model_index];
+        const uint32_t child_source_socket_index = child_model.socket_index(attachment.child_source_socket);
+        const glm::vec3 root_bind_translation = child_model.nodes.empty()
+            ? glm::vec3{0.0f}
+            : glm::vec3{child_model.nodes.front().world_transform[3]};
+        const nw::render::ModelInstanceAttachmentBinding binding{
+            .child_instance_handle = static_model_instance_handles[attachment.child_model_index],
+            .owner_instance_handle = static_model_instance_handles[attachment.owner_model_index],
+            .owner_socket_index = owner_socket_index,
+            .child_source_socket_index = child_source_socket_index,
+            .child_local_transform = attachment.child_local_transform,
+            .child_root_bind_translation = root_bind_translation,
+            .child_local_scale = attachment.child_local_scale,
+            .orientation = attachment.orientation,
+            .source_offset = attachment.source_offset,
+        };
+
+        uint32_t& binding_index = static_model_attachment_binding_indices[attachment.child_model_index];
+        if (binding_index < model_attachments.size()) {
+            model_attachments[binding_index] = binding;
+            ++stats.attached_count;
+            continue;
+        }
+        if (model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex) {
+            ++stats.binding_limit_count;
+            continue;
+        }
+        binding_index = static_cast<uint32_t>(model_attachments.size());
+        model_attachments.push_back(binding);
+        ++stats.attached_count;
+    }
+    return stats;
 }
 
 void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
 {
-    particles.push_back(SceneParticleSystem{
-        .owner = nullptr,
-        .owner_instance_handle = nw::render::ModelInstanceHandle{},
-        .import = {
-            .effect = std::move(effect),
-            .warnings = {},
-            .emitter_inits = {},
-            .effect_events = {},
-        },
-        .compiled = {},
-        .system = {},
-        .collision = nullptr,
-    });
-
-    auto& scene_particles = particles.back();
+    auto& scene_particles = particles.emplace_back();
+    scene_particles.import.effect = std::move(effect);
     scene_particles.compiled = nw::render::compile_particle_effect(scene_particles.import.effect);
     scene_particles.system = nw::render::create_particle_system(scene_particles.compiled.effect);
     scene_particles.system.effect = &scene_particles.compiled.effect;
@@ -1770,12 +1376,13 @@ void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
     }
     nw::render::build_particle_render_packets(scene_particles.system);
 
-    const auto effect_bounds = estimate_particle_bounds(scene_particles.import.effect);
-    if (models.empty() && static_models.empty() && particles.size() == 1) {
-        bounds = effect_bounds;
-    } else {
-        bounds.min = glm::min(bounds.min, effect_bounds.min);
-        bounds.max = glm::max(bounds.max, effect_bounds.max);
+    if (const auto effect_bounds = nw::render::particle_emitter_spawn_bounds(scene_particles.import.effect.emitters)) {
+        if (static_models.empty() && particles.size() == 1) {
+            bounds = *effect_bounds;
+        } else {
+            bounds.min = glm::min(bounds.min, effect_bounds->min);
+            bounds.max = glm::max(bounds.max, effect_bounds->max);
+        }
     }
 }
 
@@ -1937,89 +1544,6 @@ static PreviewObjectPtr<T> load_managed_preview_object(const std::filesystem::pa
     return result;
 }
 
-static void maybe_add_model(PreviewScene& scene, std::unique_ptr<ModelInstance> model)
-{
-    if (model) {
-        scene.add(std::move(model));
-    }
-}
-
-static void make_static_scene_attachment(ModelInstance& model)
-{
-    model.scene_animation_enabled = false;
-    model.accepts_external_animation_source = false;
-}
-
-struct AreaSharedMeshBuffers {
-    nw::gfx::Handle<nw::gfx::Buffer> vertices;
-    nw::gfx::Handle<nw::gfx::Buffer> indices;
-    uint32_t vertex_count = 0;
-    uint32_t index_count = 0;
-};
-
-using AreaGeometryCache = std::unordered_map<const nw::model::Node*, AreaSharedMeshBuffers>;
-
-void replace_area_mesh_buffers_with_shared(Mesh& mesh, const AreaSharedMeshBuffers& shared)
-{
-    if (mesh.owns_gpu_buffers) {
-        if (mesh.vertices.valid()) {
-            nw::gfx::destroy_buffer(mesh.vertices);
-        }
-        if (mesh.indices.valid()) {
-            nw::gfx::destroy_buffer(mesh.indices);
-        }
-    }
-    mesh.vertices = shared.vertices;
-    mesh.indices = shared.indices;
-    mesh.vertex_count = shared.vertex_count;
-    mesh.index_count = shared.index_count;
-    mesh.owns_gpu_buffers = false;
-}
-
-void share_static_area_model_geometry(AreaGeometryCache& cache, ModelInstance& model)
-{
-    for (auto& node : model.nodes_) {
-        auto* mesh = dynamic_cast<Mesh*>(node.get());
-        if (!mesh || mesh->is_skin || dynamic_cast<nw::render::nwn::DanglyMesh*>(mesh)) {
-            continue;
-        }
-        if (!mesh->orig_ || !mesh->vertices.valid() || !mesh->indices.valid() || mesh->index_count == 0) {
-            continue;
-        }
-
-        const auto it = cache.find(mesh->orig_);
-        if (it == cache.end()) {
-            cache.emplace(mesh->orig_, AreaSharedMeshBuffers{
-                                           .vertices = mesh->vertices,
-                                           .indices = mesh->indices,
-                                           .vertex_count = mesh->vertex_count,
-                                           .index_count = mesh->index_count,
-                                       });
-            continue;
-        }
-        if (mesh->vertex_count == it->second.vertex_count && mesh->index_count == it->second.index_count) {
-            replace_area_mesh_buffers_with_shared(*mesh, it->second);
-        }
-    }
-}
-
-static void set_scene_animation_source(PreviewScene& scene, const nw::model::Mdl* source)
-{
-    if (!source) {
-        return;
-    }
-
-    for (auto& instance : scene.models) {
-        if (!instance->scene_animation_enabled) {
-            continue;
-        }
-        if (!instance->accepts_external_animation_source) {
-            continue;
-        }
-        instance->set_animation_source(source);
-    }
-}
-
 static glm::uvec4 render_model_plt_color_row(const nw::PltColors& colors, size_t begin) noexcept
 {
     return glm::uvec4{
@@ -2079,22 +1603,31 @@ static bool apply_render_model_plt_material_overrides(PreviewScene& scene, uint3
     return applied;
 }
 
-static bool add_humanoid_visual_body_rows(
+static bool add_render_model_humanoid_body_rows(
     PreviewScene& scene,
     PreviewRenderResources& resources,
     const nw::ObjectVisualState* visual,
     const nw::PltColors& creature_colors,
-    nw::ObjectVisualRenderMode render_mode)
+    nw::ObjectVisualRenderMode render_mode,
+    std::string_view origin,
+    std::vector<PreviewLoadEvent>* load_events)
 {
-    if (!visual) {
-        LOG_F(WARNING, "Dynamic creature humanoid visual rows were not created");
+    auto warn = [&](std::string message) {
+        LOG_F(WARNING, "{}", message);
         log_preview_warning_context();
+        if (load_events) {
+            add_preview_load_event(*load_events,
+                PreviewLoadEventSeverity::warning,
+                "nwn_render_model_humanoid_body",
+                std::move(message));
+        }
+    };
+
+    if (!visual || scene.static_models.empty() || !scene.static_models.front()) {
+        warn(fmt::format("{}: humanoid body rows have no RenderModel base rig", origin));
         return false;
     }
 
-    const uint32_t placement_model_index = scene.models.empty()
-        ? std::numeric_limits<uint32_t>::max()
-        : 0u;
     bool found_row = false;
     bool loaded_any = false;
     for (const auto& row : visual->models) {
@@ -2107,129 +1640,85 @@ static bool add_humanoid_visual_body_rows(
         const auto part_name = visual_row_body_part_name(row);
         if (row.model.empty()) {
             if (visual_row_requests_model_part(row)) {
-                ERRARE("[viewer] resolving dynamic creature body part '{}' model part {}",
-                    std::string_view{part_name},
-                    row.model_part);
-                LOG_F(WARNING, "Dynamic creature body part '{}' model part {} was not found",
+                warn(fmt::format(
+                    "{}: humanoid body part '{}' model part {} was not found",
+                    origin,
                     part_name,
-                    row.model_part);
-                log_preview_warning_context();
+                    row.model_part));
             }
             continue;
         }
 
-        auto colors = visual_row_plt_colors(row, creature_colors);
-        ERRARE("[viewer] resolving dynamic creature body part '{}' model '{}'",
+        const bool attached = !row.attach_to.empty();
+        if (attached
+            && scene.static_models.front()->socket_index(row.attach_to.view())
+                == nw::render::kInvalidModelNodeIndex) {
+            warn(fmt::format(
+                "{}: humanoid body part '{}' model '{}' missing base-rig socket '{}'",
+                origin,
+                part_name,
+                row.model,
+                row.attach_to));
+            continue;
+        }
+
+        ERRARE("[viewer] resolving RenderModel creature body part '{}' model '{}'",
             std::string_view{part_name},
             row.model.view());
-        auto model = load_model_with_plt(resources, row.model.view(), &colors);
-        if (!model) {
-            LOG_F(WARNING, "Dynamic creature body part '{}' model '{}' failed to load",
+        auto load = load_nwn_render_model_preview(resources, row.model.view());
+        if (load_events) {
+            append_preview_load_events(*load_events, load.events);
+        }
+        if (!load.model) {
+            warn(fmt::format(
+                "{}: humanoid body part '{}' model '{}' failed to load through RenderModel",
+                origin,
                 part_name,
-                row.model);
-            log_preview_warning_context();
+                row.model));
             continue;
         }
 
-        if (placement_model_index < scene.models.size() && !row.attach_to.empty()) {
-            make_static_scene_attachment(*model);
-            model->anchor_uses_root_bind_offset = false;
-            scene.add_attached(std::move(model), placement_model_index, row.attach_to.string());
-        } else {
-            if (row.part == static_cast<int32_t>(nw::ItemModelParts::armor_robe)) {
-                model->accepts_external_animation_source = false;
-            }
-            maybe_add_model(scene, std::move(model));
+        if (scene.static_models.size() >= nw::render::kInvalidModelInstanceIndex) {
+            warn(fmt::format(
+                "{}: humanoid body part '{}' exceeded the RenderModel instance limit",
+                origin,
+                part_name));
+            continue;
         }
+        const uint32_t model_index = static_cast<uint32_t>(scene.static_models.size());
+        if (attached) {
+            if (scene.model_attachments.size() >= kInvalidSceneModelAttachmentBindingIndex) {
+                warn(fmt::format(
+                    "{}: humanoid body part '{}' exceeded the attachment record limit",
+                    origin,
+                    part_name));
+                continue;
+            }
+            scene.add_attached(std::move(load.model), 0u, row.attach_to.view());
+            if (auto* instance = scene.static_model_instance(model_index)) {
+                instance->scene_animation_enabled = false;
+                instance->animation.enabled = false;
+            }
+        } else {
+            scene.add(std::move(load.model));
+        }
+        if (model_index >= scene.static_models.size()) {
+            warn(fmt::format(
+                "{}: humanoid body part '{}' could not allocate a RenderModel instance",
+                origin,
+                part_name));
+            continue;
+        }
+
+        apply_render_model_plt_material_overrides(
+            scene, model_index, visual_row_plt_colors(row, creature_colors));
         loaded_any = true;
     }
 
     if (!found_row) {
-        LOG_F(WARNING, "Dynamic creature humanoid produced no body visual rows");
-        log_preview_warning_context();
+        warn(fmt::format("{}: humanoid produced no body visual rows", origin));
     }
     return loaded_any;
-}
-
-static void add_equipped_item_visual_models(PreviewScene& scene,
-    PreviewRenderResources& resources,
-    const nw::ObjectVisualState* visual,
-    const nw::Item& item,
-    nw::EquipIndex slot,
-    uint32_t placement_model_index,
-    nw::ObjectVisualRenderMode render_mode,
-    float local_scale = 1.0f,
-    const nw::PltColors* creature_colors = nullptr)
-{
-    const auto slot_name = nw::equip_index_to_string(slot);
-    const auto item_resref_value = item.resref;
-    const auto item_resref = item_resref_value.string();
-    ERRARE("[viewer] loading equipped item visual rows for '{}.uti' in slot '{}'",
-        std::string_view{item_resref},
-        slot_name);
-
-    auto anchor = anchor_name_for_equipped_item(slot);
-    if (!visual || placement_model_index >= scene.models.size() || anchor.empty()) {
-        LOG_F(WARNING, "Dynamic creature equipped item '{}' in slot '{}' has no attachment anchor/context",
-            item_resref_value,
-            slot_name);
-        log_preview_warning_context();
-        return;
-    }
-
-    bool found_row = false;
-    for (const auto& row : visual->models) {
-        if (!visual_row_visible_for_mode(row, render_mode)
-            || !visual_row_matches_slot(row, slot, nw::ObjectVisualModelKind::item_model)) {
-            continue;
-        }
-        found_row = true;
-        const auto resref = row.model.view();
-        if (resref.empty()) {
-            continue;
-        }
-        const std::string attachment_anchor = row.attach_to.empty() ? anchor : row.attach_to.string();
-        const std::string attachment_source = row.attach_from.empty() ? std::string{} : row.attach_from.string();
-
-        ERRARE("[viewer] resolving equipped item model '{}'", resref);
-        if (!nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::mdl})) {
-            LOG_F(WARNING, "Dynamic creature equipped model '{}' was not found for slot '{}' item '{}'",
-                resref,
-                slot_name,
-                item_resref_value);
-            log_preview_warning_context();
-            continue;
-        }
-
-        auto model = load_model_with_plt(resources, resref);
-        if (!model) {
-            LOG_F(WARNING, "Dynamic creature equipped model '{}' failed to load for slot '{}' item '{}'",
-                resref,
-                slot_name,
-                item_resref_value);
-            log_preview_warning_context();
-            continue;
-        }
-        if (nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::plt})) {
-            auto item_plt = creature_colors ? visual_row_plt_colors(row, *creature_colors) : visual_row_plt_colors(row);
-            apply_plt_to_model(resources, *model, item_plt);
-        }
-        model->scene_animation_enabled = false;
-        if (slot == nw::EquipIndex::head) {
-            model->anchor_uses_root_bind_offset = false;
-        }
-        model->local_scale_ = local_scale;
-        LOG_F(INFO, "dynamic creature equipped {} -> {}",
-            nw::equip_index_to_string(slot), resref);
-        scene.add_attached(std::move(model), placement_model_index, attachment_anchor, attachment_source);
-    }
-
-    if (!found_row) {
-        LOG_F(WARNING, "Dynamic creature equipped item '{}' in slot '{}' produced no visual model rows",
-            item_resref_value,
-            slot_name);
-        log_preview_warning_context();
-    }
 }
 
 static bool add_render_model_equipped_visual_models(PreviewScene& scene,
@@ -2347,6 +1836,10 @@ static bool add_render_model_equipped_visual_models(PreviewScene& scene,
         const uint32_t child_model_index = static_cast<uint32_t>(scene.static_models.size());
         scene.add_attached(std::move(load.model), owner_model_index, attachment_anchor, attachment_source, local_scale);
         if (child_model_index < scene.static_models.size()) {
+            if (auto* instance = scene.static_model_instance(child_model_index)) {
+                instance->scene_animation_enabled = false;
+                instance->animation.enabled = false;
+            }
             auto item_plt = creature_colors ? visual_row_plt_colors(row, *creature_colors) : visual_row_plt_colors(row);
             apply_render_model_plt_material_overrides(scene, child_model_index, item_plt);
         }
@@ -2361,6 +1854,87 @@ static bool add_render_model_equipped_visual_models(PreviewScene& scene,
     }
 
     return added;
+}
+
+static bool add_render_model_cloak_visual_model(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    const nw::ObjectVisualState* visual,
+    const nw::Item& cloak,
+    const nw::PltColors& creature_colors,
+    nw::ObjectVisualRenderMode render_mode,
+    std::string_view origin,
+    std::vector<PreviewLoadEvent>* load_events)
+{
+    auto warn = [&](std::string message) {
+        LOG_F(WARNING, "{}", message);
+        log_preview_warning_context();
+        if (load_events) {
+            add_preview_load_event(*load_events,
+                PreviewLoadEventSeverity::warning,
+                "nwn_render_model_creature_cloak",
+                std::move(message));
+        }
+        return false;
+    };
+
+    if (!visual) {
+        return warn(fmt::format(
+            "{}: cloak item '{}' has no creature visual rows",
+            origin,
+            cloak.resref));
+    }
+
+    for (const auto& row : visual->models) {
+        if (!visual_row_visible_for_mode(row, render_mode)
+            || !visual_row_matches_slot(
+                row, nw::EquipIndex::cloak, nw::ObjectVisualModelKind::creature_model_part)) {
+            continue;
+        }
+        if (row.model.empty()) {
+            return warn(fmt::format(
+                "{}: cloak item '{}' model part {} has no resolved model",
+                origin,
+                cloak.resref,
+                row.source_part));
+        }
+
+        ERRARE("[viewer] resolving RenderModel creature cloak model '{}'", row.model.view());
+        auto load = load_nwn_render_model_preview(resources, row.model.view());
+        if (load_events) {
+            append_preview_load_events(*load_events, load.events);
+        }
+        if (!load.model) {
+            return warn(fmt::format(
+                "{}: cloak item '{}' model '{}' failed to load through RenderModel",
+                origin,
+                cloak.resref,
+                row.model));
+        }
+
+        if (scene.static_models.size() >= nw::render::kInvalidModelInstanceIndex) {
+            return warn(fmt::format(
+                "{}: cloak item '{}' exceeded the RenderModel instance limit",
+                origin,
+                cloak.resref));
+        }
+        const uint32_t model_index = static_cast<uint32_t>(scene.static_models.size());
+        scene.add(std::move(load.model));
+        if (model_index >= scene.static_models.size()) {
+            return warn(fmt::format(
+                "{}: cloak item '{}' could not allocate a RenderModel instance",
+                origin,
+                cloak.resref));
+        }
+        apply_render_model_plt_material_overrides(
+            scene, model_index, visual_row_plt_colors(row, creature_colors));
+        return true;
+    }
+
+    return warn(fmt::format(
+        "{}: cloak item '{}' produced no visible cloak model rows",
+        origin,
+        cloak.resref));
 }
 
 static bool add_render_model_creature_attachment(
@@ -2398,7 +1972,7 @@ static bool add_render_model_creature_attachment(
     }
 
     const std::string owner_socket = row.attach_to.empty() ? std::string{} : row.attach_to.string();
-    const std::string source_socket = row.attach_from.empty() ? std::string{} : row.attach_from.string();
+    std::string source_socket = row.attach_from.empty() ? std::string{} : row.attach_from.string();
     if (owner_socket.empty()
         || scene.static_models.front()->socket_index(owner_socket) == nw::render::kInvalidModelNodeIndex) {
         return skip_with_warning(fmt::format(
@@ -2425,13 +1999,19 @@ static bool add_render_model_creature_attachment(
     }
     if (!source_socket.empty()
         && load.model->socket_index(source_socket) == nw::render::kInvalidModelNodeIndex) {
-        return skip_with_warning(fmt::format(
-            "{}: attachment '{}' row {} model '{}' missing child socket '{}'",
-            origin,
-            attachment_name,
-            row.source_part,
-            row.model,
-            source_socket));
+        if (load_events) {
+            add_preview_load_event(*load_events,
+                PreviewLoadEventSeverity::info,
+                "nwn_render_model_creature_attachment_root",
+                fmt::format(
+                    "{}: attachment '{}' row {} model '{}' has no child socket '{}'; using model root",
+                    origin,
+                    attachment_name,
+                    row.source_part,
+                    row.model,
+                    source_socket));
+        }
+        source_socket.clear();
     }
 
     LOG_F(INFO, "dynamic RenderModel creature attachment {} row {} -> {}", attachment_name, row.source_part, row.model);
@@ -2501,20 +2081,18 @@ static bool add_dynamic_creature_scene_models(
 
     const std::string race{model_ref.race.view()};
     const char sex = body_variant == 1 ? 'f' : 'm';
-    std::unique_ptr<ModelInstance> base_rig;
-    const bool use_render_model_creature_body = options.nwn_model_path == NwnModelPreviewPath::render_model
-        && !model_ref.humanoid;
     if (model_ref.humanoid) {
         auto* app = nw::kernel::rules().appearances.get(appearance_id);
         if (!app) {
-            LOG_F(WARNING, "Creature humanoid appearance {} was not found in legacy appearance rules", appearance_id.idx());
+            LOG_F(WARNING, "Creature humanoid appearance {} was not found in appearance rules", appearance_id.idx());
             log_preview_warning_context();
             return false;
         }
-        if (options.nwn_model_path == NwnModelPreviewPath::render_model) {
+
+        auto base_rig_resref = resolve_creature_base_rig(*app, race, sex);
+        if (!base_rig_resref) {
             const auto message = fmt::format(
-                "{}: RenderModel creature path requested for humanoid appearance {}; using legacy sidecar "
-                "body-part/equipment assembly until PLT, socket, and cross-skeleton policy are common data",
+                "{}: no humanoid base rig resolved for appearance {}",
                 origin,
                 appearance_id.idx());
             LOG_F(WARNING, "{}", message);
@@ -2522,31 +2100,53 @@ static bool add_dynamic_creature_scene_models(
             if (load_events) {
                 add_preview_load_event(*load_events,
                     PreviewLoadEventSeverity::warning,
-                    "nwn_render_model_humanoid_fallback",
+                    "creature",
                     message);
             }
+            return false;
         }
 
-        // Experimental NWN humanoid preview assembly stays isolated here on purpose.
-        auto base_rig_resref = resolve_creature_base_rig(*app, race, sex);
-        if (base_rig_resref) {
-            ERRARE("[viewer] resolving dynamic creature base rig '{}'", std::string_view{*base_rig_resref});
-            base_rig = load_model_with_plt(resources, *base_rig_resref, &plt_colors);
+        ERRARE("[viewer] resolving dynamic creature base rig '{}'", std::string_view{*base_rig_resref});
+        auto load = load_nwn_render_model_preview(resources, *base_rig_resref);
+        if (load_events) {
+            append_preview_load_events(*load_events, load.events);
         }
-        if (base_rig) {
-            base_rig->render_enabled = false;
-            scene.add(std::move(base_rig));
-        } else {
-            LOG_F(WARNING, "No dynamic creature base rig resolved for appearance {}", appearance_id.idx());
+        if (!load.model) {
+            const auto message = fmt::format(
+                "{}: humanoid base rig '{}' failed to load through RenderModel",
+                origin,
+                *base_rig_resref);
+            LOG_F(WARNING, "{}", message);
             log_preview_warning_context();
+            if (load_events) {
+                add_preview_load_event(*load_events,
+                    PreviewLoadEventSeverity::warning,
+                    "nwn_render_model_humanoid_body",
+                    message);
+            }
+            return false;
         }
 
-        add_humanoid_visual_body_rows(
-            scene,
-            resources,
-            visual,
-            plt_colors,
-            options.visual_render_mode);
+        scene.add(std::move(load.model));
+        auto* base_rig_instance = scene.static_model_instance(0);
+        if (!base_rig_instance) {
+            LOG_F(ERROR, "{}: humanoid base rig '{}' did not allocate a RenderModel instance", origin, *base_rig_resref);
+            log_preview_error_context();
+            return false;
+        }
+        base_rig_instance->visible = false;
+        base_rig_instance->shadow = {};
+
+        if (!add_render_model_humanoid_body_rows(
+                scene,
+                resources,
+                visual,
+                plt_colors,
+                options.visual_render_mode,
+                origin,
+                load_events)) {
+            return false;
+        }
     } else {
         if (!model_ref.has_model()) {
             const auto message = fmt::format(
@@ -2565,208 +2165,77 @@ static bool add_dynamic_creature_scene_models(
         }
 
         ERRARE("[viewer] resolving creature model '{}'", model_ref.model.view());
-        if (use_render_model_creature_body) {
-            auto load = load_nwn_render_model_preview(resources, model_ref.model.view());
-            if (load_events) {
-                append_preview_load_events(*load_events, load.events);
-            }
-            const uint32_t body_model_index = static_cast<uint32_t>(scene.static_models.size());
-            scene.add(std::move(load.model));
-            if (body_model_index < scene.static_models.size()) {
-                apply_render_model_plt_material_overrides(scene, body_model_index, plt_colors);
-            }
-        } else {
-            auto model = load_model_with_plt(resources, model_ref.model.view(), &plt_colors);
-            if (!model) {
-                LOG_F(WARNING, "Creature model '{}' failed to load", model_ref.model.view());
-                log_preview_warning_context();
-            }
-            maybe_add_model(scene, std::move(model));
+        auto load = load_nwn_render_model_preview(resources, model_ref.model.view());
+        if (load_events) {
+            append_preview_load_events(*load_events, load.events);
+        }
+        const uint32_t body_model_index = static_cast<uint32_t>(scene.static_models.size());
+        scene.add(std::move(load.model));
+        if (body_model_index < scene.static_models.size()) {
+            apply_render_model_plt_material_overrides(scene, body_model_index, plt_colors);
         }
     }
 
-    if (use_render_model_creature_body) {
-        bool loaded_attachments = visual != nullptr;
-        if (visual) {
-            for (const auto& row : visual->models) {
-                if (!visual_row_visible_for_mode(row, options.visual_render_mode)
-                    || !visual_row_is_creature_attachment(row)) {
-                    continue;
-                }
-                loaded_attachments = add_render_model_creature_attachment(
-                                         scene, resources, row, wing_tail_scale, plt_colors, origin, load_events)
-                    && loaded_attachments;
-            }
-        }
-        bool loaded_equipped_models = true;
-        for (const auto slot : kPreviewAttachedEquipmentSlots) {
-            auto* item = equipped_item(equips, slot);
-            if (!item || !preview_equipped_slot_visible(slot, hand_item_policy)) {
-                continue;
-            }
-            loaded_equipped_models = add_render_model_equipped_visual_models(
-                                         scene,
-                                         resources,
-                                         visual,
-                                         *item,
-                                         slot,
-                                         0u,
-                                         preview_equipped_slot_scale(slot, hand_item_policy, helmet_scale),
-                                         options.visual_render_mode,
-                                         load_events,
-                                         &plt_colors)
-                && loaded_equipped_models;
-        }
-        const bool has_legacy_visual_addons = !loaded_attachments
-            || equipped_item(equips, nw::EquipIndex::cloak)
-            || !loaded_equipped_models;
-        if (has_legacy_visual_addons) {
-            const auto message = fmt::format(
-                "{}: RenderModel creature path skipped or failed some remaining legacy cloak/head/hand/add-on data "
-                "until socket, PLT, and item policy are common data",
-                origin);
-            LOG_F(WARNING, "{}", message);
-            log_preview_warning_context();
-            if (load_events) {
-                add_preview_load_event(*load_events,
-                    PreviewLoadEventSeverity::warning,
-                    "nwn_render_model_creature_addons",
-                    message);
-            }
-        }
-        if (scene.static_models.empty()) {
-            LOG_F(ERROR, "Dynamic creature preview '{}' produced no renderable models", origin);
-            log_preview_error_context();
-            return false;
-        }
-        return true;
-    }
-
+    bool loaded_attachments = visual != nullptr;
     if (visual) {
         for (const auto& row : visual->models) {
             if (!visual_row_visible_for_mode(row, options.visual_render_mode)
                 || !visual_row_is_creature_attachment(row)) {
                 continue;
             }
-
-            const auto attachment_name = visual_creature_attachment_name(row);
-            if (row.model.empty()) {
-                LOG_F(WARNING, "Dynamic creature {} row {} did not resolve to a model",
-                    attachment_name,
-                    row.source_part);
-                log_preview_warning_context();
-                continue;
-            }
-
-            ERRARE("[viewer] resolving creature {} model '{}'", attachment_name, row.model.view());
-            auto model = load_model_with_plt(resources, row.model.view(), &plt_colors);
-            const uint32_t placement_model_index = scene.models.empty()
-                ? std::numeric_limits<uint32_t>::max()
-                : 0u;
-            if (!model) {
-                LOG_F(WARNING, "Dynamic creature {} model '{}' failed to load",
-                    attachment_name,
-                    row.model);
-                log_preview_warning_context();
-            } else {
-                if (visual_row_is_creature_wing_attachment(row)) {
-                    const uint32_t wing_row = row.source_part > 0 ? static_cast<uint32_t>(row.source_part) : 0u;
-                    const auto policy = resolve_nwn_wing_attachment_visual_policy(appearance_id, wing_row);
-                    const size_t stripped_mesh_count = apply_nwn_wing_attachment_visual_policy(*model, policy);
-                    if (load_events && policy.strip_non_render_meshes) {
-                        add_preview_load_event(*load_events,
-                            PreviewLoadEventSeverity::info,
-                            "nwn_wing_attachment_policy",
-                            fmt::format(
-                                "{}: wingmodel row {} stripped_non_render_meshes={}",
-                                origin,
-                                row.source_part,
-                                stripped_mesh_count));
-                    }
-                }
-            }
-            if (model && placement_model_index < scene.models.size() && !row.attach_to.empty()) {
-                make_static_scene_attachment(*model);
-                model->local_scale_ = wing_tail_scale;
-                model->anchor_uses_root_bind_offset = true;
-                scene.add_attached(std::move(model), placement_model_index, row.attach_to.string(), row.attach_from.string());
-            } else if (model) {
-                maybe_add_model(scene, std::move(model));
-            }
+            loaded_attachments = add_render_model_creature_attachment(
+                                     scene, resources, row, wing_tail_scale, plt_colors, origin, load_events)
+                && loaded_attachments;
         }
     }
-
-    if (auto* cloak_item = equipped_item(equips, nw::EquipIndex::cloak); cloak_item && visual) {
-        for (const auto& row : visual->models) {
-            if (!visual_row_visible_for_mode(row, options.visual_render_mode)
-                || !visual_row_matches_slot(row, nw::EquipIndex::cloak, nw::ObjectVisualModelKind::creature_model_part)) {
-                continue;
-            }
-
-            const auto cloak_item_resref = cloak_item->resref;
-            ERRARE("[viewer] resolving dynamic creature cloak item '{}.uti'", cloak_item_resref.view());
-            if (row.model.empty()) {
-                if (row.model_part > 0) {
-                    ERRARE("[viewer] resolving dynamic creature cloak model part {}", row.model_part);
-                    LOG_F(WARNING, "Dynamic creature cloak model part {} was not found", row.model_part);
-                    log_preview_warning_context();
-                    break;
-                }
-                LOG_F(WARNING, "Dynamic creature cloak item '{}' model part {} has no cloakmodel.2da MODEL",
-                    cloak_item_resref,
-                    row.source_part);
-                log_preview_warning_context();
-                break;
-            }
-
-            auto cloak_colors = visual_row_plt_colors(row);
-            ERRARE("[viewer] resolving dynamic creature cloak model '{}'", row.model.view());
-            auto cloak = load_model_with_plt(resources, row.model.view(), &cloak_colors);
-            if (cloak) {
-                cloak->accepts_external_animation_source = false;
-            }
-            if (!cloak) {
-                LOG_F(WARNING, "Dynamic creature cloak model '{}' failed to load", row.model);
-                log_preview_warning_context();
-            }
-            maybe_add_model(scene, std::move(cloak));
-            break;
-        }
-    }
-
-    const uint32_t placement_model_index = scene.models.empty()
-        ? std::numeric_limits<uint32_t>::max()
-        : 0u;
+    bool loaded_equipped_models = true;
     for (const auto slot : kPreviewAttachedEquipmentSlots) {
         auto* item = equipped_item(equips, slot);
         if (!item || !preview_equipped_slot_visible(slot, hand_item_policy)) {
             continue;
         }
-        add_equipped_item_visual_models(
+        loaded_equipped_models = add_render_model_equipped_visual_models(
+                                     scene,
+                                     resources,
+                                     visual,
+                                     *item,
+                                     slot,
+                                     0u,
+                                     preview_equipped_slot_scale(slot, hand_item_policy, helmet_scale),
+                                     options.visual_render_mode,
+                                     load_events,
+                                     &plt_colors)
+            && loaded_equipped_models;
+    }
+    bool loaded_cloak_model = true;
+    if (auto* cloak = equipped_item(equips, nw::EquipIndex::cloak)) {
+        loaded_cloak_model = add_render_model_cloak_visual_model(
             scene,
             resources,
             visual,
-            *item,
-            slot,
-            placement_model_index,
+            *cloak,
+            plt_colors,
             options.visual_render_mode,
-            preview_equipped_slot_scale(slot, hand_item_policy, helmet_scale),
-            &plt_colors);
+            origin,
+            load_events);
     }
-
-    if (scene.models.empty() && scene.static_models.empty()) {
+    if (!loaded_attachments || !loaded_equipped_models || !loaded_cloak_model) {
+        const auto message = fmt::format(
+            "{}: RenderModel creature path skipped or failed some optional attachment or equipment rows",
+            origin);
+        LOG_F(WARNING, "{}", message);
+        log_preview_warning_context();
+        if (load_events) {
+            add_preview_load_event(*load_events,
+                PreviewLoadEventSeverity::warning,
+                "nwn_render_model_creature_addons",
+                message);
+        }
+    }
+    if (scene.static_models.empty()) {
         LOG_F(ERROR, "Dynamic creature preview '{}' produced no renderable models", origin);
         log_preview_error_context();
         return false;
-    }
-
-    if (!scene.models.empty()) {
-        auto* animation_context = scene.models.front().get();
-        auto* source = animation_context ? animation_context->mdl_ : nullptr;
-        if (source && source->model.supermodel) {
-            source = source->model.supermodel.get();
-        }
-        set_scene_animation_source(scene, source);
     }
     return true;
 }
@@ -2814,6 +2283,9 @@ static std::unique_ptr<PreviewScene> load_dynamic_creature_scene(
     append_scene_authored_model_lights(*scene);
     scene->rebuild_load_report(path_text, "dynamic_creature");
     append_scene_load_events(*scene, load_events);
+    scene->root_object = preview_creature->handle();
+    scene->active_object = scene->root_object;
+    preview_creature.release();
     return scene;
 }
 
@@ -2837,7 +2309,6 @@ static bool add_item_scene_models(
         return false;
     }
 
-    const size_t initial_model_count = scene.models.size();
     for (const auto& row : visual->models) {
         if (!visual_row_visible_for_mode(row, nw::ObjectVisualRenderMode::game)
             || row.kind != nw::ObjectVisualModelKind::item_model) {
@@ -2856,21 +2327,23 @@ static bool add_item_scene_models(
             log_preview_warning_context();
             continue;
         }
-        auto model = load_model_with_plt(resources, resref);
-        if (!model) {
+        auto load = load_nwn_render_model_preview(resources, resref);
+        append_preview_load_events(scene.source_load_events, load.events);
+        if (!load.model) {
             LOG_F(WARNING, "Item preview '{}' model '{}' failed to load",
                 origin,
                 resref);
             log_preview_warning_context();
             continue;
         }
-        if (nw::kernel::resman().contains({nw::Resref{resref}, nw::ResourceType::plt})) {
-            apply_plt_to_model(resources, *model, visual_row_plt_colors(row));
+        const uint32_t model_index = static_cast<uint32_t>(scene.static_models.size());
+        scene.add(std::move(load.model));
+        if (model_index < scene.static_models.size()) {
+            apply_render_model_plt_material_overrides(scene, model_index, visual_row_plt_colors(row));
         }
-        maybe_add_model(scene, std::move(model));
     }
 
-    return scene.models.size() > initial_model_count;
+    return true;
 }
 
 static std::unique_ptr<PreviewScene> load_item_scene(PreviewRenderResources& resources, const std::filesystem::path& path)
@@ -2891,12 +2364,25 @@ static std::unique_ptr<PreviewScene> load_item_scene(PreviewRenderResources& res
 
     auto scene = std::make_unique<PreviewScene>();
     if (!add_item_scene_models(*scene, resources, *item, path_text, true)) {
-        LOG_F(ERROR, "Item preview '{}' produced no renderable models", path.string());
-        log_preview_error_context();
         return {};
+    }
+    const bool has_renderable_model = !scene->static_models.empty();
+    if (!has_renderable_model) {
+        LOG_F(WARNING, "Item preview '{}' produced no renderable models", path.string());
+        log_preview_warning_context();
     }
     append_scene_authored_model_lights(*scene);
     scene->rebuild_load_report(path_text, "item");
+    if (!has_renderable_model) {
+        scene->load_report.events.push_back({
+            .severity = PreviewLoadEventSeverity::warning,
+            .category = "item_model",
+            .message = "The live Item has no renderable preview model",
+        });
+    }
+    scene->root_object = item->handle();
+    scene->active_object = scene->root_object;
+    item.release();
     return scene;
 }
 
@@ -2928,8 +2414,10 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(PreviewRenderRes
 
     auto scene = std::make_unique<PreviewScene>();
     ERRARE("[viewer] resolving {} preview model '{}'", preview_type, model_resref);
-    maybe_add_model(*scene, load_model_with_plt(resources, model_resref));
-    if (scene->models.empty()) {
+    auto load = load_nwn_render_model_preview(resources, model_resref);
+    append_preview_load_events(scene->source_load_events, load.events);
+    scene->add(std::move(load.model));
+    if (scene->static_models.empty()) {
         LOG_F(ERROR, "{} preview '{}' failed to load model '{}' for {}",
             preview_type, path.string(), model_resref, lookup_context);
         log_preview_error_context();
@@ -2940,34 +2428,104 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(PreviewRenderRes
     return scene;
 }
 
-static std::unique_ptr<ModelInstance> load_area_object_model(
+static std::unique_ptr<nw::render::RenderModel> load_area_object_model(
     PreviewRenderResources& resources,
     std::string_view model_resref,
-    const nw::Location& location,
     std::string_view origin)
 {
     if (model_resref.empty()) {
         return {};
     }
 
-    auto model = load_model_with_plt(resources, model_resref);
-    if (!model) {
+    auto load = load_nwn_render_model_preview(resources, model_resref);
+    if (!load.model) {
         LOG_F(WARNING, "Failed to load area object model '{}' for {}", model_resref, origin);
         return {};
     }
-
-    make_static_scene_attachment(*model);
-    model->set_placement_transform(area_object_placement_transform(location));
-    return model;
+    return std::move(load.model);
 }
 
-static void set_scene_root_placement(PreviewScene& scene, const glm::mat4& placement)
+struct AreaStaticModelCache {
+    absl::flat_hash_map<nw::Resref, std::shared_ptr<nw::render::RenderModel>> models;
+    size_t request_count = 0;
+    size_t local_hit_count = 0;
+    size_t retained_hit_count = 0;
+    size_t import_count = 0;
+    size_t failure_count = 0;
+};
+
+static std::shared_ptr<nw::render::RenderModel> load_area_static_model(
+    AreaStaticModelCache& cache,
+    PreviewRenderResources& resources,
+    std::string_view model_resref,
+    std::string_view origin)
 {
-    for (auto& model : scene.models) {
-        if (model && !model->transform_context_) {
-            model->set_placement_transform(placement);
-        }
+    if (model_resref.empty()) {
+        return {};
     }
+
+    const nw::Resref key{model_resref};
+    const auto cached = cache.models.find(key);
+    if (cached != cache.models.end()) {
+        ++cache.local_hit_count;
+        return cached->second;
+    }
+
+    ++cache.request_count;
+    auto shared_model = resources.find_area_static_model(key);
+    if (shared_model) {
+        ++cache.retained_hit_count;
+    } else {
+        ++cache.import_count;
+        auto model = load_area_object_model(resources, model_resref, origin);
+        shared_model = std::shared_ptr<nw::render::RenderModel>{std::move(model)};
+        resources.store_area_static_model(key, shared_model);
+    }
+    if (!shared_model) {
+        ++cache.failure_count;
+    }
+    cache.models.emplace(key, shared_model);
+    return shared_model;
+}
+
+static uint32_t add_placed_render_model(
+    PreviewScene& scene,
+    std::shared_ptr<nw::render::RenderModel> model,
+    const glm::mat4& placement)
+{
+    if (!model || scene.static_models.size() >= nw::render::kInvalidModelInstanceIndex) {
+        return nw::render::kInvalidModelInstanceIndex;
+    }
+
+    const uint32_t model_index = static_cast<uint32_t>(scene.static_models.size());
+    scene.add(std::move(model));
+    auto* instance = scene.static_model_instance(model_index);
+    if (!instance || model_index >= scene.static_models.size() || !scene.static_models[model_index]) {
+        return nw::render::kInvalidModelInstanceIndex;
+    }
+
+    instance->root_transform = placement;
+    nw::render::publish_render_model_static_node_world_transforms(
+        *instance, *scene.static_models[model_index]);
+    instance->current_bounds = transform_bounds(scene.static_models[model_index]->bounds, placement);
+    instance->shadow = render_model_shadow_summary(
+        *scene.static_models[model_index], instance->current_bounds);
+    return model_index;
+}
+
+static uint32_t add_placed_render_model(
+    PreviewScene& scene,
+    std::unique_ptr<nw::render::RenderModel> model,
+    const glm::mat4& placement)
+{
+    return add_placed_render_model(
+        scene,
+        std::shared_ptr<nw::render::RenderModel>{std::move(model)},
+        placement);
+}
+
+static void set_render_scene_root_placement(PreviewScene& scene, const glm::mat4& placement)
+{
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
         auto* instance = scene.static_model_instance(model_index);
         if (!instance) {
@@ -2997,9 +2555,7 @@ static void move_render_model_runtime_state(
     target_instance->attachment_node_world_transforms = std::move(source_instance->attachment_node_world_transforms);
     target_instance->attachment_node_transform_valid = std::move(source_instance->attachment_node_transform_valid);
     target_instance->animation = std::move(source_instance->animation);
-    target_instance->kind = nw::render::ModelInstanceKind::render_model;
     target_instance->render_model_index = target_model_index;
-    target_instance->nwn_legacy_model_index = nw::render::kInvalidModelInstanceIndex;
 
     // Material override handles are scene-owned stable handles, so the target
     // scene must clone the override rows instead of copying stale source handles.
@@ -3024,8 +2580,6 @@ static void append_render_model_attachment_bindings(
         const auto* source_child = source.model_instances.get(binding.child_instance_handle);
         const auto* source_owner = source.model_instances.get(binding.owner_instance_handle);
         if (!source_child || !source_owner
-            || source_child->kind != nw::render::ModelInstanceKind::render_model
-            || source_owner->kind != nw::render::ModelInstanceKind::render_model
             || source_child->render_model_index >= model_index_map.size()
             || source_owner->render_model_index >= model_index_map.size()) {
             continue;
@@ -3059,29 +2613,12 @@ static void append_render_model_attachment_bindings(
     }
 }
 
-static size_t append_scene_models(
+static size_t append_render_models(
     PreviewScene& target,
     PreviewScene& source,
-    AreaRenderSourceInfo area_info = {})
+    AreaRenderSourceInfo area_info = {},
+    bool include_authored_lights = true)
 {
-    const size_t nwn_model_count = source.models.size();
-    for (auto& model : source.models) {
-        const auto* moved_model = model.get();
-        target.add(std::move(model));
-        if (!target.area_model_info.empty()) {
-            target.area_model_info.back() = area_info;
-        }
-        if (moved_model && !target.models.empty()) {
-            append_model_authored_lights(target, target.models.size() - 1);
-        }
-    }
-    source.models.clear();
-    source.model_attachment_binding_indices.clear();
-
-    // AreaRenderScene currently records only legacy sidecar rows. RenderModel
-    // rows are still moved into the target scene so the generic RenderModel
-    // path can draw and animate them; area cache/culling integration is a
-    // separate protocol expansion because it needs its own model-index space.
     std::vector<uint32_t> static_model_index_map(
         source.static_models.size(), nw::render::kInvalidModelInstanceIndex);
     size_t render_model_count = 0;
@@ -3103,6 +2640,9 @@ static size_t append_scene_models(
                 source,
                 static_cast<uint32_t>(source_model_index),
                 target_model_index);
+            if (include_authored_lights) {
+                append_render_model_authored_lights(target, target_model_index);
+            }
             ++render_model_count;
         }
     }
@@ -3115,10 +2655,9 @@ static size_t append_scene_models(
     source.static_model_attachment_binding_indices.clear();
     source.static_area_model_info.clear();
     source.material_overrides.clear();
-    source.area_model_info.clear();
     source.local_lights.clear();
     source.render_local_lights.clear();
-    return nwn_model_count + render_model_count;
+    return render_model_count;
 }
 
 static std::unique_ptr<PreviewScene> load_area_creature_scene(
@@ -3141,8 +2680,65 @@ static std::unique_ptr<PreviewScene> load_area_creature_scene(
         return {};
     }
 
-    set_scene_root_placement(*scene, area_object_placement_transform(object_spatial_location(creature)));
+    set_render_scene_root_placement(*scene, object_spatial_placement(creature));
     return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_area_placeable_scene(
+    PreviewRenderResources& resources,
+    nw::Placeable& placeable,
+    std::string_view origin,
+    PreviewSceneLoadOptions options)
+{
+    if (!placeable.instantiate()) {
+        LOG_F(WARNING, "Area placeable '{}' failed to instantiate", origin);
+        return {};
+    }
+
+    const auto* visual = placeable_visual_state(placeable);
+    const auto* model_ref = first_valid_visual_model(visual, options.visual_render_mode);
+    if (!model_ref) {
+        LOG_F(WARNING, "Area placeable '{}': {}", origin, placeable_visual_error(visual));
+        return {};
+    }
+
+    auto model = load_area_object_model(resources, model_ref->model.view(), origin);
+    if (!model) {
+        return {};
+    }
+    auto scene = std::make_unique<PreviewScene>();
+    add_placed_render_model(*scene, std::move(model), object_spatial_placement(placeable));
+    return scene;
+}
+
+void make_area_object_preview_translucent(PreviewScene& scene, float opacity)
+{
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        auto& model = scene.static_models[model_index];
+        auto* instance = scene.static_model_instance(model_index);
+        if (!model || !instance) {
+            continue;
+        }
+        for (auto& material : model->materials) {
+            material.albedo.a *= opacity;
+            material.alpha_mode = nw::render::MaterialMode::transparent;
+        }
+        for (auto& primitive : model->primitives) {
+            primitive.casts_shadow = false;
+        }
+        model->shadow = {};
+        model->particle_systems.clear();
+        for (const auto handle : instance->material_override_handles) {
+            if (auto* material_override = scene.material_overrides.get(handle)) {
+                material_override->material.albedo.a *= opacity;
+                material_override->material.alpha_mode = nw::render::MaterialMode::transparent;
+            }
+        }
+        instance->shadow = {};
+    }
+    scene.particles.clear();
+    scene.local_lights.clear();
+    scene.render_local_lights.clear();
 }
 
 static std::unique_ptr<PreviewScene> load_area_item_scene(
@@ -3160,7 +2756,7 @@ static std::unique_ptr<PreviewScene> load_area_item_scene(
         return {};
     }
 
-    set_scene_root_placement(*scene, area_object_placement_transform(object_spatial_location(item)));
+    set_render_scene_root_placement(*scene, object_spatial_placement(item));
     return scene;
 }
 
@@ -3203,6 +2799,7 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
     const auto lookup_context = fmt::format("visual appearance {}", visual.visual.appearance);
     auto scene = load_blueprint_model_scene(resources, path, "Placeable", lookup_context, model->model.view());
     if (scene) {
+        scene->hold_animation = visual.visual.hold_animation.view();
         append_placeable_table_lights(*scene, nw::Location{}, &visual.visual);
     }
     return scene;
@@ -3262,7 +2859,7 @@ void collect_model_asset_upload_events(
             texture_upload_incomplete ? PreviewLoadEventSeverity::warning : PreviewLoadEventSeverity::info,
             fmt::format("{}_texture_upload", category_prefix),
             fmt::format(
-                "{}: materials={} sources={} uploaded={} fallback_materials={} invalid_bindings={} missing_context={} missing_payloads={} decode_failures={} size_mismatches={} create_failures={} upload_failures={} bindless_failures={}",
+                "{}: materials={} sources={} uploaded={} fallback_materials={} invalid_bindings={} missing_context={} missing_payloads={} decode_failures={} size_mismatches={} create_failures={} upload_failures={} bindless_failures={} context_mismatches={}",
                 source,
                 textures.material_count,
                 textures.texture_source_count,
@@ -3275,7 +2872,8 @@ void collect_model_asset_upload_events(
                 textures.surface_size_mismatch_count,
                 textures.texture_create_failure_count,
                 textures.texture_upload_failure_count,
-                textures.bindless_failure_count));
+                textures.bindless_failure_count,
+                textures.resource_context_mismatch_count));
     }
 }
 
@@ -3288,7 +2886,7 @@ void collect_nwn_render_model_import_events(
         PreviewLoadEventSeverity::info,
         "nwn_render_model_path",
         fmt::format(
-            "{}: static ModelAsset preview path; PLT recolor, emitters, full attachment policy, and cross-skeleton policy remain on the legacy path",
+            "{}: imported through ModelAsset -> RenderModel with common materials, animation, deformers, particles, and prepared surfaces",
             source));
 
     const auto& import = result.import_stats;
@@ -3371,7 +2969,7 @@ void log_model_asset_upload_gaps(
         LOG_F(WARNING,
             "{} texture upload '{}' incomplete: materials={} sources={} uploaded={} "
             "fallback_materials={} invalid_bindings={} missing_context={} missing_payloads={} "
-            "decode_failures={} size_mismatches={} create_failures={} upload_failures={} bindless_failures={}",
+            "decode_failures={} size_mismatches={} create_failures={} upload_failures={} bindless_failures={} context_mismatches={}",
             label,
             source,
             textures.material_count,
@@ -3385,7 +2983,8 @@ void log_model_asset_upload_gaps(
             textures.surface_size_mismatch_count,
             textures.texture_create_failure_count,
             textures.texture_upload_failure_count,
-            textures.bindless_failure_count);
+            textures.bindless_failure_count,
+            textures.resource_context_mismatch_count);
         log_preview_warning_context();
     }
 }
@@ -3452,8 +3051,7 @@ RenderModelPreviewLoad load_nwn_render_model_preview(
     log_nwn_render_model_import_gaps(source, result);
     RenderModelPreviewLoad load{};
     collect_nwn_render_model_import_events(load.events, source, result);
-    load.static_deformer_count = result.import_stats.secondary_motion_deformer_count
-        + result.import_stats.legacy_reference_deformer_count;
+    load.static_deformer_count = result.import_stats.secondary_motion_deformer_count;
     if (!result.model) {
         LOG_F(ERROR, "Failed to import NWN RenderModel preview '{}'", source);
         log_preview_error_context();
@@ -3493,30 +3091,25 @@ RenderModelPreviewLoad load_nwn_render_model_preview(
 }
 
 std::vector<PreviewLoadEvent> maybe_add_nwn_preview_model(
-    PreviewScene& scene, PreviewRenderResources& resources, std::string_view source, PreviewSceneLoadOptions options)
+    PreviewScene& scene, PreviewRenderResources& resources, std::string_view source)
 {
-    if (options.nwn_model_path == NwnModelPreviewPath::render_model) {
-        auto load = load_nwn_render_model_preview(resources, source);
-        if (load.static_deformer_count != 0u) {
-            add_preview_load_event(load.events,
-                PreviewLoadEventSeverity::warning,
-                "nwn_render_model_static_deformer",
-                fmt::format(
-                    "{}: rendering {} legacy deformed primitives as static source geometry on the common path",
-                    source,
-                    load.static_deformer_count));
-        }
-        scene.add(std::move(load.model));
-        return std::move(load.events);
+    auto load = load_nwn_render_model_preview(resources, source);
+    if (load.static_deformer_count != 0u) {
+        add_preview_load_event(load.events,
+            PreviewLoadEventSeverity::warning,
+            "nwn_render_model_static_deformer",
+            fmt::format(
+                "{}: rendering {} unsupported secondary-motion primitives as static source geometry",
+                source,
+                load.static_deformer_count));
     }
-
-    maybe_add_model(scene, load_model_with_plt(resources, source));
-    return {};
+    scene.add(std::move(load.model));
+    return std::move(load.events);
 }
 
 bool scene_has_preview_model(const PreviewScene& scene) noexcept
 {
-    return !scene.models.empty() || !scene.static_models.empty();
+    return !scene.static_models.empty();
 }
 
 } // namespace
@@ -3589,7 +3182,7 @@ std::unique_ptr<PreviewScene> load_preview_scene(
     }
 
     auto scene = std::make_unique<PreviewScene>();
-    auto load_events = maybe_add_nwn_preview_model(*scene, resources, source, options);
+    auto load_events = maybe_add_nwn_preview_model(*scene, resources, source);
     if (!scene_has_preview_model(*scene)) {
         LOG_F(ERROR, "Preview source '{}' produced no renderable models", source);
         log_preview_error_context();
@@ -3604,19 +3197,13 @@ std::unique_ptr<PreviewScene> load_preview_scene(
 
 std::unique_ptr<PreviewScene> load_preview_scene(PreviewRenderResources& resources, std::span<const std::string> sources)
 {
-    return load_preview_scene(resources, sources, default_preview_scene_load_options());
-}
-
-std::unique_ptr<PreviewScene> load_preview_scene(
-    PreviewRenderResources& resources, std::span<const std::string> sources, PreviewSceneLoadOptions options)
-{
     ERRARE("[viewer] loading multi-source preview ({} sources)", sources.size());
 
     auto scene = std::make_unique<PreviewScene>();
     std::vector<PreviewLoadEvent> load_events;
     for (const auto& source : sources) {
         ERRARE("[viewer] loading preview source '{}'", std::string_view{source});
-        auto source_events = maybe_add_nwn_preview_model(*scene, resources, source, options);
+        auto source_events = maybe_add_nwn_preview_model(*scene, resources, source);
         load_events.insert(load_events.end(),
             std::make_move_iterator(source_events.begin()),
             std::make_move_iterator(source_events.end()));
@@ -3638,52 +3225,77 @@ std::unique_ptr<PreviewScene> load_area_scene(PreviewRenderResources& resources,
     return load_area_scene(resources, area_resref, default_preview_scene_load_options());
 }
 
-std::unique_ptr<PreviewScene> load_area_scene(
-    PreviewRenderResources& resources, std::string_view area_resref, PreviewSceneLoadOptions options)
+namespace {
+
+std::unique_ptr<PreviewScene> build_area_scene_impl(
+    PreviewRenderResources& resources,
+    std::string_view area_resref,
+    PreviewSceneLoadOptions options,
+    nw::Area* loaded_area)
 {
-    const nw::Resref area{area_resref};
-    if (!nw::kernel::resman().contains({area, nw::ResourceType::are})) {
-        LOG_F(ERROR, "Area does not exist: {}", area_resref);
-        return {};
-    }
-
-    nw::Gff are{nw::kernel::resman().demand({area, nw::ResourceType::are})};
-    if (!are.valid()) {
-        LOG_F(ERROR, "Area resource is invalid: {}", area_resref);
-        return {};
-    }
-
-    nw::Resref tileset_resref;
-    if (!are.toplevel().get_to("Tileset", tileset_resref) || tileset_resref.empty()) {
-        LOG_F(ERROR, "Area is missing a valid tileset: {}", area_resref);
-        return {};
-    }
-
-    if (!nw::kernel::tilesets().get(tileset_resref.view())) {
-        LOG_F(ERROR, "Area tileset does not exist: {} tileset={}", area_resref, tileset_resref);
-        return {};
-    }
-
+    const bool owns_loaded_area = loaded_area == nullptr;
     nw::ObjectManager::AreaLoadProfile profile{};
-    auto* loaded_area = nw::kernel::objects().make_area(area, &profile);
-    if (!loaded_area) {
-        LOG_F(ERROR, "Failed to load area: {}", area_resref);
-        return {};
-    }
-
-    try {
-        if (!loaded_area->instantiate() || !loaded_area->tileset) {
-            LOG_F(ERROR, "Failed to instantiate area or tileset: {}", area_resref);
-            nw::kernel::objects().destroy(loaded_area->handle());
+    if (owns_loaded_area) {
+        const nw::Resref area{area_resref};
+        const auto format = nw::kernel::resman().module_format();
+        const auto area_type = format == nw::ModuleResourceFormat::native_json
+            ? nw::ResourceType::caf
+            : nw::ResourceType::are;
+        if (format == nw::ModuleResourceFormat::invalid
+            || !nw::kernel::resman().contains({area, area_type})) {
+            LOG_F(ERROR, "Area does not exist: {}", area_resref);
             return {};
         }
-    } catch (const std::exception& ex) {
-        LOG_F(ERROR, "Failed to instantiate area {}: {}", area_resref, ex.what());
-        nw::kernel::objects().destroy(loaded_area->handle());
+
+        loaded_area = nw::kernel::objects().make_area(area, &profile);
+        if (!loaded_area) {
+            LOG_F(ERROR, "Failed to load area: {}", area_resref);
+            return {};
+        }
+    } else {
+        profile.creatures = static_cast<uint32_t>(loaded_area->creatures.size());
+        profile.doors = static_cast<uint32_t>(loaded_area->doors.size());
+        profile.encounters = static_cast<uint32_t>(loaded_area->encounters.size());
+        profile.items = static_cast<uint32_t>(loaded_area->items.size());
+        profile.placeables = static_cast<uint32_t>(loaded_area->placeables.size());
+        profile.sounds = static_cast<uint32_t>(loaded_area->sounds.size());
+        profile.stores = static_cast<uint32_t>(loaded_area->stores.size());
+        profile.triggers = static_cast<uint32_t>(loaded_area->triggers.size());
+        profile.waypoints = static_cast<uint32_t>(loaded_area->waypoints.size());
+    }
+
+    if (loaded_area->tileset_resref.empty()) {
+        LOG_F(ERROR, "Area is missing a valid tileset: {}", area_resref);
+        if (owns_loaded_area) {
+            loaded_area->clear();
+            nw::kernel::objects().destroy(loaded_area->handle());
+        }
         return {};
+    }
+
+    if (owns_loaded_area || !loaded_area->tileset) {
+        try {
+            if (!loaded_area->instantiate() || !loaded_area->tileset) {
+                LOG_F(ERROR, "Failed to instantiate area or tileset: {}", area_resref);
+                if (owns_loaded_area) {
+                    loaded_area->clear();
+                    nw::kernel::objects().destroy(loaded_area->handle());
+                }
+                return {};
+            }
+        } catch (const std::exception& ex) {
+            LOG_F(ERROR, "Failed to instantiate area {}: {}", area_resref, ex.what());
+            if (owns_loaded_area) {
+                loaded_area->clear();
+                nw::kernel::objects().destroy(loaded_area->handle());
+            }
+            return {};
+        }
     }
 
     auto scene = std::make_unique<PreviewScene>();
+    scene->root_object = loaded_area->handle();
+    scene->owns_root_object = owns_loaded_area;
     scene->is_area = true;
     scene->area_width = loaded_area->width;
     scene->area_height = loaded_area->height;
@@ -3698,7 +3310,8 @@ std::unique_ptr<PreviewScene> load_area_scene(
     float max_tile_z = std::numeric_limits<float>::lowest();
     std::map<std::string, int> tile_model_counts;
     std::map<std::array<uint8_t, 4>, int> tile_light_slot_counts;
-    AreaGeometryCache static_geometry_cache;
+    resources.prepare_area_static_models(nw::kernel::resman().generation());
+    AreaStaticModelCache static_model_cache;
     size_t loaded_creature_models = 0;
     size_t loaded_door_models = 0;
     size_t loaded_encounter_debug_shapes = 0;
@@ -3727,7 +3340,11 @@ std::unique_ptr<PreviewScene> load_area_scene(
             }
             ++tile_model_counts[tile_def.model];
 
-            auto model = load_model_with_plt(resources, tile_def.model);
+            auto model = load_area_static_model(
+                static_model_cache,
+                resources,
+                tile_def.model,
+                area_resref);
             if (!model) {
                 continue;
             }
@@ -3754,16 +3371,15 @@ std::unique_ptr<PreviewScene> load_area_scene(
                     light_slots.source2,
                 }];
             }
-            if (model->mdl_) {
-                loaded_tile_model_lights += append_tile_model_lights(*scene, *model->mdl_, placement, tile, x, y);
-            }
-
-            model->scene_animation_enabled = false;
-            share_static_area_model_geometry(static_geometry_cache, *model);
-            model->set_placement_transform(placement);
-            scene->add(std::move(model));
-            if (!scene->area_model_info.empty()) {
-                scene->area_model_info.back() = AreaRenderSourceInfo{
+            const uint32_t model_index = add_placed_render_model(*scene, std::move(model), placement);
+            if (model_index != nw::render::kInvalidModelInstanceIndex) {
+                if (auto* instance = scene->static_model_instance(model_index)) {
+                    instance->scene_animation_enabled = false;
+                    instance->animation.enabled = false;
+                }
+                loaded_tile_model_lights += append_tile_render_model_lights(
+                    *scene, model_index, tile, x, y);
+                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
                     .kind = AreaRenderRecordKind::tile,
                     .tile_x = static_cast<int16_t>(x),
                     .tile_y = static_cast<int16_t>(y),
@@ -3784,9 +3400,10 @@ std::unique_ptr<PreviewScene> load_area_scene(
         auto creature_scene = load_area_creature_scene(resources, *creature, origin, options);
         if (creature_scene) {
             const size_t light_count_before = scene->local_lights.size();
-            loaded_creature_models += append_scene_models(*scene, *creature_scene, AreaRenderSourceInfo{
-                                                                                       .kind = AreaRenderRecordKind::creature,
-                                                                                   });
+            loaded_creature_models += append_render_models(*scene, *creature_scene, AreaRenderSourceInfo{
+                                                                                        .kind = AreaRenderRecordKind::creature,
+                                                                                        .object = creature->handle(),
+                                                                                    });
             loaded_area_object_model_lights += scene->local_lights.size() - light_count_before;
         }
     }
@@ -3804,17 +3421,19 @@ std::unique_ptr<PreviewScene> load_area_scene(
             continue;
         }
 
-        auto model = load_area_object_model(resources, model_ref.model.view(), object_spatial_location(*door), origin);
-        if (model) {
-            share_static_area_model_geometry(static_geometry_cache, *model);
-            scene->add(std::move(model));
-            if (!scene->area_model_info.empty()) {
-                scene->area_model_info.back() = AreaRenderSourceInfo{
+        auto model = load_area_static_model(
+            static_model_cache, resources, model_ref.model.view(), origin);
+        const uint32_t model_index = add_placed_render_model(
+            *scene, std::move(model), object_spatial_placement(*door));
+        if (model_index != nw::render::kInvalidModelInstanceIndex) {
+            if (model_index < scene->static_area_model_info.size()) {
+                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
                     .kind = AreaRenderRecordKind::door,
+                    .object = door->handle(),
                     .static_candidate = true,
                 };
             }
-            loaded_area_object_model_lights += append_model_authored_lights(*scene, scene->models.size() - 1);
+            loaded_area_object_model_lights += append_render_model_authored_lights(*scene, model_index);
             ++loaded_door_models;
         }
     }
@@ -3829,9 +3448,10 @@ std::unique_ptr<PreviewScene> load_area_scene(
         auto item_scene = load_area_item_scene(resources, *item, origin);
         if (item_scene) {
             const size_t light_count_before = scene->local_lights.size();
-            loaded_item_models += append_scene_models(*scene, *item_scene, AreaRenderSourceInfo{
-                                                                               .kind = AreaRenderRecordKind::item,
-                                                                           });
+            loaded_item_models += append_render_models(*scene, *item_scene, AreaRenderSourceInfo{
+                                                                                .kind = AreaRenderRecordKind::item,
+                                                                                .object = item->handle(),
+                                                                            });
             loaded_area_object_model_lights += scene->local_lights.size() - light_count_before;
         }
     }
@@ -3860,17 +3480,19 @@ std::unique_ptr<PreviewScene> load_area_scene(
             continue;
         }
 
-        auto model = load_area_object_model(resources, model_ref->model.view(), location, origin);
-        if (model) {
-            share_static_area_model_geometry(static_geometry_cache, *model);
-            scene->add(std::move(model));
-            if (!scene->area_model_info.empty()) {
-                scene->area_model_info.back() = AreaRenderSourceInfo{
+        auto model = load_area_static_model(
+            static_model_cache, resources, model_ref->model.view(), origin);
+        const uint32_t model_index = add_placed_render_model(
+            *scene, std::move(model), object_spatial_placement(*placeable));
+        if (model_index != nw::render::kInvalidModelInstanceIndex) {
+            if (model_index < scene->static_area_model_info.size()) {
+                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
                     .kind = AreaRenderRecordKind::placeable,
-                    .static_candidate = true,
+                    .object = placeable->handle(),
+                    .static_candidate = !options.area_object_editing,
                 };
             }
-            loaded_area_object_model_lights += append_model_authored_lights(*scene, scene->models.size() - 1);
+            loaded_area_object_model_lights += append_render_model_authored_lights(*scene, model_index);
             ++loaded_placeable_models;
         }
     }
@@ -3913,13 +3535,18 @@ std::unique_ptr<PreviewScene> load_area_scene(
     const bool scene_underground = (scene->area_flags & nw::AreaFlags::underground) != nw::AreaFlags::none;
 
     LOG_F(INFO,
-        "Loaded area {} tileset={} : {}x{} tiles={} loaded_models={} flags interior={} underground={} cycle={} night={} tile_lights={} object_lights={} light_slot_tiles={} local_lights={} colored_lights={} light_color_max={:.2f} light_radius=[{:.2f}..{:.2f}] light_intensity=[{:.2f}..{:.2f}] light_scale[r={:.2f}, i={:.2f}] creatures={}/{} doors={}/{} items={}/{} placeables={}/{} triggers={}/{} encounters={}/{} debug_indices={} demand={}ms deserialize={}ms placement[x={}..{}, y={}..{}]",
+        "Loaded area {} tileset={} : {}x{} tiles={} loaded_models={} static_assets={} static_local_hits={} static_retained_hits={} static_imports={} static_asset_failures={} flags interior={} underground={} cycle={} night={} tile_lights={} object_lights={} light_slot_tiles={} local_lights={} colored_lights={} light_color_max={:.2f} light_radius=[{:.2f}..{:.2f}] light_intensity=[{:.2f}..{:.2f}] light_scale[r={:.2f}, i={:.2f}] creatures={}/{} doors={}/{} items={}/{} placeables={}/{} triggers={}/{} encounters={}/{} debug_indices={} demand={}ms deserialize={}ms placement[x={}..{}, y={}..{}]",
         area_resref,
         loaded_area->tileset_resref,
         loaded_area->width,
         loaded_area->height,
         loaded_area->tiles.size(),
-        scene->models.size() + scene->static_models.size(),
+        scene->static_models.size(),
+        static_model_cache.request_count - static_model_cache.failure_count,
+        static_model_cache.local_hit_count,
+        static_model_cache.retained_hit_count,
+        static_model_cache.import_count,
+        static_model_cache.failure_count,
         scene_interior,
         scene_underground,
         scene->area_weather.day_night_cycle,
@@ -3974,26 +3601,23 @@ std::unique_ptr<PreviewScene> load_area_scene(
         ++logged_light_slot_counts;
     }
 
-    nw::kernel::objects().destroy(loaded_area->handle());
-
     if (!scene_has_preview_model(*scene)) {
         return {};
     }
     scene->area_overlay_z = max_tile_z == std::numeric_limits<float>::lowest() ? 0.0f : max_tile_z;
     scene->area_render_scene = std::make_unique<AreaRenderScene>();
-    scene->area_render_scene->rebuild(*scene, resources.context());
+    scene->area_render_scene->rebuild(*scene);
     const auto& area_cache_stats = scene->area_render_scene->stats();
     LOG_F(INFO,
-        "Area render cache {} records={} static={} dynamic={} prepared_draws={} static_geometry[meshes={} vertices={} indices={} bytes={}] max_prepared_record={} chunks={}/{} max_chunk={} pass[o/w/t]={}/{}/{} shadow_casters={} source[tile/creature/door/item/placeable/unknown]={}/{}/{}/{}/{}/{}",
+        "Area render cache {} records={} static={} dynamic={} prepared_draws={} surfaces[ranges={} triangles={} bytes={}] max_prepared_record={} chunks={}/{} max_chunk={} pass[o/w/t]={}/{}/{} shadow_casters={} source[tile/creature/door/item/placeable/unknown]={}/{}/{}/{}/{}/{}",
         area_resref,
         area_cache_stats.record_count,
         area_cache_stats.static_record_count,
         area_cache_stats.dynamic_record_count,
         area_cache_stats.prepared_draw_count,
-        area_cache_stats.static_geometry_mesh_count,
-        area_cache_stats.static_geometry_vertex_count,
-        area_cache_stats.static_geometry_index_count,
-        area_cache_stats.static_geometry_bytes,
+        area_cache_stats.surface_range_count,
+        area_cache_stats.surface_triangle_count,
+        area_cache_stats.surface_bytes,
         area_cache_stats.max_prepared_draws_per_record,
         area_cache_stats.nonempty_chunk_count,
         area_cache_stats.chunk_count,
@@ -4010,6 +3634,413 @@ std::unique_ptr<PreviewScene> load_area_scene(
         area_cache_stats.unknown_record_count);
     scene->rebuild_load_report(area_resref, "area");
     return scene;
+}
+
+} // namespace
+
+std::unique_ptr<PreviewScene> load_area_scene(
+    PreviewRenderResources& resources, std::string_view area_resref, PreviewSceneLoadOptions options)
+{
+    return build_area_scene_impl(resources, area_resref, options, nullptr);
+}
+
+std::unique_ptr<PreviewScene> build_live_area_scene(
+    PreviewRenderResources& resources,
+    nw::Area& area,
+    std::string_view source,
+    PreviewSceneLoadOptions options)
+{
+    return build_area_scene_impl(resources, source, options, &area);
+}
+
+std::unique_ptr<PreviewScene> build_live_object_scene(
+    PreviewRenderResources& resources,
+    nw::ObjectHandle object,
+    std::string_view source,
+    PreviewSceneLoadOptions options)
+{
+    std::unique_ptr<PreviewScene> scene;
+    switch (object.type) {
+    case nw::ObjectType::creature:
+        if (auto* creature = nw::kernel::objects().get<nw::Creature>(object)) {
+            scene = load_area_creature_scene(resources, *creature, source, options);
+        }
+        break;
+    case nw::ObjectType::placeable:
+        if (auto* placeable = nw::kernel::objects().get<nw::Placeable>(object)) {
+            scene = load_area_placeable_scene(resources, *placeable, source, options);
+        }
+        break;
+    default:
+        return {};
+    }
+    if (!scene) {
+        return {};
+    }
+
+    append_scene_authored_model_lights(*scene);
+    scene->rebuild_load_report(source, "live_object");
+    scene->root_object = object;
+    scene->active_object = object;
+    scene->owns_root_object = false;
+    return scene;
+}
+
+namespace {
+
+bool contains_object(std::span<const nw::ObjectHandle> objects, nw::ObjectHandle object)
+{
+    return std::find(objects.begin(), objects.end(), object) != objects.end();
+}
+
+bool contains_instance_handle(
+    std::span<const nw::render::ModelInstanceHandle> handles,
+    nw::render::ModelInstanceHandle handle)
+{
+    return std::find(handles.begin(), handles.end(), handle) != handles.end();
+}
+
+bool valid_scene_model_columns(const PreviewScene& scene) noexcept
+{
+    constexpr size_t max_model_count = std::numeric_limits<uint32_t>::max();
+    return scene.static_models.size() <= max_model_count
+        && scene.model_attachments.size() < kInvalidSceneModelAttachmentBindingIndex
+        && scene.static_models.size() == scene.static_model_instance_handles.size()
+        && scene.static_models.size() == scene.static_model_attachment_binding_indices.size()
+        && scene.static_models.size() == scene.static_area_model_info.size();
+}
+
+void destroy_scene_instance(
+    PreviewScene& scene, nw::render::ModelInstanceHandle handle) noexcept
+{
+    if (auto* instance = scene.model_instances.get(handle)) {
+        for (const auto material : instance->material_override_handles) {
+            scene.material_overrides.destroy(material);
+        }
+    }
+    scene.model_instances.destroy(handle);
+}
+
+void rebuild_scene_model_summaries(PreviewScene& scene)
+{
+    scene.vertex_count = 0;
+    scene.index_count = 0;
+    scene.has_water = false;
+    scene.has_gltf_models = false;
+    bool has_bounds = false;
+    const auto append_bounds = [&scene, &has_bounds](const Bounds& bounds) {
+        if (!has_bounds) {
+            scene.bounds = bounds;
+            has_bounds = true;
+            return;
+        }
+        scene.bounds.min = glm::min(scene.bounds.min, bounds.min);
+        scene.bounds.max = glm::max(scene.bounds.max, bounds.max);
+    };
+
+    for (const auto& model : scene.static_models) {
+        if (!model) {
+            continue;
+        }
+        for (const auto& primitive : model->primitives) {
+            scene.vertex_count += primitive.vertices.valid() ? primitive.index_count : 0;
+            scene.index_count += primitive.index_count;
+        }
+        scene.has_water = scene.has_water || render_model_contains_water(*model);
+        scene.has_gltf_models = scene.has_gltf_models
+            || model->source_kind == nw::render::ModelAssetSourceKind::gltf;
+        append_bounds(model->bounds);
+    }
+    if (!has_bounds) {
+        scene.bounds = {};
+    }
+}
+
+struct SceneModelRemoval {
+    std::vector<uint32_t> render_index_map;
+    std::vector<nw::render::ModelInstanceHandle> handles;
+    uint32_t removed_count = 0;
+};
+
+std::optional<SceneModelRemoval> remove_object_model_rows(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects)
+{
+    if (!valid_scene_model_columns(scene)) {
+        return std::nullopt;
+    }
+
+    SceneModelRemoval removal;
+    removal.render_index_map.assign(scene.static_models.size(), nw::render::kInvalidModelInstanceIndex);
+    std::vector<uint8_t> remove_render(scene.static_models.size(), 0u);
+    for (size_t i = 0; i < scene.static_models.size(); ++i) {
+        remove_render[i] = static_cast<uint8_t>(!scene.is_area
+            || contains_object(objects, scene.static_area_model_info[i].object));
+        if (remove_render[i] != 0u) {
+            removal.handles.push_back(scene.static_model_instance_handles[i]);
+        }
+    }
+    if (removal.handles.empty()) {
+        return std::nullopt;
+    }
+
+    for (const auto& binding : scene.model_attachments) {
+        const bool remove_child = contains_instance_handle(removal.handles, binding.child_instance_handle);
+        const bool remove_owner = contains_instance_handle(removal.handles, binding.owner_instance_handle);
+        if (remove_child != remove_owner) {
+            return std::nullopt;
+        }
+    }
+
+    std::erase_if(scene.particles, [&removal](const SceneParticleSystem& particles) {
+        return contains_instance_handle(removal.handles, particles.owner_instance_handle);
+    });
+    std::erase_if(scene.model_attachments, [&removal](const auto& binding) {
+        return contains_instance_handle(removal.handles, binding.child_instance_handle);
+    });
+
+    size_t write = 0;
+    for (size_t read = 0; read < scene.static_models.size(); ++read) {
+        if (remove_render[read] != 0u) {
+            destroy_scene_instance(scene, scene.static_model_instance_handles[read]);
+            continue;
+        }
+        removal.render_index_map[read] = static_cast<uint32_t>(write);
+        if (write != read) {
+            scene.static_models[write] = std::move(scene.static_models[read]);
+            scene.static_model_instance_handles[write] = scene.static_model_instance_handles[read];
+            scene.static_area_model_info[write] = scene.static_area_model_info[read];
+        }
+        if (auto* instance = scene.model_instances.get(scene.static_model_instance_handles[write])) {
+            instance->render_model_index = static_cast<uint32_t>(write);
+        }
+        ++write;
+    }
+    scene.static_models.resize(write);
+    scene.static_model_instance_handles.resize(write);
+    scene.static_area_model_info.resize(write);
+    scene.static_model_attachment_binding_indices.assign(
+        write, kInvalidSceneModelAttachmentBindingIndex);
+
+    for (size_t i = 0; i < scene.model_attachments.size(); ++i) {
+        const auto child = scene.model_attachments[i].child_instance_handle;
+        const auto render = std::find(scene.static_model_instance_handles.begin(),
+            scene.static_model_instance_handles.end(), child);
+        if (render != scene.static_model_instance_handles.end()) {
+            scene.static_model_attachment_binding_indices[static_cast<size_t>(
+                std::distance(scene.static_model_instance_handles.begin(), render))]
+                = static_cast<uint32_t>(i);
+        }
+    }
+
+    for (auto& particles : scene.particles) {
+        if (particles.owner_model_index < removal.render_index_map.size()) {
+            particles.owner_model_index = removal.render_index_map[particles.owner_model_index];
+        }
+    }
+
+    std::erase_if(scene.local_lights, [&remove_render](const SceneLocalLight& light) {
+        if (light.source != SceneLocalLightSource::authored_model) {
+            return false;
+        }
+        return light.model_index < remove_render.size() && remove_render[light.model_index] != 0u;
+    });
+    for (auto& light : scene.local_lights) {
+        if (light.source != SceneLocalLightSource::authored_model) {
+            continue;
+        }
+        if (light.model_index < removal.render_index_map.size()) {
+            light.model_index = removal.render_index_map[light.model_index];
+        }
+    }
+
+    removal.removed_count = static_cast<uint32_t>(removal.handles.size());
+    rebuild_scene_model_summaries(scene);
+    return removal;
+}
+
+} // namespace
+
+AreaObjectPreviewAppendResult append_area_object_previews(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    float opacity,
+    PreviewSceneLoadOptions options)
+{
+    AreaObjectPreviewAppendResult result;
+    if (objects.empty()) {
+        result.diagnostic = "Area object preview batch is empty";
+        return result;
+    }
+    if (!scene.is_area || !scene.area_render_scene || scene.root_object.type != nw::ObjectType::area
+        || !std::isfinite(opacity) || opacity <= 0.0f || opacity >= 1.0f
+        || objects.size() > std::numeric_limits<uint32_t>::max()) {
+        result.status = AreaObjectPreviewAppendStatus::invalid_input;
+        result.diagnostic = "Area object preview input is invalid";
+        return result;
+    }
+
+    std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
+    std::sort(ordered.begin(), ordered.end());
+    if (std::adjacent_find(ordered.begin(), ordered.end()) != ordered.end()) {
+        result.status = AreaObjectPreviewAppendStatus::invalid_input;
+        result.diagnostic = "Area object preview batch contains duplicate handles";
+        return result;
+    }
+
+    std::vector<std::unique_ptr<PreviewScene>> previews;
+    previews.reserve(objects.size());
+    for (size_t i = 0; i < objects.size(); ++i) {
+        const auto object = objects[i];
+        const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+        if ((object.type != nw::ObjectType::creature && object.type != nw::ObjectType::placeable)
+            || !nw::kernel::objects().valid(object) || !spatial
+            || spatial->area != scene.root_object.id) {
+            result.status = AreaObjectPreviewAppendStatus::invalid_input;
+            result.diagnostic = "Area object preview contains an invalid or wrong-area object";
+            return result;
+        }
+
+        const std::string origin = fmt::format("placement preview {}", i);
+        std::unique_ptr<PreviewScene> preview;
+        if (object.type == nw::ObjectType::creature) {
+            auto* creature = nw::kernel::objects().get<nw::Creature>(object);
+            if (creature) {
+                preview = load_area_creature_scene(resources, *creature, origin, options);
+            }
+        } else {
+            auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
+            if (placeable) {
+                preview = load_area_placeable_scene(resources, *placeable, origin, options);
+            }
+        }
+        if (!preview) {
+            result.status = AreaObjectPreviewAppendStatus::failed;
+            result.diagnostic = "Area object preview visual construction failed";
+            return result;
+        }
+        if (object.type == nw::ObjectType::creature) {
+            prime_scene_hold_animation(*preview);
+        }
+        make_area_object_preview_translucent(*preview, opacity);
+        previews.push_back(std::move(preview));
+    }
+
+    const size_t render_model_start = scene.static_model_instance_handles.size();
+    size_t appended_models = 0;
+    for (size_t i = 0; i < previews.size(); ++i) {
+        const auto object = objects[i];
+        const auto kind = object.type == nw::ObjectType::creature
+            ? AreaRenderRecordKind::creature
+            : AreaRenderRecordKind::placeable;
+        appended_models += append_render_models(scene,
+            *previews[i],
+            AreaRenderSourceInfo{.kind = kind, .object = object},
+            false);
+    }
+
+    for (size_t i = render_model_start; i < scene.static_model_instance_handles.size(); ++i) {
+        if (auto* instance = scene.model_instances.get(scene.static_model_instance_handles[i])) {
+            instance->shadow = {};
+        }
+    }
+
+    scene.active_object = objects.front();
+    scene.area_render_scene->rebuild(scene);
+    result.status = AreaObjectPreviewAppendStatus::success;
+    result.object_count = static_cast<uint32_t>(objects.size());
+    result.model_count = static_cast<uint32_t>(
+        std::min<size_t>(appended_models, std::numeric_limits<uint32_t>::max()));
+    return result;
+}
+
+ObjectVisualRefreshResult refresh_object_visuals(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    PreviewSceneLoadOptions options)
+{
+    ObjectVisualRefreshResult result;
+    if (objects.empty()) {
+        result.diagnostic = "Object visual refresh batch is empty";
+        return result;
+    }
+    if (objects.size() > std::numeric_limits<uint32_t>::max()
+        || (!scene.is_area && (objects.size() != 1 || objects.front() != scene.root_object))
+        || (scene.is_area && (!scene.area_render_scene || scene.root_object.type != nw::ObjectType::area))) {
+        result.status = ObjectVisualRefreshStatus::invalid_input;
+        result.diagnostic = "Object visual refresh scene input is invalid";
+        return result;
+    }
+
+    std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
+    std::sort(ordered.begin(), ordered.end());
+    if (std::adjacent_find(ordered.begin(), ordered.end()) != ordered.end()) {
+        result.status = ObjectVisualRefreshStatus::invalid_input;
+        result.diagnostic = "Object visual refresh batch contains duplicate handles";
+        return result;
+    }
+
+    std::vector<std::unique_ptr<PreviewScene>> replacements;
+    replacements.reserve(objects.size());
+    for (size_t i = 0; i < objects.size(); ++i) {
+        const auto object = objects[i];
+        auto* creature = nw::kernel::objects().get<nw::Creature>(object);
+        const bool represented = !scene.is_area
+            || std::any_of(scene.static_area_model_info.begin(), scene.static_area_model_info.end(),
+                [object](const auto& info) { return info.object == object; });
+        if (!creature || !represented) {
+            result.status = ObjectVisualRefreshStatus::invalid_input;
+            result.diagnostic = "Object visual refresh contains an invalid or unrepresented creature";
+            return result;
+        }
+
+        auto replacement = load_area_creature_scene(
+            resources, *creature, fmt::format("visual refresh {}", i), options);
+        if (!replacement) {
+            result.status = ObjectVisualRefreshStatus::failed;
+            result.diagnostic = "Object visual refresh model construction failed";
+            return result;
+        }
+        prime_scene_hold_animation(*replacement);
+        replacements.push_back(std::move(replacement));
+    }
+
+    auto removal = remove_object_model_rows(scene, objects);
+    if (!removal) {
+        result.status = ObjectVisualRefreshStatus::failed;
+        result.diagnostic = "Object visual refresh could not isolate existing scene rows";
+        return result;
+    }
+
+    size_t added_models = 0;
+    for (size_t i = 0; i < replacements.size(); ++i) {
+        added_models += append_render_models(scene,
+            *replacements[i],
+            AreaRenderSourceInfo{
+                .kind = AreaRenderRecordKind::creature,
+                .object = objects[i],
+            });
+    }
+
+    scene.active_object = objects.front();
+    sync_model_instance_runtime_state(scene);
+    refresh_scene_local_light_render_data(scene);
+    if (scene.area_render_scene) {
+        scene.area_render_scene->rebuild(scene);
+    }
+    if (!scene.load_report.source.empty() || !scene.load_report.kind.empty()) {
+        const std::string report_source = scene.load_report.source;
+        const std::string report_kind = scene.load_report.kind;
+        scene.rebuild_load_report(report_source, report_kind);
+    }
+
+    result.status = ObjectVisualRefreshStatus::success;
+    result.object_count = static_cast<uint32_t>(objects.size());
+    result.removed_model_count = removal->removed_count;
+    result.added_model_count = static_cast<uint32_t>(
+        std::min<size_t>(added_models, std::numeric_limits<uint32_t>::max()));
+    return result;
 }
 
 } // namespace nw::render::viewer

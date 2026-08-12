@@ -70,10 +70,18 @@ bool deserialize(Location& self, const GffStruct gff, SerializationProfile profi
             self.orientation = {std::cos(rad), std::sin(rad), 0.0f};
         }
     } else if (valid) {
-        valid = (gff.get_to("OrientationX", self.orientation[0], false)
-                    && gff.get_to("OrientationY", self.orientation[1], false))
-            || (gff.get_to("XOrientation", self.orientation[0], false)
-                && gff.get_to("YOrientation", self.orientation[1], false));
+        const bool has_orientation = gff.has_field("OrientationX")
+            || gff.has_field("OrientationY")
+            || gff.has_field("XOrientation")
+            || gff.has_field("YOrientation");
+        if (has_orientation) {
+            valid = (gff.get_to("OrientationX", self.orientation[0], false)
+                        && gff.get_to("OrientationY", self.orientation[1], false))
+                || (gff.get_to("XOrientation", self.orientation[0], false)
+                    && gff.get_to("YOrientation", self.orientation[1], false));
+        } else {
+            self.orientation = {};
+        }
 
         // No clue why there is an Z, maybe for camera?
         // Not including it in validity check.

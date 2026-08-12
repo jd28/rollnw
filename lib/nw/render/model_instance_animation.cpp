@@ -151,12 +151,17 @@ bool build_model_instance_skin_matrices(
     out_skin.resize(skin.joints.size(), glm::mat4{1.0f});
     for (size_t i = 0; i < skin.joints.size(); ++i) {
         const int32_t node = skin.joints[i];
-        if (node < 0 || static_cast<size_t>(node) >= node_to_joint.size()) {
+        if (node == kModelSkinIdentityJoint) {
             continue;
+        }
+        if (node < 0 || static_cast<size_t>(node) >= node_to_joint.size()) {
+            out_skin.clear();
+            return false;
         }
         const int32_t joint = node_to_joint[static_cast<size_t>(node)];
         if (joint < 0 || static_cast<size_t>(joint) >= pose.model.size()) {
-            continue;
+            out_skin.clear();
+            return false;
         }
         out_skin[i] = pose.model[static_cast<size_t>(joint)] * skin.inverse_bind_matrices[i];
     }

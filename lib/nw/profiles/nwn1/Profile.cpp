@@ -16,6 +16,7 @@
 #include "../../rules/combat_scheduler.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
+#include "../../smalls/Smalls.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/profile.hpp"
 
@@ -30,11 +31,27 @@ namespace nwn1 {
 
 namespace {
 
+template <typename Array>
+void load_rule_rows(const nw::StaticTwoDA& source, nw::StringView source_name, Array& output)
+{
+    if (!source.is_valid()) {
+        throw std::runtime_error(
+            fmt::format("rules: failed to load '{}.2da'", source_name));
+    }
+
+    output.clear();
+    output.entries.reserve(source.rows());
+    for (size_t i = 0; i < source.rows(); ++i) {
+        output.entries.emplace_back(source.row(i));
+    }
+}
+
 void register_twoda_config_converters()
 {
     // Register 2da-based converters for smalls load_config! paths before any
     // object callbacks can force scripts to load these modules.
     using CM = nw::smalls::Runtime::TwoDAColumnMapping;
+    using Merge = nw::smalls::Runtime::TwoDAConfigMerge;
     auto& srt = nw::kernel::runtime();
 
     // Scan classes.2da for unique SavingThrowTable and AttackBonusTable values
@@ -83,19 +100,6 @@ void register_twoda_config_converters()
     }
 
     srt.register_twoda_converter("nwn1.data.appearance", "appearance", {
-                                                                           CM{"STRING_REF", "name"},
-                                                                           CM{"RACE", "model"},
-                                                                           CM{"MODELTYPE", "model_type", {
-                                                                                                             {"P", 0},
-                                                                                                             {"S", 1},
-                                                                                                             {"F", 2},
-                                                                                                             {"L", 3},
-                                                                                                             {"FT", 4},
-                                                                                                             {"FW", 5},
-                                                                                                             {"FWT", 6},
-                                                                                                             {"LWT", 7},
-                                                                                                             {"SWT", 8},
-                                                                                                         }},
                                                                            CM{"SIZECATEGORY", "size"},
                                                                            CM{"MOVERATE", "walkrate", {
                                                                                                           {"PLAYER", 0},
@@ -114,6 +118,17 @@ void register_twoda_config_converters()
                                                                            CM{"WEAPONSCALE", "weapon_scale", {}, {}, 0, -1.0f},
                                                                            CM{"HASARMS", "has_arms", {}, {}, 0, 0.0f, true},
                                                                        });
+    srt.register_twoda_converter("nwn1.data.placeables", "placeables", {
+                                                                           CM{"LightColor", "light_color", {}, {}, -1},
+                                                                           CM{"LightOffsetX", "light_offset_x"},
+                                                                           CM{"LightOffsetY", "light_offset_y"},
+                                                                           CM{"LightOffsetZ", "light_offset_z"},
+                                                                           CM{"Static", "static"},
+                                                                       });
+    srt.register_twoda_converter("nwn1.data.phenotype", "phenotype", {
+                                                                         CM{"Name", "name"},
+                                                                         CM{"DefaultPhenoType", "fallback"},
+                                                                     });
     srt.register_twoda_converter("nwn1.data.parts_robe", "parts_robe", {
                                                                            CM{"HIDEBELT", "hide_belt"},
                                                                            CM{"HIDEBICEPL", "hide_bicep_left"},
@@ -136,9 +151,11 @@ void register_twoda_config_converters()
                                                                            CM{"HIDECHEST", "hide_torso"},
                                                                        });
     srt.register_twoda_converter("nwn1.data.wingmodel", "wingmodel", {
+                                                                         CM{"LABEL", "label"},
                                                                          CM{"MODEL", "model"},
                                                                      });
     srt.register_twoda_converter("nwn1.data.tailmodel", "tailmodel", {
+                                                                         CM{"LABEL", "label"},
                                                                          CM{"MODEL", "model"},
                                                                      });
     srt.register_twoda_converter("nwn1.data.creaturesize", "creaturesize", {
@@ -173,7 +190,8 @@ void register_twoda_config_converters()
                                                                                                                   {"wis", 4},
                                                                                                                   {"cha", 5},
                                                                                                               }},
-                                                                 });
+                                                                 },
+        Merge::seed_rows);
     srt.register_twoda_converter("nwn1.data.spells", "spells", {
                                                                    CM{"Innate", "innate_level"},
                                                                    CM{"UserType", "user_type"},
@@ -238,14 +256,6 @@ void register_twoda_config_converters()
     srt.register_twoda_converter("nwn1.data.genericdoors", "genericdoors", {
                                                                                CM{"ModelName", "model"},
                                                                            });
-    srt.register_twoda_converter("nwn1.data.placeables", "placeables", {
-                                                                           CM{"ModelName", "model"},
-                                                                           CM{"LightColor", "light_color", {}, {}, -1},
-                                                                           CM{"LightOffsetX", "light_offset_x"},
-                                                                           CM{"LightOffsetY", "light_offset_y"},
-                                                                           CM{"LightOffsetZ", "light_offset_z"},
-                                                                           CM{"Static", "static"},
-                                                                       });
     srt.register_twoda_converter("nwn1.data.cloakmodels", "cloakmodel", {
                                                                             CM{"ICON", "icon", {}, {}, -1},
                                                                             CM{"MODEL", "model", {}, {}, -1},
@@ -305,12 +315,21 @@ void recompute_creature_available_spell_slots(nw::smalls::Runtime& rt, nw::Objec
     }
 }
 
-} // namespace
-
-void Profile::load_custom_services()
+void load_baseitem_definitions()
 {
-    nw::kernel::runtime().add_module_path(std::filesystem::path("stdlib") / "nwn1");
+    auto& rt = nw::kernel::runtime();
+    auto result = rt.execute_script("nwn1.baseitems", "init");
+    if (!result.ok()) {
+        throw std::runtime_error(
+            fmt::format("rules: failed to load base-item definitions: {}",
+                result.error_message));
+    }
+    if (result.value.type_id != rt.bool_type() || !result.value.data.bval) {
+        throw std::runtime_error("rules: invalid base-item definitions");
+    }
 }
+
+} // namespace
 
 bool Profile::load_rules() const
 {
@@ -357,21 +376,17 @@ bool Profile::load_rules() const
     nw::StaticTwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
     nw::String temp_string;
 
-    auto& appearance_array = nw::kernel::rules().appearances;
-    if (appearances.is_valid()) {
-        appearance_array.entries.reserve(appearances.rows());
-        for (size_t i = 0; i < appearances.rows(); ++i) {
-            appearance_array.entries.emplace_back(appearances.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'appearance.2da'");
-    }
+    auto& rules = nw::kernel::rules();
+    load_rule_rows(appearances, "appearance", rules.appearances);
+    load_rule_rows(placeables, "placeables", rules.placeables);
+    load_baseitem_definitions();
 
     // Class policy is generated as Smalls config. Keep the load-time check here
     // because the profile still requires classes.2da for nwn1.data.classes.

@@ -1,5 +1,5 @@
 from core.types import { Class, Spell };
-from nwn1.rules import { MetamagicEntry };
+from nwn1.rules import { MetamagicEntry, StrRef };
 
 import core.array as Array;
 import nwn1.classes as Classes;
@@ -36,6 +36,22 @@ fn _entry_exists(row: int): bool {
     return row >= 0 && row < Array.len(_entries);
 }
 
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_entries);
+}
+
+fn code_for_row(row: int): int {
+    if (row == 0) { return metamagic_none; }
+    if (row == metamagic_row_quicken) { return metamagic_quicken; }
+    if (row == metamagic_row_empower) { return metamagic_empower; }
+    if (row == metamagic_row_extend) { return metamagic_extend; }
+    if (row == metamagic_row_maximize) { return metamagic_maximize; }
+    if (row == metamagic_row_silent) { return metamagic_silent; }
+    if (row == metamagic_row_still) { return metamagic_still; }
+    return -1;
+}
+
 fn row_for_code(code: int): int {
     if (code == metamagic_quicken) { return metamagic_row_quicken; }
     if (code == metamagic_empower) { return metamagic_row_empower; }
@@ -48,6 +64,22 @@ fn row_for_code(code: int): int {
 
 fn is_specific_code(code: int): bool {
     return _entry_exists(row_for_code(code));
+}
+
+fn name_strref(code: int): StrRef {
+    var row = code == metamagic_none ? 0 : row_for_code(code);
+    if (!_entry_exists(row)) {
+        return StrRef(-1);
+    }
+    return Array.get(_entries, row).name;
+}
+
+fn feat(code: int): int {
+    var row = code == metamagic_none ? 0 : row_for_code(code);
+    if (!_entry_exists(row)) {
+        return -1;
+    }
+    return Array.get(_entries, row).feat;
 }
 
 fn level_adjustment(code: int): int {

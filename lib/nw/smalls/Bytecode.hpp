@@ -350,6 +350,7 @@ struct BytecodeModule {
     Vector<InternedString> external_refs;                           // qualified names (stable)
     Vector<uint32_t> external_indices;                              // resolved runtime indices (rebuilt on reload)
     absl::flat_hash_map<InternedString, uint32_t> external_ref_map; // name -> local ref index
+    bool external_refs_resolved = false;
 
     // Cross-module global access (resolved at link time via resolve_external_refs)
     struct ExternalGlobalRef {

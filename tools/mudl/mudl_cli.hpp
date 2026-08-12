@@ -40,11 +40,6 @@ struct ForwardPlusRenderPolicy {
     ForwardPlusDebugMode debug_mode = ForwardPlusDebugMode::off;
 };
 
-enum class DanglyMode {
-    legacy,
-    modern,
-};
-
 struct ParsedArgs {
     std::string command;
     bool command_mode = false;
@@ -69,7 +64,6 @@ struct ParsedArgs {
     std::string user_path;
     std::string pbr_environment_path;
     bool pbr_ibl_enabled = true;
-    bool legacy_nwn_model_path = false;
     std::string live_export_output_path;
     std::string benchmark_output_path;
     std::string benchmark_screenshot_path;
@@ -91,8 +85,6 @@ struct ParsedArgs {
     float benchmark_visible_tile_cone_half_angle = 75.0f;
     std::optional<float> benchmark_area_time_seconds;
     AreaBenchmarkVisibilityMode benchmark_visibility_mode = AreaBenchmarkVisibilityMode::radius;
-    float dangly_scale = 1.0f;
-    DanglyMode dangly_mode = DanglyMode::legacy;
     float particle_preview_time = 1.0f;
     float particle_preview_duration = 1.0f;
     int particle_preview_fps = 24;

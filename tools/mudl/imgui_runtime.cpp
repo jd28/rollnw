@@ -78,14 +78,6 @@ bool has_animation_names(const std::vector<std::vector<std::string>>& groups)
     return false;
 }
 
-std::string scene_model_label(const nw::render::nwn::ModelInstance& model, size_t model_index)
-{
-    if (model.mdl_ && !model.mdl_->model.name.empty()) {
-        return model.mdl_->model.name.c_str();
-    }
-    return "model " + std::to_string(model_index);
-}
-
 bool is_ring_emitter_name(const std::string& name)
 {
     return name.rfind("ring", 0) == 0;
@@ -860,25 +852,23 @@ void build_particle_system_debug(nw::render::viewer::SceneParticleSystem& scene_
             ++visible_ring_emitter_count;
         }
     }
-    const std::string owner_name = scene_particles.owner && scene_particles.owner->mdl_
-        ? scene_particles.owner->mdl_->model.name.c_str()
-        : std::string{"<none>"};
+    const std::string owner_name = scene_particles.owner_instance_handle.valid()
+        ? std::to_string(scene_particles.owner_model_index)
+        : std::string{"<standalone>"};
     const std::string header = "Emitter set " + std::to_string(system_index)
         + "##set_" + std::to_string(system_index);
     if (!ImGui::TreeNode(header.c_str())) {
         return;
     }
 
-    ImGui::Text("Owner: %s", owner_name.c_str());
+    ImGui::Text("Owner model: %s", owner_name.c_str());
     ImGui::Text("Live particles: %zu  Packets: %zu  Emitters: %zu  Beam rows: %zu",
         live_particles,
         scene_particles.system.render_packets.span().size(),
         emitter_count,
         scene_particles.system.particles.beams.source_position.size());
     ImGui::Text("Ring emitters: %zu visible / %zu total", visible_ring_emitter_count, ring_emitter_count);
-    ImGui::Text("Owner animation time: %.3f s  Collision: %s",
-        static_cast<double>(scene_particles.animation_time),
-        scene_particles.collision ? "yes" : "no");
+    ImGui::Text("Owner animation time: %.3f s", static_cast<double>(scene_particles.animation_time));
     bool visibility_changed = false;
     if (ImGui::Button(("Show all##emitters_all_" + std::to_string(system_index)).c_str())) {
         visibility_changed |= set_all_emitters_visible(scene_particles, true);
@@ -930,9 +920,7 @@ void build_particle_system_debug(nw::render::viewer::SceneParticleSystem& scene_
 
 void build_animation_controls(AppState& state)
 {
-    const bool has_nwn_animations = has_animation_names(state.model_animation_names);
-    const bool has_gltf_animations = has_animation_names(state.gltf_animation_names);
-    if (!has_nwn_animations && !has_gltf_animations) {
+    if (!has_animation_names(state.gltf_animation_names)) {
         return;
     }
 
@@ -941,112 +929,39 @@ void build_animation_controls(AppState& state)
         return;
     }
 
-    if (has_nwn_animations) {
-        if (!state.vfx_sequence_steps.empty()) {
-            ImGui::TextUnformatted("NWN scene animations are driven by the active VFX sequence.");
-        } else {
-            const bool shared_source = state.current_scene
-                && scene_uses_shared_nwn_animation_source(*state.current_scene);
-            if (shared_source) {
-                size_t shared_model_index = state.current_scene->models.size();
-                for (size_t model_index = 0; model_index < state.model_animation_names.size()
-                    && model_index < state.current_scene->models.size();
-                    ++model_index) {
-                    const auto& names = state.model_animation_names[model_index];
-                    const auto& model = state.current_scene->models[model_index];
-                    if (names.empty() || !model || !model->scene_animation_enabled) {
-                        continue;
-                    }
-
-                    shared_model_index = model_index;
-                    const char* current_animation = model->anim_ ? model->anim_->name.c_str() : "<none>";
-                    if (ImGui::BeginCombo("NWN animation", current_animation)) {
-                        for (const auto& name : names) {
-                            const bool selected = model->anim_ && name == model->anim_->name.c_str();
-                            if (ImGui::Selectable(name.c_str(), selected)) {
-                                select_model_animation(state, shared_model_index, name);
-                            }
-                            if (selected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-                    break;
-                }
-            } else {
-                for (size_t model_index = 0; model_index < state.model_animation_names.size()
-                    && model_index < state.current_scene->models.size();
-                    ++model_index) {
-                    const auto& names = state.model_animation_names[model_index];
-                    const auto& model = state.current_scene->models[model_index];
-                    if (names.empty() || !model || !model->scene_animation_enabled) {
-                        continue;
-                    }
-
-                    ImGui::PushID(static_cast<int>(model_index));
-                    if (state.current_scene->models.size() > 1) {
-                        ImGui::Text("Model %zu: %s", model_index, scene_model_label(*model, model_index).c_str());
-                    }
-
-                    const char* current_animation = model->anim_ ? model->anim_->name.c_str() : "<none>";
-                    const char* combo_label = "##nwn_animation";
-                    if (ImGui::BeginCombo(combo_label, current_animation)) {
-                        for (const auto& name : names) {
-                            const bool selected = model->anim_ && name == model->anim_->name.c_str();
-                            if (ImGui::Selectable(name.c_str(), selected)) {
-                                select_model_animation(state, model_index, name);
-                            }
-                            if (selected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-                    ImGui::PopID();
-                }
-            }
-        }
+    if (state.current_scene->static_models.size() > 1) {
+        ImGui::TextUnformatted("RenderModel clip selection is shared by clip index across animated models.");
     }
 
-    if (has_gltf_animations) {
-        if (has_nwn_animations) {
-            ImGui::Separator();
+    for (size_t model_index = 0; model_index < state.gltf_animation_names.size()
+        && model_index < state.current_scene->static_models.size();
+        ++model_index) {
+        const auto& names = state.gltf_animation_names[model_index];
+        const auto& model = state.current_scene->static_models[model_index];
+        if (names.empty() || !model) {
+            continue;
         }
+
+        ImGui::PushID(static_cast<int>(1000 + model_index));
         if (state.current_scene->static_models.size() > 1) {
-            ImGui::TextUnformatted("RenderModel clip selection is shared by clip index across animated static models.");
+            ImGui::Text("RenderModel %zu: %s", model_index, model->name.c_str());
         }
 
-        for (size_t model_index = 0; model_index < state.gltf_animation_names.size()
-            && model_index < state.current_scene->static_models.size();
-            ++model_index) {
-            const auto& names = state.gltf_animation_names[model_index];
-            const auto& model = state.current_scene->static_models[model_index];
-            if (names.empty() || !model) {
-                continue;
-            }
-
-            ImGui::PushID(static_cast<int>(1000 + model_index));
-            if (state.current_scene->static_models.size() > 1) {
-                ImGui::Text("RenderModel %zu: %s", model_index, model->name.c_str());
-            }
-
-            const size_t active_index = state.gltf_animation_clip % names.size();
-            const char* combo_label = state.current_scene->static_models.size() > 1 ? "Clip" : "RenderModel clip";
-            if (ImGui::BeginCombo(combo_label, names[active_index].c_str())) {
-                for (size_t clip_index = 0; clip_index < names.size(); ++clip_index) {
-                    const bool selected = clip_index == active_index;
-                    if (ImGui::Selectable(names[clip_index].c_str(), selected)) {
-                        set_gltf_animation_clip(state, static_cast<uint32_t>(clip_index));
-                    }
-                    if (selected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
+        const size_t active_index = state.gltf_animation_clip % names.size();
+        const char* combo_label = state.current_scene->static_models.size() > 1 ? "Clip" : "RenderModel clip";
+        if (ImGui::BeginCombo(combo_label, names[active_index].c_str())) {
+            for (size_t clip_index = 0; clip_index < names.size(); ++clip_index) {
+                const bool selected = clip_index == active_index;
+                if (ImGui::Selectable(names[clip_index].c_str(), selected)) {
+                    set_gltf_animation_clip(state, static_cast<uint32_t>(clip_index));
                 }
-                ImGui::EndCombo();
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
             }
-            ImGui::PopID();
+            ImGui::EndCombo();
         }
+        ImGui::PopID();
     }
 }
 
@@ -1194,9 +1109,7 @@ void build_debug_window(AppState& state)
 
     if (state.current_scene) {
         ImGui::Separator();
-        ImGui::Text("Models: legacy %zu  static %zu",
-            state.current_scene->models.size(),
-            state.current_scene->static_models.size());
+        ImGui::Text("Models: %zu", state.current_scene->static_models.size());
         ImGui::Text("Particles: %zu", state.current_scene->particles.size());
         ImGui::Text("Scene playback: %s", state.scene_playing ? "playing" : "paused");
         if (ImGui::Button(state.scene_playing ? "Pause scene" : "Resume scene")) {

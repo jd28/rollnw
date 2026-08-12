@@ -333,6 +333,11 @@ The system already covers the major NWN families:
 - keyed birthrate and spawn animation
 - three-stage over-life behavior
 
+`mesh_basic` packets resolve one cached `RenderModel` per authored mesh and
+submit the validated particle roots as one transient instance batch. Persistent
+scene `ModelInstance` rows are not created for short-lived particles, and no
+source-format model payload reaches the renderer.
+
 ## JSON And Native Assets
 
 The source-neutral serialization layer is defined in:

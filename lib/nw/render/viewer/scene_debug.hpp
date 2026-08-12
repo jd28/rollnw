@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 namespace nw::render {
+struct Bounds;
 struct RenderContext;
 class ShaderProvider;
 } // namespace nw::render
@@ -39,6 +40,11 @@ public:
         float spacing, float major_interval, float minor_width, float major_width, float opacity, float z_offset);
     void render_debug_shapes(nw::gfx::CommandList* cmd, const PreviewScene& scene, const nw::render::RenderContext& ctx,
         DebugShapeOptions options = {});
+    void render_selection_bounds(
+        nw::gfx::CommandList* cmd,
+        const nw::render::Bounds& bounds,
+        const nw::render::RenderContext& ctx,
+        const glm::vec4& color);
 
 private:
     nw::gfx::Context* ctx_ = nullptr;
@@ -48,6 +54,8 @@ private:
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_indices_;
+    nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_vertices_;
+    nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_indices_;
     size_t debug_grid_vertex_capacity_ = 0;
     size_t debug_grid_index_capacity_ = 0;
     size_t debug_shape_vertex_capacity_ = 0;
@@ -58,7 +66,7 @@ void append_debug_triangle(PreviewScene& scene, const glm::vec3& a, const glm::v
     const glm::vec4& color);
 void append_debug_segment(PreviewScene& scene, const glm::vec3& a, const glm::vec3& b, const glm::vec4& color,
     float width);
-void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index);
+uint32_t append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index);
 bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger);
 bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter);
 

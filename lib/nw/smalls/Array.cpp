@@ -83,7 +83,36 @@ bool TypedArray<bool>::set_value(size_t index, const Value& v, Runtime& /*rt*/)
     return true;
 }
 
-// == TypedArray<HeapPtr> (for strings, objects, etc.) =======================
+// == TypedArray<ObjectHandle> ===============================================
+
+template <>
+void TypedArray<ObjectHandle>::append_value(const Value& v, Runtime& rt)
+{
+    ENSURE_OR_RETURN(v.type_id == elem_type_id && rt.is_object_like_type(v.type_id),
+        "Type mismatch: expected object type {}, got {}", elem_type_id.value, v.type_id.value);
+    elements.push_back(v.data.oval);
+}
+
+template <>
+bool TypedArray<ObjectHandle>::get_value(size_t index, Value& out, const Runtime& rt) const
+{
+    ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
+    out = Value::make_object(elements[index]);
+    out.type_id = elem_type_id;
+    return true;
+}
+
+template <>
+bool TypedArray<ObjectHandle>::set_value(size_t index, const Value& v, Runtime& rt)
+{
+    ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
+    ENSURE_OR_RETURN_FALSE(v.type_id == elem_type_id && rt.is_object_like_type(v.type_id),
+        "Type mismatch: expected object type {}, got {}", elem_type_id.value, v.type_id.value);
+    elements[index] = v.data.oval;
+    return true;
+}
+
+// == TypedArray<HeapPtr> (for strings and heap references) ==================
 
 template <>
 void TypedArray<HeapPtr>::append_value(const Value& v, Runtime& /*rt*/)

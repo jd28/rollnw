@@ -5,7 +5,34 @@ SamplerState g_sampler : register(s3, space1);
 
 #include "scene_constants.inc.hlsl"
 #include "forward_plus.inc.hlsl"
-#include "shadow.inc.hlsl"
+#include "scene_shadow.inc.hlsl"
+
+// Layout must match nw::render::SurfaceConstants exactly. Water consumes the
+// common RenderModel material payload; it does not have a legacy mesh uniform.
+cbuffer SurfaceConstants : register(b4) {
+    float4 sc_albedo;
+    float  sc_roughness;
+    float  sc_metallic;
+    float  sc_specular_strength;
+    float  sc_normal_scale;
+    float  sc_occlusion_strength;
+    float  sc_ibl_strength;
+    float  sc_exposure;
+    float  sc_pad0;
+    float4 sc_emissive;
+    uint   sc_albedo_index;
+    uint   sc_normal_index;
+    uint   sc_surface_index;
+    uint   sc_emissive_index;
+    uint   sc_alpha_mode;
+    float  sc_alpha_cutoff;
+    uint   sc_double_sided;
+    uint   sc_plt_enabled;
+    float4 sc_color_key_threshold;
+    uint4  sc_plt_colors0;
+    uint4  sc_plt_colors1;
+    uint4  sc_plt_colors2;
+};
 
 struct PSInput {
     float4 position  : SV_Position;
@@ -162,13 +189,13 @@ float3 analytical_sky_color(float3 R, float3 L_key) {
 }
 
 float water_shadow_visibility(float3 world_pos, float3 N, float3 L, float scene_distance) {
-    const float visibility = shadow_directional_raw_visibility(
+    const float visibility = scene_shadow_directional_raw_visibility(
         world_pos, N, L, scene_distance,
         0.0020, 0.0010, 0.00055, 0.00025,
         0.035, 0.025,
         1.25, 0.50);
     const float surface_weight = saturate(abs(N.z));
-    const float influence = saturate(shadow_strength * 0.32 * surface_weight);
+    const float influence = saturate(scene_shadow_strength * 0.32 * surface_weight);
     return lerp(1.0 - influence, 1.0, visibility);
 }
 
@@ -200,6 +227,12 @@ void accumulate_water_local_light(
     float attenuation = saturate(1.0 - falloff);
     attenuation *= attenuation;
     float intensity = color_intensity.w * attenuation;
+    const uint shadow_slot_plus_one = (uint)(light_params.z + 0.5);
+    if (shadow_slot_plus_one > 0u) {
+        const float3 light_direction = light_delta * rsqrt(max(dist_sq, 1.0e-5));
+        intensity *= scene_local_shadow_visibility(
+            shadow_slot_plus_one - 1u, world_pos, N, light_direction);
+    }
     if (ambient_local_light) {
         diffuse += color_intensity.xyz * intensity * 0.18;
         return;
@@ -241,14 +274,14 @@ void accumulate_water_forward_plus_lights(
 
 float4 main(PSInput input) : SV_Target {
     const float time_seconds = pad_alpha.y;
-    const float opacity = saturate(pad_alpha.x);
+    const float opacity = saturate(sc_albedo.a);
     const float2 wind_dir = safe_wind_direction();
     const float wind_force = saturate(environment_wind.z);
     const float wind_speed = max(environment_wind.w, 0.05);
     const float weather_density = saturate(environment_weather.x);
     const float water_quality = environment_weather.w;
 
-    const uint tex_idx = NonUniformResourceIndex(texture_index);
+    const uint tex_idx = NonUniformResourceIndex(sc_albedo_index);
     float4 texel = g_textures[tex_idx].Sample(g_sampler, input.texcoord);
     float3 flow_a = g_textures[tex_idx].Sample(g_sampler,
         input.texcoord + wind_dir * (0.0035 + wind_force * 0.0045) * wind_speed * time_seconds).rgb;
@@ -322,12 +355,12 @@ float4 main(PSInput input) : SV_Target {
     final_color = final_color / (final_color + float3(1.0, 1.0, 1.0));
     final_color = pow(saturate(final_color), 1.0 / 2.2);
 
-    if (debug_mode != 0) {
+    if (scene_shadow_debug_mode != 0u) {
         final_color = lerp(final_color, float3(0.15, 0.65, 0.95), 0.65);
     }
     final_color = forward_plus_apply_debug(final_color, input.position, input.view_depth, 0.72);
 
-    // Legacy NWN water is self-composited by the water shader. Keep the target opaque so
+    // NWN tile water is self-composited by the water shader. Keep the target opaque so
     // transparent tile water does not expose the viewport clear color when no bottom mesh exists.
     const float output_alpha = saturate(opacity);
     return float4(final_color * output_alpha, output_alpha);

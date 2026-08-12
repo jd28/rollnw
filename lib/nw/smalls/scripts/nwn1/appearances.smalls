@@ -1,0 +1,40 @@
+from nwn1.rules import { AppearanceRules };
+
+import core.array as Array;
+import core.creature as NativeCreature;
+import nwn1.rules as Rules;
+
+var _loaded = false;
+var _appearances: array!(AppearanceRules);
+const appearance_invalid = AppearanceRules{ id = -1 };
+
+fn _ensure_loaded() {
+    if (_loaded) { return; }
+    _appearances = load_config!(AppearanceRules)("nwn1.data.appearance");
+    _loaded = true;
+}
+
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_appearances);
+}
+
+fn get_rules(appearance: int): AppearanceRules {
+    _ensure_loaded();
+    if (appearance >= 0 && appearance < Array.len(_appearances)) {
+        var result = Array.get(_appearances, appearance);
+        if (result.id == appearance) {
+            return result;
+        }
+    }
+
+    return appearance_invalid;
+}
+
+fn get_info(appearance: int): NativeCreature.AppearanceInfo {
+    return NativeCreature.appearance_info(appearance);
+}
+
+fn exists(appearance: int): bool {
+    return get_rules(appearance).id == appearance && get_info(appearance).id == appearance;
+}

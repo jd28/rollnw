@@ -35,10 +35,10 @@ size_t append_placeable_table_lights(
     PreviewScene& scene,
     const nw::Location& location,
     const nw::ObjectVisualState* visual);
-size_t append_model_authored_lights(PreviewScene& scene, size_t model_index);
+size_t append_render_model_authored_lights(PreviewScene& scene, size_t model_index);
 size_t append_scene_authored_model_lights(PreviewScene& scene);
-size_t append_tile_model_lights(
-    PreviewScene& scene, const nw::model::Mdl& mdl, const glm::mat4& tile_placement, const nw::AreaTile& tile, int tile_x, int tile_y);
+size_t append_tile_render_model_lights(
+    PreviewScene& scene, size_t model_index, const nw::AreaTile& tile, int tile_x, int tile_y);
 void refresh_scene_local_light_render_data(PreviewScene& scene);
 bool refresh_scene_dynamic_local_light_render_data(PreviewScene& scene);
 

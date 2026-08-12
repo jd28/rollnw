@@ -90,6 +90,7 @@ private:
         const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
     void import_list_struct(const FieldGffPolicy& fp, const nw::smalls::FieldDef& field,
         const nw::smalls::Value& ref, const nw::GffStruct& gff) const;
+    void import_item_properties(nw::Item* obj, const nw::GffStruct& gff) const;
     void import_item_visuals(nw::Item* obj, const nw::GffStruct& gff) const;
     void write_item_armor_stats(nw::Item* obj, int32_t armor_id) const;
 

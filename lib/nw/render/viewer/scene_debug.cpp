@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -43,6 +44,8 @@ SceneDebugRenderer::SceneDebugRenderer(nw::gfx::Context* ctx) noexcept
 
 SceneDebugRenderer::~SceneDebugRenderer()
 {
+    if (selection_bounds_indices_.valid()) nw::gfx::destroy_buffer(selection_bounds_indices_);
+    if (selection_bounds_vertices_.valid()) nw::gfx::destroy_buffer(selection_bounds_vertices_);
     if (debug_shape_indices_.valid()) nw::gfx::destroy_buffer(debug_shape_indices_);
     if (debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(debug_shape_vertices_);
     if (debug_grid_indices_.valid()) nw::gfx::destroy_buffer(debug_grid_indices_);
@@ -116,6 +119,110 @@ struct DebugShapeConstants {
     glm::mat4 view{1.0f};
     glm::mat4 projection{1.0f};
 };
+
+constexpr size_t kSelectionBoundsEdgeCount = 12;
+constexpr size_t kSelectionBoundsVertexCount = kSelectionBoundsEdgeCount * 4;
+constexpr size_t kSelectionBoundsIndexCount = kSelectionBoundsEdgeCount * 6;
+
+struct SelectionBoundsGeometry {
+    std::array<DebugShapeVertex, kSelectionBoundsVertexCount> vertices;
+    std::array<uint32_t, kSelectionBoundsIndexCount> indices;
+    uint32_t vertex_count = 0;
+    uint32_t index_count = 0;
+};
+
+bool finite_ordered_bounds(const nw::render::Bounds& bounds) noexcept
+{
+    return std::isfinite(bounds.min.x) && std::isfinite(bounds.min.y) && std::isfinite(bounds.min.z)
+        && std::isfinite(bounds.max.x) && std::isfinite(bounds.max.y) && std::isfinite(bounds.max.z)
+        && bounds.min.x <= bounds.max.x && bounds.min.y <= bounds.max.y && bounds.min.z <= bounds.max.z;
+}
+
+void append_selection_bounds_edge(
+    SelectionBoundsGeometry& out,
+    const glm::vec3& a,
+    const glm::vec3& b,
+    const glm::vec3& camera_position,
+    const glm::vec4& color)
+{
+    constexpr float kLineWidth = 0.06f;
+    const glm::vec3 edge = b - a;
+    const float edge_length_squared = glm::dot(edge, edge);
+    if (edge_length_squared <= 1.0e-10f
+        || out.vertex_count + 4 > out.vertices.size()
+        || out.index_count + 6 > out.indices.size()) {
+        return;
+    }
+
+    glm::vec3 side = glm::cross(edge, camera_position - (a + b) * 0.5f);
+    float side_length_squared = glm::dot(side, side);
+    if (side_length_squared <= 1.0e-10f) {
+        side = glm::cross(edge, glm::vec3{0.0f, 0.0f, 1.0f});
+        side_length_squared = glm::dot(side, side);
+    }
+    if (side_length_squared <= 1.0e-10f) {
+        side = glm::cross(edge, glm::vec3{0.0f, 1.0f, 0.0f});
+        side_length_squared = glm::dot(side, side);
+    }
+    if (side_length_squared <= 1.0e-10f) {
+        return;
+    }
+    side *= (0.5f * kLineWidth) / std::sqrt(side_length_squared);
+
+    const uint32_t base = out.vertex_count;
+    out.vertices[out.vertex_count++] = {a + side, color};
+    out.vertices[out.vertex_count++] = {b + side, color};
+    out.vertices[out.vertex_count++] = {b - side, color};
+    out.vertices[out.vertex_count++] = {a - side, color};
+    out.indices[out.index_count++] = base;
+    out.indices[out.index_count++] = base + 1;
+    out.indices[out.index_count++] = base + 2;
+    out.indices[out.index_count++] = base;
+    out.indices[out.index_count++] = base + 2;
+    out.indices[out.index_count++] = base + 3;
+}
+
+SelectionBoundsGeometry build_selection_bounds_geometry(
+    const nw::render::Bounds& bounds,
+    const glm::vec3& camera_position,
+    const glm::vec4& color)
+{
+    SelectionBoundsGeometry result;
+    if (!finite_ordered_bounds(bounds)) {
+        return result;
+    }
+
+    constexpr float kBoundsPadding = 0.04f;
+    const glm::vec3 minimum = bounds.min - glm::vec3{kBoundsPadding};
+    const glm::vec3 maximum = bounds.max + glm::vec3{kBoundsPadding};
+    std::array<glm::vec3, 8> corners;
+    for (uint32_t corner = 0; corner < corners.size(); ++corner) {
+        corners[corner] = {
+            (corner & 1u) != 0u ? maximum.x : minimum.x,
+            (corner & 2u) != 0u ? maximum.y : minimum.y,
+            (corner & 4u) != 0u ? maximum.z : minimum.z,
+        };
+    }
+
+    constexpr std::array<std::array<uint8_t, 2>, kSelectionBoundsEdgeCount> edges{{
+        {{0, 1}},
+        {{2, 3}},
+        {{4, 5}},
+        {{6, 7}},
+        {{0, 2}},
+        {{1, 3}},
+        {{4, 6}},
+        {{5, 7}},
+        {{0, 4}},
+        {{1, 5}},
+        {{2, 6}},
+        {{3, 7}},
+    }};
+    for (const auto& edge : edges) {
+        append_selection_bounds_edge(result, corners[edge[0]], corners[edge[1]], camera_position, color);
+    }
+    return result;
+}
 
 } // namespace
 
@@ -255,15 +362,12 @@ std::vector<glm::vec3> normalize_debug_polygon_points(
     return points;
 }
 
-void append_debug_polygon(
+void append_debug_polygon_outline(
     PreviewScene& scene,
-    std::span<const glm::vec3> geometry,
-    const nw::Location& location,
+    std::span<const glm::vec3> points,
     const glm::vec4& outline_color,
-    float z_offset,
     float outline_width)
 {
-    const auto points = normalize_debug_polygon_points(geometry, area_object_placement_transform(location), z_offset);
     if (points.size() < 2) {
         return;
     }
@@ -271,6 +375,82 @@ void append_debug_polygon(
     for (size_t i = 0; i < points.size(); ++i) {
         append_debug_segment(scene, points[i], points[(i + 1) % points.size()], outline_color, outline_width);
     }
+}
+
+bool append_debug_shape_selection_range(
+    PreviewScene& scene,
+    DebugShapeCategory category,
+    nw::ObjectHandle object,
+    uint32_t debug_shape_range_index,
+    std::span<const glm::vec3> polygon)
+{
+    if (!nw::kernel::objects().valid(object)
+        || debug_shape_range_index >= scene.debug_shape_ranges.size()
+        || scene.debug_shape_selection_ranges.size() >= kInvalidAreaRenderRecordIndex
+        || scene.debug_shape_selection_points.size() > std::numeric_limits<uint32_t>::max()
+        || polygon.size() > std::numeric_limits<uint32_t>::max() - scene.debug_shape_selection_points.size()) {
+        return false;
+    }
+
+    nw::render::Bounds bounds{};
+    bool has_bounds = false;
+    const auto include_point = [&bounds, &has_bounds](const glm::vec3& point) {
+        if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
+            return false;
+        }
+        if (!has_bounds) {
+            bounds = {.min = point, .max = point};
+            has_bounds = true;
+        } else {
+            bounds.min = glm::min(bounds.min, point);
+            bounds.max = glm::max(bounds.max, point);
+        }
+        return true;
+    };
+
+    const uint32_t first_point = static_cast<uint32_t>(scene.debug_shape_selection_points.size());
+    float plane_z = 0.0f;
+    const bool polygon_selection = polygon.size() >= 3;
+    if (polygon_selection) {
+        for (size_t point_index = 0; point_index < polygon.size(); ++point_index) {
+            const auto& point = polygon[point_index];
+            if (!include_point(point)) {
+                return false;
+            }
+            plane_z += (point.z - plane_z) / static_cast<float>(point_index + 1);
+        }
+        scene.debug_shape_selection_points.insert(
+            scene.debug_shape_selection_points.end(), polygon.begin(), polygon.end());
+    } else {
+        bounds = {};
+        has_bounds = false;
+        const auto& debug_range = scene.debug_shape_ranges[debug_shape_range_index];
+        const size_t first_index = debug_range.first_index;
+        const size_t index_end = std::min<size_t>(
+            first_index + debug_range.index_count,
+            scene.debug_shape_indices.size());
+        for (size_t index = first_index; index < index_end; ++index) {
+            const uint32_t vertex_index = scene.debug_shape_indices[index];
+            if (vertex_index >= scene.debug_shape_vertices.size()
+                || !include_point(scene.debug_shape_vertices[vertex_index].position)) {
+                return false;
+            }
+        }
+    }
+    if (!has_bounds) {
+        return false;
+    }
+
+    scene.debug_shape_selection_ranges.push_back(DebugShapeSelectionRange{
+        .bounds = bounds,
+        .object = object,
+        .debug_shape_range_index = debug_shape_range_index,
+        .first_point = first_point,
+        .point_count = polygon_selection ? static_cast<uint32_t>(polygon.size()) : 0u,
+        .plane_z = plane_z,
+        .category = category,
+    });
+    return true;
 }
 
 void append_debug_spawn_marker(PreviewScene& scene, const nw::ObjectSpawnPoint& spawn_point)
@@ -339,13 +519,16 @@ void append_debug_segment(
                                                                       });
 }
 
-void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index)
+uint32_t append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index)
 {
     const size_t last_index = scene.debug_shape_indices.size();
-    if (last_index <= first_index || first_index > std::numeric_limits<uint32_t>::max()) {
-        return;
+    if (last_index <= first_index
+        || first_index > std::numeric_limits<uint32_t>::max()
+        || scene.debug_shape_ranges.size() >= kInvalidAreaRenderRecordIndex) {
+        return kInvalidAreaRenderRecordIndex;
     }
 
+    const uint32_t range_index = static_cast<uint32_t>(scene.debug_shape_ranges.size());
     scene.debug_shape_ranges.push_back(DebugShapeRange{
         .category = category,
         .first_index = static_cast<uint32_t>(first_index),
@@ -353,6 +536,7 @@ void append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, 
             last_index - first_index,
             std::numeric_limits<uint32_t>::max())),
     });
+    return range_index;
 }
 
 bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger)
@@ -366,18 +550,22 @@ bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigg
     constexpr float k_floor_z_offset = 0.08f;
     constexpr float k_outline_width = 0.07f;
     const glm::vec4 outline_color{0.12f, 0.92f, 1.0f, 0.9f};
-    append_debug_polygon(scene, geometry->points, object_spatial_location(trigger), outline_color, k_floor_z_offset, k_outline_width);
+    const glm::mat4 placement = area_object_placement_transform(object_spatial_location(trigger));
+    const auto floor_points = normalize_debug_polygon_points(geometry->points, placement, k_floor_z_offset);
+    append_debug_polygon_outline(scene, floor_points, outline_color, k_outline_width);
 
     if (geometry->highlight_height > 0.25f) {
-        append_debug_polygon(
-            scene,
+        const auto highlight_points = normalize_debug_polygon_points(
             geometry->points,
-            object_spatial_location(trigger),
-            {0.12f, 0.92f, 1.0f, 0.55f},
-            k_floor_z_offset + geometry->highlight_height,
-            k_outline_width * 0.8f);
+            placement,
+            k_floor_z_offset + geometry->highlight_height);
+        append_debug_polygon_outline(
+            scene, highlight_points, {0.12f, 0.92f, 1.0f, 0.55f}, k_outline_width * 0.8f);
     }
-    append_debug_shape_range(scene, DebugShapeCategory::trigger, first_debug_index);
+    const uint32_t debug_range_index = append_debug_shape_range(
+        scene, DebugShapeCategory::trigger, first_debug_index);
+    append_debug_shape_selection_range(
+        scene, DebugShapeCategory::trigger, trigger.handle(), debug_range_index, floor_points);
     return scene.debug_shape_indices.size() > first_debug_index;
 }
 
@@ -385,24 +573,38 @@ bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& e
 {
     const size_t first_debug_index = scene.debug_shape_indices.size();
     const auto* geometry = nw::kernel::objects().components().find_geometry(encounter.handle());
+    std::vector<glm::vec3> floor_points;
     if (geometry && !geometry->points.empty()) {
         constexpr float k_floor_z_offset = 0.12f;
         constexpr float k_outline_width = 0.07f;
-        append_debug_polygon(
-            scene,
+        floor_points = normalize_debug_polygon_points(
             geometry->points,
-            object_spatial_location(encounter),
-            {1.0f, 0.18f, 0.72f, 0.9f},
-            k_floor_z_offset,
-            k_outline_width);
+            area_object_placement_transform(object_spatial_location(encounter)),
+            k_floor_z_offset);
+        append_debug_polygon_outline(
+            scene, floor_points, {1.0f, 0.18f, 0.72f, 0.9f}, k_outline_width);
     }
 
+    const uint32_t footprint_range_index = append_debug_shape_range(
+        scene, DebugShapeCategory::encounter, first_debug_index);
+    if (floor_points.size() >= 3
+        && footprint_range_index != kInvalidAreaRenderRecordIndex) {
+        append_debug_shape_selection_range(
+            scene,
+            DebugShapeCategory::encounter,
+            encounter.handle(),
+            footprint_range_index,
+            floor_points);
+    }
+
+    const size_t first_spawn_index = scene.debug_shape_indices.size();
     if (geometry) {
         for (const auto& spawn_point : geometry->spawn_points) {
             append_debug_spawn_marker(scene, spawn_point);
         }
     }
-    append_debug_shape_range(scene, DebugShapeCategory::encounter, first_debug_index);
+    append_debug_shape_range(
+        scene, DebugShapeCategory::encounter, first_spawn_index);
     return scene.debug_shape_indices.size() > first_debug_index;
 }
 
@@ -495,6 +697,66 @@ void SceneDebugRenderer::render_debug_shapes(
         nw::gfx::cmd_bind_resources(cmd, debug_shape_pipeline_, uniforms);
         nw::gfx::cmd_draw_indexed(cmd, static_cast<uint32_t>(index_count));
     }
+}
+
+void SceneDebugRenderer::render_selection_bounds(
+    nw::gfx::CommandList* cmd,
+    const nw::render::Bounds& bounds,
+    const nw::render::RenderContext& ctx,
+    const glm::vec4& color)
+{
+    if (!cmd || !debug_shape_pipeline_.valid()) {
+        return;
+    }
+
+    const auto geometry = build_selection_bounds_geometry(bounds, ctx.camera_position, color);
+    if (geometry.index_count == 0) {
+        return;
+    }
+
+    if (!selection_bounds_vertices_.valid()) {
+        selection_bounds_vertices_ = nw::gfx::create_buffer(ctx_, {
+                                                                      .size = kSelectionBoundsVertexCount * sizeof(DebugShapeVertex),
+                                                                      .usage = nw::gfx::BufferUsage::Vertex,
+                                                                      .cpu_visible = true,
+                                                                  });
+    }
+    if (!selection_bounds_indices_.valid()) {
+        selection_bounds_indices_ = nw::gfx::create_buffer(ctx_, {
+                                                                     .size = kSelectionBoundsIndexCount * sizeof(uint32_t),
+                                                                     .usage = nw::gfx::BufferUsage::Index,
+                                                                     .cpu_visible = true,
+                                                                 });
+    }
+    if (!selection_bounds_vertices_.valid() || !selection_bounds_indices_.valid()) {
+        return;
+    }
+
+    auto* vertex_data = nw::gfx::map_buffer(selection_bounds_vertices_);
+    auto* index_data = nw::gfx::map_buffer(selection_bounds_indices_);
+    if (!vertex_data || !index_data) {
+        if (vertex_data) nw::gfx::unmap_buffer(selection_bounds_vertices_);
+        if (index_data) nw::gfx::unmap_buffer(selection_bounds_indices_);
+        return;
+    }
+    std::memcpy(vertex_data, geometry.vertices.data(), geometry.vertex_count * sizeof(DebugShapeVertex));
+    std::memcpy(index_data, geometry.indices.data(), geometry.index_count * sizeof(uint32_t));
+    nw::gfx::unmap_buffer(selection_bounds_vertices_);
+    nw::gfx::unmap_buffer(selection_bounds_indices_);
+
+    DebugShapeConstants constants{};
+    constants.view = ctx.view;
+    constants.projection = ctx.projection;
+    auto uniforms = nw::gfx::allocate_uniform_span(ctx_, sizeof(DebugShapeConstants));
+    if (!uniforms.data) {
+        return;
+    }
+    std::memcpy(uniforms.data, &constants, sizeof(DebugShapeConstants));
+    nw::gfx::cmd_bind_pipeline(cmd, debug_shape_pipeline_);
+    nw::gfx::cmd_bind_vertex_buffer(cmd, selection_bounds_vertices_, sizeof(DebugShapeVertex));
+    nw::gfx::cmd_bind_index_buffer(cmd, selection_bounds_indices_, sizeof(uint32_t));
+    nw::gfx::cmd_bind_resources(cmd, debug_shape_pipeline_, uniforms);
+    nw::gfx::cmd_draw_indexed(cmd, geometry.index_count);
 }
 
 } // namespace nw::render::viewer

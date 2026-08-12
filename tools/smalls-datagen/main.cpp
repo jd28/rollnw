@@ -1,6 +1,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/kernel/TwoDACache.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -22,6 +23,11 @@ namespace {
 constexpr int kInvalidResourceType = 65535;
 constexpr int kMdlResourceType = 2002;
 
+struct DatagenProfile final : nwn1::Profile {
+    void load_custom_services() override { }
+    bool load_rules() const override { return true; }
+};
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -30,13 +36,19 @@ constexpr int kMdlResourceType = 2002;
 
 struct FieldSpec {
     std::string name;
-    std::string type;   // "int", "float", "bool", "StrRef", "ResRef", "Resource", "int[N]", "array(int)"
+    std::string type;   // "int", "float", "bool", "string", "StrRef", "ResRef", "Resource", "int[N]", "array(int)"
     std::string source; // "@row_index", "@scan_index", "@scan_ref:COL:spec",
                         // "@indirect:COL:SUBCOL:N", "@indirect_grid:COL:PREFIX:N[:LIMIT_COL]",
-                        // "@array:COL1,...",
+                        // "@array:COL1,...", "@feat_requirements:COL1,...",
                         // plain column name, or empty for constant default
     std::string default_val;
     std::map<std::string, int> string_enum; // case-insensitive string→int
+};
+
+struct FieldGroupSpec {
+    std::string name;
+    std::string type;
+    std::vector<FieldSpec> fields;
 };
 
 struct GenSpec {
@@ -45,6 +57,7 @@ struct GenSpec {
     std::string output_subdir;
     std::optional<std::string> valid_column;
     std::vector<FieldSpec> fields;
+    std::vector<FieldGroupSpec> field_groups;
 
     // Standard mode
     std::string source_2da;
@@ -186,9 +199,10 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
     const nw::StaticTwoDA* tda,                                            // primary 2da (scan mode: secondary 2da for this entry)
     const std::map<std::string, const nw::StaticTwoDA*>& cached_secondary, // @indirect cache
     const std::map<std::string, ScanResult>& scan_results,                 // global scan results
-    int scan_index = -1)                                                   // ID in scan results (scan mode only)
+    int scan_index = -1,                                                   // ID in scan results (scan mode only)
+    int indent = 4)
 {
-    out << "    " << f.name << " = ";
+    out << std::string(static_cast<size_t>(indent), ' ') << f.name << " = ";
 
     if (f.source == "@row_index") {
         out << row_index;
@@ -365,6 +379,39 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         return;
     }
 
+    // @feat_requirements:COL1,COL2,... — convert legacy feat columns into
+    // semantic requirement qualifiers, omitting negative sentinel values.
+    if (f.source.rfind("@feat_requirements:", 0) == 0) {
+        std::string cols_str = f.source.substr(19);
+        std::vector<std::string> cols;
+        size_t pos = 0;
+        while (pos < cols_str.size()) {
+            auto comma = cols_str.find(',', pos);
+            if (comma == std::string::npos) {
+                cols.push_back(cols_str.substr(pos));
+                break;
+            }
+            cols.push_back(cols_str.substr(pos, comma - pos));
+            pos = comma + 1;
+        }
+
+        out << "{";
+        bool first = true;
+        for (const auto& column : cols) {
+            int feat = -1;
+            if (!tda || !tda->get_to(row_index, column, feat) || feat < 0) {
+                continue;
+            }
+            if (!first) {
+                out << ", ";
+            }
+            out << "feat_requirement(" << feat << ")";
+            first = false;
+        }
+        out << "}";
+        return;
+    }
+
     // Dynamic array: read all rows of tda under given column
     // Used in scan mode where tda IS the secondary 2da (one per progression)
     if (is_dynamic_array_type(f.type)) {
@@ -416,6 +463,10 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
         int val = 0;
         if (tda) tda->get_to(row_index, f.source, val);
         out << (val ? "true" : "false");
+    } else if (f.type == "string") {
+        nw::String value;
+        if (tda) tda->get_to(row_index, f.source, value);
+        out << "\"" << escape_smalls_string(value) << "\"";
     } else if (f.type == "StrRef") {
         int32_t raw = -1;
         if (tda) tda->get_to(row_index, f.source, raw);
@@ -440,6 +491,30 @@ static void emit_field(std::ofstream& out, const FieldSpec& f,
 // ---------------------------------------------------------------------------
 // Parse spec from JSON
 // ---------------------------------------------------------------------------
+
+static FieldSpec parse_field_spec(const json& source)
+{
+    FieldSpec result;
+    result.name = source.value("name", "");
+    result.type = source.value("type", "int");
+    result.default_val = source.value("default", "0");
+
+    if (source.contains("source") && !source["source"].is_null()) {
+        result.source = source["source"].get<std::string>();
+    }
+
+    if (source.contains("enum")) {
+        for (auto& [key, value] : source["enum"].items()) {
+            std::string lower = key;
+            for (char& c : lower) {
+                c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+            }
+            result.string_enum[lower] = value.get<int>();
+        }
+    }
+
+    return result;
+}
 
 static bool parse_spec(const fs::path& spec_path, GenSpec& out_spec)
 {
@@ -470,24 +545,18 @@ static bool parse_spec(const fs::path& spec_path, GenSpec& out_spec)
     if (j.contains("valid_strref_column") && !j["valid_strref_column"].is_null())
         out_spec.valid_strref_column = j["valid_strref_column"].get<std::string>();
 
-    for (const auto& jf : j.value("fields", json::array())) {
-        FieldSpec f;
-        f.name = jf.value("name", "");
-        f.type = jf.value("type", "int");
-        f.default_val = jf.value("default", "0");
+    for (const auto& field : j.value("fields", json::array())) {
+        out_spec.fields.push_back(parse_field_spec(field));
+    }
 
-        if (jf.contains("source") && !jf["source"].is_null())
-            f.source = jf["source"].get<std::string>();
-
-        if (jf.contains("enum"))
-            for (auto& [k, v] : jf["enum"].items()) {
-                std::string lower = k;
-                for (char& c : lower)
-                    c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-                f.string_enum[lower] = v.get<int>();
-            }
-
-        out_spec.fields.push_back(std::move(f));
+    for (const auto& group_source : j.value("field_groups", json::array())) {
+        FieldGroupSpec group;
+        group.name = group_source.value("name", "");
+        group.type = group_source.value("type", "");
+        for (const auto& field : group_source.value("fields", json::array())) {
+            group.fields.push_back(parse_field_spec(field));
+        }
+        out_spec.field_groups.push_back(std::move(group));
     }
 
     return true;
@@ -514,10 +583,24 @@ static bool emit_smalls_file(const fs::path& out_file, const GenSpec& spec,
     }
 
     ofs << spec.smalls_type << " {\n";
+    size_t component_index = 0;
+    const size_t component_count = spec.fields.size() + spec.field_groups.size();
     for (size_t fi = 0; fi < spec.fields.size(); ++fi) {
         emit_field(ofs, spec.fields[fi], row_index, tda,
             cached_secondary, scan_results, scan_index);
-        if (fi + 1 < spec.fields.size()) ofs << ",";
+        if (++component_index < component_count) ofs << ",";
+        ofs << "\n";
+    }
+    for (const auto& group : spec.field_groups) {
+        ofs << "    " << group.name << " = " << group.type << " {\n";
+        for (size_t fi = 0; fi < group.fields.size(); ++fi) {
+            emit_field(ofs, group.fields[fi], row_index, tda,
+                cached_secondary, scan_results, scan_index, 8);
+            if (fi + 1 < group.fields.size()) ofs << ",";
+            ofs << "\n";
+        }
+        ofs << "    }";
+        if (++component_index < component_count) ofs << ",";
         ofs << "\n";
     }
     ofs << "}\n";
@@ -534,14 +617,14 @@ static std::map<std::string, const nw::StaticTwoDA*> build_indirect_cache(
     std::map<std::string, const nw::StaticTwoDA*> cached_secondary;
     std::map<std::string, const nw::StaticTwoDA*> resolved;
 
-    for (const auto& f : spec.fields) {
+    auto cache_field = [&](const FieldSpec& f) {
         size_t prefix_len = 0;
         if (f.source.rfind("@indirect:", 0) == 0) {
             prefix_len = 10;
         } else if (f.source.rfind("@indirect_grid:", 0) == 0) {
             prefix_len = 15;
         } else {
-            continue;
+            return;
         }
         std::string src = f.source.substr(prefix_len);
         auto colon1 = src.find(':');
@@ -550,7 +633,7 @@ static std::map<std::string, const nw::StaticTwoDA*> build_indirect_cache(
         auto it = resolved.find(col);
         if (it != resolved.end()) {
             cached_secondary[f.name] = it->second;
-            continue;
+            return;
         }
 
         nw::StringView table_name;
@@ -560,6 +643,15 @@ static std::map<std::string, const nw::StaticTwoDA*> build_indirect_cache(
 
         resolved[col] = sec;
         cached_secondary[f.name] = sec;
+    };
+
+    for (const auto& field : spec.fields) {
+        cache_field(field);
+    }
+    for (const auto& group : spec.field_groups) {
+        for (const auto& field : group.fields) {
+            cache_field(field);
+        }
     }
     return cached_secondary;
 }
@@ -737,6 +829,8 @@ int main(int argc, char* argv[])
 
     nw::kernel::config().set_paths(nwn_path, "");
     nw::kernel::config().initialize();
+    DatagenProfile profile;
+    nw::kernel::set_game_profile(&profile);
     nw::kernel::services().start();
 
     // Collect spec files

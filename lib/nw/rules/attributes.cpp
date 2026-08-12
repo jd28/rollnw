@@ -9,6 +9,7 @@ namespace nw {
 
 DEFINE_RULE_TYPE(Ability);
 DEFINE_RULE_TYPE(Appearance);
+DEFINE_RULE_TYPE(PlaceableAppearance);
 DEFINE_RULE_TYPE(ArmorClass);
 DEFINE_RULE_TYPE(Phenotype);
 DEFINE_RULE_TYPE(Race);
@@ -45,35 +46,53 @@ AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
     tda.get_to("LABEL", label);
     tda.get_to("STRING_REF", string_ref);
     tda.get_to("NAME", base_name);
-    tda.get_to("RACE", model_name);
-    tda.get_to("SIZECATEGORY", size);
+    String raw_model;
+    tda.get_to("RACE", raw_model);
+    model = Resref{raw_model};
 
-    tda.get_to("MODELTYPE", model_type);
-
-    std::string temp;
-    tda.get_to("MOVERATE", temp);
-    if (string::icmp(temp, "PLAYER")) {
-        walkrate = 0;
-    } else if (string::icmp(temp, "NOMOVE")) {
-        walkrate = 1;
-    } else if (string::icmp(temp, "VSLOW")) {
-        walkrate = 2;
-    } else if (string::icmp(temp, "SLOW")) {
-        walkrate = 3;
-    } else if (string::icmp(temp, "NORM")) {
-        walkrate = 4;
-    } else if (string::icmp(temp, "FAST")) {
-        walkrate = 5;
-    } else if (string::icmp(temp, "VFAST")) {
-        walkrate = 6;
-    } else if (string::icmp(temp, "DEFAULT")) {
-        walkrate = 7;
-    } else if (string::icmp(temp, "DFAST")) {
-        walkrate = 8;
+    String raw_model_type;
+    tda.get_to("MODELTYPE", raw_model_type);
+    if (string::icmp(raw_model_type, "P")) {
+        model_type = AppearanceModelType::parts;
+    } else if (string::icmp(raw_model_type, "S")) {
+        model_type = AppearanceModelType::simple;
+    } else if (string::icmp(raw_model_type, "F")) {
+        model_type = AppearanceModelType::full;
+    } else if (string::icmp(raw_model_type, "L")) {
+        model_type = AppearanceModelType::large;
+    } else if (string::icmp(raw_model_type, "FT")) {
+        model_type = AppearanceModelType::full_tail;
+    } else if (string::icmp(raw_model_type, "FW")) {
+        model_type = AppearanceModelType::full_wings;
+    } else if (string::icmp(raw_model_type, "FWT")) {
+        model_type = AppearanceModelType::full_wings_tail;
+    } else if (string::icmp(raw_model_type, "LWT")) {
+        model_type = AppearanceModelType::large_wings_tail;
+    } else if (string::icmp(raw_model_type, "SWT")) {
+        model_type = AppearanceModelType::simple_wings_tail;
     }
 }
 
 String AppearanceInfo::editor_name() const
+{
+    auto string = nw::kernel::strings().get(string_ref);
+    if (!string.empty()) { return string; }
+    return label;
+}
+
+// -- PlaceableAppearanceInfo -------------------------------------------------
+// ----------------------------------------------------------------------------
+
+PlaceableAppearanceInfo::PlaceableAppearanceInfo(const TwoDARowView& tda)
+{
+    tda.get_to("Label", label);
+    tda.get_to("StrRef", string_ref);
+    String raw_model;
+    tda.get_to("ModelName", raw_model);
+    model = Resref{raw_model};
+}
+
+String PlaceableAppearanceInfo::editor_name() const
 {
     auto string = nw::kernel::strings().get(string_ref);
     if (!string.empty()) { return string; }

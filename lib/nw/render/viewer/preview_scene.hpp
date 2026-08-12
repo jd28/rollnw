@@ -8,7 +8,6 @@
 #include <nw/model/mdl_particle_import.hpp>
 #include <nw/render/gltf/import_gltf.hpp>
 #include <nw/render/model_instance_attachment.hpp>
-#include <nw/render/nwn/model_loader.hpp>
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_def.hpp>
 #include <nw/render/particle_system.hpp>
@@ -28,9 +27,8 @@
 
 namespace nw::render::viewer {
 
+using nw::render::Bounds;
 using nw::render::gltf::ImportGltfDesc;
-using nw::render::nwn::Bounds;
-using nw::render::nwn::ModelInstance;
 
 enum class PreferredModelAnimationContext {
     sequence_effect,
@@ -38,27 +36,13 @@ enum class PreferredModelAnimationContext {
     hold,
 };
 
-enum class NwnModelPreviewPath : uint8_t {
-    legacy,
-    render_model,
-};
-
 struct PreviewSceneLoadOptions {
-    // Bridge toggle for NWN model previews. The render_model path is the
-    // default: it imports static MDL previews and single-model creature
-    // appearances through ModelAsset, then uploads them as source-agnostic
-    // RenderModel data. The legacy path keeps nwn::ModelInstance as the sidecar
-    // owner for PLT, emitter, attachment, and animation quirks and remains
-    // available as the compatibility fallback. Humanoid body-part/equipment
-    // assembly stays legacy until PLT/socket/cross-skeleton policy is lowered
-    // into explicit common data.
-    NwnModelPreviewPath nwn_model_path = NwnModelPreviewPath::render_model;
     nw::ObjectVisualRenderMode visual_render_mode = nw::ObjectVisualRenderMode::toolset;
+    bool area_object_editing = false;
 };
 
 struct PreviewRuntimeModelReport {
     std::string owner;
-    nw::render::ModelInstanceKind kind = nw::render::ModelInstanceKind::render_model;
     uint32_t model_index = std::numeric_limits<uint32_t>::max();
     bool instance_handle_valid = false;
     bool instance_present = false;
@@ -112,31 +96,22 @@ struct PreviewRuntimeModelReports {
     nw::render::PreparedRenderModelSkinTableStats prepared_skin_table_stats{};
 };
 
-struct MeshTriangle {
-    glm::vec3 v0, v1, v2;
-};
-
-struct ModelMeshCollisionProvider : public nw::render::ParticleCollisionProvider {
-    std::vector<MeshTriangle> triangles;
-    nw::render::ParticleCollisionQuery trace_particle(glm::vec3 from, glm::vec3 to, float radius) const override;
-};
-
 struct SceneParticleSystem {
-    // Common handle/kind/index supplies owner visibility, root transform, and
-    // dense attachment-point rows for legacy and source-agnostic owners. The
-    // sidecar pointer remains for source diagnostics and collision construction.
-    const ModelInstance* owner = nullptr;
-    nw::render::ModelInstanceKind owner_kind = nw::render::ModelInstanceKind::nwn_legacy;
+    SceneParticleSystem() = default;
+    SceneParticleSystem(SceneParticleSystem&& other) noexcept;
+    SceneParticleSystem& operator=(SceneParticleSystem&& other) noexcept;
+    SceneParticleSystem(const SceneParticleSystem&) = delete;
+    SceneParticleSystem& operator=(const SceneParticleSystem&) = delete;
+
+    // Common handle/index supplies owner visibility, root transform, and dense
+    // attachment-point rows. The owner is always a RenderModel scene row.
     uint32_t owner_model_index = std::numeric_limits<uint32_t>::max();
     nw::render::ModelInstanceHandle owner_instance_handle;
     nw::model::ParticleImportResult import;
     nw::render::ParticleCompileResult compiled;
+    // Invariant: a non-null system.effect points at this row's compiled.effect.
+    // The move operations repair that self-reference after vector relocation.
     nw::render::ParticleSystemInstance system;
-    std::unique_ptr<ModelMeshCollisionProvider> collision;
-    // World-space mesh AABB used to kill particles that escape the model geometry.
-    // Valid when collision is non-null.
-    glm::vec3 mesh_aabb_min{0.0f};
-    glm::vec3 mesh_aabb_max{0.0f};
     float animation_time = 0.0f;
     float particle_animation_length = 0.0f;
     bool animation_time_initialized = false;
@@ -146,14 +121,79 @@ struct SceneParticleSystem {
 inline constexpr uint32_t kInvalidSceneModelAttachmentBindingIndex = std::numeric_limits<uint32_t>::max();
 
 struct PreviewSceneRuntimeSyncStats {
-    uint32_t nwn_model_count = 0;
     uint32_t render_model_count = 0;
-    uint32_t nwn_attachment_binding_count = 0;
-    uint32_t nwn_attachment_root_resolved_count = 0;
-    uint32_t nwn_attachment_root_failed_count = 0;
     uint32_t render_model_attachment_binding_count = 0;
     uint32_t render_model_attachment_root_resolved_count = 0;
     uint32_t render_model_attachment_root_failed_count = 0;
+};
+
+struct RenderModelAttachmentSetup {
+    // Setup-only row. Socket names and this row are borrowed for the duration
+    // of attach_render_models; the scene retains only resolved indices, handles,
+    // transforms, and policies.
+    uint32_t child_model_index = nw::render::kInvalidModelInstanceIndex;
+    uint32_t owner_model_index = nw::render::kInvalidModelInstanceIndex;
+    std::string_view owner_socket;
+    std::string_view child_source_socket;
+    glm::mat4 child_local_transform{1.0f};
+    float child_local_scale = 1.0f;
+    nw::render::ModelAttachmentOrientationPolicy orientation = nw::render::ModelAttachmentOrientationPolicy::socket;
+    nw::render::ModelAttachmentSourceOffsetPolicy source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind;
+};
+
+struct RenderModelAttachmentSetupStats {
+    uint32_t input_count = 0;
+    uint32_t attached_count = 0;
+    uint32_t invalid_model_count = 0;
+    uint32_t missing_owner_socket_count = 0;
+    uint32_t invalid_transform_count = 0;
+    uint32_t invalid_scale_count = 0;
+    uint32_t binding_limit_count = 0;
+};
+
+struct AreaObjectSpatialUpdateStats {
+    uint32_t input_count = 0;
+    uint32_t rejected_input_count = 0;
+    uint32_t render_model_root_count = 0;
+};
+
+enum class AreaObjectPreviewAppendStatus : uint8_t {
+    success,
+    empty,
+    invalid_input,
+    failed,
+};
+
+struct AreaObjectPreviewAppendResult {
+    AreaObjectPreviewAppendStatus status = AreaObjectPreviewAppendStatus::empty;
+    uint32_t object_count = 0;
+    uint32_t model_count = 0;
+    std::string diagnostic;
+
+    [[nodiscard]] bool ok() const noexcept
+    {
+        return status == AreaObjectPreviewAppendStatus::success;
+    }
+};
+
+enum class ObjectVisualRefreshStatus : uint8_t {
+    success,
+    empty,
+    invalid_input,
+    failed,
+};
+
+struct ObjectVisualRefreshResult {
+    ObjectVisualRefreshStatus status = ObjectVisualRefreshStatus::empty;
+    uint32_t object_count = 0;
+    uint32_t removed_model_count = 0;
+    uint32_t added_model_count = 0;
+    std::string diagnostic;
+
+    [[nodiscard]] bool ok() const noexcept
+    {
+        return status == ObjectVisualRefreshStatus::success;
+    }
 };
 
 struct DebugShapeVertex {
@@ -171,6 +211,16 @@ struct DebugShapeRange {
     DebugShapeCategory category = DebugShapeCategory::general;
     uint32_t first_index = 0;
     uint32_t index_count = 0;
+};
+
+struct DebugShapeSelectionRange {
+    Bounds bounds{};
+    nw::ObjectHandle object{};
+    uint32_t debug_shape_range_index = kInvalidAreaRenderRecordIndex;
+    uint32_t first_point = 0;
+    uint32_t point_count = 0;
+    float plane_z = 0.0f;
+    DebugShapeCategory category = DebugShapeCategory::general;
 };
 
 struct SceneTileLightSlots {
@@ -210,11 +260,17 @@ struct SceneLocalLight {
 };
 
 struct PreviewScene {
-    std::vector<std::unique_ptr<ModelInstance>> models;
-    std::vector<nw::render::ModelInstanceHandle> model_instance_handles;
-    std::vector<uint32_t> model_attachment_binding_indices;
-    std::vector<AreaRenderSourceInfo> area_model_info;
-    std::vector<std::unique_ptr<nw::render::RenderModel>> static_models;
+    PreviewScene() = default;
+    ~PreviewScene();
+
+    PreviewScene(const PreviewScene&) = delete;
+    PreviewScene& operator=(const PreviewScene&) = delete;
+
+    // Immutable-by-convention RenderModel assets referenced by indexed common
+    // ModelInstance rows. Repeated area tile placements share one uploaded
+    // asset; refcounts change only while scenes are built or destroyed, never
+    // in the frame traversal.
+    std::vector<std::shared_ptr<nw::render::RenderModel>> static_models;
     std::vector<nw::render::ModelInstanceHandle> static_model_instance_handles;
     std::vector<uint32_t> static_model_attachment_binding_indices;
     std::vector<AreaRenderSourceInfo> static_area_model_info;
@@ -230,8 +286,11 @@ struct PreviewScene {
     std::vector<DebugShapeVertex> debug_shape_vertices;
     std::vector<uint32_t> debug_shape_indices;
     std::vector<DebugShapeRange> debug_shape_ranges;
+    std::vector<glm::vec3> debug_shape_selection_points;
+    std::vector<DebugShapeSelectionRange> debug_shape_selection_ranges;
     std::vector<SceneLocalLight> local_lights;
     std::vector<nw::render::LocalLight> render_local_lights;
+    std::string hold_animation;
     size_t vertex_count = 0;
     size_t index_count = 0;
     Bounds bounds{};
@@ -242,51 +301,95 @@ struct PreviewScene {
     nw::AreaFlags area_flags = nw::AreaFlags::none;
     nw::AreaWeather area_weather{};
     bool has_water = false;
+    // Scene-level model provenance. glTF previews are authored with their own
+    // lighting baked into the asset and render unlit; NWN and native content
+    // needs the viewer to supply lighting. Maintained alongside has_water so no
+    // consumer has to re-derive the policy by scanning static_models per frame.
+    bool has_gltf_models = false;
     std::vector<PreviewLoadEvent> source_load_events;
     PreviewLoadReport load_report;
+    // Loaded scenes own the root used to derive render rows. A replacement area
+    // scene borrows that root until ViewerSession completes the ownership transfer.
+    // The selected contained object is always non-owning.
+    nw::ObjectHandle root_object;
+    nw::ObjectHandle active_object;
+    bool owns_root_object = true;
 
-    bool load_animation(std::string_view name);
-    bool load_default_animations(PreferredModelAnimationContext context = PreferredModelAnimationContext::hold);
     void rebuild_load_report(std::string_view source, std::string_view kind);
     void rebuild_particles(std::string_view animation_name = {});
     void update(int32_t dt_ms);
     void set_particle_target_point(
         nw::render::ModelInstanceHandle owner_handle, uint32_t owner_model_index, const glm::vec3& target_point);
-    void set_particle_target_point(const ModelInstance* owner, const glm::vec3& target_point);
     Bounds current_bounds() const;
     bool contains_water() const noexcept;
-    nw::render::ModelInstance* nwn_model_instance(size_t model_index) noexcept;
-    const nw::render::ModelInstance* nwn_model_instance(size_t model_index) const noexcept;
     nw::render::ModelInstance* static_model_instance(size_t model_index) noexcept;
     const nw::render::ModelInstance* static_model_instance(size_t model_index) const noexcept;
-    void add(std::unique_ptr<ModelInstance> model);
-    void add_attached(std::unique_ptr<ModelInstance> model, uint32_t owner_model_index,
-        std::string_view owner_socket, std::string_view child_source_socket = {});
-    bool attach_model(uint32_t child_model_index, uint32_t owner_model_index,
-        std::string_view owner_socket, std::string_view child_source_socket = {});
     void add(std::unique_ptr<nw::render::RenderModel> model);
+    void add(std::shared_ptr<nw::render::RenderModel> model);
     void add_attached(std::unique_ptr<nw::render::RenderModel> model, uint32_t owner_model_index,
         std::string_view owner_socket, std::string_view child_source_socket = {}, float child_local_scale = 1.0f);
+    // Resolves setup names for a batch of already-added RenderModel rows and
+    // stores only the common indexed attachment protocol. Invalid rows are
+    // counted and left unattached; valid rows in the same batch still commit.
+    RenderModelAttachmentSetupStats attach_render_models(
+        std::span<const RenderModelAttachmentSetup> attachments);
     void add_particle_effect(nw::render::ParticleEffectDef effect);
 };
 
-// Batch transform from scene-owned sidecar/assets into common instance runtime
-// state. Inputs are PreviewScene model arrays plus stable instance handles.
+// Batch transform from scene-owned assets into common instance runtime state.
+// Inputs are PreviewScene RenderModel rows plus stable instance handles.
 // Outputs are common ModelInstance visibility, root transform, world-space
 // current bounds, and world-space shadow summary. Stale handles, mismatched
 // indices, and missing assets are skipped.
 PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& scene);
+
+// Batch transform from live or preview spatial rows into scene-owned model
+// roots. Inputs are borrowed for the call; the scene retains only the resulting
+// matrices. Invalid owners, non-finite values, non-positive scales, missing
+// objects, and attachment children are skipped. The first valid row wins when
+// an owner is repeated.
+AreaObjectSpatialUpdateStats update_area_object_spatial_states(
+    PreviewScene& scene, std::span<const nw::ObjectSpatialState> spatial_states);
 
 PreviewSceneLoadOptions default_preview_scene_load_options();
 std::unique_ptr<PreviewScene> load_preview_scene(PreviewRenderResources& resources, std::string_view source);
 std::unique_ptr<PreviewScene> load_preview_scene(
     PreviewRenderResources& resources, std::string_view source, PreviewSceneLoadOptions options);
 std::unique_ptr<PreviewScene> load_preview_scene(PreviewRenderResources& resources, std::span<const std::string> sources);
-std::unique_ptr<PreviewScene> load_preview_scene(
-    PreviewRenderResources& resources, std::span<const std::string> sources, PreviewSceneLoadOptions options);
 std::unique_ptr<PreviewScene> load_area_scene(PreviewRenderResources& resources, std::string_view area_resref);
 std::unique_ptr<PreviewScene> load_area_scene(
     PreviewRenderResources& resources, std::string_view area_resref, PreviewSceneLoadOptions options);
+// Builds render rows from an already-instantiated Area without taking ownership.
+// ViewerSession transfers ownership only after the replacement scene succeeds.
+std::unique_ptr<PreviewScene> build_live_area_scene(
+    PreviewRenderResources& resources,
+    nw::Area& area,
+    std::string_view source,
+    PreviewSceneLoadOptions options);
+// Builds render rows from one already-instantiated Creature or Placeable without
+// taking ownership. Invalid handles and unsupported object types fail.
+std::unique_ptr<PreviewScene> build_live_object_scene(
+    PreviewRenderResources& resources,
+    nw::ObjectHandle object,
+    std::string_view source,
+    PreviewSceneLoadOptions options);
+// Appends detached live Creature/Placeable visuals as one translucent preview
+// batch. Inputs are validated and built before the destination scene changes.
+[[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    float opacity,
+    PreviewSceneLoadOptions options);
+// Batch replacement of live creature visual rows. Input handles are borrowed
+// and must be unique live creatures represented by this scene. Replacement
+// assets are built before scene mutation; invalid or failed batches leave the
+// scene unchanged. The scene retains ownership of appended rows.
+[[nodiscard]] ObjectVisualRefreshResult refresh_object_visuals(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    PreviewSceneLoadOptions options);
 PreviewRuntimeModelReports build_preview_runtime_model_reports(
     const PreviewScene& scene,
     const nw::render::PreparedModelSurfaceDrawList* prepared_surfaces = nullptr);

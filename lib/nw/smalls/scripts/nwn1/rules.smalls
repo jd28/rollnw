@@ -1,9 +1,12 @@
-// NWN1 ruleset type definitions for load_config! config arrays.
+// NWN1 ruleset type definitions and native table projections.
 // [[index]] marks the array placement field (must be int).
-// [[value_type]] stores structs inline in array!(T) for cache-efficient lookup.
+// [[value_type]] stores Smalls-owned config rows inline in array!(T).
 
 import core.types as T;
 import core.string as String;
+from core.item import { BaseItemInfo };
+import nwn1.requirements as Requirements;
+from nwn1.requirements import { RequirementQualifier };
 
 type StrRef(int);
 
@@ -16,6 +19,15 @@ fn resref(value: string): T.ResRef {
 
 fn resource(resref_value: T.ResRef, resource_type: int): T.Resource {
     return T.resource(resref_value, resource_type);
+}
+
+fn feat_requirement(feat: int): RequirementQualifier {
+    return RequirementQualifier {
+        req_type = Requirements.req_type_feat,
+        subtype = feat,
+        match = Requirements.qualifier_match_eq,
+        value = 1,
+    };
 }
 
 const item_model_type_simple = 0;
@@ -155,14 +167,11 @@ type FeatEntry {
 };
 
 [[value_type]]
-type AppearanceEntry {
+type AppearanceRules {
     [[index]]
-    id:         int;
-    name:       StrRef;
-    model:      T.ResRef;  // appearance.2da RACE: model resref for non-P rows, race token for P rows
-    model_type: int;
-    size:       int;
-    walkrate:   int;
+    id:              int;
+    size:            int;
+    walkrate:        int;
     wing_tail_scale: float;
     helmet_scale_m:  float;
     helmet_scale_f:  float;
@@ -190,6 +199,14 @@ type FractionalChallengeRatingEntry {
     id:          int;
     min:         float;
     denominator: int;
+};
+
+[[value_type]]
+type PhenotypeEntry {
+    [[index]]
+    id:       int;
+    name:     StrRef;
+    fallback: int;
 };
 
 [[value_type]]
@@ -221,6 +238,7 @@ type RobePartsEntry {
 type WingModelEntry {
     [[index]]
     id:    int;
+    label: string;
     model: T.ResRef;
 };
 
@@ -228,29 +246,15 @@ type WingModelEntry {
 type TailModelEntry {
     [[index]]
     id:    int;
+    label: string;
     model: T.ResRef;
 };
 
 [[value_type]]
-type BaseItemEntry {
-    [[index]]
-    id:                                    int;
-    name:                                  StrRef;
-    model_type:                            int;
-    item_class:                            T.ResRef;
-    default_model:                         T.Resource;
-    default_icon:                          T.ResRef;
-    inventory_width:                       int;
-    inventory_height:                      int;
-    equipable_slots:                       int;
+type BaseItemRules {
     base_cost:                             int;
-    stack_size:                            int;
     cost_multiplier:                       float;
-    req_feat0:                             int;
-    req_feat1:                             int;
-    req_feat2:                             int;
-    req_feat3:                             int;
-    req_feat4:                             int;
+    requirements:                          array!(RequirementQualifier);
     base_ac:                               int;
     damage_num:                            int;
     damage_die:                            int;
@@ -270,6 +274,14 @@ type BaseItemEntry {
 };
 
 [[value_type]]
+type BaseItemDefinition {
+    [[index]]
+    id:    int;
+    info:  BaseItemInfo;
+    rules: BaseItemRules;
+};
+
+[[value_type]]
 type DoorTypeEntry {
     [[index]]
     id:    int;
@@ -284,10 +296,9 @@ type GenericDoorEntry {
 };
 
 [[value_type]]
-type PlaceableEntry {
+type PlaceableRules {
     [[index]]
     id:             int;
-    model:          T.ResRef;
     light_color:    int;
     light_offset_x: float;
     light_offset_y: float;
