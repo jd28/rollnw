@@ -46,7 +46,7 @@ Both providers walk the AST and depend on the traversal contract in
 
 What marks a Smalls script as runnable — an annotation, a conventional
 function name, or a manifest entry. Derive it from what the existing corpus
-and the Arclight runtime already treat as an entry point rather than
+and the rollnw client runtime already treat as an entry point rather than
 inventing a new marker.
 
 ## Done

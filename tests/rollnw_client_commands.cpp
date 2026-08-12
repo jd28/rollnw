@@ -402,32 +402,6 @@ TEST(ClientProject, InitializesProjectSkeleton)
     EXPECT_FALSE(second_init.initialized);
 }
 
-TEST(ClientProject, OpensLegacyManifestWithoutRewritingIt)
-{
-    const std::filesystem::path root = "tmp/client_project_legacy_manifest";
-    std::filesystem::remove_all(root);
-    std::filesystem::create_directories(root / "shared");
-
-    {
-        std::ofstream manifest{root / "arclight.json"};
-        ASSERT_TRUE(manifest);
-        manifest << R"({
-  "format": "arclight.module",
-  "version": 1,
-  "name": "Legacy Project",
-  "module": "shared/module.ifo.json"
-})" << '\n';
-    }
-
-    EXPECT_TRUE(is_project_directory(root));
-    EXPECT_EQ(project_display_name(root), "Legacy Project");
-
-    const auto init = initialize_project(root);
-    ASSERT_TRUE(init.ok) << init.message;
-    EXPECT_FALSE(init.initialized);
-    EXPECT_FALSE(std::filesystem::exists(root / "rollnw.json"));
-}
-
 TEST(ClientProject, JsonImportAutoInitializesTargetDirectory)
 {
     const std::filesystem::path root = "tmp/client_project_import";
@@ -546,24 +520,6 @@ TEST(ClientProject, JsonImportLoadsThroughResourceManager)
     EXPECT_FALSE(area->tiles.empty());
     area->clear();
     nw::kernel::objects().destroy(area->handle());
-
-    nlohmann::json legacy_manifest;
-    {
-        std::ifstream input{root / "rollnw.json"};
-        ASSERT_TRUE(input);
-        input >> legacy_manifest;
-    }
-    legacy_manifest["format"] = "arclight.module";
-    {
-        std::ofstream output{root / "arclight.json"};
-        ASSERT_TRUE(output);
-        output << legacy_manifest.dump(2) << '\n';
-    }
-    std::filesystem::remove(root / "rollnw.json");
-
-    module = nw::kernel::load_module(root, false);
-    ASSERT_TRUE(module);
-    EXPECT_EQ(nw::kernel::resman().module_format(), nw::ModuleResourceFormat::native_json);
 }
 
 TEST(ClientProject, JsonImportRejectsIncompleteModuleHakStack)

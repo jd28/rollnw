@@ -1174,13 +1174,7 @@ void load_ui_preferences(AppState& state)
         return;
     }
 
-    std::filesystem::path input_path = state.preferences_path;
-    std::error_code ec;
-    if (!std::filesystem::is_regular_file(input_path, ec)) {
-        input_path = preferences_path("arclight");
-    }
-
-    std::ifstream input{input_path};
+    std::ifstream input{state.preferences_path};
     if (!input) {
         return;
     }

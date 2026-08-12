@@ -5,50 +5,9 @@
 
 # rollnw
 
-rollnw is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
+rollnw is an homage to Neverwinter Nights (NWN) in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
 
 **Transition warning:** rollnw is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
-
-## Features
-
-- Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollnw-based tools. See the [docs](https://jd28.github.io/rollnw/smalls/) for a language spec.
-- The beginnings of a novel rules system and combat engine built on Smalls.
-- [`nw::gfx`](https://jd28.github.io/rollnw/gfx/), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
-- [`nw::render`](https://jd28.github.io/rollnw/render/), the 3D renderer built on `nw::gfx`: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.
-- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON. See the [legacy object notes](https://jd28.github.io/rollnw/objects/) for runtime handle/loading context.
-- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
-- Implementations of pretty much every NWN file format
-- An implementation of NWN's localization system focused on utf8 everywhere.
-- A recursive descent [NWScript Parser](https://jd28.github.io/rollnw/script/). This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
-
-## Tools
-
-- [`rollnw | client`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity.
-- [`mudl`](https://jd28.github.io/rollnw/mudl/), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the [renderer docs](https://jd28.github.io/rollnw/render/), including the [particle system overview](https://jd28.github.io/rollnw/render/particle_system.html).
-
-### rollnw client today
-
-The client is useful as a module and area viewer before every authoring workflow
-exists. Its current path is:
-
-```text
-NWN module -> JSON project import -> project/module home
-           -> filtered area and resource navigation
-           -> shared area/blueprint renderer
-           -> placed-object selection and Details
-           -> focused edit command -> undo/redo -> project save
-```
-
-The implemented workbench includes area and blueprint viewing, precise placed
-object selection, object-list focus, module details and hak inspection, dialog
-viewing, creature appearance/body-part/PLT editing, classes, feats, spells,
-inventory and equipment, and item editing. Area structural editing currently
-covers the validated Creature and Placeable paths. See the
-[client README](tools/client/README.md) for ownership, transaction, and current
-limit details.
-
-A short viewer-first video walkthrough is tracked in
-[`issues/rollnw-client-release-demo.md`](issues/rollnw-client-release-demo.md).
 
 ## Goals
 
@@ -57,6 +16,27 @@ A short viewer-first video walkthrough is tracked in
 - follows [utf8 everywhere](https://utf8everywhere.org/).
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
+
+## Features
+
+- `nw::smalls` is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollnw-based tools. See the [docs](https://jd28.github.io/rollnw/smalls/) for a language spec.
+- The beginnings of a novel rules system and combat engine built on Smalls.
+- [`nw::gfx`](https://jd28.github.io/rollnw/gfx/), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
+- [`nw::render`](https://jd28.github.io/rollnw/render/), the 3D renderer built on `nw::gfx`: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.
+- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON. See the [legacy object notes](https://jd28.github.io/rollnw/objects/) for runtime handle/loading context.
+
+## Tools
+
+- [`rollnw | client`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity.
+- [`mudl`](https://jd28.github.io/rollnw/mudl/), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the [renderer docs](https://jd28.github.io/rollnw/render/), including the [particle system overview](https://jd28.github.io/rollnw/render/particle_system.html).
+
+### Legacy
+
+- Implementations of pretty much every NWN file format (gff, Bioware DDS, etc) and container (erf, key/bif).
+- An implementation of NWN's localization system focused on utf8 everywhere.
+- A recursive descent [NWScript Parser](https://jd28.github.io/rollnw/script/). This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
+
+**Out of scope:** NWN:Enhanced Edition-specific infrastructure that does not generalize beyond that runtime, such as NWSync; ad hoc workarounds for runtime limitations, such as `ruleset.2da`; and JSON schemas that expose legacy GFF field layouts as a stable public contract. These are examples of the type of features that will not be supported.
 
 ## Building / Installing
 

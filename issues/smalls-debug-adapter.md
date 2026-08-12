@@ -43,7 +43,7 @@ or moved memory. Inspection roots must be visible to the collector, which
 connects this work to the collector architecture already documented for the
 runtime.
 
-Attaching to a live Arclight session is the case that makes this worth
+Attaching to a live rollnw client session is the case that makes this worth
 building, and it should be designed for from the start rather than retrofitted
 onto a launch-only adapter. Launch-only is the simpler first milestone; the
 protocol boundary should not assume it.
@@ -73,6 +73,6 @@ transport.
 - Stepping through a recursive function reports correct frame identity.
 - The VS Code extension contributes a debug configuration and launches a
   script from the editor.
-- Attach to a running Arclight session is either implemented or explicitly
+- Attach to a running rollnw client session is either implemented or explicitly
   scoped as the next milestone with the transport decided.
 - `textDocument/inlineValue` displays locals during a session.

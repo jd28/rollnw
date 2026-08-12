@@ -15,6 +15,53 @@ rollnw client is currently one process with one SDL event loop, one kernel Small
 runtime, local project files, and a local renderer. The renderer presents live
 objects; it does not own a second gameplay or editor object model.
 
+## Screenshots
+
+[![Area viewer showing project resources, a rendered area, and its placed-object list](screenshots/area_view_2026_08_12.png)](screenshots/area_view_2026_08_12.png)
+
+*Area viewing with project-resource navigation and the complete placed-object list.*
+
+[![Creature blueprint preview showing the rendered creature and Details workbench](screenshots/creature_view_2026_08_12.png)](screenshots/creature_view_2026_08_12.png)
+
+*Creature blueprint preview with shared Details and focused editor tabs.*
+
+## Importing A Module
+
+Import a module from the command line before opening the resulting project:
+
+```text
+rollnw-client import (--json|--legacy) <module.mod> [project-dir]
+```
+
+Use `--json` for the client's native project format:
+
+```sh
+./rollnw-client import --json \
+  "/path/to/Neverwinter Nights/modules/example.mod" \
+  ./example-project
+```
+
+Quote paths that contain spaces. If `project-dir` is omitted, the client creates
+a directory named after the module in the current working directory. For
+example, importing `example.mod` without a destination writes to `./example`.
+
+The JSON import creates `rollnw.json`, converts supported module resources to
+JSON, combines each area's ARE/GIT/GIC resources into one CAF file under
+`shared/areas/`, and generates area maps under `.rollnw/cache/area_maps/`.
+The NWN:EE installation and every hak named by the module must be discoverable;
+if automatic discovery fails, set `NWN_ROOT` and `NWN_HOME` to the installation
+and user directories. Import fails when a declared hak cannot be loaded.
+
+To preserve the module's original binary GFF resources instead, use:
+
+```sh
+./rollnw-client import --legacy "/path/to/example.mod" ./example-legacy
+```
+
+The destination is created when it does not exist. Importing into an existing
+project updates files in place and does not remove unrelated or stale files, so
+use a new or empty destination when a clean import is required.
+
 ## Runtime Shape
 
 The common data flow is:

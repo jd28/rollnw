@@ -49,8 +49,6 @@ namespace {
 
 constexpr std::string_view kManifestName = "rollnw.json";
 constexpr std::string_view kProjectFormat = "rollnw.module";
-constexpr std::string_view kLegacyManifestName = "arclight.json";
-constexpr std::string_view kLegacyProjectFormat = "arclight.module";
 constexpr std::string_view kSharedRoot = "shared";
 constexpr std::string_view kJsonModulePath = "shared/module.ifo.json";
 constexpr std::string_view kLegacyModulePath = "shared/module.ifo";
@@ -98,19 +96,9 @@ fs::path manifest_path(const fs::path& project_dir)
     return project_dir / kManifestName;
 }
 
-fs::path manifest_path_for_read(const fs::path& project_dir)
-{
-    const fs::path canonical = manifest_path(project_dir);
-    std::error_code ec;
-    if (fs::exists(canonical, ec)) {
-        return canonical;
-    }
-    return project_dir / kLegacyManifestName;
-}
-
 nlohmann::json load_manifest_json(const fs::path& project_dir)
 {
-    std::ifstream input{manifest_path_for_read(project_dir)};
+    std::ifstream input{manifest_path(project_dir)};
     if (!input) {
         return {};
     }
@@ -126,13 +114,9 @@ nlohmann::json load_manifest_json(const fs::path& project_dir)
 
 bool load_valid_manifest(const fs::path& project_dir)
 {
-    const fs::path path = manifest_path_for_read(project_dir);
-    const std::string_view expected_format = path.filename().string() == kManifestName
-        ? kProjectFormat
-        : kLegacyProjectFormat;
     const nlohmann::json manifest = load_manifest_json(project_dir);
     return manifest.is_object()
-        && manifest.value("format", "") == expected_format
+        && manifest.value("format", "") == kProjectFormat
         && manifest.value("version", 0) == kProjectVersion;
 }
 
@@ -634,7 +618,7 @@ ProjectResult initialize_project_with_module_path(const fs::path& project_dir,
         return failure(std::move(error));
     }
 
-    const fs::path manifest = manifest_path_for_read(project_dir);
+    const fs::path manifest = manifest_path(project_dir);
     std::error_code ec;
     if (fs::exists(manifest, ec)) {
         if (!load_valid_manifest(project_dir)) {
@@ -666,7 +650,7 @@ bool is_hidden_project_directory(const fs::path& relative_path)
         return false;
     }
     const fs::path& root = *relative_path.begin();
-    return root == ".rollnw" || root == ".arclight";
+    return root == ".rollnw";
 }
 
 fs::path project_tree_label_cache_path(const fs::path& project_dir)

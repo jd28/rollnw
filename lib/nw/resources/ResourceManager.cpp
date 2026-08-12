@@ -71,14 +71,9 @@ std::optional<ClientModuleLocation> client_module_location(const fs::path& path)
         return std::nullopt;
     }
 
-    fs::path manifest_path = path / "rollnw.json";
-    std::string_view project_format = "rollnw.module";
+    const fs::path manifest_path = path / "rollnw.json";
     if (!fs::exists(manifest_path)) {
-        manifest_path = path / "arclight.json";
-        project_format = "arclight.module";
-        if (!fs::exists(manifest_path)) {
-            return std::nullopt;
-        }
+        return std::nullopt;
     }
 
     try {
@@ -86,7 +81,7 @@ std::optional<ClientModuleLocation> client_module_location(const fs::path& path)
         nlohmann::json manifest;
         input >> manifest;
         if (!manifest.is_object()
-            || manifest.value("format", "") != project_format
+            || manifest.value("format", "") != "rollnw.module"
             || !manifest.contains("module")) {
             return std::nullopt;
         }

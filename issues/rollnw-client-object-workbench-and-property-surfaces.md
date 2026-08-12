@@ -11,9 +11,7 @@ editor. Treating every propset field as directly editable would expose storage
 instead of the authoring operations that preserve game rules and object
 invariants.
 
-The old Qt rollnw client project in `../arclight` is behind the current renderer,
-object model, serialization, and scripting architecture, but its editor
-decomposition contains useful product data:
+Established NWN editor workflows provide useful product constraints:
 
 - Creature identity and preview remain visible while task tabs change.
 - Scalar object state and scripts are consolidated into expandable property
@@ -27,20 +25,9 @@ decomposition contains useful product data:
 - Item properties use an available/applied layout with parameter controls
   derived from the selected property definition.
 
-Representative implementations are:
-
-- `../arclight/src/widgets/CreatureView/creatureview.cpp`
-- `../arclight/src/widgets/CreatureView/creaturefeatselector.cpp`
-- `../arclight/src/widgets/CreatureView/creaturespellselector.cpp`
-- `../arclight/src/widgets/CreatureView/creatureabilitiesselector.cpp`
-- `../arclight/src/widgets/CreatureView/creatureappearanceview.cpp`
-- `../arclight/src/widgets/ItemView/itemproperties.cpp`
-- `../arclight/src/widgets/EncounterView/encounterpropsview.cpp`
-- `../arclight/src/widgets/propertybrowser.cpp`
-
-The workflows and screen density are evidence. The Qt object models, direct
-member mutation, per-widget undo commands, and hand-built property objects are
-not an architecture to port.
+The workflows and screen density are evidence. Widget-specific object models,
+direct member mutation, per-widget undo commands, and hand-built property
+objects are not an architecture to reproduce.
 
 ## Real Platform and Data
 
