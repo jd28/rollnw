@@ -71,19 +71,15 @@ jobs:
             ${{ runner.os }}-coverage-
 
       - name: cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: Download NWN dedicated server
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
+      - name: Ensure NWN dedicated server
         run: |
-          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
-          ls -l ${{ github.workspace }}/nwn/
+          ./scripts/ci/ensure_nwn.sh
 
       - name: Configure
         run: |

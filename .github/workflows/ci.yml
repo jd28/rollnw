@@ -100,26 +100,26 @@ jobs:
 
       # nwn
       - name: all - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: all - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      - name: all - ensure nwn
+        if: runner.os != 'Windows'
         run: |
-          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
-          ls -l ${{ github.workspace }}/nwn/
+          ./scripts/ci/ensure_nwn.sh
 
       - name: windows - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        if: runner.os == 'Windows'
         run: |
+          if (Test-Path "${{ github.workspace }}/nwn/data/nwn_base.key") { exit 0 }
           Invoke-WebRequest https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -OutFile nwnee-dedicated-8193.34.zip
-          Expand-Archive -Path nwnee-dedicated-8193.34.zip -DestinationPath ${{ github.workspace }}/nwn/
-          Get-ChildItem ${{ github.workspace }}/nwn/
+          Expand-Archive -Force -Path nwnee-dedicated-8193.34.zip -DestinationPath ${{ github.workspace }}/nwn/
+          if (!(Test-Path "${{ github.workspace }}/nwn/data/nwn_base.key")) {
+            throw "NWN dedicated-server data is incomplete"
+          }
         shell: pwsh
 
       # build the normal libraries
@@ -212,18 +212,15 @@ jobs:
           ccache --set-config=compression=true
 
       - name: linux - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: linux - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
+      - name: linux - ensure nwn
         run: |
-          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+          ./scripts/ci/ensure_nwn.sh
 
       - name: linux - run
         run: |
@@ -271,18 +268,15 @@ jobs:
           ccache --set-config=compression=true
 
       - name: linux - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: linux - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
+      - name: linux - ensure nwn
         run: |
-          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+          ./scripts/ci/ensure_nwn.sh
 
       - name: linux - run
         env:
@@ -378,19 +372,20 @@ jobs:
             windows-2022-renderer-ccache-
 
       - name: windows - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: windows - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
+      - name: windows - ensure nwn
         run: |
+          if (Test-Path "${{ github.workspace }}/nwn/data/nwn_base.key") { exit 0 }
           Invoke-WebRequest https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -OutFile nwnee-dedicated-8193.34.zip
-          Expand-Archive -Path nwnee-dedicated-8193.34.zip -DestinationPath ${{ github.workspace }}/nwn/
-          Get-ChildItem ${{ github.workspace }}/nwn/
+          Expand-Archive -Force -Path nwnee-dedicated-8193.34.zip -DestinationPath ${{ github.workspace }}/nwn/
+          if (!(Test-Path "${{ github.workspace }}/nwn/data/nwn_base.key")) {
+            throw "NWN dedicated-server data is incomplete"
+          }
         shell: pwsh
 
       - name: windows - Visual Studio shell
@@ -788,18 +783,11 @@ jobs:
           ccache --set-config=compression=true
 
       - name: linux - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
-
-      - name: linux - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
-        run: |
-          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
 
       - name: benchmark canary (contender)
         env:
@@ -943,20 +931,15 @@ jobs:
           ccache --set-config=compression=true
 
       - name: linux - cache nwn
-        id: cache-nwn
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
-      - name: linux - download nwn
-        if: steps.cache-nwn.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/ci/ensure_nwn.sh
-
       - name: linux - configure renderer
         run: |
+          ./scripts/ci/ensure_nwn.sh
           cmake --preset ci-linux-renderer
 
       - name: linux - build renderer tools

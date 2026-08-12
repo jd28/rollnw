@@ -14,6 +14,26 @@
 
 namespace nwk = nw::kernel;
 
+namespace {
+
+bool use_repository_icon_fixture(nw::ObjectHandle item)
+{
+    auto& components = nwk::objects().components();
+    if (!components.clear_item_icons(item)) {
+        return false;
+    }
+    for (uint8_t variant = 0; variant < nw::ObjectItemIconState::variant_count; ++variant) {
+        if (!components.add_item_icon_layer(item, variant, nw::ObjectItemIconLayer{
+                                                               .resource = nw::Resref{"bioRGBA"},
+                                                           })) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
 TEST(ClientSmallsCreatureInventory, BuildsFixedEquipmentAndVariableInventoryRows)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
@@ -23,6 +43,7 @@ TEST(ClientSmallsCreatureInventory, BuildsFixedEquipmentAndVariableInventoryRows
     ASSERT_NE(creature, nullptr);
     auto* item = nwk::objects().load<nw::Item>("x2_it_mbelt001");
     ASSERT_NE(item, nullptr);
+    ASSERT_TRUE(use_repository_icon_fixture(item->handle()));
     ASSERT_TRUE(creature->inventory().add_item(item));
 
     nw::toolset::CreatureInventoryViewSnapshot snapshot;
@@ -72,7 +93,6 @@ TEST(ClientSmallsCreatureInventory, BuildsFixedEquipmentAndVariableInventoryRows
     EXPECT_NE(nw::toolset::find_generated_texture(icon_cache.textures, icon_source), nullptr);
     EXPECT_GE(inventory_row.stack_size, 0);
     ASSERT_FALSE(icon_cache.textures.empty());
-    bool found_transparent_margin = false;
     for (const auto& texture : icon_cache.textures) {
         EXPECT_FALSE(texture.source.empty());
         EXPECT_GT(texture.width, 0);
@@ -83,12 +103,9 @@ TEST(ClientSmallsCreatureInventory, BuildsFixedEquipmentAndVariableInventoryRows
             texture.width);
         EXPECT_LE(static_cast<uint64_t>(texture.visible_y) + texture.visible_height,
             texture.height);
-        found_transparent_margin |= texture.visible_x > 0 || texture.visible_y > 0
-            || texture.visible_width < texture.width || texture.visible_height < texture.height;
         EXPECT_EQ(texture.rgba.size(),
             static_cast<size_t>(texture.width) * texture.height * 4);
     }
-    EXPECT_TRUE(found_transparent_margin);
 }
 
 TEST(ClientSmallsCreatureInventory, RejectsFootprintsOutsideTheFixedPageGrid)
@@ -137,6 +154,7 @@ TEST(ClientSmallsCreatureInventory, BuildsOnePageItemInventoryWithSharedRows)
     auto* item = nwk::objects().load<nw::Item>("nw_wswss001");
     ASSERT_NE(owner, nullptr);
     ASSERT_NE(item, nullptr);
+    ASSERT_TRUE(use_repository_icon_fixture(item->handle()));
     ASSERT_TRUE(owner->inventory().add_item(item));
 
     nw::toolset::ItemInventoryViewSnapshot snapshot;

@@ -2,15 +2,15 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/script/Nss.hpp>
 
-#include <nowide/cstdlib.hpp>
-
 #include <chrono>
+
+#include "../../tests/test_nwn_root.hpp"
 
 int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
 
-    nw::kernel::config().set_paths("", "test_data/user/");
+    if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
     nw::kernel::config().initialize({true, false});
     nw::kernel::services().start();
 

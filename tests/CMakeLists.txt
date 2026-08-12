@@ -1,9 +1,24 @@
 find_package(Threads)
 
 add_custom_target(copy-files2 ALL
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data
+
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/test_data
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/nwn_dump_user/development/mdl/c_aribeth.mdl
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data/user/development/c_aribeth.mdl
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/nwn_dump_user/development/dds/c_aribeth.dds
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data/user/development/c_aribeth.dds
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/nwn_dump_user/development/dds/c_drgshad_wing.dds
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data/user/development/c_drgshad_wing.dds
 
     COMMAND ${CMAKE_COMMAND} -E remove_directory
     ${CMAKE_CURRENT_BINARY_DIR}/stdlib

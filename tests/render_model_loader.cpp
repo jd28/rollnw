@@ -339,30 +339,20 @@ TEST(RenderModelLoader, PrefersSelectedHumanoidBodyPartPaletteOverSharedBitmap)
 {
     namespace nwn = nw::render::nwn;
 
-    const std::array body_parts{
-        nw::Resref{"pmh0_handl001"},
-        nw::Resref{"pmh0_legl003"},
-    };
-    for (const auto body_part : body_parts) {
-        const nw::Resource model_resource{body_part, nw::ResourceType::mdl};
-        const nw::Resource palette_resource{body_part, nw::ResourceType::plt};
-        if (!nw::kernel::resman().contains(model_resource)
-            || !nw::kernel::resman().contains(palette_resource)) {
-            GTEST_SKIP() << "installed humanoid body-part resources unavailable";
-        }
+    const nw::Resource palette_resource{nw::Resref{"pmh0_testplt"}, nw::ResourceType::plt};
+    ASSERT_TRUE(nw::kernel::resman().contains(palette_resource));
 
-        nw::model::Mdl mdl{nw::kernel::resman().demand(model_resource)};
-        ASSERT_TRUE(mdl.valid());
+    nw::model::Mdl mdl{"test_data/user/development/pme0_testplt.mdl"};
+    ASSERT_TRUE(mdl.valid());
 
-        auto result = nwn::import_nwn_model_asset(mdl);
-        ASSERT_TRUE(result.asset);
-        ASSERT_EQ(result.asset->materials.size(), 1u);
-        ASSERT_EQ(result.asset->material_texture_sources.size(), 1u);
-        const auto source_index = result.asset->material_texture_sources.front().albedo;
-        ASSERT_LT(source_index, result.asset->texture_sources.size());
-        EXPECT_TRUE(result.asset->materials.front().albedo_uses_plt);
-        EXPECT_EQ(result.asset->texture_sources[source_index].resource, palette_resource);
-    }
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->materials.size(), 1u);
+    ASSERT_EQ(result.asset->material_texture_sources.size(), 1u);
+    const auto source_index = result.asset->material_texture_sources.front().albedo;
+    ASSERT_LT(source_index, result.asset->texture_sources.size());
+    EXPECT_TRUE(result.asset->materials.front().albedo_uses_plt);
+    EXPECT_EQ(result.asset->texture_sources[source_index].resource, palette_resource);
 }
 
 TEST(RenderModelLoader, TileGradedAlphaWithoutExplicitHintStaysOpaque)
@@ -734,21 +724,14 @@ TEST(RenderModelLoader, ImportsNwnModelAssetParticleAnimationCurves)
     EXPECT_GT(emitter->emission.rate_over_time.keys[1].value, 0.0f);
 }
 
-// NWN node names are case-insensitive and the stock humanoid rigs mix casing
-// (pmh0 carries Lbicep_g beside lforearm_g/lhand_g). Binding clip tracks by
-// exact name drops the track for any node whose casing differs from the
-// animation source, freezing that joint at bind pose -- which is what left the
-// assembled creature's hands unrotated while every other part animated.
+// NWN node names are case-insensitive. Binding clip tracks by exact name drops
+// any track whose node casing differs from the skeleton, freezing that joint at
+// bind pose.
 TEST(RenderModelLoader, ClipTracksBindToJointsCaseInsensitively)
 {
     namespace nwn = nw::render::nwn;
 
-    const nw::Resource rig{nw::Resref{"pmh0"}, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(rig)) {
-        GTEST_SKIP() << "installed humanoid base rig unavailable";
-    }
-
-    nw::model::Mdl mdl{nw::kernel::resman().demand(rig)};
+    nw::model::Mdl mdl{"test_data/user/development/test_case_insensitive_clip.mdl"};
     ASSERT_TRUE(mdl.valid());
 
     auto result = nwn::import_nwn_model_asset(mdl);
@@ -991,9 +974,8 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
 {
     namespace nwn = nw::render::nwn;
 
-    if (!nw::kernel::resman().contains({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl})) {
-        GTEST_SKIP() << "c_aribeth installed-game resource unavailable";
-    }
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl}))
+        << "repository c_aribeth fixture unavailable";
 
     auto data = nw::kernel::resman().demand({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl});
     ASSERT_GT(data.bytes.size(), 0u);
@@ -1373,14 +1355,18 @@ TEST(RenderModelLoader, ImportsPalmFoliageLeavesAsCutoutAlpha)
 {
     namespace nwn = nw::render::nwn;
 
-    const bool has_frond_texture = nw::kernel::resman().contains({nw::Resref{"plc_palmfrond"}, nw::ResourceType::dds})
-        || nw::kernel::resman().contains({nw::Resref{"plc_palmfrond"}, nw::ResourceType::tga});
-    if (!has_frond_texture) {
-        GTEST_SKIP() << "plc_palmfrond texture unavailable";
-    }
+    constexpr std::string_view binary_alpha_texture{"c_drgshad_wing"};
+    const auto texture_data = nw::kernel::resman().demand(
+        {nw::Resref{binary_alpha_texture}, nw::ResourceType::dds});
+    ASSERT_GT(texture_data.bytes.size(), 0u);
 
     nw::model::Mdl mdl{"test_data/user/development/plc_palm02.mdl"};
     ASSERT_TRUE(mdl.valid());
+    for (const auto& node : mdl.model.nodes) {
+        if (auto* dangly = dynamic_cast<nw::model::DanglymeshNode*>(node.get())) {
+            dangly->bitmap = binary_alpha_texture;
+        }
+    }
 
     auto result = nwn::import_nwn_model_asset(mdl);
     ASSERT_TRUE(result.asset);
@@ -1402,7 +1388,7 @@ TEST(RenderModelLoader, ImportsPalmFoliageLeavesAsCutoutAlpha)
         const auto albedo_source = asset.material_texture_sources[primitive.material].albedo;
         ASSERT_NE(albedo_source, nw::render::kInvalidModelAssetTextureSourceIndex);
         ASSERT_LT(albedo_source, asset.texture_sources.size());
-        EXPECT_EQ(asset.texture_sources[albedo_source].resource.resref, nw::Resref{"plc_palmfrond"});
+        EXPECT_EQ(asset.texture_sources[albedo_source].resource.resref, nw::Resref{binary_alpha_texture});
 
         nw::render::ModelAssetTextureUploadStats decode_stats;
         const auto decoded = nw::render::decode_model_asset_texture_source_rgba8(

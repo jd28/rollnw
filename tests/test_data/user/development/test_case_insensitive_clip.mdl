@@ -1,0 +1,63 @@
+#MAXMODEL ASCII
+newmodel test_case_insensitive_clip
+setsupermodel test_case_insensitive_clip NULL
+classification character
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_case_insensitive_clip
+    node dummy test_case_insensitive_clip
+        parent NULL
+    endnode
+    node dummy LHand_G
+        parent test_case_insensitive_clip
+    endnode
+    node dummy RHand_G
+        parent test_case_insensitive_clip
+    endnode
+    node dummy LBicep_G
+        parent test_case_insensitive_clip
+    endnode
+    node dummy RBicep_G
+        parent test_case_insensitive_clip
+    endnode
+endmodelgeom test_case_insensitive_clip
+
+#MAXANIM ASCII
+newanim default test_case_insensitive_clip
+    length 1
+    transtime 0.25
+    animroot test_case_insensitive_clip
+    node dummy test_case_insensitive_clip
+        parent NULL
+    endnode
+    node dummy lhand_g
+        parent test_case_insensitive_clip
+        orientationkey
+            0 0 0 1 0
+            1 0 0 1 1
+        endlist
+    endnode
+    node dummy rhand_g
+        parent test_case_insensitive_clip
+        orientationkey
+            0 0 0 1 0
+            1 0 0 1 1
+        endlist
+    endnode
+    node dummy lbicep_g
+        parent test_case_insensitive_clip
+        orientationkey
+            0 0 0 1 0
+            1 0 0 1 1
+        endlist
+    endnode
+    node dummy rbicep_g
+        parent test_case_insensitive_clip
+        orientationkey
+            0 0 0 1 0
+            1 0 0 1 1
+        endlist
+    endnode
+doneanim default test_case_insensitive_clip
+
+donemodel test_case_insensitive_clip

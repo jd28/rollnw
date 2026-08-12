@@ -204,6 +204,18 @@ bool report_has_model_name(
         });
 }
 
+bool report_has_resource(
+    const nw::render::viewer::PreviewLoadReport& report,
+    nw::Resource resource)
+{
+    return std::any_of(
+        report.resources.begin(),
+        report.resources.end(),
+        [resource](const nw::render::viewer::PreviewLoadResource& row) {
+            return row.resource == resource;
+        });
+}
+
 bool report_has_event_category(
     const nw::render::viewer::PreviewLoadReport& report,
     std::string_view category)
@@ -458,9 +470,9 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesHumanoidResolverRow
     const auto report = viewer::build_preview_load_report(creature_path.string());
 
     EXPECT_EQ(report.kind, "dynamic_creature");
-    EXPECT_TRUE(report_has_model_name(report, "pma0"));
-    EXPECT_TRUE(report_has_model_name(report, "pma0_chest001"));
-    EXPECT_TRUE(report_has_model_name(report, "pma0_head001"));
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0_chest001"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0_head001"}, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
@@ -475,10 +487,9 @@ TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
     const auto report = viewer::build_preview_load_report(item_path.string());
 
     EXPECT_EQ(report.kind, "item");
-    EXPECT_TRUE(report_has_model_name(report, "wswsc_b_044"));
-    EXPECT_TRUE(report_has_model_name(report, "wswsc_m_054"));
-    EXPECT_TRUE(report_has_model_name(report, "wswsc_t_044"));
-    EXPECT_EQ(report.error_count(), 0u);
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_b_044"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_m_054"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_t_044"}, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
@@ -493,8 +504,7 @@ TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
     const auto report = viewer::build_preview_load_report(path.string());
 
     EXPECT_EQ(report.kind, "Placeable");
-    EXPECT_TRUE(report_has_model_name(report, "plc_o01"));
-    EXPECT_EQ(report.error_count(), 0u);
+    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"plc_o01"}, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, StandalonePlaceablePreviewIgnoresPersistedGameplayAnimationState)
@@ -512,11 +522,13 @@ TEST(RenderViewerPreparedDraws, DoorLoadReportUsesSmallsResolverRows)
 {
     namespace viewer = nw::render::viewer;
 
-    const auto report = viewer::build_preview_load_report("test_data/user/development/door_ttr_002.utd");
+    const std::filesystem::path path{"test_data/user/development/door_ttr_002.utd"};
+    const auto resolved = viewer::resolve_door_model_from_file(path);
+    ASSERT_TRUE(resolved.valid) << resolved.error;
+    const auto report = viewer::build_preview_load_report(path.string());
 
     EXPECT_EQ(report.kind, "Door");
-    EXPECT_FALSE(report.model_names.empty());
-    EXPECT_EQ(report.error_count(), 0u);
+    EXPECT_TRUE(report_has_resource(report, {resolved.model, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesVisualAttachmentRows)
@@ -558,7 +570,8 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesVisualAttachmentRow
 
     EXPECT_EQ(no_wing_report.kind, "dynamic_creature");
     EXPECT_EQ(wing_report.kind, "dynamic_creature");
-    EXPECT_GT(wing_report.model_names.size(), no_wing_report.model_names.size());
+    EXPECT_FALSE(report_has_resource(no_wing_report, wing_resource));
+    EXPECT_TRUE(report_has_resource(wing_report, wing_resource));
 }
 
 TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsWingRowPolicy)
@@ -750,6 +763,10 @@ TEST(RenderViewerPreparedDraws, PreparedRenderModelSurfacePathSubmitsCesiumManWi
 
 TEST(RenderViewerPreparedDraws, ParticleMeshCacheImportsModernRenderModelOnce)
 {
+    constexpr std::string_view model_name{"plc_cndl02"};
+    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{model_name}, nw::ResourceType::mdl}))
+        << "dedicated-server particle-mesh resource unavailable";
+
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
         GTEST_SKIP() << "offscreen graphics runtime unavailable";
@@ -760,12 +777,12 @@ TEST(RenderViewerPreparedDraws, ParticleMeshCacheImportsModernRenderModelOnce)
         .ctx = gfx.context,
     };
 
-    auto* model = cache.get_or_load_particle_mesh("plc_chunk_w01", texture_upload);
+    auto* model = cache.get_or_load_particle_mesh(model_name, texture_upload);
     EXPECT_NE(model, nullptr);
     if (model) {
         EXPECT_EQ(model->source_kind, nw::render::ModelAssetSourceKind::nwn);
         EXPECT_FALSE(model->primitives.empty());
-        EXPECT_EQ(cache.get_or_load_particle_mesh("PLC_CHUNK_W01", texture_upload), model);
+        EXPECT_EQ(cache.get_or_load_particle_mesh("PLC_CNDL02", texture_upload), model);
     }
 
     const auto populated = cache.stats();

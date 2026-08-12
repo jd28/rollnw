@@ -8,7 +8,7 @@
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
 
-#include <nowide/cstdlib.hpp>
+#include "test_nwn_root.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -23,11 +23,7 @@ int main(int argc, char* argv[])
 
     nw::init_logger(argc, argv);
 
-    if (nowide::getenv("CI_GITHUB_ACTIONS")) {
-        nw::kernel::config().set_paths(nowide::getenv("NWN_ROOT"), "test_data/user/");
-    } else {
-        nw::kernel::config().set_paths("", "test_data/user/");
-    }
+    if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
 
     if (!list_tests) {
         nw::kernel::config().initialize();
