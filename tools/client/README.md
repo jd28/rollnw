@@ -17,6 +17,10 @@ objects; it does not own a second gameplay or editor object model.
 
 ## Screenshots
 
+[![Module viewer showing project resources, area minimaps, and module details](screenshots/module_view_2026_08_12.png)](screenshots/module_view_2026_08_12.png)
+
+*Module viewing with project-resource navigation and area minimaps.*
+
 [![Area viewer showing project resources, a rendered area, and its placed-object list](screenshots/area_view_2026_08_12.png)](screenshots/area_view_2026_08_12.png)
 
 *Area viewing with project-resource navigation and the complete placed-object list.*
