@@ -289,6 +289,14 @@ std::filesystem::path client_base_path()
     return std::filesystem::current_path(ec);
 }
 
+void register_smalls_packages()
+{
+    const auto stdlib_path = client_base_path() / "stdlib";
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(stdlib_path / "core");
+    runtime.add_module_path(stdlib_path / nw::kernel::config().profile());
+}
+
 bool client_ui_dir_exists(const std::filesystem::path& path)
 {
     namespace fs = std::filesystem;
@@ -7784,6 +7792,8 @@ bool ensure_project_import_kernel(nw::toolset::ProjectImportFormat format, std::
     try {
         nw::kernel::config().set_paths(install.install, install.user);
         nw::kernel::config().set_init_module("");
+        nw::kernel::services().create();
+        register_smalls_packages();
         nw::kernel::services().start();
     } catch (const std::exception& e) {
         err << "rollnw-client: failed to initialize import services: " << e.what() << '\n';
@@ -7874,6 +7884,8 @@ int main(int argc, char* argv[])
     }
     nw::kernel::config().set_paths(install.install, install.user);
     nw::kernel::config().set_init_module("");
+    nw::kernel::services().create();
+    register_smalls_packages();
     nw::kernel::services().start();
 
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
