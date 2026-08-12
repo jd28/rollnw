@@ -13,8 +13,8 @@
 
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/Item.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/rules.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/effects.hpp>
@@ -25,6 +25,7 @@
 #include <nlohmann/json.hpp>
 
 #include "../tests/item_gff_builders.hpp"
+#include "test_nwn_root.hpp"
 
 #include <random>
 
@@ -492,6 +493,7 @@ int main(int argc, char** argv)
 {
     set_benchmark_working_directory(argc > 0 ? argv[0] : nullptr);
     nw::init_logger(argc, argv);
+    if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
     nwk::config().initialize();
     nwk::services().start();
     nw::kernel::runtime().add_module_path(resolve_stdlib_module_path(argv[0], "core"));

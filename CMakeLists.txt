@@ -7,7 +7,8 @@ include(cmake/Cache.cmake)
 include(cmake/Sanitizers.cmake)
 include(GNUInstallDirs)
 
-# Apply sanitizer flags globally (including external deps) when enabled.
+# Apply sanitizer flags globally so vendored template libraries and their
+# compiled support code observe the same sanitizer ABI.
 enable_global_sanitizers()
 
 option(ROLLNW_BUILD_BENCHMARKS "Build benchmarks" OFF)
@@ -171,8 +172,15 @@ if(ROLLNW_USE_SYSTEM_SDL)
 endif()
 
 if(NOT TARGET SDL3::SDL3)
-  set(SDL_SHARED ON CACHE BOOL "Build SDL as a shared library" FORCE)
-  set(SDL_STATIC OFF CACHE BOOL "Build SDL as a static library" FORCE)
+  if(ROLLNW_GLOBAL_SANITIZERS)
+    # Clang does not link sanitizer runtimes into shared libraries. A static
+    # SDL lets the final executable provide the sanitizer runtime instead.
+    set(SDL_SHARED OFF CACHE BOOL "Build SDL as a shared library" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "Build SDL as a static library" FORCE)
+  else()
+    set(SDL_SHARED ON CACHE BOOL "Build SDL as a shared library" FORCE)
+    set(SDL_STATIC OFF CACHE BOOL "Build SDL as a static library" FORCE)
+  endif()
   add_subdirectory(external/SDL EXCLUDE_FROM_ALL SYSTEM)
   set(ROLLNW_BUNDLED_SDL ON)
 endif()
@@ -223,10 +231,9 @@ set(BENCHMARK_ENABLE_INSTALL OFF)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 set(BENCHMARK_ENABLE_TESTING OFF)
 add_subdirectory(external/benchmark-1.8.3)
-# GCC 15 emits -Wmaybe-uninitialized false positives in benchmark's <regex> usage;
-# suppress it on the vendored target rather than dropping -Werror project-wide.
-target_compile_options(benchmark PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>)
-target_compile_options(benchmark_main PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-maybe-uninitialized>)
+# Do not let warnings in vendored benchmark sources fail our builds as newer
+# compilers add diagnostics. Project benchmark sources retain project warnings.
+rollnw_silence_target_warnings(benchmark benchmark_main)
 add_subdirectory(benchmarks)
 endif()
 

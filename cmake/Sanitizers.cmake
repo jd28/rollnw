@@ -48,10 +48,13 @@ endfunction()
 function(enable_global_sanitizers)
   _rollnw_compute_sanitizers(LIST_OF_SANITIZERS)
   if(NOT LIST_OF_SANITIZERS OR "${LIST_OF_SANITIZERS}" STREQUAL "")
+    unset(ROLLNW_GLOBAL_SANITIZERS CACHE)
     return()
   endif()
 
-  # Must be called early (top-level) so external deps are instrumented too.
+  # This must be called before adding vendored dependencies. Abseil, in
+  # particular, changes its container layout and poisoning behavior under
+  # sanitizers, so its headers and compiled support code must agree.
   add_compile_options(-fsanitize=${LIST_OF_SANITIZERS})
   add_link_options(-fsanitize=${LIST_OF_SANITIZERS})
   set(ROLLNW_GLOBAL_SANITIZERS "${LIST_OF_SANITIZERS}" CACHE INTERNAL "")

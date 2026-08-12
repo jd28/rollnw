@@ -29,6 +29,13 @@ add_executable(rollnw_benchmark
 target_include_directories(rollnw_benchmark PRIVATE
     ../lib
     ../tests
+    ../tools/ui
+)
+target_compile_definitions(rollnw_benchmark PRIVATE
+    ROLLNW_TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+target_compile_options(rollnw_benchmark PRIVATE
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-c2y-extensions>
 )
 target_include_directories(rollnw_benchmark SYSTEM PRIVATE ../external)
 
@@ -64,7 +71,6 @@ if(TARGET RmlUi::RmlUi)
         ../tools/ui/smalls_rmlui.cpp
     )
     target_include_directories(rollnw_benchmark PRIVATE
-        ../tools/ui
         ../external/RmlUi-6.2/Include
     )
     target_link_libraries(rollnw_benchmark PRIVATE RmlUi::RmlUi)
