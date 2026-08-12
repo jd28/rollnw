@@ -1,5 +1,7 @@
 #pragma once
 
+#include "forward_plus_debug_mode.hpp"
+
 #include <nw/gfx/gfx.hpp>
 
 #include <glm/glm.hpp>
@@ -72,12 +74,6 @@ struct ForwardPlusStats {
     uint32_t overflow_cluster_count = 0;
     uint32_t overflow_light_count = 0;
     uint32_t upload_bytes = 0;
-};
-
-enum class ForwardPlusDebugMode : uint32_t {
-    off = 0,
-    cluster_light_count = 1,
-    depth_slice = 2,
 };
 
 struct ForwardPlusResources {

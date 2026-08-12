@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/render/render_context.hpp>
+#include <nw/render/forward_plus_debug_mode.hpp>
 
 #include <optional>
 #include <string_view>

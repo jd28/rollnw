@@ -201,6 +201,7 @@ target_include_directories(rollnw_test PRIVATE
     ../lib/nw
     ../tools/mudl
     ../tools/smalls-lsp
+    ../tools/ui
 )
 
 target_compile_definitions(rollnw_test PRIVATE
@@ -229,7 +230,6 @@ if(TARGET RmlUi::RmlUi)
         ../tools/ui/smalls_ui_v1.cpp
     )
     target_include_directories(rollnw_test PRIVATE
-        ../tools/ui
         ../external/RmlUi-6.2/Include
     )
     target_link_libraries(rollnw_test PRIVATE RmlUi::RmlUi)

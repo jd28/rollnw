@@ -2,7 +2,7 @@
 
 #include "dock_layout.hpp"
 
-#include <nw/render/render_context.hpp>
+#include <nw/render/forward_plus_debug_mode.hpp>
 
 #include <cstdint>
 #include <string>
