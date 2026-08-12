@@ -203,6 +203,10 @@ target_include_directories(rollnw_test PRIVATE
     ../tools/smalls-lsp
 )
 
+target_compile_definitions(rollnw_test PRIVATE
+    ROLLNW_TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 include(../cmake/CompilerWarnings.cmake)
 set_project_warnings(rollnw_test OWN_SOURCES)
 
@@ -227,9 +231,6 @@ if(TARGET RmlUi::RmlUi)
     target_include_directories(rollnw_test PRIVATE
         ../tools/ui
         ../external/RmlUi-6.2/Include
-    )
-    target_compile_definitions(rollnw_test PRIVATE
-        ROLLNW_TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
     target_link_libraries(rollnw_test PRIVATE RmlUi::RmlUi)
 endif()

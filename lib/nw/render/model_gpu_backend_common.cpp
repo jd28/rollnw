@@ -208,6 +208,11 @@ nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::pipeline(ModelPipelineKey ke
         }
         return {};
     case ModelPipelinePass::color:
+        if (key.material == MaterialMode::water) {
+            return key.mesh == ModelPipelineMeshKind::pbr_static
+                ? pipeline(PipelineSlot::static_water)
+                : nw::gfx::Handle<nw::gfx::Pipeline>{};
+        }
         if (key.lighting == MaterialLightingModel::nwn_diffuse) {
             switch (key.mesh) {
             case ModelPipelineMeshKind::pbr_static:
@@ -257,6 +262,8 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
     auto vs_pbr_skinned = shader_provider.get_shader("render_pbr_skinned.vs.hlsl");
     auto ps_pbr = shader_provider.get_shader("render_pbr_static.ps.hlsl");
     auto ps_nwn = shader_provider.get_shader("render_nwn_static.ps.hlsl");
+    auto vs_water = shader_provider.get_shader("render_water.vs.hlsl");
+    auto ps_water = shader_provider.get_shader("render_water.ps.hlsl");
     auto ps_pbr_shadow = shader_provider.get_shader("render_pbr_shadow.ps.hlsl");
     if (vs_pbr.valid() && ps_pbr.valid()) {
         auto pbr_desc = nw::render::make_pbr_static_pipeline_desc(vs_pbr, ps_pbr);
@@ -271,6 +278,17 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
         auto pbr_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_desc);
         if (!require_pipeline_slot(PipelineSlot::pbr_static_transparent, pbr_transparent_desc,
                 "Failed to create static model PBR transparent pipeline")) {
+            return false;
+        }
+
+        if (!vs_water.valid() || !ps_water.valid()) {
+            LOG_F(ERROR, "Failed to load RenderModel water shaders");
+            return false;
+        }
+        auto water_desc = nw::render::make_shader_variant_pipeline_desc(
+            pbr_transparent_desc, vs_water, ps_water);
+        if (!require_pipeline_slot(PipelineSlot::static_water, water_desc,
+                "Failed to create RenderModel water pipeline")) {
             return false;
         }
 

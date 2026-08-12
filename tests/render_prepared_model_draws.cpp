@@ -480,6 +480,59 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPay
     EXPECT_EQ(packets.surface_indices[1], 1u);
 }
 
+TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsSeparateWaterAndTransparentPasses)
+{
+    const auto model = make_two_primitive_render_model();
+    model->materials[0].alpha_mode = nw::render::MaterialMode::water;
+    model->materials[1].alpha_mode = nw::render::MaterialMode::transparent;
+
+    nw::render::PreparedModelSurfaceDraw water;
+    water.instance_source_index = 0u;
+    water.source_draw_index = 0u;
+    water.material_index = 0u;
+    water.skin_index = nw::render::kInvalidPreparedModelDrawIndex;
+    water.material_mode = nw::render::MaterialMode::water;
+
+    nw::render::PreparedModelSurfaceDraw transparent = water;
+    transparent.source_draw_index = 1u;
+    transparent.material_index = 1u;
+    transparent.material_mode = nw::render::MaterialMode::transparent;
+    transparent.material_uses_fallback = true;
+    transparent.material_payload = nw::render::PreparedModelMaterialPayloadKind::fallback;
+
+    const std::array surfaces{water, transparent};
+    nw::render::PreparedRenderModelSurfacePacketList packets;
+    const auto collect_pass = [&](nw::render::RenderPassSelection pass) {
+        nw::render::collect_prepared_render_model_surface_packets(
+            packets,
+            *model,
+            std::span<const nw::render::PreparedModelSurfaceDraw>{surfaces},
+            pass);
+    };
+
+    collect_pass(nw::render::RenderPassSelection::water);
+    ASSERT_TRUE(packets.stats.valid());
+    ASSERT_EQ(packets.surface_indices.size(), 1u);
+    EXPECT_EQ(packets.surface_indices[0], 0u);
+    EXPECT_EQ(packets.stats.pass_filtered_surface_count, 1u);
+
+    collect_pass(nw::render::RenderPassSelection::transparent);
+    ASSERT_TRUE(packets.stats.valid());
+    ASSERT_EQ(packets.surface_indices.size(), 1u);
+    EXPECT_EQ(packets.surface_indices[0], 1u);
+    EXPECT_EQ(packets.stats.pass_filtered_surface_count, 1u);
+
+    collect_pass(nw::render::RenderPassSelection::opaque_cutout);
+    EXPECT_TRUE(packets.stats.valid());
+    EXPECT_TRUE(packets.surface_indices.empty());
+    EXPECT_EQ(packets.stats.pass_filtered_surface_count, 2u);
+
+    collect_pass(nw::render::RenderPassSelection::all);
+    ASSERT_TRUE(packets.stats.valid());
+    ASSERT_EQ(packets.surface_indices.size(), 2u);
+    EXPECT_EQ(packets.stats.pass_filtered_surface_count, 0u);
+}
+
 TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsCountSkinBindingFallbacks)
 {
     const auto model = make_skinned_render_model();

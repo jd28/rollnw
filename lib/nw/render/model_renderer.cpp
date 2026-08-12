@@ -226,10 +226,17 @@ nw::gfx::Handle<nw::gfx::Pipeline> model_pipeline_for(
 
 bool render_model_material_visible_in_pass(MaterialMode mode, RenderPassSelection pass) noexcept
 {
-    const bool is_transparent = is_translucent_material(mode);
-    return !((pass == RenderPassSelection::opaque_cutout && is_transparent)
-        || (pass == RenderPassSelection::water)
-        || (pass == RenderPassSelection::transparent && !is_transparent));
+    switch (pass) {
+    case RenderPassSelection::opaque_cutout:
+        return mode == MaterialMode::opaque || mode == MaterialMode::cutout;
+    case RenderPassSelection::water:
+        return mode == MaterialMode::water;
+    case RenderPassSelection::transparent:
+        return mode == MaterialMode::transparent;
+    case RenderPassSelection::all:
+        return true;
+    }
+    return false;
 }
 
 bool fill_render_model_bones(

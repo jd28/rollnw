@@ -652,6 +652,16 @@ TEST(RenderViewerShadow, PreparedSurfaceDropsWaterShadowCaster)
     EXPECT_FALSE(surfaces.draws[0].casts_shadow);
 }
 
+TEST(RenderViewerLighting, SceneConstantsCarryWaterAnimationTime)
+{
+    nw::render::RenderContext context;
+    context.time_seconds = 12.5f;
+
+    const auto constants = nw::render::make_scene_constants(context);
+
+    EXPECT_FLOAT_EQ(constants.pad_alpha.y, 12.5f);
+}
+
 TEST(RenderViewerShadow, PreparedSurfacesUseCommonInstanceShadowSummary)
 {
     namespace viewer = nw::render::viewer;

@@ -449,6 +449,7 @@ struct RenderContext {
     constants.fog_range = glm::vec2(ctx.fog.start_distance, ctx.fog.end_distance);
     constants.fog_amount = ctx.fog.amount;
     constants.fog_enabled = ctx.fog.enabled ? 1u : 0u;
+    constants.pad_alpha.y = ctx.time_seconds;
     constants.environment_wind = glm::vec4(
         ctx.environment.wind_direction,
         ctx.environment.wind_strength,

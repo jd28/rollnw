@@ -36,6 +36,7 @@ class ModelGpuBackend {
         pbr_static_opaque,
         pbr_static_cutout,
         pbr_static_transparent,
+        static_water,
         pbr_static_shadow,
         pbr_static_shadow_cutout,
         pbr_skinned_opaque,
