@@ -3,15 +3,15 @@
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
 
-# rollNW
+# rollnw
 
-rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
+rollnw is an homage to Neverwinter Nights in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
 
-**Transition warning:** rollNW is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
+**Transition warning:** rollnw is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
 
 ## Features
 
-- Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollNW-based tools. See the [docs](https://jd28.github.io/rollnw/smalls/) for a language spec.
+- Smalls is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollnw-based tools. See the [docs](https://jd28.github.io/rollnw/smalls/) for a language spec.
 - The beginnings of a novel rules system and combat engine built on Smalls.
 - [`nw::gfx`](https://jd28.github.io/rollnw/gfx/), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
 - [`nw::render`](https://jd28.github.io/rollnw/render/), the 3D renderer built on `nw::gfx`: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.
@@ -23,7 +23,32 @@ rollNW is an homage to Neverwinter Nights in C++. It started as reusable NWN inf
 
 ## Tools
 
+- [`rollnw | client`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity.
 - [`mudl`](https://jd28.github.io/rollnw/mudl/), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the [renderer docs](https://jd28.github.io/rollnw/render/), including the [particle system overview](https://jd28.github.io/rollnw/render/particle_system.html).
+
+### rollnw client today
+
+The client is useful as a module and area viewer before every authoring workflow
+exists. Its current path is:
+
+```text
+NWN module -> JSON project import -> project/module home
+           -> filtered area and resource navigation
+           -> shared area/blueprint renderer
+           -> placed-object selection and Details
+           -> focused edit command -> undo/redo -> project save
+```
+
+The implemented workbench includes area and blueprint viewing, precise placed
+object selection, object-list focus, module details and hak inspection, dialog
+viewing, creature appearance/body-part/PLT editing, classes, feats, spells,
+inventory and equipment, and item editing. Area structural editing currently
+covers the validated Creature and Placeable paths. See the
+[client README](tools/client/README.md) for ownership, transaction, and current
+limit details.
+
+A short viewer-first video walkthrough is tracked in
+[`issues/rollnw-client-release-demo.md`](issues/rollnw-client-release-demo.md).
 
 ## Goals
 
@@ -66,6 +91,25 @@ To run ctest:
 $ ctest --preset=default
 ```
 
+### Import and open a module project
+
+Renderer presets build `rollnw-client` on Linux and Windows. JSON import needs
+an NWN:EE installation discoverable through the normal install probe or
+`NWN_ROOT` and `NWN_HOME`.
+
+```sh
+cmake --preset=linux-renderer-dev
+cmake --build --preset=default --target rollnw-client
+./build/tools/client/rollnw-client import --json \
+    "$HOME/.local/share/Neverwinter Nights/modules/example.mod" \
+    ./example-project
+./build/tools/client/rollnw-client
+```
+
+The application opens recent projects from its Home workspace. Import is a
+separate, explicit transform so normal viewer startup does not repeatedly
+deserialize or rewrite the source module.
+
 ## History
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries. Similarly to an older project that asked what if Bioware had stuck with Lua? The answer to that was pretty positive: a decade ahead, at least, of nwscript.
@@ -76,7 +120,7 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 - [abseil](https://abseil.io/) - Foundational
 - [GoogleTest](https://github.com/google/googletest) - Testing
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
-- [Vulkan](https://www.vulkan.org/), [Dear ImGui](https://github.com/ocornut/imgui) - Graphics and tool UI
+- [Vulkan](https://www.vulkan.org/), [Dear ImGui](https://github.com/ocornut/imgui), [RmlUi](https://github.com/mikke89/RmlUi) - Graphics and tool UI
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing

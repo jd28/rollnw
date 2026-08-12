@@ -1,13 +1,12 @@
-# Name-As-Policy Leaks Outside The NWN Sidecar
+# Name-As-Policy Leaks In NWN Import
 
 Status: resolved in working tree.
 
 ## Problem
 
 AGENTS.md and the render README both forbid deciding renderer behavior from
-model/texture/node name strings; the NWN compatibility sidecar is the
-sanctioned escape hatch. Two audited sites make name-derived decisions that
-land in *common* data or common code paths, and neither is counted in
+model/texture/node name strings. Two audited sites make name-derived decisions
+that land in *common* data or common code paths, and neither is counted in
 import stats (the conversion doc requires "do not silently bake out
 failures"). Found in the 2026-07 gfx/render audit; verified in source.
 
@@ -24,15 +23,15 @@ failures"). Found in the 2026-07 gfx/render audit; verified in source.
   Both `MaterialMode` and `ModelDeformerKind` are the common source-neutral
   enums shared by the ModelAsset/RenderModel path (per
   `docs/nwn_model_conversion.md`'s "Lowered Common Data" table) — the
-  name-derived policy leaks past the sidecar into shared renderer data.
+  name-derived policy enters shared renderer data.
   The comment at :571-573 acknowledges the compromise, but there is no
   counter in `NwnModelAssetImportStats` recording how often it fires.
 - `lib/nw/render/viewer/preview_scene.cpp:3921-3936`: wing-model meshes are
   gutted (vertex/index data zeroed) by node-name prefix match —
   `starts_with("gargoyle_") || starts_with("wing_shadow")` — undocumented,
   and inert for functionally identical content named differently. The
-  table-driven pattern already exists nearby
-  (`resolve_nwn_appearance_hand_item_visual_policy`).
+  table-driven pattern already exists in the NWN profile's Smalls visual
+  lowering.
 
 ## Fix
 
@@ -48,9 +47,8 @@ failures"). Found in the 2026-07 gfx/render audit; verified in source.
 - Done: removed the `gargoyle_` / `wing_shadow` prefix policy from the
   viewer path.
 - Done: added targeted tests for water/foliage counters and wing row policy.
-- Longer term: decide whether water/foliage classification becomes
-  sidecar-only pre-pass data or explicit per-material authored data when
-  MDL lowering moves to the offline compiler.
+- Longer term: replace water/foliage names with explicit per-material authored
+  data when MDL lowering moves to the offline compiler.
 
 ## Open Questions
 

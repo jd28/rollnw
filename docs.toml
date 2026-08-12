@@ -1,14 +1,14 @@
-site_title = "rollNW"
+site_title = "rollnw"
 repo_url = "https://github.com/jd28/rollnw"
 source_branch = "main"
 
 [[pages]]
 source = "README.md"
 target = "index.html"
-title = "rollNW"
+title = "rollnw"
 section = "Overview"
 status = "transitional"
-notice = "rollNW is in active transition. Older docs and APIs may show a narrower NWN-library view of the project."
+notice = "rollnw is in active transition. Older docs and APIs may show a narrower NWN-library view of the project."
 
 [[pages]]
 source = "lib/nw/smalls/docs/index.md"
@@ -98,6 +98,13 @@ section = "Rendering"
 status = "current"
 
 [[pages]]
+source = "lib/nw/render/docs/nwn_model_findings.md"
+target = "render/nwn_model_findings.html"
+title = "NWN Model Findings"
+section = "Rendering"
+status = "current"
+
+[[pages]]
 source = "lib/nw/render/docs/nwn_emitter_map.md"
 target = "render/nwn_emitter_map.html"
 title = "NWN Emitter Map"
@@ -130,4 +137,32 @@ source = "tools/mudl/README.md"
 target = "mudl/index.html"
 title = "mudl"
 section = "Tools"
+status = "current"
+
+[[pages]]
+source = "tools/client/README.md"
+target = "client/index.html"
+title = "rollnw | client"
+section = "Client"
+status = "current"
+
+[[pages]]
+source = "tools/client/docs/transactions.md"
+target = "client/transactions.html"
+title = "Transactions"
+section = "Client"
+status = "current"
+
+[[pages]]
+source = "tools/ui/README.md"
+target = "client/ui-runtime.html"
+title = "Toolset UI Runtime"
+section = "Client"
+status = "current"
+
+[[pages]]
+source = "tools/ui/docs/rml_smalls.md"
+target = "client/rml-smalls.html"
+title = "RmlUi And Smalls"
+section = "Client"
 status = "current"

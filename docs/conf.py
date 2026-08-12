@@ -1,4 +1,4 @@
-project = "rollNW"
+project = "rollnw"
 extensions = [
     'sphinx_tabs.tabs',
 ]

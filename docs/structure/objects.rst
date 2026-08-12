@@ -1,7 +1,7 @@
 objects
 =======
 
-rollNW is all about live objects and *not* serialized file formats.
+rollnw is all about live objects and *not* serialized file formats.
 
 definitions
 -----------
