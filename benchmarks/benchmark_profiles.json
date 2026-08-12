@@ -76,7 +76,10 @@
     "BM_render_asset_cache_hot_texture_hits_string_boundary/1": {"domain": "cpp", "group": "render_cache"},
     "BM_render_asset_cache_hot_texture_hits_string_boundary/3": {"domain": "cpp", "group": "render_cache"},
     "BM_render_asset_cache_hot_texture_hits_string_boundary/85": {"domain": "cpp", "group": "render_cache"},
-    "BM_render_asset_cache_hot_texture_hits_string_boundary/137": {"domain": "cpp", "group": "render_cache"}
+    "BM_render_asset_cache_hot_texture_hits_string_boundary/137": {"domain": "cpp", "group": "render_cache"},
+    "BM_area_object_spatial_update/16": {"domain": "cpp", "group": "editor_transform"},
+    "BM_area_object_spatial_update/256": {"domain": "cpp", "group": "editor_transform"},
+    "BM_area_object_spatial_update/573": {"domain": "cpp", "group": "editor_transform"}
   },
   "profiles": {
     "bench-pr": {
@@ -130,7 +133,10 @@
         "BM_render_asset_cache_hot_texture_hits_string_boundary/1",
         "BM_render_asset_cache_hot_texture_hits_string_boundary/3",
         "BM_render_asset_cache_hot_texture_hits_string_boundary/85",
-        "BM_render_asset_cache_hot_texture_hits_string_boundary/137"
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/137",
+        "BM_area_object_spatial_update/16",
+        "BM_area_object_spatial_update/256",
+        "BM_area_object_spatial_update/573"
       ],
       "thresholds": {
         "default": 8.0,
@@ -145,7 +151,8 @@
           "pipeline": 10.0,
           "itemprop": 8.0,
           "particles": 10.0,
-          "render_cache": 10.0
+          "render_cache": 10.0,
+          "editor_transform": 10.0
         },
         "benchmarks": {}
       }
@@ -210,7 +217,10 @@
         "BM_render_asset_cache_hot_texture_hits_string_boundary/1",
         "BM_render_asset_cache_hot_texture_hits_string_boundary/3",
         "BM_render_asset_cache_hot_texture_hits_string_boundary/85",
-        "BM_render_asset_cache_hot_texture_hits_string_boundary/137"
+        "BM_render_asset_cache_hot_texture_hits_string_boundary/137",
+        "BM_area_object_spatial_update/16",
+        "BM_area_object_spatial_update/256",
+        "BM_area_object_spatial_update/573"
       ],
       "thresholds": {
         "default": 10.0,
@@ -227,7 +237,8 @@
           "particles": 12.0,
           "gc": 25.0,
           "resources": 20.0,
-          "render_cache": 12.0
+          "render_cache": 12.0,
+          "editor_transform": 12.0
         },
         "benchmarks": {}
       }

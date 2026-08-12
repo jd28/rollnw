@@ -1,0 +1,100 @@
+<template name="item-workbench">
+<head></head>
+<body>
+  <div id="object_workbench" class="object_workbench item_workbench">
+    <div id="item_object_header" class="object_workbench_header area_object_header">
+      <button type="button" class="area_object_list_back panel_back_button"
+              title="Back to placed objects">
+        <span class="panel_back_icon">
+          <span class="panel_back_head"></span>
+          <span class="panel_back_shaft"></span>
+        </span>
+      </button>
+      <div id="item_object_title" class="object_workbench_title"></div>
+    </div>
+    <div class="object_workbench_tabs">
+      <button id="item_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
+      <button id="item_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
+      <button id="item_tab_item_properties" class="object_workbench_tab" type="button" data-surface="item-properties">Item Properties</button>
+      <button id="item_tab_inventory" class="object_workbench_tab" type="button" data-surface="inventory">Inventory</button>
+    </div>
+
+    <div id="item_surface_details" class="item_workbench_surface smalls_refresh"
+         onrefresh="rollnw_item_details_refresh">
+      <div class="property_tree_header item_data_header">
+        <span class="property_tree_header_name">Field</span>
+        <span class="property_tree_header_value">Value</span>
+        <span id="property_tree_count" class="property_tree_count">0</span>
+      </div>
+      <div id="property_tree_rows" class="property_tree_rows">
+        <div class="property_tree_empty">Select an item to inspect.</div>
+      </div>
+    </div>
+
+    <div id="item_surface_appearance" class="item_workbench_surface">
+      <div id="item_appearance_dynamic" class="smalls_refresh"
+           onrefresh="rollnw_item_appearance_refresh">
+        <div class="property_tree_empty">Waiting for a live Item.</div>
+      </div>
+    </div>
+
+    <div id="item_surface_item_properties" class="item_workbench_surface">
+      <div id="item_properties_main" class="item_properties_editor active">
+        <div class="item_property_pane available">
+          <div class="item_property_header"><span>Available</span><span class="managed_list_count" data-list-id="item.properties.available">0</span></div>
+          <div id="item_available_property_rows" class="item_property_rows managed_list_rows"
+               data-list-id="item.properties.available"
+               data-empty-text="No properties are available for this item type."></div>
+          <div class="item_property_action_bar">
+            <button id="item_property_add" class="item_property_action add" type="button"
+                    title="Add selected property" onclick="rollnw_item_property_add">
+              <span class="item_property_action_mark horizontal"></span>
+              <span class="item_property_action_mark vertical"></span>
+            </button>
+          </div>
+        </div>
+        <div class="item_property_pane applied">
+          <div class="item_property_header"><span>Assigned</span><span class="managed_list_count" data-list-id="item.properties.applied">0</span></div>
+          <div class="item_applied_property_columns">
+            <span class="item_property_column primary">Property</span>
+            <span class="item_property_column detail">Subtype</span>
+            <span class="item_property_column detail">Param</span>
+            <span class="item_property_column detail">Cost</span>
+          </div>
+          <div id="item_applied_property_rows" class="item_property_rows managed_list_rows"
+               data-list-id="item.properties.applied"
+               data-empty-text="No item properties are assigned."></div>
+          <div class="item_property_action_bar">
+            <button id="item_property_remove" class="item_property_action remove" type="button"
+                    title="Remove selected property" onclick="rollnw_item_property_remove">
+              <span class="item_property_action_mark horizontal"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="item_property_option_selector" class="item_selector managed_list_panel"
+          data-list-id="item.properties.options">
+        <div class="item_selector_header">
+          <button id="item_property_selector_close" class="item_selector_close panel_back_button" type="button"
+                  title="Back" onclick="rollnw_item_property_close">
+            <span class="panel_back_icon">
+              <span class="panel_back_head"></span>
+              <span class="panel_back_shaft"></span>
+            </span>
+          </button>
+          <div id="item_property_selector_title" class="item_selector_title managed_list_title"
+               data-list-id="item.properties.options"></div>
+        </div>
+        <div id="item_property_option_rows" class="item_option_rows managed_list_rows"
+             data-list-id="item.properties.options"
+             data-empty-text="No values are available."></div>
+      </div>
+    </div>
+
+    <div id="item_surface_inventory" class="item_workbench_surface creature_inventory_editor item_inventory_editor">
+      <div class="creature_inventory_header"><span>Inventory</span><span id="creature_inventory_count" class="property_tree_count">0</span></div>
+      <div id="creature_inventory_page_surface" class="creature_inventory_page_surface"></div>
+    </div>
+  </div>
+</body>
+</template>

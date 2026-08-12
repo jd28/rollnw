@@ -1,0 +1,62 @@
+.creature_classes_editor {
+  display: block;
+  flex: 1;
+  min-width: 0px;
+  min-height: 0px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #13191e;
+}
+
+.creature_classes_header {
+  display: flex;
+  height: 29px;
+  padding: 0px 10px;
+  border-bottom: 1px #303a43;
+  background: #1c252c;
+  color: #aeb8c3;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 29px;
+  box-sizing: border-box;
+}
+
+.creature_classes_header span:first-child {
+  flex: 1;
+  min-width: 0px;
+}
+
+.creature_classes_header span:last-child {
+  flex: 0 0 104px;
+  text-align: center;
+}
+
+.creature_class_row {
+  display: flex;
+  height: 31px;
+  border-bottom: 1px #29333c;
+  background: #151b21;
+  color: #eef2f5;
+  font-size: 12px;
+  line-height: 30px;
+  box-sizing: border-box;
+}
+
+.creature_class_row.alternate {
+  background: #192127;
+}
+
+.creature_class_name {
+  flex: 1;
+  min-width: 0px;
+  padding: 0px 10px 0px 14px;
+  border-right: 1px #29333c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.creature_class_level_controls {
+  flex: 0 0 104px;
+}
