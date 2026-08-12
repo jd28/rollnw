@@ -8,9 +8,7 @@ struct Context;
 
 namespace nw::render {
 
-// Shared model renderer backend context. This is the common GPU submission
-// contract for modern RenderModel/PBR draws; legacy asset cache ownership stays
-// in the NWN sidecar context.
+// Shared GPU submission context for RenderModel/PBR draws.
 struct ModelRenderContext {
     nw::gfx::Context* gfx = nullptr;
     ModelGpuBackend* gpu = nullptr;

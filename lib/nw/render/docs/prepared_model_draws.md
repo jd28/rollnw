@@ -1,152 +1,96 @@
 # Prepared Model Draw Protocol
 
-This document describes the current renderer-facing model frame protocol. The
-exact field layout lives in `lib/nw/render/model_draw.hpp`; this note explains
-what the records mean, who owns them, and where invalid data is dropped.
+This is the renderer-facing frame protocol for all models. The exact layouts
+live in `model_draw.hpp`; this document defines their meaning, ownership, and
+failure behavior.
 
-The protocol is not a scene graph and not a material database. It is a batch
-transform from scene-owned model instance handles to flat draw records that
-renderer passes can sort, filter, validate, and submit.
-
-## Frame Transform
-
-The common path is:
+## Batch Transform
 
 ```text
 ModelInstanceHandle span
   -> PreparedModelDrawList
   -> PreparedModelDrawRangeList
   -> PreparedModelSurfaceDrawList
-  -> sorted PreparedModelSurfaceDraw span
-  -> RenderModel skin table
-  -> backend submission adapters
+  -> sorted surface span
+  -> PreparedRenderModelSkinTable
+  -> source-indexed runs and validated packets
+  -> ModelRenderContext submission
 ```
 
-`PreparedModelDrawList` is collected from stable instance handles. It owns a
-flat `draws` array and one offset table entry per input handle plus a terminal
-offset. Hidden, stale, missing, or non-emitting inputs repeat the previous
-offset so handle order stays stable without creating dummy draw records.
+`PreparedModelDrawList` owns a flat draw array and an offset table with one
+entry per input handle plus a terminal entry. Hidden, stale, missing, or
+non-emitting inputs repeat the prior offset. This preserves input ordering
+without dummy draws.
 
-`PreparedModelDrawRangeList` turns those offsets into non-empty ranges. Each
-range must contain draws with one instance handle, one instance kind, one
-payload kind, and one source model index. Mixed ranges are dropped and counted.
+`PreparedModelDrawRangeList` emits one range for each non-empty handle. Every
+draw in a range must share the instance handle and source model index. Invalid
+offsets and mixed ranges are dropped and counted.
 
-`PreparedModelSurfaceDrawList` flattens valid ranges into one renderer-facing
-surface stream. `PreparedModelSurfaceDraw` is the smallest common model draw
-command. It carries:
+`PreparedModelSurfaceDrawList` flattens valid ranges. Each surface carries:
 
-- stable instance and source indices
-- payload kind: `render_model` or `nwn_legacy`
-- source draw, material, skin, and material override indices
-- material mode and material payload class
-- skinned flag, skin table index, transform, normal matrix, bounds, and shadow
-  eligibility
+- instance, range, draw, source model, primitive, material, skin, and override
+  indices
+- material mode and payload class
+- skinned and shadow flags
+- world and normal transforms
+- world-space bounds
+- a frame-local skin-table index when assigned
 
-Surface draws carry indices and small value data. They do not carry raw source
-pointers, material payload pointers, or skin matrices.
+Records contain indices and value data, never pointers into source models.
 
 ## Sorting And Passes
 
-The flat surface stream is sorted in place by
-`sort_prepared_model_surface_draws_by_pass`. The current ordering partitions by
-material pass, payload kind, skinned state, source model, material, override,
-skin, range, source draw, and handle index.
+`sort_prepared_model_surface_draws_by_pass` sorts the flat array by material
+pass, skinned state, source model, material, override, skin, range, primitive,
+and handle index.
 
-Pass consumers take spans into that sorted array with
-`prepared_model_surface_draws_for_pass_indices`:
+Pass helpers return borrowed spans into that one sorted array:
 
-- opaque and cutout: pass indices `[0, 2)`
-- water: pass indices `[2, 3)`
-- transparent: pass indices `[3, 4)`
+- opaque and cutout: `[0, 2)`
+- water: `[2, 3)`
+- transparent: `[3, 4)`
 - all: the full span
 
-This keeps pass partitioning as views into one array. The owner of the array is
-responsible for keeping it alive while those spans are used.
+The caller must retain the surface list while any pass span is used.
 
-## Skin Matrix Binding
+## Skin Tables And Submission
 
-Skin matrices are not stored in surface draws.
+`collect_prepared_render_model_skin_tables` scans the surface batch and writes
+one contiguous matrix array plus indexed ranges. Surfaces that are unskinned,
+stale, invalid, over the joint bound, or intentionally using bind pose retain
+`kInvalidPreparedModelDrawIndex`; each case is counted.
 
-`collect_prepared_render_model_skin_tables` scans the mutable surface array and
-builds `PreparedRenderModelSkinTable` for RenderModel surfaces only. The table
-owns frame-local contiguous matrix storage and range records. A skinned surface
-uses `skin_table_index` to refer to one range.
-
-Invalid, stale, unsupported, or bind-pose-fallback surfaces keep
-`skin_table_index == kInvalidPreparedModelDrawIndex` and are counted in table
-stats. The renderer path must handle that as an explicit fallback or drop, not
-as undefined GPU state.
-
-## Submission Adapters
-
-RenderModel and NWN legacy payloads share the surface stream but submit through
-different adapters.
-
-For `render_model` payloads:
-
-- `collect_prepared_render_model_surface_runs` groups contiguous RenderModel
-  surfaces by `instance_source_index`.
-- `PreparedRenderModelSurfacePacketList` validates the source primitive,
-  material index, material payload, material mode, skin index, and material
-  override before submission.
-- `render_prepared_render_model_surfaces` submits the valid packet through the
-  common `ModelRenderContext`.
-- Viewer adapters call `render_prepared_render_model_surface_draws`, which
-  accepts only the common `ModelRenderContext`.
-
-For `nwn_legacy` payloads:
-
-- `PreviewPreparedModelDraws` keeps the common draw list and a sidecar array of
-  `nwn::PreparedDrawItem`.
-- `collect_nwn_legacy_prepared_surface_draw_items` maps common surfaces back to
-  sidecar draw items.
-- Viewer adapters call `render_prepared_nwn_legacy_surface_draws`, which
-  accepts only `nwn::ModelRenderContext`.
-- The sidecar still owns legacy-only details such as PLT payloads, legacy
-  material quirks, and the prepared NWN mesh payload used by the compatibility
-  renderer.
-
-The common stream decides visibility, pass grouping, transforms, and shadow
-eligibility. The legacy adapter supplies only the data that has not yet been
-lowered into common records.
+`collect_prepared_render_model_surface_runs` groups adjacent surfaces by
+`instance_source_index`. Packet collection validates the referenced
+`RenderModel` primitive, material, skin, override, and payload before common
+PBR or shadow submission.
 
 ## Error Policy
 
-Boundary policy is drop-and-count. Invalid data should stop at the boundary
-where it is detected and increment a stats counter.
+Every invalid boundary is drop-and-count. Counted cases include:
 
-Current counted cases include:
+- stale or hidden instances and missing source models
+- invalid offsets, mixed ranges, and invalid source indices
+- primitive, material, skin, override, or matrix-range mismatches
+- material payload or shadow-state mismatches
+- unsupported material modes
 
-- stale model instance handles
-- hidden or missing model instances
-- missing source assets
-- invalid draw offsets and mixed draw ranges
-- invalid source model, primitive, material, skin, or override indices
-- material payload mismatches
-- missing or invalid NWN sidecar draw payloads
-- invalid skin matrix ranges
-- unsupported or invalid material modes
+No pass infers behavior from model, texture, or node names. Source-format
+policy must already have been lowered into common fields before this protocol.
 
-No renderer pass should infer policy from model names, texture names, or node
-names. Source-specific behavior must be lowered into explicit common fields or
-kept in a sidecar adapter with a counted fallback.
+## Ownership, Cost, And Constraints
 
-## Ownership And Lifetime
+`PreviewScene` owns source models, instances, and material overrides.
+`PreviewPreparedModelDraws` owns draw and range arrays.
+`PreparedModelSurfaceDrawList` owns surfaces and the skin table. Packet and
+run spans borrow these arrays. `ModelRenderContext` owns GPU submission state,
+not scene or frame records.
 
-`PreviewScene` owns model instances, source model arrays, material overrides,
-and NWN sidecar data for the viewer/tool path.
+Collection, range validation, skin assignment, and run construction are linear
+in their input counts. Sorting is `O(surface_count log surface_count)`. Memory
+is linear in visible draws, surfaces, and referenced skin matrices. These are
+algorithmic costs; runtime performance has not been measured here.
 
-`PreviewPreparedModelDraws` owns the frame common draw list, range list, and NWN
-prepared sidecar draw array.
+## Follow-Up
 
-`PreparedModelSurfaceDrawList` owns the frame surface stream and RenderModel
-skin table. Spans returned from pass helpers, run collectors, and packet lists
-borrow from this list and must not outlive it.
-
-`ModelRenderContext` and `nwn::ModelRenderContext` own renderer submission
-state. They do not own the scene instances or the frame draw stream.
-
-## Current Follow-Ups
-
-- [Remove Legacy Render Paths](../../../../issues/remove-legacy-render-paths.md)
 - [Offline Model Compiler](../../../../issues/offline-model-compiler.md)

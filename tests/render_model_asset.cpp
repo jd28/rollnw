@@ -1,16 +1,55 @@
 #include <nw/formats/Plt.hpp>
 #include <nw/render/model_asset.hpp>
+#include <nw/render/texture_decode.hpp>
 
 #include <gtest/gtest.h>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <utility>
 #include <vector>
 
 namespace {
+
+TEST(RenderModelAsset, ParticleEmitterSpawnBoundsContainAuthoredFootprints)
+{
+    std::array<nw::render::ParticleEmitterDef, 2> emitters{};
+    emitters[0].attachment.has_default_transform = true;
+    emitters[0].attachment.default_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{2.0f, 3.0f, 4.0f});
+    emitters[0].region.size = {200.0f, 400.0f};
+    emitters[0].initial.size_x = {2.0f, 2.0f};
+    emitters[0].initial.size_y = {4.0f, 4.0f};
+
+    emitters[1].attachment.has_default_position = true;
+    emitters[1].attachment.default_position = {-5.0f, 1.0f, 0.0f};
+    emitters[1].initial.size_x = {1.0f, 1.0f};
+    emitters[1].initial.size_y = {1.0f, 1.0f};
+
+    const auto bounds = nw::render::particle_emitter_spawn_bounds(emitters);
+    ASSERT_TRUE(bounds);
+
+    const float first_sprite_radius = 0.5f * std::hypot(2.0f, 4.0f);
+    EXPECT_FLOAT_EQ(bounds->max.x, 3.0f + first_sprite_radius);
+    EXPECT_FLOAT_EQ(bounds->max.y, 5.0f + first_sprite_radius);
+    EXPECT_FLOAT_EQ(bounds->max.z, 4.0f + first_sprite_radius);
+    EXPECT_LT(bounds->min.x, -5.0f);
+    EXPECT_LT(bounds->min.y, 1.0f);
+    EXPECT_LT(bounds->min.z, 0.0f);
+}
+
+TEST(RenderModelAsset, ParticleEmitterSpawnBoundsDropNonFiniteEmitters)
+{
+    nw::render::ParticleEmitterDef emitter{};
+    emitter.attachment.has_default_position = true;
+    emitter.attachment.default_position.x = std::numeric_limits<float>::infinity();
+
+    EXPECT_FALSE(nw::render::particle_emitter_spawn_bounds(std::span{&emitter, 1}));
+}
 
 nw::render::ModelAsset make_minimal_valid_asset()
 {
@@ -185,7 +224,7 @@ TEST(RenderModelAsset, PrimitiveCountsStaticAndSkinnedPayloads)
 TEST(RenderModelAsset, OwnsSourceAgnosticModelPayloads)
 {
     nw::render::ModelAsset asset;
-    asset.source_kind = nw::render::ModelAssetSourceKind::nwn_legacy;
+    asset.source_kind = nw::render::ModelAssetSourceKind::nwn;
     asset.name = "c_legacy_creature";
     asset.materials.push_back(nw::render::Material{});
     asset.texture_sources.push_back(nw::render::ModelAssetTextureSource{
@@ -226,10 +265,11 @@ TEST(RenderModelAsset, OwnsSourceAgnosticModelPayloads)
     });
 
     EXPECT_FALSE(asset.empty());
-    EXPECT_EQ(asset.source_kind, nw::render::ModelAssetSourceKind::nwn_legacy);
+    EXPECT_EQ(asset.source_kind, nw::render::ModelAssetSourceKind::nwn);
     ASSERT_EQ(asset.texture_sources.size(), 1u);
     EXPECT_EQ(asset.texture_sources[0].kind, nw::render::ModelAssetTextureSourceKind::external_file);
     EXPECT_EQ(asset.material_texture_sources[0].albedo, 0u);
+    EXPECT_TRUE(asset.material_texture_sources[0].albedo_srgb);
     EXPECT_EQ(asset.sockets[0].source_node_index, 0u);
     EXPECT_EQ(asset.deformers[0].kind, nw::render::ModelDeformerKind::vertex_shader_sway);
     asset.shadow = nw::render::summarize_model_asset_shadows(asset);
@@ -294,6 +334,48 @@ TEST(RenderModelAsset, NeutralSurfaceFallbackPreservesMaterialFactors)
     EXPECT_EQ(static_cast<uint32_t>(nw::render::kModelSurfaceNeutralAlpha), 255u);
 }
 
+TEST(RenderModelAsset, PremultipliesCompleteRgbaPixelBatches)
+{
+    std::array<uint8_t, 12> pixels{
+        200,
+        100,
+        50,
+        0,
+        200,
+        100,
+        50,
+        128,
+        200,
+        100,
+        50,
+        255,
+    };
+
+    ASSERT_TRUE(nw::render::premultiply_rgba8_pixels(pixels));
+    EXPECT_EQ(pixels, (std::array<uint8_t, 12>{
+                          0,
+                          0,
+                          0,
+                          0,
+                          100,
+                          50,
+                          25,
+                          128,
+                          200,
+                          100,
+                          50,
+                          255,
+                      }));
+}
+
+TEST(RenderModelAsset, RejectsIncompleteRgbaPixelBatches)
+{
+    std::array<uint8_t, 3> pixels{200, 100, 50};
+
+    EXPECT_FALSE(nw::render::premultiply_rgba8_pixels(pixels));
+    EXPECT_EQ(pixels, (std::array<uint8_t, 3>{200, 100, 50}));
+}
+
 TEST(RenderModelAsset, MaterialTextureUploadUsesNeutralFallbacksForMissingTextureRoles)
 {
     const auto asset = make_minimal_valid_asset();
@@ -332,6 +414,18 @@ TEST(RenderModelAsset, EmptyAllowsParticleOnlyAssets)
     particles.name = "standalone";
     particles.effect = std::move(effect);
     asset.particle_systems.push_back(std::move(particles));
+
+    EXPECT_FALSE(asset.empty());
+}
+
+TEST(RenderModelAsset, EmptyAllowsSocketOnlyAssets)
+{
+    nw::render::ModelAsset asset;
+    asset.nodes.push_back(nw::render::Node{});
+    asset.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "tail",
+    });
 
     EXPECT_FALSE(asset.empty());
 }
@@ -435,6 +529,29 @@ TEST(RenderModelAsset, ValidationCountsInvalidModelAssetRows)
     EXPECT_EQ(stats.invalid_skin_joint_count, 1u);
     EXPECT_EQ(stats.invalid_skin_inverse_bind_count, 1u);
     EXPECT_GT(stats.invalid_asset_row_count(), 0u);
+}
+
+TEST(RenderModelAsset, ValidationAcceptsIdentitySkinJoint)
+{
+    auto asset = make_minimal_valid_asset();
+
+    nw::render::Skeleton skeleton;
+    skeleton.joints.push_back(nw::render::Joint{
+        .parent = -1,
+        .node = 0,
+    });
+    nw::render::build_eval_order(skeleton);
+    asset.skeletons.push_back(std::move(skeleton));
+    asset.skins.push_back(nw::render::Skin{
+        .skeleton = 0u,
+        .joints = {nw::render::kModelSkinIdentityJoint},
+        .inverse_bind_matrices = {glm::mat4{1.0f}},
+    });
+
+    const auto stats = nw::render::validate_model_asset(asset);
+
+    EXPECT_EQ(stats.invalid_skin_joint_count, 0u);
+    EXPECT_TRUE(stats.passed());
 }
 
 TEST(RenderModelAsset, ValidationRejectsInvalidSocketRows)
@@ -734,6 +851,41 @@ TEST(RenderModelAsset, MaterialTextureUploadCreatesTexturesWhenGraphicsAvailable
     destroy_render_model_test_textures(gfx.context, model);
 }
 
+TEST(RenderModelAsset, RenderModelDestructionReleasesOwnedGpuResources)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    nw::gfx::Handle<nw::gfx::Buffer> old_buffer;
+    nw::gfx::Handle<nw::gfx::Texture> old_texture;
+    {
+        nw::render::RenderModel model{gfx.context};
+        old_buffer = nw::gfx::create_buffer(gfx.context, nw::gfx::BufferDesc{
+                                                             .size = 64,
+                                                             .usage = nw::gfx::BufferUsage::Vertex,
+                                                             .cpu_visible = true,
+                                                         });
+        ASSERT_TRUE(old_buffer.valid());
+        model.primitives.push_back(nw::render::Primitive{.vertices = old_buffer});
+
+        old_texture = nw::gfx::create_texture(gfx.context, nw::gfx::TextureDesc{
+                                                               .width = 1,
+                                                               .height = 1,
+                                                               .format = nw::gfx::Fmt::RGBA8,
+                                                           });
+        ASSERT_TRUE(old_texture.valid());
+        ASSERT_TRUE(nw::gfx::bindless_texture_index_valid(
+            nw::gfx::get_bindless_texture_index(gfx.context, old_texture)));
+        model.textures.push_back(old_texture);
+    }
+
+    EXPECT_EQ(nw::gfx::map_buffer(old_buffer), nullptr);
+    EXPECT_FALSE(nw::gfx::bindless_texture_index_valid(
+        nw::gfx::get_bindless_texture_index(gfx.context, old_texture)));
+}
+
 TEST(RenderModelAsset, TextureDecodeRestoresBottomOriginTgaFileRows)
 {
     constexpr uint8_t bottom_origin_descriptor = 0x00;
@@ -783,6 +935,54 @@ TEST(RenderModelAsset, UploadRejectsMissingContextAfterValidation)
     EXPECT_EQ(result.stats.invalid_primitive_count, 0u);
     EXPECT_EQ(result.stats.missing_context_count, 1u);
     EXPECT_FALSE(result.stats.passed());
+}
+
+TEST(RenderModelAsset, UploadCopiesSocketOnlyAssetWithoutGpuWork)
+{
+    nw::render::ModelAsset asset;
+    asset.name = "socket_carrier";
+    asset.source_kind = nw::render::ModelAssetSourceKind::nwn;
+    asset.nodes.push_back(nw::render::Node{});
+    asset.sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "tail",
+    });
+
+    auto result = nw::render::upload_model_asset(asset, nullptr);
+
+    ASSERT_TRUE(result.model);
+    EXPECT_TRUE(result.stats.passed());
+    EXPECT_EQ(result.stats.primitive_count, 0u);
+    EXPECT_EQ(result.stats.uploaded_primitive_count, 0u);
+    EXPECT_EQ(result.stats.socket_count, 1u);
+    EXPECT_EQ(result.stats.particle_system_count, 0u);
+    EXPECT_EQ(result.stats.missing_context_count, 0u);
+    EXPECT_TRUE(result.model->primitives.empty());
+    ASSERT_EQ(result.model->nodes.size(), 1u);
+    ASSERT_EQ(result.model->sockets.size(), 1u);
+    EXPECT_EQ(result.model->socket_index("tail"), 0u);
+}
+
+TEST(RenderModelAsset, UploadCopiesParticleOnlyAssetWithoutGpuWork)
+{
+    nw::render::ModelAsset asset;
+    nw::render::ParticleEffectDef effect;
+    effect.emitters.push_back(nw::render::ParticleEmitterDef{});
+    asset.particle_systems.push_back(nw::render::ModelAssetParticleSystem{
+        .name = "standalone",
+        .effect = std::move(effect),
+    });
+
+    auto result = nw::render::upload_model_asset(asset, nullptr);
+
+    ASSERT_TRUE(result.model);
+    EXPECT_TRUE(result.stats.passed());
+    EXPECT_EQ(result.stats.primitive_count, 0u);
+    EXPECT_EQ(result.stats.socket_count, 0u);
+    EXPECT_EQ(result.stats.particle_system_count, 1u);
+    EXPECT_EQ(result.stats.missing_context_count, 0u);
+    ASSERT_EQ(result.model->particle_systems.size(), 1u);
+    EXPECT_EQ(result.model->particle_systems[0].name, "standalone");
 }
 
 TEST(RenderModelAsset, UploadsStaticPrimitiveToRenderModelWhenGraphicsAvailable)

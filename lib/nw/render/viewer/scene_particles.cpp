@@ -3,8 +3,9 @@
 #include "area_render_scene.hpp"
 #include "preview_scene.hpp"
 
+#include <nw/render/model_asset.hpp>
 #include <nw/render/model_gpu_backend.hpp>
-#include <nw/render/nwn/model_renderer.hpp>
+#include <nw/render/model_renderer.hpp>
 #include <nw/render/nwn/render_asset_cache.hpp>
 #include <nw/render/particle_renderer.hpp>
 #include <nw/render/particle_system.hpp>
@@ -14,9 +15,10 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
-#include <optional>
 #include <string_view>
+#include <vector>
 
 namespace nw::render::viewer {
 
@@ -35,6 +37,13 @@ class SceneParticleResourceProvider : public nw::render::ParticleResourceProvide
 public:
     explicit SceneParticleResourceProvider(nw::render::RenderService& service) noexcept
         : service_(service)
+        , particle_mesh_texture_upload_{
+              .ctx = service.model_render_context().gfx,
+              .fallback_albedo = service.model_backend().fallback_albedo_index(),
+              .fallback_normal = service.model_backend().fallback_normal_index(),
+              .fallback_surface = service.model_backend().fallback_surface_index(),
+              .fallback_emissive = service.model_backend().fallback_emissive_index(),
+          }
     {
     }
 
@@ -64,14 +73,37 @@ public:
         return service_.model_backend().fallback_texture();
     }
 
-    nw::render::nwn::ModelInstance* get_particle_mesh(std::string_view resref)
+    nw::render::RenderModel* get_particle_mesh(std::string_view resref)
     {
-        return service_.asset_cache().get_or_load_particle_mesh(nw::Resref{resref});
+        return service_.asset_cache().get_or_load_particle_mesh(
+            nw::Resref{resref}, particle_mesh_texture_upload_);
     }
 
 private:
     nw::render::RenderService& service_;
+    nw::render::ModelAssetTextureUploadDesc particle_mesh_texture_upload_{};
 };
+
+bool particle_mesh_columns_contain(
+    const nw::render::ParticleCoreStorage& core, size_t particle_index) noexcept
+{
+    return particle_index < core.position.size()
+        && particle_index < core.size_x.size()
+        && particle_index < core.size_y.size()
+        && particle_index < core.rotation.size();
+}
+
+bool particle_mesh_data_finite(
+    const nw::render::ParticleCoreStorage& core, size_t particle_index) noexcept
+{
+    const auto& position = core.position[particle_index];
+    return std::isfinite(position.x)
+        && std::isfinite(position.y)
+        && std::isfinite(position.z)
+        && std::isfinite(core.size_x[particle_index])
+        && std::isfinite(core.size_y[particle_index])
+        && std::isfinite(core.rotation[particle_index]);
+}
 
 glm::mat4 particle_mesh_root(
     const nw::render::ParticleCoreStorage& core,
@@ -88,27 +120,18 @@ glm::mat4 particle_mesh_root(
     return model_root;
 }
 
-struct SceneMeshParticleBridge {
-    nw::render::RenderService& service;
+struct SceneMeshParticleBatch {
+    nw::render::ModelRenderContext render_ctx;
     SceneParticleResourceProvider& resources;
     nw::gfx::CommandList* cmd = nullptr;
     const nw::render::RenderContext& ctx;
-    std::optional<nw::render::nwn::ModelRenderContext> render_ctx{};
-
-    nw::render::nwn::ModelRenderContext& legacy_context()
-    {
-        if (!render_ctx) {
-            render_ctx = service.nwn_model_render_context();
-        }
-        return *render_ctx;
-    }
+    std::vector<glm::mat4> roots;
 };
 
-// Bridge-phase transform for mesh particles. The common particle packet owns
-// the particle indices and per-particle placement; the NWN sidecar still owns
-// the mesh payload until mesh particles are compiled to RenderModel assets.
-void render_scene_mesh_particle_packet(
-    SceneMeshParticleBridge& bridge,
+// One packet is a batch of indices into the particle SoA. The cached mesh is an
+// immutable RenderModel; only the per-particle root transform changes here.
+void render_scene_mesh_particles(
+    SceneMeshParticleBatch& batch,
     const SceneParticleSystem& scene_particles,
     const nw::render::ParticleRenderPacket& packet,
     const nw::render::ParticleMaterialDef& source_material,
@@ -122,27 +145,43 @@ void render_scene_mesh_particle_packet(
         return;
     }
 
-    auto* chunk_model = bridge.resources.get_particle_mesh(source_material.mesh);
-    if (!chunk_model || chunk_model->nodes_.empty()) {
+    auto* chunk_model = batch.resources.get_particle_mesh(source_material.mesh);
+    if (!chunk_model || chunk_model->primitives.empty()) {
         add_saturating(stats.mesh_missing_model_packet_count, 1u);
         add_saturating(stats.mesh_dropped_particle_count, packet.count);
         return;
     }
 
     const auto& core = scene_particles.system.particles.core;
-    for (const uint32_t particle_index : particle_render_packet_indices(scene_particles.system, packet)) {
-        if (particle_index >= core.position.size()) {
+    const auto particle_indices = particle_render_packet_indices(scene_particles.system, packet);
+    if (particle_indices.size() < packet.count) {
+        const auto missing_count = packet.count - static_cast<uint32_t>(particle_indices.size());
+        add_saturating(stats.mesh_invalid_particle_index_count, missing_count);
+        add_saturating(stats.mesh_dropped_particle_count, missing_count);
+    }
+    batch.roots.clear();
+    batch.roots.reserve(particle_indices.size());
+    for (const uint32_t particle_index : particle_indices) {
+        if (!particle_mesh_columns_contain(core, particle_index)) {
             add_saturating(stats.mesh_invalid_particle_index_count, 1u);
             add_saturating(stats.mesh_dropped_particle_count, 1u);
             continue;
         }
-        nw::render::nwn::render_model_instance_with_root(
-            bridge.legacy_context(),
-            bridge.cmd,
+        if (!particle_mesh_data_finite(core, particle_index)) {
+            add_saturating(stats.mesh_invalid_particle_data_count, 1u);
+            add_saturating(stats.mesh_dropped_particle_count, 1u);
+            continue;
+        }
+        batch.roots.push_back(particle_mesh_root(core, particle_index));
+    }
+    if (!batch.roots.empty()) {
+        nw::render::render_render_model_instances(
+            batch.render_ctx,
+            batch.cmd,
             *chunk_model,
-            particle_mesh_root(core, particle_index),
-            bridge.ctx);
-        add_saturating(stats.mesh_submitted_particle_count, 1u);
+            batch.roots,
+            batch.ctx);
+        add_saturating(stats.mesh_submitted_particle_count, static_cast<uint32_t>(batch.roots.size()));
     }
 }
 
@@ -156,18 +195,8 @@ bool particle_system_visible_for_render_filter(
         return true;
     }
 
-    uint32_t record_index = kInvalidAreaRenderRecordIndex;
-    switch (scene_particles.owner_kind) {
-    case nw::render::ModelInstanceKind::nwn_legacy:
-        if (!scene_particles.owner) {
-            return true;
-        }
-        record_index = filter.area_scene->record_index_for_model(scene_particles.owner_model_index);
-        break;
-    case nw::render::ModelInstanceKind::render_model:
-        record_index = filter.area_scene->record_index_for_render_model(scene_particles.owner_model_index);
-        break;
-    }
+    const uint32_t record_index = filter.area_scene->record_index_for_render_model(
+        scene_particles.owner_model_index);
     if (record_index == kInvalidAreaRenderRecordIndex) {
         return true;
     }
@@ -186,7 +215,7 @@ ParticleRenderStats render_scene_particles(
     }
 
     SceneParticleResourceProvider resources{service};
-    SceneMeshParticleBridge mesh_bridge{service, resources, cmd, ctx};
+    SceneMeshParticleBatch mesh_batch{service.model_render_context(), resources, cmd, ctx};
     ParticleRenderStats stats{};
     for (const auto& scene_particles : scene.particles) {
         if (!particle_system_visible_for_render_filter(scene_particles, filter)) {
@@ -216,8 +245,8 @@ ParticleRenderStats render_scene_particles(
                 ? scene_particles.import.effect.materials[packet.material]
                 : nw::render::ParticleMaterialDef{};
             if (packet.mode == nw::render::ParticleRenderMode::mesh) {
-                render_scene_mesh_particle_packet(
-                    mesh_bridge,
+                render_scene_mesh_particles(
+                    mesh_batch,
                     scene_particles,
                     packet,
                     source_material,

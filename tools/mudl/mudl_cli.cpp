@@ -178,12 +178,12 @@ void print_usage()
 {
     std::cout << "mudl - Model Viewer & Asset Pipeline Tool\n\n"
               << "Usage:\n"
-              << "  mudl [view] <resref> [--module <path>] [--animation <name>] [--pbr-environment <ktx>] [--no-pbr-ibl] [--legacy-nwn-model-path] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
-              << "  mudl spell <spells.2da rowid> [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
+              << "  mudl [view] <resref> [--module <path>] [--animation <name>] [--pbr-environment <ktx>] [--no-pbr-ibl] [--debug] [--validate]\n"
+              << "  mudl spell <spells.2da rowid> [--module <path>] [--animation <name>] [--debug] [--validate]\n"
               << "  mudl spell-export <spells.2da rowid> <path> [--module <path>]\n"
               << "  mudl spell-export-live <spells.2da rowid> <path> [--module <path>]\n"
               << "  mudl spell-preview-live <spells.2da rowid> <path> [--module <path>] [--frame <count>] [--view front|top|side] [--metadata]\n"
-              << "  mudl vfx <spell|resref|VFX_*|effect.json> [--stage proj|cast|conj|impact|duration|cessation] [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
+              << "  mudl vfx <spell|resref|VFX_*|effect.json> [--stage proj|cast|conj|impact|duration|cessation] [--module <path>] [--animation <name>] [--debug] [--validate]\n"
               << "  mudl corpus <path/to/corpus.json> [--output <dir>] [--module <path>] [--pbr-environment <ktx>] [--no-pbr-ibl] [--limit <count>] [--filter <tag>] [--ledger <path>]\n"
               << "  mudl dump <resref> [--output <dir>] [--module <path>]\n"
               << "  mudl report <resref|path> [--module <path>] [--animation <name>]\n"
@@ -195,14 +195,14 @@ void print_usage()
               << "  mudl area-lights <area_resref> [--module <path>]\n"
               << "  mudl area --dump <module_path> [--output <dir>] [--skip-existing] [--limit <count>] [--debug]\n"
               << "  mudl area-screenshot <area_resref> <path> [--module <path>] [--debug]\n"
-              << "  mudl creature <resref> [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
-              << "  mudl item <resref> [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--debug] [--validate]\n"
+              << "  mudl creature <resref> [--module <path>] [--animation <name>] [--debug] [--validate]\n"
+              << "  mudl item <resref> [--module <path>] [--animation <name>] [--debug] [--validate]\n"
               << "  mudl particle-preview <resref> <path> [--module <path>] [--animation <name>] [--time <seconds>] [--view front|top|side] [--metadata]\n"
               << "  mudl particle-preview-frames <resref> <dir> [--module <path>] [--animation <name>] [--duration <seconds>] [--fps <count>] [--view front|top|side] [--metadata]\n"
               << "  mudl particle-export <resref> <path> [--module <path>] [--animation <name>]\n"
-              << "  mudl frames <count> [<resref>] [--module <path>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern] [--validate]\n"
-              << "  mudl screenshot <resref> <path> [--module <path>] [--animation <name>] [--legacy-nwn-model-path] [--dangly-scale <value>] [--dangly-mode legacy|modern]\n"
-              << "  mudl turntable <resref> [frames] [--module <path>] [--output <dir>] [--animation <name>] [--dangly-scale <value>] [--dangly-mode legacy|modern]\n"
+              << "  mudl frames <count> [<resref>] [--module <path>] [--animation <name>] [--validate]\n"
+              << "  mudl screenshot <resref> <path> [--module <path>] [--animation <name>]\n"
+              << "  mudl turntable <resref> [frames] [--module <path>] [--output <dir>] [--animation <name>]\n"
               << "  mudl nwn-animation-smoke [--module <path>] [--validate]\n"
               << "  mudl compute-smoke [--validate]\n"
               << "\nturntable writes numbered PNG frames to --output, or <resref>-turntable by default.\n"
@@ -212,13 +212,10 @@ void print_usage()
               << "--user <path> sets the NWN user directory root for development/override assets.\n"
               << "--pbr-environment <ktx> selects the HDR KTX source used for static PBR reference IBL.\n"
               << "--no-pbr-ibl skips generated static PBR IBL textures and uses shader fallback lighting.\n"
-              << "--legacy-nwn-model-path forces NWN previews through legacy nwn::ModelInstance loading for compatibility checks.\n"
               << "Press F5 in the viewer to reload shaders and rebuild render pipelines.\n"
               << "Exterior areas with a day/night cycle run through a full 45 second sun/moon loop in the viewer.\n"
               << "Area lighting controls are available in the debug panel.\n"
-              << "Spell/VFX controls: Space pause/play, . step one frame, / reset to frame 0.\n"
-              << "--dangly-scale exaggerates or reduces dangly motion for tuning (default 1.0).\n"
-              << "--dangly-mode selects legacy or modern foliage-style sway for dangly cards (default legacy).\n";
+              << "Spell/VFX controls: Space pause/play, . step one frame, / reset to frame 0.\n";
 }
 
 bool is_subcommand(std::string_view command)
@@ -611,23 +608,6 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             return 1;
         } else if (arg == "--no-pbr-ibl") {
             out.pbr_ibl_enabled = false;
-        } else if (arg == "--legacy-gltf-animation-state" || arg == "--unified-gltf-animation-state") {
-            std::cerr << arg << " was removed; RenderModel animation state is always stored per instance.\n";
-            return 1;
-        } else if (arg == "--legacy-gltf-model-path" || arg == "--model-asset-gltf-model-path") {
-            std::cerr << arg << " was removed; glTF previews always use ModelAsset -> RenderModel.\n";
-            return 1;
-        } else if (arg == "--legacy-render-model-draws" || arg == "--prepared-render-model-draws") {
-            std::cerr << arg << " was removed; RenderModel surfaces always use the common prepared draw path.\n";
-            return 1;
-        } else if (arg == "--legacy-nwn-draws" || arg == "--prepared-nwn-draws") {
-            std::cerr << arg << " was removed; non-area NWN sidecars always use the common prepared draw path.\n";
-            return 1;
-        } else if (arg == "--legacy-nwn-model-path") {
-            out.legacy_nwn_model_path = true;
-        } else if (arg == "--render-model-nwn-model-path") {
-            std::cerr << arg << " was removed; NWN previews use ModelAsset -> RenderModel by default.\n";
-            return 1;
         } else if (arg == "--limit" && i + 1 < argc && out.command == "corpus") {
             out.corpus_limit = static_cast<size_t>(std::max(0, std::atoi(argv[++i])));
         } else if (arg == "--filter" && i + 1 < argc && out.command == "corpus") {
@@ -642,11 +622,9 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             out.animation_override = argv[++i];
         } else if (arg == "--stage" && i + 1 < argc && out.command == "vfx") {
             out.vfx_stage = argv[++i];
-        } else if (arg == "--dangly-scale" && i + 1 < argc) {
-            out.dangly_scale = std::max(0.0f, std::strtof(argv[++i], nullptr));
-        } else if (arg == "--dangly-mode" && i + 1 < argc) {
-            const std::string mode = argv[++i];
-            out.dangly_mode = mode == "modern" ? DanglyMode::modern : DanglyMode::legacy;
+        } else if (arg == "--dangly-scale" || arg == "--dangly-mode") {
+            std::cerr << arg << " was removed; NWN previews always use imported secondary-motion deformers.\n";
+            return 1;
         } else if (arg == "--time" && i + 1 < argc && out.command == "particle-preview") {
             out.particle_preview_time = std::max(0.0f, std::strtof(argv[++i], nullptr));
         } else if (arg == "--duration" && i + 1 < argc && out.command == "particle-preview-frames") {

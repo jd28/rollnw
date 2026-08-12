@@ -8,11 +8,13 @@
 
 #include <glm/glm.hpp>
 
+#include <algorithm>
 #include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -42,6 +44,9 @@ struct SkinnedVertex {
 // be <= kModelMaxSkinBoneIndex before a skinned vertex buffer reaches the GPU.
 inline constexpr std::size_t kModelMaxSkinBones = 64;
 inline constexpr uint32_t kModelMaxSkinBoneIndex = static_cast<uint32_t>(kModelMaxSkinBones - 1);
+// A skin lane can explicitly remain in model space. NWN binary models encode
+// that source condition as a populated weight whose bone-node row is -1.
+inline constexpr int32_t kModelSkinIdentityJoint = -1;
 
 [[nodiscard]] inline bool model_skin_bone_count_supported(std::size_t bone_count) noexcept
 {
@@ -68,10 +73,15 @@ enum class MaterialMode {
     water,
 };
 
+enum class MaterialLightingModel : uint8_t {
+    pbr,
+    nwn_diffuse,
+};
+
 enum class ModelAssetSourceKind : uint8_t {
     native,
     gltf,
-    nwn_legacy,
+    nwn,
 };
 
 // Neutral ORM texel for PBR surface maps. The PBR shader multiplies material
@@ -83,6 +93,7 @@ inline constexpr uint8_t kModelSurfaceNeutralMetallic = 0;
 inline constexpr uint8_t kModelSurfaceNeutralAlpha = 255;
 
 struct Material {
+    MaterialLightingModel lighting_model = MaterialLightingModel::pbr;
     glm::vec4 albedo{1.0f};
     float roughness = 0.5f;
     float metallic = 0.0f;
@@ -276,7 +287,6 @@ enum class ModelDeformerKind : uint8_t {
     vertex_shader_sway,
     secondary_motion_chain,
     gpu_vertex_sim,
-    legacy_reference_cpu,
 };
 
 struct ModelDeformer {
@@ -284,7 +294,7 @@ struct ModelDeformer {
     // deforming mesh that can be addressed by index; invalid source nodes or
     // empty meshes are dropped before renderer submission. Weight fields are in
     // [0, 1]. Motion values are importer-clamped to non-negative source units.
-    ModelDeformerKind kind = ModelDeformerKind::legacy_reference_cpu;
+    ModelDeformerKind kind = ModelDeformerKind::secondary_motion_chain;
     uint32_t source_node_index = kInvalidModelNodeIndex;
     uint32_t vertex_count = 0;
     glm::vec3 pivot{0.0f};
@@ -302,7 +312,9 @@ struct ModelDeformer {
 struct Skin {
     // Valid renderer-facing skins have at most kModelMaxSkinBones joints. Source
     // importers must reject/downgrade larger skins or clamp packed vertex joint
-    // lanes before creating skinned GPU buffers.
+    // lanes before creating skinned GPU buffers. A joint row may be
+    // kModelSkinIdentityJoint to preserve a weighted model-space lane; every
+    // other row must index a model node.
     // Multiple skins may share one skeleton while keeping their own inverse-bind
     // matrices.
     uint32_t skeleton = 0;
@@ -334,14 +346,33 @@ struct ModelAssetParticleEvent {
 
 struct ModelAssetParticleSystem {
     // Neutral particle payload carried from CPU ModelAsset into runtime
-    // RenderModel. animation_name is empty for always-available/default
-    // particle effects; non-empty means the event timeline was compiled for
-    // that source animation.
+    // RenderModel. animation_name is empty for the default/fallback payload;
+    // a named payload is the complete replacement compiled for that source
+    // animation, not a layer to emit alongside the default.
     std::string name;
     std::string animation_name;
     ParticleEffectDef effect;
     std::vector<ModelAssetParticleEvent> effect_events;
     float animation_length = 0.0f;
+};
+
+inline constexpr uint8_t kModelLightNoExternalColor = std::numeric_limits<uint8_t>::max();
+
+struct ModelLight {
+    // Flat authored-light row lowered by the source importer. node indexes the
+    // model node transformed by the owning instance. external_color_slot is an
+    // optional instance-provided palette lane; invalid means use color.
+    uint32_t node = kInvalidModelNodeIndex;
+    glm::vec3 color{0.0f};
+    float radius = 0.0f;
+    float intensity = 1.0f;
+    uint8_t external_color_slot = kModelLightNoExternalColor;
+    bool main_contribution = false;
+    bool dynamic = false;
+    bool affect_dynamic = true;
+    bool ambient = false;
+    bool casts_shadow = false;
+    bool fading = false;
 };
 
 struct ModelShadowSummary {
@@ -352,9 +383,24 @@ struct ModelShadowSummary {
 };
 
 struct RenderModel {
+    RenderModel() = default;
+    explicit RenderModel(nw::gfx::Context* resource_context) noexcept;
+    ~RenderModel();
+
+    RenderModel(const RenderModel&) = delete;
+    RenderModel& operator=(const RenderModel&) = delete;
+    RenderModel(RenderModel&& other) noexcept;
+    RenderModel& operator=(RenderModel&& other) noexcept;
+
     [[nodiscard]] uint32_t socket_index(std::string_view socket_name) const noexcept;
     [[nodiscard]] const ModelSocket* socket(uint32_t index) const noexcept;
     [[nodiscard]] const Node* socket_node(uint32_t index) const noexcept;
+
+    // GPU resources are created by one gfx context and released immediately.
+    // The owner must outlive this model and wait for in-flight work before
+    // destroying it. A second resource context is rejected.
+    [[nodiscard]] bool set_resource_context(nw::gfx::Context* resource_context) noexcept;
+    void release_gpu_resources() noexcept;
 
     std::vector<Material> materials;
     std::vector<Primitive> primitives;
@@ -364,17 +410,16 @@ struct RenderModel {
     std::vector<Skin> skins;
     std::vector<Skeleton> skeletons;
     std::vector<AnimationClip> animations;
+    std::vector<ModelLight> lights;
     std::vector<ModelAssetParticleSystem> particle_systems;
     std::vector<nw::gfx::Handle<nw::gfx::Texture>> textures; // Owned by the model; fallback textures are external.
     ModelShadowSummary shadow{};
     Bounds bounds;
     ModelAssetSourceKind source_kind = ModelAssetSourceKind::native;
     std::string name;
-};
 
-enum class ModelInstanceKind : uint8_t {
-    render_model,
-    nwn_legacy,
+private:
+    nw::gfx::Context* resource_context_ = nullptr;
 };
 
 struct ModelInstanceShadowSummary {
@@ -393,36 +438,28 @@ struct ModelInstanceAnimationState {
     bool enabled = false;
 };
 
-// Bridge-phase scene/runtime instance record.
-//
-// New render/runtime code uses this record as the single source of truth for
+// Scene/runtime instance record. This is the single source of truth for
 // placement/root transform, visibility, animation state, world-space current
 // bounds, material override handles, and world-space shadow-caster summary.
-//
-// Existing NWN rendering keeps nw::render::nwn::ModelInstance as a sidecar until
-// that subsystem is migrated. During the bridge it owns the legacy node tree,
-// PLT/emitter quirks, legacy CPU dangly parity, anchor lookup, source MDL
-// references, and compatibility animation fallback behavior. New bridge writes
-// must update the common record first and mirror only the fields still required
-// by the legacy sidecar.
 struct ModelInstance {
-    ModelInstanceKind kind = ModelInstanceKind::render_model;
     bool visible = true;
+    // Scene policy gate. false keeps authored animation data available while
+    // preventing generic preview controls from enabling it (for example,
+    // static area tile placements).
+    bool scene_animation_enabled = true;
     glm::mat4 root_transform{1.0f};
     Bounds current_bounds{};
     // Indexed by source material index. Invalid entries use the source asset
     // material. Stale handles are ignored and counted at draw collection.
     std::vector<ModelMaterialOverrideHandle> material_override_handles;
     ModelInstanceShadowSummary shadow{};
-    // Dense frame cache for attachment consumers. Index is source/runtime node
-    // index; matching valid byte is 0 when the adapter has no transform for
-    // that row. Bridge adapters populate this from source-specific sidecars;
-    // common RenderModel animation sampling writes sampled node world rows here.
+    // Dense frame cache for attachment consumers. Index is runtime node index;
+    // matching valid byte is 0 when the asset has no transform for that row.
+    // Common RenderModel animation sampling writes sampled node world rows here.
     std::vector<glm::mat4> attachment_node_world_transforms;
     std::vector<uint8_t> attachment_node_transform_valid;
 
     uint32_t render_model_index = kInvalidModelInstanceIndex;
-    uint32_t nwn_legacy_model_index = kInvalidModelInstanceIndex;
 
     ModelInstanceAnimationState animation;
 };
@@ -452,11 +489,74 @@ struct ModelInstance {
     const glm::mat4& root_transform,
     const Primitive& primitive) noexcept
 {
+    // Skin matrices already carry the sampled node pose. Keep the mesh at its
+    // bind transform so the renderer's inverse-mesh transform cancels it once.
+    if (primitive.skinned) {
+        return root_transform * primitive.transform;
+    }
+
     glm::mat4 animated_node_world{1.0f};
     if (instance && model_instance_node_world_transform(*instance, primitive.node, animated_node_world)) {
         return animated_node_world;
     }
     return root_transform * primitive.transform;
+}
+
+// CPU-side equivalent of the renderer's primitive skin matrix preparation.
+// The caller owns the flat output buffer and source matrix span. Invalid skin,
+// node, matrix, or output ranges are rejected without partially publishing a
+// usable count. source_available distinguishes an authored empty sampled row
+// from the bind-pose fallback.
+[[nodiscard]] inline bool build_model_primitive_skinning_matrices(
+    std::span<glm::mat4> out,
+    const RenderModel& model,
+    const Primitive& primitive,
+    std::span<const glm::mat4> source_matrices,
+    bool source_available,
+    uint32_t& matrix_count) noexcept
+{
+    matrix_count = 0;
+    if (out.size() < kModelMaxSkinBones
+        || primitive.skin >= model.skins.size()
+        || primitive.node < 0
+        || static_cast<size_t>(primitive.node) >= model.nodes.size()) {
+        return false;
+    }
+
+    const auto& skin = model.skins[primitive.skin];
+    if (!model_skin_bone_count_supported(skin.joints.size())) {
+        return false;
+    }
+    std::fill(out.begin(), out.end(), glm::mat4{1.0f});
+
+    if (source_available) {
+        if (!model_skin_bone_count_supported(source_matrices.size())) {
+            return false;
+        }
+        for (size_t i = 0; i < source_matrices.size(); ++i) {
+            out[i] = primitive.inverse_mesh_transform * source_matrices[i];
+        }
+        matrix_count = static_cast<uint32_t>(source_matrices.size());
+        return true;
+    }
+
+    if (skin.joints.size() > skin.inverse_bind_matrices.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < skin.joints.size(); ++i) {
+        const int32_t joint = skin.joints[i];
+        if (joint == kModelSkinIdentityJoint) {
+            out[i] = primitive.inverse_mesh_transform;
+        } else if (joint < 0 || static_cast<size_t>(joint) >= model.nodes.size()) {
+            return false;
+        } else {
+            out[i] = primitive.inverse_mesh_transform
+                * model.nodes[static_cast<size_t>(joint)].world_transform
+                * skin.inverse_bind_matrices[i];
+        }
+    }
+    matrix_count = static_cast<uint32_t>(skin.joints.size());
+    return true;
 }
 
 class ModelInstanceStore {

@@ -112,9 +112,13 @@ float scene_shadow_directional_bias(
     float bias_min,
     float bias_constant_step)
 {
-    return max(
-        bias_min,
-        (bias_base + bias_cascade_step * cascade) * (1.0 - ndotl) + bias_constant_step * cascade);
+    const float min_grazing_ndotl = 0.2;
+    const float max_depth_bias = 0.012;
+    const float grazing_scale =
+        sqrt(saturate(1.0 - ndotl * ndotl)) / max(ndotl, min_grazing_ndotl);
+    const float depth_bias =
+        (bias_base + bias_cascade_step * cascade) * grazing_scale + bias_constant_step * cascade;
+    return clamp(depth_bias, bias_min, max_depth_bias);
 }
 
 float3 scene_shadow_directional_receiver_pos(

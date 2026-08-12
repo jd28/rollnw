@@ -1,170 +1,95 @@
 # NWN Model Conversion
 
-NWN MDL is both a source asset format and a compatibility runtime input. The
-modern renderer path only wants the source asset part. The bridge keeps the
-legacy sidecar alive for behavior that has not yet been lowered into explicit
-common data.
+NWN MDL is a source asset format. It is parsed and lowered into the same
+source-neutral model data used by every renderer pass; the renderer does not
+retain or submit an NWN node tree.
 
-## Current Entry Points
-
-- `nw::render::nwn::ModelInstance` loads and owns the legacy NWN node tree,
-  legacy meshes, PLT/source texture policy, emitter quirks, dangly execution,
-  socket compilation, and compatibility animation behavior.
-- `nw::render::nwn::import_nwn_model_asset(mdl)` lowers the source MDL into
-  `ModelAsset`.
-- `nw::render::nwn::import_nwn_render_model_from_asset(mdl, texture_upload)`
-  lowers through `ModelAsset`, uploads geometry/textures, and returns a
-  `RenderModel`.
-
-The default static NWN preview path uses `ModelAsset -> RenderModel` where it is
-safe. Compatibility paths stay available for parity and unresolved quirks.
-
-## Data Flow
+## Data Transform
 
 ```text
-NWN MDL / MTR / TXI / PLT / emitter data
-  -> nwn::ModelInstance sidecar
-     source node tree
-     legacy draw payloads
-     compatibility animation and anchors
+binary or ASCII MDL
+  -> nw::model::Mdl
   -> import_nwn_model_asset
-     ModelAsset nodes
-     materials and texture source records
-     primitives
-     sockets
-     deformers
-     skins / skeletons / animation clips where supported
-     particle systems
-     shadow summary
-  -> validate_model_asset
+  -> ModelAsset validation
   -> upload_model_asset
   -> RenderModel
-  -> common ModelInstance runtime record
-  -> PreparedModelDraw / PreparedModelSurfaceDraw
-  -> PBR renderer or bridge adapter
+  -> ModelInstance handles
+  -> PreparedModelDraw / PreparedModelSurfaceDraw arrays
+  -> common PBR and shadow submission
 ```
 
-The sidecar is not the desired modern runtime shape. It is the source and
-compatibility owner during the bridge.
+`import_nwn_render_model` is the convenience composition of the asset import
+and upload steps. Preview scenes, areas, creatures, VFX actor models, and mesh
+particles all use this transform.
 
-## Lowered Common Data
+The common case is a batch of model instances that reference uploaded
+`RenderModel` rows by index. One model asset may be referenced by many
+instances. Frame collection walks the handle batch linearly and emits flat draw,
+range, and surface arrays.
 
-| NWN data | Common data |
-|---|---|
-| trimesh / danglymesh geometry | `ModelAssetPrimitive` |
-| render material classification | `MaterialMode` |
-| diffuse, normal, roughness, emissive sources | `ModelAssetTextureSource` |
-| conservative PBR factors | `Material` |
-| dummy nodes / anchors | `ModelSocket` |
-| supported skin meshes | `Skin`, `Skeleton`, `SkinnedVertex` |
-| supported animation clips | `AnimationClip` |
-| emitter nodes | `ModelAssetParticleSystem` / particle IR |
-| dangly intent | `ModelDeformer` records |
-| primitive shadow eligibility | `ModelShadowSummary` and primitive flags |
+## Lowered Data
 
-The common records carry renderer intent. They do not carry source-format
-decisions by name.
+The importer writes explicit common records for:
 
-## What Stays In The NWN Sidecar
+- geometry, primitive bounds, material and shadow state
+- texture sources, PLT parameters, and limited MTR material inputs
+- hierarchy nodes, sockets, skeletons, skins, and animation clips
+- authored lights and particle systems
+- deformer intent
 
-These remain sidecar-owned until explicit common contracts replace them:
+Names may be used only inside the source importer when the format provides no
+authored field. Water and foliage name heuristics are counted in
+`NwnModelAssetImportStats`; downstream renderer code receives only the
+resulting material/deformer value.
 
-- humanoid body-part and equipment assembly policy
-- legacy PLT rendering and resource-cache policy
-- legacy emitter quirks not yet represented by the particle IR
-- CPU dangly deformation parity/debug path
-- source MDL node tree for legacy loading, diagnostics, and unresolved behavior
-- area static batching compatibility payloads
+Dangly meshes lower to either `secondary_motion_chain` or
+`vertex_shader_sway`. Valid foliage sway runs on the common GPU path.
+Secondary-motion chains that cannot be represented are counted as
+`unsupported_deformer_count` and render as static source geometry. No second
+renderer is selected.
 
-When a sidecar payload is missing at a bridge boundary, the path should drop,
-count, or apply an explicit material fallback before Vulkan submission.
+## Bounds And Failure Policy
 
-## Materials
+Input limits are the common model limits in `model_asset.hpp`, including the
+64-joint skin bound and bounded primitive, texture-source, particle-system, and
+deformer tables.
 
-NWN diffuse-era material data is lowered conservatively:
+Invalid rows are rejected or dropped at the boundary that can identify them:
 
-- material pass classification becomes `MaterialMode`.
-- source texture references become `ModelAssetTextureSource` rows.
-- authored MTR roughness/texture data is used when present.
-- diffuse-only meshes use a neutral roughness policy rather than translating
-  fixed-function shininess directly into PBR.
-- PLT metadata can be represented in common `Material`, but legacy PLT behavior
-  still needs sidecar compatibility until the production policy is final.
+- invalid or empty mesh geometry increments the matching skipped-mesh counter
+- invalid skin lanes, joint mappings, or bounds drop that skin primitive
+- missing texture inputs bind the documented fallback and increment import
+  diagnostics
+- table overflow drops the excess row and increments its overflow counter
+- unsupported source behavior remains static and increments an explicit
+  unsupported counter
+- invalid prepared indices, stale handles, and payload mismatches are dropped
+  and counted before submission
 
-Material calibration is still open; do not tune shader behavior by model or
-texture name.
+`NwnModelAssetImportStats::complete()` reports whether the import crossed any
+of the defined loss boundaries. Normal/tangent repair and counted source-name
+heuristics are visible diagnostics but are not separate render paths.
 
-## Skinning And Animation
+## Ownership And Lifetime
 
-Supported NWN skin meshes lower to common skinned primitives only when their
-joint data fits the renderer's packed skinning contract and resolves against the
-same source hierarchy. Unsupported or malformed rows are skipped and counted.
+- `nw::model::Mdl` owns parsed source data for the duration of import.
+- `ModelAsset` owns source-neutral CPU arrays until upload completes.
+- `RenderModel` owns uploaded resource handles and immutable runtime metadata.
+- `PreviewScene` owns model arrays and generation-checked `ModelInstance`
+  handles.
+- Prepared draw, range, surface, skin-table, and packet arrays are frame-owned.
+  Returned spans borrow those arrays and must not outlive them.
+- `nwn::RenderAssetCache` caches NWN texture decoding and uploaded particle
+  `RenderModel` assets for one renderer resource generation.
 
-Animation clips lower into common clips when they can be represented by the
-production backend. Clips from the loaded model and its supermodel chain are
-imported against the loaded model's common skeleton keyed by source-node rows.
-Missing node tracks stay at bind/static pose during sampling. `c_aribeth`
-coverage verifies inherited `pause1` sampling against the legacy sidecar for
-rigid primitive node rows. Zero-duration clips remain an explicit open issue
-rather than an importer guess.
+The import cost is linear in source nodes, vertices, indices, controllers, and
+texture inputs. Upload cost is proportional to emitted GPU payload bytes. Frame
+cost is linear in visible instances and emitted surfaces. These are complexity
+statements, not measured performance results.
 
-## Sockets And Attachments
+## Related Documents
 
-NWN dummy nodes and anchors are useful source data. The modern representation is
-a socket table addressed by stable indices. Names are resolved during scene or
-VFX setup. Runtime model bindings contain common owner/child handles, socket
-indices, child placement/scale, and explicit orientation and source-offset
-policies. A plural transform consumes those flat rows and common node-world
-arrays; it does not query source names or the sidecar node tree.
-
-The modern common case applies child placement after the socket. NWN rows that
-require placement before the socket, position-only orientation, or root bind
-translation select those policies explicitly. Invalid socket rows are rejected
-by `validate_model_asset`; malformed legacy rows are dropped and counted during
-runtime resolution.
-
-## Particles And Emitters
-
-NWN emitter nodes lower into source-neutral particle definitions and compiled
-particle effects. The field-by-field map is maintained in
-[nwn_emitter_map.md](nwn_emitter_map.md). Runtime particle systems should use
-common owner handles and attachment bindings instead of sidecar pointers.
-Source node indices and names remain importer diagnostics only; compiled and
-runtime rows carry attachment-point indices and explicit default placement.
-
-## Deformers
-
-NWN dangly meshes contain useful deformation intent, but CPU vertex mutation is
-not the production target. The bridge records deformer intent beside common
-model data. Foliage/card-like meshes lower to `vertex_shader_sway` intent.
-Non-foliage legacy spring meshes lower to `secondary_motion_chain` intent but
-currently render as static source geometry on the common RenderModel path with
-the `nwn_render_model_static_deformer` warning. The accepted bridge policy is
-to keep those assets on the modern path and not carry NWN-style per-frame CPU
-vertex rewrites forward.
-
-## Area Records
-
-Area records now carry `ModelInstanceKind`, scene source indices, common
-instance handles, visible RenderModel batches, and common prepared-surface
-indices for color and shadow submission. Area static material/depth/shadow
-bridges still materialize temporary NWN sidecar payload spans at the legacy
-renderer boundary, but record identity and visibility are common data. The
-remaining area work is static/dynamic traversal collapse and eventual sidecar
-fallback removal, not more record-protocol migration.
-
-## Diagnostics
-
-`NwnModelAssetImportStats`, `ModelAssetValidationStats`,
-`ModelAssetUploadStats`, and texture upload stats are the boundary reports.
-They should explain dropped, skipped, unsupported, repaired, or fallback rows.
-
-Do not silently bake out failures. The eventual offline compiler needs these
-same diagnostics.
-
-## Related Issues
-
-- [NWN Modern PBR Material Calibration](../../../../issues/nwn-modern-pbr-material-calibration.md)
-- [NWN Zero-Duration Animation Clips](../../../../issues/nwn-zero-duration-animation-clips.md)
-- [Remove Legacy Render Paths](../../../../issues/remove-legacy-render-paths.md)
+- [NWN Model Findings](nwn_model_findings.md)
+- [Prepared Model Draw Protocol](prepared_model_draws.md)
+- [NWN Emitter Map](nwn_emitter_map.md)
 - [Offline Model Compiler](../../../../issues/offline-model-compiler.md)

@@ -86,6 +86,56 @@ TEST(Mdl, ParseASCII)
     EXPECT_EQ(val3.data.size(), size_t(val3.key->rows * val3.key->columns));
 }
 
+TEST(Mdl, TextMeshPreservesIndependentTextureCoordinateIndices)
+{
+    constexpr auto model_text = R"mdl(#MAXMODEL ASCII
+newmodel uv_seam
+setsupermodel uv_seam null
+setanimationscale 1
+classification TILE
+#MAXGEOM ASCII
+beginmodelgeom uv_seam
+node dummy uv_seam
+  parent NULL
+endnode
+node trimesh mesh
+  parent uv_seam
+  verts 4
+    0 0 0
+    1 0 0
+    0 1 0
+    -1 0 0
+  faces 2
+    0 1 2 1 0 1 2 0
+    0 2 3 1 3 4 5 0
+  tverts 6
+    0 0 0
+    1 0 0
+    0 1 0
+    0.5 0.5 0
+    1 1 0
+    0 0.5 0
+endnode
+endmodelgeom uv_seam
+donemodel uv_seam
+)mdl"sv;
+
+    nw::ResourceData data;
+    data.bytes.append(model_text.data(), model_text.size());
+    nw::model::Mdl mdl{std::move(data)};
+
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 2u);
+    const auto* mesh = dynamic_cast<const nw::model::TrimeshNode*>(mdl.model.nodes[1].get());
+    ASSERT_NE(mesh, nullptr);
+    ASSERT_EQ(mesh->vertices.size(), 6u);
+    ASSERT_EQ(mesh->indices.size(), 6u);
+    EXPECT_EQ(mesh->vertices[mesh->indices[0]].position, glm::vec3(0.0f, 0.0f, 0.0f));
+    EXPECT_EQ(mesh->vertices[mesh->indices[0]].tex_coords, glm::vec2(0.0f, 0.0f));
+    EXPECT_EQ(mesh->vertices[mesh->indices[3]].position, glm::vec3(0.0f, 0.0f, 0.0f));
+    EXPECT_EQ(mesh->vertices[mesh->indices[3]].tex_coords, glm::vec2(0.5f, 0.5f));
+}
+
 TEST(Mdl, ParseBinary)
 {
     nw::model::Mdl mdl{"test_data/user/development/c_bodak.mdl"};
@@ -232,6 +282,47 @@ TEST(Mdl, BinaryDropsMeshFacesWithInvalidVertexIndices)
     EXPECT_EQ(mesh->indices[0], 0u);
     EXPECT_EQ(mesh->indices[1], 1u);
     EXPECT_EQ(mesh->indices[2], 2u);
+}
+
+TEST(Mdl, BinarySkinPreservesSparseBoneLanes)
+{
+    nw::model::detail::MdlBinarySkinNode node{};
+    node.header.node_header.type = nw::model::NodeType::skin;
+    node.header.vertex_count = 1;
+    node.header.vertices = 0;
+    node.header.texture0_vert_ptr = std::numeric_limits<uint32_t>::max();
+    node.header.vertex_normals_ptr = std::numeric_limits<uint32_t>::max();
+
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    constexpr size_t raw_vertex_offset = node_offset + nw::model::detail::MdlBinarySkinNode::s_sizeof;
+    constexpr size_t raw_bone_offset = raw_vertex_offset + sizeof(glm::vec3);
+    constexpr size_t raw_weight_offset = raw_bone_offset + sizeof(std::array<uint16_t, 4>);
+    constexpr size_t raw_size = sizeof(glm::vec3) + sizeof(std::array<uint16_t, 4>) + sizeof(glm::vec4);
+    node.bones_ptr = static_cast<uint32_t>(raw_bone_offset - raw_vertex_offset);
+    node.weights_ptr = static_cast<uint32_t>(raw_weight_offset - raw_vertex_offset);
+
+    auto data = make_binary_mdl_with_node(node, 1, raw_size);
+    nw::model::detail::MdlBinaryHeader header{};
+    header.raw_data_offset = static_cast<uint32_t>(raw_vertex_offset - mdl_pointer_base);
+    header.raw_data_size = static_cast<uint32_t>(raw_size);
+    write_at(data, 0, header);
+
+    constexpr uint16_t unused_bone = std::numeric_limits<uint16_t>::max();
+    write_at(data, raw_vertex_offset, glm::vec3{1.0f, 2.0f, 3.0f});
+    write_at(data,
+        raw_bone_offset,
+        std::array<uint16_t, 4>{unused_bone, 3, unused_bone, unused_bone});
+    write_at(data, raw_weight_offset, glm::vec4{0.0f, 1.0f, 0.0f, 0.0f});
+
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 1u);
+    const auto* skin = dynamic_cast<const nw::model::SkinNode*>(mdl.model.nodes[0].get());
+    ASSERT_NE(skin, nullptr);
+    ASSERT_EQ(skin->vertices.size(), 1u);
+    EXPECT_EQ(skin->vertices[0].bones, glm::ivec4(-1, 3, -1, -1));
+    EXPECT_EQ(skin->vertices[0].weights, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 }
 
 TEST(Mdl, ParseASCII2)

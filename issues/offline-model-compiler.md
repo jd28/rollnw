@@ -6,11 +6,10 @@ The current live adapters prove the modern runtime data shape in memory:
 
 - glTF imports feed `ModelAsset` / `RenderModel` geometry, PBR material,
   animation, skin, socket, and particle payloads.
-- NWN imports feed the same common data where possible, but still keep a
-  sidecar for PLT recoloring, legacy node-tree behavior, emitters, dangly
-  deformation, humanoid body-part assembly, and cross-skeleton policy.
-- Viewer and mudl use runtime switches to compare common paths against legacy
-  fallback paths while the contracts are still moving.
+- NWN imports feed the same common model, material, animation, deformer,
+  particle, and prepared-surface data.
+- Viewer and mudl use the live importers directly while the contracts are still
+  moving.
 
 That is useful for bridge work, but it is not the final ownership model for a
 modern game. The final common case should load a compiled modern asset directly
@@ -33,12 +32,11 @@ asset package:
 - deformer records for legacy dangly intent, mapped to modern runtime deformer
   kinds where possible
 - source diagnostics that explain every dropped, clamped, approximated, or
-  legacy-only feature
+  unsupported feature
 
 The compiler is allowed to know about source formats. The renderer should not.
-Legacy quirks become compiler inputs and diagnostics; renderer submission should
-consume only the compiled common protocols plus explicit debug fallback payloads
-when parity is required.
+Source quirks become compiler inputs and diagnostics; renderer submission
+should consume only the compiled common protocols.
 
 ## Boundary
 
@@ -52,9 +50,6 @@ fastest way to discover what data the compiler must emit.
 
 ## Issues This Can Split Or Close Later
 
-- `remove-legacy-render-paths.md`: once compiled assets feed prepared surfaces
-  directly, live source adapters become tooling/parity inputs instead of runtime
-  ownership.
 - Sockets and attachment bindings should become compiled asset rows with stable
   indices, not per-load string lookup.
 - Legacy dangly data should compile into explicit modern deformer records or
@@ -86,5 +81,5 @@ fastest way to discover what data the compiler must emit.
 
 - Renderer branches that infer policy from model, texture, or node names.
 - Per-frame legacy source decoding or string lookup in runtime draw paths.
-- Treating NWN sidecar data as the production runtime model format.
+- Treating parsed NWN source data as the production runtime model format.
 - Baking away source failures without a compiler diagnostic.

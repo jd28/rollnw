@@ -1,11 +1,11 @@
 #include "area_render_scene.hpp"
 
+#include "preview_model_draws.hpp"
 #include "preview_scene.hpp"
 
+#include <nw/kernel/Kernel.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/render/model_asset.hpp>
-#include <nw/render/model_renderer.hpp>
-#include <nw/render/nwn/model_loader.hpp>
-#include <nw/render/render_service.hpp>
 
 #include <algorithm>
 #include <array>
@@ -21,25 +21,278 @@ namespace {
 static constexpr uint32_t kInvalidChunkId = std::numeric_limits<uint32_t>::max();
 static constexpr uint32_t kSortedVisibleStaticSurfaceThreshold = 4096;
 static constexpr uint32_t kSortedVisibleStaticSurfaceMinimumSceneCoveragePercent = 50;
+static constexpr float kAreaTileSelectionOutlineHeight = 1.0f;
 
 uint32_t saturating_count(size_t value)
 {
     return static_cast<uint32_t>(std::min<size_t>(value, std::numeric_limits<uint32_t>::max()));
 }
 
-void add_saturating(uint32_t& target, uint32_t value) noexcept
+bool finite_vec3(const glm::vec3& value) noexcept
 {
-    const uint64_t next = static_cast<uint64_t>(target) + static_cast<uint64_t>(value);
-    target = static_cast<uint32_t>(std::min<uint64_t>(next, std::numeric_limits<uint32_t>::max()));
+    return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
 }
 
-const AreaRenderSourceInfo& source_info_for_model(const PreviewScene& scene, size_t index)
+bool finite_ordered_bounds(const nw::render::Bounds& bounds) noexcept
 {
-    static const AreaRenderSourceInfo kDefaultInfo{};
-    if (index < scene.area_model_info.size()) {
-        return scene.area_model_info[index];
+    return finite_vec3(bounds.min) && finite_vec3(bounds.max)
+        && bounds.min.x <= bounds.max.x
+        && bounds.min.y <= bounds.max.y
+        && bounds.min.z <= bounds.max.z;
+}
+
+bool object_matches_record_kind(AreaRenderRecordKind kind, nw::ObjectHandle object) noexcept
+{
+    switch (kind) {
+    case AreaRenderRecordKind::creature:
+        return object.type == nw::ObjectType::creature;
+    case AreaRenderRecordKind::door:
+        return object.type == nw::ObjectType::door;
+    case AreaRenderRecordKind::item:
+        return object.type == nw::ObjectType::item;
+    case AreaRenderRecordKind::placeable:
+        return object.type == nw::ObjectType::placeable;
+    case AreaRenderRecordKind::tile:
+    case AreaRenderRecordKind::unknown:
+        return false;
     }
-    return kDefaultInfo;
+    return false;
+}
+
+std::optional<float> ray_bounds_intersection(
+    const AreaObjectRay& ray, const nw::render::Bounds& bounds) noexcept
+{
+    if (!finite_ordered_bounds(bounds)) {
+        return std::nullopt;
+    }
+
+    float t_min = 0.0f;
+    float t_max = std::numeric_limits<float>::infinity();
+    for (glm::length_t axis = 0; axis < 3; ++axis) {
+        const float origin = ray.origin[axis];
+        const float direction = ray.direction[axis];
+        const float minimum = bounds.min[axis];
+        const float maximum = bounds.max[axis];
+        if (std::abs(direction) <= 1.0e-8f) {
+            if (origin < minimum || origin > maximum) {
+                return std::nullopt;
+            }
+            continue;
+        }
+
+        const float inverse = 1.0f / direction;
+        float near_distance = (minimum - origin) * inverse;
+        float far_distance = (maximum - origin) * inverse;
+        if (near_distance > far_distance) {
+            std::swap(near_distance, far_distance);
+        }
+        t_min = std::max(t_min, near_distance);
+        t_max = std::min(t_max, far_distance);
+        if (t_max < t_min) {
+            return std::nullopt;
+        }
+    }
+    return t_min;
+}
+
+std::optional<float> ray_triangle_intersection(
+    const AreaObjectRay& ray, const AreaSurfaceTriangle& triangle) noexcept
+{
+    constexpr float kEpsilon = 1.0e-7f;
+    const glm::vec3 edge0 = triangle.v1 - triangle.v0;
+    const glm::vec3 edge1 = triangle.v2 - triangle.v0;
+    const glm::vec3 perpendicular = glm::cross(ray.direction, edge1);
+    const float determinant = glm::dot(edge0, perpendicular);
+    if (!std::isfinite(determinant) || std::abs(determinant) <= kEpsilon) {
+        return std::nullopt;
+    }
+
+    const float inverse_determinant = 1.0f / determinant;
+    const glm::vec3 origin_delta = ray.origin - triangle.v0;
+    const float u = glm::dot(origin_delta, perpendicular) * inverse_determinant;
+    if (!std::isfinite(u) || u < 0.0f || u > 1.0f) {
+        return std::nullopt;
+    }
+
+    const glm::vec3 cross = glm::cross(origin_delta, edge0);
+    const float v = glm::dot(ray.direction, cross) * inverse_determinant;
+    if (!std::isfinite(v) || v < 0.0f || u + v > 1.0f) {
+        return std::nullopt;
+    }
+
+    const float distance = glm::dot(edge1, cross) * inverse_determinant;
+    return std::isfinite(distance) && distance >= 0.0f
+        ? std::optional<float>{distance}
+        : std::nullopt;
+}
+
+bool upward_surface_normal(
+    const AreaSurfaceTriangle& triangle, glm::vec3& normal) noexcept
+{
+    constexpr float kMinimumUpwardRatio = 1.0e-4f;
+    const glm::vec3 cross = glm::cross(
+        triangle.v1 - triangle.v0, triangle.v2 - triangle.v0);
+    const float length_squared = glm::dot(cross, cross);
+    if (!finite_vec3(cross) || !std::isfinite(length_squared)
+        || length_squared <= 1.0e-12f) {
+        return false;
+    }
+
+    const float length = std::sqrt(length_squared);
+    if (cross.z <= length * kMinimumUpwardRatio) {
+        return false;
+    }
+    normal = cross / length;
+    return finite_vec3(normal);
+}
+
+bool valid_surface_protocol(
+    std::span<const AreaSurfaceRange> ranges,
+    std::span<const AreaSurfaceTriangle> triangles) noexcept
+{
+    if (ranges.size() > std::numeric_limits<uint32_t>::max()
+        || triangles.size() > std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+    for (const auto& range : ranges) {
+        const uint64_t triangle_end = static_cast<uint64_t>(range.first_triangle)
+            + static_cast<uint64_t>(range.triangle_count);
+        if (range.triangle_count == 0
+            || triangle_end > triangles.size()
+            || !finite_ordered_bounds(range.bounds)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void expand_bounds_with_point(
+    nw::render::Bounds& bounds, const glm::vec3& point, bool& initialized) noexcept
+{
+    if (!initialized) {
+        bounds = {.min = point, .max = point};
+        initialized = true;
+        return;
+    }
+    bounds.min = glm::min(bounds.min, point);
+    bounds.max = glm::max(bounds.max, point);
+}
+
+template <typename Vertex, typename Index>
+bool append_upward_surface_triangles(
+    std::span<const Vertex> vertices,
+    std::span<const Index> indices,
+    const glm::mat4& world,
+    std::vector<AreaSurfaceTriangle>& triangles,
+    nw::render::Bounds& bounds,
+    bool& has_bounds)
+{
+    const size_t triangle_count = indices.size() / 3u;
+    for (size_t triangle_index = 0; triangle_index < triangle_count; ++triangle_index) {
+        const size_t i0 = static_cast<size_t>(indices[triangle_index * 3u]);
+        const size_t i1 = static_cast<size_t>(indices[triangle_index * 3u + 1u]);
+        const size_t i2 = static_cast<size_t>(indices[triangle_index * 3u + 2u]);
+        if (i0 >= vertices.size() || i1 >= vertices.size() || i2 >= vertices.size()) {
+            continue;
+        }
+
+        const AreaSurfaceTriangle triangle{
+            .v0 = glm::vec3(world * glm::vec4(vertices[i0].position, 1.0f)),
+            .v1 = glm::vec3(world * glm::vec4(vertices[i1].position, 1.0f)),
+            .v2 = glm::vec3(world * glm::vec4(vertices[i2].position, 1.0f)),
+        };
+        glm::vec3 normal{0.0f};
+        if (!finite_vec3(triangle.v0)
+            || !finite_vec3(triangle.v1)
+            || !finite_vec3(triangle.v2)
+            || !upward_surface_normal(triangle, normal)) {
+            continue;
+        }
+        if (triangles.size() == std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
+
+        triangles.push_back(triangle);
+        expand_bounds_with_point(bounds, triangle.v0, has_bounds);
+        expand_bounds_with_point(bounds, triangle.v1, has_bounds);
+        expand_bounds_with_point(bounds, triangle.v2, has_bounds);
+    }
+    return true;
+}
+
+bool append_tile_surface_range(
+    const nw::render::RenderModel& model,
+    const nw::render::ModelInstance* instance,
+    const glm::mat4& root,
+    std::vector<AreaSurfaceRange>& ranges,
+    std::vector<AreaSurfaceTriangle>& triangles)
+{
+    if (triangles.size() > std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+
+    const size_t triangle_begin = triangles.size();
+    nw::render::Bounds bounds{};
+    bool has_bounds = false;
+    for (const auto& primitive : model.primitives) {
+        if (primitive.skinned || primitive.vertex_count == 0u || primitive.index_count < 3u) {
+            continue;
+        }
+        if (!primitive.vertices.valid() || !primitive.indices.valid()) {
+            triangles.resize(triangle_begin);
+            return false;
+        }
+
+        const auto* vertices = static_cast<const nw::render::Vertex*>(nw::gfx::map_buffer(primitive.vertices));
+        const auto* indices = nw::gfx::map_buffer(primitive.indices);
+        if (!vertices || !indices) {
+            if (vertices) {
+                nw::gfx::unmap_buffer(primitive.vertices);
+            }
+            if (indices) {
+                nw::gfx::unmap_buffer(primitive.indices);
+            }
+            triangles.resize(triangle_begin);
+            return false;
+        }
+
+        const glm::mat4 world = nw::render::model_instance_primitive_world_transform(
+            instance, root, primitive);
+        bool appended = false;
+        if (primitive.index_stride == sizeof(uint16_t)) {
+            appended = append_upward_surface_triangles(
+                std::span{vertices, primitive.vertex_count},
+                std::span{static_cast<const uint16_t*>(indices), primitive.index_count},
+                world,
+                triangles,
+                bounds,
+                has_bounds);
+        } else if (primitive.index_stride == sizeof(uint32_t)) {
+            appended = append_upward_surface_triangles(
+                std::span{vertices, primitive.vertex_count},
+                std::span{static_cast<const uint32_t*>(indices), primitive.index_count},
+                world,
+                triangles,
+                bounds,
+                has_bounds);
+        }
+        nw::gfx::unmap_buffer(primitive.vertices);
+        nw::gfx::unmap_buffer(primitive.indices);
+        if (!appended) {
+            triangles.resize(triangle_begin);
+            return false;
+        }
+    }
+
+    if (!has_bounds || triangles.size() == triangle_begin) {
+        return true;
+    }
+    ranges.push_back(AreaSurfaceRange{
+        .bounds = bounds,
+        .first_triangle = static_cast<uint32_t>(triangle_begin),
+        .triangle_count = static_cast<uint32_t>(triangles.size() - triangle_begin),
+    });
+    return true;
 }
 
 const AreaRenderSourceInfo& source_info_for_render_model(const PreviewScene& scene, size_t index)
@@ -111,63 +364,30 @@ bool render_model_casts_shadow(const nw::render::RenderModel& model) noexcept
     return summary.casts_shadow;
 }
 
-void append_area_prepared_model_draws(
-    nw::render::PreparedModelDrawList& out,
-    nw::render::ModelInstanceHandle handle,
-    bool valid_instance,
-    bool instance_casts_shadow,
-    uint32_t model_index,
-    uint32_t source_draw_begin,
-    uint32_t source_draw_end,
-    std::span<const nwn::PreparedDrawItem> sidecar_draws)
+void collect_local_light_indices_for_bounds(
+    std::vector<uint32_t>& indices,
+    std::span<const nw::render::LocalLight> lights,
+    const nw::render::Bounds& bounds)
 {
-    ++out.stats.handle_count;
-    if (!valid_instance) {
-        ++out.stats.stale_handle_count;
-        out.instance_offsets.push_back(saturating_count(out.draws.size()));
-        return;
-    }
-    if (source_draw_begin >= source_draw_end || source_draw_begin >= sidecar_draws.size()) {
-        out.instance_offsets.push_back(saturating_count(out.draws.size()));
-        return;
-    }
+    for (size_t light_index = 0; light_index < lights.size(); ++light_index) {
+        if (light_index > std::numeric_limits<uint32_t>::max()) {
+            break;
+        }
 
-    ++out.stats.nwn_legacy_instance_count;
-    const uint32_t clamped_end = std::min<uint32_t>(source_draw_end, saturating_count(sidecar_draws.size()));
-    out.draws.reserve(out.draws.size() + static_cast<size_t>(clamped_end - source_draw_begin));
-    for (uint32_t draw_index = source_draw_begin; draw_index < clamped_end; ++draw_index) {
-        const auto& sidecar_draw = sidecar_draws[draw_index];
-        const auto* mesh = sidecar_draw.mesh;
-        if (!mesh) {
-            ++out.stats.invalid_draw_count;
+        const auto& light = lights[light_index];
+        if (light.radius <= 1.0e-4f) {
             continue;
         }
 
-        out.draws.push_back(nw::render::PreparedModelDraw{
-            .instance = handle,
-            .instance_kind = nw::render::ModelInstanceKind::nwn_legacy,
-            .kind = nw::render::PreparedModelDrawKind::nwn_legacy,
-            .instance_source_index = model_index,
-            .source_draw_index = draw_index,
-            .material_override = {},
-            .material_mode = mesh->material_mode,
-            .material_uses_fallback = mesh->material_uses_fallback,
-            .material_payload = nw::render::prepared_nwn_legacy_material_payload_kind(
-                mesh->uses_plt,
-                mesh->material_uses_fallback),
-            .skinned = mesh->is_skin,
-            .instance_casts_shadow = instance_casts_shadow,
-            .world = sidecar_draw.world,
-            .normal_matrix = sidecar_draw.normal_matrix,
-            .bounds = sidecar_draw.light_bounds,
-        });
-        ++out.stats.nwn_legacy_draw_count;
-        if (mesh->material_uses_fallback) {
-            add_saturating(out.stats.material_fallback_draw_count, 1u);
-            add_saturating(out.stats.nwn_legacy_material_fallback_draw_count, 1u);
+        const glm::vec3 closest = glm::clamp(light.position, bounds.min, bounds.max);
+        glm::vec3 delta = light.position - closest;
+        if (light.contribution == nw::render::LocalLightContribution::ambient) {
+            delta.z *= std::clamp(light.vertical_scale, 0.0f, 1.0f);
+        }
+        if (glm::dot(delta, delta) < light.radius * light.radius) {
+            indices.push_back(static_cast<uint32_t>(light_index));
         }
     }
-    out.instance_offsets.push_back(saturating_count(out.draws.size()));
 }
 
 std::span<const uint32_t> prepared_surface_index_span(
@@ -260,144 +480,13 @@ void rebuild_prepared_surface_indices(
     rebuild_prepared_surface_pass_offsets(offsets, indices, surfaces);
 }
 
-uint32_t area_sidecar_draw_index_for_common_draw(
-    const AreaRenderScene& scene,
-    const nw::render::PreparedModelDraw& draw) noexcept
-{
-    if (draw.kind != nw::render::PreparedModelDrawKind::nwn_legacy
-        || draw.instance_kind != nw::render::ModelInstanceKind::nwn_legacy) {
-        return nw::render::kInvalidPreparedModelDrawIndex;
-    }
-
-    const auto sidecar_draws = scene.prepared_draws();
-    if (draw.source_draw_index >= sidecar_draws.size()) {
-        return nw::render::kInvalidPreparedModelDrawIndex;
-    }
-
-    const auto& sidecar_draw = sidecar_draws[draw.source_draw_index];
-    const auto* mesh = sidecar_draw.mesh;
-    const auto expected_payload = mesh
-        ? nw::render::prepared_nwn_legacy_material_payload_kind(mesh->uses_plt, mesh->material_uses_fallback)
-        : nw::render::PreparedModelMaterialPayloadKind::fallback;
-    if (!mesh || mesh->material_mode != draw.material_mode
-        || mesh->material_uses_fallback != draw.material_uses_fallback
-        || draw.material_payload != expected_payload
-        || mesh->is_skin != draw.skinned) {
-        return nw::render::kInvalidPreparedModelDrawIndex;
-    }
-    return draw.source_draw_index;
-}
-
-bool area_surface_matches_common_draw(
-    const nw::render::PreparedModelSurfaceDraw& surface,
-    const nw::render::PreparedModelDraw& draw) noexcept
-{
-    return surface.instance == draw.instance
-        && surface.instance_kind == nw::render::ModelInstanceKind::nwn_legacy
-        && surface.instance_kind == draw.instance_kind
-        && surface.payload_kind == nw::render::PreparedModelDrawKind::nwn_legacy
-        && surface.payload_kind == draw.kind
-        && surface.instance_source_index == draw.instance_source_index
-        && surface.source_draw_index == draw.source_draw_index
-        && surface.material_index == draw.material_index
-        && surface.material_override == draw.material_override
-        && surface.skin_index == draw.skin_index
-        && surface.material_mode == draw.material_mode
-        && surface.material_uses_fallback == draw.material_uses_fallback
-        && surface.material_payload == draw.material_payload
-        && surface.skinned == draw.skinned
-        && surface.world == draw.world
-        && surface.normal_matrix == draw.normal_matrix;
-}
-
-uint32_t area_sidecar_draw_index_for_surface(
-    const AreaRenderScene& scene,
-    const nw::render::PreparedModelSurfaceDraw& surface) noexcept
-{
-    if (surface.draw_index >= scene.prepared_model_draw_list().draws.size()) {
-        return nw::render::kInvalidPreparedModelDrawIndex;
-    }
-    const auto& draw = scene.prepared_model_draw_list().draws[surface.draw_index];
-    if (!area_surface_matches_common_draw(surface, draw)) {
-        return nw::render::kInvalidPreparedModelDrawIndex;
-    }
-    return area_sidecar_draw_index_for_common_draw(scene, draw);
-}
-
-const nwn::PreparedDrawItem* area_sidecar_draw_for_surface(
-    const AreaRenderScene& scene,
-    const nw::render::PreparedModelSurfaceDraw& surface) noexcept
-{
-    const uint32_t draw_index = area_sidecar_draw_index_for_surface(scene, surface);
-    const auto sidecar_draws = scene.prepared_draws();
-    return draw_index < sidecar_draws.size() ? &sidecar_draws[draw_index] : nullptr;
-}
-
-bool area_common_records_include_sidecar_draw(
-    const AreaRenderScene& scene,
-    uint32_t record_index,
-    uint32_t source_draw_index) noexcept
-{
-    for (const auto& surface : scene.prepared_model_surface_draws_for_record(record_index)) {
-        if (surface.source_draw_index == source_draw_index
-            && area_sidecar_draw_for_surface(scene, surface)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool record_uses_static_prepared_legacy_path(
-    const AreaRenderScene& scene,
-    uint32_t record_index) noexcept
-{
-    const auto flags = scene.flags();
-    return record_index < flags.size()
-        && has_flag(flags[record_index], AreaRenderScene::RecordFlag::static_candidate)
-        && !scene.prepared_draws_for_record(record_index).empty();
-}
-
-void append_visible_legacy_static_prepared_surface_indices(
-    std::vector<uint32_t>& out,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> source_surface_indices,
-    std::span<const nw::render::PreparedModelSurfaceDraw> prepared_surfaces,
-    std::span<const uint32_t> visible_record_marks,
-    uint32_t visible_record_generation)
-{
-    const auto sidecar_draws = scene.prepared_draws();
-    if (sidecar_draws.empty()) {
-        return;
-    }
-
-    for (const uint32_t surface_index : source_surface_indices) {
-        if (surface_index >= prepared_surfaces.size()) {
-            continue;
-        }
-        const auto& surface = prepared_surfaces[surface_index];
-        const uint32_t draw_index = area_sidecar_draw_index_for_surface(scene, surface);
-        if (draw_index >= sidecar_draws.size()
-            || !area_common_records_include_sidecar_draw(scene, surface.handle_index, draw_index)) {
-            continue;
-        }
-        const uint32_t record_index = surface.handle_index;
-        if (record_index < visible_record_marks.size()
-            && visible_record_marks[record_index] == visible_record_generation) {
-            out.push_back(surface_index);
-        }
-    }
-}
-
 void append_area_visible_render_model_handle(
     std::vector<nw::render::ModelInstanceHandle>& out,
     const AreaRenderScene& scene,
     uint32_t record_index)
 {
-    const auto kinds = scene.model_kinds();
     const auto handles = scene.model_instance_handles();
-    if (record_index >= kinds.size()
-        || record_index >= handles.size()
-        || kinds[record_index] != nw::render::ModelInstanceKind::render_model) {
+    if (record_index >= handles.size()) {
         return;
     }
 
@@ -407,69 +496,6 @@ void append_area_visible_render_model_handle(
     }
 }
 
-void append_area_visible_nwn_legacy_handle(
-    std::vector<nw::render::ModelInstanceHandle>& out,
-    const AreaRenderScene& scene,
-    uint32_t record_index)
-{
-    const auto kinds = scene.model_kinds();
-    const auto handles = scene.model_instance_handles();
-    const auto flags = scene.flags();
-    if (record_index >= kinds.size()
-        || record_index >= handles.size()
-        || record_index >= flags.size()
-        || kinds[record_index] != nw::render::ModelInstanceKind::nwn_legacy
-        || has_flag(flags[record_index], AreaRenderScene::RecordFlag::static_candidate)) {
-        return;
-    }
-
-    const auto handle = handles[record_index];
-    if (handle.valid()) {
-        out.push_back(handle);
-    }
-}
-
-void append_area_direct_model_record(
-    AreaDirectModelRecordSelection& out,
-    const AreaRenderScene& scene,
-    uint32_t record_index,
-    bool include_render_model_records)
-{
-    const auto kinds = scene.model_kinds();
-    const auto model_indices = scene.model_indices();
-    if (record_index >= kinds.size()
-        || record_index >= model_indices.size()) {
-        return;
-    }
-
-    const uint32_t model_index = model_indices[record_index];
-    switch (kinds[record_index]) {
-    case nw::render::ModelInstanceKind::nwn_legacy: {
-        const auto models = scene.models();
-        if (record_index >= models.size()
-            || !models[record_index]
-            || scene.record_index_for_model(model_index) != record_index) {
-            return;
-        }
-        if (!record_uses_static_prepared_legacy_path(scene, record_index)) {
-            out.records.push_back(AreaDirectModelRecord{
-                .kind = nw::render::ModelInstanceKind::nwn_legacy,
-                .record_index = record_index,
-            });
-        }
-        break;
-    }
-    case nw::render::ModelInstanceKind::render_model:
-        if (include_render_model_records
-            && scene.record_index_for_render_model(model_index) == record_index) {
-            out.records.push_back(AreaDirectModelRecord{
-                .kind = nw::render::ModelInstanceKind::render_model,
-                .record_index = record_index,
-            });
-        }
-        break;
-    }
-}
 glm::vec4 matrix_row(const glm::mat4& matrix, glm::length_t row) noexcept
 {
     return glm::vec4(matrix[0][row], matrix[1][row], matrix[2][row], matrix[3][row]);
@@ -570,6 +596,9 @@ uint32_t area_chunk_id(const PreviewScene& scene, const AreaRenderSourceInfo& in
     if (scene.area_width <= 0 || scene.area_height <= 0) {
         return kInvalidChunkId;
     }
+    if (info.object.type != nw::ObjectType::invalid && !info.static_candidate) {
+        return kInvalidChunkId;
+    }
 
     int32_t chunk_x = info.tile_x;
     int32_t chunk_y = info.tile_y;
@@ -584,297 +613,641 @@ uint32_t area_chunk_id(const PreviewScene& scene, const AreaRenderSourceInfo& in
     return static_cast<uint32_t>(chunk_y * scene.area_width + chunk_x);
 }
 
-bool static_batched_geometry_less(const nwn::PreparedDrawItem* lhs, const nwn::PreparedDrawItem* rhs) noexcept
+std::optional<AreaObjectRay> normalized_area_object_ray(const AreaObjectRay& ray) noexcept
 {
-    if (lhs == rhs) {
-        return false;
+    if (!finite_vec3(ray.origin) || !finite_vec3(ray.direction)) {
+        return std::nullopt;
     }
-    if (!lhs || !lhs->mesh) {
-        return rhs && rhs->mesh;
+
+    const float direction_length = glm::length(ray.direction);
+    if (!std::isfinite(direction_length) || direction_length <= 1.0e-8f) {
+        return std::nullopt;
     }
-    if (!rhs || !rhs->mesh) {
-        return false;
-    }
-    if (lhs->mesh->vertices != rhs->mesh->vertices) {
-        return lhs->mesh->vertices < rhs->mesh->vertices;
-    }
-    if (lhs->mesh->indices != rhs->mesh->indices) {
-        return lhs->mesh->indices < rhs->mesh->indices;
-    }
-    if (lhs->mesh->index_count != rhs->mesh->index_count) {
-        return lhs->mesh->index_count < rhs->mesh->index_count;
-    }
-    return lhs->order < rhs->order;
-}
-
-struct StaticPreparedSurfaceIndex {
-    uint32_t surface_index = nw::render::kInvalidPreparedModelDrawIndex;
-    uint32_t draw_index = nw::render::kInvalidPreparedModelDrawIndex;
-};
-
-struct StaticAreaGeometryEntry {
-    nw::gfx::Handle<nw::gfx::Buffer> source_vertices;
-    nw::gfx::Handle<nw::gfx::Buffer> source_indices;
-    uint32_t vertex_count = 0;
-    uint32_t index_count = 0;
-    uint32_t first_index = 0;
-    int32_t vertex_offset = 0;
-};
-
-bool static_area_geometry_matches(const StaticAreaGeometryEntry& entry, const nwn::Mesh& mesh) noexcept
-{
-    return entry.source_vertices == mesh.vertices
-        && entry.source_indices == mesh.indices
-        && entry.vertex_count == mesh.vertex_count
-        && entry.index_count == mesh.index_count;
-}
-
-bool supports_batched_shadow_draw(const nwn::PreparedDrawItem& draw) noexcept
-{
-    return draw.mesh
-        && !draw.mesh->is_skin
-        && draw.mesh->material_mode != nw::render::MaterialMode::transparent
-        && draw.mesh->material_mode != nw::render::MaterialMode::water;
-}
-
-bool supports_static_material_draw_data_cache(const nwn::PreparedDrawItem& draw) noexcept
-{
-    return draw.mesh
-        && !draw.mesh->is_skin
-        && draw.static_area_geometry.valid()
-        && (draw.mesh->material_mode == nw::render::MaterialMode::opaque
-            || draw.mesh->material_mode == nw::render::MaterialMode::cutout);
-}
-
-StaticAreaGeometryEntry* find_static_area_geometry_entry(
-    std::vector<StaticAreaGeometryEntry>& entries, const nwn::Mesh& mesh) noexcept
-{
-    const auto it = std::find_if(entries.begin(), entries.end(),
-        [&](const StaticAreaGeometryEntry& entry) {
-            return static_area_geometry_matches(entry, mesh);
-        });
-    return it == entries.end() ? nullptr : &*it;
-}
-
-uint64_t index_list_signature(std::span<const uint32_t> indices) noexcept
-{
-    uint64_t hash = 1469598103934665603ull;
-    const auto mix = [&](uint64_t value) {
-        hash ^= value;
-        hash *= 1099511628211ull;
+    return AreaObjectRay{
+        .origin = ray.origin,
+        .direction = ray.direction / direction_length,
     };
-    mix(indices.size());
-    for (const uint32_t index : indices) {
-        mix(index);
+}
+
+uint32_t packed_u8_lane(uint32_t value, uint32_t lane) noexcept
+{
+    return (value >> (lane * 8u)) & 0xffu;
+}
+
+template <typename SkinnedVertex>
+glm::vec3 skinned_vertex_position(
+    const SkinnedVertex& vertex,
+    std::span<const glm::mat4> bones) noexcept
+{
+    glm::mat4 skin{0.0f};
+    for (uint32_t lane = 0; lane < 4u; ++lane) {
+        const uint32_t joint = packed_u8_lane(vertex.joint_indices, lane);
+        const float weight = static_cast<float>(packed_u8_lane(vertex.joint_weights, lane)) / 255.0f;
+        if (joint < bones.size()) {
+            skin += bones[joint] * weight;
+        }
     }
-    return hash;
+    return glm::vec3(skin * glm::vec4(vertex.position, 1.0f));
 }
 
-uint64_t index_cache_signature(
-    std::span<const uint32_t> indices,
-    size_t source_count) noexcept
+template <typename Index, typename PositionAt>
+void trace_indexed_triangles(
+    const AreaObjectRay& ray,
+    const Index* indices,
+    uint32_t index_count,
+    uint32_t vertex_count,
+    PositionAt&& position_at,
+    float& nearest_distance) noexcept
 {
-    uint64_t hash = index_list_signature(indices);
-    hash ^= source_count;
-    hash *= 1099511628211ull;
-    return hash;
-}
-
-AreaPreparedSurfaceSidecarStats append_prepared_surface_draw_pointers(
-    std::vector<const nwn::PreparedDrawItem*>& out,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> surface_indices)
-{
-    AreaPreparedSurfaceSidecarStats stats{};
-    stats.input_surface_count = saturating_count(surface_indices.size());
-    out.reserve(out.size() + surface_indices.size());
-
-    const auto& surfaces = scene.prepared_model_surface_draws().draws;
-    const auto& common_draws = scene.prepared_model_draw_list().draws;
-    const auto sidecar_draws = scene.prepared_draws();
-    for (const uint32_t surface_index : surface_indices) {
-        if (surface_index >= surfaces.size()) {
-            add_saturating(stats.dropped_invalid_surface_index_count, 1u);
-            continue;
-        }
-        const auto& surface = surfaces[surface_index];
-        if (surface.payload_kind != nw::render::PreparedModelDrawKind::nwn_legacy
-            || surface.instance_kind != nw::render::ModelInstanceKind::nwn_legacy) {
-            add_saturating(stats.dropped_non_nwn_surface_count, 1u);
-            continue;
-        }
-        if (surface.draw_index >= common_draws.size() || surface.source_draw_index >= sidecar_draws.size()) {
-            add_saturating(stats.dropped_missing_sidecar_draw_count, 1u);
-            continue;
-        }
-        const auto& draw = common_draws[surface.draw_index];
-        if (!area_surface_matches_common_draw(surface, draw)) {
-            add_saturating(stats.dropped_invalid_sidecar_draw_count, 1u);
-            continue;
-        }
-        const uint32_t draw_index = area_sidecar_draw_index_for_common_draw(scene, draw);
-        if (draw_index >= sidecar_draws.size()) {
-            add_saturating(stats.dropped_invalid_sidecar_draw_count, 1u);
-            continue;
-        }
-        out.push_back(&sidecar_draws[draw_index]);
-        add_saturating(stats.selected_draw_count, 1u);
-    }
-    return stats;
-}
-
-AreaPreparedSurfaceSidecarStats append_prepared_surface_draw_pointers(
-    std::vector<const nwn::PreparedDrawItem*>& out,
-    std::span<const uint32_t> surface_indices,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    std::span<const nwn::PreparedDrawItem> sidecar_draws)
-{
-    AreaPreparedSurfaceSidecarStats stats{};
-    stats.input_surface_count = saturating_count(surface_indices.size());
-    out.reserve(out.size() + surface_indices.size());
-
-    for (const uint32_t surface_index : surface_indices) {
-        if (surface_index >= surfaces.size()) {
-            add_saturating(stats.dropped_invalid_surface_index_count, 1u);
-            continue;
-        }
-        const auto& surface = surfaces[surface_index];
-        if (surface.payload_kind != nw::render::PreparedModelDrawKind::nwn_legacy
-            || surface.instance_kind != nw::render::ModelInstanceKind::nwn_legacy) {
-            add_saturating(stats.dropped_non_nwn_surface_count, 1u);
-            continue;
-        }
-        if (surface.source_draw_index >= sidecar_draws.size()) {
-            add_saturating(stats.dropped_missing_sidecar_draw_count, 1u);
-            continue;
-        }
-        out.push_back(&sidecar_draws[surface.source_draw_index]);
-        add_saturating(stats.selected_draw_count, 1u);
-    }
-    return stats;
-}
-
-std::span<const nwn::PreparedDrawItem* const> prepared_draw_pointer_bridge_span_for_surfaces(
-    nw::render::nwn::PreparedDrawScratch& scratch,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> surface_indices,
-    AreaPreparedSurfaceSidecarStats* stats = nullptr)
-{
-    // Common-surface bridge materialization for the current NWN renderer entry
-    // points. Out-of-range, stale, or non-NWN surfaces are dropped and counted
-    // at the boundary instead of leaking undefined sidecar state into submission.
-    auto& out = scratch.bridge_draws;
-    out.clear();
-    const auto bridge_stats = append_prepared_surface_draw_pointers(out, scene, surface_indices);
-    if (stats) {
-        stats->add(bridge_stats);
-    }
-    return out;
-}
-
-using PreparedIndirectBuildFn = bool (*)(
-    std::vector<nw::gfx::IndexedIndirectDrawCommand>&,
-    nwn::PreparedIndirectDrawCommands&,
-    std::span<const nwn::PreparedDrawItem* const>,
-    nw::render::MaterialMode);
-
-void refresh_prepared_indirect_cache_from_pointers(
-    AreaPreparedIndirectDrawCache& cache,
-    std::span<const nwn::PreparedDrawItem* const> draw_pointers,
-    uint64_t signature,
-    uint32_t source_index_count,
-    nw::render::MaterialMode mode,
-    PreparedIndirectBuildFn build)
-{
-    if (draw_pointers.empty()) {
-        cache.clear();
+    if (!indices) {
         return;
     }
 
-    if (cache.signature == signature && cache.source_index_count == source_index_count) {
-        return;
-    }
+    const uint32_t triangle_index_count = index_count - index_count % 3u;
+    for (uint32_t offset = 0; offset < triangle_index_count; offset += 3u) {
+        const uint32_t i0 = static_cast<uint32_t>(indices[offset]);
+        const uint32_t i1 = static_cast<uint32_t>(indices[offset + 1u]);
+        const uint32_t i2 = static_cast<uint32_t>(indices[offset + 2u]);
+        if (i0 >= vertex_count || i1 >= vertex_count || i2 >= vertex_count) {
+            continue;
+        }
 
-    cache.signature = signature;
-    cache.source_index_count = source_index_count;
-    cache.clear_gpu_commands();
-    if (!build(cache.commands, cache.indirect, draw_pointers, mode)) {
-        cache.indirect = {};
-        cache.clear_gpu_commands();
+        const AreaSurfaceTriangle triangle{
+            .v0 = position_at(i0),
+            .v1 = position_at(i1),
+            .v2 = position_at(i2),
+        };
+        const auto distance = ray_triangle_intersection(ray, triangle);
+        if (distance && *distance < nearest_distance) {
+            nearest_distance = *distance;
+        }
     }
 }
 
-void refresh_prepared_indirect_cache_for_surfaces(
-    AreaPreparedIndirectDrawCache& cache,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> surface_indices,
-    nw::render::MaterialMode mode,
-    AreaPreparedSurfaceSidecarStats* stats = nullptr)
+template <typename Vertex>
+void trace_static_geometry(
+    const AreaObjectRay& ray,
+    const Vertex* vertices,
+    uint32_t vertex_count,
+    const void* indices,
+    uint32_t index_count,
+    uint32_t index_stride,
+    const glm::mat4& world,
+    float& nearest_distance) noexcept
 {
-    if (surface_indices.empty() || surface_indices.size() > std::numeric_limits<uint32_t>::max()) {
-        cache.clear();
+    if (!vertices || !indices) {
         return;
     }
-
-    std::vector<const nwn::PreparedDrawItem*> draw_pointers;
-    const auto bridge_stats = append_prepared_surface_draw_pointers(draw_pointers, scene, surface_indices);
-    if (stats) {
-        stats->add(bridge_stats);
+    const auto position_at = [vertices, &world](uint32_t index) noexcept {
+        return glm::vec3(world * glm::vec4(vertices[index].position, 1.0f));
+    };
+    if (index_stride == sizeof(uint16_t)) {
+        trace_indexed_triangles(
+            ray, static_cast<const uint16_t*>(indices), index_count, vertex_count, position_at, nearest_distance);
+    } else if (index_stride == sizeof(uint32_t)) {
+        trace_indexed_triangles(
+            ray, static_cast<const uint32_t*>(indices), index_count, vertex_count, position_at, nearest_distance);
     }
-    refresh_prepared_indirect_cache_from_pointers(
-        cache,
-        draw_pointers,
-        index_cache_signature(surface_indices, scene.prepared_model_surface_draws().draws.size()),
-        static_cast<uint32_t>(surface_indices.size()),
-        mode,
-        nwn::build_prepared_indirect_draw_commands);
 }
 
-void refresh_prepared_static_material_indirect_cache_for_surfaces(
-    AreaPreparedIndirectDrawCache& cache,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> surface_indices,
-    nw::render::MaterialMode mode,
-    AreaPreparedSurfaceSidecarStats* stats = nullptr)
+template <typename Vertex>
+void trace_skinned_geometry(
+    const AreaObjectRay& ray,
+    const Vertex* vertices,
+    uint32_t vertex_count,
+    const void* indices,
+    uint32_t index_count,
+    uint32_t index_stride,
+    std::span<const glm::mat4> bones,
+    const glm::mat4& world,
+    float& nearest_distance) noexcept
 {
-    if (surface_indices.empty() || surface_indices.size() > std::numeric_limits<uint32_t>::max()) {
-        cache.clear();
+    if (!vertices || !indices || bones.empty()) {
+        return;
+    }
+    const auto position_at = [vertices, bones, &world](uint32_t index) noexcept {
+        const glm::vec3 local = skinned_vertex_position(vertices[index], bones);
+        return glm::vec3(world * glm::vec4(local, 1.0f));
+    };
+    if (index_stride == sizeof(uint16_t)) {
+        trace_indexed_triangles(
+            ray, static_cast<const uint16_t*>(indices), index_count, vertex_count, position_at, nearest_distance);
+    } else if (index_stride == sizeof(uint32_t)) {
+        trace_indexed_triangles(
+            ray, static_cast<const uint32_t*>(indices), index_count, vertex_count, position_at, nearest_distance);
+    }
+}
+
+bool build_render_model_selection_bones(
+    std::array<glm::mat4, nw::render::kModelMaxSkinBones>& bones,
+    const nw::render::RenderModel& model,
+    const nw::render::Primitive& primitive,
+    const nw::render::ModelInstance* instance) noexcept
+{
+    std::span<const glm::mat4> source_matrices;
+    bool source_available = false;
+    if (instance && primitive.skin < instance->animation.skin_matrices.size()) {
+        const auto& sampled = instance->animation.skin_matrices[primitive.skin];
+        source_matrices = sampled;
+        source_available = true;
+    }
+    uint32_t matrix_count = 0;
+    return nw::render::build_model_primitive_skinning_matrices(
+        bones,
+        model,
+        primitive,
+        source_matrices,
+        source_available,
+        matrix_count);
+}
+
+void trace_render_model_record(
+    const AreaObjectRay& ray,
+    uint32_t model_index,
+    const nw::render::ModelInstanceHandle instance_handle,
+    const PreviewScene& scene,
+    float& nearest_distance) noexcept
+{
+    if (model_index >= scene.static_models.size() || !scene.static_models[model_index]) {
+        return;
+    }
+    const auto* instance = scene.model_instances.get(instance_handle);
+    if (!instance || instance->render_model_index != model_index) {
         return;
     }
 
-    std::vector<const nwn::PreparedDrawItem*> draw_pointers;
-    const auto bridge_stats = append_prepared_surface_draw_pointers(draw_pointers, scene, surface_indices);
-    if (stats) {
-        stats->add(bridge_stats);
+    const auto& model = *scene.static_models[model_index];
+    for (const auto& primitive : model.primitives) {
+        if (primitive.vertex_count == 0u || primitive.index_count == 0u
+            || !primitive.vertices.valid() || !primitive.indices.valid()) {
+            continue;
+        }
+
+        const auto* vertices = nw::gfx::map_buffer(primitive.vertices);
+        const auto* indices = nw::gfx::map_buffer(primitive.indices);
+        if (!vertices || !indices) {
+            if (vertices) {
+                nw::gfx::unmap_buffer(primitive.vertices);
+            }
+            if (indices) {
+                nw::gfx::unmap_buffer(primitive.indices);
+            }
+            continue;
+        }
+
+        const glm::mat4 world = nw::render::model_instance_primitive_world_transform(
+            instance, instance->root_transform, primitive);
+        if (primitive.skinned) {
+            std::array<glm::mat4, nw::render::kModelMaxSkinBones> bones;
+            if (build_render_model_selection_bones(bones, model, primitive, instance)) {
+                trace_skinned_geometry(
+                    ray,
+                    static_cast<const nw::render::SkinnedVertex*>(vertices),
+                    primitive.vertex_count,
+                    indices,
+                    primitive.index_count,
+                    primitive.index_stride,
+                    bones,
+                    world,
+                    nearest_distance);
+            }
+        } else {
+            trace_static_geometry(
+                ray,
+                static_cast<const nw::render::Vertex*>(vertices),
+                primitive.vertex_count,
+                indices,
+                primitive.index_count,
+                primitive.index_stride,
+                world,
+                nearest_distance);
+        }
+        nw::gfx::unmap_buffer(primitive.vertices);
+        nw::gfx::unmap_buffer(primitive.indices);
     }
-    refresh_prepared_indirect_cache_from_pointers(
-        cache,
-        draw_pointers,
-        index_cache_signature(surface_indices, scene.prepared_model_surface_draws().draws.size()),
-        static_cast<uint32_t>(surface_indices.size()),
-        mode,
-        nwn::build_prepared_static_material_indirect_draw_commands);
+}
+
+bool valid_area_object_selection_records(const AreaRenderScene& records) noexcept
+{
+    const size_t count = records.bounds().size();
+    return count <= std::numeric_limits<uint32_t>::max()
+        && records.flags().size() == count
+        && records.kinds().size() == count
+        && records.object_handles().size() == count
+        && records.model_indices().size() == count
+        && records.model_instance_handles().size() == count
+        && records.tile_xs().size() == count
+        && records.tile_ys().size() == count;
+}
+
+bool debug_selection_category_enabled(
+    const DebugShapeSelectionRange& range,
+    AreaObjectSelectionOptions options) noexcept
+{
+    switch (range.category) {
+    case DebugShapeCategory::trigger:
+        return options.triggers_enabled && range.object.type == nw::ObjectType::trigger;
+    case DebugShapeCategory::encounter:
+        return options.encounters_enabled && range.object.type == nw::ObjectType::encounter;
+    case DebugShapeCategory::general:
+        return false;
+    }
+    return false;
+}
+
+bool point_on_polygon_edge_xy(
+    const glm::vec2& point,
+    const glm::vec2& a,
+    const glm::vec2& b) noexcept
+{
+    const glm::vec2 edge = b - a;
+    const glm::vec2 offset = point - a;
+    const float edge_length_squared = glm::dot(edge, edge);
+    if (edge_length_squared <= 1.0e-10f) {
+        return glm::dot(offset, offset) <= 1.0e-8f;
+    }
+    const float cross = edge.x * offset.y - edge.y * offset.x;
+    if (std::abs(cross) > 1.0e-4f * std::sqrt(edge_length_squared)) {
+        return false;
+    }
+    const float projection = glm::dot(offset, edge);
+    return projection >= 0.0f && projection <= edge_length_squared;
+}
+
+bool point_in_polygon_xy(const glm::vec2& point, std::span<const glm::vec3> polygon) noexcept
+{
+    if (polygon.size() < 3) {
+        return false;
+    }
+
+    bool inside = false;
+    size_t previous = polygon.size() - 1u;
+    for (size_t current = 0; current < polygon.size(); ++current) {
+        const glm::vec2 a{polygon[previous]};
+        const glm::vec2 b{polygon[current]};
+        if (point_on_polygon_edge_xy(point, a, b)) {
+            return true;
+        }
+        if ((a.y > point.y) != (b.y > point.y)) {
+            const float crossing_x = a.x + (point.y - a.y) * (b.x - a.x) / (b.y - a.y);
+            if (point.x < crossing_x) {
+                inside = !inside;
+            }
+        }
+        previous = current;
+    }
+    return inside;
+}
+
+void trace_debug_shape_selection_range(
+    const AreaObjectRay& ray,
+    const DebugShapeSelectionRange& range,
+    const PreviewScene& scene,
+    float& nearest_distance) noexcept
+{
+    const auto bounds_distance = ray_bounds_intersection(ray, range.bounds);
+    if (!bounds_distance || *bounds_distance >= nearest_distance) {
+        return;
+    }
+
+    if (range.point_count >= 3u) {
+        const uint64_t point_end = static_cast<uint64_t>(range.first_point) + range.point_count;
+        if (point_end > scene.debug_shape_selection_points.size()
+            || !std::isfinite(range.plane_z)
+            || std::abs(ray.direction.z) <= 1.0e-8f) {
+            return;
+        }
+        const float distance = (range.plane_z - ray.origin.z) / ray.direction.z;
+        if (!std::isfinite(distance) || distance < 0.0f || distance >= nearest_distance) {
+            return;
+        }
+        const glm::vec3 position = ray.origin + ray.direction * distance;
+        const std::span polygon{
+            scene.debug_shape_selection_points.data() + range.first_point,
+            static_cast<size_t>(range.point_count)};
+        if (point_in_polygon_xy(glm::vec2{position}, polygon)) {
+            nearest_distance = distance;
+        }
+        return;
+    }
+
+    if (range.debug_shape_range_index >= scene.debug_shape_ranges.size()) {
+        return;
+    }
+    const auto& debug_range = scene.debug_shape_ranges[range.debug_shape_range_index];
+    const uint64_t index_end = static_cast<uint64_t>(debug_range.first_index) + debug_range.index_count;
+    if (index_end > scene.debug_shape_indices.size()
+        || scene.debug_shape_vertices.size() > std::numeric_limits<uint32_t>::max()) {
+        return;
+    }
+    const auto position_at = [&scene](uint32_t index) noexcept {
+        return scene.debug_shape_vertices[index].position;
+    };
+    trace_indexed_triangles(
+        ray,
+        scene.debug_shape_indices.data() + debug_range.first_index,
+        debug_range.index_count,
+        static_cast<uint32_t>(scene.debug_shape_vertices.size()),
+        position_at,
+        nearest_distance);
+}
+
+AreaObjectSelection select_area_object_geometry(
+    const AreaObjectRay& ray,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    AreaObjectSelectionOptions options)
+{
+    if (options.target != AreaObjectSelectionTarget::object
+        && options.target != AreaObjectSelectionTarget::tile) {
+        return {};
+    }
+    const auto normalized_ray = normalized_area_object_ray(ray);
+    if (!normalized_ray) {
+        return {};
+    }
+
+    const auto bounds = records.bounds();
+    const auto flags = records.flags();
+    const auto kinds = records.kinds();
+    const auto objects = records.object_handles();
+    const auto model_indices = records.model_indices();
+    const auto instance_handles = records.model_instance_handles();
+    const auto tile_xs = records.tile_xs();
+    const auto tile_ys = records.tile_ys();
+    AreaObjectSelection result;
+    float nearest_distance = std::numeric_limits<float>::infinity();
+    const bool select_tiles = options.target == AreaObjectSelectionTarget::tile;
+
+    for (uint32_t record_index = 0; record_index < bounds.size(); ++record_index) {
+        if ((flags[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
+            continue;
+        }
+        const bool tile_record = kinds[record_index] == AreaRenderRecordKind::tile
+            && tile_xs[record_index] >= 0
+            && tile_ys[record_index] >= 0;
+        const bool object_record = object_matches_record_kind(kinds[record_index], objects[record_index])
+            && nw::kernel::objects().valid(objects[record_index]);
+        if ((select_tiles && !tile_record) || (!select_tiles && !object_record)) {
+            continue;
+        }
+        const auto bounds_distance = ray_bounds_intersection(*normalized_ray, bounds[record_index]);
+        if (!bounds_distance || *bounds_distance >= nearest_distance) {
+            continue;
+        }
+
+        float record_distance = nearest_distance;
+        trace_render_model_record(
+            *normalized_ray,
+            model_indices[record_index],
+            instance_handles[record_index],
+            scene,
+            record_distance);
+        if (record_distance >= nearest_distance) {
+            continue;
+        }
+
+        nearest_distance = record_distance;
+        result = {
+            .record_index = record_index,
+            .object = objects[record_index],
+            .position = normalized_ray->origin + normalized_ray->direction * record_distance,
+            .distance = record_distance,
+            .tile_x = tile_xs[record_index],
+            .tile_y = tile_ys[record_index],
+            .kind = kinds[record_index],
+            .source = AreaObjectSelectionSource::area_record,
+            .status = AreaObjectSelectionStatus::hit,
+        };
+    }
+
+    if (!select_tiles) {
+        const size_t debug_range_count = std::min<size_t>(
+            scene.debug_shape_selection_ranges.size(),
+            static_cast<size_t>(std::numeric_limits<uint32_t>::max()));
+        for (size_t range_index = 0; range_index < debug_range_count; ++range_index) {
+            const auto& range = scene.debug_shape_selection_ranges[range_index];
+            if (!debug_selection_category_enabled(range, options)
+                || !nw::kernel::objects().valid(range.object)
+                || !finite_ordered_bounds(range.bounds)) {
+                continue;
+            }
+
+            float range_distance = nearest_distance;
+            trace_debug_shape_selection_range(*normalized_ray, range, scene, range_distance);
+            if (range_distance >= nearest_distance) {
+                continue;
+            }
+
+            nearest_distance = range_distance;
+            result = {
+                .record_index = static_cast<uint32_t>(range_index),
+                .object = range.object,
+                .position = normalized_ray->origin + normalized_ray->direction * range_distance,
+                .distance = range_distance,
+                .source = AreaObjectSelectionSource::debug_shape,
+                .status = AreaObjectSelectionStatus::hit,
+            };
+        }
+    }
+
+    if (result.status == AreaObjectSelectionStatus::hit) {
+        return result;
+    }
+    AreaObjectSelection miss;
+    miss.status = AreaObjectSelectionStatus::miss;
+    return miss;
 }
 
 } // namespace
 
-AreaPreparedSurfaceSidecarStats collect_area_prepared_surface_sidecar_draws(
-    std::vector<const nwn::PreparedDrawItem*>& out,
-    const AreaRenderScene& scene,
-    std::span<const uint32_t> surface_indices)
+void trace_area_surfaces(
+    std::span<const AreaObjectRay> rays,
+    std::span<const AreaSurfaceRange> ranges,
+    std::span<const AreaSurfaceTriangle> triangles,
+    std::span<AreaSurfaceHit> hits) noexcept
 {
-    out.clear();
-    return append_prepared_surface_draw_pointers(out, scene, surface_indices);
+    std::fill(hits.begin(), hits.end(), AreaSurfaceHit{});
+    if (rays.size() != hits.size()
+        || !valid_surface_protocol(ranges, triangles)) {
+        return;
+    }
+
+    for (size_t ray_index = 0; ray_index < rays.size(); ++ray_index) {
+        const auto& input_ray = rays[ray_index];
+        auto& result = hits[ray_index];
+        if (!finite_vec3(input_ray.origin) || !finite_vec3(input_ray.direction)) {
+            continue;
+        }
+
+        const float direction_length = glm::length(input_ray.direction);
+        if (!std::isfinite(direction_length) || direction_length <= 1.0e-8f) {
+            continue;
+        }
+        const AreaObjectRay ray{
+            .origin = input_ray.origin,
+            .direction = input_ray.direction / direction_length,
+        };
+
+        result.status = AreaSurfaceHitStatus::miss;
+        float nearest_distance = std::numeric_limits<float>::infinity();
+        for (uint32_t range_index = 0; range_index < ranges.size(); ++range_index) {
+            const auto& range = ranges[range_index];
+            const uint64_t triangle_end = static_cast<uint64_t>(range.first_triangle)
+                + static_cast<uint64_t>(range.triangle_count);
+            const auto bounds_distance = ray_bounds_intersection(ray, range.bounds);
+            if (!bounds_distance || *bounds_distance > nearest_distance) {
+                continue;
+            }
+            for (uint32_t triangle_index = range.first_triangle;
+                triangle_index < triangle_end;
+                ++triangle_index) {
+                const auto distance = ray_triangle_intersection(ray, triangles[triangle_index]);
+                if (!distance || *distance >= nearest_distance) {
+                    continue;
+                }
+                glm::vec3 normal{0.0f};
+                if (!upward_surface_normal(triangles[triangle_index], normal)) {
+                    continue;
+                }
+
+                nearest_distance = *distance;
+                result = {
+                    .position = ray.origin + ray.direction * nearest_distance,
+                    .normal = normal,
+                    .distance = nearest_distance,
+                    .range_index = range_index,
+                    .status = AreaSurfaceHitStatus::hit,
+                };
+            }
+        }
+    }
 }
 
-AreaPreparedSurfaceSidecarStats collect_area_prepared_surface_sidecar_draws(
-    std::vector<const nwn::PreparedDrawItem*>& out,
-    std::span<const uint32_t> surface_indices,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    std::span<const nwn::PreparedDrawItem> sidecar_draws)
+AreaSurfaceHit trace_area_surface(
+    const AreaObjectRay& ray,
+    std::span<const AreaSurfaceRange> ranges,
+    std::span<const AreaSurfaceTriangle> triangles) noexcept
 {
-    out.clear();
-    return append_prepared_surface_draw_pointers(out, surface_indices, surfaces, sidecar_draws);
+    AreaSurfaceHit result;
+    trace_area_surfaces(
+        std::span<const AreaObjectRay>{&ray, 1u}, ranges, triangles,
+        std::span<AreaSurfaceHit>{&result, 1u});
+    return result;
+}
+
+void select_area_objects(
+    std::span<const AreaObjectRay> rays,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    std::span<AreaObjectSelection> selections,
+    AreaObjectSelectionOptions options)
+{
+    std::fill(selections.begin(), selections.end(), AreaObjectSelection{});
+    if (rays.size() != selections.size() || !valid_area_object_selection_records(records)) {
+        return;
+    }
+
+    for (size_t i = 0; i < rays.size(); ++i) {
+        selections[i] = select_area_object_geometry(
+            rays[i], records, scene, options);
+    }
+}
+
+AreaObjectSelection select_area_object(
+    const AreaObjectRay& ray,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    AreaObjectSelectionOptions options)
+{
+    AreaObjectSelection result;
+    select_area_objects(
+        std::span<const AreaObjectRay>{&ray, 1u},
+        records,
+        scene,
+        std::span<AreaObjectSelection>{&result, 1u},
+        options);
+    return result;
+}
+
+std::optional<nw::render::Bounds> area_tile_selection_bounds(
+    const AreaObjectSelection& selection,
+    const AreaRenderScene& records) noexcept
+{
+    if (selection.status != AreaObjectSelectionStatus::hit
+        || selection.source != AreaObjectSelectionSource::area_record
+        || selection.kind != AreaRenderRecordKind::tile
+        || selection.object.type != nw::ObjectType::invalid
+        || selection.tile_x < 0
+        || selection.tile_y < 0
+        || !valid_area_object_selection_records(records)) {
+        return std::nullopt;
+    }
+
+    const size_t record_index = selection.record_index;
+    if (record_index >= records.bounds().size()
+        || records.kinds()[record_index] != AreaRenderRecordKind::tile
+        || records.tile_xs()[record_index] != selection.tile_x
+        || records.tile_ys()[record_index] != selection.tile_y
+        || (records.flags()[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
+        return std::nullopt;
+    }
+
+    const float elevation = records.root_transforms()[record_index][3].z;
+    if (!std::isfinite(elevation)) {
+        return std::nullopt;
+    }
+
+    const float tile_min_x = static_cast<float>(selection.tile_x) * kAreaRenderTileSize;
+    const float tile_min_y = static_cast<float>(selection.tile_y) * kAreaRenderTileSize;
+    return nw::render::Bounds{
+        .min = {tile_min_x, tile_min_y, elevation},
+        .max = {
+            tile_min_x + kAreaRenderTileSize,
+            tile_min_y + kAreaRenderTileSize,
+            elevation + kAreaTileSelectionOutlineHeight,
+        },
+    };
+}
+
+AreaObjectBounds collect_area_object_bounds(
+    nw::ObjectHandle object,
+    std::span<const nw::render::Bounds> bounds,
+    std::span<const uint8_t> flags,
+    std::span<const AreaRenderRecordKind> kinds,
+    std::span<const nw::ObjectHandle> objects) noexcept
+{
+    AreaObjectBounds result;
+    if (object.type == nw::ObjectType::invalid
+        || bounds.size() != flags.size()
+        || bounds.size() != kinds.size()
+        || bounds.size() != objects.size()
+        || bounds.size() > std::numeric_limits<uint32_t>::max()) {
+        return result;
+    }
+
+    for (uint32_t record_index = 0; record_index < bounds.size(); ++record_index) {
+        const auto& current = bounds[record_index];
+        if (objects[record_index] != object
+            || (flags[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u
+            || !object_matches_record_kind(kinds[record_index], objects[record_index])
+            || !finite_ordered_bounds(current)) {
+            continue;
+        }
+
+        if (result.record_count == 0) {
+            result.bounds = current;
+        } else {
+            result.bounds.min = glm::min(result.bounds.min, current.min);
+            result.bounds.max = glm::max(result.bounds.max, current.max);
+        }
+        ++result.record_count;
+    }
+
+    result.status = result.record_count == 0
+        ? AreaObjectBoundsStatus::not_found
+        : AreaObjectBoundsStatus::found;
+    return result;
 }
 
 bool should_use_sorted_area_static_surface_lists(
@@ -892,306 +1265,10 @@ bool should_use_sorted_area_static_surface_lists(
         * kSortedVisibleStaticSurfaceMinimumSceneCoveragePercent;
 }
 
-AreaPreparedSurfaceSidecarStats refresh_prepared_shadow_indirect_cache(
-    AreaShadowCascadeDraws& cascade_draws,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    std::span<const nwn::PreparedDrawItem> draws)
-{
-    auto& cache = cascade_draws.prepared_indirect;
-    const auto surface_indices = std::span<const uint32_t>{cascade_draws.prepared_surface_indices};
-    if (surface_indices.empty() || surface_indices.size() > std::numeric_limits<uint32_t>::max()) {
-        cache.clear();
-        return {};
-    }
-
-    const uint64_t signature = cascade_draws.finalized_prepared_surface_signature(surfaces.size());
-    const auto source_index_count = static_cast<uint32_t>(surface_indices.size());
-    if (cache.signature == signature && cache.source_index_count == source_index_count) {
-        return {};
-    }
-
-    std::vector<const nwn::PreparedDrawItem*> draw_pointers;
-    const auto stats = append_prepared_surface_draw_pointers(draw_pointers, surface_indices, surfaces, draws);
-    if (draw_pointers.empty()) {
-        cache.clear();
-        return stats;
-    }
-
-    cache.signature = signature;
-    cache.source_index_count = source_index_count;
-    cache.clear_gpu_commands();
-    if (!nwn::build_prepared_shadow_indirect_draw_commands(cache.commands, cache.indirect, draw_pointers)) {
-        cache.indirect = {};
-        cache.clear_gpu_commands();
-    }
-    return stats;
-}
-
-AreaStaticMaterialDrawBatches area_static_material_draw_batches_for_pass(
-    const AreaRenderFrame& frame,
-    nw::render::RenderPassSelection pass,
-    nw::gfx::StorageSpan static_material_draw_data) noexcept
-{
-    AreaStaticMaterialDrawBatches result{};
-    const bool sorted_static_order = frame.uses_sorted_static_draw_lists();
-    const auto append = [&](std::span<const uint32_t> surface_indices,
-                            nw::render::MaterialMode material,
-                            bool static_geometry_sorted,
-                            nwn::PreparedIndirectDrawCommands indirect_draws = {},
-                            nw::gfx::StorageSpan cached_draw_data = {}) {
-        if (result.count >= result.batches.size()) {
-            return;
-        }
-        result.batches[result.count++] = AreaStaticMaterialDrawBatch{
-            .surface_indices = surface_indices,
-            .material = material,
-            .static_geometry_sorted = static_geometry_sorted,
-            .indirect_draws = indirect_draws,
-            .cached_draw_data = cached_draw_data,
-        };
-    };
-
-    switch (pass) {
-    case nw::render::RenderPassSelection::opaque_cutout:
-        append(
-            sorted_static_order
-                ? frame.visible_opaque_static_prepared_surface_indices()
-                : frame.visible_opaque_prepared_surface_indices(),
-            nw::render::MaterialMode::opaque,
-            sorted_static_order,
-            static_material_draw_data.buffer.valid()
-                ? frame.visible_opaque_static_material_indirect_draws()
-                : frame.visible_opaque_prepared_indirect_draws(),
-            static_material_draw_data);
-        append(
-            sorted_static_order
-                ? frame.visible_cutout_static_prepared_surface_indices()
-                : frame.visible_cutout_prepared_surface_indices(),
-            nw::render::MaterialMode::cutout,
-            sorted_static_order,
-            static_material_draw_data.buffer.valid()
-                ? frame.visible_cutout_static_material_indirect_draws()
-                : frame.visible_cutout_prepared_indirect_draws(),
-            static_material_draw_data);
-        break;
-    case nw::render::RenderPassSelection::water:
-        append(
-            frame.visible_water_prepared_surface_indices(),
-            nw::render::MaterialMode::water,
-            false);
-        break;
-    case nw::render::RenderPassSelection::transparent:
-        append(
-            frame.visible_transparent_prepared_surface_indices(),
-            nw::render::MaterialMode::transparent,
-            false);
-        break;
-    case nw::render::RenderPassSelection::all:
-        break;
-    }
-    return result;
-}
-
-AreaStaticMaterialDrawBatch area_static_material_depth_prepass_batch(
-    const AreaRenderFrame& frame,
-    nw::gfx::StorageSpan static_material_draw_data) noexcept
-{
-    const bool sorted_static_order = frame.uses_sorted_static_draw_lists();
-    return AreaStaticMaterialDrawBatch{
-        .surface_indices = sorted_static_order
-            ? frame.visible_opaque_static_prepared_surface_indices()
-            : frame.visible_opaque_prepared_surface_indices(),
-        .material = nw::render::MaterialMode::opaque,
-        .static_geometry_sorted = sorted_static_order,
-        .indirect_draws = static_material_draw_data.buffer.valid()
-            ? frame.visible_opaque_static_material_indirect_draws()
-            : frame.visible_opaque_prepared_indirect_draws(),
-        .cached_draw_data = static_material_draw_data,
-    };
-}
-
-namespace {
-
-AreaPreparedSurfaceSidecarStats render_area_static_material_draw_batches_with_lazy_context(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const AreaRenderScene& scene,
-    std::span<const AreaStaticMaterialDrawBatch> batches,
-    const nw::render::RenderContext& ctx,
-    nw::render::nwn::PreparedDrawScratch& scratch)
-{
-    AreaPreparedSurfaceSidecarStats stats{};
-    std::optional<nw::render::nwn::ModelRenderContext> nwn_render_ctx{};
-    const auto legacy_context = [&]() -> nw::render::nwn::ModelRenderContext& {
-        if (!nwn_render_ctx) {
-            nwn_render_ctx = render_service.nwn_model_render_context();
-        }
-        return *nwn_render_ctx;
-    };
-
-    for (const AreaStaticMaterialDrawBatch& batch : batches) {
-        if (batch.surface_indices.empty()) {
-            continue;
-        }
-        const auto draws = prepared_draw_pointer_bridge_span_for_surfaces(
-            scratch,
-            scene,
-            batch.surface_indices,
-            &stats);
-        if (draws.empty()) {
-            continue;
-        }
-        nw::render::nwn::render_prepared_material_draws(
-            legacy_context(),
-            cmd,
-            draws,
-            batch.material,
-            ctx,
-            scratch,
-            batch.static_geometry_sorted,
-            batch.indirect_draws,
-            batch.cached_draw_data);
-    }
-    return stats;
-}
-
-bool render_area_static_material_depth_prepass_with_lazy_context(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const AreaRenderScene& scene,
-    const AreaStaticMaterialDrawBatch& batch,
-    const nw::render::RenderContext& ctx,
-    nw::render::nwn::PreparedDrawScratch& scratch,
-    AreaPreparedSurfaceSidecarStats* stats)
-{
-    const auto draws = prepared_draw_pointer_bridge_span_for_surfaces(
-        scratch,
-        scene,
-        batch.surface_indices,
-        stats);
-    if (draws.empty()) {
-        return false;
-    }
-    auto nwn_render_ctx = render_service.nwn_model_render_context();
-    return nw::render::nwn::render_prepared_material_depth_prepass(
-        nwn_render_ctx,
-        cmd,
-        draws,
-        batch.material,
-        ctx,
-        scratch,
-        batch.static_geometry_sorted,
-        batch.indirect_draws,
-        batch.cached_draw_data);
-}
-
-} // namespace
-
-nw::gfx::StorageSpan refresh_area_static_material_draw_data(
-    nw::render::RenderService& render_service,
-    AreaRenderScene& scene,
-    const AreaRenderFrame& frame,
-    nw::render::nwn::PreparedDrawScratch& scratch,
-    AreaPreparedSurfaceSidecarStats* sidecar_stats)
-{
-    if (!frame.uses_sorted_static_draw_lists() || scene.static_material_prepared_surface_indices().empty()) {
-        return {};
-    }
-
-    const auto draws = prepared_draw_pointer_bridge_span_for_surfaces(
-        scratch,
-        scene,
-        scene.static_material_prepared_surface_indices(),
-        sidecar_stats);
-    if (draws.empty()) {
-        return {};
-    }
-    auto nwn_render_ctx = render_service.nwn_model_render_context();
-    if (!nw::render::nwn::refresh_prepared_static_draw_data(
-            nwn_render_ctx,
-            scene.static_material_draw_data_cache(),
-            draws,
-            scene.static_material_prepared_surface_signature())) {
-        return {};
-    }
-    return scene.static_material_draw_data_span();
-}
-
-AreaPreparedSurfaceSidecarStats render_area_static_material_draw_batches(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const AreaRenderScene& scene,
-    std::span<const AreaStaticMaterialDrawBatch> batches,
-    const nw::render::RenderContext& ctx,
-    nw::render::nwn::PreparedDrawScratch& scratch)
-{
-    if (!cmd) {
-        return {};
-    }
-
-    const auto has_draws = std::any_of(
-        batches.begin(),
-        batches.end(),
-        [](const AreaStaticMaterialDrawBatch& batch) {
-            return !batch.surface_indices.empty();
-        });
-    if (!has_draws) {
-        return {};
-    }
-
-    return render_area_static_material_draw_batches_with_lazy_context(
-        render_service,
-        cmd,
-        scene,
-        batches,
-        ctx,
-        scratch);
-}
-
-bool render_area_static_material_depth_prepass(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const AreaRenderScene& scene,
-    const AreaStaticMaterialDrawBatch& batch,
-    const nw::render::RenderContext& ctx,
-    nw::render::nwn::PreparedDrawScratch& scratch,
-    AreaPreparedSurfaceSidecarStats* sidecar_stats)
-{
-    if (!cmd || batch.surface_indices.empty()) {
-        return false;
-    }
-
-    return render_area_static_material_depth_prepass_with_lazy_context(
-        render_service,
-        cmd,
-        scene,
-        batch,
-        ctx,
-        scratch,
-        sidecar_stats);
-}
-
-AreaRenderScene::~AreaRenderScene()
-{
-    clear();
-}
-
 void AreaRenderScene::clear()
 {
-    if (static_geometry_vertices_.valid()) {
-        nw::gfx::destroy_buffer(static_geometry_vertices_);
-        static_geometry_vertices_ = {};
-    }
-    if (static_geometry_indices_.valid()) {
-        nw::gfx::destroy_buffer(static_geometry_indices_);
-        static_geometry_indices_ = {};
-    }
-
     model_indices_.clear();
-    model_record_indices_.clear();
     render_model_record_indices_.clear();
-    model_kinds_.clear();
-    models_.clear();
     model_instance_handles_.clear();
     bounds_.clear();
     root_transforms_.clear();
@@ -1199,27 +1276,21 @@ void AreaRenderScene::clear()
     flags_.clear();
     chunk_ids_.clear();
     kinds_.clear();
+    object_handles_.clear();
     tile_xs_.clear();
     tile_ys_.clear();
     chunk_bounds_.clear();
     chunk_has_bounds_.clear();
     chunk_offsets_.clear();
     chunk_record_indices_.clear();
-    prepared_draw_offsets_.clear();
-    prepared_draws_.clear();
+    surface_ranges_.clear();
+    surface_triangles_.clear();
     prepared_model_draws_.clear();
     prepared_model_draw_ranges_.clear();
     prepared_model_surface_draws_.clear();
     prepared_surface_offsets_.clear();
     prepared_surface_indices_.clear();
     prepared_surface_pass_offsets_.fill(0u);
-    opaque_static_prepared_surface_indices_.clear();
-    cutout_static_prepared_surface_indices_.clear();
-    prepared_draw_record_indices_.clear();
-    shadow_prepared_surface_offsets_.clear();
-    shadow_prepared_surface_indices_.clear();
-    sorted_shadow_prepared_surface_indices_.clear();
-    static_material_prepared_surface_indices_.clear();
     light_index_offsets_.clear();
     light_indices_.clear();
     dynamic_light_indices_.clear();
@@ -1227,142 +1298,10 @@ void AreaRenderScene::clear()
     chunk_light_indices_.clear();
     scene_bounds_ = {};
     stats_ = {};
-    static_material_draw_data_.clear();
-    static_material_prepared_surface_signature_ = 0;
     has_scene_bounds_ = false;
 }
 
-bool AreaRenderScene::build_static_geometry(nw::gfx::Context* gfx)
-{
-    if (!gfx || prepared_draws_.empty()) {
-        return false;
-    }
-
-    std::vector<StaticAreaGeometryEntry> entries;
-    entries.reserve(prepared_draws_.size());
-    uint64_t total_vertex_count = 0;
-    uint64_t total_index_count = 0;
-    for (const auto& draw : prepared_draws_) {
-        const auto* mesh = draw.mesh;
-        if (!mesh || mesh->is_skin || !mesh->vertices.valid() || !mesh->indices.valid()
-            || mesh->vertex_count == 0 || mesh->index_count == 0) {
-            continue;
-        }
-        if (find_static_area_geometry_entry(entries, *mesh)) {
-            continue;
-        }
-
-        if (total_vertex_count + mesh->vertex_count
-                > static_cast<uint64_t>(std::numeric_limits<int32_t>::max())
-            || total_index_count + mesh->index_count
-                > static_cast<uint64_t>(std::numeric_limits<uint32_t>::max())) {
-            return false;
-        }
-
-        entries.push_back(StaticAreaGeometryEntry{
-            .source_vertices = mesh->vertices,
-            .source_indices = mesh->indices,
-            .vertex_count = mesh->vertex_count,
-            .index_count = mesh->index_count,
-            .first_index = static_cast<uint32_t>(total_index_count),
-            .vertex_offset = static_cast<int32_t>(total_vertex_count),
-        });
-        total_vertex_count += mesh->vertex_count;
-        total_index_count += mesh->index_count;
-    }
-
-    if (entries.empty() || total_vertex_count == 0 || total_index_count == 0) {
-        return false;
-    }
-
-    const uint64_t vertex_bytes = total_vertex_count * sizeof(nwn::Vertex);
-    const uint64_t index_bytes = total_index_count * sizeof(uint16_t);
-    if (vertex_bytes > std::numeric_limits<size_t>::max()
-        || index_bytes > std::numeric_limits<size_t>::max()) {
-        return false;
-    }
-
-    nw::gfx::BufferDesc vertex_desc{};
-    vertex_desc.size = static_cast<size_t>(vertex_bytes);
-    vertex_desc.usage = nw::gfx::BufferUsage::Vertex;
-    vertex_desc.cpu_visible = true;
-    static_geometry_vertices_ = nw::gfx::create_buffer(gfx, vertex_desc);
-
-    nw::gfx::BufferDesc index_desc{};
-    index_desc.size = static_cast<size_t>(index_bytes);
-    index_desc.usage = nw::gfx::BufferUsage::Index;
-    index_desc.cpu_visible = true;
-    static_geometry_indices_ = nw::gfx::create_buffer(gfx, index_desc);
-
-    auto* vertex_dst = static_cast<uint8_t*>(nw::gfx::map_buffer(static_geometry_vertices_));
-    auto* index_dst = static_cast<uint8_t*>(nw::gfx::map_buffer(static_geometry_indices_));
-    if (!static_geometry_vertices_.valid() || !static_geometry_indices_.valid()
-        || !vertex_dst || !index_dst) {
-        if (static_geometry_vertices_.valid()) {
-            nw::gfx::destroy_buffer(static_geometry_vertices_);
-            static_geometry_vertices_ = {};
-        }
-        if (static_geometry_indices_.valid()) {
-            nw::gfx::destroy_buffer(static_geometry_indices_);
-            static_geometry_indices_ = {};
-        }
-        return false;
-    }
-
-    bool copied = true;
-    for (const auto& entry : entries) {
-        const auto* vertex_src = static_cast<const uint8_t*>(nw::gfx::map_buffer(entry.source_vertices));
-        const auto* index_src = static_cast<const uint8_t*>(nw::gfx::map_buffer(entry.source_indices));
-        if (!vertex_src || !index_src) {
-            copied = false;
-            break;
-        }
-
-        std::memcpy(
-            vertex_dst + static_cast<size_t>(entry.vertex_offset) * sizeof(nwn::Vertex),
-            vertex_src,
-            static_cast<size_t>(entry.vertex_count) * sizeof(nwn::Vertex));
-        std::memcpy(
-            index_dst + static_cast<size_t>(entry.first_index) * sizeof(uint16_t),
-            index_src,
-            static_cast<size_t>(entry.index_count) * sizeof(uint16_t));
-    }
-
-    nw::gfx::unmap_buffer(static_geometry_vertices_);
-    nw::gfx::unmap_buffer(static_geometry_indices_);
-    if (!copied) {
-        nw::gfx::destroy_buffer(static_geometry_vertices_);
-        nw::gfx::destroy_buffer(static_geometry_indices_);
-        static_geometry_vertices_ = {};
-        static_geometry_indices_ = {};
-        return false;
-    }
-
-    for (auto& draw : prepared_draws_) {
-        if (!draw.mesh || draw.mesh->is_skin) {
-            continue;
-        }
-        const auto* entry = find_static_area_geometry_entry(entries, *draw.mesh);
-        if (!entry) {
-            continue;
-        }
-        draw.static_area_geometry = nwn::PreparedDrawGeometry{
-            .vertices = static_geometry_vertices_,
-            .indices = static_geometry_indices_,
-            .index_count = entry->index_count,
-            .first_index = entry->first_index,
-            .vertex_offset = entry->vertex_offset,
-        };
-    }
-
-    stats_.static_geometry_mesh_count = saturating_count(entries.size());
-    stats_.static_geometry_vertex_count = saturating_count(total_vertex_count);
-    stats_.static_geometry_index_count = saturating_count(total_index_count);
-    stats_.static_geometry_bytes = saturating_count(vertex_bytes + index_bytes);
-    return true;
-}
-
-void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
+void AreaRenderScene::rebuild(const PreviewScene& scene)
 {
     clear();
     stats_.chunk_width = scene.area_width > 0 ? static_cast<uint32_t>(scene.area_width) : 0u;
@@ -1370,12 +1309,9 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
     stats_.chunk_count = stats_.chunk_width * stats_.chunk_height;
     stats_.local_light_count = saturating_count(scene.render_local_lights.size());
 
-    const size_t record_capacity = scene.models.size() + scene.static_models.size();
+    const size_t record_capacity = scene.static_models.size();
     model_indices_.reserve(record_capacity);
-    model_record_indices_.assign(scene.models.size(), kInvalidAreaRenderRecordIndex);
     render_model_record_indices_.assign(scene.static_models.size(), kInvalidAreaRenderRecordIndex);
-    model_kinds_.reserve(record_capacity);
-    models_.reserve(record_capacity);
     model_instance_handles_.reserve(record_capacity);
     bounds_.reserve(record_capacity);
     root_transforms_.reserve(record_capacity);
@@ -1383,110 +1319,16 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
     flags_.reserve(record_capacity);
     chunk_ids_.reserve(record_capacity);
     kinds_.reserve(record_capacity);
+    object_handles_.reserve(record_capacity);
     tile_xs_.reserve(record_capacity);
     tile_ys_.reserve(record_capacity);
-    prepared_draw_offsets_.reserve(record_capacity + 1u);
-    prepared_draw_offsets_.push_back(0);
     prepared_model_draws_.instance_offsets.reserve(record_capacity + 1u);
     prepared_model_draws_.instance_offsets.push_back(0);
     std::vector<uint32_t> chunk_counts(stats_.chunk_count, 0u);
     chunk_bounds_.resize(stats_.chunk_count);
     chunk_has_bounds_.resize(stats_.chunk_count, 0u);
     uint32_t chunked_record_count = 0;
-
-    for (size_t i = 0; i < scene.models.size(); ++i) {
-        const auto& model_ptr = scene.models[i];
-        if (!model_ptr) {
-            continue;
-        }
-
-        const auto& model = *model_ptr;
-        const nw::render::ModelInstanceHandle instance_handle = i < scene.model_instance_handles.size()
-            ? scene.model_instance_handles[i]
-            : nw::render::ModelInstanceHandle{};
-        const auto* instance = scene.model_instances.get(instance_handle);
-        const bool valid_instance = instance
-            && instance->kind == nw::render::ModelInstanceKind::nwn_legacy
-            && instance->nwn_legacy_model_index == static_cast<uint32_t>(i);
-        const AreaRenderSourceInfo& info = source_info_for_model(scene, i);
-        const nw::render::Bounds current_bounds = valid_instance ? instance->current_bounds : model.current_bounds();
-        expand_bounds(scene_bounds_, current_bounds, has_scene_bounds_);
-        const uint8_t pass_mask = model.material_pass_mask;
-        const bool model_static = info.static_candidate && !model.scene_animation_enabled && !model.transform_context_;
-        uint8_t flags = 0;
-        if (valid_instance ? instance->visible : model.render_enabled) {
-            flags |= RecordFlag::render_enabled;
-        } else {
-            ++stats_.disabled_record_count;
-        }
-        if (model_static) {
-            flags |= RecordFlag::static_candidate;
-            ++stats_.static_record_count;
-        } else {
-            ++stats_.dynamic_record_count;
-        }
-        const bool record_casts_shadow = valid_instance ? instance->shadow.casts_shadow : model.has_shadow_casters();
-        if (record_casts_shadow) {
-            flags |= RecordFlag::shadow_caster;
-            ++stats_.shadow_caster_record_count;
-        }
-        if (has_opaque_cutout_pass(pass_mask)) {
-            ++stats_.opaque_cutout_record_count;
-        }
-        if (has_water_pass(pass_mask)) {
-            ++stats_.water_record_count;
-        }
-        if (has_transparent_pass(pass_mask)) {
-            ++stats_.transparent_record_count;
-        }
-
-        count_kind(stats_, info.kind);
-        const uint32_t chunk_id = area_chunk_id(scene, info, current_bounds);
-        if (chunk_id != kInvalidChunkId && chunk_id < chunk_counts.size()) {
-            ++chunk_counts[chunk_id];
-            ++chunked_record_count;
-            bool chunk_initialized = chunk_has_bounds_[chunk_id] != 0u;
-            expand_bounds(chunk_bounds_[chunk_id], current_bounds, chunk_initialized);
-            chunk_has_bounds_[chunk_id] = chunk_initialized ? 1u : 0u;
-        }
-
-        const uint32_t record_index = saturating_count(model_indices_.size());
-        model_indices_.push_back(saturating_count(i));
-        if (i < model_record_indices_.size()) {
-            model_record_indices_[i] = record_index;
-        }
-        models_.push_back(&model);
-        model_kinds_.push_back(nw::render::ModelInstanceKind::nwn_legacy);
-        model_instance_handles_.push_back(instance_handle);
-        bounds_.push_back(current_bounds);
-        root_transforms_.push_back(valid_instance ? instance->root_transform : model.root_transform());
-        pass_masks_.push_back(pass_mask);
-        flags_.push_back(flags);
-        chunk_ids_.push_back(chunk_id);
-        kinds_.push_back(info.kind);
-        tile_xs_.push_back(info.tile_x);
-        tile_ys_.push_back(info.tile_y);
-
-        const size_t prepared_draw_begin = prepared_draws_.size();
-        if (model_static) {
-            nwn::collect_prepared_draws(prepared_draws_, model, root_transforms_.back());
-        }
-        const size_t prepared_draw_end = prepared_draws_.size();
-        prepared_draw_record_indices_.resize(prepared_draw_end, saturating_count(model_indices_.size() - 1u));
-        append_area_prepared_model_draws(
-            prepared_model_draws_,
-            instance_handle,
-            valid_instance,
-            record_casts_shadow,
-            saturating_count(i),
-            saturating_count(prepared_draw_begin),
-            saturating_count(prepared_draw_end),
-            std::span<const nwn::PreparedDrawItem>{prepared_draws_});
-        stats_.max_prepared_draws_per_record = std::max(
-            stats_.max_prepared_draws_per_record,
-            saturating_count(prepared_draw_end - prepared_draw_begin));
-        prepared_draw_offsets_.push_back(saturating_count(prepared_draws_.size()));
-    }
+    bool surface_cache_valid = true;
 
     for (size_t i = 0; i < scene.static_models.size(); ++i) {
         const auto& model_ptr = scene.static_models[i];
@@ -1500,21 +1342,27 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
             : nw::render::ModelInstanceHandle{};
         const auto* instance = scene.model_instances.get(instance_handle);
         const bool valid_instance = instance
-            && instance->kind == nw::render::ModelInstanceKind::render_model
             && instance->render_model_index == static_cast<uint32_t>(i);
         const AreaRenderSourceInfo& info = source_info_for_render_model(scene, i);
         const nw::render::Bounds current_bounds = valid_instance ? instance->current_bounds : model.bounds;
         expand_bounds(scene_bounds_, current_bounds, has_scene_bounds_);
 
         const uint8_t pass_mask = render_model_pass_mask(model);
+        const bool model_static = info.static_candidate
+            && valid_instance
+            && !instance->scene_animation_enabled;
         uint8_t flags = 0;
         if (valid_instance && instance->visible) {
             flags |= RecordFlag::render_enabled;
         } else {
             ++stats_.disabled_record_count;
         }
-
-        ++stats_.dynamic_record_count;
+        if (model_static) {
+            flags |= RecordFlag::static_candidate;
+            ++stats_.static_record_count;
+        } else {
+            ++stats_.dynamic_record_count;
+        }
         const bool record_casts_shadow = valid_instance ? instance->shadow.casts_shadow : render_model_casts_shadow(model);
         if (record_casts_shadow) {
             flags |= RecordFlag::shadow_caster;
@@ -1545,8 +1393,6 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
         if (i < render_model_record_indices_.size()) {
             render_model_record_indices_[i] = record_index;
         }
-        models_.push_back(nullptr);
-        model_kinds_.push_back(nw::render::ModelInstanceKind::render_model);
         model_instance_handles_.push_back(instance_handle);
         bounds_.push_back(current_bounds);
         root_transforms_.push_back(valid_instance ? instance->root_transform : glm::mat4{1.0f});
@@ -1554,15 +1400,61 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
         flags_.push_back(flags);
         chunk_ids_.push_back(chunk_id);
         kinds_.push_back(info.kind);
+        object_handles_.push_back(info.object);
+        if ((flags & RecordFlag::render_enabled) != 0u
+            && object_matches_record_kind(info.kind, info.object)
+            && nw::kernel::objects().valid(info.object)) {
+            ++stats_.selectable_object_record_count;
+        }
         tile_xs_.push_back(info.tile_x);
         tile_ys_.push_back(info.tile_y);
-        prepared_draw_offsets_.push_back(saturating_count(prepared_draws_.size()));
+
+        if (surface_cache_valid
+            && info.kind == AreaRenderRecordKind::tile
+            && (flags & RecordFlag::render_enabled) != 0u) {
+            surface_cache_valid = append_tile_surface_range(
+                model,
+                instance,
+                root_transforms_.back(),
+                surface_ranges_,
+                surface_triangles_);
+        }
+
+        ++prepared_model_draws_.stats.handle_count;
+        if (!valid_instance) {
+            ++prepared_model_draws_.stats.stale_handle_count;
+        } else if (!instance->visible) {
+            ++prepared_model_draws_.stats.hidden_instance_count;
+        } else {
+            ++prepared_model_draws_.stats.visible_instance_count;
+            if (model_static) {
+                const size_t draw_begin = prepared_model_draws_.draws.size();
+                append_prepared_render_model_draws(
+                    prepared_model_draws_,
+                    instance_handle,
+                    *instance,
+                    model,
+                    scene.material_overrides);
+                stats_.max_prepared_draws_per_record = std::max(
+                    stats_.max_prepared_draws_per_record,
+                    saturating_count(prepared_model_draws_.draws.size() - draw_begin));
+            }
+        }
         prepared_model_draws_.instance_offsets.push_back(saturating_count(prepared_model_draws_.draws.size()));
     }
 
     stats_.record_count = saturating_count(model_indices_.size());
-    stats_.prepared_draw_count = saturating_count(prepared_draws_.size());
-    build_static_geometry(gfx);
+    stats_.object_handle_bytes = saturating_count(object_handles_.size() * sizeof(nw::ObjectHandle));
+    stats_.prepared_draw_count = saturating_count(prepared_model_draws_.draws.size());
+    if (!surface_cache_valid) {
+        surface_ranges_.clear();
+        surface_triangles_.clear();
+    }
+    stats_.surface_range_count = saturating_count(surface_ranges_.size());
+    stats_.surface_triangle_count = saturating_count(surface_triangles_.size());
+    stats_.surface_bytes = saturating_count(
+        surface_ranges_.size() * sizeof(AreaSurfaceRange)
+        + surface_triangles_.size() * sizeof(AreaSurfaceTriangle));
     chunk_offsets_.resize(static_cast<size_t>(stats_.chunk_count) + 1u, 0u);
     for (uint32_t chunk_id = 0; chunk_id < stats_.chunk_count; ++chunk_id) {
         const uint32_t count = chunk_counts[chunk_id];
@@ -1606,146 +1498,6 @@ void AreaRenderScene::rebuild(const PreviewScene& scene, nw::gfx::Context* gfx)
         prepared_model_surface_draws_.draws.data(),
         prepared_model_surface_draws_.draws.size()};
     rebuild_prepared_surface_indices(prepared_surface_indices_, prepared_surface_pass_offsets_, prepared_surfaces);
-    shadow_prepared_surface_offsets_.assign(model_indices_.size() + 1u, 0u);
-    shadow_prepared_surface_indices_.reserve(prepared_model_surface_draws_.draws.size());
-    for (uint32_t record_index = 0; record_index < model_indices_.size(); ++record_index) {
-        shadow_prepared_surface_offsets_[record_index] = saturating_count(shadow_prepared_surface_indices_.size());
-        if (static_cast<size_t>(record_index) + 1u >= prepared_surface_offsets_.size()) {
-            continue;
-        }
-        const uint32_t begin = prepared_surface_offsets_[record_index];
-        const uint32_t end = prepared_surface_offsets_[static_cast<size_t>(record_index) + 1u];
-        if (end <= begin || end > prepared_model_surface_draws_.draws.size()) {
-            continue;
-        }
-        const size_t shadow_surface_begin = shadow_prepared_surface_indices_.size();
-        bool shadow_batchable = true;
-        for (uint32_t surface_index = begin; surface_index < end; ++surface_index) {
-            const auto& surface = prepared_model_surface_draws_.draws[surface_index];
-            if (!surface.casts_shadow) {
-                continue;
-            }
-            const uint32_t draw_index = area_sidecar_draw_index_for_surface(*this, surface);
-            if (draw_index >= prepared_draws_.size()
-                || !supports_batched_shadow_draw(prepared_draws_[draw_index])
-                || !area_common_records_include_sidecar_draw(*this, record_index, draw_index)) {
-                shadow_batchable = false;
-                break;
-            }
-            shadow_prepared_surface_indices_.push_back(surface_index);
-        }
-        if (!shadow_batchable) {
-            shadow_prepared_surface_indices_.resize(shadow_surface_begin);
-        }
-        stats_.max_shadow_prepared_surfaces_per_record = std::max(
-            stats_.max_shadow_prepared_surfaces_per_record,
-            saturating_count(shadow_prepared_surface_indices_.size() - shadow_surface_begin));
-    }
-    if (!shadow_prepared_surface_offsets_.empty()) {
-        shadow_prepared_surface_offsets_.back() = saturating_count(shadow_prepared_surface_indices_.size());
-    }
-
-    std::vector<StaticPreparedSurfaceIndex> opaque_static_indices;
-    std::vector<StaticPreparedSurfaceIndex> cutout_static_indices;
-    opaque_static_indices.reserve(prepared_model_surface_draws_.draws.size());
-    cutout_static_indices.reserve(prepared_model_surface_draws_.draws.size());
-    opaque_static_prepared_surface_indices_.reserve(prepared_model_surface_draws_.draws.size());
-    cutout_static_prepared_surface_indices_.reserve(prepared_model_surface_draws_.draws.size());
-    for (size_t surface_index = 0; surface_index < prepared_model_surface_draws_.draws.size(); ++surface_index) {
-        const auto& surface = prepared_model_surface_draws_.draws[surface_index];
-        const uint32_t sidecar_draw_index = area_sidecar_draw_index_for_surface(*this, surface);
-        if (sidecar_draw_index >= prepared_draws_.size()) {
-            continue;
-        }
-        switch (surface.material_mode) {
-        case nw::render::MaterialMode::opaque:
-            opaque_static_indices.push_back(StaticPreparedSurfaceIndex{
-                .surface_index = saturating_count(surface_index),
-                .draw_index = sidecar_draw_index,
-            });
-            break;
-        case nw::render::MaterialMode::cutout:
-            cutout_static_indices.push_back(StaticPreparedSurfaceIndex{
-                .surface_index = saturating_count(surface_index),
-                .draw_index = sidecar_draw_index,
-            });
-            break;
-        case nw::render::MaterialMode::water:
-        case nw::render::MaterialMode::transparent:
-            break;
-        }
-    }
-    const auto static_surface_index_less =
-        [this](const StaticPreparedSurfaceIndex& lhs, const StaticPreparedSurfaceIndex& rhs) noexcept {
-            const auto* lhs_draw = lhs.draw_index < prepared_draws_.size()
-                ? &prepared_draws_[lhs.draw_index]
-                : nullptr;
-            const auto* rhs_draw = rhs.draw_index < prepared_draws_.size()
-                ? &prepared_draws_[rhs.draw_index]
-                : nullptr;
-            return static_batched_geometry_less(lhs_draw, rhs_draw);
-        };
-    std::sort(opaque_static_indices.begin(), opaque_static_indices.end(), static_surface_index_less);
-    std::sort(cutout_static_indices.begin(), cutout_static_indices.end(), static_surface_index_less);
-    const auto append_static_indices =
-        [](const std::vector<StaticPreparedSurfaceIndex>& source,
-            std::vector<uint32_t>& surface_indices) {
-            for (const StaticPreparedSurfaceIndex& item : source) {
-                surface_indices.push_back(item.surface_index);
-            }
-        };
-    append_static_indices(opaque_static_indices, opaque_static_prepared_surface_indices_);
-    append_static_indices(cutout_static_indices, cutout_static_prepared_surface_indices_);
-    static_material_prepared_surface_indices_.reserve(
-        opaque_static_prepared_surface_indices_.size() + cutout_static_prepared_surface_indices_.size());
-    const auto append_static_material_surfaces =
-        [&](std::span<const uint32_t> surface_indices) {
-            for (const uint32_t surface_index : surface_indices) {
-                if (surface_index >= prepared_model_surface_draws_.draws.size()) {
-                    continue;
-                }
-                const auto& surface = prepared_model_surface_draws_.draws[surface_index];
-                const uint32_t draw_index = area_sidecar_draw_index_for_surface(*this, surface);
-                if (draw_index >= prepared_draws_.size()) {
-                    continue;
-                }
-                auto& draw = prepared_draws_[draw_index];
-                if (!supports_static_material_draw_data_cache(draw)) {
-                    continue;
-                }
-                prepared_draws_[draw_index].static_material_index =
-                    saturating_count(static_material_prepared_surface_indices_.size());
-                static_material_prepared_surface_indices_.push_back(surface_index);
-            }
-        };
-    append_static_material_surfaces(opaque_static_prepared_surface_indices_);
-    append_static_material_surfaces(cutout_static_prepared_surface_indices_);
-    static_material_prepared_surface_signature_ =
-        index_list_signature(static_material_prepared_surface_indices_);
-
-    std::vector<StaticPreparedSurfaceIndex> shadow_static_indices;
-    shadow_static_indices.reserve(shadow_prepared_surface_indices_.size());
-    sorted_shadow_prepared_surface_indices_.reserve(shadow_prepared_surface_indices_.size());
-    for (const uint32_t surface_index : shadow_prepared_surface_indices_) {
-        if (surface_index >= prepared_model_surface_draws_.draws.size()) {
-            continue;
-        }
-        const auto& surface = prepared_model_surface_draws_.draws[surface_index];
-        const uint32_t draw_index = area_sidecar_draw_index_for_surface(*this, surface);
-        if (draw_index >= prepared_draws_.size()
-            || !area_common_records_include_sidecar_draw(*this, surface.handle_index, draw_index)) {
-            continue;
-        }
-        shadow_static_indices.push_back(StaticPreparedSurfaceIndex{
-            .surface_index = surface_index,
-            .draw_index = draw_index,
-        });
-    }
-    std::sort(shadow_static_indices.begin(), shadow_static_indices.end(), static_surface_index_less);
-    for (const StaticPreparedSurfaceIndex& item : shadow_static_indices) {
-        sorted_shadow_prepared_surface_indices_.push_back(item.surface_index);
-    }
-    stats_.shadow_prepared_surface_count = saturating_count(sorted_shadow_prepared_surface_indices_.size());
 }
 
 void AreaRenderScene::refresh_runtime_records(const PreviewScene& scene)
@@ -1756,25 +1508,13 @@ void AreaRenderScene::refresh_runtime_records(const PreviewScene& scene)
         flags_.size(),
         bounds_.size(),
         root_transforms_.size(),
-        model_kinds_.size(),
     });
 
     for (size_t record_index = 0; record_index < record_count; ++record_index) {
         const uint32_t model_index = model_indices_[record_index];
         const auto* instance = scene.model_instances.get(model_instance_handles_[record_index]);
-        bool valid_instance = false;
-        if (instance) {
-            switch (model_kinds_[record_index]) {
-            case nw::render::ModelInstanceKind::nwn_legacy:
-                valid_instance = instance->kind == nw::render::ModelInstanceKind::nwn_legacy
-                    && instance->nwn_legacy_model_index == model_index;
-                break;
-            case nw::render::ModelInstanceKind::render_model:
-                valid_instance = instance->kind == nw::render::ModelInstanceKind::render_model
-                    && instance->render_model_index == model_index;
-                break;
-            }
-        }
+        const bool valid_instance = instance
+            && instance->render_model_index == model_index;
         if (!valid_instance) {
             set_flag(flags_[record_index], RecordFlag::render_enabled, false);
             set_flag(flags_[record_index], RecordFlag::shadow_caster, false);
@@ -1810,7 +1550,7 @@ void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
     dynamic_light_indices_.reserve(scene.local_lights.size());
     for (size_t light_index = 0; light_index < scene.local_lights.size(); ++light_index) {
         const auto& light = scene.local_lights[light_index];
-        if (light.model_index < scene.models.size()) {
+        if (light.model_index < scene.static_models.size()) {
             dynamic_light_indices_.push_back(saturating_count(light_index));
         }
     }
@@ -1823,22 +1563,12 @@ void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
         if (record_index < flags_.size() && record_index < bounds_.size()
             && has_flag(flags_[record_index], AreaRenderScene::RecordFlag::static_candidate)
             && !scene.render_local_lights.empty()) {
-            nwn::collect_local_light_indices_for_bounds(
+            collect_local_light_indices_for_bounds(
                 light_indices_, scene.render_local_lights, bounds_[record_index]);
         }
 
         const size_t light_index_end = light_indices_.size();
-        const uint32_t light_index_offset = saturating_count(light_index_begin);
         const uint32_t light_index_count = saturating_count(light_index_end - light_index_begin);
-        if (record_index + 1u < prepared_draw_offsets_.size()) {
-            const uint32_t draw_begin = prepared_draw_offsets_[record_index];
-            const uint32_t draw_end = prepared_draw_offsets_[record_index + 1u];
-            const uint32_t clamped_draw_end = std::min<uint32_t>(draw_end, saturating_count(prepared_draws_.size()));
-            for (uint32_t draw_index = draw_begin; draw_index < clamped_draw_end; ++draw_index) {
-                prepared_draws_[draw_index].light_index_offset = light_index_offset;
-                prepared_draws_[draw_index].light_index_count = light_index_count;
-            }
-        }
         stats_.max_light_indices_per_record = std::max(
             stats_.max_light_indices_per_record,
             light_index_count);
@@ -1878,22 +1608,6 @@ void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
         }
     }
     stats_.chunk_light_index_count = saturating_count(chunk_light_indices_.size());
-}
-
-std::span<const nwn::PreparedDrawItem> AreaRenderScene::prepared_draws_for_record(uint32_t record_index) const noexcept
-{
-    if (static_cast<size_t>(record_index) + 1u >= prepared_draw_offsets_.size()) {
-        return {};
-    }
-    const uint32_t begin = prepared_draw_offsets_[record_index];
-    const uint32_t end = prepared_draw_offsets_[static_cast<size_t>(record_index) + 1u];
-    if (end <= begin || end > prepared_draws_.size()) {
-        return {};
-    }
-    return std::span<const nwn::PreparedDrawItem>{
-        prepared_draws_.data() + begin,
-        static_cast<size_t>(end - begin),
-    };
 }
 
 std::span<const nw::render::PreparedModelDraw> AreaRenderScene::prepared_model_draws_for_record(
@@ -1956,23 +1670,6 @@ std::span<const uint32_t> AreaRenderScene::light_indices_for_record(uint32_t rec
     }
     return std::span<const uint32_t>{
         light_indices_.data() + begin,
-        static_cast<size_t>(end - begin),
-    };
-}
-
-std::span<const uint32_t> AreaRenderScene::shadow_prepared_surface_indices_for_record(
-    uint32_t record_index) const noexcept
-{
-    if (static_cast<size_t>(record_index) + 1u >= shadow_prepared_surface_offsets_.size()) {
-        return {};
-    }
-    const uint32_t begin = shadow_prepared_surface_offsets_[record_index];
-    const uint32_t end = shadow_prepared_surface_offsets_[static_cast<size_t>(record_index) + 1u];
-    if (end <= begin || end > shadow_prepared_surface_indices_.size()) {
-        return {};
-    }
-    return std::span<const uint32_t>{
-        shadow_prepared_surface_indices_.data() + begin,
         static_cast<size_t>(end - begin),
     };
 }
@@ -2074,23 +1771,9 @@ void AreaRenderFrame::clear()
     transparent_record_indices_.clear();
     shadow_caster_record_indices_.clear();
     visible_render_model_instance_handles_.clear();
-    direct_all_records_.clear();
-    direct_opaque_cutout_records_.clear();
-    direct_water_records_.clear();
-    direct_transparent_records_.clear();
     visible_light_indices_.clear();
     visible_prepared_surface_indices_.clear();
     visible_prepared_surface_pass_offsets_.fill(0u);
-    visible_opaque_static_prepared_surface_indices_.clear();
-    visible_cutout_static_prepared_surface_indices_.clear();
-    visible_opaque_prepared_indirect_.clear();
-    visible_cutout_prepared_indirect_.clear();
-    visible_opaque_static_material_indirect_.clear();
-    visible_cutout_static_material_indirect_.clear();
-    for (auto& cascade_draws : shadow_cascade_draws_) {
-        cascade_draws.clear();
-        cascade_draws.clear_cache();
-    }
     record_marks_.clear();
     chunk_marks_.clear();
     light_marks_.clear();
@@ -2104,7 +1787,6 @@ void AreaRenderFrame::clear()
     has_visible_bounds_ = false;
     has_shadow_caster_bounds_ = false;
     filtered_light_indices_valid_ = false;
-    sorted_visible_static_draw_lists_ = false;
 }
 
 void AreaRenderFrame::reserve_for_scene(const AreaRenderScene& scene)
@@ -2117,21 +1799,9 @@ void AreaRenderFrame::reserve_for_scene(const AreaRenderScene& scene)
     transparent_record_indices_.reserve(record_count);
     shadow_caster_record_indices_.reserve(record_count);
     visible_render_model_instance_handles_.reserve(record_count);
-    visible_nwn_legacy_instance_handles_.reserve(record_count);
-    direct_all_records_.reserve(record_count);
-    direct_opaque_cutout_records_.reserve(record_count);
-    direct_water_records_.reserve(record_count);
-    direct_transparent_records_.reserve(record_count);
     visible_light_indices_.reserve(scene.stats().local_light_count);
     const size_t prepared_surface_count = scene.prepared_model_surface_draws().draws.size();
     visible_prepared_surface_indices_.reserve(prepared_surface_count);
-    visible_opaque_static_prepared_surface_indices_.reserve(
-        scene.opaque_static_prepared_surface_indices().size());
-    visible_cutout_static_prepared_surface_indices_.reserve(
-        scene.cutout_static_prepared_surface_indices().size());
-    for (auto& cascade_draws : shadow_cascade_draws_) {
-        cascade_draws.reserve(record_count, prepared_surface_count);
-    }
     record_marks_.resize(record_count, 0u);
     chunk_marks_.resize(scene.stats().chunk_count, 0u);
     light_marks_.resize(scene.stats().local_light_count, 0u);
@@ -2197,22 +1867,6 @@ std::span<const uint32_t> AreaRenderFrame::visible_transparent_prepared_surface_
         4u);
 }
 
-const AreaDirectModelRecordSelection& AreaRenderFrame::direct_model_records_for_pass(
-    nw::render::RenderPassSelection pass) const noexcept
-{
-    switch (pass) {
-    case nw::render::RenderPassSelection::opaque_cutout:
-        return direct_opaque_cutout_records_;
-    case nw::render::RenderPassSelection::water:
-        return direct_water_records_;
-    case nw::render::RenderPassSelection::transparent:
-        return direct_transparent_records_;
-    case nw::render::RenderPassSelection::all:
-        return direct_all_records_;
-    }
-    return direct_all_records_;
-}
-
 void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, const AreaRenderCullContext& cull)
 {
     frame.reserve_for_scene(scene);
@@ -2223,26 +1877,15 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     frame.transparent_record_indices_.clear();
     frame.shadow_caster_record_indices_.clear();
     frame.visible_render_model_instance_handles_.clear();
-    frame.visible_nwn_legacy_instance_handles_.clear();
-    frame.direct_all_records_.clear();
-    frame.direct_opaque_cutout_records_.clear();
-    frame.direct_water_records_.clear();
-    frame.direct_transparent_records_.clear();
     frame.visible_light_indices_.clear();
     frame.visible_prepared_surface_indices_.clear();
     frame.visible_prepared_surface_pass_offsets_.fill(0u);
-    frame.visible_opaque_static_prepared_surface_indices_.clear();
-    frame.visible_cutout_static_prepared_surface_indices_.clear();
-    for (auto& cascade_draws : frame.shadow_cascade_draws_) {
-        cascade_draws.clear();
-    }
     frame.cached_draw_scene_ = nullptr;
     frame.visible_bounds_ = {};
     frame.shadow_caster_bounds_ = {};
     frame.has_visible_bounds_ = false;
     frame.has_shadow_caster_bounds_ = false;
     frame.filtered_light_indices_valid_ = false;
-    frame.sorted_visible_static_draw_lists_ = false;
     frame.stats_ = {};
 
     if (frame.record_mark_generation_ == std::numeric_limits<uint32_t>::max()) {
@@ -2377,7 +2020,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     if (use_cached_draw_lists) {
         frame.cached_draw_scene_ = &scene;
     }
-    const bool use_sorted_visible_static_draws = !use_cached_draw_lists
+    const bool use_sorted_visible_surfaces = !use_cached_draw_lists
         && should_use_sorted_area_static_surface_lists(
             frame.stats_.visible_prepared_surface_count,
             saturating_count(prepared_surfaces.size()));
@@ -2431,38 +2074,14 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
             frame.visible_render_model_instance_handles_,
             scene,
             record_index);
-        append_area_visible_nwn_legacy_handle(
-            frame.visible_nwn_legacy_instance_handles_,
-            scene,
-            record_index);
-        append_area_direct_model_record(
-            frame.direct_all_records_,
-            scene,
-            record_index,
-            cull.collect_direct_render_model_records);
         if (has_opaque_cutout_pass(pass_mask)) {
             frame.opaque_cutout_record_indices_.push_back(record_index);
-            append_area_direct_model_record(
-                frame.direct_opaque_cutout_records_,
-                scene,
-                record_index,
-                cull.collect_direct_render_model_records);
         }
         if (has_water_pass(pass_mask)) {
             frame.water_record_indices_.push_back(record_index);
-            append_area_direct_model_record(
-                frame.direct_water_records_,
-                scene,
-                record_index,
-                cull.collect_direct_render_model_records);
         }
         if (has_transparent_pass(pass_mask)) {
             frame.transparent_record_indices_.push_back(record_index);
-            append_area_direct_model_record(
-                frame.direct_transparent_records_,
-                scene,
-                record_index,
-                cull.collect_direct_render_model_records);
         }
         if (has_flag(flags[record_index], AreaRenderScene::RecordFlag::shadow_caster)) {
             frame.shadow_caster_record_indices_.push_back(record_index);
@@ -2472,7 +2091,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
                 frame.has_shadow_caster_bounds_);
         }
 
-        if (use_cached_draw_lists || use_sorted_visible_static_draws
+        if (use_cached_draw_lists || use_sorted_visible_surfaces
             || !has_flag(flags[record_index], AreaRenderScene::RecordFlag::static_candidate)) {
             continue;
         }
@@ -2485,7 +2104,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
         }
     }
 
-    if (use_sorted_visible_static_draws) {
+    if (use_sorted_visible_surfaces) {
         for (const uint32_t surface_index : scene.prepared_surface_indices()) {
             if (surface_index >= prepared_surfaces.size()) {
                 continue;
@@ -2496,28 +2115,9 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
                 frame.visible_prepared_surface_indices_.push_back(surface_index);
             }
         }
-
-        append_visible_legacy_static_prepared_surface_indices(
-            frame.visible_opaque_static_prepared_surface_indices_,
-            scene,
-            scene.opaque_static_prepared_surface_indices(),
-            prepared_surfaces,
-            frame.record_marks_,
-            frame.record_mark_generation_);
-        append_visible_legacy_static_prepared_surface_indices(
-            frame.visible_cutout_static_prepared_surface_indices_,
-            scene,
-            scene.cutout_static_prepared_surface_indices(),
-            prepared_surfaces,
-            frame.record_marks_,
-            frame.record_mark_generation_);
-        if (!frame.visible_opaque_static_prepared_surface_indices_.empty()
-            || !frame.visible_cutout_static_prepared_surface_indices_.empty()) {
-            frame.sorted_visible_static_draw_lists_ = true;
-        }
     }
     if (!use_cached_draw_lists) {
-        if (!use_sorted_visible_static_draws) {
+        if (!use_sorted_visible_surfaces) {
             sort_prepared_surface_indices(frame.visible_prepared_surface_indices_, prepared_surfaces);
         }
         rebuild_prepared_surface_pass_offsets(
@@ -2525,210 +2125,11 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
             frame.visible_prepared_surface_indices_,
             prepared_surfaces);
     }
-    frame.stats_.uses_sorted_static_draw_lists = frame.uses_sorted_static_draw_lists();
-    if (frame.sorted_visible_static_draw_lists_) {
-        refresh_prepared_indirect_cache_for_surfaces(
-            frame.visible_opaque_prepared_indirect_,
-            scene,
-            frame.visible_opaque_static_prepared_surface_indices_,
-            nw::render::MaterialMode::opaque,
-            &frame.stats_.material_indirect_sidecar_bridge);
-        refresh_prepared_indirect_cache_for_surfaces(
-            frame.visible_cutout_prepared_indirect_,
-            scene,
-            frame.visible_cutout_static_prepared_surface_indices_,
-            nw::render::MaterialMode::cutout,
-            &frame.stats_.material_indirect_sidecar_bridge);
-        refresh_prepared_static_material_indirect_cache_for_surfaces(
-            frame.visible_opaque_static_material_indirect_,
-            scene,
-            frame.visible_opaque_static_prepared_surface_indices_,
-            nw::render::MaterialMode::opaque,
-            &frame.stats_.static_material_indirect_sidecar_bridge);
-        refresh_prepared_static_material_indirect_cache_for_surfaces(
-            frame.visible_cutout_static_material_indirect_,
-            scene,
-            frame.visible_cutout_static_prepared_surface_indices_,
-            nw::render::MaterialMode::cutout,
-            &frame.stats_.static_material_indirect_sidecar_bridge);
-    }
 
     frame.stats_.opaque_cutout_record_count = saturating_count(frame.opaque_cutout_record_indices_.size());
     frame.stats_.water_record_count = saturating_count(frame.water_record_indices_.size());
     frame.stats_.transparent_record_count = saturating_count(frame.transparent_record_indices_.size());
     frame.stats_.shadow_caster_record_count = saturating_count(frame.shadow_caster_record_indices_.size());
-}
-
-namespace {
-
-template <typename SubmitLegacyModel>
-AreaDirectModelSubmissionStats collect_area_direct_legacy_model_records_impl(
-    SubmitLegacyModel&& submit_legacy_model,
-    const AreaRenderScene& area_scene,
-    const AreaDirectModelRecordSelection& records,
-    AreaDirectRenderModelRecordPolicy render_model_policy)
-{
-    AreaDirectModelSubmissionStats stats{};
-    stats.input_record_count = saturating_count(records.records.size());
-
-    const auto model_indices = area_scene.model_indices();
-    const auto roots = area_scene.root_transforms();
-    const auto legacy_models = area_scene.models();
-
-    for (const auto& record : records.records) {
-        if (record.kind == nw::render::ModelInstanceKind::render_model
-            && render_model_policy == AreaDirectRenderModelRecordPolicy::ignore) {
-            continue;
-        }
-
-        const uint32_t record_index = record.record_index;
-        if (record_index >= model_indices.size()) {
-            add_saturating(stats.dropped_invalid_record_count, 1u);
-            continue;
-        }
-
-        const uint32_t model_index = model_indices[record_index];
-        switch (record.kind) {
-        case nw::render::ModelInstanceKind::nwn_legacy: {
-            if (record_index >= legacy_models.size()
-                || area_scene.record_index_for_model(model_index) != record_index) {
-                add_saturating(stats.dropped_invalid_record_count, 1u);
-                continue;
-            }
-
-            const auto* model = legacy_models[record_index];
-            if (record_uses_static_prepared_legacy_path(area_scene, record_index) || !model) {
-                add_saturating(stats.dropped_invalid_source_count, 1u);
-                continue;
-            }
-
-            const glm::mat4 root = record_index < roots.size()
-                ? roots[record_index]
-                : model->root_transform();
-            add_saturating(stats.selected_legacy_record_count, 1u);
-            submit_legacy_model(*model, root);
-            break;
-        }
-        case nw::render::ModelInstanceKind::render_model: {
-            if (render_model_policy == AreaDirectRenderModelRecordPolicy::count_skipped) {
-                add_saturating(stats.skipped_render_model_record_count, 1u);
-            }
-            break;
-        }
-        default:
-            add_saturating(stats.dropped_unsupported_kind_count, 1u);
-            break;
-        }
-    }
-
-    return stats;
-}
-
-} // namespace
-
-AreaDirectModelSubmissionStats collect_area_direct_legacy_model_records(
-    const AreaRenderScene& area_scene,
-    const AreaDirectModelRecordSelection& records,
-    AreaDirectRenderModelRecordPolicy render_model_policy)
-{
-    const auto submit_legacy_model = [](const auto&, const glm::mat4&) {};
-    return collect_area_direct_legacy_model_records_impl(
-        submit_legacy_model,
-        area_scene,
-        records,
-        render_model_policy);
-}
-
-AreaDirectModelSubmissionStats render_area_direct_legacy_model_records(
-    nw::render::RenderService& render_service,
-    nw::gfx::CommandList* cmd,
-    const AreaRenderScene& area_scene,
-    const AreaDirectModelRecordSelection& records,
-    const nw::render::RenderContext& ctx,
-    nw::render::RenderPassSelection pass,
-    AreaDirectRenderModelRecordPolicy render_model_policy)
-{
-    std::optional<nw::render::nwn::ModelRenderContext> nwn_render_ctx{};
-    const auto legacy_context = [&]() -> nw::render::nwn::ModelRenderContext& {
-        if (!nwn_render_ctx) {
-            nwn_render_ctx = render_service.nwn_model_render_context();
-        }
-        return *nwn_render_ctx;
-    };
-    const auto submit_legacy_model = [&](const nw::render::nwn::ModelInstance& model, const glm::mat4& root) {
-        if (!cmd) {
-            return;
-        }
-        nw::render::nwn::render_model_instance_with_root(
-            legacy_context(),
-            cmd,
-            model,
-            root,
-            ctx,
-            pass);
-    };
-    return collect_area_direct_legacy_model_records_impl(
-        submit_legacy_model,
-        area_scene,
-        records,
-        render_model_policy);
-}
-
-AreaDirectModelSubmissionStats render_area_direct_render_model_records(
-    const nw::render::ModelRenderContext& render_model_ctx,
-    nw::gfx::CommandList* cmd,
-    const PreviewScene& scene,
-    const AreaRenderScene& area_scene,
-    const AreaDirectModelRecordSelection& records,
-    const nw::render::RenderContext& ctx,
-    nw::render::RenderPassSelection pass)
-{
-    AreaDirectModelSubmissionStats stats{};
-    stats.input_record_count = saturating_count(records.records.size());
-
-    const auto model_indices = area_scene.model_indices();
-    const auto roots = area_scene.root_transforms();
-
-    for (const auto& record : records.records) {
-        if (record.kind != nw::render::ModelInstanceKind::render_model) {
-            continue;
-        }
-
-        const uint32_t record_index = record.record_index;
-        if (record_index >= model_indices.size()) {
-            add_saturating(stats.dropped_invalid_record_count, 1u);
-            continue;
-        }
-
-        const uint32_t model_index = model_indices[record_index];
-        if (area_scene.record_index_for_render_model(model_index) != record_index
-            || model_index >= scene.static_models.size()) {
-            add_saturating(stats.dropped_invalid_record_count, 1u);
-            continue;
-        }
-
-        const auto& model = scene.static_models[model_index];
-        const auto* instance = scene.static_model_instance(model_index);
-        if (!model || !instance || !instance->visible) {
-            add_saturating(stats.dropped_invalid_source_count, 1u);
-            continue;
-        }
-
-        const glm::mat4 root = record_index < roots.size()
-            ? roots[record_index]
-            : instance->root_transform;
-        add_saturating(stats.selected_render_model_record_count, 1u);
-        nw::render::render_render_model_with_root(
-            render_model_ctx,
-            cmd,
-            *model,
-            root,
-            ctx,
-            pass,
-            instance);
-    }
-
-    return stats;
 }
 
 std::string_view area_render_record_kind_label(AreaRenderRecordKind kind) noexcept

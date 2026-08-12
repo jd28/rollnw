@@ -48,7 +48,7 @@ rendered object.
 
 ## Data Needed
 
-Record a single long-lived Arclight session with:
+Record a single long-lived rollnw client session with:
 
 1. At least 50 mixed creature/placeable previews and 10 area switches from a
    real authoring workflow.

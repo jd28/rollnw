@@ -13,15 +13,9 @@ namespace nw::render {
 
 inline constexpr uint32_t kInvalidPreparedModelDrawIndex = std::numeric_limits<uint32_t>::max();
 
-enum class PreparedModelDrawKind : uint8_t {
-    render_model,
-    nwn_legacy,
-};
-
 enum class PreparedModelMaterialPayloadKind : uint8_t {
     pbr,
-    nwn_legacy_material,
-    nwn_legacy_plt,
+    plt,
     fallback,
 };
 
@@ -31,26 +25,12 @@ enum class PreparedModelMaterialPayloadKind : uint8_t {
     return material.material_uses_fallback
         ? PreparedModelMaterialPayloadKind::fallback
         : material.plt_enabled
-        ? PreparedModelMaterialPayloadKind::nwn_legacy_plt
+        ? PreparedModelMaterialPayloadKind::plt
         : PreparedModelMaterialPayloadKind::pbr;
-}
-
-[[nodiscard]] inline PreparedModelMaterialPayloadKind prepared_nwn_legacy_material_payload_kind(
-    bool uses_plt,
-    bool material_uses_fallback) noexcept
-{
-    if (material_uses_fallback) {
-        return PreparedModelMaterialPayloadKind::fallback;
-    }
-    return uses_plt
-        ? PreparedModelMaterialPayloadKind::nwn_legacy_plt
-        : PreparedModelMaterialPayloadKind::nwn_legacy_material;
 }
 
 struct PreparedModelDraw {
     ModelInstanceHandle instance;
-    ModelInstanceKind instance_kind = ModelInstanceKind::render_model;
-    PreparedModelDrawKind kind = PreparedModelDrawKind::render_model;
     uint32_t instance_source_index = kInvalidPreparedModelDrawIndex;
     uint32_t source_draw_index = kInvalidPreparedModelDrawIndex;
     uint32_t material_index = kInvalidPreparedModelDrawIndex;
@@ -58,12 +38,11 @@ struct PreparedModelDraw {
     uint32_t skin_index = kInvalidPreparedModelDrawIndex;
     MaterialMode material_mode = MaterialMode::opaque;
     // Source adapter set when missing kind-specific material data was clamped to
-    // a renderer fallback. Missing sidecar draw payloads still drop before this
+    // a renderer fallback. Missing draw payloads still drop before this
     // record is emitted.
     bool material_uses_fallback = false;
-    // Source adapter material payload class. This is cold protocol data used to
-    // make PBR, legacy material/PLT, and explicit fallback decisions visible
-    // before backend-specific submission.
+    // Material payload class used to make PBR, PLT, and explicit fallback
+    // decisions visible before backend-specific submission.
     PreparedModelMaterialPayloadKind material_payload = PreparedModelMaterialPayloadKind::pbr;
     bool skinned = false;
     // Instance-level shadow eligibility copied from ModelInstance::shadow.
@@ -83,12 +62,9 @@ struct PreparedModelDrawStats {
     uint32_t missing_asset_count = 0;
     uint32_t invalid_draw_count = 0;
     uint32_t render_model_instance_count = 0;
-    uint32_t nwn_legacy_instance_count = 0;
     uint32_t render_model_draw_count = 0;
-    uint32_t nwn_legacy_draw_count = 0;
     uint32_t material_fallback_draw_count = 0;
     uint32_t render_model_material_fallback_draw_count = 0;
-    uint32_t nwn_legacy_material_fallback_draw_count = 0;
     uint32_t material_override_draw_count = 0;
     uint32_t invalid_material_override_handle_count = 0;
 };
@@ -116,8 +92,6 @@ struct PreparedModelDrawRange {
     uint32_t draw_begin = kInvalidPreparedModelDrawIndex;
     uint32_t draw_count = 0;
     ModelInstanceHandle instance;
-    ModelInstanceKind instance_kind = ModelInstanceKind::render_model;
-    PreparedModelDrawKind kind = PreparedModelDrawKind::render_model;
     uint32_t instance_source_index = kInvalidPreparedModelDrawIndex;
 };
 
@@ -125,17 +99,14 @@ struct PreparedModelDrawRangeStats {
     uint32_t handle_count = 0;
     uint32_t empty_range_count = 0;
     uint32_t invalid_offset_range_count = 0;
-    uint32_t invalid_kind_range_count = 0;
     uint32_t mixed_range_count = 0;
     uint32_t range_count = 0;
     uint32_t draw_count = 0;
     uint32_t render_model_range_count = 0;
-    uint32_t nwn_legacy_range_count = 0;
 
     [[nodiscard]] bool valid() const noexcept
     {
         return invalid_offset_range_count == 0
-            && invalid_kind_range_count == 0
             && mixed_range_count == 0;
     }
 };
@@ -151,13 +122,9 @@ struct PreparedModelDrawRangeList {
     }
 };
 
-// Smallest renderer-facing model surface command. Culling/sorting code owns
-// these source-agnostic fields; submission backends route by payload_kind when
-// they need kind-specific asset data.
+// Smallest renderer-facing model surface command.
 struct PreparedModelSurfaceDraw {
     ModelInstanceHandle instance;
-    ModelInstanceKind instance_kind = ModelInstanceKind::render_model;
-    PreparedModelDrawKind payload_kind = PreparedModelDrawKind::render_model;
     uint32_t range_index = kInvalidPreparedModelDrawIndex;
     uint32_t draw_index = kInvalidPreparedModelDrawIndex;
     uint32_t handle_index = kInvalidPreparedModelDrawIndex;
@@ -183,7 +150,6 @@ struct PreparedModelSurfaceDrawStats {
     uint32_t range_count = 0;
     uint32_t draw_count = 0;
     uint32_t render_model_draw_count = 0;
-    uint32_t nwn_legacy_draw_count = 0;
     uint32_t shadow_caster_draw_count = 0;
     uint32_t invalid_range_count = 0;
     uint32_t range_mismatch_count = 0;
@@ -225,10 +191,8 @@ struct PreparedModelSurfaceMaterialBindingStats {
     uint32_t material_mismatch_count = 0;
     uint32_t material_fallback_count = 0;
     uint32_t render_model_material_fallback_count = 0;
-    uint32_t nwn_legacy_material_fallback_count = 0;
     uint32_t fallback_material_payload_count = 0;
     uint32_t render_model_fallback_material_payload_count = 0;
-    uint32_t nwn_legacy_fallback_material_payload_count = 0;
     uint32_t material_override_surface_count = 0;
     uint32_t shadow_mismatch_count = 0;
     PreparedModelSurfaceMaterialStats materials{};
@@ -307,7 +271,6 @@ struct PreparedRenderModelSurfacePacketStats {
     uint32_t valid_surface_count = 0;
     uint32_t invalid_surface_count = 0;
     uint32_t invalid_surface_index_count = 0;
-    uint32_t non_render_model_surface_count = 0;
     uint32_t invalid_source_index_count = 0;
     uint32_t invalid_source_draw_index_count = 0;
     uint32_t invalid_material_index_count = 0;
@@ -355,7 +318,6 @@ struct PreparedRenderModelSkinTableStats {
     uint32_t reused_surface_count = 0;
     uint32_t bind_pose_fallback_surface_count = 0;
     uint32_t unskinned_surface_count = 0;
-    uint32_t non_render_model_surface_count = 0;
     uint32_t stale_instance_count = 0;
     uint32_t invalid_skin_index_count = 0;
     uint32_t invalid_matrix_range_count = 0;
@@ -377,8 +339,8 @@ struct PreparedRenderModelSkinTable {
     // indexed by PreparedModelSurfaceDraw::skin_table_index.
     // owner/lifetime: this table owns copied matrix values for the frame and
     // must outlive any renderer submission that reads skin_table_index.
-    // valid ranges: skin_table_index is either invalid for unskinned,
-    // non-RenderModel, stale, invalid, or bind-pose fallback surfaces, or it is
+    // valid ranges: skin_table_index is either invalid for unskinned, stale,
+    // invalid, or bind-pose fallback surfaces, or it is
     // < ranges.size(). matrix_begin + matrix_count is <= matrices.size().
     std::vector<PreparedRenderModelSkinRange> ranges;
     std::vector<glm::mat4> matrices;
@@ -418,7 +380,6 @@ struct PreparedModelSurfaceRun {
 struct PreparedRenderModelSurfaceRunStats {
     uint32_t input_surface_count = 0;
     uint32_t render_model_surface_count = 0;
-    uint32_t non_render_model_surface_count = 0;
     uint32_t run_count = 0;
     uint32_t invalid_source_index_count = 0;
 
@@ -435,7 +396,7 @@ struct PreparedRenderModelSurfaceRunList {
     // RenderModel source table.
     // valid ranges: source indices must be < render_model_source_count passed
     // to collect_prepared_render_model_surface_runs. Out-of-range sources are
-    // dropped and counted; non-RenderModel payloads are skipped, not errors.
+    // dropped and counted.
     std::vector<PreparedModelSurfaceRun> runs;
     PreparedRenderModelSurfaceRunStats stats{};
 
@@ -464,26 +425,11 @@ inline void prepared_model_draw_add_saturating(uint32_t& target, uint32_t value)
     target += value;
 }
 
-[[nodiscard]] inline bool prepared_model_draw_kind_matches_instance_kind(
-    PreparedModelDrawKind kind,
-    ModelInstanceKind instance_kind) noexcept
-{
-    switch (kind) {
-    case PreparedModelDrawKind::render_model:
-        return instance_kind == ModelInstanceKind::render_model;
-    case PreparedModelDrawKind::nwn_legacy:
-        return instance_kind == ModelInstanceKind::nwn_legacy;
-    }
-    return false;
-}
-
 [[nodiscard]] inline bool prepared_model_draw_range_matches(
     const PreparedModelDraw& expected,
     const PreparedModelDraw& draw) noexcept
 {
     return draw.instance == expected.instance
-        && draw.instance_kind == expected.instance_kind
-        && draw.kind == expected.kind
         && draw.instance_source_index == expected.instance_source_index;
 }
 
@@ -492,8 +438,6 @@ inline void prepared_model_draw_add_saturating(uint32_t& target, uint32_t value)
     const PreparedModelDraw& draw) noexcept
 {
     return draw.instance == range.instance
-        && draw.instance_kind == range.instance_kind
-        && draw.kind == range.kind
         && draw.instance_source_index == range.instance_source_index;
 }
 
@@ -502,8 +446,6 @@ inline void prepared_model_draw_add_saturating(uint32_t& target, uint32_t value)
     const PreparedModelDrawRange& range) noexcept
 {
     return surface.instance == range.instance
-        && surface.instance_kind == range.instance_kind
-        && surface.payload_kind == range.kind
         && surface.handle_index == range.handle_index
         && surface.instance_source_index == range.instance_source_index;
 }
@@ -590,11 +532,6 @@ inline void collect_prepared_model_draw_ranges(
         }
 
         const auto& first = list.draws[begin];
-        if (!detail::prepared_model_draw_kind_matches_instance_kind(first.kind, first.instance_kind)) {
-            ++out.stats.invalid_kind_range_count;
-            continue;
-        }
-
         bool matches = true;
         for (uint32_t draw_index = begin + 1u; draw_index < end; ++draw_index) {
             if (!detail::prepared_model_draw_range_matches(first, list.draws[draw_index])) {
@@ -613,20 +550,11 @@ inline void collect_prepared_model_draw_ranges(
             .draw_begin = begin,
             .draw_count = draw_count,
             .instance = first.instance,
-            .instance_kind = first.instance_kind,
-            .kind = first.kind,
             .instance_source_index = first.instance_source_index,
         });
         ++out.stats.range_count;
         detail::prepared_model_draw_add_saturating(out.stats.draw_count, draw_count);
-        switch (first.kind) {
-        case PreparedModelDrawKind::render_model:
-            ++out.stats.render_model_range_count;
-            break;
-        case PreparedModelDrawKind::nwn_legacy:
-            ++out.stats.nwn_legacy_range_count;
-            break;
-        }
+        ++out.stats.render_model_range_count;
     }
 }
 
@@ -765,27 +693,15 @@ inline PreparedModelSurfaceMaterialBindingStats validate_prepared_model_surface_
         if (bound) {
             if (surface.material_payload == PreparedModelMaterialPayloadKind::fallback) {
                 detail::prepared_model_draw_add_saturating(stats.fallback_material_payload_count, 1u);
-                if (surface.payload_kind == PreparedModelDrawKind::render_model) {
-                    detail::prepared_model_draw_add_saturating(
-                        stats.render_model_fallback_material_payload_count,
-                        1u);
-                } else if (surface.payload_kind == PreparedModelDrawKind::nwn_legacy) {
-                    detail::prepared_model_draw_add_saturating(
-                        stats.nwn_legacy_fallback_material_payload_count,
-                        1u);
-                }
+                detail::prepared_model_draw_add_saturating(
+                    stats.render_model_fallback_material_payload_count,
+                    1u);
             }
             if (surface.material_uses_fallback) {
                 detail::prepared_model_draw_add_saturating(stats.material_fallback_count, 1u);
-                if (surface.payload_kind == PreparedModelDrawKind::render_model) {
-                    detail::prepared_model_draw_add_saturating(
-                        stats.render_model_material_fallback_count,
-                        1u);
-                } else if (surface.payload_kind == PreparedModelDrawKind::nwn_legacy) {
-                    detail::prepared_model_draw_add_saturating(
-                        stats.nwn_legacy_material_fallback_count,
-                        1u);
-                }
+                detail::prepared_model_draw_add_saturating(
+                    stats.render_model_material_fallback_count,
+                    1u);
             }
             if (surface.material_override.valid()) {
                 detail::prepared_model_draw_add_saturating(stats.material_override_surface_count, 1u);
@@ -820,9 +736,6 @@ inline PreparedModelSurfaceMaterialBindingStats validate_prepared_model_surface_
     const uint32_t rhs_pass = prepared_model_surface_pass_index(rhs.material_mode);
     if (lhs_pass != rhs_pass) {
         return lhs_pass < rhs_pass;
-    }
-    if (lhs.payload_kind != rhs.payload_kind) {
-        return static_cast<uint8_t>(lhs.payload_kind) < static_cast<uint8_t>(rhs.payload_kind);
     }
     if (lhs.skinned != rhs.skinned) {
         return !lhs.skinned && rhs.skinned;
@@ -887,19 +800,11 @@ inline void sort_prepared_model_surface_draws_by_pass(std::span<PreparedModelSur
     return std::span<const PreparedModelSurfaceDraw>{draws.data() + begin, end - begin};
 }
 
-[[nodiscard]] inline bool prepared_model_surface_is_render_model(
-    const PreparedModelSurfaceDraw& surface) noexcept
-{
-    return surface.payload_kind == PreparedModelDrawKind::render_model
-        && surface.instance_kind == ModelInstanceKind::render_model;
-}
-
 [[nodiscard]] inline bool prepared_render_model_surface_matches_model(
     const RenderModel& model,
     const PreparedModelSurfaceDraw& surface) noexcept
 {
-    if (!prepared_model_surface_is_render_model(surface)
-        || surface.instance_source_index == kInvalidPreparedModelDrawIndex
+    if (surface.instance_source_index == kInvalidPreparedModelDrawIndex
         || surface.source_draw_index >= model.primitives.size()) {
         return false;
     }
@@ -928,15 +833,12 @@ inline void sort_prepared_model_surface_draws_by_pass(std::span<PreparedModelSur
 }
 
 // Linear renderer-facing partition over the flat surface stream. The caller owns
-// pass filtering and source asset validation; this helper only groups contiguous
-// RenderModel surfaces by the stable scene source index and skips other payloads.
+// pass filtering and source asset validation; this helper groups contiguous
+// surfaces by the stable scene source index.
 [[nodiscard]] inline PreparedModelSurfaceRun next_prepared_render_model_surface_run(
     std::span<const PreparedModelSurfaceDraw> surfaces,
     size_t cursor) noexcept
 {
-    while (cursor < surfaces.size() && !prepared_model_surface_is_render_model(surfaces[cursor])) {
-        ++cursor;
-    }
     if (cursor >= surfaces.size()) {
         return PreparedModelSurfaceRun{
             .draws = {},
@@ -949,7 +851,6 @@ inline void sort_prepared_model_surface_draws_by_pass(std::span<PreparedModelSur
     const uint32_t source_index = surfaces[begin].instance_source_index;
     size_t end = begin + 1u;
     while (end < surfaces.size()
-        && prepared_model_surface_is_render_model(surfaces[end])
         && surfaces[end].instance_source_index == source_index) {
         ++end;
     }
@@ -972,17 +873,10 @@ inline void collect_prepared_render_model_surface_runs(
 
     for (size_t cursor = 0; cursor < surfaces.size();) {
         const auto& surface = surfaces[cursor];
-        if (!prepared_model_surface_is_render_model(surface)) {
-            detail::prepared_model_draw_add_saturating(out.stats.non_render_model_surface_count, 1u);
-            ++cursor;
-            continue;
-        }
-
         const size_t begin = cursor;
         const uint32_t source_index = surface.instance_source_index;
         ++cursor;
         while (cursor < surfaces.size()
-            && prepared_model_surface_is_render_model(surfaces[cursor])
             && surfaces[cursor].instance_source_index == source_index) {
             ++cursor;
         }
@@ -1032,10 +926,6 @@ inline void collect_prepared_render_model_skin_tables(
     for (auto& surface : surfaces) {
         surface.skin_table_index = kInvalidPreparedModelDrawIndex;
 
-        if (!prepared_model_surface_is_render_model(surface)) {
-            detail::prepared_model_draw_add_saturating(out.stats.non_render_model_surface_count, 1u);
-            continue;
-        }
         if (!surface.skinned) {
             detail::prepared_model_draw_add_saturating(out.stats.unskinned_surface_count, 1u);
             continue;
@@ -1130,8 +1020,6 @@ inline void collect_prepared_model_surface_draws(
                 && prepared_model_surface_casts_shadow(draw.material_mode);
             out.draws.push_back(PreparedModelSurfaceDraw{
                 .instance = range.instance,
-                .instance_kind = range.instance_kind,
-                .payload_kind = range.kind,
                 .range_index = static_cast<uint32_t>(range_index),
                 .draw_index = detail::prepared_model_draw_saturating_count(source_draw_list_index),
                 .handle_index = range.handle_index,
@@ -1154,14 +1042,7 @@ inline void collect_prepared_model_surface_draws(
             if (casts_shadow) {
                 ++out.stats.shadow_caster_draw_count;
             }
-            switch (range.kind) {
-            case PreparedModelDrawKind::render_model:
-                ++out.stats.render_model_draw_count;
-                break;
-            case PreparedModelDrawKind::nwn_legacy:
-                ++out.stats.nwn_legacy_draw_count;
-                break;
-            }
+            ++out.stats.render_model_draw_count;
         }
     }
 }

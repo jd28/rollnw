@@ -120,7 +120,6 @@ TEST(RenderPreparedModelDraws, CollectsRenderModelPrimitiveDraws)
     EXPECT_EQ(prepared.common.stats.render_model_draw_count, 2u);
     EXPECT_EQ(prepared.common.stats.material_fallback_draw_count, 1u);
     EXPECT_EQ(prepared.common.stats.render_model_material_fallback_draw_count, 1u);
-    EXPECT_EQ(prepared.common.stats.nwn_legacy_material_fallback_draw_count, 0u);
     EXPECT_EQ(prepared.common.stats.invalid_draw_count, 0u);
 
     const auto draw_span = nw::render::prepared_model_draws_for_handle_index(prepared.common, 0);
@@ -137,7 +136,6 @@ TEST(RenderPreparedModelDraws, CollectsRenderModelPrimitiveDraws)
     ASSERT_EQ(range_span.size(), 2u);
 
     const auto& first = prepared.common.draws[0];
-    EXPECT_EQ(first.kind, nw::render::PreparedModelDrawKind::render_model);
     EXPECT_EQ(first.instance_source_index, 0u);
     EXPECT_EQ(first.source_draw_index, 0u);
     EXPECT_EQ(first.material_index, 0u);
@@ -165,10 +163,8 @@ TEST(RenderPreparedModelDraws, CollectsRenderModelPrimitiveDraws)
     EXPECT_EQ(validation.expected_stats.render_model_draw_count, 2u);
     EXPECT_EQ(validation.expected_stats.material_fallback_draw_count, 1u);
     EXPECT_EQ(validation.expected_stats.render_model_material_fallback_draw_count, 1u);
-    EXPECT_EQ(validation.expected_stats.nwn_legacy_material_fallback_draw_count, 0u);
     EXPECT_EQ(validation.prepared_stats.material_fallback_draw_count, 1u);
     EXPECT_EQ(validation.prepared_stats.render_model_material_fallback_draw_count, 1u);
-    EXPECT_EQ(validation.prepared_stats.nwn_legacy_material_fallback_draw_count, 0u);
     EXPECT_EQ(validation.prepared_draw_count, 2u);
     EXPECT_EQ(validation.expected_materials.opaque_count, 1u);
     EXPECT_EQ(validation.expected_materials.cutout_count, 1u);
@@ -336,7 +332,7 @@ TEST(RenderPreparedModelDraws, RenderModelPltMaterialOverridesUseCommonHandles)
 
     ASSERT_EQ(prepared.common.draws.size(), 2u);
     EXPECT_EQ(prepared.common.draws[0].material_override, override_handle);
-    EXPECT_EQ(prepared.common.draws[0].material_payload, nw::render::PreparedModelMaterialPayloadKind::nwn_legacy_plt);
+    EXPECT_EQ(prepared.common.draws[0].material_payload, nw::render::PreparedModelMaterialPayloadKind::plt);
     EXPECT_EQ(prepared.common.stats.material_override_draw_count, 1u);
     EXPECT_EQ(prepared.common.stats.invalid_material_override_handle_count, 0u);
 
@@ -355,7 +351,7 @@ TEST(RenderPreparedModelDraws, RenderModelPltMaterialOverridesUseCommonHandles)
     }
     ASSERT_NE(override_surface, nullptr);
     EXPECT_EQ(override_surface->material_override, override_handle);
-    EXPECT_EQ(override_surface->material_payload, nw::render::PreparedModelMaterialPayloadKind::nwn_legacy_plt);
+    EXPECT_EQ(override_surface->material_payload, nw::render::PreparedModelMaterialPayloadKind::plt);
 
     nw::render::PreparedRenderModelSurfacePacketList packets;
     nw::render::collect_prepared_render_model_surface_packets(
@@ -377,48 +373,11 @@ TEST(RenderPreparedModelDraws, RenderModelPltMaterialOverridesUseCommonHandles)
     EXPECT_EQ(prepared.common.stats.invalid_material_override_handle_count, 1u);
 }
 
-TEST(RenderPreparedModelDraws, StaticHandleBatchExcludesLegacySceneHandles)
-{
-    namespace nwn = nw::render::nwn;
-    namespace viewer = nw::render::viewer;
-
-    viewer::PreviewScene scene;
-    auto legacy_model = std::make_unique<nwn::ModelInstance>();
-    legacy_model->render_enabled = true;
-    scene.add(std::move(legacy_model));
-    scene.add(make_two_primitive_render_model());
-    ASSERT_EQ(scene.model_instance_handles.size(), 1u);
-    ASSERT_EQ(scene.static_model_instance_handles.size(), 1u);
-
-    viewer::PreviewPreparedModelDraws prepared;
-    viewer::collect_prepared_model_draws(prepared, scene, handle_span(scene.static_model_instance_handles));
-
-    EXPECT_EQ(prepared.common.stats.handle_count, 1u);
-    EXPECT_EQ(prepared.common.stats.nwn_legacy_instance_count, 0u);
-    EXPECT_EQ(prepared.common.stats.nwn_legacy_draw_count, 0u);
-    EXPECT_EQ(prepared.common.stats.render_model_instance_count, 1u);
-    EXPECT_EQ(prepared.common.stats.render_model_draw_count, 2u);
-    ASSERT_EQ(prepared.ranges.ranges.size(), 1u);
-    EXPECT_EQ(prepared.ranges.ranges[0].kind, nw::render::PreparedModelDrawKind::render_model);
-
-    nw::render::PreparedModelSurfaceDrawList surfaces;
-    nw::render::collect_prepared_model_surface_draws(surfaces, prepared.common, prepared.ranges);
-
-    EXPECT_TRUE(surfaces.stats.valid());
-    EXPECT_EQ(surfaces.stats.nwn_legacy_draw_count, 0u);
-    EXPECT_EQ(surfaces.stats.render_model_draw_count, 2u);
-    ASSERT_EQ(surfaces.draws.size(), 2u);
-    EXPECT_EQ(surfaces.draws[0].payload_kind, nw::render::PreparedModelDrawKind::render_model);
-    EXPECT_EQ(surfaces.draws[1].payload_kind, nw::render::PreparedModelDrawKind::render_model);
-}
-
 TEST(RenderPreparedModelDraws, RenderModelSurfaceParityIncludesFallbackState)
 {
     const auto model = make_two_primitive_render_model();
 
     nw::render::PreparedModelSurfaceDraw surface;
-    surface.instance_kind = nw::render::ModelInstanceKind::render_model;
-    surface.payload_kind = nw::render::PreparedModelDrawKind::render_model;
     surface.instance_source_index = 0u;
     surface.source_draw_index = 1u;
     surface.material_index = 1u;
@@ -451,11 +410,6 @@ TEST(RenderPreparedModelDraws, RenderModelSurfaceParityIncludesFallbackState)
     non_shadow.casts_shadow = false;
     EXPECT_TRUE(nw::render::prepared_render_model_surface_matches_model(*model, non_shadow));
     EXPECT_FALSE(nw::render::prepared_render_model_shadow_surface_matches_model(*model, non_shadow));
-
-    auto wrong_payload = surface;
-    wrong_payload.payload_kind = nw::render::PreparedModelDrawKind::nwn_legacy;
-    EXPECT_FALSE(nw::render::prepared_render_model_surface_matches_model(*model, wrong_payload));
-    EXPECT_FALSE(nw::render::prepared_render_model_shadow_surface_matches_model(*model, wrong_payload));
 }
 
 TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPayloads)
@@ -463,8 +417,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPay
     const auto model = make_two_primitive_render_model();
 
     nw::render::PreparedModelSurfaceDraw opaque;
-    opaque.instance_kind = nw::render::ModelInstanceKind::render_model;
-    opaque.payload_kind = nw::render::PreparedModelDrawKind::render_model;
     opaque.instance_source_index = 0u;
     opaque.source_draw_index = 0u;
     opaque.material_index = 0u;
@@ -491,10 +443,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPay
     auto invalid_source = opaque;
     invalid_source.instance_source_index = nw::render::kInvalidPreparedModelDrawIndex;
 
-    auto non_render_model = opaque;
-    non_render_model.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    non_render_model.payload_kind = nw::render::PreparedModelDrawKind::nwn_legacy;
-
     auto filtered_transparent = opaque;
     filtered_transparent.material_mode = nw::render::MaterialMode::transparent;
 
@@ -505,7 +453,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPay
         material_mismatch,
         invalid_source_draw,
         invalid_source,
-        non_render_model,
         filtered_transparent,
     };
 
@@ -517,12 +464,11 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsValidateAssetPay
         nw::render::RenderPassSelection::opaque_cutout);
 
     EXPECT_FALSE(packets.stats.valid());
-    EXPECT_EQ(packets.stats.input_surface_count, 8u);
+    EXPECT_EQ(packets.stats.input_surface_count, 7u);
     EXPECT_EQ(packets.stats.pass_filtered_surface_count, 1u);
-    EXPECT_EQ(packets.stats.candidate_surface_count, 7u);
+    EXPECT_EQ(packets.stats.candidate_surface_count, 6u);
     EXPECT_EQ(packets.stats.valid_surface_count, 2u);
-    EXPECT_EQ(packets.stats.invalid_surface_count, 5u);
-    EXPECT_EQ(packets.stats.non_render_model_surface_count, 1u);
+    EXPECT_EQ(packets.stats.invalid_surface_count, 4u);
     EXPECT_EQ(packets.stats.invalid_source_index_count, 1u);
     EXPECT_EQ(packets.stats.invalid_source_draw_index_count, 1u);
     EXPECT_EQ(packets.stats.invalid_material_index_count, 0u);
@@ -539,8 +485,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfacePacketsCountSkinBinding
     const auto model = make_skinned_render_model();
 
     nw::render::PreparedModelSurfaceDraw table_bound;
-    table_bound.instance_kind = nw::render::ModelInstanceKind::render_model;
-    table_bound.payload_kind = nw::render::PreparedModelDrawKind::render_model;
     table_bound.instance_source_index = 0u;
     table_bound.source_draw_index = 0u;
     table_bound.material_index = 0u;
@@ -638,7 +582,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesAssignInstanceIndexe
     nw::render::ModelInstanceStore instances;
 
     nw::render::ModelInstance animated;
-    animated.kind = nw::render::ModelInstanceKind::render_model;
     animated.animation.skin_matrices.resize(2);
     animated.animation.skin_matrices[0].push_back(
         glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.0f, 0.0f}));
@@ -649,23 +592,17 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesAssignInstanceIndexe
     const auto animated_handle = instances.create(std::move(animated));
 
     nw::render::ModelInstance bind_pose_fallback;
-    bind_pose_fallback.kind = nw::render::ModelInstanceKind::render_model;
     const auto fallback_handle = instances.create(std::move(bind_pose_fallback));
 
     nw::render::ModelInstance stale_instance;
-    stale_instance.kind = nw::render::ModelInstanceKind::render_model;
     const auto stale_handle = instances.create(std::move(stale_instance));
     instances.destroy(stale_handle);
 
     const auto make_surface = [](nw::render::ModelInstanceHandle instance,
-                                  nw::render::ModelInstanceKind instance_kind,
-                                  nw::render::PreparedModelDrawKind payload_kind,
                                   bool skinned,
                                   uint32_t skin_index) {
         nw::render::PreparedModelSurfaceDraw surface;
         surface.instance = instance;
-        surface.instance_kind = instance_kind;
-        surface.payload_kind = payload_kind;
         surface.skinned = skinned;
         surface.skin_index = skin_index;
         surface.skin_table_index = 99u;
@@ -675,50 +612,30 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesAssignInstanceIndexe
     std::vector<nw::render::PreparedModelSurfaceDraw> surfaces{
         make_surface(
             animated_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             0u),
         make_surface(
             animated_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             0u),
         make_surface(
             animated_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             1u),
         make_surface(
             animated_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             false,
             nw::render::kInvalidPreparedModelDrawIndex),
         make_surface(
-            animated_handle,
-            nw::render::ModelInstanceKind::nwn_legacy,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
-            true,
-            0u),
-        make_surface(
             stale_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             0u),
         make_surface(
             fallback_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             0u),
         make_surface(
             animated_handle,
-            nw::render::ModelInstanceKind::render_model,
-            nw::render::PreparedModelDrawKind::render_model,
             true,
             nw::render::kInvalidPreparedModelDrawIndex),
     };
@@ -730,13 +647,12 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesAssignInstanceIndexe
         instances);
 
     EXPECT_FALSE(skin_table.stats.valid());
-    EXPECT_EQ(skin_table.stats.input_surface_count, 8u);
+    EXPECT_EQ(skin_table.stats.input_surface_count, 7u);
     EXPECT_EQ(skin_table.stats.render_model_skinned_surface_count, 6u);
     EXPECT_EQ(skin_table.stats.assigned_surface_count, 3u);
     EXPECT_EQ(skin_table.stats.reused_surface_count, 1u);
     EXPECT_EQ(skin_table.stats.bind_pose_fallback_surface_count, 1u);
     EXPECT_EQ(skin_table.stats.unskinned_surface_count, 1u);
-    EXPECT_EQ(skin_table.stats.non_render_model_surface_count, 1u);
     EXPECT_EQ(skin_table.stats.stale_instance_count, 1u);
     EXPECT_EQ(skin_table.stats.invalid_skin_index_count, 1u);
     EXPECT_EQ(skin_table.stats.invalid_matrix_range_count, 0u);
@@ -765,7 +681,6 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesAssignInstanceIndexe
     EXPECT_EQ(surfaces[4].skin_table_index, nw::render::kInvalidPreparedModelDrawIndex);
     EXPECT_EQ(surfaces[5].skin_table_index, nw::render::kInvalidPreparedModelDrawIndex);
     EXPECT_EQ(surfaces[6].skin_table_index, nw::render::kInvalidPreparedModelDrawIndex);
-    EXPECT_EQ(surfaces[7].skin_table_index, nw::render::kInvalidPreparedModelDrawIndex);
 }
 
 TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesRejectOverLimitMatrixRanges)
@@ -773,15 +688,12 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSkinTablesRejectOverLimitMatri
     nw::render::ModelInstanceStore instances;
 
     nw::render::ModelInstance animated;
-    animated.kind = nw::render::ModelInstanceKind::render_model;
     animated.animation.skin_matrices.resize(1);
     animated.animation.skin_matrices[0].resize(nw::render::kModelMaxSkinBones + 1, glm::mat4{1.0f});
     const auto animated_handle = instances.create(std::move(animated));
 
     nw::render::PreparedModelSurfaceDraw surface;
     surface.instance = animated_handle;
-    surface.instance_kind = nw::render::ModelInstanceKind::render_model;
-    surface.payload_kind = nw::render::PreparedModelDrawKind::render_model;
     surface.skinned = true;
     surface.skin_index = 0u;
     surface.skin_table_index = 99u;
@@ -866,12 +778,10 @@ TEST(RenderPreparedModelDraws, DropsStaleHiddenAndMissingInputs)
     hidden_instance->visible = false;
 
     nw::render::ModelInstance stale_instance;
-    stale_instance.kind = nw::render::ModelInstanceKind::render_model;
     const auto stale = scene.model_instances.create(std::move(stale_instance));
     scene.model_instances.destroy(stale);
 
     nw::render::ModelInstance missing_instance;
-    missing_instance.kind = nw::render::ModelInstanceKind::render_model;
     missing_instance.render_model_index = 99u;
     const auto missing = scene.model_instances.create(std::move(missing_instance));
 
@@ -903,272 +813,6 @@ TEST(RenderPreparedModelDraws, DropsStaleHiddenAndMissingInputs)
     EXPECT_EQ(validation.expected_stats.missing_asset_count, 1u);
 }
 
-TEST(RenderPreparedModelDraws, AcceptsNwnLegacySidecarInstances)
-{
-    namespace nwn = nw::render::nwn;
-    namespace viewer = nw::render::viewer;
-
-    viewer::PreviewScene scene;
-    auto model = std::make_unique<nwn::ModelInstance>();
-    model->render_enabled = true;
-    scene.add(std::move(model));
-    ASSERT_EQ(scene.model_instance_handles.size(), 1u);
-
-    viewer::PreviewPreparedModelDraws prepared;
-    viewer::collect_prepared_model_draws(prepared, scene, handle_span(scene.model_instance_handles));
-
-    EXPECT_TRUE(prepared.common.draws.empty());
-    EXPECT_TRUE(prepared.nwn_draws.empty());
-    ASSERT_EQ(prepared.common.instance_offsets.size(), 2u);
-    EXPECT_EQ(prepared.common.instance_offsets[0], 0u);
-    EXPECT_EQ(prepared.common.instance_offsets[1], 0u);
-    EXPECT_EQ(prepared.common.stats.handle_count, 1u);
-    EXPECT_EQ(prepared.common.stats.visible_instance_count, 1u);
-    EXPECT_EQ(prepared.common.stats.nwn_legacy_instance_count, 1u);
-
-    const auto validation = viewer::validate_prepared_model_draws(
-        scene,
-        prepared,
-        handle_span(scene.model_instance_handles));
-    EXPECT_TRUE(validation.valid());
-    EXPECT_EQ(validation.expected_stats.nwn_legacy_instance_count, 1u);
-    EXPECT_EQ(validation.expected_stats.nwn_legacy_draw_count, 0u);
-}
-
-TEST(RenderPreparedModelDraws, SelectsNwnLegacySidecarDrawItems)
-{
-    namespace nwn = nw::render::nwn;
-    namespace viewer = nw::render::viewer;
-
-    nwn::Mesh mesh_a;
-    mesh_a.uses_plt = true;
-    nwn::Mesh mesh_b;
-    mesh_b.material_uses_fallback = true;
-    viewer::PreviewPreparedModelDraws prepared;
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &mesh_a});
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &mesh_b});
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{});
-
-    const auto make_nwn_draw = [](uint32_t source_draw_index, bool material_uses_fallback = false) {
-        nw::render::PreparedModelDraw draw;
-        draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-        draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
-        draw.source_draw_index = source_draw_index;
-        draw.material_uses_fallback = material_uses_fallback;
-        draw.material_payload = nw::render::prepared_nwn_legacy_material_payload_kind(
-            source_draw_index == 0u,
-            material_uses_fallback);
-        return draw;
-    };
-
-    std::array<nw::render::PreparedModelDraw, 5> draws{
-        make_nwn_draw(1u, true),
-        make_nwn_draw(99u),
-        nw::render::PreparedModelDraw{},
-        make_nwn_draw(2u),
-        make_nwn_draw(0u),
-    };
-
-    std::vector<const nwn::PreparedDrawItem*> selected;
-    selected.push_back(nullptr);
-    const auto stats = viewer::collect_nwn_legacy_prepared_draw_items(
-        selected,
-        prepared,
-        std::span<const nw::render::PreparedModelDraw>{draws});
-
-    ASSERT_EQ(selected.size(), 2u);
-    EXPECT_EQ(selected[0], &prepared.nwn_draws[1]);
-    EXPECT_EQ(selected[1], &prepared.nwn_draws[0]);
-    EXPECT_FALSE(stats.valid());
-    EXPECT_EQ(stats.input_draw_count, 5u);
-    EXPECT_EQ(stats.selected_draw_count, 2u);
-    EXPECT_EQ(stats.non_nwn_draw_count, 1u);
-    EXPECT_EQ(stats.missing_sidecar_draw_count, 1u);
-    EXPECT_EQ(stats.invalid_sidecar_draw_count, 1u);
-    EXPECT_EQ(stats.dropped_draw_count(), 3u);
-}
-
-TEST(RenderPreparedModelDraws, SelectsNwnLegacySidecarDrawItemsFromSurfaces)
-{
-    namespace nwn = nw::render::nwn;
-    namespace viewer = nw::render::viewer;
-
-    nwn::Mesh mesh_a;
-    mesh_a.uses_plt = true;
-    nwn::Mesh mesh_b;
-    mesh_b.material_uses_fallback = true;
-    viewer::PreviewPreparedModelDraws prepared;
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &mesh_a});
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &mesh_b});
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{});
-
-    const auto make_nwn_draw = [](uint32_t source_draw_index, bool material_uses_fallback = false) {
-        nw::render::PreparedModelDraw draw;
-        draw.instance = nw::render::ModelInstanceHandle{.index = 4u, .generation = 1u};
-        draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-        draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
-        draw.instance_source_index = 7u;
-        draw.source_draw_index = source_draw_index;
-        draw.material_uses_fallback = material_uses_fallback;
-        draw.material_payload = nw::render::prepared_nwn_legacy_material_payload_kind(
-            source_draw_index == 0u,
-            material_uses_fallback);
-        return draw;
-    };
-    prepared.common.draws = {
-        make_nwn_draw(1u, true),
-        make_nwn_draw(99u),
-        nw::render::PreparedModelDraw{},
-        make_nwn_draw(2u),
-        make_nwn_draw(0u),
-    };
-
-    const auto make_surface = [&](uint32_t draw_index) {
-        const auto& draw = prepared.common.draws[draw_index];
-        nw::render::PreparedModelSurfaceDraw surface;
-        surface.instance = draw.instance;
-        surface.instance_kind = draw.instance_kind;
-        surface.payload_kind = draw.kind;
-        surface.draw_index = draw_index;
-        surface.instance_source_index = draw.instance_source_index;
-        surface.source_draw_index = draw.source_draw_index;
-        surface.material_index = draw.material_index;
-        surface.skin_index = draw.skin_index;
-        surface.material_mode = draw.material_mode;
-        surface.material_uses_fallback = draw.material_uses_fallback;
-        surface.material_payload = draw.material_payload;
-        surface.skinned = draw.skinned;
-        surface.world = draw.world;
-        surface.normal_matrix = draw.normal_matrix;
-        return surface;
-    };
-
-    std::array<nw::render::PreparedModelSurfaceDraw, 5> surfaces{
-        make_surface(0u),
-        make_surface(1u),
-        make_surface(2u),
-        make_surface(3u),
-        make_surface(4u),
-    };
-
-    viewer::PreviewPreparedNwnLegacySurfacePacketList packets;
-    viewer::collect_nwn_legacy_prepared_surface_packets(
-        packets,
-        prepared,
-        std::span<const nw::render::PreparedModelSurfaceDraw>{surfaces});
-
-    ASSERT_EQ(packets.surface_indices.size(), 2u);
-    ASSERT_LT(packets.surface_indices[0], surfaces.size());
-    ASSERT_LT(packets.surface_indices[1], surfaces.size());
-    EXPECT_EQ(surfaces[packets.surface_indices[0]].source_draw_index, 1u);
-    EXPECT_EQ(surfaces[packets.surface_indices[1]].source_draw_index, 0u);
-    EXPECT_FALSE(packets.stats.valid());
-    EXPECT_EQ(packets.stats.input_draw_count, 5u);
-    EXPECT_EQ(packets.stats.selected_draw_count, 2u);
-    EXPECT_EQ(packets.stats.non_nwn_draw_count, 1u);
-    EXPECT_EQ(packets.stats.missing_sidecar_draw_count, 1u);
-    EXPECT_EQ(packets.stats.invalid_sidecar_draw_count, 1u);
-    EXPECT_EQ(packets.stats.dropped_draw_count(), 3u);
-
-    std::vector<const nwn::PreparedDrawItem*> selected;
-    selected.push_back(nullptr);
-    const auto stats = viewer::collect_nwn_legacy_prepared_surface_draw_items(
-        selected,
-        prepared,
-        std::span<const nw::render::PreparedModelSurfaceDraw>{surfaces});
-
-    ASSERT_EQ(selected.size(), 2u);
-    EXPECT_EQ(selected[0], &prepared.nwn_draws[1]);
-    EXPECT_EQ(selected[1], &prepared.nwn_draws[0]);
-    EXPECT_FALSE(stats.valid());
-    EXPECT_EQ(stats.input_draw_count, 5u);
-    EXPECT_EQ(stats.selected_draw_count, 2u);
-    EXPECT_EQ(stats.non_nwn_draw_count, 1u);
-    EXPECT_EQ(stats.missing_sidecar_draw_count, 1u);
-    EXPECT_EQ(stats.invalid_sidecar_draw_count, 1u);
-    EXPECT_EQ(stats.dropped_draw_count(), 3u);
-}
-
-TEST(RenderPreparedModelDraws, SurfaceSubmissionAdapterRoutesNwnLegacySelection)
-{
-    namespace nwn = nw::render::nwn;
-    namespace viewer = nw::render::viewer;
-
-    nwn::Mesh opaque_mesh;
-    opaque_mesh.material_mode = nw::render::MaterialMode::opaque;
-    nwn::Mesh water_mesh;
-    water_mesh.material_mode = nw::render::MaterialMode::water;
-    viewer::PreviewScene scene;
-    viewer::PreviewPreparedModelDraws prepared;
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &opaque_mesh});
-    prepared.nwn_draws.push_back(nwn::PreparedDrawItem{.mesh = &water_mesh});
-
-    const auto make_draw = [](const nwn::Mesh& mesh, uint32_t source_draw_index) {
-        nw::render::PreparedModelDraw draw;
-        draw.instance = nw::render::ModelInstanceHandle{.index = 4u + source_draw_index, .generation = 1u};
-        draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-        draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
-        draw.instance_source_index = 7u + source_draw_index;
-        draw.source_draw_index = source_draw_index;
-        draw.material_mode = mesh.material_mode;
-        draw.material_uses_fallback = mesh.material_uses_fallback;
-        draw.material_payload = nw::render::prepared_nwn_legacy_material_payload_kind(
-            mesh.uses_plt,
-            mesh.material_uses_fallback);
-        return draw;
-    };
-    prepared.common.draws.push_back(make_draw(opaque_mesh, 0u));
-    prepared.common.draws.push_back(make_draw(water_mesh, 1u));
-
-    const auto make_surface = [](const nw::render::PreparedModelDraw& draw, uint32_t draw_index) {
-        nw::render::PreparedModelSurfaceDraw surface;
-        surface.instance = draw.instance;
-        surface.instance_kind = draw.instance_kind;
-        surface.payload_kind = draw.kind;
-        surface.draw_index = draw_index;
-        surface.instance_source_index = draw.instance_source_index;
-        surface.source_draw_index = draw.source_draw_index;
-        surface.material_index = draw.material_index;
-        surface.skin_index = draw.skin_index;
-        surface.material_mode = draw.material_mode;
-        surface.material_uses_fallback = draw.material_uses_fallback;
-        surface.material_payload = draw.material_payload;
-        surface.skinned = draw.skinned;
-        surface.world = draw.world;
-        surface.normal_matrix = draw.normal_matrix;
-        return surface;
-    };
-    const std::array surfaces{
-        make_surface(prepared.common.draws[0], 0u),
-        make_surface(prepared.common.draws[1], 1u),
-    };
-
-    std::vector<const nwn::PreparedDrawItem*> selected;
-    const auto stats = viewer::collect_nwn_legacy_prepared_surface_draw_items(
-        selected,
-        prepared,
-        std::span<const nw::render::PreparedModelSurfaceDraw>{surfaces},
-        nw::render::RenderPassSelection::opaque_cutout);
-
-    ASSERT_EQ(selected.size(), 1u);
-    EXPECT_EQ(selected[0], &prepared.nwn_draws[0]);
-    EXPECT_EQ(stats.selected_draw_count, 1u);
-    EXPECT_EQ(stats.input_draw_count, 1u);
-    EXPECT_EQ(stats.dropped_draw_count(), 0u);
-
-    const auto water_stats = viewer::collect_nwn_legacy_prepared_surface_draw_items(
-        selected,
-        prepared,
-        std::span<const nw::render::PreparedModelSurfaceDraw>{surfaces},
-        nw::render::RenderPassSelection::water);
-
-    ASSERT_EQ(selected.size(), 1u);
-    EXPECT_EQ(selected[0], &prepared.nwn_draws[1]);
-    EXPECT_EQ(water_stats.selected_draw_count, 1u);
-    EXPECT_EQ(water_stats.input_draw_count, 1u);
-    EXPECT_EQ(water_stats.dropped_draw_count(), 0u);
-}
-
 TEST(RenderPreparedModelDraws, RenderModelSurfaceSubmissionFlagsMissingSources)
 {
     namespace viewer = nw::render::viewer;
@@ -1178,8 +822,6 @@ TEST(RenderPreparedModelDraws, RenderModelSurfaceSubmissionFlagsMissingSources)
 
     nw::render::PreparedModelSurfaceDraw null_model_surface;
     null_model_surface.instance = nw::render::ModelInstanceHandle{.index = 0u, .generation = 1u};
-    null_model_surface.instance_kind = nw::render::ModelInstanceKind::render_model;
-    null_model_surface.payload_kind = nw::render::PreparedModelDrawKind::render_model;
     null_model_surface.instance_source_index = 0u;
     null_model_surface.source_draw_index = 0u;
     null_model_surface.material_mode = nw::render::MaterialMode::opaque;
@@ -1259,8 +901,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedDrawRanges)
 
     nw::render::PreparedModelDraw render_draw_a;
     render_draw_a.instance = render_handle;
-    render_draw_a.instance_kind = nw::render::ModelInstanceKind::render_model;
-    render_draw_a.kind = nw::render::PreparedModelDrawKind::render_model;
     render_draw_a.instance_source_index = 3u;
     render_draw_a.source_draw_index = 0u;
     nw::render::PreparedModelDraw render_draw_b = render_draw_a;
@@ -1268,8 +908,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedDrawRanges)
 
     nw::render::PreparedModelDraw nwn_draw;
     nwn_draw.instance = nwn_handle;
-    nwn_draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    nwn_draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
     nwn_draw.instance_source_index = 4u;
     nwn_draw.source_draw_index = 2u;
 
@@ -1284,15 +922,13 @@ TEST(RenderPreparedModelDraws, CollectsPreparedDrawRanges)
     EXPECT_EQ(ranges.stats.empty_range_count, 1u);
     EXPECT_EQ(ranges.stats.range_count, 2u);
     EXPECT_EQ(ranges.stats.draw_count, 3u);
-    EXPECT_EQ(ranges.stats.render_model_range_count, 1u);
-    EXPECT_EQ(ranges.stats.nwn_legacy_range_count, 1u);
+    EXPECT_EQ(ranges.stats.render_model_range_count, 2u);
 
     ASSERT_EQ(ranges.ranges.size(), 2u);
     EXPECT_EQ(ranges.ranges[0].handle_index, 0u);
     EXPECT_EQ(ranges.ranges[0].draw_begin, 0u);
     EXPECT_EQ(ranges.ranges[0].draw_count, 2u);
     EXPECT_EQ(ranges.ranges[0].instance, render_handle);
-    EXPECT_EQ(ranges.ranges[0].kind, nw::render::PreparedModelDrawKind::render_model);
     EXPECT_EQ(ranges.ranges[0].instance_source_index, 3u);
     EXPECT_EQ(nw::render::prepared_model_draws_for_range(list, ranges.ranges[0]).size(), 2u);
 
@@ -1300,7 +936,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedDrawRanges)
     EXPECT_EQ(ranges.ranges[1].draw_begin, 2u);
     EXPECT_EQ(ranges.ranges[1].draw_count, 1u);
     EXPECT_EQ(ranges.ranges[1].instance, nwn_handle);
-    EXPECT_EQ(ranges.ranges[1].kind, nw::render::PreparedModelDrawKind::nwn_legacy);
     EXPECT_EQ(ranges.ranges[1].instance_source_index, 4u);
     EXPECT_EQ(nw::render::prepared_model_draws_for_range(list, ranges.ranges[1]).size(), 1u);
 }
@@ -1313,8 +948,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
 
     nw::render::PreparedModelDraw render_opaque;
     render_opaque.instance = render_handle;
-    render_opaque.instance_kind = nw::render::ModelInstanceKind::render_model;
-    render_opaque.kind = nw::render::PreparedModelDrawKind::render_model;
     render_opaque.instance_source_index = 3u;
     render_opaque.source_draw_index = 0u;
     render_opaque.material_index = 1u;
@@ -1335,8 +968,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
 
     nw::render::PreparedModelDraw nwn_cutout;
     nwn_cutout.instance = nwn_handle;
-    nwn_cutout.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    nwn_cutout.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
     nwn_cutout.instance_source_index = 4u;
     nwn_cutout.source_draw_index = 2u;
     nwn_cutout.material_mode = nw::render::MaterialMode::cutout;
@@ -1347,7 +978,7 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
     nwn_transparent.source_draw_index = 3u;
     nwn_transparent.material_mode = nw::render::MaterialMode::transparent;
     nwn_transparent.material_uses_fallback = false;
-    nwn_transparent.material_payload = nw::render::PreparedModelMaterialPayloadKind::nwn_legacy_material;
+    nwn_transparent.material_payload = nw::render::PreparedModelMaterialPayloadKind::pbr;
 
     list.draws = {render_opaque, render_water, nwn_cutout, nwn_transparent};
     list.instance_offsets = {0u, 2u, 4u};
@@ -1361,13 +992,10 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
     EXPECT_TRUE(surfaces.stats.valid());
     EXPECT_EQ(surfaces.stats.range_count, 2u);
     EXPECT_EQ(surfaces.stats.draw_count, 4u);
-    EXPECT_EQ(surfaces.stats.render_model_draw_count, 2u);
-    EXPECT_EQ(surfaces.stats.nwn_legacy_draw_count, 2u);
+    EXPECT_EQ(surfaces.stats.render_model_draw_count, 4u);
     EXPECT_EQ(surfaces.stats.shadow_caster_draw_count, 2u);
     ASSERT_EQ(surfaces.draws.size(), 4u);
 
-    EXPECT_EQ(surfaces.draws[0].payload_kind, nw::render::PreparedModelDrawKind::render_model);
-    EXPECT_EQ(surfaces.draws[0].instance_kind, nw::render::ModelInstanceKind::render_model);
     EXPECT_EQ(surfaces.draws[0].range_index, 0u);
     EXPECT_EQ(surfaces.draws[0].draw_index, 0u);
     EXPECT_EQ(surfaces.draws[0].handle_index, 0u);
@@ -1381,8 +1009,6 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
     EXPECT_NEAR(surfaces.draws[0].bounds.max.z, 4.0f, 1.0e-5f);
 
     EXPECT_FALSE(surfaces.draws[1].casts_shadow);
-    EXPECT_EQ(surfaces.draws[2].payload_kind, nw::render::PreparedModelDrawKind::nwn_legacy);
-    EXPECT_EQ(surfaces.draws[2].instance_kind, nw::render::ModelInstanceKind::nwn_legacy);
     EXPECT_EQ(surfaces.draws[2].range_index, 1u);
     EXPECT_EQ(surfaces.draws[2].draw_index, 2u);
     EXPECT_EQ(surfaces.draws[2].handle_index, 1u);
@@ -1392,7 +1018,7 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
     EXPECT_TRUE(surfaces.draws[2].casts_shadow);
     EXPECT_EQ(
         surfaces.draws[3].material_payload,
-        nw::render::PreparedModelMaterialPayloadKind::nwn_legacy_material);
+        nw::render::PreparedModelMaterialPayloadKind::pbr);
     EXPECT_FALSE(surfaces.draws[3].casts_shadow);
 }
 
@@ -1466,8 +1092,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsValidateSourceDraw
 
     nw::render::PreparedModelDraw cutout_draw;
     cutout_draw.instance = handle;
-    cutout_draw.instance_kind = nw::render::ModelInstanceKind::render_model;
-    cutout_draw.kind = nw::render::PreparedModelDrawKind::render_model;
     cutout_draw.instance_source_index = 3u;
     cutout_draw.source_draw_index = 8u;
     cutout_draw.material_index = 1u;
@@ -1512,8 +1136,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackMater
 
     nw::render::PreparedModelDraw nwn_draw;
     nwn_draw.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    nwn_draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    nwn_draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
     nwn_draw.instance_source_index = 2u;
     nwn_draw.source_draw_index = 3u;
     nwn_draw.material_mode = nw::render::MaterialMode::opaque;
@@ -1522,8 +1144,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackMater
 
     nw::render::PreparedModelDraw render_model_draw = nwn_draw;
     render_model_draw.instance = nw::render::ModelInstanceHandle{.index = 2u, .generation = 1u};
-    render_model_draw.instance_kind = nw::render::ModelInstanceKind::render_model;
-    render_model_draw.kind = nw::render::PreparedModelDrawKind::render_model;
     render_model_draw.instance_source_index = 4u;
     render_model_draw.source_draw_index = 5u;
 
@@ -1548,11 +1168,9 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackMater
     EXPECT_FALSE(stats.valid());
     EXPECT_EQ(stats.bound_surface_count, 2u);
     EXPECT_EQ(stats.material_fallback_count, 2u);
-    EXPECT_EQ(stats.render_model_material_fallback_count, 1u);
-    EXPECT_EQ(stats.nwn_legacy_material_fallback_count, 1u);
+    EXPECT_EQ(stats.render_model_material_fallback_count, 2u);
     EXPECT_EQ(stats.fallback_material_payload_count, 2u);
-    EXPECT_EQ(stats.render_model_fallback_material_payload_count, 1u);
-    EXPECT_EQ(stats.nwn_legacy_fallback_material_payload_count, 1u);
+    EXPECT_EQ(stats.render_model_fallback_material_payload_count, 2u);
     EXPECT_EQ(stats.material_mismatch_count, 0u);
 
     for (auto& surface : surfaces.draws) {
@@ -1566,10 +1184,8 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackMater
     EXPECT_EQ(stats.bound_surface_count, 0u);
     EXPECT_EQ(stats.material_fallback_count, 0u);
     EXPECT_EQ(stats.render_model_material_fallback_count, 0u);
-    EXPECT_EQ(stats.nwn_legacy_material_fallback_count, 0u);
     EXPECT_EQ(stats.fallback_material_payload_count, 0u);
     EXPECT_EQ(stats.render_model_fallback_material_payload_count, 0u);
-    EXPECT_EQ(stats.nwn_legacy_fallback_material_payload_count, 0u);
     EXPECT_EQ(stats.material_mismatch_count, 2u);
 }
 
@@ -1579,8 +1195,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackPaylo
 
     nw::render::PreparedModelDraw draw;
     draw.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    draw.kind = nw::render::PreparedModelDrawKind::nwn_legacy;
     draw.instance_source_index = 2u;
     draw.source_draw_index = 3u;
     draw.material_mode = nw::render::MaterialMode::opaque;
@@ -1606,8 +1220,7 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountFallbackPaylo
     EXPECT_EQ(stats.bound_surface_count, 1u);
     EXPECT_EQ(stats.material_fallback_count, 0u);
     EXPECT_EQ(stats.fallback_material_payload_count, 1u);
-    EXPECT_EQ(stats.render_model_fallback_material_payload_count, 0u);
-    EXPECT_EQ(stats.nwn_legacy_fallback_material_payload_count, 1u);
+    EXPECT_EQ(stats.render_model_fallback_material_payload_count, 1u);
     EXPECT_EQ(stats.material_mismatch_count, 0u);
 }
 
@@ -1618,8 +1231,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsCountInvalidBounda
 
     nw::render::PreparedModelDraw draw;
     draw.instance = handle;
-    draw.instance_kind = nw::render::ModelInstanceKind::render_model;
-    draw.kind = nw::render::PreparedModelDrawKind::render_model;
     draw.instance_source_index = 3u;
     draw.source_draw_index = 8u;
     draw.material_index = 1u;
@@ -1676,8 +1287,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsRejectInvalidMater
     nw::render::PreparedModelDrawList list;
     nw::render::PreparedModelDraw draw;
     draw.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    draw.instance_kind = nw::render::ModelInstanceKind::render_model;
-    draw.kind = nw::render::PreparedModelDrawKind::render_model;
     draw.instance_source_index = 0u;
     draw.source_draw_index = 0u;
     draw.material_mode = static_cast<nw::render::MaterialMode>(255);
@@ -1718,13 +1327,11 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsSortInPlaceByPassAndPayload)
 
     const auto make_surface = [](
                                   nw::render::MaterialMode mode,
-                                  nw::render::PreparedModelDrawKind payload_kind,
                                   uint32_t instance_source_index,
                                   uint32_t material_index,
                                   uint32_t source_draw_index) {
         nw::render::PreparedModelSurfaceDraw draw;
         draw.material_mode = mode;
-        draw.payload_kind = payload_kind;
         draw.instance_source_index = instance_source_index;
         draw.material_index = material_index;
         draw.source_draw_index = source_draw_index;
@@ -1736,31 +1343,26 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsSortInPlaceByPassAndPayload)
     std::vector<nw::render::PreparedModelSurfaceDraw> draws{
         make_surface(
             nw::render::MaterialMode::transparent,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
             9u,
             2u,
             0u),
         make_surface(
             nw::render::MaterialMode::water,
-            nw::render::PreparedModelDrawKind::render_model,
             4u,
             3u,
             1u),
         make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
             2u,
             1u,
             2u),
         make_surface(
             nw::render::MaterialMode::cutout,
-            nw::render::PreparedModelDrawKind::render_model,
             1u,
             0u,
             3u),
         make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::render_model,
             3u,
             0u,
             4u),
@@ -1771,11 +1373,9 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsSortInPlaceByPassAndPayload)
 
     ASSERT_EQ(draws.size(), 5u);
     EXPECT_EQ(draws[0].material_mode, nw::render::MaterialMode::opaque);
-    EXPECT_EQ(draws[0].payload_kind, nw::render::PreparedModelDrawKind::render_model);
-    EXPECT_EQ(draws[0].source_draw_index, 4u);
+    EXPECT_EQ(draws[0].source_draw_index, 2u);
     EXPECT_EQ(draws[1].material_mode, nw::render::MaterialMode::opaque);
-    EXPECT_EQ(draws[1].payload_kind, nw::render::PreparedModelDrawKind::nwn_legacy);
-    EXPECT_EQ(draws[1].source_draw_index, 2u);
+    EXPECT_EQ(draws[1].source_draw_index, 4u);
     EXPECT_EQ(draws[2].material_mode, nw::render::MaterialMode::cutout);
     EXPECT_EQ(draws[3].material_mode, nw::render::MaterialMode::water);
     EXPECT_EQ(draws[4].material_mode, nw::render::MaterialMode::transparent);
@@ -1785,11 +1385,9 @@ TEST(RenderPreparedModelDraws, PreparedSurfacePassViewsUseSortedFlatArray)
 {
     const auto make_surface = [](
                                   nw::render::MaterialMode mode,
-                                  nw::render::PreparedModelDrawKind payload_kind,
                                   uint32_t source_draw_index) {
         nw::render::PreparedModelSurfaceDraw draw;
         draw.material_mode = mode;
-        draw.payload_kind = payload_kind;
         draw.source_draw_index = source_draw_index;
         draw.range_index = source_draw_index;
         draw.handle_index = source_draw_index;
@@ -1799,23 +1397,18 @@ TEST(RenderPreparedModelDraws, PreparedSurfacePassViewsUseSortedFlatArray)
     std::vector<nw::render::PreparedModelSurfaceDraw> draws{
         make_surface(
             nw::render::MaterialMode::transparent,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
             0u),
         make_surface(
             nw::render::MaterialMode::water,
-            nw::render::PreparedModelDrawKind::render_model,
             1u),
         make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
             2u),
         make_surface(
             nw::render::MaterialMode::cutout,
-            nw::render::PreparedModelDrawKind::render_model,
             3u),
         make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::render_model,
             4u),
     };
 
@@ -1848,14 +1441,10 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsPartitionRenderModelRunsBySou
 {
     const auto make_surface = [](
                                   nw::render::MaterialMode mode,
-                                  nw::render::PreparedModelDrawKind payload_kind,
-                                  nw::render::ModelInstanceKind instance_kind,
                                   uint32_t instance_source_index,
                                   uint32_t source_draw_index) {
         nw::render::PreparedModelSurfaceDraw draw;
         draw.material_mode = mode;
-        draw.payload_kind = payload_kind;
-        draw.instance_kind = instance_kind;
         draw.instance_source_index = instance_source_index;
         draw.source_draw_index = source_draw_index;
         draw.range_index = source_draw_index;
@@ -1865,41 +1454,21 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsPartitionRenderModelRunsBySou
 
     std::vector<nw::render::PreparedModelSurfaceDraw> draws{
         make_surface(
-            nw::render::MaterialMode::transparent,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
-            nw::render::ModelInstanceKind::nwn_legacy,
-            1u,
-            0u),
-        make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             3u,
             1u),
         make_surface(
             nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             2u,
             2u),
         make_surface(
             nw::render::MaterialMode::cutout,
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             2u,
             3u),
         make_surface(
             nw::render::MaterialMode::transparent,
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             3u,
             4u),
-        make_surface(
-            nw::render::MaterialMode::opaque,
-            nw::render::PreparedModelDrawKind::nwn_legacy,
-            nw::render::ModelInstanceKind::nwn_legacy,
-            8u,
-            5u),
     };
 
     nw::render::sort_prepared_model_surface_draws_by_pass(
@@ -1937,13 +1506,9 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsPartitionRenderModelRunsBySou
 
 TEST(RenderPreparedModelDraws, PreparedRenderModelSurfaceRunsDropInvalidSourceIndices)
 {
-    const auto make_surface = [](nw::render::PreparedModelDrawKind payload_kind,
-                                  nw::render::ModelInstanceKind instance_kind,
-                                  uint32_t instance_source_index,
+    const auto make_surface = [](uint32_t instance_source_index,
                                   uint32_t source_draw_index) {
         nw::render::PreparedModelSurfaceDraw draw;
-        draw.payload_kind = payload_kind;
-        draw.instance_kind = instance_kind;
         draw.instance_source_index = instance_source_index;
         draw.source_draw_index = source_draw_index;
         return draw;
@@ -1951,33 +1516,18 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfaceRunsDropInvalidSourceIn
 
     std::vector<nw::render::PreparedModelSurfaceDraw> draws{
         make_surface(
-            nw::render::PreparedModelDrawKind::nwn_legacy,
-            nw::render::ModelInstanceKind::nwn_legacy,
-            0u,
-            0u),
-        make_surface(
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             1u,
             1u),
         make_surface(
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             1u,
             2u),
         make_surface(
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             4u,
             3u),
         make_surface(
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             nw::render::kInvalidPreparedModelDrawIndex,
             4u),
         make_surface(
-            nw::render::PreparedModelDrawKind::render_model,
-            nw::render::ModelInstanceKind::render_model,
             0u,
             5u),
     };
@@ -1989,8 +1539,7 @@ TEST(RenderPreparedModelDraws, PreparedRenderModelSurfaceRunsDropInvalidSourceIn
         2u);
 
     EXPECT_FALSE(runs.stats.valid());
-    EXPECT_EQ(runs.stats.input_surface_count, 6u);
-    EXPECT_EQ(runs.stats.non_render_model_surface_count, 1u);
+    EXPECT_EQ(runs.stats.input_surface_count, 5u);
     EXPECT_EQ(runs.stats.render_model_surface_count, 5u);
     EXPECT_EQ(runs.stats.invalid_source_index_count, 2u);
     EXPECT_EQ(runs.stats.run_count, 2u);
@@ -2012,8 +1561,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsRejectInvalidRangesAndMismatc
 
     nw::render::PreparedModelDraw draw;
     draw.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    draw.instance_kind = nw::render::ModelInstanceKind::render_model;
-    draw.kind = nw::render::PreparedModelDrawKind::render_model;
     draw.instance_source_index = 0u;
     list.draws = {draw};
     list.instance_offsets = {0u, 1u};
@@ -2024,8 +1571,6 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsRejectInvalidRangesAndMismatc
         .draw_begin = 4u,
         .draw_count = 1u,
         .instance = draw.instance,
-        .instance_kind = draw.instance_kind,
-        .kind = draw.kind,
         .instance_source_index = draw.instance_source_index,
     });
     ranges.ranges.push_back(nw::render::PreparedModelDrawRange{
@@ -2033,9 +1578,7 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsRejectInvalidRangesAndMismatc
         .draw_begin = 0u,
         .draw_count = 1u,
         .instance = draw.instance,
-        .instance_kind = nw::render::ModelInstanceKind::nwn_legacy,
-        .kind = nw::render::PreparedModelDrawKind::nwn_legacy,
-        .instance_source_index = draw.instance_source_index,
+        .instance_source_index = 7u,
     });
 
     nw::render::PreparedModelSurfaceDrawList surfaces;
@@ -2055,8 +1598,6 @@ TEST(RenderPreparedModelDraws, DrawRangesRejectInvalidOffsetsAndMixedRanges)
 
     nw::render::PreparedModelDraw draw_a;
     draw_a.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    draw_a.instance_kind = nw::render::ModelInstanceKind::render_model;
-    draw_a.kind = nw::render::PreparedModelDrawKind::render_model;
     draw_a.instance_source_index = 0u;
     nw::render::PreparedModelDraw draw_b = draw_a;
     draw_b.instance_source_index = 1u;
@@ -2072,27 +1613,6 @@ TEST(RenderPreparedModelDraws, DrawRangesRejectInvalidOffsetsAndMixedRanges)
     EXPECT_EQ(ranges.stats.mixed_range_count, 1u);
     EXPECT_EQ(ranges.stats.invalid_offset_range_count, 2u);
     EXPECT_EQ(ranges.stats.empty_range_count, 1u);
-    EXPECT_EQ(ranges.stats.range_count, 0u);
-    EXPECT_TRUE(ranges.ranges.empty());
-}
-
-TEST(RenderPreparedModelDraws, DrawRangesRejectKindInstanceMismatch)
-{
-    nw::render::PreparedModelDrawList list;
-
-    nw::render::PreparedModelDraw draw;
-    draw.instance = nw::render::ModelInstanceHandle{.index = 1u, .generation = 1u};
-    draw.instance_kind = nw::render::ModelInstanceKind::nwn_legacy;
-    draw.kind = nw::render::PreparedModelDrawKind::render_model;
-    draw.instance_source_index = 0u;
-    list.draws = {draw};
-    list.instance_offsets = {0u, 1u};
-
-    nw::render::PreparedModelDrawRangeList ranges;
-    nw::render::collect_prepared_model_draw_ranges(ranges, list);
-
-    EXPECT_FALSE(ranges.stats.valid());
-    EXPECT_EQ(ranges.stats.invalid_kind_range_count, 1u);
     EXPECT_EQ(ranges.stats.range_count, 0u);
     EXPECT_TRUE(ranges.ranges.empty());
 }

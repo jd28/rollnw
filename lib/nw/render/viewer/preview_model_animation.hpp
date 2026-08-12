@@ -38,12 +38,16 @@ bool set_render_model_animation_clip_by_first_name(
     PreviewScene& scene,
     std::span<const std::string_view> clip_names,
     float time);
-// Preview startup selection: try preferred names, then fall back to clip 0 for
-// animated RenderModels whose source naming does not match the preferred list.
+// Preview startup selection is resolved per RenderModel so mixed scenes do not
+// force one model's preferred name onto every other model. Each animated model
+// falls back to clip 0 when none of its clips match the preferred list.
 bool set_default_render_model_animation_clip(
     PreviewScene& scene,
     std::span<const std::string_view> preferred_clip_names,
     float time);
+// Selects the standard per-model hold clip for RenderModel rows,
+// then advances one 33 ms tick so newly added creatures do not remain in bind pose.
+bool prime_scene_hold_animation(PreviewScene& scene);
 void advance_render_model_animation_times(PreviewScene& scene, float dt);
 void collect_render_model_animation_samples(
     std::vector<nw::render::ModelInstanceAnimationSample>& out,

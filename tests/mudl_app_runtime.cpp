@@ -2,42 +2,41 @@
 
 #include <gtest/gtest.h>
 
-#include <nw/render/nwn/model_loader.hpp>
-
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <array>
 #include <memory>
 #include <utility>
 
 namespace {
 
-std::unique_ptr<nw::render::nwn::ModelInstance> make_sequence_model()
+std::unique_ptr<nw::render::RenderModel> make_sequence_model()
 {
-    auto model = std::make_unique<nw::render::nwn::ModelInstance>();
+    auto model = std::make_unique<nw::render::RenderModel>();
+    model->name = "sequence_test";
     model->bounds = nw::render::Bounds{
         .min = {0.0f, 0.0f, 0.0f},
         .max = {1.0f, 1.0f, 1.0f},
     };
-    model->set_placement_transform(glm::mat4{1.0f});
-    model->render_enabled = true;
+    model->nodes.push_back(nw::render::Node{});
     return model;
 }
 
 } // namespace
 
-TEST(MudlAppRuntime, DefaultsToPreparedCommonModelPaths)
+TEST(MudlAppRuntime, DefaultsToToolsetVisualMode)
 {
     const mudl::AppState state{};
 
-    EXPECT_EQ(state.preview_scene_load_options.nwn_model_path, nw::render::viewer::NwnModelPreviewPath::render_model);
+    EXPECT_EQ(state.preview_scene_load_options.visual_render_mode, nw::ObjectVisualRenderMode::toolset);
 }
 
-TEST(MudlAppRuntime, VfxSequenceRuntimeSyncsCommonInstancesAfterSidecarWrites)
+TEST(MudlAppRuntime, VfxSequenceUsesCommonModelInstances)
 {
     mudl::AppState state;
     state.current_scene = std::make_unique<nw::render::viewer::PreviewScene>();
     state.current_scene->add(make_sequence_model());
-    ASSERT_EQ(state.current_scene->model_instance_handles.size(), 1u);
+    ASSERT_EQ(state.current_scene->static_model_instance_handles.size(), 1u);
 
     mudl::VfxSequence sequence;
     sequence.label = "test";
@@ -47,31 +46,117 @@ TEST(MudlAppRuntime, VfxSequenceRuntimeSyncsCommonInstancesAfterSidecarWrites)
     step.start_offset = {3.0f, 4.0f, 5.0f};
     sequence.steps.push_back(std::move(step));
 
-    mudl::vfx_sequence_prepare_scene(state, *state.current_scene, sequence);
+    ASSERT_TRUE(mudl::vfx_sequence_prepare_scene(state, *state.current_scene, sequence));
+    ASSERT_EQ(state.current_scene->static_models.size(), 1u);
 
-    auto* instance = state.current_scene->nwn_model_instance(0);
+    auto* instance = state.current_scene->static_model_instance(0);
     ASSERT_NE(instance, nullptr);
     EXPECT_FALSE(instance->visible);
     EXPECT_NEAR(instance->root_transform[3].x, 3.0f, 1.0e-5f);
     EXPECT_NEAR(instance->root_transform[3].y, 4.0f, 1.0e-5f);
     EXPECT_NEAR(instance->root_transform[3].z, 5.0f, 1.0e-5f);
 
-    state.current_scene->models[0]->render_enabled = true;
-    state.current_scene->models[0]->set_placement_transform(
-        glm::translate(glm::mat4{1.0f}, glm::vec3{9.0f, 9.0f, 9.0f}));
+    instance->visible = true;
+    instance->root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{9.0f, 9.0f, 9.0f});
     mudl::vfx_sequence_reset_runtime(state);
 
-    instance = state.current_scene->nwn_model_instance(0);
+    instance = state.current_scene->static_model_instance(0);
     ASSERT_NE(instance, nullptr);
     EXPECT_FALSE(instance->visible);
     EXPECT_NEAR(instance->root_transform[3].x, 3.0f, 1.0e-5f);
 
     mudl::vfx_sequence_update_runtime(state, 500);
 
-    instance = state.current_scene->nwn_model_instance(0);
+    instance = state.current_scene->static_model_instance(0);
     ASSERT_NE(instance, nullptr);
     EXPECT_TRUE(instance->visible);
     EXPECT_NEAR(instance->root_transform[3].x, 3.0f, 1.0e-5f);
+}
+
+TEST(MudlAppRuntime, VfxSequenceRejectsIncompleteOrderedModelBatch)
+{
+    mudl::AppState state;
+    nw::render::viewer::PreviewScene scene;
+    scene.add(make_sequence_model());
+
+    mudl::VfxSequence sequence;
+    sequence.steps.resize(2);
+
+    EXPECT_FALSE(mudl::vfx_sequence_prepare_scene(state, scene, sequence));
+    EXPECT_TRUE(state.vfx_sequence_steps.empty());
+}
+
+TEST(MudlAppRuntime, RenderModelAttachmentSetupResolvesValidRowsAndCountsRejects)
+{
+    nw::render::viewer::PreviewScene scene;
+    auto owner = make_sequence_model();
+    owner->sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .name = "hand",
+    });
+    scene.add(std::move(owner));
+    scene.add(make_sequence_model());
+
+    const std::array attachments{
+        nw::render::viewer::RenderModelAttachmentSetup{
+            .child_model_index = 1u,
+            .owner_model_index = 0u,
+            .owner_socket = "hand",
+            .child_local_transform = glm::translate(
+                glm::mat4{1.0f}, glm::vec3{1.0f, 2.0f, 3.0f}),
+            .child_local_scale = 2.0f,
+            .orientation = nw::render::ModelAttachmentOrientationPolicy::owner_space_placement,
+            .source_offset = nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation,
+        },
+        nw::render::viewer::RenderModelAttachmentSetup{
+            .child_model_index = 9u,
+            .owner_model_index = 0u,
+            .owner_socket = "hand",
+        },
+    };
+
+    const auto stats = scene.attach_render_models(attachments);
+
+    EXPECT_EQ(stats.input_count, 2u);
+    EXPECT_EQ(stats.attached_count, 1u);
+    EXPECT_EQ(stats.invalid_model_count, 1u);
+    ASSERT_EQ(scene.model_attachments.size(), 1u);
+    EXPECT_EQ(scene.model_attachments.front().child_instance_handle,
+        scene.static_model_instance_handles[1]);
+    EXPECT_EQ(scene.model_attachments.front().owner_instance_handle,
+        scene.static_model_instance_handles[0]);
+    EXPECT_EQ(scene.model_attachments.front().orientation,
+        nw::render::ModelAttachmentOrientationPolicy::owner_space_placement);
+    EXPECT_EQ(scene.model_attachments.front().source_offset,
+        nw::render::ModelAttachmentSourceOffsetPolicy::socket_bind_or_root_translation);
+}
+
+TEST(MudlAppRuntime, VfxSequenceDerivesStepAnimationTimeWhenItBecomesVisible)
+{
+    mudl::AppState state;
+    state.current_scene = std::make_unique<nw::render::viewer::PreviewScene>();
+    state.current_scene->add(make_sequence_model());
+    state.current_scene->add(make_sequence_model());
+    state.vfx_sequence_loop_ms = 1000;
+    state.vfx_sequence_steps = {
+        {.model_index = 0, .start_ms = 0, .end_ms = 100},
+        {.model_index = 1, .start_ms = 100, .end_ms = 1000},
+    };
+
+    auto* first = state.current_scene->static_model_instance(0);
+    auto* second = state.current_scene->static_model_instance(1);
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    first->visible = true;
+    second->visible = false;
+    second->animation.time = 0.7f;
+    state.vfx_sequence_time_ms = 90;
+
+    mudl::vfx_sequence_update_runtime(state, 20);
+
+    EXPECT_FALSE(first->visible);
+    EXPECT_TRUE(second->visible);
+    EXPECT_NEAR(second->animation.time, 0.01f, 1.0e-5f);
 }
 
 TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
@@ -80,12 +165,11 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
 
     nw::render::viewer::PreviewScene scene;
     scene.add(std::move(model));
-    auto* owner = scene.models.front().get();
-    ASSERT_NE(owner, nullptr);
+    ASSERT_EQ(scene.static_models.size(), 1u);
 
     nw::render::viewer::SceneParticleSystem particles;
     particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.model_instance_handles.front();
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
 
     nw::model::ParticleImportEmitterInit init;
     init.emitter = 0u;
@@ -104,7 +188,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
     particles.compiled.effect.emitters.push_back(std::move(emitter));
     scene.particles.push_back(std::move(particles));
 
-    const auto axis = mudl::vfx_sequence_authored_axis(scene, *owner);
+    const auto axis = mudl::vfx_sequence_authored_axis(scene, 0u);
 
     ASSERT_TRUE(axis);
     EXPECT_NEAR(axis->x, 0.0f, 1.0e-5f);
@@ -116,11 +200,10 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
 {
     nw::render::viewer::PreviewScene scene;
     scene.add(make_sequence_model());
-    ASSERT_EQ(scene.models.size(), 1u);
-    ASSERT_EQ(scene.model_instance_handles.size(), 1u);
+    ASSERT_EQ(scene.static_models.size(), 1u);
+    ASSERT_EQ(scene.static_model_instance_handles.size(), 1u);
 
-    auto* owner = scene.models.front().get();
-    auto* common = scene.model_instances.get(scene.model_instance_handles.front());
+    auto* common = scene.static_model_instance(0u);
     ASSERT_NE(common, nullptr);
     common->root_transform = glm::rotate(glm::mat4{1.0f}, 1.57079632679f, glm::vec3{0.0f, 0.0f, 1.0f});
     common->attachment_node_world_transforms.resize(2);
@@ -130,7 +213,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
 
     nw::render::viewer::SceneParticleSystem particles;
     particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.model_instance_handles.front();
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
 
     nw::render::ParticleEmitterDef import_emitter;
     import_emitter.name = "missing_emitter_name";
@@ -153,7 +236,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
 
     scene.particles.push_back(std::move(particles));
 
-    const auto axis = mudl::vfx_sequence_authored_axis(scene, *owner);
+    const auto axis = mudl::vfx_sequence_authored_axis(scene, 0u);
 
     ASSERT_TRUE(axis);
     EXPECT_NEAR(axis->x, 1.0f, 1.0e-5f);
@@ -165,14 +248,12 @@ TEST(MudlAppRuntime, VfxProjectileTransportMatchesParticlesByOwnerHandle)
 {
     nw::render::viewer::PreviewScene scene;
     scene.add(make_sequence_model());
-    ASSERT_EQ(scene.models.size(), 1u);
-    ASSERT_EQ(scene.model_instance_handles.size(), 1u);
-
-    auto* owner = scene.models.front().get();
+    ASSERT_EQ(scene.static_models.size(), 1u);
+    ASSERT_EQ(scene.static_model_instance_handles.size(), 1u);
 
     nw::render::viewer::SceneParticleSystem particles;
     particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.model_instance_handles.front();
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
 
     nw::render::CompiledParticleEmitter compiled_emitter;
     compiled_emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
@@ -181,22 +262,19 @@ TEST(MudlAppRuntime, VfxProjectileTransportMatchesParticlesByOwnerHandle)
     scene.particles.push_back(std::move(particles));
 
     EXPECT_EQ(
-        mudl::vfx_sequence_classify_projectile_transport(scene, *owner),
+        mudl::vfx_sequence_classify_projectile_transport(scene, 0u),
         mudl::VfxProjectileTransportKind::source_rooted_target_point);
 }
 
 TEST(MudlAppRuntime, VfxProjectileRootPositionUsesCachedSourceSocket)
 {
     auto model = make_sequence_model();
-    auto source_node = std::make_unique<nw::render::nwn::Node>();
-    source_node->bind_pose_ = glm::translate(glm::mat4{1.0f}, glm::vec3{2.0f, 0.0f, 0.0f});
-    auto* source_node_ptr = source_node.get();
-    model->nodes_.push_back(std::move(source_node));
-    model->source_nodes_.push_back(source_node_ptr);
-    model->sockets_.push_back(nw::render::ModelSocket{
+    model->nodes.front().world_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{2.0f, 0.0f, 0.0f});
+    model->sockets.push_back(nw::render::ModelSocket{
         .source_node_index = 0u,
         .local_transform = glm::mat4{1.0f},
-        .bind_transform = source_node_ptr->bind_pose_,
+        .bind_transform = model->nodes.front().world_transform,
         .name = "muzzle",
     });
 
@@ -207,7 +285,7 @@ TEST(MudlAppRuntime, VfxProjectileRootPositionUsesCachedSourceSocket)
     step.end_pos = glm::vec3{20.0f, 0.0f, 0.0f};
     step.has_source_anchor = true;
     step.source_anchor_socket_index = model->socket_index("muzzle");
-    model->sockets_.front().name = "renamed_after_binding";
+    model->sockets.front().name = "renamed_after_binding";
 
     const glm::vec3 root_position = mudl::vfx_sequence_projectile_root_position(*model, step, 0.0f, 0u);
 
@@ -219,15 +297,9 @@ TEST(MudlAppRuntime, VfxProjectileRootPositionUsesCachedSourceSocket)
 TEST(MudlAppRuntime, VfxResolveTargetPointUsesCachedTargetSocket)
 {
     auto model = make_sequence_model();
-    model->set_placement_transform(glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f}));
-
-    auto target_node = std::make_unique<nw::render::nwn::Node>();
-    target_node->has_transform_ = true;
-    target_node->position_ = glm::vec3{2.0f, 3.0f, 4.0f};
-    auto* target_node_ptr = target_node.get();
-    model->nodes_.push_back(std::move(target_node));
-    model->source_nodes_.push_back(target_node_ptr);
-    model->sockets_.push_back(nw::render::ModelSocket{
+    model->nodes.front().world_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{2.0f, 3.0f, 4.0f});
+    model->sockets.push_back(nw::render::ModelSocket{
         .source_node_index = 0u,
         .local_transform = glm::mat4{1.0f},
         .bind_transform = glm::mat4{1.0f},
@@ -235,10 +307,19 @@ TEST(MudlAppRuntime, VfxResolveTargetPointUsesCachedTargetSocket)
     });
 
     const uint32_t socket_index = model->socket_index("impact");
-    model->sockets_.front().name = "renamed_after_binding";
+    model->sockets.front().name = "renamed_after_binding";
+    nw::render::viewer::PreviewScene scene;
+    scene.add(std::move(model));
+    auto* instance = scene.static_model_instance(0u);
+    ASSERT_NE(instance, nullptr);
+    instance->root_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f});
+    ASSERT_TRUE(nw::render::publish_render_model_static_node_world_transforms(
+        *instance, *scene.static_models.front()));
 
     const glm::vec3 point = mudl::vfx_sequence_resolve_target_point(
-        model.get(),
+        scene,
+        0u,
         glm::vec3{0.0f},
         mudl::VfxTargetPointKind::anchor,
         socket_index);
@@ -251,26 +332,29 @@ TEST(MudlAppRuntime, VfxResolveTargetPointUsesCachedTargetSocket)
 TEST(MudlAppRuntime, VfxAnchorWorldPositionUsesCachedSocket)
 {
     auto model = make_sequence_model();
-    model->set_placement_transform(glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f}));
-
-    auto anchor_node = std::make_unique<nw::render::nwn::Node>();
-    anchor_node->has_transform_ = true;
-    anchor_node->position_ = glm::vec3{1.0f, 2.0f, 3.0f};
-    auto* anchor_node_ptr = anchor_node.get();
-    model->nodes_.push_back(std::move(anchor_node));
-    model->source_nodes_.push_back(anchor_node_ptr);
-    model->sockets_.push_back(nw::render::ModelSocket{
+    model->nodes.front().world_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{1.0f, 2.0f, 3.0f});
+    model->sockets.push_back(nw::render::ModelSocket{
         .source_node_index = 0u,
-        .local_transform = anchor_node_ptr->get_local_transform(),
-        .bind_transform = anchor_node_ptr->bind_pose_,
+        .local_transform = model->nodes.front().world_transform,
+        .bind_transform = model->nodes.front().world_transform,
         .name = "muzzle",
     });
 
     const uint32_t socket_index = model->socket_index("muzzle");
-    model->sockets_.front().name = "renamed_after_binding";
+    model->sockets.front().name = "renamed_after_binding";
+    nw::render::viewer::PreviewScene scene;
+    scene.add(std::move(model));
+    auto* instance = scene.static_model_instance(0u);
+    ASSERT_NE(instance, nullptr);
+    instance->root_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f});
+    ASSERT_TRUE(nw::render::publish_render_model_static_node_world_transforms(
+        *instance, *scene.static_models.front()));
 
     const glm::vec3 point = mudl::vfx_sequence_anchor_world_position(
-        *model,
+        scene,
+        0u,
         socket_index);
 
     EXPECT_NEAR(point.x, 11.0f, 1.0e-5f);

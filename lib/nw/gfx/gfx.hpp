@@ -113,7 +113,7 @@ private:
 struct Core;
 
 struct CoreConfig {
-    const char* app_name = "arclight";
+    const char* app_name = "rollnw-client";
     bool enable_validation = true;
 };
 
@@ -182,6 +182,14 @@ struct CommandStats {
     uint64_t resource_bind_skipped_count = 0;
     uint64_t descriptor_buffer_bind_count = 0;
     uint64_t descriptor_buffer_bind_skipped_count = 0;
+    uint64_t descriptor_allocation_count = 0;
+    uint64_t descriptor_allocation_bytes = 0;
+    uint64_t descriptor_allocation_failure_count = 0;
+    uint64_t descriptor_ring_capacity_bytes = 0;
+    uint64_t descriptor_ring_required_bytes = 0;
+    uint64_t resource_bind_failure_count = 0;
+    uint64_t dropped_draw_count = 0;
+    uint64_t dropped_dispatch_count = 0;
     uint64_t draw_count = 0;
     uint64_t indexed_draw_count = 0;
     uint64_t nonindexed_draw_count = 0;

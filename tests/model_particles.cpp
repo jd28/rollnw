@@ -7,6 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -58,6 +59,116 @@ TEST(ModelParticles, ImportExplosionEmitter)
     EXPECT_EQ(emitter.render.mode, nw::render::ParticleRenderMode::stretched);
     EXPECT_EQ(result.effect.materials[emitter.render.material].blend, nw::render::ParticleBlendMode::additive);
     EXPECT_GE(emitter.max_particles, 1u);
+}
+
+TEST(ModelParticles, ImportOpacityOnlyScalesMotionBlur)
+{
+    {
+        std::ifstream in{"../tests/test_data/user/development/vfx_detonate_test.mdl"};
+        ASSERT_TRUE(in.is_open());
+        std::ostringstream buffer;
+        buffer << in.rdbuf();
+        auto text = buffer.str();
+        const auto pos = text.find("  render Normal\n");
+        ASSERT_NE(pos, std::string::npos);
+        text.insert(pos + std::strlen("  render Normal\n"), "  opacity 7.21376e+022\n");
+
+        std::ofstream out{"./vfx_normal_opacity_generated_test.mdl"};
+        ASSERT_TRUE(out.is_open());
+        out << text;
+    }
+
+    nw::model::Mdl normal_mdl{"./vfx_normal_opacity_generated_test.mdl"};
+    ASSERT_TRUE(normal_mdl.valid());
+    auto normal = nw::model::import_particle_effect(normal_mdl);
+    ASSERT_EQ(normal.effect.emitters.size(), 1u);
+    EXPECT_EQ(normal.effect.emitters[0].render.mode, nw::render::ParticleRenderMode::billboard);
+    EXPECT_FLOAT_EQ(normal.effect.emitters[0].render.opacity_scale, 1.0f);
+
+    {
+        std::ifstream in{"../tests/test_data/user/development/vwp_flash_whiblu.mdl"};
+        ASSERT_TRUE(in.is_open());
+        std::ostringstream buffer;
+        buffer << in.rdbuf();
+        auto text = buffer.str();
+        const auto pos = text.find("  render Motion_Blur\r\n");
+        ASSERT_NE(pos, std::string::npos);
+        text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 0.35\r\n");
+
+        std::ofstream out{"./vfx_motion_blur_opacity_generated_test.mdl"};
+        ASSERT_TRUE(out.is_open());
+        out << text;
+    }
+
+    nw::model::Mdl motion_blur_mdl{"./vfx_motion_blur_opacity_generated_test.mdl"};
+    ASSERT_TRUE(motion_blur_mdl.valid());
+    auto motion_blur = nw::model::import_particle_effect(motion_blur_mdl);
+    ASSERT_EQ(motion_blur.effect.emitters.size(), 1u);
+    EXPECT_EQ(motion_blur.effect.emitters[0].render.mode, nw::render::ParticleRenderMode::stretched);
+    EXPECT_FLOAT_EQ(motion_blur.effect.emitters[0].render.opacity_scale, 0.35f);
+}
+
+TEST(ModelParticles, ImportClampsOutOfRangeMotionBlurOpacity)
+{
+    std::ifstream in{"../tests/test_data/user/development/vwp_flash_whiblu.mdl"};
+    ASSERT_TRUE(in.is_open());
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    auto text = buffer.str();
+    const auto pos = text.find("  render Motion_Blur\r\n");
+    ASSERT_NE(pos, std::string::npos);
+    text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 7.21376e+022\r\n");
+
+    {
+        std::ofstream out{"./vfx_motion_blur_large_opacity_generated_test.mdl"};
+        ASSERT_TRUE(out.is_open());
+        out << text;
+    }
+
+    nw::model::Mdl mdl{"./vfx_motion_blur_large_opacity_generated_test.mdl"};
+    ASSERT_TRUE(mdl.valid());
+    auto result = nw::model::import_particle_effect(mdl);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+    EXPECT_FLOAT_EQ(result.effect.emitters[0].render.opacity_scale, 1.0f);
+    EXPECT_NE(std::find_if(result.warnings.begin(), result.warnings.end(), [](const auto& warning) {
+        return warning.field == "opacity"
+            && warning.message == "motion blur opacity outside [0, 1]; clamping";
+    }),
+        result.warnings.end());
+}
+
+TEST(ModelParticles, ImportMissingTextureBlendAsAdditive)
+{
+    {
+        std::ifstream in{"../tests/test_data/user/development/vwp_flash_whiblu.mdl"};
+        ASSERT_TRUE(in.is_open());
+        std::ostringstream buffer;
+        buffer << in.rdbuf();
+        auto text = buffer.str();
+        const auto pos = text.find("  blend Lighten");
+        ASSERT_NE(pos, std::string::npos);
+        const auto end = text.find('\n', pos);
+        ASSERT_NE(end, std::string::npos);
+        text.erase(pos, end - pos + 1);
+
+        std::ofstream out{"./vfx_missing_blend_generated_test.mdl"};
+        ASSERT_TRUE(out.is_open());
+        out << text;
+    }
+
+    nw::model::Mdl mdl{"./vfx_missing_blend_generated_test.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nw::model::import_particle_effect(mdl);
+    ASSERT_EQ(result.effect.emitters.size(), 1u);
+    const auto& emitter = result.effect.emitters[0];
+    ASSERT_LT(emitter.render.material, result.effect.materials.size());
+    EXPECT_EQ(result.effect.materials[emitter.render.material].blend, nw::render::ParticleBlendMode::additive);
+    EXPECT_NE(std::find_if(result.warnings.begin(), result.warnings.end(), [](const auto& warning) {
+        return warning.field == "blend"
+            && warning.message == "missing blend mode on texture emitter; defaulting to additive";
+    }),
+        result.warnings.end());
 }
 
 TEST(ModelParticles, ImportDetonateAnimationEvents)
@@ -674,6 +785,46 @@ TEST(ModelParticles, ImportInheritPartProducesDeferredWarning)
     ASSERT_NE(it, result.warnings.end());
     EXPECT_EQ(it->message,
         "inherit_part is present but currently deferred; no proven neutral lowering has been implemented yet");
+}
+
+TEST(ModelParticles, ImportNegativeLifetimeAsPerpetual)
+{
+    std::ifstream in{"../tests/test_data/user/development/vfx_detonate_test.mdl"};
+    ASSERT_TRUE(in.is_open());
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    auto text = buffer.str();
+
+    const auto update_pos = text.find("  update Explosion\n");
+    ASSERT_NE(update_pos, std::string::npos);
+    text.replace(update_pos, std::strlen("  update Explosion\n"), "  update Single\n");
+
+    const auto lifetime_pos = text.find("  lifeExp 3\n");
+    ASSERT_NE(lifetime_pos, std::string::npos);
+    text.replace(lifetime_pos, std::strlen("  lifeExp 3\n"), "  lifeExp -1\n");
+
+    std::ofstream out{"./vfx_perpetual_single_generated_test.mdl"};
+    ASSERT_TRUE(out.is_open());
+    out << text;
+    out.close();
+
+    nw::model::Mdl mdl{"./vfx_perpetual_single_generated_test.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto import = nw::model::import_particle_effect(mdl, {}, false);
+    ASSERT_EQ(import.effect.emitters.size(), 1u);
+    EXPECT_EQ(import.effect.emitters[0].emission.mode, nw::render::ParticleEmissionMode::single_shot);
+    EXPECT_FLOAT_EQ(import.effect.emitters[0].initial.lifetime.min, nw::render::kParticlePerpetualLifetimeSeconds);
+
+    auto compiled = nw::render::compile_particle_effect(import.effect).effect;
+    auto system = nw::render::create_particle_system(compiled);
+
+    nw::render::tick_particle_system(system, 0.016f);
+    ASSERT_EQ(system.particles.core.lifetime.size(), 1u);
+    EXPECT_FLOAT_EQ(system.particles.core.lifetime[0], nw::render::kParticlePerpetualLifetimeSeconds);
+
+    nw::render::tick_particle_system(system, 3600.0f);
+    EXPECT_EQ(system.particles.core.lifetime.size(), 1u);
 }
 
 TEST(ModelParticles, CorpusLocalFixturesImport)

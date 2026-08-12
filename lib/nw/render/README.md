@@ -26,8 +26,8 @@ source assets
 ```
 
 The common case is source-neutral runtime data. glTF and NWN are inputs to that
-data, not renderer policy. NWN compatibility still exists where the common
-runtime does not yet own equivalent data.
+data, not renderer policy. Both formats use the same model, frame, and GPU
+submission protocols.
 
 ## Relationship To nw::gfx
 
@@ -43,7 +43,7 @@ runtime does not yet own equivalent data.
 - model, material, animation, particle, light, shadow, and fog records
 - GPU backend resources needed by renderer passes
 - source-neutral frame protocols such as prepared model surface draws
-- compatibility adapters for NWN sidecar data while bridge work is in progress
+- source importers that lower NWN and glTF data into the common protocols
 
 If a change needs to know about models, particles, PLT, shadows, Forward+, or
 viewer scene data, it belongs in `nw::render` or above. If it only manages GPU
@@ -61,15 +61,11 @@ resources and command submission, it belongs in `nw::gfx`.
 - `LocalShadowRenderer`
 - `ParticleRenderer`
 - `FogRenderer`
-- NWN compatibility GPU resources and render asset cache
+- the NWN source texture and particle-model asset cache
 
-It returns two model contexts:
+It returns one model context:
 
 - `ModelRenderContext`: common `RenderModel` / PBR submission context.
-- `nwn::ModelRenderContext`: NWN sidecar compatibility context.
-
-New common renderer code should use `ModelRenderContext` unless it actually
-needs NWN sidecar payloads.
 
 ### Model Data
 
@@ -83,13 +79,13 @@ The modern model path centers on these records:
 - `PreparedModelDraw`: flat validated draw record collected from handles.
 - `PreparedModelSurfaceDraw`: smallest renderer-facing model surface command.
 
-`PreparedModelSurfaceDraw` is the shared frame protocol. It carries source kind,
-source indices, pass/material data, transforms, skin index, bounds, and
+`PreparedModelSurfaceDraw` is the shared frame protocol. It carries source
+indices, pass/material data, transforms, skin index, bounds, and
 shadow-caster state. The array is sorted in place by pass/material needs.
 
 The renderer should not infer behavior from model, texture, or node names.
-Source-specific quirks should be lowered into explicit common records or kept in
-a compatibility sidecar with counters.
+Source-specific quirks must be lowered into explicit common records or rejected
+with counted importer diagnostics.
 
 Object-level model, light, and icon references enter C++ through the
 [Visual Asset Protocol](docs/visual_asset_protocol.md).
@@ -109,6 +105,11 @@ NWN emitters are imported into this protocol. The emitter field map lives in
 [docs/nwn_emitter_map.md](docs/nwn_emitter_map.md), and the particle architecture
 overview lives in [docs/particle_system.md](docs/particle_system.md).
 
+Mesh-particle packets use cached common `RenderModel` assets and a flat batch of
+transient root transforms. Their simulation state remains in the particle SoA;
+they do not create persistent scene-model instances or retain source-specific
+renderer payloads.
+
 ### Lighting, Shadows, And Fog
 
 `RenderContext` carries per-frame camera, viewport, lighting, shadow, and
@@ -123,7 +124,7 @@ and commands.
 
 `lib/nw/render/viewer` is the preview/tooling bridge used by `mudl` and renderer
 tests. It owns preview-scene assembly, area visibility records, particle-owner
-binding, debug drawing, screenshots, and parity toggles.
+binding, debug drawing, and screenshots.
 
 The viewer is not the production scene graph. It is where source adapters and
 common renderer contracts are exercised against real NWN/glTF data until a
@@ -162,18 +163,12 @@ without assigning cache ownership to whichever session happens to load last.
   particle-model entries. This is paid only at explicit clear, renderer
   shutdown, or resource-registry generation change.
 
-Legacy `nwn::Mesh` texture handles and prepared draw-data caches record the
-asset-cache epoch. They discard captured handles, bindless indices, or prepared
-GPU data before reuse when the epoch differs. A mesh carries 8 bytes of epoch
-state, and each prepared draw-data cache carries another 8 bytes.
-
 `get_or_load_source_image()` and `get_or_load_particle_mesh()` return pointers
 into cache-owned storage. These are frame-local borrows: callers must not retain
-them across `clear()` or a resource reload. The current particle renderer and
-mesh-particle bridge consume them in the same render call. Stable owning
-pointers are used because the parsed `Image` and `ModelInstance` payloads must
-survive hash-table rehash; they are not pointer-chased inside the cache clear
-loop.
+them across `clear()` or a resource reload. The particle renderer consumes them
+in the same render call. Stable owning pointers are used because parsed `Image`
+and uploaded `RenderModel` payloads must survive hash-table rehash; they are not
+pointer-chased inside the cache clear loop.
 
 No LRU, per-session cache, reference-counted asset handle, or residency budget
 is part of this contract. The current measurements and remaining decision are
@@ -185,7 +180,9 @@ tracked in [Render Asset Cache Residency Budget](../../../issues/render-asset-ca
   renderer model/light/icon row protocol.
 - [docs/gltf.md](docs/gltf.md): glTF to `ModelAsset` / `RenderModel`.
 - [docs/nwn_model_conversion.md](docs/nwn_model_conversion.md): NWN MDL to
-  common model data plus compatibility sidecars.
+  common model data.
+- [docs/nwn_model_findings.md](docs/nwn_model_findings.md): observed NWN model
+  format/runtime behavior, rejected hypotheses, and regression evidence.
 - [docs/nwn_emitter_map.md](docs/nwn_emitter_map.md): NWN emitter fields to the
   neutral particle system.
 
@@ -200,5 +197,4 @@ tracked in [Render Asset Cache Residency Budget](../../../issues/render-asset-ca
 - [NWN Modern PBR Material Calibration](../../../issues/nwn-modern-pbr-material-calibration.md)
 - [NWN Zero-Duration Animation Clips](../../../issues/nwn-zero-duration-animation-clips.md)
 - [Offline Model Compiler](../../../issues/offline-model-compiler.md)
-- [Remove Legacy Render Paths](../../../issues/remove-legacy-render-paths.md)
 - [Render Asset Cache Residency Budget](../../../issues/render-asset-cache-residency-budget.md)

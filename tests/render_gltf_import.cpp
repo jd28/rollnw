@@ -531,11 +531,6 @@ TEST(RenderGltfImport, ImportsSkinnedModelAssetWithoutGraphicsContext)
 
 TEST(RenderGltfImport, SparsePositionAccessorDropsPrimitive)
 {
-    TestGfxRuntime gfx;
-    if (!gfx.initialize()) {
-        GTEST_SKIP() << "headless graphics context unavailable";
-    }
-
     const auto dir = std::filesystem::temp_directory_path() / "rollnw_sparse_gltf_import";
     std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
@@ -576,21 +571,15 @@ TEST(RenderGltfImport, SparsePositionAccessorDropsPrimitive)
 })";
     }
 
-    nw::render::gltf::ImportGltfDesc desc{};
-    desc.ctx = gfx.context;
-    auto model = nw::render::gltf::import_gltf(gltf_path, desc);
-    EXPECT_FALSE(model);
+    const auto result = nw::render::gltf::import_gltf_model_asset_with_stats(gltf_path);
+    EXPECT_FALSE(result.asset);
+    EXPECT_EQ(result.stats.dropped_primitive_count, 1u);
 
     std::filesystem::remove_all(dir);
 }
 
 TEST(RenderGltfImport, SkinJointOutsideSkinMatrixRangeFallsBackToStaticPrimitive)
 {
-    TestGfxRuntime gfx;
-    if (!gfx.initialize()) {
-        GTEST_SKIP() << "headless graphics context unavailable";
-    }
-
     const auto dir = std::filesystem::temp_directory_path() / "rollnw_skin_joint_range_gltf_import";
     std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
@@ -659,13 +648,11 @@ TEST(RenderGltfImport, SkinJointOutsideSkinMatrixRangeFallsBackToStaticPrimitive
 })";
     }
 
-    nw::render::gltf::ImportGltfDesc desc{};
-    desc.ctx = gfx.context;
-    auto model = nw::render::gltf::import_gltf(gltf_path, desc);
-    ASSERT_TRUE(model);
-    ASSERT_EQ(model->primitives.size(), 1u);
-    EXPECT_FALSE(model->primitives[0].skinned);
-    EXPECT_EQ(model->primitives[0].skin, std::numeric_limits<uint32_t>::max());
+    auto asset = nw::render::gltf::import_gltf_model_asset(gltf_path);
+    ASSERT_TRUE(asset);
+    ASSERT_EQ(asset->primitives.size(), 1u);
+    EXPECT_FALSE(asset->primitives[0].skinned);
+    EXPECT_EQ(asset->primitives[0].skin, std::numeric_limits<uint32_t>::max());
 
     std::filesystem::remove_all(dir);
 }

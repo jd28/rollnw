@@ -66,5 +66,6 @@ std::string area_object_origin(
     size_t index,
     const nw::ObjectBase& object);
 glm::mat4 area_object_placement_transform(const nw::Location& location);
+glm::mat4 area_object_placement_transform(const nw::Location& location, glm::vec3 scale);
 
 } // namespace nw::render::viewer

@@ -1,0 +1,82 @@
+{
+  "$type": "VisualCorpus",
+  "name": "nwn_renderer_regression_corpus",
+  "description": "Committed NWN resource closures used to validate the common ModelAsset and RenderModel preview path without depending on mutable user resources.",
+  "entries": [
+    {
+      "id": "renderer_nwn_c_aribeth",
+      "kind": "model",
+      "input": "c_aribeth",
+      "animation": "pause1",
+      "category": [
+        "nwn_mdl",
+        "creature",
+        "dangly",
+        "material_calibration"
+      ],
+      "notes": "Humanoid baseline with inherited animation, diffuse-era materials, and dangly hair and torso surfaces."
+    },
+    {
+      "id": "renderer_nwn_c_drgshad",
+      "kind": "model",
+      "input": "c_drgshad",
+      "animation": "cpause1",
+      "category": [
+        "nwn_mdl",
+        "creature",
+        "skinning",
+        "wings"
+      ],
+      "camera": {
+        "mode": "orbit",
+        "target": [
+          0.0,
+          -1.111,
+          5.008
+        ],
+        "radius": 12.0,
+        "yaw": -90.0,
+        "pitch": 12.0,
+        "fov": 60.0
+      },
+      "notes": "Skinned creature baseline with wing attachment coverage."
+    },
+    {
+      "id": "renderer_nwn_it_torch_000",
+      "kind": "model",
+      "input": "it_torch_000",
+      "animation": "equip",
+      "category": [
+        "nwn_mdl",
+        "item",
+        "particles",
+        "metal"
+      ],
+      "notes": "Item baseline with metal material data, flame, and smoke emitters."
+    },
+    {
+      "id": "renderer_nwn_ttd01_a04_03",
+      "kind": "model",
+      "input": "ttd01_a04_03",
+      "category": [
+        "nwn_mdl",
+        "tile",
+        "static_geometry",
+        "lights"
+      ],
+      "camera": {
+        "mode": "orbit",
+        "target": [
+          0.0,
+          0.0,
+          4.0
+        ],
+        "radius": 18.0,
+        "yaw": -45.0,
+        "pitch": 35.0,
+        "fov": 60.0
+      },
+      "notes": "Tile baseline with static meshes, lights, and an AABB node."
+    }
+  ]
+}

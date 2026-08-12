@@ -1,10 +1,9 @@
 #pragma once
 
-#include "model_loader.hpp"
-
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Plt.hpp>
 #include <nw/gfx/gfx.hpp>
+#include <nw/render/model_asset.hpp>
 
 #include <absl/container/flat_hash_map.h>
 
@@ -61,7 +60,8 @@ public:
     const nw::Image* get_or_load_source_image(nw::Resref name);
     bool source_image_is_white_alpha_mask(nw::Resref name);
     [[nodiscard]] bool texture_rows_flipped_on_upload(nw::Resref name, bool premultiply_alpha);
-    ModelInstance* get_or_load_particle_mesh(nw::Resref resref);
+    nw::render::RenderModel* get_or_load_particle_mesh(
+        nw::Resref resref, const nw::render::ModelAssetTextureUploadDesc& texture_upload);
 
 private:
     enum class TextureVariant : uint8_t {
@@ -109,7 +109,7 @@ private:
     absl::flat_hash_map<TextureCacheKey, CachedTexture> texture_cache_;
     absl::flat_hash_map<nw::Resref, std::unique_ptr<nw::Image>> image_cache_;
     absl::flat_hash_map<nw::Resref, bool> white_alpha_mask_cache_;
-    absl::flat_hash_map<nw::Resref, std::unique_ptr<ModelInstance>> particle_mesh_cache_;
+    absl::flat_hash_map<nw::Resref, std::unique_ptr<nw::render::RenderModel>> particle_mesh_cache_;
 };
 
 } // namespace nw::render::nwn

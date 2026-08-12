@@ -35,6 +35,7 @@ struct ParticleRenderStats {
     uint32_t mesh_missing_resref_packet_count = 0;
     uint32_t mesh_missing_model_packet_count = 0;
     uint32_t mesh_invalid_particle_index_count = 0;
+    uint32_t mesh_invalid_particle_data_count = 0;
 };
 
 [[nodiscard]] bool particle_system_visible_for_render_filter(

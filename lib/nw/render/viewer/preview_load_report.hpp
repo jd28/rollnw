@@ -95,6 +95,7 @@ struct PreviewLoadGeometryReport {
     size_t skin_count = 0;
     size_t skeleton_count = 0;
     size_t animation_count = 0;
+    size_t light_count = 0;
     size_t deformer_count = 0;
     size_t particle_system_count = 0;
     size_t normal_repair_count = 0;

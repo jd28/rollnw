@@ -41,8 +41,6 @@ uint32_t advance_rng(uint32_t& state)
     return state;
 }
 
-constexpr float kBeamPerpetualLifetime = 1.0e9f;
-
 float random_unit_f32(uint32_t& state)
 {
     return static_cast<float>(advance_rng(state) >> 8) * (1.0f / 16777216.0f);
@@ -1177,7 +1175,7 @@ void ensure_beam_particle(ParticleSystemInstance& system, uint16_t emitter_id)
     spawn_particle(system, emitter_id, emitter_position(system.emitters[emitter_id]));
     if (!system.particles.core.lifetime.empty()) {
         // Beam particles persist until the emitter is disabled or retargeted.
-        system.particles.core.lifetime.back() = kBeamPerpetualLifetime;
+        system.particles.core.lifetime.back() = kParticlePerpetualLifetimeSeconds;
     }
 }
 

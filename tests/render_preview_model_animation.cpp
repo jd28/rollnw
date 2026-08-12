@@ -249,11 +249,9 @@ TEST(PreviewModelAnimation, RenderModelAttachmentBindingDrivesCommonRoot)
     EXPECT_EQ(binding.owner_instance_handle, scene.static_model_instance_handles[0]);
     const auto* bound_child = scene.model_instances.get(binding.child_instance_handle);
     ASSERT_NE(bound_child, nullptr);
-    EXPECT_EQ(bound_child->kind, nw::render::ModelInstanceKind::render_model);
     EXPECT_EQ(bound_child->render_model_index, 1u);
     const auto* bound_owner = scene.model_instances.get(binding.owner_instance_handle);
     ASSERT_NE(bound_owner, nullptr);
-    EXPECT_EQ(bound_owner->kind, nw::render::ModelInstanceKind::render_model);
     EXPECT_EQ(bound_owner->render_model_index, 0u);
     EXPECT_NE(binding.owner_socket_index, nw::render::kInvalidModelNodeIndex);
     EXPECT_NE(binding.child_source_socket_index, nw::render::kInvalidModelNodeIndex);
@@ -278,6 +276,67 @@ TEST(PreviewModelAnimation, RenderModelAttachmentBindingDrivesCommonRoot)
     glm::mat4 child_node_world{1.0f};
     ASSERT_TRUE(nw::render::model_instance_node_world_transform(*child_instance, 0, child_node_world));
     EXPECT_LT(max_abs_matrix_delta(child_node_world, child_instance->root_transform), 1.0e-5f);
+}
+
+TEST(PreviewModelAnimation, SampleThenSyncMovesAttachmentToCurrentOwnerSocket)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    auto owner = make_two_clip_render_model("animated_owner");
+    owner->nodes.push_back(nw::render::Node{.parent = -1});
+    owner->sockets.push_back(nw::render::ModelSocket{
+        .source_node_index = 0u,
+        .bind_transform = glm::mat4{1.0f},
+        .name = "hand",
+    });
+    scene.add(std::move(owner));
+    scene.add_attached(
+        make_static_socket_render_model("child", glm::vec3{0.0f}, "grip"),
+        0u,
+        "hand");
+
+    viewer::rebuild_render_model_animation_instances(scene, 0u, 0.5f);
+    std::vector<nw::render::ModelInstanceAnimationSample> samples;
+    const auto sample_stats = viewer::sample_render_model_animations(samples, scene);
+    const auto sync_stats = viewer::sync_model_instance_runtime_state(scene);
+
+    EXPECT_EQ(sample_stats.sampled_count, 1u);
+    EXPECT_EQ(sync_stats.render_model_attachment_root_resolved_count, 1u);
+    const auto* child = scene.static_model_instance(1u);
+    ASSERT_NE(child, nullptr);
+    EXPECT_NEAR(child->root_transform[3].x, 1.0f, 5.0e-4f);
+}
+
+TEST(PreviewModelAnimation, RenderModelAttachmentBindingUsesRootWithoutChildSocket)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    scene.add(make_static_socket_render_model("owner", glm::vec3{2.0f, 3.0f, 4.0f}, "tail"));
+    scene.add_attached(
+        make_static_socket_render_model(
+            "child",
+            glm::vec3{0.0f, 0.0f, 0.0f},
+            "grip",
+            glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.0f, 0.0f})),
+        0u,
+        "tail",
+        "tail");
+
+    ASSERT_EQ(scene.model_attachments.size(), size_t{1});
+    EXPECT_EQ(scene.model_attachments.front().child_source_socket_index, nw::render::kInvalidModelNodeIndex);
+
+    const auto sync_stats = viewer::sync_model_instance_runtime_state(scene);
+    EXPECT_EQ(sync_stats.render_model_attachment_binding_count, 1u);
+    EXPECT_EQ(sync_stats.render_model_attachment_root_resolved_count, 1u);
+    EXPECT_EQ(sync_stats.render_model_attachment_root_failed_count, 0u);
+
+    const auto* child_instance = scene.static_model_instance(1);
+    ASSERT_NE(child_instance, nullptr);
+    EXPECT_NEAR(child_instance->root_transform[3].x, 2.0f, 1.0e-5f);
+    EXPECT_NEAR(child_instance->root_transform[3].y, 3.0f, 1.0e-5f);
+    EXPECT_NEAR(child_instance->root_transform[3].z, 4.0f, 1.0e-5f);
 }
 
 TEST(PreviewModelAnimation, RenderModelAttachmentBindingAppliesChildLocalScale)
@@ -608,7 +667,6 @@ TEST(PreviewModelAnimation, NwnSkinnedModelAssetPreparedSurfacesUseSampledSkinMa
     viewer::collect_prepared_model_surface_draws(prepared, surfaces, scene);
 
     EXPECT_GT(surfaces.stats.render_model_draw_count, 0u);
-    EXPECT_EQ(surfaces.stats.nwn_legacy_draw_count, 0u);
     const auto& skin_table = surfaces.render_model_skins.stats;
     EXPECT_GT(skin_table.render_model_skinned_surface_count, 0u);
     EXPECT_EQ(skin_table.assigned_surface_count, skin_table.render_model_skinned_surface_count);
@@ -749,6 +807,72 @@ TEST(PreviewModelAnimation, DefaultRenderModelAnimationFallsBackToFirstClip)
     EXPECT_TRUE(instance->animation.backend);
     EXPECT_EQ(instance->animation.clip, 0u);
     EXPECT_FLOAT_EQ(instance->animation.time, 0.75f);
+}
+
+TEST(PreviewModelAnimation, PrimeSceneHoldAnimationSelectsHoldClipPerAreaModel)
+{
+    namespace viewer = nw::render::viewer;
+    using namespace std::string_view_literals;
+
+    auto cpause_model = make_two_clip_render_model("cpause");
+    cpause_model->animations[0].name = "walk";
+    cpause_model->animations[1].name = "cpause1";
+    auto pause_model = make_two_clip_render_model("pause");
+    pause_model->animations[0].name = "walk";
+    pause_model->animations[1].name = "pause1";
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(cpause_model));
+    scene.add(std::move(pause_model));
+
+    ASSERT_TRUE(viewer::prime_scene_hold_animation(scene));
+    const auto* cpause_instance = scene.static_model_instance(0);
+    const auto* pause_instance = scene.static_model_instance(1);
+    ASSERT_NE(cpause_instance, nullptr);
+    ASSERT_NE(pause_instance, nullptr);
+    EXPECT_EQ(cpause_instance->animation.clip, 1u);
+    EXPECT_EQ(pause_instance->animation.clip, 1u);
+    EXPECT_FLOAT_EQ(cpause_instance->animation.time, 0.033f);
+    EXPECT_FLOAT_EQ(pause_instance->animation.time, 0.033f);
+}
+
+TEST(PreviewModelAnimation, ExplicitHoldAnimationDoesNotFallbackToAnotherClip)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto model = make_two_clip_render_model("explicit_hold");
+    model->animations[0].name = "pause1";
+    model->animations[1].name = "walk";
+
+    viewer::PreviewScene scene;
+    scene.hold_animation = "default";
+    scene.add(std::move(model));
+
+    ASSERT_FALSE(viewer::prime_scene_hold_animation(scene));
+    const auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    EXPECT_FALSE(instance->animation.enabled);
+    EXPECT_FALSE(instance->animation.backend);
+}
+
+TEST(PreviewModelAnimation, ExplicitHoldAnimationSelectsTheNamedClip)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto model = make_two_clip_render_model("explicit_hold");
+    model->animations[0].name = "default";
+    model->animations[1].name = "walk";
+
+    viewer::PreviewScene scene;
+    scene.hold_animation = "default";
+    scene.add(std::move(model));
+
+    ASSERT_TRUE(viewer::prime_scene_hold_animation(scene));
+    const auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    EXPECT_TRUE(instance->animation.enabled);
+    EXPECT_EQ(instance->animation.clip, 0u);
 }
 
 TEST(PreviewModelAnimation, SampleCollectionSkipsInvalidSceneOwnedHandles)

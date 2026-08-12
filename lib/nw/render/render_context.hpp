@@ -153,9 +153,9 @@ struct SceneConstants {
     glm::vec4 forward_plus_depth_params{0.0f};
     glm::vec4 forward_plus_viewport{0.0f};
     glm::vec4 emissive_color{0.0f};
-    // x = roughness, y = legacy specular strength, zw = reserved.
+    // x = roughness, y = source specular strength, zw = reserved.
     glm::vec4 material_params{0.78f, 0.12f, 0.0f, 0.0f};
-    // x = normal, y = surface/ORM, z = emissive, w = legacy specular map.
+    // x = normal, y = surface/ORM, z = emissive, w = source specular map.
     glm::uvec4 material_texture_indices{0u};
 
     // RenderModel PBR receivers cannot use ShadowConstants at b4 because their
@@ -375,6 +375,12 @@ struct RenderContext {
     bool static_pbr_ibl_enabled = false;
     Lighting lighting{};
     LightingSpace lighting_space = LightingSpace::camera_relative;
+    // Opt-in preview affordance: an unlit `lighting` is the authored answer for
+    // a glTF preview, so the model renderer substitutes a studio key light to
+    // keep the asset readable. Scenes that author their own lighting (areas)
+    // must leave this false, so an unlit result stays visibly unlit instead of
+    // being silently rescued out of sync with shadow resolution.
+    bool unlit_preview_key_light_enabled = false;
     bool offscreen_pass = false;
     SceneFog fog{};
     SceneShadow shadow{};

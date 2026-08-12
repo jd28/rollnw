@@ -55,8 +55,6 @@ Most commands accept these:
 - `--animation <name>`: override the default animation for interactive/headless model previews.
 - `--pbr-environment <ktx>`: select the HDR KTX source used by the static PBR `reference_ibl` policy.
 - `--no-pbr-ibl`: skip generated static PBR IBL textures and use shader fallback lighting.
-- `--dangly-scale <value>`: exaggerate or reduce dangly motion for tuning.
-- `--dangly-mode legacy|modern`: choose the dangly simulation mode.
 - `--validate`: enable Vulkan validation layers.
 - `--debug`: enable the optional debug grid overlay.
 
@@ -295,6 +293,7 @@ Checked-in corpora:
 - [pbr_corpus.json](../../tests/test_data/user/development/pbr_corpus.json) — focused Stage 2 PBR baseline covering glTF metal/roughness,
   NWN metal/specular fixtures, PLT/equipment, water-textured geometry, and an area local-light case
 - [area_corpus.json](../../tests/test_data/user/development/area_corpus.json)
+- [nwn_regression_corpus.json](../../tests/test_data/renderer/nwn_regression_corpus.json) — committed NWN resource closures for the core renderer regression set
 - [visual_audit_ledger.json](../../tests/test_data/user/development/visual_audit_ledger.json)
 
 NWN MDL import gets you close, and native particle JSON gives you something clean to tune from there:
@@ -459,6 +458,10 @@ provides bootstrap rules and base tables.
 Suggested checks:
 
 ```bash
+mudl corpus ./tests/test_data/renderer/nwn_regression_corpus.json \
+  --user ./tests/test_data/renderer/nwn_dump_user \
+  --output ./tmp/visual-audit/nwn-regression
+
 mudl stats c_aribeth --user ./tests/test_data/renderer/nwn_dump_user
 mudl stats c_drgshad --user ./tests/test_data/renderer/nwn_dump_user
 mudl stats it_torch_000 --user ./tests/test_data/renderer/nwn_dump_user

@@ -56,7 +56,6 @@ struct ViewerFrameStats {
     float forward_plus_upload_seconds = 0.0f;
     float total_render_seconds = 0.0f;
     float gpu_shadow_seconds = 0.0f;
-    float gpu_depth_prepass_seconds = 0.0f;
     float gpu_opaque_seconds = 0.0f;
     float gpu_water_seconds = 0.0f;
     float gpu_transparent_seconds = 0.0f;
@@ -65,7 +64,6 @@ struct ViewerFrameStats {
     float gpu_forward_plus_cull_seconds = 0.0f;
     uint32_t gpu_timer_count = 0;
     uint32_t model_count = 0;
-    uint32_t static_model_count = 0;
     uint32_t particle_system_count = 0;
     PreviewSceneRuntimeSyncStats runtime_sync_stats{};
     nw::render::ModelInstanceAnimationSampleStats render_model_animation_sample_stats{};
@@ -75,12 +73,6 @@ struct ViewerFrameStats {
     uint32_t prepared_render_model_draw_count = 0;
     uint32_t prepared_model_draw_material_fallback_count = 0;
     uint32_t prepared_model_draw_render_model_material_fallback_count = 0;
-    uint32_t prepared_model_draw_nwn_legacy_material_fallback_count = 0;
-    bool prepared_nwn_legacy_draws_enabled = false;
-    uint32_t prepared_nwn_legacy_draw_count = 0;
-    uint32_t prepared_nwn_legacy_selected_draw_count = 0;
-    uint32_t prepared_nwn_legacy_missing_sidecar_draw_count = 0;
-    uint32_t prepared_nwn_legacy_invalid_sidecar_draw_count = 0;
     bool prepared_model_surface_stats_enabled = false;
     nw::render::PreparedModelSurfaceDrawStats prepared_model_surface_stats{};
     nw::render::PreparedModelSurfaceMaterialStats prepared_model_surface_materials{};
@@ -97,6 +89,7 @@ struct ViewerFrameStats {
     uint32_t particle_mesh_missing_resref_packet_count = 0;
     uint32_t particle_mesh_missing_model_packet_count = 0;
     uint32_t particle_mesh_invalid_particle_index_count = 0;
+    uint32_t particle_mesh_invalid_particle_data_count = 0;
     uint32_t area_cache_record_count = 0;
     uint32_t area_cache_static_record_count = 0;
     uint32_t area_cache_dynamic_record_count = 0;
@@ -105,15 +98,9 @@ struct ViewerFrameStats {
     uint32_t area_cache_transparent_record_count = 0;
     uint32_t area_cache_shadow_caster_record_count = 0;
     uint32_t area_cache_prepared_draw_count = 0;
-    uint32_t area_cache_shadow_prepared_surface_count = 0;
-    uint32_t area_cache_static_geometry_mesh_count = 0;
-    uint32_t area_cache_static_geometry_vertex_count = 0;
-    uint32_t area_cache_static_geometry_index_count = 0;
-    uint32_t area_cache_static_geometry_bytes = 0;
     uint32_t area_cache_light_index_count = 0;
     uint32_t area_cache_local_light_count = 0;
     uint32_t area_cache_max_light_indices_per_record = 0;
-    uint32_t area_cache_max_shadow_prepared_surfaces_per_record = 0;
     uint32_t area_cache_chunk_light_index_count = 0;
     uint32_t area_cache_max_light_indices_per_chunk = 0;
     uint32_t area_cache_chunk_count = 0;
@@ -134,12 +121,6 @@ struct ViewerFrameStats {
     uint32_t area_frame_visible_prepared_surface_count = 0;
     uint32_t area_frame_visible_light_count = 0;
     bool area_frame_uses_cached_draw_lists = false;
-    bool area_frame_uses_sorted_static_draw_lists = false;
-    AreaPreparedSurfaceSidecarStats area_frame_material_indirect_sidecar_bridge{};
-    AreaPreparedSurfaceSidecarStats area_frame_static_material_indirect_sidecar_bridge{};
-    AreaPreparedSurfaceSidecarStats area_static_material_draw_data_sidecar_bridge{};
-    AreaPreparedSurfaceSidecarStats area_static_material_sidecar_submission{};
-    AreaDirectModelSubmissionStats area_direct_model_submission{};
     uint32_t local_light_count = 0;
     uint32_t local_light_authored_model_count = 0;
     uint32_t local_light_tile_model_count = 0;
@@ -176,39 +157,9 @@ struct ViewerFrameStats {
     uint32_t shadow_culled_model_count = 0;
     uint32_t shadow_prepared_surface_shadow_range_count = 0;
     uint32_t shadow_prepared_surface_invalid_range_count = 0;
-    AreaPreparedSurfaceSidecarStats shadow_area_indirect_sidecar_bridge{};
-    AreaPreparedSurfaceSidecarStats shadow_area_sidecar_bridge{};
     uint32_t local_shadow_caster_light_count = 0;
     uint32_t local_shadow_submitted_model_count = 0;
     uint32_t local_shadow_culled_model_count = 0;
-    AreaPreparedSurfaceSidecarStats local_shadow_area_sidecar_bridge{};
-    uint32_t static_batch_material_batch_count = 0;
-    uint32_t static_batch_material_input_draw_count = 0;
-    uint32_t static_batch_material_instance_count = 0;
-    uint32_t static_batch_material_draw_call_count = 0;
-    uint32_t static_batch_material_fallback_draw_count = 0;
-    uint32_t static_batch_material_failed_batch_attempt_draw_count = 0;
-    uint32_t static_batch_material_indirect_call_count = 0;
-    uint32_t static_batch_material_indirect_command_count = 0;
-    uint32_t static_batch_material_max_instances_per_draw = 0;
-    uint64_t static_batch_material_indirect_command_upload_bytes = 0;
-    uint64_t static_batch_material_cached_indirect_command_bytes = 0;
-    uint64_t static_batch_material_draw_data_bytes = 0;
-    uint32_t static_batch_material_draw_data_cache_hit_count = 0;
-    uint64_t static_batch_material_cached_draw_data_bytes = 0;
-    uint32_t static_batch_shadow_batch_count = 0;
-    uint32_t static_batch_shadow_input_draw_count = 0;
-    uint32_t static_batch_shadow_instance_count = 0;
-    uint32_t static_batch_shadow_draw_call_count = 0;
-    uint32_t static_batch_shadow_failed_batch_attempt_draw_count = 0;
-    uint32_t static_batch_shadow_indirect_call_count = 0;
-    uint32_t static_batch_shadow_indirect_command_count = 0;
-    uint32_t static_batch_shadow_max_instances_per_draw = 0;
-    uint64_t static_batch_shadow_indirect_command_upload_bytes = 0;
-    uint64_t static_batch_shadow_cached_indirect_command_bytes = 0;
-    uint64_t static_batch_shadow_draw_data_bytes = 0;
-    uint32_t static_batch_shadow_draw_data_cache_hit_count = 0;
-    uint64_t static_batch_shadow_cached_draw_data_bytes = 0;
     uint32_t main_pass_count = 0;
     nw::gfx::CommandStats total_command_stats{};
     nw::gfx::CommandStats shadow_command_stats{};
@@ -223,6 +174,15 @@ struct ViewerFrameStats {
     bool water_rendered = false;
 };
 
+// One row describes the most recent user-requested area load. Area loads are
+// genuinely singular state transitions; frame work remains batch-oriented.
+struct ViewerAreaLoadStats {
+    double build_seconds = 0.0;
+    double replace_seconds = 0.0;
+    double total_seconds = 0.0;
+    size_t model_count = 0;
+};
+
 class ViewerSession {
 public:
     explicit ViewerSession(PreviewRenderResources& preview_resources, SceneDebugRenderer* debug_renderer = nullptr);
@@ -234,12 +194,35 @@ public:
     bool load_model(std::string_view resref);
     bool load_area(std::string_view resref);
     bool load_object_file(const std::filesystem::path& path);
+    bool rebuild_live_area(
+        nw::ObjectHandle area, nw::ObjectHandle selected_object = nw::ObjectHandle{});
+    bool rebuild_live_object(nw::ObjectHandle object);
+    [[nodiscard]] ObjectVisualRefreshResult refresh_live_object_visuals(
+        std::span<const nw::ObjectHandle> objects);
+    bool refresh_live_object_visual(nw::ObjectHandle object);
     void clear();
 
     void tick(int32_t dt_ms);
     void render(nw::gfx::CommandList* command_list, ViewerViewport viewport);
 
     bool select_animation(std::string_view animation);
+    [[nodiscard]] AreaObjectSelection select_area_object(
+        float pixel_x,
+        float pixel_y,
+        ViewerViewport viewport,
+        AreaObjectSelectionTarget target = AreaObjectSelectionTarget::object);
+    bool set_area_object_selection(nw::ObjectHandle object) noexcept;
+    // One viewport owns one active selection and one camera, so this event-level
+    // transform is genuinely singular. Missing or non-finite focus data returns
+    // false and leaves the camera unchanged.
+    bool focus_area_object_selection() noexcept;
+    [[nodiscard]] std::optional<glm::vec3> area_surface_point(
+        float pixel_x, float pixel_y, ViewerViewport viewport);
+    [[nodiscard]] AreaObjectSpatialUpdateStats update_area_object_spatial_states(
+        std::span<const nw::ObjectSpatialState> spatial_states);
+    [[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
+        std::span<const nw::ObjectHandle> objects, float opacity);
+    bool clear_area_object_selection() noexcept;
     bool fit_to_scene(ViewerViewport viewport);
     bool set_area_gameplay_view(ViewerViewport viewport, float fov_degrees = 65.0f);
     void update_viewport(ViewerViewport viewport);
@@ -250,6 +233,10 @@ public:
     [[nodiscard]] const PreviewScene* scene() const noexcept { return scene_.get(); }
     [[nodiscard]] ViewerSceneKind scene_kind() const noexcept { return scene_kind_; }
     [[nodiscard]] std::string_view loaded_source() const noexcept { return loaded_source_; }
+    [[nodiscard]] nw::ObjectHandle active_object() const noexcept
+    {
+        return scene_ ? scene_->active_object : nw::ObjectHandle{};
+    }
     [[nodiscard]] bool playing() const noexcept { return playing_; }
     void set_playing(bool playing) noexcept { playing_ = playing; }
     [[nodiscard]] PreviewSceneLoadOptions preview_scene_load_options() const noexcept
@@ -321,6 +308,10 @@ public:
         forward_plus_policy_.debug_mode = mode;
     }
     [[nodiscard]] const ViewerFrameStats& last_frame_stats() const noexcept { return last_frame_stats_; }
+    [[nodiscard]] const ViewerAreaLoadStats& last_area_load_stats() const noexcept
+    {
+        return last_area_load_stats_;
+    }
 
 private:
     bool set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKind kind, std::string source);
@@ -345,19 +336,18 @@ private:
     uint32_t shadow_debug_mode_ = 0;
     ForwardPlusRenderPolicy forward_plus_policy_{};
     ViewerFrameStats last_frame_stats_{};
+    ViewerAreaLoadStats last_area_load_stats_{};
     AreaRenderFrame area_frame_;
     ForwardPlusFrame forward_plus_frame_;
     PreviewPreparedModelDraws prepared_model_draws_;
     nw::render::PreparedModelSurfaceDrawList prepared_model_surfaces_;
-    std::vector<nw::render::ModelInstanceHandle> area_visible_model_instance_handles_;
     PreviewSceneLoadOptions preview_scene_load_options_{};
     // Reused per-frame sampling scratch. Runtime animation state lives on
     // ModelInstance; this vector must not own clip, time, pose, or skin state.
     std::vector<nw::render::ModelInstanceAnimationSample> render_model_animation_samples_;
-    std::vector<const nw::render::nwn::PreparedDrawItem*> nwn_prepared_draw_items_;
-    nw::render::nwn::PreparedDrawScratch prepared_draw_scratch_;
     std::vector<nw::gfx::GpuTimerResult> completed_gpu_timer_results_;
     std::vector<uint8_t> area_visibility_mask_;
+    AreaObjectSelection active_area_selection_{};
     size_t area_visibility_mask_visible_chunk_count_ = 0;
     int32_t area_visibility_radius_tiles_ = -1;
     float area_visibility_half_angle_degrees_ = 75.0f;

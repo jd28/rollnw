@@ -1,4 +1,6 @@
 #include "nwn_animation.hpp"
+#include <algorithm>
+#include <cctype>
 
 #include <nw/model/Mdl.hpp>
 #include <nw/render/animation.hpp>
@@ -146,74 +148,11 @@ nw::render::Skeleton build_nwn_skeleton(
     return skeleton;
 }
 
-nw::render::Skeleton build_nwn_skeleton(
-    const ModelInstance& inst,
-    std::vector<int32_t>& out_joint_to_source_node)
-{
-    const size_t node_count = inst.source_nodes_.size();
-
-    // Mirror the loaded NWN hierarchy so both skinned and static transform animation
-    // can be sampled through the same backend.
-    std::vector<int32_t> source_to_joint(node_count, -1);
-    out_joint_to_source_node.clear();
-    for (size_t i = 0; i < node_count; ++i) {
-        if (inst.source_nodes_[i]) {
-            source_to_joint[i] = static_cast<int32_t>(out_joint_to_source_node.size());
-            out_joint_to_source_node.push_back(static_cast<int32_t>(i));
-        }
-    }
-
-    nw::render::Skeleton skeleton;
-    skeleton.joints.resize(out_joint_to_source_node.size());
-
-    for (size_t ji = 0; ji < out_joint_to_source_node.size(); ++ji) {
-        const int32_t src_idx = out_joint_to_source_node[ji];
-        const Node* node = inst.source_nodes_[static_cast<size_t>(src_idx)];
-        auto& joint = skeleton.joints[ji];
-
-        joint.name = (node->orig_ && !node->orig_->name.empty())
-            ? std::string(node->orig_->name)
-            : "joint_" + std::to_string(ji);
-        joint.node = src_idx;
-        joint.inverse_bind_matrix = glm::inverse(node->bind_pose_);
-
-        // Walk the loaded node parent chain to find the nearest skeleton ancestor.
-        int32_t parent_joint = -1;
-        const Node* p = node->parent_;
-        while (p && parent_joint < 0) {
-            for (size_t si = 0; si < node_count; ++si) {
-                if (inst.source_nodes_[si] == p) {
-                    parent_joint = source_to_joint[si];
-                    break;
-                }
-            }
-            if (parent_joint < 0) p = p->parent_;
-        }
-
-        joint.parent = parent_joint;
-        if (parent_joint >= 0) {
-            const Node* parent_bone = inst.source_nodes_[static_cast<size_t>(out_joint_to_source_node[static_cast<size_t>(parent_joint)])];
-            joint.bind_local = nw::render::Transform::from_matrix(
-                glm::inverse(parent_bone->bind_pose_) * node->bind_pose_);
-        } else {
-            // Root node: bind_local is in world space. NWN is already Z-up so no correction needed.
-            joint.bind_local = nw::render::Transform::from_matrix(node->bind_pose_);
-            joint.root_correction = glm::mat4(1.0f);
-        }
-    }
-
-    if (skeleton.joints.empty()) {
-        LOG_F(WARNING, "build_nwn_skeleton: no nodes found");
-    }
-
-    nw::render::build_eval_order(skeleton);
-    return skeleton;
-}
-
 nw::render::AnimationClip build_nwn_clip(
     const nw::model::Animation& anim,
     const nw::render::Skeleton& skeleton,
-    uint32_t skeleton_index)
+    uint32_t skeleton_index,
+    float translation_scale)
 {
     nw::render::AnimationClip clip;
     clip.name = anim.name;
@@ -221,31 +160,42 @@ nw::render::AnimationClip build_nwn_clip(
     clip.skeleton = skeleton_index;
     clip.tracks.resize(skeleton.joints.size());
 
-    std::unordered_map<std::string_view, uint32_t> name_to_joint;
+    // NWN node names are case-insensitive, and stock rigs mix casing freely
+    // (pmh0 carries Lbicep_g beside lforearm_g and lhand_g). An exact match
+    // silently drops the track for any node whose casing differs from the
+    // animation source, leaving that joint frozen at its bind pose.
+    const auto fold = [](std::string_view name) {
+        std::string result{name};
+        std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return result;
+    };
+
+    std::unordered_map<std::string, uint32_t> name_to_joint;
     name_to_joint.reserve(skeleton.joints.size());
     for (uint32_t ji = 0; ji < static_cast<uint32_t>(skeleton.joints.size()); ++ji)
-        name_to_joint[skeleton.joints[ji].name] = ji;
+        name_to_joint[fold(skeleton.joints[ji].name)] = ji;
 
     for (const auto& anim_node_ptr : anim.nodes) {
         if (!anim_node_ptr) continue;
-        auto it = name_to_joint.find(std::string_view(anim_node_ptr->name));
+        auto it = name_to_joint.find(fold(std::string_view(anim_node_ptr->name)));
         if (it == name_to_joint.end()) continue;
         auto& track = clip.tracks[it->second];
 
         auto poskey = anim_node_ptr->get_controller(nwm::ControllerType::Position, true);
         track.translations.reserve(poskey.time.size());
         for (size_t i = 0; i < poskey.time.size(); ++i) {
-            track.translations.push_back({
-                poskey.time[i],
-                glm::vec3{poskey.data[i * 3], poskey.data[i * 3 + 1], poskey.data[i * 3 + 2]}});
+            track.translations.push_back({poskey.time[i],
+                translation_scale
+                    * glm::vec3{poskey.data[i * 3], poskey.data[i * 3 + 1], poskey.data[i * 3 + 2]}});
         }
 
         auto orikey = anim_node_ptr->get_controller(nwm::ControllerType::Orientation, true);
         track.rotations.reserve(orikey.time.size());
         for (size_t i = 0; i < orikey.time.size(); ++i) {
             // NWN orientation: [x, y, z, w] packed
-            track.rotations.push_back({
-                orikey.time[i],
+            track.rotations.push_back({orikey.time[i],
                 glm::normalize(glm::quat{orikey.data[i * 4 + 3], orikey.data[i * 4],
                     orikey.data[i * 4 + 1], orikey.data[i * 4 + 2]})});
         }

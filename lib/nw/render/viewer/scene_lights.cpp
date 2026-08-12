@@ -7,7 +7,6 @@
 
 #include <nw/formats/Tileset.hpp>
 #include <nw/log.hpp>
-#include <nw/model/Mdl.hpp>
 #include <nw/render/render_context.hpp>
 
 #include <algorithm>
@@ -17,10 +16,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
-#include <optional>
-
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 namespace nw::render::viewer {
 
@@ -46,6 +41,7 @@ bool viewer_tile_light_debug_shapes_enabled()
 }
 
 struct SceneModelLightAppendOptions {
+    glm::mat4 root_transform{1.0f};
     SceneTileLightSlots tile_slots{};
     int tile_x = -1;
     int tile_y = -1;
@@ -55,60 +51,6 @@ struct SceneModelLightAppendOptions {
     int32_t model_source_node_index = -1;
     SceneLocalLightTuning tuning{};
 };
-
-std::optional<float> model_scalar_controller(const nw::model::Node& node, uint32_t type)
-{
-    const auto value = node.get_controller(type);
-    if (value.key && !value.data.empty()) {
-        return value.data[0];
-    }
-    return std::nullopt;
-}
-
-std::optional<glm::vec3> model_vec3_controller(const nw::model::Node& node, uint32_t type)
-{
-    const auto value = node.get_controller(type);
-    if (value.key && value.data.size() >= 3) {
-        return glm::vec3{value.data[0], value.data[1], value.data[2]};
-    }
-    return std::nullopt;
-}
-
-glm::quat model_quat_controller(
-    const nw::model::Node& node,
-    uint32_t type,
-    const glm::quat& fallback = glm::quat{1.0f, 0.0f, 0.0f, 0.0f})
-{
-    const auto value = node.get_controller(type);
-    if (value.key && value.data.size() >= 4) {
-        const glm::quat result{value.data[3], value.data[0], value.data[1], value.data[2]};
-        if (glm::dot(result, result) >= 1.0e-12f) {
-            return glm::normalize(result);
-        }
-    }
-    return fallback;
-}
-
-glm::mat4 model_node_local_transform(const nw::model::Node& node)
-{
-    glm::mat4 result = glm::translate(
-        glm::mat4{1.0f},
-        model_vec3_controller(node, nw::model::ControllerType::Position).value_or(glm::vec3{0.0f}));
-    result *= glm::mat4_cast(model_quat_controller(node, nw::model::ControllerType::Orientation));
-    result = glm::scale(
-        result,
-        model_vec3_controller(node, nw::model::ControllerType::Scale).value_or(glm::vec3{1.0f}));
-    return result;
-}
-
-glm::mat4 model_node_transform(const nw::model::Node& node)
-{
-    glm::mat4 result = model_node_local_transform(node);
-    for (auto* parent = node.parent; parent; parent = parent->parent) {
-        result = model_node_local_transform(*parent) * result;
-    }
-    return result;
-}
 
 float color_max_channel(const glm::vec3& color) noexcept
 {
@@ -145,32 +87,6 @@ glm::vec3 tile_main_light_debug_color(uint8_t color_id)
 bool has_visible_light_color(const glm::vec3& color) noexcept
 {
     return color_max_channel(color) > 1.0e-4f;
-}
-
-glm::vec3 model_light_authored_color(const nw::model::LightNode& light)
-{
-    if (auto authored_color = model_vec3_controller(light, nw::model::ControllerType::Color)) {
-        if (has_visible_light_color(*authored_color)) {
-            return *authored_color;
-        }
-    }
-    if (has_visible_light_color(light.color)) {
-        return light.color;
-    }
-    return glm::vec3{0.0f};
-}
-
-glm::vec3 model_light_debug_color(const nw::model::LightNode& light, const SceneTileLightSlots& slots)
-{
-    glm::vec3 color{0.0f};
-    if (has_tile_light_slots(slots)) {
-        color = tile_slot_color_for_model_light(light, slots);
-    }
-    if (!has_visible_light_color(color)) {
-        color = model_light_authored_color(light);
-    }
-
-    return glm::clamp(color, glm::vec3{0.0f}, glm::vec3{1.0f});
 }
 
 SceneLocalLightTuning scene_authored_model_light_tuning(const PreviewScene& scene) noexcept
@@ -220,45 +136,75 @@ SceneLocalLightTuning scene_light_tuning_for_source(
     return scene_authored_model_light_tuning(scene);
 }
 
-SceneLocalLight scene_local_light_from_model_light(
-    const nw::model::LightNode& light,
-    const glm::mat4& root_transform,
+glm::vec3 render_model_light_color(
+    const nw::render::ModelLight& light,
+    const SceneTileLightSlots& slots)
+{
+    glm::vec3 color = light.color;
+    if (has_tile_light_slots(slots)
+        && light.external_color_slot != nw::render::kModelLightNoExternalColor
+        && light.external_color_slot < 4u) {
+        const std::array<uint8_t, 4> color_indices{
+            slots.main1,
+            slots.main2,
+            slots.source1,
+            slots.source2,
+        };
+        color = tile_color_from_index(color_indices[light.external_color_slot]);
+    }
+    return glm::clamp(color, glm::vec3{0.0f}, glm::vec3{1.0f});
+}
+
+SceneLocalLight scene_local_light_from_render_model_light(
+    const nw::render::ModelLight& light,
+    const glm::mat4& node_world_transform,
     const SceneModelLightAppendOptions& options)
 {
-    const glm::mat4 model_transform = model_node_transform(light);
-    auto world_position = glm::vec3(root_transform * model_transform[3]);
     const bool has_authored_tile_slots = has_tile_light_slots(options.tile_slots);
-    const bool uses_main_slot = model_light_is_main_tile_slot(light);
+    auto world_position = glm::vec3(node_world_transform[3]);
     if (has_authored_tile_slots) {
-        const float tile_base_z = glm::vec3(root_transform[3]).z;
-        const float z_offset = uses_main_slot ? 1.6f : 1.1f;
+        const float tile_base_z = glm::vec3(options.root_transform[3]).z;
+        const float z_offset = light.main_contribution ? 1.6f : 1.1f;
         world_position.z = std::min(world_position.z, tile_base_z + z_offset);
     }
-    const float minimum_radius = has_authored_tile_slots ? (uses_main_slot ? 6.0f : 3.4f) : 2.6f;
-    const float maximum_radius = has_authored_tile_slots ? (uses_main_slot ? 9.2f : 5.4f) : 32.0f;
-    const float minimum_intensity = has_authored_tile_slots ? (uses_main_slot ? 0.30f : 0.46f) : 0.05f;
-    const float maximum_intensity = has_authored_tile_slots ? (uses_main_slot ? 1.0f : 1.35f) : 2.0f;
-    const float contribution_scale = has_authored_tile_slots && uses_main_slot ? 0.45f : 1.0f;
 
-    const float radius = model_scalar_controller(light, nw::model::ControllerType::Radius)
-                             .value_or(model_scalar_controller(light, nw::model::ControllerType::ShadowRadius).value_or(minimum_radius));
-    const float multiplier = model_scalar_controller(light, nw::model::ControllerType::Multiplier)
-                                 .value_or(light.multiplier > 0.0f ? light.multiplier : 1.0f);
-    const float base_radius = std::clamp(radius, minimum_radius, maximum_radius);
-    const float base_intensity = std::clamp(std::max(multiplier, minimum_intensity), 0.0f, maximum_intensity)
+    const float minimum_radius = has_authored_tile_slots
+        ? (light.main_contribution ? 6.0f : 3.4f)
+        : 2.6f;
+    const float maximum_radius = has_authored_tile_slots
+        ? (light.main_contribution ? 9.2f : 5.4f)
+        : 32.0f;
+    const float minimum_intensity = has_authored_tile_slots
+        ? (light.main_contribution ? 0.30f : 0.46f)
+        : 0.05f;
+    const float maximum_intensity = has_authored_tile_slots
+        ? (light.main_contribution ? 1.0f : 1.35f)
+        : 2.0f;
+    const float contribution_scale = has_authored_tile_slots && light.main_contribution ? 0.45f : 1.0f;
+    const float base_radius = std::clamp(
+        light.radius > 0.0f ? light.radius : minimum_radius,
+        minimum_radius,
+        maximum_radius);
+    const float base_intensity = std::clamp(
+                                     std::max(light.intensity, minimum_intensity),
+                                     0.0f,
+                                     maximum_intensity)
         * contribution_scale;
+    const bool ambient_contribution = light.ambient
+        || (has_authored_tile_slots && light.main_contribution);
 
-    const bool ambient_contribution = light.ambientonly != 0 || (has_authored_tile_slots && uses_main_slot);
     return SceneLocalLight{
         .position = world_position,
         .radius = base_radius * options.tuning.radius_scale,
-        .color = model_light_debug_color(light, options.tile_slots),
+        .color = render_model_light_color(light, options.tile_slots),
         .intensity = base_intensity * options.tuning.intensity_scale,
         .base_radius = base_radius,
         .base_intensity = base_intensity,
         .source = options.source,
         .model_index = options.model_index,
-        .model_source_node_index = options.model_source_node_index,
+        .model_source_node_index = light.node <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max())
+            ? static_cast<int32_t>(light.node)
+            : -1,
         .tile_light_slots = options.tile_slots,
         .tile_x = static_cast<uint16_t>(
             options.tile_x >= 0
@@ -270,10 +216,10 @@ SceneLocalLight scene_local_light_from_model_light(
                 : 0),
         .tile_orientation = options.tile_orientation,
         .dynamic = static_cast<uint8_t>(light.dynamic ? 1 : 0),
-        .affect_dynamic = static_cast<uint8_t>(light.affectdynamic != 0 ? 1 : 0),
+        .affect_dynamic = static_cast<uint8_t>(light.affect_dynamic ? 1 : 0),
         .ambient_contribution = static_cast<uint8_t>(ambient_contribution ? 1 : 0),
-        .casts_shadow = static_cast<uint8_t>(light.shadow != 0 ? 1 : 0),
-        .fading = static_cast<uint8_t>(light.fadinglight != 0 ? 1 : 0),
+        .casts_shadow = static_cast<uint8_t>(light.casts_shadow ? 1 : 0),
+        .fading = static_cast<uint8_t>(light.fading ? 1 : 0),
     };
 }
 
@@ -383,59 +329,49 @@ bool scene_light_model_node_position(
     const SceneLocalLight& light,
     glm::vec3& out_position) noexcept
 {
-    if (light.model_index >= scene.models.size() || light.model_source_node_index < 0) {
+    if (light.model_source_node_index < 0) {
         return false;
     }
 
-    const auto& model = scene.models[light.model_index];
-    if (!model) {
+    if (light.model_index >= scene.static_models.size()) {
         return false;
     }
-
-    const auto* node = model->node_from_source_index(light.model_source_node_index);
-    if (!node) {
+    const auto* instance = scene.static_model_instance(light.model_index);
+    glm::mat4 node_world{1.0f};
+    if (!instance
+        || !instance->visible
+        || !nw::render::model_instance_node_world_transform(
+            *instance, light.model_source_node_index, node_world)) {
         return false;
     }
-
-    const auto* instance = scene.nwn_model_instance(light.model_index);
-    if (!instance || !instance->visible) {
-        return false;
-    }
-
-    out_position = glm::vec3(instance->root_transform * node->get_transform()[3]);
-    return std::isfinite(out_position.x) && std::isfinite(out_position.y) && std::isfinite(out_position.z);
+    out_position = glm::vec3(node_world[3]);
+    return std::isfinite(out_position.x)
+        && std::isfinite(out_position.y)
+        && std::isfinite(out_position.z);
 }
 
-size_t append_model_light_nodes(
+size_t append_render_model_light_rows(
     PreviewScene& scene,
-    const nw::model::Mdl& mdl,
-    const glm::mat4& root_transform,
-    const SceneModelLightAppendOptions& options)
+    const nw::render::RenderModel& model,
+    const nw::render::ModelInstance& instance,
+    SceneModelLightAppendOptions options)
 {
+    options.root_transform = instance.root_transform;
     size_t result = 0;
-    for (size_t node_index = 0; node_index < mdl.model.nodes.size(); ++node_index) {
-        const auto& node = mdl.model.nodes[node_index];
-        const auto* light = dynamic_cast<const nw::model::LightNode*>(node.get());
-        if (!light) {
+    for (const auto& light : model.lights) {
+        if (light.node >= model.nodes.size()) {
             continue;
         }
 
-        auto light_options = options;
-        if (node_index <= static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
-            light_options.model_source_node_index = static_cast<int32_t>(node_index);
+        glm::mat4 node_world = instance.root_transform * model.nodes[light.node].world_transform;
+        if (light.node <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+            glm::mat4 sampled_node_world{1.0f};
+            if (nw::render::model_instance_node_world_transform(
+                    instance, static_cast<int32_t>(light.node), sampled_node_world)) {
+                node_world = sampled_node_world;
+            }
         }
-        if (viewer_tile_light_debug_shapes_enabled()) {
-            LOG_F(INFO,
-                "model_light_node model={} node={} tile_slots=[{},{},{},{}] source={}",
-                mdl.model.name,
-                light->name,
-                options.tile_slots.main1,
-                options.tile_slots.main2,
-                options.tile_slots.source1,
-                options.tile_slots.source2,
-                static_cast<int>(options.source));
-        }
-        const auto scene_light = scene_local_light_from_model_light(*light, root_transform, light_options);
+        const auto scene_light = scene_local_light_from_render_model_light(light, node_world, options);
         append_scene_local_light(scene, scene_light);
         if (viewer_tile_light_debug_shapes_enabled()) {
             const size_t first_debug_index = scene.debug_shape_indices.size();
@@ -536,51 +472,62 @@ size_t append_placeable_table_lights(
     return result;
 }
 
-size_t append_model_authored_lights(PreviewScene& scene, size_t model_index)
+size_t append_render_model_authored_lights(PreviewScene& scene, size_t model_index)
 {
-    if (model_index >= scene.models.size()
+    if (model_index >= scene.static_models.size()
         || model_index > static_cast<size_t>(std::numeric_limits<uint32_t>::max())) {
         return 0;
     }
 
-    const auto& model = scene.models[model_index];
-    const auto* instance = scene.nwn_model_instance(model_index);
-    if (!model || !model->mdl_ || !instance || !instance->visible) {
+    const auto& model = scene.static_models[model_index];
+    const auto* instance = scene.static_model_instance(model_index);
+    if (!model || !instance || !instance->visible) {
         return 0;
     }
 
-    return append_model_light_nodes(scene, *model->mdl_, instance->root_transform, SceneModelLightAppendOptions{
-                                                                                       .model_index = static_cast<uint32_t>(model_index),
-                                                                                       .tuning = scene_authored_model_light_tuning(scene),
-                                                                                   });
+    return append_render_model_light_rows(scene, *model, *instance, SceneModelLightAppendOptions{
+                                                                        .source = SceneLocalLightSource::authored_model,
+                                                                        .model_index = static_cast<uint32_t>(model_index),
+                                                                        .tuning = scene_authored_model_light_tuning(scene),
+                                                                    });
 }
 
 size_t append_scene_authored_model_lights(PreviewScene& scene)
 {
     size_t result = 0;
-    for (size_t model_index = 0; model_index < scene.models.size(); ++model_index) {
-        result += append_model_authored_lights(scene, model_index);
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        result += append_render_model_authored_lights(scene, model_index);
     }
     return result;
 }
 
-size_t append_tile_model_lights(
+size_t append_tile_render_model_lights(
     PreviewScene& scene,
-    const nw::model::Mdl& mdl,
-    const glm::mat4& tile_placement,
+    size_t model_index,
     const nw::AreaTile& tile,
     int tile_x,
     int tile_y)
 {
+    if (model_index >= scene.static_models.size()
+        || model_index > static_cast<size_t>(std::numeric_limits<uint32_t>::max())) {
+        return 0;
+    }
+    const auto& model = scene.static_models[model_index];
+    const auto* instance = scene.static_model_instance(model_index);
+    if (!model || !instance || !instance->visible) {
+        return 0;
+    }
+
     const SceneTileLightSlots slots = scene_tile_light_slots(tile);
-    return append_model_light_nodes(scene, mdl, tile_placement, SceneModelLightAppendOptions{
-                                                                    .tile_slots = slots,
-                                                                    .tile_x = tile_x,
-                                                                    .tile_y = tile_y,
-                                                                    .tile_orientation = static_cast<uint8_t>(std::clamp(tile.orientation, 0, 255)),
-                                                                    .source = SceneLocalLightSource::tile_model,
-                                                                    .tuning = scene_local_light_tuning(scene),
-                                                                });
+    return append_render_model_light_rows(scene, *model, *instance, SceneModelLightAppendOptions{
+                                                                        .tile_slots = slots,
+                                                                        .tile_x = tile_x,
+                                                                        .tile_y = tile_y,
+                                                                        .tile_orientation = static_cast<uint8_t>(std::clamp(tile.orientation, 0, 255)),
+                                                                        .source = SceneLocalLightSource::tile_model,
+                                                                        .model_index = static_cast<uint32_t>(model_index),
+                                                                        .tuning = scene_local_light_tuning(scene),
+                                                                    });
 }
 
 void refresh_scene_local_light_render_data(PreviewScene& scene)

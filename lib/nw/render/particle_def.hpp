@@ -12,6 +12,10 @@
 
 namespace nw::render {
 
+// Finite runtime representation for particles authored without an expiry.
+// Keeping the value finite preserves branch-free normalized-age updates.
+inline constexpr float kParticlePerpetualLifetimeSeconds = 1.0e9f;
+
 enum class ParticleEmissionMode {
     continuous,
     single_shot,

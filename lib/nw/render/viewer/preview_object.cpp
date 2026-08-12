@@ -170,9 +170,9 @@ PreviewDoorStateLoad load_door_state_from_json(const std::filesystem::path& path
         return result;
     }
 
-    const auto state = archive.find("core.door.DoorState");
+    const auto state = archive.find("nwn1.propsets.DoorState");
     if (state == archive.end() || !state->is_object()) {
-        result.error = fmt::format("door preview JSON '{}' missing core.door.DoorState", path.string());
+        result.error = fmt::format("door preview JSON '{}' missing nwn1.propsets.DoorState", path.string());
         return result;
     }
 
@@ -268,9 +268,9 @@ PreviewPlaceableStateLoad load_placeable_state_from_json(const std::filesystem::
         return result;
     }
 
-    const auto state = archive.find("core.placeable.PlaceableState");
+    const auto state = archive.find("nwn1.propsets.PlaceableState");
     if (state == archive.end() || !state->is_object()) {
-        result.error = fmt::format("placeable preview JSON '{}' missing core.placeable.PlaceableState", path.string());
+        result.error = fmt::format("placeable preview JSON '{}' missing nwn1.propsets.PlaceableState", path.string());
         return result;
     }
 
@@ -532,7 +532,10 @@ PreviewPlaceableVisualLoad load_placeable_visual_from_file(const std::filesystem
 
     PreviewPlaceableVisualLoad result{
         .loaded = true,
-        .visual = nw::ObjectVisualState{.appearance = state.appearance},
+        .visual = nw::ObjectVisualState{
+            .hold_animation = nw::Resref{"default"},
+            .appearance = state.appearance,
+        },
     };
 
     auto& rt = nw::kernel::runtime();
@@ -702,6 +705,11 @@ std::string area_object_origin(
 
 glm::mat4 area_object_placement_transform(const nw::Location& location)
 {
+    return area_object_placement_transform(location, glm::vec3{1.0f});
+}
+
+glm::mat4 area_object_placement_transform(const nw::Location& location, glm::vec3 scale)
+{
     constexpr float k_epsilon = 1.0e-5f;
     float angle = 0.0f;
     if (std::abs(location.orientation.x) > k_epsilon || std::abs(location.orientation.y) > k_epsilon) {
@@ -710,6 +718,7 @@ glm::mat4 area_object_placement_transform(const nw::Location& location)
 
     glm::mat4 placement = glm::translate(glm::mat4{1.0f}, location.position);
     placement *= glm::toMat4(glm::angleAxis(angle, glm::vec3{0.0f, 0.0f, 1.0f}));
+    placement = glm::scale(placement, scale);
     return placement;
 }
 

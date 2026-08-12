@@ -87,6 +87,14 @@ json command_stats_json(const nw::gfx::CommandStats& stats)
         {"resource_binds_skipped", stats.resource_bind_skipped_count},
         {"descriptor_buffer_binds", stats.descriptor_buffer_bind_count},
         {"descriptor_buffer_binds_skipped", stats.descriptor_buffer_bind_skipped_count},
+        {"descriptor_allocations", stats.descriptor_allocation_count},
+        {"descriptor_allocation_bytes", stats.descriptor_allocation_bytes},
+        {"descriptor_allocation_failures", stats.descriptor_allocation_failure_count},
+        {"descriptor_ring_capacity_bytes", stats.descriptor_ring_capacity_bytes},
+        {"descriptor_ring_required_bytes", stats.descriptor_ring_required_bytes},
+        {"resource_bind_failures", stats.resource_bind_failure_count},
+        {"dropped_draws", stats.dropped_draw_count},
+        {"dropped_dispatches", stats.dropped_dispatch_count},
         {"uniform_allocations", stats.uniform_allocation_count},
         {"uniform_allocation_bytes", stats.uniform_allocation_bytes},
         {"vertex_allocations", stats.vertex_allocation_count},
@@ -480,14 +488,11 @@ json area_render_cache_stats_json(const nw::render::viewer::AreaRenderSceneStats
         {"dynamic_records", stats.dynamic_record_count},
         {"disabled_records", stats.disabled_record_count},
         {"prepared_draws", stats.prepared_draw_count},
-        {"shadow_prepared_draws", stats.shadow_prepared_surface_count},
-        {"static_geometry_meshes", stats.static_geometry_mesh_count},
-        {"static_geometry_vertices", stats.static_geometry_vertex_count},
-        {"static_geometry_indices", stats.static_geometry_index_count},
-        {"static_geometry_bytes", stats.static_geometry_bytes},
+        {"surface_ranges", stats.surface_range_count},
+        {"surface_triangles", stats.surface_triangle_count},
+        {"surface_bytes", stats.surface_bytes},
         {"local_lights", stats.local_light_count},
         {"max_prepared_draws_per_record", stats.max_prepared_draws_per_record},
-        {"max_shadow_prepared_draws_per_record", stats.max_shadow_prepared_surfaces_per_record},
         {"light_indices", stats.light_index_count},
         {"max_light_indices_per_record", stats.max_light_indices_per_record},
         {"chunk_light_indices", stats.chunk_light_index_count},
@@ -556,12 +561,9 @@ json prepared_model_draw_stats_json(const nw::render::PreparedModelDrawStats& st
         {"missing_assets", stats.missing_asset_count},
         {"invalid_draws", stats.invalid_draw_count},
         {"render_model_instances", stats.render_model_instance_count},
-        {"nwn_legacy_instances", stats.nwn_legacy_instance_count},
         {"render_model_draws", stats.render_model_draw_count},
-        {"nwn_legacy_draws", stats.nwn_legacy_draw_count},
         {"material_fallback_draws", stats.material_fallback_draw_count},
         {"render_model_material_fallback_draws", stats.render_model_material_fallback_draw_count},
-        {"nwn_legacy_material_fallback_draws", stats.nwn_legacy_material_fallback_draw_count},
     };
 }
 
@@ -587,7 +589,6 @@ json prepared_model_draw_validation_json(
         {"passed", validation.valid()},
         {"mismatches", validation.protocol_mismatch_count},
         {"prepared_draws", validation.prepared_draw_count},
-        {"nwn_sidecar_draws", validation.nwn_sidecar_draw_count},
         {"instance_offsets", validation.instance_offset_count},
         {"expected_stats", prepared_model_draw_stats_json(validation.expected_stats)},
         {"prepared_stats", prepared_model_draw_stats_json(validation.prepared_stats)},
@@ -602,7 +603,6 @@ json prepared_model_surface_stats_json(const nw::render::PreparedModelSurfaceDra
         {"ranges", stats.range_count},
         {"draws", stats.draw_count},
         {"render_model_draws", stats.render_model_draw_count},
-        {"nwn_legacy_draws", stats.nwn_legacy_draw_count},
         {"shadow_casters", stats.shadow_caster_draw_count},
         {"invalid_ranges", stats.invalid_range_count},
         {"range_mismatches", stats.range_mismatch_count},
@@ -636,10 +636,8 @@ json prepared_model_surface_material_binding_stats_json(
         {"material_mismatches", stats.material_mismatch_count},
         {"material_fallbacks", stats.material_fallback_count},
         {"render_model_material_fallbacks", stats.render_model_material_fallback_count},
-        {"nwn_legacy_material_fallbacks", stats.nwn_legacy_material_fallback_count},
         {"fallback_material_payloads", stats.fallback_material_payload_count},
         {"render_model_fallback_material_payloads", stats.render_model_fallback_material_payload_count},
-        {"nwn_legacy_fallback_material_payloads", stats.nwn_legacy_fallback_material_payload_count},
         {"shadow_mismatches", stats.shadow_mismatch_count},
         {"materials", prepared_model_surface_material_stats_json(stats.materials)},
     };
@@ -656,7 +654,6 @@ json prepared_render_model_skin_table_stats_json(
         {"reused_surfaces", stats.reused_surface_count},
         {"bind_pose_fallback_surfaces", stats.bind_pose_fallback_surface_count},
         {"unskinned_surfaces", stats.unskinned_surface_count},
-        {"non_render_model_surfaces", stats.non_render_model_surface_count},
         {"stale_instances", stats.stale_instance_count},
         {"invalid_skin_indices", stats.invalid_skin_index_count},
         {"invalid_matrix_ranges", stats.invalid_matrix_range_count},
@@ -683,11 +680,7 @@ json preview_scene_runtime_sync_stats_json(
     const nw::render::viewer::PreviewSceneRuntimeSyncStats& stats)
 {
     return {
-        {"nwn_models", stats.nwn_model_count},
         {"render_models", stats.render_model_count},
-        {"nwn_attachment_bindings", stats.nwn_attachment_binding_count},
-        {"nwn_attachment_roots_resolved", stats.nwn_attachment_root_resolved_count},
-        {"nwn_attachment_roots_failed", stats.nwn_attachment_root_failed_count},
         {"render_model_attachment_bindings", stats.render_model_attachment_binding_count},
         {"render_model_attachment_roots_resolved", stats.render_model_attachment_root_resolved_count},
         {"render_model_attachment_roots_failed", stats.render_model_attachment_root_failed_count},
@@ -738,64 +731,11 @@ json prepared_render_model_surface_submission_stats_json(
     };
 }
 
-bool prepared_nwn_legacy_surface_submission_valid(
-    const nw::render::viewer::ViewerFrameStats& stats) noexcept
-{
-    return stats.prepared_nwn_legacy_missing_sidecar_draw_count == 0
-        && stats.prepared_nwn_legacy_invalid_sidecar_draw_count == 0;
-}
-
-json prepared_nwn_legacy_surface_submission_stats_json(
-    const nw::render::viewer::ViewerFrameStats& stats)
-{
-    const uint64_t dropped_draws = static_cast<uint64_t>(stats.prepared_nwn_legacy_missing_sidecar_draw_count)
-        + static_cast<uint64_t>(stats.prepared_nwn_legacy_invalid_sidecar_draw_count);
-    return {
-        {"passed", prepared_nwn_legacy_surface_submission_valid(stats)},
-        {"selected_draws", stats.prepared_nwn_legacy_selected_draw_count},
-        {"missing_sidecars", stats.prepared_nwn_legacy_missing_sidecar_draw_count},
-        {"invalid_sidecars", stats.prepared_nwn_legacy_invalid_sidecar_draw_count},
-        {"dropped_draws", dropped_draws},
-    };
-}
-
 json prepared_model_surface_submission_stats_json(
     const nw::render::viewer::ViewerFrameStats& stats)
 {
     return {
-        {"nwn_legacy", prepared_nwn_legacy_surface_submission_stats_json(stats)},
         {"render_model", prepared_render_model_surface_submission_stats_json(stats.prepared_render_model_surface_submission)},
-    };
-}
-
-json area_direct_model_submission_stats_json(
-    const nw::render::viewer::AreaDirectModelSubmissionStats& stats)
-{
-    return {
-        {"passed", stats.valid()},
-        {"input_records", stats.input_record_count},
-        {"selected_legacy_records", stats.selected_legacy_record_count},
-        {"selected_render_model_records", stats.selected_render_model_record_count},
-        {"skipped_render_model_records", stats.skipped_render_model_record_count},
-        {"dropped_invalid_records", stats.dropped_invalid_record_count},
-        {"dropped_invalid_sources", stats.dropped_invalid_source_count},
-        {"dropped_unsupported_kinds", stats.dropped_unsupported_kind_count},
-        {"dropped_records", stats.dropped_record_count()},
-    };
-}
-
-json area_prepared_surface_sidecar_stats_json(
-    const nw::render::viewer::AreaPreparedSurfaceSidecarStats& stats)
-{
-    return {
-        {"passed", stats.valid()},
-        {"input_surfaces", stats.input_surface_count},
-        {"selected_draws", stats.selected_draw_count},
-        {"dropped_non_nwn_surfaces", stats.dropped_non_nwn_surface_count},
-        {"dropped_invalid_surface_indices", stats.dropped_invalid_surface_index_count},
-        {"dropped_missing_sidecars", stats.dropped_missing_sidecar_draw_count},
-        {"dropped_invalid_sidecars", stats.dropped_invalid_sidecar_draw_count},
-        {"dropped_surfaces", stats.dropped_surface_count()},
     };
 }
 
@@ -804,8 +744,7 @@ void log_prepared_model_surface_submission_stats(
 {
     const auto& submission = stats.prepared_render_model_surface_submission;
     LOG_F(INFO,
-        "Prepared model surface submission: nwn_enabled={} nwn_selected={} nwn_missing_sidecars={} "
-        "nwn_invalid_sidecars={} render_model_enabled={} render_model_submitted_surfaces={} "
+        "Prepared model surface submission: render_model_enabled={} render_model_submitted_surfaces={} "
         "render_model_dropped_invalid_surfaces={} render_model_submitted_runs={} "
         "render_model_opaque_cutout_runs={} render_model_water_runs={} "
         "render_model_transparent_runs={} render_model_all_runs={} "
@@ -818,10 +757,6 @@ void log_prepared_model_surface_submission_stats(
         "render_model_skin_skinned_surfaces={} render_model_skin_table_bound_surfaces={} "
         "render_model_skin_bind_pose_fallback_surfaces={} render_model_skin_missing_table_surfaces={} "
         "render_model_skin_invalid_table_index_surfaces={} render_model_skin_invalid_table_range_surfaces={}",
-        stats.prepared_nwn_legacy_draws_enabled,
-        stats.prepared_nwn_legacy_selected_draw_count,
-        stats.prepared_nwn_legacy_missing_sidecar_draw_count,
-        stats.prepared_nwn_legacy_invalid_sidecar_draw_count,
         stats.prepared_render_model_draws_enabled,
         submission.submitted_surface_count,
         submission.dropped_invalid_surface_count,
@@ -855,15 +790,10 @@ void log_preview_scene_runtime_sync_stats(
 {
     const auto& sync = stats.runtime_sync_stats;
     LOG_F(INFO,
-        "Preview runtime sync: nwn_models={} render_models={} "
-        "nwn_attachment_bindings={} nwn_attachment_roots_resolved={} nwn_attachment_roots_failed={} "
-        "render_model_attachment_bindings={} render_model_attachment_roots_resolved={} "
+        "Preview runtime sync: render_models={} render_model_attachment_bindings={} "
+        "render_model_attachment_roots_resolved={} "
         "render_model_attachment_roots_failed={}",
-        sync.nwn_model_count,
         sync.render_model_count,
-        sync.nwn_attachment_binding_count,
-        sync.nwn_attachment_root_resolved_count,
-        sync.nwn_attachment_root_failed_count,
         sync.render_model_attachment_binding_count,
         sync.render_model_attachment_root_resolved_count,
         sync.render_model_attachment_root_failed_count);
@@ -902,7 +832,6 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
         {"counts", {
                        {"gpu_timers", stats.gpu_timer_count},
                        {"models", stats.model_count},
-                       {"static_models", stats.static_model_count},
                        {"particle_systems", stats.particle_system_count},
                        {"render_model_animation_sample_inputs", stats.render_model_animation_sample_stats.input_count},
                        {"render_model_animation_samples", stats.render_model_animation_sample_stats.sampled_count},
@@ -910,26 +839,16 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"render_model_animation_missing_asset_data", stats.render_model_animation_sample_stats.missing_asset_data_count},
                        {"render_model_animation_invalid_skeletons", stats.render_model_animation_sample_stats.invalid_skeleton_count},
                        {"render_model_animation_failed_samples", stats.render_model_animation_sample_stats.failed_sample_count},
-                       {"runtime_sync_nwn_models", stats.runtime_sync_stats.nwn_model_count},
                        {"runtime_sync_render_models", stats.runtime_sync_stats.render_model_count},
-                       {"runtime_sync_nwn_attachment_bindings", stats.runtime_sync_stats.nwn_attachment_binding_count},
-                       {"runtime_sync_nwn_attachment_roots_resolved", stats.runtime_sync_stats.nwn_attachment_root_resolved_count},
-                       {"runtime_sync_nwn_attachment_roots_failed", stats.runtime_sync_stats.nwn_attachment_root_failed_count},
                        {"runtime_sync_render_model_attachment_bindings", stats.runtime_sync_stats.render_model_attachment_binding_count},
                        {"runtime_sync_render_model_attachment_roots_resolved", stats.runtime_sync_stats.render_model_attachment_root_resolved_count},
                        {"runtime_sync_render_model_attachment_roots_failed", stats.runtime_sync_stats.render_model_attachment_root_failed_count},
                        {"prepared_render_model_draws", stats.prepared_render_model_draw_count},
-                       {"prepared_nwn_legacy_draws", stats.prepared_nwn_legacy_draw_count},
-                       {"prepared_nwn_legacy_selected_draws", stats.prepared_nwn_legacy_selected_draw_count},
-                       {"prepared_nwn_legacy_missing_sidecars", stats.prepared_nwn_legacy_missing_sidecar_draw_count},
-                       {"prepared_nwn_legacy_invalid_sidecars", stats.prepared_nwn_legacy_invalid_sidecar_draw_count},
                        {"prepared_model_draw_material_fallbacks", stats.prepared_model_draw_material_fallback_count},
                        {"prepared_model_draw_render_model_material_fallbacks", stats.prepared_model_draw_render_model_material_fallback_count},
-                       {"prepared_model_draw_nwn_legacy_material_fallbacks", stats.prepared_model_draw_nwn_legacy_material_fallback_count},
                        {"prepared_model_surface_ranges", stats.prepared_model_surface_stats.range_count},
                        {"prepared_model_surfaces", stats.prepared_model_surface_stats.draw_count},
                        {"prepared_model_surface_render_model_draws", stats.prepared_model_surface_stats.render_model_draw_count},
-                       {"prepared_model_surface_nwn_legacy_draws", stats.prepared_model_surface_stats.nwn_legacy_draw_count},
                        {"prepared_model_surface_shadow_casters", stats.prepared_model_surface_stats.shadow_caster_draw_count},
                        {"prepared_model_surface_invalid_ranges", stats.prepared_model_surface_stats.invalid_range_count},
                        {"prepared_model_surface_range_mismatches", stats.prepared_model_surface_stats.range_mismatch_count},
@@ -945,10 +864,8 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"prepared_model_surface_material_binding_mismatches", stats.prepared_model_surface_material_bindings.material_mismatch_count},
                        {"prepared_model_surface_material_fallbacks", stats.prepared_model_surface_material_bindings.material_fallback_count},
                        {"prepared_model_surface_render_model_material_fallbacks", stats.prepared_model_surface_material_bindings.render_model_material_fallback_count},
-                       {"prepared_model_surface_nwn_legacy_material_fallbacks", stats.prepared_model_surface_material_bindings.nwn_legacy_material_fallback_count},
                        {"prepared_model_surface_fallback_material_payloads", stats.prepared_model_surface_material_bindings.fallback_material_payload_count},
                        {"prepared_model_surface_render_model_fallback_material_payloads", stats.prepared_model_surface_material_bindings.render_model_fallback_material_payload_count},
-                       {"prepared_model_surface_nwn_legacy_fallback_material_payloads", stats.prepared_model_surface_material_bindings.nwn_legacy_fallback_material_payload_count},
                        {"prepared_render_model_surface_submitted_surfaces", stats.prepared_render_model_surface_submission.submitted_surface_count},
                        {"prepared_render_model_surface_dropped_invalid_surfaces", stats.prepared_render_model_surface_submission.dropped_invalid_surface_count},
                        {"prepared_render_model_surface_submitted_runs", stats.prepared_render_model_surface_submission.submitted_run_count},
@@ -972,6 +889,7 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"particle_mesh_missing_resref_packets", stats.particle_mesh_missing_resref_packet_count},
                        {"particle_mesh_missing_model_packets", stats.particle_mesh_missing_model_packet_count},
                        {"particle_mesh_invalid_particle_indices", stats.particle_mesh_invalid_particle_index_count},
+                       {"particle_mesh_invalid_particle_data", stats.particle_mesh_invalid_particle_data_count},
                        {"area_cache_records", stats.area_cache_record_count},
                        {"area_cache_static_records", stats.area_cache_static_record_count},
                        {"area_cache_dynamic_records", stats.area_cache_dynamic_record_count},
@@ -980,15 +898,9 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"area_cache_transparent_records", stats.area_cache_transparent_record_count},
                        {"area_cache_shadow_caster_records", stats.area_cache_shadow_caster_record_count},
                        {"area_cache_prepared_draws", stats.area_cache_prepared_draw_count},
-                       {"area_cache_shadow_prepared_draws", stats.area_cache_shadow_prepared_surface_count},
-                       {"area_cache_static_geometry_meshes", stats.area_cache_static_geometry_mesh_count},
-                       {"area_cache_static_geometry_vertices", stats.area_cache_static_geometry_vertex_count},
-                       {"area_cache_static_geometry_indices", stats.area_cache_static_geometry_index_count},
-                       {"area_cache_static_geometry_bytes", stats.area_cache_static_geometry_bytes},
                        {"area_cache_light_indices", stats.area_cache_light_index_count},
                        {"area_cache_local_lights", stats.area_cache_local_light_count},
                        {"area_cache_max_light_indices_per_record", stats.area_cache_max_light_indices_per_record},
-                       {"area_cache_max_shadow_prepared_draws_per_record", stats.area_cache_max_shadow_prepared_surfaces_per_record},
                        {"area_cache_chunk_light_indices", stats.area_cache_chunk_light_index_count},
                        {"area_cache_max_light_indices_per_chunk", stats.area_cache_max_light_indices_per_chunk},
                        {"area_cache_chunks", stats.area_cache_chunk_count},
@@ -1009,29 +921,6 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"area_frame_visible_prepared_draws", stats.area_frame_visible_prepared_surface_count},
                        {"area_frame_visible_lights", stats.area_frame_visible_light_count},
                        {"area_frame_uses_cached_draw_lists", stats.area_frame_uses_cached_draw_lists},
-                       {"area_frame_uses_sorted_static_draw_lists", stats.area_frame_uses_sorted_static_draw_lists},
-                       {"area_frame_material_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_frame_material_indirect_sidecar_bridge)},
-                       {"area_frame_static_material_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_frame_static_material_indirect_sidecar_bridge)},
-                       {"area_static_material_draw_data_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_static_material_draw_data_sidecar_bridge)},
-                       {"area_static_material_sidecar", area_prepared_surface_sidecar_stats_json(stats.area_static_material_sidecar_submission)},
-                       {"area_static_material_sidecar_input_surfaces", stats.area_static_material_sidecar_submission.input_surface_count},
-                       {"area_static_material_sidecar_selected_draws", stats.area_static_material_sidecar_submission.selected_draw_count},
-                       {"area_static_material_sidecar_dropped_surfaces", stats.area_static_material_sidecar_submission.dropped_surface_count()},
-                       {"area_static_material_sidecar_dropped_non_nwn_surfaces", stats.area_static_material_sidecar_submission.dropped_non_nwn_surface_count},
-                       {"area_static_material_sidecar_dropped_invalid_surface_indices", stats.area_static_material_sidecar_submission.dropped_invalid_surface_index_count},
-                       {"area_static_material_sidecar_dropped_missing_sidecars", stats.area_static_material_sidecar_submission.dropped_missing_sidecar_draw_count},
-                       {"area_static_material_sidecar_dropped_invalid_sidecars", stats.area_static_material_sidecar_submission.dropped_invalid_sidecar_draw_count},
-                       {"area_direct_model_input_records", stats.area_direct_model_submission.input_record_count},
-                       {"area_direct_model_selected_legacy_records", stats.area_direct_model_submission.selected_legacy_record_count},
-                       {"area_direct_model_selected_render_model_records", stats.area_direct_model_submission.selected_render_model_record_count},
-                       {"area_direct_model_skipped_render_model_records", stats.area_direct_model_submission.skipped_render_model_record_count},
-                       {"area_direct_model_dropped_invalid_records", stats.area_direct_model_submission.dropped_invalid_record_count},
-                       {"area_direct_model_dropped_invalid_sources", stats.area_direct_model_submission.dropped_invalid_source_count},
-                       {"area_direct_model_dropped_unsupported_kinds", stats.area_direct_model_submission.dropped_unsupported_kind_count},
-                       {"area_direct_model_dropped_records", stats.area_direct_model_submission.dropped_record_count()},
                        {"local_lights", stats.local_light_count},
                        {"local_lights_authored_model", stats.local_light_authored_model_count},
                        {"local_lights_tile_model", stats.local_light_tile_model_count},
@@ -1059,40 +948,9 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                        {"shadow_culled_models", stats.shadow_culled_model_count},
                        {"shadow_prepared_surface_shadow_ranges", stats.shadow_prepared_surface_shadow_range_count},
                        {"shadow_prepared_surface_invalid_ranges", stats.shadow_prepared_surface_invalid_range_count},
-                       {"shadow_area_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.shadow_area_indirect_sidecar_bridge)},
-                       {"shadow_area_sidecar", area_prepared_surface_sidecar_stats_json(stats.shadow_area_sidecar_bridge)},
                        {"local_shadow_caster_lights", stats.local_shadow_caster_light_count},
                        {"local_shadow_submitted_models", stats.local_shadow_submitted_model_count},
                        {"local_shadow_culled_models", stats.local_shadow_culled_model_count},
-                       {"local_shadow_area_sidecar", area_prepared_surface_sidecar_stats_json(stats.local_shadow_area_sidecar_bridge)},
-                       {"static_batch_material_batches", stats.static_batch_material_batch_count},
-                       {"static_batch_material_input_draws", stats.static_batch_material_input_draw_count},
-                       {"static_batch_material_instances", stats.static_batch_material_instance_count},
-                       {"static_batch_material_draw_calls", stats.static_batch_material_draw_call_count},
-                       {"static_batch_material_fallback_draws", stats.static_batch_material_fallback_draw_count},
-                       {"static_batch_material_failed_batch_attempt_draws", stats.static_batch_material_failed_batch_attempt_draw_count},
-                       {"static_batch_material_indirect_calls", stats.static_batch_material_indirect_call_count},
-                       {"static_batch_material_indirect_commands", stats.static_batch_material_indirect_command_count},
-                       {"static_batch_material_max_instances_per_draw", stats.static_batch_material_max_instances_per_draw},
-                       {"static_batch_material_indirect_command_upload_bytes", stats.static_batch_material_indirect_command_upload_bytes},
-                       {"static_batch_material_cached_indirect_command_bytes", stats.static_batch_material_cached_indirect_command_bytes},
-                       {"static_batch_material_draw_data_bytes", stats.static_batch_material_draw_data_bytes},
-                       {"static_batch_material_draw_data_cache_hits", stats.static_batch_material_draw_data_cache_hit_count},
-                       {"static_batch_material_cached_draw_data_bytes", stats.static_batch_material_cached_draw_data_bytes},
-                       {"static_batch_shadow_batches", stats.static_batch_shadow_batch_count},
-                       {"static_batch_shadow_input_draws", stats.static_batch_shadow_input_draw_count},
-                       {"static_batch_shadow_instances", stats.static_batch_shadow_instance_count},
-                       {"static_batch_shadow_draw_calls", stats.static_batch_shadow_draw_call_count},
-                       {"static_batch_shadow_failed_batch_attempt_draws", stats.static_batch_shadow_failed_batch_attempt_draw_count},
-                       {"static_batch_shadow_indirect_calls", stats.static_batch_shadow_indirect_call_count},
-                       {"static_batch_shadow_indirect_commands", stats.static_batch_shadow_indirect_command_count},
-                       {"static_batch_shadow_max_instances_per_draw", stats.static_batch_shadow_max_instances_per_draw},
-                       {"static_batch_shadow_indirect_command_upload_bytes", stats.static_batch_shadow_indirect_command_upload_bytes},
-                       {"static_batch_shadow_cached_indirect_command_bytes", stats.static_batch_shadow_cached_indirect_command_bytes},
-                       {"static_batch_shadow_draw_data_bytes", stats.static_batch_shadow_draw_data_bytes},
-                       {"static_batch_shadow_draw_data_cache_hits", stats.static_batch_shadow_draw_data_cache_hit_count},
-                       {"static_batch_shadow_cached_draw_data_bytes", stats.static_batch_shadow_cached_draw_data_bytes},
                        {"main_passes", stats.main_pass_count},
                    }},
         {"flags", {
@@ -1106,13 +964,10 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                       {"prepared_model_draw_validation_enabled", stats.prepared_model_draw_validation_enabled},
                       {"prepared_model_draw_validation_passed", stats.prepared_model_draw_validation.valid()},
                       {"prepared_render_model_draws_enabled", stats.prepared_render_model_draws_enabled},
-                      {"prepared_nwn_legacy_draws_enabled", stats.prepared_nwn_legacy_draws_enabled},
                       {"prepared_model_surface_stats_enabled", stats.prepared_model_surface_stats_enabled},
                       {"prepared_model_surface_stats_passed", stats.prepared_model_surface_stats.valid()},
                       {"prepared_model_surface_material_bindings_passed", stats.prepared_model_surface_material_bindings.valid()},
-                      {"prepared_nwn_legacy_surface_submission_passed", prepared_nwn_legacy_surface_submission_valid(stats)},
                       {"prepared_render_model_surface_submission_passed", stats.prepared_render_model_surface_submission.valid()},
-                      {"area_direct_model_submission_passed", stats.area_direct_model_submission.valid()},
                   }},
         {"prepared_model_draw_validation", prepared_model_draw_validation_json(stats.prepared_model_draw_validation_enabled, stats.prepared_model_draw_validation)},
         {"render_model_animation_samples", model_instance_animation_sample_stats_json(stats.render_model_animation_sample_stats)},
@@ -1121,7 +976,6 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
         {"prepared_render_model_skin_table", prepared_render_model_skin_table_stats_json(stats.prepared_render_model_skin_table_stats)},
         {"prepared_model_surface_submission", prepared_model_surface_submission_stats_json(stats)},
         {"prepared_render_model_surface_submission", prepared_render_model_surface_submission_stats_json(stats.prepared_render_model_surface_submission)},
-        {"area_direct_model_submission", area_direct_model_submission_stats_json(stats.area_direct_model_submission)},
         {"commands", command_stats_json(stats.total_command_stats)},
         {"pass_commands", {
                               {"shadow", command_stats_json(stats.shadow_command_stats)},
@@ -1165,49 +1019,17 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                        {"area_frame_visible_chunks", stats.area_frame_visible_chunk_count},
                        {"area_frame_visibility_culled_records", stats.area_frame_visibility_culled_record_count},
                        {"area_frame_shadow_caster_records", stats.area_frame_shadow_caster_record_count},
-                       {"area_frame_material_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_frame_material_indirect_sidecar_bridge)},
-                       {"area_frame_static_material_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_frame_static_material_indirect_sidecar_bridge)},
-                       {"area_static_material_draw_data_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_static_material_draw_data_sidecar_bridge)},
-                       {"area_static_material_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.area_static_material_sidecar_submission)},
-                       {"area_direct_model_input_records", stats.area_direct_model_submission.input_record_count},
-                       {"area_direct_model_selected_legacy_records", stats.area_direct_model_submission.selected_legacy_record_count},
-                       {"area_direct_model_selected_render_model_records", stats.area_direct_model_submission.selected_render_model_record_count},
-                       {"area_direct_model_skipped_render_model_records", stats.area_direct_model_submission.skipped_render_model_record_count},
-                       {"area_direct_model_dropped_invalid_records", stats.area_direct_model_submission.dropped_invalid_record_count},
-                       {"area_direct_model_dropped_invalid_sources", stats.area_direct_model_submission.dropped_invalid_source_count},
-                       {"area_direct_model_dropped_unsupported_kinds", stats.area_direct_model_submission.dropped_unsupported_kind_count},
-                       {"area_direct_model_dropped_records", stats.area_direct_model_submission.dropped_record_count()},
-                       {"static_batch_material_draw_calls", stats.static_batch_material_draw_call_count},
-                       {"static_batch_material_indirect_calls", stats.static_batch_material_indirect_call_count},
-                       {"static_batch_material_indirect_commands", stats.static_batch_material_indirect_command_count},
-                       {"static_batch_shadow_draw_calls", stats.static_batch_shadow_draw_call_count},
-                       {"static_batch_shadow_indirect_calls", stats.static_batch_shadow_indirect_call_count},
-                       {"static_batch_shadow_indirect_commands", stats.static_batch_shadow_indirect_command_count},
                        {"local_shadow_caster_lights", stats.local_shadow_caster_light_count},
                        {"local_shadow_submitted_models", stats.local_shadow_submitted_model_count},
                        {"local_shadow_culled_models", stats.local_shadow_culled_model_count},
                        {"shadow_prepared_surface_shadow_ranges", stats.shadow_prepared_surface_shadow_range_count},
                        {"shadow_prepared_surface_invalid_ranges", stats.shadow_prepared_surface_invalid_range_count},
-                       {"shadow_area_indirect_sidecar",
-                           area_prepared_surface_sidecar_stats_json(stats.shadow_area_indirect_sidecar_bridge)},
-                       {"shadow_area_sidecar", area_prepared_surface_sidecar_stats_json(stats.shadow_area_sidecar_bridge)},
-                       {"local_shadow_area_sidecar", area_prepared_surface_sidecar_stats_json(stats.local_shadow_area_sidecar_bridge)},
                        {"prepared_render_model_draws", stats.prepared_render_model_draw_count},
-                       {"prepared_nwn_legacy_draws", stats.prepared_nwn_legacy_draw_count},
-                       {"prepared_nwn_legacy_selected_draws", stats.prepared_nwn_legacy_selected_draw_count},
-                       {"prepared_nwn_legacy_missing_sidecars", stats.prepared_nwn_legacy_missing_sidecar_draw_count},
-                       {"prepared_nwn_legacy_invalid_sidecars", stats.prepared_nwn_legacy_invalid_sidecar_draw_count},
                        {"prepared_model_draw_material_fallbacks", stats.prepared_model_draw_material_fallback_count},
                        {"prepared_model_draw_render_model_material_fallbacks", stats.prepared_model_draw_render_model_material_fallback_count},
-                       {"prepared_model_draw_nwn_legacy_material_fallbacks", stats.prepared_model_draw_nwn_legacy_material_fallback_count},
                        {"prepared_model_surface_ranges", stats.prepared_model_surface_stats.range_count},
                        {"prepared_model_surfaces", stats.prepared_model_surface_stats.draw_count},
                        {"prepared_model_surface_render_model_draws", stats.prepared_model_surface_stats.render_model_draw_count},
-                       {"prepared_model_surface_nwn_legacy_draws", stats.prepared_model_surface_stats.nwn_legacy_draw_count},
                        {"prepared_model_surface_shadow_casters", stats.prepared_model_surface_stats.shadow_caster_draw_count},
                        {"prepared_model_surface_invalid_ranges", stats.prepared_model_surface_stats.invalid_range_count},
                        {"prepared_model_surface_range_mismatches", stats.prepared_model_surface_stats.range_mismatch_count},
@@ -1223,10 +1045,8 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                        {"prepared_model_surface_material_binding_mismatches", stats.prepared_model_surface_material_bindings.material_mismatch_count},
                        {"prepared_model_surface_material_fallbacks", stats.prepared_model_surface_material_bindings.material_fallback_count},
                        {"prepared_model_surface_render_model_material_fallbacks", stats.prepared_model_surface_material_bindings.render_model_material_fallback_count},
-                       {"prepared_model_surface_nwn_legacy_material_fallbacks", stats.prepared_model_surface_material_bindings.nwn_legacy_material_fallback_count},
                        {"prepared_model_surface_fallback_material_payloads", stats.prepared_model_surface_material_bindings.fallback_material_payload_count},
                        {"prepared_model_surface_render_model_fallback_material_payloads", stats.prepared_model_surface_material_bindings.render_model_fallback_material_payload_count},
-                       {"prepared_model_surface_nwn_legacy_fallback_material_payloads", stats.prepared_model_surface_material_bindings.nwn_legacy_fallback_material_payload_count},
                        {"prepared_render_model_surface_submitted_surfaces", stats.prepared_render_model_surface_submission.submitted_surface_count},
                        {"prepared_render_model_surface_dropped_invalid_surfaces", stats.prepared_render_model_surface_submission.dropped_invalid_surface_count},
                        {"prepared_render_model_surface_submitted_runs", stats.prepared_render_model_surface_submission.submitted_run_count},
@@ -1251,16 +1071,13 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                       {"forward_plus_active", stats.forward_plus_active},
                       {"forward_plus_gpu_culling", stats.forward_plus_gpu_culling},
                       {"area_frame_uses_cached_draw_lists", stats.area_frame_uses_cached_draw_lists},
-                      {"area_frame_uses_sorted_static_draw_lists", stats.area_frame_uses_sorted_static_draw_lists},
                       {"prepared_model_draw_validation_enabled", stats.prepared_model_draw_validation_enabled},
                       {"prepared_model_draw_validation_passed", stats.prepared_model_draw_validation.valid()},
                       {"prepared_render_model_draws_enabled", stats.prepared_render_model_draws_enabled},
-                      {"prepared_nwn_legacy_draws_enabled", stats.prepared_nwn_legacy_draws_enabled},
                       {"prepared_model_surface_stats_enabled", stats.prepared_model_surface_stats_enabled},
                       {"prepared_model_surface_stats_passed", stats.prepared_model_surface_stats.valid()},
                       {"prepared_model_surface_material_bindings_passed", stats.prepared_model_surface_material_bindings.valid()},
                       {"prepared_render_model_surface_submission_passed", stats.prepared_render_model_surface_submission.valid()},
-                      {"area_direct_model_submission_passed", stats.area_direct_model_submission.valid()},
                   }},
         {"commands", {
                          {"draws", stats.total_command_stats.draw_count},
@@ -1268,6 +1085,12 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                          {"indirect_draw_calls", stats.total_command_stats.indirect_draw_call_count},
                          {"pipeline_binds", stats.total_command_stats.pipeline_bind_count},
                          {"resource_binds", stats.total_command_stats.resource_bind_count},
+                         {"descriptor_allocation_bytes", stats.total_command_stats.descriptor_allocation_bytes},
+                         {"descriptor_allocation_failures", stats.total_command_stats.descriptor_allocation_failure_count},
+                         {"descriptor_ring_capacity_bytes", stats.total_command_stats.descriptor_ring_capacity_bytes},
+                         {"descriptor_ring_required_bytes", stats.total_command_stats.descriptor_ring_required_bytes},
+                         {"resource_bind_failures", stats.total_command_stats.resource_bind_failure_count},
+                         {"dropped_draws", stats.total_command_stats.dropped_draw_count},
                          {"uniform_allocations", stats.total_command_stats.uniform_allocation_count},
                          {"uniform_allocation_bytes", stats.total_command_stats.uniform_allocation_bytes},
                      }},
@@ -1283,7 +1106,7 @@ void fit_static_model_camera(nw::render::viewer::Camera& camera, const nw::rende
 bool scene_uses_static_model_camera(const nw::render::viewer::PreviewScene& scene)
 {
     for (const auto& model : scene.static_models) {
-        if (model && model->source_kind != nw::render::ModelAssetSourceKind::nwn_legacy) {
+        if (model && model->source_kind != nw::render::ModelAssetSourceKind::nwn) {
             return true;
         }
     }
@@ -1330,7 +1153,9 @@ bool supports_area_day_night_controls_impl(const AppState& state)
 
 bool supports_gltf_animation_controls_impl(const AppState& state)
 {
-    return state.current_scene && nw::render::viewer::supports_render_model_animations(*state.current_scene);
+    return state.loaded_scene_kind != LoadedSceneKind::vfx_sequence
+        && state.current_scene
+        && nw::render::viewer::supports_render_model_animations(*state.current_scene);
 }
 
 bool supports_vfx_sequence_controls_impl(const AppState& state)
@@ -1512,31 +1337,6 @@ void advance_gltf_instance_animation_times(AppState& state, float dt)
     nw::render::viewer::advance_render_model_animation_times(*state.current_scene, dt);
 }
 
-std::vector<std::string> collect_model_animation_names(const nw::render::viewer::ModelInstance& model)
-{
-    std::vector<std::string> result;
-    if (!model.scene_animation_enabled) {
-        return result;
-    }
-
-    const nw::model::Mdl* source = model.animation_source_ ? model.animation_source_ : model.mdl_;
-    while (source) {
-        for (const auto& animation : source->model.animations) {
-            if (!animation) {
-                continue;
-            }
-
-            const std::string name = animation->name.c_str();
-            if (!name.empty() && std::find(result.begin(), result.end(), name) == result.end()) {
-                result.push_back(name);
-            }
-        }
-        source = source->model.supermodel.get();
-    }
-
-    return result;
-}
-
 std::vector<std::string> collect_gltf_animation_names(const nw::render::RenderModel& model)
 {
     return nw::render::viewer::collect_render_model_animation_names(model);
@@ -1544,19 +1344,9 @@ std::vector<std::string> collect_gltf_animation_names(const nw::render::RenderMo
 
 void rebuild_scene_animation_lists(AppState& state)
 {
-    state.model_animation_names.clear();
     state.gltf_animation_names.clear();
     if (!state.current_scene) {
         return;
-    }
-
-    state.model_animation_names.resize(state.current_scene->models.size());
-    for (size_t i = 0; i < state.current_scene->models.size(); ++i) {
-        const auto& model = state.current_scene->models[i];
-        if (!model) {
-            continue;
-        }
-        state.model_animation_names[i] = collect_model_animation_names(*model);
     }
 
     state.gltf_animation_names.resize(state.current_scene->static_models.size());
@@ -1731,7 +1521,7 @@ void fit_area_navigation_camera(nw::render::viewer::Camera& camera, const nw::re
 
 void apply_static_pbr_environment_policy(AppState& state, const nw::render::viewer::PreviewScene& scene)
 {
-    if (!scene.static_models.empty()) {
+    if (scene.has_gltf_models) {
         state.static_pbr_environment_policy = StaticPbrEnvironmentPolicy::reference_ibl;
         state.static_pbr_ibl_strength = kStaticPbrReferenceIblStrength;
         state.static_pbr_exposure = kStaticPbrReferenceExposure;
@@ -1747,8 +1537,6 @@ void clear_scene_render_scratch(AppState& state)
     state.forward_plus_frame.clear();
     state.prepared_model_draws.clear();
     state.prepared_model_surfaces.clear();
-    state.nwn_prepared_draw_items.clear();
-    state.prepared_draw_scratch.clear();
     state.render_model_animation_samples.clear();
 }
 
@@ -1777,30 +1565,6 @@ std::string_view static_pbr_environment_policy_name(StaticPbrEnvironmentPolicy p
         return "reference_ibl";
     }
     return "scene_authored";
-}
-
-bool scene_uses_shared_nwn_animation_source(const nw::render::viewer::PreviewScene& scene)
-{
-    const nw::model::Mdl* shared_source = nullptr;
-    bool saw_animatable = false;
-    for (const auto& model : scene.models) {
-        if (!model || !model->scene_animation_enabled) {
-            continue;
-        }
-
-        const auto* source = model->animation_source_ ? model->animation_source_ : model->mdl_;
-        if (!source) {
-            continue;
-        }
-
-        if (!shared_source) {
-            shared_source = source;
-        } else if (shared_source != source) {
-            return false;
-        }
-        saw_animatable = true;
-    }
-    return saw_animatable;
 }
 
 bool run_screenshot_capture(AppState& state,
@@ -1886,29 +1650,9 @@ void load_model(AppState& state, std::string_view resref)
             bounds.center().x, bounds.center().y, bounds.center().z,
             bounds.radius());
 
-        bool has_idle = false;
-        if (!state.current_scene->models.empty()) {
-            auto try_scene_animation = [&](std::string_view animation) {
-                if (!has_idle && !animation.empty()) {
-                    has_idle = state.current_scene->load_animation(animation);
-                }
-            };
-            try_scene_animation(state.animation_override);
-            if (const auto* mdl = state.current_scene->models.front()->mdl_) {
-                try_scene_animation(nw::render::viewer::preferred_model_animation_name(*mdl, nw::render::viewer::PreferredModelAnimationContext::hold));
-            }
-            try_scene_animation("default");
-            try_scene_animation("on");
-            try_scene_animation("cast01");
-            try_scene_animation("impact");
-            try_scene_animation("pause1");
-            try_scene_animation("cpause1");
-        }
-        if (!has_idle && !state.current_scene->static_models.empty()) {
-            has_idle = select_render_model_animation(state, state.animation_override);
-            if (!has_idle) {
-                has_idle = select_preferred_render_model_animation(state);
-            }
+        bool has_idle = select_render_model_animation(state, state.animation_override);
+        if (!has_idle) {
+            has_idle = select_preferred_render_model_animation(state);
         }
 
         if (has_idle) {
@@ -1975,30 +1719,28 @@ void load_vfx_sequence(AppState& state, const VfxSequence& sequence)
 
     const auto layout = vfx_sequence_prepare_scene(
         state, *state.current_scene, sequence, state.animation_override);
-
-    bool has_idle = false;
-    auto try_sequence_animation = [&](std::string_view animation) {
-        if (animation.empty()) {
-            return;
-        }
-        has_idle = state.current_scene->load_animation(animation) || has_idle;
-    };
-    try_sequence_animation(state.animation_override);
-    if (!use_source_target_layout) {
-        try_sequence_animation("default");
-        try_sequence_animation("on");
-        try_sequence_animation("cast01");
-        try_sequence_animation("pause1");
+    if (!layout) {
+        LOG_F(ERROR,
+            "VFX sequence '{}' requires {} ordered RenderModel rows but loaded {}",
+            sequence.label,
+            sources.size(),
+            state.current_scene->static_models.size());
+        release_current_scene_and_cached_assets(state);
+        clear_vfx_sequence(state);
+        return;
     }
 
     if (state.camera) {
         if (use_source_target_layout) {
             const glm::vec3 camera_target_pos = vfx_sequence_resolve_target_point(
-                layout.target, layout.target_root_pos, VfxTargetPointKind::center);
-            const glm::vec3 center = 0.5f * (layout.source_pos + camera_target_pos) + glm::vec3{0.0f, 0.0f, 1.2f};
+                *state.current_scene,
+                layout->target_model_index,
+                layout->target_root_pos,
+                VfxTargetPointKind::center);
+            const glm::vec3 center = 0.5f * (layout->source_pos + camera_target_pos) + glm::vec3{0.0f, 0.0f, 1.2f};
             state.camera->set_fov(45.0f);
             state.camera->set_orbit_view(
-                center, layout.distance * 1.18f, -90.0f, 20.0f, nw::render::viewer::Camera::ProjectionMode::perspective);
+                center, layout->distance * 1.18f, -90.0f, 20.0f, nw::render::viewer::Camera::ProjectionMode::perspective);
         } else {
             state.camera->set_fov(60.0f);
             state.camera->fit_to_bounds(state.current_scene->current_bounds());
@@ -2084,46 +1826,12 @@ void reload_current_scene(AppState& state)
     }
 }
 
-bool select_model_animation(AppState& state, size_t model_index, std::string_view animation_name)
+bool select_model_animation(AppState& state, std::string_view animation_name)
 {
-    if (!state.current_scene || animation_name.empty() || model_index >= state.current_scene->models.size()) {
+    if (!state.current_scene || animation_name.empty()) {
         return false;
     }
-
-    auto& model = state.current_scene->models[model_index];
-    if (!model || !model->scene_animation_enabled) {
-        return false;
-    }
-
-    bool loaded = false;
-    for (auto& candidate : state.current_scene->models) {
-        if (!candidate || !candidate->scene_animation_enabled) {
-            continue;
-        }
-
-        candidate->anim_cursor_ = 0;
-        loaded = candidate->load_animation(animation_name) || loaded;
-    }
-
-    if (!loaded) {
-        return false;
-    }
-
-    state.current_scene->update(0);
-    if (!state.current_scene->particles.empty()) {
-        state.current_scene->rebuild_particles();
-        const int32_t particle_prime_ms = nw::render::viewer::compute_particle_prime_ms(*state.current_scene, true);
-        state.current_scene->update(particle_prime_ms);
-
-        size_t live_particles = 0;
-        for (const auto& scene_particles : state.current_scene->particles) {
-            live_particles += scene_particles.system.particles.core.position.size();
-        }
-        LOG_F(INFO, "Primed {} particle systems after switching to {} ({} live particles, {} ms)",
-            state.current_scene->particles.size(), animation_name, live_particles, particle_prime_ms);
-    }
-
-    return true;
+    return select_render_model_animation(state, animation_name);
 }
 
 void set_gltf_animation_clip(AppState& state, uint32_t clip_index)
@@ -2484,6 +2192,8 @@ void render_frame(AppState& state)
         ctx.static_pbr_ibl_enabled = static_pbr_ibl_active(state);
         ctx.lighting = resolve_scene_lighting(state, *state.current_scene);
         ctx.lighting_space = resolve_scene_lighting_space(*state.current_scene);
+        ctx.unlit_preview_key_light_enabled = !state.current_scene->is_area
+            && state.current_scene->has_gltf_models;
         ctx.environment = resolve_scene_environment(state, *state.current_scene);
         ctx.local_lights = state.current_scene->render_local_lights;
 
@@ -2509,13 +2219,15 @@ void render_frame(AppState& state)
         const auto render_model_animation_sample_stats = nw::render::viewer::sample_render_model_animations(
             state.render_model_animation_samples,
             *state.current_scene);
+        if (!state.current_scene->model_attachments.empty()) {
+            nw::render::viewer::sync_model_instance_runtime_state(*state.current_scene);
+        }
 
         nw::render::viewer::collect_prepared_model_surface_draws(
             state.prepared_model_draws,
             state.prepared_model_surfaces,
             *state.current_scene);
         log_render_model_animation_runtime_state(state, render_model_animation_sample_stats);
-        state.prepared_draw_scratch.begin_frame();
 
         const auto render_scene_pass = [&](const nw::render::viewer::RenderContext& pass_ctx,
                                            nw::render::viewer::RenderPassSelection pass) {
@@ -2523,15 +2235,6 @@ void render_frame(AppState& state)
                 state.prepared_model_surfaces.draws.data(),
                 state.prepared_model_surfaces.draws.size()};
             const auto* render_model_skin_table = &state.prepared_model_surfaces.render_model_skins;
-            nw::render::viewer::render_prepared_nwn_legacy_surface_draws(
-                render_service,
-                cmd,
-                state.prepared_model_draws,
-                surfaces,
-                pass_ctx,
-                pass,
-                state.prepared_draw_scratch,
-                state.nwn_prepared_draw_items);
             nw::render::viewer::render_prepared_render_model_surface_draws(
                 render_model_ctx,
                 cmd,
@@ -2774,8 +2477,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
             }},
         }},
         {"scene", scene ? json{
-            {"models", scene->models.size()},
-            {"static_models", scene->static_models.size()},
+            {"models", scene->static_models.size()},
             {"particle_systems", scene->particles.size()},
             {"local_lights", scene->local_lights.size()},
             {"local_lights_authored_model", scene_light_counts.authored_model},
@@ -2837,6 +2539,11 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"pipeline_binds_skipped", counter_summary([](const auto& stats) { return stats.total_command_stats.pipeline_bind_skipped_count; })},
                 {"resource_binds", counter_summary([](const auto& stats) { return stats.total_command_stats.resource_bind_count; })},
                 {"resource_binds_skipped", counter_summary([](const auto& stats) { return stats.total_command_stats.resource_bind_skipped_count; })},
+                {"descriptor_allocation_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_allocation_bytes; })},
+                {"descriptor_allocation_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_allocation_failure_count; })},
+                {"descriptor_ring_required_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_ring_required_bytes; })},
+                {"resource_bind_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.resource_bind_failure_count; })},
+                {"dropped_draws", counter_summary([](const auto& stats) { return stats.total_command_stats.dropped_draw_count; })},
                 {"uniform_allocations", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_count; })},
                 {"uniform_allocation_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_bytes; })},
             }},
@@ -2852,6 +2559,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"mesh_missing_resref_packets", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.particle_mesh_missing_resref_packet_count); })},
                 {"mesh_missing_model_packets", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.particle_mesh_missing_model_packet_count); })},
                 {"mesh_invalid_particle_indices", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.particle_mesh_invalid_particle_index_count); })},
+                {"mesh_invalid_particle_data", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.particle_mesh_invalid_particle_data_count); })},
             }},
             {"lights", {
                 {"local_lights", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_light_count); })},
@@ -2885,44 +2593,8 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"local_caster_lights", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_caster_light_count); })},
                 {"local_submitted_models", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_submitted_model_count); })},
                 {"local_culled_models", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_culled_model_count); })},
-                {"shadow_indirect_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_indirect_sidecar_bridge.input_surface_count); })},
-                {"shadow_indirect_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_indirect_sidecar_bridge.selected_draw_count); })},
-                {"shadow_indirect_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_indirect_sidecar_bridge.dropped_surface_count()); })},
-                {"shadow_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_sidecar_bridge.input_surface_count); })},
-                {"shadow_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_sidecar_bridge.selected_draw_count); })},
-                {"shadow_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.shadow_area_sidecar_bridge.dropped_surface_count()); })},
-                {"local_shadow_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_area_sidecar_bridge.input_surface_count); })},
-                {"local_shadow_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_area_sidecar_bridge.selected_draw_count); })},
-                {"local_shadow_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.local_shadow_area_sidecar_bridge.dropped_surface_count()); })},
             }},
             {"static_batches", {
-                {"material_batches", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_batch_count); })},
-                {"material_input_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_input_draw_count); })},
-                {"material_instances", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_instance_count); })},
-                {"material_draw_calls", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_draw_call_count); })},
-                {"material_fallback_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_fallback_draw_count); })},
-                {"material_failed_batch_attempt_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_failed_batch_attempt_draw_count); })},
-                {"material_indirect_calls", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_indirect_call_count); })},
-                {"material_indirect_commands", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_indirect_command_count); })},
-                {"material_max_instances_per_draw", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_max_instances_per_draw); })},
-                {"material_indirect_command_upload_bytes", counter_summary([](const auto& stats) { return stats.static_batch_material_indirect_command_upload_bytes; })},
-                {"material_cached_indirect_command_bytes", counter_summary([](const auto& stats) { return stats.static_batch_material_cached_indirect_command_bytes; })},
-                {"material_draw_data_bytes", counter_summary([](const auto& stats) { return stats.static_batch_material_draw_data_bytes; })},
-                {"material_draw_data_cache_hits", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_material_draw_data_cache_hit_count); })},
-                {"material_cached_draw_data_bytes", counter_summary([](const auto& stats) { return stats.static_batch_material_cached_draw_data_bytes; })},
-                {"shadow_batches", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_batch_count); })},
-                {"shadow_input_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_input_draw_count); })},
-                {"shadow_instances", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_instance_count); })},
-                {"shadow_draw_calls", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_draw_call_count); })},
-                {"shadow_failed_batch_attempt_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_failed_batch_attempt_draw_count); })},
-                {"shadow_indirect_calls", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_indirect_call_count); })},
-                {"shadow_indirect_commands", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_indirect_command_count); })},
-                {"shadow_max_instances_per_draw", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_max_instances_per_draw); })},
-                {"shadow_indirect_command_upload_bytes", counter_summary([](const auto& stats) { return stats.static_batch_shadow_indirect_command_upload_bytes; })},
-                {"shadow_cached_indirect_command_bytes", counter_summary([](const auto& stats) { return stats.static_batch_shadow_cached_indirect_command_bytes; })},
-                {"shadow_draw_data_bytes", counter_summary([](const auto& stats) { return stats.static_batch_shadow_draw_data_bytes; })},
-                {"shadow_draw_data_cache_hits", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.static_batch_shadow_draw_data_cache_hit_count); })},
-                {"shadow_cached_draw_data_bytes", counter_summary([](const auto& stats) { return stats.static_batch_shadow_cached_draw_data_bytes; })},
             }},
             {"area_frame", {
                 {"visible_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_visible_record_count); })},
@@ -2938,31 +2610,6 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"visible_prepared_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_visible_prepared_surface_count); })},
                 {"visible_lights", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_visible_light_count); })},
                 {"uses_cached_draw_lists", counter_summary([](const auto& stats) { return stats.area_frame_uses_cached_draw_lists ? 1ull : 0ull; })},
-                {"uses_sorted_static_draw_lists", counter_summary([](const auto& stats) { return stats.area_frame_uses_sorted_static_draw_lists ? 1ull : 0ull; })},
-                {"material_indirect_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_material_indirect_sidecar_bridge.input_surface_count); })},
-                {"material_indirect_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_material_indirect_sidecar_bridge.selected_draw_count); })},
-                {"material_indirect_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_material_indirect_sidecar_bridge.dropped_surface_count()); })},
-                {"static_material_indirect_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_static_material_indirect_sidecar_bridge.input_surface_count); })},
-                {"static_material_indirect_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_static_material_indirect_sidecar_bridge.selected_draw_count); })},
-                {"static_material_indirect_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_frame_static_material_indirect_sidecar_bridge.dropped_surface_count()); })},
-                {"static_material_draw_data_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_draw_data_sidecar_bridge.input_surface_count); })},
-                {"static_material_draw_data_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_draw_data_sidecar_bridge.selected_draw_count); })},
-                {"static_material_draw_data_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_draw_data_sidecar_bridge.dropped_surface_count()); })},
-                {"static_material_sidecar_input_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.input_surface_count); })},
-                {"static_material_sidecar_selected_draws", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.selected_draw_count); })},
-                {"static_material_sidecar_dropped_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.dropped_surface_count()); })},
-                {"static_material_sidecar_dropped_non_nwn_surfaces", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.dropped_non_nwn_surface_count); })},
-                {"static_material_sidecar_dropped_invalid_surface_indices", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.dropped_invalid_surface_index_count); })},
-                {"static_material_sidecar_dropped_missing_sidecars", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.dropped_missing_sidecar_draw_count); })},
-                {"static_material_sidecar_dropped_invalid_sidecars", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_static_material_sidecar_submission.dropped_invalid_sidecar_draw_count); })},
-                {"direct_model_input_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.input_record_count); })},
-                {"direct_model_selected_legacy_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.selected_legacy_record_count); })},
-                {"direct_model_selected_render_model_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.selected_render_model_record_count); })},
-                {"direct_model_skipped_render_model_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.skipped_render_model_record_count); })},
-                {"direct_model_dropped_invalid_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.dropped_invalid_record_count); })},
-                {"direct_model_dropped_invalid_sources", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.dropped_invalid_source_count); })},
-                {"direct_model_dropped_unsupported_kinds", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.dropped_unsupported_kind_count); })},
-                {"direct_model_dropped_records", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.area_direct_model_submission.dropped_record_count()); })},
             }},
         }},
         {"samples", std::move(frame_samples)},
@@ -3034,6 +2681,7 @@ int run_area_sweep_command(AppState& state, std::string_view source,
     int failed_cases = 0;
     const size_t total_cases = areas.size() * variants.size();
     size_t case_index = 0;
+    nw::render::viewer::ViewerSession session{*state.preview_resources, state.debug_renderer.get()};
 
     for (const auto& area : areas) {
         for (const auto& variant : variants) {
@@ -3047,6 +2695,8 @@ int run_area_sweep_command(AppState& state, std::string_view source,
             samples.reserve(static_cast<size_t>(frames));
             bool loaded = false;
             bool rendered = false;
+            double load_ms = 0.0;
+            nw::render::viewer::ViewerAreaLoadStats area_load_stats{};
             std::string failure;
             json scene_json = json::object();
             json asset_cache_json = json::object();
@@ -3056,63 +2706,63 @@ int run_area_sweep_command(AppState& state, std::string_view source,
             case_forward_plus_policy.debug_mode = variant.forward_plus_debug_mode;
             const bool case_local_shadows_enabled = local_shadows_enabled && variant.local_shadows_enabled;
 
-            {
-                nw::render::viewer::ViewerSession session{*state.preview_resources, state.debug_renderer.get()};
-                configure_preview_session(session, PreviewSessionSetup{
-                                                       .lights_enabled = variant.lights_enabled,
-                                                       .shadows_enabled = variant.shadows_enabled,
-                                                       .local_shadows_enabled = case_local_shadows_enabled,
-                                                       .debug_enabled = debug_enabled,
-                                                       .forward_plus_policy = &case_forward_plus_policy,
-                                                   });
+            configure_preview_session(session, PreviewSessionSetup{
+                                                   .lights_enabled = variant.lights_enabled,
+                                                   .shadows_enabled = variant.shadows_enabled,
+                                                   .local_shadows_enabled = case_local_shadows_enabled,
+                                                   .debug_enabled = debug_enabled,
+                                                   .forward_plus_policy = &case_forward_plus_policy,
+                                               });
 
-                const AreaBenchmarkCameraOptions benchmark_camera_options{};
-                loaded = prepare_area_session_for_benchmark(
-                    session, area, viewport,
-                    benchmark_camera_options,
-                    variant.visible_tile_radius,
-                    variant.visibility_mode,
-                    variant.visibility_cone_half_angle_degrees);
-                if (!loaded) {
-                    failure = "load_area failed";
-                } else {
-                    rendered = run_viewer_session_frames(
-                        state, session, viewport, warmup_frames, frames, &samples, &failure, false);
-                    if (!rendered) {
-                        failure = "begin_frame failed";
-                    }
-
-                    nw::gfx::wait_idle(state.gfx_context);
-
-                    const auto* scene = session.scene();
-                    json area_render_cache = json::object();
-                    if (scene && scene->area_render_scene) {
-                        area_render_cache = area_render_cache_stats_json(scene->area_render_scene->stats());
-                    }
-                    visibility_mask_visible_chunks = variant.visible_tile_radius >= 0
-                        ? session.area_visibility_mask_visible_chunk_count()
-                        : 0u;
-                    const json render_service_stats = current_render_service_stats_json();
-                    asset_cache_json = render_asset_cache_stats_json(render_service_stats);
-                    model_loader_resource_cache_json = model_loader_resource_cache_stats_json(render_service_stats);
-                    const SceneLocalLightSourceCounts scene_light_counts = scene
-                        ? count_scene_local_light_sources(*scene)
-                        : SceneLocalLightSourceCounts{};
-                    scene_json = scene ? json{
-                                             {"models", scene->models.size()},
-                                             {"static_models", scene->static_models.size()},
-                                             {"particle_systems", scene->particles.size()},
-                                             {"local_lights", scene->local_lights.size()},
-                                             {"local_lights_authored_model", scene_light_counts.authored_model},
-                                             {"local_lights_tile_model", scene_light_counts.tile_model},
-                                             {"local_lights_placeable_table", scene_light_counts.placeable_table},
-                                             {"area_width", scene->area_width},
-                                             {"area_height", scene->area_height},
-                                             {"has_water", scene->contains_water()},
-                                             {"area_render_cache", std::move(area_render_cache)},
-                                         }
-                                       : json::object();
+            const AreaBenchmarkCameraOptions benchmark_camera_options{};
+            const auto load_start = std::chrono::steady_clock::now();
+            loaded = prepare_area_session_for_benchmark(
+                session, area, viewport,
+                benchmark_camera_options,
+                variant.visible_tile_radius,
+                variant.visibility_mode,
+                variant.visibility_cone_half_angle_degrees);
+            const auto load_end = std::chrono::steady_clock::now();
+            load_ms = std::chrono::duration<double, std::milli>(load_end - load_start).count();
+            area_load_stats = session.last_area_load_stats();
+            if (!loaded) {
+                failure = "load_area failed";
+            } else {
+                rendered = run_viewer_session_frames(
+                    state, session, viewport, warmup_frames, frames, &samples, &failure, false);
+                if (!rendered) {
+                    failure = "begin_frame failed";
                 }
+
+                nw::gfx::wait_idle(state.gfx_context);
+
+                const auto* scene = session.scene();
+                json area_render_cache = json::object();
+                if (scene && scene->area_render_scene) {
+                    area_render_cache = area_render_cache_stats_json(scene->area_render_scene->stats());
+                }
+                visibility_mask_visible_chunks = variant.visible_tile_radius >= 0
+                    ? session.area_visibility_mask_visible_chunk_count()
+                    : 0u;
+                const json render_service_stats = current_render_service_stats_json();
+                asset_cache_json = render_asset_cache_stats_json(render_service_stats);
+                model_loader_resource_cache_json = model_loader_resource_cache_stats_json(render_service_stats);
+                const SceneLocalLightSourceCounts scene_light_counts = scene
+                    ? count_scene_local_light_sources(*scene)
+                    : SceneLocalLightSourceCounts{};
+                scene_json = scene ? json{
+                                         {"models", scene->static_models.size()},
+                                         {"particle_systems", scene->particles.size()},
+                                         {"local_lights", scene->local_lights.size()},
+                                         {"local_lights_authored_model", scene_light_counts.authored_model},
+                                         {"local_lights_tile_model", scene_light_counts.tile_model},
+                                         {"local_lights_placeable_table", scene_light_counts.placeable_table},
+                                         {"area_width", scene->area_width},
+                                         {"area_height", scene->area_height},
+                                         {"has_water", scene->contains_water()},
+                                         {"area_render_cache", std::move(area_render_cache)},
+                                     }
+                                   : json::object();
             }
 
             nw::gfx::wait_idle(state.gfx_context);
@@ -3139,6 +2789,12 @@ int run_area_sweep_command(AppState& state, std::string_view source,
                 {"ok", ok},
                 {"failure", failure.empty() ? json(nullptr) : json(failure)},
                 {"frames_rendered", samples.size()},
+                {"timings_ms", {
+                                   {"load", load_ms},
+                                   {"area_build", area_load_stats.build_seconds * 1000.0},
+                                   {"area_replace", area_load_stats.replace_seconds * 1000.0},
+                                   {"area_total", area_load_stats.total_seconds * 1000.0},
+                               }},
                 {"options", {
                                 {"lights", variant.lights_enabled},
                                 {"shadows", variant.shadows_enabled},

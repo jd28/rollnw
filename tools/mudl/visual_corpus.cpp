@@ -35,8 +35,6 @@ namespace mudl {
 namespace {
 
 using json = nlohmann::json;
-using nw::render::nwn::set_dangly_debug_scale;
-using nw::render::nwn::set_dangly_mode;
 
 enum class VisualCorpusKind {
     area,
@@ -574,8 +572,6 @@ bool initialize_headless_viewer_session(HeadlessViewerSession& session, std::str
     }
     session.preview_resources_initialized = true;
 
-    set_dangly_debug_scale(session.state.dangly_scale);
-    set_dangly_mode(session.state.dangly_mode);
     return true;
 }
 
@@ -693,7 +689,7 @@ bool capture_viewer_preview(HeadlessViewerSession& session, const VisualCorpusEn
     }
 
     if (entry.kind != VisualCorpusKind::area && !entry.animation.empty()
-        && !select_model_animation(session.state, 0, entry.animation)) {
+        && !select_model_animation(session.state, entry.animation)) {
         LOG_F(ERROR, "Failed to select animation '{}' for '{}'", entry.animation, entry.input);
         return false;
     }
@@ -706,10 +702,13 @@ bool capture_viewer_preview(HeadlessViewerSession& session, const VisualCorpusEn
     }
 
     std::string loaded_animation;
-    if (!session.state.current_scene->models.empty()
-        && session.state.current_scene->models.front()
-        && session.state.current_scene->models.front()->anim_) {
-        loaded_animation = session.state.current_scene->models.front()->anim_->name;
+    const auto runtime_models = nw::render::viewer::build_preview_runtime_model_reports(
+        *session.state.current_scene);
+    for (const auto& model : runtime_models.models) {
+        if (!model.selected_clip_name.empty()) {
+            loaded_animation = model.selected_clip_name;
+            break;
+        }
     }
 
     json metadata = {

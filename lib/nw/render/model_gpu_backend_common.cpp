@@ -151,10 +151,7 @@ void ModelGpuBackend::destroy_common_frame_storage()
     for (auto& arena : bone_arenas_) {
         arena.destroy();
     }
-    for (auto& arena : static_draw_arenas_) {
-        arena.destroy();
-    }
-    for (auto& arena : indirect_draw_arenas_) {
+    for (auto& arena : frame_storage_arenas_) {
         arena.destroy();
     }
 }
@@ -199,22 +196,11 @@ bool ModelGpuBackend::warn_pipeline_slot(PipelineSlot slot, const nw::gfx::Pipel
 
 nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::pipeline(ModelPipelineKey key) const
 {
-    const bool offscreen = key.target == ModelPipelineTarget::offscreen;
     const bool translucent = key.material == MaterialMode::transparent || key.material == MaterialMode::water;
 
     switch (key.pass) {
-    case ModelPipelinePass::depth_prepass:
-        return key.mesh == ModelPipelineMeshKind::static_batched
-            ? pipeline(PipelineSlot::static_batched_depth)
-            : nw::gfx::Handle<nw::gfx::Pipeline>{};
     case ModelPipelinePass::shadow:
         switch (key.mesh) {
-        case ModelPipelineMeshKind::static_mesh:
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::static_shadow_cutout) : pipeline(PipelineSlot::static_shadow);
-        case ModelPipelineMeshKind::static_batched:
-            return pipeline(PipelineSlot::static_batched_shadow);
-        case ModelPipelineMeshKind::skinned:
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::skinned_shadow_cutout) : pipeline(PipelineSlot::skinned_shadow);
         case ModelPipelineMeshKind::pbr_static:
             return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_shadow_cutout) : pipeline(PipelineSlot::pbr_static_shadow);
         case ModelPipelineMeshKind::pbr_skinned:
@@ -222,28 +208,26 @@ nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::pipeline(ModelPipelineKey ke
         }
         return {};
     case ModelPipelinePass::color:
+        if (key.lighting == MaterialLightingModel::nwn_diffuse) {
+            switch (key.mesh) {
+            case ModelPipelineMeshKind::pbr_static:
+                if (translucent) {
+                    return pipeline(PipelineSlot::nwn_static_transparent);
+                }
+                return key.material == MaterialMode::cutout
+                    ? pipeline(PipelineSlot::nwn_static_cutout)
+                    : pipeline(PipelineSlot::nwn_static_opaque);
+            case ModelPipelineMeshKind::pbr_skinned:
+                if (translucent) {
+                    return pipeline(PipelineSlot::nwn_skinned_transparent);
+                }
+                return key.material == MaterialMode::cutout
+                    ? pipeline(PipelineSlot::nwn_skinned_cutout)
+                    : pipeline(PipelineSlot::nwn_skinned_opaque);
+            }
+            return {};
+        }
         switch (key.mesh) {
-        case ModelPipelineMeshKind::static_mesh:
-            if (key.material == MaterialMode::water) {
-                return offscreen ? pipeline(PipelineSlot::static_offscreen_water) : pipeline(PipelineSlot::static_water);
-            }
-            if (key.material == MaterialMode::transparent) {
-                return offscreen ? pipeline(PipelineSlot::static_offscreen_transparent) : pipeline(PipelineSlot::static_transparent);
-            }
-            return offscreen ? pipeline(PipelineSlot::static_offscreen) : pipeline(PipelineSlot::static_mesh);
-        case ModelPipelineMeshKind::static_batched:
-            if (key.material == MaterialMode::water) {
-                return {};
-            }
-            if (key.material == MaterialMode::transparent) {
-                return offscreen ? pipeline(PipelineSlot::static_batched_offscreen_transparent) : pipeline(PipelineSlot::static_batched_transparent);
-            }
-            return offscreen ? pipeline(PipelineSlot::static_batched_offscreen) : pipeline(PipelineSlot::static_batched);
-        case ModelPipelineMeshKind::skinned:
-            if (translucent) {
-                return offscreen ? pipeline(PipelineSlot::skinned_offscreen_transparent) : pipeline(PipelineSlot::skinned_transparent);
-            }
-            return offscreen ? pipeline(PipelineSlot::skinned_offscreen) : pipeline(PipelineSlot::skinned);
         case ModelPipelineMeshKind::pbr_static:
             if (translucent) {
                 return pipeline(PipelineSlot::pbr_static_transparent);
@@ -272,6 +256,7 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
     auto vs_pbr = shader_provider.get_shader("render_pbr_static.vs.hlsl");
     auto vs_pbr_skinned = shader_provider.get_shader("render_pbr_skinned.vs.hlsl");
     auto ps_pbr = shader_provider.get_shader("render_pbr_static.ps.hlsl");
+    auto ps_nwn = shader_provider.get_shader("render_nwn_static.ps.hlsl");
     auto ps_pbr_shadow = shader_provider.get_shader("render_pbr_shadow.ps.hlsl");
     if (vs_pbr.valid() && ps_pbr.valid()) {
         auto pbr_desc = nw::render::make_pbr_static_pipeline_desc(vs_pbr, ps_pbr);
@@ -279,24 +264,24 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
         create_pipeline_slot(PipelineSlot::pbr_static_cutout, pbr_desc);
         if (!pipeline_slot(PipelineSlot::pbr_static_opaque).valid()
             || !pipeline_slot(PipelineSlot::pbr_static_cutout).valid()) {
-            LOG_F(ERROR, "Failed to create static glTF PBR pipeline");
+            LOG_F(ERROR, "Failed to create static model PBR pipeline");
             return false;
         }
 
         auto pbr_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_desc);
         if (!require_pipeline_slot(PipelineSlot::pbr_static_transparent, pbr_transparent_desc,
-                "Failed to create static glTF PBR transparent pipeline")) {
+                "Failed to create static model PBR transparent pipeline")) {
             return false;
         }
 
         if (ps_pbr_shadow.valid()) {
             auto pbr_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(pbr_desc, ps_pbr_shadow);
             warn_pipeline_slot(PipelineSlot::pbr_static_shadow, pbr_shadow_desc,
-                "Failed to create static glTF PBR shadow pipeline");
+                "Failed to create static model PBR shadow pipeline");
             warn_pipeline_slot(PipelineSlot::pbr_static_shadow_cutout, pbr_shadow_desc,
-                "Failed to create static glTF PBR cutout shadow pipeline");
+                "Failed to create static model PBR cutout shadow pipeline");
         } else {
-            LOG_F(WARNING, "Failed to load static glTF PBR shadow shader");
+            LOG_F(WARNING, "Failed to load static model PBR shadow shader");
         }
 
         if (vs_pbr_skinned.valid()) {
@@ -309,20 +294,63 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
             if (!pipeline_slot(PipelineSlot::pbr_skinned_opaque).valid()
                 || !pipeline_slot(PipelineSlot::pbr_skinned_cutout).valid()
                 || !pipeline_slot(PipelineSlot::pbr_skinned_transparent).valid()) {
-                LOG_F(WARNING, "Failed to create skinned glTF PBR pipeline");
+                LOG_F(WARNING, "Failed to create skinned model PBR pipeline");
             }
 
             if (ps_pbr_shadow.valid()) {
                 auto pbr_skinned_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(
                     pbr_skinned_desc, ps_pbr_shadow);
                 warn_pipeline_slot(PipelineSlot::pbr_skinned_shadow, pbr_skinned_shadow_desc,
-                    "Failed to create skinned glTF PBR shadow pipeline");
+                    "Failed to create skinned model PBR shadow pipeline");
                 warn_pipeline_slot(PipelineSlot::pbr_skinned_shadow_cutout, pbr_skinned_shadow_desc,
-                    "Failed to create skinned glTF PBR cutout shadow pipeline");
+                    "Failed to create skinned model PBR cutout shadow pipeline");
+            }
+        }
+
+        if (!ps_nwn.valid()) {
+            LOG_F(ERROR, "Failed to load NWN model color shader");
+            return false;
+        }
+
+        auto nwn_desc = nw::render::make_shader_variant_pipeline_desc(pbr_desc, vs_pbr, ps_nwn);
+        create_pipeline_slot(PipelineSlot::nwn_static_opaque, nwn_desc);
+        create_pipeline_slot(PipelineSlot::nwn_static_cutout, nwn_desc);
+        auto nwn_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_desc);
+        create_pipeline_slot(PipelineSlot::nwn_static_transparent, nwn_transparent_desc);
+        if (!pipeline_slot(PipelineSlot::nwn_static_opaque).valid()
+            || !pipeline_slot(PipelineSlot::nwn_static_cutout).valid()
+            || !pipeline_slot(PipelineSlot::nwn_static_transparent).valid()) {
+            LOG_F(ERROR, "Failed to create static NWN model color pipelines");
+            return false;
+        }
+
+        if (vs_pbr_skinned.valid()) {
+            auto nwn_skinned_desc = nw::render::make_pbr_skinned_pipeline_desc(nwn_desc, vs_pbr_skinned);
+            create_pipeline_slot(PipelineSlot::nwn_skinned_opaque, nwn_skinned_desc);
+            create_pipeline_slot(PipelineSlot::nwn_skinned_cutout, nwn_skinned_desc);
+            auto nwn_skinned_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_skinned_desc);
+            create_pipeline_slot(PipelineSlot::nwn_skinned_transparent, nwn_skinned_transparent_desc);
+            if (!pipeline_slot(PipelineSlot::nwn_skinned_opaque).valid()
+                || !pipeline_slot(PipelineSlot::nwn_skinned_cutout).valid()
+                || !pipeline_slot(PipelineSlot::nwn_skinned_transparent).valid()) {
+                LOG_F(WARNING, "Failed to create skinned NWN model color pipelines");
             }
         }
     }
 
+    return true;
+}
+
+bool ModelGpuBackend::initialize(nw::render::ShaderProvider& shader_provider)
+{
+    if (!initialize_common_storage_resources()) {
+        return false;
+    }
+    if (!initialize_render_model_pbr_resources(shader_provider)) {
+        return false;
+    }
+
+    initialize_shared_fallback_textures();
     return true;
 }
 
@@ -391,75 +419,17 @@ nw::gfx::StorageSpan ModelGpuBackend::upload_frame_storage(
         return {};
     }
 
-    if (frame.frame_index >= static_draw_arenas_.size()) {
+    if (frame.frame_index >= frame_storage_arenas_.size()) {
         return {};
     }
     const auto idx = static_cast<size_t>(frame.frame_index);
-    auto& arena = static_draw_arenas_[idx];
+    auto& arena = frame_storage_arenas_[idx];
     if (arena.frame_id() != frame.frame_id) {
         if (!arena.reset(ctx_, frame.frame_id, size)) {
             return {};
         }
     }
     return arena.write(ctx_, data, size, alignment);
-}
-
-MappedStorageSpan ModelGpuBackend::allocate_static_draw_data(nw::gfx::CommandList* cmd, uint32_t size)
-{
-    if (size == 0) {
-        return {};
-    }
-
-    nw::gfx::FrameInfo frame{};
-    if (!cmd || !nw::gfx::get_frame_info(ctx_, frame)) {
-        return {};
-    }
-
-    if (frame.frame_index >= static_draw_arenas_.size()) {
-        return {};
-    }
-    const auto idx = static_cast<size_t>(frame.frame_index);
-    auto& arena = static_draw_arenas_[idx];
-    if (arena.frame_id() != frame.frame_id) {
-        if (!arena.reset(ctx_, frame.frame_id, size)) {
-            return {};
-        }
-    }
-    return arena.allocate_mapped(ctx_, size);
-}
-
-MappedIndirectDrawSpan ModelGpuBackend::allocate_indirect_draw_data(nw::gfx::CommandList* cmd, uint32_t size)
-{
-    if (size == 0) {
-        return {};
-    }
-
-    nw::gfx::FrameInfo frame{};
-    if (!cmd || !nw::gfx::get_frame_info(ctx_, frame)) {
-        return {};
-    }
-
-    if (frame.frame_index >= indirect_draw_arenas_.size()) {
-        return {};
-    }
-    const auto idx = static_cast<size_t>(frame.frame_index);
-    auto& arena = indirect_draw_arenas_[idx];
-    if (arena.frame_id() != frame.frame_id) {
-        if (!arena.reset(ctx_, frame.frame_id, size, nw::gfx::BufferUsage::Indirect)) {
-            return {};
-        }
-    }
-    const auto mapped = arena.allocate_mapped(
-        ctx_, size, static_cast<uint32_t>(alignof(nw::gfx::IndexedIndirectDrawCommand)));
-    return {
-        .span = nw::gfx::IndirectDrawSpan{mapped.span.buffer, mapped.span.offset, mapped.span.size},
-        .data = mapped.data,
-    };
-}
-
-nw::gfx::StorageSpan ModelGpuBackend::upload_static_draw_data(nw::gfx::CommandList* cmd, const void* data, uint32_t size)
-{
-    return upload_frame_storage(cmd, data, size);
 }
 
 } // namespace nw::render

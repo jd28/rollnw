@@ -9,6 +9,18 @@ namespace {
 
 constexpr float kMinOrthoHalfHeight = 2.0f;
 constexpr float kMaxOrthoHalfHeight = 2000.0f;
+constexpr float kBoundsFitDistanceScale = 2.5f;
+constexpr float kMinBoundsFitDistance = 1.0f;
+constexpr float kBoundsFitPitchDegrees = 20.0f;
+
+bool finite_ordered_bounds(const nw::render::Bounds& bounds) noexcept
+{
+    return std::isfinite(bounds.min.x) && std::isfinite(bounds.min.y) && std::isfinite(bounds.min.z)
+        && std::isfinite(bounds.max.x) && std::isfinite(bounds.max.y) && std::isfinite(bounds.max.z)
+        && bounds.min.x <= bounds.max.x
+        && bounds.min.y <= bounds.max.y
+        && bounds.min.z <= bounds.max.z;
+}
 
 }
 
@@ -205,15 +217,61 @@ void Camera::set_area_overview_xy(const glm::vec2& center, const glm::vec2& size
     update_vectors();
 }
 
-void Camera::set_area_navigation_target(const glm::vec3& target)
+bool Camera::focus_on(const nw::render::Bounds& bounds) noexcept
 {
+    if (!finite_ordered_bounds(bounds)) {
+        return false;
+    }
+
+    const glm::vec3 target = bounds.center();
+    if (free_camera_ && top_down_view_) {
+        const glm::vec3 delta = target - target_;
+        target_ = target;
+        position_ += delta;
+        const glm::vec3 extents = bounds.max - bounds.min;
+        const float half_height = std::max(
+            extents.y * 0.5f,
+            (extents.x * 0.5f) / std::max(aspect_ratio_, 0.1f));
+        ortho_half_height_ = glm::clamp(
+            half_height * 1.05f,
+            kMinOrthoHalfHeight,
+            kMaxOrthoHalfHeight);
+        return true;
+    }
+
+    glm::vec2 approach{
+        position_.x - target.x,
+        position_.y - target.y,
+    };
+    if (glm::dot(approach, approach) <= 1.0e-8f) {
+        approach = {-front_.x, -front_.y};
+    }
+    if (glm::dot(approach, approach) <= 1.0e-8f) {
+        approach = {0.0f, 1.0f};
+    }
+    approach = glm::normalize(approach);
+
     target_ = target;
-    leave_orthographic_overview();
-    top_down_view_ = false;
-    auto direction = glm::normalize(target_ - position_);
-    free_yaw_ = glm::degrees(std::atan2(direction.x, direction.y));
-    free_pitch_ = glm::degrees(std::asin(direction.z));
-    update_vectors();
+    orbit_radius_ = std::max(bounds.radius() * kBoundsFitDistanceScale, kMinBoundsFitDistance);
+    orbit_yaw_ = glm::degrees(std::atan2(approach.y, approach.x));
+    orbit_pitch_ = kBoundsFitPitchDegrees;
+    if (free_camera_) {
+        const float pitch = glm::radians(orbit_pitch_);
+        const float horizontal_distance = orbit_radius_ * std::cos(pitch);
+        position_ = target_ + glm::vec3{
+                        approach.x * horizontal_distance,
+                        approach.y * horizontal_distance,
+                        orbit_radius_ * std::sin(pitch),
+                    };
+        const glm::vec3 direction = glm::normalize(target_ - position_);
+        free_yaw_ = glm::degrees(std::atan2(direction.x, direction.y));
+        free_pitch_ = glm::degrees(std::asin(direction.z));
+        update_vectors();
+        return true;
+    }
+
+    sync_position_from_orbit();
+    return true;
 }
 
 void Camera::move_forward(float amount, bool planar)
@@ -346,13 +404,13 @@ void Camera::fit_to_bounds(const nw::render::Bounds& bounds)
     free_camera_ = false;
     projection_mode_ = Camera::ProjectionMode::perspective;
     float radius = bounds.radius();
-    orbit_radius_ = radius * 2.5f; // Distance for 60° FOV
+    orbit_radius_ = radius * kBoundsFitDistanceScale;
     target_ = bounds.center();
     orbit_yaw_ = 90.0f;
-    orbit_pitch_ = 20.0f;
+    orbit_pitch_ = kBoundsFitPitchDegrees;
 
     // Ensure minimum distance
-    if (orbit_radius_ < 1.0f) orbit_radius_ = 1.0f;
+    if (orbit_radius_ < kMinBoundsFitDistance) orbit_radius_ = kMinBoundsFitDistance;
     sync_position_from_orbit();
 }
 

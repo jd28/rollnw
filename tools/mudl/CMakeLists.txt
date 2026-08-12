@@ -103,6 +103,34 @@ add_custom_command(
 add_custom_target(mudl-copy-shaders DEPENDS "${MUDL_SHADER_COPY_STAMP}")
 add_dependencies(mudl mudl-copy-shaders)
 
+# Keep the runtime packages beside mudl so module loading does not depend on
+# the process working directory.
+file(GLOB_RECURSE MUDL_STDLIB_FILES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/core/*"
+    "${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/nwn1/*"
+)
+set(MUDL_STDLIB_COPY_STAMP "${CMAKE_CURRENT_BINARY_DIR}/mudl_stdlib.stamp")
+add_custom_command(
+    OUTPUT "${MUDL_STDLIB_COPY_STAMP}"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+        $<TARGET_FILE_DIR:mudl>/stdlib
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:mudl>/stdlib/core
+        $<TARGET_FILE_DIR:mudl>/stdlib/nwn1
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/core"
+        $<TARGET_FILE_DIR:mudl>/stdlib/core
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/nwn1"
+        $<TARGET_FILE_DIR:mudl>/stdlib/nwn1
+    COMMAND ${CMAKE_COMMAND} -E touch
+        "${MUDL_STDLIB_COPY_STAMP}"
+    DEPENDS ${MUDL_STDLIB_FILES}
+    VERBATIM
+)
+add_custom_target(mudl-copy-stdlib DEPENDS "${MUDL_STDLIB_COPY_STAMP}")
+add_dependencies(mudl mudl-copy-stdlib)
+
 if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET mudl POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -114,6 +142,8 @@ endif()
 # Install
 install(TARGETS mudl RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/render/shaders/ DESTINATION bin/shaders)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/core/ DESTINATION bin/stdlib/core)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/nwn1/ DESTINATION bin/stdlib/nwn1)
 
 if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
     install(FILES $<TARGET_FILE:SDL3::SDL3-shared> DESTINATION bin)

@@ -14,11 +14,9 @@ other common models.
 - `nw::render::gltf::import_gltf_render_model_from_asset(path, desc)` decodes
   through `ModelAsset`, uploads geometry and textures, and returns a
   `RenderModel`.
-- `nw::render::gltf::import_gltf(path, desc)` is the older direct importer kept
-  for focused importer tests, not for viewer or mudl preview routing.
 
-The viewer and mudl preview path is `ModelAsset -> RenderModel`; there is no
-runtime glTF preview switch.
+All glTF conversion uses `ModelAsset -> RenderModel`; there is no direct GPU
+importer or runtime path switch.
 
 ## Data Flow
 
@@ -117,6 +115,5 @@ state.
 
 ## Related Issues
 
-- [Remove Legacy Render Paths](../../../../issues/remove-legacy-render-paths.md)
 - [Offline Model Compiler](../../../../issues/offline-model-compiler.md)
 - [NWN Zero-Duration Animation Clips](../../../../issues/nwn-zero-duration-animation-clips.md)
