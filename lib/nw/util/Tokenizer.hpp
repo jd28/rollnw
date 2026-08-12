@@ -14,6 +14,7 @@ struct Tokenizer {
     Tokenizer(StringView buffer, StringView comment, bool skip_newline = true);
 
     StringView current() const;
+    size_t input_size() const;
     bool is_newline(StringView tk) const;
     size_t line() const;
     StringView next();

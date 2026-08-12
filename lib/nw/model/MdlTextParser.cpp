@@ -62,6 +62,14 @@ constexpr bool validate_tokens(std::initializer_list<StringView> tokens)
     return true;
 }
 
+bool validate_list_size(const Tokenizer& tokens, StringView name, uint32_t size)
+{
+    if (size <= tokens.input_size()) { return true; }
+
+    LOG_F(ERROR, "{}: Declared list size {} exceeds {} input bytes", name, size, tokens.input_size());
+    return false;
+}
+
 bool parse_tokens(Tokenizer& tokens, StringView name, bool& out)
 {
     auto tk = tokens.next();
@@ -247,6 +255,7 @@ bool parse_tokens(Tokenizer& tokens, StringView name, Vector<T>& out)
 {
     uint32_t size;
     if (!parse_tokens(tokens, name, size)) return false;
+    if (!validate_list_size(tokens, name, size)) return false;
     out.reserve(size);
     tokens.next(); // drop new line.
     for (uint32_t i = 0; i < size; ++i) {
@@ -854,6 +863,7 @@ bool TextParser::parse_node(Geometry* geometry)
                     LOG_F(ERROR, "expected row count, got {}, line: {}", tk, tokens_.line());
                     return false;
                 }
+                if (!validate_list_size(tokens_, "multimaterial", *rows)) { return false; }
 
                 tk = tokens_.next();
                 for (uint32_t i = 0; i < *rows; ++i) {
@@ -1003,6 +1013,7 @@ bool TextParser::parse_node(Geometry* geometry)
             if (icmp(tk, "weights")) {
                 uint32_t size;
                 if (!parse_tokens(tokens_, "weights: size", size)) { return false; }
+                if (!validate_list_size(tokens_, "weights", size)) { return false; }
                 tokens_.next(); // drop new line.
                 for (uint32_t i = 0; i < size; ++i) {
                     std::array<String, 4> bones;

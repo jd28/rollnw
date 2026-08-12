@@ -136,6 +136,24 @@ donemodel uv_seam
     EXPECT_EQ(mesh->vertices[mesh->indices[3]].tex_coords, glm::vec2(0.5f, 0.5f));
 }
 
+TEST(Mdl, TextRejectsListCountLargerThanInput)
+{
+    constexpr auto model_text = R"mdl(#MAXMODEL ASCII
+newmodel oversized
+#MAXGEOM ASCII
+beginmodelgeom oversized
+node trimesh mesh
+  parent NULL
+  verts 1521110691
+)mdl"sv;
+
+    nw::ResourceData data;
+    data.bytes.append(model_text.data(), model_text.size());
+    nw::model::Mdl mdl{std::move(data)};
+
+    EXPECT_FALSE(mdl.valid());
+}
+
 TEST(Mdl, ParseBinary)
 {
     nw::model::Mdl mdl{"test_data/user/development/c_bodak.mdl"};

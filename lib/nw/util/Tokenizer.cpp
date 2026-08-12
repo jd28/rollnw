@@ -21,6 +21,11 @@ StringView Tokenizer::current() const
     return current_;
 }
 
+size_t Tokenizer::input_size() const
+{
+    return buffer_.size();
+}
+
 bool Tokenizer::is_newline(StringView tk) const
 {
     return tk.size() > 0 && (tk[0] == '\r' || tk[0] == '\n');

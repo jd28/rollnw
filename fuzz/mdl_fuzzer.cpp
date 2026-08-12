@@ -1,9 +1,16 @@
+#include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/resources/assets.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+
+extern "C" int LLVMFuzzerInitialize(int*, char***)
+{
+    loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+    return 0;
+}
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {

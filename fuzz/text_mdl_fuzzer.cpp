@@ -4,10 +4,9 @@
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/assets.hpp>
 
-#include <nowide/cstdlib.hpp>
-
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
 #include <utility>
@@ -18,19 +17,18 @@ constexpr size_t max_input_size = 256u * 1024u;
 
 void ensure_model_resources()
 {
-    namespace fs = std::filesystem;
     static bool initialized = false;
     if (initialized) { return; }
 
     loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
 
-    const fs::path repo_root = fs::path(__FILE__).parent_path().parent_path();
-
-    fs::path install_root;
-    if (auto* p = nowide::getenv("NWN_ROOT")) {
-        install_root = fs::path(p);
-    } else {
-        install_root = repo_root / "nwn";
+    const auto* configured_root = std::getenv("NWN_ROOT");
+    if (!configured_root || configured_root[0] == '\0') {
+        throw std::runtime_error("fuzz: NWN_ROOT is not set");
+    }
+    const std::filesystem::path install_root{configured_root};
+    if (!std::filesystem::is_regular_file(install_root / "data/nwn_base.key")) {
+        throw std::runtime_error("fuzz: NWN dedicated-server data is missing");
     }
 
     // Text models can reference a supermodel. Build only the resource index
