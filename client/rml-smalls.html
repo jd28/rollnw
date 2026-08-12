@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RmlUi And Smalls - rollnw</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollnw</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollnw</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="index.html">rollnw | client</a>
+<a href="transactions.html">Transactions</a>
+<a href="ui-runtime.html">Toolset UI Runtime</a>
+<a class="active" href="rml-smalls.html">RmlUi And Smalls</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/tools/ui/docs/rml_smalls.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="rmlui-and-smalls-binding">RmlUi And Smalls Binding</h1>
+<p>This document describes the implemented <code>RmlSmallsLanguageBinding</code>. It is a
+typed event-and-command boundary, not a Smalls clone of the RmlUi DOM.</p>
+<h2 id="application-and-presentation-boundary">Application And Presentation Boundary</h2>
+<p>Smalls is the application language for RmlUi documents. It owns tool workflow,
+view state, data projection, and event behavior. It does not own RmlUi elements
+and does not manipulate a general DOM API.</p>
+<p>Native ABI, native component, profile propset, and toolset projection ownership
+is defined in the
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>.
+This document applies that ownership rule to the UI boundary.</p>
+<p>The boundary is:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C++ core and selected profile</td>
+<td>Native data, mechanical invariants, resource access, renderer integration, and typed mutation operations.</td>
+</tr>
+<tr>
+<td>Generic C++ UI host</td>
+<td>Smalls execution, RmlUi integration, input delivery, fixed-height virtual ranges, native textures, and transaction transport.</td>
+</tr>
+<tr>
+<td>Smalls profile modules</td>
+<td>Game-specific schema, interpretation, validation, and policy.</td>
+</tr>
+<tr>
+<td>Smalls toolset modules</td>
+<td>Editor state, filtering, sorting, labels, row projection, event handling, and command composition.</td>
+</tr>
+<tr>
+<td>RML</td>
+<td>Document, tab, panel, control, and row structure plus event wiring.</td>
+</tr>
+<tr>
+<td>RCSS</td>
+<td>Layout and presentation.</td>
+</tr>
+</tbody>
+</table>
+<p>The generic C++ UI host must not:</p>
+<ul>
+<li>enumerate editor surfaces such as <code>Spells</code>, <code>Feats</code>, <code>Appearance</code>, or
+  <code>Inventory</code>;</li>
+<li>generate editor-specific tab, panel, control, or row markup;</li>
+<li>retain editor-specific presentation state or mirrored row types;</li>
+<li>route input by editor-specific surface identifiers; or</li>
+<li>interpret profile schemas, integer IDs, labels, or policy.</li>
+</ul>
+<p>RML is the workbench composition mechanism. Adding, removing, reordering, or
+replacing a surface is an RML, RCSS, and optionally Smalls change. It is not a
+C++ registration operation. Smalls toolset modules may call existing native
+capabilities, but they do not require a native function named after the
+surface.</p>
+<p>A C++ change is required only when the workflow needs a native capability that
+does not exist: for example, a new resource decoder, renderer operation,
+ownership mutation, or engine invariant. A new presentation over existing
+object data and native operations does not justify a C++ editor API.</p>
+<p>The acceptance test is deliberately stronger than restyling:</p>
+<blockquote>
+<p>A selected toolset package can remove the creature <code>Spells</code> surface and
+replace it with a differently shaped <code>Talents</code> workflow using only Smalls,
+RML, and RCSS, while using the unchanged client executable.</p>
+</blockquote>
+<p>That test passes when the replacement can read the published <code>active_object</code>,
+project its rows, mutate supported object data through the normal transaction
+path, participate in dirty tracking and undo/redo, and refresh the preview
+without a C++ tab enum, event branch, row mirror, or markup function.</p>
+<p>An editor-specific C++ branch is evidence that either the generic protocol is
+missing a concrete capability or presentation policy crossed the boundary.
+Record the input, output, frequency, and ownership of the missing capability
+before extending the native API.</p>
+<h2 id="view-data-and-virtualization">View Data And Virtualization</h2>
+<p>Toolset views publish typed Smalls values through the RmlUi data-model binding.
+RML consumes those values through data bindings and <code>data-for</code>; RCSS styles the
+result. Scripts generate replacement RML only for bounded structures whose
+shape cannot be represented by the current data-model binding.</p>
+<p>Variable-length fixed-height views use one generic virtual-array protocol:</p>
+<div class="codehilite"><pre><span></span><code>Smalls source rows
+    -&gt; generic native visible range [start, end)
+    -&gt; RmlUi data-for over the visible slice
+    -&gt; RML-owned row structure
+</code></pre></div>
+
+<p>Smalls owns the complete filtered and sorted row batch until it is replaced.
+The native host owns scroll geometry, clamps the visible range, and exposes
+only the viewport plus bounded overscan to RmlUi. Stable scalar keys identify
+selection; source indices do not identify objects or resources.</p>
+<p>The common path performs no Smalls call per frame, per row, or per scroll
+position. Smalls runs on input or source invalidation, and publishes rows as
+one batch. Missing or stale active objects produce an empty view and no
+mutation. Duplicate keys reject the complete row publication. Invalid source
+ranges are clamped by the virtual host; invalid object values are rejected by
+the owning profile or native operation rather than clamped by the UI.</p>
+<p>Variable-height views are a different data problem and are not covered by this
+protocol.</p>
+<h2 id="initialization-and-lifetime">Initialization And Lifetime</h2>
+<p>rollnw client loads and compiles the <code>core.rmlui</code> Smalls module before
+initializing the binding. Initialization registers:</p>
+<ul>
+<li>a document instancer for RmlUi <code>body</code> documents; and</li>
+<li>an event-listener instancer for named Smalls handlers.</li>
+</ul>
+<p>Each successfully compiled inline or external script block is recorded as a
+unique module owned by its document. Handler identities retain pointers to
+runtime-owned compiled modules and functions only for that document lifetime.
+Destroying the document evicts its recorded script modules after its listeners
+can no longer dispatch.</p>
+<p>External scripts are limited to 1 MiB. A missing file interface, open/read
+failure, oversized source, compile diagnostic, or bytecode compile failure is
+reported and that block is unavailable.</p>
+<h2 id="handler-contract">Handler Contract</h2>
+<p>An event attribute names a Smalls function. The binding resolves the most
+recent document block exporting that name. A valid handler has exactly this
+shape:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">handler</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Event</span><span class="p">):</span> <span class="kt">void</span>
+</code></pre></div>
+
+<p>or:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">handler</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Command</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Handler names must be non-empty identifiers containing ASCII letters, digits,
+or <code>_</code>, and may not start with a digit. A missing handler or a mismatched
+parameter/return type is a binding error.</p>
+<p>Dispatch currently enters through one RmlUi event at a time. Internally the
+binding processes a span of dispatch rows, so event encoding and execution have
+one plural path.</p>
+<h2 id="event-value">Event Value</h2>
+<p><code>core.rmlui.Event</code> is copied before the handler executes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event_type: string</code></td>
+<td>RmlUi event type, such as <code>click</code> or <code>change</code>.</td>
+</tr>
+<tr>
+<td><code>element_id: string</code></td>
+<td>Source element ID. May be empty when the RML element has no ID.</td>
+</tr>
+<tr>
+<td><code>document_id: string</code></td>
+<td>Owner document ID, or its source URL when the ID is empty.</td>
+</tr>
+<tr>
+<td><code>text: string</code></td>
+<td>Source element inner RML at dispatch time.</td>
+</tr>
+<tr>
+<td><code>value: string</code></td>
+<td>Form-control value, or empty for a non-control element.</td>
+</tr>
+<tr>
+<td><code>checked: bool</code></td>
+<td>Whether an input currently has the <code>checked</code> attribute.</td>
+</tr>
+<tr>
+<td><code>active_object: object</code></td>
+<td>Current validated rollnw client selection.</td>
+</tr>
+</tbody>
+</table>
+<p>Dispatch requires a valid active object. When there is no active selection,
+the binding reports <code>no active object</code> and does not call the handler.</p>
+<p>The module also exposes <code>active_object(): object</code> for terminal or ordinary
+Smalls calls that need to query the same selection outside an RmlUi event.</p>
+<h2 id="ui-command-value">UI Command Value</h2>
+<p>A handler may return no value or at most 256 <code>core.rmlui.Command</code> rows. Each
+row contains:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Command</span> <span class="p">{</span>
+    <span class="n">operation</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">element_id</span><span class="p">:</span> <span class="kt">string</span><span class="p">;</span>
+    <span class="n">value</span><span class="p">:</span> <span class="kt">string</span><span class="p">;</span>
+    <span class="n">state</span><span class="p">:</span> <span class="kt">bool</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<p>Commands resolve <code>element_id</code> only inside the handler's owner document.
+An empty ID or missing target is an error.</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Constant</th>
+<th>Fields used</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set text</td>
+<td><code>command_set_text</code></td>
+<td><code>element_id</code>, <code>value</code></td>
+<td>HTML-encodes <code>value</code>, then replaces inner RML.</td>
+</tr>
+<tr>
+<td>Set value</td>
+<td><code>command_set_value</code></td>
+<td><code>element_id</code>, <code>value</code></td>
+<td>Sets a form-control value; rejects other elements.</td>
+</tr>
+<tr>
+<td>Set checked</td>
+<td><code>command_set_checked</code></td>
+<td><code>element_id</code>, <code>state</code></td>
+<td>Adds or removes the <code>checked</code> attribute; rejects non-input elements.</td>
+</tr>
+<tr>
+<td>Set class</td>
+<td><code>command_set_class</code></td>
+<td><code>element_id</code>, <code>value</code>, <code>state</code></td>
+<td>Adds/removes one non-empty class name.</td>
+</tr>
+<tr>
+<td>Set visible</td>
+<td><code>command_set_visible</code></td>
+<td><code>element_id</code>, <code>state</code></td>
+<td>Sets <code>visibility</code> to <code>visible</code> or <code>hidden</code>.</td>
+</tr>
+<tr>
+<td>Focus</td>
+<td><code>command_focus</code></td>
+<td><code>element_id</code>, <code>state</code></td>
+<td>Focuses when true and blurs when false.</td>
+</tr>
+<tr>
+<td>Set RML</td>
+<td><code>command_set_rml</code></td>
+<td><code>element_id</code>, <code>value</code></td>
+<td>Replaces one bounded widget subtree with trusted generated RML. Payloads over 1 MiB are rejected.</td>
+</tr>
+</tbody>
+</table>
+<p>Rows are decoded completely before application. Application is ordered and is
+not atomic: if a later command has an invalid target or target type, earlier UI
+commands in the same result remain applied. These commands alter presentation
+only and are not resource transaction patches.</p>
+<p><code>command_set_rml</code> is intended for bounded, compiled widget scripts such as the
+Item appearance editor. It does not encode <code>value</code>; the script must RML-encode
+all live labels and other data before interpolation. Static structure remains in
+RML templates and RCSS; scripts generate only the rows or selector subtree whose
+shape depends on live policy data.</p>
+<p>The client may request a cold UI rebuild by calling
+<code>RmlSmallsLanguageBinding::refresh_elements</code>. Each target must have both the
+<code>smalls_refresh</code> class and a non-empty, document-unique ID. Targets are captured
+by ID and re-resolved before each synthetic <code>refresh</code> event, so an earlier
+handler may replace its own subtree without leaving stale element pointers.</p>
+<h2 id="resource-mutation">Resource Mutation</h2>
+<p>The binding intentionally exposes no direct object-write or resource-save
+operation. UI scripts use <code>core.commands.v1.command_execute</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">commands</span><span class="p">.</span><span class="n">v1</span> <span class="k">import</span> <span class="p">{</span> <span class="n">command_execute</span> <span class="p">};</span>
+<span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Event</span><span class="p">,</span> <span class="nc">Command</span><span class="p">,</span> <span class="n">command_set_checked</span> <span class="p">};</span>
+
+<span class="k">fn</span> <span class="n">set_plot</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">Command</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">desired</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">checked</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">desired</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">var</span> <span class="n">result</span> <span class="o">=</span> <span class="n">command_execute</span><span class="p">(</span><span class="s2">&quot;object.creature.set_plot&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="n">desired</span> <span class="p">});</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">result</span><span class="p">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{};</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">{{</span>
+        <span class="n">operation</span> <span class="o">=</span> <span class="n">command_set_checked</span><span class="p">,</span>
+        <span class="n">element_id</span> <span class="o">=</span> <span class="n">event</span><span class="p">.</span><span class="n">element_id</span><span class="p">,</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="o">!</span><span class="n">event</span><span class="p">.</span><span class="n">checked</span>
+    <span class="p">}};</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The command handler validates and mutates the live object, marks the document
+dirty, and contributes undo data. The returned UI command only restores the
+checkbox when the resource command rejects the requested change.</p>
+<h2 id="diagnostics-and-failure">Diagnostics And Failure</h2>
+<p>The binding reports errors to all three current sinks:</p>
+<ul>
+<li>RmlUi error logging;</li>
+<li>rollnw logging with the <code>[rml-smalls]</code> category; and</li>
+<li><code>RmlSmallsLanguageBinding::diagnostics()</code>.</li>
+</ul>
+<p>Failure stages are explicit:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source load/compile</td>
+<td>Block is not registered; diagnostics include source path and adjusted line.</td>
+</tr>
+<tr>
+<td>Handler resolution</td>
+<td>Listener retains an invalid handler and ignores later events after reporting once.</td>
+</tr>
+<tr>
+<td>Event encoding</td>
+<td>Handler is not executed.</td>
+</tr>
+<tr>
+<td>Smalls execution</td>
+<td>No commands are applied.</td>
+</tr>
+<tr>
+<td>Command decoding</td>
+<td>No commands are applied.</td>
+</tr>
+<tr>
+<td>Command application</td>
+<td>Application stops at the failing row; earlier UI rows remain applied.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="deliberately-not-exposed">Deliberately Not Exposed</h2>
+<ul>
+<li>Raw <code>Rml::Event*</code>, <code>Rml::Element*</code>, or <code>Rml::ElementDocument*</code> values.</li>
+<li>General DOM traversal or arbitrary element creation/deletion.</li>
+<li>Direct attribute or style mutation. The only structural command replaces one
+  identified subtree with size-bounded RML from a compiled handler.</li>
+<li>Resource mutation or save APIs.</li>
+<li>A network or cross-process UI protocol.</li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

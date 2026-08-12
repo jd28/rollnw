@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Particle System - rollNW</title>
+  <title>Particle System - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="gltf.html">glTF Rendering</a>
 <a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_model_findings.html">NWN Model Findings</a>
 <a href="nwn_emitter_map.html">NWN Emitter Map</a>
 <a class="active" href="particle_system.html">Particle System</a>
 <a href="prepared_model_draws.html">Prepared Model Draws</a>
 <a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -344,6 +350,10 @@ Each particle's position is a kink waypoint in the ribbon. For <code>point_bezie
 <li>keyed birthrate and spawn animation</li>
 <li>three-stage over-life behavior</li>
 </ul>
+<p><code>mesh_basic</code> packets resolve one cached <code>RenderModel</code> per authored mesh and
+submit the validated particle roots as one transient instance batch. Persistent
+scene <code>ModelInstance</code> rows are not created for short-lived particles, and no
+source-format model payload reaches the renderer.</p>
 <h2 id="json-and-native-assets">JSON And Native Assets</h2>
 <p>The source-neutral serialization layer is defined in:</p>
 <ul>

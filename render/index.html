@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>nw::render - rollNW</title>
+  <title>nw::render - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="gltf.html">glTF Rendering</a>
 <a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_model_findings.html">NWN Model Findings</a>
 <a href="nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="particle_system.html">Particle System</a>
 <a href="prepared_model_draws.html">Prepared Model Draws</a>
 <a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -62,8 +68,8 @@ lists and backend resources.</p>
 </code></pre></div>
 
 <p>The common case is source-neutral runtime data. glTF and NWN are inputs to that
-data, not renderer policy. NWN compatibility still exists where the common
-runtime does not yet own equivalent data.</p>
+data, not renderer policy. Both formats use the same model, frame, and GPU
+submission protocols.</p>
 <h2 id="relationship-to-nwgfx">Relationship To nw::gfx</h2>
 <p><code>nw::gfx</code> owns the low-level graphics API boundary:</p>
 <ul>
@@ -77,7 +83,7 @@ runtime does not yet own equivalent data.</p>
 <li>model, material, animation, particle, light, shadow, and fog records</li>
 <li>GPU backend resources needed by renderer passes</li>
 <li>source-neutral frame protocols such as prepared model surface draws</li>
-<li>compatibility adapters for NWN sidecar data while bridge work is in progress</li>
+<li>source importers that lower NWN and glTF data into the common protocols</li>
 </ul>
 <p>If a change needs to know about models, particles, PLT, shadows, Forward+, or
 viewer scene data, it belongs in <code>nw::render</code> or above. If it only manages GPU
@@ -92,15 +98,12 @@ resources and command submission, it belongs in <code>nw::gfx</code>.</p>
 <li><code>LocalShadowRenderer</code></li>
 <li><code>ParticleRenderer</code></li>
 <li><code>FogRenderer</code></li>
-<li>NWN compatibility GPU resources and render asset cache</li>
+<li>the NWN source texture and particle-model asset cache</li>
 </ul>
-<p>It returns two model contexts:</p>
+<p>It returns one model context:</p>
 <ul>
 <li><code>ModelRenderContext</code>: common <code>RenderModel</code> / PBR submission context.</li>
-<li><code>nwn::ModelRenderContext</code>: NWN sidecar compatibility context.</li>
 </ul>
-<p>New common renderer code should use <code>ModelRenderContext</code> unless it actually
-needs NWN sidecar payloads.</p>
 <h3 id="model-data">Model Data</h3>
 <p>The modern model path centers on these records:</p>
 <ul>
@@ -112,12 +115,12 @@ needs NWN sidecar payloads.</p>
 <li><code>PreparedModelDraw</code>: flat validated draw record collected from handles.</li>
 <li><code>PreparedModelSurfaceDraw</code>: smallest renderer-facing model surface command.</li>
 </ul>
-<p><code>PreparedModelSurfaceDraw</code> is the shared frame protocol. It carries source kind,
-source indices, pass/material data, transforms, skin index, bounds, and
+<p><code>PreparedModelSurfaceDraw</code> is the shared frame protocol. It carries source
+indices, pass/material data, transforms, skin index, bounds, and
 shadow-caster state. The array is sorted in place by pass/material needs.</p>
 <p>The renderer should not infer behavior from model, texture, or node names.
-Source-specific quirks should be lowered into explicit common records or kept in
-a compatibility sidecar with counters.</p>
+Source-specific quirks must be lowered into explicit common records or rejected
+with counted importer diagnostics.</p>
 <p>Object-level model, light, and icon references enter C++ through the
 <a href="visual_asset_protocol.html">Visual Asset Protocol</a>.
 Smalls emits semantic rows; C++ loads concrete assets and turns them into
@@ -133,6 +136,10 @@ renderer-owned model instances and draw records.</p>
 <p>NWN emitters are imported into this protocol. The emitter field map lives in
 <a href="nwn_emitter_map.html">docs/nwn_emitter_map.md</a>, and the particle architecture
 overview lives in <a href="particle_system.html">docs/particle_system.md</a>.</p>
+<p>Mesh-particle packets use cached common <code>RenderModel</code> assets and a flat batch of
+transient root transforms. Their simulation state remains in the particle SoA;
+they do not create persistent scene-model instances or retain source-specific
+renderer payloads.</p>
 <h3 id="lighting-shadows-and-fog">Lighting, Shadows, And Fog</h3>
 <p><code>RenderContext</code> carries per-frame camera, viewport, lighting, shadow, and
 Forward+ data. Area/viewer code prepares visible light lists and shadow caster
@@ -143,7 +150,7 @@ and commands.</p>
 <h3 id="viewer-layer">Viewer Layer</h3>
 <p><code>lib/nw/render/viewer</code> is the preview/tooling bridge used by <code>mudl</code> and renderer
 tests. It owns preview-scene assembly, area visibility records, particle-owner
-binding, debug drawing, screenshots, and parity toggles.</p>
+binding, debug drawing, and screenshots.</p>
 <p>The viewer is not the production scene graph. It is where source adapters and
 common renderer contracts are exercised against real NWN/glTF data until a
 compiled runtime asset path exists.</p>
@@ -176,17 +183,12 @@ without assigning cache ownership to whichever session happens to load last.</p>
   particle-model entries. This is paid only at explicit clear, renderer
   shutdown, or resource-registry generation change.</li>
 </ul>
-<p>Legacy <code>nwn::Mesh</code> texture handles and prepared draw-data caches record the
-asset-cache epoch. They discard captured handles, bindless indices, or prepared
-GPU data before reuse when the epoch differs. A mesh carries 8 bytes of epoch
-state, and each prepared draw-data cache carries another 8 bytes.</p>
 <p><code>get_or_load_source_image()</code> and <code>get_or_load_particle_mesh()</code> return pointers
 into cache-owned storage. These are frame-local borrows: callers must not retain
-them across <code>clear()</code> or a resource reload. The current particle renderer and
-mesh-particle bridge consume them in the same render call. Stable owning
-pointers are used because the parsed <code>Image</code> and <code>ModelInstance</code> payloads must
-survive hash-table rehash; they are not pointer-chased inside the cache clear
-loop.</p>
+them across <code>clear()</code> or a resource reload. The particle renderer consumes them
+in the same render call. Stable owning pointers are used because parsed <code>Image</code>
+and uploaded <code>RenderModel</code> payloads must survive hash-table rehash; they are not
+pointer-chased inside the cache clear loop.</p>
 <p>No LRU, per-session cache, reference-counted asset handle, or residency budget
 is part of this contract. The current measurements and remaining decision are
 tracked in <a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-residency-budget.md">Render Asset Cache Residency Budget</a>.</p>
@@ -196,7 +198,9 @@ tracked in <a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset
   renderer model/light/icon row protocol.</li>
 <li><a href="gltf.html">docs/gltf.md</a>: glTF to <code>ModelAsset</code> / <code>RenderModel</code>.</li>
 <li><a href="nwn_model_conversion.html">docs/nwn_model_conversion.md</a>: NWN MDL to
-  common model data plus compatibility sidecars.</li>
+  common model data.</li>
+<li><a href="nwn_model_findings.html">docs/nwn_model_findings.md</a>: observed NWN model
+  format/runtime behavior, rejected hypotheses, and regression evidence.</li>
 <li><a href="nwn_emitter_map.html">docs/nwn_emitter_map.md</a>: NWN emitter fields to the
   neutral particle system.</li>
 </ul>
@@ -211,7 +215,6 @@ tracked in <a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-modern-pbr-material-calibration.md">NWN Modern PBR Material Calibration</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
-<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/render-asset-cache-residency-budget.md">Render Asset Cache Residency Budget</a></li>
 </ul>
       </article>

@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rules - rollNW</title>
+  <title>Rules - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="../render/particle_system.html">Particle System</a>
 <a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
 <a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -61,6 +67,59 @@ rules service.</p>
 <p><strong>Type</strong>: A typed rule value, such as an armor class category. The rule system
 defines the type and invalid value; profiles define valid values.</p>
 <p><strong>Flag</strong>: A compact flag built from a rule type.</p>
+<h2 id="imported-table-boundary">Imported Table Boundary</h2>
+<p>An active profile may project one source table into native <code>Info</code> rows and
+Smalls <code>Rules</code> rows. The source row index is the join key. The projections are
+disjoint: a source column has one runtime owner, never a native mirror and a
+Smalls mirror.</p>
+<p><code>Info</code> contains data required by native engine storage, tool indexing, or asset
+addressing. <code>Rules</code> contains profile behavior and numeric tuning consumed by
+Smalls. The distinction is based on the consumer, not on whether a source
+column happens to look visual or mechanical.</p>
+<p>The current NWN1 partitions are:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Native <code>Info</code></th>
+<th>Smalls <code>Rules</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseitems.2da</code></td>
+<td>identity, model/icon lookup, item-property column, inventory geometry, equip mask, stacking/container shape</td>
+<td>cost, requirements, armor/damage, weapon behavior, feat mappings</td>
+</tr>
+<tr>
+<td><code>appearance.2da</code></td>
+<td>identity, model lookup, model assembly type</td>
+<td>size/movement and attachment/equipment visual policy</td>
+</tr>
+<tr>
+<td><code>placeables.2da</code></td>
+<td>identity and model lookup</td>
+<td>lighting and static profile policy</td>
+</tr>
+</tbody>
+</table>
+<p>At profile initialization, C++ performs one linear import into contiguous
+native arrays. Each semantic Smalls module performs one <code>load_config!</code> import
+into a contiguous value array on first use. Both projections live until the
+next rules/runtime reload. A missing required table fails profile
+initialization; an invalid indexed lookup returns a row with <code>id == -1</code>.</p>
+<p>Native getters expose compact read-only protocol projections to Smalls. They do
+not expose complete C++ structs and they do not make policy decisions. Smalls
+joins <code>Info</code> and <code>Rules</code> by row ID, resolves behavior, and writes explicit
+object/component rows for native systems to consume.</p>
+<p>This removes three unnecessary paths:</p>
+<ul>
+<li>no combined table-row model shared by both runtimes</li>
+<li>no generated per-row Smalls modules for runtime table data</li>
+<li>no renderer or tool code reading profile table columns directly</li>
+</ul>
+<p>Persistence, authored overrides, and long-lived reload behavior remain separate
+work in <a href="https://github.com/jd28/rollnw/blob/main/issues/persist-native-authoring-tables.md"><code>issues/persist-native-authoring-tables.md</code></a>.</p>
 <h2 id="modifiers">Modifiers</h2>
 <p>The older modifier system is built on integer, floating-point, string, and
 function inputs stored in the global rules service. Modifier resolution calls a

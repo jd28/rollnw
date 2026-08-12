@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>mudl - rollNW</title>
+  <title>mudl - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="../render/particle_system.html">Particle System</a>
 <a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
 <a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a class="active" href="index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -88,8 +94,6 @@ mudl<span class="w"> </span><span class="nb">help</span>
 <li><code>--animation &lt;name&gt;</code>: override the default animation for interactive/headless model previews.</li>
 <li><code>--pbr-environment &lt;ktx&gt;</code>: select the HDR KTX source used by the static PBR <code>reference_ibl</code> policy.</li>
 <li><code>--no-pbr-ibl</code>: skip generated static PBR IBL textures and use shader fallback lighting.</li>
-<li><code>--dangly-scale &lt;value&gt;</code>: exaggerate or reduce dangly motion for tuning.</li>
-<li><code>--dangly-mode legacy|modern</code>: choose the dangly simulation mode.</li>
 <li><code>--validate</code>: enable Vulkan validation layers.</li>
 <li><code>--debug</code>: enable the optional debug grid overlay.</li>
 </ul>
@@ -297,6 +301,7 @@ corpus load.</p>
 - <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/pbr_corpus.json">pbr_corpus.json</a> — focused Stage 2 PBR baseline covering glTF metal/roughness,
   NWN metal/specular fixtures, PLT/equipment, water-textured geometry, and an area local-light case
 - <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/area_corpus.json">area_corpus.json</a>
+- <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/renderer/nwn_regression_corpus.json">nwn_regression_corpus.json</a> — committed NWN resource closures for the core renderer regression set
 - <a href="https://github.com/jd28/rollnw/blob/main/tests/test_data/user/development/visual_audit_ledger.json">visual_audit_ledger.json</a></p>
 <p>NWN MDL import gets you close, and native particle JSON gives you something clean to tune from there:</p>
 <div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>view<span class="w"> </span>./tests/test_data/user/development/particle_basic.json
@@ -448,7 +453,11 @@ Use that directory as the explicit NWN user root so the model, texture, and
 TXI bytes are served from committed test data while the install root only
 provides bootstrap rules and base tables.</p>
 <p>Suggested checks:</p>
-<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>corpus<span class="w"> </span>./tests/test_data/renderer/nwn_regression_corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>./tmp/visual-audit/nwn-regression
+
+mudl<span class="w"> </span>stats<span class="w"> </span>c_aribeth<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
 mudl<span class="w"> </span>stats<span class="w"> </span>c_drgshad<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
 mudl<span class="w"> </span>stats<span class="w"> </span>it_torch_000<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user
 mudl<span class="w"> </span>stats<span class="w"> </span>ttd01_a04_03<span class="w"> </span>--user<span class="w"> </span>./tests/test_data/renderer/nwn_dump_user

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NWN Model Findings - rollnw</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollnw</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollnw</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="index.html">nw::render</a>
+<a href="visual_asset_protocol.html">Visual Asset Protocol</a>
+<a href="gltf.html">glTF Rendering</a>
+<a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a class="active" href="nwn_model_findings.html">NWN Model Findings</a>
+<a href="nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="particle_system.html">Particle System</a>
+<a href="prepared_model_draws.html">Prepared Model Draws</a>
+<a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/render/docs/nwn_model_findings.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="nwn-model-findings">NWN Model Findings</h1>
+<p>This is an evidence ledger for NWN MDL behavior discovered while parsing,
+lowering, and rendering real assets. It is not a complete MDL specification.
+Entries belong here when they change an implementation contract or prevent a
+failed hypothesis from being retried later.</p>
+<p>Each finding should name the observed input, the required output, the current
+error policy, and the code or test that preserves it. Asset-specific behavior
+does not become policy merely because one model exposed it.</p>
+<h2 id="current-data-path">Current Data Path</h2>
+<div class="codehilite"><pre><span></span><code>binary or ASCII MDL
+  -&gt; nw::model::Mdl parser representation
+  -&gt; import_nwn_model_asset
+  -&gt; ModelAsset validation
+  -&gt; RenderModel upload
+  -&gt; common ModelInstance animation and skin matrices
+</code></pre></div>
+
+<p>The parser preserves source geometry, node hierarchy, controller data, and
+source skin slots. The NWN importer converts that data into the bounded common
+renderer contract. Problems should be localized to one boundary before changing
+transform math downstream.</p>
+<h2 id="skin-influence-lanes-are-independent">Skin Influence Lanes Are Independent</h2>
+<p>A binary skin vertex stores four <code>uint16_t</code> bone-slot lanes and four matching
+floating-point weights. <code>0xffff</code> means that one bone lane is unused. It does
+not terminate the remaining lanes and it does not request a fallback bone.</p>
+<p>The observed sparse row that exposed this was:</p>
+<div class="codehilite"><pre><span></span><code>bones   = [0xffff, 3, 0xffff, 0xffff]
+weights = [0.0,    1.0, 0.0,    0.0]
+</code></pre></div>
+
+<p>Stopping at lane zero discarded the valid lane-one influence before lowering.
+The affected skin meshes then failed import. This presented visually as missing
+model parts, including the head and tail, rather than as merely incorrect
+deformation.</p>
+<p>Current contract:</p>
+<ul>
+<li>The binary parser examines all four lanes.</li>
+<li><code>0xffff</code> becomes <code>-1</code> in <code>SkinVertex::bones</code> for that lane only.</li>
+<li>A lane with weight less than or equal to zero is ignored during lowering.</li>
+<li>A positive-weight lane with an out-of-range source slot rejects that skin.</li>
+<li>A used source slot whose bone-node row is <code>-1</code> is a model-space identity
+  influence. The common skin table preserves it as <code>kModelSkinIdentityJoint</code>;
+  every other negative or out-of-range node rejects the skin.</li>
+<li>Accepted weights are clamped independently to <code>[0, 1]</code> when packed. The
+  importer does not invent another joint or renormalize the source row.</li>
+</ul>
+<p>The parser cost is four fixed lane checks per vertex. The importer performs
+another four lane checks per vertex, followed by one linear scan of the 64-slot
+source bone table. These are CPU import-time costs, not per-draw costs.</p>
+<p>Evidence:</p>
+<ul>
+<li><code>Mdl.BinarySkinPreservesSparseBoneLanes</code> encodes the sparse row directly in a
+  synthetic binary MDL.</li>
+<li><code>Model.Skin</code> covers packed ASCII skin rows from <code>c_satyr</code> and
+  <code>c_satyrarcher</code>.</li>
+<li><code>RenderModelLoader.ImportsNwnModelAssetSkinMeshes</code> verifies that valid parsed
+  skin meshes survive the <code>ModelAsset</code> boundary.</li>
+<li><code>c_halaster</code> exposed a positive-weight source slot 17 mapped to bone node
+  <code>-1</code>; rejecting it dropped the entire <code>skin_robe</code> mesh.</li>
+<li><code>RenderModelLoader.ImportsNwnIdentitySkinBoneRows</code> verifies that the identity
+  row and its packed vertex influence survive common lowering and validation.</li>
+</ul>
+<p>The ASCII parser currently expects its textual bone-name list to be packed and
+stops at the first empty name. That is a separate source representation; the
+binary sparse-lane finding is not evidence that ASCII rows have the same shape.</p>
+<h2 id="inverse-bind-data-is-derived-from-the-hierarchy">Inverse Bind Data Is Derived From The Hierarchy</h2>
+<p>Binary skin nodes contain <code>qbone_ref_inv</code> and <code>tbone_ref_inv</code> arrays. The wire
+fields remain in <code>MdlBinarySkinNode</code> so the binary layout is correct, but rollnw
+does not copy their payload into <code>SkinNode</code> or use it to build renderer skin
+matrices.</p>
+<p>The required inverse bind transform is derived from the parsed bind hierarchy:</p>
+<div class="codehilite"><pre><span></span><code>inverse_bind = inverse(bone_world_bind) * mesh_world_bind
+</code></pre></div>
+
+<p>The <code>ModelAsset</code> importer computes one matrix per used joint from the bone and
+mesh bind poses. This removes two source arrays from the live model
+representation and avoids carrying redundant transform state into runtime
+rendering.</p>
+<p>Historical evidence is commit <code>223dbbad8</code>, which removed
+<code>bone_rotation_inv</code>/<code>bone_translation_inv</code> storage after the hierarchy-derived
+path was established. The <code>qbone_ref_inv</code> and <code>tbone_ref_inv</code> payloads should
+not be restored unless a reproducible corpus case demonstrates information that
+cannot be reconstructed from the parsed hierarchy.</p>
+<p>This conclusion is narrower than saying those fields have no meaning in the
+original format. They are unnecessary inputs to rollnw's current transform.</p>
+<h2 id="skin-lowering-is-a-bounded-compaction">Skin Lowering Is A Bounded Compaction</h2>
+<p><code>SkinNode::bone_nodes</code> is a 64-entry source-slot table. The common importer:</p>
+<ol>
+<li>Scans positive-weight vertex lanes and marks the source slots actually used.</li>
+<li>Validates each used slot against the source bone table and model node table.</li>
+<li>Compacts used slots into a <code>Skin::joints</code> array.</li>
+<li>Rewrites each vertex lane through the source-slot-to-joint remap.</li>
+</ol>
+<p>The common renderer accepts at most <code>kModelMaxSkinBones</code> (currently 64) joints
+per skin. Empty skins, out-of-range source slots, unresolved nodes, and skins
+over that bound are rejected at import. The caller increments
+<code>skipped_skin_mesh_count</code>; malformed rows do not reach GPU submission.</p>
+<p>This means a missing skinned part should be diagnosed in this order:</p>
+<ol>
+<li>Did the parser produce the skin node, vertices, indices, lanes, and weights?</li>
+<li>Did <code>skipped_skin_mesh_count</code> increase during NWN-to-<code>ModelAsset</code> lowering?</li>
+<li>Did <code>ModelAsset</code> validation accept the skin and primitive indices?</li>
+<li>Did runtime skin assignment and matrix generation retain the accepted rows?</li>
+</ol>
+<p>Changing bind matrices before answering those questions mixes distinct data
+failures and can make a parser omission look like an animation bug.</p>
+<h2 id="hierarchy-and-animation-findings">Hierarchy And Animation Findings</h2>
+<ul>
+<li>Skeleton rows are built from parsed source-node indices and parent links.
+  Names are for lookup and diagnostics; indices carry runtime identity.</li>
+<li>Bind transforms are accumulated down that hierarchy before inverse binds are
+  calculated.</li>
+<li>Animation clips from a model and its supermodel chain are lowered against the
+  loaded model's skeleton. A missing track leaves that node at bind/static pose.</li>
+<li>Static primitives use the sampled node transform as their draw world.
+  Skinned primitives remain at <code>root * mesh_world_bind</code>: their sampled pose is
+  already in the skin matrix table, and the primitive inverse-mesh transform
+  cancels the bind transform exactly once. Applying the sampled mesh-node world
+  as well double-transforms skins whose mesh node is not neutral.</li>
+<li>Zero-duration clips are real source data. The Ozz backend currently rejects
+  them, so they are dropped and reported rather than assigned an invented
+  duration. The unresolved policy is tracked in
+  <a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a>.</li>
+</ul>
+<h2 id="dangly-mesh-findings-and-limits">Dangly Mesh Findings And Limits</h2>
+<ul>
+<li>Dangly source vertices still need valid rest positions, normals, tangents,
+  material sources, and indices at the <code>ModelAsset</code> boundary. Invalid basis
+  vectors are repaired and counted during import.</li>
+<li>Dangly intent lowers into an explicit <code>ModelDeformer</code> row. The common path
+  currently renders unsupported secondary-motion deformers as static source
+  geometry; it does not run the legacy per-frame CPU vertex rewrite.</li>
+<li>The binary skin <code>qbone_ref_inv</code> and <code>tbone_ref_inv</code> arrays are not dangly
+  simulation state.</li>
+<li>Model or node names are not deformation policy. Remaining NWN name heuristics
+  are contained at import and counted by <code>foliage_name_heuristic_count</code>.</li>
+</ul>
+<p>A previously observed large robe displacement was not reproduced reliably, so
+it is not recorded as a format conclusion. If it returns, capture the source
+model, transition sequence, deformer counters, and first divergent vertex
+before changing the transform.</p>
+<h2 id="diagnostics">Diagnostics</h2>
+<p>Use the load report before visual trial-and-error:</p>
+<div class="codehilite"><pre><span></span><code>mudl<span class="w"> </span>report<span class="w"> </span>&lt;resref-or-object-json&gt;<span class="w"> </span>--module<span class="w"> </span>&lt;module-path&gt;
+</code></pre></div>
+
+<p>Relevant geometry fields include <code>skin_count</code>, <code>skinned_primitive_count</code>,
+<code>deformer_count</code>, <code>skipped_skin_mesh_count</code>, <code>normal_repair_count</code>, and
+<code>tangent_repair_count</code>. A useful regression records the command, revision,
+model source, and these counters, then adds the smallest synthetic parser test
+that represents the failing row shape.</p>
+<h2 id="rejected-debugging-shortcuts">Rejected Debugging Shortcuts</h2>
+<ul>
+<li>Do not select behavior from a model, texture, bone, or node name.</li>
+<li>Do not treat an unused influence lane as the end of a fixed-width row.</li>
+<li>Do not substitute bone zero for a missing or invalid influence.</li>
+<li>Do not restore redundant inverse-bind arrays without a failing corpus case.</li>
+<li>Do not repair a parser omission with renderer-side model-specific logic.</li>
+<li>Do not promote an unreproduced visual anomaly into a format rule.</li>
+</ul>
+<h2 id="updating-this-ledger">Updating This Ledger</h2>
+<p>Add a finding only after the input row or transition can be observed. Include:</p>
+<ul>
+<li>the source kind and representative asset or synthetic row</li>
+<li>the values that matter, including sentinels and valid ranges</li>
+<li>the transform boundary where behavior diverged</li>
+<li>explicit reject, drop, clamp, or fallback behavior</li>
+<li>a regression test or a reproducible <code>mudl report</code> command</li>
+</ul>
+<p>Open design decisions belong under <code>issues/</code>; this document records established
+behavior and the evidence that supports it.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

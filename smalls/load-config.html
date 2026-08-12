@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>load_config - rollNW</title>
+  <title>load_config - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="index.html">Smalls</a>
 <a href="spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="../render/particle_system.html">Particle System</a>
 <a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
 <a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -41,15 +47,22 @@
       <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
       <article class="content">
 <h1 id="load_config">load_config</h1>
-<p><code>load_config!</code> is the current path for moving RPG ruleset data out of hardcoded
-C++ tables and into Smalls-owned manifests. The data is still typed code: each
-entry is a Smalls struct literal, and rules modules load arrays of those entries
-through one intrinsic.</p>
+<ul>
+<li><strong>Version</strong>: 0.2.0</li>
+<li><strong>Last Updated</strong>: 2026-07-31</li>
+<li><strong>Status</strong>: Normative data-loading contract</li>
+</ul>
+<p><code>load_config!</code> is the current path for exposing typed RPG ruleset data to
+Smalls. A table may come from Smalls struct literals or from a registered
+runtime converter; rules modules load the resulting arrays through one
+intrinsic.</p>
+<p>The ownership and package rules in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/conventions.md"><code>conventions.md</code></a> and
+<a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/profile-packages.md"><code>profile-packages.md</code></a> apply throughout this document.</p>
 <p>This is the "manifest RPGs" direction in practical form:</p>
 <div class="codehilite"><pre><span></span><code>ruleset schema
   -&gt; typed Smalls structs with explicit fields and indexes
 ruleset data
-  -&gt; one `.smalls` struct literal per entry
+  -&gt; `.smalls` struct literals or a registered runtime source
 rules code
   -&gt; load_config!(EntryType)(&quot;ruleset.data.table&quot;)
 runtime
@@ -59,10 +72,14 @@ runtime
 <p>The common case is a rules module loading one table once, then serving small
 lookup helpers from that cached array.</p>
 <h2 id="entry-schema">Entry Schema</h2>
-<p>Config arrays are built from structs. The struct needs an integer field marked
-with <code>[[index]]</code>; that field determines where the entry lands in the returned
-array. For hot rules lookups, use <code>[[value_type]]</code> so entries are stored inline
-in <code>array!(T)</code>.</p>
+<p>Config arrays are built from ordinary structs. The struct needs an integer field
+marked with <code>[[index]]</code>; that field determines where the entry lands in the
+returned array. For hot rules lookups, use <code>[[value_type]]</code> so entries are stored
+inline in <code>array!(T)</code>.</p>
+<p>A config row may contain registered native value types when they are exact
+copied values used across the C++/SmallS ABI. A config row is not a propset and
+must not contain a propset instance. Propsets require an object handle and
+object-indexed pool storage; <code>load_config!</code> returns detached shared values.</p>
 <div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">StrRef</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 
 <span class="nd">[[value_type]]</span>
@@ -106,39 +123,26 @@ directory are loaded.</p>
 <div class="codehilite"><pre><span></span><code><span class="nd">[[intrinsic(&quot;load_config&quot;)]]</span> <span class="k">fn</span> <span class="n">load_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="kt">string</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">);</span>
 </code></pre></div>
 
-<p>Call it with an explicit entry type:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">array</span> <span class="k">as</span> <span class="nc">Array</span><span class="p">;</span>
-<span class="k">from</span> <span class="n">nwn1</span><span class="p">.</span><span class="n">rules</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">ClassEntry</span> <span class="p">};</span>
-
-<span class="k">var</span> <span class="n">classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.classes&quot;</span><span class="p">);</span>
-
-<span class="k">fn</span> <span class="n">fighter_hit_die</span><span class="p">():</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="k">var</span> <span class="n">fighter</span> <span class="o">=</span> <span class="nc">Array</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">classes</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
-    <span class="k">return</span> <span class="n">fighter</span><span class="p">.</span><span class="n">hit_die</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<p>Most modules hide the raw table behind lookup helpers so callers get explicit
-out-of-range behavior:</p>
+<p>Call it with an explicit entry type. Required modules expose one initialization
+function for the profile bootstrap, then hide the raw table behind lookup
+helpers with explicit out-of-range behavior:</p>
 <div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">nwn1</span><span class="p">.</span><span class="n">rules</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">ClassEntry</span> <span class="p">};</span>
 <span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">types</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Class</span><span class="p">,</span> <span class="nc">Ability</span> <span class="p">};</span>
 <span class="k">import</span> <span class="n">core</span><span class="p">.</span><span class="n">array</span> <span class="k">as</span> <span class="nc">Array</span><span class="p">;</span>
 
-<span class="k">var</span> <span class="n">_loaded</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
 <span class="k">var</span> <span class="n">_classes</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">);</span>
 
-<span class="k">fn</span> <span class="n">_ensure_loaded</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">_loaded</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="k">fn</span> <span class="n">init</span><span class="p">():</span> <span class="kt">bool</span> <span class="p">{</span>
     <span class="n">_classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.classes&quot;</span><span class="p">);</span>
-    <span class="n">_loaded</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nc">Array</span><span class="p">.</span><span class="n">len</span><span class="p">(</span><span class="n">_classes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 
 <span class="k">fn</span> <span class="n">exists</span><span class="p">(</span><span class="n">class_id</span><span class="p">:</span> <span class="nc">Class</span><span class="p">):</span> <span class="kt">bool</span> <span class="p">{</span>
-    <span class="n">_ensure_loaded</span><span class="p">();</span>
     <span class="k">var</span> <span class="n">index</span> <span class="o">=</span> <span class="n">class_id</span> <span class="k">as</span> <span class="kt">int</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nc">Array</span><span class="p">.</span><span class="n">len</span><span class="p">(</span><span class="n">_classes</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="nc">Array</span><span class="p">.</span><span class="n">len</span><span class="p">(</span><span class="n">_classes</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">false</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nc">Array</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">_classes</span><span class="p">,</span> <span class="n">index</span><span class="p">).</span><span class="n">id</span> <span class="o">==</span> <span class="n">index</span><span class="p">;</span>
 <span class="p">}</span>
 
 <span class="k">fn</span> <span class="n">caster_ability</span><span class="p">(</span><span class="n">class_id</span><span class="p">:</span> <span class="nc">Class</span><span class="p">):</span> <span class="nc">Ability</span> <span class="p">{</span>
@@ -153,24 +157,44 @@ out-of-range behavior:</p>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>That wrapper shape is deliberate. <code>load_config!</code> loads data; the rules module
-owns invalid-id policy.</p>
+<p>The selected profile calls <code>init</code> once and rejects <code>false</code> before normal rules
+execution. <code>load_config!</code> loads data; the rules module owns the required-table
+invariant and invalid-ID policy. Accessors do not carry a repeated loaded-state
+branch.</p>
+<h2 id="initialization-policy">Initialization Policy</h2>
+<p>Required profile tables load during the selected profile's initialization
+phase. The initializer validates the complete required table batch before normal
+rules or object work begins. Lookup functions then perform only their domain ID
+and row-validity checks; they do not repeatedly decide whether required startup
+work happened.</p>
+<p>Lazy <code>_ensure_loaded</code> wrappers are reserved for optional tool data or a module
+that can be used outside normal profile startup. Their initialization function
+returns an explicit success value, and callers cannot silently continue with a
+partially initialized required table.</p>
+<p>An empty table is not universally an error. The owning domain declares whether
+zero rows are valid. A required domain with a non-empty invariant rejects the
+empty result during initialization.</p>
 <h2 id="runtime-contract">Runtime Contract</h2>
 <p><code>load_config!(T)(path)</code>:</p>
 <ul>
 <li>normalizes dot and slash paths before lookup</li>
 <li>requires <code>T</code> to be a struct with an <code>int</code> <code>[[index]]</code> field</li>
-<li>loads all direct <code>.smalls</code> entries below the table path</li>
-<li>sorts entry files by resource path before inserting them</li>
-<li>returns an <code>array!(T)</code> sized to the highest non-negative index plus one</li>
+<li>rejects <code>T</code> when it is a propset or contains a propset field</li>
+<li>for a <code>twoda_only</code> converter, imports every row from the active 2DA directly</li>
+<li>otherwise, loads and sorts direct <code>.smalls</code> entries below the table path</li>
+<li>sizes a 2DA-backed array to the source row count</li>
+<li>sizes an entry-file array to the highest non-negative index plus one</li>
 <li>caches the returned array by normalized path and entry type</li>
 <li>roots the array so garbage collection does not reclaim config data</li>
 </ul>
 <p>Out-of-range and bad data behavior is explicit:</p>
 <ul>
 <li>missing table path logs a warning and returns an empty array</li>
-<li>invalid entry type, missing <code>[[index]]</code>, or non-<code>int</code> index fails the intrinsic</li>
-<li>entries that fail to load, have non-<code>int</code> indexes, or have negative indexes are skipped</li>
+<li>missing registered 2DA logs a warning and returns an empty array</li>
+<li>invalid entry type, propset-containing entry type, missing <code>[[index]]</code>, or
+  non-<code>int</code> index fails the intrinsic</li>
+<li>entries that fail to load, have non-<code>int</code> indexes, or have negative indexes
+  are skipped</li>
 <li>duplicate indexes are last-wins after filename sorting</li>
 </ul>
 <p>Because sparse IDs produce array holes, rules modules should bounds-check before
@@ -185,13 +209,23 @@ entry files. The script API is the same:</p>
 typed Smalls manifests. A future authored RPG can use native <code>.smalls</code> entries
 directly without changing the lookup code.</p>
 <h2 id="relationship-to-propsets">Relationship To Propsets</h2>
-<p><code>load_config!</code> is for stable ruleset data: classes, races, feats, base items,
-spell rows, progression tables, and similar data that is loaded once and queried
-many times.</p>
+<p><code>load_config!</code> is for Smalls-owned stable ruleset data: classes, races, feats,
+spell rows, progression tables, and similar data that is loaded once and
+queried many times.</p>
+<p>NWN1 base items demonstrate a split shared-data boundary. Checked-in
+<code>BaseItemDefinition</code> struct literals are the canonical row source.
+<code>load_config!</code> loads one indexed definition batch. Profile SmallS retains the
+<code>BaseItemRules</code> policy rows and publishes a copied <code>BaseItemInfo</code> fact batch to
+native <code>core.item</code> consumers that require layout, model, icon, and inventory
+geometry. The two projections join by the same stable base-item ID; neither is a
+second authoritative source.</p>
+<p>Legacy 2DAs remain valid converter inputs for tables still using registered
+runtime converters. For canonical base-item definitions, 2DA conversion is an
+offline import path rather than a second runtime source.</p>
 <p>Propsets are for per-object game state: hit points, ability scores, combat
 state, class levels, inventory-facing state, and other data attached to a live
 object. A combat rule commonly joins both:</p>
-<div class="codehilite"><pre><span></span><code>class/race/base-item config from load_config!
+<div class="codehilite"><pre><span></span><code>class/race/base-item rules from load_config! plus native base-item facts
   + live creature/item propsets
   -&gt; rule result
 </code></pre></div>

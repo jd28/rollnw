@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>glTF Rendering - rollNW</title>
+  <title>glTF Rendering - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="visual_asset_protocol.html">Visual Asset Protocol</a>
 <a class="active" href="gltf.html">glTF Rendering</a>
 <a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_model_findings.html">NWN Model Findings</a>
 <a href="nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="particle_system.html">Particle System</a>
 <a href="prepared_model_draws.html">Prepared Model Draws</a>
 <a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -54,11 +60,9 @@ other common models.</p>
 <li><code>nw::render::gltf::import_gltf_render_model_from_asset(path, desc)</code> decodes
   through <code>ModelAsset</code>, uploads geometry and textures, and returns a
   <code>RenderModel</code>.</li>
-<li><code>nw::render::gltf::import_gltf(path, desc)</code> is the older direct importer kept
-  for focused importer tests, not for viewer or mudl preview routing.</li>
 </ul>
-<p>The viewer and mudl preview path is <code>ModelAsset -&gt; RenderModel</code>; there is no
-runtime glTF preview switch.</p>
+<p>All glTF conversion uses <code>ModelAsset -&gt; RenderModel</code>; there is no direct GPU
+importer or runtime path switch.</p>
 <h2 id="data-flow">Data Flow</h2>
 <div class="codehilite"><pre><span></span><code>.gltf / .glb
   -&gt; cgltf parse
@@ -175,7 +179,6 @@ conversion/upload boundary. It should not reach Vulkan submission as undefined
 state.</p>
 <h2 id="related-issues">Related Issues</h2>
 <ul>
-<li><a href="https://github.com/jd28/rollnw/blob/main/issues/remove-legacy-render-paths.md">Remove Legacy Render Paths</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/offline-model-compiler.md">Offline Model Compiler</a></li>
 <li><a href="https://github.com/jd28/rollnw/blob/main/issues/nwn-zero-duration-animation-clips.md">NWN Zero-Duration Animation Clips</a></li>
 </ul>

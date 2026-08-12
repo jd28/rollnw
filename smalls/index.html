@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smalls - rollNW</title>
+  <title>Smalls - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a class="active" href="index.html">Smalls</a>
 <a href="spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="../render/gltf.html">glTF Rendering</a>
 <a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
 <a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="../render/particle_system.html">Particle System</a>
 <a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
 <a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -41,12 +47,25 @@
       <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
       <article class="content">
 <h1 id="smalls-docs">Smalls Docs</h1>
-<p>Smalls is the active rules/script authoring path in rollNW. Older docs may focus on NWScript parsing or C++ rule modifiers; those systems still exist, but Smalls is where new language, embedding, and authored RPG toolset/game rules work should be expected to land.</p>
-<ul>
-<li><code>spec.md</code> - language spec</li>
-<li><code>load-config.md</code> - loading RPG ruleset data from Smalls struct-literal files</li>
-<li><code>propset-architecture.md</code> - script-defined game object data layout</li>
-</ul>
+<p>Smalls is the active rules/script authoring path in rollnw. Older docs may focus
+on NWScript parsing or C++ rule modifiers; those systems still exist, but Smalls
+is where new language, embedding, and authored RPG toolset/game rules work
+should be expected to land.</p>
+<p>Read the architecture documents in this order:</p>
+<ol>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/conventions.md"><code>conventions.md</code></a> — normative ownership, dependency, data
+   protocol, failure, and persistence rules.</li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/profile-packages.md"><code>profile-packages.md</code></a> — selected profile root, module
+   conventions, package resolution, and bootstrap ordering.</li>
+<li><a href="propset-architecture.html"><code>propset-architecture.md</code></a> — detailed propset,
+   native component, ABI bridge, and object-domain storage rules.</li>
+<li><a href="load-config.html"><code>load-config.md</code></a> — typed shared rules/config batches and
+   their relationship to live propsets and native values.</li>
+<li><a href="spec.html"><code>spec.md</code></a> — SmallS language and virtual-machine design.</li>
+</ol>
+<p>The normative documents describe the target architecture. Current deviations
+and their migration sequence are tracked in
+<a href="https://github.com/jd28/rollnw/blob/main/issues/smalls-module-ownership-and-profile-boundaries.md"><code>issues/smalls-module-ownership-and-profile-boundaries.md</code></a>.</p>
       </article>
     </main>
   </div>

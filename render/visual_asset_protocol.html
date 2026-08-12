@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Visual Asset Protocol - rollNW</title>
+  <title>Visual Asset Protocol - rollnw</title>
   <link rel="stylesheet" href="../_static/site.css">
 </head>
 <body>
   <div class="site-shell">
     <aside class="site-sidebar">
-      <a class="site-title" href="../index.html">rollNW</a>
+      <a class="site-title" href="../index.html">rollnw</a>
       <nav class="site-nav" aria-label="Documentation">
 <div class="site-nav-section">Overview</div>
-<a href="../index.html">rollNW</a>
+<a href="../index.html">rollnw</a>
 <div class="site-nav-section">Scripting</div>
 <a href="../smalls/index.html">Smalls</a>
 <a href="../smalls/spec.html">Smalls Language Spec</a>
@@ -28,12 +28,18 @@
 <a class="active" href="visual_asset_protocol.html">Visual Asset Protocol</a>
 <a href="gltf.html">glTF Rendering</a>
 <a href="nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="nwn_model_findings.html">NWN Model Findings</a>
 <a href="nwn_emitter_map.html">NWN Emitter Map</a>
 <a href="particle_system.html">Particle System</a>
 <a href="prepared_model_draws.html">Prepared Model Draws</a>
 <a href="forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
 <div class="site-nav-section">Tools</div>
 <a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="../client/index.html">rollnw | client</a>
+<a href="../client/transactions.html">Transactions</a>
+<a href="../client/ui-runtime.html">Toolset UI Runtime</a>
+<a href="../client/rml-smalls.html">RmlUi And Smalls</a>
       </nav>
     </aside>
     <main class="page">
@@ -48,7 +54,7 @@ which semantic assets an object needs. C++ owns object-component storage,
 resource loading, validation, and renderer submission. Renderer passes consume
 uploaded renderer data, not NWN table policy or model-name rules.</p>
 <h2 id="data-flow">Data Flow</h2>
-<div class="codehilite"><pre><span></span><code>propsets, load_config data, equipment, appearance state
+<div class="codehilite"><pre><span></span><code>propsets, native Info rows, load_config Rules rows, equipment, appearance state
   -&gt; Smalls resolver functions
      nwn1.placeables.update_visual
      nwn1.doors.update_visual
@@ -56,6 +62,7 @@ uploaded renderer data, not NWN table policy or model-name rules.</p>
      nwn1.item.update_visual_for_slot
   -&gt; core.visual native row functions
      clear_visual, clear_visual_slot
+     set_visual_hold_animation
      add_visual_model, add_visual_model_row, add_visual_part
      add_visual_light
   -&gt; C++ object components
@@ -88,7 +95,7 @@ propsets and <code>load_config</code> data, then emits the rows the renderer nee
 <li>creature body/loadout rows for the owner object</li>
 <li>equipped item rows partitioned by slot</li>
 <li>optional attachment rows such as wings, tails, shields, cloaks, and weapons</li>
-<li>later row protocols for animation slate changes or other render-facing state</li>
+<li>object-wide hold animation state for the assembled visual</li>
 </ul>
 <p>The renderer does not inspect equipment slots, base-item IDs, or NWN tables. It
 loads and submits the <code>ObjectVisualModel</code> rows already attached to the object.
@@ -122,6 +129,14 @@ placeable.</p>
 <li><code>light_color</code>: semantic palette/index value</li>
 <li><code>light_offset</code>: local-space offset</li>
 </ul>
+<p><code>ObjectVisualState::hold_animation</code> is the object-wide steady-state animation
+selected by the rules layer. It is a true singleton rather than a row: one
+state applies to the object's root visual assembly. The renderer performs the
+named lookup once when the visual is loaded or refreshed. A missing named clip
+leaves the model in bind pose; it does not select an unrelated fallback clip.
+Standalone blueprint previews request the authored <code>default</code> hold pose instead
+of applying persisted gameplay state. Gameplay states can deliberately move
+meshes below the world floor, which is not a useful isolated authoring view.</p>
 <p>Out-of-range behavior is explicit at the producer boundary. Invalid appearance
 rows fail the resolver. Invalid attachment indices return an empty row. Empty
 model <code>ResRef</code>s are rejected by the row consumer. Missing resources are counted
@@ -135,11 +150,10 @@ filenames and not as <code>Resource</code>.</p>
 <li>C++ decides which concrete resource type and upload path satisfy that identity.</li>
 <li>Renderer code sees uploaded model data and draw records.</li>
 </ul>
-<p>For NWN compatibility, <code>nwn1.*</code> modules may still construct legacy model names
-from table data. That is compatibility policy and should stay in <code>nwn1.*</code>, not
-inside <code>nw::render</code> and not in low-level object components. A future RPG or
-non-NWN rules module can emit different <code>ResRef</code>s or different row kinds without
-changing renderer passes.</p>
+<p>NWN <code>nwn1.*</code> modules construct model resource identities from table data. That
+source policy stays in <code>nwn1.*</code>, not inside <code>nw::render</code> and not in low-level
+object components. Another rules module can emit different <code>ResRef</code>s or row
+kinds without changing renderer passes.</p>
 <h2 id="icons">Icons</h2>
 <p>Icons are not model rows and are not part of the model renderer protocol.</p>
 <p>Item icon resolution returns icon <code>ResRef</code>s for UI/tooling consumers. The C++
@@ -168,7 +182,7 @@ not depend on that hint.</p>
 <p><code>nw::render</code> owns renderer meaning:</p>
 <ul>
 <li>validating and loading model assets</li>
-<li>applying material, PLT, animation, socket, and compatibility sidecar data</li>
+<li>applying material, PLT, animation, socket, and deformer data</li>
 <li>creating <code>RenderModel</code> and <code>ModelInstance</code> data</li>
 <li>collecting <code>PreparedModelDraw</code> and <code>PreparedModelSurfaceDraw</code> arrays</li>
 <li>submitting renderer passes through <code>nw::gfx</code></li>

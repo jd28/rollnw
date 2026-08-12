@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rollnw | client - rollnw</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollnw</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollnw</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a class="active" href="index.html">rollnw | client</a>
+<a href="transactions.html">Transactions</a>
+<a href="ui-runtime.html">Toolset UI Runtime</a>
+<a href="rml-smalls.html">RmlUi And Smalls</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/tools/client/README.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="rollnw-client">rollnw | client</h1>
+<p>rollnw client is rollnw's local-first Neverwinter Nights module viewer and
+authoring workbench. It imports a module into a project, presents resources in
+workspace tabs, renders areas and blueprints through the shared viewer, and
+exposes the selected live object to focused Details surfaces, Smalls scripts,
+the terminal, and the command palette.</p>
+<p>The integration target is a trustworthy viewer with bounded, explicit editing
+paths. It is not a complete replacement for every NWToolset workflow. New
+editors are added when their input, mutation, undo, persistence, and preview
+contracts are all defined.</p>
+<p>rollnw client is currently one process with one SDL event loop, one kernel Smalls
+runtime, local project files, and a local renderer. The renderer presents live
+objects; it does not own a second gameplay or editor object model.</p>
+<h2 id="screenshots">Screenshots</h2>
+<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/area_view_2026_08_12.png"><img alt="Area viewer showing project resources, a rendered area, and its placed-object list" src="../assets/tools/client/screenshots/area_view_2026_08_12.png"></a></p>
+<p><em>Area viewing with project-resource navigation and the complete placed-object list.</em></p>
+<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/creature_view_2026_08_12.png"><img alt="Creature blueprint preview showing the rendered creature and Details workbench" src="../assets/tools/client/screenshots/creature_view_2026_08_12.png"></a></p>
+<p><em>Creature blueprint preview with shared Details and focused editor tabs.</em></p>
+<h2 id="importing-a-module">Importing A Module</h2>
+<p>Import a module from the command line before opening the resulting project:</p>
+<div class="codehilite"><pre><span></span><code>rollnw-client import (--json|--legacy) &lt;module.mod&gt; [project-dir]
+</code></pre></div>
+
+<p>Use <code>--json</code> for the client's native project format:</p>
+<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;/path/to/Neverwinter Nights/modules/example.mod&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>./example-project
+</code></pre></div>
+
+<p>Quote paths that contain spaces. If <code>project-dir</code> is omitted, the client creates
+a directory named after the module in the current working directory. For
+example, importing <code>example.mod</code> without a destination writes to <code>./example</code>.</p>
+<p>The JSON import creates <code>rollnw.json</code>, converts supported module resources to
+JSON, combines each area's ARE/GIT/GIC resources into one CAF file under
+<code>shared/areas/</code>, and generates area maps under <code>.rollnw/cache/area_maps/</code>.
+The NWN:EE installation and every hak named by the module must be discoverable;
+if automatic discovery fails, set <code>NWN_ROOT</code> and <code>NWN_HOME</code> to the installation
+and user directories. Import fails when a declared hak cannot be loaded.</p>
+<p>To preserve the module's original binary GFF resources instead, use:</p>
+<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">&quot;/path/to/example.mod&quot;</span><span class="w"> </span>./example-legacy
+</code></pre></div>
+
+<p>The destination is created when it does not exist. Importing into an existing
+project updates files in place and does not remove unrelated or stale files, so
+use a new or empty destination when a clean import is required.</p>
+<h2 id="runtime-shape">Runtime Shape</h2>
+<p>The common data flow is:</p>
+<div class="codehilite"><pre><span></span><code>project/module resource
+    -&gt; ToolsetBackend command
+    -&gt; WorkspaceState tab
+    -&gt; ResourceDocument or live ObjectHandle
+    -&gt; ViewerSession
+    -&gt; selected active_object
+    -&gt; property and managed-view snapshots
+</code></pre></div>
+
+<p>User actions from menus, shortcuts, the command palette, terminal, RmlUi, and
+Smalls converge on <code>CommandBus</code>. A command returns one <code>CommandResult</code> with a
+status, diagnostic channel, optional undo action, and optional prompt. The
+command source does not get a separate mutation path.</p>
+<p>The main ownership boundaries are:</p>
+<table>
+<thead>
+<tr>
+<th>Owner</th>
+<th>Data and lifetime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ToolsetBackend</code></td>
+<td>Command registry, project/module state, terminal dispatch, and the document-save callback.</td>
+</tr>
+<tr>
+<td><code>WorkspaceState</code></td>
+<td>Ordered tabs, active tab, dirty flags, subtabs, and per-tab undo/redo stacks.</td>
+</tr>
+<tr>
+<td><code>ViewerSession</code></td>
+<td>The loaded preview scene and renderer-side selected object handle.</td>
+</tr>
+<tr>
+<td><code>ObjectManager</code></td>
+<td>Live gameplay object storage addressed by generational <code>ObjectHandle</code> values.</td>
+</tr>
+<tr>
+<td><code>RmlSmallsBridge</code> / <code>SmallsRmlUiHost</code></td>
+<td>Non-owning active-object and active-area handles used by Smalls commands. Stale handles read back as invalid.</td>
+</tr>
+<tr>
+<td>RmlUi documents</td>
+<td>Presentation elements and document-scoped inline or external Smalls modules.</td>
+</tr>
+</tbody>
+</table>
+<p><code>active_object</code> and its area command context are deliberate singleton
+exceptions. rollnw client has one active workspace surface, one displayed area, and
+one preview selection. The values are non-owning generational handles; changing
+tabs, clearing selection, reloading, or closing a scene clears or replaces them.</p>
+<h2 id="workspace">Workspace</h2>
+<p><code>WorkspaceState</code> owns a contiguous list of tabs. A tab records its identity,
+kind, title, resource detail, dirty flag, optional subtabs, and undo/redo
+stacks. Undo history belongs to the tab containing the edited document; global
+commands do not add entries.</p>
+<p>The workspace distinguishes home, module, project, area, blueprint preview,
+resource, and generic tabs. The permanent Home and Area tabs are not closable
+or movable. Opening another area replaces the Area tab's document state and
+clears its prior undo/redo history.</p>
+<p>Dirty tabs use a complete close protocol:</p>
+<div class="codehilite"><pre><span></span><code>workspace.close_tab
+    -&gt; clean: close
+    -&gt; dirty: Save / Discard / Cancel prompt
+        -&gt; Save: workspace.save_and_close_tab
+            -&gt; workspace.save_tab
+            -&gt; close only when save succeeds
+        -&gt; Discard: forced close
+        -&gt; Cancel: no command
+</code></pre></div>
+
+<p><code>Ctrl+W</code>, palette actions, and terminal commands all dispatch this protocol.
+They do not close a dirty document directly.</p>
+<h2 id="commands">Commands</h2>
+<p><code>CommandBus</code> is the application action boundary. <code>CommandSpec</code> supplies stable
+IDs, aliases, scope, flags, default bindings, and usage text. The palette and
+terminal enumerate the same specifications that scripts execute.</p>
+<p>Command scopes are:</p>
+<ul>
+<li><code>global</code>: application or navigation state; never pushed to a tab undo stack.</li>
+<li><code>workspace</code>: document operations; a successful result may contribute one
+  <code>CommandUndoAction</code> to the active tab.</li>
+<li><code>renderer</code>: renderer or viewport state.</li>
+</ul>
+<p><code>CommandStatus::success</code> and <code>CommandStatus::noop</code> are successful results.
+Only <code>success</code> results with an undo action, a workspace scope, and
+<code>record_undo == true</code> are pushed to undo history. New undo actions clear the
+tab's redo stack.</p>
+<p>Smalls uses <code>core.commands.v1.command_execute</code>, so RmlUi handlers, scripts,
+the terminal, and native widgets reach the same command handlers. See
+<a href="transactions.html">transactions</a> for the current mutation, undo, dirty,
+and save contracts.</p>
+<h2 id="viewer-and-workbench">Viewer And Workbench</h2>
+<p>Blueprint previews instantiate one live object and areas retain one live root
+area plus their contained objects. The viewer publishes the selected live
+object without copying gameplay state into the renderer or UI.</p>
+<p>The object workbench reads live Smalls propsets and native facts into bounded
+presentation snapshots. The default Details surface is shared across placed
+object types; workflow-heavy data opens a focused surface:</p>
+<ul>
+<li>creature appearance, body parts, and PLT colors;</li>
+<li>creature classes, feats, spells, inventory, and equipment;</li>
+<li>item state and item properties; and</li>
+<li>module details and hak inspection.</li>
+</ul>
+<p>These views demonstrate the intended split: reflection handles broadly useful
+data, while workflow-heavy collections use purpose-built views and commands.
+All data-dependent row surfaces must remain viewport-virtualized.</p>
+<p>Area tabs provide precise mesh or authored-footprint selection for placed
+objects, Ctrl-click tile selection, a complete placed-object list, and camera
+focus on list selection. The validated Creature/Placeable structural slice
+supports placement, transforms, duplicate, delete, undo/redo, and native CAF
+save. Blueprint preview tabs use the same focused edit commands and save path.</p>
+<h2 id="appearance-ownership">Appearance Ownership</h2>
+<p>Appearance editing has one mutation path even though the UI catalogs join two
+data sources:</p>
+<div class="codehilite"><pre><span></span><code>native appearance tables          profile Smalls config/state
+  model, model type, labels         NWN rules, propsets, body parts, colors
+              \                    /
+               nwn1 visual resolution
+                        -&gt; copied visual rows
+                        -&gt; shared renderer
+</code></pre></div>
+
+<p>Native creature/placeable tables provide engine-loaded facts and localized
+catalog labels. <code>nwn1.appearances</code>, <code>nwn1.creature_state</code>, and
+<code>nwn1.creature</code> own NWN interpretation, live appearance state, validation, and
+visual resolution. Client edits invoke that profile API through the command and
+undo path. The renderer receives resolved rows; it does not read profile
+propsets or choose an appearance. Wing and tail catalogs are tool projections
+of profile config, not a second state owner.</p>
+<h2 id="rmlui-and-smalls">RmlUi And Smalls</h2>
+<p>RmlUi owns layout and presentation. Smalls provides document behavior through
+typed event snapshots and a bounded list of UI commands. Resource mutation
+must go through <code>core.commands.v1</code>, not through RmlUi element operations.</p>
+<p>The UI subsystem and language binding are documented in:</p>
+<ul>
+<li><a href="ui-runtime.html">tools/ui</a></li>
+<li><a href="rml-smalls.html">RmlUi/Smalls binding</a></li>
+</ul>
+<h2 id="source-map">Source Map</h2>
+<ul>
+<li><code>main.cpp</code>: SDL/RmlUi event loop, document rendering, active-object
+  publication, save callback, and shell integration.</li>
+<li><code>toolset_backend.*</code>: project/module state and native command registration.</li>
+<li><code>command_bus.*</code>: command protocol and undo-action admission.</li>
+<li><code>workspace.*</code>: tabs, dirty state, close decisions, and per-tab undo/redo.</li>
+<li><code>object_edits.*</code>: validated live-object patch and area-membership batches,
+  undo ownership, and rollback.</li>
+<li><code>resource_document.*</code> / <code>object_document.*</code>: resource identity,
+  presentation, serialization, and atomic JSON replacement.</li>
+<li><code>viewer_viewport.*</code> / <code>renderer*</code>: shared viewer integration and viewport
+  presentation.</li>
+<li><code>ui/panel.rml</code> / <code>ui/panel.rcss</code>: current shell document and styling.</li>
+</ul>
+<h2 id="current-limits">Current Limits</h2>
+<ul>
+<li>The client is viewer-first. It does not yet provide new-area creation or a
+  complete editor for every object aggregate.</li>
+<li>Native CAF area save is implemented. Structural placement and membership
+  editing are currently limited to Creature and Placeable; other placed kinds
+  are selectable and inspectable but do not all have structural commands.</li>
+<li>Encounter spawn lists require a dedicated editor; they are not flattened into
+  generic Details rows.</li>
+<li><code>toolset.save_all</code> is registered but remains a stub.</li>
+<li>The Smalls list host defines list state and callback protocols, but the
+  current object-workbench DOM rows are materialized by the C++
+  <code>VirtualListController</code> path.</li>
+<li>Toolset presentation is packaged separately from profile policy, but runtime
+  toolset-package replacement and hot reload are not implemented.</li>
+<li>There is no network server or serializable transaction protocol. Current
+  object handles, Smalls type IDs, and undo closures are process-local.</li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

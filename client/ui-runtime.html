@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Toolset UI Runtime - rollnw</title>
+  <link rel="stylesheet" href="../_static/site.css">
+</head>
+<body>
+  <div class="site-shell">
+    <aside class="site-sidebar">
+      <a class="site-title" href="../index.html">rollnw</a>
+      <nav class="site-nav" aria-label="Documentation">
+<div class="site-nav-section">Overview</div>
+<a href="../index.html">rollnw</a>
+<div class="site-nav-section">Scripting</div>
+<a href="../smalls/index.html">Smalls</a>
+<a href="../smalls/spec.html">Smalls Language Spec</a>
+<a href="../smalls/load-config.html">load_config</a>
+<a href="../smalls/propset-architecture.html">Propset Architecture</a>
+<a href="../rules/index.html">Rules</a>
+<a href="../script/index.html">NWScript Parser</a>
+<div class="site-nav-section">Utility</div>
+<a href="../objects/index.html">Objects</a>
+<div class="site-nav-section">Rendering</div>
+<a href="../gfx/index.html">nw::gfx</a>
+<a href="../render/index.html">nw::render</a>
+<a href="../render/visual_asset_protocol.html">Visual Asset Protocol</a>
+<a href="../render/gltf.html">glTF Rendering</a>
+<a href="../render/nwn_model_conversion.html">NWN Model Conversion</a>
+<a href="../render/nwn_model_findings.html">NWN Model Findings</a>
+<a href="../render/nwn_emitter_map.html">NWN Emitter Map</a>
+<a href="../render/particle_system.html">Particle System</a>
+<a href="../render/prepared_model_draws.html">Prepared Model Draws</a>
+<a href="../render/forward_plus_gpu_driven_roadmap.html">Forward+ GPU-Driven Roadmap</a>
+<div class="site-nav-section">Tools</div>
+<a href="../mudl/index.html">mudl</a>
+<div class="site-nav-section">Client</div>
+<a href="index.html">rollnw | client</a>
+<a href="transactions.html">Transactions</a>
+<a class="active" href="ui-runtime.html">Toolset UI Runtime</a>
+<a href="rml-smalls.html">RmlUi And Smalls</a>
+      </nav>
+    </aside>
+    <main class="page">
+      <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/tools/ui/README.md">Source</a></div>
+      <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
+      <article class="content">
+<h1 id="toolset-ui-runtime">Toolset UI Runtime</h1>
+<p><code>tools/ui</code> contains the data protocols shared by rollnw client, RmlUi, and Smalls.
+It does not own resources or a second editor object model. Its inputs are live
+object handles, Smalls runtime metadata, list data, and RmlUi events; its
+outputs are bounded presentation snapshots, virtualized row ranges, callback
+events, and UI-only element commands.</p>
+<h2 id="boundaries">Boundaries</h2>
+<p>The subsystem has four distinct jobs:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rml_smalls_language_binding.*</code></td>
+<td>Compile document Smalls blocks, encode RmlUi events, execute typed handlers, and apply bounded UI commands.</td>
+</tr>
+<tr>
+<td><code>smalls_rmlui.*</code> / <code>rml_smalls_bridge.*</code></td>
+<td>Publish the validated process-wide <code>active_object</code> and load/call toolset Smalls modules.</td>
+</tr>
+<tr>
+<td><code>virtual_list.*</code> / <code>virtual_combobox.*</code> / <code>ui_v1.*</code> / <code>smalls_ui_v1.*</code></td>
+<td>Compute viewport-bounded list ranges, own reusable combobox state, and expose the first Smalls list state/callback protocol.</td>
+</tr>
+<tr>
+<td><code>smalls_property_tree.*</code> / <code>smalls_creature_feats.*</code></td>
+<td>Build bounded snapshots from live object data for reflected and managed workbench surfaces.</td>
+</tr>
+</tbody>
+</table>
+<p>RmlUi-specific code may change text, values, checked state, classes,
+visibility, and focus. It must not directly write resource or gameplay state.
+Those mutations go through the command bus, normally through
+<code>core.commands.v1.command_execute</code>.</p>
+<h2 id="smalls-as-ui-behavior">Smalls As UI Behavior</h2>
+<p>An RmlUi document may contain inline or external Smalls scripts. Each script
+block is compiled as a document-owned Smalls module. Event attributes resolve a
+named function in those blocks.</p>
+<p>The handler boundary is:</p>
+<div class="codehilite"><pre><span></span><code>RmlUi Event + source Element + owner Document + active_object
+    -&gt; core.rmlui.Event value
+    -&gt; fn handler(event: Event): void | array!(Command)
+    -&gt; validate and apply UI commands to the owner document
+</code></pre></div>
+
+<p>The event is a value snapshot. Scripts do not receive <code>Rml::Event*</code>,
+<code>Rml::Element*</code>, or <code>Rml::ElementDocument*</code>. Returned commands target elements
+by ID inside the handler's owner document. See
+<a href="rml-smalls.html">RmlUi/Smalls binding</a> for the exact fields, operations,
+limits, lifetime, and errors.</p>
+<p>The shared <code>active_object</code> is a non-owning <code>ObjectHandle</code>. The host validates
+the generational handle on every read. A stale, cleared, or absent selection is
+reported as an invalid object rather than exposing freed storage.</p>
+<h2 id="mutation-rule">Mutation Rule</h2>
+<p>UI handlers may read event data and the active object, then execute a named
+command. The current panel uses this flow for Creature plot and feat changes:</p>
+<div class="codehilite"><pre><span></span><code>checkbox event
+    -&gt; core.commands.v1.command_execute
+    -&gt; native object command
+    -&gt; validated ObjectEditBatch
+    -&gt; dirty/undo/mutation epoch
+    -&gt; empty UI command list on success
+    -&gt; restore checkbox UI state on rejection
+</code></pre></div>
+
+<p>Element commands are presentation corrections only. They are not transaction
+patches and do not participate in resource undo/redo.</p>
+<h2 id="virtual-lists">Virtual Lists</h2>
+<p><code>VirtualListController</code> stores fixed row height, overscan, total row count,
+viewport height, scroll offset, selection, and hover. Its output is one
+half-open source range plus top and bottom spacer heights:</p>
+<div class="codehilite"><pre><span></span><code>[start, end) = visible rows + bounded overscan
+</code></pre></div>
+
+<p>All numeric inputs are clamped. Empty lists or zero-height viewports produce an
+empty range. <code>render_virtual_list</code> materializes only that range, so RmlUi
+document size depends on viewport height and overscan rather than source count.
+Its top and bottom spacers explicitly use block layout because RmlUi does not
+apply browser default block layout to an unstyled <code>div</code>; without it, the scroll
+extent contains only the materialized rows.</p>
+<p><code>core.ui.v1</code> exposes the first Smalls-facing list state API:</p>
+<ul>
+<li>create/destroy a named list;</li>
+<li>replace its item batch;</li>
+<li>set/get selection by stable key or index; and</li>
+<li>register hover, select, activate, and scroll callback names.</li>
+</ul>
+<p>Hover and scroll events are coalesced. Select and activate events preserve
+order. The host retains at most 512 queued events and drops the oldest event on
+overflow. The host owns copied item and callback strings.</p>
+<p><code>VirtualComboBox</code> is the client-driven reusable combobox widget. Opening it
+moves one unique-key item batch into the widget, selects by stable integer key,
+and requests a DOM update containing only the visible option range plus
+overscan. Empty or duplicate-key batches are rejected and leave it closed.
+The caller owns the field and popup elements and dispatches the selected key
+through the command bus.</p>
+<p>The current rollnw client workbench uses <code>VirtualListController</code> directly for DOM
+row materialization. <code>VirtualListHost::drain_events</code> is not yet connected to the
+rollnw client main loop, so <code>core.ui.v1</code> should be treated as an available state
+and callback protocol, not a completed general RmlUi list widget.</p>
+<h2 id="live-object-snapshots">Live Object Snapshots</h2>
+<p>The property tree and Creature feat view read live objects. They do not parse
+serialized JSON and do not retain raw Smalls storage pointers.</p>
+<ul>
+<li>Property rows are rebuilt when the active object, expansion state, schema,
+  or mutation epoch changes. Invalid objects and materialization limits produce
+  explicit snapshot status and diagnostics.</li>
+<li>Creature feat rows merge the rules feat table with the live sorted feat IDs.
+  The result is filtered presentation data; assignment still occurs through
+  the shared object command.</li>
+</ul>
+<p>Snapshot construction is cold relative to frame rendering. The visible list
+slice is the only data-dependent row batch converted to RML each frame.</p>
+<h2 id="smalls-modules">Smalls Modules</h2>
+<ul>
+<li><code>core.rmlui</code>: event/command value types, UI operation constants, and
+  read-only <code>active_object()</code>.</li>
+<li><code>core.commands</code>: command specification and result value types.</li>
+<li><code>core.commands.v1</code>: native command registration and execution.</li>
+<li><code>core.ui</code>: list and callback-manifest value types.</li>
+<li><code>core.ui.v1</code>: native list state and callback functions.</li>
+<li><code>toolset.ui</code>: replaceable scripted UI workflow and its callback manifest.</li>
+</ul>
+<h2 id="failure-behavior">Failure Behavior</h2>
+<ul>
+<li>Invalid or stale active-object handles read as invalid.</li>
+<li>Invalid list IDs, argument shapes, and callback registrations return <code>false</code>
+  or an empty selection value.</li>
+<li>List geometry and indices are clamped to valid ranges.</li>
+<li>RmlUi/Smalls compile, signature, execution, decode, and target errors are sent
+  to RmlUi logging, rollnw logging, and the binding diagnostic list.</li>
+<li>Resource command rejection is returned as <code>CommandResult</code>; UI code must not
+  bypass it with a direct object write.</li>
+</ul>
+<h2 id="tests">Tests</h2>
+<p>The focused coverage is in:</p>
+<ul>
+<li><code>tests/rollnw_client_rml_smalls_language_binding.cpp</code></li>
+<li><code>tests/rollnw_client_virtual_list.cpp</code></li>
+<li><code>tests/rollnw_client_smalls_property_tree.cpp</code></li>
+<li><code>tests/rollnw_client_smalls_creature_feats.cpp</code></li>
+<li><code>tests/rollnw_client_object_edits.cpp</code></li>
+<li><code>tests/rollnw_client_commands.cpp</code></li>
+</ul>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
