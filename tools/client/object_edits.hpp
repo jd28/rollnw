@@ -24,6 +24,7 @@ namespace nw::toolset {
 
 enum class ObjectEditKind : uint8_t {
     propset_int,
+    propset_int_element,
     creature_feat,
     creature_body_part,
     creature_color,
@@ -39,6 +40,7 @@ struct ObjectEditPatch {
     uint32_t key = 0;
     int32_t before = 0;
     int32_t after = 0;
+    int32_t element_index = -1;
 };
 
 struct ObjectEditBatch {

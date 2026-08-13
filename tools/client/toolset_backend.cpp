@@ -1421,6 +1421,60 @@ void ToolsetBackend::register_native_commands()
                 edit->field_index,
                 edit->before,
                 edit->after,
+                edit->element_index,
+            });
+            return commit_object_edits(std::move(batch), std::move(edit->label), context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.details.set_integer",
+                        "Set Object Details Integer",
+                        "Set one explicitly ranged integer in the active object's Details",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.details.set_integer <row-index> <expected> <desired>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto row_index = parse_u32(command_arg_string(invocation.args, 0));
+            const auto expected = parse_i32(command_arg_string(invocation.args, 1));
+            const auto desired = parse_i32(command_arg_string(invocation.args, 2));
+            if (!row_index || !expected || !desired) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.details.set_integer <row-index> <expected> <desired>",
+                    CommandOutputChannel::warn);
+            }
+            if (*expected == *desired) {
+                return command_result(CommandStatus::noop,
+                    "Object Details integer is already set", CommandOutputChannel::none);
+            }
+            if (!bridge_) {
+                return command_result(
+                    CommandStatus::failed, "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+
+            std::string diagnostic;
+            auto edit = prepare_object_details_integer_edit(kernel::runtime(),
+                bridge_->active_object(), *row_index, *expected, *desired, diagnostic);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic.empty() ? "Object Details integer edit was rejected" : std::move(diagnostic),
+                    CommandOutputChannel::warn);
+            }
+
+            ObjectEditBatch batch;
+            batch.kind = edit->element_index == -1
+                ? ObjectEditKind::propset_int
+                : ObjectEditKind::propset_int_element;
+            batch.patches.push_back({
+                edit->object,
+                edit->propset_type,
+                edit->field_index,
+                edit->before,
+                edit->after,
+                edit->element_index,
             });
             return commit_object_edits(std::move(batch), std::move(edit->label), context);
         });

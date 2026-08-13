@@ -42,6 +42,7 @@ enum class ObjectDetailsRowKind : uint8_t {
 enum class ObjectDetailsEditorKind : uint8_t {
     read_only,
     boolean,
+    integer,
 };
 
 struct ObjectDetailsRow {
@@ -49,7 +50,10 @@ struct ObjectDetailsRow {
     ObjectDetailsEditorKind editor = ObjectDetailsEditorKind::read_only;
     smalls::TypeID propset_type{};
     uint32_t field_index = UINT32_MAX;
+    int32_t element_index = -1;
     int32_t edit_value = 0;
+    int32_t edit_min = 0;
+    int32_t edit_max = 0;
     PropertyTextSlice label;
     PropertyTextSlice value;
 };
@@ -79,10 +83,11 @@ struct ObjectDetailsSnapshot {
     [[nodiscard]] std::string_view text_view(PropertyTextSlice slice) const noexcept;
 };
 
-struct ObjectDetailsBooleanEdit {
+struct ObjectDetailsValueEdit {
     ObjectHandle object{};
     smalls::TypeID propset_type{};
     uint32_t field_index = UINT32_MAX;
+    int32_t element_index = -1;
     int32_t before = 0;
     int32_t after = 0;
     std::string label;
@@ -96,12 +101,22 @@ void build_object_details(smalls::Runtime& runtime,
 
 // Row indices are opaque UI tokens. Rebuild the bounded row batch and validate
 // current SmallS policy before returning concrete propset metadata.
-[[nodiscard]] std::optional<ObjectDetailsBooleanEdit>
+[[nodiscard]] std::optional<ObjectDetailsValueEdit>
 prepare_object_details_boolean_edit(smalls::Runtime& runtime,
     ObjectHandle object,
     uint32_t row_index,
     int32_t expected,
     bool assigned,
+    std::string& diagnostic);
+
+// Integer ranges are inclusive policy supplied by SmallS. Values outside the
+// range are rejected; the editor never silently clamps persisted data.
+[[nodiscard]] std::optional<ObjectDetailsValueEdit>
+prepare_object_details_integer_edit(smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    int32_t desired,
     std::string& diagnostic);
 
 struct CreatureClassPresentationSnapshot {

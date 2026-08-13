@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
+#include <initializer_list>
 #include <string_view>
 
 namespace {
@@ -379,6 +380,133 @@ TEST_F(ClientSmallsPropertyTree, PreparesExplicitBooleanDetailsForEverySupported
     verify_object(nw::kernel::objects().make<nw::Store>(), 1, "Store");
     verify_object(nw::kernel::objects().make<nw::Trigger>(), 1, "Trigger");
     verify_object(nw::kernel::objects().make<nw::Waypoint>(), 2, "Waypoint");
+}
+
+TEST_F(ClientSmallsPropertyTree, PreparesExplicitRangedIntegerDetails)
+{
+    auto& runtime = nw::kernel::runtime();
+    struct ExpectedIntegerRange {
+        int32_t minimum;
+        int32_t maximum;
+        size_t count;
+    };
+    const auto verify_object = [&](auto* object,
+                                   std::initializer_list<ExpectedIntegerRange> expected_ranges,
+                                   std::string_view label) {
+        SCOPED_TRACE(label);
+        ASSERT_NE(object, nullptr);
+        runtime.init_object_propsets(object->handle());
+
+        nw::toolset::ObjectDetailsSnapshot snapshot;
+        nw::toolset::build_object_details(runtime, object->handle(), snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+
+        size_t integer_count = 0;
+        for (size_t index = 0; index < snapshot.rows.size(); ++index) {
+            const auto& row = snapshot.rows[index];
+            if (row.editor != nw::toolset::ObjectDetailsEditorKind::integer) {
+                continue;
+            }
+            ++integer_count;
+            const auto expected_range = std::ranges::find_if(
+                expected_ranges, [&](const auto& expected) {
+                    return row.edit_min == expected.minimum
+                        && row.edit_max == expected.maximum;
+                });
+            ASSERT_NE(expected_range, expected_ranges.end());
+            ASSERT_GE(row.edit_value, row.edit_min);
+            ASSERT_LE(row.edit_value, row.edit_max);
+
+            std::string diagnostic;
+            const int32_t endpoint = row.edit_value == row.edit_max
+                ? row.edit_min
+                : row.edit_max;
+            const auto edit = nw::toolset::prepare_object_details_integer_edit(
+                runtime,
+                object->handle(),
+                static_cast<uint32_t>(index),
+                row.edit_value,
+                endpoint,
+                diagnostic);
+            ASSERT_TRUE(edit) << diagnostic;
+            EXPECT_EQ(edit->before, row.edit_value);
+            EXPECT_EQ(edit->after, endpoint);
+            EXPECT_EQ(edit->element_index, row.element_index);
+
+            EXPECT_FALSE(nw::toolset::prepare_object_details_integer_edit(
+                runtime,
+                object->handle(),
+                static_cast<uint32_t>(index),
+                row.edit_value,
+                row.edit_max + 1,
+                diagnostic));
+            EXPECT_FALSE(diagnostic.empty());
+
+            const int32_t stale_expected = row.edit_value == row.edit_min
+                ? row.edit_max
+                : row.edit_min;
+            EXPECT_FALSE(nw::toolset::prepare_object_details_integer_edit(
+                runtime,
+                object->handle(),
+                static_cast<uint32_t>(index),
+                stale_expected,
+                endpoint,
+                diagnostic));
+            EXPECT_FALSE(diagnostic.empty());
+        }
+        size_t expected_integer_count = 0;
+        for (const auto& expected : expected_ranges) {
+            expected_integer_count += expected.count;
+            const auto observed = std::ranges::count_if(snapshot.rows, [&](const auto& row) {
+                return row.editor == nw::toolset::ObjectDetailsEditorKind::integer
+                    && row.edit_min == expected.minimum
+                    && row.edit_max == expected.maximum;
+            });
+            EXPECT_EQ(observed, expected.count);
+        }
+        EXPECT_EQ(integer_count, expected_integer_count);
+        nw::kernel::objects().destroy(object->handle());
+    };
+
+    verify_object(nw::kernel::objects().make<nw::Door>(), {{0, 250, 7}}, "Door");
+    verify_object(nw::kernel::objects().make<nw::Placeable>(), {{0, 250, 7}}, "Placeable");
+    verify_object(nw::kernel::objects().make<nw::Sound>(), {{0, 127, 1}}, "Sound");
+    verify_object(nw::kernel::objects().make<nw::Trigger>(), {{0, 250, 2}}, "Trigger");
+    verify_object(make_creature(), {{0, 255, 6}, {-32768, 32767, 3}}, "Creature");
+    verify_object(
+        nw::kernel::objects().load_file<nw::Creature>(
+            "test_data/user/development/pl_agent_001.utc"),
+        {{0, 255, 34}, {-32768, 32767, 3}}, "Loaded Creature");
+    verify_object(nw::kernel::objects().make<nw::Encounter>(), {}, "Encounter");
+    verify_object(nw::kernel::objects().make<nw::Item>(), {}, "Item");
+    verify_object(nw::kernel::objects().make<nw::Store>(), {}, "Store");
+    verify_object(nw::kernel::objects().make<nw::Waypoint>(), {}, "Waypoint");
+}
+
+TEST_F(ClientSmallsPropertyTree, RejectsIntegerDetailsValuesOutsidePolicyRange)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* door = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(door, nullptr);
+    runtime.init_object_propsets(door->handle());
+
+    const auto propset_type = runtime.type_id("nwn1.propsets.DoorState", false);
+    const auto propset = runtime.find_propset_ref(propset_type, door->handle());
+    const auto* definition = runtime.get_struct_def(propset_type);
+    ASSERT_NE(definition, nullptr);
+    const uint32_t field_index = definition->field_index("lock_dc");
+    ASSERT_NE(field_index, UINT32_MAX);
+    ASSERT_TRUE(runtime.write_struct_value_field(
+        propset, definition, field_index, nw::smalls::Value::make_int(251)));
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, door->handle(), snapshot);
+    EXPECT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::invalid_data);
+    EXPECT_TRUE(snapshot.rows.empty());
+    EXPECT_FALSE(snapshot.diagnostic.empty());
+
+    nw::kernel::objects().destroy(door->handle());
 }
 
 TEST_F(ClientSmallsPropertyTree, RejectsNonCanonicalBooleanDetailsValues)

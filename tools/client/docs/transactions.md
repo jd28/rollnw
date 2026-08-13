@@ -15,21 +15,24 @@ batches against a live area.
 
 ```text
 ObjectEditBatch {
-    kind: propset_int | creature_feat
+    kind: propset_int | propset_int_element | creature_feat
     patches: [
         object: ObjectHandle
         propset_type: TypeID
         key: uint32
         before: int32
         after: int32
+        element_index: int32  // -1 for a scalar; otherwise an existing array element
     ]
 }
 ```
 
 All rows in a batch target the same live object and edit kind. Keys are strictly
-ordered and unique. Propset batches order by `(propset_type, field key)`;
-Creature feat batches order by feat key. The batch owns its values through
-forward application, undo, and redo.
+ordered and unique. Scalar propset batches order by `(propset_type, field key)`;
+array-element propset batches order by `(propset_type, field key, element_index)`;
+Creature feat batches order by feat key. Array-element edits support fixed and
+unmanaged integer arrays but never resize them. The batch owns its values
+through forward application, undo, and redo.
 
 The active object is singular because one workspace surface is active. Patch
 application is plural even for one field; the single edit is a batch containing
@@ -69,7 +72,8 @@ Validation completes before the first write:
 - target handle resolves to a live object;
 - every patch targets the same object;
 - keys are strictly ordered and unique;
-- propset type, field index, field type, and propset instance are valid;
+- propset type, field index, field type, element index, and propset instance are
+  valid;
 - feat IDs and Creature target type are valid;
 - `before` and `after` differ and are in the supported value range; and
 - the current live value equals the expected value for the requested direction.

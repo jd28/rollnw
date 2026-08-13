@@ -3755,6 +3755,87 @@ bool Runtime::write_struct_value_field(const Value& struct_val, const StructDef*
     return write_value_field_at_offset(struct_val, field.offset, field.type_id, value);
 }
 
+bool Runtime::read_propset_int_element(const Value& propset, uint32_t field_index,
+    int32_t element_index, int32_t& output)
+{
+    const StructDef* definition = get_struct_def(propset.type_id);
+    if (propset.storage != ValueStorage::propset || !definition
+        || !definition->is_propset || field_index >= definition->field_count
+        || element_index < 0) {
+        return false;
+    }
+
+    const FieldDef& field = definition->fields[field_index];
+    if (field.is_unmanaged_array) {
+        const Value array_value = read_value_field_at_offset(
+            propset, field.offset, field.type_id);
+        if (array_value.storage != ValueStorage::immediate) {
+            return false;
+        }
+        IArray* array = object_pool().get_unmanaged_array(
+            TypedHandle::from_ull(array_value.data.handle));
+        Value current;
+        if (!array || array->element_type() != int_type()
+            || !array->get_value(static_cast<size_t>(element_index), current, *this)
+            || current.type_id != int_type()) {
+            return false;
+        }
+        output = current.data.ival;
+        return true;
+    }
+
+    const Type* array_type = get_type(field.type_id);
+    const Type* integer_type = get_type(int_type());
+    if (!array_type || !integer_type || array_type->type_kind != TK_fixed_array
+        || !array_type->type_params[0].is<TypeID>()
+        || !array_type->type_params[1].is<int32_t>()
+        || array_type->type_params[0].as<TypeID>() != int_type()
+        || element_index >= array_type->type_params[1].as<int32_t>()) {
+        return false;
+    }
+
+    const uint32_t index = static_cast<uint32_t>(element_index);
+    if (integer_type->size == 0
+        || index > (std::numeric_limits<uint32_t>::max() - field.offset) / integer_type->size) {
+        return false;
+    }
+    const Value current = read_value_field_at_offset(
+        propset, field.offset + index * integer_type->size, int_type());
+    if (current.type_id != int_type()) {
+        return false;
+    }
+    output = current.data.ival;
+    return true;
+}
+
+bool Runtime::write_propset_int_element(const Value& propset, uint32_t field_index,
+    int32_t element_index, int32_t value)
+{
+    int32_t current = 0;
+    if (!read_propset_int_element(propset, field_index, element_index, current)) {
+        return false;
+    }
+
+    const StructDef* definition = get_struct_def(propset.type_id);
+    const FieldDef& field = definition->fields[field_index];
+    bool written = false;
+    if (field.is_unmanaged_array) {
+        const Value array_value = read_value_field_at_offset(
+            propset, field.offset, field.type_id);
+        IArray* array = array_value.storage == ValueStorage::immediate
+            ? object_pool().get_unmanaged_array(
+                  TypedHandle::from_ull(array_value.data.handle))
+            : nullptr;
+        written = array && array->set_value(static_cast<size_t>(element_index), Value::make_int(value), *this);
+    } else {
+        const Type* integer_type = get_type(int_type());
+        const uint32_t index = static_cast<uint32_t>(element_index);
+        written = integer_type && write_value_field_at_offset(propset, field.offset + index * integer_type->size, int_type(), Value::make_int(value));
+    }
+
+    return written && propsets_ && propsets_->mark_field_mutation(propset, field_index);
+}
+
 // -- Tuple Element Access ----------------------------------------------------
 
 Value Runtime::read_tuple_element_by_index(HeapPtr tuple_ptr, const TupleDef* tuple_def, uint32_t element_index) const

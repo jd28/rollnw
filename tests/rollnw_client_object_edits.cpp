@@ -9,6 +9,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
@@ -27,6 +28,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <type_traits>
 
 #include <nlohmann/json.hpp>
 
@@ -1247,6 +1249,328 @@ TEST(ClientObjectEdits, DetailsBooleanCommitPersistsAndRestoresUndoRedo)
     EXPECT_EQ(serialized["nwn1.propsets.PlaceableState"]["plot"], prepared->after);
 
     nwk::objects().destroy(placeable->handle());
+}
+
+TEST(ClientObjectEdits, DetailsIntegerCommitPersistsAndRestoresUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* door = nwk::objects().make<nw::Door>();
+    ASSERT_NE(door, nullptr);
+    runtime.init_object_propsets(door->handle());
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, door->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto lock_dc = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.editor == nw::toolset::ObjectDetailsEditorKind::integer
+            && snapshot.text_view(row.label) == "Lock DC";
+    });
+    ASSERT_NE(lock_dc, snapshot.rows.end());
+    const int32_t desired = lock_dc->edit_value == lock_dc->edit_max
+        ? lock_dc->edit_min
+        : lock_dc->edit_value + 1;
+
+    std::string diagnostic;
+    const auto prepared = nw::toolset::prepare_object_details_integer_edit(
+        runtime,
+        door->handle(),
+        static_cast<uint32_t>(lock_dc - snapshot.rows.begin()),
+        lock_dc->edit_value,
+        desired,
+        diagnostic);
+    ASSERT_TRUE(prepared) << diagnostic;
+
+    nw::toolset::ObjectEditBatch batch;
+    batch.patches.push_back({
+        prepared->object,
+        prepared->propset_type,
+        prepared->field_index,
+        prepared->before,
+        prepared->after,
+    });
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("area:test", "Test Area", nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_edits(
+        std::move(batch), prepared->label, context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+
+    nlohmann::json serialized;
+    bool (*serialize_json)(const nw::Door*, nlohmann::json&, nw::SerializationProfile) = nw::serialize;
+    ASSERT_TRUE(serialize_json(door, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.DoorState"]["lock_dc"], prepared->after);
+
+    workspace.push_undo(*committed.undo_action);
+    auto result = workspace.undo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    serialized.clear();
+    ASSERT_TRUE(serialize_json(door, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.DoorState"]["lock_dc"], prepared->before);
+
+    result = workspace.redo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    serialized.clear();
+    ASSERT_TRUE(serialize_json(door, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.DoorState"]["lock_dc"], prepared->after);
+
+    nwk::objects().destroy(door->handle());
+}
+
+TEST(ClientObjectEdits, DetailsSavingThrowsPersistForEveryApplicableObject)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    const auto verify_object = [&](auto* object,
+                                   std::string_view propset_name,
+                                   int32_t expected_minimum,
+                                   int32_t expected_maximum) {
+        SCOPED_TRACE(propset_name);
+        ASSERT_NE(object, nullptr);
+        runtime.init_object_propsets(object->handle());
+
+        const auto propset_type = runtime.type_id(propset_name, false);
+        const auto* definition = runtime.get_struct_def(propset_type);
+        ASSERT_NE(definition, nullptr);
+
+        nw::toolset::ObjectDetailsSnapshot snapshot;
+        nw::toolset::build_object_details(runtime, object->handle(), snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+
+        constexpr std::array fields{
+            std::string_view{"save_fort"},
+            std::string_view{"save_reflex"},
+            std::string_view{"save_will"},
+        };
+        std::vector<nw::toolset::ObjectDetailsValueEdit> prepared;
+        prepared.reserve(fields.size());
+        nw::toolset::ObjectEditBatch batch;
+        for (const auto field : fields) {
+            const uint32_t field_index = definition->field_index(field);
+            ASSERT_NE(field_index, UINT32_MAX);
+            const auto row = std::ranges::find_if(snapshot.rows, [&](const auto& candidate) {
+                return candidate.editor == nw::toolset::ObjectDetailsEditorKind::integer
+                    && candidate.propset_type == propset_type
+                    && candidate.field_index == field_index
+                    && candidate.element_index == -1;
+            });
+            ASSERT_NE(row, snapshot.rows.end());
+            EXPECT_EQ(row->edit_min, expected_minimum);
+            EXPECT_EQ(row->edit_max, expected_maximum);
+            const int32_t desired = row->edit_value == row->edit_max
+                ? row->edit_min
+                : row->edit_value + 1;
+
+            std::string diagnostic;
+            auto edit = nw::toolset::prepare_object_details_integer_edit(
+                runtime,
+                object->handle(),
+                static_cast<uint32_t>(row - snapshot.rows.begin()),
+                row->edit_value,
+                desired,
+                diagnostic);
+            ASSERT_TRUE(edit) << diagnostic;
+            batch.patches.push_back({
+                edit->object,
+                edit->propset_type,
+                edit->field_index,
+                edit->before,
+                edit->after,
+            });
+            prepared.push_back(std::move(*edit));
+        }
+        std::ranges::sort(batch.patches, {}, &nw::toolset::ObjectEditPatch::key);
+
+        nw::toolset::WorkspaceState workspace;
+        workspace.open_tab("area:test", "Test Area", nw::toolset::WorkspaceTabKind::area);
+        nw::toolset::CommandContext context;
+        context.workspace = &workspace;
+        context.active_tab_id = workspace.active_tab_id();
+
+        auto committed = nw::toolset::commit_object_edits(
+            std::move(batch), "Set saving throws", context);
+        ASSERT_TRUE(committed.ok()) << committed.message;
+        ASSERT_TRUE(committed.undo_action);
+
+        const std::string propset_key{propset_name};
+        const auto verify_serialized_values = [&](bool after) {
+            nlohmann::json serialized;
+            using Object = std::remove_pointer_t<decltype(object)>;
+            bool (*serialize_json)(const Object*, nlohmann::json&, nw::SerializationProfile) = nw::serialize;
+            ASSERT_TRUE(serialize_json(
+                object, serialized, nw::SerializationProfile::blueprint));
+            const auto& propset = serialized[propset_key];
+            for (size_t i = 0; i < fields.size(); ++i) {
+                EXPECT_EQ(propset[fields[i]],
+                    after ? prepared[i].after : prepared[i].before);
+            }
+        };
+        verify_serialized_values(true);
+
+        workspace.push_undo(*committed.undo_action);
+        auto result = workspace.undo(context);
+        ASSERT_TRUE(result.ok()) << result.message;
+        verify_serialized_values(false);
+
+        result = workspace.redo(context);
+        ASSERT_TRUE(result.ok()) << result.message;
+        verify_serialized_values(true);
+
+        nwk::objects().destroy(object->handle());
+    };
+
+    verify_object(
+        nwk::objects().load_file<nw::Creature>(
+            "test_data/user/development/pl_agent_001.utc"),
+        "nwn1.propsets.CreatureStats",
+        std::numeric_limits<int16_t>::min(),
+        std::numeric_limits<int16_t>::max());
+    verify_object(
+        nwk::objects().make<nw::Door>(),
+        "nwn1.propsets.DoorState", 0, 250);
+    verify_object(
+        nwk::objects().make<nw::Placeable>(),
+        "nwn1.propsets.PlaceableState", 0, 250);
+}
+
+TEST(ClientObjectEdits, DetailsCreatureAbilityAndSkillCommitPersistAndRestoreUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* creature = nwk::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    const auto stats_type = runtime.type_id("nwn1.propsets.CreatureStats", false);
+    const auto* stats_definition = runtime.get_struct_def(stats_type);
+    ASSERT_NE(stats_definition, nullptr);
+    const uint32_t abilities_field = stats_definition->field_index("abilities");
+    const uint32_t skills_field = stats_definition->field_index("skills");
+    ASSERT_NE(abilities_field, UINT32_MAX);
+    ASSERT_NE(skills_field, UINT32_MAX);
+    ASSERT_LT(abilities_field, skills_field);
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, creature->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto ability = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.propset_type == stats_type
+            && row.field_index == abilities_field
+            && row.element_index == 0;
+    });
+    const auto skill = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.propset_type == stats_type
+            && row.field_index == skills_field
+            && row.element_index == 3;
+    });
+    ASSERT_NE(ability, snapshot.rows.end());
+    ASSERT_NE(skill, snapshot.rows.end());
+    ASSERT_EQ(ability->editor, nw::toolset::ObjectDetailsEditorKind::integer);
+    ASSERT_EQ(skill->editor, nw::toolset::ObjectDetailsEditorKind::integer);
+
+    std::string diagnostic;
+    const auto prepared_ability = nw::toolset::prepare_object_details_integer_edit(
+        runtime,
+        creature->handle(),
+        static_cast<uint32_t>(ability - snapshot.rows.begin()),
+        ability->edit_value,
+        ability->edit_value + 1,
+        diagnostic);
+    ASSERT_TRUE(prepared_ability) << diagnostic;
+    const auto prepared_skill = nw::toolset::prepare_object_details_integer_edit(
+        runtime,
+        creature->handle(),
+        static_cast<uint32_t>(skill - snapshot.rows.begin()),
+        skill->edit_value,
+        skill->edit_value + 1,
+        diagnostic);
+    ASSERT_TRUE(prepared_skill) << diagnostic;
+
+    nw::toolset::ObjectEditBatch batch;
+    batch.kind = nw::toolset::ObjectEditKind::propset_int_element;
+    batch.patches.push_back({
+        prepared_ability->object,
+        prepared_ability->propset_type,
+        prepared_ability->field_index,
+        prepared_ability->before,
+        prepared_ability->after,
+        prepared_ability->element_index,
+    });
+    batch.patches.push_back({
+        prepared_skill->object,
+        prepared_skill->propset_type,
+        prepared_skill->field_index,
+        prepared_skill->before,
+        prepared_skill->after,
+        prepared_skill->element_index,
+    });
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("area:test", "Test Area", nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_edits(
+        std::move(batch), "Set creature ability and skill", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+
+    const auto verify_serialized_values = [&](int32_t ability_value, int32_t skill_value) {
+        nlohmann::json serialized;
+        bool (*serialize_json)(const nw::Creature*, nlohmann::json&, nw::SerializationProfile) = nw::serialize;
+        ASSERT_TRUE(serialize_json(
+            creature, serialized, nw::SerializationProfile::blueprint));
+        const auto& stats = serialized["nwn1.propsets.CreatureStats"];
+        EXPECT_EQ(stats["abilities"][prepared_ability->element_index], ability_value);
+        EXPECT_EQ(stats["skills"][prepared_skill->element_index], skill_value);
+    };
+    verify_serialized_values(prepared_ability->after, prepared_skill->after);
+
+    workspace.push_undo(*committed.undo_action);
+    auto result = workspace.undo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    verify_serialized_values(prepared_ability->before, prepared_skill->before);
+
+    result = workspace.redo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    verify_serialized_values(prepared_ability->after, prepared_skill->after);
+
+    nw::toolset::ObjectEditBatch invalid;
+    invalid.kind = nw::toolset::ObjectEditKind::propset_int_element;
+    invalid.patches.push_back({
+        creature->handle(),
+        stats_type,
+        abilities_field,
+        prepared_ability->after,
+        prepared_ability->before,
+        6,
+    });
+    const auto rejected = nw::toolset::apply_object_edits(
+        runtime, invalid, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(rejected.status, nw::toolset::ObjectEditStatus::invalid_batch);
+
+    nwk::objects().destroy(creature->handle());
 }
 
 TEST(ClientObjectEdits, TransformCommitRejectsStaleValuesAndReplaysExactResult)

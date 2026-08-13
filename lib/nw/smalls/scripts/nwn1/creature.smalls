@@ -115,7 +115,10 @@ type CreaturePropertyEditorRow {
     editor: int;
     propset: string;
     field: string;
+    element: int;
     edit_value: int;
+    edit_min: int;
+    edit_max: int;
     class_slot: int;
     class_level: int;
     class_level_min: int;
@@ -126,8 +129,13 @@ const property_editor_surface_properties = 0;
 const property_editor_surface_classes = 1;
 const property_editor_kind_read_only = 0;
 const property_editor_kind_boolean = 1;
+const property_editor_kind_integer = 2;
 const property_editor_class_level_min = 1;
 const property_editor_class_level_max = 60;
+const property_editor_int16_min = -32768;
+const property_editor_int16_max = 32767;
+const property_editor_uint8_min = 0;
+const property_editor_uint8_max = 255;
 
 const creature_color_palette_skin = 0;
 const creature_color_palette_hair = 1;
@@ -170,7 +178,10 @@ fn _property_editor_row(surface: int, group: string, label: string, value: strin
         editor = property_editor_kind_read_only,
         propset = "",
         field = "",
+        element = -1,
         edit_value = 0,
+        edit_min = 0,
+        edit_max = 0,
         class_slot = class_slot,
         class_level = class_level,
         class_level_min = class_level_min,
@@ -188,7 +199,32 @@ fn _boolean_property_editor_row(group: string, label: string,
         editor = property_editor_kind_boolean,
         propset = "nwn1.propsets.CreatureStats",
         field = field,
+        element = -1,
         edit_value = value,
+        edit_min = 0,
+        edit_max = 1,
+        class_slot = -1,
+        class_level = 0,
+        class_level_min = 0,
+        class_level_max = 0,
+    };
+}
+
+fn _integer_property_editor_row(group: string, label: string,
+    field: string, element: int, value: int,
+    minimum: int, maximum: int): CreaturePropertyEditorRow {
+    return CreaturePropertyEditorRow {
+        surface = property_editor_surface_properties,
+        group = group,
+        label = label,
+        value = f"{value}",
+        editor = property_editor_kind_integer,
+        propset = "nwn1.propsets.CreatureStats",
+        field = field,
+        element = element,
+        edit_value = value,
+        edit_min = minimum,
+        edit_max = maximum,
         class_slot = -1,
         class_level = 0,
         class_level_min = 0,
@@ -238,16 +274,25 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Conversation", T.resref_to_string(descriptor.conversation)));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Default Package", f"{health.starting_package}"));
 
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Strength", f"{stats.abilities[0]}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Dexterity", f"{stats.abilities[1]}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Constitution", f"{stats.abilities[2]}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Intelligence", f"{stats.abilities[3]}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Wisdom", f"{stats.abilities[4]}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Abilities", "Charisma", f"{stats.abilities[5]}"));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Strength", "abilities", 0,
+        stats.abilities[0], property_editor_uint8_min, property_editor_uint8_max));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Dexterity", "abilities", 1,
+        stats.abilities[1], property_editor_uint8_min, property_editor_uint8_max));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Constitution", "abilities", 2,
+        stats.abilities[2], property_editor_uint8_min, property_editor_uint8_max));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Intelligence", "abilities", 3,
+        stats.abilities[3], property_editor_uint8_min, property_editor_uint8_max));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Wisdom", "abilities", 4,
+        stats.abilities[4], property_editor_uint8_min, property_editor_uint8_max));
+    arr.push(rows, _integer_property_editor_row("Abilities", "Charisma", "abilities", 5,
+        stats.abilities[5], property_editor_uint8_min, property_editor_uint8_max));
 
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Fortitude", f"{stats.save_fort}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Reflex", f"{stats.save_reflex}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Save Bonus", "Will", f"{stats.save_will}"));
+    arr.push(rows, _integer_property_editor_row("Save Bonus", "Fortitude", "save_fort", -1,
+        stats.save_fort, property_editor_int16_min, property_editor_int16_max));
+    arr.push(rows, _integer_property_editor_row("Save Bonus", "Reflex", "save_reflex", -1,
+        stats.save_reflex, property_editor_int16_min, property_editor_int16_max));
+    arr.push(rows, _integer_property_editor_row("Save Bonus", "Will", "save_will", -1,
+        stats.save_will, property_editor_int16_min, property_editor_int16_max));
 
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Blocked", T.resref_to_string(descriptor.on_blocked)));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Scripts", "On Combat End Round", T.resref_to_string(descriptor.on_endround)));
@@ -271,8 +316,16 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
             if (skill_id < arr.len(stats.skills)) {
                 skill_value = stats.skills[skill_id];
             }
-            arr.push(skill_rows, _property_editor_row(property_editor_surface_properties, "Skills",
-                _localized_editor_name(Skills.name_strref(skill) as int, f"Skill {skill_id}"), f"{skill_value}"));
+            var skill_label = _localized_editor_name(
+                Skills.name_strref(skill) as int, f"Skill {skill_id}");
+            if (skill_id < arr.len(stats.skills)) {
+                arr.push(skill_rows, _integer_property_editor_row("Skills", skill_label,
+                    "skills", skill_id, skill_value,
+                    property_editor_uint8_min, property_editor_uint8_max));
+            } else {
+                arr.push(skill_rows, _property_editor_row(
+                    property_editor_surface_properties, "Skills", skill_label, f"{skill_value}"));
+            }
         }
     }
     arr.sort(skill_rows, fn(a: CreaturePropertyEditorRow, b: CreaturePropertyEditorRow): bool {

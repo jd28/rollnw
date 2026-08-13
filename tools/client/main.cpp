@@ -3289,6 +3289,44 @@ public:
                 markup += "</span><span class=\"object_details_boolean_text\">";
                 markup += escape_html(value);
                 markup += "</span></span>";
+            } else if (row.editor == nw::toolset::ObjectDetailsEditorKind::integer) {
+                markup += "<span class=\"object_details_integer_spinner\"><button type=\"button\" "
+                          "class=\"object_details_integer_step\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-delta=\"-1\" title=\"Decrease; minimum ";
+                markup += std::to_string(row.edit_min);
+                markup += "\"";
+                if (row.edit_value <= row.edit_min) {
+                    markup += " disabled";
+                }
+                markup += ">-</button><input class=\"object_details_integer\" type=\"text\" maxlength=\"11\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-min=\"";
+                markup += std::to_string(row.edit_min);
+                markup += "\" data-max=\"";
+                markup += std::to_string(row.edit_max);
+                markup += "\" value=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" title=\"Valid range: ";
+                markup += std::to_string(row.edit_min);
+                markup += " to ";
+                markup += std::to_string(row.edit_max);
+                markup += ". Use Up/Down to adjust; press Enter to apply.\"/><button type=\"button\" "
+                          "class=\"object_details_integer_step\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-delta=\"1\" title=\"Increase; maximum ";
+                markup += std::to_string(row.edit_max);
+                markup += "\"";
+                if (row.edit_value >= row.edit_max) {
+                    markup += " disabled";
+                }
+                markup += ">+</button></span>";
             } else {
                 markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
             }
@@ -8323,6 +8361,70 @@ int main(int argc, char* argv[])
                     break;
                 }
 
+                auto* focused_details_integer = find_ancestor_with_class(
+                    context->GetFocusElement(), "object_details_integer");
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && focused_details_integer) {
+                    clear_rml_focus(context);
+                    sync_object_details_window(doc, state, true);
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                if ((event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)
+                    && focused_details_integer
+                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+                    const auto minimum = parse_decimal_int32(
+                        focused_details_integer->GetAttribute<Rml::String>("data-min", ""));
+                    const auto maximum = parse_decimal_int32(
+                        focused_details_integer->GetAttribute<Rml::String>("data-max", ""));
+                    auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
+                        focused_details_integer);
+                    const auto value = input
+                        ? parse_decimal_int32(input->GetValue())
+                        : std::nullopt;
+                    if (input && value && minimum && maximum
+                        && *minimum <= *value && *value <= *maximum) {
+                        const bool can_decrement = event.key.key == SDLK_DOWN
+                            && *value > *minimum;
+                        const bool can_increment = event.key.key == SDLK_UP
+                            && *value < *maximum;
+                        if (can_decrement || can_increment) {
+                            const int32_t adjusted = *value
+                                + (can_increment ? 1 : -1);
+                            const Rml::String adjusted_text = std::to_string(adjusted);
+                            input->SetValue(adjusted_text);
+                            const int cursor = static_cast<int>(adjusted_text.size());
+                            input->SetSelectionRange(cursor, cursor);
+                        }
+                    }
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                if (!event.key.repeat
+                    && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
+                    && focused_details_integer
+                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+                    const std::string row = focused_details_integer->GetAttribute<Rml::String>(
+                        "data-row", "");
+                    const std::string current = focused_details_integer->GetAttribute<Rml::String>(
+                        "data-current", "");
+                    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+                        focused_details_integer);
+                    const std::string desired = input ? input->GetValue() : std::string{};
+                    const auto result = dispatch_command(state,
+                        "object.details.set_integer",
+                        {row, current, desired},
+                        nw::toolset::CommandSource::widget);
+                    append_command_result(state, result);
+                    if (result.ok()) {
+                        clear_rml_focus(context);
+                    }
+                    dispatched_to_rml = true;
+                    break;
+                }
+
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && state.color_editor_channel >= 0) {
                     clear_color_editor(state);
@@ -9389,6 +9491,38 @@ int main(int argc, char* argv[])
                         } else if (find_ancestor_with_class(hit, "area_object_list_back")) {
                             release_workspace_mouse_up();
                             (void)renderer.clear_viewer_area_object_selection();
+                            handled = true;
+                        } else if (auto* integer_step = find_ancestor_with_class(
+                                       hit, "object_details_integer_step")) {
+                            const auto row_index = parse_decimal_int32(
+                                integer_step->GetAttribute<Rml::String>("data-row", ""));
+                            const auto current = parse_decimal_int32(
+                                integer_step->GetAttribute<Rml::String>("data-current", ""));
+                            const auto delta = parse_decimal_int32(
+                                integer_step->GetAttribute<Rml::String>("data-delta", ""));
+                            if (row_index && current && delta
+                                && *row_index >= 0
+                                && (*delta == -1 || *delta == 1)
+                                && active_object_details_matches_tab(state)
+                                && static_cast<size_t>(*row_index) < state.object_details.rows.size()) {
+                                const auto& row = state.object_details.rows[static_cast<size_t>(*row_index)];
+                                const bool within_range = row.kind == nw::toolset::ObjectDetailsRowKind::value
+                                    && row.editor == nw::toolset::ObjectDetailsEditorKind::integer
+                                    && row.edit_value == *current
+                                    && (*delta < 0 ? row.edit_value > row.edit_min
+                                                   : row.edit_value < row.edit_max);
+                                if (within_range) {
+                                    release_workspace_mouse_up();
+                                    const std::string row_text = std::to_string(*row_index);
+                                    const std::string current_text = std::to_string(*current);
+                                    const std::string desired_text = std::to_string(*current + *delta);
+                                    append_command_result(state,
+                                        dispatch_command(state,
+                                            "object.details.set_integer",
+                                            {row_text, current_text, desired_text},
+                                            nw::toolset::CommandSource::widget));
+                                }
+                            }
                             handled = true;
                         } else if (auto* boolean = find_ancestor_with_class(
                                        hit, "object_details_boolean")) {

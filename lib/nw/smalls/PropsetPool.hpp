@@ -58,6 +58,7 @@ public:
 
     Value read_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, bool mark_heap_get_dirty);
     bool write_field(Runtime& rt, const Value& propset_ref, uint32_t offset, TypeID field_type, const Value& value);
+    bool mark_field_mutation(const Value& propset_ref, uint32_t field_index);
 
     void mark_heap_mutation(HeapPtr ptr);
 

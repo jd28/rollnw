@@ -759,6 +759,22 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
     return true;
 }
 
+bool PropsetPoolManager::mark_field_mutation(const Value& propset_ref, uint32_t field_index)
+{
+    if (propset_ref.storage != ValueStorage::propset || !propset_ref.data.propset_ptr) {
+        return false;
+    }
+
+    Pool* pool = get_pool(propset_ref.type_id);
+    auto* hdr = reinterpret_cast<PropsetHeader*>(propset_ref.data.propset_ptr);
+    if (!pool || !hdr->alive() || field_index >= pool->info.def->field_count) {
+        return false;
+    }
+
+    mark_entry_dirty(hdr, field_index);
+    return true;
+}
+
 // == Object Lifecycle =========================================================
 
 void PropsetPoolManager::init_object_propsets(Runtime& rt, ObjectHandle obj)

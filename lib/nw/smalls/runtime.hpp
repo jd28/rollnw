@@ -984,6 +984,13 @@ public:
     bool write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value);
     bool write_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index, const Value& value);
 
+    /// Read or write an existing fixed or unmanaged integer propset array
+    /// element. Writes never resize the field.
+    bool read_propset_int_element(const Value& propset, uint32_t field_index,
+        int32_t element_index, int32_t& output);
+    bool write_propset_int_element(const Value& propset, uint32_t field_index,
+        int32_t element_index, int32_t value);
+
     // -- Config Arrays -------------------------------------------------------
 
     /// Maps a 2da column name to a smalls struct field name.

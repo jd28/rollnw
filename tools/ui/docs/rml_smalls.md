@@ -203,10 +203,15 @@ handler may replace its own subtree without leaving stale element pointers.
 The binding intentionally exposes no direct object-write or resource-save
 operation. UI scripts use `core.commands.v1.command_execute` for explicit
 editor operations, such as Item property changes. Dynamically generated
-Details booleans carry an editor kind, propset, field, and current `0|1` value
-in the SmallS row protocol. The client treats the row index as an opaque token,
-rebuilds the bounded row batch on click, and rejects the command unless the
-live row still names the same editable boolean with the expected value.
+Details editors carry an editor kind, propset, field, current integer value,
+and inclusive minimum/maximum values in the SmallS row protocol. Boolean rows
+use the integer range `0..1`; ranged integer rows state their domain explicitly.
+The client treats the row index as an opaque token, rebuilds the bounded row
+batch on commit, and rejects the command unless the live row still names the
+same editor with the expected value and the requested value is in range. Input
+errors and out-of-range values are rejected rather than clamped. Integer rows
+render a text input for direct entry and bounded single-step controls; both
+commit through the same validated command.
 
 ```smalls
 from core.commands.v1 import { command_execute };

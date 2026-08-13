@@ -14,11 +14,15 @@ type ObjectDetailsRow {
     editor: int;
     propset: string;
     field: string;
+    element: int;
     edit_value: int;
+    edit_min: int;
+    edit_max: int;
 };
 
 const details_editor_read_only = 0;
 const details_editor_boolean = 1;
+const details_editor_integer = 2;
 
 fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
     return {
@@ -28,7 +32,10 @@ fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
         editor = details_editor_read_only,
         propset = "",
         field = "",
+        element = -1,
         edit_value = 0,
+        edit_min = 0,
+        edit_max = 0,
     };
 }
 
@@ -41,7 +48,27 @@ fn _boolean_details_row(group: string, label: string,
         editor = details_editor_boolean,
         propset = propset,
         field = field,
+        element = -1,
         edit_value = value,
+        edit_min = 0,
+        edit_max = 1,
+    };
+}
+
+fn _integer_details_row(group: string, label: string,
+    propset: string, field: string, value: int,
+    minimum: int, maximum: int, element: int = -1): ObjectDetailsRow {
+    return {
+        group = group,
+        label = label,
+        value = f"{value}",
+        editor = details_editor_integer,
+        propset = propset,
+        field = field,
+        element = element,
+        edit_value = value,
+        edit_min = minimum,
+        edit_max = maximum,
     };
 }
 
@@ -55,6 +82,14 @@ fn _append_boolean_details_row(rows: array!(ObjectDetailsRow),
     propset: string, field: string, value: int) {
     Array.push(rows, _boolean_details_row(
         group, label, propset, field, value));
+}
+
+fn _append_integer_details_row(rows: array!(ObjectDetailsRow),
+    group: string, label: string,
+    propset: string, field: string, value: int,
+    minimum: int, maximum: int, element: int = -1) {
+    Array.push(rows, _integer_details_row(
+        group, label, propset, field, value, minimum, maximum, element));
 }
 
 fn _append_identity(rows: array!(ObjectDetailsRow), obj: object) {
@@ -124,6 +159,12 @@ fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
         "nwn1.propsets.DoorState", "plot", state.plot);
     _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
     _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
+    _append_integer_details_row(rows, "Save Bonus", "Fortitude",
+        "nwn1.propsets.DoorState", "save_fort", state.save_fort, 0, 250);
+    _append_integer_details_row(rows, "Save Bonus", "Reflex",
+        "nwn1.propsets.DoorState", "save_reflex", state.save_reflex, 0, 250);
+    _append_integer_details_row(rows, "Save Bonus", "Will",
+        "nwn1.propsets.DoorState", "save_will", state.save_will, 0, 250);
     _append_boolean_details_row(rows, "Lock", "Lockable",
         "nwn1.propsets.DoorState", "lockable", state.lockable);
     _append_boolean_details_row(rows, "Lock", "Locked",
@@ -131,13 +172,17 @@ fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
     _append_details_row(rows, "Lock", "Key Name", state.key_name);
     _append_boolean_details_row(rows, "Lock", "Key Required",
         "nwn1.propsets.DoorState", "key_required", state.key_required);
-    _append_details_row(rows, "Lock", "Lock DC", f"{state.lock_dc}");
-    _append_details_row(rows, "Lock", "Unlock DC", f"{state.unlock_dc}");
+    _append_integer_details_row(rows, "Lock", "Lock DC",
+        "nwn1.propsets.DoorState", "lock_dc", state.lock_dc, 0, 250);
+    _append_integer_details_row(rows, "Lock", "Unlock DC",
+        "nwn1.propsets.DoorState", "unlock_dc", state.unlock_dc, 0, 250);
     _append_boolean_details_row(rows, "Trap", "Trapped",
         "nwn1.propsets.DoorState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
-    _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
-    _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
+    _append_integer_details_row(rows, "Trap", "Detect DC",
+        "nwn1.propsets.DoorState", "trap_detect_dc", state.trap_detect_dc, 0, 250);
+    _append_integer_details_row(rows, "Trap", "Disarm DC",
+        "nwn1.propsets.DoorState", "trap_disarm_dc", state.trap_disarm_dc, 0, 250);
     _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
     _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
     _append_details_row(rows, "Scripts", "On Damaged", Types.resref_to_string(state.on_damaged));
@@ -205,13 +250,27 @@ fn _append_placeable_details(rows: array!(ObjectDetailsRow), obj: Placeable) {
         "nwn1.propsets.PlaceableState", "has_inventory", state.has_inventory);
     _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
     _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
+    _append_integer_details_row(rows, "Save Bonus", "Fortitude",
+        "nwn1.propsets.PlaceableState", "save_fort", state.save_fort, 0, 250);
+    _append_integer_details_row(rows, "Save Bonus", "Reflex",
+        "nwn1.propsets.PlaceableState", "save_reflex", state.save_reflex, 0, 250);
+    _append_integer_details_row(rows, "Save Bonus", "Will",
+        "nwn1.propsets.PlaceableState", "save_will", state.save_will, 0, 250);
     _append_boolean_details_row(rows, "Lock", "Lockable",
         "nwn1.propsets.PlaceableState", "lockable", state.lockable);
     _append_boolean_details_row(rows, "Lock", "Locked",
         "nwn1.propsets.PlaceableState", "locked", state.locked);
+    _append_integer_details_row(rows, "Lock", "Lock DC",
+        "nwn1.propsets.PlaceableState", "lock_dc", state.lock_dc, 0, 250);
+    _append_integer_details_row(rows, "Lock", "Unlock DC",
+        "nwn1.propsets.PlaceableState", "unlock_dc", state.unlock_dc, 0, 250);
     _append_boolean_details_row(rows, "Trap", "Trapped",
         "nwn1.propsets.PlaceableState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
+    _append_integer_details_row(rows, "Trap", "Detect DC",
+        "nwn1.propsets.PlaceableState", "trap_detect_dc", state.trap_detect_dc, 0, 250);
+    _append_integer_details_row(rows, "Trap", "Disarm DC",
+        "nwn1.propsets.PlaceableState", "trap_disarm_dc", state.trap_disarm_dc, 0, 250);
     _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
     _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
     _append_details_row(rows, "Scripts", "On Damaged", Types.resref_to_string(state.on_damaged));
@@ -235,7 +294,8 @@ fn _append_sound_details(rows: array!(ObjectDetailsRow), obj: Sound) {
     _append_boolean_details_row(rows, "Basic", "Active",
         "nwn1.propsets.SoundState", "active", state.active);
     _append_details_row(rows, "Basic", "Sounds", f"{Array.len(state.sounds)}");
-    _append_details_row(rows, "Playback", "Volume", f"{state.volume}");
+    _append_integer_details_row(rows, "Playback", "Volume",
+        "nwn1.propsets.SoundState", "volume", state.volume, 0, 127);
     _append_details_row(rows, "Playback", "Priority", f"{state.priority}");
     _append_boolean_details_row(rows, "Playback", "Continuous",
         "nwn1.propsets.SoundState", "continuous", state.continuous);
@@ -274,8 +334,10 @@ fn _append_trigger_details(rows: array!(ObjectDetailsRow), obj: Trigger) {
     _append_boolean_details_row(rows, "Trap", "Trapped",
         "nwn1.propsets.TriggerState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
-    _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
-    _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
+    _append_integer_details_row(rows, "Trap", "Detect DC",
+        "nwn1.propsets.TriggerState", "trap_detect_dc", state.trap_detect_dc, 0, 250);
+    _append_integer_details_row(rows, "Trap", "Disarm DC",
+        "nwn1.propsets.TriggerState", "trap_disarm_dc", state.trap_disarm_dc, 0, 250);
     _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
     _append_details_row(rows, "Scripts", "On Disarm", Types.resref_to_string(state.on_disarm));
     _append_details_row(rows, "Scripts", "On Enter", Types.resref_to_string(state.on_enter));
@@ -309,6 +371,10 @@ fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
                 if (source.editor == CreaturePolicy.property_editor_kind_boolean) {
                     _append_boolean_details_row(rows, source.group, source.label,
                         source.propset, source.field, source.edit_value);
+                } elif (source.editor == CreaturePolicy.property_editor_kind_integer) {
+                    _append_integer_details_row(rows, source.group, source.label,
+                        source.propset, source.field, source.edit_value,
+                        source.edit_min, source.edit_max, source.element);
                 } else {
                     _append_details_row(rows, source.group, source.label, source.value);
                 }

@@ -186,7 +186,10 @@ void build_object_details(smalls::Runtime& runtime,
         std::string propset_name;
         std::string field_name;
         int32_t editor = -1;
+        int32_t element_index = -1;
         int32_t edit_value = 0;
+        int32_t edit_min = 0;
+        int32_t edit_max = 0;
         if (!rows->get_value(index, row, runtime)
             || !read_string_field(runtime, row, "group", group)
             || !read_string_field(runtime, row, "label", label)
@@ -194,7 +197,10 @@ void build_object_details(smalls::Runtime& runtime,
             || !read_int_field(runtime, row, "editor", editor)
             || !read_string_field(runtime, row, "propset", propset_name)
             || !read_string_field(runtime, row, "field", field_name)
+            || !read_int_field(runtime, row, "element", element_index)
             || !read_int_field(runtime, row, "edit_value", edit_value)
+            || !read_int_field(runtime, row, "edit_min", edit_min)
+            || !read_int_field(runtime, row, "edit_max", edit_max)
             || group.empty() || label.empty()) {
             output = {};
             output.object = active_object;
@@ -206,34 +212,54 @@ void build_object_details(smalls::Runtime& runtime,
         ObjectDetailsEditorKind editor_kind = ObjectDetailsEditorKind::read_only;
         smalls::TypeID propset_type{};
         uint32_t field_index = UINT32_MAX;
-        if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)) {
+        if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
+            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)) {
             propset_type = runtime.type_id(propset_name, false);
             const auto* definition = runtime.get_struct_def(propset_type);
             field_index = definition ? definition->field_index(field_name) : UINT32_MAX;
             const auto propset = runtime.find_propset_ref(propset_type, active_object);
+            smalls::Value scalar;
+            int32_t current = 0;
+            if (definition && field_index != UINT32_MAX && element_index == -1) {
+                const auto& field = definition->fields[field_index];
+                if (!field.is_unmanaged_array && field.type_id == runtime.int_type()) {
+                    scalar = runtime.read_value_field_at_offset(
+                        propset, field.offset, runtime.int_type());
+                    if (scalar.type_id == runtime.int_type()) {
+                        current = scalar.data.ival;
+                    }
+                }
+            }
+            const bool valid_target = element_index == -1
+                ? scalar.type_id == runtime.int_type()
+                : runtime.read_propset_int_element(
+                      propset, field_index, element_index, current);
             if (!definition || !definition->is_propset || field_index == UINT32_MAX
-                || definition->fields[field_index].is_unmanaged_array
-                || definition->fields[field_index].type_id != runtime.int_type()
                 || propset.type_id == smalls::invalid_type_id
-                || (edit_value != 0 && edit_value != 1)) {
+                || element_index < -1
+                || !valid_target
+                || edit_min > edit_max
+                || edit_value < edit_min || edit_value > edit_max
+                || (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
+                    && (element_index != -1 || edit_min != 0 || edit_max != 1))) {
                 output = {};
                 output.object = active_object;
                 output.status = ObjectDetailsStatus::invalid_data;
-                output.diagnostic = "Smalls object Details boolean editor is invalid";
+                output.diagnostic = "Smalls object Details integer editor is invalid";
                 return;
             }
-            const auto current = runtime.read_value_field_at_offset(
-                propset, definition->fields[field_index].offset, runtime.int_type());
-            if (current.type_id != runtime.int_type() || current.data.ival != edit_value) {
+            if (current != edit_value) {
                 output = {};
                 output.object = active_object;
                 output.status = ObjectDetailsStatus::invalid_data;
-                output.diagnostic = "Smalls object Details boolean value is stale or unavailable";
+                output.diagnostic = "Smalls object Details integer value is stale or unavailable";
                 return;
             }
-            editor_kind = ObjectDetailsEditorKind::boolean;
+            editor_kind = static_cast<ObjectDetailsEditorKind>(editor);
         } else if (editor != static_cast<int32_t>(ObjectDetailsEditorKind::read_only)
-            || !propset_name.empty() || !field_name.empty()) {
+            || !propset_name.empty() || !field_name.empty()
+            || element_index != -1
+            || edit_min != 0 || edit_max != 0) {
             output = {};
             output.object = active_object;
             output.status = ObjectDetailsStatus::invalid_data;
@@ -261,7 +287,10 @@ void build_object_details(smalls::Runtime& runtime,
             .editor = editor_kind,
             .propset_type = propset_type,
             .field_index = field_index,
+            .element_index = element_index,
             .edit_value = edit_value,
+            .edit_min = edit_min,
+            .edit_max = edit_max,
             .label = append_text(label, output.text),
             .value = append_text(value, output.text),
         });
@@ -269,7 +298,7 @@ void build_object_details(smalls::Runtime& runtime,
     output.status = ObjectDetailsStatus::ready;
 }
 
-std::optional<ObjectDetailsBooleanEdit> prepare_object_details_boolean_edit(
+std::optional<ObjectDetailsValueEdit> prepare_object_details_boolean_edit(
     smalls::Runtime& runtime,
     ObjectHandle object,
     uint32_t row_index,
@@ -315,10 +344,72 @@ std::optional<ObjectDetailsBooleanEdit> prepare_object_details_boolean_edit(
         return std::nullopt;
     }
 
-    ObjectDetailsBooleanEdit result{
+    ObjectDetailsValueEdit result{
         .object = object,
         .propset_type = row.propset_type,
         .field_index = row.field_index,
+        .element_index = row.element_index,
+        .before = expected,
+        .after = desired,
+        .label = "Set ",
+    };
+    result.label.append(snapshot.text_view(row.label));
+    return result;
+}
+
+std::optional<ObjectDetailsValueEdit> prepare_object_details_integer_edit(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    int32_t desired,
+    std::string& diagnostic)
+{
+    diagnostic.clear();
+    if (!kernel::objects().valid(object)) {
+        diagnostic = "Object Details integer edit has an invalid object";
+        return std::nullopt;
+    }
+
+    ObjectDetailsSnapshot snapshot;
+    build_object_details(runtime, object, snapshot);
+    if (snapshot.status != ObjectDetailsStatus::ready) {
+        diagnostic = snapshot.diagnostic.empty()
+            ? "Object Details are unavailable"
+            : std::move(snapshot.diagnostic);
+        return std::nullopt;
+    }
+    if (row_index >= snapshot.rows.size()) {
+        diagnostic = "Object Details row is no longer available";
+        return std::nullopt;
+    }
+
+    const auto& row = snapshot.rows[row_index];
+    if (row.kind != ObjectDetailsRowKind::value
+        || row.editor != ObjectDetailsEditorKind::integer
+        || row.propset_type == smalls::invalid_type_id
+        || row.field_index == UINT32_MAX) {
+        diagnostic = "Object Details row is not an editable integer";
+        return std::nullopt;
+    }
+    if (row.edit_value != expected) {
+        diagnostic = "Object Details integer changed before the edit was prepared";
+        return std::nullopt;
+    }
+    if (desired < row.edit_min || desired > row.edit_max) {
+        diagnostic = "Object Details integer is outside its valid range";
+        return std::nullopt;
+    }
+    if (desired == expected) {
+        diagnostic = "Object Details integer is already set";
+        return std::nullopt;
+    }
+
+    ObjectDetailsValueEdit result{
+        .object = object,
+        .propset_type = row.propset_type,
+        .field_index = row.field_index,
+        .element_index = row.element_index,
         .before = expected,
         .after = desired,
         .label = "Set ",

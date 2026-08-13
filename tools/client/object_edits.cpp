@@ -434,8 +434,17 @@ ObjectBase* clone_area_object(
 
 bool patch_key_less(ObjectEditKind kind, const ObjectEditPatch& lhs, const ObjectEditPatch& rhs) noexcept
 {
-    if (kind == ObjectEditKind::propset_int && lhs.propset_type != rhs.propset_type) {
-        return lhs.propset_type < rhs.propset_type;
+    if (kind == ObjectEditKind::propset_int
+        || kind == ObjectEditKind::propset_int_element) {
+        if (lhs.propset_type != rhs.propset_type) {
+            return lhs.propset_type < rhs.propset_type;
+        }
+        if (lhs.key != rhs.key) {
+            return lhs.key < rhs.key;
+        }
+        if (kind == ObjectEditKind::propset_int_element) {
+            return lhs.element_index < rhs.element_index;
+        }
     }
     return lhs.key < rhs.key;
 }
@@ -446,6 +455,7 @@ ObjectEditApplyResult validate_batch_shape(const ObjectEditBatch& batch)
         return edit_result(ObjectEditStatus::empty, "Object edit batch is empty");
     }
     if (batch.kind != ObjectEditKind::propset_int
+        && batch.kind != ObjectEditKind::propset_int_element
         && batch.kind != ObjectEditKind::creature_feat
         && batch.kind != ObjectEditKind::creature_body_part
         && batch.kind != ObjectEditKind::creature_color
@@ -481,6 +491,10 @@ ObjectEditApplyResult validate_propset_ints(
     smalls::Runtime& runtime, const ObjectEditBatch& batch, ObjectEditDirection direction)
 {
     for (const auto& patch : batch.patches) {
+        if (patch.element_index != -1) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Propset integer patch has an array element index");
+        }
         const auto* definition = runtime.get_struct_def(patch.propset_type);
         if (!definition || !definition->is_propset || patch.key >= definition->field_count) {
             return edit_result(ObjectEditStatus::invalid_batch, "Propset integer patch has invalid field metadata");
@@ -505,6 +519,37 @@ ObjectEditApplyResult validate_propset_ints(
         }
         if (current.data.ival != patch_values(patch, direction).expected) {
             return edit_result(ObjectEditStatus::stale_value, "Propset integer field changed before the edit was applied");
+        }
+    }
+    return edit_result(ObjectEditStatus::success);
+}
+
+ObjectEditApplyResult validate_propset_int_elements(
+    smalls::Runtime& runtime, const ObjectEditBatch& batch, ObjectEditDirection direction)
+{
+    for (const auto& patch : batch.patches) {
+        const auto* definition = runtime.get_struct_def(patch.propset_type);
+        if (!definition || !definition->is_propset || patch.key >= definition->field_count
+            || patch.element_index < 0 || patch.before == patch.after) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Propset integer element patch has invalid metadata");
+        }
+
+        const auto propset = runtime.find_propset_ref(patch.propset_type, patch.object);
+        if (propset.type_id == smalls::invalid_type_id) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Propset integer element patch targets a missing propset");
+        }
+
+        int32_t current = 0;
+        if (!runtime.read_propset_int_element(
+                propset, patch.key, patch.element_index, current)) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Propset integer element patch targets a missing or non-int element");
+        }
+        if (current != patch_values(patch, direction).expected) {
+            return edit_result(ObjectEditStatus::stale_value,
+                "Propset integer element changed before the edit was applied");
         }
     }
     return edit_result(ObjectEditStatus::success);
@@ -1532,9 +1577,20 @@ bool write_propset_int(smalls::Runtime& runtime, const ObjectEditPatch& patch, i
     }
     const auto& field = definition->fields[patch.key];
     const auto propset = runtime.find_propset_ref(patch.propset_type, patch.object);
-    return propset.type_id != smalls::invalid_type_id
+    return patch.element_index == -1
+        && propset.type_id != smalls::invalid_type_id
         && runtime.write_value_field_at_offset(
             propset, field.offset, runtime.int_type(), smalls::Value::make_int(replacement));
+}
+
+bool write_propset_int_element(
+    smalls::Runtime& runtime, const ObjectEditPatch& patch, int32_t replacement)
+{
+    const auto propset = runtime.find_propset_ref(patch.propset_type, patch.object);
+    return patch.element_index >= 0
+        && propset.type_id != smalls::invalid_type_id
+        && runtime.write_propset_int_element(
+            propset, patch.key, patch.element_index, replacement);
 }
 
 bool write_appearance(smalls::Runtime& runtime, ObjectHandle target, int32_t replacement)
@@ -1615,6 +1671,8 @@ bool write_patch(smalls::Runtime& runtime,
     switch (kind) {
     case ObjectEditKind::propset_int:
         return write_propset_int(runtime, patch, replacement);
+    case ObjectEditKind::propset_int_element:
+        return write_propset_int_element(runtime, patch, replacement);
     case ObjectEditKind::creature_feat:
         return write_creature_feat(runtime, patch, replacement);
     case ObjectEditKind::creature_body_part:
@@ -2704,6 +2762,9 @@ ObjectEditApplyResult apply_object_edits(
     switch (batch.kind) {
     case ObjectEditKind::propset_int:
         validation = validate_propset_ints(runtime, batch, direction);
+        break;
+    case ObjectEditKind::propset_int_element:
+        validation = validate_propset_int_elements(runtime, batch, direction);
         break;
     case ObjectEditKind::creature_feat:
         validation = validate_creature_feats(runtime, batch, direction);
