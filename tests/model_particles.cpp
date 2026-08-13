@@ -91,9 +91,10 @@ TEST(ModelParticles, ImportOpacityOnlyScalesMotionBlur)
         std::ostringstream buffer;
         buffer << in.rdbuf();
         auto text = buffer.str();
-        const auto pos = text.find("  render Motion_Blur\r\n");
+        std::erase(text, '\r');
+        const auto pos = text.find("  render Motion_Blur\n");
         ASSERT_NE(pos, std::string::npos);
-        text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 0.35\r\n");
+        text.insert(pos + std::strlen("  render Motion_Blur\n"), "  opacity 0.35\n");
 
         std::ofstream out{"./vfx_motion_blur_opacity_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
@@ -115,9 +116,10 @@ TEST(ModelParticles, ImportClampsOutOfRangeMotionBlurOpacity)
     std::ostringstream buffer;
     buffer << in.rdbuf();
     auto text = buffer.str();
-    const auto pos = text.find("  render Motion_Blur\r\n");
+    std::erase(text, '\r');
+    const auto pos = text.find("  render Motion_Blur\n");
     ASSERT_NE(pos, std::string::npos);
-    text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 7.21376e+022\r\n");
+    text.insert(pos + std::strlen("  render Motion_Blur\n"), "  opacity 7.21376e+022\n");
 
     {
         std::ofstream out{"./vfx_motion_blur_large_opacity_generated_test.mdl", std::ios::binary};
