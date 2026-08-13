@@ -310,6 +310,102 @@ TEST_F(ClientSmallsPropertyTree, BuildsDetailsForEveryPlacedObjectType)
     verify_object(nw::kernel::objects().make<nw::Waypoint>(), "Waypoint");
 }
 
+TEST_F(ClientSmallsPropertyTree, PreparesExplicitBooleanDetailsForEverySupportedObjectType)
+{
+    auto& runtime = nw::kernel::runtime();
+    const auto verify_object = [&](auto* object, size_t expected_boolean_count, std::string_view label) {
+        SCOPED_TRACE(label);
+        ASSERT_NE(object, nullptr);
+        runtime.init_object_propsets(object->handle());
+
+        nw::toolset::ObjectDetailsSnapshot snapshot;
+        nw::toolset::build_object_details(runtime, object->handle(), snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+
+        size_t boolean_count = 0;
+        for (size_t index = 0; index < snapshot.rows.size(); ++index) {
+            const auto& row = snapshot.rows[index];
+            if (row.editor != nw::toolset::ObjectDetailsEditorKind::boolean) {
+                continue;
+            }
+            ++boolean_count;
+            ASSERT_EQ(row.kind, nw::toolset::ObjectDetailsRowKind::value);
+            ASSERT_NE(row.propset_type, nw::smalls::invalid_type_id);
+            ASSERT_NE(row.field_index, UINT32_MAX);
+            ASSERT_TRUE(row.edit_value == 0 || row.edit_value == 1);
+
+            std::string diagnostic;
+            const auto edit = nw::toolset::prepare_object_details_boolean_edit(
+                runtime,
+                object->handle(),
+                static_cast<uint32_t>(index),
+                row.edit_value,
+                row.edit_value == 0,
+                diagnostic);
+            ASSERT_TRUE(edit) << diagnostic;
+            EXPECT_EQ(edit->object, object->handle());
+            EXPECT_EQ(edit->propset_type, row.propset_type);
+            EXPECT_EQ(edit->field_index, row.field_index);
+            EXPECT_EQ(edit->before, row.edit_value);
+            EXPECT_EQ(edit->after, 1 - row.edit_value);
+            EXPECT_FALSE(edit->label.empty());
+        }
+        EXPECT_EQ(boolean_count, expected_boolean_count);
+
+        const auto read_only = std::ranges::find(snapshot.rows,
+            nw::toolset::ObjectDetailsEditorKind::read_only,
+            &nw::toolset::ObjectDetailsRow::editor);
+        ASSERT_NE(read_only, snapshot.rows.end());
+        std::string diagnostic;
+        EXPECT_FALSE(nw::toolset::prepare_object_details_boolean_edit(
+            runtime,
+            object->handle(),
+            static_cast<uint32_t>(read_only - snapshot.rows.begin()),
+            0,
+            true,
+            diagnostic));
+        EXPECT_FALSE(diagnostic.empty());
+
+        nw::kernel::objects().destroy(object->handle());
+    };
+
+    verify_object(make_creature(), 5, "Creature");
+    verify_object(nw::kernel::objects().make<nw::Door>(), 5, "Door");
+    verify_object(nw::kernel::objects().make<nw::Encounter>(), 3, "Encounter");
+    verify_object(nw::kernel::objects().make<nw::Item>(), 1, "Item");
+    verify_object(nw::kernel::objects().make<nw::Placeable>(), 7, "Placeable");
+    verify_object(nw::kernel::objects().make<nw::Sound>(), 5, "Sound");
+    verify_object(nw::kernel::objects().make<nw::Store>(), 1, "Store");
+    verify_object(nw::kernel::objects().make<nw::Trigger>(), 1, "Trigger");
+    verify_object(nw::kernel::objects().make<nw::Waypoint>(), 2, "Waypoint");
+}
+
+TEST_F(ClientSmallsPropertyTree, RejectsNonCanonicalBooleanDetailsValues)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* door = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(door, nullptr);
+    runtime.init_object_propsets(door->handle());
+
+    const auto propset_type = runtime.type_id("nwn1.propsets.DoorState", false);
+    const auto propset = runtime.find_propset_ref(propset_type, door->handle());
+    const auto* definition = runtime.get_struct_def(propset_type);
+    ASSERT_NE(definition, nullptr);
+    const uint32_t field_index = definition->field_index("plot");
+    ASSERT_NE(field_index, UINT32_MAX);
+    ASSERT_TRUE(runtime.write_struct_value_field(
+        propset, definition, field_index, nw::smalls::Value::make_int(2)));
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, door->handle(), snapshot);
+    EXPECT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::invalid_data);
+    EXPECT_TRUE(snapshot.rows.empty());
+    EXPECT_FALSE(snapshot.diagnostic.empty());
+
+    nw::kernel::objects().destroy(door->handle());
+}
+
 TEST_F(ClientSmallsPropertyTree, BuildsModuleDetailsFromScalarNativeReads)
 {
     auto* module = nw::kernel::objects().make<nw::Module>();

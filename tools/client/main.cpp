@@ -3273,7 +3273,25 @@ public:
         }
         markup += "\">";
         if (!section) {
-            markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
+            if (row.editor == nw::toolset::ObjectDetailsEditorKind::boolean) {
+                markup += "<span class=\"object_details_boolean\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\"><span class=\"object_details_boolean_box";
+                if (row.edit_value != 0) {
+                    markup += " checked";
+                }
+                markup += "\">";
+                if (row.edit_value != 0) {
+                    markup += "&#10003;";
+                }
+                markup += "</span><span class=\"object_details_boolean_text\">";
+                markup += escape_html(value);
+                markup += "</span></span>";
+            } else {
+                markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
+            }
         }
         markup += "</div></div>";
         return markup;
@@ -9372,7 +9390,31 @@ int main(int argc, char* argv[])
                             release_workspace_mouse_up();
                             (void)renderer.clear_viewer_area_object_selection();
                             handled = true;
-                        } else if (find_ancestor_with_class(hit, "smalls_object_edit")) {
+                        } else if (auto* boolean = find_ancestor_with_class(
+                                       hit, "object_details_boolean")) {
+                            const auto row_index = parse_decimal_int32(
+                                boolean->GetAttribute<Rml::String>("data-row", ""));
+                            const auto current = parse_decimal_int32(
+                                boolean->GetAttribute<Rml::String>("data-current", ""));
+                            if (row_index && current
+                                && *row_index >= 0
+                                && (*current == 0 || *current == 1)
+                                && active_object_details_matches_tab(state)
+                                && static_cast<size_t>(*row_index) < state.object_details.rows.size()) {
+                                const auto& row = state.object_details.rows[static_cast<size_t>(*row_index)];
+                                if (row.kind == nw::toolset::ObjectDetailsRowKind::value
+                                    && row.editor == nw::toolset::ObjectDetailsEditorKind::boolean
+                                    && row.edit_value == *current) {
+                                    const std::string row_text = std::to_string(*row_index);
+                                    const std::string current_text = std::to_string(*current);
+                                    const std::string desired_text = std::to_string(1 - *current);
+                                    append_command_result(state,
+                                        dispatch_command(state,
+                                            "object.details.set_boolean",
+                                            {row_text, current_text, desired_text},
+                                            nw::toolset::CommandSource::widget));
+                                }
+                            }
                             release_workspace_mouse_up();
                             handled = true;
                         } else if (find_ancestor_with_id(hit, "appearance_selector_back")) {

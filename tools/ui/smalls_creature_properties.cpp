@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace nw::toolset {
 namespace {
@@ -182,15 +183,61 @@ void build_object_details(smalls::Runtime& runtime,
         std::string group;
         std::string label;
         std::string value;
+        std::string propset_name;
+        std::string field_name;
+        int32_t editor = -1;
+        int32_t edit_value = 0;
         if (!rows->get_value(index, row, runtime)
             || !read_string_field(runtime, row, "group", group)
             || !read_string_field(runtime, row, "label", label)
             || !read_string_field(runtime, row, "value", value)
+            || !read_int_field(runtime, row, "editor", editor)
+            || !read_string_field(runtime, row, "propset", propset_name)
+            || !read_string_field(runtime, row, "field", field_name)
+            || !read_int_field(runtime, row, "edit_value", edit_value)
             || group.empty() || label.empty()) {
             output = {};
             output.object = active_object;
             output.status = ObjectDetailsStatus::invalid_data;
             output.diagnostic = "Smalls object Details row is invalid";
+            return;
+        }
+
+        ObjectDetailsEditorKind editor_kind = ObjectDetailsEditorKind::read_only;
+        smalls::TypeID propset_type{};
+        uint32_t field_index = UINT32_MAX;
+        if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)) {
+            propset_type = runtime.type_id(propset_name, false);
+            const auto* definition = runtime.get_struct_def(propset_type);
+            field_index = definition ? definition->field_index(field_name) : UINT32_MAX;
+            const auto propset = runtime.find_propset_ref(propset_type, active_object);
+            if (!definition || !definition->is_propset || field_index == UINT32_MAX
+                || definition->fields[field_index].is_unmanaged_array
+                || definition->fields[field_index].type_id != runtime.int_type()
+                || propset.type_id == smalls::invalid_type_id
+                || (edit_value != 0 && edit_value != 1)) {
+                output = {};
+                output.object = active_object;
+                output.status = ObjectDetailsStatus::invalid_data;
+                output.diagnostic = "Smalls object Details boolean editor is invalid";
+                return;
+            }
+            const auto current = runtime.read_value_field_at_offset(
+                propset, definition->fields[field_index].offset, runtime.int_type());
+            if (current.type_id != runtime.int_type() || current.data.ival != edit_value) {
+                output = {};
+                output.object = active_object;
+                output.status = ObjectDetailsStatus::invalid_data;
+                output.diagnostic = "Smalls object Details boolean value is stale or unavailable";
+                return;
+            }
+            editor_kind = ObjectDetailsEditorKind::boolean;
+        } else if (editor != static_cast<int32_t>(ObjectDetailsEditorKind::read_only)
+            || !propset_name.empty() || !field_name.empty()) {
+            output = {};
+            output.object = active_object;
+            output.status = ObjectDetailsStatus::invalid_data;
+            output.diagnostic = "Smalls object Details editor kind is invalid";
             return;
         }
 
@@ -211,11 +258,73 @@ void build_object_details(smalls::Runtime& runtime,
         }
         output.rows.push_back({
             .kind = ObjectDetailsRowKind::value,
+            .editor = editor_kind,
+            .propset_type = propset_type,
+            .field_index = field_index,
+            .edit_value = edit_value,
             .label = append_text(label, output.text),
             .value = append_text(value, output.text),
         });
     }
     output.status = ObjectDetailsStatus::ready;
+}
+
+std::optional<ObjectDetailsBooleanEdit> prepare_object_details_boolean_edit(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    bool assigned,
+    std::string& diagnostic)
+{
+    diagnostic.clear();
+    if (!kernel::objects().valid(object) || (expected != 0 && expected != 1)) {
+        diagnostic = "Object Details boolean edit has invalid input";
+        return std::nullopt;
+    }
+
+    ObjectDetailsSnapshot snapshot;
+    build_object_details(runtime, object, snapshot);
+    if (snapshot.status != ObjectDetailsStatus::ready) {
+        diagnostic = snapshot.diagnostic.empty()
+            ? "Object Details are unavailable"
+            : std::move(snapshot.diagnostic);
+        return std::nullopt;
+    }
+    if (row_index >= snapshot.rows.size()) {
+        diagnostic = "Object Details row is no longer available";
+        return std::nullopt;
+    }
+
+    const auto& row = snapshot.rows[row_index];
+    if (row.kind != ObjectDetailsRowKind::value
+        || row.editor != ObjectDetailsEditorKind::boolean
+        || row.propset_type == smalls::invalid_type_id
+        || row.field_index == UINT32_MAX) {
+        diagnostic = "Object Details row is not an editable boolean";
+        return std::nullopt;
+    }
+    if (row.edit_value != expected) {
+        diagnostic = "Object Details boolean changed before the edit was prepared";
+        return std::nullopt;
+    }
+
+    const int32_t desired = assigned ? 1 : 0;
+    if (desired == expected) {
+        diagnostic = "Object Details boolean is already set";
+        return std::nullopt;
+    }
+
+    ObjectDetailsBooleanEdit result{
+        .object = object,
+        .propset_type = row.propset_type,
+        .field_index = row.field_index,
+        .before = expected,
+        .after = desired,
+        .label = "Set ",
+    };
+    result.label.append(snapshot.text_view(row.label));
+    return result;
 }
 
 void build_creature_class_presentation(smalls::Runtime& runtime,

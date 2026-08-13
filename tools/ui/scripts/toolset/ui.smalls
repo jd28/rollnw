@@ -11,15 +11,50 @@ type ObjectDetailsRow {
     group: string;
     label: string;
     value: string;
+    editor: int;
+    propset: string;
+    field: string;
+    edit_value: int;
 };
 
+const details_editor_read_only = 0;
+const details_editor_boolean = 1;
+
 fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
-    return { group = group, label = label, value = value };
+    return {
+        group = group,
+        label = label,
+        value = value,
+        editor = details_editor_read_only,
+        propset = "",
+        field = "",
+        edit_value = 0,
+    };
+}
+
+fn _boolean_details_row(group: string, label: string,
+    propset: string, field: string, value: int): ObjectDetailsRow {
+    return {
+        group = group,
+        label = label,
+        value = _bool_details_value(value),
+        editor = details_editor_boolean,
+        propset = propset,
+        field = field,
+        edit_value = value,
+    };
 }
 
 fn _append_details_row(rows: array!(ObjectDetailsRow),
     group: string, label: string, value: string) {
     Array.push(rows, _details_row(group, label, value));
+}
+
+fn _append_boolean_details_row(rows: array!(ObjectDetailsRow),
+    group: string, label: string,
+    propset: string, field: string, value: int) {
+    Array.push(rows, _boolean_details_row(
+        group, label, propset, field, value));
 }
 
 fn _append_identity(rows: array!(ObjectDetailsRow), obj: object) {
@@ -85,16 +120,21 @@ fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
     var state = get_propset!(DoorState)(obj);
     _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
     _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
-    _append_details_row(rows, "Basic", "Plot", _bool_details_value(state.plot));
+    _append_boolean_details_row(rows, "Basic", "Plot",
+        "nwn1.propsets.DoorState", "plot", state.plot);
     _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
     _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
-    _append_details_row(rows, "Lock", "Lockable", _bool_details_value(state.lockable));
-    _append_details_row(rows, "Lock", "Locked", _bool_details_value(state.locked));
+    _append_boolean_details_row(rows, "Lock", "Lockable",
+        "nwn1.propsets.DoorState", "lockable", state.lockable);
+    _append_boolean_details_row(rows, "Lock", "Locked",
+        "nwn1.propsets.DoorState", "locked", state.locked);
     _append_details_row(rows, "Lock", "Key Name", state.key_name);
-    _append_details_row(rows, "Lock", "Key Required", _bool_details_value(state.key_required));
+    _append_boolean_details_row(rows, "Lock", "Key Required",
+        "nwn1.propsets.DoorState", "key_required", state.key_required);
     _append_details_row(rows, "Lock", "Lock DC", f"{state.lock_dc}");
     _append_details_row(rows, "Lock", "Unlock DC", f"{state.unlock_dc}");
-    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_boolean_details_row(rows, "Trap", "Trapped",
+        "nwn1.propsets.DoorState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
     _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
     _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
@@ -121,7 +161,8 @@ fn _append_item_details(rows: array!(ObjectDetailsRow), obj: Item) {
     _append_identity(rows, obj);
     _append_details_row(rows, "Basic", "Base Item Type", f"{stats.base_item}");
     _append_details_row(rows, "Basic", "Additional Cost", f"{stats.cost_additional}");
-    _append_details_row(rows, "Basic", "Plot", _bool_details_value(stats.plot));
+    _append_boolean_details_row(rows, "Basic", "Plot",
+        "nwn1.propsets.ItemStats", "plot", stats.plot);
     _append_details_row(rows, "Basic", "Stack Size", f"{stats.stack_size}");
     _append_details_row(rows, "Description", "Description",
         Types.resolve_text(descriptor.description, 0));
@@ -130,15 +171,18 @@ fn _append_item_details(rows: array!(ObjectDetailsRow), obj: Item) {
 
 fn _append_encounter_details(rows: array!(ObjectDetailsRow), obj: Encounter) {
     var state = get_propset!(EncounterState)(obj);
-    _append_details_row(rows, "Basic", "Active", _bool_details_value(state.active));
+    _append_boolean_details_row(rows, "Basic", "Active",
+        "nwn1.propsets.EncounterState", "active", state.active);
     _append_details_row(rows, "Basic", "Difficulty", f"{state.difficulty}");
     _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
-    _append_details_row(rows, "Basic", "Player Only", _bool_details_value(state.player_only));
+    _append_boolean_details_row(rows, "Basic", "Player Only",
+        "nwn1.propsets.EncounterState", "player_only", state.player_only);
     _append_details_row(rows, "Spawns", "Creature Types", f"{Array.len(state.creatures)}");
     _append_details_row(rows, "Spawns", "Maximum Creatures", f"{state.creatures_max}");
     _append_details_row(rows, "Spawns", "Recommended Creatures", f"{state.creatures_recommended}");
     _append_details_row(rows, "Spawns", "Respawns", f"{state.respawns}");
-    _append_details_row(rows, "Spawns", "Reset", _bool_details_value(state.reset));
+    _append_boolean_details_row(rows, "Spawns", "Reset",
+        "nwn1.propsets.EncounterState", "reset", state.reset);
     _append_details_row(rows, "Spawns", "Reset Time", f"{state.reset_time}");
     _append_details_row(rows, "Scripts", "On Entered", Types.resref_to_string(state.on_entered));
     _append_details_row(rows, "Scripts", "On Exhausted", Types.resref_to_string(state.on_exhausted));
@@ -151,15 +195,22 @@ fn _append_placeable_details(rows: array!(ObjectDetailsRow), obj: Placeable) {
     var state = get_propset!(PlaceableState)(obj);
     _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
     _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
-    _append_details_row(rows, "Basic", "Plot", _bool_details_value(state.plot));
-    _append_details_row(rows, "Basic", "Usable", _bool_details_value(state.useable));
-    _append_details_row(rows, "Basic", "Static", _bool_details_value(state.static));
-    _append_details_row(rows, "Basic", "Has Inventory", _bool_details_value(state.has_inventory));
+    _append_boolean_details_row(rows, "Basic", "Plot",
+        "nwn1.propsets.PlaceableState", "plot", state.plot);
+    _append_boolean_details_row(rows, "Basic", "Usable",
+        "nwn1.propsets.PlaceableState", "useable", state.useable);
+    _append_boolean_details_row(rows, "Basic", "Static",
+        "nwn1.propsets.PlaceableState", "static", state.static);
+    _append_boolean_details_row(rows, "Basic", "Has Inventory",
+        "nwn1.propsets.PlaceableState", "has_inventory", state.has_inventory);
     _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");
     _append_details_row(rows, "Basic", "Maximum Hit Points", f"{state.hp}");
-    _append_details_row(rows, "Lock", "Lockable", _bool_details_value(state.lockable));
-    _append_details_row(rows, "Lock", "Locked", _bool_details_value(state.locked));
-    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_boolean_details_row(rows, "Lock", "Lockable",
+        "nwn1.propsets.PlaceableState", "lockable", state.lockable);
+    _append_boolean_details_row(rows, "Lock", "Locked",
+        "nwn1.propsets.PlaceableState", "locked", state.locked);
+    _append_boolean_details_row(rows, "Trap", "Trapped",
+        "nwn1.propsets.PlaceableState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
     _append_details_row(rows, "Scripts", "On Click", Types.resref_to_string(state.on_click));
     _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
@@ -181,14 +232,19 @@ fn _append_placeable_details(rows: array!(ObjectDetailsRow), obj: Placeable) {
 
 fn _append_sound_details(rows: array!(ObjectDetailsRow), obj: Sound) {
     var state = get_propset!(SoundState)(obj);
-    _append_details_row(rows, "Basic", "Active", _bool_details_value(state.active));
+    _append_boolean_details_row(rows, "Basic", "Active",
+        "nwn1.propsets.SoundState", "active", state.active);
     _append_details_row(rows, "Basic", "Sounds", f"{Array.len(state.sounds)}");
     _append_details_row(rows, "Playback", "Volume", f"{state.volume}");
     _append_details_row(rows, "Playback", "Priority", f"{state.priority}");
-    _append_details_row(rows, "Playback", "Continuous", _bool_details_value(state.continuous));
-    _append_details_row(rows, "Playback", "Looping", _bool_details_value(state.looping));
-    _append_details_row(rows, "Playback", "Positional", _bool_details_value(state.positional));
-    _append_details_row(rows, "Playback", "Random", _bool_details_value(state.random));
+    _append_boolean_details_row(rows, "Playback", "Continuous",
+        "nwn1.propsets.SoundState", "continuous", state.continuous);
+    _append_boolean_details_row(rows, "Playback", "Looping",
+        "nwn1.propsets.SoundState", "looping", state.looping);
+    _append_boolean_details_row(rows, "Playback", "Positional",
+        "nwn1.propsets.SoundState", "positional", state.positional);
+    _append_boolean_details_row(rows, "Playback", "Random",
+        "nwn1.propsets.SoundState", "random", state.random);
     _append_details_row(rows, "Range", "Minimum Distance", f"{state.distance_min}");
     _append_details_row(rows, "Range", "Maximum Distance", f"{state.distance_max}");
     _append_details_row(rows, "Timing", "Interval", f"{state.interval}");
@@ -202,7 +258,8 @@ fn _append_store_details(rows: array!(ObjectDetailsRow), obj: Store) {
     _append_details_row(rows, "Pricing", "Markdown", f"{state.markdown}");
     _append_details_row(rows, "Pricing", "Maximum Price", f"{state.max_price}");
     _append_details_row(rows, "Pricing", "Identify Price", f"{state.identify_price}");
-    _append_details_row(rows, "Black Market", "Enabled", _bool_details_value(state.blackmarket));
+    _append_boolean_details_row(rows, "Black Market", "Enabled",
+        "nwn1.propsets.StoreState", "blackmarket", state.blackmarket);
     _append_details_row(rows, "Black Market", "Markdown", f"{state.blackmarket_markdown}");
     _append_details_row(rows, "Scripts", "On Opened", Types.resref_to_string(state.on_opened));
     _append_details_row(rows, "Scripts", "On Closed", Types.resref_to_string(state.on_closed));
@@ -214,7 +271,8 @@ fn _append_trigger_details(rows: array!(ObjectDetailsRow), obj: Trigger) {
     _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
     _append_details_row(rows, "Basic", "Highlight Height", f"{state.highlight_height}");
     _append_details_row(rows, "Transition", "Linked To", state.linked_to);
-    _append_details_row(rows, "Trap", "Trapped", _bool_details_value(state.is_trapped));
+    _append_boolean_details_row(rows, "Trap", "Trapped",
+        "nwn1.propsets.TriggerState", "is_trapped", state.is_trapped);
     _append_details_row(rows, "Trap", "Trap Type", f"{state.trap_type}");
     _append_details_row(rows, "Trap", "Detect DC", f"{state.trap_detect_dc}");
     _append_details_row(rows, "Trap", "Disarm DC", f"{state.trap_disarm_dc}");
@@ -230,8 +288,10 @@ fn _append_trigger_details(rows: array!(ObjectDetailsRow), obj: Trigger) {
 fn _append_waypoint_details(rows: array!(ObjectDetailsRow), obj: Waypoint) {
     var state = get_propset!(WaypointState)(obj);
     _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
-    _append_details_row(rows, "Map Note", "Enabled", _bool_details_value(state.map_note_enabled));
-    _append_details_row(rows, "Map Note", "Has Map Note", _bool_details_value(state.has_map_note));
+    _append_boolean_details_row(rows, "Map Note", "Enabled",
+        "nwn1.propsets.WaypointState", "map_note_enabled", state.map_note_enabled);
+    _append_boolean_details_row(rows, "Map Note", "Has Map Note",
+        "nwn1.propsets.WaypointState", "has_map_note", state.has_map_note);
     _append_details_row(rows, "Map Note", "Text", Types.resolve_text(state.map_note, 0));
     _append_details_row(rows, "Transition", "Linked To", state.linked_to);
     _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
@@ -246,7 +306,12 @@ fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
     if (obj is Creature) {
         for (var source in CreaturePolicy.get_property_editor_rows(obj)) {
             if (source.surface == CreaturePolicy.property_editor_surface_properties) {
-                _append_details_row(rows, source.group, source.label, source.value);
+                if (source.editor == CreaturePolicy.property_editor_kind_boolean) {
+                    _append_boolean_details_row(rows, source.group, source.label,
+                        source.propset, source.field, source.edit_value);
+                } else {
+                    _append_details_row(rows, source.group, source.label, source.value);
+                }
             }
         }
         _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));

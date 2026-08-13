@@ -1253,7 +1253,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .property_tree_row * {
   pointer-events: none;
 }
-.property_tree_row .smalls_object_edit {
+.property_tree_row .object_details_boolean {
   pointer-events: auto;
 }
 .property_tree_cells {
@@ -1318,6 +1318,38 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   height: 16px;
   margin: 6px 0px;
   cursor: pointer;
+}
+.object_details_boolean {
+  display: flex;
+  width: 100%;
+  height: 29px;
+  align-items: center;
+  cursor: pointer;
+}
+.object_details_boolean_box {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border: 1px #536371;
+  border-radius: 2px;
+  background: #0f1419;
+  color: #151b21;
+  font-family: RollnwSans;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+}
+.object_details_boolean_box.checked {
+  border-color: #a78d62;
+  background: #a78d62;
+}
+.object_details_boolean_text {
+  display: block;
+  min-width: 0px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .creature_feat_toolbar {
   flex: 0 0 39px;

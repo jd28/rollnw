@@ -112,6 +112,10 @@ type CreaturePropertyEditorRow {
     group: string;
     label: string;
     value: string;
+    editor: int;
+    propset: string;
+    field: string;
+    edit_value: int;
     class_slot: int;
     class_level: int;
     class_level_min: int;
@@ -120,6 +124,8 @@ type CreaturePropertyEditorRow {
 
 const property_editor_surface_properties = 0;
 const property_editor_surface_classes = 1;
+const property_editor_kind_read_only = 0;
+const property_editor_kind_boolean = 1;
 const property_editor_class_level_min = 1;
 const property_editor_class_level_max = 60;
 
@@ -161,10 +167,32 @@ fn _property_editor_row(surface: int, group: string, label: string, value: strin
         group = group,
         label = label,
         value = value,
+        editor = property_editor_kind_read_only,
+        propset = "",
+        field = "",
+        edit_value = 0,
         class_slot = class_slot,
         class_level = class_level,
         class_level_min = class_level_min,
         class_level_max = class_level_max,
+    };
+}
+
+fn _boolean_property_editor_row(group: string, label: string,
+    field: string, value: int): CreaturePropertyEditorRow {
+    return CreaturePropertyEditorRow {
+        surface = property_editor_surface_properties,
+        group = group,
+        label = label,
+        value = _bool_editor_value(value),
+        editor = property_editor_kind_boolean,
+        propset = "nwn1.propsets.CreatureStats",
+        field = field,
+        edit_value = value,
+        class_slot = -1,
+        class_level = 0,
+        class_level_min = 0,
+        class_level_max = 0,
     };
 }
 
@@ -255,11 +283,11 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
     }
 
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Corpse Decay Time", f"{descriptor.decay_time / 1000}"));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Disarmable", _bool_editor_value(stats.disarmable)));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Immortal", _bool_editor_value(stats.immortal)));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Lootable Corpse", _bool_editor_value(stats.lootable)));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "No Permanent Death", _bool_editor_value(stats.chunk_death)));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Interface", "Plot", _bool_editor_value(stats.plot)));
+    arr.push(rows, _boolean_property_editor_row("Interface", "Disarmable", "disarmable", stats.disarmable));
+    arr.push(rows, _boolean_property_editor_row("Interface", "Immortal", "immortal", stats.immortal));
+    arr.push(rows, _boolean_property_editor_row("Interface", "Lootable Corpse", "lootable", stats.lootable));
+    arr.push(rows, _boolean_property_editor_row("Interface", "No Permanent Death", "chunk_death", stats.chunk_death));
+    arr.push(rows, _boolean_property_editor_row("Interface", "Plot", "plot", stats.plot));
 
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Movement Rate", f"{levels.walkrate}"));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Perception Range", f"{stats.perception_range}"));

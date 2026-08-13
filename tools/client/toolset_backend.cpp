@@ -5,6 +5,8 @@
 #include "object_edits.hpp"
 #include "script_commands.hpp"
 
+#include "smalls_creature_properties.hpp"
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Area.hpp>
@@ -1379,6 +1381,51 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        "object.details.set_boolean",
+                        "Set Object Details Boolean",
+                        "Set one explicitly editable boolean in the active object's Details",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.details.set_boolean <row-index> <expected-0|1> <desired-0|1>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto row_index = parse_u32(command_arg_string(invocation.args, 0));
+            const auto expected = parse_assignment(command_arg_string(invocation.args, 1));
+            const auto desired = parse_assignment(command_arg_string(invocation.args, 2));
+            if (!row_index || !expected || !desired) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.details.set_boolean <row-index> <expected-0|1> <desired-0|1>",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(
+                    CommandStatus::failed, "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+
+            std::string diagnostic;
+            auto edit = prepare_object_details_boolean_edit(kernel::runtime(),
+                bridge_->active_object(), *row_index, *expected ? 1 : 0, *desired, diagnostic);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic.empty() ? "Object Details boolean edit was rejected" : std::move(diagnostic),
+                    CommandOutputChannel::warn);
+            }
+
+            ObjectEditBatch batch;
+            batch.patches.push_back({
+                edit->object,
+                edit->propset_type,
+                edit->field_index,
+                edit->before,
+                edit->after,
+            });
+            return commit_object_edits(std::move(batch), std::move(edit->label), context);
+        });
+
+    register_or_log(CommandSpec{
                         "object.transform.set_position",
                         "Set Object Position",
                         "Set the active Creature or Placeable position",
@@ -1826,65 +1873,6 @@ void ToolsetBackend::register_native_commands()
             };
             return commit_item_property_edits(
                 std::move(batch), "Set Item property value", context);
-        });
-
-    register_or_log(CommandSpec{
-                        "object.creature.set_plot",
-                        "Set Creature Plot",
-                        "Set the active Creature plot flag",
-                        "object",
-                        {},
-                        CommandScope::workspace,
-                        CommandFlags::none,
-                        {},
-                        "object.creature.set_plot <0|1>",
-                    },
-        [this](const CommandInvocation& invocation, CommandContext& context) {
-            const auto assigned = parse_assignment(command_arg_string(invocation.args, 0));
-            if (!assigned) {
-                return command_result(CommandStatus::rejected,
-                    "Usage: object.creature.set_plot <0|1>",
-                    CommandOutputChannel::warn);
-            }
-            if (!bridge_) {
-                return command_result(CommandStatus::failed, "Smalls bridge unavailable", CommandOutputChannel::error);
-            }
-
-            const ObjectHandle object = bridge_->active_object();
-            if (object.type != ObjectType::creature) {
-                return command_result(CommandStatus::rejected, "Active object is not a Creature", CommandOutputChannel::warn);
-            }
-
-            auto& runtime = kernel::runtime();
-            const auto propset_type = runtime.type_id("nwn1.propsets.CreatureStats", false);
-            const auto* definition = runtime.get_struct_def(propset_type);
-            const uint32_t field_index = definition ? definition->field_index("plot") : UINT32_MAX;
-            if (!definition || field_index == UINT32_MAX) {
-                return command_result(CommandStatus::failed, "CreatureStats.plot schema unavailable", CommandOutputChannel::error);
-            }
-            const auto propset = runtime.find_propset_ref(propset_type, object);
-            if (propset.type_id == smalls::invalid_type_id) {
-                return command_result(
-                    CommandStatus::failed, "CreatureStats propset unavailable", CommandOutputChannel::error);
-            }
-            const auto current = runtime.read_value_field_at_offset(
-                propset, definition->fields[field_index].offset, runtime.int_type());
-            if (current.type_id != runtime.int_type()) {
-                return command_result(CommandStatus::failed, "CreatureStats.plot value unavailable", CommandOutputChannel::error);
-            }
-            if (current.data.ival != 0 && current.data.ival != 1) {
-                return command_result(
-                    CommandStatus::rejected, "CreatureStats.plot is outside its valid 0..1 range", CommandOutputChannel::warn);
-            }
-
-            const int32_t desired = *assigned ? 1 : 0;
-            if (current.data.ival == desired) {
-                return command_result(CommandStatus::noop, "Creature plot flag is already set", CommandOutputChannel::none);
-            }
-
-            ObjectEditBatch batch;
-            batch.patches.push_back({object, propset_type, field_index, current.data.ival, desired});
-            return commit_object_edits(std::move(batch), "Set Creature plot flag", context);
         });
 
     register_or_log(CommandSpec{

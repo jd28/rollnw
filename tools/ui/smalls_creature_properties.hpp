@@ -3,6 +3,7 @@
 #include "smalls_property_tree.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -38,8 +39,17 @@ enum class ObjectDetailsRowKind : uint8_t {
     value,
 };
 
+enum class ObjectDetailsEditorKind : uint8_t {
+    read_only,
+    boolean,
+};
+
 struct ObjectDetailsRow {
     ObjectDetailsRowKind kind = ObjectDetailsRowKind::value;
+    ObjectDetailsEditorKind editor = ObjectDetailsEditorKind::read_only;
+    smalls::TypeID propset_type{};
+    uint32_t field_index = UINT32_MAX;
+    int32_t edit_value = 0;
     PropertyTextSlice label;
     PropertyTextSlice value;
 };
@@ -69,11 +79,30 @@ struct ObjectDetailsSnapshot {
     [[nodiscard]] std::string_view text_view(PropertyTextSlice slice) const noexcept;
 };
 
+struct ObjectDetailsBooleanEdit {
+    ObjectHandle object{};
+    smalls::TypeID propset_type{};
+    uint32_t field_index = UINT32_MAX;
+    int32_t before = 0;
+    int32_t after = 0;
+    std::string label;
+};
+
 // The selected object is a toolset singleton, but Smalls produces its Details
 // rows as one bounded batch for a linear partition into UI storage.
 void build_object_details(smalls::Runtime& runtime,
     ObjectHandle active_object,
     ObjectDetailsSnapshot& output);
+
+// Row indices are opaque UI tokens. Rebuild the bounded row batch and validate
+// current SmallS policy before returning concrete propset metadata.
+[[nodiscard]] std::optional<ObjectDetailsBooleanEdit>
+prepare_object_details_boolean_edit(smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    bool assigned,
+    std::string& diagnostic);
 
 struct CreatureClassPresentationSnapshot {
     ObjectHandle object{};

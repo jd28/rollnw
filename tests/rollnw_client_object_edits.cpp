@@ -4,6 +4,7 @@
 #include "../tools/client/object_document.hpp"
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/workspace.hpp"
+#include "../tools/ui/smalls_creature_properties.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
@@ -1168,6 +1169,84 @@ TEST(ClientObjectEdits, AreaTabCommitsLiveObjectMutation)
     const auto undone = workspace.undo(context);
     ASSERT_TRUE(undone.ok()) << undone.message;
     EXPECT_EQ(read_plot(creature), before);
+}
+
+TEST(ClientObjectEdits, DetailsBooleanCommitPersistsAndRestoresUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* placeable = nwk::objects().make<nw::Placeable>();
+    ASSERT_NE(placeable, nullptr);
+    runtime.init_object_propsets(placeable->handle());
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, placeable->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto plot = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.editor == nw::toolset::ObjectDetailsEditorKind::boolean
+            && snapshot.text_view(row.label) == "Plot";
+    });
+    ASSERT_NE(plot, snapshot.rows.end());
+
+    std::string diagnostic;
+    const auto prepared = nw::toolset::prepare_object_details_boolean_edit(
+        runtime,
+        placeable->handle(),
+        static_cast<uint32_t>(plot - snapshot.rows.begin()),
+        plot->edit_value,
+        plot->edit_value == 0,
+        diagnostic);
+    ASSERT_TRUE(prepared) << diagnostic;
+
+    nw::toolset::ObjectEditBatch batch;
+    batch.patches.push_back({
+        prepared->object,
+        prepared->propset_type,
+        prepared->field_index,
+        prepared->before,
+        prepared->after,
+    });
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("area:test", "Test Area", nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_edits(
+        std::move(batch), prepared->label, context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+
+    nlohmann::json serialized;
+    bool (*serialize_json)(const nw::Placeable*, nlohmann::json&, nw::SerializationProfile) = nw::serialize;
+    ASSERT_TRUE(serialize_json(
+        placeable, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.PlaceableState"]["plot"], prepared->after);
+
+    workspace.push_undo(*committed.undo_action);
+    auto result = workspace.undo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    serialized.clear();
+    ASSERT_TRUE(serialize_json(
+        placeable, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.PlaceableState"]["plot"], prepared->before);
+
+    result = workspace.redo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    serialized.clear();
+    ASSERT_TRUE(serialize_json(
+        placeable, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["nwn1.propsets.PlaceableState"]["plot"], prepared->after);
+
+    nwk::objects().destroy(placeable->handle());
 }
 
 TEST(ClientObjectEdits, TransformCommitRejectsStaleValuesAndReplaysExactResult)

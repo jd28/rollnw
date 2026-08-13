@@ -201,33 +201,26 @@ handler may replace its own subtree without leaving stale element pointers.
 ## Resource Mutation
 
 The binding intentionally exposes no direct object-write or resource-save
-operation. UI scripts use `core.commands.v1.command_execute`:
+operation. UI scripts use `core.commands.v1.command_execute` for explicit
+editor operations, such as Item property changes. Dynamically generated
+Details booleans carry an editor kind, propset, field, and current `0|1` value
+in the SmallS row protocol. The client treats the row index as an opaque token,
+rebuilds the bounded row batch on click, and rejects the command unless the
+live row still names the same editable boolean with the expected value.
 
 ```smalls
 from core.commands.v1 import { command_execute };
-from core.rmlui import { Event, Command, command_set_checked };
+from core.rmlui import { Event, Command };
 
-fn set_plot(event: Event): array!(Command) {
-    var desired = "0";
-    if (event.checked) {
-        desired = "1";
-    }
-    var result = command_execute("object.creature.set_plot", { desired });
-    if (result.status == 0 || result.status == 4) {
-        return {};
-    }
-    return {{
-        operation = command_set_checked,
-        element_id = event.element_id,
-        value = "",
-        state = !event.checked
-    }};
+fn remove_item_property(event: Event): array!(Command) {
+    command_execute("object.item.remove_property", { event.value });
+    return {};
 }
 ```
 
-The command handler validates and mutates the live object, marks the document
-dirty, and contributes undo data. The returned UI command only restores the
-checkbox when the resource command rejects the requested change.
+Command handlers validate and mutate the live object, mark the document dirty,
+and contribute undo data. Direct propset writes remain unavailable to UI
+scripts.
 
 ## Diagnostics And Failure
 

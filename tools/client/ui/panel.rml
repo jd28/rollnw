@@ -7,8 +7,7 @@
   <link type="text/rcss" href="item_editor.rcss" />
   <link type="text/template" href="item_editor.rml" />
   <script>
-from core.commands.v1 import { command_execute };
-from core.rmlui import { Event, Command, command_set_checked };
+from core.rmlui import { Event, Command };
 from toolset.item_editor import {
     add_selected_property,
     appearance_refresh,
@@ -22,23 +21,6 @@ from toolset.item_editor import {
     remove_selected_property,
     select_color_channel,
 };
-
-fn rollnw_client_set_plot(event: Event): array!(Command) {
-    var desired = "0";
-    if (event.checked) {
-        desired = "1";
-    }
-    var result = command_execute("object.creature.set_plot", { desired });
-    if (result.status == 0 || result.status == 4) {
-        return {};
-    }
-    return {{
-        operation = command_set_checked,
-        element_id = event.element_id,
-        value = "",
-        state = !event.checked
-    }};
-}
 
 fn rollnw_item_property_add(event: Event): array!(Command) {
     add_selected_property();
