@@ -1581,7 +1581,7 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveBlueprintJsonAtomically)
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
     {
-        std::ofstream placeholder{target};
+        std::ofstream placeholder{target, std::ios::binary};
         ASSERT_TRUE(placeholder);
         placeholder << "{}\n";
     }
@@ -1658,7 +1658,7 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveAreaJsonAtomically)
 
     const auto target = root / "test_area.caf.json";
     {
-        std::ofstream placeholder{target};
+        std::ofstream placeholder{target, std::ios::binary};
         ASSERT_TRUE(placeholder);
         placeholder << "{}\n";
     }

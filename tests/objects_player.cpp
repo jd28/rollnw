@@ -152,7 +152,7 @@ TEST(Player, GffJsonSerialize)
     EXPECT_TRUE(g.valid());
 
     auto j = nw::gff_to_gffjson(g);
-    std::ofstream out{"tmp/testwizardpc1.bic.gffjson"};
+    std::ofstream out{"tmp/testwizardpc1.bic.gffjson", std::ios::binary};
     out << std::setw(4) << j;
 }
 
@@ -210,7 +210,7 @@ TEST(Player, PerPartColor)
     EXPECT_TRUE(g.valid());
 
     auto j = nw::gff_to_gffjson(g);
-    std::ofstream out{"tmp/damienoneknife.bic.gffjson"};
+    std::ofstream out{"tmp/damienoneknife.bic.gffjson", std::ios::binary};
     out << std::setw(4) << j;
 
     auto pl = nwk::objects().load_player("CDKEY", "damienoneknife");

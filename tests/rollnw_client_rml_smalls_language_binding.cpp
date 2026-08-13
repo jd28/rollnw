@@ -357,7 +357,7 @@ TEST(ClientRmlSmallsLanguageBinding, MutatesSharedActiveObjectAndAppliesCommands
 
     const std::filesystem::path external_script_path = "tmp/rml_smalls_external.smalls";
     {
-        std::ofstream external_script{external_script_path};
+        std::ofstream external_script{external_script_path, std::ios::binary};
         ASSERT_TRUE(external_script);
         external_script << R"(
 from core.rmlui import { Event };

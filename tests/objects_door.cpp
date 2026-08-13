@@ -186,7 +186,7 @@ TEST(Door, JsonSerialize)
     EXPECT_TRUE(nw::serialize(door2, j2, nw::SerializationProfile::blueprint));
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/door_ttr_002.utd.json"};
+    std::ofstream f{"tmp/door_ttr_002.utd.json", std::ios::binary};
     f << std::setw(4) << j;
     f.close();
 

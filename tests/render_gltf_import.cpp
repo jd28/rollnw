@@ -111,7 +111,7 @@ TEST(RenderGltfImport, ImportsModelAssetWithoutGraphicsContext)
 
     const auto gltf_path = dir / "triangle.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -198,7 +198,7 @@ TEST(RenderGltfImport, RepeatedSceneNodeReferenceImportsOnceAndCountsDuplicate)
 
     const auto gltf_path = dir / "repeated_scene_node.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -253,7 +253,7 @@ TEST(RenderGltfImport, DeepNodeChainStopsAtDepthCap)
     constexpr size_t node_count = 270;
     const auto gltf_path = dir / "deep_chain.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],"nodes":[)";
         for (size_t i = 0; i < node_count; ++i) {
             if (i != 0) {
@@ -302,7 +302,7 @@ TEST(RenderGltfImport, NonFinitePositionDropsPrimitiveAndCountsInput)
 
     const auto gltf_path = dir / "nonfinite_position.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -364,7 +364,7 @@ TEST(RenderGltfImport, ImportsModelAssetMaterialTextureSourcesWithoutGraphicsCon
 
     const auto gltf_path = dir / "textured_triangle.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -477,7 +477,7 @@ TEST(RenderGltfImport, ImportsSkinnedModelAssetWithoutGraphicsContext)
 
     const auto gltf_path = dir / "skin.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -544,7 +544,7 @@ TEST(RenderGltfImport, SparsePositionAccessorDropsPrimitive)
 
     const auto gltf_path = dir / "sparse_position.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,
@@ -621,7 +621,7 @@ TEST(RenderGltfImport, SkinJointOutsideSkinMatrixRangeFallsBackToStaticPrimitive
 
     const auto gltf_path = dir / "skin_joint_range.gltf";
     {
-        std::ofstream out(gltf_path);
+        std::ofstream out(gltf_path, std::ios::binary);
         out << R"({
   "asset": {"version": "2.0"},
   "scene": 0,

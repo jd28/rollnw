@@ -18,7 +18,7 @@ TEST(MudlBenchmarkReport, PathMetadataPreservesInputPathAndAddsAbsolutePath)
     const std::filesystem::path root = "tmp/mudl_benchmark_report";
     const std::filesystem::path module_path = root / "module";
     std::filesystem::create_directories(module_path);
-    std::ofstream{module_path / "module.json"} << "{}\n";
+    std::ofstream{module_path / "module.json", std::ios::binary} << "{}\n";
 
     const std::string input_path = module_path.generic_string();
     const auto metadata = mudl::benchmark_path_metadata_json(input_path);

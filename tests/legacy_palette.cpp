@@ -56,7 +56,7 @@ TEST(Palette, JsonConversion)
     nw::Palette pal1{g};
     EXPECT_TRUE(pal1.valid());
     auto j1 = pal1.to_json();
-    std::ofstream f{"tmp/creaturepal.itp.json"};
+    std::ofstream f{"tmp/creaturepal.itp.json", std::ios::binary};
     f << std::setw(4) << j1;
 
     nw::Palette pal2;
@@ -67,7 +67,7 @@ TEST(Palette, JsonConversion)
     nw::Gff g2{"test_data/user/scratch/creaturepalstd.itp"};
     nw::Palette pal3{g2};
     auto j3 = pal3.to_json();
-    std::ofstream f2{"tmp/creaturepalstd.itp.json"};
+    std::ofstream f2{"tmp/creaturepalstd.itp.json", std::ios::binary};
     f2 << std::setw(4) << j3;
 }
 

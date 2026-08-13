@@ -73,7 +73,7 @@ TEST(ModelParticles, ImportOpacityOnlyScalesMotionBlur)
         ASSERT_NE(pos, std::string::npos);
         text.insert(pos + std::strlen("  render Normal\n"), "  opacity 7.21376e+022\n");
 
-        std::ofstream out{"./vfx_normal_opacity_generated_test.mdl"};
+        std::ofstream out{"./vfx_normal_opacity_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
         out << text;
     }
@@ -95,7 +95,7 @@ TEST(ModelParticles, ImportOpacityOnlyScalesMotionBlur)
         ASSERT_NE(pos, std::string::npos);
         text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 0.35\r\n");
 
-        std::ofstream out{"./vfx_motion_blur_opacity_generated_test.mdl"};
+        std::ofstream out{"./vfx_motion_blur_opacity_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
         out << text;
     }
@@ -120,7 +120,7 @@ TEST(ModelParticles, ImportClampsOutOfRangeMotionBlurOpacity)
     text.insert(pos + std::strlen("  render Motion_Blur\r\n"), "  opacity 7.21376e+022\r\n");
 
     {
-        std::ofstream out{"./vfx_motion_blur_large_opacity_generated_test.mdl"};
+        std::ofstream out{"./vfx_motion_blur_large_opacity_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
         out << text;
     }
@@ -151,7 +151,7 @@ TEST(ModelParticles, ImportMissingTextureBlendAsAdditive)
         ASSERT_NE(end, std::string::npos);
         text.erase(pos, end - pos + 1);
 
-        std::ofstream out{"./vfx_missing_blend_generated_test.mdl"};
+        std::ofstream out{"./vfx_missing_blend_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
         out << text;
     }
@@ -372,7 +372,7 @@ TEST(ModelParticles, ImportAffectedByWindFlag)
         ASSERT_NE(pos, std::string::npos);
         text.replace(pos, std::strlen("affectedByWind 0"), "affectedByWind 1");
 
-        std::ofstream out{"./vfx_wind_generated_test.mdl"};
+        std::ofstream out{"./vfx_wind_generated_test.mdl", std::ios::binary};
         ASSERT_TRUE(out.is_open());
         out << text;
     }
@@ -803,7 +803,7 @@ TEST(ModelParticles, ImportNegativeLifetimeAsPerpetual)
     ASSERT_NE(lifetime_pos, std::string::npos);
     text.replace(lifetime_pos, std::strlen("  lifeExp 3\n"), "  lifeExp -1\n");
 
-    std::ofstream out{"./vfx_perpetual_single_generated_test.mdl"};
+    std::ofstream out{"./vfx_perpetual_single_generated_test.mdl", std::ios::binary};
     ASSERT_TRUE(out.is_open());
     out << text;
     out.close();

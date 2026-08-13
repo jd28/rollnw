@@ -49,7 +49,7 @@ TEST(Faction, JsonSerialize)
     nw::Faction faction{g};
     auto json = faction.to_json();
 
-    std::ofstream f{"tmp/repute.fac.json"};
+    std::ofstream f{"tmp/repute.fac.json", std::ios::binary};
     f << std::setw(4) << json;
 }
 

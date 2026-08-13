@@ -43,7 +43,7 @@ TEST(ClientDialogDocument, JsonAndGffProduceTheSameRows)
     nw::serialize(json, dialog);
     const std::filesystem::path json_path{"tmp/client_dialog_document.dlg.json"};
     {
-        std::ofstream output{json_path};
+        std::ofstream output{json_path, std::ios::binary};
         ASSERT_TRUE(output);
         output << json;
     }
@@ -113,7 +113,7 @@ TEST(ClientDialogDocument, RejectsOutOfRangeJsonPointers)
     };
     const std::filesystem::path path{"tmp/client_dialog_document_invalid.dlg.json"};
     {
-        std::ofstream output{path};
+        std::ofstream output{path, std::ios::binary};
         ASSERT_TRUE(output);
         output << json;
     }
@@ -148,7 +148,7 @@ TEST(ClientDialogDocument, RejectsNonLinkCycles)
     nw::serialize(json, dialog);
     const std::filesystem::path path{"tmp/client_dialog_document_cycle.dlg.json"};
     {
-        std::ofstream output{path};
+        std::ofstream output{path, std::ios::binary};
         ASSERT_TRUE(output);
         output << json;
     }

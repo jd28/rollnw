@@ -997,7 +997,7 @@ TEST(Item, JsonSerialize)
     nlohmann::json j;
     nw::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    std::ofstream f{"tmp/cloth028.uti.json"};
+    std::ofstream f{"tmp/cloth028.uti.json", std::ios::binary};
     f << std::setw(4) << j;
     f.close();
 

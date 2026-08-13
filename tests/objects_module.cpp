@@ -45,7 +45,7 @@ TEST(Module, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/module.ifo.json"};
+    std::ofstream f{"tmp/module.ifo.json", std::ios::binary};
     f << std::setw(4) << j;
 }
 

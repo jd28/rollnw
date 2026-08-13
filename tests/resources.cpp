@@ -420,7 +420,8 @@ TEST(StaticDirectory, AuthoredJsonKeepsResourceType)
     const std::filesystem::path root{"tmp/static_directory_authored_json"};
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root / "blueprints" / "creatures");
-    std::ofstream{root / "blueprints" / "creatures" / "goblin.utc.json"} << R"({"$type":"UTC"})";
+    std::ofstream{root / "blueprints" / "creatures" / "goblin.utc.json", std::ios::binary}
+        << R"({"$type":"UTC"})";
 
     StaticDirectory d(root);
     ASSERT_TRUE(d.valid());
@@ -830,7 +831,7 @@ TEST(KernelResources, LoadModuleHaksUsesSearchRootsInOrder)
         root / "local" / "project_dep.hak",
         fs::copy_options::overwrite_existing);
     {
-        std::ofstream out{root / "fallback" / "project_dep" / "build.txt"};
+        std::ofstream out{root / "fallback" / "project_dep" / "build.txt", std::ios::binary};
         ASSERT_TRUE(out);
         out << "fallback\n";
     }

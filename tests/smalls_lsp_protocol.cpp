@@ -1385,7 +1385,7 @@ struct ScratchPackage {
     std::string write(std::string_view name, std::string_view contents) const
     {
         auto path = root / name;
-        std::ofstream out{path};
+        std::ofstream out{path, std::ios::binary};
         out << contents;
         return smalls_lsp::native_path_to_uri(path.string());
     }

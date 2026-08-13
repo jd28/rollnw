@@ -31,7 +31,7 @@ TEST(Waypoint, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/wp_behexit001.utw.json"};
+    std::ofstream f{"tmp/wp_behexit001.utw.json", std::ios::binary};
     f << std::setw(4) << j;
     f.close();
 

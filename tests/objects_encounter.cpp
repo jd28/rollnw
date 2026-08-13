@@ -126,7 +126,7 @@ TEST(Encounter, JsonSerialize)
     nlohmann::json j;
     nw::serialize(enc, j, nw::SerializationProfile::blueprint);
 
-    std::ofstream f{"tmp/boundelementallo.ute.json"};
+    std::ofstream f{"tmp/boundelementallo.ute.json", std::ios::binary};
     f << std::setw(4) << j;
     f.close();
 

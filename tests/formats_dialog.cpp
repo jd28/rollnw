@@ -82,7 +82,7 @@ TEST(Dialog, JsonSerialize)
     nlohmann::json j;
     nw::serialize(j, dlg);
 
-    std::ofstream f{"tmp/alue_ranger.dlg.json"};
+    std::ofstream f{"tmp/alue_ranger.dlg.json", std::ios::binary};
     f << std::setw(4) << j;
 }
 
@@ -314,6 +314,6 @@ TEST(Dialog, DeleteNode)
 
     nlohmann::json j;
     nw::serialize(j, dlg);
-    std::ofstream f{"tmp/test_delete.dlg.json"};
+    std::ofstream f{"tmp/test_delete.dlg.json", std::ios::binary};
     f << std::setw(4) << j;
 }

@@ -91,7 +91,7 @@ TEST(Trigger, JsonRoundTrip)
 
     EXPECT_EQ(j, j2);
 
-    std::ofstream f{"tmp/pl_spray_sewage.utt.json"};
+    std::ofstream f{"tmp/pl_spray_sewage.utt.json", std::ios::binary};
     f << std::setw(4) << j;
     f.close();
 

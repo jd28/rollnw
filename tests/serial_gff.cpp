@@ -162,6 +162,6 @@ TEST(Gff, ListsNested)
 
     nw::Gff in{"tmp/test.gff"};
     auto j = nw::gff_to_gffjson(in);
-    std::ofstream f{"tmp/test.gffjson"};
+    std::ofstream f{"tmp/test.gffjson", std::ios::binary};
     f << std::setw(4) << j;
 }

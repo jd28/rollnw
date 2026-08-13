@@ -106,7 +106,7 @@ void update_imported_module_metadata(const std::filesystem::path& root,
     module["haks"] = haks;
     module["tlk"] = std::move(tlk);
 
-    std::ofstream output{module_path};
+    std::ofstream output{module_path, std::ios::binary};
     ASSERT_TRUE(output);
     output << module.dump(2) << '\n';
 }
@@ -573,7 +573,7 @@ TEST(ClientProject, NativeProjectDoesNotFallBackToLegacyAreaResources)
     EXPECT_EQ(nw::kernel::objects().make_area(nw::Resref{"start"}), nullptr);
 
     {
-        std::ofstream malformed{area_dir / "start.caf.json"};
+        std::ofstream malformed{area_dir / "start.caf.json", std::ios::binary};
         ASSERT_TRUE(malformed);
         malformed << "{}\n";
     }
@@ -596,7 +596,7 @@ TEST(ClientProject, KernelLoadUsesProjectHakRoot)
 
     std::filesystem::create_directories(root / "hak" / "project_dep");
     {
-        std::ofstream out{root / "hak" / "project_dep" / "build.txt"};
+        std::ofstream out{root / "hak" / "project_dep" / "build.txt", std::ios::binary};
         ASSERT_TRUE(out);
         out << "project hak\n";
     }
@@ -651,12 +651,12 @@ TEST(ClientProject, KernelLoadProjectHakWinsOverFallbackRoot)
     std::filesystem::create_directories(root / "hak" / "priority_dep");
     std::filesystem::create_directories(fallback / "hak" / "priority_dep");
     {
-        std::ofstream out{root / "hak" / "priority_dep" / "build.txt"};
+        std::ofstream out{root / "hak" / "priority_dep" / "build.txt", std::ios::binary};
         ASSERT_TRUE(out);
         out << "project\n";
     }
     {
-        std::ofstream out{fallback / "hak" / "priority_dep" / "build.txt"};
+        std::ofstream out{fallback / "hak" / "priority_dep" / "build.txt", std::ios::binary};
         ASSERT_TRUE(out);
         out << "fallback\n";
     }
@@ -774,7 +774,7 @@ TEST(ClientProject, ReadsModuleHakListFromJsonMetadata)
     std::filesystem::create_directories(root / "shared");
 
     {
-        std::ofstream manifest{root / "rollnw.json"};
+        std::ofstream manifest{root / "rollnw.json", std::ios::binary};
         ASSERT_TRUE(manifest);
         manifest << R"({
   "format": "rollnw.module",
@@ -785,7 +785,7 @@ TEST(ClientProject, ReadsModuleHakListFromJsonMetadata)
     }
 
     {
-        std::ofstream module{root / "shared" / "module.ifo.json"};
+        std::ofstream module{root / "shared" / "module.ifo.json", std::ios::binary};
         ASSERT_TRUE(module);
         module << R"({
   "$type": "IFO",
@@ -821,7 +821,8 @@ TEST(ClientProject, BuildsResourceAwareProjectTree)
         input >> creature;
         creature["nwn1.propsets.CreatureDescriptor"]["name_first"]["strings"][0]["string"]
             = std::string{name};
-        std::ofstream output{root / "shared" / "blueprints" / "creatures" / std::string{filename}};
+        std::ofstream output{
+            root / "shared" / "blueprints" / "creatures" / std::string{filename}, std::ios::binary};
         output << creature.dump(2) << '\n';
     };
     write_named_creature("a_late.utc.json", "Zed");
@@ -829,15 +830,15 @@ TEST(ClientProject, BuildsResourceAwareProjectTree)
 
     std::filesystem::create_directories(root / "shared" / "scripts");
     {
-        std::ofstream source{root / "shared" / "scripts" / "source.nss"};
+        std::ofstream source{root / "shared" / "scripts" / "source.nss", std::ios::binary};
         source << "void main() {}\n";
     }
     {
-        std::ofstream smalls{root / "shared" / "scripts" / "tool.smalls"};
+        std::ofstream smalls{root / "shared" / "scripts" / "tool.smalls", std::ios::binary};
         smalls << "(module tool)\n";
     }
     {
-        std::ofstream compiled{root / "shared" / "scripts" / "compiled.ncs"};
+        std::ofstream compiled{root / "shared" / "scripts" / "compiled.ncs", std::ios::binary};
         compiled << "compiled";
     }
 
@@ -966,7 +967,7 @@ TEST(ClientResourceDocument, RejectsPathsOutsideProject)
     const auto init = initialize_project(root, "Example");
     ASSERT_TRUE(init.ok) << init.message;
     {
-        std::ofstream output{outside};
+        std::ofstream output{outside, std::ios::binary};
         ASSERT_TRUE(output);
         output << "outside\n";
     }
@@ -983,7 +984,7 @@ TEST(ClientResourceDocument, AtomicallyReplacesExistingJson)
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
     {
-        std::ofstream output{target};
+        std::ofstream output{target, std::ios::binary};
         ASSERT_TRUE(output);
         output << "{\"value\": 1}\n";
     }
