@@ -96,6 +96,92 @@ struct ObjectAppearanceEdit {
     bool after_captured = false;
 };
 
+enum class ObjectVariableType : uint8_t {
+    integer = 1,
+    floating = 2,
+    string = 3,
+};
+
+struct ObjectVariableRecord {
+    std::string name;
+    ObjectVariableType type = ObjectVariableType::integer;
+    int32_t integer = 0;
+    float floating = 0.0f;
+    std::string string;
+
+    bool operator==(const ObjectVariableRecord&) const = default;
+};
+
+enum class ObjectVariableWarning : uint8_t {
+    none = 0,
+    duplicate_name = 1 << 0,
+    string_looks_integer = 1 << 1,
+    string_looks_floating = 1 << 2,
+};
+
+struct ObjectVariableSnapshotRow {
+    ObjectVariableRecord variable;
+    ObjectVariableWarning warnings = ObjectVariableWarning::none;
+};
+
+[[nodiscard]] constexpr bool has_object_variable_warning(
+    ObjectVariableWarning warnings, ObjectVariableWarning warning) noexcept
+{
+    return (static_cast<uint8_t>(warnings) & static_cast<uint8_t>(warning)) != 0;
+}
+
+enum class ObjectVariableSnapshotStatus : uint8_t {
+    ready,
+    invalid_object,
+    invalid_data,
+};
+
+struct ObjectVariableSnapshot {
+    ObjectHandle object{};
+    ObjectVariableSnapshotStatus status = ObjectVariableSnapshotStatus::invalid_object;
+    std::vector<ObjectVariableSnapshotRow> rows;
+    std::string diagnostic;
+};
+
+enum class ObjectVariableEditKind : uint8_t {
+    insert,
+    erase,
+    replace,
+};
+
+struct ObjectVariableEditRow {
+    ObjectVariableRecord before;
+    ObjectVariableRecord after;
+};
+
+// One live object owns the local-variable table. A homogeneous batch carries
+// complete rows so stale validation and inverse replay do not depend on UI
+// state. Name and type together identify a variable, so one name may have one
+// value of each type. A committed destination that collides with the same name
+// and type receives the first type-local _N suffix; replay remains strict.
+// Integer, finite float, and string are the editable persisted types.
+struct ObjectVariableEditBatch {
+    ObjectHandle object{};
+    ObjectVariableEditKind kind = ObjectVariableEditKind::insert;
+    std::vector<ObjectVariableEditRow> rows;
+};
+
+void snapshot_object_variables(ObjectHandle object, ObjectVariableSnapshot& output);
+[[nodiscard]] std::string_view object_variable_type_name(ObjectVariableType type) noexcept;
+[[nodiscard]] std::string format_object_variable_value(const ObjectVariableRecord& record);
+// Numeric editors accept incomplete prefixes while the user is typing. Final
+// conversion, range checks, and finite-float validation remain commit-time
+// responsibilities. String values are unrestricted.
+[[nodiscard]] bool valid_object_variable_input_prefix(
+    ObjectVariableType type, std::string_view value) noexcept;
+[[nodiscard]] std::string_view object_variable_warning_description(
+    ObjectVariableWarning warnings) noexcept;
+
+[[nodiscard]] ObjectEditApplyResult apply_object_variable_edits(
+    const ObjectVariableEditBatch& batch, ObjectEditDirection direction);
+[[nodiscard]] CommandResult commit_object_variable_edits(
+    ObjectVariableEditBatch batch, std::string label, CommandContext& context);
+
 enum class ItemPropertyEditKind : uint8_t {
     insert,
     remove,

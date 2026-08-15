@@ -127,6 +127,55 @@ std::optional<float> parse_finite_f32(std::string_view value)
     return parsed;
 }
 
+std::optional<ObjectVariableType> parse_object_variable_type(std::string_view value)
+{
+    const std::string normalized = to_lower_ascii(value);
+    if (normalized == "1" || normalized == "integer" || normalized == "int") {
+        return ObjectVariableType::integer;
+    }
+    if (normalized == "2" || normalized == "float" || normalized == "floating") {
+        return ObjectVariableType::floating;
+    }
+    if (normalized == "3" || normalized == "string") {
+        return ObjectVariableType::string;
+    }
+    return std::nullopt;
+}
+
+std::optional<ObjectVariableRecord> find_object_variable(
+    ObjectHandle object,
+    std::string_view name,
+    ObjectVariableType type,
+    std::string& diagnostic)
+{
+    ObjectVariableSnapshot snapshot;
+    snapshot_object_variables(object, snapshot);
+    if (snapshot.status != ObjectVariableSnapshotStatus::ready) {
+        diagnostic = snapshot.diagnostic.empty()
+            ? "Object variable data is unavailable"
+            : std::move(snapshot.diagnostic);
+        return std::nullopt;
+    }
+    const auto found = std::find_if(snapshot.rows.begin(), snapshot.rows.end(),
+        [&](const ObjectVariableSnapshotRow& row) {
+            return row.variable.name == name && row.variable.type == type;
+        });
+    if (found == snapshot.rows.end()) {
+        diagnostic = "Object variable row is stale or missing";
+        return std::nullopt;
+    }
+    return found->variable;
+}
+
+ObjectVariableRecord default_object_variable_record(
+    std::string name, ObjectVariableType type)
+{
+    ObjectVariableRecord record;
+    record.name = std::move(name);
+    record.type = type;
+    return record;
+}
+
 struct ActiveTransform {
     ObjectHandle object{};
     ObjectTransformState state;
@@ -1477,6 +1526,229 @@ void ToolsetBackend::register_native_commands()
                 edit->element_index,
             });
             return commit_object_edits(std::move(batch), std::move(edit->label), context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.variables.add",
+                        "Add Object Variable",
+                        "Add one integer variable to the active object",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.variables.add",
+                    },
+        [this](const CommandInvocation&, CommandContext& context) {
+            if (!bridge_) {
+                return command_result(
+                    CommandStatus::failed, "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+            const ObjectHandle object = bridge_->active_object();
+            ObjectVariableSnapshot snapshot;
+            snapshot_object_variables(object, snapshot);
+            if (snapshot.status != ObjectVariableSnapshotStatus::ready) {
+                return command_result(CommandStatus::rejected,
+                    snapshot.diagnostic.empty()
+                        ? "Object variable data is unavailable"
+                        : std::move(snapshot.diagnostic),
+                    CommandOutputChannel::warn);
+            }
+
+            ObjectVariableEditBatch batch;
+            batch.object = object;
+            batch.kind = ObjectVariableEditKind::insert;
+            batch.rows.push_back({
+                .after = default_object_variable_record(
+                    "variable", ObjectVariableType::integer),
+            });
+            return commit_object_variable_edits(
+                std::move(batch), "Add Object variable", context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.variables.remove",
+                        "Remove Object Variable",
+                        "Remove one variable from the active object",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.variables.remove <name> <type>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const std::string name = command_arg_string(invocation.args, 0);
+            const auto type = parse_object_variable_type(
+                command_arg_string(invocation.args, 1));
+            if (name.empty() || !type || !bridge_) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.variables.remove <name> <integer|float|string>",
+                    CommandOutputChannel::warn);
+            }
+            std::string diagnostic;
+            auto before = find_object_variable(
+                bridge_->active_object(), name, *type, diagnostic);
+            if (!before) {
+                return command_result(CommandStatus::rejected,
+                    std::move(diagnostic), CommandOutputChannel::warn);
+            }
+
+            ObjectVariableEditBatch batch;
+            batch.object = bridge_->active_object();
+            batch.kind = ObjectVariableEditKind::erase;
+            batch.rows.push_back({.before = std::move(*before)});
+            return commit_object_variable_edits(
+                std::move(batch), "Remove Object variable", context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.variables.rename",
+                        "Rename Object Variable",
+                        "Rename one variable on the active object",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.variables.rename <name> <type> <new-name>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const std::string name = command_arg_string(invocation.args, 0);
+            const auto type = parse_object_variable_type(
+                command_arg_string(invocation.args, 1));
+            const std::string desired = command_arg_string(invocation.args, 2);
+            if (name.empty() || !type || desired.empty() || !bridge_) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.variables.rename <name> <integer|float|string> <new-name>",
+                    CommandOutputChannel::warn);
+            }
+            if (name == desired) {
+                return command_result(CommandStatus::noop,
+                    "Object variable name is already set", CommandOutputChannel::none);
+            }
+            std::string diagnostic;
+            auto before = find_object_variable(
+                bridge_->active_object(), name, *type, diagnostic);
+            if (!before) {
+                return command_result(CommandStatus::rejected,
+                    std::move(diagnostic), CommandOutputChannel::warn);
+            }
+            auto after = *before;
+            after.name = desired;
+
+            ObjectVariableEditBatch batch;
+            batch.object = bridge_->active_object();
+            batch.kind = ObjectVariableEditKind::replace;
+            batch.rows.push_back({std::move(*before), std::move(after)});
+            return commit_object_variable_edits(
+                std::move(batch), "Rename Object variable", context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.variables.set_type",
+                        "Set Object Variable Type",
+                        "Change one variable type on the active object",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.variables.set_type <name> <expected-type> <desired-type>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const std::string name = command_arg_string(invocation.args, 0);
+            const auto expected_type = parse_object_variable_type(
+                command_arg_string(invocation.args, 1));
+            const auto desired_type = parse_object_variable_type(
+                command_arg_string(invocation.args, 2));
+            if (name.empty() || !expected_type || !desired_type || !bridge_) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.variables.set_type <name> <expected-type> <desired-type>",
+                    CommandOutputChannel::warn);
+            }
+            if (*expected_type == *desired_type) {
+                return command_result(CommandStatus::noop,
+                    "Object variable type is already set", CommandOutputChannel::none);
+            }
+            std::string diagnostic;
+            auto before = find_object_variable(
+                bridge_->active_object(), name, *expected_type, diagnostic);
+            if (!before) {
+                return command_result(CommandStatus::rejected,
+                    std::move(diagnostic), CommandOutputChannel::warn);
+            }
+            auto after = default_object_variable_record(name, *desired_type);
+
+            ObjectVariableEditBatch batch;
+            batch.object = bridge_->active_object();
+            batch.kind = ObjectVariableEditKind::replace;
+            batch.rows.push_back({std::move(*before), std::move(after)});
+            return commit_object_variable_edits(
+                std::move(batch), "Change Object variable type", context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.variables.set_value",
+                        "Set Object Variable Value",
+                        "Set one variable value on the active object",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.variables.set_value <name> <type> <value>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const std::string name = command_arg_string(invocation.args, 0);
+            const auto type = parse_object_variable_type(
+                command_arg_string(invocation.args, 1));
+            const std::string desired = command_arg_string(invocation.args, 2);
+            if (name.empty() || !type || invocation.args.size() < 3 || !bridge_) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.variables.set_value <name> <integer|float|string> <value>",
+                    CommandOutputChannel::warn);
+            }
+            std::string diagnostic;
+            auto before = find_object_variable(
+                bridge_->active_object(), name, *type, diagnostic);
+            if (!before) {
+                return command_result(CommandStatus::rejected,
+                    std::move(diagnostic), CommandOutputChannel::warn);
+            }
+            auto after = *before;
+            switch (*type) {
+            case ObjectVariableType::integer: {
+                const auto value = parse_i32(desired);
+                if (!value) {
+                    return command_result(CommandStatus::rejected,
+                        "Integer variable value must be in the signed 32-bit range",
+                        CommandOutputChannel::warn);
+                }
+                after.integer = *value;
+                break;
+            }
+            case ObjectVariableType::floating: {
+                const auto value = parse_finite_f32(desired);
+                if (!value) {
+                    return command_result(CommandStatus::rejected,
+                        "Float variable value must be finite and representable as float32",
+                        CommandOutputChannel::warn);
+                }
+                after.floating = *value;
+                break;
+            }
+            case ObjectVariableType::string:
+                after.string = desired;
+                break;
+            }
+
+            ObjectVariableEditBatch batch;
+            batch.object = bridge_->active_object();
+            batch.kind = ObjectVariableEditKind::replace;
+            batch.rows.push_back({std::move(*before), std::move(after)});
+            return commit_object_variable_edits(
+                std::move(batch), "Set Object variable value", context);
         });
 
     register_or_log(CommandSpec{

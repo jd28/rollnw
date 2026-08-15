@@ -14,6 +14,7 @@
     </div>
     <div class="object_workbench_tabs">
       <button id="item_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
+      <button id="item_tab_variables" class="object_workbench_tab" type="button" data-surface="variables">Variables</button>
       <button id="item_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
       <button id="item_tab_item_properties" class="object_workbench_tab" type="button" data-surface="item-properties">Item Properties</button>
       <button id="item_tab_inventory" class="object_workbench_tab" type="button" data-surface="inventory">Inventory</button>
@@ -28,6 +29,21 @@
       </div>
       <div id="property_tree_rows" class="property_tree_rows">
         <div class="property_tree_empty">Select an item to inspect.</div>
+      </div>
+    </div>
+
+    <div id="item_surface_variables" class="item_workbench_surface">
+      <div class="object_variable_toolbar">
+        <button id="object_variable_add" type="button" title="Add integer variable">Add Variable</button>
+      </div>
+      <div class="object_variable_header">
+        <span class="object_variable_header_name">Name</span>
+        <span class="object_variable_header_type">Type</span>
+        <span class="object_variable_header_value">Value</span>
+        <span id="object_variable_count" class="property_tree_count">0</span>
+      </div>
+      <div id="object_variable_rows" class="object_variable_rows">
+        <div class="property_tree_empty">Waiting for a live Item.</div>
       </div>
     </div>
 

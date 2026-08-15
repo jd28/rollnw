@@ -12,6 +12,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
@@ -196,6 +197,381 @@ TEST(ClientObjectEdits, PropsetIntBatchAppliesAndRejectsStaleValues)
         nwk::runtime(), duplicate_batch, nw::toolset::ObjectEditDirection::forward);
     EXPECT_EQ(result.status, nw::toolset::ObjectEditStatus::invalid_batch);
     EXPECT_EQ(read_plot(creature), before);
+}
+
+TEST(ClientObjectEdits, ObjectVariableNumericInputRejectsInvalidPrefixes)
+{
+    using Type = nw::toolset::ObjectVariableType;
+    constexpr std::array integer_valid{"", "-", "0", "-2147483648", "999999999999"};
+    constexpr std::array integer_invalid{"+", " 1", "1 ", "1.0", "12x"};
+    constexpr std::array floating_valid{
+        "", "-", ".", "-.", "0", ".5", "1.", "1e", "1E+", "1e-", "1e-2"};
+    constexpr std::array floating_invalid{
+        "+", "e", "-e", "1e2e", "1..0", "nan", "inf", " 1", "1f"};
+
+    for (const auto value : integer_valid) {
+        EXPECT_TRUE(nw::toolset::valid_object_variable_input_prefix(
+            Type::integer, value))
+            << value;
+    }
+    for (const auto value : integer_invalid) {
+        EXPECT_FALSE(nw::toolset::valid_object_variable_input_prefix(
+            Type::integer, value))
+            << value;
+    }
+    for (const auto value : floating_valid) {
+        EXPECT_TRUE(nw::toolset::valid_object_variable_input_prefix(
+            Type::floating, value))
+            << value;
+    }
+    for (const auto value : floating_invalid) {
+        EXPECT_FALSE(nw::toolset::valid_object_variable_input_prefix(
+            Type::floating, value))
+            << value;
+    }
+
+    EXPECT_TRUE(nw::toolset::valid_object_variable_input_prefix(
+        Type::string, "arbitrary text: 1.5!"));
+    EXPECT_FALSE(nw::toolset::valid_object_variable_input_prefix(
+        static_cast<Type>(0), "1"));
+}
+
+TEST(ClientObjectEdits, ObjectVariableSnapshotAndBatchEditsRoundTripExactRows)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* creature = nwk::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    auto* locals = nwk::objects().components().get_or_create_locals(creature->handle());
+    ASSERT_NE(locals, nullptr);
+    locals->set_string("variable_z", "text");
+    locals->set_int("variable_a", std::numeric_limits<int32_t>::min());
+    locals->set_float("variable_m", 1.25f);
+    locals->set_string("warning_integer", "1");
+    locals->set_string("warning_float", "1.5");
+    locals->set_string("warning_overflow", "2147483648");
+    locals->set_string("warning_text", "1.5 suffix");
+
+    nw::toolset::ObjectVariableSnapshot snapshot;
+    nw::toolset::snapshot_object_variables(creature->handle(), snapshot);
+    ASSERT_EQ(snapshot.status,
+        nw::toolset::ObjectVariableSnapshotStatus::ready)
+        << snapshot.diagnostic;
+    const auto find_row = [&](std::string_view name,
+                              nw::toolset::ObjectVariableType type) {
+        return std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+            return row.variable.name == name && row.variable.type == type;
+        });
+    };
+    const auto first = find_row(
+        "variable_a", nw::toolset::ObjectVariableType::integer);
+    const auto middle = find_row(
+        "variable_m", nw::toolset::ObjectVariableType::floating);
+    const auto last = find_row(
+        "variable_z", nw::toolset::ObjectVariableType::string);
+    ASSERT_NE(first, snapshot.rows.end());
+    ASSERT_NE(middle, snapshot.rows.end());
+    ASSERT_NE(last, snapshot.rows.end());
+    EXPECT_LT(first, middle);
+    EXPECT_LT(middle, last);
+    EXPECT_EQ(first->variable.integer, std::numeric_limits<int32_t>::min());
+    EXPECT_FLOAT_EQ(middle->variable.floating, 1.25f);
+    EXPECT_EQ(last->variable.string, "text");
+
+    const auto warning_integer = find_row(
+        "warning_integer", nw::toolset::ObjectVariableType::string);
+    const auto warning_float = find_row(
+        "warning_float", nw::toolset::ObjectVariableType::string);
+    const auto warning_overflow = find_row(
+        "warning_overflow", nw::toolset::ObjectVariableType::string);
+    const auto warning_text = find_row(
+        "warning_text", nw::toolset::ObjectVariableType::string);
+    ASSERT_NE(warning_integer, snapshot.rows.end());
+    ASSERT_NE(warning_float, snapshot.rows.end());
+    ASSERT_NE(warning_overflow, snapshot.rows.end());
+    ASSERT_NE(warning_text, snapshot.rows.end());
+    EXPECT_TRUE(nw::toolset::has_object_variable_warning(warning_integer->warnings,
+        nw::toolset::ObjectVariableWarning::string_looks_integer));
+    EXPECT_TRUE(nw::toolset::has_object_variable_warning(warning_float->warnings,
+        nw::toolset::ObjectVariableWarning::string_looks_floating));
+    EXPECT_TRUE(nw::toolset::has_object_variable_warning(warning_overflow->warnings,
+        nw::toolset::ObjectVariableWarning::string_looks_floating));
+    EXPECT_EQ(warning_text->warnings, nw::toolset::ObjectVariableWarning::none);
+    EXPECT_NE(nw::toolset::object_variable_warning_description(
+                  warning_integer->warnings)
+                  .find("looks like an integer"),
+        std::string_view::npos);
+
+    nw::toolset::ObjectVariableEditBatch replace;
+    replace.object = creature->handle();
+    replace.kind = nw::toolset::ObjectVariableEditKind::replace;
+    replace.rows.push_back({
+        .before = last->variable,
+        .after = {
+            .name = "variable_renamed",
+            .type = nw::toolset::ObjectVariableType::floating,
+            .floating = -3.5f,
+        },
+    });
+
+    const auto epoch = nw::toolset::object_mutation_state().epoch;
+    auto applied = nw::toolset::apply_object_variable_edits(
+        replace, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    EXPECT_EQ(applied.applied_count, 1);
+    EXPECT_EQ(nw::toolset::object_mutation_state().epoch, epoch + 1);
+    EXPECT_EQ(locals->get_string("variable_z"), "");
+    EXPECT_FLOAT_EQ(locals->get_float("variable_renamed"), -3.5f);
+
+    applied = nw::toolset::apply_object_variable_edits(
+        replace, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(applied.status, nw::toolset::ObjectEditStatus::stale_value);
+    EXPECT_FLOAT_EQ(locals->get_float("variable_renamed"), -3.5f);
+
+    applied = nw::toolset::apply_object_variable_edits(
+        replace, nw::toolset::ObjectEditDirection::inverse);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    EXPECT_EQ(locals->get_string("variable_z"), "text");
+    EXPECT_FLOAT_EQ(locals->get_float("variable_renamed"), 0.0f);
+
+    nw::toolset::ObjectVariableEditBatch atomic;
+    atomic.object = creature->handle();
+    atomic.kind = nw::toolset::ObjectVariableEditKind::replace;
+    atomic.rows.push_back({
+        .before = first->variable,
+        .after = {
+            .name = "variable_a",
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 42,
+        },
+    });
+    atomic.rows.push_back({
+        .before = {
+            .name = "missing",
+            .type = nw::toolset::ObjectVariableType::string,
+            .string = "stale",
+        },
+        .after = {
+            .name = "missing",
+            .type = nw::toolset::ObjectVariableType::string,
+            .string = "changed",
+        },
+    });
+    applied = nw::toolset::apply_object_variable_edits(
+        atomic, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(applied.status, nw::toolset::ObjectEditStatus::stale_value);
+    EXPECT_EQ(locals->get_int("variable_a"), std::numeric_limits<int32_t>::min());
+
+    nw::toolset::ObjectVariableEditBatch nonfinite;
+    nonfinite.object = creature->handle();
+    nonfinite.kind = nw::toolset::ObjectVariableEditKind::insert;
+    nonfinite.rows.push_back({
+        .after = {
+            .name = "invalid_float",
+            .type = nw::toolset::ObjectVariableType::floating,
+            .floating = std::numeric_limits<float>::infinity(),
+        },
+    });
+    applied = nw::toolset::apply_object_variable_edits(
+        nonfinite, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(applied.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_FLOAT_EQ(locals->get_float("invalid_float"), 0.0f);
+
+    nw::toolset::ObjectVariableEditBatch occupied_insert;
+    occupied_insert.object = creature->handle();
+    occupied_insert.kind = nw::toolset::ObjectVariableEditKind::insert;
+    occupied_insert.rows.push_back({
+        .after = {
+            .name = "variable_a",
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 99,
+        },
+    });
+    applied = nw::toolset::apply_object_variable_edits(
+        occupied_insert, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(applied.status, nw::toolset::ObjectEditStatus::stale_value);
+    EXPECT_EQ(locals->get_int("variable_a"), std::numeric_limits<int32_t>::min());
+
+    locals->set_string("variable_a", "ambiguous");
+    nw::toolset::snapshot_object_variables(creature->handle(), snapshot);
+    ASSERT_EQ(snapshot.status,
+        nw::toolset::ObjectVariableSnapshotStatus::ready)
+        << snapshot.diagnostic;
+    const auto duplicate_integer = std::ranges::find_if(snapshot.rows, [](const auto& row) {
+        return row.variable.name == "variable_a"
+            && row.variable.type == nw::toolset::ObjectVariableType::integer;
+    });
+    const auto duplicate_string = std::ranges::find_if(snapshot.rows, [](const auto& row) {
+        return row.variable.name == "variable_a"
+            && row.variable.type == nw::toolset::ObjectVariableType::string;
+    });
+    ASSERT_NE(duplicate_integer, snapshot.rows.end());
+    ASSERT_NE(duplicate_string, snapshot.rows.end());
+    EXPECT_TRUE(nw::toolset::has_object_variable_warning(duplicate_integer->warnings,
+        nw::toolset::ObjectVariableWarning::duplicate_name));
+    EXPECT_TRUE(nw::toolset::has_object_variable_warning(duplicate_string->warnings,
+        nw::toolset::ObjectVariableWarning::duplicate_name));
+    nw::toolset::ObjectVariableEditBatch duplicate_type_change;
+    duplicate_type_change.object = creature->handle();
+    duplicate_type_change.kind = nw::toolset::ObjectVariableEditKind::replace;
+    duplicate_type_change.rows.push_back({
+        .before = duplicate_string->variable,
+        .after = {
+            .name = "variable_a",
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 0,
+        },
+    });
+    applied = nw::toolset::apply_object_variable_edits(
+        duplicate_type_change, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(applied.status, nw::toolset::ObjectEditStatus::stale_value);
+    EXPECT_EQ(locals->get_int("variable_a"), std::numeric_limits<int32_t>::min());
+    EXPECT_EQ(locals->get_string("variable_a"), "ambiguous");
+    locals->delete_string("variable_a");
+}
+
+TEST(ClientObjectEdits, ModuleVariableCommitUsesHomeDirtyUndoRedo)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    constexpr std::string_view name{"rollnw_variable_editor_test"};
+    module->locals.clear(name, nw::LocalVarType::integer);
+    module->locals.clear(name, nw::LocalVarType::float_);
+    module->locals.clear(name, nw::LocalVarType::string);
+
+    nw::toolset::ObjectVariableEditBatch batch;
+    batch.object = module->handle();
+    batch.kind = nw::toolset::ObjectVariableEditKind::insert;
+    batch.rows.push_back({
+        .after = {
+            .name = std::string{name},
+            .type = nw::toolset::ObjectVariableType::string,
+            .string = "module value",
+        },
+    });
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.ensure_default_tabs();
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_variable_edits(
+        std::move(batch), "Add Module variable", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(module->locals.get_string(name), "module value");
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+
+    workspace.push_undo(*committed.undo_action);
+    auto undone = workspace.undo(context);
+    ASSERT_TRUE(undone.ok()) << undone.message;
+    EXPECT_EQ(module->locals.get_string(name), "");
+
+    auto redone = workspace.redo(context);
+    ASSERT_TRUE(redone.ok()) << redone.message;
+    EXPECT_EQ(module->locals.get_string(name), "module value");
+    const auto serialized = module->locals.to_json(nw::SerializationProfile::any);
+    ASSERT_TRUE(serialized.contains(name));
+    EXPECT_EQ(serialized.at(name).at("string"), "module value");
+}
+
+TEST(ClientObjectEdits, ObjectVariableCommitSuffixesSameTypeCollisions)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    constexpr std::string_view base{"rollnw_variable_collision"};
+    constexpr std::string_view second{"rollnw_variable_collision_2"};
+    constexpr std::string_view third{"rollnw_variable_collision_3"};
+    for (const auto name : {base, second, third}) {
+        module->locals.clear(name, nw::LocalVarType::integer);
+        module->locals.clear(name, nw::LocalVarType::float_);
+        module->locals.clear(name, nw::LocalVarType::string);
+    }
+    module->locals.set_int(base, 11);
+    module->locals.set_int(second, 22);
+    module->locals.set_string(base, "same name, different type");
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.ensure_default_tabs();
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    nw::toolset::ObjectVariableEditBatch insert;
+    insert.object = module->handle();
+    insert.kind = nw::toolset::ObjectVariableEditKind::insert;
+    insert.rows.push_back({
+        .after = {
+            .name = std::string{base},
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 99,
+        },
+    });
+    auto committed = nw::toolset::commit_object_variable_edits(
+        std::move(insert), "Add colliding Module variable", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(module->locals.get_int(base), 11);
+    EXPECT_EQ(module->locals.get_int(second), 22);
+    EXPECT_EQ(module->locals.get_int(third), 99);
+    EXPECT_EQ(module->locals.get_string(base), "same name, different type");
+
+    workspace.push_undo(*committed.undo_action);
+    auto undone = workspace.undo(context);
+    ASSERT_TRUE(undone.ok()) << undone.message;
+    EXPECT_EQ(module->locals.get_int(base), 11);
+    EXPECT_EQ(module->locals.get_int(second), 22);
+    EXPECT_EQ(module->locals.get_int(third), 0);
+
+    auto redone = workspace.redo(context);
+    ASSERT_TRUE(redone.ok()) << redone.message;
+    EXPECT_EQ(module->locals.get_int(base), 11);
+    EXPECT_EQ(module->locals.get_int(second), 22);
+    EXPECT_EQ(module->locals.get_int(third), 99);
+
+    constexpr std::string_view source{"rollnw_variable_rename_source"};
+    constexpr std::string_view target{"rollnw_variable_rename_target"};
+    for (const auto name : {source, target}) {
+        module->locals.clear(name, nw::LocalVarType::integer);
+        module->locals.clear(name, nw::LocalVarType::float_);
+        module->locals.clear(name, nw::LocalVarType::string);
+    }
+    module->locals.set_int(source, 33);
+    module->locals.set_string(target, "occupied by string");
+
+    nw::toolset::ObjectVariableEditBatch rename;
+    rename.object = module->handle();
+    rename.kind = nw::toolset::ObjectVariableEditKind::replace;
+    rename.rows.push_back({
+        .before = {
+            .name = std::string{source},
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 33,
+        },
+        .after = {
+            .name = std::string{target},
+            .type = nw::toolset::ObjectVariableType::integer,
+            .integer = 33,
+        },
+    });
+    committed = nw::toolset::commit_object_variable_edits(
+        std::move(rename), "Rename colliding Module variable", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(module->locals.get_int(source), 0);
+    EXPECT_EQ(module->locals.get_string(target), "occupied by string");
+    EXPECT_EQ(module->locals.get_int(target), 33);
+
+    workspace.push_undo(*committed.undo_action);
+    undone = workspace.undo(context);
+    ASSERT_TRUE(undone.ok()) << undone.message;
+    EXPECT_EQ(module->locals.get_int(source), 33);
+    EXPECT_EQ(module->locals.get_string(target), "occupied by string");
+    EXPECT_EQ(module->locals.get_int(target), 0);
 }
 
 TEST(ClientObjectEdits, CreatureFeatCommitSharesDirtyUndoRedoAndEpoch)

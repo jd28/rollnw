@@ -88,6 +88,8 @@ constexpr float kVirtualTreeRowHeightPx = 26.0f;
 constexpr size_t kVirtualTreeOverscanRows = 8;
 constexpr int kObjectDetailsRowHeightPx = 30;
 constexpr int kObjectDetailsOverscanRows = 8;
+constexpr int kObjectVariableRowHeightPx = 34;
+constexpr int kObjectVariableOverscanRows = 8;
 constexpr int kCreatureFeatRowHeightPx = 30;
 constexpr int kCreatureFeatOverscanRows = 8;
 constexpr int kCreatureSpellRowHeightPx = 30;
@@ -615,6 +617,7 @@ struct RecentProjectEntry {
 
 enum class ObjectWorkbenchSurface : uint8_t {
     details,
+    variables,
     haks,
     classes,
     appearance,
@@ -752,6 +755,8 @@ struct AppState {
     nw::toolset::DialogViewState dialog_view;
     nw::toolset::ObjectDetailsSnapshot object_details;
     nw::toolset::VirtualListController details_list;
+    nw::toolset::ObjectVariableSnapshot object_variables;
+    nw::toolset::VirtualListController object_variable_list;
     nw::toolset::CreatureClassPresentationSnapshot creature_class_presentation;
     nw::toolset::CreatureFeatViewSnapshot creature_feats;
     nw::toolset::VirtualListController creature_feat_list;
@@ -806,6 +811,7 @@ struct AppState {
     std::string home_area_query;
     std::string last_command_query;
     std::string last_output_filter;
+    std::string active_object_variable_warning;
     OutputSelectionState output_selection;
     OutputScrollAfterLayout output_scroll_after_layout = OutputScrollAfterLayout::none;
     std::string module_dialog_command;
@@ -990,6 +996,8 @@ struct AppState {
     bool workspace_tab_scroll_pending = false;
     bool details_list_configured = false;
     bool details_rendered = false;
+    bool object_variable_list_configured = false;
+    bool object_variables_rendered = false;
     bool creature_feat_list_configured = false;
     bool creature_feat_rendered = false;
     bool creature_spell_list_configured = false;
@@ -1018,6 +1026,8 @@ struct AppState {
     std::vector<nw::toolset::CommandSpec> commands;
     nw::toolset::VirtualListRange rendered_details_range{};
     int rendered_details_row_count = 0;
+    nw::toolset::VirtualListRange rendered_object_variable_range{};
+    int rendered_object_variable_row_count = 0;
     nw::toolset::VirtualListRange rendered_creature_feat_range{};
     int rendered_creature_feat_row_count = 0;
     nw::toolset::VirtualListRange rendered_creature_spell_range{};
@@ -1642,6 +1652,73 @@ Rml::Element* find_ancestor_with_id(Rml::Element* element, std::string_view id)
     return nullptr;
 }
 
+void hide_object_variable_warning_tooltip(
+    Rml::ElementDocument* doc, AppState& state)
+{
+    if (state.active_object_variable_warning.empty()) {
+        return;
+    }
+    state.active_object_variable_warning.clear();
+    if (auto* tooltip = find_el(doc, "object_variable_warning_tooltip")) {
+        tooltip->SetProperty("display", "none");
+    }
+}
+
+// One window has one pointer and one transient warning tooltip. This is a true
+// UI singleton; there is no batch of simultaneous hover targets to process.
+void sync_object_variable_warning_tooltip(Rml::ElementDocument* doc,
+    AppState& state,
+    Rml::Element* hit,
+    Rml::Vector2f point,
+    int viewport_width,
+    int viewport_height)
+{
+    auto* warning = state.object_workbench_surface == ObjectWorkbenchSurface::variables
+            && !state.shell.command_palette_visible
+        ? find_ancestor_with_class(hit, "object_variable_field_warning")
+        : nullptr;
+    const std::string description = warning
+        ? warning->GetAttribute<Rml::String>("data-tooltip", "")
+        : std::string{};
+    if (description.empty() || viewport_width <= 16 || viewport_height <= 16) {
+        hide_object_variable_warning_tooltip(doc, state);
+        return;
+    }
+
+    auto* tooltip = find_el(doc, "object_variable_warning_tooltip");
+    if (!tooltip) {
+        state.active_object_variable_warning.clear();
+        return;
+    }
+    if (description != state.active_object_variable_warning) {
+        state.active_object_variable_warning = description;
+        tooltip->SetInnerRML(escape_html(description));
+    }
+
+    constexpr int margin = 8;
+    constexpr int pointer_offset = 14;
+    constexpr int preferred_width = 280;
+    constexpr int estimated_height = 54;
+    const int width = std::min(preferred_width, viewport_width - 2 * margin);
+    const int max_left = std::max(margin, viewport_width - width - margin);
+    const int left = std::clamp(
+        static_cast<int>(std::lround(point.x)) + pointer_offset,
+        margin,
+        max_left);
+    int top = static_cast<int>(std::lround(point.y)) + pointer_offset;
+    if (top + estimated_height > viewport_height - margin) {
+        top = static_cast<int>(std::lround(point.y))
+            - estimated_height - pointer_offset;
+    }
+    top = std::clamp(top, margin,
+        std::max(margin, viewport_height - estimated_height - margin));
+
+    tooltip->SetProperty("display", "block");
+    tooltip->SetProperty("width", std::to_string(width) + "px");
+    tooltip->SetProperty("left", std::to_string(left) + "px");
+    tooltip->SetProperty("top", std::to_string(top) + "px");
+}
+
 bool close_active_smalls_selector(Rml::ElementDocument* document)
 {
     if (!document) {
@@ -1898,6 +1975,29 @@ std::optional<size_t> output_text_offset_at_point(
 void clear_rml_focus(Rml::Context* context)
 {
     if (auto* focus = context ? context->GetFocusElement() : nullptr) {
+        focus->Blur();
+    }
+}
+
+// An Rml context owns exactly one focus element. Some client mouse paths are
+// consumed before RmlUi sees them, so explicitly end a variable edit when the
+// pointer leaves its focused input.
+void blur_focused_object_variable_input(
+    Rml::Context* context, Rml::Vector2f point)
+{
+    auto* focus = context ? context->GetFocusElement() : nullptr;
+    if (!focus
+        || (!focus->IsClassSet("object_variable_name")
+            && !focus->IsClassSet("object_variable_value"))) {
+        return;
+    }
+
+    auto* hit = context->GetElementAtPoint(point);
+    auto* hit_input = find_ancestor_with_class(hit, "object_variable_name");
+    if (!hit_input) {
+        hit_input = find_ancestor_with_class(hit, "object_variable_value");
+    }
+    if (hit_input != focus) {
         focus->Blur();
     }
 }
@@ -3339,6 +3439,109 @@ private:
     const nw::toolset::ObjectDetailsSnapshot& snapshot_;
 };
 
+class ObjectVariableListAdapter final : public nw::toolset::VirtualListAdapter {
+public:
+    explicit ObjectVariableListAdapter(
+        const nw::toolset::ObjectVariableSnapshot& snapshot)
+        : snapshot_{snapshot}
+    {
+    }
+
+    [[nodiscard]] int size() const override
+    {
+        return static_cast<int>(snapshot_.rows.size());
+    }
+
+    [[nodiscard]] std::string_view row_extra_classes() const override
+    {
+        return "object_variable_row";
+    }
+
+    [[nodiscard]] std::string render_row_inner(int index, bool /*selected*/) const override
+    {
+        if (index < 0 || static_cast<size_t>(index) >= snapshot_.rows.size()) {
+            return {};
+        }
+
+        const auto& snapshot_row = snapshot_.rows[static_cast<size_t>(index)];
+        const auto& row = snapshot_row.variable;
+        const std::string type = std::to_string(static_cast<uint32_t>(row.type));
+        const bool duplicate = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::duplicate_name);
+        const bool looks_integer = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::string_looks_integer);
+        const bool looks_floating = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::string_looks_floating);
+        const std::string value = nw::toolset::format_object_variable_value(row);
+        std::string markup;
+        markup.reserve(512 + row.name.size() + row.string.size()
+            + (row.type == nw::toolset::ObjectVariableType::string ? 0 : value.size()));
+        markup += "<div class=\"object_variable_cells\"><div class=\"object_variable_field object_variable_name_field";
+        if (duplicate) {
+            markup += " warning_duplicate";
+        }
+        markup += "\">";
+        if (duplicate) {
+            const auto warning = nw::toolset::object_variable_warning_description(
+                nw::toolset::ObjectVariableWarning::duplicate_name);
+            markup += "<span class=\"object_variable_field_warning\" title=\"";
+            markup += escape_html(warning);
+            markup += "\" data-tooltip=\"";
+            markup += escape_html(warning);
+            markup += "\">!</span>";
+        }
+        markup += "<input class=\"object_variable_name\" type=\"text\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" value=\"";
+        markup += escape_html(row.name);
+        markup += "\" title=\"Press Enter to rename\"/></div><button type=\"button\" "
+                  "class=\"object_variable_type\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" title=\"Click to change type\">";
+        markup += nw::toolset::object_variable_type_name(row.type);
+        markup += "</button><div class=\"object_variable_field object_variable_value_field";
+        if (looks_integer || looks_floating) {
+            markup += " warning_type";
+        }
+        markup += "\">";
+        if (looks_integer || looks_floating) {
+            const auto warning = looks_integer
+                ? nw::toolset::ObjectVariableWarning::string_looks_integer
+                : nw::toolset::ObjectVariableWarning::string_looks_floating;
+            markup += "<span class=\"object_variable_field_warning\" title=\"";
+            const auto description = nw::toolset::object_variable_warning_description(warning);
+            markup += escape_html(description);
+            markup += "\" data-tooltip=\"";
+            markup += escape_html(description);
+            markup += "\">!</span>";
+        }
+        markup += "<input class=\"object_variable_value\" type=\"text\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        if (row.type != nw::toolset::ObjectVariableType::string) {
+            markup += "\" data-last-valid=\"";
+            markup += escape_html(value);
+        }
+        markup += "\" value=\"";
+        markup += escape_html(value);
+        markup += "\" title=\"Press Enter to apply\"/></div><button type=\"button\" "
+                  "class=\"object_variable_remove\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" title=\"Remove variable\">&#215;</button></div>";
+        return markup;
+    }
+
+private:
+    const nw::toolset::ObjectVariableSnapshot& snapshot_;
+};
+
 bool active_tab_has_object_workbench(const nw::toolset::WorkspaceTab* active_tab)
 {
     return active_tab
@@ -3375,6 +3578,37 @@ bool active_creature_class_presentation_matches_tab(const AppState& state)
 size_t active_details_row_count(const AppState& state)
 {
     return active_object_details_matches_tab(state) ? state.object_details.rows.size() : 0;
+}
+
+bool active_object_variables_match_tab(const AppState& state)
+{
+    const auto* active_tab = state.workspace.active_tab();
+    return active_tab_has_object_workbench(active_tab)
+        && state.active_object_tab_id == active_tab->id
+        && state.object_variables.object == state.object_details.object
+        && state.object_variables.status
+        == nw::toolset::ObjectVariableSnapshotStatus::ready;
+}
+
+void configure_object_variable_list(AppState& state)
+{
+    if (state.object_variable_list_configured) {
+        return;
+    }
+    state.object_variable_list.set_row_height(kObjectVariableRowHeightPx);
+    state.object_variable_list.set_overscan(kObjectVariableOverscanRows);
+    state.object_variable_list_configured = true;
+}
+
+void invalidate_object_variable_render(AppState& state)
+{
+    configure_object_variable_list(state);
+    const size_t row_count = state.object_variables.status
+            == nw::toolset::ObjectVariableSnapshotStatus::ready
+        ? state.object_variables.rows.size()
+        : 0;
+    state.object_variable_list.set_total_rows(static_cast<int>(row_count));
+    state.object_variables_rendered = false;
 }
 
 void configure_details_list(AppState& state)
@@ -3415,7 +3649,14 @@ void rebuild_active_object_details(AppState& state, nw::ObjectHandle object)
     if (state.object_details.status == nw::toolset::ObjectDetailsStatus::invalid_data) {
         LOG_F(WARNING, "rollnw-client: %s", state.object_details.diagnostic.c_str());
     }
+    nw::toolset::snapshot_object_variables(object, state.object_variables);
+    if (state.object_variables.status
+        == nw::toolset::ObjectVariableSnapshotStatus::invalid_data) {
+        LOG_F(WARNING, "rollnw-client: %s",
+            state.object_variables.diagnostic.c_str());
+    }
     invalidate_details_render(state);
+    invalidate_object_variable_render(state);
 }
 
 void clear_active_creature_feats(AppState& state);
@@ -3428,16 +3669,80 @@ void clear_color_editor(AppState& state);
 void clear_active_object_details(AppState& state)
 {
     state.object_details = {};
+    state.object_variables = {};
     state.creature_class_presentation = {};
     configure_details_list(state);
     state.details_list.set_total_rows(0);
     state.details_list.set_scroll_top(0);
     state.details_rendered = false;
+    configure_object_variable_list(state);
+    state.object_variable_list.set_total_rows(0);
+    state.object_variable_list.set_scroll_top(0);
+    state.object_variables_rendered = false;
     clear_active_creature_feats(state);
     clear_active_creature_spells(state);
     clear_active_creature_inventory(state);
     clear_active_appearances(state);
     state.object_workbench_surface = ObjectWorkbenchSurface::details;
+}
+
+bool sync_object_variable_window(Rml::ElementDocument* doc, AppState& state, bool force)
+{
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::variables) {
+        return false;
+    }
+    auto* list = find_el(doc, "object_variable_rows");
+    if (!list) {
+        return false;
+    }
+
+    configure_object_variable_list(state);
+    const int viewport_height = std::max(1,
+        static_cast<int>(std::lround(
+            std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+    const int scroll_top = std::max(
+        0, static_cast<int>(std::lround(list->GetScrollTop())));
+    state.object_variable_list.set_viewport_height(viewport_height);
+    state.object_variable_list.set_scroll_top(scroll_top);
+    const auto range = state.object_variable_list.compute_range();
+    const int row_count = active_object_variables_match_tab(state)
+        ? static_cast<int>(state.object_variables.rows.size())
+        : 0;
+    if (!force && state.object_variables_rendered
+        && row_count == state.rendered_object_variable_row_count
+        && range.start == state.rendered_object_variable_range.start
+        && range.end == state.rendered_object_variable_range.end) {
+        return false;
+    }
+
+    std::string markup;
+    if (active_object_matches_tab(state)
+        && state.object_variables.status
+            != nw::toolset::ObjectVariableSnapshotStatus::ready) {
+        markup = "<div class=\"property_tree_empty error\">";
+        markup += escape_html(state.object_variables.diagnostic.empty()
+                ? std::string_view{"Object variable data is unavailable."}
+                : std::string_view{state.object_variables.diagnostic});
+        markup += "</div>";
+    } else if (!active_object_variables_match_tab(state)) {
+        markup = "<div class=\"property_tree_empty\">Waiting for a live object.</div>";
+    } else if (state.object_variables.rows.empty()) {
+        markup = "<div class=\"property_tree_empty\">No variables.</div>";
+    } else {
+        markup = nw::toolset::render_virtual_list(
+            state.object_variable_list,
+            ObjectVariableListAdapter{state.object_variables});
+    }
+
+    list->SetInnerRML(markup);
+    list->SetScrollTop(static_cast<float>(scroll_top));
+    if (auto* count = find_el(doc, "object_variable_count")) {
+        count->SetInnerRML(std::to_string(row_count));
+    }
+    state.rendered_object_variable_range = range;
+    state.rendered_object_variable_row_count = row_count;
+    state.object_variables_rendered = true;
+    return true;
 }
 
 bool sync_active_module_object(AppState& state)
@@ -3477,6 +3782,10 @@ bool sync_active_module_object(AppState& state)
 
 bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool force)
 {
+    const bool variable_changed = sync_object_variable_window(doc, state, force);
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        return variable_changed;
+    }
     auto* list = find_el(doc, "property_tree_rows");
     if (!list) {
         return false;
@@ -4927,6 +5236,8 @@ void hydrate_item_workbench(Rml::ElementDocument* doc, const AppState& state)
     static constexpr std::array surfaces{
         ItemSurfaceElements{"item_tab_details", "item_surface_details",
             ObjectWorkbenchSurface::details},
+        ItemSurfaceElements{"item_tab_variables", "item_surface_variables",
+            ObjectWorkbenchSurface::variables},
         ItemSurfaceElements{"item_tab_appearance", "item_surface_appearance",
             ObjectWorkbenchSurface::appearance},
         ItemSurfaceElements{"item_tab_item_properties", "item_surface_item_properties",
@@ -5334,6 +5645,11 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += " active";
     }
     content_markup += "\" data-surface=\"details\">Details</div>";
+    content_markup += "<div class=\"object_workbench_tab";
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        content_markup += " active";
+    }
+    content_markup += "\" data-surface=\"variables\">Variables</div>";
     if (project_module) {
         content_markup += "<div class=\"object_workbench_tab";
         if (state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
@@ -5376,7 +5692,20 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
     }
     content_markup += "</div>";
 
-    if (project_module && state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        content_markup += "<div class=\"object_variable_toolbar\"><button id=\"object_variable_add\" "
+                          "type=\"button\" title=\"Add integer variable\">Add Variable</button></div>"
+                          "<div class=\"object_variable_header\"><span class=\"object_variable_header_name\">Name</span>"
+                          "<span class=\"object_variable_header_type\">Type</span>"
+                          "<span class=\"object_variable_header_value\">Value</span>"
+                          "<span id=\"object_variable_count\" class=\"property_tree_count\">";
+        content_markup += active_object_variables_match_tab(state)
+            ? std::to_string(state.object_variables.rows.size())
+            : std::string{"0"};
+        content_markup += "</span></div><div id=\"object_variable_rows\" "
+                          "class=\"object_variable_rows\"><div class=\"property_tree_empty\">"
+                          "Waiting for a live object.</div></div>";
+    } else if (project_module && state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
         const auto module_summary = state.backend.project_module_summary();
         content_markup += "<div class=\"module_hak_list\">";
         if (!module_summary.ok) {
@@ -6766,6 +7095,116 @@ nw::toolset::CommandResult dispatch_command(AppState& state,
     return state.backend.execute_command(command_id, args, command_context(state, source));
 }
 
+// Object variable text inputs are genuine single-field UI transactions. RmlUi
+// emits change events for every keystroke, marks the Enter event with
+// linebreak=true, and emits a separate non-bubbling blur event on focus loss.
+// Reject invalid numeric mutations as they arrive, then commit only on Enter
+// or blur so one user edit produces one command.
+class ObjectVariableChangeListener final : public Rml::EventListener {
+public:
+    explicit ObjectVariableChangeListener(AppState& state)
+        : state_{state}
+    {
+    }
+
+    void ProcessEvent(Rml::Event& event) override
+    {
+        if (event == Rml::EventId::Change) {
+            if (!event.GetParameter<bool>("linebreak", false)) {
+                reject_invalid_numeric_input(event.GetTargetElement());
+                return;
+            }
+
+            if (commit_input(event.GetTargetElement())) {
+                suppress_blur_commit_ = true;
+                event.GetTargetElement()->Blur();
+                suppress_blur_commit_ = false;
+            }
+            return;
+        }
+
+        if (event != Rml::EventId::Blur || suppress_blur_commit_) {
+            return;
+        }
+
+        (void)commit_input(event.GetTargetElement());
+    }
+
+private:
+    static void reject_invalid_numeric_input(Rml::Element* target)
+    {
+        if (!target || !target->IsClassSet("object_variable_value")) {
+            return;
+        }
+
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            return;
+        }
+
+        const auto type_value = parse_decimal_int32(
+            input->GetAttribute<Rml::String>("data-type", ""));
+        if (!type_value) {
+            return;
+        }
+        const auto type = static_cast<nw::toolset::ObjectVariableType>(*type_value);
+        if (type == nw::toolset::ObjectVariableType::string) {
+            return;
+        }
+
+        const Rml::String value = input->GetValue();
+        if (nw::toolset::valid_object_variable_input_prefix(type, value)) {
+            input->SetAttribute("data-last-valid", value);
+            return;
+        }
+
+        int selection_start = 0;
+        input->GetSelection(&selection_start, nullptr, nullptr);
+        const Rml::String previous = input->GetAttribute<Rml::String>(
+            "data-last-valid", "");
+        const auto rml_character_count = [](const Rml::String& text) {
+            return static_cast<int>(std::min(
+                Rml::StringUtilities::LengthUTF8(text),
+                static_cast<size_t>(std::numeric_limits<int>::max())));
+        };
+        const int value_characters = rml_character_count(value);
+        const int previous_characters = rml_character_count(previous);
+        const int inserted_characters = std::max(
+            value_characters - previous_characters, 0);
+        const int cursor = std::clamp(
+            selection_start - inserted_characters, 0, previous_characters);
+        input->SetValue(previous);
+        input->SetSelectionRange(cursor, cursor);
+    }
+
+    bool commit_input(Rml::Element* target)
+    {
+        const bool rename = target && target->IsClassSet("object_variable_name");
+        const bool set_value = target && target->IsClassSet("object_variable_value");
+        if (!rename && !set_value) {
+            return false;
+        }
+
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            return false;
+        }
+
+        const std::string name = input->GetAttribute<Rml::String>("data-name", "");
+        const std::string type = input->GetAttribute<Rml::String>("data-type", "");
+        const std::string desired = input->GetValue();
+        const auto result = dispatch_command(state_,
+            rename ? "object.variables.rename" : "object.variables.set_value",
+            {name, type, desired},
+            nw::toolset::CommandSource::widget);
+        append_command_result(state_, result);
+        return result.ok();
+    }
+
+    AppState& state_;
+    bool suppress_blur_commit_ = false;
+};
+
 bool commit_active_appearance_selection(AppState& state, int32_t value)
 {
     const std::string selected = std::to_string(value);
@@ -8124,6 +8563,11 @@ int main(int argc, char* argv[])
     }
 
     AppState state;
+    ObjectVariableChangeListener object_variable_change_listener{state};
+    context->AddEventListener(
+        "change", &object_variable_change_listener, false);
+    context->AddEventListener(
+        "blur", &object_variable_change_listener, true);
     renderer.set_rml_generated_textures(&state.item_icon_cache.textures);
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
     state.backend.set_document_save_handler([&state, &renderer](std::string_view tab_id) {
@@ -8357,6 +8801,18 @@ int main(int argc, char* argv[])
 
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && close_active_smalls_selector(doc)) {
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                auto* focused_variable_name = find_ancestor_with_class(
+                    context->GetFocusElement(), "object_variable_name");
+                auto* focused_variable_value = find_ancestor_with_class(
+                    context->GetFocusElement(), "object_variable_value");
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && (focused_variable_name || focused_variable_value)) {
+                    clear_rml_focus(context);
+                    sync_object_variable_window(doc, state, true);
                     dispatched_to_rml = true;
                     break;
                 }
@@ -8750,6 +9206,8 @@ int main(int argc, char* argv[])
                 break;
             }
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                blur_focused_object_variable_input(context,
+                    to_context_point(window, event.button.x, event.button.y));
                 if (event.button.button == SDL_BUTTON_RIGHT
                     && state.project_item_drag.active()) {
                     cancel_project_item_drag(doc, state);
@@ -8910,6 +9368,9 @@ int main(int argc, char* argv[])
                 }
 
                 const auto point = to_context_point(window, event.motion.x, event.motion.y);
+                auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
+                sync_object_variable_warning_tooltip(doc, state, top_hit, point,
+                    frame_width, frame_height);
                 if (state.output_selection.dragging) {
                     if (const auto offset = output_text_offset_at_point(
                             context, doc, state, point);
@@ -9023,7 +9484,6 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
                 auto* list = find_el(doc, "recent_list");
                 auto* search = find_el(doc, "recent_search");
                 int hovered = -1;
@@ -9492,6 +9952,45 @@ int main(int argc, char* argv[])
                             release_workspace_mouse_up();
                             (void)renderer.clear_viewer_area_object_selection();
                             handled = true;
+                        } else if (find_ancestor_with_id(hit, "object_variable_add")) {
+                            release_workspace_mouse_up();
+                            append_command_result(state,
+                                dispatch_command(state,
+                                    "object.variables.add",
+                                    {},
+                                    nw::toolset::CommandSource::widget));
+                            handled = true;
+                        } else if (auto* remove_variable = find_ancestor_with_class(
+                                       hit, "object_variable_remove")) {
+                            const std::string name = remove_variable->GetAttribute<Rml::String>(
+                                "data-name", "");
+                            const std::string type = remove_variable->GetAttribute<Rml::String>(
+                                "data-type", "");
+                            release_workspace_mouse_up();
+                            append_command_result(state,
+                                dispatch_command(state,
+                                    "object.variables.remove",
+                                    {name, type},
+                                    nw::toolset::CommandSource::widget));
+                            handled = true;
+                        } else if (auto* variable_type = find_ancestor_with_class(
+                                       hit, "object_variable_type")) {
+                            const std::string name = variable_type->GetAttribute<Rml::String>(
+                                "data-name", "");
+                            const std::string type = variable_type->GetAttribute<Rml::String>(
+                                "data-type", "");
+                            const auto parsed_type = parse_decimal_int32(type);
+                            release_workspace_mouse_up();
+                            if (parsed_type && *parsed_type >= 1 && *parsed_type <= 3) {
+                                const std::string desired_type = std::to_string(
+                                    *parsed_type == 3 ? 1 : *parsed_type + 1);
+                                append_command_result(state,
+                                    dispatch_command(state,
+                                        "object.variables.set_type",
+                                        {name, type, desired_type},
+                                        nw::toolset::CommandSource::widget));
+                            }
+                            handled = true;
                         } else if (auto* integer_step = find_ancestor_with_class(
                                        hit, "object_details_integer_step")) {
                             const auto row_index = parse_decimal_int32(
@@ -9567,6 +10066,10 @@ int main(int argc, char* argv[])
                             close_appearance_selector(state);
                             if (surface == "details") {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::details;
+                            } else if (surface == "variables"
+                                && state.object_details.object.type
+                                    != nw::ObjectType::invalid) {
+                                state.object_workbench_surface = ObjectWorkbenchSurface::variables;
                             } else if (surface == "haks"
                                 && state.object_details.object.type == nw::ObjectType::module
                                 && !state.backend.current_project_dir().empty()) {
@@ -9943,6 +10446,7 @@ int main(int argc, char* argv[])
                 }
                 state.viewer_viewport_dragging = false;
                 state.output_selection.dragging = false;
+                hide_object_variable_warning_tooltip(doc, state);
                 set_recent_hover(doc, state, -1);
                 break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
@@ -10437,6 +10941,10 @@ int main(int argc, char* argv[])
     state.active_object_tab_id.clear();
     Rml::ReleaseCompiledGeometry(rml_renderer);
     Rml::ReleaseTextures(rml_renderer);
+    context->RemoveEventListener(
+        "change", &object_variable_change_listener, false);
+    context->RemoveEventListener(
+        "blur", &object_variable_change_listener, true);
     Rml::RemoveContext("command_palette");
     Rml::RemoveContext("viewer_fps");
     Rml::RemoveContext("toolset");

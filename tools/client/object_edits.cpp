@@ -7,6 +7,7 @@
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
@@ -19,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <charconv>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -26,7 +28,10 @@
 #include <optional>
 #include <stdexcept>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
+
+#include <fmt/format.h>
 
 namespace nw::toolset {
 namespace {
@@ -101,6 +106,253 @@ PatchValues patch_values(const CreatureSpellEditRow& row, ObjectEditDirection di
     return direction == ObjectEditDirection::forward
         ? PatchValues{row.before, row.after}
         : PatchValues{row.after, row.before};
+}
+
+const LocalData* find_object_locals(ObjectHandle object) noexcept
+{
+    const auto* base = kernel::objects().get_object_base(object);
+    if (!base) {
+        return nullptr;
+    }
+    if (const auto* module = base->as_module()) {
+        return &module->locals;
+    }
+    return kernel::objects().components().find_locals(object);
+}
+
+LocalData* get_or_create_object_locals(ObjectHandle object)
+{
+    auto* base = kernel::objects().get_object_base(object);
+    if (!base) {
+        return nullptr;
+    }
+    if (auto* module = base->as_module()) {
+        return &module->locals;
+    }
+    return kernel::objects().components().get_or_create_locals(object);
+}
+
+bool valid_variable_type(ObjectVariableType type) noexcept
+{
+    return type == ObjectVariableType::integer
+        || type == ObjectVariableType::floating
+        || type == ObjectVariableType::string;
+}
+
+uint32_t local_variable_type(ObjectVariableType type) noexcept
+{
+    return static_cast<uint32_t>(type);
+}
+
+bool valid_variable_record(const ObjectVariableRecord& record) noexcept
+{
+    return !record.name.empty()
+        && valid_variable_type(record.type)
+        && (record.type != ObjectVariableType::floating
+            || std::isfinite(record.floating));
+}
+
+bool local_record_exists(
+    const LocalData& locals, std::string_view name, ObjectVariableType type)
+{
+    for (const auto& [candidate, value] : locals) {
+        if (candidate == name && value.flags.test(local_variable_type(type))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+ObjectVariableWarning numeric_string_warning(std::string_view value) noexcept
+{
+    int32_t integer = 0;
+    const auto integer_result = std::from_chars(
+        value.data(), value.data() + value.size(), integer);
+    if (integer_result.ec == std::errc{}
+        && integer_result.ptr == value.data() + value.size()) {
+        return ObjectVariableWarning::string_looks_integer;
+    }
+
+    float floating = 0.0f;
+    const auto floating_result = std::from_chars(value.data(),
+        value.data() + value.size(), floating, std::chars_format::general);
+    if (floating_result.ec == std::errc{}
+        && floating_result.ptr == value.data() + value.size()
+        && std::isfinite(floating)) {
+        return ObjectVariableWarning::string_looks_floating;
+    }
+    return ObjectVariableWarning::none;
+}
+
+void add_variable_warning(
+    ObjectVariableSnapshotRow& row, ObjectVariableWarning warning) noexcept
+{
+    row.warnings = static_cast<ObjectVariableWarning>(
+        static_cast<uint8_t>(row.warnings) | static_cast<uint8_t>(warning));
+}
+
+struct ObjectVariableKey {
+    std::string_view name;
+    ObjectVariableType type = ObjectVariableType::integer;
+
+    bool operator==(const ObjectVariableKey&) const = default;
+};
+
+struct ObjectVariableKeyHash {
+    size_t operator()(const ObjectVariableKey& key) const noexcept
+    {
+        const size_t name_hash = std::hash<std::string_view>{}(key.name);
+        return name_hash ^ (static_cast<size_t>(key.type) << 1);
+    }
+};
+
+struct OwnedObjectVariableKey {
+    std::string name;
+    ObjectVariableType type = ObjectVariableType::integer;
+
+    bool operator==(const OwnedObjectVariableKey&) const = default;
+};
+
+struct OwnedObjectVariableKeyHash {
+    size_t operator()(const OwnedObjectVariableKey& key) const noexcept
+    {
+        const size_t name_hash = std::hash<std::string>{}(key.name);
+        return name_hash ^ (static_cast<size_t>(key.type) << 1);
+    }
+};
+
+using ObjectVariableKeySet = std::unordered_set<
+    OwnedObjectVariableKey, OwnedObjectVariableKeyHash>;
+
+void append_local_variable_keys(
+    const LocalData& locals, ObjectVariableKeySet& output)
+{
+    for (const auto& [name, value] : locals) {
+        for (const auto type : {ObjectVariableType::integer,
+                 ObjectVariableType::floating,
+                 ObjectVariableType::string}) {
+            if (value.flags.test(local_variable_type(type))) {
+                output.insert({name, type});
+            }
+        }
+    }
+}
+
+std::string unique_object_variable_name(
+    const ObjectVariableKeySet& occupied,
+    std::string_view requested,
+    ObjectVariableType type)
+{
+    if (!occupied.contains({std::string{requested}, type})) {
+        return std::string{requested};
+    }
+
+    for (size_t suffix = 2; suffix < std::numeric_limits<size_t>::max(); ++suffix) {
+        std::string candidate;
+        candidate.reserve(requested.size() + 1 + 20);
+        candidate.append(requested);
+        candidate.push_back('_');
+        candidate.append(std::to_string(suffix));
+        if (!occupied.contains({candidate, type})) {
+            return candidate;
+        }
+    }
+    return {};
+}
+
+bool canonicalize_object_variable_targets(
+    ObjectVariableEditBatch& batch, std::string& diagnostic)
+{
+    if (batch.kind == ObjectVariableEditKind::erase) {
+        return true;
+    }
+
+    ObjectVariableKeySet occupied;
+    if (const auto* locals = find_object_locals(batch.object)) {
+        occupied.reserve(locals->size() * 3 + batch.rows.size());
+        append_local_variable_keys(*locals, occupied);
+    } else {
+        occupied.reserve(batch.rows.size());
+    }
+
+    for (auto& row : batch.rows) {
+        if (batch.kind == ObjectVariableEditKind::replace) {
+            occupied.erase({row.before.name, row.before.type});
+        }
+        if (!valid_variable_record(row.after)) {
+            continue;
+        }
+        row.after.name = unique_object_variable_name(
+            occupied, row.after.name, row.after.type);
+        if (row.after.name.empty()) {
+            diagnostic = "Object variable name suffix space is exhausted";
+            return false;
+        }
+        occupied.insert({row.after.name, row.after.type});
+    }
+    return true;
+}
+
+bool local_record_matches(const LocalData& locals, const ObjectVariableRecord& record)
+{
+    for (const auto& [name, value] : locals) {
+        if (name != record.name
+            || !value.flags.test(local_variable_type(record.type))) {
+            continue;
+        }
+        switch (record.type) {
+        case ObjectVariableType::integer:
+            return value.integer == record.integer;
+        case ObjectVariableType::floating:
+            return value.float_ == record.floating;
+        case ObjectVariableType::string:
+            return value.string == record.string;
+        }
+    }
+    return false;
+}
+
+void clear_local_record(LocalData& locals, const ObjectVariableRecord& record)
+{
+    locals.clear(record.name, local_variable_type(record.type));
+}
+
+void set_local_record(LocalData& locals, const ObjectVariableRecord& record)
+{
+    switch (record.type) {
+    case ObjectVariableType::integer:
+        locals.set_int(record.name, record.integer);
+        break;
+    case ObjectVariableType::floating:
+        locals.set_float(record.name, record.floating);
+        break;
+    case ObjectVariableType::string:
+        locals.set_string(record.name, record.string);
+        break;
+    }
+}
+
+struct DirectedVariableEdit {
+    const ObjectVariableRecord* expected = nullptr;
+    const ObjectVariableRecord* replacement = nullptr;
+};
+
+DirectedVariableEdit directed_variable_edit(const ObjectVariableEditBatch& batch,
+    const ObjectVariableEditRow& row, ObjectEditDirection direction) noexcept
+{
+    const bool forward = direction == ObjectEditDirection::forward;
+    switch (batch.kind) {
+    case ObjectVariableEditKind::insert:
+        return forward ? DirectedVariableEdit{nullptr, &row.after}
+                       : DirectedVariableEdit{&row.after, nullptr};
+    case ObjectVariableEditKind::erase:
+        return forward ? DirectedVariableEdit{&row.before, nullptr}
+                       : DirectedVariableEdit{nullptr, &row.before};
+    case ObjectVariableEditKind::replace:
+        return forward ? DirectedVariableEdit{&row.before, &row.after}
+                       : DirectedVariableEdit{&row.after, &row.before};
+    }
+    return {};
 }
 
 ObjectEditApplyResult edit_result(ObjectEditStatus status, std::string diagnostic = {})
@@ -2148,7 +2400,364 @@ CommandResult replay_creature_inventory_edits(std::shared_ptr<CreatureInventoryE
     return command_edit_result(CommandStatus::success, std::string{label}, CommandOutputChannel::none);
 }
 
+CommandResult replay_object_variable_edits(const ObjectVariableEditBatch& batch,
+    ObjectEditDirection direction,
+    std::string_view label,
+    CommandContext& context)
+{
+    auto applied = apply_object_variable_edits(batch, direction);
+    if (!applied.ok()) {
+        return command_edit_result(CommandStatus::failed,
+            applied.diagnostic.empty()
+                ? "Object variable edit failed"
+                : std::move(applied.diagnostic),
+            CommandOutputChannel::error);
+    }
+    mark_context_dirty(context);
+    return command_edit_result(
+        CommandStatus::success, std::string{label}, CommandOutputChannel::none);
+}
+
 } // namespace
+
+void snapshot_object_variables(ObjectHandle object, ObjectVariableSnapshot& output)
+{
+    output = {};
+    output.object = object;
+    if (!kernel::objects().get_object_base(object)) {
+        output.status = ObjectVariableSnapshotStatus::invalid_object;
+        output.diagnostic = "Object variable owner is not live";
+        return;
+    }
+
+    output.status = ObjectVariableSnapshotStatus::ready;
+    const auto* locals = find_object_locals(object);
+    if (!locals) {
+        return;
+    }
+
+    output.rows.reserve(locals->size());
+    for (const auto& [name, value] : *locals) {
+        if (value.flags.test(LocalVarType::integer)) {
+            output.rows.push_back({
+                .variable = {
+                    .name = name,
+                    .type = ObjectVariableType::integer,
+                    .integer = value.integer,
+                },
+            });
+        }
+        if (value.flags.test(LocalVarType::float_)) {
+            if (!std::isfinite(value.float_)) {
+                output.rows.clear();
+                output.status = ObjectVariableSnapshotStatus::invalid_data;
+                output.diagnostic = "Local variable '" + std::string{name}
+                    + "' has a non-finite float value";
+                return;
+            }
+            output.rows.push_back({
+                .variable = {
+                    .name = name,
+                    .type = ObjectVariableType::floating,
+                    .floating = value.float_,
+                },
+            });
+        }
+        if (value.flags.test(LocalVarType::string)) {
+            output.rows.push_back({
+                .variable = {
+                    .name = name,
+                    .type = ObjectVariableType::string,
+                    .string = value.string,
+                },
+                .warnings = numeric_string_warning(value.string),
+            });
+        }
+    }
+
+    std::sort(output.rows.begin(), output.rows.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.variable.name != rhs.variable.name) {
+            return lhs.variable.name < rhs.variable.name;
+        }
+        return lhs.variable.type < rhs.variable.type;
+    });
+
+    for (size_t first = 0; first < output.rows.size();) {
+        size_t last = first + 1;
+        while (last < output.rows.size()
+            && output.rows[last].variable.name == output.rows[first].variable.name) {
+            ++last;
+        }
+        if (last - first > 1) {
+            for (size_t index = first; index < last; ++index) {
+                add_variable_warning(
+                    output.rows[index], ObjectVariableWarning::duplicate_name);
+            }
+        }
+        first = last;
+    }
+}
+
+std::string_view object_variable_type_name(ObjectVariableType type) noexcept
+{
+    switch (type) {
+    case ObjectVariableType::integer:
+        return "Integer";
+    case ObjectVariableType::floating:
+        return "Float";
+    case ObjectVariableType::string:
+        return "String";
+    }
+    return "Invalid";
+}
+
+std::string format_object_variable_value(const ObjectVariableRecord& record)
+{
+    switch (record.type) {
+    case ObjectVariableType::integer:
+        return std::to_string(record.integer);
+    case ObjectVariableType::floating:
+        return fmt::format("{:.7g}", record.floating);
+    case ObjectVariableType::string:
+        return record.string;
+    }
+    return {};
+}
+
+bool valid_object_variable_input_prefix(
+    ObjectVariableType type, std::string_view value) noexcept
+{
+    if (type == ObjectVariableType::string) {
+        return true;
+    }
+    if (type != ObjectVariableType::integer
+        && type != ObjectVariableType::floating) {
+        return false;
+    }
+
+    size_t cursor = 0;
+    if (!value.empty() && value.front() == '-') {
+        cursor = 1;
+    }
+
+    if (type == ObjectVariableType::integer) {
+        for (; cursor < value.size(); ++cursor) {
+            if (value[cursor] < '0' || value[cursor] > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool mantissa_has_digit = false;
+    bool decimal_seen = false;
+    for (; cursor < value.size(); ++cursor) {
+        const char character = value[cursor];
+        if (character >= '0' && character <= '9') {
+            mantissa_has_digit = true;
+            continue;
+        }
+        if (character == '.' && !decimal_seen) {
+            decimal_seen = true;
+            continue;
+        }
+        if ((character == 'e' || character == 'E') && mantissa_has_digit) {
+            ++cursor;
+            if (cursor < value.size()
+                && (value[cursor] == '+' || value[cursor] == '-')) {
+                ++cursor;
+            }
+            for (; cursor < value.size(); ++cursor) {
+                if (value[cursor] < '0' || value[cursor] > '9') {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+std::string_view object_variable_warning_description(ObjectVariableWarning warnings) noexcept
+{
+    static constexpr std::array<std::string_view, 8> descriptions{
+        "",
+        "Duplicate variable name: this name has more than one type.",
+        "This string looks like an integer; consider changing its type.",
+        "Duplicate variable name. This string also looks like an integer.",
+        "This string looks like a float; consider changing its type.",
+        "Duplicate variable name. This string also looks like a float.",
+        "This string looks numeric; consider changing its type.",
+        "Duplicate variable name. This string also looks numeric.",
+    };
+    return descriptions[static_cast<uint8_t>(warnings) & 0x07];
+}
+
+ObjectEditApplyResult apply_object_variable_edits(
+    const ObjectVariableEditBatch& batch, ObjectEditDirection direction)
+{
+    if (batch.rows.empty()) {
+        return edit_result(ObjectEditStatus::empty, "Object variable edit batch is empty");
+    }
+    if (!kernel::objects().get_object_base(batch.object)) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Object variable owner is not live");
+    }
+
+    try {
+        const auto* current = find_object_locals(batch.object);
+        LocalData next;
+        if (current) {
+            next = *current;
+        }
+
+        std::unordered_set<ObjectVariableKey, ObjectVariableKeyHash> expected_keys;
+        std::unordered_set<ObjectVariableKey, ObjectVariableKeyHash> replacement_keys;
+        expected_keys.reserve(batch.rows.size());
+        replacement_keys.reserve(batch.rows.size());
+
+        uint32_t changed_count = 0;
+        for (const auto& row : batch.rows) {
+            const auto directed = directed_variable_edit(batch, row, direction);
+            if ((directed.expected && !valid_variable_record(*directed.expected))
+                || (directed.replacement && !valid_variable_record(*directed.replacement))) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Object variable edit contains an empty name, invalid type, or non-finite float");
+            }
+            if (directed.expected
+                && !expected_keys.insert(
+                                     {directed.expected->name, directed.expected->type})
+                    .second) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Object variable edit contains duplicate source rows");
+            }
+            if (directed.replacement
+                && !replacement_keys.insert(
+                                        {directed.replacement->name, directed.replacement->type})
+                    .second) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Object variable edit contains duplicate target rows");
+            }
+            if (directed.expected
+                && !local_record_matches(next, *directed.expected)) {
+                return edit_result(ObjectEditStatus::stale_value,
+                    "Object variable source no longer matches the live value");
+            }
+            if (directed.replacement) {
+                const bool replaces_same_row = directed.expected
+                    && directed.expected->name == directed.replacement->name
+                    && directed.expected->type == directed.replacement->type;
+                if (!replaces_same_row
+                    && local_record_exists(next, directed.replacement->name,
+                        directed.replacement->type)) {
+                    return edit_result(ObjectEditStatus::stale_value,
+                        "Object variable target name and type already exist");
+                }
+            }
+            if (directed.expected && directed.replacement
+                && *directed.expected == *directed.replacement) {
+                continue;
+            }
+            if (directed.expected) {
+                clear_local_record(next, *directed.expected);
+            }
+            if (directed.replacement) {
+                set_local_record(next, *directed.replacement);
+            }
+            ++changed_count;
+        }
+
+        if (changed_count == 0) {
+            return edit_result(ObjectEditStatus::empty,
+                "Object variable values are already set");
+        }
+
+        auto* destination = get_or_create_object_locals(batch.object);
+        if (!destination) {
+            return edit_result(ObjectEditStatus::failed,
+                "Object variable storage is unavailable");
+        }
+        *destination = std::move(next);
+
+        ++g_mutation_state.epoch;
+        g_mutation_state.kind = ObjectMutationKind::properties;
+        g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+        g_mutation_state.object = batch.object;
+        return {ObjectEditStatus::success, changed_count, {}};
+    } catch (const std::bad_alloc&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Object variable edit allocation failed");
+    } catch (const std::length_error&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Object variable edit exceeds container capacity");
+    }
+}
+
+CommandResult commit_object_variable_edits(
+    ObjectVariableEditBatch batch, std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* active_tab = context.workspace->active_tab();
+        if (active_tab
+            && active_tab->kind != WorkspaceTabKind::preview
+            && active_tab->kind != WorkspaceTabKind::area
+            && active_tab->kind != WorkspaceTabKind::home) {
+            return command_edit_result(CommandStatus::rejected,
+                "Variable editing is only available in Home, blueprint preview, and area tabs",
+                CommandOutputChannel::warn);
+        }
+    }
+
+    try {
+        std::string diagnostic;
+        if (!canonicalize_object_variable_targets(batch, diagnostic)) {
+            return command_edit_result(CommandStatus::rejected,
+                std::move(diagnostic), CommandOutputChannel::warn);
+        }
+    } catch (const std::bad_alloc&) {
+        return command_edit_result(CommandStatus::failed,
+            "Object variable name resolution allocation failed",
+            CommandOutputChannel::error);
+    } catch (const std::length_error&) {
+        return command_edit_result(CommandStatus::failed,
+            "Object variable name resolution exceeds container capacity",
+            CommandOutputChannel::error);
+    }
+
+    auto applied = apply_object_variable_edits(batch, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(
+            CommandStatus::noop, std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool internal_failure = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            internal_failure ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty()
+                ? (internal_failure ? "Object variable edit failed"
+                                    : "Object variable edit rejected")
+                : std::move(applied.diagnostic),
+            internal_failure ? CommandOutputChannel::error
+                             : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [batch, label](CommandContext& undo_context) {
+        return replay_object_variable_edits(
+            batch, ObjectEditDirection::inverse, "Undo " + label, undo_context);
+    };
+    action->redo = [batch = std::move(batch), label](CommandContext& redo_context) {
+        return replay_object_variable_edits(
+            batch, ObjectEditDirection::forward, "Redo " + label, redo_context);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
 
 std::optional<std::vector<ItemPropertyRecord>> snapshot_item_property_records(
     smalls::Runtime& runtime, ObjectHandle item)

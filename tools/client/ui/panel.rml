@@ -110,5 +110,6 @@ fn rollnw_item_color_inherit(event: Event): array!(Command) {
       <button id="bottom_tab_terminal" class="dock_tab" data-widget="terminal">Terminal</button>
     </div>
   </div>
+  <div id="object_variable_warning_tooltip"></div>
 </body>
 </rml>

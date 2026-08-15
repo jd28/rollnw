@@ -114,6 +114,36 @@ private:
     int size_ = 0;
 };
 
+class LinebreakChangeListener final : public Rml::EventListener {
+public:
+    void ProcessEvent(Rml::Event& event) override
+    {
+        if (event.GetParameter<bool>("linebreak", false)) {
+            target = event.GetTargetElement();
+            ++count;
+        }
+    }
+
+    Rml::Element* target = nullptr;
+    int count = 0;
+};
+
+class CaptureBlurListener final : public Rml::EventListener {
+public:
+    void ProcessEvent(Rml::Event& event) override
+    {
+        target = event.GetTargetElement();
+        if (auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target)) {
+            value = input->GetValue();
+        }
+        ++count;
+    }
+
+    Rml::Element* target = nullptr;
+    Rml::String value;
+    int count = 0;
+};
+
 } // namespace
 
 TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
@@ -136,7 +166,8 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
           "<link type=\"text/template\" href=\""
         + (ui_resource_path / "item_editor.rml").generic_string()
         + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
-          "</head><body><template src=\"item-workbench\"></template></body></rml>";
+          "</head><body><template src=\"item-workbench\"></template>"
+          "<div id=\"object_variable_warning_tooltip\"></div></body></rml>";
 
     auto* context = Rml::CreateContext("item-workbench-template-test", {800, 600});
     ASSERT_NE(context, nullptr);
@@ -151,6 +182,29 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     EXPECT_NE(document->GetElementById("item_surface_appearance"), nullptr);
     EXPECT_NE(document->GetElementById("item_surface_item_properties"), nullptr);
     EXPECT_NE(document->GetElementById("item_surface_inventory"), nullptr);
+    auto* variable_surface = document->GetElementById("item_surface_variables");
+    ASSERT_NE(variable_surface, nullptr);
+    Rml::ElementList warning_headers;
+    document->GetElementsByClassName(
+        warning_headers, "object_variable_header_warning");
+    EXPECT_TRUE(warning_headers.empty());
+    auto* variable_rows = document->GetElementById("object_variable_rows");
+    ASSERT_NE(variable_rows, nullptr);
+    variable_surface->SetClass("active", true);
+    variable_rows->SetInnerRML(
+        "<div class='object_variable_row'><div class='object_variable_cells'>"
+        "<div class='object_variable_field object_variable_name_field'>"
+        "<input class='object_variable_name' type='text' value='Count'/></div>"
+        "<button class='object_variable_type' type='button'>String</button>"
+        "<div id='warning-field' class='object_variable_field "
+        "object_variable_value_field warning_type'>"
+        "<span id='warning-icon' class='object_variable_field_warning' "
+        "title='This string looks like an integer' "
+        "data-tooltip='This string looks like an integer'>!</span>"
+        "<input id='warning-input' class='object_variable_value' type='text' "
+        "value='1'/></div>"
+        "<button class='object_variable_remove' type='button'>&#215;</button>"
+        "</div></div>");
     auto* appearance = document->GetElementById("item_appearance_dynamic");
     ASSERT_NE(appearance, nullptr);
     EXPECT_TRUE(appearance->IsClassSet("smalls_refresh"));
@@ -197,6 +251,56 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     EXPECT_GT(applied_subtype->GetAbsoluteLeft(), applied_property->GetAbsoluteLeft());
     EXPECT_GT(applied_param->GetAbsoluteLeft(), applied_subtype->GetAbsoluteLeft());
     EXPECT_GT(applied_cost->GetAbsoluteLeft(), applied_param->GetAbsoluteLeft());
+    auto* warning_field = document->GetElementById("warning-field");
+    auto* warning_icon = document->GetElementById("warning-icon");
+    auto* warning_input = document->GetElementById("warning-input");
+    ASSERT_NE(warning_field, nullptr);
+    ASSERT_NE(warning_icon, nullptr);
+    ASSERT_NE(warning_input, nullptr);
+    EXPECT_GT(warning_field->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(warning_icon->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(warning_icon->GetOffsetHeight(), 0.0f);
+    EXPECT_GE(warning_icon->GetAbsoluteLeft(), warning_field->GetAbsoluteLeft());
+    EXPECT_LE(warning_icon->GetAbsoluteLeft() + warning_icon->GetOffsetWidth(),
+        warning_input->GetAbsoluteLeft());
+    EXPECT_LT(warning_input->GetAbsoluteLeft(),
+        warning_field->GetAbsoluteLeft() + warning_field->GetOffsetWidth());
+    EXPECT_EQ(warning_icon->GetAttribute<Rml::String>("data-tooltip", ""),
+        "This string looks like an integer");
+    auto* warning_tooltip = document->GetElementById("object_variable_warning_tooltip");
+    ASSERT_NE(warning_tooltip, nullptr);
+    warning_tooltip->SetInnerRML(
+        warning_icon->GetAttribute<Rml::String>("data-tooltip", ""));
+    warning_tooltip->SetProperty("display", "block");
+    warning_tooltip->SetProperty("width", "280px");
+    warning_tooltip->SetProperty("left", "500px");
+    warning_tooltip->SetProperty("top", "100px");
+    context->Update();
+    EXPECT_GT(warning_tooltip->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(warning_tooltip->GetOffsetHeight(), 0.0f);
+    EXPECT_EQ(warning_tooltip->GetInnerRML(),
+        "This string looks like an integer");
+
+    LinebreakChangeListener linebreak_listener;
+    context->AddEventListener("change", &linebreak_listener, false);
+    auto* warning_control = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
+        warning_input);
+    ASSERT_NE(warning_control, nullptr);
+    warning_control->SetValue("2");
+    warning_control->Focus();
+    context->ProcessKeyDown(Rml::Input::KI_RETURN, 0);
+    EXPECT_EQ(linebreak_listener.count, 1);
+    EXPECT_EQ(linebreak_listener.target, warning_control);
+    EXPECT_EQ(warning_control->GetValue(), "2");
+    context->RemoveEventListener("change", &linebreak_listener, false);
+
+    CaptureBlurListener blur_listener;
+    context->AddEventListener("blur", &blur_listener, true);
+    warning_control->Blur();
+    EXPECT_EQ(blur_listener.count, 1);
+    EXPECT_EQ(blur_listener.target, warning_control);
+    EXPECT_EQ(blur_listener.value, "2");
+    context->RemoveEventListener("blur", &blur_listener, true);
 
     Rml::ElementList model_rows;
     document->GetElementsByClassName(model_rows, "item_model_row");
