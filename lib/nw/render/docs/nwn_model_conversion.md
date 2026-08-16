@@ -37,6 +37,11 @@ The importer writes explicit common records for:
 - authored lights and particle systems
 - deformer intent
 
+NWN diffuse textures are color data and use an sRGB texture view so lighting
+operates on linear values. PLT textures are index/layer data, not color; the
+upload boundary keeps those payloads in linear RGBA8 and the shader converts
+the selected palette color to linear space.
+
 Names may be used only inside the source importer when the format provides no
 authored field. Water and foliage name heuristics are counted in
 `NwnModelAssetImportStats`; downstream renderer code receives only the

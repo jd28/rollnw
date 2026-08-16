@@ -46,8 +46,8 @@ struct ModelAssetMaterialTextureSources {
     uint32_t metallic_roughness = kInvalidModelAssetTextureSourceIndex;
     uint32_t occlusion = kInvalidModelAssetTextureSourceIndex;
     uint32_t emissive = kInvalidModelAssetTextureSourceIndex;
-    // PBR albedo sources decode sRGB on sample. NWN fixed-function sources keep
-    // their authored code values during material conversion.
+    // Color albedo sources decode sRGB on sample. PLT payloads contain palette
+    // indices rather than colors and are always uploaded as linear RGBA8.
     bool albedo_srgb = true;
 };
 

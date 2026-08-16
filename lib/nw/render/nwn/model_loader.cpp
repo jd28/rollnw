@@ -2291,7 +2291,6 @@ nw::render::ModelAssetMaterialTextureSources append_nwn_model_asset_material_tex
     NwnModelAssetImportStats& stats)
 {
     nw::render::ModelAssetMaterialTextureSources sources{};
-    sources.albedo_srgb = false;
     sources.albedo = append_nwn_model_asset_texture_source(
         mesh.bitmap_name, texture_source_indices, asset, stats, mesh.albedo_prefers_plt);
     sources.normal = append_nwn_model_asset_texture_source(mesh.normal_map_name, texture_source_indices, asset, stats);

@@ -609,7 +609,7 @@ TEST(RenderModelLoader, ImportsStaticNwnModelAssetPayloads)
     EXPECT_EQ(result.stats.material_count, asset.materials.size());
     EXPECT_EQ(asset.material_texture_sources.size(), asset.materials.size());
     for (const auto& sources : asset.material_texture_sources) {
-        EXPECT_FALSE(sources.albedo_srgb);
+        EXPECT_TRUE(sources.albedo_srgb);
     }
     ASSERT_EQ(asset.sockets.size(), 1u);
     EXPECT_EQ(asset.sockets.front().name, "test_mtr_material");
@@ -926,6 +926,7 @@ TEST(RenderModelLoader, ImportsNwnModelAssetPltTextureSources)
     EXPECT_FALSE(asset.texture_sources[0].encoded_bytes.empty());
     ASSERT_EQ(asset.material_texture_sources.size(), 1u);
     EXPECT_EQ(asset.material_texture_sources[0].albedo, 0u);
+    EXPECT_TRUE(asset.material_texture_sources[0].albedo_srgb);
     ASSERT_EQ(asset.materials.size(), 1u);
     EXPECT_TRUE(asset.materials[0].albedo_uses_plt);
     EXPECT_FALSE(asset.materials[0].plt_enabled);
