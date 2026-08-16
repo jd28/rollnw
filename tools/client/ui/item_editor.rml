@@ -12,12 +12,18 @@
       </button>
       <div id="item_object_title" class="object_workbench_title"></div>
     </div>
-    <div class="object_workbench_tabs">
-      <button id="item_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
-      <button id="item_tab_variables" class="object_workbench_tab" type="button" data-surface="variables">Variables</button>
-      <button id="item_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
-      <button id="item_tab_item_properties" class="object_workbench_tab" type="button" data-surface="item-properties">Item Properties</button>
-      <button id="item_tab_inventory" class="object_workbench_tab" type="button" data-surface="inventory">Inventory</button>
+    <div id="object_workbench_tab_bar" class="object_workbench_tab_bar">
+      <div id="object_workbench_tabs" class="object_workbench_tabs">
+        <div id="object_workbench_tab_track" class="object_workbench_tab_track">
+          <button id="item_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
+          <button id="item_tab_variables" class="object_workbench_tab" type="button" data-surface="variables">Variables</button>
+          <button id="item_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
+          <button id="item_tab_item_properties" class="object_workbench_tab" type="button" data-surface="item-properties">Item Properties</button>
+          <button id="item_tab_inventory" class="object_workbench_tab" type="button" data-surface="inventory">Inventory</button>
+        </div>
+      </div>
+      <button id="object_workbench_tabs_previous" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs left">&#x2039;</button>
+      <button id="object_workbench_tabs_next" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs right">&#x203a;</button>
     </div>
 
     <div id="item_surface_details" class="item_workbench_surface smalls_refresh"

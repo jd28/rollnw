@@ -82,7 +82,11 @@ fn rollnw_item_color_inherit(event: Event): array!(Command) {
     <div id="left_dock_resize_grabber"></div>
   </div>
   <div id="workspace_shell">
-    <div id="workspace_tabs"></div>
+    <div id="workspace_tab_bar">
+      <div id="workspace_tabs"></div>
+      <button id="workspace_tabs_previous" class="workspace_tab_scroll_button disabled" type="button" title="Scroll tabs left">&#x2039;</button>
+      <button id="workspace_tabs_next" class="workspace_tab_scroll_button disabled" type="button" title="Scroll tabs right">&#x203a;</button>
+    </div>
     <div id="workspace_content"></div>
   </div>
   <div id="bottom_dock">

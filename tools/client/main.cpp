@@ -103,10 +103,35 @@ constexpr int kHomeAreaMinimumCardWidthPx = 240;
 constexpr int kHomeAreaCardGapPx = 8;
 constexpr int kHomeAreaMaximumColumns = 4;
 constexpr float kWorkspaceTabDragThresholdPx = 5.0f;
-constexpr float kWorkspaceTabScrollStepPx = 48.0f;
+constexpr float kTabScrollStepPx = 48.0f;
 constexpr float kWorkspaceTabAutoScrollEdgePx = 28.0f;
 constexpr float kWorkspaceTabAutoScrollStepPx = 14.0f;
 constexpr float kAreaObjectPlacementOpacity = 0.45f;
+
+struct TabScrollStrip {
+    // Each strip names one unique DOM singleton. An input event targets one
+    // strip, so batching these records would add work without batch input.
+    const char* viewport_id;
+    const char* track_id;
+    const char* previous_id;
+    const char* next_id;
+    const char* tab_class;
+};
+
+constexpr TabScrollStrip kWorkspaceTabScrollStrip{
+    "workspace_tabs",
+    "workspace_tab_track",
+    "workspace_tabs_previous",
+    "workspace_tabs_next",
+    "workspace_tab",
+};
+constexpr TabScrollStrip kObjectWorkbenchTabScrollStrip{
+    "object_workbench_tabs",
+    "object_workbench_tab_track",
+    "object_workbench_tabs_previous",
+    "object_workbench_tabs_next",
+    "object_workbench_tab",
+};
 
 bool environment_flag_enabled(const char* name)
 {
@@ -828,6 +853,7 @@ struct AppState {
     int selected_recent_index = -1;
     int pressed_recent_index = -1;
     float workspace_tab_scroll_x = 0.0f;
+    float object_workbench_tab_scroll_x = 0.0f;
     float workspace_tab_drag_start_x = 0.0f;
     float workspace_tab_drag_start_y = 0.0f;
     float appearance_editor_scroll_top = 0.0f;
@@ -994,6 +1020,7 @@ struct AppState {
     bool viewer_fps_water_rendered = false;
     bool workspace_hover_refresh_pending = false;
     bool workspace_tab_scroll_pending = false;
+    bool object_workbench_tab_scroll_pending = false;
     bool details_list_configured = false;
     bool details_rendered = false;
     bool object_variable_list_configured = false;
@@ -1744,6 +1771,7 @@ Rml::Vector2f to_context_point(SDL_Window* window, float x, float y);
 Rml::Element* find_recent_item_at(Rml::Element* list, Rml::Vector2f point);
 Rml::Element* workspace_tab_element_at_point(Rml::ElementDocument* doc, std::string_view class_name, Rml::Vector2f point);
 void apply_workspace_tab_scroll(Rml::ElementDocument* doc, AppState& state);
+void apply_object_workbench_tab_scroll(Rml::ElementDocument* doc, AppState& state);
 size_t workspace_tab_target_index_at_point(Rml::ElementDocument* doc,
     Rml::Vector2f point,
     const std::vector<nw::toolset::WorkspaceTab>& tabs,
@@ -2275,22 +2303,106 @@ Rml::Element* workspace_tab_element_at_point(Rml::ElementDocument* doc, std::str
     return visit(visit, tabs);
 }
 
-void apply_workspace_tab_scroll(Rml::ElementDocument* doc, AppState& state)
+void apply_tab_scroll(Rml::ElementDocument* doc,
+    const TabScrollStrip& strip, float& scroll_x)
 {
-    auto* tabs = find_el(doc, "workspace_tabs");
+    auto* tabs = find_el(doc, strip.viewport_id);
+    auto* previous = find_el(doc, strip.previous_id);
+    auto* next = find_el(doc, strip.next_id);
     if (!tabs) {
-        state.workspace_tab_scroll_x = 0.0f;
+        scroll_x = 0.0f;
+        if (previous) {
+            previous->SetClass("disabled", true);
+        }
+        if (next) {
+            next->SetClass("disabled", true);
+        }
         return;
     }
 
     const float content_width = tabs->GetScrollWidth();
     const float viewport_width = tabs->GetClientWidth();
-    if (content_width > 0.0f && viewport_width > 0.0f) {
-        const float max_scroll = std::max(0.0f, content_width - viewport_width);
-        state.workspace_tab_scroll_x = std::clamp(state.workspace_tab_scroll_x, 0.0f, max_scroll);
+    const float max_scroll = std::max(0.0f, content_width - viewport_width);
+    scroll_x = std::clamp(scroll_x, 0.0f, max_scroll);
+    tabs->SetScrollLeft(scroll_x);
+    scroll_x = tabs->GetScrollLeft();
+    constexpr float boundary_epsilon = 0.5f;
+    if (previous) {
+        previous->SetClass("disabled", scroll_x <= boundary_epsilon);
     }
-    tabs->SetScrollLeft(state.workspace_tab_scroll_x);
-    state.workspace_tab_scroll_x = tabs->GetScrollLeft();
+    if (next) {
+        next->SetClass(
+            "disabled",
+            scroll_x >= max_scroll - boundary_epsilon);
+    }
+}
+
+void remember_tab_scroll(Rml::ElementDocument* doc,
+    const TabScrollStrip& strip, float& scroll_x)
+{
+    if (auto* tabs = find_el(doc, strip.viewport_id)) {
+        scroll_x = tabs->GetScrollLeft();
+    }
+}
+
+void apply_workspace_tab_scroll(Rml::ElementDocument* doc, AppState& state)
+{
+    apply_tab_scroll(doc, kWorkspaceTabScrollStrip,
+        state.workspace_tab_scroll_x);
+}
+
+void apply_object_workbench_tab_scroll(
+    Rml::ElementDocument* doc, AppState& state)
+{
+    apply_tab_scroll(doc, kObjectWorkbenchTabScrollStrip,
+        state.object_workbench_tab_scroll_x);
+}
+
+float tab_scroll_target(Rml::ElementDocument* doc,
+    const TabScrollStrip& strip, bool forward)
+{
+    auto* tabs = find_el(doc, strip.viewport_id);
+    auto* track = find_el(doc, strip.track_id);
+    if (!tabs || !track) {
+        return 0.0f;
+    }
+
+    const float viewport_width = tabs->GetClientWidth();
+    const float max_scroll = std::max(
+        0.0f, tabs->GetScrollWidth() - viewport_width);
+    const float current = std::clamp(
+        tabs->GetScrollLeft(), 0.0f, max_scroll);
+    constexpr float boundary_epsilon = 0.5f;
+
+    if (forward) {
+        const float visible_right = current + viewport_width;
+        const int child_count = track->GetNumChildren();
+        for (int i = 0; i < child_count; ++i) {
+            auto* child = track->GetChild(i);
+            if (!child || !child->IsClassSet(strip.tab_class)) {
+                continue;
+            }
+            const float child_right = child->GetOffsetLeft()
+                + child->GetOffsetWidth();
+            if (child_right > visible_right + boundary_epsilon) {
+                return std::clamp(
+                    child_right - viewport_width, 0.0f, max_scroll);
+            }
+        }
+        return max_scroll;
+    }
+
+    for (int i = track->GetNumChildren() - 1; i >= 0; --i) {
+        auto* child = track->GetChild(i);
+        if (!child || !child->IsClassSet(strip.tab_class)) {
+            continue;
+        }
+        const float child_left = child->GetOffsetLeft();
+        if (child_left < current - boundary_epsilon) {
+            return std::clamp(child_left, 0.0f, max_scroll);
+        }
+    }
+    return 0.0f;
 }
 
 size_t workspace_tab_current_index(const std::vector<nw::toolset::WorkspaceTab>& tabs, std::string_view id, size_t fallback)
@@ -5639,7 +5751,9 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += escape_html(object_name);
         content_markup += "</div></div>";
     }
-    content_markup += "<div class=\"object_workbench_tabs\">";
+    content_markup += "<div id=\"object_workbench_tab_bar\" class=\"object_workbench_tab_bar\">"
+                      "<div id=\"object_workbench_tabs\" class=\"object_workbench_tabs\">"
+                      "<div id=\"object_workbench_tab_track\" class=\"object_workbench_tab_track\">";
     content_markup += "<div class=\"object_workbench_tab";
     if (state.object_workbench_surface == ObjectWorkbenchSurface::details) {
         content_markup += " active";
@@ -5690,7 +5804,14 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         }
         content_markup += "\" data-surface=\"inventory\">Inventory</div>";
     }
-    content_markup += "</div>";
+    content_markup += "</div></div>"
+                      "<button id=\"object_workbench_tabs_previous\" "
+                      "class=\"object_workbench_tab_scroll_button disabled\" "
+                      "type=\"button\" title=\"Scroll editor tabs left\">&#x2039;</button>"
+                      "<button id=\"object_workbench_tabs_next\" "
+                      "class=\"object_workbench_tab_scroll_button disabled\" "
+                      "type=\"button\" title=\"Scroll editor tabs right\">&#x203a;</button>"
+                      "</div>";
 
     if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
         content_markup += "<div class=\"object_variable_toolbar\"><button id=\"object_variable_add\" "
@@ -6162,6 +6283,8 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
             state.appearance_editor_scroll_top = std::max(0.0f, editor->GetScrollTop());
         }
     }
+    remember_tab_scroll(doc, kObjectWorkbenchTabScrollStrip,
+        state.object_workbench_tab_scroll_x);
 
     ensure_active_dialog_document(state);
     sync_active_module_object(state);
@@ -6178,6 +6301,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
     if (auto* content = doc->GetElementById("workspace_content")) {
         content->SetInnerRML(content_markup);
     }
+    state.object_workbench_tab_scroll_pending = true;
     apply_shell_layout(doc, state);
     sync_home_area_window(doc, state, true);
     hydrate_item_workbench(doc, state);
@@ -6200,6 +6324,8 @@ void refresh_workspace_tabs(Rml::ElementDocument* doc, AppState& state)
         return;
     }
 
+    remember_tab_scroll(doc, kWorkspaceTabScrollStrip,
+        state.workspace_tab_scroll_x);
     const auto& tabs = state.workspace.tabs();
     const std::string active_tab_id = state.workspace.active_tab_id();
 
@@ -6256,6 +6382,8 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     }
 
     refresh_workspace_tabs(doc, state);
+    remember_tab_scroll(doc, kObjectWorkbenchTabScrollStrip,
+        state.object_workbench_tab_scroll_x);
 
     ensure_active_dialog_document(state);
     sync_active_module_object(state);
@@ -6272,6 +6400,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     if (auto* content = doc->GetElementById("workspace_content")) {
         content->SetInnerRML(content_markup);
     }
+    state.object_workbench_tab_scroll_pending = true;
     apply_shell_layout(doc, state);
     sync_home_area_window(doc, state, true);
     hydrate_item_workbench(doc, state);
@@ -9587,8 +9716,18 @@ int main(int argc, char* argv[])
                     if (auto* tabs = find_el(doc, "workspace_tabs")) {
                         state.workspace_tab_scroll_x = tabs->GetScrollLeft();
                     }
-                    state.workspace_tab_scroll_x += delta * kWorkspaceTabScrollStepPx;
+                    state.workspace_tab_scroll_x += delta * kTabScrollStepPx;
                     apply_workspace_tab_scroll(doc, state);
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (point_within_element(doc, "object_workbench_tabs", point)) {
+                    const float delta = event.wheel.x != 0.0f ? event.wheel.x : -event.wheel.y;
+                    if (auto* tabs = find_el(doc, "object_workbench_tabs")) {
+                        state.object_workbench_tab_scroll_x = tabs->GetScrollLeft();
+                    }
+                    state.object_workbench_tab_scroll_x += delta * kTabScrollStepPx;
+                    apply_object_workbench_tab_scroll(doc, state);
                     dispatched_to_rml = true;
                     break;
                 }
@@ -9714,6 +9853,10 @@ int main(int argc, char* argv[])
                         }
                     };
                     if (auto* hit = element_at_mouse(context, window, event.button)) {
+                        auto* workspace_tab_scroll_button = find_ancestor_with_class(
+                            hit, "workspace_tab_scroll_button");
+                        auto* object_workbench_tab_scroll_button = find_ancestor_with_class(
+                            hit, "object_workbench_tab_scroll_button");
                         auto* workspace_tab_close_hit = find_ancestor_with_class(hit, "workspace_tab_close");
                         if (!workspace_tab_close_hit) {
                             workspace_tab_close_hit = workspace_tab_element_at_point(doc, "workspace_tab_close", point);
@@ -9723,7 +9866,27 @@ int main(int argc, char* argv[])
                             workspace_tab_hit = workspace_tab_element_at_point(doc, "workspace_tab", point);
                         }
 
-                        if (workspace_tab_close_hit) {
+                        if (workspace_tab_scroll_button) {
+                            release_workspace_mouse_up();
+                            if (!workspace_tab_scroll_button->IsClassSet("disabled")) {
+                                const bool forward = workspace_tab_scroll_button->GetId()
+                                    == "workspace_tabs_next";
+                                state.workspace_tab_scroll_x = tab_scroll_target(
+                                    doc, kWorkspaceTabScrollStrip, forward);
+                                apply_workspace_tab_scroll(doc, state);
+                            }
+                            handled = true;
+                        } else if (object_workbench_tab_scroll_button) {
+                            release_workspace_mouse_up();
+                            if (!object_workbench_tab_scroll_button->IsClassSet("disabled")) {
+                                const bool forward = object_workbench_tab_scroll_button->GetId()
+                                    == "object_workbench_tabs_next";
+                                state.object_workbench_tab_scroll_x = tab_scroll_target(
+                                    doc, kObjectWorkbenchTabScrollStrip, forward);
+                                apply_object_workbench_tab_scroll(doc, state);
+                            }
+                            handled = true;
+                        } else if (workspace_tab_close_hit) {
                             const std::string tab_id = workspace_tab_close_hit->GetAttribute<Rml::String>("data-tab", "");
                             if (!tab_id.empty() && ensure_backend_ready(state)) {
                                 release_workspace_mouse_up();
@@ -10453,6 +10616,8 @@ int main(int argc, char* argv[])
                 const auto pixels = query_window_pixels(window);
                 frame_width = pixels.first;
                 frame_height = pixels.second;
+                state.workspace_tab_scroll_pending = true;
+                state.object_workbench_tab_scroll_pending = true;
                 log_window_metrics(window, "pixel-size-changed");
             } break;
             case SDL_EVENT_WINDOW_RESIZED: {
@@ -10465,6 +10630,8 @@ int main(int argc, char* argv[])
                 palette_context->SetDimensions(Rml::Vector2i(frame_width, frame_height));
                 apply_bottom_dock_height(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::bottom).size_px);
                 apply_left_dock_width(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::left).size_px);
+                state.workspace_tab_scroll_pending = true;
+                state.object_workbench_tab_scroll_pending = true;
                 break;
             }
             default:
@@ -10725,9 +10892,18 @@ int main(int argc, char* argv[])
         renderer.begin_frame();
         const Uint64 draw_start_counter = SDL_GetPerformanceCounter();
         context->Update();
+        bool tab_scroll_layout_changed = false;
         if (state.workspace_tab_scroll_pending) {
             state.workspace_tab_scroll_pending = false;
             apply_workspace_tab_scroll(doc, state);
+            tab_scroll_layout_changed = true;
+        }
+        if (state.object_workbench_tab_scroll_pending) {
+            state.object_workbench_tab_scroll_pending = false;
+            apply_object_workbench_tab_scroll(doc, state);
+            tab_scroll_layout_changed = true;
+        }
+        if (tab_scroll_layout_changed) {
             context->Update();
         }
         if (state.workspace_hover_refresh_pending) {

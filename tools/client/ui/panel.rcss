@@ -330,14 +330,23 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   box-sizing: border-box;
 }
 #workspace_shell, #workspace_shell * { box-sizing: border-box; }
+#workspace_tab_bar {
+  display: flex;
+  flex-shrink: 0;
+  height: 38px;
+  min-height: 38px;
+  min-width: 0px;
+  background: #11161b;
+  border-bottom: 1px #2f3843;
+}
 #workspace_tabs {
   display: block;
+  flex: 1;
+  min-width: 0px;
   height: 38px;
   min-height: 38px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #11161b;
-  border-bottom: 1px #2f3843;
   padding: 0px 0px;
 }
 #workspace_tabs scrollbarhorizontal {
@@ -355,6 +364,34 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 #workspace_tabs scrollbarhorizontal sliderbar:hover {
   background: #6f8192;
+}
+.workspace_tab_scroll_button {
+  flex-shrink: 0;
+  width: 26px;
+  min-width: 26px;
+  height: 37px;
+  min-height: 37px;
+  margin: 0px;
+  padding: 0px;
+  border: 0px transparent;
+  border-left: 1px #2f3843;
+  border-radius: 0px;
+  background: #171d23;
+  color: #c4ced7;
+  font-size: 22px;
+  line-height: 35px;
+  text-align: center;
+  cursor: pointer;
+}
+.workspace_tab_scroll_button:hover {
+  background: #28323b;
+  color: #ffffff;
+}
+.workspace_tab_scroll_button.disabled,
+.workspace_tab_scroll_button.disabled:hover {
+  background: #11161b;
+  color: #46515c;
+  cursor: default;
 }
 #workspace_tab_track {
   display: flex;
@@ -1136,16 +1173,38 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   color: #a99573;
   font-size: 12px;
 }
-.object_workbench_tabs {
+.object_workbench_tab_bar {
   display: flex;
   flex: 0 0 31px;
   height: 31px;
-  padding: 0px 10px;
+  min-width: 0px;
   border-bottom: 1px #303943;
   background: #171d23;
   box-sizing: border-box;
 }
+.object_workbench_tabs {
+  display: block;
+  flex: 1;
+  min-width: 0px;
+  height: 30px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.object_workbench_tabs scrollbarhorizontal {
+  height: 1px;
+}
+.object_workbench_tabs scrollbarhorizontal slidertrack,
+.object_workbench_tabs scrollbarhorizontal sliderbar {
+  background: transparent;
+  border: 0px transparent;
+}
+.object_workbench_tab_track {
+  display: flex;
+  height: 30px;
+  padding: 0px 10px;
+}
 .object_workbench_tab {
+  flex-shrink: 0;
   padding: 7px 7px 5px 7px;
   color: #9faab5;
   font-size: 12px;
@@ -1157,6 +1216,34 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .object_workbench_tab.active {
   color: #eef2f5;
   border-bottom-color: #a78d62;
+}
+.object_workbench_tab_scroll_button {
+  flex-shrink: 0;
+  width: 23px;
+  min-width: 23px;
+  height: 30px;
+  min-height: 30px;
+  margin: 0px;
+  padding: 0px;
+  border: 0px transparent;
+  border-left: 1px #303943;
+  border-radius: 0px;
+  background: #171d23;
+  color: #c4ced7;
+  font-size: 19px;
+  line-height: 28px;
+  text-align: center;
+  cursor: pointer;
+}
+.object_workbench_tab_scroll_button:hover {
+  background: #28323b;
+  color: #ffffff;
+}
+.object_workbench_tab_scroll_button.disabled,
+.object_workbench_tab_scroll_button.disabled:hover {
+  background: #171d23;
+  color: #46515c;
+  cursor: default;
 }
 .object_variable_toolbar {
   display: flex;

@@ -182,6 +182,10 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     EXPECT_NE(document->GetElementById("item_surface_appearance"), nullptr);
     EXPECT_NE(document->GetElementById("item_surface_item_properties"), nullptr);
     EXPECT_NE(document->GetElementById("item_surface_inventory"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tab_track"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_previous"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_next"), nullptr);
     auto* variable_surface = document->GetElementById("item_surface_variables");
     ASSERT_NE(variable_surface, nullptr);
     Rml::ElementList warning_headers;
@@ -308,6 +312,140 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
 
     document->Close();
     Rml::RemoveContext("item-workbench-template-test");
+}
+
+TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    const std::string source = R"RML(
+<rml>
+<head>
+<link type="text/css" href="tools/client/ui/panel.rcss"/>
+<style>body, button { font-family: Inter; font-weight: normal; }</style>
+</head>
+<body>
+<div id="workspace_shell">
+  <div id="workspace_tab_bar">
+    <div id="workspace_tabs">
+      <div id="workspace_tab_track">
+        <div class="workspace_tab">Home</div>
+        <div class="workspace_tab">Area</div>
+        <div class="workspace_tab">Creature</div>
+        <div class="workspace_tab">Conversation</div>
+      </div>
+    </div>
+    <button id="workspace_tabs_previous" class="workspace_tab_scroll_button disabled" type="button">&#x2039;</button>
+    <button id="workspace_tabs_next" class="workspace_tab_scroll_button disabled" type="button">&#x203a;</button>
+  </div>
+  <div id="workspace_content"></div>
+</div>
+</body>
+</rml>
+)RML";
+
+    auto* context = Rml::CreateContext("workspace-tab-bar-template-test", {600, 200});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        source, "workspace_tab_bar_template_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* bar = document->GetElementById("workspace_tab_bar");
+    auto* tabs = document->GetElementById("workspace_tabs");
+    auto* previous = document->GetElementById("workspace_tabs_previous");
+    auto* next = document->GetElementById("workspace_tabs_next");
+    ASSERT_NE(bar, nullptr);
+    ASSERT_NE(tabs, nullptr);
+    ASSERT_NE(previous, nullptr);
+    ASSERT_NE(next, nullptr);
+    EXPECT_GT(previous->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(next->GetOffsetWidth(), 0.0f);
+    EXPECT_LT(tabs->GetClientWidth(), bar->GetClientWidth());
+    EXPECT_GT(tabs->GetScrollWidth(), tabs->GetClientWidth());
+    previous->SetClass("disabled", true);
+    next->SetClass("disabled", false);
+    EXPECT_TRUE(previous->IsClassSet("disabled"));
+    EXPECT_FALSE(next->IsClassSet("disabled"));
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("workspace-tab-bar-template-test");
+}
+
+TEST(ClientRmlTemplates, ObjectWorkbenchTabBarProvidesOverflowControls)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    const std::string source = R"RML(
+<rml>
+<head>
+<link type="text/css" href="tools/client/ui/panel.rcss"/>
+<style>body, button { font-family: Inter; font-weight: normal; }</style>
+</head>
+<body>
+<div class="object_workbench" style="width: 440px;">
+  <div id="object_workbench_tab_bar" class="object_workbench_tab_bar">
+    <div id="object_workbench_tabs" class="object_workbench_tabs">
+      <div id="object_workbench_tab_track" class="object_workbench_tab_track">
+        <div class="object_workbench_tab active">Details</div>
+        <div class="object_workbench_tab">Variables</div>
+        <div class="object_workbench_tab">Classes</div>
+        <div class="object_workbench_tab">Appearance</div>
+        <div class="object_workbench_tab">Feats</div>
+        <div class="object_workbench_tab">Spells</div>
+        <div class="object_workbench_tab">Inventory</div>
+      </div>
+    </div>
+    <button id="object_workbench_tabs_previous" class="object_workbench_tab_scroll_button disabled" type="button">&#x2039;</button>
+    <button id="object_workbench_tabs_next" class="object_workbench_tab_scroll_button disabled" type="button">&#x203a;</button>
+  </div>
+</div>
+</body>
+</rml>
+)RML";
+
+    auto* context = Rml::CreateContext(
+        "object-workbench-tab-bar-template-test", {800, 200});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        source, "object_workbench_tab_bar_template_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* bar = document->GetElementById("object_workbench_tab_bar");
+    auto* tabs = document->GetElementById("object_workbench_tabs");
+    auto* previous = document->GetElementById(
+        "object_workbench_tabs_previous");
+    auto* next = document->GetElementById("object_workbench_tabs_next");
+    ASSERT_NE(bar, nullptr);
+    ASSERT_NE(tabs, nullptr);
+    ASSERT_NE(previous, nullptr);
+    ASSERT_NE(next, nullptr);
+    EXPECT_GT(previous->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(next->GetOffsetWidth(), 0.0f);
+    EXPECT_LT(tabs->GetClientWidth(), bar->GetClientWidth());
+    EXPECT_GT(tabs->GetScrollWidth(), tabs->GetClientWidth());
+    previous->SetClass("disabled", false);
+    next->SetClass("disabled", true);
+    EXPECT_FALSE(previous->IsClassSet("disabled"));
+    EXPECT_TRUE(next->IsClassSet("disabled"));
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("object-workbench-tab-bar-template-test");
 }
 
 TEST(ClientRmlVirtualList, SpacerExtentAndFinalWindowRepresentAllRows)
