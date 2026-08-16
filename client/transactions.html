@@ -57,21 +57,24 @@ batches against a live area.</p>
 <h2 id="data-contract">Data Contract</h2>
 <p><code>ObjectEditBatch</code> owns a contiguous vector of <code>ObjectEditPatch</code> rows:</p>
 <div class="codehilite"><pre><span></span><code>ObjectEditBatch {
-    kind: propset_int | creature_feat
+    kind: propset_int | propset_int_element | creature_feat
     patches: [
         object: ObjectHandle
         propset_type: TypeID
         key: uint32
         before: int32
         after: int32
+        element_index: int32  // -1 for a scalar; otherwise an existing array element
     ]
 }
 </code></pre></div>
 
 <p>All rows in a batch target the same live object and edit kind. Keys are strictly
-ordered and unique. Propset batches order by <code>(propset_type, field key)</code>;
-Creature feat batches order by feat key. The batch owns its values through
-forward application, undo, and redo.</p>
+ordered and unique. Scalar propset batches order by <code>(propset_type, field key)</code>;
+array-element propset batches order by <code>(propset_type, field key, element_index)</code>;
+Creature feat batches order by feat key. Array-element edits support fixed and
+unmanaged integer arrays but never resize them. The batch owns its values
+through forward application, undo, and redo.</p>
 <p>The active object is singular because one workspace surface is active. Patch
 application is plural even for one field; the single edit is a batch containing
 one row.</p>
@@ -104,7 +107,8 @@ rejection, failure, global command, renderer command, or replay with
 <li>target handle resolves to a live object;</li>
 <li>every patch targets the same object;</li>
 <li>keys are strictly ordered and unique;</li>
-<li>propset type, field index, field type, and propset instance are valid;</li>
+<li>propset type, field index, field type, element index, and propset instance are
+  valid;</li>
 <li>feat IDs and Creature target type are valid;</li>
 <li><code>before</code> and <code>after</code> differ and are in the supported value range; and</li>
 <li>the current live value equals the expected value for the requested direction.</li>

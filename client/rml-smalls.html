@@ -307,31 +307,29 @@ by ID and re-resolved before each synthetic <code>refresh</code> event, so an ea
 handler may replace its own subtree without leaving stale element pointers.</p>
 <h2 id="resource-mutation">Resource Mutation</h2>
 <p>The binding intentionally exposes no direct object-write or resource-save
-operation. UI scripts use <code>core.commands.v1.command_execute</code>:</p>
+operation. UI scripts use <code>core.commands.v1.command_execute</code> for explicit
+editor operations, such as Item property changes. Dynamically generated
+Details editors carry an editor kind, propset, field, current integer value,
+and inclusive minimum/maximum values in the SmallS row protocol. Boolean rows
+use the integer range <code>0..1</code>; ranged integer rows state their domain explicitly.
+The client treats the row index as an opaque token, rebuilds the bounded row
+batch on commit, and rejects the command unless the live row still names the
+same editor with the expected value and the requested value is in range. Input
+errors and out-of-range values are rejected rather than clamped. Integer rows
+render a text input for direct entry and bounded single-step controls; both
+commit through the same validated command.</p>
 <div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">commands</span><span class="p">.</span><span class="n">v1</span> <span class="k">import</span> <span class="p">{</span> <span class="n">command_execute</span> <span class="p">};</span>
-<span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Event</span><span class="p">,</span> <span class="nc">Command</span><span class="p">,</span> <span class="n">command_set_checked</span> <span class="p">};</span>
+<span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Event</span><span class="p">,</span> <span class="nc">Command</span> <span class="p">};</span>
 
-<span class="k">fn</span> <span class="n">set_plot</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">Command</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">var</span> <span class="n">desired</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">checked</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">desired</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">var</span> <span class="n">result</span> <span class="o">=</span> <span class="n">command_execute</span><span class="p">(</span><span class="s2">&quot;object.creature.set_plot&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="n">desired</span> <span class="p">});</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">result</span><span class="p">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">{};</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="p">{{</span>
-        <span class="n">operation</span> <span class="o">=</span> <span class="n">command_set_checked</span><span class="p">,</span>
-        <span class="n">element_id</span> <span class="o">=</span> <span class="n">event</span><span class="p">.</span><span class="n">element_id</span><span class="p">,</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="o">!</span><span class="n">event</span><span class="p">.</span><span class="n">checked</span>
-    <span class="p">}};</span>
+<span class="k">fn</span> <span class="n">remove_item_property</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">Command</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">command_execute</span><span class="p">(</span><span class="s2">&quot;object.item.remove_property&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="n">event</span><span class="p">.</span><span class="n">value</span> <span class="p">});</span>
+    <span class="k">return</span> <span class="p">{};</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>The command handler validates and mutates the live object, marks the document
-dirty, and contributes undo data. The returned UI command only restores the
-checkbox when the resource command rejects the requested change.</p>
+<p>Command handlers validate and mutate the live object, mark the document dirty,
+and contribute undo data. Direct propset writes remain unavailable to UI
+scripts.</p>
 <h2 id="diagnostics-and-failure">Diagnostics And Failure</h2>
 <p>The binding reports errors to all three current sinks:</p>
 <ul>
