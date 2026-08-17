@@ -684,7 +684,18 @@ std::int64_t file_modified_for_cache(const fs::path& path)
     if (ec) {
         return 0;
     }
-    return modified.time_since_epoch().count();
+
+    using TickRep = fs::file_time_type::duration::rep;
+    const TickRep ticks = modified.time_since_epoch().count();
+    constexpr auto minimum = std::numeric_limits<std::int64_t>::min();
+    constexpr auto maximum = std::numeric_limits<std::int64_t>::max();
+    if (ticks < static_cast<TickRep>(minimum)) {
+        return minimum;
+    }
+    if (ticks > static_cast<TickRep>(maximum)) {
+        return maximum;
+    }
+    return static_cast<std::int64_t>(ticks);
 }
 
 ProjectLabelCache load_project_label_cache(const fs::path& project_dir)

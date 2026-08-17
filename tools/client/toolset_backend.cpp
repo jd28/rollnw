@@ -15,6 +15,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/render/viewer/area_lighting.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <nw/util/string.hpp>
 
 #include <fmt/format.h>
 
@@ -117,14 +118,11 @@ std::optional<bool> parse_assignment(std::string_view value)
 
 std::optional<float> parse_finite_f32(std::string_view value)
 {
-    float parsed = 0.0f;
-    const auto result = std::from_chars(
-        value.data(), value.data() + value.size(), parsed, std::chars_format::general);
-    if (result.ec != std::errc{} || result.ptr != value.data() + value.size()
-        || !std::isfinite(parsed)) {
+    const auto parsed = nw::string::from<float>(value);
+    if (!parsed || !std::isfinite(*parsed)) {
         return std::nullopt;
     }
-    return parsed;
+    return *parsed;
 }
 
 std::optional<ObjectVariableType> parse_object_variable_type(std::string_view value)

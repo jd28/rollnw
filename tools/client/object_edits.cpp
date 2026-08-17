@@ -16,6 +16,7 @@
 #include <nw/serialization/component_propset_json.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <nw/util/string.hpp>
 
 #include <algorithm>
 #include <array>
@@ -173,12 +174,8 @@ ObjectVariableWarning numeric_string_warning(std::string_view value) noexcept
         return ObjectVariableWarning::string_looks_integer;
     }
 
-    float floating = 0.0f;
-    const auto floating_result = std::from_chars(value.data(),
-        value.data() + value.size(), floating, std::chars_format::general);
-    if (floating_result.ec == std::errc{}
-        && floating_result.ptr == value.data() + value.size()
-        && std::isfinite(floating)) {
+    const auto floating = nw::string::from<float>(value);
+    if (floating && std::isfinite(*floating)) {
         return ObjectVariableWarning::string_looks_floating;
     }
     return ObjectVariableWarning::none;
