@@ -67,6 +67,7 @@ if(TARGET RmlUi::RmlUi)
     target_sources(rollnw_benchmark PRIVATE
         rml_smalls.cpp
         ../tools/ui/rml_smalls_language_binding.cpp
+        ../tools/ui/rml_smalls_expression_binding.cpp
         ../tools/ui/smalls_diagnostics.cpp
         ../tools/ui/smalls_rmlui.cpp
     )

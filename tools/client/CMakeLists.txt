@@ -41,6 +41,7 @@ add_executable(rollnw-client
     toolset_backend.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_bridge.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_data_model.cpp
+    ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_expression_binding.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_language_binding.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_diagnostics.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_creature_feats.cpp

@@ -235,8 +235,10 @@ target_link_libraries(rollnw_test PRIVATE
 if(TARGET RmlUi::RmlUi)
     target_sources(rollnw_test PRIVATE
         rollnw_client_rml_smalls_data_model.cpp
+        rollnw_client_rml_smalls_expression_binding.cpp
         rollnw_client_rml_smalls_language_binding.cpp
         ../tools/ui/rml_smalls_data_model.cpp
+        ../tools/ui/rml_smalls_expression_binding.cpp
         ../tools/ui/rml_smalls_language_binding.cpp
         ../tools/ui/rml_smalls_bridge.cpp
         ../tools/ui/rml_managed_list.cpp
