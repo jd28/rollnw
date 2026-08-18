@@ -1051,9 +1051,11 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
         GTEST_SKIP() << "test hand item has no model parts";
     }
     for (const auto& item_model : item_models) {
-        if (!nw::kernel::resman().contains({nw::Resref{item_model}, nw::ResourceType::mdl})) {
-            GTEST_SKIP() << "test hand item model unavailable: " << item_model;
-        }
+        ASSERT_GT(nw::kernel::resman()
+                      .demand({nw::Resref{item_model}, nw::ResourceType::mdl})
+                      .bytes.size(),
+            0u)
+            << "test hand item model unavailable: " << item_model;
     }
 
     auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken");

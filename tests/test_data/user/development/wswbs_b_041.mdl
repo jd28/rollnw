@@ -1,0 +1,37 @@
+#MAXMODEL ASCII
+newmodel wswbs_b_041
+setsupermodel wswbs_b_041 NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom wswbs_b_041
+    node dummy wswbs_b_041
+        parent NULL
+    endnode
+    node trimesh mesh01
+        parent wswbs_b_041
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 1
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap null
+        texture0 null
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            -0.05 0 0
+            0.05 0 0
+            0 0.1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0.5 1 0
+    endnode
+endmodelgeom wswbs_b_041
+donemodel wswbs_b_041
