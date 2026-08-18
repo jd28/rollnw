@@ -62,6 +62,9 @@ ScriptHeap::~ScriptHeap()
 
 HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
 {
+    CHECK_F(!gc_ || !gc_->runtime_stack_scan_active(),
+        "ScriptHeap allocation is forbidden while the garbage collector scans Runtime roots");
+
     // Ensure alignment is at least for pointer size (for back-pointer)
     alignment = std::max(alignment, alignof(void*));
 

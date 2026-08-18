@@ -344,6 +344,28 @@ struct VmProfileSnapshot {
 struct Runtime : public nw::kernel::Service {
     const static std::type_index type_index;
 
+    /// Roots a contiguous batch of temporary Values on Runtime::stack_.
+    ///
+    /// ScopedRoots owns only the suffix added after construction. Values are
+    /// copied into the stack so callers cannot retain references invalidated by
+    /// a later vector growth. Scopes must unwind in LIFO order.
+    class ScopedRoots {
+    public:
+        explicit ScopedRoots(Runtime& runtime, size_t expected_roots = 0);
+        ~ScopedRoots() noexcept;
+
+        ScopedRoots(const ScopedRoots&) = delete;
+        ScopedRoots& operator=(const ScopedRoots&) = delete;
+        ScopedRoots(ScopedRoots&&) = delete;
+        ScopedRoots& operator=(ScopedRoots&&) = delete;
+
+        void add(Value value);
+
+    private:
+        Runtime* runtime_ = nullptr;
+        size_t marker_ = 0;
+    };
+
     explicit Runtime(MemoryResource* scope);
     ~Runtime(); // Needed for unique_ptr dtor
 

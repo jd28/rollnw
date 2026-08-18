@@ -101,8 +101,7 @@ void GarbageCollector::on_allocation(size_t /*size*/)
         return;
     }
 
-    if (phase_ == GCPhase::idle && heap_->old_bytes() > static_cast<size_t>(config_.major_threshold_percent
-                * static_cast<float>(heap_->committed()))) {
+    if (phase_ == GCPhase::idle && heap_->old_bytes() > static_cast<size_t>(config_.major_threshold_percent * static_cast<float>(heap_->committed()))) {
         start_major_gc();
     }
 
@@ -434,11 +433,26 @@ void GarbageCollector::mark_roots(bool young_only)
 
     auto runtime_stack_start = std::chrono::high_resolution_clock::now();
     // Runtime stack roots
-    for (auto& value : runtime_->stack_) {
-        ++runtime_stack_values_total;
-        if (value.storage == ValueStorage::heap && value.data.hptr.value != 0) {
-            ++runtime_stack_values_heap;
-            mark_root_ptr(&value.data.hptr);
+    {
+        struct RuntimeStackScanGuard {
+            explicit RuntimeStackScanGuard(bool& active)
+                : active_{active}
+            {
+                CHECK_F(!active_, "Nested Runtime root stack scan");
+                active_ = true;
+            }
+
+            ~RuntimeStackScanGuard() { active_ = false; }
+
+            bool& active_;
+        } guard{runtime_stack_scan_active_};
+
+        for (auto& value : runtime_->stack_) {
+            ++runtime_stack_values_total;
+            if (value.storage == ValueStorage::heap && value.data.hptr.value != 0) {
+                ++runtime_stack_values_heap;
+                mark_root_ptr(&value.data.hptr);
+            }
         }
     }
     runtime_stack_us = to_us(runtime_stack_start, std::chrono::high_resolution_clock::now());

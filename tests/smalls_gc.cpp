@@ -8,6 +8,7 @@
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <stdexcept>
 #include <unordered_set>
 
 using namespace nw;
@@ -180,6 +181,137 @@ TEST_F(SmallsGCTest, ObjectListTracking)
 
     // Each string creates 2 allocations: StringRepr + backing data
     EXPECT_EQ(count_after - count_before, 6);
+}
+
+TEST_F(SmallsGCTest, ScopedRootsRetainValuesAcrossMinorAndMajorCollections)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HeapPtr value = runtime.alloc_string("scoped root");
+    {
+        Runtime::ScopedRoots roots{runtime, 1};
+        roots.add(Value::make_string(value));
+
+        gc->collect_minor();
+        EXPECT_TRUE(heap_contains(runtime, value));
+
+        gc->collect_major();
+        EXPECT_TRUE(heap_contains(runtime, value));
+        EXPECT_FALSE(gc->runtime_stack_scan_active());
+    }
+
+    EXPECT_TRUE(runtime.stack_empty());
+    gc->collect_major();
+    EXPECT_FALSE(heap_contains(runtime, value));
+}
+
+TEST_F(SmallsGCTest, ScopedRootsRestoreNestedMarkers)
+{
+    auto& runtime = nw::kernel::runtime();
+    runtime.push(Value::make_int(7));
+
+    HeapPtr outer_value = runtime.alloc_string("outer");
+    HeapPtr inner_value = runtime.alloc_string("inner");
+    {
+        Runtime::ScopedRoots outer{runtime, 1};
+        outer.add(Value::make_string(outer_value));
+        EXPECT_EQ(runtime.top().data.hptr.value, outer_value.value);
+
+        {
+            Runtime::ScopedRoots inner{runtime, 1};
+            inner.add(Value::make_string(inner_value));
+            EXPECT_EQ(runtime.top().data.hptr.value, inner_value.value);
+        }
+
+        EXPECT_EQ(runtime.top().data.hptr.value, outer_value.value);
+    }
+
+    EXPECT_EQ(runtime.top().data.ival, 7);
+    runtime.pop();
+    EXPECT_TRUE(runtime.stack_empty());
+}
+
+TEST_F(SmallsGCTest, ScopedRootsRestoreMarkerDuringExceptionUnwinding)
+{
+    auto& runtime = nw::kernel::runtime();
+    runtime.push(Value::make_int(11));
+
+    try {
+        Runtime::ScopedRoots roots{runtime, 1};
+        roots.add(Value::make_string(runtime.alloc_string("temporary")));
+        throw std::runtime_error{"test"};
+    } catch (const std::runtime_error&) {
+    }
+
+    ASSERT_FALSE(runtime.stack_empty());
+    EXPECT_EQ(runtime.top().data.ival, 11);
+    runtime.pop();
+    EXPECT_TRUE(runtime.stack_empty());
+}
+
+TEST_F(SmallsGCTest, AllocationHelpersRootIntermediateObjectsDuringEmergencyCollection)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    auto* script = runtime.load_module_from_source("test.gc_rooted_allocations", R"(
+        [[value_type]]
+        type RootedContainer {
+            text: string;
+        };
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    TypeID struct_type = runtime.type_id("test.gc_rooted_allocations.RootedContainer", false);
+    ASSERT_NE(struct_type, invalid_type_id);
+    TypeID tuple_type = runtime.register_tuple_type(Vector<TypeID>{runtime.string_type()});
+    ASSERT_NE(tuple_type, invalid_type_id);
+
+    HeapPtr normal_object = runtime.alloc_struct(struct_type);
+    const StructDef* normal_struct_def = runtime.get_struct_def(struct_type);
+    ASSERT_NE(normal_struct_def, nullptr);
+    ASSERT_NE(runtime.read_struct_field_by_index(normal_object, normal_struct_def, 0).data.hptr.value, 0);
+
+    gc->collect_major();
+    constexpr size_t emergency_threshold = ScriptHeap::max_node_allocs / 2;
+    ASSERT_LT(runtime.heap_.alloc_count(), emergency_threshold);
+
+    const size_t filler_count = emergency_threshold + 1 - runtime.heap_.alloc_count();
+    Runtime::ScopedRoots roots{runtime, filler_count + 3};
+    for (size_t i = 0; i < filler_count; ++i) {
+        HeapPtr filler = runtime.heap_.allocate(sizeof(int32_t), alignof(int32_t), runtime.int_type());
+        roots.add(Value::make_heap(filler, runtime.int_type()));
+    }
+    ASSERT_GT(runtime.heap_.alloc_count(), emergency_threshold);
+
+    HeapPtr text = runtime.alloc_string("survives emergency collection");
+    ASSERT_TRUE(heap_contains(runtime, text));
+    EXPECT_EQ(runtime.get_string_view(text), "survives emergency collection");
+    roots.add(Value::make_string(text));
+
+    HeapPtr object = runtime.alloc_struct(struct_type);
+    ASSERT_TRUE(heap_contains(runtime, object));
+    const StructDef* struct_def = runtime.get_struct_def(struct_type);
+    ASSERT_NE(struct_def, nullptr);
+    Value struct_text = runtime.read_struct_field_by_index(object, struct_def, 0);
+    ASSERT_EQ(struct_text.storage, ValueStorage::heap);
+    ASSERT_NE(struct_text.data.hptr.value, 0);
+    EXPECT_TRUE(heap_contains(runtime, struct_text.data.hptr));
+    roots.add(Value::make_heap(object, struct_type));
+
+    HeapPtr tuple = runtime.alloc_tuple(tuple_type);
+    ASSERT_TRUE(heap_contains(runtime, tuple));
+    const Type* tuple_type_info = runtime.get_type(tuple_type);
+    ASSERT_NE(tuple_type_info, nullptr);
+    const TupleDef* tuple_def = runtime.type_table_.get(tuple_type_info->type_params[0].as<TupleID>());
+    ASSERT_NE(tuple_def, nullptr);
+    Value tuple_text = runtime.read_tuple_element_by_index(tuple, tuple_def, 0);
+    ASSERT_EQ(tuple_text.storage, ValueStorage::heap);
+    EXPECT_EQ(tuple_text.data.hptr.value, 0);
 }
 
 TEST_F(SmallsGCTest, MinorCollectionFreesUnreachable)

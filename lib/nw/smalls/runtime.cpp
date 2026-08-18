@@ -194,6 +194,31 @@ bool ValueEq::operator()(const Value& a, const Value& b) const noexcept
 
 const std::type_index Runtime::type_index{typeid(Runtime)};
 
+Runtime::ScopedRoots::ScopedRoots(Runtime& runtime, size_t expected_roots)
+    : runtime_{&runtime}
+    , marker_{runtime.stack_.size()}
+{
+    CHECK_F(expected_roots <= runtime.stack_.max_size() - marker_,
+        "Runtime root stack capacity overflow");
+    runtime.stack_.reserve(marker_ + expected_roots);
+}
+
+Runtime::ScopedRoots::~ScopedRoots() noexcept
+{
+    CHECK_F(runtime_ != nullptr, "Runtime root scope has no runtime");
+    CHECK_F(runtime_->stack_.size() >= marker_,
+        "Runtime root stack shrank below its scope marker");
+    runtime_->stack_.resize(marker_);
+}
+
+void Runtime::ScopedRoots::add(Value value)
+{
+    CHECK_F(runtime_ != nullptr, "Runtime root scope has no runtime");
+    CHECK_F(!runtime_->gc_ || !runtime_->gc_->runtime_stack_scan_active(),
+        "Runtime root stack cannot grow while the garbage collector scans it");
+    runtime_->stack_.push_back(value);
+}
+
 Runtime::Runtime(MemoryResource* scope)
     : Service(scope)
     , propsets_{std::make_unique<PropsetPoolManager>()}
@@ -3171,6 +3196,8 @@ uint32_t Runtime::find_external_function(StringView qualified_name) const
 HeapPtr Runtime::alloc_string(StringView str)
 {
     HeapPtr backing = heap_.allocate(str.size(), 1, string_backing_id_);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(backing, string_backing_id_));
     char* data = static_cast<char*>(heap_.get_ptr(backing));
     if (!str.empty()) {
         memcpy(data, str.data(), str.size());
@@ -3223,6 +3250,8 @@ HeapPtr Runtime::alloc_struct(TypeID type_id)
     const Type* type = get_type(type_id);
     CHECK_F(!!type, "Unknown type: {}", type_id.to_u64());
     HeapPtr ptr = heap_.allocate(type->size, type->alignment, type_id);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(ptr, type_id));
     void* data = heap_.get_ptr(ptr);
     memset(data, 0, type->size);
     this->initialize_zero_defaults(type_id, static_cast<uint8_t*>(data));
@@ -3234,6 +3263,8 @@ HeapPtr Runtime::alloc_tuple(TypeID type_id)
     const Type* type = get_type(type_id);
     CHECK_F(!!type, "Unknown type: {}", type_id.to_u64());
     HeapPtr ptr = heap_.allocate(type->size, type->alignment, type_id);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(ptr, type_id));
     void* data = heap_.get_ptr(ptr);
     memset(data, 0, type->size);
     this->initialize_zero_defaults(type_id, static_cast<uint8_t*>(data));

@@ -413,6 +413,7 @@ struct GarbageCollector {
     void try_emergency_collect_minor();
     bool is_marking() const noexcept { return phase_ == GCPhase::mark_incremental; }
     bool is_minor_collecting() const noexcept { return minor_phase_ != MinorPhase::idle; }
+    bool runtime_stack_scan_active() const noexcept { return runtime_stack_scan_active_; }
 
     GCPhase phase() const noexcept { return phase_; }
     const GCStats& stats() const noexcept { return stats_; }
@@ -450,6 +451,7 @@ private:
     void set_black(HeapPtr ptr);
 
     bool emergency_collecting_ = false;
+    bool runtime_stack_scan_active_ = false;
 
     ScriptHeap* heap_;
     Runtime* runtime_;
