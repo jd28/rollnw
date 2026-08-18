@@ -799,6 +799,9 @@ TEST(RenderViewerPreparedDraws, MeshParticlePacketSubmitsModernCachedModel)
 
     const std::filesystem::path model_path{"test_data/user/development/plc_cndl02.mdl"};
     ASSERT_TRUE(std::filesystem::exists(model_path)) << model_path.string();
+    ASSERT_TRUE(nw::kernel::resman().contains(
+        {nw::Resref{"plc_chunk_w01"}, nw::ResourceType::mdl}))
+        << "particle-mesh fixture unavailable";
 
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
