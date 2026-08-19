@@ -49,6 +49,7 @@ jobs:
             binary-name: smalls-lsp-darwin-universal
             preset: ci-macos
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     name: ${{ matrix.platform_name }} ${{ matrix.compiler_name }} VS Code Binary
     steps:
       - uses: actions/checkout@v7
@@ -65,11 +66,15 @@ jobs:
 
       - name: linux - install gcc
         if: matrix.os == 'ubuntu-22.04'
+        uses: ./.github/actions/apt-setup
+        timeout-minutes: 10
+        with:
+          ppa: ppa:ubuntu-toolchain-r/test
+          packages: gcc-15 g++-15
+
+      - name: linux - select gcc
+        if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.sources /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt update
-          sudo apt install gcc-15 g++-15 -y
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
@@ -130,6 +135,7 @@ jobs:
   package:
     needs: build-binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: Linux Node VSIX Package
     steps:
       - uses: actions/checkout@v7

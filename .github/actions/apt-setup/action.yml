@@ -1,0 +1,86 @@
+name: apt-setup
+description: >-
+  Install Debian packages on a Linux runner with the flaky Azure Ubuntu mirror
+  removed, bounded network timeouts, and retries.
+
+inputs:
+  packages:
+    description: Space-separated list of packages to install.
+    required: true
+  ppa:
+    description: Optional PPA to add before updating, e.g. ppa:ubuntu-toolchain-r/test.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: apt - prepare sources
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Pre-seeded Microsoft/Azure CLI sources are unused here and routinely
+        # break `apt-get update` when their keys rotate.
+        sudo rm -f /etc/apt/sources.list.d/azure-cli.list \
+                   /etc/apt/sources.list.d/azure-cli.sources \
+                   /etc/apt/sources.list.d/microsoft-prod.list \
+                   /etc/apt/sources.list.d/microsoft-prod.sources
+
+        # The runner image points apt at azure.archive.ubuntu.com with
+        # priority:1. When that mirror is down apt burns its full timeout on
+        # every index before falling back, which reads as a hung job. Drop it
+        # and let archive.ubuntu.com/security.ubuntu.com serve everything.
+        if [ -f /etc/apt/apt-mirrors.txt ]; then
+          sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+          echo "--- /etc/apt/apt-mirrors.txt ---"
+          cat /etc/apt/apt-mirrors.txt
+        fi
+        # Covers images that inline the azure host instead of using
+        # mirror+file:, in either one-line or deb822 form.
+        sudo find /etc/apt -maxdepth 2 \
+          \( -name 'sources.list' -o -name '*.list' -o -name '*.sources' \) \
+          -exec sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' {} +
+
+        # Fail fast on a slow mirror instead of stalling for minutes per index.
+        sudo tee /etc/apt/apt.conf.d/99-ci-network >/dev/null <<'EOF'
+        Acquire::Retries "3";
+        Acquire::http::Timeout "20";
+        Acquire::https::Timeout "20";
+        EOF
+
+    - name: apt - add ppa
+      if: inputs.ppa != ''
+      shell: bash
+      env:
+        PPA: ${{ inputs.ppa }}
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        set -euo pipefail
+        # -n skips add-apt-repository's implicit update; we update once below.
+        sudo -E add-apt-repository -y -n "$PPA"
+
+    - name: apt - install packages
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        set -euo pipefail
+
+        run_with_retries() {
+          local attempt
+          for attempt in 1 2 3; do
+            if "$@"; then
+              return 0
+            fi
+            echo "::warning::'$*' failed (attempt $attempt/3), retrying..."
+            sleep $((attempt * 5))
+          done
+          echo "::error::'$*' failed after 3 attempts"
+          return 1
+        }
+
+        run_with_retries sudo -E apt-get update
+        # shellcheck disable=SC2086 -- PACKAGES is an intentional word list.
+        run_with_retries sudo -E apt-get install -y $PACKAGES
