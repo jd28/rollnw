@@ -64,9 +64,9 @@ intrinsic.</p>
 ruleset data
   -&gt; `.smalls` struct literals or a registered runtime source
 rules code
-  -&gt; load_config!(EntryType)(&quot;ruleset.data.table&quot;)
+  -&gt; load_config!(EntryType)("ruleset.data.table")
 runtime
-  -&gt; cached array!(EntryType), indexed by the entry&#39;s [[index]] field
+  -&gt; cached array!(EntryType), indexed by the entry's [[index]] field
 </code></pre></div>
 
 <p>The common case is a rules module loading one table once, then serving small
@@ -120,7 +120,7 @@ nwn1/data/classes -&gt; nwn1/data/classes/
 directory are loaded.</p>
 <h2 id="loading-from-script">Loading From Script</h2>
 <p>The intrinsic is declared in <code>core.prelude</code>:</p>
-<div class="codehilite"><pre><span></span><code><span class="nd">[[intrinsic(&quot;load_config&quot;)]]</span> <span class="k">fn</span> <span class="n">load_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="kt">string</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">);</span>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[intrinsic("load_config")]]</span> <span class="k">fn</span> <span class="n">load_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="kt">string</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">);</span>
 </code></pre></div>
 
 <p>Call it with an explicit entry type. Required modules expose one initialization
@@ -133,7 +133,7 @@ helpers with explicit out-of-range behavior:</p>
 <span class="k">var</span> <span class="n">_classes</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">);</span>
 
 <span class="k">fn</span> <span class="n">init</span><span class="p">():</span> <span class="kt">bool</span> <span class="p">{</span>
-    <span class="n">_classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.classes&quot;</span><span class="p">);</span>
+    <span class="n">_classes</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">ClassEntry</span><span class="p">)(</span><span class="s2">"nwn1.data.classes"</span><span class="p">);</span>
     <span class="k">return</span> <span class="nc">Array</span><span class="p">.</span><span class="n">len</span><span class="p">(</span><span class="n">_classes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 
@@ -202,7 +202,7 @@ reading and should define the fallback value at the API boundary.</p>
 <h2 id="2da-bridge">2DA Bridge</h2>
 <p>Some paths can be backed by a registered 2DA converter instead of <code>.smalls</code>
 entry files. The script API is the same:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">feats</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">FeatEntry</span><span class="p">)(</span><span class="s2">&quot;nwn1.data.feats&quot;</span><span class="p">);</span>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">feats</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">FeatEntry</span><span class="p">)(</span><span class="s2">"nwn1.data.feats"</span><span class="p">);</span>
 </code></pre></div>
 
 <p>This keeps old NWN data sources usable while the rules-facing code moves toward

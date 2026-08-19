@@ -149,37 +149,147 @@ the owning profile or native operation rather than clamped by the UI.</p>
 <p>Variable-height views are a different data problem and are not covered by this
 protocol.</p>
 <h2 id="initialization-and-lifetime">Initialization And Lifetime</h2>
-<p>rollnw client loads and compiles the <code>core.rmlui</code> Smalls module before
-initializing the binding. Initialization registers:</p>
+<p>rollnw client loads and compiles <code>core.rmlui</code> before initializing the binding.
+Provider modules are loaded and compiled when the host import scope and its
+listener targets are resolved. Initialization registers:</p>
 <ul>
 <li>a document instancer for RmlUi <code>body</code> documents; and</li>
-<li>an event-listener instancer for named Smalls handlers.</li>
+<li>an event-listener instancer for direct Smalls calls.</li>
 </ul>
-<p>Each successfully compiled inline or external script block is recorded as a
-unique module owned by its document. Handler identities retain pointers to
-runtime-owned compiled modules and functions only for that document lifetime.
-Destroying the document evicts its recorded script modules after its listeners
-can no longer dispatch.</p>
-<p>External scripts are limited to 1 MiB. A missing file interface, open/read
-failure, oversized source, compile diagnostic, or bytecode compile failure is
-reported and that block is unavailable.</p>
+<p>Each document may provide exactly one inline Smalls block, and that block may
+contain imports only. The host block and event expressions are parsed in a
+nested thread-local scratch scope. All names and bound string values that
+survive parsing are copied into document- or listener-owned storage; AST nodes,
+tokens, and source views never escape scratch lifetime. No document module is
+created and no document source enters the runtime compiler arena.</p>
+<p>Resolved function pointers are owned by the current Smalls runtime generation.
+A listener stores an index into its document's target table, while the target
+table stores the provider module, function name, and current compiled pointers.
+After kernel service replacement, imports and targets are resolved again before
+dispatch. No AST declaration pointer is retained; export ABI metadata remains
+valid after provider AST compaction.</p>
+<p>External scripts, a second inline block, and declarations in the inline block
+are rejected. These are contract errors, not fallback paths.</p>
 <h2 id="handler-contract">Handler Contract</h2>
-<p>An event attribute names a Smalls function. The binding resolves the most
-recent document block exporting that name. A valid handler has exactly this
-shape:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">handler</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Event</span><span class="p">):</span> <span class="kt">void</span>
+<p>An event attribute contains one direct call expression. Its target must be a
+function imported selectively by the host block or reached through an imported
+module alias:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">toolset</span><span class="p">.</span><span class="n">item_editor</span> <span class="k">import</span> <span class="p">{</span> <span class="n">apply_color</span><span class="p">,</span> <span class="n">details_refresh</span> <span class="p">};</span>
 </code></pre></div>
 
-<p>or:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">handler</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Command</span><span class="p">)</span>
+<div class="codehilite"><pre><span></span><code>&lt;button onclick="apply_color(42)"&gt;...&lt;/button&gt;
+&lt;div onrefresh="details_refresh()"&gt;...&lt;/div&gt;
 </code></pre></div>
 
-<p>Handler names must be non-empty identifiers containing ASCII letters, digits,
-or <code>_</code>, and may not start with a digit. A missing handler or a mismatched
-parameter/return type is a binding error.</p>
+<p>Arguments may be <code>event</code>, scalar literals, signed numeric literals, or imported
+primitive/newtype constants. Calls may have at most 16 arguments. Every
+declared parameter must be supplied, including parameters with defaults; no
+implicit default application occurs at this boundary. Generic targets are
+rejected. Arguments must exactly match the exported function ABI after alias
+unwrapping. Numeric literals are not widened at this boundary: an <code>int</code>
+parameter accepts <code>1</code>, while a <code>float</code> parameter requires <code>1.0</code>.</p>
+<p>A valid target returns either:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">handler</span><span class="p">(...)</span>
+<span class="k">fn</span> <span class="n">handler</span><span class="p">(...):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="n">core</span><span class="p">.</span><span class="n">rmlui</span><span class="p">.</span><span class="nc">Command</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The binding interns targets by provider module and function. The listener owns
+only a target index and its bound argument vector. Thus 176 calls such as
+<code>apply_color(0)</code> through <code>apply_color(175)</code> retain one target and 176 integer
+arguments, rather than 176 generated functions.</p>
+<p>RmlUi may instantiate attribute listeners lazily. Binding is attempted when the
+listener is instantiated and is always retried on first dispatch if the host
+scope was not yet available. This fallback is the correctness path; a click is
+never dropped to satisfy an eager-binding schedule.</p>
 <p>Dispatch currently enters through one RmlUi event at a time. Internally the
 binding processes a span of dispatch rows, so event encoding and execution have
 one plural path.</p>
+<h2 id="binding-data-protocol-and-bounds">Binding Data Protocol And Bounds</h2>
+<p>The binding transforms two input batches on the UI thread:</p>
+<div class="codehilite"><pre><span></span><code>one host import block
+    -&gt; owned selective-symbol and module-alias tables
+
+event attribute expressions
+    -&gt; document target table
+    + listener rows { target index, bound argument rows, diagnostic identity }
+</code></pre></div>
+
+<p>The RML document owns the import tables and target table until document
+destruction. Each RmlUi listener owns its bound argument rows for the same
+lifetime. Compiled module and function pointers remain owned by the Smalls
+runtime and are valid only for the recorded kernel-service generation. Parsed
+ASTs, tokens, and source views remain in nested thread-local scratch storage and
+are discarded before either transform returns.</p>
+<p>Every input boundary rejects data above its limit:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th style="text-align: right;">Limit</th>
+<th>Out-of-range behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host import source</td>
+<td style="text-align: right;">16 KiB</td>
+<td>Reject the host scope.</td>
+</tr>
+<tr>
+<td>Host imports</td>
+<td style="text-align: right;">64</td>
+<td>Reject the host scope.</td>
+</tr>
+<tr>
+<td>Imported symbols and aliases</td>
+<td style="text-align: right;">256</td>
+<td>Reject the host scope.</td>
+</tr>
+<tr>
+<td>One event expression</td>
+<td style="text-align: right;">1 KiB</td>
+<td>Reject that listener.</td>
+</tr>
+<tr>
+<td>Expression AST</td>
+<td style="text-align: right;">64 nodes, depth 16</td>
+<td>Reject that listener.</td>
+</tr>
+<tr>
+<td>Bound call arguments</td>
+<td style="text-align: right;">16</td>
+<td>Reject that listener.</td>
+</tr>
+<tr>
+<td>Interned targets per document</td>
+<td style="text-align: right;">256</td>
+<td>Reject additional listeners.</td>
+</tr>
+<tr>
+<td>Returned UI commands</td>
+<td style="text-align: right;">256</td>
+<td>Reject the complete returned batch.</td>
+</tr>
+<tr>
+<td>One <code>set_rml</code> payload</td>
+<td style="text-align: right;">1 MiB</td>
+<td>Reject the complete returned batch.</td>
+</tr>
+</tbody>
+</table>
+<p>The common dispatch path is one indexed target-table read followed by a linear
+materialization of at most 16 arguments. Literal integers, floats, and booleans
+require no ScriptHeap allocation. Event and string values are rooted before a
+later allocation can collect. The retained compiled pointers avoid a repeated
+name lookup on every click; indices cannot replace those pointers at the
+runtime execution boundary because <code>execute_compiled</code> consumes the
+runtime-owned compiled module and function. The generation check makes their
+lifetime explicit.</p>
+<p>This is a human-input latency path, not a throughput loop. Dispatch latency is
+reported by the benchmark without an arbitrary budget. The memory acceptance
+gate is exact: after provider modules are warmed, repeated document binding and
+dispatch must add zero bytes and zero entries to every measured runtime compiler
+counter.</p>
 <h2 id="event-value">Event Value</h2>
 <p><code>core.rmlui.Event</code> is copied before the handler executes:</p>
 <table>
@@ -220,8 +330,10 @@ one plural path.</p>
 </tr>
 </tbody>
 </table>
-<p>Dispatch requires a valid active object. When there is no active selection,
-the binding reports <code>no active object</code> and does not call the handler.</p>
+<p>Dispatch does not require a valid active object. When there is no active
+selection, <code>active_object</code> is invalid and the handler decides whether that is
+an error. Actions such as closing a selector can therefore run without a live
+resource.</p>
 <p>The module also exposes <code>active_object(): object</code> for terminal or ordinary
 Smalls calls that need to query the same selection outside an RmlUi event.</p>
 <h2 id="ui-command-value">UI Command Value</h2>
@@ -319,11 +431,9 @@ errors and out-of-range values are rejected rather than clamped. Integer rows
 render a text input for direct entry and bounded single-step controls; both
 commit through the same validated command.</p>
 <div class="codehilite"><pre><span></span><code><span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">commands</span><span class="p">.</span><span class="n">v1</span> <span class="k">import</span> <span class="p">{</span> <span class="n">command_execute</span> <span class="p">};</span>
-<span class="k">from</span> <span class="n">core</span><span class="p">.</span><span class="n">rmlui</span> <span class="k">import</span> <span class="p">{</span> <span class="nc">Event</span><span class="p">,</span> <span class="nc">Command</span> <span class="p">};</span>
 
-<span class="k">fn</span> <span class="n">remove_item_property</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="nc">Event</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">Command</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">command_execute</span><span class="p">(</span><span class="s2">&quot;object.item.remove_property&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="n">event</span><span class="p">.</span><span class="n">value</span> <span class="p">});</span>
-    <span class="k">return</span> <span class="p">{};</span>
+<span class="k">fn</span> <span class="n">remove_item_property</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">command_execute</span><span class="p">(</span><span class="s2">"object.item.remove_property"</span><span class="p">,</span> <span class="p">{</span> <span class="s2">f"{index}"</span> <span class="p">});</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -337,6 +447,11 @@ scripts.</p>
 <li>rollnw logging with the <code>[rml-smalls]</code> category; and</li>
 <li><code>RmlSmallsLanguageBinding::diagnostics()</code>.</li>
 </ul>
+<p>The binding retains at most 256 diagnostic records. Further failures still
+reach both logging sinks, but are not retained; the cumulative, saturating
+<code>RmlSmallsBindingStats::suppressed_diagnostic_count</code> records their count.
+<code>clear_diagnostics()</code> removes the retained messages without resetting the
+lifetime statistics.</p>
 <p>Failure stages are explicit:</p>
 <table>
 <thead>
@@ -347,12 +462,12 @@ scripts.</p>
 </thead>
 <tbody>
 <tr>
-<td>Source load/compile</td>
-<td>Block is not registered; diagnostics include source path and adjusted line.</td>
+<td>Host import parsing/resolution</td>
+<td>Scope is invalid; listeners do not execute until a later runtime generation successfully rebinds it.</td>
 </tr>
 <tr>
-<td>Handler resolution</td>
-<td>Listener retains an invalid handler and ignores later events after reporting once.</td>
+<td>Expression binding</td>
+<td>Listener is invalid for that runtime generation; diagnostics name the document or template source, element ID, and expression.</td>
 </tr>
 <tr>
 <td>Event encoding</td>
@@ -370,8 +485,16 @@ scripts.</p>
 <td>Command application</td>
 <td>Application stops at the failing row; earlier UI rows remain applied.</td>
 </tr>
+<tr>
+<td>C++ exception at an RmlUi entry point</td>
+<td>The exception is converted to a diagnostic; no exception crosses the RmlUi callback boundary.</td>
+</tr>
 </tbody>
 </table>
+<p>Imported templates do not contribute or union import scopes. A template handler
+resolves only against the including host document's imports. Template roots use
+<code>data-smalls-source</code> so a missing host import names the template source rather
+than incorrectly blaming the host document.</p>
 <h2 id="deliberately-not-exposed">Deliberately Not Exposed</h2>
 <ul>
 <li>Raw <code>Rml::Event*</code>, <code>Rml::Element*</code>, or <code>Rml::ElementDocument*</code> values.</li>

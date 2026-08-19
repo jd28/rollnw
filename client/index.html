@@ -73,7 +73,7 @@ objects; it does not own a second gameplay or editor object model.</p>
 
 <p>Use <code>--json</code> for the client's native project format:</p>
 <div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--json<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;/path/to/Neverwinter Nights/modules/example.mod&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"/path/to/Neverwinter Nights/modules/example.mod"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>./example-project
 </code></pre></div>
 
@@ -87,7 +87,7 @@ The NWN:EE installation and every hak named by the module must be discoverable;
 if automatic discovery fails, set <code>NWN_ROOT</code> and <code>NWN_HOME</code> to the installation
 and user directories. Import fails when a declared hak cannot be loaded.</p>
 <p>To preserve the module's original binary GFF resources instead, use:</p>
-<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">&quot;/path/to/example.mod&quot;</span><span class="w"> </span>./example-legacy
+<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-legacy
 </code></pre></div>
 
 <p>The destination is created when it does not exist. Importing into an existing

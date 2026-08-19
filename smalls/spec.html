@@ -238,7 +238,7 @@
 
 <span class="c1">// Named field initialization</span>
 <span class="k">const</span> <span class="n">p1</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="p">};</span>
-<span class="k">const</span> <span class="n">p2</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="p">};</span>  <span class="c1">// Order doesn&#39;t matter</span>
+<span class="k">const</span> <span class="n">p2</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="p">};</span>  <span class="c1">// Order doesn't matter</span>
 
 <span class="c1">// Positional initialization</span>
 <span class="k">const</span> <span class="n">p3</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="p">};</span>
@@ -308,7 +308,7 @@
 
 <span class="c1">// Payload variants - use qualified call syntax</span>
 <span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
-<span class="k">var</span> <span class="n">e</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Err</span><span class="p">(</span><span class="s2">&quot;something failed&quot;</span><span class="p">);</span>
+<span class="k">var</span> <span class="n">e</span><span class="p">:</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Err</span><span class="p">(</span><span class="s2">"something failed"</span><span class="p">);</span>
 
 <span class="c1">// Unit variants - use qualified member access</span>
 <span class="k">var</span> <span class="n">c</span><span class="p">:</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Color</span><span class="p">.</span><span class="nc">Red</span><span class="p">;</span>
@@ -326,7 +326,7 @@
 <div class="codehilite"><pre><span></span><code><span class="k">type</span> <span class="nc">Result</span> <span class="o">=</span> <span class="nc">Ok</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="o">|</span> <span class="nc">Err</span><span class="p">(</span><span class="kt">string</span><span class="p">);</span>
 <span class="k">type</span> <span class="nc">MyResult</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">;</span>  <span class="c1">// Just another name for Result</span>
 <span class="k">var</span> <span class="n">r</span><span class="p">:</span> <span class="nc">MyResult</span> <span class="o">=</span> <span class="nc">Result</span><span class="p">.</span><span class="nc">Ok</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span> <span class="c1">// ✓ Use original type name</span>
-<span class="c1">// NOT: MyResult.Ok(42) - aliases don&#39;t have their own variants</span>
+<span class="c1">// NOT: MyResult.Ok(42) - aliases don't have their own variants</span>
 </code></pre></div>
 
 <p><strong>Construction rules</strong>:
@@ -361,9 +361,9 @@
 <span class="k">type</span> <span class="nc">Color</span> <span class="o">=</span> <span class="nc">Red</span> <span class="o">|</span> <span class="nc">Green</span> <span class="o">|</span> <span class="nc">Blue</span><span class="p">;</span>
 <span class="k">fn</span> <span class="n">describe_color</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="nc">Color</span><span class="p">):</span> <span class="kt">string</span> <span class="p">{</span>
     <span class="k">switch</span> <span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">case</span> <span class="nc">Red</span><span class="p">:</span>   <span class="k">return</span> <span class="s2">&quot;red&quot;</span><span class="p">;</span>
-        <span class="k">case</span> <span class="nc">Green</span><span class="p">:</span> <span class="k">return</span> <span class="s2">&quot;green&quot;</span><span class="p">;</span>
-        <span class="k">case</span> <span class="nc">Blue</span><span class="p">:</span>  <span class="k">return</span> <span class="s2">&quot;blue&quot;</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Red</span><span class="p">:</span>   <span class="k">return</span> <span class="s2">"red"</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Green</span><span class="p">:</span> <span class="k">return</span> <span class="s2">"green"</span><span class="p">;</span>
+        <span class="k">case</span> <span class="nc">Blue</span><span class="p">:</span>  <span class="k">return</span> <span class="s2">"blue"</span><span class="p">;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 
@@ -441,10 +441,10 @@
 
 <p><strong>Tuple Indexing</strong>:</p>
 <div class="codehilite"><pre><span></span><code><span class="k">fn</span> <span class="n">test</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">var</span> <span class="n">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">42</span><span class="p">,</span> <span class="mf">3.14</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span><span class="p">);</span>
+    <span class="k">var</span> <span class="n">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">42</span><span class="p">,</span> <span class="mf">3.14</span><span class="p">,</span> <span class="s2">"hello"</span><span class="p">);</span>
     <span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>  <span class="c1">// x: int = 42</span>
     <span class="k">var</span> <span class="n">y</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>  <span class="c1">// y: float = 3.14</span>
-    <span class="k">var</span> <span class="n">z</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>  <span class="c1">// z: string = &quot;hello&quot;</span>
+    <span class="k">var</span> <span class="n">z</span> <span class="o">=</span> <span class="n">tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>  <span class="c1">// z: string = "hello"</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -540,7 +540,7 @@
 <span class="k">type</span> <span class="nc">Option</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">)</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="nv">$T</span><span class="p">)</span> <span class="o">|</span> <span class="nc">None</span><span class="p">;</span>
 
 <span class="c1">// Usage - explicit type arguments required</span>
-<span class="k">var</span> <span class="n">pair</span><span class="p">:</span> <span class="nc">Pair</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">string</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span> <span class="p">};</span>
+<span class="k">var</span> <span class="n">pair</span><span class="p">:</span> <span class="nc">Pair</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">string</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">42</span><span class="p">,</span> <span class="s2">"hello"</span> <span class="p">};</span>
 </code></pre></div>
 
 <p><strong>Limitations</strong>:
@@ -625,7 +625,7 @@
 - <code>T[N]</code> is the fixed-size inline value type.</p>
 <p><strong><em>See [VII.Write Barriers]</em></strong></p>
 <p><strong>Maps</strong> (<code>map!(K, V)</code>):</p>
-<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;alice&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;bob&quot;</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alice"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"bob"</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
 </code></pre></div>
 
 <p>Properties:
@@ -658,14 +658,14 @@
 <p><strong>Syntax</strong>: <code>f"text {expr} more text"</code></p>
 <p>Expressions inside <code>{...}</code> are evaluated and converted to strings. For user-defined types, the <code>[[operator(str)]]</code> function is called for conversion.</p>
 <p><strong>Examples</strong>:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;World&quot;</span><span class="p">;</span>
-<span class="k">var</span> <span class="n">greeting</span> <span class="o">=</span> <span class="s2">f&quot;Hello, {name}!&quot;</span><span class="p">;</span>      <span class="c1">// &quot;Hello, World!&quot;</span>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">"World"</span><span class="p">;</span>
+<span class="k">var</span> <span class="n">greeting</span> <span class="o">=</span> <span class="s2">f"Hello, {name}!"</span><span class="p">;</span>      <span class="c1">// "Hello, World!"</span>
 
 <span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
-<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f&quot;The answer is {x}&quot;</span><span class="p">;</span>        <span class="c1">// &quot;The answer is 42&quot;</span>
+<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f"The answer is {x}"</span><span class="p">;</span>        <span class="c1">// "The answer is 42"</span>
 
 <span class="k">var</span> <span class="n">p</span> <span class="o">=</span> <span class="nc">Point</span> <span class="p">{</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="p">};</span>
-<span class="k">var</span> <span class="n">desc</span> <span class="o">=</span> <span class="s2">f&quot;Position: {p}&quot;</span><span class="p">;</span>           <span class="c1">// Calls [[operator(str)]] on Point</span>
+<span class="k">var</span> <span class="n">desc</span> <span class="o">=</span> <span class="s2">f"Position: {p}"</span><span class="p">;</span>           <span class="c1">// Calls [[operator(str)]] on Point</span>
 </code></pre></div>
 
 <p><strong>Supported interpolation types</strong>:
@@ -888,7 +888,7 @@
 <p>The condition is evaluated first. If truthy, the true branch is evaluated and returned; otherwise the false branch. Both branches must produce compatible types. Conditional expressions are foldable at compile time when the condition is constant.</p>
 <div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
 <span class="k">var</span> <span class="n">abs_x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="p">?</span> <span class="n">x</span> <span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">;</span>
-<span class="k">var</span> <span class="n">label</span> <span class="o">=</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">90</span> <span class="p">?</span> <span class="s2">&quot;A&quot;</span> <span class="p">:</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">80</span> <span class="p">?</span> <span class="s2">&quot;B&quot;</span> <span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">;</span>  <span class="c1">// Nesting supported</span>
+<span class="k">var</span> <span class="n">label</span> <span class="o">=</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">90</span> <span class="p">?</span> <span class="s2">"A"</span> <span class="p">:</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">80</span> <span class="p">?</span> <span class="s2">"B"</span> <span class="p">:</span> <span class="s2">"C"</span><span class="p">;</span>  <span class="c1">// Nesting supported</span>
 </code></pre></div>
 
 <h4 id="implementation_11">Implementation</h4>
@@ -956,7 +956,7 @@
 </code></pre></div>
 
 <p><strong>Map iteration</strong> — Two bindings receive key-value pairs:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;alice&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;bob&quot;</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
+<div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">scores</span><span class="p">:</span> <span class="n">map</span><span class="o">!</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alice"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"bob"</span><span class="p">:</span> <span class="mi">85</span><span class="p">};</span>
 <span class="k">for</span> <span class="p">(</span><span class="k">var</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="k">in</span> <span class="n">scores</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">print</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>    <span class="c1">// key is string</span>
     <span class="n">print</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>  <span class="c1">// value is int</span>
@@ -1014,11 +1014,11 @@
 <p>The <code>str</code> operator enables custom string conversion for user types:</p>
 <div class="codehilite"><pre><span></span><code><span class="nd">[[operator(str)]]</span>
 <span class="k">fn</span> <span class="n">point_to_string</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nc">Point</span><span class="p">):</span> <span class="kt">string</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="s2">&quot;Point(&quot;</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">;</span>
+    <span class="k">return</span> <span class="s2">"Point("</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s2">", "</span> <span class="o">+</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="s2">")"</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f&quot;Location: {p}&quot;</span><span class="p">;</span>  <span class="c1">// Calls point_to_string(p)</span>
-<span class="k">var</span> <span class="n">s</span> <span class="o">=</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>               <span class="c1">// &quot;Point(1.0, 2.0)&quot;</span>
+<span class="k">var</span> <span class="n">msg</span> <span class="o">=</span> <span class="s2">f"Location: {p}"</span><span class="p">;</span>  <span class="c1">// Calls point_to_string(p)</span>
+<span class="k">var</span> <span class="n">s</span> <span class="o">=</span> <span class="n">str</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>               <span class="c1">// "Point(1.0, 2.0)"</span>
 </code></pre></div>
 
 <p><strong><em>See [III.Modules (core.string)]</em></strong> for string intrinsics.</p>
@@ -1141,9 +1141,9 @@
 <h4 id="intrinsic-functions">Intrinsic Functions</h4>
 <p>Intrinsics are module-scoped functions declared with <code>[[intrinsic("name")]]</code> and accessed through imports like any other function. Intrinsic declarations have no body and cannot be combined with <code>[[native]]</code>.</p>
 <div class="codehilite"><pre><span></span><code><span class="c1">// core/bit.smalls</span>
-<span class="nd">[[intrinsic(&quot;bit_and&quot;)]]</span> <span class="k">fn</span> <span class="n">and</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
-<span class="nd">[[intrinsic(&quot;bit_or&quot;)]]</span> <span class="k">fn</span> <span class="n">or</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
-<span class="nd">[[intrinsic(&quot;bit_not&quot;)]]</span> <span class="k">fn</span> <span class="n">not</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+<span class="nd">[[intrinsic("bit_and")]]</span> <span class="k">fn</span> <span class="n">and</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+<span class="nd">[[intrinsic("bit_or")]]</span> <span class="k">fn</span> <span class="n">or</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
+<span class="nd">[[intrinsic("bit_not")]]</span> <span class="k">fn</span> <span class="n">not</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="kt">int</span><span class="p">):</span> <span class="kt">int</span><span class="p">;</span>
 </code></pre></div>
 
 <p><strong>Complete intrinsic list</strong> (from <code>Intrinsics.hpp</code>):</p>
@@ -1464,7 +1464,7 @@
 <p>Following the philosophy "Config &amp; Serialization Are Struct Literals", Smalls uses bare struct literal syntax as the primary data format. Each <code>.smalls</code> config file contains a single struct literal:</p>
 <div class="codehilite"><pre><span></span><code><span class="c1">// fireball.smalls</span>
 <span class="nc">SpellInfo</span> <span class="p">{</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Fireball&quot;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">"Fireball"</span><span class="p">,</span>
     <span class="n">school</span> <span class="o">=</span> <span class="nc">SpellSchool</span><span class="p">.</span><span class="nc">Evocation</span><span class="p">,</span>
     <span class="n">innate_level</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
     <span class="n">on_impact</span> <span class="o">=</span> <span class="k">fn</span><span class="p">(</span><span class="n">caster</span><span class="p">:</span> <span class="kt">object</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="nc">Location</span><span class="p">)</span> <span class="p">{</span>
@@ -1474,7 +1474,7 @@
 </code></pre></div>
 
 <p><strong>C++ API</strong>: Types are registered via <code>ModuleBuilder</code>, then configs loaded with <code>load_config&lt;T&gt;()</code>:</p>
-<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">spell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="n">load_config</span><span class="o">&lt;</span><span class="n">SpellInfo</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;fireball&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;game_types&quot;</span><span class="p">);</span>
+<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">spell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rt</span><span class="p">.</span><span class="n">load_config</span><span class="o">&lt;</span><span class="n">SpellInfo</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"fireball"</span><span class="p">,</span><span class="w"> </span><span class="s">"game_types"</span><span class="p">);</span>
 </code></pre></div>
 
 <p><strong><em>See [IV.Native Interfaces]</em></strong> for the Registration API used to define config types.</p>
@@ -1586,14 +1586,14 @@ or array-element type. The containing propset remains profile-owned.</p>
 <p><strong><em>See [VII.GC Integration Points]</em></strong></p>
 <h4 id="registration-api">Registration API</h4>
 <p><strong>C++ Side</strong> — Register native module interface:</p>
-<div class="codehilite"><pre><span></span><code><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">mb</span><span class="p">(</span><span class="o">&amp;</span><span class="n">runtime</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;core.effects&quot;</span><span class="p">);</span>
-<span class="n">mb</span><span class="p">.</span><span class="n">value_type</span><span class="o">&lt;</span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;vec3&quot;</span><span class="p">);</span>
-<span class="n">mb</span><span class="p">.</span><span class="n">native_struct</span><span class="o">&lt;</span><span class="n">Position</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;Position&quot;</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">x</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">y</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">z</span><span class="p">);</span>
-<span class="n">mb</span><span class="p">.</span><span class="n">handle_type</span><span class="p">(</span><span class="s">&quot;Effect&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">RuntimeObjectPool</span><span class="o">::</span><span class="n">TYPE_EFFECT</span><span class="p">);</span>
-<span class="n">mb</span><span class="p">.</span><span class="n">function</span><span class="p">(</span><span class="s">&quot;create_damage&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">create_damage_effect</span><span class="p">);</span>
+<div class="codehilite"><pre><span></span><code><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">mb</span><span class="p">(</span><span class="o">&amp;</span><span class="n">runtime</span><span class="p">,</span><span class="w"> </span><span class="s">"core.effects"</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">value_type</span><span class="o">&lt;</span><span class="n">glm</span><span class="o">::</span><span class="n">vec3</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"vec3"</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">native_struct</span><span class="o">&lt;</span><span class="n">Position</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"Position"</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">"x"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">x</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">"y"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">y</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">field</span><span class="p">(</span><span class="s">"z"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Position</span><span class="o">::</span><span class="n">z</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">handle_type</span><span class="p">(</span><span class="s">"Effect"</span><span class="p">,</span><span class="w"> </span><span class="n">RuntimeObjectPool</span><span class="o">::</span><span class="n">TYPE_EFFECT</span><span class="p">);</span>
+<span class="n">mb</span><span class="p">.</span><span class="n">function</span><span class="p">(</span><span class="s">"create_damage"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">create_damage_effect</span><span class="p">);</span>
 <span class="n">mb</span><span class="p">.</span><span class="n">finalize</span><span class="p">();</span>
 </code></pre></div>
 
