@@ -197,6 +197,14 @@
                 "ROLLNW_BUILD_FUZZERS": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ENABLE_SANITIZER_ADDRESS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },

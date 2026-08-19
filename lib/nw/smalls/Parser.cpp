@@ -265,6 +265,9 @@ bool Parser::match(std::initializer_list<TokenType> types)
 
 Token Parser::peek() const
 {
+    if (tokens.empty()) {
+        return Token{TokenType::END, StringView{}};
+    }
     if (is_end()) {
         return tokens.back();
     }
@@ -471,7 +474,8 @@ Expression* Parser::parse_expr_unary()
                     || lit->literal.type == TokenType::FLOAT_LITERAL)) {
                 return fold(op, lit, right);
             } else if (op.type == TokenType::MINUS) {
-                if (lit->literal.type == TokenType::INTEGER_LITERAL) {
+                if (lit->literal.type == TokenType::INTEGER_LITERAL
+                    && lit->data.is<int32_t>()) {
                     auto value = lit->data.as<int32_t>();
                     if (value == std::numeric_limits<int32_t>::min()) {
                         diagnostic("integer literal out of range after unary '-'", lit->literal);
@@ -479,12 +483,14 @@ Expression* Parser::parse_expr_unary()
                         lit->data = -value;
                     }
                     return fold(op, lit, right);
-                } else if (lit->literal.type == TokenType::FLOAT_LITERAL) {
+                } else if (lit->literal.type == TokenType::FLOAT_LITERAL
+                    && lit->data.is<float>()) {
                     lit->data = -lit->data.as<float>();
                     return fold(op, lit, right);
                 }
             } else if (op.type == TokenType::NOT) {
-                if (lit->literal.type == TokenType::INTEGER_LITERAL) {
+                if (lit->literal.type == TokenType::INTEGER_LITERAL
+                    && lit->data.is<int32_t>()) {
                     lit->data = !lit->data.as<int32_t>();
                     return fold(op, lit, right);
                 }

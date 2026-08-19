@@ -11,11 +11,12 @@ declare -a targets=(
   "smalls_parse"
   "smalls_resolve"
   "smalls_vm"
+  "rml_smalls_binding"
 )
 
 if [[ ! -d "${build_dir}" ]]; then
   echo "build dir not found: ${build_dir}" >&2
-  echo "Tip: run: cmake --preset ci-linux-clang-fuzz && cmake --build --preset ci-linux-clang-fuzz --target fuzz_smalls_parse fuzz_smalls_resolve fuzz_smalls_vm" >&2
+  echo "Tip: run: cmake --preset ci-linux-clang-fuzz && cmake --build --preset ci-linux-clang-fuzz --target fuzz_smalls_parse fuzz_smalls_resolve fuzz_smalls_vm fuzz_rml_smalls_binding" >&2
   exit 2
 fi
 

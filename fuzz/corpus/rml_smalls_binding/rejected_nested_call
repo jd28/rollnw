@@ -1,0 +1,3 @@
+from fuzz.rml_binding_provider import { handle, bad_return };
+%%
+handle(event, bad_return(1), 2.0, false, "nested")

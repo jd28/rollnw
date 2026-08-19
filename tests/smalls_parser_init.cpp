@@ -93,6 +93,19 @@ TEST_F(SmallsParser, FloatLiteralOverflowIsDiagnostic)
     EXPECT_NO_THROW(script.parse());
     EXPECT_GT(script.errors(), 0);
 }
+
+TEST_F(SmallsParser, InvalidSignedNumericLiteralsAreDiagnostic)
+{
+    auto script = make_script(R"(
+        fn test() {
+            var integer = -99999999999;
+            var floating = -452.fso;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(script.parse());
+    EXPECT_GT(script.errors(), 0);
+}
 TEST_F(SmallsParser, LiteralString)
 {
     auto script = make_script(R"(

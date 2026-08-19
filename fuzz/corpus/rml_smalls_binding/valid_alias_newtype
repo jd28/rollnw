@@ -1,0 +1,3 @@
+import fuzz.rml_binding_provider as Provider;
+%%
+Provider.handle_newtype(Provider.palette_index)

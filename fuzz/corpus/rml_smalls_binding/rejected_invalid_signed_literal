@@ -1,0 +1,3 @@
+from fuzz.rml_binding_provider import { handle };
+%%
+handle(event, -452.fso, 1.0, false, "bad")

@@ -129,6 +129,15 @@ TEST(ClientRmlSmallsExpressionBinding, RejectsWorkOutsideTheBoundedCallGrammar)
         runtime, scope, "select", call, error));
     EXPECT_NE(error.find("direct call"), std::string::npos);
 
+    EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
+        runtime, scope, "*/", call, error));
+    EXPECT_FALSE(error.empty());
+
+    EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
+        runtime, scope, "select(event, -452.fso, 2.0, false, \"bad\")",
+        call, error));
+    EXPECT_FALSE(error.empty());
+
     EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(runtime, scope,
         R"(select(event, Provider.identity(1), 2.0, false, "nested"))",
         call, error));
