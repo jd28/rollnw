@@ -94,45 +94,122 @@ protocol.
 
 ## Initialization And Lifetime
 
-rollnw client loads and compiles the `core.rmlui` Smalls module before
-initializing the binding. Initialization registers:
+rollnw client loads and compiles `core.rmlui` before initializing the binding.
+Provider modules are loaded and compiled when the host import scope and its
+listener targets are resolved. Initialization registers:
 
 - a document instancer for RmlUi `body` documents; and
-- an event-listener instancer for named Smalls handlers.
+- an event-listener instancer for direct Smalls calls.
 
-Each successfully compiled inline or external script block is recorded as a
-unique module owned by its document. Handler identities retain pointers to
-runtime-owned compiled modules and functions only for that document lifetime.
-Destroying the document evicts its recorded script modules after its listeners
-can no longer dispatch.
+Each document may provide exactly one inline Smalls block, and that block may
+contain imports only. The host block and event expressions are parsed in a
+nested thread-local scratch scope. All names and bound string values that
+survive parsing are copied into document- or listener-owned storage; AST nodes,
+tokens, and source views never escape scratch lifetime. No document module is
+created and no document source enters the runtime compiler arena.
 
-External scripts are limited to 1 MiB. A missing file interface, open/read
-failure, oversized source, compile diagnostic, or bytecode compile failure is
-reported and that block is unavailable.
+Resolved function pointers are owned by the current Smalls runtime generation.
+A listener stores an index into its document's target table, while the target
+table stores the provider module, function name, and current compiled pointers.
+After kernel service replacement, imports and targets are resolved again before
+dispatch. No AST declaration pointer is retained; export ABI metadata remains
+valid after provider AST compaction.
+
+External scripts, a second inline block, and declarations in the inline block
+are rejected. These are contract errors, not fallback paths.
 
 ## Handler Contract
 
-An event attribute names a Smalls function. The binding resolves the most
-recent document block exporting that name. A valid handler has exactly this
-shape:
+An event attribute contains one direct call expression. Its target must be a
+function imported selectively by the host block or reached through an imported
+module alias:
 
 ```smalls
-fn handler(event: core.rmlui.Event): void
+from toolset.item_editor import { apply_color, details_refresh };
 ```
 
-or:
+```rml
+<button onclick="apply_color(42)">...</button>
+<div onrefresh="details_refresh()">...</div>
+```
+
+Arguments may be `event`, scalar literals, signed numeric literals, or imported
+primitive/newtype constants. Calls may have at most 16 arguments. Every
+declared parameter must be supplied, including parameters with defaults; no
+implicit default application occurs at this boundary. Generic targets are
+rejected. Arguments must exactly match the exported function ABI after alias
+unwrapping. Numeric literals are not widened at this boundary: an `int`
+parameter accepts `1`, while a `float` parameter requires `1.0`.
+
+A valid target returns either:
 
 ```smalls
-fn handler(event: core.rmlui.Event): array!(core.rmlui.Command)
+fn handler(...)
+fn handler(...): array!(core.rmlui.Command)
 ```
 
-Handler names must be non-empty identifiers containing ASCII letters, digits,
-or `_`, and may not start with a digit. A missing handler or a mismatched
-parameter/return type is a binding error.
+The binding interns targets by provider module and function. The listener owns
+only a target index and its bound argument vector. Thus 176 calls such as
+`apply_color(0)` through `apply_color(175)` retain one target and 176 integer
+arguments, rather than 176 generated functions.
+
+RmlUi may instantiate attribute listeners lazily. Binding is attempted when the
+listener is instantiated and is always retried on first dispatch if the host
+scope was not yet available. This fallback is the correctness path; a click is
+never dropped to satisfy an eager-binding schedule.
 
 Dispatch currently enters through one RmlUi event at a time. Internally the
 binding processes a span of dispatch rows, so event encoding and execution have
 one plural path.
+
+## Binding Data Protocol And Bounds
+
+The binding transforms two input batches on the UI thread:
+
+```text
+one host import block
+    -> owned selective-symbol and module-alias tables
+
+event attribute expressions
+    -> document target table
+    + listener rows { target index, bound argument rows, diagnostic identity }
+```
+
+The RML document owns the import tables and target table until document
+destruction. Each RmlUi listener owns its bound argument rows for the same
+lifetime. Compiled module and function pointers remain owned by the Smalls
+runtime and are valid only for the recorded kernel-service generation. Parsed
+ASTs, tokens, and source views remain in nested thread-local scratch storage and
+are discarded before either transform returns.
+
+Every input boundary rejects data above its limit:
+
+| Input | Limit | Out-of-range behavior |
+| --- | ---: | --- |
+| Host import source | 16 KiB | Reject the host scope. |
+| Host imports | 64 | Reject the host scope. |
+| Imported symbols and aliases | 256 | Reject the host scope. |
+| One event expression | 1 KiB | Reject that listener. |
+| Expression AST | 64 nodes, depth 16 | Reject that listener. |
+| Bound call arguments | 16 | Reject that listener. |
+| Interned targets per document | 256 | Reject additional listeners. |
+| Returned UI commands | 256 | Reject the complete returned batch. |
+| One `set_rml` payload | 1 MiB | Reject the complete returned batch. |
+
+The common dispatch path is one indexed target-table read followed by a linear
+materialization of at most 16 arguments. Literal integers, floats, and booleans
+require no ScriptHeap allocation. Event and string values are rooted before a
+later allocation can collect. The retained compiled pointers avoid a repeated
+name lookup on every click; indices cannot replace those pointers at the
+runtime execution boundary because `execute_compiled` consumes the
+runtime-owned compiled module and function. The generation check makes their
+lifetime explicit.
+
+This is a human-input latency path, not a throughput loop. Dispatch latency is
+reported by the benchmark without an arbitrary budget. The memory acceptance
+gate is exact: after provider modules are warmed, repeated document binding and
+dispatch must add zero bytes and zero entries to every measured runtime compiler
+counter.
 
 ## Event Value
 
@@ -148,8 +225,10 @@ one plural path.
 | `checked: bool` | Whether an input currently has the `checked` attribute. |
 | `active_object: object` | Current validated rollnw client selection. |
 
-Dispatch requires a valid active object. When there is no active selection,
-the binding reports `no active object` and does not call the handler.
+Dispatch does not require a valid active object. When there is no active
+selection, `active_object` is invalid and the handler decides whether that is
+an error. Actions such as closing a selector can therefore run without a live
+resource.
 
 The module also exposes `active_object(): object` for terminal or ordinary
 Smalls calls that need to query the same selection outside an RmlUi event.
@@ -215,11 +294,9 @@ commit through the same validated command.
 
 ```smalls
 from core.commands.v1 import { command_execute };
-from core.rmlui import { Event, Command };
 
-fn remove_item_property(event: Event): array!(Command) {
-    command_execute("object.item.remove_property", { event.value });
-    return {};
+fn remove_item_property(index: int) {
+    command_execute("object.item.remove_property", { f"{index}" });
 }
 ```
 
@@ -235,16 +312,28 @@ The binding reports errors to all three current sinks:
 - rollnw logging with the `[rml-smalls]` category; and
 - `RmlSmallsLanguageBinding::diagnostics()`.
 
+The binding retains at most 256 diagnostic records. Further failures still
+reach both logging sinks, but are not retained; the cumulative, saturating
+`RmlSmallsBindingStats::suppressed_diagnostic_count` records their count.
+`clear_diagnostics()` removes the retained messages without resetting the
+lifetime statistics.
+
 Failure stages are explicit:
 
 | Stage | Result |
 | --- | --- |
-| Source load/compile | Block is not registered; diagnostics include source path and adjusted line. |
-| Handler resolution | Listener retains an invalid handler and ignores later events after reporting once. |
+| Host import parsing/resolution | Scope is invalid; listeners do not execute until a later runtime generation successfully rebinds it. |
+| Expression binding | Listener is invalid for that runtime generation; diagnostics name the document or template source, element ID, and expression. |
 | Event encoding | Handler is not executed. |
 | Smalls execution | No commands are applied. |
 | Command decoding | No commands are applied. |
 | Command application | Application stops at the failing row; earlier UI rows remain applied. |
+| C++ exception at an RmlUi entry point | The exception is converted to a diagnostic; no exception crosses the RmlUi callback boundary. |
+
+Imported templates do not contribute or union import scopes. A template handler
+resolves only against the including host document's imports. Template roots use
+`data-smalls-source` so a missing host import names the template source rather
+than incorrectly blaming the host document.
 
 ## Deliberately Not Exposed
 

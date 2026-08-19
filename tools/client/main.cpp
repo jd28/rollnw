@@ -10,6 +10,7 @@
 #include "resource_document.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
+#include "rml_smalls_data_model.hpp"
 #include "rml_smalls_language_binding.hpp"
 #include "shell_controller.hpp"
 #include "smalls_creature_feats.hpp"
@@ -642,6 +643,7 @@ struct RecentProjectEntry {
 
 enum class ObjectWorkbenchSurface : uint8_t {
     details,
+    sheet,
     variables,
     haks,
     classes,
@@ -804,6 +806,7 @@ struct AppState {
     nw::toolset::VirtualListController appearance_list;
     nw::toolset::VirtualComboBox body_part_combobox;
     std::unique_ptr<nw::toolset::RmlSmallsLanguageBinding> rml_smalls_binding;
+    std::unique_ptr<nw::toolset::RmlSmallsDataModel> rml_smalls_data_model;
     std::string active_object_tab_id;
     std::string creature_feat_query;
     std::string creature_spell_query;
@@ -2654,18 +2657,20 @@ void dispatch_managed_list_events(AppState& state)
 
 bool synchronize_smalls_runtime(AppState& state)
 {
-    if (!state.rml_smalls_binding
+    if (!state.rml_smalls_binding || !state.rml_smalls_data_model
         || !state.smalls.initialize()) {
         return false;
     }
     auto& runtime = nw::kernel::runtime();
-    return state.rml_smalls_binding->initialize(runtime);
+    return state.rml_smalls_binding->initialize(runtime)
+        && state.rml_smalls_data_model->synchronize(runtime);
 }
 
 void refresh_smalls_elements(Rml::ElementDocument* document, AppState& state)
 {
     if (document && synchronize_smalls_runtime(state)) {
         state.rml_smalls_binding->refresh_elements(document);
+        state.rml_smalls_data_model->dirty_all();
     }
 }
 
@@ -3736,8 +3741,9 @@ void configure_details_list(AppState& state)
 void invalidate_details_render(AppState& state)
 {
     configure_details_list(state);
-    const size_t row_count = state.object_details.status == nw::toolset::ObjectDetailsStatus::ready
-        ? state.object_details.rows.size()
+    const auto* snapshot = &state.object_details;
+    const size_t row_count = snapshot->status == nw::toolset::ObjectDetailsStatus::ready
+        ? snapshot->rows.size()
         : 0;
     state.details_list.set_total_rows(static_cast<int>(row_count));
     state.details_rendered = false;
@@ -3895,7 +3901,7 @@ bool sync_active_module_object(AppState& state)
 bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool force)
 {
     const bool variable_changed = sync_object_variable_window(doc, state, force);
-    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::details) {
         return variable_changed;
     }
     auto* list = find_el(doc, "property_tree_rows");
@@ -3919,22 +3925,23 @@ bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool
         return false;
     }
 
+    const auto& snapshot = state.object_details;
     std::string markup;
     if (active_object_matches_tab(state)
-        && state.object_details.status != nw::toolset::ObjectDetailsStatus::ready) {
+        && snapshot.status != nw::toolset::ObjectDetailsStatus::ready) {
         markup = "<div class=\"property_tree_empty error\">";
-        markup += escape_html(state.object_details.diagnostic.empty()
+        markup += escape_html(snapshot.diagnostic.empty()
                 ? std::string_view{"Live object Details are unavailable."}
-                : std::string_view{state.object_details.diagnostic});
+                : std::string_view{snapshot.diagnostic});
         markup += "</div>";
     } else if (!active_object_details_matches_tab(state)) {
         markup = "<div class=\"property_tree_empty\">Waiting for the live preview object.</div>";
-    } else if (state.object_details.rows.empty()) {
+    } else if (snapshot.rows.empty()) {
         markup = "<div class=\"property_tree_empty\">No Details available.</div>";
     } else {
         markup = nw::toolset::render_virtual_list(
             state.details_list,
-            ObjectDetailsListAdapter{state.object_details});
+            ObjectDetailsListAdapter{snapshot});
     }
 
     list->SetInnerRML(markup);
@@ -5688,6 +5695,154 @@ void append_creature_classes_markup(std::string& markup, const AppState& state)
     markup += "</div>";
 }
 
+void append_creature_workbench_overlay_markup(
+    std::string& markup, const AppState& state)
+{
+    if (active_body_part_options_match_tab(state)
+        && state.body_part_combobox.popup_visible()) {
+        markup += "<div id=\"body_part_option_rows\" "
+                  "class=\"virtual_combobox_options body_part_option_rows\"";
+        if (state.body_part_popup_placement) {
+            const auto& placement = *state.body_part_popup_placement;
+            markup += " style=\"left:";
+            markup += std::to_string(placement.left);
+            markup += "px;top:";
+            markup += std::to_string(placement.top);
+            markup += "px;width:";
+            markup += std::to_string(placement.width);
+            markup += "px;height:";
+            markup += std::to_string(placement.height);
+            markup += "px\"";
+        }
+        markup += "><div class=\"property_tree_empty\">"
+                  "Loading model parts...</div></div>";
+    }
+    if (active_creature_spell_filter_matches_tab(state)
+        && state.creature_spell_combobox.popup_visible()) {
+        markup += "<div id=\"creature_spell_filter_options\" "
+                  "class=\"virtual_combobox_options creature_spell_filter_options\"";
+        if (state.creature_spell_popup_placement) {
+            const auto& placement = *state.creature_spell_popup_placement;
+            markup += " style=\"left:";
+            markup += std::to_string(placement.left);
+            markup += "px;top:";
+            markup += std::to_string(placement.top);
+            markup += "px;width:";
+            markup += std::to_string(placement.width);
+            markup += "px;height:";
+            markup += std::to_string(placement.height);
+            markup += "px\"";
+        }
+        markup += "><div class=\"property_tree_empty\">"
+                  "Loading choices...</div></div>";
+    }
+}
+
+void hydrate_creature_workbench(Rml::ElementDocument* doc, const AppState& state)
+{
+    if (!find_el(doc, "creature_surface_details")) {
+        return;
+    }
+
+    struct CreatureSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        CreatureSurfaceElements{"creature_tab_details", "creature_surface_details",
+            ObjectWorkbenchSurface::details},
+        CreatureSurfaceElements{"creature_tab_sheet", "creature_surface_sheet",
+            ObjectWorkbenchSurface::sheet},
+        CreatureSurfaceElements{"creature_tab_variables", "creature_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        CreatureSurfaceElements{"creature_tab_classes", "creature_surface_classes",
+            ObjectWorkbenchSurface::classes},
+        CreatureSurfaceElements{"creature_tab_appearance", "creature_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+        CreatureSurfaceElements{"creature_tab_feats", "creature_surface_feats",
+            ObjectWorkbenchSurface::feats},
+        CreatureSurfaceElements{"creature_tab_spells", "creature_surface_spells",
+            ObjectWorkbenchSurface::spells},
+        CreatureSurfaceElements{"creature_tab_inventory", "creature_surface_inventory",
+            ObjectWorkbenchSurface::inventory},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = state.workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::creature;
+    if (auto* header = find_el(doc, "creature_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "creature_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+
+    std::string markup;
+    switch (state.object_workbench_surface) {
+    case ObjectWorkbenchSurface::classes:
+        append_creature_classes_markup(markup, state);
+        if (auto* target = find_el(doc, "creature_classes_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::appearance:
+        if (active_color_editor_matches_tab(state)) {
+            append_creature_color_selector_markup(markup, state);
+        } else if (state.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state);
+        } else {
+            markup += "<div id=\"appearance_editor\" class=\"appearance_editor\">";
+            append_appearance_catalog_field_markup(
+                markup, state, AppearanceEditorField::appearance);
+            append_creature_body_parts_markup(markup, state);
+            append_creature_accessories_markup(markup, state);
+            append_creature_colors_markup(markup, state);
+            markup += "</div>";
+        }
+        if (auto* target = find_el(doc, "creature_appearance_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::feats:
+        set_input_value(doc, "creature_feat_search", state.creature_feat_query);
+        break;
+    case ObjectWorkbenchSurface::spells:
+        append_creature_spell_markup(markup, state);
+        if (auto* target = find_el(doc, "creature_spells_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::inventory:
+        append_creature_inventory_markup(markup, state);
+        if (auto* target = find_el(doc, "creature_inventory_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    default:
+        break;
+    }
+
+    markup.clear();
+    append_creature_workbench_overlay_markup(markup, state);
+    if (auto* overlays = find_el(doc, "creature_workbench_overlays")) {
+        overlays->SetInnerRML(markup);
+    }
+}
+
 void append_placed_area_object_list_markup(
     std::string& content_markup, const AppState& state)
 {
@@ -5731,6 +5886,10 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         append_placed_area_object_list_markup(content_markup, state);
         return;
     }
+    if (state.object_details.object.type == nw::ObjectType::creature) {
+        content_markup += "<template src=\"creature-workbench\"></template>";
+        return;
+    }
     if (state.object_details.object.type == nw::ObjectType::item) {
         content_markup += "<template src=\"item-workbench\"></template>";
         return;
@@ -5771,38 +5930,13 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         }
         content_markup += "\" data-surface=\"haks\">Haks</div>";
     }
-    const bool creature = state.object_details.object.type == nw::ObjectType::creature;
-    const bool appearance = creature || state.object_details.object.type == nw::ObjectType::placeable;
-    if (creature) {
-        content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::classes) {
-            content_markup += " active";
-        }
-        content_markup += "\" data-surface=\"classes\">Classes</div>";
-    }
+    const bool appearance = state.object_details.object.type == nw::ObjectType::placeable;
     if (appearance) {
         content_markup += "<div class=\"object_workbench_tab";
         if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
             content_markup += " active";
         }
         content_markup += "\" data-surface=\"appearance\">Appearance</div>";
-    }
-    if (creature) {
-        content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::feats) {
-            content_markup += " active";
-        }
-        content_markup += "\" data-surface=\"feats\">Feats</div>";
-        content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::spells) {
-            content_markup += " active";
-        }
-        content_markup += "\" data-surface=\"spells\">Spells</div>";
-        content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
-            content_markup += " active";
-        }
-        content_markup += "\" data-surface=\"inventory\">Inventory</div>";
     }
     content_markup += "</div></div>"
                       "<button id=\"object_workbench_tabs_previous\" "
@@ -5845,8 +5979,6 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
             }
         }
         content_markup += "</div>";
-    } else if (creature && state.object_workbench_surface == ObjectWorkbenchSurface::classes) {
-        append_creature_classes_markup(content_markup, state);
     } else if (appearance && state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
         if (active_color_editor_matches_tab(state)) {
             append_creature_color_selector_markup(content_markup, state);
@@ -5856,28 +5988,8 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
             content_markup += "<div id=\"appearance_editor\" class=\"appearance_editor\">";
             append_appearance_catalog_field_markup(
                 content_markup, state, AppearanceEditorField::appearance);
-            if (creature) {
-                append_creature_body_parts_markup(content_markup, state);
-                append_creature_accessories_markup(content_markup, state);
-                append_creature_colors_markup(content_markup, state);
-            }
             content_markup += "</div>";
         }
-    } else if (creature && state.object_workbench_surface == ObjectWorkbenchSurface::feats) {
-        content_markup += "<div class=\"creature_feat_toolbar\"><input id=\"creature_feat_search\" "
-                          "type=\"text\" placeholder=\"Filter feats...\" value=\"";
-        content_markup += escape_html(state.creature_feat_query);
-        content_markup += "\" /></div><div class=\"creature_feat_header\"><span>Feat</span>";
-        content_markup += "<span id=\"creature_feat_count\" class=\"property_tree_count\">";
-        content_markup += active_creature_feats_match_tab(state)
-            ? std::to_string(state.creature_feats.rows.size())
-            : std::string{"0"};
-        content_markup += "</span></div><div id=\"creature_feat_rows\" class=\"creature_feat_rows\">";
-        content_markup += "<div class=\"property_tree_empty\">Waiting for a live Creature.</div></div>";
-    } else if (creature && state.object_workbench_surface == ObjectWorkbenchSurface::spells) {
-        append_creature_spell_markup(content_markup, state);
-    } else if (creature && state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
-        append_creature_inventory_markup(content_markup, state);
     } else {
         content_markup += "<div class=\"property_tree_header\"><span class=\"property_tree_header_name\">Field</span>";
         content_markup += "<span class=\"property_tree_header_value\">Value</span>";
@@ -5885,44 +5997,6 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += std::to_string(active_details_row_count(state));
         content_markup += "</span></div><div id=\"property_tree_rows\" class=\"property_tree_rows\">";
         content_markup += "<div class=\"property_tree_empty\">Select an object to inspect.</div></div>";
-    }
-    if (active_body_part_options_match_tab(state)
-        && state.body_part_combobox.popup_visible()) {
-        content_markup += "<div id=\"body_part_option_rows\" "
-                          "class=\"virtual_combobox_options body_part_option_rows\"";
-        if (state.body_part_popup_placement) {
-            const auto& placement = *state.body_part_popup_placement;
-            content_markup += " style=\"left:";
-            content_markup += std::to_string(placement.left);
-            content_markup += "px;top:";
-            content_markup += std::to_string(placement.top);
-            content_markup += "px;width:";
-            content_markup += std::to_string(placement.width);
-            content_markup += "px;height:";
-            content_markup += std::to_string(placement.height);
-            content_markup += "px\"";
-        }
-        content_markup += ">";
-        content_markup += "<div class=\"property_tree_empty\">Loading model parts...</div></div>";
-    }
-    if (active_creature_spell_filter_matches_tab(state)
-        && state.creature_spell_combobox.popup_visible()) {
-        content_markup += "<div id=\"creature_spell_filter_options\" "
-                          "class=\"virtual_combobox_options creature_spell_filter_options\"";
-        if (state.creature_spell_popup_placement) {
-            const auto& placement = *state.creature_spell_popup_placement;
-            content_markup += " style=\"left:";
-            content_markup += std::to_string(placement.left);
-            content_markup += "px;top:";
-            content_markup += std::to_string(placement.top);
-            content_markup += "px;width:";
-            content_markup += std::to_string(placement.width);
-            content_markup += "px;height:";
-            content_markup += std::to_string(placement.height);
-            content_markup += "px\"";
-        }
-        content_markup += ">";
-        content_markup += "<div class=\"property_tree_empty\">Loading choices...</div></div>";
     }
     content_markup += "</div>";
 }
@@ -6304,6 +6378,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
     state.object_workbench_tab_scroll_pending = true;
     apply_shell_layout(doc, state);
     sync_home_area_window(doc, state, true);
+    hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     if (active_appearances_match_tab(state)) {
@@ -6403,6 +6478,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     state.object_workbench_tab_scroll_pending = true;
     apply_shell_layout(doc, state);
     sync_home_area_window(doc, state, true);
+    hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     sync_object_details_window(doc, state, true);
@@ -8787,6 +8863,21 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    state.rml_smalls_data_model = std::make_unique<nw::toolset::RmlSmallsDataModel>();
+    const std::array presentation_bindings{
+        nw::toolset::RmlSmallsGlobalBinding{
+            .variable = "toolset",
+            .module = "toolset.ui",
+            .global = "rml_model",
+        },
+    };
+    if (!state.rml_smalls_data_model->initialize(*context,
+            nw::kernel::runtime(), "toolset_presentation", presentation_bindings)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Failed to initialize the RmlUi Smalls presentation model");
+        return 1;
+    }
+
     auto* doc = load_rml_document_from_resource(*context, ui_resources, panel_rml);
     if (!doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/panel.rml");
@@ -10229,6 +10320,9 @@ int main(int argc, char* argv[])
                             close_appearance_selector(state);
                             if (surface == "details") {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::details;
+                            } else if (surface == "sheet"
+                                && state.object_details.object.type == nw::ObjectType::creature) {
+                                state.object_workbench_surface = ObjectWorkbenchSurface::sheet;
                             } else if (surface == "variables"
                                 && state.object_details.object.type
                                     != nw::ObjectType::invalid) {
@@ -10261,6 +10355,7 @@ int main(int argc, char* argv[])
                                     || state.object_details.object.type == nw::ObjectType::item)) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::inventory;
                             }
+                            invalidate_details_render(state);
                             if (!sync_appearance_body_preview(renderer, state)) {
                                 append_output(state, "error", "Failed to update the creature Appearance preview");
                             }
@@ -10737,6 +10832,7 @@ int main(int argc, char* argv[])
                     renderer.set_viewer_area_object_selection(mutation.object);
                 }
                 if (mutation.object == state.object_details.object && active_object_details_matches_tab(state)) {
+                    bool workbench_rebuilt = false;
                     rebuild_active_object_details(state, mutation.object);
                     if (mutation.object.type == nw::ObjectType::creature) {
                         const int32_t selected_class = state.creature_spells.selected_class;
@@ -10758,6 +10854,7 @@ int main(int argc, char* argv[])
                         rebuild_active_appearances(state, mutation.object);
                         if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                             refresh_workspace_content(doc, state);
+                            workbench_rebuilt = true;
                             if (auto* field = find_el(doc, "active_body_part_field")) {
                                 field->Focus();
                             }
@@ -10766,6 +10863,10 @@ int main(int argc, char* argv[])
                     if (item_mutation
                         || state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
                         refresh_workspace_content(doc, state);
+                        workbench_rebuilt = true;
+                    }
+                    if (!workbench_rebuilt) {
+                        refresh_smalls_elements(doc, state);
                     }
                     sync_object_details_window(doc, state, true);
                     sync_creature_feat_window(doc, state, true);
@@ -11121,6 +11222,7 @@ int main(int argc, char* argv[])
         "change", &object_variable_change_listener, false);
     context->RemoveEventListener(
         "blur", &object_variable_change_listener, true);
+    state.rml_smalls_data_model->shutdown();
     Rml::RemoveContext("command_palette");
     Rml::RemoveContext("viewer_fps");
     Rml::RemoveContext("toolset");

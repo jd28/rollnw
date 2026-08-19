@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -40,6 +41,10 @@ fn select(event: Event, value: int, scale: float, enabled: bool, label: string) 
 fn select_palette(event: Event, value: PaletteIndex) { }
 fn with_default(event: Event, value: int = 7) { }
 fn identity(value: int): int { return value; }
+fn expect_int_min(value: int) { assert(value == -2147483648); }
+fn expect_int_positive(value: int) { assert(value == 1); }
+fn expect_int_negative(value: int) { assert(value == -1); }
+fn expect_float_negative(value: float) { assert(value == -1.5); }
 )");
     EXPECT_NE(provider, nullptr);
     EXPECT_NE(runtime.get_or_compile_module(provider), nullptr);
@@ -137,6 +142,14 @@ TEST(ClientRmlSmallsExpressionBinding, RejectsWorkOutsideTheBoundedCallGrammar)
         runtime, scope, "Provider.identity(1)", call, error));
     EXPECT_NE(error.find("return void"), std::string::npos);
 
+    EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
+        runtime, scope, "Provider.expect_int_min(2147483648)", call, error));
+    EXPECT_NE(error.find("int32 range"), std::string::npos) << error;
+
+    EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
+        runtime, scope, "Provider.expect_float_negative(1)", call, error));
+    EXPECT_NE(error.find("exported function ABI"), std::string::npos) << error;
+
     EXPECT_FALSE(nw::toolset::parse_rml_smalls_import_scope(runtime,
         "from test.rml_direct_provider import { select }; fn extra() { }",
         scope, error));
@@ -146,6 +159,111 @@ TEST(ClientRmlSmallsExpressionBinding, RejectsWorkOutsideTheBoundedCallGrammar)
     EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
         runtime, scope, oversized_expression, call, error));
     EXPECT_NE(error.find("1 KiB"), std::string::npos);
+
+    std::string too_many_arguments = "select(";
+    for (int index = 0; index < 17; ++index) {
+        if (index != 0) {
+            too_many_arguments += ", ";
+        }
+        too_many_arguments += "0";
+    }
+    too_many_arguments += ")";
+    EXPECT_FALSE(nw::toolset::resolve_rml_smalls_call(
+        runtime, scope, too_many_arguments, call, error));
+    EXPECT_NE(error.find("16-argument"), std::string::npos);
+
+    const std::string oversized_host(16 * 1024 + 1, ' ');
+    EXPECT_FALSE(nw::toolset::parse_rml_smalls_import_scope(
+        runtime, oversized_host, scope, error));
+    EXPECT_NE(error.find("16 KiB"), std::string::npos);
+
+    std::string too_many_imports;
+    for (int index = 0; index < 65; ++index) {
+        too_many_imports += "import test.rml_direct_provider as Provider";
+        too_many_imports += std::to_string(index);
+        too_many_imports += ";\n";
+    }
+    EXPECT_FALSE(nw::toolset::parse_rml_smalls_import_scope(
+        runtime, too_many_imports, scope, error));
+    EXPECT_NE(error.find("64-import"), std::string::npos);
+
+    std::string too_many_symbols
+        = "from test.rml_direct_provider import { ";
+    for (int index = 0; index < 257; ++index) {
+        if (index != 0) {
+            too_many_symbols += ", ";
+        }
+        too_many_symbols += "symbol_" + std::to_string(index);
+    }
+    too_many_symbols += " };";
+    EXPECT_FALSE(nw::toolset::parse_rml_smalls_import_scope(
+        runtime, too_many_symbols, scope, error));
+    EXPECT_NE(error.find("256-symbol"), std::string::npos);
+}
+
+TEST(ClientRmlSmallsExpressionBinding, BindsAndDispatchesSignedNumericLiterals)
+{
+    KernelServiceScope services;
+    auto& runtime = prepare_runtime();
+
+    nw::toolset::RmlSmallsImportScope scope;
+    std::string error;
+    ASSERT_TRUE(nw::toolset::parse_rml_smalls_import_scope(
+        runtime, import_source, scope, error))
+        << error;
+
+    const auto execute = [&runtime](
+                             const nw::toolset::RmlSmallsResolvedCall& call) {
+        nw::Vector<nw::smalls::Value> arguments;
+        arguments.reserve(call.arguments.size());
+        nw::smalls::Runtime::ScopedRoots roots{runtime, call.arguments.size()};
+        for (const auto& bound : call.arguments) {
+            auto value = nw::toolset::materialize_rml_smalls_argument(
+                runtime, bound);
+            if (value.storage == nw::smalls::ValueStorage::heap
+                && value.data.hptr.value != 0) {
+                roots.add(value);
+            }
+            arguments.push_back(value);
+        }
+        return runtime.execute_compiled(call.module, call.function, arguments);
+    };
+
+    struct IntegerCase {
+        std::string_view expression;
+        int32_t expected;
+    };
+    constexpr std::array integer_cases = {
+        IntegerCase{"Provider.expect_int_min(-2147483648)",
+            std::numeric_limits<int32_t>::min()},
+        IntegerCase{"Provider.expect_int_positive(+1)", 1},
+        IntegerCase{"Provider.expect_int_negative(-1)", -1},
+    };
+
+    for (const auto& test_case : integer_cases) {
+        SCOPED_TRACE(test_case.expression);
+        nw::toolset::RmlSmallsResolvedCall call;
+        ASSERT_TRUE(nw::toolset::resolve_rml_smalls_call(
+            runtime, scope, test_case.expression, call, error))
+            << error;
+        ASSERT_EQ(call.arguments.size(), 1);
+        EXPECT_EQ(call.arguments[0].kind,
+            nw::toolset::RmlSmallsArgumentKind::integer);
+        EXPECT_EQ(call.arguments[0].integer, test_case.expected);
+        const auto result = execute(call);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+    }
+
+    nw::toolset::RmlSmallsResolvedCall float_call;
+    ASSERT_TRUE(nw::toolset::resolve_rml_smalls_call(runtime, scope,
+        "Provider.expect_float_negative(-1.5)", float_call, error))
+        << error;
+    ASSERT_EQ(float_call.arguments.size(), 1);
+    EXPECT_EQ(float_call.arguments[0].kind,
+        nw::toolset::RmlSmallsArgumentKind::floating);
+    EXPECT_FLOAT_EQ(float_call.arguments[0].floating, -1.5f);
+    const auto float_result = execute(float_call);
+    EXPECT_TRUE(float_result.ok()) << float_result.error_message;
 }
 
 TEST(ClientRmlSmallsExpressionBinding, WarmedRebindingDoesNotGrowRuntimeCompilerState)

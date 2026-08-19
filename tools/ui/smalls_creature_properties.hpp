@@ -99,6 +99,12 @@ void build_object_details(smalls::Runtime& runtime,
     ObjectHandle active_object,
     ObjectDetailsSnapshot& output);
 
+// The Character Sheet is a read-only Creature presentation. Smalls produces
+// the complete derived-value batch; C++ copies and validates it for the UI.
+void build_creature_sheet(smalls::Runtime& runtime,
+    ObjectHandle active_object,
+    ObjectDetailsSnapshot& output);
+
 // Row indices are opaque UI tokens. Rebuild the bounded row batch and validate
 // current SmallS policy before returning concrete propset metadata.
 [[nodiscard]] std::optional<ObjectDetailsValueEdit>

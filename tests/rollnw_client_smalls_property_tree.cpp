@@ -14,6 +14,7 @@
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/smalls/GarbageCollector.hpp>
+#include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <gtest/gtest.h>
@@ -67,6 +68,24 @@ const nw::toolset::PropertyNodeRow* find_row(
             && snapshot.text_view(row.type_name).find(root_name) != std::string_view::npos;
     });
     return found == snapshot.rows.end() ? nullptr : &*found;
+}
+
+const nw::toolset::ObjectDetailsRow* find_details_value(
+    const nw::toolset::ObjectDetailsSnapshot& snapshot,
+    std::string_view label)
+{
+    const auto found = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.kind == nw::toolset::ObjectDetailsRowKind::value
+            && snapshot.text_view(row.label) == label;
+    });
+    return found == snapshot.rows.end() ? nullptr : &*found;
+}
+
+int details_integer_value(const nw::toolset::ObjectDetailsSnapshot& snapshot,
+    std::string_view label)
+{
+    const auto* row = find_details_value(snapshot, label);
+    return row ? std::stoi(std::string{snapshot.text_view(row->value)}) : 0;
 }
 
 bool write_fixed_int_field(nw::smalls::Runtime& runtime,
@@ -282,6 +301,168 @@ TEST_F(ClientSmallsPropertyTree, BuildsCreatureDetailsAndClassRowsFromLivePropse
     EXPECT_TRUE(std::ranges::is_sorted(skill_names));
 
     nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(ClientSmallsPropertyTree, BuildsCreatureSheetFromDerivedSmallsRules)
+{
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    auto& runtime = nw::kernel::runtime();
+    runtime.init_object_propsets(creature->handle());
+
+    nw::toolset::ObjectDetailsSnapshot before;
+    nw::toolset::build_creature_sheet(runtime, creature->handle(), before);
+    ASSERT_EQ(before.status, nw::toolset::ObjectDetailsStatus::ready)
+        << before.diagnostic;
+    EXPECT_EQ(before.object, creature->handle());
+    EXPECT_LE(before.rows.size(), 128);
+
+    const std::array expected_sections{
+        std::string_view{"Summary"},
+        std::string_view{"Combat"},
+        std::string_view{"Abilities"},
+        std::string_view{"Saving Throws"},
+        std::string_view{"Skills"},
+    };
+    size_t expected_section = 0;
+    std::vector<std::string_view> skill_names;
+    bool reading_skills = false;
+    for (const auto& row : before.rows) {
+        if (row.kind == nw::toolset::ObjectDetailsRowKind::section) {
+            ASSERT_LT(expected_section, expected_sections.size());
+            const auto label = before.text_view(row.label);
+            EXPECT_EQ(label, expected_sections[expected_section]);
+            reading_skills = label == "Skills";
+            ++expected_section;
+            continue;
+        }
+
+        EXPECT_EQ(row.editor, nw::toolset::ObjectDetailsEditorKind::read_only);
+        EXPECT_EQ(row.propset_type, nw::smalls::invalid_type_id);
+        EXPECT_EQ(row.field_index, UINT32_MAX);
+        EXPECT_EQ(row.element_index, -1);
+        if (reading_skills) {
+            skill_names.push_back(before.text_view(row.label));
+        }
+    }
+    EXPECT_EQ(expected_section, expected_sections.size());
+    ASSERT_FALSE(skill_names.empty());
+    EXPECT_TRUE(std::ranges::is_sorted(skill_names));
+
+    const std::array required_values{
+        std::string_view{"Name"},
+        std::string_view{"Level"},
+        std::string_view{"Hit Points"},
+        std::string_view{"Armor Class"},
+        std::string_view{"Base Attack Bonus"},
+        std::string_view{"Primary Attack Bonus"},
+        std::string_view{"Strength"},
+        std::string_view{"Dexterity"},
+        std::string_view{"Constitution"},
+        std::string_view{"Intelligence"},
+        std::string_view{"Wisdom"},
+        std::string_view{"Charisma"},
+        std::string_view{"Fortitude"},
+        std::string_view{"Reflex"},
+        std::string_view{"Will"},
+        std::string_view{"Hide"},
+    };
+    for (const auto label : required_values) {
+        SCOPED_TRACE(label);
+        const auto* row = find_details_value(before, label);
+        ASSERT_NE(row, nullptr);
+        if (label != "Name") {
+            EXPECT_FALSE(before.text_view(row->value).empty());
+        }
+    }
+
+    const int strength_before = details_integer_value(before, "Strength");
+    const int armor_class_before = details_integer_value(before, "Armor Class");
+    const int fortitude_before = details_integer_value(before, "Fortitude");
+    const int hide_before = details_integer_value(before, "Hide");
+    const auto* hit_points_before_row = find_details_value(before, "Hit Points");
+    ASSERT_NE(hit_points_before_row, nullptr);
+    const std::string hit_points_before{before.text_view(hit_points_before_row->value)};
+    const auto hit_points_separator = hit_points_before.find('/');
+    ASSERT_NE(hit_points_separator, std::string::npos);
+    const int current_hit_points_before = std::stoi(hit_points_before);
+    const int maximum_hit_points_before = std::stoi(
+        hit_points_before.substr(hit_points_separator + 1));
+
+    constexpr std::string_view effect_source = R"(
+        import core.object as Object;
+        import nwn1.constants as Constants;
+        import nwn1.effects as Effects;
+
+        fn apply_sheet_effects(target: Creature): int {
+            if (!Object.apply_effect(target,
+                Effects.ability_modifier(Constants.ability_strength, 2))) { return 0; }
+            if (!Object.apply_effect(target,
+                Effects.armor_class_modifier(Constants.ac_dodge, 2))) { return 0; }
+            if (!Object.apply_effect(target,
+                Effects.hitpoints_temporary(5))) { return 0; }
+            if (!Object.apply_effect(target,
+                Effects.save_modifier(Constants.saving_throw_fort, 2,
+                    Constants.saving_throw_vs_all))) { return 0; }
+            if (!Object.apply_effect(target,
+                Effects.skill_modifier(Constants.skill_hide, 2))) { return 0; }
+            return 1;
+        }
+    )";
+    auto* effects = runtime.load_module_from_source(
+        "test.toolset_creature_sheet_effects", effect_source);
+    ASSERT_NE(effects, nullptr);
+    ASSERT_EQ(effects->errors(), 0);
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = runtime.object_subtype_for_tag(creature->handle().type);
+    const auto apply_result = runtime.execute_script(
+        effects, "apply_sheet_effects", {creature_value});
+    ASSERT_TRUE(apply_result.ok()) << apply_result.error_message;
+    ASSERT_EQ(apply_result.value.data.ival, 1);
+
+    nw::toolset::ObjectDetailsSnapshot after;
+    nw::toolset::build_creature_sheet(runtime, creature->handle(), after);
+    ASSERT_EQ(after.status, nw::toolset::ObjectDetailsStatus::ready)
+        << after.diagnostic;
+    EXPECT_EQ(details_integer_value(after, "Strength"), strength_before + 2);
+    EXPECT_EQ(details_integer_value(after, "Armor Class"), armor_class_before + 2);
+    EXPECT_EQ(details_integer_value(after, "Fortitude"), fortitude_before + 2);
+    EXPECT_EQ(details_integer_value(after, "Hide"), hide_before + 2);
+
+    const auto* hit_points_after_row = find_details_value(after, "Hit Points");
+    ASSERT_NE(hit_points_after_row, nullptr);
+    const std::string hit_points_after{after.text_view(hit_points_after_row->value)};
+    const auto after_separator = hit_points_after.find('/');
+    ASSERT_NE(after_separator, std::string::npos);
+    EXPECT_EQ(std::stoi(hit_points_after), current_hit_points_before + 5);
+    EXPECT_EQ(std::stoi(hit_points_after.substr(after_separator + 1)),
+        maximum_hit_points_before + 5);
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(ClientSmallsPropertyTree, ComposesCreatureSheetNameFromFirstAndLastName)
+{
+    auto& runtime = nw::kernel::runtime();
+    const auto verify_name = [&](std::string_view path, std::string_view expected) {
+        auto* creature = nw::kernel::objects().load_file<nw::Creature>(path);
+        ASSERT_NE(creature, nullptr);
+        runtime.init_object_propsets(creature->handle());
+
+        nw::toolset::ObjectDetailsSnapshot sheet;
+        nw::toolset::build_creature_sheet(runtime, creature->handle(), sheet);
+        ASSERT_EQ(sheet.status, nw::toolset::ObjectDetailsStatus::ready)
+            << sheet.diagnostic;
+        const auto* name = find_details_value(sheet, "Name");
+        ASSERT_NE(name, nullptr);
+        EXPECT_EQ(sheet.text_view(name->value), expected);
+
+        nw::kernel::objects().destroy(creature->handle());
+    };
+
+    verify_name("test_data/user/development/pl_agent_001.utc", "Agent");
+    verify_name("test_data/user/development/drorry.utc", "Drorry Tildspeas");
 }
 
 TEST_F(ClientSmallsPropertyTree, BuildsDetailsForEveryPlacedObjectType)

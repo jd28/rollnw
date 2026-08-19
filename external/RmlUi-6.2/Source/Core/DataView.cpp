@@ -49,11 +49,20 @@ void DataViews::OnElementRemove(Element* element)
 	for (auto it = views.begin(); it != views.end();)
 	{
 		auto& view = *it;
-		if (view && view->GetElement() == element)
+		if (!view || !view->IsValid() || view->GetElement() == element)
 		{
 			views_to_remove.push_back(std::move(view));
 			it = views.erase(it);
 		}
+		else
+			++it;
+	}
+
+	for (auto it = views_to_add.begin(); it != views_to_add.end();)
+	{
+		auto& view = *it;
+		if (!view || !view->IsValid() || view->GetElement() == element)
+			it = views_to_add.erase(it);
 		else
 			++it;
 	}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,6 +19,13 @@ struct RmlSmallsDiagnostic {
     std::string message;
 };
 
+struct RmlSmallsBindingStats {
+    uint64_t bound_listener_count = 0;
+    uint64_t bound_argument_count = 0;
+    uint64_t interned_target_count = 0;
+    uint64_t suppressed_diagnostic_count = 0;
+};
+
 class RmlSmallsLanguageBinding {
 public:
     RmlSmallsLanguageBinding();
@@ -29,6 +37,7 @@ public:
     bool initialize(nw::smalls::Runtime& runtime);
     [[nodiscard]] bool initialized() const noexcept;
     [[nodiscard]] const std::vector<RmlSmallsDiagnostic>& diagnostics() const noexcept;
+    [[nodiscard]] RmlSmallsBindingStats stats() const noexcept;
     void clear_diagnostics();
 
     // Dispatches one synthetic refresh event to each identified .smalls_refresh

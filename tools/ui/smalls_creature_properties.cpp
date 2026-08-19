@@ -151,28 +151,40 @@ std::string_view CreatureClassPresentationSnapshot::text_view(PropertyTextSlice 
     return std::string_view{text}.substr(slice.offset, slice.length);
 }
 
-void build_object_details(smalls::Runtime& runtime,
+namespace {
+
+void invalidate_details_snapshot(ObjectHandle object,
+    std::string_view presentation,
+    std::string_view reason,
+    ObjectDetailsSnapshot& output)
+{
+    output = {};
+    output.object = object;
+    output.status = ObjectDetailsStatus::invalid_data;
+    output.diagnostic = "Smalls ";
+    output.diagnostic.append(presentation);
+    output.diagnostic.append(reason);
+}
+
+void build_details_snapshot(smalls::Runtime& runtime,
     ObjectHandle active_object,
+    std::string_view script,
+    std::string_view presentation,
+    bool allow_edits,
     ObjectDetailsSnapshot& output)
 {
     output = {};
     output.object = active_object;
-    if (!kernel::objects().valid(active_object)) {
-        output.status = ObjectDetailsStatus::invalid_object;
-        output.diagnostic = "Active object is no longer valid";
-        return;
-    }
-
     const auto result = runtime.execute_script("toolset.ui",
-        "get_object_details_rows", {object_value(runtime, active_object)});
+        script, {object_value(runtime, active_object)});
     auto* rows = result.ok()
             && result.value.storage == smalls::ValueStorage::heap
             && result.value.data.hptr.value != 0
         ? runtime.get_array_typed(result.value.data.hptr)
         : nullptr;
     if (!rows || rows->size() > max_presentation_input_row_count) {
-        output.status = ObjectDetailsStatus::invalid_data;
-        output.diagnostic = "Smalls object Details rows are unavailable or exceed 128 rows";
+        invalidate_details_snapshot(active_object, presentation,
+            " rows are unavailable or exceed 128 rows", output);
         return;
     }
 
@@ -202,16 +214,20 @@ void build_object_details(smalls::Runtime& runtime,
             || !read_int_field(runtime, row, "edit_min", edit_min)
             || !read_int_field(runtime, row, "edit_max", edit_max)
             || group.empty() || label.empty()) {
-            output = {};
-            output.object = active_object;
-            output.status = ObjectDetailsStatus::invalid_data;
-            output.diagnostic = "Smalls object Details row is invalid";
+            invalidate_details_snapshot(
+                active_object, presentation, " row is invalid", output);
             return;
         }
 
         ObjectDetailsEditorKind editor_kind = ObjectDetailsEditorKind::read_only;
         smalls::TypeID propset_type{};
         uint32_t field_index = UINT32_MAX;
+        if (!allow_edits
+            && editor != static_cast<int32_t>(ObjectDetailsEditorKind::read_only)) {
+            invalidate_details_snapshot(
+                active_object, presentation, " row must be read-only", output);
+            return;
+        }
         if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)) {
             propset_type = runtime.type_id(propset_name, false);
@@ -242,17 +258,13 @@ void build_object_details(smalls::Runtime& runtime,
                 || edit_value < edit_min || edit_value > edit_max
                 || (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
                     && (element_index != -1 || edit_min != 0 || edit_max != 1))) {
-                output = {};
-                output.object = active_object;
-                output.status = ObjectDetailsStatus::invalid_data;
-                output.diagnostic = "Smalls object Details integer editor is invalid";
+                invalidate_details_snapshot(
+                    active_object, presentation, " integer editor is invalid", output);
                 return;
             }
             if (current != edit_value) {
-                output = {};
-                output.object = active_object;
-                output.status = ObjectDetailsStatus::invalid_data;
-                output.diagnostic = "Smalls object Details integer value is stale or unavailable";
+                invalidate_details_snapshot(active_object, presentation,
+                    " integer value is stale or unavailable", output);
                 return;
             }
             editor_kind = static_cast<ObjectDetailsEditorKind>(editor);
@@ -260,19 +272,15 @@ void build_object_details(smalls::Runtime& runtime,
             || !propset_name.empty() || !field_name.empty()
             || element_index != -1
             || edit_min != 0 || edit_max != 0) {
-            output = {};
-            output.object = active_object;
-            output.status = ObjectDetailsStatus::invalid_data;
-            output.diagnostic = "Smalls object Details editor kind is invalid";
+            invalidate_details_snapshot(
+                active_object, presentation, " editor kind is invalid", output);
             return;
         }
 
         const size_t required_rows = group == previous_group ? 1 : 2;
         if (output.rows.size() + required_rows > max_property_presentation_row_count) {
-            output = {};
-            output.object = active_object;
-            output.status = ObjectDetailsStatus::invalid_data;
-            output.diagnostic = "Smalls object Details presentation exceeds 128 rows";
+            invalidate_details_snapshot(
+                active_object, presentation, " presentation exceeds 128 rows", output);
             return;
         }
         if (group != previous_group) {
@@ -296,6 +304,39 @@ void build_object_details(smalls::Runtime& runtime,
         });
     }
     output.status = ObjectDetailsStatus::ready;
+}
+
+} // namespace
+
+void build_object_details(smalls::Runtime& runtime,
+    ObjectHandle active_object,
+    ObjectDetailsSnapshot& output)
+{
+    if (!kernel::objects().valid(active_object)) {
+        output = {};
+        output.object = active_object;
+        output.status = ObjectDetailsStatus::invalid_object;
+        output.diagnostic = "Active object is no longer valid";
+        return;
+    }
+    build_details_snapshot(runtime, active_object,
+        "get_object_details_rows", "object Details", true, output);
+}
+
+void build_creature_sheet(smalls::Runtime& runtime,
+    ObjectHandle active_object,
+    ObjectDetailsSnapshot& output)
+{
+    if (active_object.type != ObjectType::creature
+        || !kernel::objects().valid(active_object)) {
+        output = {};
+        output.object = active_object;
+        output.status = ObjectDetailsStatus::invalid_object;
+        output.diagnostic = "Active object is not a live Creature";
+        return;
+    }
+    build_details_snapshot(runtime, active_object,
+        "get_creature_sheet_rows", "Creature Sheet", false, output);
 }
 
 std::optional<ObjectDetailsValueEdit> prepare_object_details_boolean_edit(

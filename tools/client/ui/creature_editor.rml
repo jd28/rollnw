@@ -1,0 +1,115 @@
+<template name="creature-workbench">
+<head></head>
+<body>
+  <div id="object_workbench" class="object_workbench creature_workbench"
+       data-smalls-source="creature_editor.rml">
+    <div id="creature_object_header" class="object_workbench_header area_object_header">
+      <button type="button" class="area_object_list_back panel_back_button"
+              title="Back to placed objects">
+        <span class="panel_back_icon">
+          <span class="panel_back_head"></span>
+          <span class="panel_back_shaft"></span>
+        </span>
+      </button>
+      <div id="creature_object_title" class="object_workbench_title"></div>
+    </div>
+
+    <div id="object_workbench_tab_bar" class="object_workbench_tab_bar">
+      <div id="object_workbench_tabs" class="object_workbench_tabs">
+        <div id="object_workbench_tab_track" class="object_workbench_tab_track">
+          <button id="creature_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
+          <button id="creature_tab_sheet" class="object_workbench_tab" type="button" data-surface="sheet">Sheet</button>
+          <button id="creature_tab_variables" class="object_workbench_tab" type="button" data-surface="variables">Variables</button>
+          <button id="creature_tab_classes" class="object_workbench_tab" type="button" data-surface="classes">Classes</button>
+          <button id="creature_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
+          <button id="creature_tab_feats" class="object_workbench_tab" type="button" data-surface="feats">Feats</button>
+          <button id="creature_tab_spells" class="object_workbench_tab" type="button" data-surface="spells">Spells</button>
+          <button id="creature_tab_inventory" class="object_workbench_tab" type="button" data-surface="inventory">Inventory</button>
+        </div>
+      </div>
+      <button id="object_workbench_tabs_previous" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs left">&#x2039;</button>
+      <button id="object_workbench_tabs_next" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs right">&#x203a;</button>
+    </div>
+
+    <div id="creature_surface_details" class="creature_workbench_surface">
+      <div class="property_tree_header creature_data_header">
+        <span class="property_tree_header_name">Field</span>
+        <span class="property_tree_header_value">Value</span>
+        <span id="property_tree_count" class="property_tree_count">0</span>
+      </div>
+      <div id="property_tree_rows" class="property_tree_rows">
+        <div class="property_tree_empty">Select a creature to inspect.</div>
+      </div>
+    </div>
+
+    <div id="creature_surface_sheet" class="creature_workbench_surface smalls_refresh"
+         onrefresh="refresh_creature_sheet_model(event)">
+      <div class="property_tree_header creature_data_header">
+        <span class="property_tree_header_name">Field</span>
+        <span class="property_tree_header_value">Value</span>
+        <span class="property_tree_count">{{ toolset.creature_sheet_rows.size }}</span>
+      </div>
+      <div id="creature_sheet_rows" class="property_tree_rows">
+        <div data-if="toolset.creature_sheet_rows.size == 0">
+          <div data-if="toolset.creature_sheet_error != ''" class="property_tree_empty error">{{ toolset.creature_sheet_error }}</div>
+          <div data-if="toolset.creature_sheet_error == ''" class="property_tree_empty">Waiting for a live Creature.</div>
+        </div>
+        <div data-for="row : toolset.creature_sheet_rows" class="property_tree_row">
+          <div class="property_tree_cells"
+               data-class-section="row.section"
+               data-class-alternate="row.alternate">
+            <span class="property_tree_name">
+              <span class="tree_twisty leaf"></span>
+              <span class="property_tree_label">{{ row.label }}</span>
+            </span>
+            <span class="property_tree_value">{{ row.value }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="creature_surface_variables" class="creature_workbench_surface">
+      <div class="object_variable_toolbar">
+        <button id="object_variable_add" type="button" title="Add integer variable">Add Variable</button>
+      </div>
+      <div class="object_variable_header">
+        <span class="object_variable_header_name">Name</span>
+        <span class="object_variable_header_type">Type</span>
+        <span class="object_variable_header_value">Value</span>
+        <span id="object_variable_count" class="property_tree_count">0</span>
+      </div>
+      <div id="object_variable_rows" class="object_variable_rows">
+        <div class="property_tree_empty">Waiting for a live Creature.</div>
+      </div>
+    </div>
+
+    <div id="creature_surface_classes" class="creature_workbench_surface">
+      <div id="creature_classes_dynamic" class="creature_surface_dynamic"></div>
+    </div>
+    <div id="creature_surface_appearance" class="creature_workbench_surface">
+      <div id="creature_appearance_dynamic" class="creature_surface_dynamic"></div>
+    </div>
+
+    <div id="creature_surface_feats" class="creature_workbench_surface">
+      <div class="creature_feat_toolbar">
+        <input id="creature_feat_search" type="text" placeholder="Filter feats..." value="" />
+      </div>
+      <div class="creature_feat_header">
+        <span>Feat</span>
+        <span id="creature_feat_count" class="property_tree_count">0</span>
+      </div>
+      <div id="creature_feat_rows" class="creature_feat_rows">
+        <div class="property_tree_empty">Waiting for a live Creature.</div>
+      </div>
+    </div>
+
+    <div id="creature_surface_spells" class="creature_workbench_surface">
+      <div id="creature_spells_dynamic" class="creature_surface_dynamic"></div>
+    </div>
+    <div id="creature_surface_inventory" class="creature_workbench_surface">
+      <div id="creature_inventory_dynamic" class="creature_surface_dynamic"></div>
+    </div>
+    <div id="creature_workbench_overlays"></div>
+  </div>
+</body>
+</template>

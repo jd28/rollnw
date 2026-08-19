@@ -166,7 +166,7 @@ fn _escape_rml(value: string): string {
     return result;
 }
 
-fn details_refresh(event: Event): array!(Command) {
+fn details_refresh(): array!(Command) {
     var item = _active_item();
     return {
         {
@@ -215,7 +215,7 @@ fn _color_field_markup(row: ItemEditorColorRow): string {
     }
     var classes = "item_color_field visible";
     if (row.inherited) { classes = String.append(classes, " inherited"); }
-    return f"<button id='item_color_{row.part}_{row.color}' class='{classes}' type='button' onclick='rollnw_item_color_open'><img src='{asset}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /></button>";
+    return f"<button id='item_color_{row.part}_{row.color}' class='{classes}' type='button' onclick='open_color_selector({row.part}, {row.color})'><img src='{asset}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /></button>";
 }
 
 fn _main_appearance_markup(item: Item): string {
@@ -228,12 +228,12 @@ fn _main_appearance_markup(item: Item): string {
     for (var part in parts) {
         if (part.split_model_color) {
             markup = String.append(markup,
-                f"<div class='item_model_row item_composite_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><div class='item_composite_model_fields'><div class='item_composite_model_field'><span class='item_composite_model_label'>Model</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='rollnw_item_model_open'><span class='item_model_value'>{part.value / 10}</span><span class='item_field_arrow'></span></button></div><div class='item_composite_model_field'><span class='item_composite_model_label'>Color</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_color}' class='item_model_field' type='button' onclick='rollnw_item_model_open'><span class='item_model_value'>{part.value % 10}</span><span class='item_field_arrow'></span></button></div></div>");
+                f"<div class='item_model_row item_composite_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><div class='item_composite_model_fields'><div class='item_composite_model_field'><span class='item_composite_model_label'>Model</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_model})'><span class='item_model_value'>{part.value / 10}</span><span class='item_field_arrow'></span></button></div><div class='item_composite_model_field'><span class='item_composite_model_label'>Color</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_color}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_color})'><span class='item_model_value'>{part.value % 10}</span><span class='item_field_arrow'></span></button></div></div>");
         } else {
             var value = part.detail;
             if (value == "") { value = f"{part.value}"; }
             markup = String.append(markup,
-                f"<div class='item_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='rollnw_item_model_open'><span class='item_model_value'>{_escape_rml(value)}</span><span class='item_field_arrow'></span></button>");
+                f"<div class='item_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_model})'><span class='item_model_value'>{_escape_rml(value)}</span><span class='item_field_arrow'></span></button>");
         }
         if (part.per_part_colors) {
             markup = String.append(markup, "<div class='item_part_color_fields visible'>");
@@ -322,7 +322,7 @@ fn _refresh_model_options(item: Item, part: int, axis: int): bool {
 }
 
 fn _model_selector_markup(): string {
-    return "<div id='item_option_selector' class='item_selector smalls_selector active'><div class='item_selector_header'><button id='item_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='rollnw_item_selector_close'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title managed_list_title' data-list-id='item.appearance.models'></div></div><div id='item_option_rows' class='item_option_rows item_model_list managed_list_rows managed_list_cycle' tabindex='0' data-list-id='item.appearance.models' data-empty-text='No models are available.'></div></div>";
+    return "<div id='item_option_selector' class='item_selector smalls_selector active'><div class='item_selector_header'><button id='item_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title managed_list_title' data-list-id='item.appearance.models'></div></div><div id='item_option_rows' class='item_option_rows item_model_list managed_list_rows managed_list_cycle' tabindex='0' data-list-id='item.appearance.models' data-empty-text='No models are available.'></div></div>";
 }
 
 fn _color_selector_markup(item: Item): string {
@@ -333,23 +333,23 @@ fn _color_selector_markup(item: Item): string {
         return _main_appearance_markup(item);
     }
     var title = _color_part < 0 ? "Item Colors" : _part_label(item, _color_part);
-    var markup = f"<div id='item_color_selector' class='item_selector item_color_selector smalls_selector active'><div class='item_selector_header'><button id='item_color_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='rollnw_item_selector_close'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title'>{_escape_rml(title)}</div>";
+    var markup = f"<div id='item_color_selector' class='item_selector item_color_selector smalls_selector active'><div class='item_selector_header'><button id='item_color_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title'>{_escape_rml(title)}</div>";
     if (_color_part >= 0) {
         markup = String.append(markup,
-            "<button id='item_color_inherit' class='item_color_inherit visible' type='button' onclick='rollnw_item_color_inherit'>Inherit</button>");
+            "<button id='item_color_inherit' class='item_color_inherit visible' type='button' onclick='inherit_color()'>Inherit</button>");
     }
     markup = String.append(markup, "</div><div class='item_color_channels'>");
     for (var row in ItemPolicy.get_item_color_editor_rows(item, _color_part)) {
         var classes = "item_color_channel visible";
         if (row.color == _color_channel) { classes = String.append(classes, " active"); }
         markup = String.append(markup,
-            f"<button id='item_color_channel_{row.color}' class='{classes}' type='button' onclick='rollnw_item_color_channel'><img src='{_palette_asset(row.palette)}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /><span>{_escape_rml(row.label)}</span></button>");
+            f"<button id='item_color_channel_{row.color}' class='{classes}' type='button' onclick='select_color_channel({row.color})'><img src='{_palette_asset(row.palette)}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /><span>{_escape_rml(row.label)}</span></button>");
     }
     markup = String.append(markup,
         f"</div><div class='item_color_palette_body'><div class='item_color_palette'><img src='{asset}' /><div class='item_color_palette_hits'>");
     for (var value = 0; value < palette_columns * palette_rows; value += 1) {
         markup = String.append(markup,
-            f"<button id='item_palette_{value}' class='item_color_palette_cell' type='button' title='Color {value}' onclick='rollnw_item_color_apply'></button>");
+            f"<button id='item_palette_{value}' class='item_color_palette_cell' type='button' title='Color {value}' onclick='apply_color({value})'></button>");
     }
     markup = String.append(markup,
         f"</div><div class='item_color_selection' style='left:{(selected.value % palette_columns) * palette_cell_size}px;top:{(selected.value / palette_columns) * palette_cell_size}px'></div></div></div></div>");
@@ -384,7 +384,7 @@ fn _appearance_commands(focus_id: string = ""): array!(Command) {
     return commands;
 }
 
-fn appearance_refresh(event: Event): array!(Command) {
+fn appearance_refresh(): array!(Command) {
     var item = _active_item();
     if ((item as object) != (_appearance_item as object)) {
         _appearance_item = item;
@@ -397,14 +397,7 @@ fn appearance_refresh(event: Event): array!(Command) {
     return _appearance_commands();
 }
 
-fn open_model_selector(event: Event): array!(Command) {
-    var prefix = "item_model_";
-    if (!String.starts_with(event.element_id, prefix)) { return {}; }
-    var values = String.split(String.substr(event.element_id,
-        String.len(prefix), String.len(event.element_id) - String.len(prefix)), "_");
-    if (Array.len(values) != 2) { return {}; }
-    var part = String.to_int(values[0]);
-    var axis = String.to_int(values[1]);
+fn open_model_selector(part: int, axis: int): array!(Command) {
     var item = _active_item();
     if ((item as object) == O.invalid
         || !_refresh_model_options(item, part, axis)) {
@@ -416,19 +409,12 @@ fn open_model_selector(event: Event): array!(Command) {
     return _appearance_commands("item_option_rows");
 }
 
-fn close_appearance_selector(event: Event): array!(Command) {
+fn close_appearance_selector(): array!(Command) {
     _reset_appearance_selector();
     return _appearance_commands();
 }
 
-fn open_color_selector(event: Event): array!(Command) {
-    var prefix = "item_color_";
-    if (!String.starts_with(event.element_id, prefix)) { return {}; }
-    var values = String.split(String.substr(event.element_id,
-        String.len(prefix), String.len(event.element_id) - String.len(prefix)), "_");
-    if (Array.len(values) != 2) { return {}; }
-    var part = String.to_int(values[0]);
-    var color = String.to_int(values[1]);
+fn open_color_selector(part: int, color: int): array!(Command) {
     var row = _color_row(_active_item(), part, color);
     if (row.part < -1 || _palette_asset(row.palette) == "") { return {}; }
     _appearance_mode = appearance_color;
@@ -438,11 +424,7 @@ fn open_color_selector(event: Event): array!(Command) {
     return _appearance_commands("item_color_selector_close");
 }
 
-fn select_color_channel(event: Event): array!(Command) {
-    var prefix = "item_color_channel_";
-    if (!String.starts_with(event.element_id, prefix)) { return {}; }
-    var color = String.to_int(String.substr(event.element_id,
-        String.len(prefix), String.len(event.element_id) - String.len(prefix)));
+fn select_color_channel(color: int): array!(Command) {
     if (_color_row(_active_item(), _color_part, color).part < -1) { return {}; }
     _color_channel = color;
     return _appearance_commands("item_color_selector_close");
@@ -461,16 +443,12 @@ fn _set_selected_color(value: int): bool {
     return _command_succeeded(result.status);
 }
 
-fn apply_color(event: Event): array!(Command) {
-    var prefix = "item_palette_";
-    if (!String.starts_with(event.element_id, prefix)) { return {}; }
-    var value = String.to_int(String.substr(event.element_id,
-        String.len(prefix), String.len(event.element_id) - String.len(prefix)));
+fn apply_color(value: int): array!(Command) {
     if (!_set_selected_color(value)) { return {}; }
     return _appearance_commands("item_color_selector_close");
 }
 
-fn inherit_color(event: Event): array!(Command) {
+fn inherit_color(): array!(Command) {
     if (!_set_selected_color(255)) { return {}; }
     return _appearance_commands("item_color_selector_close");
 }
@@ -505,15 +483,15 @@ fn _command_succeeded(status: int): bool {
     return status == 0 || status == 4;
 }
 
-fn add_selected_property(): bool {
+fn add_selected_property() {
     var item = _active_item();
-    if ((item as object) == O.invalid) { return false; }
+    if ((item as object) == O.invalid) { return; }
     var selected = list_get_selected(available_list);
     var available = ItemPolicy.get_available_item_property_rows(item);
-    if (selected.index < 0 || selected.index >= Array.len(available)) { return false; }
+    if (selected.index < 0 || selected.index >= Array.len(available)) { return; }
     var source = available[selected.index];
     if (!_selection_matches(selected, f"{source.prop_type}", Array.len(available))) {
-        return false;
+        return;
     }
     var applied_count = Array.len(ItemPolicy.get_applied_item_property_rows(item));
     var result = command_execute("object.item.add_property", {
@@ -524,8 +502,8 @@ fn add_selected_property(): bool {
         f"{source.param_table}",
         f"{source.param_value}",
     });
-    if (!_command_succeeded(result.status) || !refresh()) { return false; }
-    return list_set_selected(applied_list, {
+    if (!_command_succeeded(result.status) || !refresh()) { return; }
+    list_set_selected(applied_list, {
         list_id = applied_list,
         key = f"{applied_count}",
         index = applied_count,
@@ -533,24 +511,24 @@ fn add_selected_property(): bool {
     });
 }
 
-fn remove_selected_property(): bool {
+fn remove_selected_property() {
     var item = _active_item();
-    if ((item as object) == O.invalid) { return false; }
+    if ((item as object) == O.invalid) { return; }
     var selected = list_get_selected(applied_list);
     var applied = ItemPolicy.get_applied_item_property_rows(item);
-    if (selected.index < 0 || selected.index >= Array.len(applied)) { return false; }
+    if (selected.index < 0 || selected.index >= Array.len(applied)) { return; }
     var source = applied[selected.index];
     if (!_selection_matches(selected, f"{source.index}", Array.len(applied))) {
-        return false;
+        return;
     }
     var result = command_execute(
         "object.item.remove_property", { f"{source.index}" });
-    if (!_command_succeeded(result.status) || !refresh()) { return false; }
+    if (!_command_succeeded(result.status) || !refresh()) { return; }
     var next_count = Array.len(applied) - 1;
-    if (next_count <= 0) { return true; }
+    if (next_count <= 0) { return; }
     var next_index = source.index;
     if (next_index >= next_count) { next_index = next_count - 1; }
-    return list_set_selected(applied_list, {
+    list_set_selected(applied_list, {
         list_id = applied_list,
         key = f"{next_index}",
         index = next_index,
@@ -558,8 +536,8 @@ fn remove_selected_property(): bool {
     });
 }
 
-fn close_property_options(): bool {
-    return _clear_property_options();
+fn close_property_options() {
+    _clear_property_options();
 }
 
 fn on_applied_activate(selection: ListSelection) {

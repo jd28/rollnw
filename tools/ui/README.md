@@ -12,7 +12,7 @@ The subsystem has four distinct jobs:
 
 | Component | Responsibility |
 | --- | --- |
-| `rml_smalls_language_binding.*` | Compile document Smalls blocks, encode RmlUi events, execute typed handlers, and apply bounded UI commands. |
+| `rml_smalls_expression_binding.*` / `rml_smalls_language_binding.*` | Parse bounded imports and direct-call expressions in scratch storage, encode RmlUi events, execute typed handlers, and apply bounded UI commands. |
 | `smalls_rmlui.*` / `rml_smalls_bridge.*` | Publish the validated process-wide `active_object` and load/call toolset Smalls modules. |
 | `virtual_list.*` / `virtual_combobox.*` / `ui_v1.*` / `smalls_ui_v1.*` | Compute viewport-bounded list ranges, own reusable combobox state, and expose the first Smalls list state/callback protocol. |
 | `smalls_property_tree.*` / `smalls_creature_feats.*` | Build bounded snapshots from live object data for reflected and managed workbench surfaces. |
@@ -24,16 +24,17 @@ Those mutations go through the command bus, normally through
 
 ## Smalls As UI Behavior
 
-An RmlUi document may contain inline or external Smalls scripts. Each script
-block is compiled as a document-owned Smalls module. Event attributes resolve a
-named function in those blocks.
+An RmlUi document contains one inline, imports-only Smalls block. Event
+attributes are direct call expressions resolved only through that host import
+scope. External scripts and document-local function declarations are rejected;
+documents therefore do not create runtime Smalls modules.
 
 The handler boundary is:
 
 ```text
-RmlUi Event + source Element + owner Document + active_object
-    -> core.rmlui.Event value
-    -> fn handler(event: Event): void | array!(Command)
+host imports + direct call + optional RmlUi Event + active_object
+    -> bound target index + typed arguments
+    -> fn handler(...): void | array!(Command)
     -> validate and apply UI commands to the owner document
 ```
 
@@ -45,7 +46,7 @@ limits, lifetime, and errors.
 
 The shared `active_object` is a non-owning `ObjectHandle`. The host validates
 the generational handle on every read. A stale, cleared, or absent selection is
-reported as an invalid object rather than exposing freed storage.
+encoded as an invalid object; handlers that require an object reject it.
 
 ## Mutation Rule
 

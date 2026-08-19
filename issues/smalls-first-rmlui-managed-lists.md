@@ -145,3 +145,49 @@ Evidence against this design would be a required RmlUi operation that cannot be
 expressed as a bounded flat-row update or flat event without retaining runtime
 pointers or duplicating object state. Record that operation and its measured
 frequency before extending the native protocol.
+
+## 2026-08-18 Creature Workbench Slice
+
+The repository now contains a generic `RmlSmallsDataModel`; the earlier concern
+about adding one speculatively no longer describes the available machinery. The
+Creature Sheet reuses that existing boundary for a concrete, bounded,
+read-only batch:
+
+- input is the one published live object plus its Creature propsets and the
+  `core`/`nwn1` policy functions used to derive combat values;
+- `toolset.ui.refresh_creature_sheet_model` replaces one SmallS-owned global
+  presentation batch rather than exposing runtime pointers or incrementally
+  patching rows;
+- `toolset.rmlui.refresh_creature_sheet_model` is the one-event adapter; it
+  extracts `active_object` and calls the reusable object-to-batch transform;
+- each row is a flat `{label, value, section, alternate}` struct, owned by the
+  SmallS runtime until the next refresh or runtime replacement;
+- output is zero to 128 rows plus an explicit error string; invalid or
+  non-Creature handles produce the empty state, and overflow rejects the whole
+  batch with a visible error; and
+- RML owns the workbench, tab, surface, header, and Sheet row structure through
+  a template and `data-for`. C++ only dirties the existing data model after a
+  selection or mutation refresh.
+
+The dedicated-server fixture has 28 skills and produces 48 presentation rows:
+five section rows and 43 values. The access pattern is one linear rebuild and
+one RmlUi expansion on selection or object mutation; it is not a per-frame or
+per-row SmallS call. No performance claim is made. The 128-row bound makes a
+viewport virtualizer unnecessary for this observed Sheet data; views with
+unbounded or user-sized sources still use the managed-list path.
+
+The simplification pass removed the live C++ Sheet snapshot and its bespoke
+markup renderer. It reused the existing RmlUi data model and kept a single
+complete-batch replacement state. It did not add a widget registry, universal
+schema, or a second UI state store.
+
+### Remaining Migration
+
+The Creature workbench still has one transitional C++ hydrator for tab
+activation and for the existing Classes, Appearance, Spells, and Inventory
+surfaces whose row production has not yet moved to RML/SmallS. Migrate those
+surfaces independently only when their actual input batches and transaction
+contracts are preserved. The acceptance condition is that changing or
+reordering the static workbench layout requires only RML/RCSS changes; C++ may
+retain generic hosting, bounded-list synchronization, popup geometry, and
+transaction application, but no surface-specific markup or routing.

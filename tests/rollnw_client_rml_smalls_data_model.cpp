@@ -1,6 +1,8 @@
 #include "rml_smalls_data_model.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectManager.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <RmlUi/Core.h>
@@ -8,6 +10,8 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <filesystem>
+#include <string>
 
 namespace {
 
@@ -63,6 +67,33 @@ private:
     bool initialized_ = false;
 };
 
+class DestroyedViewWarningCapture final : public Rml::SystemInterface {
+public:
+    bool LogMessage(Rml::Log::Type type, const Rml::String& message) override
+    {
+        if (message == "Could not retrieve element in view, was it destroyed?") {
+            ++count;
+        }
+        return Rml::SystemInterface::LogMessage(type, message);
+    }
+
+    size_t count = 0;
+};
+
+class SystemInterfaceScope {
+public:
+    explicit SystemInterfaceScope(Rml::SystemInterface& system)
+        : previous_{Rml::GetSystemInterface()}
+    {
+        Rml::SetSystemInterface(&system);
+    }
+
+    ~SystemInterfaceScope() { Rml::SetSystemInterface(previous_); }
+
+private:
+    Rml::SystemInterface* previous_ = nullptr;
+};
+
 class KernelServiceScope {
 public:
     KernelServiceScope() { nw::kernel::services().start(); }
@@ -71,6 +102,20 @@ public:
         nw::kernel::services().shutdown();
         nw::kernel::services().start();
     }
+};
+
+class CurrentPathScope {
+public:
+    explicit CurrentPathScope(const std::filesystem::path& path)
+        : previous_{std::filesystem::current_path()}
+    {
+        std::filesystem::current_path(path);
+    }
+
+    ~CurrentPathScope() { std::filesystem::current_path(previous_); }
+
+private:
+    std::filesystem::path previous_;
 };
 
 } // namespace
@@ -156,8 +201,7 @@ TEST(ClientRmlSmallsDataModel, ReadsAndRefreshesModuleGlobalStructArrays)
     context->Update();
 
     EXPECT_EQ(document->GetElementById("title")->GetInnerRML(), "Initial");
-    const Rml::String initial_rows =
-        document->GetElementById("rows")->GetInnerRML();
+    const Rml::String initial_rows = document->GetElementById("rows")->GetInnerRML();
     EXPECT_NE(initial_rows.find("<span>Alpha=7;</span>"), Rml::String::npos);
     EXPECT_NE(initial_rows.find("<span>Beta=11;</span>"), Rml::String::npos);
     EXPECT_TRUE(document->GetElementById("missing")->GetInnerRML().empty());
@@ -169,12 +213,140 @@ TEST(ClientRmlSmallsDataModel, ReadsAndRefreshesModuleGlobalStructArrays)
     context->Update();
 
     EXPECT_EQ(document->GetElementById("title")->GetInnerRML(), "Changed");
-    const Rml::String changed_rows =
-        document->GetElementById("rows")->GetInnerRML();
+    const Rml::String changed_rows = document->GetElementById("rows")->GetInnerRML();
     EXPECT_NE(changed_rows.find("<span>Gamma=13;</span>"), Rml::String::npos);
     EXPECT_EQ(changed_rows.find("<span>Beta=11;</span>"), Rml::String::npos);
 
     document->Close();
     model.shutdown();
     EXPECT_TRUE(Rml::RemoveContext("rml-smalls-data-model-test"));
+}
+
+TEST(ClientRmlSmallsDataModel, RendersCreatureSheetFromToolsetPresentationBatch)
+{
+    KernelServiceScope kernel;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path("build/tests/stdlib/core");
+    runtime.add_module_path("build/tests/stdlib/nwn1");
+    runtime.add_module_path("build/tests/stdlib/toolset");
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "build/tests/test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    runtime.init_object_propsets(creature->handle());
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = runtime.object_subtype_for_tag(creature->handle().type);
+
+    NullRenderInterface renderer;
+    DestroyedViewWarningCapture warning_capture;
+    SystemInterfaceScope system_interface{warning_capture};
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    auto* context = Rml::CreateContext(
+        "creature-sheet-data-model-test", Rml::Vector2i{800, 600});
+    ASSERT_NE(context, nullptr);
+
+    nw::toolset::RmlSmallsDataModel model;
+    const std::array bindings{
+        nw::toolset::RmlSmallsGlobalBinding{
+            .variable = "toolset",
+            .module = "toolset.ui",
+            .global = "rml_model",
+        },
+    };
+    ASSERT_TRUE(model.initialize(
+        *context, runtime, "toolset_presentation", bindings));
+
+    const std::string source = R"RML(
+        <rml>
+        <head>
+          <link type="text/template" href="tools/client/ui/creature_editor.rml" />
+          <style>body, button, input { font-family: Inter; font-weight: normal; }</style>
+        </head>
+        <body data-model="toolset_presentation">
+          <div id="workspace_content"></div>
+        </body>
+        </rml>
+    )RML";
+    auto* document = context->LoadDocumentFromMemory(
+        source, "creature_sheet_data_model_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* workspace = document->GetElementById("workspace_content");
+    ASSERT_NE(workspace, nullptr);
+    workspace->SetInnerRML(
+        "<template src=\"creature-workbench\"></template>");
+    workspace->SetInnerRML(
+        "<template src=\"creature-workbench\"></template>");
+    auto* rows = document->GetElementById("creature_sheet_rows");
+    ASSERT_NE(rows, nullptr);
+
+    const auto refreshed = runtime.execute_script(
+        "toolset.ui", "refresh_creature_sheet_model", {object});
+    ASSERT_TRUE(refreshed.ok()) << refreshed.error_message;
+    model.dirty_all();
+    context->Update();
+
+    EXPECT_NE(document->GetElementById("creature_tab_details"), nullptr);
+    EXPECT_NE(document->GetElementById("creature_tab_sheet"), nullptr);
+    EXPECT_NE(document->GetElementById("creature_tab_inventory"), nullptr);
+    const Rml::String markup = rows->GetInnerRML();
+    EXPECT_NE(markup.find("Summary"), Rml::String::npos);
+    EXPECT_NE(markup.find("Agent"), Rml::String::npos);
+    EXPECT_NE(markup.find("Armor Class"), Rml::String::npos);
+    EXPECT_NE(markup.find("Strength"), Rml::String::npos);
+    EXPECT_NE(markup.find("Saving Throws"), Rml::String::npos);
+
+    Rml::ElementList labels;
+    rows->GetElementsByClassName(labels, "property_tree_label");
+    ASSERT_FALSE(labels.empty());
+    Rml::ElementList values;
+    rows->GetElementsByClassName(values, "property_tree_value");
+    Rml::ElementList twisties;
+    rows->GetElementsByClassName(twisties, "tree_twisty");
+    EXPECT_EQ(labels.size(), values.size());
+    EXPECT_EQ(labels.size(), twisties.size());
+    for (const auto* label : labels) {
+        ASSERT_NE(label, nullptr);
+        EXPECT_FALSE(label->GetInnerRML().empty());
+    }
+
+    workspace->SetInnerRML(
+        "<template src=\"creature-workbench\"></template>");
+    rows = document->GetElementById("creature_sheet_rows");
+    ASSERT_NE(rows, nullptr);
+    model.dirty_all();
+    context->Update();
+    EXPECT_NE(rows->GetInnerRML().find("Summary"), Rml::String::npos);
+    EXPECT_EQ(warning_capture.count, 0);
+
+    auto invalid = nw::smalls::Value::make_object(nw::ObjectHandle{});
+    const auto cleared = runtime.execute_script(
+        "toolset.ui", "refresh_creature_sheet_model", {invalid});
+    ASSERT_TRUE(cleared.ok()) << cleared.error_message;
+    model.dirty_all();
+    context->Update();
+
+    const Rml::String cleared_markup = rows->GetInnerRML();
+    EXPECT_NE(cleared_markup.find("Waiting for a live Creature"),
+        Rml::String::npos);
+    EXPECT_EQ(cleared_markup.find("Summary"), Rml::String::npos);
+
+    const auto restored = runtime.execute_script(
+        "toolset.ui", "refresh_creature_sheet_model", {object});
+    ASSERT_TRUE(restored.ok()) << restored.error_message;
+    model.dirty_all();
+    context->Update();
+    EXPECT_NE(rows->GetInnerRML().find("Summary"), Rml::String::npos);
+
+    document->Close();
+    model.shutdown();
+    EXPECT_TRUE(Rml::RemoveContext("creature-sheet-data-model-test"));
+    nw::kernel::objects().destroy(creature->handle());
 }

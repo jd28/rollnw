@@ -1864,13 +1864,31 @@ TEST(ClientObjectEdits, DetailsCreatureAbilityAndSkillCommitPersistAndRestoreUnd
     ASSERT_EQ(ability->editor, nw::toolset::ObjectDetailsEditorKind::integer);
     ASSERT_EQ(skill->editor, nw::toolset::ObjectDetailsEditorKind::integer);
 
+    const auto sheet_value = [&](std::string_view label) {
+        nw::toolset::ObjectDetailsSnapshot sheet;
+        nw::toolset::build_creature_sheet(runtime, creature->handle(), sheet);
+        EXPECT_EQ(sheet.status, nw::toolset::ObjectDetailsStatus::ready)
+            << sheet.diagnostic;
+        const auto row = std::ranges::find_if(sheet.rows, [&](const auto& candidate) {
+            return candidate.kind == nw::toolset::ObjectDetailsRowKind::value
+                && sheet.text_view(candidate.label) == label;
+        });
+        EXPECT_NE(row, sheet.rows.end());
+        return row == sheet.rows.end()
+            ? 0
+            : std::stoi(std::string{sheet.text_view(row->value)});
+    };
+    const int32_t sheet_strength_before = sheet_value("Strength");
+    const int32_t sheet_skill_before = sheet_value("Discipline");
+    const int32_t sheet_attack_before = sheet_value("Primary Attack Bonus");
+
     std::string diagnostic;
     const auto prepared_ability = nw::toolset::prepare_object_details_integer_edit(
         runtime,
         creature->handle(),
         static_cast<uint32_t>(ability - snapshot.rows.begin()),
         ability->edit_value,
-        ability->edit_value + 1,
+        ability->edit_value + 2,
         diagnostic);
     ASSERT_TRUE(prepared_ability) << diagnostic;
     const auto prepared_skill = nw::toolset::prepare_object_details_integer_edit(
@@ -1911,6 +1929,9 @@ TEST(ClientObjectEdits, DetailsCreatureAbilityAndSkillCommitPersistAndRestoreUnd
         std::move(batch), "Set creature ability and skill", context);
     ASSERT_TRUE(committed.ok()) << committed.message;
     ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(sheet_value("Strength"), sheet_strength_before + 2);
+    EXPECT_EQ(sheet_value("Discipline"), sheet_skill_before + 2);
+    EXPECT_EQ(sheet_value("Primary Attack Bonus"), sheet_attack_before + 1);
 
     const auto verify_serialized_values = [&](int32_t ability_value, int32_t skill_value) {
         nlohmann::json serialized;
@@ -1927,10 +1948,15 @@ TEST(ClientObjectEdits, DetailsCreatureAbilityAndSkillCommitPersistAndRestoreUnd
     auto result = workspace.undo(context);
     ASSERT_TRUE(result.ok()) << result.message;
     verify_serialized_values(prepared_ability->before, prepared_skill->before);
+    EXPECT_EQ(sheet_value("Strength"), sheet_strength_before);
+    EXPECT_EQ(sheet_value("Discipline"), sheet_skill_before);
 
     result = workspace.redo(context);
     ASSERT_TRUE(result.ok()) << result.message;
     verify_serialized_values(prepared_ability->after, prepared_skill->after);
+    EXPECT_EQ(sheet_value("Strength"), sheet_strength_before + 2);
+    EXPECT_EQ(sheet_value("Discipline"), sheet_skill_before + 2);
+    EXPECT_EQ(sheet_value("Primary Attack Bonus"), sheet_attack_before + 1);
 
     nw::toolset::ObjectEditBatch invalid;
     invalid.kind = nw::toolset::ObjectEditKind::propset_int_element;

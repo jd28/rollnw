@@ -1,7 +1,8 @@
 <template name="item-workbench">
 <head></head>
 <body>
-  <div id="object_workbench" class="object_workbench item_workbench">
+  <div id="object_workbench" class="object_workbench item_workbench"
+       data-smalls-source="item_editor.rml">
     <div id="item_object_header" class="object_workbench_header area_object_header">
       <button type="button" class="area_object_list_back panel_back_button"
               title="Back to placed objects">
@@ -27,7 +28,7 @@
     </div>
 
     <div id="item_surface_details" class="item_workbench_surface smalls_refresh"
-         onrefresh="rollnw_item_details_refresh">
+         onrefresh="details_refresh()">
       <div class="property_tree_header item_data_header">
         <span class="property_tree_header_name">Field</span>
         <span class="property_tree_header_value">Value</span>
@@ -55,7 +56,7 @@
 
     <div id="item_surface_appearance" class="item_workbench_surface">
       <div id="item_appearance_dynamic" class="smalls_refresh"
-           onrefresh="rollnw_item_appearance_refresh">
+           onrefresh="appearance_refresh()">
         <div class="property_tree_empty">Waiting for a live Item.</div>
       </div>
     </div>
@@ -69,7 +70,7 @@
                data-empty-text="No properties are available for this item type."></div>
           <div class="item_property_action_bar">
             <button id="item_property_add" class="item_property_action add" type="button"
-                    title="Add selected property" onclick="rollnw_item_property_add">
+                    title="Add selected property" onclick="add_selected_property()">
               <span class="item_property_action_mark horizontal"></span>
               <span class="item_property_action_mark vertical"></span>
             </button>
@@ -88,7 +89,7 @@
                data-empty-text="No item properties are assigned."></div>
           <div class="item_property_action_bar">
             <button id="item_property_remove" class="item_property_action remove" type="button"
-                    title="Remove selected property" onclick="rollnw_item_property_remove">
+                    title="Remove selected property" onclick="remove_selected_property()">
               <span class="item_property_action_mark horizontal"></span>
             </button>
           </div>
@@ -98,7 +99,7 @@
           data-list-id="item.properties.options">
         <div class="item_selector_header">
           <button id="item_property_selector_close" class="item_selector_close panel_back_button" type="button"
-                  title="Back" onclick="rollnw_item_property_close">
+                  title="Back" onclick="close_property_options()">
             <span class="panel_back_icon">
               <span class="panel_back_head"></span>
               <span class="panel_back_shaft"></span>

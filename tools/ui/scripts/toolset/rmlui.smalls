@@ -1,0 +1,8 @@
+from core.rmlui import { Event };
+import toolset.ui as Ui;
+
+// RmlUi event adaptation stays outside the reusable presentation transform.
+// An invalid active object is valid input and clears the presentation batch.
+fn refresh_creature_sheet_model(event: Event) {
+    Ui.refresh_creature_sheet_model(event.active_object);
+}

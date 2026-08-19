@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -559,7 +558,7 @@ TEST(ClientRmlManagedList, FixedColumnGridMaterializesOnlyVisibleLogicalRows)
         std::string::npos);
 }
 
-TEST(ClientRmlSmallsLanguageBinding, MutatesSharedActiveObjectAndAppliesCommands)
+TEST(ClientRmlSmallsLanguageBinding, DispatchesDirectCallsAndAppliesCommands)
 {
     KernelServiceScope services;
     auto& runtime = nw::kernel::runtime();
@@ -571,6 +570,50 @@ TEST(ClientRmlSmallsLanguageBinding, MutatesSharedActiveObjectAndAppliesCommands
     auto* rmlui_module = runtime.load_module("core.rmlui");
     ASSERT_NE(rmlui_module, nullptr);
     ASSERT_NE(runtime.get_or_compile_module(rmlui_module), nullptr);
+
+    auto* actions = runtime.load_module_from_source("test.rml_direct_actions", R"(
+from core.rmlui import { Event, Command, command_set_rml, command_set_text };
+from nwn1.propsets import { CreatureAppearance };
+
+fn select_appearance(event: Event): array!(Command) {
+    var creature = event.active_object as Creature;
+    var appearance = get_propset!(CreatureAppearance)(creature);
+    appearance.appearance = appearance.appearance + 1;
+    return {
+        { operation = command_set_text, element_id = "result", value = "changed", state = false }
+    };
+}
+
+fn runtime_failure() {
+    assert(false);
+}
+
+fn build_dynamic(): array!(Command) {
+    return {{
+        operation = command_set_rml,
+        element_id = "dynamic",
+        value = "<span id='dynamic-result'>built</span>",
+        state = false,
+    }};
+}
+
+fn refresh_dynamic(event: Event): array!(Command) {
+    return {{
+        operation = command_set_rml,
+        element_id = event.element_id,
+        value = "<span id='refresh-result'>refreshed</span>",
+        state = false,
+    }};
+}
+
+fn no_active_object(): array!(Command) {
+    return {
+        { operation = command_set_text, element_id = "result", value = "no object", state = false }
+    };
+}
+)");
+    ASSERT_NE(actions, nullptr);
+    ASSERT_NE(runtime.get_or_compile_module(actions), nullptr);
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
@@ -597,71 +640,28 @@ TEST(ClientRmlSmallsLanguageBinding, MutatesSharedActiveObjectAndAppliesCommands
     ASSERT_NE(context, nullptr);
     nw::toolset::smalls_rmlui_host().publish_active_object(creature_handle);
 
-    const std::filesystem::path external_script_path = "tmp/rml_smalls_external.smalls";
-    {
-        std::ofstream external_script{external_script_path, std::ios::binary};
-        ASSERT_TRUE(external_script);
-        external_script << R"(
-from core.rmlui import { Event };
-from nwn1.propsets import { CreatureAppearance };
-
-fn external_select(event: Event) {
-    var creature = event.active_object as Creature;
-    var appearance = get_propset!(CreatureAppearance)(creature);
-    appearance.appearance = appearance.appearance + 10;
-}
-)";
-    }
-
     auto* document = context->LoadDocumentFromMemory(R"RML(
 <rml>
 <head>
   <script>
-from core.rmlui import { Event, Command, command_set_rml, command_set_text };
-from nwn1.propsets import { CreatureAppearance };
-
-fn select_appearance(event: Event): array!(Command) {
-    var creature = event.active_object as Creature;
-    var appearance = get_propset!(CreatureAppearance)(creature);
-    appearance.appearance = appearance.appearance + 1;
-    return {
-        { operation = command_set_text, element_id = "result", value = "changed", state = false }
-    };
-}
-
-fn runtime_failure(event: Event) {
-    assert(false);
-}
-
-fn build_dynamic(event: Event): array!(Command) {
-    return {{
-        operation = command_set_rml,
-        element_id = "dynamic",
-        value = "<span id='dynamic-result'>built</span>",
-        state = false,
-    }};
-}
-
-fn refresh_dynamic(event: Event): array!(Command) {
-    return {{
-        operation = command_set_rml,
-        element_id = event.element_id,
-        value = "<span id='refresh-result'>refreshed</span>",
-        state = false,
-    }};
-}
+from test.rml_direct_actions import {
+    build_dynamic,
+    no_active_object,
+    refresh_dynamic,
+    runtime_failure,
+    select_appearance,
+};
   </script>
-  <script src="tmp/rml_smalls_external.smalls"></script>
 </head>
 <body id="binding-document">
-  <button id="select" onclick="select_appearance">Select</button>
-  <button id="external-select" onclick="external_select">External</button>
-  <button id="missing" onclick="missing_handler">Missing</button>
-  <button id="runtime-fail" onclick="runtime_failure">Runtime failure</button>
-  <button id="build-dynamic" onclick="build_dynamic">Build</button>
+  <button id="select" onclick="select_appearance(event)">Select</button>
+  <button id="no-object" onclick="no_active_object()">No object</button>
+  <button id="missing" onclick="missing_handler()">Missing</button>
+  <button id="runtime-fail" onclick="runtime_failure()">Runtime failure</button>
+  <button id="build-dynamic" onclick="build_dynamic()">Build</button>
   <div id="result">unchanged</div>
   <div id="dynamic"></div>
-  <div id="refresh-dynamic" class="smalls_refresh" onrefresh="refresh_dynamic"></div>
+  <div id="refresh-dynamic" class="smalls_refresh" onrefresh="refresh_dynamic(event)"></div>
 </body>
 </rml>
 )RML",
@@ -689,27 +689,22 @@ fn refresh_dynamic(event: Event): array!(Command) {
     ASSERT_NE(document->GetElementById("refresh-result"), nullptr);
     EXPECT_EQ(document->GetElementById("refresh-result")->GetInnerRML(), "refreshed");
 
-    auto* external_select = document->GetElementById("external-select");
-    ASSERT_NE(external_select, nullptr);
-    EXPECT_TRUE(external_select->DispatchEvent("click", {}));
-    const auto externally_updated = runtime.read_struct_value_field(appearance, appearance_definition, appearance_field);
-    EXPECT_EQ(externally_updated.data.ival, 17);
-
     nlohmann::json serialized_creature;
     bool (*serialize_json)(const nw::Creature*, nlohmann::json&, nw::SerializationProfile) = nw::serialize;
     ASSERT_TRUE(serialize_json(creature, serialized_creature, nw::SerializationProfile::blueprint));
     ASSERT_TRUE(serialized_creature.contains("nwn1.propsets.CreatureAppearance"));
-    EXPECT_EQ(serialized_creature["nwn1.propsets.CreatureAppearance"]["appearance"], 17);
+    EXPECT_EQ(serialized_creature["nwn1.propsets.CreatureAppearance"]["appearance"], 7);
 
     binding.clear_diagnostics();
     ASSERT_NE(document->GetElementById("missing"), nullptr);
     EXPECT_TRUE(document->GetElementById("missing")->DispatchEvent("click", {}));
-    EXPECT_TRUE(diagnostic_contains(binding, "handler not found: missing_handler"));
+    EXPECT_TRUE(diagnostic_contains(binding,
+        "symbol is not present in the host import scope: missing_handler"));
 
     binding.clear_diagnostics();
     ASSERT_NE(document->GetElementById("runtime-fail"), nullptr);
     EXPECT_TRUE(document->GetElementById("runtime-fail")->DispatchEvent("click", {}));
-    EXPECT_TRUE(diagnostic_contains(binding, "binding_inline.rml"));
+    EXPECT_TRUE(diagnostic_contains(binding, "binding-document"));
 
     auto* invalid_document = context->LoadDocumentFromMemory(R"RML(
 <rml>
@@ -724,31 +719,155 @@ fn refresh_dynamic(event: Event): array!(Command) {
     EXPECT_TRUE(diagnostic_contains(binding, "binding_invalid.rml"));
     EXPECT_NE(invalid_document->GetElementById("still-loaded"), nullptr);
 
-    auto* terminal_module = runtime.load_module_from_source("test.rmlui_terminal", R"(
-from core.rmlui import { active_object };
-fn selected(): object { return active_object(); }
-)");
-    ASSERT_NE(terminal_module, nullptr);
-    ASSERT_NE(runtime.get_or_compile_module(terminal_module), nullptr);
-    const auto terminal_result = runtime.execute_script("test.rmlui_terminal", "selected", {});
-    ASSERT_TRUE(terminal_result.ok());
-    EXPECT_EQ(terminal_result.value.data.oval, creature_handle);
-
     nw::kernel::objects().destroy(creature_handle);
     ASSERT_FALSE(nw::kernel::objects().valid(creature_handle));
     binding.clear_diagnostics();
-    EXPECT_TRUE(select->DispatchEvent("click", {}));
-    EXPECT_TRUE(diagnostic_contains(binding, "no active object"));
+    auto* no_object = document->GetElementById("no-object");
+    ASSERT_NE(no_object, nullptr);
+    EXPECT_TRUE(no_object->DispatchEvent("click", {}));
+    EXPECT_EQ(document->GetElementById("result")->GetInnerRML(), "no object");
+    EXPECT_TRUE(binding.diagnostics().empty());
     EXPECT_EQ(nw::toolset::smalls_rmlui_host().active_object().type, nw::ObjectType::invalid);
+
+    constexpr size_t retained_diagnostic_limit = 256;
+    constexpr size_t extra_failure_count = 3;
+    binding.clear_diagnostics();
+    const auto stats_before_failures = binding.stats();
+    auto* runtime_failure = document->GetElementById("runtime-fail");
+    ASSERT_NE(runtime_failure, nullptr);
+    for (size_t i = 0; i < retained_diagnostic_limit + extra_failure_count; ++i) {
+        EXPECT_TRUE(runtime_failure->DispatchEvent("click", {}));
+    }
+    const auto stats_after_failures = binding.stats();
+    EXPECT_EQ(binding.diagnostics().size(), retained_diagnostic_limit);
+    EXPECT_EQ(stats_after_failures.suppressed_diagnostic_count
+            - stats_before_failures.suppressed_diagnostic_count,
+        extra_failure_count);
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
     invalid_document->Close();
     document->Close();
     context->Update();
-    EXPECT_FALSE(runtime.evict_module("toolset.rml.document_2_block_0"));
-    EXPECT_FALSE(runtime.evict_module("toolset.rml.document_2_block_1"));
-    std::filesystem::remove(external_script_path);
     Rml::RemoveContext("smalls-language-binding-test");
+}
+
+TEST(ClientRmlSmallsLanguageBinding, RejectsExternalScripts)
+{
+    KernelServiceScope services;
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path("stdlib/core");
+    nw::toolset::register_smalls_rmlui(runtime);
+    auto* rmlui_module = runtime.load_module("core.rmlui");
+    ASSERT_NE(rmlui_module, nullptr);
+    ASSERT_NE(runtime.get_or_compile_module(rmlui_module), nullptr);
+
+    nw::toolset::RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("smalls-external-script-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml><head><script src="external.smalls"></script></head><body></body></rml>
+)RML",
+        "external_script.rml");
+    ASSERT_NE(document, nullptr);
+    EXPECT_TRUE(diagnostic_contains(binding,
+        "external Smalls scripts are not supported"));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("smalls-external-script-test");
+}
+
+TEST(ClientRmlSmallsLanguageBinding, NamesTemplateSourceForMissingHostImport)
+{
+    KernelServiceScope services;
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path("stdlib/core");
+    nw::toolset::register_smalls_rmlui(runtime);
+    auto* rmlui_module = runtime.load_module("core.rmlui");
+    ASSERT_NE(rmlui_module, nullptr);
+    ASSERT_NE(runtime.get_or_compile_module(rmlui_module), nullptr);
+
+    nw::toolset::RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("smalls-template-scope-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml>
+<head><script>from core.rmlui import { command_set_text };</script></head>
+<body><div data-smalls-source="incomplete_template.rml">
+  <button id="missing" onclick="template_action()">Missing</button>
+</div></body>
+</rml>
+)RML",
+        "template_host.rml");
+    ASSERT_NE(document, nullptr);
+    ASSERT_NE(document->GetElementById("missing"), nullptr);
+    EXPECT_TRUE(document->GetElementById("missing")->DispatchEvent("click", {}));
+    EXPECT_TRUE(diagnostic_contains(binding, "incomplete_template.rml"));
+    EXPECT_TRUE(diagnostic_contains(binding,
+        "symbol is not present in the host import scope: template_action"));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("smalls-template-scope-test");
+}
+
+TEST(ClientRmlSmallsLanguageBinding, InternsOneTargetForPaletteArguments)
+{
+    KernelServiceScope services;
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path("stdlib/core");
+    nw::toolset::register_smalls_rmlui(runtime);
+    auto* rmlui_module = runtime.load_module("core.rmlui");
+    ASSERT_NE(rmlui_module, nullptr);
+    ASSERT_NE(runtime.get_or_compile_module(rmlui_module), nullptr);
+    auto* actions = runtime.load_module_from_source(
+        "test.rml_palette_actions", "fn apply_color(value: int) {}\n");
+    ASSERT_NE(actions, nullptr);
+    ASSERT_NE(runtime.get_or_compile_module(actions), nullptr);
+
+    nw::toolset::RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("smalls-palette-binding-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+
+    std::string markup = R"RML(<rml><head><script>
+from test.rml_palette_actions import { apply_color };
+</script></head><body>)RML";
+    for (int value = 0; value < 176; ++value) {
+        markup += "<button id='color_" + std::to_string(value)
+            + "' onclick='apply_color(" + std::to_string(value)
+            + ")'>Color</button>";
+    }
+    markup += "</body></rml>";
+
+    const auto before = binding.stats();
+    auto* document = context->LoadDocumentFromMemory(
+        markup, "palette_binding.rml");
+    ASSERT_NE(document, nullptr);
+    for (int value = 0; value < 176; ++value) {
+        auto* element = document->GetElementById(
+            "color_" + std::to_string(value));
+        ASSERT_NE(element, nullptr);
+        EXPECT_TRUE(element->DispatchEvent("click", {}));
+    }
+    const auto after = binding.stats();
+    EXPECT_EQ(after.interned_target_count - before.interned_target_count, 1);
+    EXPECT_EQ(after.bound_listener_count - before.bound_listener_count, 176);
+    EXPECT_EQ(after.bound_argument_count - before.bound_argument_count, 176);
+    EXPECT_TRUE(binding.diagnostics().empty());
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("smalls-palette-binding-test");
 }
 
 TEST(ClientRmlSmallsLanguageBinding, RecompilesDocumentAfterKernelServiceReplacement)
@@ -764,6 +883,22 @@ TEST(ClientRmlSmallsLanguageBinding, RecompilesDocumentAfterKernelServiceReplace
         EXPECT_NE(rmlui_module, nullptr);
         if (rmlui_module) {
             EXPECT_NE(runtime.get_or_compile_module(rmlui_module), nullptr);
+        }
+        auto* actions = runtime.load_module_from_source(
+            "test.rml_runtime_actions", R"(
+from core.rmlui import { Command, command_set_text };
+fn select(): array!(Command) {
+    return {{
+        operation = command_set_text,
+        element_id = "result",
+        value = "current runtime",
+        state = false,
+    }};
+}
+)");
+        EXPECT_NE(actions, nullptr);
+        if (actions) {
+            EXPECT_NE(runtime.get_or_compile_module(actions), nullptr);
         }
         return runtime;
     };
@@ -782,18 +917,9 @@ TEST(ClientRmlSmallsLanguageBinding, RecompilesDocumentAfterKernelServiceReplace
     auto* document = context->LoadDocumentFromMemory(R"RML(
 <rml>
 <head><script>
-from core.rmlui import { Event, Command, command_set_text };
-
-fn select(event: Event): array!(Command) {
-    return {{
-        operation = command_set_text,
-        element_id = "result",
-        value = "current runtime",
-        state = false,
-    }};
-}
+from test.rml_runtime_actions import { select };
 </script></head>
-<body><button id="select" onclick="select">Select</button><div id="result">stale</div></body>
+<body><button id="select" onclick="select()">Select</button><div id="result">stale</div></body>
 </rml>
 )RML",
         "runtime_replacement.rml");
@@ -853,6 +979,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProto
     nw::toolset::register_smalls_rmlui(runtime);
     ASSERT_TRUE(load_and_compile("core.rmlui"));
     ASSERT_TRUE(load_and_compile("toolset.ui"));
+    ASSERT_TRUE(load_and_compile("toolset.rmlui"));
     ASSERT_TRUE(load_and_compile("toolset.item_editor"));
 }
 

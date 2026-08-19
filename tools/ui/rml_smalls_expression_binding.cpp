@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <utility>
 
 namespace nw::toolset {
@@ -284,34 +283,13 @@ bool bind_argument(nw::smalls::Runtime& runtime,
         return bind_literal(runtime, *literal, output, error);
     }
 
-    const auto* unary = dynamic_cast<const nw::smalls::UnaryExpression*>(expression);
-    const auto* literal = unary
-        ? dynamic_cast<const nw::smalls::LiteralExpression*>(unary->rhs)
-        : nullptr;
-    if (!unary || !literal
-        || (unary->op.type != nw::smalls::TokenType::PLUS
-            && unary->op.type != nw::smalls::TokenType::MINUS)
-        || !bind_literal(runtime, *literal, output, error)
-        || (output.kind != RmlSmallsArgumentKind::integer
-            && output.kind != RmlSmallsArgumentKind::floating)) {
-        if (error.empty()) {
-            error = "argument must be event, a scalar literal, or an imported constant";
-        }
+    if (dynamic_cast<const nw::smalls::UnaryExpression*>(expression)) {
+        error = "signed arguments must be scalar numeric literals";
         return false;
     }
 
-    if (unary->op.type == nw::smalls::TokenType::MINUS) {
-        if (output.kind == RmlSmallsArgumentKind::integer) {
-            if (output.integer == std::numeric_limits<int32_t>::min()) {
-                error = "integer literal is outside the int32 range";
-                return false;
-            }
-            output.integer = -output.integer;
-        } else {
-            output.floating = -output.floating;
-        }
-    }
-    return true;
+    error = "argument must be event, a scalar literal, or an imported constant";
+    return false;
 }
 
 bool valid_handler_return(nw::smalls::Runtime& runtime,
@@ -349,7 +327,16 @@ bool parse_rml_smalls_import_scope(nw::smalls::Runtime& runtime,
     context.limits.max_parse_depth = kMaxExpressionDepth;
 
     nw::smalls::Parser parser{source, &context};
-    auto ast = parser.parse_program();
+    nw::smalls::Ast ast{&context};
+    try {
+        ast = parser.parse_program();
+    } catch (const nw::smalls::ast_limit_error& exception) {
+        error = exception.what();
+        return false;
+    } catch (const nw::smalls::parser_error& exception) {
+        error = context.error.empty() ? exception.what() : context.error;
+        return false;
+    }
     if (!context.error.empty()) {
         error = context.error;
         return false;
@@ -453,7 +440,9 @@ bool resolve_rml_smalls_call(nw::smalls::Runtime& runtime,
         return false;
     }
     if (!context.error.empty()) {
-        error = context.error;
+        error = context.error.starts_with("unable to parse integer literal")
+            ? "integer literal is outside the int32 range"
+            : context.error;
         return false;
     }
     if (!parser.is_end()) {

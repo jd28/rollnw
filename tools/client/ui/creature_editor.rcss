@@ -1,0 +1,49 @@
+.object_workbench.creature_workbench {
+  flex-basis: 440px;
+  width: 440px;
+}
+
+#creature_object_header {
+  display: none;
+}
+#creature_object_header.visible {
+  display: flex;
+}
+
+.creature_workbench_surface {
+  display: none;
+  flex: 1;
+  min-width: 0px;
+  min-height: 0px;
+}
+.creature_workbench_surface.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.creature_data_header {
+  border-top: 1px #36414c;
+}
+
+#creature_sheet_rows .property_tree_name {
+  padding-left: 22px;
+}
+#creature_sheet_rows .property_tree_cells.section .property_tree_name {
+  padding-left: 8px;
+}
+
+.creature_surface_dynamic {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0px;
+  min-height: 0px;
+}
+
+#creature_workbench_overlays {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 0px;
+  height: 0px;
+}

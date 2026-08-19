@@ -1,11 +1,20 @@
 from core.ui import { UiListBinding };
+from core.types import { Skill };
 import core.array as Array;
 import core.module as ModulePolicy;
 import core.object as Object;
 import core.types as Types;
+import nwn1.combat as Combat;
+import nwn1.constants as Constants;
 import nwn1.creature as CreaturePolicy;
-from nwn1.propsets import { DoorState, EncounterState, ItemDescriptor, ItemStats,
-    PlaceableState, SoundState, StoreState, TriggerState, WaypointState };
+import nwn1.creature_state as CreatureState;
+import nwn1.hitpoints as Hitpoints;
+import nwn1.modifier as Modifier;
+import nwn1.saving_throws as SavingThrows;
+import nwn1.skills as Skills;
+from nwn1.propsets import { CreatureCombat, CreatureDescriptor, CreatureStats, DoorState,
+    EncounterState, ItemDescriptor, ItemStats, PlaceableState, SoundState, StoreState,
+    TriggerState, WaypointState };
 
 type ObjectDetailsRow {
     group: string;
@@ -19,6 +28,28 @@ type ObjectDetailsRow {
     edit_min: int;
     edit_max: int;
 };
+
+type CreatureSheetPresentationRow {
+    label: string;
+    value: string;
+    section: bool;
+    alternate: bool;
+};
+
+type ToolsetPresentationModel {
+    creature_sheet_rows: array!(CreatureSheetPresentationRow);
+    creature_sheet_error: string;
+};
+
+// RmlUi reads this bounded presentation batch through its data model. The
+// selected object is a true UI singleton; every refresh replaces the complete
+// batch so stale rows cannot survive an object change.
+var rml_model: ToolsetPresentationModel = {
+    creature_sheet_rows = {},
+    creature_sheet_error = "",
+};
+
+const creature_sheet_max_presentation_rows = 128;
 
 const details_editor_read_only = 0;
 const details_editor_boolean = 1;
@@ -105,6 +136,147 @@ fn _bool_details_value(value: int): string {
 
 fn _vec3_details_value(value: vec3): string {
     return f"{value.x}, {value.y}, {value.z}";
+}
+
+fn _signed_details_value(value: int): string {
+    return value >= 0 ? f"+{value}" : f"{value}";
+}
+
+fn _creature_sheet_ability_value(obj: Creature, ability: Constants.Ability): string {
+    var score = CreaturePolicy.get_ability_score(obj, ability);
+    var modifier = CreaturePolicy.get_ability_modifier(obj, ability);
+    return f"{score} ({_signed_details_value(modifier)})";
+}
+
+fn _creature_sheet_name(obj: Creature): string {
+    var descriptor = get_propset!(CreatureDescriptor)(obj);
+    var first_name = Types.resolve_text(descriptor.name_first, 0);
+    var last_name = Types.resolve_text(descriptor.name_last, 0);
+    if (last_name == "") {
+        return first_name;
+    }
+    return first_name == "" ? last_name : f"{first_name} {last_name}";
+}
+
+fn _refresh_creature_sheet_state(obj: Creature) {
+    var combat = get_propset!(CreatureCombat)(obj);
+    combat.ability_cache_valid = false;
+    combat.slot_valid_mask = 0;
+    Combat.refresh_combat_weapon_cache(obj);
+    Modifier.refresh_offense_non_target_cache(obj);
+}
+
+fn get_creature_sheet_rows(obj: Creature): array!(ObjectDetailsRow) {
+    var rows: array!(ObjectDetailsRow) = {};
+    if (!Object.is_valid(obj)) {
+        return rows;
+    }
+    _refresh_creature_sheet_state(obj);
+
+    _append_details_row(rows, "Summary", "Name", _creature_sheet_name(obj));
+    _append_details_row(rows, "Summary", "Level",
+        f"{CreatureState.get_total_levels(obj)}");
+
+    var primary_attack = Constants.attack_type_unarmed;
+    if (Combat.has_attack_weapon(obj, Constants.attack_type_onhand)) {
+        primary_attack = Constants.attack_type_onhand;
+    } elif (Combat.has_attack_weapon(obj, Constants.attack_type_cweapon1)) {
+        primary_attack = Constants.attack_type_cweapon1;
+    }
+    _append_details_row(rows, "Combat", "Hit Points",
+        f"{Hitpoints.get_current_hitpoints(obj)} / {Hitpoints.get_max_hitpoints(obj)}");
+    _append_details_row(rows, "Combat", "Armor Class",
+        f"{Modifier.compute_armor_class(obj, Object.invalid)}");
+    _append_details_row(rows, "Combat", "Base Attack Bonus",
+        _signed_details_value(Combat.base_attack_bonus(obj)));
+    _append_details_row(rows, "Combat", "Primary Attack Bonus",
+        _signed_details_value(Combat.resolve_attack_bonus(
+            obj, primary_attack, Object.invalid)));
+
+    _append_details_row(rows, "Abilities", "Strength",
+        _creature_sheet_ability_value(obj, Constants.ability_strength));
+    _append_details_row(rows, "Abilities", "Dexterity",
+        _creature_sheet_ability_value(obj, Constants.ability_dexterity));
+    _append_details_row(rows, "Abilities", "Constitution",
+        _creature_sheet_ability_value(obj, Constants.ability_constitution));
+    _append_details_row(rows, "Abilities", "Intelligence",
+        _creature_sheet_ability_value(obj, Constants.ability_intelligence));
+    _append_details_row(rows, "Abilities", "Wisdom",
+        _creature_sheet_ability_value(obj, Constants.ability_wisdom));
+    _append_details_row(rows, "Abilities", "Charisma",
+        _creature_sheet_ability_value(obj, Constants.ability_charisma));
+
+    _append_details_row(rows, "Saving Throws", "Fortitude",
+        _signed_details_value(SavingThrows.get_saving_throw(obj,
+            Constants.saving_throw_fort, Constants.saving_throw_vs_all,
+            Object.invalid, false)));
+    _append_details_row(rows, "Saving Throws", "Reflex",
+        _signed_details_value(SavingThrows.get_saving_throw(obj,
+            Constants.saving_throw_reflex, Constants.saving_throw_vs_all,
+            Object.invalid, false)));
+    _append_details_row(rows, "Saving Throws", "Will",
+        _signed_details_value(SavingThrows.get_saving_throw(obj,
+            Constants.saving_throw_will, Constants.saving_throw_vs_all,
+            Object.invalid, false)));
+
+    var stats = get_propset!(CreatureStats)(obj);
+    var skill_rows: array!(ObjectDetailsRow) = {};
+    for (var skill_id = 0; skill_id < Skills.count(); skill_id += 1) {
+        var skill = Skill(skill_id);
+        if (Skills.exists(skill) && skill_id < Array.len(stats.skills)) {
+            var label = Types.resolve_strref(Skills.name_strref(skill) as int);
+            if (label == "") {
+                label = f"Skill {skill_id}";
+            }
+            Array.push(skill_rows, _details_row("Skills", label,
+                _signed_details_value(CreaturePolicy.get_skill_rank_full(
+                    obj, skill, Object.invalid))));
+        }
+    }
+    Array.sort(skill_rows, fn(a: ObjectDetailsRow, b: ObjectDetailsRow): bool {
+        return a.label < b.label;
+    });
+    for (var skill_row in skill_rows) {
+        Array.push(rows, skill_row);
+    }
+    return rows;
+}
+
+fn refresh_creature_sheet_model(obj: object) {
+    var presentation: array!(CreatureSheetPresentationRow) = {};
+    var error = "";
+    if (Object.is_valid(obj) && obj is Creature) {
+        var group = "";
+        var alternate = false;
+        for (var source in get_creature_sheet_rows(obj)) {
+            if (source.group != group) {
+                group = source.group;
+                alternate = false;
+                Array.push(presentation, CreatureSheetPresentationRow {
+                    label = group,
+                    value = "",
+                    section = true,
+                    alternate = false,
+                });
+            }
+            Array.push(presentation, CreatureSheetPresentationRow {
+                label = source.label,
+                value = source.value,
+                section = false,
+                alternate = alternate,
+            });
+            if (Array.len(presentation) > creature_sheet_max_presentation_rows) {
+                presentation = {};
+                error = "Creature Sheet exceeds 128 presentation rows.";
+                break;
+            }
+            alternate = !alternate;
+        }
+    }
+    rml_model = {
+        creature_sheet_rows = presentation,
+        creature_sheet_error = error,
+    };
 }
 
 fn _append_module_details(rows: array!(ObjectDetailsRow), obj: Module) {

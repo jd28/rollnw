@@ -3,11 +3,12 @@
   <link type="text/rcss" href="panel.rcss" />
   <link type="text/rcss" href="creature_appearance.rcss" />
   <link type="text/rcss" href="creature_classes.rcss" />
+  <link type="text/rcss" href="creature_editor.rcss" />
   <link type="text/rcss" href="dialog.rcss" />
   <link type="text/rcss" href="item_editor.rcss" />
   <link type="text/template" href="item_editor.rml" />
+  <link type="text/template" href="creature_editor.rml" />
   <script>
-from core.rmlui import { Event, Command };
 from toolset.item_editor import {
     add_selected_property,
     appearance_refresh,
@@ -21,57 +22,10 @@ from toolset.item_editor import {
     remove_selected_property,
     select_color_channel,
 };
-
-fn rollnw_item_property_add(event: Event): array!(Command) {
-    add_selected_property();
-    return {};
-}
-
-fn rollnw_item_property_remove(event: Event): array!(Command) {
-    remove_selected_property();
-    return {};
-}
-
-fn rollnw_item_property_close(event: Event): array!(Command) {
-    close_property_options();
-    return {};
-}
-
-fn rollnw_item_appearance_refresh(event: Event): array!(Command) {
-    return appearance_refresh(event);
-}
-
-fn rollnw_item_details_refresh(event: Event): array!(Command) {
-    return details_refresh(event);
-}
-
-fn rollnw_item_model_open(event: Event): array!(Command) {
-    return open_model_selector(event);
-}
-
-fn rollnw_item_selector_close(event: Event): array!(Command) {
-    return close_appearance_selector(event);
-}
-
-fn rollnw_item_color_open(event: Event): array!(Command) {
-    return open_color_selector(event);
-}
-
-fn rollnw_item_color_channel(event: Event): array!(Command) {
-    return select_color_channel(event);
-}
-
-fn rollnw_item_color_apply(event: Event): array!(Command) {
-    return apply_color(event);
-}
-
-fn rollnw_item_color_inherit(event: Event): array!(Command) {
-    return inherit_color(event);
-}
-
+from toolset.rmlui import { refresh_creature_sheet_model };
   </script>
 </head>
-<body>
+<body data-model="toolset_presentation">
   <div id="panel">
     <div id="title">
       <span id="title_areas">Module Areas</span>

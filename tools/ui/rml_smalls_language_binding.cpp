@@ -1,5 +1,6 @@
 #include "rml_smalls_language_binding.hpp"
 
+#include "rml_smalls_expression_binding.hpp"
 #include "smalls_diagnostics.hpp"
 #include "smalls_rmlui.hpp"
 
@@ -19,14 +20,15 @@
 #include <RmlUi/Core/EventListener.h>
 #include <RmlUi/Core/EventListenerInstancer.h>
 #include <RmlUi/Core/Factory.h>
-#include <RmlUi/Core/FileInterface.h>
 #include <RmlUi/Core/Log.h>
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <limits>
+#include <new>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -35,9 +37,10 @@ namespace nw::toolset {
 
 namespace {
 
-constexpr size_t kMaxExternalScriptBytes = 1024 * 1024;
 constexpr size_t kMaxSetRmlBytes = 1024 * 1024;
 constexpr size_t kMaxUiCommandsPerEvent = 256;
+constexpr size_t kMaxTargetsPerDocument = 256;
+constexpr size_t kMaxRetainedDiagnostics = 256;
 
 enum class UiCommandOperation : int32_t {
     set_text = 0,
@@ -55,16 +58,6 @@ struct UiCommandRow {
     std::string value;
     bool state = false;
 };
-
-bool valid_handler_name(std::string_view name)
-{
-    if (name.empty() || !(std::isalpha(static_cast<unsigned char>(name.front())) || name.front() == '_')) {
-        return false;
-    }
-    return std::all_of(name.begin() + 1, name.end(), [](unsigned char ch) {
-        return std::isalnum(ch) || ch == '_';
-    });
-}
 
 nw::smalls::Value make_string(nw::smalls::Runtime& runtime, std::string_view value)
 {
@@ -123,30 +116,49 @@ std::string document_identity(const Rml::ElementDocument& document)
     return document.GetSourceURL();
 }
 
+std::string element_source_identity(const Rml::Element& element)
+{
+    const Rml::Element* current = &element;
+    while (current) {
+        const auto source = current->GetAttribute<Rml::String>(
+            "data-smalls-source", "");
+        if (!source.empty()) {
+            return source;
+        }
+        current = current->GetParentNode();
+    }
+    const auto* document = element.GetOwnerDocument();
+    return document ? document_identity(*document) : "<rml>";
+}
+
 } // namespace
 
 struct RmlSmallsLanguageBinding::Impl {
-    struct CompiledBlock {
+    struct HandlerTarget {
         std::string module_path;
-        std::string source_path;
-        std::string source;
-        size_t first_source_line = 1;
-        nw::smalls::BytecodeModule* module = nullptr;
-        uint64_t runtime_generation = 0;
-    };
-
-    struct HandlerIdentity {
+        std::string function_name;
         nw::smalls::BytecodeModule* module = nullptr;
         const nw::smalls::CompiledFunction* function = nullptr;
-        std::string source_path;
-        size_t first_source_line = 1;
         uint64_t runtime_generation = 0;
 
         [[nodiscard]] bool valid() const noexcept { return module && function; }
     };
 
+    struct BoundHandler {
+        uint32_t target_index = std::numeric_limits<uint32_t>::max();
+        std::vector<RmlSmallsBoundArgument> arguments;
+        std::string source_path;
+        std::string expression;
+        uint64_t runtime_generation = 0;
+
+        [[nodiscard]] bool valid() const noexcept
+        {
+            return target_index != std::numeric_limits<uint32_t>::max();
+        }
+    };
+
     struct DispatchRow {
-        const HandlerIdentity* handler = nullptr;
+        const BoundHandler* handler = nullptr;
         Rml::Event* event = nullptr;
         Rml::Element* element = nullptr;
         Rml::ElementDocument* document = nullptr;
@@ -154,183 +166,169 @@ struct RmlSmallsLanguageBinding::Impl {
 
     class Document final : public Rml::ElementDocument {
     public:
-        Document(const Rml::String& element_tag, Impl& owner, uint64_t document_id)
+        Document(const Rml::String& element_tag, Impl& owner)
             : ElementDocument(element_tag)
             , owner_(&owner)
-            , id_(document_id)
         {
         }
 
-        ~Document() override
+        void LoadInlineScript(const Rml::String& content,
+            const Rml::String& source_path, int source_line) override
         {
-            if (!owner_ || !owner_->runtime_is_current()) {
-                return;
-            }
-            for (const auto& compiled_block : blocks_) {
-                if (compiled_block.runtime_generation == owner_->runtime_generation) {
-                    owner_->runtime->evict_module(compiled_block.module_path);
+            try {
+                if (has_inline_script_) {
+                    owner_->report(source_path
+                        + ": error: an RML document may contain only one inline Smalls import block");
+                    return;
                 }
+                has_inline_script_ = true;
+                import_source_ = content;
+                import_source_path_ = source_path;
+                import_source_line_ = source_line > 0
+                    ? static_cast<size_t>(source_line)
+                    : 1;
+                bind_import_scope();
+            } catch (const std::bad_alloc&) {
+                owner_->report_noexcept(
+                    "<rml>: error: out of memory while binding inline Smalls imports");
+            } catch (const std::exception& exception) {
+                owner_->report_exception_noexcept(
+                    "<rml>: error while binding inline Smalls imports: ",
+                    exception);
+            } catch (...) {
+                owner_->report_noexcept(
+                    "<rml>: error: unknown failure while binding inline Smalls imports");
             }
-        }
-
-        void LoadInlineScript(const Rml::String& content, const Rml::String& source_path, int source_line) override
-        {
-            compile_block(content, source_path, source_line > 0 ? static_cast<size_t>(source_line) : 1);
         }
 
         void LoadExternalScript(const Rml::String& source_path) override
         {
-            auto* files = Rml::GetFileInterface();
-            if (!files) {
-                owner_->report(source_path + ": error: RmlUi file interface unavailable");
-                return;
+            try {
+                owner_->report(source_path
+                    + ": error: external Smalls scripts are not supported; use one inline imports-only block");
+            } catch (...) {
+                owner_->report_noexcept(
+                    "<rml>: error: external Smalls scripts are not supported");
             }
-
-            const Rml::FileHandle file = files->Open(source_path);
-            if (!file) {
-                owner_->report(source_path + ": error: failed to open external Smalls script");
-                return;
-            }
-
-            const size_t length = files->Length(file);
-            if (length > kMaxExternalScriptBytes) {
-                files->Close(file);
-                owner_->report(source_path + ": error: external Smalls script exceeds 1 MiB limit");
-                return;
-            }
-
-            std::string source(length, '\0');
-            const size_t read = length == 0 ? 0 : files->Read(source.data(), length, file);
-            files->Close(file);
-            if (read != length) {
-                owner_->report(source_path + ": error: failed to read complete external Smalls script");
-                return;
-            }
-            compile_block(source, source_path, 1);
         }
 
-        HandlerIdentity resolve_handler(std::string_view name)
+        [[nodiscard]] bool has_import_scope() const noexcept
         {
-            if (!owner_->runtime_is_current() || !bind_blocks_to_current_runtime()) {
+            return has_inline_script_;
+        }
+
+        BoundHandler bind_handler(std::string_view expression,
+            const Rml::Element& element)
+        {
+            if (!owner_->runtime_is_current() || !ensure_import_scope()) {
+                if (!scope_error_.empty()) {
+                    report_bind_error(element, expression, scope_error_);
+                } else {
+                    report_bind_error(element, expression,
+                        "document has no inline Smalls import block");
+                }
                 return {};
             }
-            if (!valid_handler_name(name)) {
-                owner_->report(document_identity(*this) + ": error: invalid Smalls handler identifier '" + std::string{name} + "'");
+
+            RmlSmallsResolvedCall resolved;
+            std::string error;
+            if (!resolve_rml_smalls_call(
+                    *owner_->runtime, import_scope_, expression, resolved, error)) {
+                report_bind_error(element, expression, error);
                 return {};
             }
 
-            const auto event_type = owner_->runtime->type_id("core.rmlui.Event", false);
-            for (auto it = blocks_.rbegin(); it != blocks_.rend(); ++it) {
-                const auto* function = it->module->get_function(name);
-                if (!function) {
-                    continue;
-                }
-
-                if (function->param_count != 1
-                    || owner_->runtime->get_function_param_count(function->function_type) != 1
-                    || owner_->runtime->get_function_param_type(function->function_type, 0) != event_type) {
-                    owner_->report(it->source_path + ": error: Smalls RML handler '" + std::string{name}
-                        + "' must take one core.rmlui.Event parameter");
+            const auto found = std::find_if(targets_.begin(), targets_.end(),
+                [&resolved](const HandlerTarget& target) {
+                    return target.module_path == resolved.module_path
+                        && target.function_name == resolved.function_name;
+                });
+            uint32_t target_index = 0;
+            if (found == targets_.end()) {
+                if (targets_.size() >= kMaxTargetsPerDocument) {
+                    report_bind_error(element, expression,
+                        "document exceeds the 256-target limit");
                     return {};
                 }
-
-                const auto command_type = owner_->runtime->type_id("core.rmlui.Command", false);
-                const auto* return_type = owner_->runtime->get_type(function->return_type);
-                const bool valid_return = function->return_type == owner_->runtime->void_type()
-                    || (return_type
-                        && return_type->type_kind == nw::smalls::TK_array
-                        && !return_type->type_params.empty()
-                        && return_type->type_params[0].is<nw::smalls::TypeID>()
-                        && return_type->type_params[0].as<nw::smalls::TypeID>() == command_type);
-                if (!valid_return) {
-                    owner_->report(it->source_path + ": error: Smalls RML handler '" + std::string{name}
-                        + "' must return void or array!(core.rmlui.Command)");
-                    return {};
-                }
-
-                return HandlerIdentity{
-                    it->module,
-                    function,
-                    it->source_path,
-                    it->first_source_line,
-                    it->runtime_generation,
-                };
+                target_index = static_cast<uint32_t>(targets_.size());
+                targets_.push_back({
+                    .module_path = std::move(resolved.module_path),
+                    .function_name = std::move(resolved.function_name),
+                    .module = resolved.module,
+                    .function = resolved.function,
+                    .runtime_generation = owner_->runtime_generation,
+                });
+                ++owner_->binding_stats.interned_target_count;
+            } else {
+                target_index = static_cast<uint32_t>(
+                    std::distance(targets_.begin(), found));
             }
 
-            owner_->report(document_identity(*this) + ": error: Smalls RML handler not found: " + std::string{name});
-            return {};
+            ++owner_->binding_stats.bound_listener_count;
+            owner_->binding_stats.bound_argument_count += resolved.arguments.size();
+            return {
+                .target_index = target_index,
+                .arguments = std::move(resolved.arguments),
+                .source_path = element_source_identity(element),
+                .expression = std::string{expression},
+                .runtime_generation = owner_->runtime_generation,
+            };
+        }
+
+        [[nodiscard]] const HandlerTarget* target(uint32_t index) const noexcept
+        {
+            return index < targets_.size() ? &targets_[index] : nullptr;
         }
 
     private:
-        bool bind_blocks_to_current_runtime()
+        bool ensure_import_scope()
         {
-            for (auto& compiled_block : blocks_) {
-                if (compiled_block.runtime_generation != owner_->runtime_generation
-                    && !compile_block(compiled_block)) {
-                    return false;
-                }
+            if (!has_inline_script_) {
+                return false;
             }
-            return true;
+            if (scope_generation_ != owner_->runtime_generation) {
+                bind_import_scope();
+            }
+            return scope_valid_;
         }
 
-        void compile_block(std::string_view source, std::string_view source_path, size_t first_source_line)
+        void bind_import_scope()
         {
-            CompiledBlock compiled_block{
-                .module_path = "toolset.rml.document_" + std::to_string(id_)
-                    + "_block_" + std::to_string(blocks_.size()),
-                .source_path = std::string{source_path},
-                .source = std::string{source},
-                .first_source_line = first_source_line,
-            };
-            if (compile_block(compiled_block)) {
-                blocks_.push_back(std::move(compiled_block));
+            import_scope_ = {};
+            targets_.clear();
+            scope_error_.clear();
+            scope_valid_ = parse_rml_smalls_import_scope(*owner_->runtime,
+                import_source_, import_scope_, scope_error_);
+            scope_generation_ = owner_->runtime_generation;
+            if (!scope_valid_) {
+                owner_->report(import_source_path_ + ":"
+                    + std::to_string(import_source_line_)
+                    + ": error: " + scope_error_);
             }
         }
 
-        bool compile_block(CompiledBlock& compiled_block)
+        void report_bind_error(const Rml::Element& element,
+            std::string_view expression, std::string_view error)
         {
-            compiled_block.module = nullptr;
-            compiled_block.runtime_generation = 0;
-            auto* script = owner_->runtime->load_module_from_source(
-                compiled_block.module_path, compiled_block.source);
-            if (!script) {
-                owner_->report(compiled_block.source_path + ": error: failed to create Smalls module");
-                return false;
-            }
-
-            if (script->errors() != 0) {
-                for (const auto& diagnostic : script->diagnostics()) {
-                    owner_->report(format_smalls_diagnostic(
-                        diagnostic, compiled_block.source_path,
-                        compiled_block.first_source_line));
-                }
-                owner_->runtime->evict_module(compiled_block.module_path);
-                return false;
-            }
-
-            auto* module = owner_->runtime->get_or_compile_module(script);
-            if (!module) {
-                if (script->diagnostics().empty()) {
-                    owner_->report(compiled_block.source_path + ": error: failed to compile Smalls module");
-                } else {
-                    for (const auto& diagnostic : script->diagnostics()) {
-                        owner_->report(format_smalls_diagnostic(
-                            diagnostic, compiled_block.source_path,
-                            compiled_block.first_source_line));
-                    }
-                }
-                owner_->runtime->evict_module(compiled_block.module_path);
-                return false;
-            }
-
-            compiled_block.module = module;
-            compiled_block.runtime_generation = owner_->runtime_generation;
-            return true;
+            const auto element_id = element.GetId().empty()
+                ? std::string{"<unnamed>"}
+                : std::string{element.GetId()};
+            owner_->report(element_source_identity(element)
+                + ": error: element '" + element_id
+                + "' Smalls expression '" + std::string{expression}
+                + "': " + std::string{error});
         }
 
         Impl* owner_ = nullptr;
-        uint64_t id_ = 0;
-        std::vector<CompiledBlock> blocks_;
+        bool has_inline_script_ = false;
+        bool scope_valid_ = false;
+        uint64_t scope_generation_ = 0;
+        size_t import_source_line_ = 1;
+        std::string import_source_;
+        std::string import_source_path_;
+        std::string scope_error_;
+        RmlSmallsImportScope import_scope_;
+        std::vector<HandlerTarget> targets_;
     };
 
     class DocumentInstancer final : public Rml::ElementInstancer {
@@ -342,7 +340,19 @@ struct RmlSmallsLanguageBinding::Impl {
 
         Rml::ElementPtr InstanceElement(Rml::Element*, const Rml::String& tag, const Rml::XMLAttributes&) override
         {
-            return Rml::ElementPtr(new Document(tag, *owner_, owner_->next_document_id++));
+            try {
+                return Rml::ElementPtr(new Document(tag, *owner_));
+            } catch (const std::bad_alloc&) {
+                owner_->report_noexcept(
+                    "<rml>: error: out of memory while creating a Smalls document");
+            } catch (const std::exception& exception) {
+                owner_->report_exception_noexcept(
+                    "<rml>: error while creating a Smalls document: ", exception);
+            } catch (...) {
+                owner_->report_noexcept(
+                    "<rml>: error: unknown failure while creating a Smalls document");
+            }
+            return nullptr;
         }
 
         void ReleaseElement(Rml::Element* element) override
@@ -356,37 +366,59 @@ struct RmlSmallsLanguageBinding::Impl {
 
     class Listener final : public Rml::EventListener {
     public:
-        Listener(Impl& owner, std::string_view handler, Rml::Element* element)
+        Listener(Impl& owner, std::string_view expression, Rml::Element* element)
             : owner_(&owner)
             , element_(element)
-            , handler_name_(handler)
+            , expression_(expression)
         {
+            auto* owner_document = element_
+                ? dynamic_cast<Document*>(element_->GetOwnerDocument())
+                : nullptr;
+            if (owner_document && owner_document->has_import_scope()) {
+                attempted_ = true;
+                handler_ = owner_document->bind_handler(expression_, *element_);
+            }
         }
 
         void ProcessEvent(Rml::Event& event) override
         {
-            if (!element_ || !owner_->runtime_is_current()) {
-                return;
-            }
-            if (resolved_ && handler_.runtime_generation != owner_->runtime_generation) {
-                handler_ = {};
-                resolved_ = false;
-            }
-            if (!resolved_) {
-                resolved_ = true;
-                auto* owner_document = dynamic_cast<Document*>(element_->GetOwnerDocument());
-                if (!owner_document) {
-                    owner_->report("<rml>: error: Smalls listener has no owning document");
+            try {
+                if (!element_ || !owner_->runtime_is_current()) {
                     return;
                 }
-                handler_ = owner_document->resolve_handler(handler_name_);
+                if (handler_.runtime_generation != owner_->runtime_generation) {
+                    handler_ = {};
+                    attempted_ = false;
+                }
+                if (!attempted_) {
+                    attempted_ = true;
+                    auto* owner_document = dynamic_cast<Document*>(
+                        element_->GetOwnerDocument());
+                    if (!owner_document) {
+                        owner_->report(
+                            "<rml>: error: Smalls listener has no owning document");
+                        return;
+                    }
+                    handler_ = owner_document->bind_handler(expression_, *element_);
+                }
+                if (!handler_.valid()) {
+                    return;
+                }
+                auto* document = element_->GetOwnerDocument();
+                const std::array rows{
+                    DispatchRow{&handler_, &event, element_, document}};
+                owner_->dispatch_events(rows);
+            } catch (const std::bad_alloc&) {
+                owner_->report_noexcept(
+                    "<rml>: error: out of memory while dispatching a Smalls listener");
+            } catch (const std::exception& exception) {
+                owner_->report_exception_noexcept(
+                    "<rml>: error while dispatching a Smalls listener: ",
+                    exception);
+            } catch (...) {
+                owner_->report_noexcept(
+                    "<rml>: error: unknown failure while dispatching a Smalls listener");
             }
-            if (!handler_.valid()) {
-                return;
-            }
-            auto* document = element_->GetOwnerDocument();
-            const std::array rows{DispatchRow{&handler_, &event, element_, document}};
-            owner_->dispatch_events(rows);
         }
 
         void OnDetach(Rml::Element*) override
@@ -397,9 +429,9 @@ struct RmlSmallsLanguageBinding::Impl {
     private:
         Impl* owner_ = nullptr;
         Rml::Element* element_ = nullptr;
-        std::string handler_name_;
-        HandlerIdentity handler_;
-        bool resolved_ = false;
+        std::string expression_;
+        BoundHandler handler_;
+        bool attempted_ = false;
     };
 
     class ListenerInstancer final : public Rml::EventListenerInstancer {
@@ -411,7 +443,20 @@ struct RmlSmallsLanguageBinding::Impl {
 
         Rml::EventListener* InstanceEventListener(const Rml::String& value, Rml::Element* element) override
         {
-            return new Listener(*owner_, value, element);
+            try {
+                return new Listener(*owner_, value, element);
+            } catch (const std::bad_alloc&) {
+                owner_->report_noexcept(
+                    "<rml>: error: out of memory while binding a Smalls listener");
+            } catch (const std::exception& exception) {
+                owner_->report_exception_noexcept(
+                    "<rml>: error while binding a Smalls listener: ",
+                    exception);
+            } catch (...) {
+                owner_->report_noexcept(
+                    "<rml>: error: unknown failure while binding a Smalls listener");
+            }
+            return nullptr;
         }
 
     private:
@@ -452,16 +497,43 @@ struct RmlSmallsLanguageBinding::Impl {
     {
         Rml::Log::Message(Rml::Log::LT_ERROR, "%s", message.c_str());
         LOG_F(ERROR, "[rml-smalls] {}", message);
-        diagnostics.push_back({std::move(message)});
+        if (diagnostics.size() < kMaxRetainedDiagnostics) {
+            diagnostics.push_back({std::move(message)});
+        } else if (binding_stats.suppressed_diagnostic_count
+            != std::numeric_limits<uint64_t>::max()) {
+            ++binding_stats.suppressed_diagnostic_count;
+        }
     }
 
-    nw::smalls::Value encode_event(const DispatchRow& row, nw::ObjectHandle active_object)
+    void report_noexcept(std::string_view message) noexcept
+    {
+        try {
+            report(std::string{message});
+        } catch (...) {
+            std::fputs("RML Smalls binding failure\n", stderr);
+        }
+    }
+
+    void report_exception_noexcept(
+        std::string_view context, const std::exception& exception) noexcept
+    {
+        try {
+            report(std::string{context} + exception.what());
+        } catch (...) {
+            std::fputs("RML Smalls binding failure\n", stderr);
+        }
+    }
+
+    nw::smalls::Value encode_event(const DispatchRow& row,
+        nw::ObjectHandle active_object, nw::smalls::Runtime::ScopedRoots& roots)
     {
         const auto event_type = runtime->type_id("core.rmlui.Event", false);
         const auto ptr = runtime->alloc_struct(event_type);
         if (ptr.value == 0) {
             return {};
         }
+        const auto event_value = nw::smalls::Value::make_heap(ptr, event_type);
+        roots.add(event_value);
 
         std::string value;
         bool checked = false;
@@ -483,10 +555,12 @@ struct RmlSmallsLanguageBinding::Impl {
             || !runtime->write_struct_field(ptr, event_type, "active_object", active_value)) {
             return {};
         }
-        return nw::smalls::Value::make_heap(ptr, event_type);
+        return event_value;
     }
 
-    bool decode_commands(const nw::smalls::Value& value, std::vector<UiCommandRow>& commands, std::string& error)
+    bool decode_commands(const nw::smalls::Value& value,
+        nw::smalls::Runtime::ScopedRoots& roots,
+        std::vector<UiCommandRow>& commands, std::string& error)
     {
         commands.clear();
         if (value.type_id == runtime->void_type()) {
@@ -514,6 +588,7 @@ struct RmlSmallsLanguageBinding::Impl {
                 error = "failed to read UI command row";
                 return false;
             }
+            roots.add(item);
 
             int32_t operation = -1;
             UiCommandRow command;
@@ -601,9 +676,10 @@ struct RmlSmallsLanguageBinding::Impl {
         return true;
     }
 
-    // Runtime-owned compiled pointers are retained only for the document lifetime.
-    // This hot path avoids a hash lookup on every event; document eviction occurs
-    // after its listeners can no longer receive later UI dispatch.
+    // Runtime-owned compiled pointers are valid only for one kernel generation.
+    // Listeners retain table indices, so growing a document's target table cannot
+    // invalidate their references. The common dispatch path is one indexed target
+    // read followed by a linear materialization of at most 16 bound arguments.
     void dispatch_events(std::span<const DispatchRow> rows)
     {
         if (!runtime_is_current()) {
@@ -618,27 +694,67 @@ struct RmlSmallsLanguageBinding::Impl {
                 continue;
             }
 
-            const nw::ObjectHandle active_object = smalls_rmlui_host().active_object();
-            if (active_object.type == nw::ObjectType::invalid) {
-                report(document_identity(*row.document) + ": error: no active object");
+            auto* owner_document = dynamic_cast<Document*>(row.document);
+            const auto* target = owner_document
+                ? owner_document->target(row.handler->target_index)
+                : nullptr;
+            if (!target || !target->valid()
+                || target->runtime_generation != runtime_generation) {
+                report(row.handler->source_path
+                    + ": error: stale Smalls handler target");
                 continue;
             }
 
-            const auto event_value = encode_event(row, active_object);
-            if (event_value.type_id == nw::smalls::invalid_type_id) {
-                report(document_identity(*row.document) + ": error: failed to encode Smalls RML event");
+            nw::Vector<nw::smalls::Value> arguments;
+            arguments.reserve(row.handler->arguments.size());
+            nw::smalls::Runtime::ScopedRoots roots{
+                *runtime, row.handler->arguments.size() + 1};
+            nw::smalls::Value event_value;
+            bool event_encoded = false;
+            bool arguments_valid = true;
+            for (const auto& bound : row.handler->arguments) {
+                if (bound.kind == RmlSmallsArgumentKind::event) {
+                    if (!event_encoded) {
+                        event_value = encode_event(row,
+                            smalls_rmlui_host().active_object(), roots);
+                        event_encoded = true;
+                    }
+                    if (event_value.type_id == nw::smalls::invalid_type_id) {
+                        arguments_valid = false;
+                        break;
+                    }
+                    arguments.push_back(event_value);
+                    continue;
+                }
+
+                auto value = materialize_rml_smalls_argument(*runtime, bound);
+                if (value.type_id == nw::smalls::invalid_type_id) {
+                    arguments_valid = false;
+                    break;
+                }
+                if (value.storage == nw::smalls::ValueStorage::heap
+                    && value.data.hptr.value != 0) {
+                    roots.add(value);
+                }
+                arguments.push_back(value);
+            }
+            if (!arguments_valid) {
+                report(row.handler->source_path
+                    + ": error: failed to materialize Smalls handler arguments");
                 continue;
             }
 
-            const auto result = runtime->execute_compiled(row.handler->module, row.handler->function, {event_value});
+            const auto result = runtime->execute_compiled(
+                target->module, target->function, arguments);
             if (!result.ok()) {
                 report(format_smalls_execution_error(result,
-                    row.handler->source_path, row.handler->first_source_line));
+                    row.handler->source_path, 1));
                 continue;
             }
+            roots.add(result.value);
 
             std::string error;
-            if (!decode_commands(result.value, commands, error)
+            if (!decode_commands(result.value, roots, commands, error)
                 || !apply_commands(*row.document, commands, error)) {
                 report(row.handler->source_path + ": error: " + error);
             }
@@ -647,7 +763,7 @@ struct RmlSmallsLanguageBinding::Impl {
 
     nw::smalls::Runtime* runtime = nullptr;
     uint64_t runtime_generation = 0;
-    uint64_t next_document_id = 1;
+    RmlSmallsBindingStats binding_stats;
     std::vector<RmlSmallsDiagnostic> diagnostics;
     std::unique_ptr<DocumentInstancer> document_instancer;
     std::unique_ptr<ListenerInstancer> listener_instancer;
@@ -662,7 +778,19 @@ RmlSmallsLanguageBinding::~RmlSmallsLanguageBinding() = default;
 
 bool RmlSmallsLanguageBinding::initialize(nw::smalls::Runtime& runtime)
 {
-    return impl_->initialize(runtime);
+    try {
+        return impl_->initialize(runtime);
+    } catch (const std::bad_alloc&) {
+        impl_->report_noexcept(
+            "<rml>: error: out of memory while initializing the Smalls binding");
+    } catch (const std::exception& exception) {
+        impl_->report_exception_noexcept(
+            "<rml>: error while initializing the Smalls binding: ", exception);
+    } catch (...) {
+        impl_->report_noexcept(
+            "<rml>: error: unknown failure while initializing the Smalls binding");
+    }
+    return false;
 }
 
 bool RmlSmallsLanguageBinding::initialized() const noexcept
@@ -675,6 +803,11 @@ const std::vector<RmlSmallsDiagnostic>& RmlSmallsLanguageBinding::diagnostics() 
     return impl_->diagnostics;
 }
 
+RmlSmallsBindingStats RmlSmallsLanguageBinding::stats() const noexcept
+{
+    return impl_->binding_stats;
+}
+
 void RmlSmallsLanguageBinding::clear_diagnostics()
 {
     impl_->diagnostics.clear();
@@ -682,23 +815,34 @@ void RmlSmallsLanguageBinding::clear_diagnostics()
 
 void RmlSmallsLanguageBinding::refresh_elements(Rml::ElementDocument* document)
 {
-    if (!document || !impl_->runtime_is_current()) {
-        return;
-    }
-    Rml::ElementList elements;
-    document->GetElementsByClassName(elements, "smalls_refresh");
-    std::vector<Rml::String> element_ids;
-    element_ids.reserve(elements.size());
-    for (auto* element : elements) {
-        if (element && !element->GetId().empty()) {
-            element_ids.push_back(element->GetId());
+    try {
+        if (!document || !impl_->runtime_is_current()) {
+            return;
         }
-    }
-    for (const auto& element_id : element_ids) {
-        auto* element = document->GetElementById(element_id);
-        if (element && element->IsClassSet("smalls_refresh")) {
-            element->DispatchEvent("refresh", {});
+        Rml::ElementList elements;
+        document->GetElementsByClassName(elements, "smalls_refresh");
+        std::vector<Rml::String> element_ids;
+        element_ids.reserve(elements.size());
+        for (auto* element : elements) {
+            if (element && !element->GetId().empty()) {
+                element_ids.push_back(element->GetId());
+            }
         }
+        for (const auto& element_id : element_ids) {
+            auto* element = document->GetElementById(element_id);
+            if (element && element->IsClassSet("smalls_refresh")) {
+                element->DispatchEvent("refresh", {});
+            }
+        }
+    } catch (const std::bad_alloc&) {
+        impl_->report_noexcept(
+            "<rml>: error: out of memory while refreshing Smalls elements");
+    } catch (const std::exception& exception) {
+        impl_->report_exception_noexcept(
+            "<rml>: error while refreshing Smalls elements: ", exception);
+    } catch (...) {
+        impl_->report_noexcept(
+            "<rml>: error: unknown failure while refreshing Smalls elements");
     }
 }
 
