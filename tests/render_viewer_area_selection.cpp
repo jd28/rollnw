@@ -24,9 +24,12 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace {
+
+using namespace std::literals;
 
 namespace viewer = nw::render::viewer;
 
@@ -726,8 +729,8 @@ TEST(RenderViewerAreaSelection, AreaFixtureObjectsProduceDistinctWorkbenchSnapsh
     auto* module = nw::kernel::load_module("test_data/user/modules/module_as_dir", false);
     ASSERT_NE(module, nullptr);
 
-    const nw::Resref area_resref{"test_area"};
-    if (!nw::kernel::resman().contains({area_resref, nw::ResourceType::are})) {
+    const nw::Resref area_resref{"test_area"sv};
+    if (nw::kernel::resman().demand({area_resref, nw::ResourceType::are}).bytes.size() == 0u) {
         GTEST_SKIP() << "test_area fixture unavailable";
     }
 

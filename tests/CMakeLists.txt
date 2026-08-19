@@ -1,11 +1,152 @@
 find_package(Threads)
 
+# The dedicated server indexes client-only render assets without shipping their
+# payloads. Generate the repeated one-triangle model fixtures from one template;
+# semantically distinct rigs and animated attachments remain normal test-data
+# files.
+set(ROLLNW_TEST_GENERATED_DATA_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/generated_test_data/user/development)
+file(MAKE_DIRECTORY ${ROLLNW_TEST_GENERATED_DATA_DIR})
+
+set(ROLLNW_TEST_HUMANOID_PART_MODELS
+    pfh0_chest001
+    pfh0_head001
+    pfh0_pelvis001
+    pma0_belt007
+    pma0_bicepl001
+    pma0_bicepl004
+    pma0_bicepr001
+    pma0_bicepr004
+    pma0_chest001
+    pma0_chest043
+    pma0_footl001
+    pma0_footl004
+    pma0_footr001
+    pma0_footr004
+    pma0_forel001
+    pma0_forel004
+    pma0_forer001
+    pma0_forer004
+    pma0_handl001
+    pma0_handl004
+    pma0_handr001
+    pma0_handr004
+    pma0_head001
+    pma0_legl001
+    pma0_legl004
+    pma0_legr001
+    pma0_legr004
+    pma0_neck001
+    pma0_pelvis001
+    pma0_pelvis008
+    pma0_shinl001
+    pma0_shinl008
+    pma0_shinr001
+    pma0_shinr008
+    pma0_shol007
+    pma0_shor007)
+
+set(ROLLNW_TEST_HUMANOID_PART_PALETTES
+    pfh0_chest001
+    pfh0_head001
+    pfh0_pelvis001
+    pmh0_belt007
+    pmh0_bicepl001
+    pmh0_bicepl004
+    pmh0_bicepr001
+    pmh0_bicepr004
+    pmh0_chest001
+    pmh0_chest043
+    pmh0_footl001
+    pmh0_footl004
+    pmh0_footr001
+    pmh0_footr004
+    pmh0_forel001
+    pmh0_forel004
+    pmh0_forer001
+    pmh0_forer004
+    pmh0_handl001
+    pmh0_handl004
+    pmh0_handr001
+    pmh0_handr004
+    pmh0_head001
+    pmh0_legl001
+    pmh0_legl004
+    pmh0_legr001
+    pmh0_legr004
+    pmh0_neck001
+    pmh0_pelvis001
+    pmh0_pelvis008
+    pmh0_shinl001
+    pmh0_shinl008
+    pmh0_shinr001
+    pmh0_shinr008
+    pmh0_shol007
+    pmh0_shor007)
+
+list(LENGTH ROLLNW_TEST_HUMANOID_PART_MODELS ROLLNW_TEST_HUMANOID_PART_MODEL_COUNT)
+list(LENGTH ROLLNW_TEST_HUMANOID_PART_PALETTES ROLLNW_TEST_HUMANOID_PART_PALETTE_COUNT)
+if(NOT ROLLNW_TEST_HUMANOID_PART_MODEL_COUNT EQUAL ROLLNW_TEST_HUMANOID_PART_PALETTE_COUNT)
+    message(FATAL_ERROR "Humanoid model and palette fixture counts differ")
+endif()
+
+math(EXPR ROLLNW_TEST_HUMANOID_PART_LAST "${ROLLNW_TEST_HUMANOID_PART_MODEL_COUNT} - 1")
+foreach(ROLLNW_TEST_HUMANOID_PART_INDEX RANGE ${ROLLNW_TEST_HUMANOID_PART_LAST})
+    list(GET ROLLNW_TEST_HUMANOID_PART_MODELS
+        ${ROLLNW_TEST_HUMANOID_PART_INDEX} ROLLNW_TEST_MODEL_NAME)
+    list(GET ROLLNW_TEST_HUMANOID_PART_PALETTES
+        ${ROLLNW_TEST_HUMANOID_PART_INDEX} ROLLNW_TEST_PALETTE_NAME)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/render_model_triangle.mdl.in
+        ${ROLLNW_TEST_GENERATED_DATA_DIR}/${ROLLNW_TEST_MODEL_NAME}.mdl
+        @ONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_data/user/development/pmh0_testplt.plt
+        ${ROLLNW_TEST_GENERATED_DATA_DIR}/${ROLLNW_TEST_PALETTE_NAME}.plt
+        COPYONLY)
+endforeach()
+
+set(ROLLNW_TEST_GENERIC_MODEL_FIXTURES
+    c_a_chicken
+    c_demon
+    gifp
+    plc_o01
+    t_door01
+    ttf02_a09_01
+    ttf02_o01_01
+    ttf02_o02_01
+    ttf02_o03_01
+    ttf02_o04_01
+    ttf02_p01_01
+    ttf02_p02_01
+    ttf02_p03_01
+    ttf02_p04_01
+    ttf02_p15_01
+    ttf02_p18_01
+    wswsc_b_041
+    wswsc_b_044
+    wswsc_m_031
+    wswsc_m_054
+    wswsc_t_044
+    wswsc_t_051)
+
+foreach(ROLLNW_TEST_MODEL_NAME IN LISTS ROLLNW_TEST_GENERIC_MODEL_FIXTURES)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/render_model_triangle.mdl.in
+        ${ROLLNW_TEST_GENERATED_DATA_DIR}/${ROLLNW_TEST_MODEL_NAME}.mdl
+        @ONLY)
+endforeach()
+
 add_custom_target(copy-files2 ALL
     COMMAND ${CMAKE_COMMAND} -E remove_directory
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
 
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/test_data
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/generated_test_data
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

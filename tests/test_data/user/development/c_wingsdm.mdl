@@ -1,0 +1,26 @@
+#MAXMODEL ASCII
+newmodel c_wingsdm
+setsupermodel c_wingsdm NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom c_wingsdm
+    node dummy c_wingsdm
+        parent NULL
+    endnode
+endmodelgeom c_wingsdm
+
+#MAXANIM ASCII
+newanim default c_wingsdm
+    length 1
+    transtime 0.25
+    animroot c_wingsdm
+    node dummy c_wingsdm
+        parent NULL
+        positionkey
+            0 0 0 0
+            1 0 0.1 0
+        endlist
+    endnode
+doneanim default c_wingsdm
+
+donemodel c_wingsdm

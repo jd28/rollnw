@@ -32,12 +32,15 @@
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
 
 namespace {
+
+using namespace std::literals;
 
 struct TestGfxRuntime {
     nw::gfx::Core* core = nullptr;
@@ -113,6 +116,18 @@ std::filesystem::path cesium_man_path()
         }
     }
     return candidates[0];
+}
+
+testing::AssertionResult resource_payloads_available(std::span<const nw::Resource> resources)
+{
+    for (const auto& resource : resources) {
+        const auto data = nw::kernel::resman().demand(resource);
+        if (data.bytes.size() == 0u) {
+            return testing::AssertionFailure()
+                << "resource is indexed but has no payload: " << resource.filename();
+        }
+    }
+    return testing::AssertionSuccess();
 }
 
 TEST(RenderViewerPreparedDraws, AreaStaticModelCacheDoesNotExtendModelLifetime)
@@ -470,9 +485,9 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesHumanoidResolverRow
     const auto report = viewer::build_preview_load_report(creature_path.string());
 
     EXPECT_EQ(report.kind, "dynamic_creature");
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0"}, nw::ResourceType::mdl}));
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0_chest001"}, nw::ResourceType::mdl}));
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"pma0_head001"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"pma0"sv, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"pma0_chest001"sv, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"pma0_head001"sv, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
@@ -487,9 +502,9 @@ TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
     const auto report = viewer::build_preview_load_report(item_path.string());
 
     EXPECT_EQ(report.kind, "item");
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_b_044"}, nw::ResourceType::mdl}));
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_m_054"}, nw::ResourceType::mdl}));
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"wswsc_t_044"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"wswsc_b_044"sv, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"wswsc_m_054"sv, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"wswsc_t_044"sv, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
@@ -499,12 +514,12 @@ TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
     const std::filesystem::path path{"test_data/user/development/arrowcorpse001.utp"};
     const auto visual = viewer::load_placeable_visual_from_file(path);
     ASSERT_TRUE(visual.loaded) << visual.error;
-    EXPECT_EQ(visual.visual.hold_animation, nw::Resref{"default"});
+    EXPECT_EQ(visual.visual.hold_animation, nw::Resref{"default"sv});
 
     const auto report = viewer::build_preview_load_report(path.string());
 
     EXPECT_EQ(report.kind, "Placeable");
-    EXPECT_TRUE(report_has_resource(report, {nw::Resref{"plc_o01"}, nw::ResourceType::mdl}));
+    EXPECT_TRUE(report_has_resource(report, {"plc_o01"sv, nw::ResourceType::mdl}));
 }
 
 TEST(RenderViewerPreparedDraws, StandalonePlaceablePreviewIgnoresPersistedGameplayAnimationState)
@@ -515,7 +530,7 @@ TEST(RenderViewerPreparedDraws, StandalonePlaceablePreviewIgnoresPersistedGamepl
     const auto visual = viewer::load_placeable_visual_from_file(path);
 
     ASSERT_TRUE(visual.loaded) << visual.error;
-    EXPECT_EQ(visual.visual.hold_animation, nw::Resref{"default"});
+    EXPECT_EQ(visual.visual.hold_animation, nw::Resref{"default"sv});
 }
 
 TEST(RenderViewerPreparedDraws, DoorLoadReportUsesSmallsResolverRows)
@@ -535,15 +550,14 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesVisualAttachmentRow
 {
     namespace viewer = nw::render::viewer;
 
-    auto* wingmodel = nw::kernel::twodas().get("wingmodel");
+    auto* wingmodel = nw::kernel::twodas().get("wingmodel"sv);
     std::string wing_model;
     if (!wingmodel || !wingmodel->get_to(1u, "MODEL", wing_model) || wing_model.empty()) {
         GTEST_SKIP() << "wingmodel row 1 unavailable";
     }
     const nw::Resource wing_resource{std::string_view{wing_model}, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(wing_resource)) {
-        GTEST_SKIP() << "wingmodel row 1 model unavailable";
-    }
+    const std::array wing_resources{wing_resource};
+    ASSERT_TRUE(resource_payloads_available(wing_resources));
 
     const std::filesystem::path creature_fixture{"test_data/user/development/nw_chicken.utc"};
     if (!std::filesystem::exists(creature_fixture)) {
@@ -578,15 +592,14 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsWingRowPolicy)
 {
     namespace viewer = nw::render::viewer;
 
-    auto* wingmodel = nw::kernel::twodas().get("wingmodel");
+    auto* wingmodel = nw::kernel::twodas().get("wingmodel"sv);
     std::string wing_model;
     if (!wingmodel || !wingmodel->get_to(1u, "MODEL", wing_model) || wing_model.empty()) {
         GTEST_SKIP() << "wingmodel row 1 unavailable";
     }
     const nw::Resource wing_resource{std::string_view{wing_model}, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(wing_resource)) {
-        GTEST_SKIP() << "wingmodel row 1 model unavailable";
-    }
+    const std::array wing_resources{wing_resource};
+    ASSERT_TRUE(resource_payloads_available(wing_resources));
 
     const auto policy = viewer::resolve_nwn_wing_attachment_visual_policy(nw::Appearance::invalid(), 1u);
     ASSERT_TRUE(policy.strip_non_render_meshes);
@@ -622,9 +635,10 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsSkinnedMindflayer
     if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
         GTEST_SKIP() << "single-model mindflayer appearance unavailable";
     }
-    if (!nw::kernel::resman().contains({appearance->model, nw::ResourceType::mdl})) {
-        GTEST_SKIP() << "mindflayer model resource unavailable";
-    }
+    const std::array model_resources{
+        nw::Resource{appearance->model, nw::ResourceType::mdl},
+    };
+    ASSERT_TRUE(resource_payloads_available(model_resources));
 
     const std::filesystem::path creature_fixture{"test_data/user/development/nw_chicken.utc"};
     if (!std::filesystem::exists(creature_fixture)) {
@@ -763,9 +777,9 @@ TEST(RenderViewerPreparedDraws, PreparedRenderModelSurfacePathSubmitsCesiumManWi
 
 TEST(RenderViewerPreparedDraws, ParticleMeshCacheImportsModernRenderModelOnce)
 {
-    constexpr std::string_view model_name{"plc_cndl02"};
-    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{model_name}, nw::ResourceType::mdl}))
-        << "dedicated-server particle-mesh resource unavailable";
+    constexpr auto model_name = "plc_cndl02"sv;
+    const std::array resources{nw::Resource{model_name, nw::ResourceType::mdl}};
+    ASSERT_TRUE(resource_payloads_available(resources));
 
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
@@ -799,9 +813,10 @@ TEST(RenderViewerPreparedDraws, MeshParticlePacketSubmitsModernCachedModel)
 
     const std::filesystem::path model_path{"test_data/user/development/plc_cndl02.mdl"};
     ASSERT_TRUE(std::filesystem::exists(model_path)) << model_path.string();
-    ASSERT_TRUE(nw::kernel::resman().contains(
-        {nw::Resref{"plc_chunk_w01"}, nw::ResourceType::mdl}))
-        << "particle-mesh fixture unavailable";
+    const std::array resources{
+        nw::Resource{"plc_chunk_w01"sv, nw::ResourceType::mdl},
+    };
+    ASSERT_TRUE(resource_payloads_available(resources));
 
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
@@ -920,9 +935,8 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
         GTEST_SKIP() << "single-model bodak appearance unavailable";
     }
     const nw::Resource model_resource{appearance->model, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(model_resource)) {
-        GTEST_SKIP() << "bodak model resource unavailable";
-    }
+    const std::array model_resources{model_resource};
+    ASSERT_TRUE(resource_payloads_available(model_resources));
 
     const std::filesystem::path creature_fixture{"test_data/user/development/nw_chicken.utc"};
     if (!std::filesystem::exists(creature_fixture)) {
@@ -1037,11 +1051,10 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
         GTEST_SKIP() << "single-model bodak appearance unavailable";
     }
     const nw::Resource model_resource{appearance->model, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(model_resource)) {
-        GTEST_SKIP() << "bodak model resource unavailable";
-    }
+    const std::array model_resources{model_resource};
+    ASSERT_TRUE(resource_payloads_available(model_resources));
 
-    constexpr std::string_view item_resref = "nw_wswbs001";
+    constexpr auto item_resref = "nw_wswbs001"sv;
     auto* item = nw::kernel::objects().load<nw::Item>(item_resref);
     if (!item) {
         GTEST_SKIP() << "test hand item unavailable";
@@ -1058,7 +1071,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
             << "test hand item model unavailable: " << item_model;
     }
 
-    auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken");
+    auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
@@ -1129,11 +1142,10 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelDynamicSkinnedCreatureSamplesSkinM
         GTEST_SKIP() << "single-model mindflayer appearance unavailable";
     }
     const nw::Resource model_resource{appearance->model, nw::ResourceType::mdl};
-    if (!nw::kernel::resman().contains(model_resource)) {
-        GTEST_SKIP() << "mindflayer model resource unavailable";
-    }
+    const std::array model_resources{model_resource};
+    ASSERT_TRUE(resource_payloads_available(model_resources));
 
-    auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken");
+    auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
@@ -1218,6 +1230,14 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelDynamicSkinnedCreatureSamplesSkinM
 TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
 {
     namespace viewer = nw::render::viewer;
+
+    const std::array model_resources{
+        nw::Resource{"pfh0"sv, nw::ResourceType::mdl},
+        nw::Resource{"pfh0_head001"sv, nw::ResourceType::mdl},
+        nw::Resource{"pfh0_pelvis001"sv, nw::ResourceType::mdl},
+        nw::Resource{"pfh0_chest001"sv, nw::ResourceType::mdl},
+    };
+    ASSERT_TRUE(resource_payloads_available(model_resources));
 
     auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_human);
     if (!appearance || appearance->model_type != nw::AppearanceModelType::parts) {
@@ -1365,6 +1385,15 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathKeepsSideSpecificThighAtta
         GTEST_SKIP() << "DockerDemo module fixture unavailable";
     }
 
+    const std::array required_resources{
+        nw::Resource{"pma0"sv, nw::ResourceType::mdl},
+        nw::Resource{"pma0_legl004"sv, nw::ResourceType::mdl},
+        nw::Resource{"pma0_legr004"sv, nw::ResourceType::mdl},
+        nw::Resource{"pmh0_legl004"sv, nw::ResourceType::plt},
+        nw::Resource{"pmh0_legr004"sv, nw::ResourceType::plt},
+    };
+    ASSERT_TRUE(resource_payloads_available(required_resources));
+
     const std::filesystem::path creature_path{"test_data/user/development/drorry.utc.json"};
     if (!std::filesystem::exists(creature_path)) {
         GTEST_SKIP() << "development fixture unavailable: " << creature_path.string();
@@ -1451,14 +1480,18 @@ TEST(RenderViewerPreparedDraws, HumanoidCreatureWingAndTailUseAnimatedSocketAtta
         GTEST_SKIP() << "humanoid human appearance unavailable";
     }
 
-    for (const std::string_view table_name : {"wingmodel", "tailmodel"}) {
+    std::array<nw::Resource, 2> attachment_resources{};
+    size_t attachment_resource_count = 0;
+    for (const std::string_view table_name : {"wingmodel"sv, "tailmodel"sv}) {
         auto* table = nw::kernel::twodas().get(table_name);
         std::string model_name;
-        if (!table || !table->get_to(1u, "MODEL", model_name) || model_name.empty()
-            || !nw::kernel::resman().contains({nw::Resref{model_name}, nw::ResourceType::mdl})) {
+        if (!table || !table->get_to(1u, "MODEL", model_name) || model_name.empty()) {
             GTEST_SKIP() << table_name << " row 1 model unavailable";
         }
+        attachment_resources[attachment_resource_count++] = {model_name, nw::ResourceType::mdl};
     }
+    ASSERT_EQ(attachment_resource_count, attachment_resources.size());
+    ASSERT_TRUE(resource_payloads_available(attachment_resources));
 
     const std::filesystem::path creature_fixture{"test_data/user/development/nw_chicken.utc"};
     if (!std::filesystem::exists(creature_fixture)) {
@@ -1564,9 +1597,10 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelUnsupportedDanglyDeformersRenderSt
 {
     namespace viewer = nw::render::viewer;
 
-    if (!nw::kernel::resman().contains({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl})) {
-        GTEST_SKIP() << "c_aribeth installed-game resource unavailable";
-    }
+    const std::array resources{
+        nw::Resource{"c_aribeth"sv, nw::ResourceType::mdl},
+    };
+    ASSERT_TRUE(resource_payloads_available(resources));
 
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
@@ -1669,47 +1703,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     namespace viewer = nw::render::viewer;
 
     auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false);
-    if (!module) {
-        GTEST_SKIP() << "DockerDemo module fixture unavailable";
-    }
+    ASSERT_NE(module, nullptr) << "DockerDemo module fixture unavailable";
 
-    const nw::Resref area_resref{"test_area"};
-    if (!nw::kernel::resman().contains({area_resref, nw::ResourceType::are})) {
-        GTEST_SKIP() << "test_area fixture unavailable";
-    }
-
-    auto* area = nw::kernel::objects().make_area(area_resref);
-    if (!area || !area->instantiate()) {
-        if (area) {
-            nw::kernel::objects().destroy(area->handle());
-        }
-        GTEST_SKIP() << "test_area fixture failed to instantiate";
-    }
-
-    bool has_render_model_creature_candidate = false;
-    for (auto* creature : area->creatures) {
-        if (!creature) {
-            continue;
-        }
-        creature->instantiate();
-        const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
-        if (!visual || visual->appearance < 0) {
-            continue;
-        }
-        auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(visual->appearance));
-        if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
-            continue;
-        }
-        if (nw::kernel::resman().contains({appearance->model, nw::ResourceType::mdl})) {
-            has_render_model_creature_candidate = true;
-            break;
-        }
-    }
-    area->clear();
-    nw::kernel::objects().destroy(area->handle());
-    if (!has_render_model_creature_candidate) {
-        GTEST_SKIP() << "area fixture has no non-humanoid creature with an available model";
-    }
+    const nw::Resref area_resref{"test_area"sv};
+    const std::array area_resources{nw::Resource{area_resref, nw::ResourceType::are}};
+    ASSERT_TRUE(resource_payloads_available(area_resources));
 
     TestGfxRuntime gfx;
     if (!gfx.initialize()) {
@@ -1730,7 +1728,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     ASSERT_TRUE(session);
     ASSERT_TRUE(session->load_area(area_resref.view()));
 
-    const auto* scene = session->scene();
+    auto* scene = session->scene();
     ASSERT_NE(scene, nullptr);
     EXPECT_TRUE(scene->is_area);
     EXPECT_EQ(scene->root_object.type, nw::ObjectType::area);
@@ -1776,10 +1774,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     EXPECT_EQ(scene->area_render_scene->stats().surface_triangle_count, surface_triangles.size());
     const auto& surface_triangle = surface_triangles[surface_ranges.front().first_triangle];
     const glm::vec3 surface_centroid = (surface_triangle.v0 + surface_triangle.v1 + surface_triangle.v2) / 3.0f;
-    const auto surface_hit = scene->area_render_scene->trace_surface(viewer::AreaObjectRay{
+    const viewer::AreaObjectRay surface_ray{
         .origin = {surface_centroid.x, surface_centroid.y, surface_ranges.front().bounds.max.z + 100.0f},
         .direction = {0.0f, 0.0f, -1.0f},
-    });
+    };
+    const auto surface_hit = scene->area_render_scene->trace_surface(surface_ray);
     ASSERT_EQ(surface_hit.status, viewer::AreaSurfaceHitStatus::hit);
     EXPECT_TRUE(std::isfinite(surface_hit.position.z));
 
@@ -1789,6 +1788,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     ASSERT_EQ(objects.size(), kinds.size());
     ASSERT_EQ(objects.size(), flags.size());
     uint32_t selectable_record_count = 0;
+    bool found_non_humanoid_creature = false;
     for (size_t record_index = 0; record_index < objects.size(); ++record_index) {
         const auto object = objects[record_index];
         if (kinds[record_index] == viewer::AreaRenderRecordKind::tile) {
@@ -1811,6 +1811,13 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
         case viewer::AreaRenderRecordKind::creature:
             EXPECT_EQ(object.type, nw::ObjectType::creature);
             EXPECT_TRUE(contains_object(live_area->creatures));
+            if (const auto* visual = nw::kernel::objects().components().find_visual(object);
+                visual && visual->appearance >= 0) {
+                const auto* appearance = nw::kernel::rules().appearances.get(
+                    nw::Appearance::make(visual->appearance));
+                found_non_humanoid_creature = found_non_humanoid_creature
+                    || (appearance && appearance->model_type != nw::AppearanceModelType::parts);
+            }
             break;
         case viewer::AreaRenderRecordKind::door:
             EXPECT_EQ(object.type, nw::ObjectType::door);
@@ -1830,6 +1837,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
             break;
         }
     }
+    EXPECT_TRUE(found_non_humanoid_creature);
     EXPECT_EQ(selectable_record_count, scene->area_render_scene->stats().selectable_object_record_count);
     EXPECT_EQ(scene->area_render_scene->stats().object_handle_bytes,
         objects.size() * sizeof(nw::ObjectHandle));
@@ -1860,26 +1868,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
 
     const viewer::ViewerViewport viewport{0, 0, 800, 600};
     ASSERT_TRUE(session->fit_to_scene(viewport));
-    const glm::mat4 view_projection = session->camera().get_projection_matrix()
-        * session->camera().get_view_matrix();
-    const glm::vec4 tile_clip = view_projection * glm::vec4{surface_centroid, 1.0f};
-    ASSERT_TRUE(std::isfinite(tile_clip.x));
-    ASSERT_TRUE(std::isfinite(tile_clip.y));
-    ASSERT_TRUE(std::isfinite(tile_clip.z));
-    ASSERT_TRUE(std::isfinite(tile_clip.w));
-    ASSERT_GT(tile_clip.w, 0.0f);
-    const glm::vec3 tile_ndc = glm::vec3{tile_clip} / tile_clip.w;
-    ASSERT_GE(tile_ndc.x, -1.0f);
-    ASSERT_LE(tile_ndc.x, 1.0f);
-    ASSERT_GE(tile_ndc.y, -1.0f);
-    ASSERT_LE(tile_ndc.y, 1.0f);
-    ASSERT_GE(tile_ndc.z, 0.0f);
-    ASSERT_LE(tile_ndc.z, 1.0f);
-    const auto tile_selection = session->select_area_object(
-        (tile_ndc.x * 0.5f + 0.5f) * static_cast<float>(viewport.width),
-        (tile_ndc.y * 0.5f + 0.5f) * static_cast<float>(viewport.height),
-        viewport,
-        viewer::AreaObjectSelectionTarget::tile);
+    const auto tile_selection = viewer::select_area_object(
+        surface_ray,
+        *scene->area_render_scene,
+        *scene,
+        {.target = viewer::AreaObjectSelectionTarget::tile});
     ASSERT_EQ(tile_selection.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(tile_selection.kind, viewer::AreaRenderRecordKind::tile);
     EXPECT_EQ(tile_selection.source, viewer::AreaObjectSelectionSource::area_record);

@@ -1,0 +1,26 @@
+#MAXMODEL ASCII
+newmodel c_tailliz
+setsupermodel c_tailliz NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom c_tailliz
+    node dummy c_tailliz
+        parent NULL
+    endnode
+endmodelgeom c_tailliz
+
+#MAXANIM ASCII
+newanim pause1 c_tailliz
+    length 1
+    transtime 0.25
+    animroot c_tailliz
+    node dummy c_tailliz
+        parent NULL
+        positionkey
+            0 0 0 0
+            1 0 0.1 0
+        endlist
+    endnode
+doneanim pause1 c_tailliz
+
+donemodel c_tailliz

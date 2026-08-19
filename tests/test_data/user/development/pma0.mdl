@@ -1,0 +1,78 @@
+#MAXMODEL ASCII
+newmodel pma0
+setsupermodel pma0 NULL
+classification character
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom pma0
+    node dummy pma0
+        parent NULL
+    endnode
+    node dummy rootdummy
+        parent pma0
+    endnode
+    node dummy pelvis_g
+        parent rootdummy
+    endnode
+    node dummy torso_g
+        parent pelvis_g
+    endnode
+    node dummy head_g
+        parent torso_g
+    endnode
+    node dummy neck_g
+        parent torso_g
+    endnode
+    node dummy belt_g
+        parent pelvis_g
+    endnode
+    node dummy lthigh_g
+        parent pelvis_g
+    endnode
+    node dummy rthigh_g
+        parent pelvis_g
+    endnode
+    node dummy lshin_g
+        parent lthigh_g
+    endnode
+    node dummy rshin_g
+        parent rthigh_g
+    endnode
+    node dummy lfoot_g
+        parent lshin_g
+    endnode
+    node dummy rfoot_g
+        parent rshin_g
+    endnode
+    node dummy lshoulder_g
+        parent torso_g
+    endnode
+    node dummy rshoulder_g
+        parent torso_g
+    endnode
+    node dummy lbicep_g
+        parent lshoulder_g
+    endnode
+    node dummy rbicep_g
+        parent rshoulder_g
+    endnode
+    node dummy lforearm_g
+        parent lbicep_g
+    endnode
+    node dummy rforearm_g
+        parent rbicep_g
+    endnode
+    node dummy lhand_g
+        parent lforearm_g
+    endnode
+    node dummy rhand_g
+        parent rforearm_g
+    endnode
+    node dummy wings
+        parent torso_g
+    endnode
+    node dummy tail
+        parent pelvis_g
+    endnode
+endmodelgeom pma0
+donemodel pma0

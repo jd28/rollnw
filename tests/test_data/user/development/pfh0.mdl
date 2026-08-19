@@ -1,0 +1,48 @@
+#MAXMODEL ASCII
+newmodel pfh0
+setsupermodel pfh0 NULL
+classification character
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom pfh0
+    node dummy pfh0
+        parent NULL
+    endnode
+    node dummy rootdummy
+        parent pfh0
+    endnode
+    node dummy pelvis_g
+        parent rootdummy
+    endnode
+    node dummy torso_g
+        parent pelvis_g
+    endnode
+    node dummy head_g
+        parent torso_g
+    endnode
+    node dummy wings
+        parent torso_g
+    endnode
+    node dummy tail
+        parent pelvis_g
+    endnode
+endmodelgeom pfh0
+
+#MAXANIM ASCII
+newanim walk pfh0
+    length 1
+    transtime 0.25
+    animroot pfh0
+    node dummy pfh0
+        parent NULL
+    endnode
+    node dummy rootdummy
+        parent pfh0
+        positionkey
+            0 0 0 0
+            1 0 0.1 0
+        endlist
+    endnode
+doneanim walk pfh0
+
+donemodel pfh0

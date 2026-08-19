@@ -19,6 +19,8 @@
 
 namespace {
 
+using namespace std::literals;
+
 nw::model::Vertex make_test_vertex(const glm::vec3& position)
 {
     nw::model::Vertex vertex;
@@ -339,8 +341,8 @@ TEST(RenderModelLoader, PrefersSelectedHumanoidBodyPartPaletteOverSharedBitmap)
 {
     namespace nwn = nw::render::nwn;
 
-    const nw::Resource palette_resource{nw::Resref{"pmh0_testplt"}, nw::ResourceType::plt};
-    ASSERT_TRUE(nw::kernel::resman().contains(palette_resource));
+    const nw::Resource palette_resource{"pmh0_testplt"sv, nw::ResourceType::plt};
+    ASSERT_GT(nw::kernel::resman().demand(palette_resource).bytes.size(), 0u);
 
     nw::model::Mdl mdl{"test_data/user/development/pme0_testplt.mdl"};
     ASSERT_TRUE(mdl.valid());
@@ -922,7 +924,7 @@ TEST(RenderModelLoader, ImportsNwnModelAssetPltTextureSources)
     EXPECT_EQ(result.stats.missing_texture_source_count, 0u);
     ASSERT_EQ(asset.texture_sources.size(), 1u);
     EXPECT_EQ(asset.texture_sources[0].kind, nw::render::ModelAssetTextureSourceKind::encoded_bytes);
-    EXPECT_EQ(asset.texture_sources[0].resource, nw::Resource(nw::Resref{"pmh0_head001"}, nw::ResourceType::plt));
+    EXPECT_EQ(asset.texture_sources[0].resource, nw::Resource("pmh0_head001"sv, nw::ResourceType::plt));
     EXPECT_FALSE(asset.texture_sources[0].encoded_bytes.empty());
     ASSERT_EQ(asset.material_texture_sources.size(), 1u);
     EXPECT_EQ(asset.material_texture_sources[0].albedo, 0u);
@@ -975,10 +977,7 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
 {
     namespace nwn = nw::render::nwn;
 
-    ASSERT_TRUE(nw::kernel::resman().contains({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl}))
-        << "repository c_aribeth fixture unavailable";
-
-    auto data = nw::kernel::resman().demand({nw::Resref{"c_aribeth"}, nw::ResourceType::mdl});
+    auto data = nw::kernel::resman().demand({"c_aribeth"sv, nw::ResourceType::mdl});
     ASSERT_GT(data.bytes.size(), 0u);
 
     nw::model::Mdl mdl{std::move(data)};
@@ -995,7 +994,7 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
     EXPECT_EQ(result.stats.missing_texture_source_count, 0u);
     EXPECT_EQ(result.stats.unsupported_plt_texture_count, 0u);
     ASSERT_EQ(asset.texture_sources.size(), 1u);
-    EXPECT_EQ(asset.texture_sources.front().resource.resref, nw::Resref{"c_aribeth"});
+    EXPECT_EQ(asset.texture_sources.front().resource.resref, nw::Resref{"c_aribeth"sv});
     EXPECT_TRUE(asset.texture_sources.front().resource.type == nw::ResourceType::dds
         || asset.texture_sources.front().resource.type == nw::ResourceType::tga);
     ASSERT_EQ(asset.material_texture_sources.size(), asset.materials.size());
@@ -1356,7 +1355,7 @@ TEST(RenderModelLoader, ImportsPalmFoliageLeavesAsCutoutAlpha)
 {
     namespace nwn = nw::render::nwn;
 
-    constexpr std::string_view binary_alpha_texture{"c_drgshad_wing"};
+    constexpr auto binary_alpha_texture = "c_drgshad_wing"sv;
     const auto texture_data = nw::kernel::resman().demand(
         {nw::Resref{binary_alpha_texture}, nw::ResourceType::dds});
     ASSERT_GT(texture_data.bytes.size(), 0u);
