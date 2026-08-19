@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from html import unescape
 from pathlib import Path
 
 import build_site
@@ -217,7 +218,7 @@ title = "A"
             css = fx.read_output("_static/site.css")
             self.assertIn('class="codehilite"', html)
             self.assertIn('<span class="nd">[[native]]</span>', html)
-            self.assertIn('<span class="nd">[[intrinsic(&quot;load_config&quot;)]]</span>', html)
+            self.assertIn('<span class="nd">[[intrinsic("load_config")]]</span>', unescape(html))
             self.assertIn('<span class="k">type</span>', html)
             self.assertIn('<span class="k">switch</span>', html)
             self.assertIn('<span class="nc">ItemVisual</span>', html)
