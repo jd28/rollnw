@@ -9,6 +9,7 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -215,7 +216,7 @@ bool report_has_model_name(
         report.model_names.begin(),
         report.model_names.end(),
         [name](const std::string& model_name) {
-            return model_name == name;
+            return nw::Resref{model_name} == nw::Resref{name};
         });
 }
 
@@ -544,6 +545,128 @@ TEST(RenderViewerPreparedDraws, DoorLoadReportUsesSmallsResolverRows)
 
     EXPECT_EQ(report.kind, "Door");
     EXPECT_TRUE(report_has_resource(report, {resolved.model, nw::ResourceType::mdl}));
+}
+
+TEST(RenderViewerPreparedDraws, StandaloneDoorPreviewPublishesLiveDoor)
+{
+    namespace viewer = nw::render::viewer;
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    struct GenericDoorCandidate {
+        int32_t row = 0;
+        nw::Resref model;
+    };
+
+    auto* genericdoors = nw::kernel::twodas().get("genericdoors"sv);
+    ASSERT_NE(genericdoors, nullptr);
+
+    std::vector<GenericDoorCandidate> candidates;
+    candidates.reserve(2);
+    for (size_t row = 0; row < genericdoors->rows() && candidates.size() < 2; ++row) {
+        std::string model_name;
+        if (!genericdoors->get_to(row, "ModelName", model_name, false)) { continue; }
+        const nw::Resref candidate{model_name};
+        if (candidate.empty()
+            || !nw::kernel::resman().contains(
+                {candidate, nw::ResourceType::mdl})) {
+            continue;
+        }
+        if (std::any_of(candidates.begin(), candidates.end(),
+                [candidate](const GenericDoorCandidate& existing) {
+                    return existing.model == candidate;
+                })) {
+            continue;
+        }
+
+        auto probe = device.make_session();
+        if (!probe || !probe->load_model(candidate.view())) { continue; }
+        candidates.push_back({static_cast<int32_t>(row), candidate});
+    }
+    ASSERT_EQ(candidates.size(), 2u)
+        << "dedicated-server data has fewer than two renderable Generic Doors";
+
+    const std::filesystem::path source_path{
+        "test_data/user/development/door_ttr_002.utd"};
+    auto* source_door = nw::kernel::objects().load_file<nw::Door>(source_path);
+    ASSERT_NE(source_door, nullptr);
+
+    auto& runtime = nw::kernel::runtime();
+    const auto source_appearance = nw::toolset::door_appearance(
+        runtime, source_door->handle());
+    ASSERT_TRUE(source_appearance);
+    const size_t initial_candidate = source_appearance->appearance == 0
+            && source_appearance->generic_type == candidates[0].row
+        ? 1u
+        : 0u;
+    const size_t alternate_candidate = initial_candidate == 0u ? 1u : 0u;
+    auto initial_edit = nw::toolset::make_door_appearance_edit(
+        runtime, source_door->handle(), 0, candidates[initial_candidate].row);
+    ASSERT_TRUE(initial_edit);
+    const auto initial_applied = nw::toolset::apply_object_appearance_edit(
+        runtime, *initial_edit, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(initial_applied.ok()) << initial_applied.diagnostic;
+
+    std::filesystem::create_directories("tmp");
+    const std::filesystem::path path{
+        "tmp/standalone_generic_door.utd.json"};
+    ASSERT_TRUE(source_door->save(path, "json"));
+    nw::kernel::objects().destroy(source_door->handle());
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_object_file(path));
+
+    const auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    const auto active_object = session->active_object();
+    EXPECT_EQ(active_object, scene->root_object);
+    EXPECT_EQ(active_object, scene->active_object);
+    EXPECT_EQ(active_object.type, nw::ObjectType::door);
+    EXPECT_TRUE(nw::kernel::objects().valid(active_object));
+    EXPECT_NE(nw::kernel::objects().get<nw::Door>(active_object), nullptr);
+
+    const size_t initial_light_count = scene->local_lights.size();
+    ASSERT_TRUE(session->rebuild_live_object(active_object));
+    scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    EXPECT_EQ(scene->local_lights.size(), initial_light_count);
+
+    const auto before = nw::toolset::door_appearance(runtime, active_object);
+    ASSERT_TRUE(before);
+    EXPECT_EQ(before->appearance, 0);
+    EXPECT_EQ(before->generic_type, candidates[initial_candidate].row);
+    EXPECT_TRUE(report_has_model_name(
+        scene->load_report, candidates[initial_candidate].model.view()));
+
+    auto edit = nw::toolset::make_door_appearance_edit(
+        runtime, active_object, 0, candidates[alternate_candidate].row);
+    ASSERT_TRUE(edit);
+    const auto applied = nw::toolset::apply_object_appearance_edit(
+        runtime, *edit, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    ASSERT_TRUE(session->rebuild_live_object(active_object));
+    scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    EXPECT_EQ(session->active_object(), active_object);
+    EXPECT_TRUE(report_has_model_name(
+        scene->load_report, candidates[alternate_candidate].model.view()));
+
+    session.reset();
+    EXPECT_FALSE(nw::kernel::objects().valid(active_object));
 }
 
 TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportUsesVisualAttachmentRows)

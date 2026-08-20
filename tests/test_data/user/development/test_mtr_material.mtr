@@ -2,7 +2,7 @@ mtr style
 customshaderVS vslit_sm_nm
 customshaderFS fslit_sm_nm
 
-texture0 test_mtr_diffuse
+texture0 bones
 transparency 1
 twosided 1
 roughness 0.32

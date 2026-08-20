@@ -1,0 +1,54 @@
+#MAXMODEL ASCII
+newmodel test_door_alpha
+setsupermodel test_door_alpha NULL
+classification Door
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_door_alpha
+    node dummy test_door_alpha
+        parent NULL
+    endnode
+    node trimesh transition_surface
+        parent test_door_alpha
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 0
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 1
+        bitmap NULL
+        alpha 0.25
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom test_door_alpha
+
+#MAXANIM ASCII
+newanim default test_door_alpha
+    length 0.0333333
+    transtime 0
+    animroot test_door_alpha
+    node dummy test_door_alpha
+        parent NULL
+    endnode
+    node trimesh transition_surface
+        parent test_door_alpha
+        alphakey
+            0 0
+            0.0333333 0
+        endlist
+    endnode
+doneanim default test_door_alpha
+
+donemodel test_door_alpha

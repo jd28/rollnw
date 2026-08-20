@@ -1,0 +1,188 @@
+.object_workbench.door_workbench {
+  flex-basis: 440px;
+  width: 440px;
+}
+
+#door_object_header {
+  display: none;
+}
+#door_object_header.visible {
+  display: flex;
+}
+
+.door_workbench_surface {
+  display: none;
+  flex: 1;
+  min-width: 0px;
+  min-height: 0px;
+}
+.door_workbench_surface.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.door_data_header {
+  border-top: 1px #36414c;
+}
+
+#door_appearance_dynamic,
+.door_appearance_editor,
+.door_appearance_selector {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0px;
+  min-height: 0px;
+}
+
+.door_appearance_editor {
+  background: #13191e;
+}
+.door_appearance_summary {
+  flex: 0 0 auto;
+}
+.door_appearance_row {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  border-bottom: 1px #2b3540;
+}
+.door_appearance_label {
+  flex: 0 0 126px;
+  padding-left: 10px;
+  color: #aeb8c3;
+}
+.door_appearance_value {
+  flex: 1;
+  min-width: 0px;
+  padding: 0 10px;
+  overflow: hidden;
+  color: #dce3ea;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.door_appearance_actions {
+  display: flex;
+  flex: 0 0 30px;
+  align-self: center;
+  margin: 10px;
+}
+.door_appearance_open,
+.door_appearance_cycle_button {
+  padding: 4px 10px;
+  border: 1px #536371;
+  border-radius: 2px;
+  background: #202930;
+  color: #e4e9ed;
+  cursor: pointer;
+}
+.door_appearance_open {
+  flex: 0 0 auto;
+  margin: 0 4px;
+}
+.door_appearance_cycle_button {
+  flex: 0 0 30px;
+  width: 30px;
+  padding-left: 0px;
+  padding-right: 0px;
+  text-align: center;
+}
+.door_appearance_open:hover,
+.door_appearance_open:focus,
+.door_appearance_cycle_button:hover,
+.door_appearance_cycle_button:focus {
+  border-color: #bca36a;
+  background: #2a343d;
+}
+
+.door_appearance_selector_header {
+  display: flex;
+  flex: 0 0 36px;
+  align-items: center;
+  border-bottom: 1px #36414c;
+  background: #1c242b;
+}
+.door_appearance_selector_title {
+  flex: 1;
+  min-width: 0px;
+  overflow: hidden;
+  color: #e6ebef;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.door_appearance_search_row {
+  display: flex;
+  flex: 0 0 38px;
+  align-items: center;
+  padding: 5px 8px;
+  border-bottom: 1px #36414c;
+  background: #171e24;
+  box-sizing: border-box;
+}
+.door_appearance_search {
+  flex: 1;
+  height: 28px;
+  min-width: 0px;
+  padding: 0px 8px;
+  border: 1px #36414c;
+  border-radius: 2px;
+  background: #10161b;
+  box-sizing: border-box;
+  color: #dce3ea;
+  line-height: 28px;
+}
+.door_appearance_search:focus {
+  border-color: #bca36a;
+}
+.door_appearance_columns {
+  display: flex;
+  flex: 0 0 28px;
+  align-items: center;
+  border-bottom: 1px #36414c;
+  background: #1c242b;
+  color: #aeb8c3;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.door_appearance_columns span:nth-child(1) {
+  flex: 1;
+  min-width: 0px;
+  padding-left: 10px;
+}
+.door_appearance_rows {
+  flex: 1;
+  min-height: 0px;
+  overflow-y: auto;
+}
+.door_appearance_rows .managed_list_row {
+  display: flex;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+  border-bottom: 1px #2b3540;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.door_appearance_rows .managed_list_row:hover {
+  background: #202a32;
+}
+.door_appearance_rows .managed_list_row.selected {
+  background: #263746;
+}
+.door_appearance_rows .managed_list_cell {
+  display: block;
+  height: 34px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  line-height: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.door_appearance_rows .managed_list_cell.cell_0 {
+  flex: 1;
+  min-width: 0px;
+  padding-left: 10px;
+}

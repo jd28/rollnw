@@ -251,9 +251,11 @@ void register_twoda_config_converters()
                                                                    CM{"ArmorCheckPenalty", "armor_check_penalty"},
                                                                });
     srt.register_twoda_converter("nwn1.data.doortypes", "doortypes", {
+                                                                         CM{"StringRefGame", "name", {}, {}, -1},
                                                                          CM{"Model", "model"},
                                                                      });
     srt.register_twoda_converter("nwn1.data.genericdoors", "genericdoors", {
+                                                                               CM{"Name", "name", {}, {}, -1},
                                                                                CM{"ModelName", "model"},
                                                                            });
     srt.register_twoda_converter("nwn1.data.cloakmodels", "cloakmodel", {

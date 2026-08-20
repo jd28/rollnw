@@ -1980,6 +1980,65 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        "object.door.set_appearance",
+                        "Set Door Appearance",
+                        "Set the active Door appearance selector pair through Smalls policy",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::none,
+                        {},
+                        "object.door.set_appearance <appearance-id> <generic-type-id>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto appearance = parse_u32(command_arg_string(invocation.args, 0));
+            const auto generic_type = parse_u32(command_arg_string(invocation.args, 1));
+            constexpr auto max_selector = static_cast<uint32_t>(
+                std::numeric_limits<int32_t>::max());
+            if (!appearance || !generic_type
+                || *appearance > max_selector || *generic_type > max_selector) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.door.set_appearance <appearance-id> <generic-type-id>",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(CommandStatus::failed,
+                    "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+
+            const ObjectHandle object = bridge_->active_object();
+            if (object.type != ObjectType::door) {
+                return command_result(CommandStatus::rejected,
+                    "Active object is not a Door", CommandOutputChannel::warn);
+            }
+
+            auto& runtime = kernel::runtime();
+            const auto current = door_appearance(runtime, object);
+            if (!current) {
+                return command_result(CommandStatus::failed,
+                    "Door appearance is unavailable", CommandOutputChannel::error);
+            }
+            const ObjectAppearanceSelectors desired{
+                static_cast<int32_t>(*appearance),
+                static_cast<int32_t>(*generic_type),
+            };
+            if (*current == desired) {
+                return command_result(CommandStatus::noop,
+                    "Door appearance is already set", CommandOutputChannel::none);
+            }
+
+            auto edit = make_door_appearance_edit(
+                runtime, object, desired.appearance, desired.generic_type);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    "Door appearance edit could not be prepared",
+                    CommandOutputChannel::warn);
+            }
+            return commit_object_appearance_edit(
+                std::move(*edit), "Set Door appearance", context);
+        });
+
+    register_or_log(CommandSpec{
                         "object.item.set_model_part",
                         "Set Item Model Part",
                         "Set one active Item visual model part through Smalls policy",

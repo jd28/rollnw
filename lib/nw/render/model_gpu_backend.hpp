@@ -68,7 +68,9 @@ public:
         nw::gfx::CommandList* cmd, const void* data, uint32_t size, uint32_t alignment = 64);
 
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture() const { return fallback_texture_; }
+    nw::gfx::Handle<nw::gfx::Texture> default_albedo_texture() const { return default_albedo_; }
     nw::gfx::BindlessTextureIndex fallback_albedo_index() const;
+    nw::gfx::BindlessTextureIndex missing_albedo_index() const;
     nw::gfx::BindlessTextureIndex fallback_normal_index() const;
     nw::gfx::BindlessTextureIndex fallback_surface_index() const;
     nw::gfx::BindlessTextureIndex fallback_emissive_index() const;
@@ -103,6 +105,7 @@ private:
     nw::gfx::Context* ctx_ = nullptr;
     std::array<nw::gfx::Handle<nw::gfx::Pipeline>, pipeline_slot_count> pipelines_{};
     nw::render::PipelineCache pipeline_cache_;
+    nw::gfx::Handle<nw::gfx::Texture> default_albedo_;
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture_;
     nw::gfx::Handle<nw::gfx::Texture> fallback_normal_;
     nw::gfx::Handle<nw::gfx::Texture> fallback_surface_;

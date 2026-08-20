@@ -1,0 +1,63 @@
+<template name="door-workbench">
+<head></head>
+<body>
+  <div id="object_workbench" class="object_workbench door_workbench"
+       data-smalls-source="door_editor.rml">
+    <div id="door_object_header" class="object_workbench_header area_object_header">
+      <button type="button" class="area_object_list_back panel_back_button"
+              title="Back to placed objects">
+        <span class="panel_back_icon">
+          <span class="panel_back_head"></span>
+          <span class="panel_back_shaft"></span>
+        </span>
+      </button>
+      <div id="door_object_title" class="object_workbench_title"></div>
+    </div>
+
+    <div id="object_workbench_tab_bar" class="object_workbench_tab_bar">
+      <div id="object_workbench_tabs" class="object_workbench_tabs">
+        <div id="object_workbench_tab_track" class="object_workbench_tab_track">
+          <button id="door_tab_details" class="object_workbench_tab" type="button" data-surface="details">Details</button>
+          <button id="door_tab_variables" class="object_workbench_tab" type="button" data-surface="variables">Variables</button>
+          <button id="door_tab_appearance" class="object_workbench_tab" type="button" data-surface="appearance">Appearance</button>
+        </div>
+      </div>
+      <button id="object_workbench_tabs_previous" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs left">&#x2039;</button>
+      <button id="object_workbench_tabs_next" class="object_workbench_tab_scroll_button disabled" type="button" title="Scroll editor tabs right">&#x203a;</button>
+    </div>
+
+    <div id="door_surface_details" class="door_workbench_surface">
+      <div class="property_tree_header door_data_header">
+        <span class="property_tree_header_name">Field</span>
+        <span class="property_tree_header_value">Value</span>
+        <span id="property_tree_count" class="property_tree_count">0</span>
+      </div>
+      <div id="property_tree_rows" class="property_tree_rows">
+        <div class="property_tree_empty">Select a Door to inspect.</div>
+      </div>
+    </div>
+
+    <div id="door_surface_variables" class="door_workbench_surface">
+      <div class="object_variable_toolbar">
+        <button id="object_variable_add" type="button" title="Add integer variable">Add Variable</button>
+      </div>
+      <div class="object_variable_header">
+        <span class="object_variable_header_name">Name</span>
+        <span class="object_variable_header_type">Type</span>
+        <span class="object_variable_header_value">Value</span>
+        <span id="object_variable_count" class="property_tree_count">0</span>
+      </div>
+      <div id="object_variable_rows" class="object_variable_rows">
+        <div class="property_tree_empty">Waiting for a live Door.</div>
+      </div>
+    </div>
+
+    <div id="door_surface_appearance" class="door_workbench_surface">
+      <div id="door_appearance_dynamic" class="smalls_refresh"
+           onrefresh="door_appearance_refresh()">
+        <div class="property_tree_empty">Waiting for a live Door.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</template>

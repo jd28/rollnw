@@ -1,0 +1,61 @@
+#MAXMODEL ASCII
+newmodel test_missing_transparent_texture
+setsupermodel test_missing_transparent_texture NULL
+setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom test_missing_transparent_texture
+    node dummy test_missing_transparent_texture
+        parent NULL
+    endnode
+    node trimesh visible_mesh
+        parent test_missing_transparent_texture
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap null
+        alpha 1
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 0
+            1 0 0
+            0 1 0
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+    node trimesh missing_transparent_mesh
+        parent test_missing_transparent_texture
+        diffuse 1 1 1
+        ambient 0 0 0
+        specular 0 0 0
+        shininess 4
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 1
+        bitmap zz_no_trans_tex
+        alpha 0.5
+        scale 1
+        selfillumcolor 0 0 0
+        verts 3
+            0 0 1
+            1 0 1
+            0 1 1
+        faces 1
+            0 1 2 1 0 1 2 1
+        tverts 3
+            0 0 0
+            1 0 0
+            0 1 0
+    endnode
+endmodelgeom test_missing_transparent_texture
+donemodel test_missing_transparent_texture

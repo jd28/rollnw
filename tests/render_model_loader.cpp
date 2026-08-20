@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <string_view>
 
 namespace {
@@ -460,6 +461,94 @@ TEST(RenderModelLoader, CharacterContinuousGradedAlphaStaysOpaque)
     });
 
     EXPECT_EQ(mode, nw::render::MaterialMode::opaque);
+}
+
+TEST(RenderModelLoader, DoorGradedAlphaUsesTransparency)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"door_overlay"};
+    node.bitmap = "door_translucent_overlay";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::door,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::graded,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::transparent);
+}
+
+TEST(RenderModelLoader, DoorMostlyBinaryAlphaUsesCutout)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::TrimeshNode node{"door_overlay"};
+    node.bitmap = "door_cutout_overlay";
+
+    const auto mode = nwn::classify_nwn_material(nwn::NwnMaterialClassificationInput{
+        .node = &node,
+        .bitmap_name = node.bitmap,
+        .model_class = nw::model::ModelClass::door,
+        .alpha_profile = nwn::NwnMaterialAlphaProfile::mostly_binary,
+    });
+
+    EXPECT_EQ(mode, nw::render::MaterialMode::cutout);
+}
+
+TEST(RenderModelLoader, DoorStaticAnimationOverridesBaseMeshOpacity)
+{
+    namespace nwn = nw::render::nwn;
+
+    auto data = nw::kernel::resman().demand({"test_door_alpha"sv, nw::ResourceType::mdl});
+    ASSERT_GT(data.bytes.size(), 0u);
+
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.classification, nw::model::ModelClass::door);
+
+    const auto* animation = mdl.model.find_animation("default"sv);
+    ASSERT_NE(animation, nullptr);
+
+    std::optional<size_t> overridden_node;
+    for (size_t i = 0; i < mdl.model.nodes.size() && !overridden_node; ++i) {
+        const auto* mesh = dynamic_cast<const nw::model::TrimeshNode*>(mdl.model.nodes[i].get());
+        if (!mesh) {
+            continue;
+        }
+
+        const auto base_alpha = mesh->get_controller(nw::model::ControllerType::Alpha);
+        if (!base_alpha.key || base_alpha.data.empty() || base_alpha.data.front() >= 0.999f) {
+            continue;
+        }
+
+        for (const auto& animation_node : animation->nodes) {
+            if (!animation_node || !nw::string::icmp(animation_node->name, mesh->name)) {
+                continue;
+            }
+
+            const auto hold_alpha = animation_node->get_controller(nw::model::ControllerType::Alpha);
+            if (hold_alpha.key && !hold_alpha.data.empty() && hold_alpha.data.front() == 0.0f) {
+                overridden_node = i;
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(overridden_node.has_value());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+
+    const auto primitive = std::find_if(result.asset->primitives.begin(), result.asset->primitives.end(),
+        [node = *overridden_node](const nw::render::ModelAssetPrimitive& value) {
+            return value.node == static_cast<int32_t>(node);
+        });
+    ASSERT_NE(primitive, result.asset->primitives.end());
+    ASSERT_LT(primitive->material, result.asset->materials.size());
+    const auto& material = result.asset->materials[primitive->material];
+    EXPECT_EQ(material.alpha_mode, nw::render::MaterialMode::transparent);
+    EXPECT_FLOAT_EQ(material.albedo.a, 0.0f);
 }
 
 TEST(RenderModelLoader, TileGradedGrassTextureWithoutExplicitHintStaysOpaque)
@@ -1191,8 +1280,28 @@ TEST(RenderModelLoader, FlagsMissingExplicitTextureFallback)
     auto result = nwn::import_nwn_model_asset(mdl);
     ASSERT_TRUE(result.asset);
     ASSERT_EQ(result.asset->materials.size(), 1u);
+    ASSERT_EQ(result.asset->material_texture_sources.size(), 1u);
     EXPECT_TRUE(result.asset->materials.front().material_uses_fallback);
+    EXPECT_TRUE(result.asset->material_texture_sources.front().albedo_referenced);
     EXPECT_GT(result.stats.missing_texture_source_count, 0u);
+}
+
+TEST(RenderModelLoader, DropsTransparentMeshWhenExplicitAlbedoIsMissing)
+{
+    namespace nwn = nw::render::nwn;
+
+    nw::model::Mdl mdl{
+        "test_data/user/development/test_missing_transparent_texture.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->primitives.size(), 1u);
+    ASSERT_EQ(result.asset->materials.size(), 1u);
+    EXPECT_EQ(result.asset->materials.front().alpha_mode,
+        nw::render::MaterialMode::opaque);
+    EXPECT_FALSE(result.asset->materials.front().material_uses_fallback);
+    EXPECT_EQ(result.stats.missing_texture_source_count, 1u);
 }
 
 TEST(RenderModelLoader, DropsNonRenderedTileMeshesWithoutSourceImagery)

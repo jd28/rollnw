@@ -5,7 +5,9 @@
   <link type="text/rcss" href="creature_classes.rcss" />
   <link type="text/rcss" href="creature_editor.rcss" />
   <link type="text/rcss" href="dialog.rcss" />
+  <link type="text/rcss" href="door_editor.rcss" />
   <link type="text/rcss" href="item_editor.rcss" />
+  <link type="text/template" href="door_editor.rml" />
   <link type="text/template" href="item_editor.rml" />
   <link type="text/template" href="creature_editor.rml" />
   <script>
@@ -21,6 +23,14 @@ from toolset.item_editor import {
     open_model_selector,
     remove_selected_property,
     select_color_channel,
+};
+from toolset.door_editor import {
+    close_door_appearance_selector,
+    door_appearance_refresh,
+    filter_door_appearances,
+    next_door_appearance,
+    open_door_appearance_selector,
+    previous_door_appearance,
 };
 from toolset.rmlui import { refresh_creature_sheet_model };
   </script>

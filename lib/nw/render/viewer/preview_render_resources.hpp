@@ -54,6 +54,7 @@ public:
     void store_area_static_model(nw::Resref name, const std::shared_ptr<nw::render::RenderModel>& model);
     nw::gfx::Context* context() const { return ctx_; }
     nw::gfx::BindlessTextureIndex fallback_albedo_index() const { return model_backend().fallback_albedo_index(); }
+    nw::gfx::BindlessTextureIndex missing_albedo_index() const { return model_backend().missing_albedo_index(); }
     nw::gfx::BindlessTextureIndex fallback_normal_index() const { return model_backend().fallback_normal_index(); }
     nw::gfx::BindlessTextureIndex fallback_surface_index() const { return model_backend().fallback_surface_index(); }
     nw::gfx::BindlessTextureIndex fallback_emissive_index() const { return model_backend().fallback_emissive_index(); }

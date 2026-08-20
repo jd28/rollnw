@@ -5389,6 +5389,50 @@ void hydrate_item_workbench(Rml::ElementDocument* doc, const AppState& state)
     }
 }
 
+void hydrate_door_workbench(Rml::ElementDocument* doc, const AppState& state)
+{
+    if (!find_el(doc, "door_surface_details")) {
+        return;
+    }
+
+    struct DoorSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        DoorSurfaceElements{"door_tab_details", "door_surface_details",
+            ObjectWorkbenchSurface::details},
+        DoorSurfaceElements{"door_tab_variables", "door_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        DoorSurfaceElements{"door_tab_appearance", "door_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = state.workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::door;
+    if (auto* header = find_el(doc, "door_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "door_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+}
+
 constexpr std::array<std::string_view, 18> kCreatureEquipmentSlotLabels{
     "Head",
     "Chest",
@@ -5894,6 +5938,10 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += "<template src=\"item-workbench\"></template>";
         return;
     }
+    if (state.object_details.object.type == nw::ObjectType::door) {
+        content_markup += "<template src=\"door-workbench\"></template>";
+        return;
+    }
     const bool project_module = state.object_details.object.type == nw::ObjectType::module
         && !state.backend.current_project_dir().empty();
     content_markup += "<div id=\"object_workbench\" class=\"object_workbench\">";
@@ -6380,6 +6428,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
     sync_home_area_window(doc, state, true);
     hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
+    hydrate_door_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     if (active_appearances_match_tab(state)) {
         if (auto* editor = find_el(doc, "appearance_editor")) {
@@ -6480,6 +6529,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     sync_home_area_window(doc, state, true);
     hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
+    hydrate_door_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     sync_object_details_window(doc, state, true);
     nw::toolset::sync_managed_lists(
@@ -9738,22 +9788,6 @@ int main(int argc, char* argv[])
                 }
                 if (event.wheel.y != 0.0f) {
                     const SDL_Keymod modifiers = SDL_GetModState();
-                    auto* managed_list_at_point = find_ancestor_with_class(
-                        context ? context->GetElementAtPoint(point) : nullptr,
-                        "managed_list_cycle");
-                    const bool managed_list_wheel = !state.shell.command_palette_visible
-                        && !state.module_dialog_open
-                        && managed_list_at_point
-                        && !(modifiers
-                            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI
-                                | SDL_KMOD_SHIFT));
-                    if (managed_list_wheel) {
-                        (void)cycle_managed_list(doc, state,
-                            managed_list_at_point,
-                            event.wheel.y > 0.0f ? -1 : 1);
-                        dispatched_to_rml = true;
-                        break;
-                    }
                     const bool body_part_combobox_focused = !state.shell.command_palette_visible
                         && !state.module_dialog_open
                         && state.object_workbench_surface == ObjectWorkbenchSurface::appearance
@@ -10336,9 +10370,11 @@ int main(int argc, char* argv[])
                                 state.object_workbench_surface = ObjectWorkbenchSurface::classes;
                             } else if (surface == "appearance"
                                 && (appearance_catalog_kind(state.object_details.object.type)
+                                    || state.object_details.object.type == nw::ObjectType::door
                                     || state.object_details.object.type == nw::ObjectType::item)) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::appearance;
-                                if (state.object_details.object.type != nw::ObjectType::item) {
+                                if (appearance_catalog_kind(
+                                        state.object_details.object.type)) {
                                     rebuild_active_appearances(state, state.object_details.object);
                                 }
                             } else if (surface == "item-properties"
@@ -10844,9 +10880,10 @@ int main(int argc, char* argv[])
                     } else if (mutation.object.type == nw::ObjectType::item) {
                         rebuild_active_creature_inventory(state, mutation.object);
                     }
-                    const bool item_mutation = mutation.object.type == nw::ObjectType::item;
+                    const bool smalls_appearance_mutation = mutation.object.type == nw::ObjectType::door
+                        || mutation.object.type == nw::ObjectType::item;
                     if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                        && !item_mutation) {
+                        && appearance_catalog_kind(mutation.object.type)) {
                         if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                             (void)sync_live_body_part_option(state);
                             state.body_part_combobox.hide_popup();
@@ -10860,7 +10897,7 @@ int main(int argc, char* argv[])
                             }
                         }
                     }
-                    if (item_mutation
+                    if (smalls_appearance_mutation
                         || state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
                         refresh_workspace_content(doc, state);
                         workbench_rebuilt = true;

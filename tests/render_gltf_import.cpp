@@ -420,6 +420,7 @@ TEST(RenderGltfImport, ImportsModelAssetMaterialTextureSourcesWithoutGraphicsCon
 
     ASSERT_EQ(asset->material_texture_sources.size(), 1u);
     const auto& material_sources = asset->material_texture_sources[0];
+    EXPECT_TRUE(material_sources.albedo_referenced);
     EXPECT_EQ(material_sources.albedo, 0u);
     EXPECT_EQ(material_sources.normal, 1u);
     EXPECT_EQ(material_sources.metallic_roughness, 2u);

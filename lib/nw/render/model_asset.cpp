@@ -156,7 +156,8 @@ bool source_index_valid(uint32_t index) noexcept
 
 bool material_sources_reference_texture(const ModelAssetMaterialTextureSources& sources) noexcept
 {
-    return source_index_valid(sources.albedo)
+    return sources.albedo_referenced
+        || source_index_valid(sources.albedo)
         || source_index_valid(sources.normal)
         || source_index_valid(sources.metallic_roughness)
         || source_index_valid(sources.occlusion)
@@ -396,6 +397,7 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
     nw::gfx::Fmt format,
     bool premultiply_alpha,
     nw::gfx::BindlessTextureIndex fallback,
+    nw::gfx::BindlessTextureIndex failed_source_fallback,
     const ModelAsset& asset,
     const ModelAssetTextureUploadDesc& desc,
     RenderModel& model,
@@ -414,25 +416,25 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
             return cached;
         }
         material_uses_fallback = true;
-        return fallback;
+        return failed_source_fallback;
     }
     attempted[source_index] = 1;
 
     if (!desc.ctx) {
         count_missing_context(stats);
         material_uses_fallback = true;
-        return fallback;
+        return failed_source_fallback;
     }
 
     auto decoded = decode_model_asset_texture_source_rgba8(asset.texture_sources[source_index], stats);
     if (!decoded.valid()) {
         material_uses_fallback = true;
-        return fallback;
+        return failed_source_fallback;
     }
     if (premultiply_alpha && !premultiply_rgba8_pixels(decoded.pixels)) {
         ++stats.decode_failure_count;
         material_uses_fallback = true;
-        return fallback;
+        return failed_source_fallback;
     }
 
     const auto texture_index = upload_decoded_texture(desc.ctx,
@@ -442,7 +444,7 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
         stats);
     if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
         material_uses_fallback = true;
-        return fallback;
+        return failed_source_fallback;
     }
 
     uploaded_indices[source_index] = texture_index;
@@ -1145,16 +1147,23 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             ? ModelAssetMaterialTextureSources{}
             : asset.material_texture_sources[i];
 
-        bool material_uses_fallback = false;
         auto& material = model.materials[i];
+        bool material_uses_fallback = material.material_uses_fallback;
         material.albedo_uses_plt = source_index_valid(sources.albedo)
             && model_asset_texture_source_is_plt(asset.texture_sources[sources.albedo]);
         const bool premultiply_albedo = material.alpha_mode == MaterialMode::transparent
             && !material.albedo_uses_plt;
+        const auto missing_albedo = nw::gfx::bindless_texture_index_valid(desc.missing_albedo)
+            ? desc.missing_albedo
+            : desc.fallback_albedo;
+        const auto albedo_fallback = sources.albedo_referenced
+            ? missing_albedo
+            : desc.fallback_albedo;
         material.albedo_index = upload_source_texture(sources.albedo,
             sources.albedo_srgb ? nw::gfx::Fmt::RGBA8Srgb : nw::gfx::Fmt::RGBA8,
             premultiply_albedo,
-            desc.fallback_albedo,
+            albedo_fallback,
+            missing_albedo,
             asset,
             desc,
             model,
@@ -1165,6 +1174,7 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
         material.normal_index = upload_source_texture(sources.normal,
             nw::gfx::Fmt::RGBA8,
             false,
+            desc.fallback_normal,
             desc.fallback_normal,
             asset,
             desc,
@@ -1178,6 +1188,7 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             nw::gfx::Fmt::RGBA8Srgb,
             false,
             desc.fallback_emissive,
+            desc.fallback_emissive,
             asset,
             desc,
             model,
@@ -1186,7 +1197,7 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             stats,
             material_uses_fallback);
 
-        material.material_uses_fallback = material.material_uses_fallback || material_uses_fallback;
+        material.material_uses_fallback = material_uses_fallback;
         if (material_uses_fallback && material_sources_reference_texture(sources)) {
             ++stats.fallback_material_count;
         }

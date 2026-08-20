@@ -4244,27 +4244,37 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicDoorEntries)
             if (arr.len(doortypes) == 0) { return -1; }
 
             var found_doortype = false;
+            var found_doortype_name = false;
             for (var i = 0; i < arr.len(doortypes); i += 1) {
                 var entry = arr.get(doortypes, i);
                 if (entry.id != i) { return -2; }
                 if (valid_model(entry.model)) {
                     found_doortype = true;
+                    if ((entry.name as int) >= 0) {
+                        found_doortype_name = true;
+                    }
                 }
             }
             if (!found_doortype) { return -3; }
+            if (!found_doortype_name) { return -7; }
 
             var genericdoors = load_config!(R.GenericDoorEntry)("nwn1.data.genericdoors");
             if (arr.len(genericdoors) == 0) { return -4; }
 
             var found_generic = false;
+            var found_generic_name = false;
             for (var i = 0; i < arr.len(genericdoors); i += 1) {
                 var entry = arr.get(genericdoors, i);
                 if (entry.id != i) { return -5; }
                 if (valid_model(entry.model)) {
                     found_generic = true;
+                    if ((entry.name as int) >= 0) {
+                        found_generic_name = true;
+                    }
                 }
             }
             if (!found_generic) { return -6; }
+            if (!found_generic_name) { return -8; }
 
             return 1;
         }

@@ -385,6 +385,7 @@ TEST(RenderModelAsset, MaterialTextureUploadUsesNeutralFallbacksForMissingTextur
         nw::render::ModelAssetTextureUploadDesc{
             .ctx = nullptr,
             .fallback_albedo = 11u,
+            .missing_albedo = 15u,
             .fallback_normal = 12u,
             .fallback_surface = 13u,
             .fallback_emissive = 14u,
@@ -401,6 +402,32 @@ TEST(RenderModelAsset, MaterialTextureUploadUsesNeutralFallbacksForMissingTextur
     EXPECT_EQ(model.materials[0].surface_index, 13u);
     EXPECT_EQ(model.materials[0].emissive_index, 14u);
     EXPECT_FALSE(model.materials[0].material_uses_fallback);
+}
+
+TEST(RenderModelAsset, MaterialTextureUploadUsesCheckerForMissingExplicitAlbedo)
+{
+    auto asset = make_minimal_valid_asset();
+    asset.materials[0].material_uses_fallback = true;
+    asset.material_texture_sources.push_back(nw::render::ModelAssetMaterialTextureSources{
+        .albedo_referenced = true,
+    });
+
+    nw::render::RenderModel model;
+    const auto stats = nw::render::upload_model_asset_material_textures(asset,
+        nw::render::ModelAssetTextureUploadDesc{
+            .ctx = nullptr,
+            .fallback_albedo = 11u,
+            .missing_albedo = 15u,
+        },
+        model);
+
+    EXPECT_TRUE(stats.passed());
+    EXPECT_EQ(stats.missing_context_count, 0u);
+    EXPECT_EQ(stats.fallback_material_count, 1u);
+    EXPECT_EQ(stats.uploaded_texture_count, 0u);
+    ASSERT_EQ(model.materials.size(), 1u);
+    EXPECT_EQ(model.materials[0].albedo_index, 15u);
+    EXPECT_TRUE(model.materials[0].material_uses_fallback);
 }
 
 TEST(RenderModelAsset, EmptyAllowsParticleOnlyAssets)
@@ -757,6 +784,7 @@ TEST(RenderModelAsset, MaterialTextureUploadFallsBackWhenContextMissing)
         nw::render::ModelAssetTextureUploadDesc{
             .ctx = nullptr,
             .fallback_albedo = 42u,
+            .missing_albedo = 43u,
         },
         model);
 
@@ -765,7 +793,7 @@ TEST(RenderModelAsset, MaterialTextureUploadFallsBackWhenContextMissing)
     EXPECT_EQ(stats.fallback_material_count, 1u);
     EXPECT_EQ(stats.uploaded_texture_count, 0u);
     ASSERT_EQ(model.materials.size(), 1u);
-    EXPECT_EQ(model.materials[0].albedo_index, 42u);
+    EXPECT_EQ(model.materials[0].albedo_index, 43u);
     EXPECT_TRUE(model.materials[0].material_uses_fallback);
 }
 

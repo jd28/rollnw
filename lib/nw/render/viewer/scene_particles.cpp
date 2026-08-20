@@ -40,6 +40,7 @@ public:
         , particle_mesh_texture_upload_{
               .ctx = service.model_render_context().gfx,
               .fallback_albedo = service.model_backend().fallback_albedo_index(),
+              .missing_albedo = service.model_backend().missing_albedo_index(),
               .fallback_normal = service.model_backend().fallback_normal_index(),
               .fallback_surface = service.model_backend().fallback_surface_index(),
               .fallback_emissive = service.model_backend().fallback_emissive_index(),
@@ -70,7 +71,7 @@ public:
 
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture() const override
     {
-        return service_.model_backend().fallback_texture();
+        return service_.model_backend().default_albedo_texture();
     }
 
     nw::render::RenderModel* get_particle_mesh(std::string_view resref)

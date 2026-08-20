@@ -1,3 +1,4 @@
+#include "object_edits.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_language_binding.hpp"
@@ -8,6 +9,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/serialization/Serialization.hpp>
@@ -20,6 +22,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -97,6 +100,15 @@ bool diagnostic_contains(const nw::toolset::RmlSmallsLanguageBinding& binding, s
     return std::any_of(diagnostics.begin(), diagnostics.end(), [needle](const auto& diagnostic) {
         return diagnostic.message.find(needle) != std::string::npos;
     });
+}
+
+std::string ascii_lower_copy(std::string_view value)
+{
+    std::string result{value};
+    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return result;
 }
 
 class RmlVirtualListAdapter final : public nw::toolset::VirtualListAdapter {
@@ -311,6 +323,105 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
 
     document->Close();
     Rml::RemoveContext("item-workbench-template-test");
+}
+
+TEST(ClientRmlTemplates, DoorWorkbenchExpandsSmallsFirstAppearanceStructure)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    const std::filesystem::path ui_resource_path = "tools/client/ui";
+    const std::string source = "<rml><head>"
+                               "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "panel.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "door_editor.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/template\" href=\""
+        + (ui_resource_path / "door_editor.rml").generic_string()
+        + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
+          "</head><body><template src=\"door-workbench\"></template>"
+          "<div id=\"object_variable_warning_tooltip\"></div></body></rml>";
+
+    auto* context = Rml::CreateContext(
+        "door-workbench-template-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        source, "door_workbench_template_test.rml");
+    ASSERT_NE(document, nullptr);
+
+    auto* details = document->GetElementById("door_surface_details");
+    auto* variables = document->GetElementById("door_surface_variables");
+    auto* appearance = document->GetElementById("door_surface_appearance");
+    auto* appearance_dynamic = document->GetElementById(
+        "door_appearance_dynamic");
+    ASSERT_NE(details, nullptr);
+    ASSERT_NE(variables, nullptr);
+    ASSERT_NE(appearance, nullptr);
+    ASSERT_NE(appearance_dynamic, nullptr);
+    EXPECT_TRUE(appearance_dynamic->IsClassSet("smalls_refresh"));
+    EXPECT_NE(document->GetElementById("property_tree_rows"), nullptr);
+    EXPECT_NE(document->GetElementById("object_variable_rows"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tab_track"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_previous"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_next"), nullptr);
+
+    details->SetClass("active", false);
+    appearance->SetClass("active", true);
+    appearance_dynamic->SetInnerRML(
+        "<div class='door_appearance_editor active'>"
+        "<div id='door-layout-actions' class='door_appearance_actions'>"
+        "<button class='door_appearance_cycle_button'>&#x2039;</button>"
+        "<button class='door_appearance_open'>Choose Appearance</button>"
+        "<button class='door_appearance_cycle_button'>&#x203a;</button>"
+        "</div></div>");
+    document->Show();
+    context->Update();
+    auto* actions = document->GetElementById("door-layout-actions");
+    ASSERT_NE(actions, nullptr);
+    EXPECT_GT(actions->GetOffsetWidth(), 0.0f);
+    EXPECT_NEAR(actions->GetAbsoluteLeft() + actions->GetOffsetWidth() * 0.5f,
+        appearance_dynamic->GetAbsoluteLeft()
+            + appearance_dynamic->GetOffsetWidth() * 0.5f,
+        0.5f);
+
+    appearance_dynamic->SetInnerRML(
+        "<div class='door_appearance_selector active'>"
+        "<div class='door_appearance_search_row'>"
+        "<input id='door-layout-search' class='door_appearance_search' type='text' />"
+        "</div>"
+        "<div id='door-layout-rows' class='door_appearance_rows'>"
+        "<div id='door-layout-row' class='managed_list_row'>"
+        "<span id='door-layout-name' class='managed_list_cell cell_0'>Wall Door</span>"
+        "</div></div></div>");
+    document->Show();
+    context->Update();
+    EXPECT_GT(appearance->GetOffsetWidth(), 0.0f);
+    auto* search = document->GetElementById("door-layout-search");
+    auto* layout_rows = document->GetElementById("door-layout-rows");
+    auto* layout_row = document->GetElementById("door-layout-row");
+    auto* name = document->GetElementById("door-layout-name");
+    ASSERT_NE(search, nullptr);
+    ASSERT_NE(layout_rows, nullptr);
+    ASSERT_NE(layout_row, nullptr);
+    ASSERT_NE(name, nullptr);
+    EXPECT_GT(search->GetOffsetWidth(), 0.0f);
+    EXPECT_EQ(search->GetOffsetHeight(), 28.0f);
+    ASSERT_NE(search->GetProperty("line-height"), nullptr);
+    EXPECT_EQ(search->GetProperty("line-height")->ToString(), "28px");
+    EXPECT_GT(layout_row->GetOffsetWidth(), 0.0f);
+    EXPECT_EQ(layout_row->GetOffsetHeight(), 34.0f);
+    EXPECT_FLOAT_EQ(name->GetOffsetWidth(), layout_row->GetOffsetWidth());
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("door-workbench-template-test");
 }
 
 TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
@@ -584,6 +695,12 @@ fn select_appearance(event: Event): array!(Command) {
     };
 }
 
+fn filter_value(event: Event): array!(Command) {
+    return {
+        { operation = command_set_text, element_id = "result", value = event.value, state = false }
+    };
+}
+
 fn runtime_failure() {
     assert(false);
 }
@@ -646,6 +763,7 @@ fn no_active_object(): array!(Command) {
   <script>
 from test.rml_direct_actions import {
     build_dynamic,
+    filter_value,
     no_active_object,
     refresh_dynamic,
     runtime_failure,
@@ -654,6 +772,7 @@ from test.rml_direct_actions import {
   </script>
 </head>
 <body id="binding-document">
+  <input id="filter" type="text" onchange="filter_value(event)" />
   <button id="select" onclick="select_appearance(event)">Select</button>
   <button id="no-object" onclick="no_active_object()">No object</button>
   <button id="missing" onclick="missing_handler()">Missing</button>
@@ -670,6 +789,13 @@ from test.rml_direct_actions import {
     document->Show();
     context->Update();
     ASSERT_FALSE(diagnostic_contains(binding, "error:"));
+
+    auto* filter = document->GetElementById("filter");
+    ASSERT_NE(filter, nullptr);
+    filter->Focus();
+    (void)context->ProcessTextInput(Rml::String{"dome"});
+    ASSERT_NE(document->GetElementById("result"), nullptr);
+    EXPECT_EQ(document->GetElementById("result")->GetInnerRML(), "dome");
 
     auto* select = document->GetElementById("select");
     ASSERT_NE(select, nullptr);
@@ -981,6 +1107,159 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProto
     ASSERT_TRUE(load_and_compile("toolset.ui"));
     ASSERT_TRUE(load_and_compile("toolset.rmlui"));
     ASSERT_TRUE(load_and_compile("toolset.item_editor"));
+    ASSERT_TRUE(load_and_compile("toolset.door_editor"));
+
+    const auto verify_options = [&](std::string_view function, int32_t minimum_row) {
+        const auto result = runtime.execute_script("nwn1.doors", function, {});
+        ASSERT_TRUE(result.ok()) << function;
+        ASSERT_EQ(result.value.storage, nw::smalls::ValueStorage::heap);
+        const auto count = runtime.array_size(result.value.data.hptr);
+        ASSERT_GT(count, 0u) << function;
+
+        for (uint32_t index = 0; index < count; ++index) {
+            nw::smalls::Value option;
+            ASSERT_TRUE(runtime.array_get(result.value.data.hptr, index, option));
+            ASSERT_EQ(option.storage, nw::smalls::ValueStorage::heap);
+            const auto row = runtime.read_struct_field(
+                option.data.hptr, option.type_id, "id");
+            ASSERT_EQ(row.type_id, runtime.int_type());
+            EXPECT_GE(row.data.ival, minimum_row);
+            const auto label = runtime.read_struct_field(
+                option.data.hptr, option.type_id, "label");
+            ASSERT_EQ(label.type_id, runtime.string_type());
+            EXPECT_FALSE(runtime.get_string_view(label.data.hptr).empty());
+            const auto model = runtime.read_struct_field(
+                option.data.hptr, option.type_id, "model");
+            ASSERT_EQ(model.type_id, runtime.string_type());
+            EXPECT_TRUE(nw::kernel::resman().contains(
+                {runtime.get_string_view(model.data.hptr), nw::ResourceType::mdl}));
+        }
+    };
+    verify_options("get_genericdoor_options", 0);
+
+    auto* door = nw::kernel::objects().load_file<nw::Door>(
+        "test_data/user/development/door_ttr_002.utd");
+    ASSERT_NE(door, nullptr);
+    nw::toolset::smalls_rmlui_host().publish_active_object(door->handle());
+
+    const auto selectors = nw::toolset::door_appearance(runtime, door->handle());
+    ASSERT_TRUE(selectors);
+    nw::Vector<nw::smalls::Value> resolve_args{
+        nw::smalls::Value::make_int(selectors->appearance),
+        nw::smalls::Value::make_int(selectors->generic_type),
+    };
+    const auto resolved = runtime.execute_script(
+        "nwn1.doors", "resolve_door_model_by_state", resolve_args);
+    ASSERT_TRUE(resolved.ok());
+    const auto label = runtime.read_struct_field(
+        resolved.value.data.hptr, resolved.value.type_id, "label");
+    ASSERT_EQ(label.type_id, runtime.string_type());
+    const std::string resolved_label{runtime.get_string_view(label.data.hptr)};
+    ASSERT_FALSE(resolved_label.empty());
+
+    const auto appearance_refresh = runtime.execute_script(
+        "toolset.door_editor", "door_appearance_refresh", {});
+    ASSERT_TRUE(appearance_refresh.ok());
+    ASSERT_EQ(runtime.array_size(appearance_refresh.value.data.hptr), 1u);
+    nw::smalls::Value appearance_command;
+    ASSERT_TRUE(runtime.array_get(
+        appearance_refresh.value.data.hptr, 0u, appearance_command));
+    const auto appearance_markup = runtime.read_struct_field(
+        appearance_command.data.hptr, appearance_command.type_id, "value");
+    ASSERT_EQ(appearance_markup.type_id, runtime.string_type());
+    const auto appearance_markup_text = runtime.get_string_view(
+        appearance_markup.data.hptr);
+    EXPECT_NE(appearance_markup_text.find("door_appearance_label'>Name"),
+        std::string_view::npos);
+    EXPECT_EQ(appearance_markup_text.find("door_appearance_label'>Row"),
+        std::string_view::npos);
+    EXPECT_NE(appearance_markup_text.find(resolved_label), std::string_view::npos);
+    EXPECT_NE(appearance_markup_text.find("door_appearance_previous"),
+        std::string_view::npos);
+    EXPECT_NE(appearance_markup_text.find("door_appearance_next"),
+        std::string_view::npos);
+
+    const auto open_selector = runtime.execute_script(
+        "toolset.door_editor", "open_door_appearance_selector", {});
+    ASSERT_TRUE(open_selector.ok());
+    ASSERT_GT(runtime.array_size(open_selector.value.data.hptr), 0u);
+    nw::smalls::Value selector_command;
+    ASSERT_TRUE(runtime.array_get(
+        open_selector.value.data.hptr, 0u, selector_command));
+    const auto selector_markup = runtime.read_struct_field(
+        selector_command.data.hptr, selector_command.type_id, "value");
+    ASSERT_EQ(selector_markup.type_id, runtime.string_type());
+    const auto selector_markup_text = runtime.get_string_view(
+        selector_markup.data.hptr);
+    EXPECT_NE(selector_markup_text.find("id='door_appearance_search'"),
+        std::string_view::npos);
+    EXPECT_NE(selector_markup_text.find(
+                  "onchange='filter_door_appearances(event)'"),
+        std::string_view::npos);
+    EXPECT_EQ(selector_markup_text.find("Door Types"), std::string_view::npos);
+    const auto genericdoors = nw::toolset::ui_v1_host().window(
+        "door.appearance.genericdoors", 300, 0);
+    ASSERT_TRUE(genericdoors);
+    EXPECT_TRUE(genericdoors->visible);
+    ASSERT_FALSE(genericdoors->items.empty());
+    EXPECT_EQ(genericdoors->columns, 1);
+    EXPECT_EQ(genericdoors->items.front().cell_count, 1);
+    ASSERT_FALSE(genericdoors->items.front().cells[0].empty());
+    std::vector<std::string> genericdoor_labels;
+    genericdoor_labels.reserve(genericdoors->items.size());
+    for (const auto& item : genericdoors->items) {
+        genericdoor_labels.push_back(ascii_lower_copy(item.cells[0]));
+    }
+    EXPECT_TRUE(std::ranges::is_sorted(genericdoor_labels));
+
+    const auto unfiltered_genericdoor_count = genericdoors->items.size();
+    const std::string first_genericdoor_label =
+        genericdoors->items.front().cells[0];
+    const auto event_type = runtime.type_id("core.rmlui.Event", false);
+    ASSERT_NE(event_type, nw::smalls::invalid_type_id);
+    nw::smalls::Runtime::ScopedRoots roots{runtime, 3};
+    const auto event_ptr = runtime.alloc_struct(event_type);
+    ASSERT_NE(event_ptr.value, 0u);
+    const auto event = nw::smalls::Value::make_heap(event_ptr, event_type);
+    roots.add(event);
+    const std::string filter_text = " " + first_genericdoor_label + " ";
+    const auto query = nw::smalls::Value::make_string(
+        runtime.alloc_string(filter_text));
+    roots.add(query);
+    ASSERT_TRUE(runtime.write_struct_field(
+        event_ptr, event_type, "value", query));
+    const auto filter_genericdoors = runtime.execute_script(
+        "toolset.door_editor", "filter_door_appearances", {event});
+    ASSERT_TRUE(filter_genericdoors.ok());
+    const auto filtered_genericdoors = nw::toolset::ui_v1_host().window(
+        "door.appearance.genericdoors", 300, 0);
+    ASSERT_TRUE(filtered_genericdoors);
+    ASSERT_FALSE(filtered_genericdoors->items.empty());
+    EXPECT_LT(filtered_genericdoors->items.size(), unfiltered_genericdoor_count);
+    const auto expected_label = ascii_lower_copy(first_genericdoor_label);
+    for (const auto& item : filtered_genericdoors->items) {
+        EXPECT_EQ(ascii_lower_copy(item.cells[0]), expected_label);
+    }
+
+    const auto empty_query = nw::smalls::Value::make_string(
+        runtime.alloc_string(""));
+    roots.add(empty_query);
+    ASSERT_TRUE(runtime.write_struct_field(
+        event_ptr, event_type, "value", empty_query));
+    const auto clear_genericdoor_filter = runtime.execute_script(
+        "toolset.door_editor", "filter_door_appearances", {event});
+    ASSERT_TRUE(clear_genericdoor_filter.ok());
+
+    const auto restored_genericdoors = nw::toolset::ui_v1_host().window(
+        "door.appearance.genericdoors", 300, 0);
+    ASSERT_TRUE(restored_genericdoors);
+    const std::string genericdoor_markup = nw::toolset::render_managed_list_window(
+        "door.appearance.genericdoors", *restored_genericdoors, "No appearances.");
+    EXPECT_NE(genericdoor_markup.find("managed_list_row"), std::string::npos);
+    EXPECT_EQ(genericdoor_markup.find("managed_list_grid_row"), std::string::npos);
+
+    nw::toolset::smalls_rmlui_host().clear_active_object();
+    nw::kernel::objects().destroy(door->handle());
 }
 
 TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObject)

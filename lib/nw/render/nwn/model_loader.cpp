@@ -36,6 +36,8 @@ using Vertex = nw::render::Vertex;
 
 namespace {
 
+std::string ascii_lower(std::string_view value);
+
 constexpr float kNwnFoliageMotionScale = 0.1f;
 constexpr float kNwnDefaultRoughness = 0.78f;
 constexpr float kNwnDefaultSpecularStrength = 0.12f;
@@ -65,6 +67,8 @@ struct NwnMeshImportData {
     bool material_uses_fallback = false;
     bool two_sided_lighting = false;
 };
+
+using NwnMeshOpacityOverrides = std::vector<std::optional<float>>;
 
 float inherited_animation_translation_scale(const nwm::Mdl& mdl)
 {
@@ -174,6 +178,53 @@ float mesh_alpha_value(const nwm::TrimeshNode* node)
         return value.data[0];
     }
     return 1.0f;
+}
+
+const nwm::Animation* door_static_animation(const nwm::Model& model)
+{
+    if (model.classification != nwm::ModelClass::door) {
+        return nullptr;
+    }
+
+    if (const auto* closed = model.find_animation("closed")) {
+        return closed;
+    }
+    return model.find_animation("default");
+}
+
+NwnMeshOpacityOverrides door_static_mesh_opacity_overrides(const nwm::Model& model)
+{
+    const auto* animation = door_static_animation(model);
+    if (!animation) {
+        return {};
+    }
+
+    std::unordered_map<std::string, size_t> node_indices;
+    node_indices.reserve(model.nodes.size());
+    for (size_t i = 0; i < model.nodes.size(); ++i) {
+        if (model.nodes[i] && !model.nodes[i]->name.empty()) {
+            node_indices.emplace(ascii_lower(model.nodes[i]->name), i);
+        }
+    }
+
+    NwnMeshOpacityOverrides result(model.nodes.size());
+    for (const auto& node : animation->nodes) {
+        if (!node) {
+            continue;
+        }
+
+        const auto alpha = node->get_controller(nwm::ControllerType::Alpha);
+        if (!alpha.key || alpha.data.empty() || !std::isfinite(alpha.data.front())) {
+            continue;
+        }
+
+        const auto found = node_indices.find(ascii_lower(node->name));
+        if (found == node_indices.end()) {
+            continue;
+        }
+        result[found->second] = std::clamp(alpha.data.front(), 0.0f, 1.0f);
+    }
+    return result;
 }
 
 glm::vec3 mesh_self_illum_value(const nwm::TrimeshNode* node)
@@ -1036,6 +1087,12 @@ bool material_uses_fallback_resources(const NwnMeshImportData& mesh)
         || explicit_texture_reference_missing(mesh.emissive_map_name, false);
 }
 
+bool missing_transparent_albedo_requires_drop(const NwnMeshImportData& mesh)
+{
+    return mesh.material_mode == MaterialMode::transparent
+        && explicit_texture_reference_missing(mesh.bitmap_name, true);
+}
+
 TxiMaterialInfo load_txi_material_info(std::string_view bitmap_name)
 {
     TxiMaterialInfo result;
@@ -1435,7 +1492,8 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         return MaterialMode::cutout;
     case NwnMaterialAlphaProfile::mostly_binary:
         if (input.model_class == nwm::ModelClass::tile
-            || input.model_class == nwm::ModelClass::character) {
+            || input.model_class == nwm::ModelClass::character
+            || input.model_class == nwm::ModelClass::door) {
             return MaterialMode::cutout;
         }
         [[fallthrough]];
@@ -1443,11 +1501,11 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
         switch (input.model_class) {
         case nwm::ModelClass::effect:
         case nwm::ModelClass::gui:
+        case nwm::ModelClass::door:
             return MaterialMode::transparent;
         case nwm::ModelClass::tile:
         case nwm::ModelClass::invalid:
         case nwm::ModelClass::character:
-        case nwm::ModelClass::door:
         case nwm::ModelClass::item:
         default:
             return MaterialMode::opaque;
@@ -1459,7 +1517,8 @@ MaterialMode classify_nwn_material_impl(const NwnMaterialClassificationInput& in
 }
 
 void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* node, nwm::ModelClass model_class,
-    std::string_view model_resref, NwnModelAssetImportStats* stats = nullptr)
+    std::string_view model_resref, std::optional<float> opacity_override = std::nullopt,
+    NwnModelAssetImportStats* stats = nullptr)
 {
     if (!node) {
         return;
@@ -1472,7 +1531,7 @@ void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* n
     mesh.renderhint = std::string(node->renderhint);
     mesh.materialname = std::string(node->materialname);
     mesh.transparencyhint = node->transparencyhint;
-    mesh.opacity = mesh_alpha_value(node);
+    mesh.opacity = opacity_override.value_or(mesh_alpha_value(node));
     mesh.alpha_cutout_threshold = 0.5f;
 
     const auto mtr = load_mtr_material_info(node);
@@ -1585,6 +1644,9 @@ void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* n
             .txi_has_alphamean = txi.has_alphamean,
             .txi_alphamean = txi.alphamean,
         });
+    }
+    if (!water_material && mesh.opacity < 0.999f) {
+        mesh.material_mode = MaterialMode::transparent;
     }
     if (!water_material
         && foliage_dangly
@@ -2291,6 +2353,7 @@ nw::render::ModelAssetMaterialTextureSources append_nwn_model_asset_material_tex
     NwnModelAssetImportStats& stats)
 {
     nw::render::ModelAssetMaterialTextureSources sources{};
+    sources.albedo_referenced = !clean_mtr_resource_name(mesh.bitmap_name).empty();
     sources.albedo = append_nwn_model_asset_texture_source(
         mesh.bitmap_name, texture_source_indices, asset, stats, mesh.albedo_prefers_plt);
     sources.normal = append_nwn_model_asset_texture_source(mesh.normal_map_name, texture_source_indices, asset, stats);
@@ -2581,6 +2644,10 @@ bool append_nwn_model_asset_primitive(const nwm::TrimeshNode* source,
         ++stats.skipped_empty_mesh_count;
         return false;
     }
+    if (missing_transparent_albedo_requires_drop(mesh)) {
+        ++stats.missing_texture_source_count;
+        return false;
+    }
     if (source_node_index > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
         ++stats.primitive_overflow_count;
         return false;
@@ -2624,6 +2691,10 @@ bool append_nwn_model_asset_skin_primitive(const nwm::SkinNode* source,
         ++stats.skipped_empty_mesh_count;
         return false;
     }
+    if (missing_transparent_albedo_requires_drop(mesh)) {
+        ++stats.missing_texture_source_count;
+        return false;
+    }
     if (source_node_index > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
         ++stats.primitive_overflow_count;
         return false;
@@ -2665,6 +2736,7 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
 {
     std::unordered_map<std::string, uint32_t> texture_source_indices;
     texture_source_indices.reserve(model.nodes.size());
+    const auto opacity_overrides = door_static_mesh_opacity_overrides(model);
 
     for (size_t i = 0; i < model.nodes.size(); ++i) {
         const auto* source_node = model.nodes[i].get();
@@ -2676,7 +2748,8 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
             const auto* skin = static_cast<const nwm::SkinNode*>(source_node);
             if (should_create_mesh_node(skin, model.classification)) {
                 NwnMeshImportData mesh;
-                initialize_mesh_material(mesh, skin, model.classification, model.name, &stats);
+                initialize_mesh_material(mesh, skin, model.classification, model.name,
+                    opacity_overrides.empty() ? std::nullopt : opacity_overrides[i], &stats);
                 if (!append_nwn_model_asset_skin_primitive(
                         skin, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats)) {
                     ++stats.skipped_skin_mesh_count;
@@ -2701,14 +2774,16 @@ void append_nwn_model_asset_meshes(const nwm::Model& model, nw::render::ModelAss
             const auto* dangly_node = static_cast<const nwm::DanglymeshNode*>(source_node);
             NwnMeshImportData mesh;
             initialize_dangly_import_data(mesh, dangly_node, stats);
-            initialize_mesh_material(mesh, dangly_node, model.classification, model.name, &stats);
+            initialize_mesh_material(mesh, dangly_node, model.classification, model.name,
+                opacity_overrides.empty() ? std::nullopt : opacity_overrides[i], &stats);
             append_nwn_model_asset_primitive(
                 dangly_node, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
             continue;
         }
 
         NwnMeshImportData mesh;
-        initialize_mesh_material(mesh, trimesh, model.classification, model.name, &stats);
+        initialize_mesh_material(mesh, trimesh, model.classification, model.name,
+            opacity_overrides.empty() ? std::nullopt : opacity_overrides[i], &stats);
         append_nwn_model_asset_primitive(
             trimesh, mesh, static_cast<uint32_t>(i), texture_source_indices, asset, stats);
     }

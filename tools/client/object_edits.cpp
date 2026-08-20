@@ -403,7 +403,13 @@ bool valid_live_object(ObjectHandle object)
 
 bool editable_area_object(ObjectHandle object) noexcept
 {
-    return object.type == ObjectType::creature || object.type == ObjectType::placeable;
+    return object.type == ObjectType::creature
+        || object.type == ObjectType::placeable;
+}
+
+bool editable_appearance_object(ObjectHandle object) noexcept
+{
+    return editable_area_object(object) || object.type == ObjectType::door;
 }
 
 template <typename T>
@@ -1750,6 +1756,8 @@ const char* appearance_module(ObjectType type) noexcept
     switch (type) {
     case ObjectType::creature:
         return "nwn1.creature";
+    case ObjectType::door:
+        return "nwn1.doors";
     case ObjectType::placeable:
         return "nwn1.placeables";
     default:
@@ -1757,14 +1765,19 @@ const char* appearance_module(ObjectType type) noexcept
     }
 }
 
-bool appearance_exists(smalls::Runtime& runtime, ObjectType type, int32_t appearance)
+bool appearance_exists(smalls::Runtime& runtime,
+    ObjectType type,
+    const ObjectAppearanceSelectors& selectors)
 {
     const char* module = appearance_module(type);
     if (!module) {
         return false;
     }
-    const auto result = runtime.execute_script(
-        module, "appearance_exists", {smalls::Value::make_int(appearance)});
+    auto args = type == ObjectType::door
+        ? Vector<smalls::Value>{smalls::Value::make_int(selectors.appearance),
+              smalls::Value::make_int(selectors.generic_type)}
+        : Vector<smalls::Value>{smalls::Value::make_int(selectors.appearance)};
+    const auto result = runtime.execute_script(module, "appearance_exists", args);
     return result.ok() && result.value.type_id == runtime.bool_type() && result.value.data.bval;
 }
 
@@ -1772,7 +1785,7 @@ const char* appearance_propset_module(ObjectType type) noexcept
 {
     switch (type) {
     case ObjectType::creature:
-        return "nwn1.propsets";
+    case ObjectType::door:
     case ObjectType::placeable:
         return "nwn1.propsets";
     default:
@@ -1785,6 +1798,8 @@ const char* appearance_propset_name(ObjectType type) noexcept
     switch (type) {
     case ObjectType::creature:
         return "nwn1.propsets.CreatureAppearance";
+    case ObjectType::door:
+        return "nwn1.propsets.DoorState";
     case ObjectType::placeable:
         return "nwn1.propsets.PlaceableState";
     default:
@@ -1842,7 +1857,9 @@ bool write_propset_int_element(
             propset, patch.key, patch.element_index, replacement);
 }
 
-bool write_appearance(smalls::Runtime& runtime, ObjectHandle target, int32_t replacement)
+bool write_appearance(smalls::Runtime& runtime,
+    ObjectHandle target,
+    const ObjectAppearanceSelectors& replacement)
 {
     const char* module = appearance_module(target.type);
     if (!module) {
@@ -1851,8 +1868,13 @@ bool write_appearance(smalls::Runtime& runtime, ObjectHandle target, int32_t rep
 
     smalls::Value object = smalls::Value::make_object(target);
     object.type_id = runtime.object_subtype_for_tag(target.type);
-    const auto result = runtime.execute_script(
-        module, "set_appearance", {object, smalls::Value::make_int(replacement)});
+    auto args = target.type == ObjectType::door
+        ? Vector<smalls::Value>{object,
+              smalls::Value::make_int(replacement.appearance),
+              smalls::Value::make_int(replacement.generic_type)}
+        : Vector<smalls::Value>{object,
+              smalls::Value::make_int(replacement.appearance)};
+    const auto result = runtime.execute_script(module, "set_appearance", args);
     return result.ok() && result.value.type_id == runtime.bool_type() && result.value.data.bval;
 }
 
@@ -1880,10 +1902,13 @@ bool rebuild_object_visual(smalls::Runtime& runtime, ObjectHandle target)
 bool write_appearance_state(
     smalls::Runtime& runtime, const ObjectAppearanceEdit& edit, ObjectEditDirection direction)
 {
+    const auto is_selector_field = [&](uint32_t key) {
+        return key == edit.appearance_field || key == edit.generic_type_field;
+    };
     size_t processed = 0;
     for (; processed < edit.int_fields.size(); ++processed) {
         const auto& patch = edit.int_fields[processed];
-        if (patch.key == edit.appearance_field) {
+        if (is_selector_field(patch.key)) {
             continue;
         }
         if (!write_propset_int(runtime, patch, patch_values(patch, direction).replacement)) {
@@ -1892,10 +1917,10 @@ bool write_appearance_state(
     }
 
     if (processed == edit.int_fields.size()) {
-        const int32_t appearance = direction == ObjectEditDirection::forward
-            ? edit.after_appearance
-            : edit.before_appearance;
-        if (write_appearance(runtime, edit.object, appearance)) {
+        const auto& selectors = direction == ObjectEditDirection::forward
+            ? edit.after
+            : edit.before;
+        if (write_appearance(runtime, edit.object, selectors)) {
             return true;
         }
     }
@@ -1903,7 +1928,7 @@ bool write_appearance_state(
     while (processed > 0) {
         --processed;
         const auto& patch = edit.int_fields[processed];
-        if (patch.key != edit.appearance_field) {
+        if (!is_selector_field(patch.key)) {
             write_propset_int(runtime, patch, patch_values(patch, direction).expected);
         }
     }
@@ -3678,11 +3703,16 @@ CommandResult commit_creature_spell_edits(
     return result;
 }
 
-std::optional<ObjectAppearanceEdit> make_object_appearance_edit(
-    smalls::Runtime& runtime, ObjectHandle object, int32_t appearance)
+namespace {
+
+std::optional<ObjectAppearanceEdit> make_object_appearance_edit_impl(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    ObjectAppearanceSelectors selectors)
 {
-    if (!editable_area_object(object) || !valid_live_object(object) || appearance < 0
-        || !appearance_exists(runtime, object.type, appearance)) {
+    if (!editable_appearance_object(object) || !valid_live_object(object)
+        || selectors.appearance < 0 || selectors.generic_type < 0
+        || !appearance_exists(runtime, object.type, selectors)) {
         return std::nullopt;
     }
 
@@ -3695,14 +3725,25 @@ std::optional<ObjectAppearanceEdit> make_object_appearance_edit(
     const auto propset_type = runtime.type_id(propset_name, false);
     const auto* definition = runtime.get_struct_def(propset_type);
     const uint32_t appearance_field = definition ? definition->field_index("appearance") : UINT32_MAX;
+    const uint32_t generic_type_field = definition && object.type == ObjectType::door
+        ? definition->field_index("generic_type")
+        : UINT32_MAX;
     auto fields = capture_propset_int_fields(runtime, object, propset_type);
-    if (!definition || appearance_field == UINT32_MAX || !fields) {
+    if (!definition || appearance_field == UINT32_MAX
+        || (object.type == ObjectType::door && generic_type_field == UINT32_MAX)
+        || !fields) {
         return std::nullopt;
     }
-    const auto current = std::find_if(fields->begin(), fields->end(), [appearance_field](const auto& patch) {
+    const auto appearance = std::find_if(fields->begin(), fields->end(), [appearance_field](const auto& patch) {
         return patch.key == appearance_field;
     });
-    if (current == fields->end() || current->before == appearance) {
+    const auto generic_type = generic_type_field == UINT32_MAX
+        ? fields->end()
+        : std::find_if(fields->begin(), fields->end(), [generic_type_field](const auto& patch) {
+              return patch.key == generic_type_field;
+          });
+    if (appearance == fields->end()
+        || (generic_type_field != UINT32_MAX && generic_type == fields->end())) {
         return std::nullopt;
     }
 
@@ -3710,29 +3751,65 @@ std::optional<ObjectAppearanceEdit> make_object_appearance_edit(
     result.object = object;
     result.propset_type = propset_type;
     result.appearance_field = appearance_field;
-    result.before_appearance = current->before;
-    result.after_appearance = appearance;
+    result.generic_type_field = generic_type_field;
+    result.before.appearance = appearance->before;
+    result.before.generic_type = generic_type_field == UINT32_MAX ? 0 : generic_type->before;
+    result.after = selectors;
+    if (result.before == result.after) {
+        return std::nullopt;
+    }
     result.int_fields = std::move(*fields);
     return result;
+}
+
+} // namespace
+
+std::optional<ObjectAppearanceEdit> make_object_appearance_edit(
+    smalls::Runtime& runtime, ObjectHandle object, int32_t appearance)
+{
+    if (object.type == ObjectType::door) {
+        return std::nullopt;
+    }
+    return make_object_appearance_edit_impl(runtime, object, {appearance, 0});
+}
+
+std::optional<ObjectAppearanceEdit> make_door_appearance_edit(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    int32_t appearance,
+    int32_t generic_type)
+{
+    if (object.type != ObjectType::door) {
+        return std::nullopt;
+    }
+    return make_object_appearance_edit_impl(
+        runtime, object, {appearance, generic_type});
 }
 
 ObjectEditApplyResult apply_object_appearance_edit(
     smalls::Runtime& runtime, ObjectAppearanceEdit& edit, ObjectEditDirection direction)
 {
-    if (!editable_area_object(edit.object) || !valid_live_object(edit.object)
+    const bool door = edit.object.type == ObjectType::door;
+    const auto is_selector_field = [&](uint32_t key) {
+        return key == edit.appearance_field || key == edit.generic_type_field;
+    };
+    if (!editable_appearance_object(edit.object) || !valid_live_object(edit.object)
         || edit.propset_type == smalls::invalid_type_id
         || edit.appearance_field == UINT32_MAX || edit.int_fields.empty()
-        || edit.before_appearance < 0 || edit.after_appearance < 0
-        || edit.before_appearance == edit.after_appearance
+        || (door != (edit.generic_type_field != UINT32_MAX))
+        || edit.before.appearance < 0 || edit.before.generic_type < 0
+        || edit.after.appearance < 0 || edit.after.generic_type < 0
+        || edit.before == edit.after
         || (direction == ObjectEditDirection::inverse && !edit.after_captured)
-        || !appearance_exists(runtime, edit.object.type, edit.before_appearance)
-        || !appearance_exists(runtime, edit.object.type, edit.after_appearance)) {
+        || !appearance_exists(runtime, edit.object.type, edit.before)
+        || !appearance_exists(runtime, edit.object.type, edit.after)) {
         return edit_result(ObjectEditStatus::invalid_batch, "Object appearance edit is invalid");
     }
 
     const auto* definition = runtime.get_struct_def(edit.propset_type);
     const auto propset = runtime.find_propset_ref(edit.propset_type, edit.object);
     bool has_appearance = false;
+    bool has_generic_type = !door;
     uint32_t previous_key = 0;
     for (size_t i = 0; i < edit.int_fields.size(); ++i) {
         const auto& patch = edit.int_fields[i];
@@ -3758,15 +3835,16 @@ ObjectEditApplyResult apply_object_appearance_edit(
                 "Object appearance state changed before the edit was applied");
         }
         has_appearance = has_appearance || patch.key == edit.appearance_field;
+        has_generic_type = has_generic_type || patch.key == edit.generic_type_field;
         previous_key = patch.key;
     }
-    if (!has_appearance) {
+    if (!has_appearance || !has_generic_type) {
         return edit_result(ObjectEditStatus::invalid_batch,
-            "Object appearance field snapshot is missing appearance");
+            "Object appearance field snapshot is missing a selector");
     }
 
     if (direction == ObjectEditDirection::forward && !edit.after_captured) {
-        if (!write_appearance(runtime, edit.object, edit.after_appearance)) {
+        if (!write_appearance(runtime, edit.object, edit.after)) {
             return edit_result(ObjectEditStatus::failed, "Object appearance write failed");
         }
 
@@ -3783,29 +3861,37 @@ ObjectEditApplyResult apply_object_appearance_edit(
         }
         if (!capture_valid) {
             for (const auto& patch : edit.int_fields) {
-                if (patch.key != edit.appearance_field) {
+                if (!is_selector_field(patch.key)) {
                     write_propset_int(runtime, patch, patch.before);
                 }
             }
-            write_appearance(runtime, edit.object, edit.before_appearance);
+            write_appearance(runtime, edit.object, edit.before);
             return edit_result(ObjectEditStatus::failed,
                 "Object appearance state could not be captured; the edit was rolled back");
         }
 
-        std::erase_if(edit.int_fields, [](const auto& patch) {
-            return patch.before == patch.after;
+        std::erase_if(edit.int_fields, [&](const auto& patch) {
+            return !is_selector_field(patch.key) && patch.before == patch.after;
         });
         const auto appearance = std::find_if(
             edit.int_fields.begin(), edit.int_fields.end(), [&](const auto& patch) {
                 return patch.key == edit.appearance_field;
             });
-        if (appearance == edit.int_fields.end() || appearance->after != edit.after_appearance) {
+        const auto generic_type = edit.generic_type_field == UINT32_MAX
+            ? edit.int_fields.end()
+            : std::find_if(edit.int_fields.begin(), edit.int_fields.end(), [&](const auto& patch) {
+                  return patch.key == edit.generic_type_field;
+              });
+        const bool selectors_match = appearance != edit.int_fields.end()
+            && appearance->after == edit.after.appearance
+            && (!door || (generic_type != edit.int_fields.end() && generic_type->after == edit.after.generic_type));
+        if (!selectors_match) {
             for (const auto& patch : edit.int_fields) {
-                if (patch.key != edit.appearance_field) {
+                if (!is_selector_field(patch.key)) {
                     write_propset_int(runtime, patch, patch.before);
                 }
             }
-            write_appearance(runtime, edit.object, edit.before_appearance);
+            write_appearance(runtime, edit.object, edit.before);
             return edit_result(ObjectEditStatus::failed,
                 "Smalls appearance mutation did not produce the requested appearance; the edit was rolled back");
         }
@@ -4291,6 +4377,39 @@ std::optional<int32_t> object_appearance(smalls::Runtime& runtime, ObjectHandle 
         return std::nullopt;
     }
     return value.data.ival;
+}
+
+std::optional<ObjectAppearanceSelectors> door_appearance(
+    smalls::Runtime& runtime, ObjectHandle object)
+{
+    if (object.type != ObjectType::door
+        || !runtime.load_module("nwn1.propsets")) {
+        return std::nullopt;
+    }
+
+    const auto propset_type = runtime.type_id("nwn1.propsets.DoorState", false);
+    const auto* definition = runtime.get_struct_def(propset_type);
+    const uint32_t appearance_field = definition
+        ? definition->field_index("appearance")
+        : UINT32_MAX;
+    const uint32_t generic_type_field = definition
+        ? definition->field_index("generic_type")
+        : UINT32_MAX;
+    if (!definition || appearance_field == UINT32_MAX
+        || generic_type_field == UINT32_MAX) {
+        return std::nullopt;
+    }
+
+    const auto propset = runtime.find_propset_ref(propset_type, object);
+    const auto appearance = runtime.read_struct_value_field(
+        propset, definition, appearance_field);
+    const auto generic_type = runtime.read_struct_value_field(
+        propset, definition, generic_type_field);
+    if (appearance.type_id != runtime.int_type()
+        || generic_type.type_id != runtime.int_type()) {
+        return std::nullopt;
+    }
+    return ObjectAppearanceSelectors{appearance.data.ival, generic_type.data.ival};
 }
 
 std::vector<int32_t> editable_creature_body_parts(

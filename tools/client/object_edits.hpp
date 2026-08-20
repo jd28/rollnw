@@ -84,14 +84,23 @@ struct ObjectTransformEdit {
     ObjectTransformState after;
 };
 
-// Smalls owns appearance side effects. The transaction records reflected int
-// fields changed by the call, without encoding a propset layout in C++.
+struct ObjectAppearanceSelectors {
+    int32_t appearance = 0;
+    int32_t generic_type = 0;
+
+    bool operator==(const ObjectAppearanceSelectors&) const = default;
+};
+
+// Smalls owns appearance policy and side effects. Door uses the complete
+// tagged selector pair; Creature and Placeable leave generic_type_field unset.
+// The transaction records every reflected int field changed by the call.
 struct ObjectAppearanceEdit {
     ObjectHandle object{};
     smalls::TypeID propset_type{};
     uint32_t appearance_field = UINT32_MAX;
-    int32_t before_appearance = 0;
-    int32_t after_appearance = 0;
+    uint32_t generic_type_field = UINT32_MAX;
+    ObjectAppearanceSelectors before;
+    ObjectAppearanceSelectors after;
     std::vector<ObjectEditPatch> int_fields;
     bool after_captured = false;
 };
@@ -358,6 +367,12 @@ struct AreaObjectBlueprintLoadResult {
 [[nodiscard]] std::optional<ObjectAppearanceEdit> make_object_appearance_edit(
     smalls::Runtime& runtime, ObjectHandle object, int32_t appearance);
 
+[[nodiscard]] std::optional<ObjectAppearanceEdit> make_door_appearance_edit(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    int32_t appearance,
+    int32_t generic_type);
+
 [[nodiscard]] ObjectEditApplyResult apply_object_appearance_edit(
     smalls::Runtime& runtime, ObjectAppearanceEdit& edit, ObjectEditDirection direction);
 
@@ -470,6 +485,9 @@ struct AreaObjectBlueprintLoadResult {
     CommandContext& context);
 
 [[nodiscard]] std::optional<int32_t> object_appearance(
+    smalls::Runtime& runtime, ObjectHandle object);
+
+[[nodiscard]] std::optional<ObjectAppearanceSelectors> door_appearance(
     smalls::Runtime& runtime, ObjectHandle object);
 
 // Returns the complete fixed body-part row only when Smalls considers the

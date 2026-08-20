@@ -2390,7 +2390,8 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(PreviewRenderRes
     const std::filesystem::path& path,
     std::string_view preview_type,
     std::string_view lookup_context,
-    std::string_view model_resref)
+    std::string_view model_resref,
+    bool include_authored_lights)
 {
     const auto path_text = path.string();
     ERRARE("[viewer] loading {} preview '{}' {}",
@@ -2423,7 +2424,9 @@ static std::unique_ptr<PreviewScene> load_blueprint_model_scene(PreviewRenderRes
         log_preview_error_context();
         return {};
     }
-    append_scene_authored_model_lights(*scene);
+    if (include_authored_lights) {
+        append_scene_authored_model_lights(*scene);
+    }
     scene->rebuild_load_report(path_text, preview_type);
     return scene;
 }
@@ -2760,20 +2763,49 @@ static std::unique_ptr<PreviewScene> load_area_item_scene(
     return scene;
 }
 
+static std::unique_ptr<PreviewScene> load_live_door_scene(
+    PreviewRenderResources& resources,
+    nw::Door& door,
+    const std::filesystem::path& source,
+    bool include_authored_lights)
+{
+    if (!door.instantiate()) {
+        LOG_F(ERROR, "Door preview '{}' failed to instantiate", source.string());
+        log_preview_error_context();
+        return {};
+    }
+
+    auto model_ref = resolve_door_model_for_object(door);
+    if (!model_ref.valid) {
+        LOG_F(ERROR, "Door preview '{}': {}", source.string(), model_ref.error);
+        log_preview_error_context();
+        return {};
+    }
+
+    return load_blueprint_model_scene(resources, source, "Door",
+        door_model_lookup_context(model_ref), model_ref.model.view(),
+        include_authored_lights);
+}
+
 static std::unique_ptr<PreviewScene> load_door_scene(PreviewRenderResources& resources, const std::filesystem::path& path)
 {
     const auto path_text = path.string();
     ERRARE("[viewer] loading door preview '{}'", std::string_view{path_text});
 
-    auto model_ref = resolve_door_model_from_file(path);
-    if (!model_ref.valid) {
-        LOG_F(ERROR, "Door preview '{}': {}", path.string(), model_ref.error);
+    auto door = load_managed_preview_object<nw::Door>(path, load_door_from_file);
+    if (!door) {
+        LOG_F(ERROR, "Door preview '{}' failed to load a live Door", path.string());
         log_preview_error_context();
         return {};
     }
-
-    return load_blueprint_model_scene(resources, path, "Door",
-        door_model_lookup_context(model_ref), model_ref.model.view());
+    auto scene = load_live_door_scene(resources, *door, path, true);
+    if (!scene) {
+        return {};
+    }
+    scene->root_object = door->handle();
+    scene->active_object = scene->root_object;
+    door.release();
+    return scene;
 }
 
 static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources& resources, const std::filesystem::path& path)
@@ -2797,7 +2829,8 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
     }
 
     const auto lookup_context = fmt::format("visual appearance {}", visual.visual.appearance);
-    auto scene = load_blueprint_model_scene(resources, path, "Placeable", lookup_context, model->model.view());
+    auto scene = load_blueprint_model_scene(
+        resources, path, "Placeable", lookup_context, model->model.view(), true);
     if (scene) {
         scene->hold_animation = visual.visual.hold_animation.view();
         append_placeable_table_lights(*scene, nw::Location{}, &visual.visual);
@@ -2812,6 +2845,7 @@ nw::render::ModelAssetTextureUploadDesc preview_model_asset_texture_upload_desc(
     return nw::render::ModelAssetTextureUploadDesc{
         .ctx = resources.context(),
         .fallback_albedo = resources.fallback_albedo_index(),
+        .missing_albedo = resources.missing_albedo_index(),
         .fallback_normal = resources.fallback_normal_index(),
         .fallback_surface = resources.fallback_surface_index(),
         .fallback_emissive = resources.fallback_emissive_index(),
@@ -2824,6 +2858,7 @@ ImportGltfDesc preview_import_gltf_desc(PreviewRenderResources& resources)
     return ImportGltfDesc{
         .ctx = texture_upload.ctx,
         .fallback_albedo = texture_upload.fallback_albedo,
+        .missing_albedo = texture_upload.missing_albedo,
         .fallback_normal = texture_upload.fallback_normal,
         .fallback_surface = texture_upload.fallback_surface,
         .fallback_emissive = texture_upload.fallback_emissive,
@@ -3669,6 +3704,12 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
     case nw::ObjectType::placeable:
         if (auto* placeable = nw::kernel::objects().get<nw::Placeable>(object)) {
             scene = load_area_placeable_scene(resources, *placeable, source, options);
+        }
+        break;
+    case nw::ObjectType::door:
+        if (auto* door = nw::kernel::objects().get<nw::Door>(object)) {
+            scene = load_live_door_scene(
+                resources, *door, std::filesystem::path{source}, false);
         }
         break;
     default:

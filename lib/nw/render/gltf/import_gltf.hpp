@@ -12,6 +12,7 @@ namespace nw::render::gltf {
 struct ImportGltfDesc {
     nw::gfx::Context* ctx = nullptr;
     nw::gfx::BindlessTextureIndex fallback_albedo = nw::gfx::kInvalidBindlessTextureIndex;
+    nw::gfx::BindlessTextureIndex missing_albedo = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_normal = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_surface = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_emissive = nw::gfx::kInvalidBindlessTextureIndex;

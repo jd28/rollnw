@@ -107,6 +107,24 @@ rows fail the resolver. Invalid attachment indices return an empty row. Empty
 model `ResRef`s are rejected by the row consumer. Missing resources are counted
 or warned at the loading boundary, not inferred by renderer passes.
 
+### NWN door appearance inputs
+
+NWN door state does not index one interchangeable appearance catalog. The two
+persisted fields have different sources:
+
+- `Appearance == 0`: `GenericType` indexes `genericdoors.2da`. These are the
+  portable door appearances exposed by the editor chooser.
+- `Appearance != 0`: `Appearance` indexes `doortypes.2da`. These rows describe
+  tileset-specific doors referenced by tile door slots in SET data. Existing
+  objects must remain loadable, but these rows are not offered as generic
+  replacements because their required tileset or optional content may not be
+  active.
+
+Either table can refer to a model supplied by content absent from the active
+resource set. Resolution reports the missing model and the renderer uses its
+explicit missing-resource visualization; it does not derive replacement model
+or texture names.
+
 ## Models
 
 Smalls communicates semantic model references as `ResRef`, not as concrete

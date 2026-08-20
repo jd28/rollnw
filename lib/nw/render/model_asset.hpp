@@ -49,6 +49,9 @@ struct ModelAssetMaterialTextureSources {
     // Color albedo sources decode sRGB on sample. PLT payloads contain palette
     // indices rather than colors and are always uploaded as linear RGBA8.
     bool albedo_srgb = true;
+    // Preserves the distinction between no albedo texture and an explicit
+    // albedo reference whose source payload could not be imported.
+    bool albedo_referenced = false;
 };
 
 struct ModelAssetPrimitive {
@@ -237,6 +240,7 @@ struct ModelAssetUploadStats {
 struct ModelAssetTextureUploadDesc {
     nw::gfx::Context* ctx = nullptr;
     nw::gfx::BindlessTextureIndex fallback_albedo = nw::gfx::kInvalidBindlessTextureIndex;
+    nw::gfx::BindlessTextureIndex missing_albedo = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_normal = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_surface = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_emissive = nw::gfx::kInvalidBindlessTextureIndex;

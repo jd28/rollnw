@@ -149,6 +149,31 @@ bool write_item_stats_int(nw::smalls::Runtime& runtime,
             nw::smalls::Value::make_int(value));
 }
 
+std::optional<nw::toolset::ObjectAppearanceSelectors> first_other_door_appearance(
+    nw::smalls::Runtime& runtime,
+    nw::toolset::ObjectAppearanceSelectors current)
+{
+    const auto count = runtime.execute_script(
+        "nwn1.doors", "count_genericdoors", {});
+    if (!count.ok() || count.value.type_id != runtime.int_type()) {
+        return std::nullopt;
+    }
+
+    for (int32_t row = 0; row < count.value.data.ival; ++row) {
+        const nw::toolset::ObjectAppearanceSelectors candidate{0, row};
+        if (candidate == current) { continue; }
+        const auto exists = runtime.execute_script("nwn1.doors",
+            "appearance_exists",
+            {nw::smalls::Value::make_int(candidate.appearance),
+                nw::smalls::Value::make_int(candidate.generic_type)});
+        if (exists.ok() && exists.value.type_id == runtime.bool_type()
+            && exists.value.data.bval) {
+            return candidate;
+        }
+    }
+    return std::nullopt;
+}
+
 nw::toolset::ObjectTransformState read_transform(nw::ObjectHandle object)
 {
     const auto* spatial = nwk::objects().components().find_spatial(object);
@@ -1110,6 +1135,59 @@ TEST(ClientObjectEdits, AppearanceCommitRebuildsVisualAndSharesUndoRedo)
         runtime, creature->handle(), 1000000);
     EXPECT_FALSE(invalid);
     EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), after);
+}
+
+TEST(ClientObjectEdits, DoorAppearanceCommitPreservesTaggedPairAcrossUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* door = nwk::objects().load_file<nw::Door>(
+        "test_data/user/development/door_ttr_002.utd");
+    ASSERT_NE(door, nullptr);
+
+    auto& runtime = nwk::runtime();
+    const auto before = nw::toolset::door_appearance(
+        runtime, door->handle());
+    ASSERT_TRUE(before);
+    const auto after = first_other_door_appearance(runtime, *before);
+    ASSERT_TRUE(after);
+    ASSERT_NE(*after, *before);
+
+    auto edit = nw::toolset::make_door_appearance_edit(runtime,
+        door->handle(), after->appearance, after->generic_type);
+    ASSERT_TRUE(edit);
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab(
+        "preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_appearance_edit(
+        std::move(*edit), "Set Door appearance", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(nw::toolset::door_appearance(runtime, door->handle()), after);
+    EXPECT_EQ(nw::toolset::object_mutation_state().kind,
+        nw::toolset::ObjectMutationKind::visual);
+    EXPECT_EQ(nw::toolset::object_mutation_state().visual_kind,
+        nw::toolset::ObjectVisualMutationKind::base_appearance);
+
+    workspace.push_undo(*committed.undo_action);
+    const auto undone = workspace.undo(context);
+    ASSERT_TRUE(undone.ok()) << undone.message;
+    EXPECT_EQ(nw::toolset::door_appearance(runtime, door->handle()), before);
+
+    const auto redone = workspace.redo(context);
+    ASSERT_TRUE(redone.ok()) << redone.message;
+    EXPECT_EQ(nw::toolset::door_appearance(runtime, door->handle()), after);
+
+    const auto invalid = nw::toolset::make_door_appearance_edit(runtime,
+        door->handle(), std::numeric_limits<int32_t>::max(),
+        std::numeric_limits<int32_t>::max());
+    EXPECT_FALSE(invalid);
+    EXPECT_EQ(nw::toolset::door_appearance(runtime, door->handle()), after);
 }
 
 TEST(ClientObjectEdits, AppearanceUndoRestoresBodyPartsInitializedBySmalls)

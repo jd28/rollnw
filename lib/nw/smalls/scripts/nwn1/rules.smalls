@@ -285,6 +285,7 @@ type BaseItemDefinition {
 type DoorTypeEntry {
     [[index]]
     id:    int;
+    name:  StrRef;
     model: T.ResRef;
 };
 
@@ -292,6 +293,7 @@ type DoorTypeEntry {
 type GenericDoorEntry {
     [[index]]
     id:    int;
+    name:  StrRef;
     model: T.ResRef;
 };
 

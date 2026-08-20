@@ -703,6 +703,7 @@ nw::render::ModelAssetMaterialTextureSources import_model_asset_material_texture
         return sources;
     }
 
+    sources.albedo_referenced = mat->pbr_metallic_roughness.base_color_texture.texture != nullptr;
     sources.albedo = import_model_asset_texture_source(
         mat->pbr_metallic_roughness.base_color_texture.texture, base_dir, image_map, asset);
     sources.normal = import_model_asset_texture_source(mat->normal_texture.texture, base_dir, image_map, asset);
@@ -1192,6 +1193,7 @@ GltfRenderModelImportResult import_gltf_render_model_from_asset(
     nw::render::ModelAssetTextureUploadDesc texture_upload{};
     texture_upload.ctx = desc.ctx;
     texture_upload.fallback_albedo = desc.fallback_albedo;
+    texture_upload.missing_albedo = desc.missing_albedo;
     texture_upload.fallback_normal = desc.fallback_normal;
     texture_upload.fallback_surface = desc.fallback_surface;
     texture_upload.fallback_emissive = desc.fallback_emissive;

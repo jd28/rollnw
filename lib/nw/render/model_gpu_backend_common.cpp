@@ -32,6 +32,33 @@ nw::gfx::Handle<nw::gfx::Texture> create_solid_texture(nw::gfx::Context* ctx, nw
     return texture;
 }
 
+nw::gfx::Handle<nw::gfx::Texture> create_missing_texture(nw::gfx::Context* ctx)
+{
+    constexpr uint32_t size = 16;
+    constexpr uint32_t cell_size = 4;
+    std::array<uint8_t, size * size * 4> pixels{};
+    for (uint32_t y = 0; y < size; ++y) {
+        for (uint32_t x = 0; x < size; ++x) {
+            const bool magenta = ((x / cell_size) + (y / cell_size)) % 2 == 0;
+            const size_t offset = (static_cast<size_t>(y) * size + x) * 4;
+            pixels[offset + 0] = magenta ? 255 : 0;
+            pixels[offset + 1] = 0;
+            pixels[offset + 2] = magenta ? 255 : 0;
+            pixels[offset + 3] = 255;
+        }
+    }
+
+    nw::gfx::TextureDesc desc{};
+    desc.width = size;
+    desc.height = size;
+    desc.format = nw::gfx::Fmt::RGBA8Srgb;
+    auto texture = nw::gfx::create_texture(ctx, desc);
+    if (texture.valid()) {
+        nw::gfx::upload_texture_rgba8(ctx, texture, pixels.data(), pixels.size());
+    }
+    return texture;
+}
+
 bool create_zero_storage_buffer(nw::gfx::Context* ctx, nw::gfx::Handle<nw::gfx::Buffer>& out)
 {
     nw::gfx::BufferDesc desc{};
@@ -161,6 +188,7 @@ void ModelGpuBackend::destroy_common_gpu_resources()
     if (dummy_storage_buffer_.valid()) { nw::gfx::destroy_buffer(dummy_storage_buffer_); }
     if (plt_palette_buffer_.valid()) { nw::gfx::destroy_buffer(plt_palette_buffer_); }
     pipeline_cache_.destroy();
+    if (default_albedo_.valid()) { nw::gfx::destroy_texture(ctx_, default_albedo_); }
     if (fallback_texture_.valid()) { nw::gfx::destroy_texture(ctx_, fallback_texture_); }
     if (fallback_normal_.valid()) { nw::gfx::destroy_texture(ctx_, fallback_normal_); }
     if (fallback_surface_.valid()) { nw::gfx::destroy_texture(ctx_, fallback_surface_); }
@@ -377,7 +405,8 @@ void ModelGpuBackend::initialize_shared_fallback_textures()
     // Preserve the existing startup policy: fallback texture allocation is
     // best-effort, and invalid handles remain visible to the existing resource
     // and bindless texture error paths.
-    fallback_texture_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8Srgb, {255, 255, 255, 255});
+    default_albedo_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8Srgb, {255, 255, 255, 255});
+    fallback_texture_ = create_missing_texture(ctx_);
     fallback_normal_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8, {128, 128, 255, 255});
     fallback_surface_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8, {
                                                                             kModelSurfaceNeutralOcclusion,
@@ -389,6 +418,11 @@ void ModelGpuBackend::initialize_shared_fallback_textures()
 }
 
 nw::gfx::BindlessTextureIndex ModelGpuBackend::fallback_albedo_index() const
+{
+    return nw::gfx::get_bindless_texture_index(ctx_, default_albedo_);
+}
+
+nw::gfx::BindlessTextureIndex ModelGpuBackend::missing_albedo_index() const
 {
     return nw::gfx::get_bindless_texture_index(ctx_, fallback_texture_);
 }
