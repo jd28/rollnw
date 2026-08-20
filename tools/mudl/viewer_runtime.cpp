@@ -518,6 +518,7 @@ json area_render_cache_stats_json(const nw::render::viewer::AreaRenderSceneStats
                                {"doors", stats.door_record_count},
                                {"items", stats.item_record_count},
                                {"placeables", stats.placeable_record_count},
+                               {"waypoints", stats.waypoint_record_count},
                                {"unknown", stats.unknown_record_count},
                            }},
     };

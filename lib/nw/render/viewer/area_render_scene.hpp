@@ -31,6 +31,7 @@ enum class AreaRenderRecordKind : uint8_t {
     door,
     item,
     placeable,
+    waypoint,
 };
 
 struct AreaRenderSourceInfo {
@@ -182,6 +183,7 @@ struct AreaRenderSceneStats {
     uint32_t door_record_count = 0;
     uint32_t item_record_count = 0;
     uint32_t placeable_record_count = 0;
+    uint32_t waypoint_record_count = 0;
     uint32_t unknown_record_count = 0;
     uint32_t selectable_object_record_count = 0;
     uint32_t object_handle_bytes = 0;

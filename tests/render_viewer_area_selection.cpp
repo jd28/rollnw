@@ -11,6 +11,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/render/model_asset.hpp>
 #include <nw/render/viewer/area_render_scene.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
@@ -318,6 +319,45 @@ TEST(RenderViewerAreaSelection, UpdatesAllSceneRootsForOneSpatialRow)
     const auto invalid_stats = viewer::update_area_object_spatial_states(scene, invalid_rows);
     EXPECT_EQ(invalid_stats.rejected_input_count, 1u);
     EXPECT_EQ(invalid_stats.render_model_root_count, 0u);
+}
+
+TEST(RenderViewerAreaSelection, UpdatesWaypointMarkerNativePositiveYToObjectHeading)
+{
+    LiveObjects live;
+    const auto waypoint = live.make<nw::Waypoint>();
+    viewer::PreviewScene scene;
+    auto model = std::make_unique<nw::render::RenderModel>();
+    model->bounds = {
+        .min = {-1.0f, -1.0f, 0.0f},
+        .max = {1.0f, 1.0f, 2.0f},
+    };
+    scene.add(std::move(model));
+    scene.static_area_model_info.back().object = waypoint;
+
+    nw::ObjectSpatialState spatial{
+        .owner = waypoint,
+        .position = {5.0f, 6.0f, 7.0f},
+        .orientation = {1.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+    };
+    std::array rows{spatial};
+    auto stats = viewer::update_area_object_spatial_states(scene, rows);
+    ASSERT_EQ(stats.render_model_root_count, 1u);
+    const auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    glm::vec3 forward = instance->root_transform * glm::vec4{0.0f, 1.0f, 0.0f, 0.0f};
+    EXPECT_NEAR(forward.x, 1.0f, 1.0e-5f);
+    EXPECT_NEAR(forward.y, 0.0f, 1.0e-5f);
+
+    spatial.orientation = {0.0f, 1.0f, 0.0f};
+    rows[0] = spatial;
+    stats = viewer::update_area_object_spatial_states(scene, rows);
+    ASSERT_EQ(stats.render_model_root_count, 1u);
+    instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    forward = instance->root_transform * glm::vec4{0.0f, 1.0f, 0.0f, 0.0f};
+    EXPECT_NEAR(forward.x, 0.0f, 1.0e-5f);
+    EXPECT_NEAR(forward.y, 1.0f, 1.0e-5f);
 }
 
 TEST(RenderViewerAreaSelection, RejectsBoundsOnlyHitsAndSelectsNearestTriangle)

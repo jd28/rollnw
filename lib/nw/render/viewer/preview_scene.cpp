@@ -26,6 +26,7 @@
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/assets.hpp>
@@ -148,12 +149,35 @@ nw::Location object_spatial_location(const nw::ObjectBase& object)
     return nw::kernel::objects().components().location(object.handle());
 }
 
+glm::mat4 area_object_render_placement_transform(
+    nw::ObjectType type, nw::Location location, glm::vec3 scale)
+{
+    if (type == nw::ObjectType::waypoint) {
+        // Waypoint marker geometry uses local +Y as forward; area headings use +X.
+        constexpr float k_epsilon = 1.0e-5f;
+        if (std::abs(location.orientation.x) > k_epsilon
+            || std::abs(location.orientation.y) > k_epsilon) {
+            location.orientation = {
+                location.orientation.y,
+                -location.orientation.x,
+                location.orientation.z,
+            };
+        } else {
+            location.orientation = {0.0f, -1.0f, location.orientation.z};
+        }
+    }
+
+    return area_object_placement_transform(location, scale);
+}
+
 glm::mat4 object_spatial_placement(const nw::ObjectBase& object)
 {
     const auto& components = nw::kernel::objects().components();
     const auto* spatial = components.find_spatial(object.handle());
-    return area_object_placement_transform(
-        components.location(object.handle()), spatial ? spatial->scale : glm::vec3{1.0f});
+    return area_object_render_placement_transform(
+        object.handle().type,
+        components.location(object.handle()),
+        spatial ? spatial->scale : glm::vec3{1.0f});
 }
 
 void append_scene_load_events(PreviewScene& scene, std::vector<PreviewLoadEvent>& events)
@@ -1150,7 +1174,7 @@ AreaObjectSpatialUpdateStats update_area_object_spatial_states(
         location.area = row.area;
         location.position = row.position;
         location.orientation = row.orientation;
-        return area_object_placement_transform(location, row.scale);
+        return area_object_render_placement_transform(row.owner.type, location, row.scale);
     };
 
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
@@ -2763,6 +2787,65 @@ static std::unique_ptr<PreviewScene> load_area_item_scene(
     return scene;
 }
 
+struct WaypointModelLoad {
+    nw::Resref model;
+    int32_t appearance = -1;
+    std::string error;
+
+    [[nodiscard]] bool valid() const noexcept
+    {
+        return appearance >= 0 && !model.empty() && error.empty();
+    }
+};
+
+static WaypointModelLoad resolve_waypoint_model(const nw::Waypoint& waypoint)
+{
+    WaypointModelLoad result;
+    auto& runtime = nw::kernel::runtime();
+    const auto propset_type = runtime.type_id("nwn1.propsets.WaypointState", false);
+    const auto* definition = runtime.get_struct_def(propset_type);
+    if (!definition) {
+        result.error = "WaypointState propset type is unavailable";
+        return result;
+    }
+
+    const uint32_t appearance_field = definition->field_index("appearance");
+    if (appearance_field == std::numeric_limits<uint32_t>::max()) {
+        result.error = "WaypointState has no appearance field";
+        return result;
+    }
+
+    const auto propset = runtime.find_propset_ref(propset_type, waypoint.handle());
+    const auto appearance = runtime.read_struct_value_field(
+        propset, definition, appearance_field);
+    if (appearance.type_id != runtime.int_type() || appearance.data.ival < 0) {
+        result.error = "WaypointState appearance is missing or negative";
+        return result;
+    }
+    result.appearance = appearance.data.ival;
+
+    const auto* table = nw::kernel::twodas().get("waypoint");
+    const size_t row = static_cast<size_t>(result.appearance);
+    if (!table || row >= table->rows()) {
+        result.error = fmt::format(
+            "appearance {} is outside waypoint.2da", result.appearance);
+        return result;
+    }
+
+    const auto model = table->get<nw::String>(row, "RESREF", false);
+    if (!model || model->empty()) {
+        result.error = fmt::format(
+            "appearance {} has no RESREF in waypoint.2da", result.appearance);
+        return result;
+    }
+    result.model = nw::Resref{*model};
+    if (result.model.empty()) {
+        result.error = fmt::format(
+            "appearance {} has an invalid RESREF in waypoint.2da", result.appearance);
+    }
+    return result;
+}
+
 static std::unique_ptr<PreviewScene> load_live_door_scene(
     PreviewRenderResources& resources,
     nw::Door& door,
@@ -3352,6 +3435,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     size_t loaded_encounter_debug_shapes = 0;
     size_t loaded_item_models = 0;
     size_t loaded_placeable_models = 0;
+    size_t loaded_waypoint_models = 0;
     size_t loaded_area_object_model_lights = 0;
     size_t loaded_tile_model_lights = 0;
     size_t tiles_with_light_slots = 0;
@@ -3532,6 +3616,36 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         }
     }
 
+    for (size_t i = 0; i < loaded_area->waypoints.size(); ++i) {
+        const auto* waypoint = loaded_area->waypoints[i];
+        if (!waypoint) {
+            continue;
+        }
+
+        const auto origin = area_object_origin(area_resref, "waypoint", i, *waypoint);
+        const auto model_ref = resolve_waypoint_model(*waypoint);
+        if (!model_ref.valid()) {
+            LOG_F(WARNING, "Area waypoint '{}': {}", origin, model_ref.error);
+            continue;
+        }
+
+        auto model = load_area_static_model(
+            static_model_cache, resources, model_ref.model.view(), origin);
+        const uint32_t model_index = add_placed_render_model(
+            *scene, std::move(model), object_spatial_placement(*waypoint));
+        if (model_index != nw::render::kInvalidModelInstanceIndex) {
+            if (model_index < scene->static_area_model_info.size()) {
+                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+                    .kind = AreaRenderRecordKind::waypoint,
+                    .object = waypoint->handle(),
+                    .static_candidate = !options.area_object_editing,
+                };
+            }
+            loaded_area_object_model_lights += append_render_model_authored_lights(*scene, model_index);
+            ++loaded_waypoint_models;
+        }
+    }
+
     for (const auto* trigger : loaded_area->triggers) {
         if (trigger && append_trigger_debug_geometry(*scene, *trigger)) {
             ++loaded_trigger_debug_shapes;
@@ -3570,7 +3684,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     const bool scene_underground = (scene->area_flags & nw::AreaFlags::underground) != nw::AreaFlags::none;
 
     LOG_F(INFO,
-        "Loaded area {} tileset={} : {}x{} tiles={} loaded_models={} static_assets={} static_local_hits={} static_retained_hits={} static_imports={} static_asset_failures={} flags interior={} underground={} cycle={} night={} tile_lights={} object_lights={} light_slot_tiles={} local_lights={} colored_lights={} light_color_max={:.2f} light_radius=[{:.2f}..{:.2f}] light_intensity=[{:.2f}..{:.2f}] light_scale[r={:.2f}, i={:.2f}] creatures={}/{} doors={}/{} items={}/{} placeables={}/{} triggers={}/{} encounters={}/{} debug_indices={} demand={}ms deserialize={}ms placement[x={}..{}, y={}..{}]",
+        "Loaded area {} tileset={} : {}x{} tiles={} loaded_models={} static_assets={} static_local_hits={} static_retained_hits={} static_imports={} static_asset_failures={} flags interior={} underground={} cycle={} night={} tile_lights={} object_lights={} light_slot_tiles={} local_lights={} colored_lights={} light_color_max={:.2f} light_radius=[{:.2f}..{:.2f}] light_intensity=[{:.2f}..{:.2f}] light_scale[r={:.2f}, i={:.2f}] creatures={}/{} doors={}/{} items={}/{} placeables={}/{} waypoints={}/{} triggers={}/{} encounters={}/{} debug_indices={} demand={}ms deserialize={}ms placement[x={}..{}, y={}..{}]",
         area_resref,
         loaded_area->tileset_resref,
         loaded_area->width,
@@ -3606,6 +3720,8 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         profile.items,
         loaded_placeable_models,
         profile.placeables,
+        loaded_waypoint_models,
+        profile.waypoints,
         loaded_trigger_debug_shapes,
         profile.triggers,
         loaded_encounter_debug_shapes,
@@ -3644,7 +3760,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     scene->area_render_scene->rebuild(*scene);
     const auto& area_cache_stats = scene->area_render_scene->stats();
     LOG_F(INFO,
-        "Area render cache {} records={} static={} dynamic={} prepared_draws={} surfaces[ranges={} triangles={} bytes={}] max_prepared_record={} chunks={}/{} max_chunk={} pass[o/w/t]={}/{}/{} shadow_casters={} source[tile/creature/door/item/placeable/unknown]={}/{}/{}/{}/{}/{}",
+        "Area render cache {} records={} static={} dynamic={} prepared_draws={} surfaces[ranges={} triangles={} bytes={}] max_prepared_record={} chunks={}/{} max_chunk={} pass[o/w/t]={}/{}/{} shadow_casters={} source[tile/creature/door/item/placeable/waypoint/unknown]={}/{}/{}/{}/{}/{}/{}",
         area_resref,
         area_cache_stats.record_count,
         area_cache_stats.static_record_count,
@@ -3666,6 +3782,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         area_cache_stats.door_record_count,
         area_cache_stats.item_record_count,
         area_cache_stats.placeable_record_count,
+        area_cache_stats.waypoint_record_count,
         area_cache_stats.unknown_record_count);
     scene->rebuild_load_report(area_resref, "area");
     return scene;

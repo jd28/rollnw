@@ -14,6 +14,7 @@
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Sound.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/render/render_service.hpp>
 #include <nw/render/viewer/device.hpp>
@@ -154,16 +155,17 @@ TEST(RenderViewerPreparedDraws, AreaStaticModelCacheDoesNotExtendModelLifetime)
     EXPECT_FALSE(resources.find_area_static_model(cache_key));
 }
 
-bool set_creature_appearance_propset_int(nw::Creature* creature, const char* field, int32_t value)
+bool set_object_propset_int(
+    nw::ObjectHandle object, const char* propset_name, const char* field, int32_t value)
 {
-    if (!creature) { return false; }
+    if (!nw::kernel::objects().valid(object)) { return false; }
 
     auto& rt = nw::kernel::runtime();
-    rt.init_object_propsets(creature->handle());
-    const auto tid = rt.type_id("nwn1.propsets.CreatureAppearance", false);
+    rt.init_object_propsets(object);
+    const auto tid = rt.type_id(propset_name, false);
     if (tid == nw::smalls::invalid_type_id) { return false; }
 
-    auto ref = rt.get_or_create_propset_ref(tid, creature->handle());
+    auto ref = rt.get_or_create_propset_ref(tid, object);
     if (ref.type_id == nw::smalls::invalid_type_id) { return false; }
 
     const auto* def = rt.get_struct_def(ref.type_id);
@@ -175,6 +177,13 @@ bool set_creature_appearance_propset_int(nw::Creature* creature, const char* fie
     const auto& field_def = def->fields[index];
     return rt.write_value_field_at_offset(ref, field_def.offset, rt.int_type(),
         nw::smalls::Value::make_int(value));
+}
+
+bool set_creature_appearance_propset_int(nw::Creature* creature, const char* field, int32_t value)
+{
+    return creature
+        && set_object_propset_int(creature->handle(),
+            "nwn1.propsets.CreatureAppearance", field, value);
 }
 
 bool render_viewer_frame(
@@ -1858,6 +1867,45 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     ASSERT_TRUE(nw::kernel::objects().valid(scene->root_object));
     auto* live_area = nw::kernel::objects().get<nw::Area>(scene->root_object);
     ASSERT_NE(live_area, nullptr);
+    const nw::ObjectHandle area_handle = scene->root_object;
+
+    auto* area_waypoint = nw::kernel::objects().make<nw::Waypoint>();
+    ASSERT_NE(area_waypoint, nullptr);
+    ASSERT_TRUE(nw::kernel::objects().components().set_area(
+        area_waypoint->handle(), area_handle.id));
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        area_waypoint->handle(), glm::vec3{15.0f, 15.0f, 0.0f}));
+    ASSERT_TRUE(nw::kernel::objects().components().set_orientation(
+        area_waypoint->handle(), glm::vec3{1.0f, 0.0f, 0.0f}));
+    ASSERT_TRUE(set_object_propset_int(
+        area_waypoint->handle(), "nwn1.propsets.WaypointState", "appearance", 2));
+    live_area->waypoints.push_back(area_waypoint);
+    ASSERT_TRUE(session->rebuild_live_area(area_handle, area_waypoint->handle()));
+    ASSERT_TRUE(session->clear_area_object_selection());
+    scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    live_area = nw::kernel::objects().get<nw::Area>(scene->root_object);
+    ASSERT_NE(live_area, nullptr);
+    ASSERT_NE(scene->area_render_scene, nullptr);
+    EXPECT_EQ(scene->area_render_scene->stats().waypoint_record_count,
+        live_area->waypoints.size());
+    bool found_area_waypoint = false;
+    const auto area_record_kinds = scene->area_render_scene->kinds();
+    const auto area_record_objects = scene->area_render_scene->object_handles();
+    ASSERT_EQ(area_record_kinds.size(), area_record_objects.size());
+    for (size_t record_index = 0; record_index < area_record_kinds.size(); ++record_index) {
+        if (area_record_kinds[record_index] == viewer::AreaRenderRecordKind::waypoint
+            && area_record_objects[record_index] == area_waypoint->handle()) {
+            found_area_waypoint = true;
+            ASSERT_LT(record_index, scene->area_render_scene->root_transforms().size());
+            const glm::vec3 forward = scene->area_render_scene->root_transforms()[record_index]
+                * glm::vec4{0.0f, 1.0f, 0.0f, 0.0f};
+            EXPECT_NEAR(forward.x, 1.0f, 1.0e-5f);
+            EXPECT_NEAR(forward.y, 0.0f, 1.0e-5f);
+            break;
+        }
+    }
+    EXPECT_TRUE(found_area_waypoint);
     EXPECT_GT(scene->static_models.size(), 0u);
     ASSERT_EQ(scene->static_model_instance_handles.size(), scene->static_models.size());
 
@@ -1953,6 +2001,10 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
         case viewer::AreaRenderRecordKind::placeable:
             EXPECT_EQ(object.type, nw::ObjectType::placeable);
             EXPECT_TRUE(contains_object(live_area->placeables));
+            break;
+        case viewer::AreaRenderRecordKind::waypoint:
+            EXPECT_EQ(object.type, nw::ObjectType::waypoint);
+            EXPECT_TRUE(contains_object(live_area->waypoints));
             break;
         case viewer::AreaRenderRecordKind::tile:
         case viewer::AreaRenderRecordKind::unknown:
@@ -2076,7 +2128,6 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     }
     EXPECT_TRUE(has_render_model_instance);
 
-    const nw::ObjectHandle area_handle = scene->root_object;
     const auto selected_for_rebuild = std::find_if(objects.begin(), objects.end(), [](nw::ObjectHandle object) {
         return object.type == nw::ObjectType::creature;
     });

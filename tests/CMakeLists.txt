@@ -110,6 +110,10 @@ set(ROLLNW_TEST_GENERIC_MODEL_FIXTURES
     c_a_chicken
     c_demon
     gifp
+    gi_waypoint01
+    gi_waypoint02
+    gi_waypoint03
+    gi_waypoint04
     plc_o01
     t_door01
     ttf02_a09_01

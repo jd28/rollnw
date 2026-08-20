@@ -52,6 +52,8 @@ bool object_matches_record_kind(AreaRenderRecordKind kind, nw::ObjectHandle obje
         return object.type == nw::ObjectType::item;
     case AreaRenderRecordKind::placeable:
         return object.type == nw::ObjectType::placeable;
+    case AreaRenderRecordKind::waypoint:
+        return object.type == nw::ObjectType::waypoint;
     case AreaRenderRecordKind::tile:
     case AreaRenderRecordKind::unknown:
         return false;
@@ -584,6 +586,9 @@ void count_kind(AreaRenderSceneStats& stats, AreaRenderRecordKind kind) noexcept
         break;
     case AreaRenderRecordKind::placeable:
         ++stats.placeable_record_count;
+        break;
+    case AreaRenderRecordKind::waypoint:
+        ++stats.waypoint_record_count;
         break;
     case AreaRenderRecordKind::unknown:
         ++stats.unknown_record_count;
@@ -2145,6 +2150,8 @@ std::string_view area_render_record_kind_label(AreaRenderRecordKind kind) noexce
         return "item";
     case AreaRenderRecordKind::placeable:
         return "placeable";
+    case AreaRenderRecordKind::waypoint:
+        return "waypoint";
     case AreaRenderRecordKind::unknown:
         return "unknown";
     }
