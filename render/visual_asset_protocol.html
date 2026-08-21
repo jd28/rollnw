@@ -141,6 +141,22 @@ meshes below the world floor, which is not a useful isolated authoring view.</p>
 rows fail the resolver. Invalid attachment indices return an empty row. Empty
 model <code>ResRef</code>s are rejected by the row consumer. Missing resources are counted
 or warned at the loading boundary, not inferred by renderer passes.</p>
+<h3 id="nwn-door-appearance-inputs">NWN door appearance inputs</h3>
+<p>NWN door state does not index one interchangeable appearance catalog. The two
+persisted fields have different sources:</p>
+<ul>
+<li><code>Appearance == 0</code>: <code>GenericType</code> indexes <code>genericdoors.2da</code>. These are the
+  portable door appearances exposed by the editor chooser.</li>
+<li><code>Appearance != 0</code>: <code>Appearance</code> indexes <code>doortypes.2da</code>. These rows describe
+  tileset-specific doors referenced by tile door slots in SET data. Existing
+  objects must remain loadable, but these rows are not offered as generic
+  replacements because their required tileset or optional content may not be
+  active.</li>
+</ul>
+<p>Either table can refer to a model supplied by content absent from the active
+resource set. Resolution reports the missing model and the renderer uses its
+explicit missing-resource visualization; it does not derive replacement model
+or texture names.</p>
 <h2 id="models">Models</h2>
 <p>Smalls communicates semantic model references as <code>ResRef</code>, not as concrete
 filenames and not as <code>Resource</code>.</p>
