@@ -8,6 +8,7 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Placeable.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
@@ -170,6 +171,30 @@ TEST(ClientSmallsCreatureInventory, BuildsOnePageItemInventoryWithSharedRows)
     EXPECT_EQ(snapshot.inventory.size(), 1);
     EXPECT_TRUE(std::none_of(snapshot.equipment.begin(), snapshot.equipment.end(),
         [](const auto& row) { return row.assigned(); }));
+    EXPECT_EQ(snapshot.inventory.front().item, item->handle());
+    EXPECT_FALSE(snapshot.text_view(snapshot.inventory.front().icon_source).empty());
+}
+
+TEST(ClientSmallsCreatureInventory, BuildsPlaceableInventoryWithoutOwnerVisualState)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* owner = nwk::objects().make<nw::Placeable>();
+    auto* item = nwk::objects().load<nw::Item>("nw_wswss001");
+    ASSERT_NE(owner, nullptr);
+    ASSERT_NE(item, nullptr);
+    ASSERT_EQ(nwk::objects().components().find_visual(owner->handle()), nullptr);
+    ASSERT_TRUE(use_repository_icon_fixture(item->handle()));
+    ASSERT_TRUE(owner->inventory().add_item(item));
+
+    nw::toolset::InventoryViewSnapshot snapshot;
+    nw::toolset::ItemIconTextureCache icon_cache;
+    nw::toolset::build_object_inventory_rows(
+        nwk::runtime(), owner->handle(), icon_cache, snapshot);
+
+    ASSERT_EQ(snapshot.status, nw::toolset::InventoryViewStatus::ready)
+        << snapshot.diagnostic;
+    ASSERT_EQ(snapshot.inventory.size(), 1u);
     EXPECT_EQ(snapshot.inventory.front().item, item->handle());
     EXPECT_FALSE(snapshot.text_view(snapshot.inventory.front().icon_source).empty());
 }

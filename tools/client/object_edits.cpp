@@ -6,11 +6,14 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/component_propset_json.hpp>
@@ -23,6 +26,7 @@
 #include <cassert>
 #include <charconv>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -90,10 +94,213 @@ struct ItemPlacementState {
     }
 };
 
+struct StoreItemPlacementRow {
+    StoreItemPlacement placement;
+    uint16_t pos_x = 0;
+    uint16_t pos_y = 0;
+    bool position_captured = false;
+    bool page_added = false;
+    bool attached = false;
+};
+
+struct StoreItemPlacementState {
+    ObjectHandle store{};
+    std::vector<StoreItemPlacementRow> rows;
+
+    ~StoreItemPlacementState()
+    {
+        auto* objects = kernel::services().get_mut<ObjectManager>();
+        if (!objects) {
+            return;
+        }
+        for (const auto& row : rows) {
+            if (!row.attached && objects->valid(row.placement.item)) {
+                objects->destroy(row.placement.item);
+            }
+        }
+    }
+};
+
 struct PatchValues {
     int32_t expected = 0;
     int32_t replacement = 0;
 };
+
+struct EncounterSpawnStorage {
+    smalls::Value propset;
+    const smalls::StructDef* propset_definition = nullptr;
+    uint32_t creatures_field = UINT32_MAX;
+    const smalls::StructDef* spawn_definition = nullptr;
+    std::array<uint32_t, 4> spawn_fields{};
+    smalls::IArray* spawns = nullptr;
+};
+
+struct SoundResourceStorage {
+    smalls::Value propset;
+    uint32_t sounds_field = UINT32_MAX;
+    smalls::IArray* sounds = nullptr;
+};
+
+std::optional<SoundResourceStorage> sound_resource_storage(
+    smalls::Runtime& runtime, ObjectHandle sound)
+{
+    if (sound.type != ObjectType::sound
+        || !kernel::objects().get<Sound>(sound)
+        || !runtime.load_module("nwn1.propsets")) {
+        return std::nullopt;
+    }
+
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.SoundState", false);
+    const auto resref_type = runtime.type_id("core.types.ResRef", false);
+    const auto* definition = runtime.get_struct_def(propset_type);
+    const uint32_t sounds_field = definition
+        ? definition->field_index("sounds")
+        : UINT32_MAX;
+    if (!definition || sounds_field == UINT32_MAX
+        || resref_type == smalls::invalid_type_id) {
+        return std::nullopt;
+    }
+
+    const auto propset = runtime.find_propset_ref(propset_type, sound);
+    if (propset.type_id == smalls::invalid_type_id) {
+        return std::nullopt;
+    }
+    const auto& field = definition->fields[sounds_field];
+    const auto array_value = runtime.read_value_field_at_offset(
+        propset, field.offset, field.type_id);
+    auto* array = array_value.storage == smalls::ValueStorage::immediate
+        ? runtime.object_pool().get_unmanaged_array(
+              TypedHandle::from_ull(array_value.data.handle))
+        : nullptr;
+    if (!array || array->element_type() != resref_type) {
+        return std::nullopt;
+    }
+
+    return SoundResourceStorage{
+        .propset = propset,
+        .sounds_field = sounds_field,
+        .sounds = array,
+    };
+}
+
+std::optional<EncounterSpawnStorage> encounter_spawn_storage(
+    smalls::Runtime& runtime, ObjectHandle encounter)
+{
+    if (encounter.type != ObjectType::encounter
+        || !kernel::objects().get<Encounter>(encounter)) {
+        return std::nullopt;
+    }
+
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.EncounterState", false);
+    const auto spawn_type = runtime.type_id(
+        "nwn1.propsets.EncounterSpawn", false);
+    const auto* propset_definition = runtime.get_struct_def(propset_type);
+    const auto* spawn_definition = runtime.get_struct_def(spawn_type);
+    if (!propset_definition || !spawn_definition) {
+        return std::nullopt;
+    }
+
+    const uint32_t creatures_field = propset_definition->field_index("creatures");
+    const std::array spawn_fields{
+        spawn_definition->field_index("appearance"),
+        spawn_definition->field_index("cr"),
+        spawn_definition->field_index("resref"),
+        spawn_definition->field_index("single_spawn"),
+    };
+    if (creatures_field == UINT32_MAX
+        || std::ranges::find(spawn_fields, UINT32_MAX) != spawn_fields.end()) {
+        return std::nullopt;
+    }
+
+    const auto propset = runtime.find_propset_ref(propset_type, encounter);
+    if (propset.type_id == smalls::invalid_type_id) {
+        return std::nullopt;
+    }
+    const auto& field = propset_definition->fields[creatures_field];
+    const auto array_value = runtime.read_value_field_at_offset(
+        propset, field.offset, field.type_id);
+    auto* array = array_value.storage == smalls::ValueStorage::immediate
+        ? runtime.object_pool().get_unmanaged_array(
+              TypedHandle::from_ull(array_value.data.handle))
+        : nullptr;
+    if (!array || array->element_type() != spawn_type) {
+        return std::nullopt;
+    }
+
+    return EncounterSpawnStorage{
+        .propset = propset,
+        .propset_definition = propset_definition,
+        .creatures_field = creatures_field,
+        .spawn_definition = spawn_definition,
+        .spawn_fields = spawn_fields,
+        .spawns = array,
+    };
+}
+
+bool valid_encounter_spawn_record(const EncounterSpawnRecord& spawn) noexcept
+{
+    return !spawn.resref.empty()
+        && std::isfinite(spawn.cr)
+        && (spawn.single_spawn == 0 || spawn.single_spawn == 1);
+}
+
+std::optional<EncounterSpawnRecord> encounter_spawn_record(
+    smalls::Runtime& runtime,
+    ObjectHandle creature,
+    smalls::TypeID appearance_type,
+    const smalls::StructDef* appearance_definition,
+    uint32_t appearance_field,
+    smalls::TypeID stats_type,
+    const smalls::StructDef* stats_definition,
+    uint32_t cr_field)
+{
+    const auto* object = creature.type == ObjectType::creature
+        ? kernel::objects().get<Creature>(creature)
+        : nullptr;
+    if (!object || object->resref.empty()) {
+        return std::nullopt;
+    }
+
+    const auto appearance_propset = runtime.find_propset_ref(
+        appearance_type, creature);
+    const auto stats_propset = runtime.find_propset_ref(stats_type, creature);
+    const auto appearance = runtime.read_struct_value_field(
+        appearance_propset, appearance_definition, appearance_field);
+    const auto cr = runtime.read_struct_value_field(
+        stats_propset, stats_definition, cr_field);
+    if (appearance.type_id != runtime.int_type()
+        || cr.type_id != runtime.float_type()
+        || !std::isfinite(cr.data.fval)) {
+        return std::nullopt;
+    }
+
+    return EncounterSpawnRecord{
+        .appearance = appearance.data.ival,
+        .cr = cr.data.fval,
+        .resref = object->resref,
+        .single_spawn = 0,
+    };
+}
+
+const std::vector<EncounterSpawnRecord>& encounter_spawn_values(
+    const EncounterSpawnEdit& edit,
+    ObjectEditDirection direction,
+    bool replacement) noexcept
+{
+    const bool forward = direction == ObjectEditDirection::forward;
+    return replacement == forward ? edit.after : edit.before;
+}
+
+const std::vector<Resref>& sound_resource_values(
+    const SoundResourceEdit& edit,
+    ObjectEditDirection direction,
+    bool replacement) noexcept
+{
+    const bool forward = direction == ObjectEditDirection::forward;
+    return replacement == forward ? edit.after : edit.before;
+}
 
 PatchValues patch_values(const ObjectEditPatch& patch, ObjectEditDirection direction) noexcept
 {
@@ -2781,6 +2988,424 @@ CommandResult commit_object_variable_edits(
     return result;
 }
 
+std::optional<std::vector<EncounterSpawnRecord>> snapshot_encounter_spawns(
+    smalls::Runtime& runtime, ObjectHandle encounter)
+{
+    const auto storage = encounter_spawn_storage(runtime, encounter);
+    if (!storage || storage->spawns->size() > 1024) {
+        return std::nullopt;
+    }
+
+    try {
+        std::vector<EncounterSpawnRecord> result;
+        result.reserve(storage->spawns->size());
+        for (size_t index = 0; index < storage->spawns->size(); ++index) {
+            const void* data = storage->spawns->element_data(index);
+            EncounterSpawnRecord spawn;
+            if (!runtime.read_struct_data_field(
+                    data, storage->spawn_definition, storage->spawn_fields[0], spawn.appearance)
+                || !runtime.read_struct_data_field(
+                    data, storage->spawn_definition, storage->spawn_fields[1], spawn.cr)
+                || !runtime.read_struct_data_field(
+                    data, storage->spawn_definition, storage->spawn_fields[2], spawn.resref)
+                || !runtime.read_struct_data_field(
+                    data, storage->spawn_definition, storage->spawn_fields[3], spawn.single_spawn)
+                || !valid_encounter_spawn_record(spawn)) {
+                return std::nullopt;
+            }
+            result.push_back(spawn);
+        }
+        return result;
+    } catch (const std::bad_alloc&) {
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        return std::nullopt;
+    }
+}
+
+std::optional<std::vector<EncounterSpawnRecord>> make_encounter_spawn_records(
+    smalls::Runtime& runtime, std::span<const ObjectHandle> creatures)
+{
+    if (creatures.size() > 1024 || !runtime.load_module("nwn1.propsets")) {
+        return std::nullopt;
+    }
+
+    const auto appearance_type = runtime.type_id(
+        "nwn1.propsets.CreatureAppearance", false);
+    const auto stats_type = runtime.type_id(
+        "nwn1.propsets.CreatureStats", false);
+    const auto* appearance_definition = runtime.get_struct_def(appearance_type);
+    const auto* stats_definition = runtime.get_struct_def(stats_type);
+    const uint32_t appearance_field = appearance_definition
+        ? appearance_definition->field_index("appearance")
+        : UINT32_MAX;
+    const uint32_t cr_field = stats_definition
+        ? stats_definition->field_index("cr")
+        : UINT32_MAX;
+    if (!appearance_definition || !stats_definition
+        || appearance_field == UINT32_MAX || cr_field == UINT32_MAX) {
+        return std::nullopt;
+    }
+
+    try {
+        std::vector<EncounterSpawnRecord> result;
+        result.reserve(creatures.size());
+        for (const auto creature : creatures) {
+            auto row = encounter_spawn_record(runtime,
+                creature,
+                appearance_type,
+                appearance_definition,
+                appearance_field,
+                stats_type,
+                stats_definition,
+                cr_field);
+            if (!row || !valid_encounter_spawn_record(*row)) {
+                return std::nullopt;
+            }
+            result.push_back(std::move(*row));
+        }
+        return result;
+    } catch (const std::bad_alloc&) {
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        return std::nullopt;
+    }
+}
+
+ObjectEditApplyResult apply_encounter_spawn_edit(
+    smalls::Runtime& runtime,
+    const EncounterSpawnEdit& edit,
+    ObjectEditDirection direction)
+{
+    if (edit.encounter.type != ObjectType::encounter
+        || !kernel::objects().get<Encounter>(edit.encounter)
+        || edit.before.size() > 1024
+        || edit.after.size() > 1024) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Encounter spawn edit target or list size is invalid");
+    }
+    if (!std::ranges::all_of(edit.before, valid_encounter_spawn_record)
+        || !std::ranges::all_of(edit.after, valid_encounter_spawn_record)) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Encounter spawn edit contains an empty resref, non-finite CR, or invalid single-spawn flag");
+    }
+
+    const auto& expected = encounter_spawn_values(edit, direction, false);
+    const auto& replacement = encounter_spawn_values(edit, direction, true);
+    if (expected == replacement) {
+        return edit_result(ObjectEditStatus::empty,
+            "Encounter spawn list is already set");
+    }
+
+    const auto current = snapshot_encounter_spawns(runtime, edit.encounter);
+    if (!current) {
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn list could not be read");
+    }
+    if (*current != expected) {
+        return edit_result(ObjectEditStatus::stale_value,
+            "Encounter spawn list changed before the edit was applied");
+    }
+
+    const auto storage = encounter_spawn_storage(runtime, edit.encounter);
+    if (!storage) {
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn storage is unavailable");
+    }
+
+    try {
+        std::vector<smalls::Value> values;
+        values.reserve(replacement.size());
+        smalls::Runtime::ScopedRoots roots{runtime, replacement.size() * 2};
+        for (const auto& row : replacement) {
+            const auto ptr = runtime.alloc_struct(storage->spawns->element_type());
+            if (ptr.value == 0) {
+                return edit_result(ObjectEditStatus::failed,
+                    "Encounter spawn row allocation failed");
+            }
+            const auto spawn = smalls::Value::make_heap(
+                ptr, storage->spawns->element_type());
+            roots.add(spawn);
+
+            const auto resref = smalls::detail::make_value(&runtime, row.resref);
+            if (resref.type_id == smalls::invalid_type_id) {
+                return edit_result(ObjectEditStatus::failed,
+                    "Encounter spawn resref allocation failed");
+            }
+            roots.add(resref);
+
+            if (!runtime.write_struct_value_field(spawn,
+                    storage->spawn_definition, storage->spawn_fields[0],
+                    smalls::Value::make_int(row.appearance))
+                || !runtime.write_struct_value_field(spawn,
+                    storage->spawn_definition, storage->spawn_fields[1],
+                    smalls::Value::make_float(row.cr))
+                || !runtime.write_struct_value_field(spawn,
+                    storage->spawn_definition, storage->spawn_fields[2], resref)
+                || !runtime.write_struct_value_field(spawn,
+                    storage->spawn_definition, storage->spawn_fields[3],
+                    smalls::Value::make_int(row.single_spawn))) {
+                return edit_result(ObjectEditStatus::failed,
+                    "Encounter spawn row could not be encoded");
+            }
+            values.push_back(spawn);
+        }
+
+        if (!runtime.replace_propset_unmanaged_array(
+                storage->propset, storage->creatures_field, values)) {
+            return edit_result(ObjectEditStatus::failed,
+                "Encounter spawn list replacement failed");
+        }
+    } catch (const std::bad_alloc&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn edit allocation failed");
+    } catch (const std::length_error&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn edit exceeds container capacity");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::structure;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.object = edit.encounter;
+    return {ObjectEditStatus::success,
+        static_cast<uint32_t>(std::max(expected.size(), replacement.size())), {}};
+}
+
+CommandResult commit_encounter_spawn_edit(
+    EncounterSpawnEdit edit, std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* active_tab = context.workspace->active_tab();
+        if (active_tab
+            && active_tab->kind != WorkspaceTabKind::preview
+            && active_tab->kind != WorkspaceTabKind::area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Encounter spawn editing is only available in blueprint preview and area tabs",
+                CommandOutputChannel::warn);
+        }
+    }
+
+    auto state = std::make_shared<EncounterSpawnEdit>(std::move(edit));
+    auto applied = apply_encounter_spawn_edit(
+        kernel::runtime(), *state, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(
+            CommandStatus::noop, std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool internal_failure = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            internal_failure ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty() ? "Encounter spawn edit rejected"
+                                       : std::move(applied.diagnostic),
+            internal_failure ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [state, label](CommandContext& undo_context) {
+        auto replayed = apply_encounter_spawn_edit(
+            kernel::runtime(), *state, ObjectEditDirection::inverse);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty() ? "Encounter spawn undo failed"
+                                            : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(undo_context);
+        return command_edit_result(
+            CommandStatus::success, "Undo " + label, CommandOutputChannel::none);
+    };
+    action->redo = [state = std::move(state), label](CommandContext& redo_context) {
+        auto replayed = apply_encounter_spawn_edit(
+            kernel::runtime(), *state, ObjectEditDirection::forward);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty() ? "Encounter spawn redo failed"
+                                            : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(redo_context);
+        return command_edit_result(
+            CommandStatus::success, "Redo " + label, CommandOutputChannel::none);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
+std::optional<std::vector<Resref>> snapshot_sound_resources(
+    smalls::Runtime& runtime, ObjectHandle sound)
+{
+    const auto storage = sound_resource_storage(runtime, sound);
+    if (!storage || storage->sounds->size() > 1024) {
+        return std::nullopt;
+    }
+
+    try {
+        std::vector<Resref> result;
+        result.reserve(storage->sounds->size());
+        for (size_t index = 0; index < storage->sounds->size(); ++index) {
+            const void* data = storage->sounds->element_data(index);
+            Resref resource;
+            if (!data) {
+                return std::nullopt;
+            }
+            std::memcpy(&resource, data, sizeof(resource));
+            if (resource.empty()) {
+                return std::nullopt;
+            }
+            result.push_back(resource);
+        }
+        return result;
+    } catch (const std::bad_alloc&) {
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        return std::nullopt;
+    }
+}
+
+ObjectEditApplyResult apply_sound_resource_edit(
+    smalls::Runtime& runtime,
+    const SoundResourceEdit& edit,
+    ObjectEditDirection direction)
+{
+    if (edit.sound.type != ObjectType::sound
+        || !kernel::objects().get<Sound>(edit.sound)
+        || edit.before.size() > 1024
+        || edit.after.size() > 1024
+        || std::ranges::any_of(edit.before, &Resref::empty)
+        || std::ranges::any_of(edit.after, &Resref::empty)) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Sound resource edit target, list size, or resref is invalid");
+    }
+
+    const auto& expected = sound_resource_values(edit, direction, false);
+    const auto& replacement = sound_resource_values(edit, direction, true);
+    if (expected == replacement) {
+        return edit_result(ObjectEditStatus::empty,
+            "Sound resource list is already set");
+    }
+
+    const auto current = snapshot_sound_resources(runtime, edit.sound);
+    if (!current) {
+        return edit_result(ObjectEditStatus::failed,
+            "Sound resource list could not be read");
+    }
+    if (*current != expected) {
+        return edit_result(ObjectEditStatus::stale_value,
+            "Sound resource list changed before the edit was applied");
+    }
+
+    const auto storage = sound_resource_storage(runtime, edit.sound);
+    if (!storage) {
+        return edit_result(ObjectEditStatus::failed,
+            "Sound resource storage is unavailable");
+    }
+
+    try {
+        std::vector<smalls::Value> values;
+        values.reserve(replacement.size());
+        smalls::Runtime::ScopedRoots roots{runtime, replacement.size()};
+        for (const auto& resource : replacement) {
+            const auto value = smalls::detail::make_value(&runtime, resource);
+            if (value.type_id == smalls::invalid_type_id) {
+                return edit_result(ObjectEditStatus::failed,
+                    "Sound resource resref allocation failed");
+            }
+            roots.add(value);
+            values.push_back(value);
+        }
+
+        if (!runtime.replace_propset_unmanaged_array(
+                storage->propset, storage->sounds_field, values)) {
+            return edit_result(ObjectEditStatus::failed,
+                "Sound resource list replacement failed");
+        }
+    } catch (const std::bad_alloc&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Sound resource edit allocation failed");
+    } catch (const std::length_error&) {
+        return edit_result(ObjectEditStatus::failed,
+            "Sound resource edit exceeds container capacity");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::properties;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.object = edit.sound;
+    return {ObjectEditStatus::success,
+        static_cast<uint32_t>(std::max(expected.size(), replacement.size())), {}};
+}
+
+CommandResult commit_sound_resource_edit(
+    SoundResourceEdit edit, std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* active_tab = context.workspace->active_tab();
+        if (active_tab
+            && active_tab->kind != WorkspaceTabKind::preview
+            && active_tab->kind != WorkspaceTabKind::area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Sound resource editing is only available in blueprint preview and area tabs",
+                CommandOutputChannel::warn);
+        }
+    }
+
+    auto state = std::make_shared<SoundResourceEdit>(std::move(edit));
+    auto applied = apply_sound_resource_edit(
+        kernel::runtime(), *state, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(
+            CommandStatus::noop, std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool internal_failure = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            internal_failure ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty() ? "Sound resource edit rejected"
+                                       : std::move(applied.diagnostic),
+            internal_failure ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [state, label](CommandContext& undo_context) {
+        auto replayed = apply_sound_resource_edit(
+            kernel::runtime(), *state, ObjectEditDirection::inverse);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty() ? "Sound resource undo failed"
+                                            : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(undo_context);
+        return command_edit_result(
+            CommandStatus::success, "Undo " + label, CommandOutputChannel::none);
+    };
+    action->redo = [state = std::move(state), label](CommandContext& redo_context) {
+        auto replayed = apply_sound_resource_edit(
+            kernel::runtime(), *state, ObjectEditDirection::forward);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty() ? "Sound resource redo failed"
+                                            : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(redo_context);
+        return command_edit_result(
+            CommandStatus::success, "Redo " + label, CommandOutputChannel::none);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
 std::optional<std::vector<ItemPropertyRecord>> snapshot_item_property_records(
     smalls::Runtime& runtime, ObjectHandle item)
 {
@@ -3008,6 +3633,238 @@ bool item_owner_accepts_inventory(ObjectHandle owner)
         .value_or(false);
 }
 
+Inventory* store_inventory_for(Store& store, StoreInventoryCategory category) noexcept
+{
+    switch (category) {
+    case StoreInventoryCategory::armor:
+        return &store.inventory().armor;
+    case StoreInventoryCategory::miscellaneous:
+        return &store.inventory().miscellaneous;
+    case StoreInventoryCategory::potions:
+        return &store.inventory().potions;
+    case StoreInventoryCategory::rings:
+        return &store.inventory().rings;
+    case StoreInventoryCategory::weapons:
+        return &store.inventory().weapons;
+    }
+    return nullptr;
+}
+
+bool store_contains_item(Store& store, ObjectHandle item) noexcept
+{
+    const std::array inventories{
+        &store.inventory().armor,
+        &store.inventory().miscellaneous,
+        &store.inventory().potions,
+        &store.inventory().rings,
+        &store.inventory().weapons,
+    };
+    return std::ranges::any_of(inventories,
+        [item](Inventory* inventory) {
+            return find_inventory_item(*inventory, item) != nullptr;
+        });
+}
+
+ObjectEditApplyResult validate_store_item_placements(
+    const StoreItemPlacementState& state, ObjectEditDirection direction)
+{
+    auto* store = kernel::objects().get<Store>(state.store);
+    if (!store || state.rows.empty() || state.rows.size() > 1024) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Store item placement target or batch size is invalid");
+    }
+
+    std::array<size_t, 5> additions{};
+    for (size_t index = 0; index < state.rows.size(); ++index) {
+        const auto& row = state.rows[index];
+        auto* inventory = store_inventory_for(*store, row.placement.category);
+        auto* item = kernel::objects().get<Item>(row.placement.item);
+        const auto* layout = item
+            ? kernel::objects().components().find_item_layout(row.placement.item)
+            : nullptr;
+        if (!inventory || !item || !layout
+            || layout->inventory_width <= 0
+            || layout->inventory_height <= 0
+            || layout->inventory_width > inventory->columns()
+            || layout->inventory_height > inventory->rows()
+            || row.attached != (direction == ObjectEditDirection::inverse)) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Store item placement row is invalid or stale");
+        }
+        for (size_t prior = 0; prior < index; ++prior) {
+            if (state.rows[prior].placement.item == row.placement.item) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Store item placement handles must be unique");
+            }
+        }
+
+        if (direction == ObjectEditDirection::forward) {
+            if (store_contains_item(*store, row.placement.item)) {
+                return edit_result(ObjectEditStatus::stale_value,
+                    "Store placement requires detached items");
+            }
+            const size_t category = static_cast<size_t>(row.placement.category);
+            ++additions[category];
+            if (additions[category]
+                > inventory->items.capacity() - inventory->items.size()) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Store inventory item capacity would be exceeded");
+            }
+            continue;
+        }
+
+        const auto* entry = find_inventory_item(*inventory, row.placement.item);
+        if (!row.position_captured || !entry
+            || entry->pos_x != row.pos_x || entry->pos_y != row.pos_y) {
+            return edit_result(ObjectEditStatus::stale_value,
+                "Placed Store item moved before the edit was applied");
+        }
+    }
+    return edit_result(ObjectEditStatus::success);
+}
+
+bool apply_store_item_placement(Store& store,
+    StoreItemPlacementRow& row,
+    ObjectEditDirection direction)
+{
+    auto* inventory = store_inventory_for(store, row.placement.category);
+    auto* item = kernel::objects().get<Item>(row.placement.item);
+    const auto* layout = item
+        ? kernel::objects().components().find_item_layout(row.placement.item)
+        : nullptr;
+    if (!inventory || !item || !layout) {
+        return false;
+    }
+
+    if (direction == ObjectEditDirection::inverse) {
+        if (!inventory->remove_item(item)) {
+            return false;
+        }
+        if (row.page_added && !inventory->remove_empty_trailing_page()) {
+            const auto slot = inventory->xy_to_slot(row.pos_x, row.pos_y);
+            if (inventory->insert_item(slot.page, slot.row, slot.col,
+                    layout->inventory_width, layout->inventory_height)) {
+                InventoryItem entry{};
+                entry.item = item->handle();
+                entry.pos_x = row.pos_x;
+                entry.pos_y = row.pos_y;
+                inventory->items.emplace_back(std::move(entry));
+            }
+            return false;
+        }
+        row.attached = false;
+        return true;
+    }
+
+    InventorySlot slot;
+    bool added_page = false;
+    if (row.position_captured) {
+        slot = inventory->xy_to_slot(row.pos_x, row.pos_y);
+        if (row.page_added) {
+            if (slot.page != inventory->pages() || !inventory->add_page()) {
+                return false;
+            }
+            added_page = true;
+        }
+    } else {
+        slot = inventory->find_slot(
+            layout->inventory_width, layout->inventory_height);
+        if (slot.page < 0) {
+            if (!inventory->add_page()) {
+                return false;
+            }
+            added_page = true;
+            slot = inventory->find_slot(
+                layout->inventory_width, layout->inventory_height);
+        }
+    }
+
+    if (slot.page < 0 || !inventory->insert_item(slot.page, slot.row, slot.col,
+            layout->inventory_width, layout->inventory_height)) {
+        if (added_page) {
+            (void)inventory->remove_empty_trailing_page();
+        }
+        return false;
+    }
+
+    const auto [x, y] = inventory->slot_to_xy(slot);
+    InventoryItem entry{};
+    entry.item = item->handle();
+    entry.pos_x = x;
+    entry.pos_y = y;
+    inventory->items.emplace_back(std::move(entry));
+    row.pos_x = x;
+    row.pos_y = y;
+    row.position_captured = true;
+    row.page_added = added_page;
+    row.attached = true;
+    return true;
+}
+
+ObjectEditApplyResult apply_store_item_placements(
+    StoreItemPlacementState& state, ObjectEditDirection direction)
+{
+    auto validation = validate_store_item_placements(state, direction);
+    if (!validation.ok()) {
+        return validation;
+    }
+
+    auto* store = kernel::objects().get<Store>(state.store);
+    uint32_t applied_count = 0;
+    try {
+        for (; applied_count < state.rows.size(); ++applied_count) {
+            const size_t index = direction == ObjectEditDirection::forward
+                ? applied_count
+                : state.rows.size() - 1 - applied_count;
+            if (apply_store_item_placement(*store, state.rows[index], direction)) {
+                continue;
+            }
+
+            const auto rollback_direction = direction == ObjectEditDirection::forward
+                ? ObjectEditDirection::inverse
+                : ObjectEditDirection::forward;
+            bool rollback_ok = true;
+            while (applied_count > 0) {
+                --applied_count;
+                const size_t rollback_index = direction == ObjectEditDirection::forward
+                    ? applied_count
+                    : state.rows.size() - 1 - applied_count;
+                rollback_ok = apply_store_item_placement(
+                                  *store, state.rows[rollback_index], rollback_direction)
+                    && rollback_ok;
+            }
+            return edit_result(ObjectEditStatus::failed,
+                rollback_ok
+                    ? "Store item placement failed; applied rows were rolled back"
+                    : "Store item placement and rollback both failed");
+        }
+    } catch (const std::bad_alloc&) {
+        bool rollback_ok = true;
+        while (applied_count > 0) {
+            --applied_count;
+            const size_t rollback_index = direction == ObjectEditDirection::forward
+                ? applied_count
+                : state.rows.size() - 1 - applied_count;
+            const auto rollback_direction = direction == ObjectEditDirection::forward
+                ? ObjectEditDirection::inverse
+                : ObjectEditDirection::forward;
+            rollback_ok = apply_store_item_placement(
+                              *store, state.rows[rollback_index], rollback_direction)
+                && rollback_ok;
+        }
+        return edit_result(ObjectEditStatus::failed,
+            rollback_ok
+                ? "Store item placement allocation failed; applied rows were rolled back"
+                : "Store item placement allocation and rollback both failed");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::structure;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.object = state.store;
+    return {ObjectEditStatus::success, applied_count, {}};
+}
+
 ObjectEditApplyResult validate_item_placements(
     const ItemPlacementState& state, ObjectEditDirection direction)
 {
@@ -3020,11 +3877,16 @@ ObjectEditApplyResult validate_item_placements(
     auto* item_owner = state.owner.type == ObjectType::item
         ? kernel::objects().get<Item>(state.owner)
         : nullptr;
+    auto* placeable = state.owner.type == ObjectType::placeable
+        ? kernel::objects().get<Placeable>(state.owner)
+        : nullptr;
     Inventory* owner_inventory = nullptr;
     if (state.owner.type == ObjectType::creature && creature) {
         owner_inventory = &creature->inventory();
     } else if (state.owner.type == ObjectType::item && item_owner) {
         owner_inventory = &item_owner->inventory();
+    } else if (state.owner.type == ObjectType::placeable && placeable) {
+        owner_inventory = &placeable->inventory();
     }
     if (!owner_inventory) {
         return edit_result(ObjectEditStatus::invalid_batch,
@@ -3052,12 +3914,12 @@ ObjectEditApplyResult validate_item_placements(
             || layout->inventory_width <= 0 || layout->inventory_height <= 0
             || row.attached != (direction == ObjectEditDirection::inverse)) {
             return edit_result(ObjectEditStatus::invalid_batch,
-                "Creature item placement row is invalid or stale");
+                "Item placement row is invalid or stale");
         }
         for (size_t prior = 0; prior < index; ++prior) {
             if (state.rows[prior].placement.item == placement.item) {
                 return edit_result(ObjectEditStatus::invalid_batch,
-                    "Creature item placement handles must be unique");
+                    "Item placement handles must be unique");
             }
         }
 
@@ -3066,7 +3928,7 @@ ObjectEditApplyResult validate_item_placements(
         if (direction == ObjectEditDirection::forward) {
             if (inventory_entry || equipped) {
                 return edit_result(ObjectEditStatus::stale_value,
-                    "Creature item placement requires detached items");
+                    "Item placement requires detached items");
             }
         }
 
@@ -3131,7 +3993,7 @@ ObjectEditApplyResult validate_item_placements(
         } break;
         default:
             return edit_result(ObjectEditStatus::invalid_batch,
-                "Creature item placement target is invalid");
+                "Item placement target is invalid");
         }
     }
 
@@ -3191,11 +4053,16 @@ bool apply_item_placement(ObjectHandle owner,
     auto* item_owner = owner.type == ObjectType::item
         ? kernel::objects().get<Item>(owner)
         : nullptr;
+    auto* placeable = owner.type == ObjectType::placeable
+        ? kernel::objects().get<Placeable>(owner)
+        : nullptr;
     Inventory* owner_inventory = nullptr;
     if (owner.type == ObjectType::creature && creature) {
         owner_inventory = &creature->inventory();
     } else if (owner.type == ObjectType::item && item_owner) {
         owner_inventory = &item_owner->inventory();
+    } else if (owner.type == ObjectType::placeable && placeable) {
+        owner_inventory = &placeable->inventory();
     }
     auto* item = kernel::objects().get<Item>(row.placement.item);
     const auto* layout = item
@@ -3317,6 +4184,25 @@ CommandResult replay_item_placements(
         CommandStatus::success, std::string{label}, CommandOutputChannel::none);
 }
 
+CommandResult replay_store_item_placements(
+    const std::shared_ptr<StoreItemPlacementState>& state,
+    ObjectEditDirection direction,
+    std::string_view label,
+    CommandContext& context)
+{
+    auto applied = apply_store_item_placements(*state, direction);
+    if (!applied.ok()) {
+        return command_edit_result(CommandStatus::failed,
+            applied.diagnostic.empty()
+                ? "Store item placement failed"
+                : std::move(applied.diagnostic),
+            CommandOutputChannel::error);
+    }
+    mark_context_dirty(context);
+    return command_edit_result(
+        CommandStatus::success, std::string{label}, CommandOutputChannel::none);
+}
+
 } // namespace
 
 CommandResult place_items(ObjectHandle owner,
@@ -3368,6 +4254,62 @@ CommandResult place_items(ObjectHandle owner,
     };
     action->redo = [state = std::move(state), label](CommandContext& redo_context) {
         return replay_item_placements(
+            state, ObjectEditDirection::forward, "Redo " + label, redo_context);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
+CommandResult place_store_items(ObjectHandle store,
+    std::span<const StoreItemPlacement> placements,
+    std::string label,
+    CommandContext& context)
+{
+    auto state = std::make_shared<StoreItemPlacementState>();
+    state->store = store;
+    state->rows.reserve(placements.size());
+    for (const auto& placement : placements) {
+        state->rows.push_back({.placement = placement});
+    }
+
+    if (context.workspace) {
+        const auto* active_tab = context.workspace->active_tab();
+        if (active_tab
+            && active_tab->kind != WorkspaceTabKind::preview
+            && active_tab->kind != WorkspaceTabKind::area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Store item placement is only available in blueprint preview and area tabs",
+                CommandOutputChannel::warn);
+        }
+    }
+
+    auto applied = apply_store_item_placements(
+        *state, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(
+            CommandStatus::noop, std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool internal_failure = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            internal_failure ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty()
+                ? "Store item placement rejected"
+                : std::move(applied.diagnostic),
+            internal_failure ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [state, label](CommandContext& undo_context) {
+        return replay_store_item_placements(
+            state, ObjectEditDirection::inverse, "Undo " + label, undo_context);
+    };
+    action->redo = [state = std::move(state), label](CommandContext& redo_context) {
+        return replay_store_item_placements(
             state, ObjectEditDirection::forward, "Redo " + label, redo_context);
     };
     result.undo_action = std::move(action);

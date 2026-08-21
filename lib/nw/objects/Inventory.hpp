@@ -55,6 +55,10 @@ struct Inventory {
     /// Adds a page to the inventory
     bool add_page();
 
+    /// Removes the final page when it is empty and the inventory is growable.
+    /// The initial page is retained. Returns false when no page was removed.
+    bool remove_empty_trailing_page();
+
     /// Determines if inventory can hold item
     bool can_add_item(nw::Item* item) const;
 

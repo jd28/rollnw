@@ -7,8 +7,10 @@
   <link type="text/rcss" href="dialog.rcss" />
   <link type="text/rcss" href="door_editor.rcss" />
   <link type="text/rcss" href="item_editor.rcss" />
+  <link type="text/rcss" href="placeable_editor.rcss" />
   <link type="text/template" href="door_editor.rml" />
   <link type="text/template" href="item_editor.rml" />
+  <link type="text/template" href="placeable_editor.rml" />
   <link type="text/template" href="creature_editor.rml" />
   <script>
 from toolset.item_editor import {
@@ -31,6 +33,19 @@ from toolset.door_editor import {
     next_door_appearance,
     open_door_appearance_selector,
     previous_door_appearance,
+};
+from toolset.placeable_editor import {
+    close_placeable_appearance_selector,
+    filter_placeable_appearances,
+    next_placeable_appearance,
+    open_placeable_appearance_selector,
+    placeable_appearance_refresh,
+    previous_placeable_appearance,
+};
+from toolset.data_object_editor import {
+    encounter_spawns_refresh,
+    sound_resources_refresh,
+    store_inventory_refresh,
 };
 from toolset.rmlui import { refresh_creature_sheet_model };
   </script>

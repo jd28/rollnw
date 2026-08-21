@@ -3153,6 +3153,44 @@ CommandResult ToolsetBackend::place_items(
     return result;
 }
 
+CommandResult ToolsetBackend::place_store_items(
+    ObjectHandle store,
+    std::span<const StoreItemPlacement> placements,
+    CommandContext context)
+{
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = nw::toolset::place_store_items(
+        store, placements, "Place Store item", context);
+    if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
+CommandResult ToolsetBackend::replace_encounter_spawns(
+    EncounterSpawnEdit edit, CommandContext context)
+{
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = nw::toolset::commit_encounter_spawn_edit(
+        std::move(edit), "Add encounter spawn", context);
+    if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
+CommandResult ToolsetBackend::replace_sound_resources(
+    SoundResourceEdit edit, CommandContext context)
+{
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = nw::toolset::commit_sound_resource_edit(
+        std::move(edit), "Add sound resource", context);
+    if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
 TerminalCompletionResult ToolsetBackend::complete_console_command(std::string_view line, size_t cursor_byte_position) const
 {
     return terminal_.complete(command_bus_, line, cursor_byte_position);

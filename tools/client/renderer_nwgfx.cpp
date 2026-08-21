@@ -215,6 +215,27 @@ bool ClientRendererNwgfx::render_preview_viewport(const std::filesystem::path& p
         command_list, project_dir, module_generation, resource_path, viewport, dt_ms);
 }
 
+bool ClientRendererNwgfx::prepare_preview_object(const std::filesystem::path& project_dir,
+    uint64_t module_generation,
+    std::string_view resource_path)
+{
+    if (!rml_ready_ || !context_ || resource_path.empty()) {
+        return false;
+    }
+
+    renderer_.finish_render_pass();
+    if (!renderer_.command_list()) {
+        return false;
+    }
+
+    if (!viewer_viewport_) {
+        viewer_viewport_ = std::make_unique<ClientViewerViewport>(context_);
+    }
+    viewer_viewport_->set_area_options(area_viewer_options_);
+    return viewer_viewport_->prepare_preview(
+        project_dir, module_generation, resource_path);
+}
+
 void ClientRendererNwgfx::clear_viewer_viewport()
 {
     if (viewer_viewport_) {

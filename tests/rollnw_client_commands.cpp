@@ -894,6 +894,12 @@ TEST(ClientProject, BuildsResourceAwareProjectTree)
     EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/items/sword.uti.json"));
     EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/doors/door.utd.json"));
     EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/placeables/chest.utp.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/encounters/ambush.ute.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/sounds/wind.uts.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/stores/shop.utm.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/triggers/transition.utt.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/waypoints/entry.utw.json"));
+    EXPECT_TRUE(project_resource_is_preview_blueprint("shared/blueprints/encounters/ambush.ute"));
     EXPECT_FALSE(project_resource_is_preview_blueprint("shared/areas/start.caf.json"));
     EXPECT_EQ(project_resource_display_name(root, "shared/blueprints/creatures/pl_agent_001.utc.json"), "Agent");
     EXPECT_TRUE(std::filesystem::exists(root / ".rollnw" / "cache" / "project_tree_labels.json"));

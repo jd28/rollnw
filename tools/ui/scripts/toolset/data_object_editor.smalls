@@ -1,0 +1,173 @@
+import core.array as Array;
+import core.item as ItemBase;
+import core.object as O;
+import core.types as T;
+import nwn1.constants as Const;
+import nwn1.item as ItemPolicy;
+from nwn1.propsets import { EncounterState, SoundState };
+
+from core.rmlui import {
+    Command,
+    active_object,
+    active_object_type,
+};
+from core.ui import { ListConfig, ListItem };
+from core.ui.v1 import {
+    list_create,
+    list_set_items,
+    list_set_title,
+    list_set_visible,
+};
+
+const encounter_spawn_list = "data.encounter.spawns";
+const sound_resource_list = "data.sound.resources";
+const store_inventory_list = "data.store.inventory";
+const max_collection_rows = 1024;
+
+var _initialized_lists: array!(string) = {};
+
+fn _ensure_list(list_id: string): bool {
+    for (var initialized in _initialized_lists) {
+        if (initialized == list_id) { return true; }
+    }
+
+    var config: ListConfig = { row_height = 34, overscan = 6, columns = 1 };
+    if (!list_create(list_id, config) || !list_set_visible(list_id, true)) {
+        return false;
+    }
+    Array.push(_initialized_lists, list_id);
+    return true;
+}
+
+fn _set_empty(list_id: string, title: string): array!(Command) {
+    if (_ensure_list(list_id)) {
+        list_set_items(list_id, {});
+        list_set_title(list_id, title);
+    }
+    return {};
+}
+
+fn _set_rows(list_id: string, rows: array!(ListItem), count: int): array!(Command) {
+    if (!_ensure_list(list_id)) { return {}; }
+    var visible_count = Array.len(rows);
+    var title = count > visible_count
+        ? f"Showing first {visible_count} of {count} entries"
+        : f"{count} entries";
+    list_set_items(list_id, rows);
+    list_set_title(list_id, title);
+    return {};
+}
+
+fn encounter_spawns_refresh(): array!(Command) {
+    if (active_object_type() != (Const.object_type_encounter as int)) {
+        return _set_empty(encounter_spawn_list, "Waiting for a live Encounter.");
+    }
+
+    var encounter = active_object() as Encounter;
+    if ((encounter as object) == O.invalid) {
+        return _set_empty(encounter_spawn_list, "Waiting for a live Encounter.");
+    }
+
+    var spawns = get_propset!(EncounterState)(encounter).creatures;
+    var count = Array.len(spawns);
+    var visible_count = count < max_collection_rows ? count : max_collection_rows;
+    var rows: array!(ListItem) = {};
+    Array.reserve(rows, visible_count);
+    for (var index = 0; index < visible_count; index += 1) {
+        var spawn = spawns[index];
+        Array.push(rows, ListItem {
+            key = f"{index}",
+            icon_source = "",
+            cell0 = T.resref_to_string(spawn.resref),
+            cell1 = f"{spawn.cr}",
+            cell2 = f"{spawn.appearance}",
+            cell3 = spawn.single_spawn != 0 ? "Yes" : "No",
+            cell_count = 4,
+            enabled_mask = 15,
+        });
+    }
+    return count == 0
+        ? _set_empty(encounter_spawn_list, "This encounter has no spawn entries.")
+        : _set_rows(encounter_spawn_list, rows, count);
+}
+
+fn sound_resources_refresh(): array!(Command) {
+    if (active_object_type() != (Const.object_type_sound as int)) {
+        return _set_empty(sound_resource_list, "Waiting for a live Sound.");
+    }
+
+    var sound = active_object() as Sound;
+    if ((sound as object) == O.invalid) {
+        return _set_empty(sound_resource_list, "Waiting for a live Sound.");
+    }
+
+    var sounds = get_propset!(SoundState)(sound).sounds;
+    var count = Array.len(sounds);
+    var visible_count = count < max_collection_rows ? count : max_collection_rows;
+    var rows: array!(ListItem) = {};
+    Array.reserve(rows, visible_count);
+    for (var index = 0; index < visible_count; index += 1) {
+        Array.push(rows, ListItem {
+            key = f"{index}",
+            icon_source = "",
+            cell0 = T.resref_to_string(sounds[index]),
+            cell1 = "",
+            cell2 = "",
+            cell3 = "",
+            cell_count = 1,
+            enabled_mask = 1,
+        });
+    }
+    return count == 0
+        ? _set_empty(sound_resource_list, "This sound object has no sound resources.")
+        : _set_rows(sound_resource_list, rows, count);
+}
+
+fn _append_store_rows(rows: array!(ListItem), store: Store,
+    category: string, inventory_category: int): int {
+    var count = ItemBase.store_inventory_item_count(store, inventory_category);
+    var remaining = max_collection_rows - Array.len(rows);
+    if (remaining <= 0) { return count; }
+    var items = ItemBase.store_inventory_items(
+        store, inventory_category, remaining);
+    var item_rows = ItemPolicy.get_inventory_editor_rows(items);
+    for (var item_row in item_rows) {
+        Array.push(rows, ListItem {
+            key = f"{inventory_category}:{Array.len(rows)}",
+            icon_source = "",
+            cell0 = category,
+            cell1 = item_row.name,
+            cell2 = item_row.resref,
+            cell3 = f"{item_row.stack_size}",
+            cell_count = 4,
+            enabled_mask = 15,
+        });
+    }
+    return count;
+}
+
+fn store_inventory_refresh(): array!(Command) {
+    if (active_object_type() != (Const.object_type_store as int)) {
+        return _set_empty(store_inventory_list, "Waiting for a live Store.");
+    }
+
+    var store = active_object() as Store;
+    if ((store as object) == O.invalid) {
+        return _set_empty(store_inventory_list, "Waiting for a live Store.");
+    }
+
+    var rows: array!(ListItem) = {};
+    var count = _append_store_rows(
+        rows, store, "Armor", ItemBase.store_inventory_armor);
+    count += _append_store_rows(rows, store, "Miscellaneous",
+        ItemBase.store_inventory_miscellaneous);
+    count += _append_store_rows(
+        rows, store, "Potions", ItemBase.store_inventory_potions);
+    count += _append_store_rows(
+        rows, store, "Rings", ItemBase.store_inventory_rings);
+    count += _append_store_rows(
+        rows, store, "Weapons", ItemBase.store_inventory_weapons);
+    return count == 0
+        ? _set_empty(store_inventory_list, "This store has no inventory items.")
+        : _set_rows(store_inventory_list, rows, count);
+}

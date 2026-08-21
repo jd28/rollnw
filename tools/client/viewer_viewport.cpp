@@ -153,6 +153,24 @@ struct ClientViewerViewport::Impl {
         return true;
     }
 
+    bool prepare_preview(const std::filesystem::path& project_dir,
+        uint64_t module_generation,
+        std::string_view resource_path)
+    {
+        if (!context || resource_path.empty()) {
+            return false;
+        }
+        if (!mount_project(project_dir, module_generation)) {
+            return false;
+        }
+        if (!ensure_runtime()) {
+            return false;
+        }
+
+        constexpr ClientViewportRect load_viewport{0, 0, 8, 8};
+        return load_preview(resource_path, load_viewport);
+    }
+
     void discard_scene()
     {
         store_loaded_camera();
@@ -721,6 +739,14 @@ bool ClientViewerViewport::render_preview(nw::gfx::CommandList* command_list,
     return impl_
         && impl_->render_preview(
             command_list, project_dir, module_generation, resource_path, viewport, dt_ms);
+}
+
+bool ClientViewerViewport::prepare_preview(const std::filesystem::path& project_dir,
+    uint64_t module_generation,
+    std::string_view resource_path)
+{
+    return impl_
+        && impl_->prepare_preview(project_dir, module_generation, resource_path);
 }
 
 void ClientViewerViewport::clear()

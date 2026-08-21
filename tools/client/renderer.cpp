@@ -144,6 +144,23 @@ bool ClientRenderer::render_preview_viewport(const std::filesystem::path& projec
     return false;
 }
 
+bool ClientRenderer::prepare_preview_object(const std::filesystem::path& project_dir,
+    uint64_t module_generation,
+    std::string_view resource_path)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.prepare_preview_object(
+            project_dir, module_generation, resource_path);
+    }
+#endif
+
+    (void)project_dir;
+    (void)module_generation;
+    (void)resource_path;
+    return false;
+}
+
 void ClientRenderer::clear_viewer_viewport()
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)

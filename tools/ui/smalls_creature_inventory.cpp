@@ -5,6 +5,7 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Placeable.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -162,15 +163,20 @@ void build_object_inventory_rows(smalls::Runtime& runtime,
     auto* item_owner = active_object.type == ObjectType::item
         ? kernel::objects().get<Item>(active_object)
         : nullptr;
+    auto* placeable = active_object.type == ObjectType::placeable
+        ? kernel::objects().get<Placeable>(active_object)
+        : nullptr;
     Inventory* owner_inventory = nullptr;
     if (active_object.type == ObjectType::creature && creature) {
         owner_inventory = &creature->inventory();
     } else if (active_object.type == ObjectType::item && item_owner) {
         owner_inventory = &item_owner->inventory();
+    } else if (active_object.type == ObjectType::placeable && placeable) {
+        owner_inventory = &placeable->inventory();
     }
     if (!owner_inventory) {
         output.status = InventoryViewStatus::invalid_object;
-        output.diagnostic = "Active object is not a live Creature or Item";
+        output.diagnostic = "Active object is not a live Creature, Item, or Placeable";
         return;
     }
 
@@ -307,16 +313,23 @@ void build_object_inventory_rows(smalls::Runtime& runtime,
         });
     }
 
-    const auto* visual = kernel::objects().components().find_visual(active_object);
-    if (!visual || visual->body_variant < 0
-        || visual->body_variant >= ObjectItemIconState::variant_count) {
-        output.status = InventoryViewStatus::invalid_data;
-        output.diagnostic = "Inventory owner has no valid materialized icon variant";
-        return;
+    uint8_t icon_variant = 0;
+    if (placeable) {
+        // Placeables do not carry the creature/item body-variant component. Their
+        // contained item icons use the first precomputed PLT variant.
+        icon_variant = 0;
+    } else {
+        const auto* visual = kernel::objects().components().find_visual(active_object);
+        if (!visual || visual->body_variant < 0
+            || visual->body_variant >= ObjectItemIconState::variant_count) {
+            output.status = InventoryViewStatus::invalid_data;
+            output.diagnostic = "Inventory owner has no valid materialized icon variant";
+            return;
+        }
+        icon_variant = static_cast<uint8_t>(visual->body_variant);
     }
     ItemIconBatch icon_batch;
-    build_item_icon_images(static_cast<uint8_t>(visual->body_variant),
-        icon_items, icon_cache, icon_batch);
+    build_item_icon_images(icon_variant, icon_items, icon_cache, icon_batch);
     for (size_t index = 0; index < icon_batch.sources.size(); ++index) {
         if (icon_batch.sources[index].empty()) {
             continue;

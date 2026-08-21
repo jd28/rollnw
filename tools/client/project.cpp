@@ -1274,7 +1274,12 @@ bool project_resource_is_preview_blueprint(const fs::path& relative_path)
         && (resource.type == nw::ResourceType::utc
             || resource.type == nw::ResourceType::uti
             || resource.type == nw::ResourceType::utd
-            || resource.type == nw::ResourceType::utp);
+            || resource.type == nw::ResourceType::utp
+            || resource.type == nw::ResourceType::ute
+            || resource.type == nw::ResourceType::uts
+            || resource.type == nw::ResourceType::utm
+            || resource.type == nw::ResourceType::utt
+            || resource.type == nw::ResourceType::utw);
 }
 
 std::string project_resource_display_name(const fs::path& project_dir, const fs::path& resource_relative_path)

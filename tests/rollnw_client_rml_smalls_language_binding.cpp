@@ -10,8 +10,12 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/serialization/Serialization.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -422,6 +426,102 @@ TEST(ClientRmlTemplates, DoorWorkbenchExpandsSmallsFirstAppearanceStructure)
     document->Close();
     context->Update();
     Rml::RemoveContext("door-workbench-template-test");
+}
+
+TEST(ClientRmlTemplates, PlaceableWorkbenchExpandsSmallsFirstAppearanceStructure)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    const std::filesystem::path ui_resource_path = "tools/client/ui";
+    const std::string source = "<rml><head>"
+                               "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "panel.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "placeable_editor.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/template\" href=\""
+        + (ui_resource_path / "placeable_editor.rml").generic_string()
+        + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
+          "</head><body><template src=\"placeable-workbench\"></template>"
+          "<div id=\"object_variable_warning_tooltip\"></div></body></rml>";
+
+    auto* context = Rml::CreateContext(
+        "placeable-workbench-template-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        source, "placeable_workbench_template_test.rml");
+    ASSERT_NE(document, nullptr);
+
+    auto* details = document->GetElementById("placeable_surface_details");
+    auto* variables = document->GetElementById("placeable_surface_variables");
+    auto* appearance = document->GetElementById("placeable_surface_appearance");
+    auto* inventory = document->GetElementById("placeable_surface_inventory");
+    auto* appearance_dynamic = document->GetElementById(
+        "placeable_appearance_dynamic");
+    ASSERT_NE(details, nullptr);
+    ASSERT_NE(variables, nullptr);
+    ASSERT_NE(appearance, nullptr);
+    ASSERT_NE(inventory, nullptr);
+    ASSERT_NE(appearance_dynamic, nullptr);
+    EXPECT_TRUE(appearance_dynamic->IsClassSet("smalls_refresh"));
+    EXPECT_NE(document->GetElementById("property_tree_rows"), nullptr);
+    EXPECT_NE(document->GetElementById("object_variable_rows"), nullptr);
+    EXPECT_NE(document->GetElementById("placeable_inventory_dynamic"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tab_track"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_previous"), nullptr);
+    EXPECT_NE(document->GetElementById("object_workbench_tabs_next"), nullptr);
+
+    details->SetClass("active", false);
+    appearance->SetClass("active", true);
+    appearance_dynamic->SetInnerRML(
+        "<div class='placeable_appearance_editor active'>"
+        "<div id='placeable-layout-actions' class='placeable_appearance_actions'>"
+        "<button class='placeable_appearance_cycle_button'>&#x2039;</button>"
+        "<button class='placeable_appearance_open'>Choose Appearance</button>"
+        "<button class='placeable_appearance_cycle_button'>&#x203a;</button>"
+        "</div></div>");
+    document->Show();
+    context->Update();
+    auto* actions = document->GetElementById("placeable-layout-actions");
+    ASSERT_NE(actions, nullptr);
+    EXPECT_GT(actions->GetOffsetWidth(), 0.0f);
+    EXPECT_NEAR(actions->GetAbsoluteLeft() + actions->GetOffsetWidth() * 0.5f,
+        appearance_dynamic->GetAbsoluteLeft()
+            + appearance_dynamic->GetOffsetWidth() * 0.5f,
+        0.5f);
+
+    appearance_dynamic->SetInnerRML(
+        "<div class='placeable_appearance_selector active'>"
+        "<div class='placeable_appearance_search_row'>"
+        "<input id='placeable-layout-search' class='placeable_appearance_search' type='text' />"
+        "</div>"
+        "<div id='placeable-layout-rows' class='placeable_appearance_rows'>"
+        "<div id='placeable-layout-row' class='managed_list_row'>"
+        "<span id='placeable-layout-name' class='managed_list_cell cell_0'>Chest</span>"
+        "<span class='managed_list_cell cell_1'>plc_c01</span>"
+        "</div></div></div>");
+    document->Show();
+    context->Update();
+    auto* search = document->GetElementById("placeable-layout-search");
+    auto* layout_row = document->GetElementById("placeable-layout-row");
+    auto* name = document->GetElementById("placeable-layout-name");
+    ASSERT_NE(search, nullptr);
+    ASSERT_NE(layout_row, nullptr);
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(search->GetOffsetHeight(), 28.0f);
+    EXPECT_EQ(layout_row->GetOffsetHeight(), 34.0f);
+    EXPECT_GT(name->GetOffsetWidth(), 0.0f);
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("placeable-workbench-template-test");
 }
 
 TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
@@ -1080,7 +1180,7 @@ from test.rml_runtime_actions import { select };
     Rml::RemoveContext("smalls-runtime-replacement-test");
 }
 
-TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProtocols)
+TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
 {
     KernelServiceScope services;
     auto& runtime = nw::kernel::runtime();
@@ -1108,6 +1208,8 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProto
     ASSERT_TRUE(load_and_compile("toolset.rmlui"));
     ASSERT_TRUE(load_and_compile("toolset.item_editor"));
     ASSERT_TRUE(load_and_compile("toolset.door_editor"));
+    ASSERT_TRUE(load_and_compile("toolset.placeable_editor"));
+    ASSERT_TRUE(load_and_compile("toolset.data_object_editor"));
 
     const auto verify_options = [&](std::string_view function, int32_t minimum_row) {
         const auto result = runtime.execute_script("nwn1.doors", function, {});
@@ -1213,8 +1315,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProto
     EXPECT_TRUE(std::ranges::is_sorted(genericdoor_labels));
 
     const auto unfiltered_genericdoor_count = genericdoors->items.size();
-    const std::string first_genericdoor_label =
-        genericdoors->items.front().cells[0];
+    const std::string first_genericdoor_label = genericdoors->items.front().cells[0];
     const auto event_type = runtime.type_id("core.rmlui.Event", false);
     ASSERT_NE(event_type, nw::smalls::invalid_type_id);
     nw::smalls::Runtime::ScopedRoots roots{runtime, 3};
@@ -1260,6 +1361,169 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesItemEditorWithRegisteredNativeProto
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::kernel::objects().destroy(door->handle());
+
+    auto* placeable = nw::kernel::objects().load_file<nw::Placeable>(
+        "test_data/user/development/arrowcorpse001.utp");
+    ASSERT_NE(placeable, nullptr);
+    nw::toolset::smalls_rmlui_host().publish_active_object(placeable->handle());
+
+    const auto placeable_refresh = runtime.execute_script(
+        "toolset.placeable_editor", "placeable_appearance_refresh", {});
+    ASSERT_TRUE(placeable_refresh.ok());
+    ASSERT_EQ(runtime.array_size(placeable_refresh.value.data.hptr), 1u);
+    nw::smalls::Value placeable_refresh_command;
+    ASSERT_TRUE(runtime.array_get(placeable_refresh.value.data.hptr, 0u,
+        placeable_refresh_command));
+    const auto placeable_markup = runtime.read_struct_field(
+        placeable_refresh_command.data.hptr,
+        placeable_refresh_command.type_id, "value");
+    ASSERT_EQ(placeable_markup.type_id, runtime.string_type());
+    const auto placeable_markup_text = runtime.get_string_view(
+        placeable_markup.data.hptr);
+    EXPECT_NE(placeable_markup_text.find("placeable_appearance_label'>Name"),
+        std::string_view::npos);
+    EXPECT_NE(placeable_markup_text.find("placeable_appearance_label'>Model"),
+        std::string_view::npos);
+    EXPECT_NE(placeable_markup_text.find("placeable_appearance_previous"),
+        std::string_view::npos);
+    EXPECT_NE(placeable_markup_text.find("placeable_appearance_next"),
+        std::string_view::npos);
+
+    const auto open_placeable_selector = runtime.execute_script(
+        "toolset.placeable_editor", "open_placeable_appearance_selector", {});
+    ASSERT_TRUE(open_placeable_selector.ok());
+    const auto placeable_window = nw::toolset::ui_v1_host().window(
+        "placeable.appearance", 300, 0);
+    ASSERT_TRUE(placeable_window);
+    EXPECT_TRUE(placeable_window->visible);
+    ASSERT_FALSE(placeable_window->items.empty());
+    EXPECT_EQ(placeable_window->columns, 1);
+    std::vector<std::string> placeable_labels;
+    placeable_labels.reserve(placeable_window->items.size());
+    for (const auto& item : placeable_window->items) {
+        ASSERT_EQ(item.cell_count, 2);
+        ASSERT_FALSE(item.cells[0].empty());
+        ASSERT_FALSE(item.cells[1].empty());
+        placeable_labels.push_back(ascii_lower_copy(item.cells[0]));
+    }
+    EXPECT_TRUE(std::ranges::is_sorted(placeable_labels));
+    const std::string placeable_list_markup =
+        nw::toolset::render_managed_list_window(
+            "placeable.appearance", *placeable_window, "No appearances.");
+    EXPECT_NE(placeable_list_markup.find("managed_list_row"), std::string::npos);
+    EXPECT_EQ(placeable_list_markup.find("managed_list_grid_row"),
+        std::string::npos);
+
+    const auto refresh_open_placeable_selector = runtime.execute_script(
+        "toolset.placeable_editor", "placeable_appearance_refresh", {});
+    ASSERT_TRUE(refresh_open_placeable_selector.ok());
+    EXPECT_EQ(runtime.array_size(
+                  refresh_open_placeable_selector.value.data.hptr),
+        0u);
+
+    nw::toolset::smalls_rmlui_host().clear_active_object();
+    nw::kernel::objects().destroy(placeable->handle());
+
+    const auto verify_data_list = [&](nw::ObjectHandle handle,
+                                      std::string_view refresh_function,
+                                      std::string_view list_id,
+                                      uint8_t cell_count) {
+        nw::toolset::smalls_rmlui_host().publish_active_object(handle);
+        const auto refresh = runtime.execute_script(
+            "toolset.data_object_editor", refresh_function, {});
+        ASSERT_TRUE(refresh.ok()) << refresh_function;
+        const auto window = nw::toolset::ui_v1_host().window(list_id, 170, 0);
+        ASSERT_TRUE(window) << list_id;
+        EXPECT_TRUE(window->visible);
+        ASSERT_FALSE(window->items.empty()) << list_id;
+        EXPECT_LE(window->items.size(), 1024u);
+        EXPECT_EQ(window->items.front().cell_count, cell_count);
+        const auto markup = nw::toolset::render_managed_list_window(
+            list_id, *window, "No entries.");
+        EXPECT_NE(markup.find("managed_list_row"), std::string::npos);
+    };
+
+    auto* encounter = nw::kernel::objects().load_file<nw::Encounter>(
+        "test_data/user/development/boundelementallo.ute");
+    ASSERT_NE(encounter, nullptr);
+    verify_data_list(encounter->handle(), "encounter_spawns_refresh",
+        "data.encounter.spawns", 4);
+
+    const auto encounter_spawns_before = nw::toolset::snapshot_encounter_spawns(
+        runtime, encounter->handle());
+    ASSERT_TRUE(encounter_spawns_before);
+    ASSERT_FALSE(encounter_spawns_before->empty());
+    auto encounter_spawns_after = *encounter_spawns_before;
+    encounter_spawns_after.pop_back();
+    const nw::toolset::EncounterSpawnEdit encounter_edit{
+        .encounter = encounter->handle(),
+        .before = *encounter_spawns_before,
+        .after = encounter_spawns_after,
+    };
+    ASSERT_EQ(nw::toolset::apply_encounter_spawn_edit(
+                  runtime, encounter_edit,
+                  nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::success);
+    ASSERT_TRUE(runtime.execute_script(
+        "toolset.data_object_editor", "encounter_spawns_refresh", {})
+                    .ok());
+    const auto edited_encounter_window = nw::toolset::ui_v1_host().window(
+        "data.encounter.spawns", 170, 0);
+    ASSERT_TRUE(edited_encounter_window);
+    EXPECT_EQ(edited_encounter_window->items.size(),
+        encounter_spawns_after.size());
+    ASSERT_EQ(nw::toolset::apply_encounter_spawn_edit(
+                  runtime, encounter_edit,
+                  nw::toolset::ObjectEditDirection::inverse)
+                  .status,
+        nw::toolset::ObjectEditStatus::success);
+    nw::kernel::objects().destroy(encounter->handle());
+
+    auto* sound = nw::kernel::objects().load_file<nw::Sound>(
+        "test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+    verify_data_list(sound->handle(), "sound_resources_refresh",
+        "data.sound.resources", 1);
+
+    const auto sound_resources_before = nw::toolset::snapshot_sound_resources(
+        runtime, sound->handle());
+    ASSERT_TRUE(sound_resources_before);
+    ASSERT_FALSE(sound_resources_before->empty());
+    auto sound_resources_after = *sound_resources_before;
+    sound_resources_after.push_back(sound_resources_before->front());
+    const nw::toolset::SoundResourceEdit sound_edit{
+        .sound = sound->handle(),
+        .before = *sound_resources_before,
+        .after = sound_resources_after,
+    };
+    ASSERT_EQ(nw::toolset::apply_sound_resource_edit(
+                  runtime, sound_edit,
+                  nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::success);
+    ASSERT_TRUE(runtime.execute_script(
+        "toolset.data_object_editor", "sound_resources_refresh", {})
+                    .ok());
+    const auto edited_sound_window = nw::toolset::ui_v1_host().window(
+        "data.sound.resources", 170, 0);
+    ASSERT_TRUE(edited_sound_window);
+    EXPECT_EQ(edited_sound_window->items.size(), sound_resources_after.size());
+    ASSERT_EQ(nw::toolset::apply_sound_resource_edit(
+                  runtime, sound_edit,
+                  nw::toolset::ObjectEditDirection::inverse)
+                  .status,
+        nw::toolset::ObjectEditStatus::success);
+    nw::kernel::objects().destroy(sound->handle());
+
+    auto* store = nw::kernel::objects().load_file<nw::Store>(
+        "test_data/user/development/storethief002.utm");
+    ASSERT_NE(store, nullptr);
+    verify_data_list(store->handle(), "store_inventory_refresh",
+        "data.store.inventory", 4);
+    nw::kernel::objects().destroy(store->handle());
+
+    nw::toolset::smalls_rmlui_host().clear_active_object();
 }
 
 TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObject)

@@ -2,8 +2,19 @@ from core.types import { ResRef };
 
 [[native]]
 type PlaceableAppearanceInfo {
-    id: int;
-    model: ResRef;
+    id:         int;
+    string_ref: int;
+    model:      ResRef;
+};
+
+[[native]]
+type PlaceableAppearanceOption {
+    id:       int;
+    label:    string;
+    model:    string;
+    sort_key: string;
 };
 
 [[native]] fn placeable_info(id: int): PlaceableAppearanceInfo;
+[[native]] fn placeable_appearance_option(id: int): PlaceableAppearanceOption;
+[[native]] fn available_placeable_appearance_options(): array!(PlaceableAppearanceOption);

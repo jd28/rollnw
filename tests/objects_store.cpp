@@ -135,4 +135,7 @@ TEST(Store, Inventory)
     EXPECT_EQ(ent->inventory().weapons.pages(), 1);
     EXPECT_TRUE(ent->inventory().weapons.add_page());
     EXPECT_EQ(ent->inventory().weapons.pages(), 2);
+    EXPECT_TRUE(ent->inventory().weapons.remove_empty_trailing_page());
+    EXPECT_EQ(ent->inventory().weapons.pages(), 1);
+    EXPECT_FALSE(ent->inventory().weapons.remove_empty_trailing_page());
 }

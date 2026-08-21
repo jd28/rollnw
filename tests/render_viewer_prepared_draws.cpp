@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../tools/client/object_edits.hpp"
+#include "../tools/ui/smalls_creature_properties.hpp"
 
 #include <nw/formats/Image.hpp>
 #include <nw/gfx/gfx.hpp>
@@ -10,9 +11,11 @@
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
@@ -543,6 +546,52 @@ TEST(RenderViewerPreparedDraws, StandalonePlaceablePreviewIgnoresPersistedGamepl
     EXPECT_EQ(visual.visual.hold_animation, nw::Resref{"default"sv});
 }
 
+TEST(RenderViewerPreparedDraws, StandalonePlaceablePreviewPublishesLivePlaceable)
+{
+    namespace viewer = nw::render::viewer;
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_object_file(
+        "test_data/user/development/arrowcorpse001.utp"sv));
+
+    const auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    const auto active_object = session->active_object();
+    EXPECT_EQ(active_object, scene->root_object);
+    EXPECT_EQ(active_object, scene->active_object);
+    EXPECT_EQ(active_object.type, nw::ObjectType::placeable);
+    EXPECT_TRUE(nw::kernel::objects().valid(active_object));
+    EXPECT_NE(nw::kernel::objects().get<nw::Placeable>(active_object), nullptr);
+
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+    nw::toolset::ObjectDetailsSnapshot details;
+    nw::toolset::build_object_details(runtime, active_object, details);
+    EXPECT_EQ(details.status, nw::toolset::ObjectDetailsStatus::ready)
+        << details.diagnostic;
+    EXPECT_FALSE(details.rows.empty());
+
+    session.reset();
+    EXPECT_FALSE(nw::kernel::objects().valid(active_object));
+}
+
 TEST(RenderViewerPreparedDraws, DoorLoadReportUsesSmallsResolverRows)
 {
     namespace viewer = nw::render::viewer;
@@ -835,6 +884,156 @@ TEST(RenderViewerPreparedDraws, PreviewSceneDestroysOwnedRootObject)
     }
 
     EXPECT_FALSE(nw::kernel::objects().valid(handle));
+}
+
+TEST(RenderViewerPreparedDraws, NonVisualDataBlueprintPreviewsPublishOwnedLiveObjects)
+{
+    namespace viewer = nw::render::viewer;
+
+    struct BlueprintCase {
+        std::string_view path;
+        nw::ObjectType type = nw::ObjectType::invalid;
+    };
+
+    constexpr std::array cases{
+        BlueprintCase{"test_data/user/development/blue_bell.uts"sv,
+            nw::ObjectType::sound},
+        BlueprintCase{"test_data/user/development/storethief002.utm"sv,
+            nw::ObjectType::store},
+        BlueprintCase{"test_data/user/development/pl_spray_sewage.utt"sv,
+            nw::ObjectType::trigger},
+    };
+
+    viewer::PreviewRenderResources resources{nullptr};
+    for (const auto& blueprint : cases) {
+        SCOPED_TRACE(blueprint.path);
+
+        auto scene = viewer::load_preview_scene(resources, blueprint.path);
+        ASSERT_NE(scene, nullptr);
+        EXPECT_TRUE(scene->static_models.empty());
+        EXPECT_EQ(scene->root_object, scene->active_object);
+        EXPECT_EQ(scene->root_object.type, blueprint.type);
+        EXPECT_TRUE(nw::kernel::objects().valid(scene->root_object));
+
+        const auto handle = scene->root_object;
+        scene.reset();
+        EXPECT_FALSE(nw::kernel::objects().valid(handle));
+    }
+}
+
+TEST(RenderViewerPreparedDraws, EncounterBlueprintPreviewsAndRebuildsSpawnGroup)
+{
+    namespace viewer = nw::render::viewer;
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_object_file(
+        "test_data/user/development/boundelementallo.ute"sv));
+
+    const auto encounter = session->active_object();
+    ASSERT_EQ(encounter.type, nw::ObjectType::encounter);
+    ASSERT_TRUE(nw::kernel::objects().valid(encounter));
+    const auto before = nw::toolset::snapshot_encounter_spawns(
+        nw::kernel::runtime(), encounter);
+    ASSERT_TRUE(before);
+    ASSERT_FALSE(before->empty());
+
+    auto two_spawns = std::vector<nw::toolset::EncounterSpawnRecord>(
+        2, before->front());
+    for (auto& spawn : two_spawns) {
+        spawn.resref = nw::Resref{"nw_chicken"sv};
+    }
+    const auto two_applied = nw::toolset::apply_encounter_spawn_edit(
+        nw::kernel::runtime(),
+        {encounter, *before, two_spawns},
+        nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(two_applied.ok()) << two_applied.diagnostic;
+    ASSERT_TRUE(session->rebuild_live_object(encounter));
+
+    const auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_EQ(scene->root_object, encounter);
+    ASSERT_EQ(scene->active_object, encounter);
+    ASSERT_FALSE(scene->static_models.empty());
+    ASSERT_EQ(scene->static_models.size() % 2, 0u);
+    const size_t models_per_creature = scene->static_models.size() / 2;
+    ASSERT_GT(models_per_creature, 0u);
+    const auto* first = scene->static_model_instance(0);
+    const auto* second = scene->static_model_instance(models_per_creature);
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    EXPECT_GT(glm::distance(
+                  glm::vec3{first->root_transform[3]},
+                  glm::vec3{second->root_transform[3]}),
+        0.5f);
+
+    auto three_spawns = two_spawns;
+    three_spawns.push_back(two_spawns.front());
+    const auto three_applied = nw::toolset::apply_encounter_spawn_edit(
+        nw::kernel::runtime(),
+        {encounter, two_spawns, three_spawns},
+        nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(three_applied.ok()) << three_applied.diagnostic;
+    ASSERT_TRUE(session->rebuild_live_object(encounter));
+    ASSERT_NE(session->scene(), nullptr);
+    EXPECT_EQ(session->scene()->static_models.size(), models_per_creature * 3);
+    EXPECT_EQ(session->active_object(), encounter);
+
+    session.reset();
+    EXPECT_FALSE(nw::kernel::objects().valid(encounter));
+}
+
+TEST(RenderViewerPreparedDraws, WaypointBlueprintLoadsAppearanceModel)
+{
+    namespace viewer = nw::render::viewer;
+
+    constexpr auto waypoint_model = "gi_waypoint02"sv;
+    const nw::Resource model_resource{
+        nw::Resref{waypoint_model}, nw::ResourceType::mdl};
+    const std::array model_resources{model_resource};
+    ASSERT_TRUE(resource_payloads_available(model_resources));
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_object_file(
+        "test_data/user/development/wp_behexit001.utw"sv));
+
+    const auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_FALSE(scene->static_models.empty());
+    EXPECT_TRUE(report_has_model_name(scene->load_report, waypoint_model));
+    EXPECT_EQ(scene->root_object.type, nw::ObjectType::waypoint);
+    EXPECT_EQ(scene->root_object, scene->active_object);
 }
 
 TEST(RenderViewerPreparedDraws, PreviewSceneDestroysAreaRootAndContainedObjects)

@@ -29,6 +29,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/StaticDirectory.hpp>
@@ -652,11 +653,33 @@ enum class ObjectWorkbenchSurface : uint8_t {
     feats,
     spells,
     inventory,
+    spawns,
+    sounds,
+    store_inventory,
 };
 
 ObjectWorkbenchSurface default_object_workbench_surface()
 {
     return ObjectWorkbenchSurface::details;
+}
+
+bool standalone_data_workbench(nw::ObjectType type) noexcept
+{
+    switch (type) {
+    case nw::ObjectType::sound:
+    case nw::ObjectType::store:
+    case nw::ObjectType::trigger:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool object_has_grid_inventory(nw::ObjectType type) noexcept
+{
+    return type == nw::ObjectType::creature
+        || type == nw::ObjectType::item
+        || type == nw::ObjectType::placeable;
 }
 
 enum class CreatureSpellFilterField : uint8_t {
@@ -705,37 +728,52 @@ struct AreaObjectPlacementState {
     }
 };
 
-enum class ProjectItemDragPhase : uint8_t {
+enum class ProjectBlueprintDragPhase : uint8_t {
     idle,
     armed,
     target_valid,
     target_invalid,
 };
 
-enum class ProjectItemDropTargetKind : uint8_t {
+enum class ProjectBlueprintDragKind : uint8_t {
+    none,
+    item,
+    encounter_spawn,
+    sound_resource,
+};
+
+enum class ProjectBlueprintDropTargetKind : uint8_t {
     none,
     inventory,
     equipment,
+    encounter_spawns,
+    sound_resources,
+    store_inventory,
 };
 
-struct ProjectItemDropTarget {
-    ProjectItemDropTargetKind kind = ProjectItemDropTargetKind::none;
+struct ProjectBlueprintDropTarget {
+    ProjectBlueprintDropTargetKind kind = ProjectBlueprintDropTargetKind::none;
     int32_t page = -1;
     int32_t row = -1;
     int32_t column = -1;
+    int32_t category = -1;
     nw::EquipIndex slot = nw::EquipIndex::invalid;
 
-    bool operator==(const ProjectItemDropTarget&) const = default;
+    bool operator==(const ProjectBlueprintDropTarget&) const = default;
 };
 
-struct ProjectItemDragState {
+struct ProjectBlueprintDragState {
     std::filesystem::path source_path;
+    nw::Resource resource;
     nw::ObjectHandle owner{};
     nw::ObjectHandle item{};
+    std::optional<nw::toolset::EncounterSpawnEdit> encounter_spawn_edit;
+    std::optional<nw::toolset::SoundResourceEdit> sound_resource_edit;
     Rml::Vector2f drag_start;
     std::string tab_id;
-    ProjectItemDropTarget target;
-    ProjectItemDragPhase phase = ProjectItemDragPhase::idle;
+    ProjectBlueprintDropTarget target;
+    ProjectBlueprintDragKind kind = ProjectBlueprintDragKind::none;
+    ProjectBlueprintDragPhase phase = ProjectBlueprintDragPhase::idle;
     int32_t width = 0;
     int32_t height = 0;
     bool threshold_crossed = false;
@@ -743,7 +781,7 @@ struct ProjectItemDragState {
 
     [[nodiscard]] bool active() const noexcept
     {
-        return phase != ProjectItemDragPhase::idle;
+        return phase != ProjectBlueprintDragPhase::idle;
     }
 };
 
@@ -866,7 +904,7 @@ struct AppState {
     bool viewer_viewport_focused = false;
     AreaObjectDragState area_object_drag;
     AreaObjectPlacementState area_object_placement;
-    ProjectItemDragState project_item_drag;
+    ProjectBlueprintDragState project_blueprint_drag;
     ClientViewportDragMode viewer_viewport_drag_mode = ClientViewportDragMode::look;
     Rml::Vector2f viewer_viewport_last_point;
     float viewer_fps_frame_seconds = 0.0f;
@@ -4486,8 +4524,7 @@ bool active_creature_inventory_object_matches_tab(const AppState& state)
     const auto* active_tab = state.workspace.active_tab();
     return active_tab_has_object_workbench(active_tab)
         && state.active_object_tab_id == active_tab->id
-        && (state.creature_inventory.object.type == nw::ObjectType::creature
-            || state.creature_inventory.object.type == nw::ObjectType::item);
+        && object_has_grid_inventory(state.creature_inventory.object.type);
 }
 
 void rebuild_active_creature_inventory(AppState& state, nw::ObjectHandle object)
@@ -5343,6 +5380,8 @@ void append_creature_color_selector_markup(std::string& content_markup, const Ap
     content_markup += "px\"></div></div></div></div>";
 }
 
+void append_creature_inventory_markup(std::string& content_markup, const AppState& state);
+
 void hydrate_item_workbench(Rml::ElementDocument* doc, const AppState& state)
 {
     if (!find_el(doc, "item_surface_details")) { return; }
@@ -5429,6 +5468,60 @@ void hydrate_door_workbench(Rml::ElementDocument* doc, const AppState& state)
         if (auto* title = find_el(doc, "door_object_title")) {
             title->SetInnerRML(escape_html(
                 nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+}
+
+void hydrate_placeable_workbench(Rml::ElementDocument* doc, const AppState& state)
+{
+    if (!find_el(doc, "placeable_surface_details")) {
+        return;
+    }
+
+    struct PlaceableSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        PlaceableSurfaceElements{"placeable_tab_details", "placeable_surface_details",
+            ObjectWorkbenchSurface::details},
+        PlaceableSurfaceElements{"placeable_tab_variables", "placeable_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        PlaceableSurfaceElements{"placeable_tab_appearance", "placeable_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+        PlaceableSurfaceElements{"placeable_tab_inventory", "placeable_surface_inventory",
+            ObjectWorkbenchSurface::inventory},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = state.workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::placeable;
+    if (auto* header = find_el(doc, "placeable_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "placeable_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
+        std::string markup;
+        append_creature_inventory_markup(markup, state);
+        if (auto* target = find_el(doc, "placeable_inventory_dynamic")) {
+            target->SetInnerRML(markup);
         }
     }
 }
@@ -5942,7 +6035,12 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += "<template src=\"door-workbench\"></template>";
         return;
     }
-    const bool project_module = state.object_details.object.type == nw::ObjectType::module
+    if (state.object_details.object.type == nw::ObjectType::placeable) {
+        content_markup += "<template src=\"placeable-workbench\"></template>";
+        return;
+    }
+    const auto object_type = state.object_details.object.type;
+    const bool project_module = object_type == nw::ObjectType::module
         && !state.backend.current_project_dir().empty();
     content_markup += "<div id=\"object_workbench\" class=\"object_workbench\">";
     if (area_tab && active_object_matches_tab(state)) {
@@ -5978,13 +6076,24 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         }
         content_markup += "\" data-surface=\"haks\">Haks</div>";
     }
-    const bool appearance = state.object_details.object.type == nw::ObjectType::placeable;
-    if (appearance) {
+    if (object_type == nw::ObjectType::encounter) {
         content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::spawns) {
             content_markup += " active";
         }
-        content_markup += "\" data-surface=\"appearance\">Appearance</div>";
+        content_markup += "\" data-surface=\"spawns\">Spawns</div>";
+    } else if (object_type == nw::ObjectType::sound) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"sounds\">Sounds</div>";
+    } else if (object_type == nw::ObjectType::store) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"store-inventory\">Inventory</div>";
     }
     content_markup += "</div></div>"
                       "<button id=\"object_workbench_tabs_previous\" "
@@ -6027,17 +6136,57 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
             }
         }
         content_markup += "</div>";
-    } else if (appearance && state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
-        if (active_color_editor_matches_tab(state)) {
-            append_creature_color_selector_markup(content_markup, state);
-        } else if (state.appearance_selector_open) {
-            append_appearance_selector_markup(content_markup, state);
-        } else {
-            content_markup += "<div id=\"appearance_editor\" class=\"appearance_editor\">";
-            append_appearance_catalog_field_markup(
-                content_markup, state, AppearanceEditorField::appearance);
-            content_markup += "</div>";
-        }
+    } else if (object_type == nw::ObjectType::encounter
+        && state.object_workbench_surface == ObjectWorkbenchSurface::spawns) {
+        content_markup += "<div id=\"encounter_spawn_collection\" "
+                          "class=\"data_object_collection smalls_refresh\" "
+                          "onrefresh=\"encounter_spawns_refresh()\">"
+                          "<div class=\"data_collection_header encounter_spawn_header\">"
+                          "<span>Creature</span><span>CR</span><span>Appearance</span><span>Single</span>"
+                          "</div><div class=\"data_collection_summary managed_list_title\" "
+                          "data-list-id=\"data.encounter.spawns\"></div>"
+                          "<div class=\"data_collection_rows encounter_spawn_rows managed_list_rows\" "
+                          "tabindex=\"0\" "
+                          "data-list-id=\"data.encounter.spawns\" "
+                          "data-empty-text=\"This encounter has no spawn entries.\"></div></div>";
+    } else if (object_type == nw::ObjectType::sound
+        && state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
+        content_markup += "<div id=\"sound_resource_collection\" "
+                          "class=\"data_object_collection smalls_refresh\" "
+                          "onrefresh=\"sound_resources_refresh()\">"
+                          "<div class=\"data_collection_header sound_resource_header\">"
+                          "<span>Resource</span></div>"
+                          "<div class=\"data_collection_summary managed_list_title\" "
+                          "data-list-id=\"data.sound.resources\"></div>"
+                          "<div class=\"data_collection_rows sound_resource_rows managed_list_rows\" "
+                          "tabindex=\"0\" "
+                          "data-list-id=\"data.sound.resources\" "
+                          "data-empty-text=\"This sound object has no sound resources.\"></div></div>";
+    } else if (object_type == nw::ObjectType::store
+        && state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
+        content_markup += "<div id=\"store_inventory_collection\" "
+                          "class=\"data_object_collection smalls_refresh\" "
+                          "onrefresh=\"store_inventory_refresh()\">"
+                          "<div class=\"store_inventory_drop_targets\">"
+                          "<div id=\"store_inventory_drop_0\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"0\">Armor</div>"
+                          "<div id=\"store_inventory_drop_1\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"1\">Misc</div>"
+                          "<div id=\"store_inventory_drop_2\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"2\">Potions</div>"
+                          "<div id=\"store_inventory_drop_3\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"3\">Rings</div>"
+                          "<div id=\"store_inventory_drop_4\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"4\">Weapons</div>"
+                          "</div>"
+                          "<div class=\"data_collection_header store_inventory_header\">"
+                          "<span>Category</span><span>Item</span><span>Resref</span><span>Stack</span>"
+                          "</div><div class=\"data_collection_summary managed_list_title\" "
+                          "data-list-id=\"data.store.inventory\"></div>"
+                          "<div class=\"data_collection_rows store_inventory_rows managed_list_rows\" "
+                          "tabindex=\"0\" "
+                          "data-list-id=\"data.store.inventory\" "
+                          "data-empty-text=\"This store has no inventory items.\"></div></div>";
     } else {
         content_markup += "<div class=\"property_tree_header\"><span class=\"property_tree_header_name\">Field</span>";
         content_markup += "<span class=\"property_tree_header_value\">Value</span>";
@@ -6085,7 +6234,11 @@ void append_workspace_document_markup(std::string& content_markup,
         content_markup += "</div><div class=\"workspace_area_detail\">";
         content_markup += escape_html(workspace_tab_detail(active_tab));
         content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
+        content_markup += "<div class=\"workspace_preview_body";
+        if (standalone_data_workbench(state.object_details.object.type)) {
+            content_markup += " data_workbench_only";
+        }
+        content_markup += "\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
         if (!has_resource) {
             content_markup += " empty";
         }
@@ -6429,6 +6582,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
     hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
     hydrate_door_workbench(doc, state);
+    hydrate_placeable_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     if (active_appearances_match_tab(state)) {
         if (auto* editor = find_el(doc, "appearance_editor")) {
@@ -6530,6 +6684,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     hydrate_creature_workbench(doc, state);
     hydrate_item_workbench(doc, state);
     hydrate_door_workbench(doc, state);
+    hydrate_placeable_workbench(doc, state);
     refresh_smalls_elements(doc, state);
     sync_object_details_window(doc, state, true);
     nw::toolset::sync_managed_lists(
@@ -7919,23 +8074,24 @@ void commit_area_object_placement(ClientRenderer& renderer, AppState& state)
     }
 }
 
-bool project_item_drag_resource(const nw::Resource& resource,
-    const std::filesystem::path& source_path) noexcept
+bool project_blueprint_drag_resource(const nw::Resource& resource,
+    const std::filesystem::path& source_path,
+    nw::ResourceType::type type) noexcept
 {
     return resource.valid()
-        && resource.type == nw::ResourceType::uti
+        && resource.type == type
         && source_path.extension() == ".json";
 }
 
-void clear_project_item_drop_visuals(Rml::ElementDocument* doc,
-    const ProjectItemDragState& drag)
+void clear_project_blueprint_drop_visuals(Rml::ElementDocument* doc,
+    const ProjectBlueprintDragState& drag)
 {
     if (auto* target = find_el(doc, "creature_inventory_drop_target")) {
         target->SetProperty("display", "none");
         target->SetClass("valid", false);
         target->SetClass("invalid", false);
     }
-    if (drag.target.kind == ProjectItemDropTargetKind::equipment
+    if (drag.target.kind == ProjectBlueprintDropTargetKind::equipment
         && static_cast<uint32_t>(drag.target.slot) < 18) {
         const std::string id = "creature_equipment_slot_"
             + std::to_string(static_cast<uint32_t>(drag.target.slot));
@@ -7944,20 +8100,35 @@ void clear_project_item_drop_visuals(Rml::ElementDocument* doc,
             slot->SetClass("drop_invalid", false);
         }
     }
+    if (auto* spawns = find_el(doc, "encounter_spawn_collection")) {
+        spawns->SetClass("drop_valid", false);
+        spawns->SetClass("drop_invalid", false);
+    }
+    if (auto* sounds = find_el(doc, "sound_resource_collection")) {
+        sounds->SetClass("drop_valid", false);
+        sounds->SetClass("drop_invalid", false);
+    }
+    for (int32_t category = 0; category < 5; ++category) {
+        const std::string id = "store_inventory_drop_" + std::to_string(category);
+        if (auto* target = find_el(doc, id.c_str())) {
+            target->SetClass("drop_valid", false);
+            target->SetClass("drop_invalid", false);
+        }
+    }
 }
 
-void set_project_item_drop_target(Rml::ElementDocument* doc,
-    ProjectItemDragState& drag,
-    ProjectItemDropTarget target,
+void set_project_blueprint_drop_target(Rml::ElementDocument* doc,
+    ProjectBlueprintDragState& drag,
+    ProjectBlueprintDropTarget target,
     bool valid)
 {
-    clear_project_item_drop_visuals(doc, drag);
+    clear_project_blueprint_drop_visuals(doc, drag);
     drag.target = target;
     drag.phase = valid
-        ? ProjectItemDragPhase::target_valid
-        : ProjectItemDragPhase::target_invalid;
+        ? ProjectBlueprintDragPhase::target_valid
+        : ProjectBlueprintDragPhase::target_invalid;
 
-    if (target.kind == ProjectItemDropTargetKind::inventory) {
+    if (target.kind == ProjectBlueprintDropTargetKind::inventory) {
         if (auto* overlay = find_el(doc, "creature_inventory_drop_target")) {
             const int top = (target.row - drag.height + 1) * kCreatureInventoryCellPx;
             overlay->SetProperty("display", "block");
@@ -7971,7 +8142,7 @@ void set_project_item_drop_target(Rml::ElementDocument* doc,
             overlay->SetClass("valid", valid);
             overlay->SetClass("invalid", !valid);
         }
-    } else if (target.kind == ProjectItemDropTargetKind::equipment
+    } else if (target.kind == ProjectBlueprintDropTargetKind::equipment
         && static_cast<uint32_t>(target.slot) < 18) {
         const std::string id = "creature_equipment_slot_"
             + std::to_string(static_cast<uint32_t>(target.slot));
@@ -7979,45 +8150,230 @@ void set_project_item_drop_target(Rml::ElementDocument* doc,
             slot->SetClass("drop_valid", valid);
             slot->SetClass("drop_invalid", !valid);
         }
+    } else if (target.kind == ProjectBlueprintDropTargetKind::encounter_spawns) {
+        if (auto* spawns = find_el(doc, "encounter_spawn_collection")) {
+            spawns->SetClass("drop_valid", valid);
+            spawns->SetClass("drop_invalid", !valid);
+        }
+    } else if (target.kind == ProjectBlueprintDropTargetKind::sound_resources) {
+        if (auto* sounds = find_el(doc, "sound_resource_collection")) {
+            sounds->SetClass("drop_valid", valid);
+            sounds->SetClass("drop_invalid", !valid);
+        }
+    } else if (target.kind == ProjectBlueprintDropTargetKind::store_inventory
+        && target.category >= 0 && target.category < 5) {
+        const std::string id = "store_inventory_drop_"
+            + std::to_string(target.category);
+        if (auto* store_target = find_el(doc, id.c_str())) {
+            store_target->SetClass("drop_valid", valid);
+            store_target->SetClass("drop_invalid", !valid);
+        }
     }
 }
 
-void arm_project_item_drag(AppState& state,
+bool arm_project_blueprint_drag(AppState& state,
     const nw::Resource& resource,
     const std::filesystem::path& source_path,
     Rml::Vector2f point)
 {
-    if (!project_item_drag_resource(resource, source_path)
-        || state.object_workbench_surface != ObjectWorkbenchSurface::inventory
-        || !active_creature_inventory_matches_tab(state)) {
-        return;
+    if (project_blueprint_drag_resource(
+            resource, source_path, nw::ResourceType::uti)
+        && state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory
+        && active_object_matches_tab(state)
+        && state.object_details.object.type == nw::ObjectType::store) {
+        state.project_blueprint_drag = {
+            .source_path = source_path,
+            .resource = resource,
+            .owner = state.object_details.object,
+            .drag_start = point,
+            .tab_id = state.workspace.active_tab_id(),
+            .kind = ProjectBlueprintDragKind::item,
+            .phase = ProjectBlueprintDragPhase::armed,
+        };
+        return true;
     }
 
-    state.project_item_drag = {
-        .source_path = source_path,
-        .owner = state.creature_inventory.object,
-        .drag_start = point,
-        .tab_id = state.workspace.active_tab_id(),
-        .phase = ProjectItemDragPhase::armed,
-    };
+    if (project_blueprint_drag_resource(
+            resource, source_path, nw::ResourceType::uti)
+        && state.object_workbench_surface == ObjectWorkbenchSurface::inventory
+        && active_creature_inventory_matches_tab(state)) {
+        state.project_blueprint_drag = {
+            .source_path = source_path,
+            .resource = resource,
+            .owner = state.creature_inventory.object,
+            .drag_start = point,
+            .tab_id = state.workspace.active_tab_id(),
+            .kind = ProjectBlueprintDragKind::item,
+            .phase = ProjectBlueprintDragPhase::armed,
+        };
+        return true;
+    }
+
+    if (project_blueprint_drag_resource(
+            resource, source_path, nw::ResourceType::utc)
+        && state.object_workbench_surface == ObjectWorkbenchSurface::spawns
+        && active_object_matches_tab(state)
+        && state.object_details.object.type == nw::ObjectType::encounter) {
+        state.project_blueprint_drag = {
+            .source_path = source_path,
+            .resource = resource,
+            .owner = state.object_details.object,
+            .drag_start = point,
+            .tab_id = state.workspace.active_tab_id(),
+            .kind = ProjectBlueprintDragKind::encounter_spawn,
+            .phase = ProjectBlueprintDragPhase::armed,
+        };
+        return true;
+    }
+
+    if (resource.valid()
+        && resource.type == nw::ResourceType::wav
+        && state.object_workbench_surface == ObjectWorkbenchSurface::sounds
+        && active_object_matches_tab(state)
+        && state.object_details.object.type == nw::ObjectType::sound) {
+        state.project_blueprint_drag = {
+            .source_path = source_path,
+            .resource = resource,
+            .owner = state.object_details.object,
+            .drag_start = point,
+            .tab_id = state.workspace.active_tab_id(),
+            .kind = ProjectBlueprintDragKind::sound_resource,
+            .phase = ProjectBlueprintDragPhase::armed,
+        };
+        return true;
+    }
+
+    return false;
 }
 
-void cancel_project_item_drag(Rml::ElementDocument* doc, AppState& state)
+bool project_blueprint_drag_context_matches(const AppState& state)
 {
-    if (!state.project_item_drag.active()) {
+    const auto& drag = state.project_blueprint_drag;
+    if (!drag.active() || state.workspace.active_tab_id() != drag.tab_id) {
+        return false;
+    }
+    switch (drag.kind) {
+    case ProjectBlueprintDragKind::item:
+        if (drag.owner.type == nw::ObjectType::store) {
+            return state.object_workbench_surface
+                    == ObjectWorkbenchSurface::store_inventory
+                && state.object_details.object == drag.owner
+                && active_object_matches_tab(state);
+        }
+        return state.object_workbench_surface == ObjectWorkbenchSurface::inventory
+            && state.creature_inventory.object == drag.owner
+            && active_creature_inventory_matches_tab(state);
+    case ProjectBlueprintDragKind::encounter_spawn:
+        return state.object_workbench_surface == ObjectWorkbenchSurface::spawns
+            && state.object_details.object == drag.owner
+            && active_object_matches_tab(state);
+    case ProjectBlueprintDragKind::sound_resource:
+        return state.object_workbench_surface == ObjectWorkbenchSurface::sounds
+            && state.object_details.object == drag.owner
+            && active_object_matches_tab(state);
+    default:
+        return false;
+    }
+}
+
+void cancel_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
+{
+    if (!state.project_blueprint_drag.active()) {
         return;
     }
-    clear_project_item_drop_visuals(doc, state.project_item_drag);
-    const auto item = state.project_item_drag.item;
-    state.project_item_drag = {};
+    clear_project_blueprint_drop_visuals(doc, state.project_blueprint_drag);
+    const auto item = state.project_blueprint_drag.item;
+    state.project_blueprint_drag = {};
     if (nw::kernel::objects().valid(item)) {
         nw::kernel::objects().destroy(item);
     }
 }
 
-bool materialize_project_item_drag(AppState& state)
+bool materialize_project_blueprint_drag(AppState& state)
 {
-    auto& drag = state.project_item_drag;
+    auto& drag = state.project_blueprint_drag;
+    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
+        if (drag.sound_resource_edit) {
+            return true;
+        }
+        if (drag.materialization_failed) {
+            return false;
+        }
+
+        auto before = nw::toolset::snapshot_sound_resources(
+            nw::kernel::runtime(), drag.owner);
+        if (!before || before->size() >= 1024
+            || !drag.resource.valid()
+            || drag.resource.type != nw::ResourceType::wav
+            || drag.resource.resref.empty()) {
+            drag.materialization_failed = true;
+            append_output(state, "error",
+                "Sound resource drag source or target list is invalid or full");
+            return false;
+        }
+
+        auto after = *before;
+        after.push_back(drag.resource.resref);
+        drag.sound_resource_edit = nw::toolset::SoundResourceEdit{
+            .sound = drag.owner,
+            .before = std::move(*before),
+            .after = std::move(after),
+        };
+        return true;
+    }
+
+    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
+        if (drag.encounter_spawn_edit) {
+            return true;
+        }
+        if (drag.materialization_failed) {
+            return false;
+        }
+
+        std::ifstream input{drag.source_path};
+        input >> std::ws;
+        if (!input || input.peek() != '{') {
+            drag.materialization_failed = true;
+            append_output(state, "warn",
+                "Encounter spawn drag requires an authored component/propset JSON Creature blueprint");
+            return false;
+        }
+
+        auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+            drag.source_path);
+        if (!creature) {
+            drag.materialization_failed = true;
+            append_output(state, "error",
+                "Encounter spawn Creature blueprint could not be loaded");
+            return false;
+        }
+
+        const std::array creature_handles{creature->handle()};
+        auto rows = nw::toolset::make_encounter_spawn_records(
+            nw::kernel::runtime(), creature_handles);
+        nw::kernel::objects().destroy(creature->handle());
+        auto before = nw::toolset::snapshot_encounter_spawns(
+            nw::kernel::runtime(), drag.owner);
+        if (!rows || rows->size() != 1 || !before || before->size() >= 1024) {
+            drag.materialization_failed = true;
+            append_output(state, "error",
+                "Encounter spawn drag source or target list is invalid or full");
+            return false;
+        }
+
+        auto after = *before;
+        after.push_back(std::move(rows->front()));
+        drag.encounter_spawn_edit = nw::toolset::EncounterSpawnEdit{
+            .encounter = drag.owner,
+            .before = std::move(*before),
+            .after = std::move(after),
+        };
+        return true;
+    }
+
+    if (drag.kind != ProjectBlueprintDragKind::item) {
+        return false;
+    }
     if (drag.item.type == nw::ObjectType::item) {
         return true;
     }
@@ -8055,12 +8411,12 @@ bool materialize_project_item_drag(AppState& state)
     return true;
 }
 
-bool update_project_item_drag(Rml::Context* context,
+bool update_project_blueprint_drag(Rml::Context* context,
     Rml::ElementDocument* doc,
     AppState& state,
     Rml::Vector2f point)
 {
-    auto& drag = state.project_item_drag;
+    auto& drag = state.project_blueprint_drag;
     if (!drag.active()) {
         return false;
     }
@@ -8075,12 +8431,107 @@ bool update_project_item_drag(Rml::Context* context,
     drag.threshold_crossed = true;
     state.pressed_recent_index = -1;
 
-    if (state.workspace.active_tab_id() != drag.tab_id
-        || state.object_workbench_surface != ObjectWorkbenchSurface::inventory
-        || state.creature_inventory.object != drag.owner
-        || !active_creature_inventory_matches_tab(state)
-        || !materialize_project_item_drag(state)) {
-        set_project_item_drop_target(doc, drag, {}, false);
+    if (!project_blueprint_drag_context_matches(state)) {
+        set_project_blueprint_drop_target(doc, drag, {}, false);
+        return true;
+    }
+
+    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
+        if (!materialize_project_blueprint_drag(state)) {
+            set_project_blueprint_drop_target(doc, drag, {}, false);
+            return true;
+        }
+        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
+        const bool over_spawn_collection =
+            find_ancestor_with_id(hit, "encounter_spawn_collection") != nullptr;
+        const ProjectBlueprintDropTarget target{
+            .kind = over_spawn_collection
+                ? ProjectBlueprintDropTargetKind::encounter_spawns
+                : ProjectBlueprintDropTargetKind::none,
+        };
+        if (target == drag.target
+            && (drag.phase == ProjectBlueprintDragPhase::target_valid
+                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
+            return true;
+        }
+        set_project_blueprint_drop_target(doc, drag, target, over_spawn_collection);
+        return true;
+    }
+
+    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
+        if (!materialize_project_blueprint_drag(state)) {
+            set_project_blueprint_drop_target(doc, drag, {}, false);
+            return true;
+        }
+        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
+        const bool over_sound_collection =
+            find_ancestor_with_id(hit, "sound_resource_collection") != nullptr;
+        const ProjectBlueprintDropTarget target{
+            .kind = over_sound_collection
+                ? ProjectBlueprintDropTargetKind::sound_resources
+                : ProjectBlueprintDropTargetKind::none,
+        };
+        if (target == drag.target
+            && (drag.phase == ProjectBlueprintDragPhase::target_valid
+                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
+            return true;
+        }
+        set_project_blueprint_drop_target(doc, drag, target, over_sound_collection);
+        return true;
+    }
+
+    if (!materialize_project_blueprint_drag(state)) {
+        set_project_blueprint_drop_target(doc, drag, {}, false);
+        return true;
+    }
+
+    if (drag.owner.type == nw::ObjectType::store) {
+        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
+        auto* store_target = find_ancestor_with_class(
+            hit, "store_inventory_drop_target");
+        const auto category = store_target
+            ? parse_decimal_int32(
+                  store_target->GetAttribute<Rml::String>("data-category", ""))
+            : std::nullopt;
+        ProjectBlueprintDropTarget target{
+            .kind = category
+                    && *category >= 0 && *category < 5
+                ? ProjectBlueprintDropTargetKind::store_inventory
+                : ProjectBlueprintDropTargetKind::none,
+            .category = category.value_or(-1),
+        };
+
+        auto* store = nw::kernel::objects().get<nw::Store>(drag.owner);
+        nw::Inventory* inventory = nullptr;
+        if (store && category) {
+            switch (*category) {
+            case 0:
+                inventory = &store->inventory().armor;
+                break;
+            case 1:
+                inventory = &store->inventory().miscellaneous;
+                break;
+            case 2:
+                inventory = &store->inventory().potions;
+                break;
+            case 3:
+                inventory = &store->inventory().rings;
+                break;
+            case 4:
+                inventory = &store->inventory().weapons;
+                break;
+            default:
+                break;
+            }
+        }
+        const bool valid = inventory
+            && inventory->items.size() < inventory->items.capacity();
+        if (target == drag.target
+            && (drag.phase == ProjectBlueprintDragPhase::target_valid
+                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
+            return true;
+        }
+        set_project_blueprint_drop_target(doc, drag, target, valid);
         return true;
     }
 
@@ -8090,11 +8541,15 @@ bool update_project_item_drag(Rml::Context* context,
     auto* owner_item = drag.owner.type == nw::ObjectType::item
         ? nw::kernel::objects().get<nw::Item>(drag.owner)
         : nullptr;
+    auto* owner_placeable = drag.owner.type == nw::ObjectType::placeable
+        ? nw::kernel::objects().get<nw::Placeable>(drag.owner)
+        : nullptr;
     nw::Inventory* inventory = creature ? &creature->inventory()
         : owner_item                    ? &owner_item->inventory()
+        : owner_placeable               ? &owner_placeable->inventory()
                                         : nullptr;
     if (!inventory) {
-        set_project_item_drop_target(doc, drag, {}, false);
+        set_project_blueprint_drop_target(doc, drag, {}, false);
         return true;
     }
 
@@ -8103,14 +8558,14 @@ bool update_project_item_drag(Rml::Context* context,
         if (auto* equipment = find_ancestor_with_class(hit, "creature_equipment_slot")) {
             const auto slot_value = parse_decimal_int32(
                 equipment->GetAttribute<Rml::String>("data-slot", ""));
-            ProjectItemDropTarget target;
-            target.kind = ProjectItemDropTargetKind::equipment;
+            ProjectBlueprintDropTarget target;
+            target.kind = ProjectBlueprintDropTargetKind::equipment;
             if (slot_value && *slot_value >= 0 && *slot_value < 18) {
                 target.slot = static_cast<nw::EquipIndex>(*slot_value);
             }
             if (target == drag.target
-                && (drag.phase == ProjectItemDragPhase::target_valid
-                    || drag.phase == ProjectItemDragPhase::target_invalid)) {
+                && (drag.phase == ProjectBlueprintDragPhase::target_valid
+                    || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
                 return true;
             }
             const auto* layout = nw::kernel::objects().components().find_item_layout(drag.item);
@@ -8123,14 +8578,14 @@ bool update_project_item_drag(Rml::Context* context,
                                             layout->inventory_width, layout->inventory_height)
                         .page
                     >= 0;
-            set_project_item_drop_target(doc, drag, target, valid);
+            set_project_blueprint_drop_target(doc, drag, target, valid);
             return true;
         }
     }
 
     auto* board = find_el(doc, "creature_inventory_board");
     if (!board || !board->IsPointWithinElement(point)) {
-        set_project_item_drop_target(doc, drag, {}, false);
+        set_project_blueprint_drop_target(doc, drag, {}, false);
         return true;
     }
 
@@ -8138,15 +8593,15 @@ bool update_project_item_drag(Rml::Context* context,
     const float top = board->GetAbsoluteTop() + board->GetClientTop();
     const int column = static_cast<int>((point.x - left) / kCreatureInventoryCellPx);
     const int visual_row = static_cast<int>((point.y - top) / kCreatureInventoryCellPx);
-    ProjectItemDropTarget target{
-        .kind = ProjectItemDropTargetKind::inventory,
+    ProjectBlueprintDropTarget target{
+        .kind = ProjectBlueprintDropTargetKind::inventory,
         .page = state.creature_inventory_page,
         .row = visual_row + drag.height - 1,
         .column = column,
     };
     if (target == drag.target
-        && (drag.phase == ProjectItemDragPhase::target_valid
-            || drag.phase == ProjectItemDragPhase::target_invalid)) {
+        && (drag.phase == ProjectBlueprintDragPhase::target_valid
+            || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
         return true;
     }
     const bool in_bounds = target.page >= 0
@@ -8158,27 +8613,78 @@ bool update_project_item_drag(Rml::Context* context,
     const bool valid = in_bounds
         && inventory->check_available(
             target.page, target.row, target.column, drag.width, drag.height);
-    set_project_item_drop_target(doc, drag, target, valid);
+    set_project_blueprint_drop_target(doc, drag, target, valid);
     return true;
 }
 
-void commit_project_item_drag(Rml::ElementDocument* doc, AppState& state)
+void commit_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
 {
-    if (!state.project_item_drag.active()) {
+    if (!state.project_blueprint_drag.active()) {
         return;
     }
-    if (state.project_item_drag.phase != ProjectItemDragPhase::target_valid
-        || !nw::kernel::objects().valid(state.project_item_drag.item)) {
-        cancel_project_item_drag(doc, state);
+    if (state.project_blueprint_drag.phase != ProjectBlueprintDragPhase::target_valid) {
+        cancel_project_blueprint_drag(doc, state);
         return;
     }
 
-    clear_project_item_drop_visuals(doc, state.project_item_drag);
-    const auto drag = std::move(state.project_item_drag);
-    state.project_item_drag = {};
+    clear_project_blueprint_drop_visuals(doc, state.project_blueprint_drag);
+    auto drag = std::move(state.project_blueprint_drag);
+    state.project_blueprint_drag = {};
+    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
+        if (!drag.encounter_spawn_edit
+            || drag.target.kind != ProjectBlueprintDropTargetKind::encounter_spawns) {
+            return;
+        }
+        auto result = state.backend.replace_encounter_spawns(
+            std::move(*drag.encounter_spawn_edit),
+            command_context(state, nw::toolset::CommandSource::renderer));
+        append_command_result(state, result);
+        return;
+    }
+    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
+        if (!drag.sound_resource_edit
+            || drag.target.kind != ProjectBlueprintDropTargetKind::sound_resources) {
+            return;
+        }
+        auto result = state.backend.replace_sound_resources(
+            std::move(*drag.sound_resource_edit),
+            command_context(state, nw::toolset::CommandSource::renderer));
+        append_command_result(state, result);
+        return;
+    }
+
+    if (drag.kind != ProjectBlueprintDragKind::item
+        || !nw::kernel::objects().valid(drag.item)) {
+        return;
+    }
+    const auto destroy_unowned_item = [&drag]() {
+        if (nw::kernel::objects().valid(drag.item)) {
+            nw::kernel::objects().destroy(drag.item);
+        }
+    };
+    if (drag.target.kind == ProjectBlueprintDropTargetKind::store_inventory) {
+        if (drag.target.category < 0 || drag.target.category >= 5) {
+            destroy_unowned_item();
+            return;
+        }
+        const std::array placements{nw::toolset::StoreItemPlacement{
+            .item = drag.item,
+            .category = static_cast<nw::toolset::StoreInventoryCategory>(
+                drag.target.category),
+        }};
+        auto result = state.backend.place_store_items(
+            drag.owner,
+            placements,
+            command_context(state, nw::toolset::CommandSource::renderer));
+        if (result.status != nw::toolset::CommandStatus::success) {
+            destroy_unowned_item();
+        }
+        append_command_result(state, result);
+        return;
+    }
     nw::toolset::ItemPlacement placement{
         .item = drag.item,
-        .target = drag.target.kind == ProjectItemDropTargetKind::equipment
+        .target = drag.target.kind == ProjectBlueprintDropTargetKind::equipment
             ? nw::toolset::ItemPlacementTarget::equipment
             : nw::toolset::ItemPlacementTarget::inventory,
         .page = drag.target.page,
@@ -8191,6 +8697,9 @@ void commit_project_item_drag(Rml::ElementDocument* doc, AppState& state)
         drag.owner,
         placements,
         command_context(state, nw::toolset::CommandSource::renderer));
+    if (result.status != nw::toolset::CommandStatus::success) {
+        destroy_unowned_item();
+    }
     append_command_result(state, result);
 }
 
@@ -8999,11 +9508,9 @@ int main(int argc, char* argv[])
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             clear_inactive_object(state);
-            if (state.project_item_drag.active()
-                && (state.workspace.active_tab_id() != state.project_item_drag.tab_id
-                    || state.creature_inventory.object != state.project_item_drag.owner
-                    || state.object_workbench_surface != ObjectWorkbenchSurface::inventory)) {
-                cancel_project_item_drag(doc, state);
+            if (state.project_blueprint_drag.active()
+                && !project_blueprint_drag_context_matches(state)) {
+                cancel_project_blueprint_drag(doc, state);
             }
             if (state.area_object_placement.active()
                 && (state.workspace.active_tab_id() != state.area_object_placement.tab_id
@@ -9030,15 +9537,15 @@ int main(int argc, char* argv[])
                 break;
             case SDL_EVENT_KEY_DOWN: {
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && state.project_item_drag.active()) {
-                    cancel_project_item_drag(doc, state);
+                    && state.project_blueprint_drag.active()) {
+                    cancel_project_blueprint_drag(doc, state);
                     state.pressed_recent_index = -1;
                     system_interface.SetMouseCursor("arrow");
                     dispatched_to_rml = true;
                     break;
                 }
-                if (state.project_item_drag.active()
-                    && state.project_item_drag.threshold_crossed) {
+                if (state.project_blueprint_drag.active()
+                    && state.project_blueprint_drag.threshold_crossed) {
                     dispatched_to_rml = true;
                     break;
                 }
@@ -9479,15 +9986,15 @@ int main(int argc, char* argv[])
                 blur_focused_object_variable_input(context,
                     to_context_point(window, event.button.x, event.button.y));
                 if (event.button.button == SDL_BUTTON_RIGHT
-                    && state.project_item_drag.active()) {
-                    cancel_project_item_drag(doc, state);
+                    && state.project_blueprint_drag.active()) {
+                    cancel_project_blueprint_drag(doc, state);
                     state.pressed_recent_index = -1;
                     system_interface.SetMouseCursor("arrow");
                     dispatched_to_rml = true;
                     break;
                 }
-                if (state.project_item_drag.active()
-                    && state.project_item_drag.threshold_crossed) {
+                if (state.project_blueprint_drag.active()
+                    && state.project_blueprint_drag.threshold_crossed) {
                     dispatched_to_rml = true;
                     break;
                 }
@@ -9613,10 +10120,10 @@ int main(int argc, char* argv[])
                                     if (!row.is_container()) {
                                         const auto resource = nw::Resource::from_path(
                                             row.relative_path, false);
-                                        if (resource.type == nw::ResourceType::uti) {
-                                            arm_project_item_drag(
-                                                state, resource, row.path, point);
-                                        } else {
+                                        const bool armed = arm_project_blueprint_drag(
+                                            state, resource, row.path, point);
+                                        if (!armed
+                                            && resource.type != nw::ResourceType::uti) {
                                             arm_area_object_placement(
                                                 renderer, state, resource, point);
                                         }
@@ -9656,10 +10163,10 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
-                if (state.project_item_drag.active()) {
-                    if (update_project_item_drag(context, doc, state, point)) {
-                        const char* cursor = state.project_item_drag.phase
-                                == ProjectItemDragPhase::target_valid
+                if (state.project_blueprint_drag.active()) {
+                    if (update_project_blueprint_drag(context, doc, state, point)) {
+                        const char* cursor = state.project_blueprint_drag.phase
+                                == ProjectBlueprintDragPhase::target_valid
                             ? "cross"
                             : "unavailable";
                         system_interface.SetMouseCursor(cursor);
@@ -9770,8 +10277,8 @@ int main(int argc, char* argv[])
                 break;
             }
             case SDL_EVENT_MOUSE_WHEEL: {
-                if (state.project_item_drag.active()
-                    && state.project_item_drag.threshold_crossed) {
+                if (state.project_blueprint_drag.active()
+                    && state.project_blueprint_drag.threshold_crossed) {
                     dispatched_to_rml = true;
                     break;
                 }
@@ -9873,23 +10380,23 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
-                if (state.project_item_drag.active()
+                if (state.project_blueprint_drag.active()
                     && event.button.button == SDL_BUTTON_LEFT) {
-                    const bool item_dragged = state.project_item_drag.threshold_crossed;
-                    if (item_dragged) {
+                    const bool blueprint_dragged = state.project_blueprint_drag.threshold_crossed;
+                    if (blueprint_dragged) {
                         const auto point = to_context_point(
                             window, event.button.x, event.button.y);
-                        (void)update_project_item_drag(context, doc, state, point);
-                        commit_project_item_drag(doc, state);
+                        (void)update_project_blueprint_drag(context, doc, state, point);
+                        commit_project_blueprint_drag(doc, state);
                         state.pressed_recent_index = -1;
                         system_interface.SetMouseCursor("arrow");
                         dispatched_to_rml = true;
                         break;
                     }
-                    cancel_project_item_drag(doc, state);
+                    cancel_project_blueprint_drag(doc, state);
                 }
-                if (state.project_item_drag.active()
-                    && state.project_item_drag.threshold_crossed) {
+                if (state.project_blueprint_drag.active()
+                    && state.project_blueprint_drag.threshold_crossed) {
                     dispatched_to_rml = true;
                     break;
                 }
@@ -10374,7 +10881,9 @@ int main(int argc, char* argv[])
                                     || state.object_details.object.type == nw::ObjectType::item)) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::appearance;
                                 if (appearance_catalog_kind(
-                                        state.object_details.object.type)) {
+                                        state.object_details.object.type)
+                                    && state.object_details.object.type
+                                        != nw::ObjectType::placeable) {
                                     rebuild_active_appearances(state, state.object_details.object);
                                 }
                             } else if (surface == "item-properties"
@@ -10387,9 +10896,17 @@ int main(int argc, char* argv[])
                                 && state.object_details.object.type == nw::ObjectType::creature) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::spells;
                             } else if (surface == "inventory"
-                                && (state.object_details.object.type == nw::ObjectType::creature
-                                    || state.object_details.object.type == nw::ObjectType::item)) {
+                                && object_has_grid_inventory(state.object_details.object.type)) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::inventory;
+                            } else if (surface == "spawns"
+                                && state.object_details.object.type == nw::ObjectType::encounter) {
+                                state.object_workbench_surface = ObjectWorkbenchSurface::spawns;
+                            } else if (surface == "sounds"
+                                && state.object_details.object.type == nw::ObjectType::sound) {
+                                state.object_workbench_surface = ObjectWorkbenchSurface::sounds;
+                            } else if (surface == "store-inventory"
+                                && state.object_details.object.type == nw::ObjectType::store) {
+                                state.object_workbench_surface = ObjectWorkbenchSurface::store_inventory;
                             }
                             invalidate_details_render(state);
                             if (!sync_appearance_body_preview(renderer, state)) {
@@ -10728,8 +11245,8 @@ int main(int argc, char* argv[])
                 }
                 break;
             case SDL_EVENT_WINDOW_MOUSE_LEAVE:
-                if (state.project_item_drag.active()) {
-                    cancel_project_item_drag(doc, state);
+                if (state.project_blueprint_drag.active()) {
+                    cancel_project_blueprint_drag(doc, state);
                     state.pressed_recent_index = -1;
                     system_interface.SetMouseCursor("arrow");
                 }
@@ -10819,7 +11336,7 @@ int main(int argc, char* argv[])
                     } else {
                         clear_active_creature_feats(state);
                         clear_active_creature_spells(state);
-                        if (mutation.object.type == nw::ObjectType::item) {
+                        if (object_has_grid_inventory(mutation.object.type)) {
                             state.creature_inventory_page = 0;
                             state.creature_inventory_selection = -1;
                             rebuild_active_creature_inventory(state, mutation.object);
@@ -10846,6 +11363,13 @@ int main(int argc, char* argv[])
                 const bool area_tab = active_tab && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
                 if (mutation.kind == nw::toolset::ObjectMutationKind::spatial) {
                     renderer.sync_viewer_area_object_spatial(mutation.object);
+                } else if (mutation.kind == nw::toolset::ObjectMutationKind::structure
+                    && mutation.object.type == nw::ObjectType::encounter
+                    && !area_tab) {
+                    if (!renderer.rebuild_live_viewer_object(mutation.object)) {
+                        append_output(state, "error",
+                            "Failed to rebuild the Encounter spawn preview after spawn-list edit");
+                    }
                 } else if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                     if (state.appearance_body_preview_object == mutation.object
                         && !update_appearance_preview_rows(mutation.object, false)) {
@@ -10877,13 +11401,14 @@ int main(int argc, char* argv[])
                         rebuild_active_creature_spells(
                             state, mutation.object, selected_class, selected_metamagic);
                         rebuild_active_creature_inventory(state, mutation.object);
-                    } else if (mutation.object.type == nw::ObjectType::item) {
+                    } else if (object_has_grid_inventory(mutation.object.type)) {
                         rebuild_active_creature_inventory(state, mutation.object);
                     }
                     const bool smalls_appearance_mutation = mutation.object.type == nw::ObjectType::door
                         || mutation.object.type == nw::ObjectType::item;
                     if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                        && appearance_catalog_kind(mutation.object.type)) {
+                        && appearance_catalog_kind(mutation.object.type)
+                        && mutation.object.type != nw::ObjectType::placeable) {
                         if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                             (void)sync_live_body_part_option(state);
                             state.body_part_combobox.hide_popup();
@@ -11088,33 +11613,57 @@ int main(int argc, char* argv[])
         }
         const Uint64 ui_end_counter = SDL_GetPerformanceCounter();
         const auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
-        if (viewer_viewport) {
+        const auto* viewer_tab = state.workspace.active_tab();
+        const auto viewer_project_dir = state.backend.current_project_dir();
+        const bool data_workbench_preview = !viewer_viewport
+            && viewer_tab
+            && viewer_tab->kind == nw::toolset::WorkspaceTabKind::preview
+            && !viewer_tab->detail.empty()
+            && !viewer_project_dir.empty()
+            && standalone_data_workbench(state.object_details.object.type);
+        const bool viewer_requested = viewer_viewport.has_value()
+            || data_workbench_preview;
+        if (viewer_requested) {
             sync_viewer_render_options(renderer, state);
-            bool rendered = false;
+            bool viewer_ready = false;
+            WorkspaceViewerViewportKind viewer_kind = WorkspaceViewerViewportKind::preview;
             {
                 const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerViewport};
-                rendered = viewer_viewport->kind == WorkspaceViewerViewportKind::area
-                    ? renderer.render_area_viewport(
-                          viewer_viewport->project_dir,
-                          viewer_viewport->module_generation,
-                          viewer_viewport->resource_path,
-                          viewer_viewport->rect,
-                          frame_delta_ms)
-                    : renderer.render_preview_viewport(
-                          viewer_viewport->project_dir,
-                          viewer_viewport->module_generation,
-                          viewer_viewport->resource_path,
-                          viewer_viewport->rect,
-                          frame_delta_ms);
+                if (viewer_viewport) {
+                    viewer_kind = viewer_viewport->kind;
+                    viewer_ready = viewer_viewport->kind == WorkspaceViewerViewportKind::area
+                        ? renderer.render_area_viewport(
+                              viewer_viewport->project_dir,
+                              viewer_viewport->module_generation,
+                              viewer_viewport->resource_path,
+                              viewer_viewport->rect,
+                              frame_delta_ms)
+                        : renderer.render_preview_viewport(
+                              viewer_viewport->project_dir,
+                              viewer_viewport->module_generation,
+                              viewer_viewport->resource_path,
+                              viewer_viewport->rect,
+                              frame_delta_ms);
+                } else {
+                    const bool current_preview_is_ready
+                        = state.active_object_tab_id == viewer_tab->id
+                        && state.object_details.status
+                            == nw::toolset::ObjectDetailsStatus::ready
+                        && renderer.active_viewer_object()
+                            == state.object_details.object;
+                    viewer_ready = current_preview_is_ready
+                        || renderer.prepare_preview_object(
+                            viewer_project_dir,
+                            state.backend.module_generation(),
+                            viewer_tab->detail);
+                }
             }
-            if (!rendered) {
+            if (!viewer_ready) {
                 // The viewport renderer logs specific load/render failures; keep the UI frame intact.
             }
 
-            if (rendered
-                && (viewer_viewport->kind == WorkspaceViewerViewportKind::preview
-                    || viewer_viewport->kind == WorkspaceViewerViewportKind::area)) {
-                if (viewer_viewport->kind == WorkspaceViewerViewportKind::area) {
+            if (viewer_ready) {
+                if (viewer_kind == WorkspaceViewerViewportKind::area) {
                     const auto area = renderer.area_viewer_object();
                     const bool area_changed = state.smalls.active_area() != area;
                     state.smalls.publish_active_area(area);
@@ -11151,7 +11700,7 @@ int main(int argc, char* argv[])
                         } else {
                             clear_active_creature_feats(state);
                             clear_active_creature_spells(state);
-                            if (object.type == nw::ObjectType::item) {
+                            if (object_has_grid_inventory(object.type)) {
                                 state.creature_inventory_page = 0;
                                 state.creature_inventory_selection = -1;
                                 rebuild_active_creature_inventory(state, object);
@@ -11243,7 +11792,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    cancel_project_item_drag(doc, state);
+    cancel_project_blueprint_drag(doc, state);
     cancel_area_object_placement(renderer, state);
     if (state.appearance_body_preview_object.type != nw::ObjectType::invalid
         && nw::kernel::objects().valid(state.appearance_body_preview_object)) {

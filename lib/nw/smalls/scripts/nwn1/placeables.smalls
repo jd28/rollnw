@@ -81,6 +81,14 @@ fn get_info(appearance: int): NativePlaceable.PlaceableAppearanceInfo {
     return NativePlaceable.placeable_info(appearance);
 }
 
+fn get_appearance_option(appearance: int): NativePlaceable.PlaceableAppearanceOption {
+    return NativePlaceable.placeable_appearance_option(appearance);
+}
+
+fn get_appearance_options(): array!(NativePlaceable.PlaceableAppearanceOption) {
+    return NativePlaceable.available_placeable_appearance_options();
+}
+
 fn count(): int {
     _ensure_loaded();
     return Array.len(_placeables);

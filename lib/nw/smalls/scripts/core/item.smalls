@@ -95,6 +95,15 @@ type BaseItemInfo {
 [[native]] fn inventory_remove_item(owner: object, item: Item): bool;
 [[native]] fn inventory_items(owner: object): array!(Item);
 
+const store_inventory_armor = 0;
+const store_inventory_miscellaneous = 1;
+const store_inventory_potions = 2;
+const store_inventory_rings = 3;
+const store_inventory_weapons = 4;
+[[native]] fn store_inventory_item_count(store: Store, category: int): int;
+[[native]] fn store_inventory_items(
+    store: Store, category: int, maximum_items: int): array!(Item);
+
 fn set_generator_for_type(
     prop_type: ItemPropertyType,
     generator: fn(ItemProperty, EquipIndex): ItemEffectRow) {

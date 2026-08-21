@@ -43,6 +43,9 @@ public:
         std::string_view resource_path,
         ClientViewportRect viewport,
         int32_t dt_ms);
+    [[nodiscard]] bool prepare_preview(const std::filesystem::path& project_dir,
+        uint64_t module_generation,
+        std::string_view resource_path);
     void clear();
     void shutdown();
     bool drag(ClientViewportDragMode mode, float delta_x, float delta_y, ClientViewportRect viewport);

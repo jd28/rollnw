@@ -1,7 +1,7 @@
 # rollnw | client Object Workbench and Property Surfaces
 
 Status: object-workbench vertical slices implemented and verified through
-2026-07-22.
+2026-08-19.
 
 ## Problem
 
@@ -629,6 +629,63 @@ yet fixed:
 - Add occupied-slot replacement only after the desired swap and displaced-item
   placement behavior is fixed. The current command rejects occupied slots and
   represents replacement as explicit unequip then equip actions.
+
+## Data-object Workbench Status
+
+The standalone Trigger, Sound, and Store documents are data-only workbenches:
+they hide the unused model viewport and give the editor the full workspace body.
+Selecting those same objects in an Area keeps the Area viewport and uses the
+right-side workbench. Waypoints retain their model preview. Encounters use the
+viewport for a bounded spawn-group preview.
+
+- Trigger exposes Details and Variables only. Its sparse layout is deliberate;
+  no invented preview or duplicate summary fills otherwise unused space.
+- Encounter adds a Spawns projection over `EncounterState.creatures`. Dropping
+  a Creature blueprint appends one spawn record through an exact, undoable
+  full-array replacement. The standalone preview reads the same ordered spawn
+  array and displays up to 16 creature blueprints in a centered grid. Missing
+  or empty Creature resources are skipped with load diagnostics; rows beyond
+  the bound are dropped from the preview with a limit diagnostic.
+- Sound adds a Sounds projection over `SoundState.sounds`. Dropping an imported
+  WAV resource appends its resref through an exact, undoable full-array
+  replacement.
+- Store adds an Inventory projection over its five fixed inventory categories.
+  Each category is an explicit drop target; dropping an Item blueprint inserts
+  it into that exact category through one undoable placement command.
+- Placeable adds Smalls-owned Appearance selection and the existing paged
+  inventory grid shared with Creature and Item.
+- Item already has Details, Variables, Appearance, Item Properties, and
+  Inventory; no parallel workbench was added.
+
+The encounter, sound, and store transforms build contiguous `ListItem` source
+batches in Smalls. Inputs are capped at 1,024 displayed source rows; additional
+rows are dropped from the presentation batch and reported in the list title.
+The shared managed-list host materializes only the viewport plus six rows of
+overscan into RmlUi. Invalid or stale active objects publish an empty list with
+an explicit status message.
+
+Encounter and Sound insertion are implemented as bounded batches of at most
+1,024 entries. Each command snapshots the complete ordered source array,
+rejects stale or invalid input before mutation, and restores the exact prior
+array on undo. Removal and explicit reordering remain unresolved because those
+interactions have not been selected.
+
+Store insertion is a bounded batch of at most 1,024 detached live Items. Every
+row names one of the five real inventory categories; category is never inferred
+from the Item or its name. The command rejects invalid categories, duplicate or
+stale handles, oversized layouts, and fixed item-capacity overflow before
+mutation. It records the exact category and grid coordinates for undo and redo,
+adds one page only when the selected category is full, and removes that page on
+undo when it is empty. Store removal and explicit reordering remain unresolved.
+The five arrays are not flattened into a universal collection editor.
+
+The Encounter preview transform is linear in at most 16 spawn rows. The current
+imported project sample contains 466 Encounter blueprints: 387 have one row and
+the measured maximum is six. The transform first builds one temporary creature
+scene per valid row, then measures the batch and places it once in a square grid.
+Temporary Creature objects are destroyed after their render rows are moved;
+the Encounter remains the sole owned live root. No timing claim is made for
+this human-driven rebuild path.
 
 ## Spell Follow-ups
 

@@ -352,7 +352,12 @@ bool is_object_preview_path(std::string_view value)
             || resource.type == nw::ResourceType::utc
             || resource.type == nw::ResourceType::uti
             || resource.type == nw::ResourceType::utd
-            || resource.type == nw::ResourceType::utp);
+            || resource.type == nw::ResourceType::utp
+            || resource.type == nw::ResourceType::ute
+            || resource.type == nw::ResourceType::uts
+            || resource.type == nw::ResourceType::utm
+            || resource.type == nw::ResourceType::utt
+            || resource.type == nw::ResourceType::utw);
 }
 
 bool load_player_from_file(const std::filesystem::path& path, nw::Player& out)

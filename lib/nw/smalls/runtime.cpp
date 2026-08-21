@@ -3867,6 +3867,55 @@ bool Runtime::write_propset_int_element(const Value& propset, uint32_t field_ind
     return written && propsets_ && propsets_->mark_field_mutation(propset, field_index);
 }
 
+bool Runtime::replace_propset_unmanaged_array(
+    const Value& propset, uint32_t field_index, std::span<const Value> values)
+{
+    const StructDef* definition = get_struct_def(propset.type_id);
+    if (propset.storage != ValueStorage::propset || !definition
+        || field_index >= definition->field_count) {
+        return false;
+    }
+
+    const FieldDef& field = definition->fields[field_index];
+    if (!field.is_unmanaged_array) {
+        return false;
+    }
+
+    const Value array_value = read_value_field_at_offset(
+        propset, field.offset, field.type_id);
+    IArray* array = array_value.storage == ValueStorage::immediate
+        ? object_pool().get_unmanaged_array(
+              TypedHandle::from_ull(array_value.data.handle))
+        : nullptr;
+    if (!array) {
+        return false;
+    }
+
+    const TypeID element_type = array->element_type();
+    for (const Value& value : values) {
+        if (value.type_id != element_type
+            || (value.storage == ValueStorage::heap && !get_value_data_ptr(value))) {
+            return false;
+        }
+    }
+
+    ScopedRoots roots{*this, values.size()};
+    for (const Value& value : values) {
+        roots.add(value);
+    }
+
+    array->reserve(values.size());
+    if (array->capacity() < values.size()) {
+        return false;
+    }
+    array->clear();
+    for (const Value& value : values) {
+        array->append_value(value, *this);
+    }
+
+    return propsets_ && propsets_->mark_field_mutation(propset, field_index);
+}
+
 // -- Tuple Element Access ----------------------------------------------------
 
 Value Runtime::read_tuple_element_by_index(HeapPtr tuple_ptr, const TupleDef* tuple_def, uint32_t element_index) const

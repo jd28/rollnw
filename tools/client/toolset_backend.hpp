@@ -17,7 +17,10 @@
 
 namespace nw::toolset {
 
+struct EncounterSpawnEdit;
+struct SoundResourceEdit;
 struct ItemPlacement;
+struct StoreItemPlacement;
 
 struct RecentModuleEntry {
     std::string name;
@@ -62,6 +65,13 @@ public:
     CommandResult place_items(ObjectHandle owner,
         std::span<const ItemPlacement> placements,
         CommandContext context);
+    CommandResult place_store_items(ObjectHandle store,
+        std::span<const StoreItemPlacement> placements,
+        CommandContext context);
+    CommandResult replace_encounter_spawns(
+        EncounterSpawnEdit edit, CommandContext context);
+    CommandResult replace_sound_resources(
+        SoundResourceEdit edit, CommandContext context);
     [[nodiscard]] TerminalCompletionResult complete_console_command(std::string_view line, size_t cursor_byte_position) const;
     [[nodiscard]] bool is_open_module_dialog_invocation(std::string_view line) const;
     [[nodiscard]] bool is_open_project_dialog_invocation(std::string_view line) const;

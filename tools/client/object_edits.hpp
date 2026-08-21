@@ -152,6 +152,65 @@ struct ObjectVariableSnapshot {
     std::string diagnostic;
 };
 
+struct EncounterSpawnRecord {
+    int32_t appearance = 0;
+    float cr = 0.0f;
+    Resref resref;
+    int32_t single_spawn = 0;
+
+    bool operator==(const EncounterSpawnRecord&) const = default;
+};
+
+// Converts one ordered Creature-handle batch into Encounter spawn rows. The
+// output has the same length and order as the input. Empty, invalid, or
+// non-Creature handles, missing propsets, empty resrefs, non-finite CR values,
+// and batches larger than 1,024 reject the complete transform. Palette-added
+// rows are normal group entries (single_spawn = 0).
+[[nodiscard]] std::optional<std::vector<EncounterSpawnRecord>>
+make_encounter_spawn_records(
+    smalls::Runtime& runtime, std::span<const ObjectHandle> creatures);
+
+// One Encounter owns one ordered spawn batch. An edit carries the complete
+// before/after lists so stale validation, undo, and redo do not depend on UI
+// selection state. Rows with an empty resref, non-finite challenge rating, or
+// non-canonical single_spawn flag reject the complete replacement.
+struct EncounterSpawnEdit {
+    ObjectHandle encounter{};
+    std::vector<EncounterSpawnRecord> before;
+    std::vector<EncounterSpawnRecord> after;
+};
+
+[[nodiscard]] std::optional<std::vector<EncounterSpawnRecord>>
+snapshot_encounter_spawns(smalls::Runtime& runtime, ObjectHandle encounter);
+
+[[nodiscard]] ObjectEditApplyResult apply_encounter_spawn_edit(
+    smalls::Runtime& runtime,
+    const EncounterSpawnEdit& edit,
+    ObjectEditDirection direction);
+
+[[nodiscard]] CommandResult commit_encounter_spawn_edit(
+    EncounterSpawnEdit edit, std::string label, CommandContext& context);
+
+// One Sound owns one ordered resource batch. The complete before/after lists
+// make drops, undo, and redo independent of transient project-tree selection.
+// Empty resrefs and batches larger than 1,024 reject the complete replacement.
+struct SoundResourceEdit {
+    ObjectHandle sound{};
+    std::vector<Resref> before;
+    std::vector<Resref> after;
+};
+
+[[nodiscard]] std::optional<std::vector<Resref>> snapshot_sound_resources(
+    smalls::Runtime& runtime, ObjectHandle sound);
+
+[[nodiscard]] ObjectEditApplyResult apply_sound_resource_edit(
+    smalls::Runtime& runtime,
+    const SoundResourceEdit& edit,
+    ObjectEditDirection direction);
+
+[[nodiscard]] CommandResult commit_sound_resource_edit(
+    SoundResourceEdit edit, std::string label, CommandContext& context);
+
 enum class ObjectVariableEditKind : uint8_t {
     insert,
     erase,
@@ -284,9 +343,9 @@ enum class ItemPlacementTarget : uint8_t {
     equipment,
 };
 
-// Flat input row for placing a detached live Item into one Creature or Item.
-// Inventory coordinates use Inventory's bottom-row convention. Equipment is
-// accepted only for Creature owners and ignores the coordinates.
+// Flat input row for placing a detached live Item into one Creature, Item, or
+// Placeable. Inventory coordinates use Inventory's bottom-row convention.
+// Equipment is accepted only for Creature owners and ignores the coordinates.
 struct ItemPlacement {
     ObjectHandle item{};
     ItemPlacementTarget target = ItemPlacementTarget::inventory;
@@ -298,6 +357,22 @@ struct ItemPlacement {
 
 using CreatureItemPlacementTarget = ItemPlacementTarget;
 using CreatureItemPlacement = ItemPlacement;
+
+// Store inventory is five independent persisted containers. The category is
+// therefore part of every placement row; it is never inferred from item name,
+// base item, or presentation order.
+enum class StoreInventoryCategory : uint8_t {
+    armor,
+    miscellaneous,
+    potions,
+    rings,
+    weapons,
+};
+
+struct StoreItemPlacement {
+    ObjectHandle item{};
+    StoreInventoryCategory category = StoreInventoryCategory::miscellaneous;
+};
 
 enum class ObjectMutationKind : uint8_t {
     none,
@@ -453,6 +528,16 @@ struct AreaObjectBlueprintLoadResult {
 [[nodiscard]] CommandResult place_creature_items(
     ObjectHandle creature,
     std::span<const CreatureItemPlacement> placements,
+    std::string label,
+    CommandContext& context);
+
+// Placement consumes detached live Items as one batch. The Store owns
+// attached Items; the transaction owns and destroys rejected or undo-detached
+// Items. Invalid categories, duplicate handles, stale ownership, and batches
+// larger than the fixed per-category capacity reject the complete batch.
+[[nodiscard]] CommandResult place_store_items(
+    ObjectHandle store,
+    std::span<const StoreItemPlacement> placements,
     std::string label,
     CommandContext& context);
 

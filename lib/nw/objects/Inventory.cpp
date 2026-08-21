@@ -159,6 +159,17 @@ bool Inventory::add_page()
     return true;
 }
 
+bool Inventory::remove_empty_trailing_page()
+{
+    if (!growable_ || pages_ <= 1 || inventory_bitset.empty()
+        || inventory_bitset.back().any()) {
+        return false;
+    }
+    inventory_bitset.pop_back();
+    --pages_;
+    return true;
+}
+
 bool Inventory::can_add_item(nw::Item* item) const
 {
     if (!item) { return false; }

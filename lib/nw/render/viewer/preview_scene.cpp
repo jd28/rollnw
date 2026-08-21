@@ -25,6 +25,8 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
@@ -114,6 +116,8 @@ PreviewScene::~PreviewScene()
 }
 
 namespace {
+
+using namespace std::string_view_literals;
 
 struct RenderModelPreviewLoad {
     std::unique_ptr<nw::render::RenderModel> model;
@@ -2711,6 +2715,213 @@ static std::unique_ptr<PreviewScene> load_area_creature_scene(
     return scene;
 }
 
+constexpr size_t kMaxEncounterPreviewSpawns = 16;
+
+struct EncounterPreviewSpawnBatch {
+    size_t source_count = 0;
+    std::vector<nw::Resref> resrefs;
+};
+
+std::optional<EncounterPreviewSpawnBatch> encounter_preview_spawn_resrefs(
+    const nw::Encounter& encounter)
+{
+    auto& runtime = nw::kernel::runtime();
+    if (!runtime.load_module("nwn1.propsets")) {
+        return std::nullopt;
+    }
+
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.EncounterState", false);
+    const auto spawn_type = runtime.type_id(
+        "nwn1.propsets.EncounterSpawn", false);
+    const auto* propset_definition = runtime.get_struct_def(propset_type);
+    const auto* spawn_definition = runtime.get_struct_def(spawn_type);
+    const uint32_t creatures_field = propset_definition
+        ? propset_definition->field_index("creatures")
+        : UINT32_MAX;
+    const uint32_t resref_field = spawn_definition
+        ? spawn_definition->field_index("resref")
+        : UINT32_MAX;
+    if (!propset_definition || !spawn_definition
+        || creatures_field == UINT32_MAX || resref_field == UINT32_MAX) {
+        return std::nullopt;
+    }
+
+    const auto propset = runtime.find_propset_ref(
+        propset_type, encounter.handle());
+    if (propset.type_id == nw::smalls::invalid_type_id) {
+        return std::nullopt;
+    }
+
+    const auto& field = propset_definition->fields[creatures_field];
+    const auto array_value = runtime.read_value_field_at_offset(
+        propset, field.offset, field.type_id);
+    auto* spawns = array_value.storage == nw::smalls::ValueStorage::immediate
+        ? runtime.object_pool().get_unmanaged_array(
+              nw::TypedHandle::from_ull(array_value.data.handle))
+        : nullptr;
+    if (!spawns || spawns->element_type() != spawn_type) {
+        return std::nullopt;
+    }
+
+    const size_t count = std::min(
+        spawns->size(), kMaxEncounterPreviewSpawns);
+    EncounterPreviewSpawnBatch result{
+        .source_count = spawns->size(),
+    };
+    result.resrefs.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        nw::Resref resref;
+        if (!runtime.read_struct_data_field(
+                spawns->element_data(i), spawn_definition, resref_field, resref)) {
+            return std::nullopt;
+        }
+        result.resrefs.push_back(resref);
+    }
+    return result;
+}
+
+std::unique_ptr<PreviewScene> build_encounter_spawn_scene(
+    PreviewRenderResources& resources,
+    const nw::Encounter& encounter,
+    std::string_view origin,
+    PreviewSceneLoadOptions options)
+{
+    auto scene = std::make_unique<PreviewScene>();
+    const auto spawn_batch = encounter_preview_spawn_resrefs(encounter);
+    if (!spawn_batch) {
+        const std::string message = "Encounter spawn data could not be read";
+        LOG_F(WARNING, "{}: {}", origin, message);
+        add_preview_load_event(scene->source_load_events,
+            PreviewLoadEventSeverity::warning,
+            "encounter_spawn_data",
+            message);
+        return scene;
+    }
+
+    auto& objects = nw::kernel::objects();
+    auto& resman = nw::kernel::resman();
+    std::vector<std::unique_ptr<PreviewScene>> spawn_scenes;
+    spawn_scenes.reserve(spawn_batch->resrefs.size());
+    for (size_t i = 0; i < spawn_batch->resrefs.size(); ++i) {
+        const auto resref = spawn_batch->resrefs[i];
+        if (resref.empty()) {
+            add_preview_load_event(scene->source_load_events,
+                PreviewLoadEventSeverity::warning,
+                "encounter_spawn_blueprint",
+                fmt::format("Encounter spawn row {} has no creature resref", i));
+            continue;
+        }
+        if (!resman.contains({resref, nw::ResourceType::utc})) {
+            add_preview_load_event(scene->source_load_events,
+                PreviewLoadEventSeverity::warning,
+                "encounter_spawn_blueprint",
+                fmt::format("Encounter spawn row {} creature '{}.utc' is missing", i, resref.view()));
+            continue;
+        }
+
+        PreviewCreatureObject creature{objects.load<nw::Creature>(resref)};
+        if (!creature) {
+            add_preview_load_event(scene->source_load_events,
+                PreviewLoadEventSeverity::warning,
+                "encounter_spawn_blueprint",
+                fmt::format("Encounter spawn row {} creature '{}.utc' failed to load", i, resref.view()));
+            continue;
+        }
+
+        auto spawn_scene = std::make_unique<PreviewScene>();
+        const std::string spawn_origin = fmt::format(
+            "{} spawn row {} '{}.utc'", origin, i, resref.view());
+        if (!add_dynamic_creature_scene_models(*spawn_scene,
+                resources,
+                *creature,
+                spawn_origin,
+                options,
+                &scene->source_load_events)) {
+            continue;
+        }
+        prime_scene_hold_animation(*spawn_scene);
+        spawn_scenes.push_back(std::move(spawn_scene));
+    }
+
+    if (spawn_batch->source_count > kMaxEncounterPreviewSpawns) {
+        add_preview_load_event(scene->source_load_events,
+            PreviewLoadEventSeverity::warning,
+            "encounter_spawn_limit",
+            fmt::format(
+                "Encounter has {} spawn rows; preview is limited to the first {}",
+                spawn_batch->source_count,
+                kMaxEncounterPreviewSpawns));
+    }
+
+    if (spawn_scenes.empty()) {
+        return scene;
+    }
+
+    float cell_width = 1.0f;
+    float cell_depth = 1.0f;
+    std::vector<Bounds> bounds;
+    bounds.reserve(spawn_scenes.size());
+    for (const auto& spawn_scene : spawn_scenes) {
+        const auto current = spawn_scene->current_bounds();
+        bounds.push_back(current);
+        cell_width = std::max(cell_width, current.max.x - current.min.x);
+        cell_depth = std::max(cell_depth, current.max.y - current.min.y);
+    }
+    constexpr float kCellMargin = 1.5f;
+    cell_width += kCellMargin;
+    cell_depth += kCellMargin;
+
+    size_t columns = 1;
+    while (columns * columns < spawn_scenes.size()) {
+        ++columns;
+    }
+    const size_t rows = (spawn_scenes.size() + columns - 1) / columns;
+    for (size_t i = 0; i < spawn_scenes.size(); ++i) {
+        const size_t column = i % columns;
+        const size_t row = i / columns;
+        const auto center = bounds[i].center();
+        const glm::vec3 cell_center{
+            (static_cast<float>(column) - static_cast<float>(columns - 1) * 0.5f) * cell_width,
+            (static_cast<float>(rows - 1) * 0.5f - static_cast<float>(row)) * cell_depth,
+            0.0f,
+        };
+        const glm::vec3 translation{
+            cell_center.x - center.x,
+            cell_center.y - center.y,
+            -bounds[i].min.z,
+        };
+        set_render_scene_root_placement(
+            *spawn_scenes[i], glm::translate(glm::mat4{1.0f}, translation));
+        append_render_models(*scene, *spawn_scenes[i], {}, false);
+    }
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_encounter_scene(
+    PreviewRenderResources& resources,
+    const std::filesystem::path& path,
+    PreviewSceneLoadOptions options)
+{
+    const auto path_text = path.string();
+    PreviewObjectPtr<nw::Encounter> encounter{
+        nw::kernel::objects().load_file<nw::Encounter>(path)};
+    if (!encounter) {
+        LOG_F(ERROR, "Encounter preview '{}' failed to load", path_text);
+        log_preview_error_context();
+        return {};
+    }
+
+    auto scene = build_encounter_spawn_scene(
+        resources, *encounter, path_text, options);
+    append_scene_authored_model_lights(*scene);
+    scene->root_object = encounter->handle();
+    scene->active_object = scene->root_object;
+    scene->rebuild_load_report(path_text, "encounter");
+    encounter.release();
+    return scene;
+}
+
 static std::unique_ptr<PreviewScene> load_area_placeable_scene(
     PreviewRenderResources& resources,
     nw::Placeable& placeable,
@@ -2896,28 +3107,110 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
     const auto path_text = path.string();
     ERRARE("[viewer] loading placeable preview '{}'", std::string_view{path_text});
 
-    PreviewPlaceableVisualLoad visual = load_placeable_visual_from_file(path);
-    if (!visual.loaded) {
-        LOG_F(ERROR, "Placeable preview '{}': {}", path.string(), visual.error);
+    auto placeable = load_managed_preview_object<nw::Placeable>(path, load_placeable_from_file);
+    if (!placeable) {
+        LOG_F(ERROR, "Placeable preview '{}' failed to load a live Placeable", path.string());
+        log_preview_error_context();
+        return {};
+    }
+    if (!placeable->instantiate()) {
+        LOG_F(ERROR, "Placeable preview '{}' failed to instantiate", path.string());
         log_preview_error_context();
         return {};
     }
 
-    const auto* model = first_valid_visual_model(std::span<const nw::ObjectVisualModel>{visual.visual.models});
+    auto* visual = nw::kernel::objects().components().find_visual(placeable->handle());
+    if (visual) {
+        // A standalone blueprint preview displays the neutral model pose rather
+        // than persisting an in-game activated/deactivated animation state.
+        visual->hold_animation = nw::Resref{"default"sv};
+    }
+
+    const auto* model = first_valid_visual_model(visual);
     if (!model) {
-        LOG_F(ERROR, "Placeable preview '{}': {}",
-            path.string(), visual.error.empty() ? placeable_visual_error(&visual.visual) : visual.error);
+        LOG_F(ERROR, "Placeable preview '{}': {}", path.string(), placeable_visual_error(visual));
         log_preview_error_context();
         return {};
     }
 
-    const auto lookup_context = fmt::format("visual appearance {}", visual.visual.appearance);
+    const auto lookup_context = fmt::format("visual appearance {}", visual->appearance);
     auto scene = load_blueprint_model_scene(
         resources, path, "Placeable", lookup_context, model->model.view(), true);
     if (scene) {
-        scene->hold_animation = visual.visual.hold_animation.view();
-        append_placeable_table_lights(*scene, nw::Location{}, &visual.visual);
+        scene->hold_animation = visual->hold_animation.view();
+        append_placeable_table_lights(*scene, nw::Location{}, visual);
+        scene->root_object = placeable->handle();
+        scene->active_object = scene->root_object;
+        placeable.release();
     }
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_waypoint_scene(
+    PreviewRenderResources& resources, const std::filesystem::path& path)
+{
+    const auto path_text = path.string();
+    ERRARE("[viewer] loading waypoint preview '{}'", std::string_view{path_text});
+
+    PreviewObjectPtr<nw::Waypoint> waypoint{
+        nw::kernel::objects().load_file<nw::Waypoint>(path)};
+    if (!waypoint) {
+        LOG_F(ERROR, "Waypoint preview '{}' failed to load", path_text);
+        log_preview_error_context();
+        return {};
+    }
+
+    const auto model = resolve_waypoint_model(*waypoint);
+    std::unique_ptr<PreviewScene> scene;
+    if (model.valid()) {
+        scene = load_blueprint_model_scene(
+            resources,
+            path,
+            "waypoint",
+            fmt::format("appearance {} in waypoint.2da", model.appearance),
+            model.model.view(),
+            true);
+    }
+
+    if (!scene) {
+        scene = std::make_unique<PreviewScene>();
+        const std::string message = model.valid()
+            ? fmt::format("Waypoint model '{}' could not be loaded", model.model.view())
+            : model.error;
+        LOG_F(WARNING, "Waypoint preview '{}': {}", path_text, message);
+        add_preview_load_event(
+            scene->source_load_events,
+            PreviewLoadEventSeverity::warning,
+            "waypoint_model",
+            message);
+        scene->rebuild_load_report(path_text, "waypoint");
+    }
+
+    scene->root_object = waypoint->handle();
+    scene->active_object = scene->root_object;
+    waypoint.release();
+    return scene;
+}
+
+template <typename T>
+static std::unique_ptr<PreviewScene> load_data_object_scene(
+    const std::filesystem::path& path, std::string_view preview_type)
+{
+    const auto path_text = path.string();
+    ERRARE("[viewer] loading {} data preview '{}'", preview_type, std::string_view{path_text});
+
+    PreviewObjectPtr<T> object{nw::kernel::objects().load_file<T>(path)};
+    if (!object) {
+        LOG_F(ERROR, "{} data preview '{}' failed to load", preview_type, path_text);
+        log_preview_error_context();
+        return {};
+    }
+
+    auto scene = std::make_unique<PreviewScene>();
+    scene->root_object = object->handle();
+    scene->active_object = scene->root_object;
+    scene->rebuild_load_report(path_text, preview_type);
+    object.release();
     return scene;
 }
 
@@ -3274,6 +3567,21 @@ std::unique_ptr<PreviewScene> load_preview_scene(
         }
         if (resource.type == nw::ResourceType::utp) {
             return load_placeable_scene(resources, path);
+        }
+        if (resource.type == nw::ResourceType::ute) {
+            return load_encounter_scene(resources, path, options);
+        }
+        if (resource.type == nw::ResourceType::uts) {
+            return load_data_object_scene<nw::Sound>(path, "sound");
+        }
+        if (resource.type == nw::ResourceType::utm) {
+            return load_data_object_scene<nw::Store>(path, "store");
+        }
+        if (resource.type == nw::ResourceType::utt) {
+            return load_data_object_scene<nw::Trigger>(path, "trigger");
+        }
+        if (resource.type == nw::ResourceType::utw) {
+            return load_waypoint_scene(resources, path);
         }
     }
 
@@ -3827,6 +4135,12 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         if (auto* door = nw::kernel::objects().get<nw::Door>(object)) {
             scene = load_live_door_scene(
                 resources, *door, std::filesystem::path{source}, false);
+        }
+        break;
+    case nw::ObjectType::encounter:
+        if (auto* encounter = nw::kernel::objects().get<nw::Encounter>(object)) {
+            scene = build_encounter_spawn_scene(
+                resources, *encounter, source, options);
         }
         break;
     default:

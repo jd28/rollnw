@@ -1013,6 +1013,13 @@ public:
     bool write_propset_int_element(const Value& propset, uint32_t field_index,
         int32_t element_index, int32_t value);
 
+    /// Replaces one existing unmanaged propset array as a single mutation.
+    /// The complete input batch is validated and capacity is reserved before
+    /// the live array is changed. Heap-backed values remain rooted through the
+    /// copy, and a successful replacement marks the owning propset field dirty.
+    bool replace_propset_unmanaged_array(
+        const Value& propset, uint32_t field_index, std::span<const Value> values);
+
     // -- Config Arrays -------------------------------------------------------
 
     /// Maps a 2da column name to a smalls struct field name.

@@ -63,7 +63,7 @@ enum class InventoryViewStatus : uint8_t {
     invalid_data,
 };
 
-// Cold display protocol for one active Creature or Item. Equipment is populated
+// Cold display protocol for one active Creature, Item, or Placeable. Equipment is populated
 // only for Creature owners; inventory is contiguous source order with validated
 // page coordinates and footprints. Text slices remain valid until rebuild.
 struct InventoryViewSnapshot {

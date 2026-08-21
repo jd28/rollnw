@@ -95,7 +95,7 @@ PlaceableAppearanceInfo::PlaceableAppearanceInfo(const TwoDARowView& tda)
 String PlaceableAppearanceInfo::editor_name() const
 {
     auto string = nw::kernel::strings().get(string_ref);
-    if (!string.empty()) { return string; }
+    if (!string.empty() && !string.starts_with("Bad Strref")) { return string; }
     return label;
 }
 

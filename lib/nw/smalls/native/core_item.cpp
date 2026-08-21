@@ -9,9 +9,12 @@
 #include "../../objects/Item.hpp"
 #include "../../objects/ObjectComponentSystem.hpp"
 #include "../../objects/ObjectManager.hpp"
+#include "../../objects/Placeable.hpp"
+#include "../../objects/Store.hpp"
 #include "../../rules/effects.hpp"
 #include "../Array.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <span>
 #include <utility>
@@ -136,6 +139,9 @@ nw::Inventory* as_inventory(nw::ObjectHandle obj)
     if (auto* item = owner->as_item()) {
         return &item->inventory();
     }
+    if (auto* placeable = owner->as_placeable()) {
+        return &placeable->inventory();
+    }
     return nullptr;
 }
 
@@ -221,6 +227,74 @@ Value make_int_array(Runtime& rt, std::span<const int32_t> values)
         array->append_value(Value::make_int(value), rt);
     }
     return Value::make_heap(array_ptr, rt.heap_.get_header(array_ptr)->type_id);
+}
+
+Value make_inventory_item_array(Runtime& rt, const nw::Inventory* inventory,
+    size_t maximum_items = std::numeric_limits<size_t>::max())
+{
+    const TypeID item_type = rt.object_subtype_for_tag(nw::ObjectType::item);
+    if (item_type == invalid_type_id) {
+        return {};
+    }
+
+    const size_t item_count = inventory
+        ? std::min(inventory->items.size(), maximum_items)
+        : 0;
+    const HeapPtr array_ptr = rt.create_array_typed(item_type, item_count);
+    auto* items = rt.get_array_typed(array_ptr);
+    if (!items) {
+        return {};
+    }
+
+    if (inventory) {
+        for (const auto& entry : inventory->items) {
+            if (items->size() >= item_count) { break; }
+            if (const auto* item = inventory_item_ptr(entry)) {
+                items->append_value(
+                    detail::make_value(&rt, item->handle()), rt);
+            }
+        }
+    }
+
+    return Value::make_heap(
+        array_ptr, rt.heap_.get_header(array_ptr)->type_id);
+}
+
+int32_t inventory_item_count(const nw::Inventory* inventory) noexcept
+{
+    if (!inventory) { return 0; }
+    size_t count = 0;
+    for (const auto& entry : inventory->items) {
+        count += inventory_item_ptr(entry) ? 1u : 0u;
+    }
+    return count > static_cast<size_t>(std::numeric_limits<int32_t>::max())
+        ? std::numeric_limits<int32_t>::max()
+        : static_cast<int32_t>(count);
+}
+
+const nw::Inventory* store_inventory(
+    nw::ObjectHandle store_h, int32_t category) noexcept
+{
+    const auto* store = nw::kernel::objects().get<nw::Store>(store_h);
+    if (!store) {
+        return nullptr;
+    }
+
+    const auto& inventory = store->inventory();
+    switch (category) {
+    case 0:
+        return &inventory.armor;
+    case 1:
+        return &inventory.miscellaneous;
+    case 2:
+        return &inventory.potions;
+    case 3:
+        return &inventory.rings;
+    case 4:
+        return &inventory.weapons;
+    default:
+        return nullptr;
+    }
 }
 
 Value make_item_property_array(Runtime& rt, std::span<const nw::ItemProperty> properties)
@@ -639,37 +713,14 @@ void register_core_item(Runtime& rt)
             return inventory && item && inventory->remove_item(item); })
         .function("inventory_items", +[](nw::ObjectHandle owner_h) -> Value {
             auto& runtime = nw::kernel::runtime();
-            const nw::Inventory* inventory = as_inventory(owner_h);
-
-            const TypeID item_type = runtime.object_subtype_for_tag(nw::ObjectType::item);
-            if (item_type == invalid_type_id) {
-                return {};
-            }
-
-            const HeapPtr empty_array = !inventory
-                ? runtime.create_array_typed(item_type, 0)
-                : HeapPtr{};
-            if (!inventory) {
-                return empty_array.value == 0
-                    ? Value{}
-                    : Value::make_heap(
-                          empty_array, runtime.heap_.get_header(empty_array)->type_id);
-            }
-
-            const HeapPtr array_ptr = runtime.create_array_typed(item_type, inventory->items.size());
-            auto* items = runtime.get_array_typed(array_ptr);
-            if (!items) {
-                return {};
-            }
-
-            for (const auto& entry : inventory->items) {
-                if (const auto* item = inventory_item_ptr(entry)) {
-                    items->append_value(detail::make_value(&runtime, item->handle()), runtime);
-                }
-            }
-
-            return Value::make_heap(
-                array_ptr, runtime.heap_.get_header(array_ptr)->type_id); })
+            return make_inventory_item_array(runtime, as_inventory(owner_h)); })
+        .function("store_inventory_item_count", +[](nw::ObjectHandle store_h, int32_t category) -> int32_t {
+            return inventory_item_count(store_inventory(store_h, category)); })
+        .function("store_inventory_items", +[](nw::ObjectHandle store_h, int32_t category, int32_t maximum_items) -> Value {
+            auto& runtime = nw::kernel::runtime();
+            return make_inventory_item_array(
+                runtime, store_inventory(store_h, category),
+                maximum_items > 0 ? static_cast<size_t>(maximum_items) : 0u); })
 
         // The End
         .finalize();

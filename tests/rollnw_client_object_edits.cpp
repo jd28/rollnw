@@ -16,6 +16,8 @@
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/Gff.hpp>
@@ -1052,6 +1054,317 @@ TEST(ClientObjectEdits, ItemPlacementUsesExactInventoryCellAcrossUndoRedo)
     EXPECT_TRUE(nwk::objects().valid(item->handle()));
     ASSERT_TRUE(workspace.redo(context).ok());
     EXPECT_TRUE(owner->inventory().has_item(item));
+}
+
+TEST(ClientObjectEdits, PlaceableItemPlacementUsesExactInventoryCellAcrossUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* owner = nwk::objects().make<nw::Placeable>();
+    auto* item = nwk::objects().load<nw::Item>("nw_wswss001");
+    ASSERT_NE(owner, nullptr);
+    ASSERT_NE(item, nullptr);
+    const auto* layout = nwk::objects().components().find_item_layout(item->handle());
+    ASSERT_NE(layout, nullptr);
+    const auto target = owner->inventory().find_slot(
+        layout->inventory_width, layout->inventory_height);
+    ASSERT_GE(target.page, 0);
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    const std::array placements{nw::toolset::ItemPlacement{
+        .item = item->handle(),
+        .target = nw::toolset::ItemPlacementTarget::inventory,
+        .page = target.page,
+        .row = target.row,
+        .column = target.col,
+    }};
+
+    auto committed = nw::toolset::place_items(
+        owner->handle(), placements, "Place item", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_TRUE(owner->inventory().has_item(item));
+
+    workspace.push_undo(*committed.undo_action);
+    EXPECT_TRUE(workspace.undo(context).ok());
+    EXPECT_FALSE(owner->inventory().has_item(item));
+    EXPECT_TRUE(nwk::objects().valid(item->handle()));
+    EXPECT_TRUE(workspace.redo(context).ok());
+    EXPECT_TRUE(owner->inventory().has_item(item));
+}
+
+TEST(ClientObjectEdits, EncounterSpawnReplacementPersistsAcrossUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* encounter = nwk::objects().load_file<nw::Encounter>(
+        "test_data/user/development/boundelementallo.ute");
+    ASSERT_NE(encounter, nullptr);
+
+    auto before = nw::toolset::snapshot_encounter_spawns(
+        nwk::runtime(), encounter->handle());
+    ASSERT_TRUE(before);
+    ASSERT_FALSE(before->empty());
+    auto after = *before;
+    after.pop_back();
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    nw::toolset::EncounterSpawnEdit edit{
+        .encounter = encounter->handle(),
+        .before = *before,
+        .after = after,
+    };
+    auto committed = nw::toolset::commit_encounter_spawn_edit(
+        edit, "Remove encounter spawn", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(nw::toolset::snapshot_encounter_spawns(
+                  nwk::runtime(), encounter->handle()),
+        std::optional{after});
+
+    const auto stale = nw::toolset::apply_encounter_spawn_edit(
+        nwk::runtime(), edit, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(stale.status, nw::toolset::ObjectEditStatus::stale_value);
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_encounter_spawns(
+                  nwk::runtime(), encounter->handle()),
+        before);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_encounter_spawns(
+                  nwk::runtime(), encounter->handle()),
+        std::optional{after});
+
+    auto invalid_after = after;
+    auto invalid_row = before->front();
+    invalid_row.cr = std::numeric_limits<float>::infinity();
+    invalid_after.push_back(invalid_row);
+    const auto invalid = nw::toolset::apply_encounter_spawn_edit(
+        nwk::runtime(),
+        {encounter->handle(), after, invalid_after},
+        nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(invalid.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(nw::toolset::snapshot_encounter_spawns(
+                  nwk::runtime(), encounter->handle()),
+        std::optional{after});
+
+    nlohmann::json archive;
+    const auto serialize_json = static_cast<bool (*)(
+        const nw::Encounter*, nlohmann::json&, nw::SerializationProfile)>(
+        &nw::serialize);
+    ASSERT_TRUE(serialize_json(
+        encounter, archive, nw::SerializationProfile::blueprint));
+    auto* reloaded = nwk::objects().make<nw::Encounter>();
+    ASSERT_NE(reloaded, nullptr);
+    const auto deserialize_json = static_cast<bool (*)(
+        nw::Encounter*, const nlohmann::json&, nw::SerializationProfile)>(
+        &nw::deserialize);
+    ASSERT_TRUE(deserialize_json(
+        reloaded, archive, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(nw::toolset::snapshot_encounter_spawns(
+                  nwk::runtime(), reloaded->handle()),
+        std::optional{after});
+}
+
+TEST(ClientObjectEdits, EncounterSpawnRecordsUseCreatureBlueprintPropsets)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* creature = nwk::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    const std::array creatures{creature->handle()};
+    const auto rows = nw::toolset::make_encounter_spawn_records(
+        nwk::runtime(), creatures);
+    ASSERT_TRUE(rows);
+    ASSERT_EQ(rows->size(), 1);
+    EXPECT_EQ(rows->front().resref, creature->resref);
+    EXPECT_GE(rows->front().appearance, 0);
+    EXPECT_TRUE(std::isfinite(rows->front().cr));
+    EXPECT_EQ(rows->front().single_spawn, 0);
+
+    const std::array invalid_batch{
+        creature->handle(), nw::ObjectHandle{},
+    };
+    EXPECT_FALSE(nw::toolset::make_encounter_spawn_records(
+        nwk::runtime(), invalid_batch));
+    const auto empty = nw::toolset::make_encounter_spawn_records(
+        nwk::runtime(), std::span<const nw::ObjectHandle>{});
+    ASSERT_TRUE(empty);
+    EXPECT_TRUE(empty->empty());
+}
+
+TEST(ClientObjectEdits, SoundResourceReplacementPersistsAcrossUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* sound = nwk::objects().load_file<nw::Sound>(
+        "test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+
+    auto before = nw::toolset::snapshot_sound_resources(
+        nwk::runtime(), sound->handle());
+    ASSERT_TRUE(before);
+    ASSERT_FALSE(before->empty());
+    auto after = *before;
+    after.push_back(before->front());
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    nw::toolset::SoundResourceEdit edit{
+        .sound = sound->handle(),
+        .before = *before,
+        .after = after,
+    };
+    auto committed = nw::toolset::commit_sound_resource_edit(
+        edit, "Add sound resource", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{after});
+
+    const auto stale = nw::toolset::apply_sound_resource_edit(
+        nwk::runtime(), edit, nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(stale.status, nw::toolset::ObjectEditStatus::stale_value);
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        before);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{after});
+
+    auto invalid_after = after;
+    invalid_after.emplace_back();
+    const auto invalid = nw::toolset::apply_sound_resource_edit(
+        nwk::runtime(),
+        {sound->handle(), after, invalid_after},
+        nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(invalid.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{after});
+
+    nlohmann::json archive;
+    const auto serialize_json = static_cast<bool (*)(
+        const nw::Sound*, nlohmann::json&, nw::SerializationProfile)>(
+        &nw::serialize);
+    ASSERT_TRUE(serialize_json(
+        sound, archive, nw::SerializationProfile::blueprint));
+    auto* reloaded = nwk::objects().make<nw::Sound>();
+    ASSERT_NE(reloaded, nullptr);
+    const auto deserialize_json = static_cast<bool (*)(
+        nw::Sound*, const nlohmann::json&, nw::SerializationProfile)>(
+        &nw::deserialize);
+    ASSERT_TRUE(deserialize_json(
+        reloaded, archive, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), reloaded->handle()),
+        std::optional{after});
+}
+
+TEST(ClientObjectEdits, StoreItemPlacementUsesExplicitCategoryAcrossUndoRedo)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* store = nwk::objects().load_file<nw::Store>(
+        "test_data/user/development/storethief002.utm");
+    auto* item = nwk::objects().load_file<nw::Item>(
+        "test_data/user/development/cloth028.uti");
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(item, nullptr);
+    ASSERT_NE(nwk::objects().components().find_item_layout(item->handle()), nullptr);
+
+    auto& inventory = store->inventory();
+    const size_t armor_before = inventory.armor.size();
+    const size_t potions_before = inventory.potions.size();
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    const std::array placements{nw::toolset::StoreItemPlacement{
+        .item = item->handle(),
+        .category = nw::toolset::StoreInventoryCategory::potions,
+    }};
+
+    auto committed = nw::toolset::place_store_items(
+        store->handle(), placements, "Place Store item", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    ASSERT_TRUE(inventory.potions.has_item(item));
+    EXPECT_FALSE(inventory.armor.has_item(item));
+    EXPECT_EQ(inventory.armor.size(), armor_before);
+    EXPECT_EQ(inventory.potions.size(), potions_before + 1);
+
+    const auto placed = std::ranges::find_if(inventory.potions.items,
+        [handle = item->handle()](const nw::InventoryItem& entry) {
+            return entry.item.is<nw::ObjectHandle>()
+                && entry.item.as<nw::ObjectHandle>() == handle;
+        });
+    ASSERT_NE(placed, inventory.potions.items.end());
+    const auto placed_x = placed->pos_x;
+    const auto placed_y = placed->pos_y;
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_FALSE(inventory.potions.has_item(item));
+    EXPECT_TRUE(nwk::objects().valid(item->handle()));
+    EXPECT_EQ(inventory.potions.size(), potions_before);
+
+    ASSERT_TRUE(workspace.redo(context).ok());
+    ASSERT_TRUE(inventory.potions.has_item(item));
+    const auto replaced = std::ranges::find_if(inventory.potions.items,
+        [handle = item->handle()](const nw::InventoryItem& entry) {
+            return entry.item.is<nw::ObjectHandle>()
+                && entry.item.as<nw::ObjectHandle>() == handle;
+        });
+    ASSERT_NE(replaced, inventory.potions.items.end());
+    EXPECT_EQ(replaced->pos_x, placed_x);
+    EXPECT_EQ(replaced->pos_y, placed_y);
+}
+
+TEST(ClientObjectEdits, StoreItemPlacementRejectsUnknownCategory)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* store = nwk::objects().load_file<nw::Store>(
+        "test_data/user/development/storethief002.utm");
+    auto* item = nwk::objects().load_file<nw::Item>(
+        "test_data/user/development/cloth028.uti");
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(item, nullptr);
+    const auto item_handle = item->handle();
+
+    nw::toolset::CommandContext context;
+    const std::array placements{nw::toolset::StoreItemPlacement{
+        .item = item_handle,
+        .category = static_cast<nw::toolset::StoreInventoryCategory>(255),
+    }};
+    const auto rejected = nw::toolset::place_store_items(
+        store->handle(), placements, "Place Store item", context);
+    EXPECT_EQ(rejected.status, nw::toolset::CommandStatus::rejected);
+    EXPECT_FALSE(nwk::objects().valid(item_handle));
 }
 
 TEST(ClientObjectEdits, ItemPlacementRejectsOwnerWithoutSmallsContainerPolicy)

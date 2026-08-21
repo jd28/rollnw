@@ -10,17 +10,20 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Player.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
 #include <initializer_list>
+#include <limits>
 
 namespace fs = std::filesystem;
 
@@ -4032,6 +4035,7 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
+        import core.array as Array;
         import core.types as T;
         import nwn1.placeables as P;
 
@@ -4042,8 +4046,21 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
             if (info.id != 109) { return -2; }
             if (rules.id != 109) { return -3; }
             if (T.resref_to_string(info.model) != "plc_o01") { return -4; }
+            if (info.string_ref < 0) { return -7; }
             if (rules.light_color != -1) { return -5; }
             if (!rules.static) { return -6; }
+
+            var options = P.get_appearance_options();
+            if (Array.len(options) == 0) { return -8; }
+            for (var index = 1; index < Array.len(options); index += 1) {
+                var previous = options[index - 1];
+                var current = options[index];
+                if (previous.sort_key > current.sort_key) { return -9; }
+                if (previous.sort_key == current.sort_key
+                    && previous.id >= current.id) {
+                    return -10;
+                }
+            }
 
             return 1;
         }
@@ -4065,6 +4082,93 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, PlaceableAppearanceNameUsesCxxFallbackChain)
+{
+    constexpr size_t appearance = 109;
+    auto& entries = nw::kernel::rules().placeables.entries;
+    ASSERT_GT(entries.size(), appearance);
+
+    auto& info = entries[appearance];
+    const auto original = info;
+    const auto restore = create_scope_exit([&info, &original]() { info = original; });
+    info.string_ref = std::numeric_limits<uint32_t>::max();
+    info.label = "FallbackLabel";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    std::string_view source = R"(
+        import nwn1.placeables as P;
+
+        fn main(): bool {
+            var option = P.get_appearance_option(109);
+            return option.id == 109
+                && option.label == "FallbackLabel"
+                && option.sort_key == "fallbacklabel";
+        }
+
+        fn model_fallback(): bool {
+            var option = P.get_appearance_option(109);
+            return option.id == 109
+                && option.label == "plc_o01"
+                && option.sort_key == "plc_o01";
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.placeable_appearance_label_fallback", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+
+    info.label.clear();
+    result = rt.execute_script(script, "model_fallback", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+}
+
+TEST_F(SmallsEngineIntegration, PlaceableAppearanceCatalogIsNotTruncated)
+{
+    constexpr size_t appended_appearances = 4097;
+    auto& entries = nw::kernel::rules().placeables.entries;
+    ASSERT_GT(entries.size(), 109u);
+
+    const auto original_size = entries.size();
+    const auto source = entries[109];
+    ASSERT_FALSE(source.model.empty());
+    const auto restore = create_scope_exit(
+        [&entries, original_size]() { entries.resize(original_size); });
+    entries.reserve(original_size + appended_appearances);
+    for (size_t index = 0; index < appended_appearances; ++index) {
+        auto entry = source;
+        entry.string_ref = std::numeric_limits<uint32_t>::max();
+        entry.label = "CatalogEntry";
+        entries.push_back(std::move(entry));
+    }
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    std::string_view script_source = R"(
+        import core.array as Array;
+        import nwn1.placeables as P;
+
+        fn main(): int {
+            return Array.len(P.get_appearance_options());
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.placeable_appearance_catalog_not_truncated", script_source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_GT(result.value.data.ival, 4096);
 }
 
 TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicCloakModelEntry)
@@ -4195,6 +4299,58 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, CoreItemReturnsStoreInventoryByCategory)
+{
+    auto module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+
+    auto& objects = nw::kernel::objects();
+    auto& components = objects.components();
+    auto* store = objects.make<nw::Store>();
+    auto* armor = objects.make<nw::Item>();
+    auto* weapon = objects.make<nw::Item>();
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(armor, nullptr);
+    ASSERT_NE(weapon, nullptr);
+    ASSERT_TRUE(components.set_item_layout(armor->handle(), 1, 1));
+    ASSERT_TRUE(components.set_item_layout(weapon->handle(), 1, 1));
+    ASSERT_TRUE(store->inventory().armor.add_item(armor));
+    ASSERT_TRUE(store->inventory().weapons.add_item(weapon));
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        import core.array as Array;
+        import core.item as Item;
+
+        fn main(store: Store): int {
+            var armor = Array.len(Item.store_inventory_items(
+                store, Item.store_inventory_armor, 10));
+            var armor_count = Item.store_inventory_item_count(
+                store, Item.store_inventory_armor);
+            var armor_capped = Array.len(Item.store_inventory_items(
+                store, Item.store_inventory_armor, 0));
+            var miscellaneous = Array.len(Item.store_inventory_items(
+                store, Item.store_inventory_miscellaneous, 10));
+            var weapons = Array.len(Item.store_inventory_items(
+                store, Item.store_inventory_weapons, 10));
+            var invalid = Array.len(Item.store_inventory_items(store, -1, 10));
+            return armor * 10000 + armor_count * 1000 + armor_capped * 100
+                + miscellaneous * 10 + weapons + invalid;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.core_item_store_inventory", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto store_value = nw::smalls::Value::make_object(store->handle());
+    store_value.type_id = rt.object_subtype_for_tag(store->handle().type);
+    auto result = rt.execute_script(script, "main", {store_value});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 11001);
 }
 
 TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPhenotypeEntry)
