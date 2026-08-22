@@ -10,6 +10,24 @@
 
 #include "test_nwn_root.hpp"
 
+namespace {
+
+// Fixtures may replace or stop the process-owned services to obtain a clean
+// runtime. Restore game-mode services after fixture teardown so shard ordering
+// cannot affect the next test. start() is a no-op on the common path.
+class RestoreGameServices final : public ::testing::EmptyTestEventListener {
+    void OnTestEnd(const ::testing::TestInfo&) override
+    {
+        auto& services = nw::kernel::services();
+        if (services.mode() != nw::kernel::ServiceMode::game) {
+            services.shutdown();
+        }
+        services.start();
+    }
+};
+
+} // namespace
+
 int main(int argc, char* argv[])
 {
     bool list_tests = false;
@@ -31,6 +49,7 @@ int main(int argc, char* argv[])
     }
 
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::UnitTest::GetInstance()->listeners().Append(new RestoreGameServices);
     int failed = RUN_ALL_TESTS();
 
     if (!list_tests) {

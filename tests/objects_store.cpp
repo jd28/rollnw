@@ -9,7 +9,6 @@
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
-#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -50,11 +49,14 @@ TEST(Store, JsonSerialize)
 
 TEST(Store, JsonDeserialize)
 {
-    auto ent = nw::kernel::objects().make<nw::Store>();
-    EXPECT_TRUE(ent);
+    auto source = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_TRUE(source);
 
-    std::ifstream f{"tmp/storethief002.utm.json"};
-    auto j = nlohmann::json::parse(f);
+    nlohmann::json j;
+    nw::serialize(source, j, nw::SerializationProfile::blueprint);
+
+    auto ent = nw::kernel::objects().make<nw::Store>();
+    ASSERT_TRUE(ent);
     nw::deserialize(ent, j, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(ent->resref, "storethief002");

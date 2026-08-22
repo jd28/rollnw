@@ -239,7 +239,7 @@ TEST(Player, GffSerialization)
 
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
-    EXPECT_TRUE(pl->save("tmp/daeris1.bic", "gff"));
+    EXPECT_TRUE(pl->save("tmp/daeris1_gff.bic", "gff"));
 }
 
 TEST(Player, JsonSerialization)
@@ -249,6 +249,6 @@ TEST(Player, JsonSerialization)
 
     auto pl = nwk::objects().load_player("CDKEY", "daeris1");
     EXPECT_TRUE(pl);
-    EXPECT_TRUE(pl->save("tmp/daeris1.bic", "gff"));
+    EXPECT_TRUE(pl->save("tmp/daeris1_json_source.bic", "gff"));
     EXPECT_TRUE(pl->save("tmp/daeris1.bic.json", "json"));
 }

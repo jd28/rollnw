@@ -95,7 +95,7 @@ jobs:
 
       - name: Test
         run: |
-          ctest --preset default
+          ctest --preset default --parallel 2
 
       - name: Coverage
         run: |

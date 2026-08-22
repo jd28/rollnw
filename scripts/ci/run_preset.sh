@@ -23,4 +23,4 @@ else
   cmake --build --preset "${build_preset}"
 fi
 
-ctest --preset "${test_preset}"
+ctest --preset "${test_preset}" --parallel 2

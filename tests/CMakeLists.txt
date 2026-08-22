@@ -401,8 +401,33 @@ if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test PRIVATE dl)
 endif()
 
-include(GoogleTest)
-gtest_discover_tests(rollnw_test DISCOVERY_MODE PRE_TEST)
+# A test process initializes the dedicated-server resource, rules, and tileset
+# services before GoogleTest runs. Registering every case as a separate CTest
+# process repeated that fixed startup for every case. GoogleTest's stable
+# sharding protocol retains eight isolated test processes while amortizing
+# startup across a bounded batch of cases in each process.
+set(ROLLNW_TEST_SHARD_COUNT 8)
+set(ROLLNW_TEST_TMP_FIXTURE rollnw_test_tmp)
+add_test(
+    NAME rollnw_test_prepare_tmp
+    COMMAND ${CMAKE_COMMAND}
+        -DROLLNW_TEST_TMP_DIR=$<TARGET_FILE_DIR:rollnw_test>/tmp
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/prepare_test_tmp.cmake)
+set_tests_properties(rollnw_test_prepare_tmp PROPERTIES
+    FIXTURES_SETUP ${ROLLNW_TEST_TMP_FIXTURE})
+
+math(EXPR ROLLNW_TEST_LAST_SHARD "${ROLLNW_TEST_SHARD_COUNT} - 1")
+foreach(ROLLNW_TEST_SHARD_INDEX RANGE ${ROLLNW_TEST_LAST_SHARD})
+    set(ROLLNW_TEST_SHARD_NAME "rollnw_test_shard_${ROLLNW_TEST_SHARD_INDEX}")
+    add_test(
+        NAME ${ROLLNW_TEST_SHARD_NAME}
+        COMMAND $<TARGET_FILE:rollnw_test>)
+    set_tests_properties(${ROLLNW_TEST_SHARD_NAME} PROPERTIES
+        ENVIRONMENT
+            "GTEST_TOTAL_SHARDS=${ROLLNW_TEST_SHARD_COUNT};GTEST_SHARD_INDEX=${ROLLNW_TEST_SHARD_INDEX}"
+        FIXTURES_REQUIRED ${ROLLNW_TEST_TMP_FIXTURE}
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:rollnw_test>)
+endforeach()
 
 install(TARGETS rollnw_test)
 install(DIRECTORY test_data/ DESTINATION bin/test_data)

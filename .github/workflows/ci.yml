@@ -173,7 +173,7 @@ jobs:
       - name: all - build & test
         run: |
           cmake --build --preset default
-          ctest --preset default
+          ctest --preset default --parallel 2
 
       - name: ccache stats
         run: |

@@ -20,12 +20,11 @@ TEST(Tlk, LoadEnglish)
 
 TEST(Tlk, LoadGerman)
 {
-    auto install_path = nw::kernel::config().install_path();
     nw::Tlk de{"test_data/root/lang/de/data/dialog.tlk"};
     EXPECT_TRUE(de.valid());
     EXPECT_EQ(de.get(10), "Mönch");
-    de.save_as("tmp/dialog.tlk");
-    nw::Tlk t2 = nw::Tlk{"tmp/dialog.tlk"};
+    de.save_as("tmp/dialog_de.tlk");
+    nw::Tlk t2 = nw::Tlk{"tmp/dialog_de.tlk"};
     EXPECT_TRUE(t2.valid());
     EXPECT_EQ(de.get(10), "Mönch");
 }
@@ -60,8 +59,8 @@ TEST(Tlk, Save)
     nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
     EXPECT_TRUE(t.valid());
     t.set(1, "Hello World");
-    t.save_as("tmp/dialog.tlk");
-    nw::Tlk t2 = nw::Tlk{"tmp/dialog.tlk"};
+    t.save_as("tmp/dialog_en_modified.tlk");
+    nw::Tlk t2 = nw::Tlk{"tmp/dialog_en_modified.tlk"};
     EXPECT_TRUE(t2.valid());
     EXPECT_TRUE(t2.size() > 0);
     EXPECT_EQ(t2.get(1), "Hello World");

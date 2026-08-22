@@ -34,7 +34,7 @@ export UBSAN_OPTIONS="${UBSAN_OPTIONS:-print_stacktrace=1:halt_on_error=1}"
 cmake --preset ci-linux-clang-asan-ubsan
 cmake --build --preset ci-linux-clang-asan-ubsan --target rollnw_test
 
-if ! ctest --preset ci-linux-clang-asan-ubsan --output-on-failure; then
+if ! ctest --preset ci-linux-clang-asan-ubsan --parallel 2 --output-on-failure; then
   echo "::group::rerun failing tests verbosely"
   failed_tests_file="${build_dir}/Testing/Temporary/LastTestsFailed.log"
 
