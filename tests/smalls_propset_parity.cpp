@@ -40,9 +40,11 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
+#include <string_view>
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+using namespace std::literals;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,6 +63,15 @@ static int32_t read_int(nw::smalls::Runtime& rt, const nw::smalls::Value& ref,
     nw::smalls::Value v = rt.read_value_field_at_offset(ref,
         def->fields[idx].offset, rt.int_type());
     return v.data.ival;
+}
+
+static bool write_int(nw::smalls::Runtime& rt, const nw::smalls::Value& ref,
+    const nw::smalls::StructDef* def, const char* field_name, int32_t value)
+{
+    uint32_t idx = def->field_index(field_name);
+    if (idx == UINT32_MAX) { return false; }
+    return rt.write_value_field_at_offset(ref,
+        def->fields[idx].offset, rt.int_type(), nw::smalls::Value::make_int(value));
 }
 
 static float read_float_f(nw::smalls::Runtime& rt, const nw::smalls::Value& ref,
@@ -834,7 +845,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedItemStats)
     check_item_stats_parity(rt, item_deserialized, item_import);
 }
 
-static void check_sound_state_parity(
+static void check_blueprint_sound_state_parity(
     nw::smalls::Runtime& rt,
     nw::Sound* sound_legacy, nw::Sound* sound_import)
 {
@@ -857,7 +868,7 @@ static void check_sound_state_parity(
     }
 
     const char* int_fields[] = {
-        "generated_type", "hours", "interval", "interval_variation",
+        "hours", "interval", "interval_variation",
         "active", "continuous", "looping", "positional", "priority",
         "random", "random_position", "times", "volume", "volume_variation",
         nullptr};
@@ -1156,7 +1167,7 @@ TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedSoundState)
     importer_->import_sound(sound_import, gff.toplevel(), nw::SerializationProfile::blueprint);
 
     check_common_parity(rt, sound_legacy, sound_import);
-    check_sound_state_parity(rt, sound_legacy, sound_import);
+    check_blueprint_sound_state_parity(rt, sound_legacy, sound_import);
 }
 
 TEST_F(SmallsPropsetParity, ImporterMatchesDeserializedWaypointState)
@@ -1345,6 +1356,16 @@ TEST_F(SmallsPropsetParity, GffRoundTripSoundState)
     ASSERT_NE(sound_ref, nullptr);
     rt.init_object_propsets(sound_ref->handle());
 
+    auto sound_state_tid = rt.type_id("nwn1.propsets.SoundState", false);
+    ASSERT_NE(sound_state_tid, nw::smalls::invalid_type_id);
+    auto* sound_state_def = sdef(rt, sound_state_tid);
+    ASSERT_NE(sound_state_def, nullptr);
+    auto sound_state_ref = rt.get_or_create_propset_ref(sound_state_tid, sound_ref->handle());
+    ASSERT_NE(sound_state_ref.type_id, nw::smalls::invalid_type_id);
+    constexpr int32_t instance_generated_type = 7;
+    ASSERT_TRUE(write_int(rt, sound_state_ref, sound_state_def,
+        "generated_type", instance_generated_type));
+
     nw::GffBuilder builder(nw::Sound::serial_id);
     exporter_->export_sound(sound_ref, builder.top, nw::SerializationProfile::blueprint);
     builder.build();
@@ -1352,6 +1373,7 @@ TEST_F(SmallsPropsetParity, GffRoundTripSoundState)
     rd.bytes = builder.to_byte_array();
     nw::Gff exported_gff(std::move(rd));
     ASSERT_TRUE(exported_gff.valid());
+    EXPECT_FALSE(exported_gff.toplevel().has_field("GeneratedType"sv));
 
     auto* sound_rt = make_sound(path);
     ASSERT_NE(sound_rt, nullptr);
@@ -1360,7 +1382,13 @@ TEST_F(SmallsPropsetParity, GffRoundTripSoundState)
         nw::SerializationProfile::blueprint);
 
     check_common_parity(rt, sound_ref, sound_rt);
-    check_sound_state_parity(rt, sound_ref, sound_rt);
+    check_blueprint_sound_state_parity(rt, sound_ref, sound_rt);
+
+    auto imported_sound_state = rt.get_or_create_propset_ref(sound_state_tid, sound_rt->handle());
+    ASSERT_NE(imported_sound_state.type_id, nw::smalls::invalid_type_id);
+    EXPECT_EQ(read_int(rt, sound_state_ref, sound_state_def, "generated_type"),
+        instance_generated_type);
+    EXPECT_EQ(read_int(rt, imported_sound_state, sound_state_def, "generated_type"), 0);
 }
 
 TEST_F(SmallsPropsetParity, GffRoundTripWaypointState)
