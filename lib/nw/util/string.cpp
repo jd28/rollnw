@@ -218,7 +218,9 @@ String desanitize_colors(String str)
             continue;
         }
 
-        uint8_t c1, c2, c3;
+        uint8_t c1 = 0;
+        uint8_t c2 = 0;
+        uint8_t c3 = 0;
         auto r1 = std::from_chars(&str[i + 1], &str[i + 3], c1, 16);
         auto r2 = std::from_chars(&str[i + 3], &str[i + 5], c2, 16);
         auto r3 = std::from_chars(&str[i + 5], &str[i + 7], c3, 16);

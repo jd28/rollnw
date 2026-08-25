@@ -83,17 +83,17 @@ TEST(Placeable, JsonRoundTrip)
 TEST(Placeable, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/arrowcorpse001.utp");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto* ent = nw::kernel::objects().make<nw::Placeable>();
     ASSERT_NE(ent, nullptr);
-    EXPECT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+    ASSERT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/arrowcorpse001.utp");
+    ASSERT_TRUE(oa.write_to("tmp/arrowcorpse001.utp"));
 
     nw::Gff g2{"tmp/arrowcorpse001.utp"};
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
     EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
 
     EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);

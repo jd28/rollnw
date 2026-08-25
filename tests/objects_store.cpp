@@ -101,17 +101,17 @@ TEST(Store, GffDeserialize)
 TEST(Store, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/storethief002.utm");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto ent = nw::kernel::objects().make<nw::Store>();
-    EXPECT_TRUE(ent);
-    deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
+    ASSERT_NE(ent, nullptr);
+    ASSERT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/storethief002_2.utm");
+    ASSERT_TRUE(oa.write_to("tmp/storethief002_2.utm"));
 
     nw::Gff g2("tmp/storethief002_2.utm");
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
 
     // Problem: store pages aren't saved in the same order as toolset
     // EXPEEQRUE(nw::gff_to_gffjson(g) , nw::gff_to_gffjson(g2));

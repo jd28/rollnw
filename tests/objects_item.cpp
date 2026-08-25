@@ -1082,16 +1082,16 @@ TEST(Item, JsonRejectsMissingOrMalformedNativeItemComponents)
 TEST(Item, GffRoundTrip)
 {
     auto ent = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
-    EXPECT_TRUE(ent);
+    ASSERT_NE(ent, nullptr);
 
     nw::Gff g("test_data/user/development/cloth028.uti");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/cloth028.uti");
+    ASSERT_TRUE(oa.write_to("tmp/cloth028.uti"));
 
     nw::Gff g2{"tmp/cloth028.uti"};
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
 
     // Problem: local vars arent always saved in same order
     // EXPEEQRUE(nw::gff_to_gffjson(g) , nw::gff_to_gffjson(g2));

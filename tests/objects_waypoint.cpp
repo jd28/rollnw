@@ -48,18 +48,18 @@ TEST(Waypoint, GffDeserialize)
 TEST(Waypoint, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/wp_behexit001.utw");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto ent = nw::kernel::objects().make<nw::Waypoint>();
-    EXPECT_TRUE(ent);
+    ASSERT_NE(ent, nullptr);
 
-    EXPECT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+    ASSERT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/wp_behexit001.utw");
+    ASSERT_TRUE(oa.write_to("tmp/wp_behexit001.utw"));
 
     nw::Gff g2{"tmp/wp_behexit001.utw"};
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
     EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
 
     EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);

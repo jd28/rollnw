@@ -212,15 +212,16 @@ TEST(Door, GffDeserialize)
 TEST(Door, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/door_ttr_002.utd");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
+    ASSERT_NE(door, nullptr);
 
     nw::GffBuilder oa = serialize(door, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/door_ttr_002.utd");
+    ASSERT_TRUE(oa.write_to("tmp/door_ttr_002.utd"));
 
     nw::Gff g2("tmp/door_ttr_002.utd");
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
     EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
 
     EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);

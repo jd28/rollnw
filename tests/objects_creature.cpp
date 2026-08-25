@@ -1785,14 +1785,18 @@ TEST(Creature, JsonRoundTrip)
 
 TEST(Creature, GffRoundTrip)
 {
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(mod);
-
-    auto ent = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
-    EXPECT_TRUE(ent);
-
     nw::Gff g("test_data/user/development/pl_agent_001.utc");
-    EXPECT_TRUE(ent->save("tmp/pl_agent_001_2.utc", "gff"));
+    ASSERT_TRUE(g.valid());
+
+    auto* ent = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(ent, nullptr);
+    ASSERT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+
+    nw::GffBuilder out = serialize(ent, nw::SerializationProfile::blueprint);
+    ASSERT_TRUE(out.write_to("tmp/pl_agent_001_2.utc"));
+
+    nw::Gff written("tmp/pl_agent_001_2.utc");
+    EXPECT_TRUE(written.valid());
 
     // Note: the below will typically always fail because the toolset,
     // doesn't sort feats when it writes out the gff.

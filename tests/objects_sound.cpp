@@ -48,17 +48,17 @@ TEST(Sound, GffDeserialize)
 TEST(Sound, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/blue_bell.uts");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto* ent = nw::kernel::objects().make<nw::Sound>();
     ASSERT_NE(ent, nullptr);
-    deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
+    ASSERT_TRUE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/blue_bell.uts");
+    ASSERT_TRUE(oa.write_to("tmp/blue_bell.uts"));
 
     nw::Gff g2("tmp/blue_bell.uts");
-    EXPECT_TRUE(g2.valid());
+    ASSERT_TRUE(g2.valid());
 
     EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
 

@@ -195,16 +195,17 @@ TEST(Encounter, InstanceJsonRoundTripStoresGeometryComponent)
 TEST(Encounter, GffRoundTrip)
 {
     nw::Gff g("test_data/user/development/boundelementallo.ute");
-    EXPECT_TRUE(g.valid());
+    ASSERT_TRUE(g.valid());
 
     auto* enc = nw::kernel::objects().make<nw::Encounter>();
     ASSERT_NE(enc, nullptr);
-    EXPECT_TRUE(deserialize(enc, g.toplevel(),
+    ASSERT_TRUE(deserialize(enc, g.toplevel(),
         nw::SerializationProfile::blueprint));
 
     nw::GffBuilder oa = serialize(enc, nw::SerializationProfile::blueprint);
-    oa.write_to("tmp/boundelementallo_2.ute");
+    ASSERT_TRUE(oa.write_to("tmp/boundelementallo_2.ute"));
     nw::Gff g2{"tmp/boundelementallo_2.ute"};
+    ASSERT_TRUE(g2.valid());
 
     EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
 
