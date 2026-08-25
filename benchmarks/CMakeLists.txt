@@ -17,6 +17,7 @@ add_executable(rollnw_benchmark
     appearance_catalog.cpp
     combat.cpp
     main.cpp
+    navigation.cpp
     particles.cpp
     propset.cpp
     smalls.cpp

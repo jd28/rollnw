@@ -302,6 +302,59 @@ TEST(Mdl, BinaryDropsMeshFacesWithInvalidVertexIndices)
     EXPECT_EQ(mesh->indices[2], 2u);
 }
 
+TEST(Mdl, BinaryAabbKeepsAcceptedFaceMaterials)
+{
+    nw::model::detail::MdlBinaryAABBNode node{};
+    node.header.node_header.type = nw::model::NodeType::aabb;
+    node.header.vertex_count = 3;
+    node.header.vertices = 0;
+    node.header.faces.length = 2;
+
+    constexpr size_t model_offset = mdl_pointer_base;
+    constexpr size_t node_offset = model_offset + nw::model::detail::MdlBinaryModelHeader::s_sizeof;
+    constexpr size_t face_offset = node_offset + nw::model::detail::MdlBinaryAABBNode::s_sizeof;
+    constexpr size_t raw_vertex_offset = face_offset + 2 * nw::model::detail::MdlBinaryFace::s_sizeof;
+    constexpr size_t raw_vertex_size = sizeof(std::array<glm::vec3, 3>);
+    node.header.faces.offset = static_cast<uint32_t>(face_offset - mdl_pointer_base);
+
+    auto data = make_binary_mdl_with_node(
+        node,
+        1,
+        2 * nw::model::detail::MdlBinaryFace::s_sizeof + raw_vertex_size);
+
+    nw::model::detail::MdlBinaryHeader header{};
+    header.type = 0;
+    header.raw_data_offset = static_cast<uint32_t>(raw_vertex_offset - mdl_pointer_base);
+    header.raw_data_size = raw_vertex_size;
+    write_at(data, 0, header);
+
+    std::array<nw::model::detail::MdlBinaryFace, 2> faces{};
+    faces[0].surface_id = 5;
+    faces[0].vertex_indicies = {0, 1, 2};
+    faces[1].surface_id = 9;
+    faces[1].vertex_indicies = {0, 1, 3};
+    write_at(data, face_offset, faces);
+
+    const std::array<glm::vec3, 3> vertices{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+        glm::vec3{1.0f, 0.0f, 0.0f},
+        glm::vec3{0.0f, 1.0f, 0.0f},
+    };
+    write_at(data, raw_vertex_offset, vertices);
+
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 1u);
+    const auto* mesh = dynamic_cast<const nw::model::AABBNode*>(mdl.model.nodes[0].get());
+    ASSERT_NE(mesh, nullptr);
+    EXPECT_EQ(mesh->indices.size(), 3u);
+    ASSERT_EQ(mdl.model.face_material_ranges.size(), 1u);
+    EXPECT_EQ(mdl.model.face_material_ranges[0].node_index, 0u);
+    EXPECT_EQ(mdl.model.face_material_ranges[0].material_offset, 0u);
+    EXPECT_EQ(mdl.model.face_material_ranges[0].face_count, 1u);
+    EXPECT_EQ(mdl.model.face_materials, (nw::Vector<uint32_t>{5}));
+}
+
 TEST(Mdl, BinarySkinPreservesSparseBoneLanes)
 {
     nw::model::detail::MdlBinarySkinNode node{};

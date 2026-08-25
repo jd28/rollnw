@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nw/objects/ObjectHandle.hpp>
 #include <nw/render/model_instance_animation.hpp>
 
 #include <cstddef>
@@ -14,6 +15,29 @@
 namespace nw::render::viewer {
 
 struct PreviewScene;
+
+enum class AreaCreatureLocomotion : uint8_t {
+    idle,
+    walking_forward,
+    walking_backward,
+    strafing_left,
+    strafing_right,
+    turning_left,
+    turning_right,
+};
+
+struct AreaCreatureLocomotionAnimationInput {
+    nw::ObjectHandle owner{};
+    AreaCreatureLocomotion locomotion = AreaCreatureLocomotion::idle;
+};
+
+struct AreaCreatureLocomotionAnimationStats {
+    uint32_t input_count = 0;
+    uint32_t rejected_input_count = 0;
+    uint32_t matched_model_count = 0;
+    uint32_t changed_model_count = 0;
+    uint32_t missing_clip_count = 0;
+};
 
 // Returns UI-facing clip labels for a RenderModel asset. Empty clip names are
 // reported as stable "clip N" labels.
@@ -48,6 +72,14 @@ bool set_default_render_model_animation_clip(
 // Selects the standard per-model hold clip for RenderModel rows,
 // then advances one 33 ms tick so newly added creatures do not remain in bind pose.
 bool prime_scene_hold_animation(PreviewScene& scene);
+// Selects idle and directional locomotion clips for area creature model rows. Inputs are borrowed,
+// must have unique Creature owners, and remain valid only for this call. A
+// missing clip leaves that model's current clip unchanged. Matching rows whose
+// clip is already selected keep their time, so fixed-tick updates do not
+// restart animation playback.
+AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
+    PreviewScene& scene,
+    std::span<const AreaCreatureLocomotionAnimationInput> inputs);
 void advance_render_model_animation_times(PreviewScene& scene, float dt);
 void collect_render_model_animation_samples(
     std::vector<nw::render::ModelInstanceAnimationSample>& out,

@@ -230,6 +230,21 @@ bool ClientRenderer::focus_viewer_area_object_selection() noexcept
     return false;
 }
 
+std::optional<ClientViewportRay> ClientRenderer::viewer_viewport_ray(
+    float pixel_x, float pixel_y, ClientViewportRect viewport)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.viewer_viewport_ray(pixel_x, pixel_y, viewport);
+    }
+#endif
+
+    (void)pixel_x;
+    (void)pixel_y;
+    (void)viewport;
+    return std::nullopt;
+}
+
 std::optional<glm::vec3> ClientRenderer::viewer_area_surface_point(
     float pixel_x, float pixel_y, ClientViewportRect viewport)
 {
@@ -267,6 +282,60 @@ bool ClientRenderer::append_viewer_area_object_previews(
 #endif
 
     return false;
+}
+
+bool ClientRenderer::begin_toolset_preview_visuals(
+    std::span<const nw::ObjectHandle> objects,
+    const nw::toolset::PreviewCameraState& camera)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.begin_toolset_preview_visuals(objects, camera);
+    }
+#endif
+
+    (void)objects;
+    (void)camera;
+    return false;
+}
+
+bool ClientRenderer::update_toolset_preview_visuals(
+    std::span<const nw::ObjectSpatialState> spatial_rows,
+    std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    const nw::toolset::PreviewCameraState& camera)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.update_toolset_preview_visuals(spatial_rows, locomotion_rows, camera);
+    }
+#endif
+
+    (void)spatial_rows;
+    (void)locomotion_rows;
+    (void)camera;
+    return false;
+}
+
+bool ClientRenderer::end_toolset_preview_visuals() noexcept
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.end_toolset_preview_visuals();
+    }
+#endif
+
+    return false;
+}
+
+std::optional<glm::vec3> ClientRenderer::viewer_area_camera_focus() const noexcept
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.viewer_area_camera_focus();
+    }
+#endif
+
+    return std::nullopt;
 }
 
 bool ClientRenderer::sync_viewer_area_object_spatial(nw::ObjectHandle object)

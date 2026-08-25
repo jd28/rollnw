@@ -157,6 +157,11 @@ struct AreaObjectSpatialUpdateStats {
     uint32_t render_model_root_count = 0;
 };
 
+struct AreaObjectModelIndexEntry {
+    nw::ObjectHandle object;
+    uint32_t model_index = nw::render::kInvalidModelInstanceIndex;
+};
+
 enum class AreaObjectPreviewAppendStatus : uint8_t {
     success,
     empty,
@@ -173,6 +178,25 @@ struct AreaObjectPreviewAppendResult {
     [[nodiscard]] bool ok() const noexcept
     {
         return status == AreaObjectPreviewAppendStatus::success;
+    }
+};
+
+enum class AreaTransientVisualStatus : uint8_t {
+    success,
+    empty,
+    invalid_input,
+    failed,
+};
+
+struct AreaTransientVisualResult {
+    AreaTransientVisualStatus status = AreaTransientVisualStatus::empty;
+    uint32_t object_count = 0;
+    uint32_t model_count = 0;
+    std::string diagnostic;
+
+    [[nodiscard]] bool ok() const noexcept
+    {
+        return status == AreaTransientVisualStatus::success;
     }
 };
 
@@ -282,6 +306,19 @@ struct PreviewScene {
     // with model_attachments.
     std::vector<nw::render::ModelAttachmentRootTransformInput> attachment_transform_inputs;
     std::vector<nw::render::ModelAttachmentRootTransformOutput> attachment_transform_outputs;
+    // Runtime-update index and retained scratch. The index is rebuilt once
+    // after scene topology changes, then spatial updates touch only models
+    // owned by the changed object rows and their attachment descendants.
+    std::vector<AreaObjectModelIndexEntry> area_object_model_indices;
+    std::vector<uint32_t> attachment_owner_offsets;
+    std::vector<uint32_t> attachment_owner_binding_indices;
+    std::vector<uint32_t> local_light_owner_offsets;
+    std::vector<uint32_t> local_light_owner_indices;
+    std::vector<uint32_t> spatial_update_model_scratch;
+    std::vector<uint32_t> runtime_sync_model_scratch;
+    std::vector<uint32_t> runtime_sync_binding_scratch;
+    std::vector<nw::ObjectHandle> spatial_update_owner_scratch;
+    bool runtime_update_indices_dirty = true;
     std::vector<SceneParticleSystem> particles;
     std::vector<DebugShapeVertex> debug_shape_vertices;
     std::vector<uint32_t> debug_shape_indices;
@@ -334,6 +371,8 @@ struct PreviewScene {
     RenderModelAttachmentSetupStats attach_render_models(
         std::span<const RenderModelAttachmentSetup> attachments);
     void add_particle_effect(nw::render::ParticleEffectDef effect);
+    void invalidate_runtime_update_indices() noexcept;
+    void rebuild_runtime_update_indices();
 };
 
 // Batch transform from scene-owned assets into common instance runtime state.
@@ -342,6 +381,8 @@ struct PreviewScene {
 // current bounds, and world-space shadow summary. Stale handles, mismatched
 // indices, and missing assets are skipped.
 PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& scene);
+PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(
+    PreviewScene& scene, std::span<const uint32_t> root_model_indices);
 
 // Batch transform from live or preview spatial rows into scene-owned model
 // roots. Inputs are borrowed for the call; the scene retains only the resulting
@@ -381,6 +422,19 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
     std::span<const nw::ObjectHandle> objects,
     float opacity,
     PreviewSceneLoadOptions options);
+// Adds opaque, shadow-casting visuals for detached runtime objects without
+// changing editor selection. The scene owns the appended render rows until the
+// same object-handle batch is removed.
+[[nodiscard]] AreaTransientVisualResult append_area_transient_visuals(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    PreviewSceneLoadOptions options);
+// Removes every render row owned by the input handles. Object validity is not
+// required, so presentation teardown may follow object-lifetime teardown.
+[[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
+    PreviewScene& scene,
+    std::span<const nw::ObjectHandle> objects);
 // Batch replacement of live creature visual rows. Input handles are borrowed
 // and must be unique live creatures represented by this scene. Replacement
 // assets are built before scene mutation; invalid or failed batches leave the

@@ -271,6 +271,14 @@ bool ClientRendererNwgfx::focus_viewer_area_object_selection() noexcept
     return viewer_viewport_ && viewer_viewport_->focus_area_object_selection();
 }
 
+std::optional<ClientViewportRay> ClientRendererNwgfx::viewer_viewport_ray(
+    float pixel_x, float pixel_y, ClientViewportRect viewport)
+{
+    return viewer_viewport_
+        ? viewer_viewport_->viewport_ray(pixel_x, pixel_y, viewport)
+        : std::nullopt;
+}
+
 std::optional<glm::vec3> ClientRendererNwgfx::viewer_area_surface_point(
     float pixel_x, float pixel_y, ClientViewportRect viewport)
 {
@@ -288,6 +296,36 @@ bool ClientRendererNwgfx::append_viewer_area_object_previews(
     std::span<const nw::ObjectHandle> objects, float opacity)
 {
     return viewer_viewport_ && viewer_viewport_->append_area_object_previews(objects, opacity);
+}
+
+bool ClientRendererNwgfx::begin_toolset_preview_visuals(
+    std::span<const nw::ObjectHandle> objects,
+    const nw::toolset::PreviewCameraState& camera)
+{
+    return viewer_viewport_
+        && viewer_viewport_->begin_toolset_preview_visuals(objects, camera);
+}
+
+bool ClientRendererNwgfx::update_toolset_preview_visuals(
+    std::span<const nw::ObjectSpatialState> spatial_rows,
+    std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    const nw::toolset::PreviewCameraState& camera)
+{
+    return viewer_viewport_
+        && viewer_viewport_->update_toolset_preview_visuals(
+            spatial_rows, locomotion_rows, camera);
+}
+
+bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept
+{
+    return viewer_viewport_ && viewer_viewport_->end_toolset_preview_visuals();
+}
+
+std::optional<glm::vec3> ClientRendererNwgfx::viewer_area_camera_focus() const noexcept
+{
+    return viewer_viewport_
+        ? viewer_viewport_->area_camera_focus()
+        : std::nullopt;
 }
 
 bool ClientRendererNwgfx::sync_viewer_area_object_spatial(nw::ObjectHandle object)

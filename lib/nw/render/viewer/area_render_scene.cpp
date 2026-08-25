@@ -62,7 +62,7 @@ bool object_matches_record_kind(AreaRenderRecordKind kind, nw::ObjectHandle obje
 }
 
 std::optional<float> ray_bounds_intersection(
-    const AreaObjectRay& ray, const nw::render::Bounds& bounds) noexcept
+    const ViewerRay& ray, const nw::render::Bounds& bounds) noexcept
 {
     if (!finite_ordered_bounds(bounds)) {
         return std::nullopt;
@@ -98,7 +98,7 @@ std::optional<float> ray_bounds_intersection(
 }
 
 std::optional<float> ray_triangle_intersection(
-    const AreaObjectRay& ray, const AreaSurfaceTriangle& triangle) noexcept
+    const ViewerRay& ray, const AreaSurfaceTriangle& triangle) noexcept
 {
     constexpr float kEpsilon = 1.0e-7f;
     const glm::vec3 edge0 = triangle.v1 - triangle.v0;
@@ -618,7 +618,7 @@ uint32_t area_chunk_id(const PreviewScene& scene, const AreaRenderSourceInfo& in
     return static_cast<uint32_t>(chunk_y * scene.area_width + chunk_x);
 }
 
-std::optional<AreaObjectRay> normalized_area_object_ray(const AreaObjectRay& ray) noexcept
+std::optional<ViewerRay> normalized_viewer_ray(const ViewerRay& ray) noexcept
 {
     if (!finite_vec3(ray.origin) || !finite_vec3(ray.direction)) {
         return std::nullopt;
@@ -628,7 +628,7 @@ std::optional<AreaObjectRay> normalized_area_object_ray(const AreaObjectRay& ray
     if (!std::isfinite(direction_length) || direction_length <= 1.0e-8f) {
         return std::nullopt;
     }
-    return AreaObjectRay{
+    return ViewerRay{
         .origin = ray.origin,
         .direction = ray.direction / direction_length,
     };
@@ -657,7 +657,7 @@ glm::vec3 skinned_vertex_position(
 
 template <typename Index, typename PositionAt>
 void trace_indexed_triangles(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const Index* indices,
     uint32_t index_count,
     uint32_t vertex_count,
@@ -691,7 +691,7 @@ void trace_indexed_triangles(
 
 template <typename Vertex>
 void trace_static_geometry(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const Vertex* vertices,
     uint32_t vertex_count,
     const void* indices,
@@ -717,7 +717,7 @@ void trace_static_geometry(
 
 template <typename Vertex>
 void trace_skinned_geometry(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const Vertex* vertices,
     uint32_t vertex_count,
     const void* indices,
@@ -767,7 +767,7 @@ bool build_render_model_selection_bones(
 }
 
 void trace_render_model_record(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     uint32_t model_index,
     const nw::render::ModelInstanceHandle instance_handle,
     const PreviewScene& scene,
@@ -905,7 +905,7 @@ bool point_in_polygon_xy(const glm::vec2& point, std::span<const glm::vec3> poly
 }
 
 void trace_debug_shape_selection_range(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const DebugShapeSelectionRange& range,
     const PreviewScene& scene,
     float& nearest_distance) noexcept
@@ -958,7 +958,7 @@ void trace_debug_shape_selection_range(
 }
 
 AreaObjectSelection select_area_object_geometry(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const AreaRenderScene& records,
     const PreviewScene& scene,
     AreaObjectSelectionOptions options)
@@ -967,7 +967,7 @@ AreaObjectSelection select_area_object_geometry(
         && options.target != AreaObjectSelectionTarget::tile) {
         return {};
     }
-    const auto normalized_ray = normalized_area_object_ray(ray);
+    const auto normalized_ray = normalized_viewer_ray(ray);
     if (!normalized_ray) {
         return {};
     }
@@ -1067,7 +1067,7 @@ AreaObjectSelection select_area_object_geometry(
 } // namespace
 
 void trace_area_surfaces(
-    std::span<const AreaObjectRay> rays,
+    std::span<const ViewerRay> rays,
     std::span<const AreaSurfaceRange> ranges,
     std::span<const AreaSurfaceTriangle> triangles,
     std::span<AreaSurfaceHit> hits) noexcept
@@ -1089,7 +1089,7 @@ void trace_area_surfaces(
         if (!std::isfinite(direction_length) || direction_length <= 1.0e-8f) {
             continue;
         }
-        const AreaObjectRay ray{
+        const ViewerRay ray{
             .origin = input_ray.origin,
             .direction = input_ray.direction / direction_length,
         };
@@ -1130,19 +1130,19 @@ void trace_area_surfaces(
 }
 
 AreaSurfaceHit trace_area_surface(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     std::span<const AreaSurfaceRange> ranges,
     std::span<const AreaSurfaceTriangle> triangles) noexcept
 {
     AreaSurfaceHit result;
     trace_area_surfaces(
-        std::span<const AreaObjectRay>{&ray, 1u}, ranges, triangles,
+        std::span<const ViewerRay>{&ray, 1u}, ranges, triangles,
         std::span<AreaSurfaceHit>{&result, 1u});
     return result;
 }
 
 void select_area_objects(
-    std::span<const AreaObjectRay> rays,
+    std::span<const ViewerRay> rays,
     const AreaRenderScene& records,
     const PreviewScene& scene,
     std::span<AreaObjectSelection> selections,
@@ -1160,14 +1160,14 @@ void select_area_objects(
 }
 
 AreaObjectSelection select_area_object(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const AreaRenderScene& records,
     const PreviewScene& scene,
     AreaObjectSelectionOptions options)
 {
     AreaObjectSelection result;
     select_area_objects(
-        std::span<const AreaObjectRay>{&ray, 1u},
+        std::span<const ViewerRay>{&ray, 1u},
         records,
         scene,
         std::span<AreaObjectSelection>{&result, 1u},

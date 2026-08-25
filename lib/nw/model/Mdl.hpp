@@ -290,6 +290,12 @@ struct Face {
     uint32_t material_idx;
 };
 
+struct FaceMaterialRange {
+    uint32_t node_index = 0;
+    uint32_t material_offset = 0;
+    uint32_t face_count = 0;
+};
+
 struct Node {
     Node(String name_, uint32_t type_);
     virtual ~Node() = default;
@@ -518,6 +524,10 @@ struct Model : public Geometry {
     ModelClass classification;
     bool ignorefog;
     Vector<std::unique_ptr<Animation>> animations;
+    // Sparse, contiguous sidecar used by walkmesh resources and model AABB nodes.
+    // Ranges are emitted in ascending node order and materials follow output triangle order.
+    Vector<FaceMaterialRange> face_material_ranges;
+    Vector<uint32_t> face_materials;
     // [TODO] Need to replace this with a mdl cache
     std::unique_ptr<Mdl> supermodel;
     glm::vec3 bmin;

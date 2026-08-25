@@ -55,7 +55,7 @@ bool read_scale(const nlohmann::json& archive, glm::vec3& out)
     }
 
     glm::vec3 parsed;
-    for (size_t i = 0; i < 3; ++i) {
+    for (glm::length_t i = 0; i < parsed.length(); ++i) {
         if (!(*it)[i].is_number()) {
             return false;
         }

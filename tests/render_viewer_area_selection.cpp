@@ -220,11 +220,11 @@ TEST(RenderViewerAreaSelection, TracesNearestRaisedAndSlopedSurfacesInBatches)
         },
     };
     const std::array rays{
-        viewer::AreaObjectRay{
+        viewer::ViewerRay{
             .origin = {0.5f, 0.5f, 10.0f},
             .direction = {0.0f, 0.0f, -2.0f},
         },
-        viewer::AreaObjectRay{
+        viewer::ViewerRay{
             .origin = {10.5f, 0.5f, 10.0f},
             .direction = {0.0f, 0.0f, -1.0f},
         },
@@ -261,7 +261,7 @@ TEST(RenderViewerAreaSelection, ReportsSurfaceMissesAndInvalidProtocols)
         },
     };
 
-    viewer::AreaObjectRay ray{
+    viewer::ViewerRay ray{
         .origin = {5.0f, 5.0f, 10.0f},
         .direction = {0.0f, 0.0f, -1.0f},
     };
@@ -312,6 +312,18 @@ TEST(RenderViewerAreaSelection, UpdatesAllSceneRootsForOneSpatialRow)
         EXPECT_EQ(instance->current_bounds.min, glm::vec3(3.0f, 4.0f, 5.0f));
         EXPECT_EQ(instance->current_bounds.max, glm::vec3(7.0f, 8.0f, 9.0f));
     }
+
+    // The first update builds the retained lookup. A later topology change
+    // must invalidate it so the newly added root participates immediately.
+    auto added_model = std::make_unique<nw::render::RenderModel>();
+    added_model->bounds = {
+        .min = {-1.0f, -1.0f, -1.0f},
+        .max = {1.0f, 1.0f, 1.0f},
+    };
+    scene.add(std::move(added_model));
+    scene.static_area_model_info.back().object = creature;
+    const auto added_stats = viewer::update_area_object_spatial_states(scene, rows);
+    EXPECT_EQ(added_stats.render_model_root_count, 3u);
 
     auto invalid_spatial = spatial;
     invalid_spatial.scale.x = 0.0f;
@@ -391,11 +403,11 @@ TEST(RenderViewerAreaSelection, RejectsBoundsOnlyHitsAndSelectsNearestTriangle)
     viewer::AreaRenderScene records;
     records.rebuild(scene);
     const std::array rays{
-        viewer::AreaObjectRay{
+        viewer::ViewerRay{
             .origin = {0.0f, 0.25f, 0.25f},
             .direction = {2.0f, 0.0f, 0.0f},
         },
-        viewer::AreaObjectRay{
+        viewer::ViewerRay{
             .origin = {0.0f, 0.75f, 0.75f},
             .direction = {1.0f, 0.0f, 0.0f},
         },
@@ -415,7 +427,7 @@ TEST(RenderViewerAreaSelection, RejectsBoundsOnlyHitsAndSelectsNearestTriangle)
 
     std::array<viewer::AreaObjectSelection, 1> mismatched_selection;
     viewer::select_area_objects(
-        std::span<const viewer::AreaObjectRay>{}, records, scene, mismatched_selection);
+        std::span<const viewer::ViewerRay>{}, records, scene, mismatched_selection);
     EXPECT_EQ(mismatched_selection[0].status, viewer::AreaObjectSelectionStatus::invalid_input);
 
     auto invalid_ray = rays[0];
@@ -481,11 +493,11 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
 
     viewer::AreaRenderScene records;
     records.rebuild(scene);
-    const viewer::AreaObjectRay object_ray{
+    const viewer::ViewerRay object_ray{
         .origin = {0.0f, 0.25f, 0.25f},
         .direction = {1.0f, 0.0f, 0.0f},
     };
-    const viewer::AreaObjectRay tile_ray{
+    const viewer::ViewerRay tile_ray{
         .origin = {0.0f, 0.25f, tile_elevation + 0.25f},
         .direction = {1.0f, 0.0f, 0.0f},
     };
@@ -522,7 +534,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     EXPECT_EQ(tile_bounds->max, glm::vec3(50.0f, 80.0f, tile_elevation + 1.0f));
 
     const auto raised_tile_hit = viewer::select_area_object(
-        viewer::AreaObjectRay{
+        viewer::ViewerRay{
             .origin = {0.0f, 0.1f, tile_elevation + 0.75f},
             .direction = {1.0f, 0.0f, 0.0f},
         },

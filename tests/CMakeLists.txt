@@ -186,6 +186,7 @@ add_executable(rollnw_test
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp
     rollnw_client_object_edits.cpp
+    rollnw_client_preview.cpp
     rollnw_client_smalls_creature_feats.cpp
     rollnw_client_smalls_creature_inventory.cpp
     rollnw_client_smalls_item_editor.cpp
@@ -216,6 +217,10 @@ add_executable(rollnw_test
 
     model_parse.cpp
     model_particles.cpp
+    model_walkmesh.cpp
+    nav_blockers.cpp
+    nav_geometry.cpp
+    nav_world.cpp
     ../tools/mudl/benchmark_report.cpp
     ../tools/mudl/mudl_cli.cpp
     ../tools/ui/smalls_property_tree.cpp
@@ -373,6 +378,7 @@ set_project_warnings(rollnw_test OWN_SOURCES)
 
 target_link_libraries(rollnw_test PRIVATE
     rollnw_client_core
+    nw-nav
     nw
     Threads::Threads
     GTest::gtest)

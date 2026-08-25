@@ -267,21 +267,25 @@ glm::mat4 fit_shadow_matrix(
     mins.z -= padding;
     maxs.z += padding;
 
-    const float resolution = static_cast<float>(std::max(shadow_map_resolution, 1u));
-    const float extent_x = maxs.x - mins.x;
-    const float extent_y = maxs.y - mins.y;
-    const float texel_x = extent_x / resolution;
-    const float texel_y = extent_y / resolution;
-    if (texel_x > 0.0f) {
-        mins.x = std::floor(mins.x / texel_x) * texel_x;
-        maxs.x = std::floor(maxs.x / texel_x) * texel_x;
-    }
-    if (texel_y > 0.0f) {
-        mins.y = std::floor(mins.y / texel_y) * texel_y;
-        maxs.y = std::floor(maxs.y / texel_y) * texel_y;
-    }
+    glm::mat4 light_projection = glm::orthoRH_ZO(
+        mins.x, maxs.x, mins.y, maxs.y, -maxs.z, -mins.z);
 
-    return glm::orthoRH_ZO(mins.x, maxs.x, mins.y, maxs.y, -maxs.z, -mins.z) * light_view;
+    // The light view follows the camera slice. Snapping camera-relative bounds
+    // does not stabilize a stationary world point because the view translation
+    // still changes continuously. Quantize the completed projection's world
+    // origin instead, so camera translation advances the shadow map only in
+    // whole texels.
+    const float half_resolution = static_cast<float>(
+                                      std::max(shadow_map_resolution, 1u))
+        * 0.5f;
+    const glm::mat4 world_to_shadow = light_projection * light_view;
+    const glm::vec4 shadow_origin = world_to_shadow * glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
+    const glm::vec2 texel_origin = glm::vec2{shadow_origin} * half_resolution;
+    const glm::vec2 texel_offset = glm::round(texel_origin) - texel_origin;
+    light_projection[3].x += texel_offset.x / half_resolution;
+    light_projection[3].y += texel_offset.y / half_resolution;
+
+    return light_projection * light_view;
 }
 
 uint32_t environment_uint(const char* name, uint32_t fallback, uint32_t min_value, uint32_t max_value)
@@ -322,18 +326,13 @@ std::array<float, kShadowCascadeCount> split_ratios_for(uint32_t active_cascade_
 // the whole illuminated disk inside the frustum regardless of the light's height.
 constexpr float kLocalShadowStrength = 0.85f;
 
-float local_shadow_candidate_score(const RenderContext& ctx, const LocalLight& light) noexcept
+float local_shadow_candidate_score(const LocalLight& light) noexcept
 {
     float score = light.intensity * light.radius;
     if (!std::isfinite(score)) {
         return 0.0f;
     }
 
-    const float radius = std::max(light.radius, 0.1f);
-    const glm::vec3 target_delta = light.position - ctx.camera_target;
-    const float distance_over_radius = std::sqrt(glm::dot(target_delta, target_delta)) / radius;
-    const float view_relevance = 1.0f / (1.0f + distance_over_radius * distance_over_radius);
-    score *= 0.25f + 0.75f * view_relevance;
     if (light.casts_shadow) {
         score *= 4.0f; // authored shadow casters win ties over incidental lights
     }
@@ -638,7 +637,6 @@ bool render_scene_shadow_maps(
 }
 
 SceneLocalShadows resolve_local_shadows(
-    const RenderContext& ctx,
     std::span<LocalLight> lights,
     std::optional<std::span<const uint32_t>> candidate_light_indices)
 {
@@ -668,7 +666,7 @@ SceneLocalShadows resolve_local_shadows(
         if (light.intensity <= 1.0e-4f || light.radius <= 1.0e-3f) {
             return;
         }
-        const float score = local_shadow_candidate_score(ctx, light);
+        const float score = local_shadow_candidate_score(light);
         if (score <= 0.0f) {
             return;
         }

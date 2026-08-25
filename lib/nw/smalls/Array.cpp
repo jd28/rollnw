@@ -94,7 +94,7 @@ void TypedArray<ObjectHandle>::append_value(const Value& v, Runtime& rt)
 }
 
 template <>
-bool TypedArray<ObjectHandle>::get_value(size_t index, Value& out, const Runtime& rt) const
+bool TypedArray<ObjectHandle>::get_value(size_t index, Value& out, const Runtime& /*rt*/) const
 {
     ENSURE_OR_RETURN_FALSE(index < elements.size(), "out of bounds");
     out = Value::make_object(elements[index]);

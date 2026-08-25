@@ -38,6 +38,7 @@ Creature::Creature(nw::MemoryResource* allocator)
 
 Creature::~Creature()
 {
+    equipment.destroy();
     if (auto* objects = nw::kernel::services().get_mut<ObjectManager>()) {
         objects->components().remove_inventory(*this);
     }

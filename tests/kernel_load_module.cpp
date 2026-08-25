@@ -66,8 +66,13 @@ TEST(Kernel, LoadModuleZip)
 
 TEST(Kernel, LoadMissingModule)
 {
+    ASSERT_TRUE(nw::kernel::resman().contains(
+        {"tall_a01_01"sv, nw::ResourceType::wok}));
+
     auto mod = nw::kernel::load_module("test_data/user/modules/does_not_exist.mod");
     EXPECT_FALSE(mod);
+    EXPECT_TRUE(nw::kernel::resman().contains(
+        {"tall_a01_01"sv, nw::ResourceType::wok}));
 }
 
 TEST(Kernel, LoadModuleWithIgnoredLegacyRenderScale)

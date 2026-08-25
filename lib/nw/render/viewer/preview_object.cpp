@@ -2,6 +2,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/AreaTransforms.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>
@@ -715,15 +716,10 @@ glm::mat4 area_object_placement_transform(const nw::Location& location)
 
 glm::mat4 area_object_placement_transform(const nw::Location& location, glm::vec3 scale)
 {
-    constexpr float k_epsilon = 1.0e-5f;
-    float angle = 0.0f;
-    if (std::abs(location.orientation.x) > k_epsilon || std::abs(location.orientation.y) > k_epsilon) {
-        angle = std::atan2(location.orientation.y, location.orientation.x);
-    }
-
-    glm::mat4 placement = glm::translate(glm::mat4{1.0f}, location.position);
-    placement *= glm::toMat4(glm::angleAxis(angle, glm::vec3{0.0f, 0.0f, 1.0f}));
-    placement = glm::scale(placement, scale);
+    glm::mat4 placement{1.0f};
+    nw::build_area_object_world_transform(
+        nw::AreaObjectTransformInput{location.position, location.orientation, scale},
+        placement);
     return placement;
 }
 

@@ -144,6 +144,24 @@ add_subdirectory(external/nowide EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/stb EXCLUDE_FROM_ALL SYSTEM)
 rollnw_silence_target_warnings(stb_image)
 
+# Recast's Detour subdirectory depends on variables from its top-level build.
+# Define the one vendored library we consume directly and leave Recast, Crowd,
+# TileCache, and DebugUtils out of the build graph.
+add_library(Detour STATIC
+  external/recastnavigation-1.6.0/Detour/Source/DetourAlloc.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourAssert.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourCommon.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourNavMesh.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourNavMeshBuilder.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourNavMeshQuery.cpp
+  external/recastnavigation-1.6.0/Detour/Source/DetourNode.cpp
+)
+add_library(RecastNavigation::Detour ALIAS Detour)
+target_include_directories(Detour SYSTEM PUBLIC
+  external/recastnavigation-1.6.0/Detour/Include
+)
+rollnw_silence_target_warnings(Detour)
+
 if(ROLLNW_ENABLE_TRACY)
   set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
   if(ROLLNW_TRACY_ON_DEMAND)
@@ -220,6 +238,7 @@ endif()
 if (ROLLNW_BUILD_TESTS)
 set(INSTALL_GTEST OFF)
 add_subdirectory(external/googletest-1.14.0 EXCLUDE_FROM_ALL SYSTEM)
+rollnw_silence_target_warnings(gtest gtest_main gmock gmock_main)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)

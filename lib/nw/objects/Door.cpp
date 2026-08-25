@@ -30,6 +30,20 @@ Door::Door(nw::MemoryResource* allocator)
     set_handle(ObjectHandle{object_invalid, ObjectType::door});
 }
 
+void Door::clear()
+{
+    ObjectBase::clear();
+    instantiated_ = false;
+}
+
+bool Door::instantiate()
+{
+    if (instantiated_) return true;
+    instantiated_ = true;
+    nw::kernel::objects().run_instantiate_callback(this);
+    return true;
+}
+
 String Door::get_name_from_file(const std::filesystem::path& path)
 {
     return nwn1::preview_object_name_from_file(path, serial_id, object_type);

@@ -79,7 +79,19 @@
     "BM_render_asset_cache_hot_texture_hits_string_boundary/137": {"domain": "cpp", "group": "render_cache"},
     "BM_area_object_spatial_update/16": {"domain": "cpp", "group": "editor_transform"},
     "BM_area_object_spatial_update/256": {"domain": "cpp", "group": "editor_transform"},
-    "BM_area_object_spatial_update/573": {"domain": "cpp", "group": "editor_transform"}
+    "BM_area_object_spatial_update/573": {"domain": "cpp", "group": "editor_transform"},
+    "BM_nav_cold_build/1": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_cold_build/8": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_cold_build/32": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_path_batch/1": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_path_batch/32": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_path_batch/128": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_locomotion_batch/1": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_locomotion_batch/32": {"domain": "cpp", "group": "navigation"},
+    "BM_nav_locomotion_batch/128": {"domain": "cpp", "group": "navigation"},
+    "BM_preview_cold_start": {"domain": "cpp", "group": "preview"},
+    "BM_preview_fixed_tick/1": {"domain": "cpp", "group": "preview"},
+    "BM_preview_fixed_tick/6": {"domain": "cpp", "group": "preview"}
   },
   "profiles": {
     "bench-pr": {
@@ -136,7 +148,19 @@
         "BM_render_asset_cache_hot_texture_hits_string_boundary/137",
         "BM_area_object_spatial_update/16",
         "BM_area_object_spatial_update/256",
-        "BM_area_object_spatial_update/573"
+        "BM_area_object_spatial_update/573",
+        "BM_nav_cold_build/1",
+        "BM_nav_cold_build/8",
+        "BM_nav_cold_build/32",
+        "BM_nav_path_batch/1",
+        "BM_nav_path_batch/32",
+        "BM_nav_path_batch/128",
+        "BM_nav_locomotion_batch/1",
+        "BM_nav_locomotion_batch/32",
+        "BM_nav_locomotion_batch/128",
+        "BM_preview_cold_start",
+        "BM_preview_fixed_tick/1",
+        "BM_preview_fixed_tick/6"
       ],
       "thresholds": {
         "default": 8.0,
@@ -152,7 +176,9 @@
           "itemprop": 8.0,
           "particles": 10.0,
           "render_cache": 10.0,
-          "editor_transform": 10.0
+          "editor_transform": 10.0,
+          "navigation": 10.0,
+          "preview": 10.0
         },
         "benchmarks": {}
       }
@@ -220,7 +246,19 @@
         "BM_render_asset_cache_hot_texture_hits_string_boundary/137",
         "BM_area_object_spatial_update/16",
         "BM_area_object_spatial_update/256",
-        "BM_area_object_spatial_update/573"
+        "BM_area_object_spatial_update/573",
+        "BM_nav_cold_build/1",
+        "BM_nav_cold_build/8",
+        "BM_nav_cold_build/32",
+        "BM_nav_path_batch/1",
+        "BM_nav_path_batch/32",
+        "BM_nav_path_batch/128",
+        "BM_nav_locomotion_batch/1",
+        "BM_nav_locomotion_batch/32",
+        "BM_nav_locomotion_batch/128",
+        "BM_preview_cold_start",
+        "BM_preview_fixed_tick/1",
+        "BM_preview_fixed_tick/6"
       ],
       "thresholds": {
         "default": 10.0,
@@ -238,7 +276,9 @@
           "gc": 25.0,
           "resources": 20.0,
           "render_cache": 12.0,
-          "editor_transform": 12.0
+          "editor_transform": 12.0,
+          "navigation": 12.0,
+          "preview": 12.0
         },
         "benchmarks": {}
       }

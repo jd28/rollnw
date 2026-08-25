@@ -3,6 +3,7 @@
 #include "area_lighting.hpp"
 #include "preview_model_animation.hpp"
 #include "scene_debug.hpp"
+#include "scene_lights.hpp"
 #include "scene_particles.hpp"
 #include "scene_shadow.hpp"
 
@@ -69,7 +70,7 @@ bool finite_vec4(const glm::vec4& value) noexcept
         && std::isfinite(value.z) && std::isfinite(value.w);
 }
 
-std::optional<AreaObjectRay> area_object_ray_from_viewport(
+std::optional<ViewerRay> viewer_ray_from_viewport(
     const Camera& camera, float pixel_x, float pixel_y, ViewerViewport viewport) noexcept
 {
     if (!viewport.valid() || !std::isfinite(pixel_x) || !std::isfinite(pixel_y)) {
@@ -104,7 +105,7 @@ std::optional<AreaObjectRay> area_object_ray_from_viewport(
         || glm::dot(direction, direction) <= 1.0e-12f) {
         return std::nullopt;
     }
-    return AreaObjectRay{.origin = origin, .direction = direction};
+    return ViewerRay{.origin = origin, .direction = direction};
 }
 
 std::optional<uint32_t> debug_shape_selection_index(
@@ -698,7 +699,7 @@ AreaObjectSelection ViewerSession::select_area_object(
     }
 
     update_viewport(viewport);
-    const auto ray = area_object_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
+    const auto ray = viewer_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
     if (!ray) {
         return {};
     }
@@ -804,8 +805,7 @@ std::optional<glm::vec3> ViewerSession::area_surface_point(
         return std::nullopt;
     }
 
-    update_viewport(viewport);
-    const auto ray = area_object_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
+    const auto ray = viewport_ray(pixel_x, pixel_y, viewport);
     if (!ray) {
         return std::nullopt;
     }
@@ -815,6 +815,14 @@ std::optional<glm::vec3> ViewerSession::area_surface_point(
         : std::nullopt;
 }
 
+std::optional<ViewerRay> ViewerSession::viewport_ray(
+    float pixel_x, float pixel_y, ViewerViewport viewport)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area) return std::nullopt;
+    update_viewport(viewport);
+    return viewer_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
+}
+
 AreaObjectSpatialUpdateStats ViewerSession::update_area_object_spatial_states(
     std::span<const nw::ObjectSpatialState> spatial_states)
 {
@@ -822,6 +830,20 @@ AreaObjectSpatialUpdateStats ViewerSession::update_area_object_spatial_states(
         return {};
     }
     return viewer::update_area_object_spatial_states(*scene_, spatial_states);
+}
+
+AreaCreatureLocomotionAnimationStats ViewerSession::update_area_creature_locomotion_animations(
+    std::span<const AreaCreatureLocomotionAnimationInput> inputs)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {
+            .input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+            .rejected_input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+        };
+    }
+    return viewer::update_area_creature_locomotion_animations(*scene_, inputs);
 }
 
 AreaObjectPreviewAppendResult ViewerSession::append_area_object_previews(
@@ -835,6 +857,31 @@ AreaObjectPreviewAppendResult ViewerSession::append_area_object_previews(
     }
     return viewer::append_area_object_previews(
         *scene_, *preview_resources_, objects, opacity, preview_scene_load_options_);
+}
+
+AreaTransientVisualResult ViewerSession::append_area_transient_visuals(
+    std::span<const nw::ObjectHandle> objects)
+{
+    if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {
+            .status = AreaTransientVisualStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene",
+        };
+    }
+    return viewer::append_area_transient_visuals(
+        *scene_, *preview_resources_, objects, preview_scene_load_options_);
+}
+
+AreaTransientVisualResult ViewerSession::remove_area_transient_visuals(
+    std::span<const nw::ObjectHandle> objects)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {
+            .status = AreaTransientVisualStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene",
+        };
+    }
+    return viewer::remove_area_transient_visuals(*scene_, objects);
 }
 
 bool ViewerSession::clear_area_object_selection() noexcept
@@ -918,8 +965,27 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
 
     frame_stats.render_model_animation_sample_stats = sample_render_model_animations(
         render_model_animation_samples_, *scene_);
-    if (!scene_->model_attachments.empty()) {
-        frame_stats.runtime_sync_stats = sync_model_instance_runtime_state(*scene_);
+    animated_root_model_indices_.clear();
+    animated_root_model_indices_.reserve(render_model_animation_samples_.size());
+    for (const auto& sample : render_model_animation_samples_) {
+        if (!sample.instance || !sample.instance->animation.enabled) {
+            continue;
+        }
+        const uint32_t model_index = sample.instance->render_model_index;
+        if (model_index >= scene_->static_model_attachment_binding_indices.size()
+            || scene_->static_model_attachment_binding_indices[model_index]
+                != kInvalidSceneModelAttachmentBindingIndex) {
+            continue;
+        }
+        animated_root_model_indices_.push_back(model_index);
+    }
+    if (!animated_root_model_indices_.empty()) {
+        frame_stats.runtime_sync_stats = sync_model_instance_runtime_state(
+            *scene_, animated_root_model_indices_);
+        // Animation moves model-bound light payloads without changing the
+        // area renderer's stable dynamic-light membership.
+        refresh_scene_dynamic_local_light_render_data(
+            *scene_, scene_->runtime_sync_model_scratch);
     }
 
     const auto apply_prepared_model_draw_stats = [&]() {
@@ -1115,7 +1181,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             ? std::optional<std::span<const uint32_t>>{area_render_frame->visible_light_indices()}
             : std::nullopt;
         render_context.local_shadows = resolve_local_shadows(
-            render_context, scene_->render_local_lights, local_shadow_light_indices);
+            scene_->render_local_lights, local_shadow_light_indices);
     }
     if (local_lights_enabled && !render_context.local_lights.empty()) {
         ForwardPlusRenderPolicy forward_plus_policy = resolve_scene_forward_plus_policy(forward_plus_policy_, scene_kind_, area_render_frame);

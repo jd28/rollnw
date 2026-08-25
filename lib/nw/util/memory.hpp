@@ -251,6 +251,7 @@ struct ObjectPool {
             allocator_->deallocate(chunks_[i]);
         }
         chunks_.clear();
+        allocated_ = 0;
     }
 
     void free(T* object)
@@ -274,6 +275,8 @@ struct ObjectPool {
         }
         chunks_.push_back(chunk);
     }
+
+    [[nodiscard]] size_t size() const noexcept { return allocated_; }
 
     size_t allocated_ = 0;
     size_t chunk_size_;

@@ -2,6 +2,8 @@
 
 #include <nw/render/render_context.hpp>
 
+#include <glm/vec3.hpp>
+
 #include <cstdint>
 
 inline constexpr const char* kClientGpuTimerUi = "rollnw.client.ui";
@@ -19,6 +21,11 @@ struct ClientViewportRect {
     {
         return width > 0 && height > 0;
     }
+};
+
+struct ClientViewportRay {
+    glm::vec3 origin{0.0f};
+    glm::vec3 displacement{0.0f};
 };
 
 struct ClientGpuTimerScope {

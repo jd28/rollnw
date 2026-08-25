@@ -193,6 +193,22 @@ bool ObjectArray::valid(ObjectHandle handle) const
     return !!get(handle);
 }
 
+size_t ObjectArray::size() const noexcept
+{
+    return static_cast<size_t>(module_ != nullptr)
+        + areas_.size()
+        + creatures_.size()
+        + doors_.size()
+        + encounters_.size()
+        + items_.size()
+        + stores_.size()
+        + placeables_.size()
+        + players_.size()
+        + sounds_.size()
+        + triggers_.size()
+        + waypoints_.size();
+}
+
 const std::type_index ObjectManager::type_index{typeid(ObjectManager)};
 
 ObjectManager::ObjectManager(MemoryResource* scope)
@@ -401,6 +417,8 @@ void ObjectManager::set_destroy_callback(void (*callback)(ObjectBase*))
 nlohmann::json ObjectManager::stats() const
 {
     return {
+        {"objects", object_count()},
+        {"tags", tag_count()},
         {"components", components_.stats()},
     };
 }

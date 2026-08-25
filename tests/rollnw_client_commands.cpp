@@ -402,6 +402,60 @@ TEST(ClientProject, InitializesProjectSkeleton)
     EXPECT_FALSE(second_init.initialized);
 }
 
+TEST(ClientProject, PersistsValidatedPreviewTestActorWithoutChangingManifestVersion)
+{
+    const std::filesystem::path root = "tmp/client_project_preview_actor";
+    std::filesystem::remove_all(root);
+
+    const auto init = initialize_project(root, "Preview Actor");
+    ASSERT_TRUE(init.ok) << init.message;
+
+    const auto empty = load_project_preview_settings(root);
+    ASSERT_TRUE(empty.ok) << empty.message;
+    EXPECT_TRUE(empty.test_actor.empty());
+
+    const std::filesystem::path actor_path =
+        "shared/blueprints/creatures/test_actor.utc.json";
+    {
+        std::ofstream actor{root / actor_path, std::ios::binary};
+        ASSERT_TRUE(actor);
+        actor << "{}\n";
+    }
+
+    nlohmann::json original_manifest;
+    {
+        std::ifstream input{root / "rollnw.json"};
+        ASSERT_TRUE(input);
+        input >> original_manifest;
+    }
+    original_manifest["preserved"] = "yes";
+    {
+        std::ofstream output{root / "rollnw.json", std::ios::binary};
+        ASSERT_TRUE(output);
+        output << original_manifest.dump(2) << '\n';
+    }
+
+    const auto save = save_project_preview_test_actor(root, actor_path);
+    ASSERT_TRUE(save.ok) << save.message;
+
+    const auto loaded = load_project_preview_settings(root);
+    ASSERT_TRUE(loaded.ok) << loaded.message;
+    EXPECT_EQ(loaded.test_actor, actor_path);
+
+    std::ifstream input{root / "rollnw.json"};
+    ASSERT_TRUE(input);
+    nlohmann::json manifest;
+    input >> manifest;
+    EXPECT_EQ(manifest["version"], 1);
+    EXPECT_EQ(manifest["preserved"], "yes");
+    EXPECT_EQ(manifest["preview"]["test_actor"], actor_path.generic_string());
+
+    EXPECT_FALSE(save_project_preview_test_actor(
+        root, "../outside.utc.json").ok);
+    EXPECT_FALSE(save_project_preview_test_actor(
+        root, "shared/blueprints/items/not_a_creature.uti.json").ok);
+}
+
 TEST(ClientProject, JsonImportAutoInitializesTargetDirectory)
 {
     const std::filesystem::path root = "tmp/client_project_import";

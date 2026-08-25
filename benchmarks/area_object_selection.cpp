@@ -214,7 +214,7 @@ void BM_area_object_selection(benchmark::State& state, bool hit)
         return;
     }
 
-    const viewer::AreaObjectRay ray{
+    const viewer::ViewerRay ray{
         .origin = {0.0f, hit ? 0.25f : 4.0f, 0.25f},
         .direction = {1.0f, 0.0f, 0.0f},
     };
@@ -288,6 +288,7 @@ void BM_area_object_spatial_update(benchmark::State& state)
         state.SkipWithError("failed to create spatial update benchmark object");
         return;
     }
+    data.scene.rebuild_runtime_update_indices();
 
     for (auto _ : state) {
         data.spatial.position.x += 0.001f;
@@ -297,7 +298,7 @@ void BM_area_object_spatial_update(benchmark::State& state)
     }
 
     state.counters["models"] = static_cast<double>(data.scene.static_models.size());
-    state.SetItemsProcessed(state.iterations() * state.range(0));
+    state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK(BM_area_object_spatial_update)

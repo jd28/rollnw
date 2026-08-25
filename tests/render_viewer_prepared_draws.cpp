@@ -1363,11 +1363,14 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
     const auto* scene_before_refresh = session->scene();
     ASSERT_TRUE(session->refresh_live_object_visual(active_object));
     EXPECT_EQ(session->scene(), scene_before_refresh);
-    EXPECT_EQ(session->camera().get_view_matrix(), edited_view);
+    EXPECT_LT(max_abs_matrix_delta(session->camera().get_view_matrix(), edited_view), 1.0e-5f);
     EXPECT_EQ(session->active_object(), active_object);
     ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
     ASSERT_TRUE(session->rebuild_live_object(active_object));
-    EXPECT_EQ(session->camera().get_view_matrix(), fitted_view);
+    // Rebuilding refits from a freshly primed animated model. Its sampled
+    // bounds may move by a small amount, so test stable framing rather than
+    // byte-identical floating-point matrices.
+    EXPECT_LT(max_abs_matrix_delta(session->camera().get_view_matrix(), fitted_view), 5.0e-3f);
 
     session.reset();
     EXPECT_FALSE(nw::kernel::objects().valid(active_object));
@@ -2144,7 +2147,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     EXPECT_EQ(scene->area_render_scene->stats().surface_triangle_count, surface_triangles.size());
     const auto& surface_triangle = surface_triangles[surface_ranges.front().first_triangle];
     const glm::vec3 surface_centroid = (surface_triangle.v0 + surface_triangle.v1 + surface_triangle.v2) / 3.0f;
-    const viewer::AreaObjectRay surface_ray{
+    const viewer::ViewerRay surface_ray{
         .origin = {surface_centroid.x, surface_centroid.y, surface_ranges.front().bounds.max.z + 100.0f},
         .direction = {0.0f, 0.0f, -1.0f},
     };
@@ -2397,4 +2400,177 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
 
     session->clear();
     EXPECT_FALSE(nw::kernel::objects().valid(area_handle));
+}
+
+TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRemoveAsBatch)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr) << "DockerDemo module fixture unavailable";
+
+    const nw::Resref area_resref{"test_area"sv};
+    const std::array area_resources{nw::Resource{area_resref, nw::ResourceType::are}};
+    ASSERT_TRUE(resource_payloads_available(area_resources));
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_area(area_resref.view()));
+
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    const auto editor_selection = scene->active_object;
+    const size_t baseline_model_count = scene->static_models.size();
+    const size_t baseline_record_count = scene->area_render_scene->kinds().size();
+
+    auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
+    for (auto& equip : creature->equipment.equips) {
+        equip = nw::Resref{};
+    }
+    const std::filesystem::path transient_creature_path{"tmp/animated_transient_creature.utc.json"};
+    std::filesystem::create_directories(transient_creature_path.parent_path());
+    ASSERT_TRUE(creature->save(transient_creature_path, "json"));
+    nw::kernel::objects().destroy(creature->handle());
+    creature = nw::kernel::objects().load_file<nw::Creature>(transient_creature_path.string());
+    ASSERT_NE(creature, nullptr);
+    const auto creature_handle = creature->handle();
+    ASSERT_TRUE(nw::kernel::objects().components().set_area(
+        creature_handle, scene->root_object.id));
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        creature_handle, glm::vec3{15.0f, 15.0f, 0.0f}));
+
+    const std::array transient_objects{creature_handle};
+    const auto append = session->append_area_transient_visuals(transient_objects);
+    ASSERT_TRUE(append.ok()) << append.diagnostic;
+    EXPECT_EQ(append.object_count, 1u);
+    EXPECT_GT(append.model_count, 0u);
+    EXPECT_EQ(scene->active_object, editor_selection);
+    EXPECT_EQ(scene->static_models.size(), baseline_model_count + append.model_count);
+    EXPECT_GT(scene->area_render_scene->kinds().size(), baseline_record_count);
+
+    bool found_transient_record = false;
+    const auto record_objects = scene->area_render_scene->object_handles();
+    for (const auto object : record_objects) {
+        found_transient_record |= object == creature_handle;
+    }
+    EXPECT_TRUE(found_transient_record);
+
+    nw::ObjectSpatialState moved_spatial{
+        .owner = creature_handle,
+        .area = scene->root_object.id,
+        .position = {15.0f, 15.0f, 0.0f},
+        .orientation = {1.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+        .velocity = {1.0f, 0.0f, 0.0f},
+    };
+    const std::array spatial_rows{moved_spatial};
+    const auto spatial_stats = session->update_area_object_spatial_states(spatial_rows);
+    EXPECT_GT(spatial_stats.render_model_root_count, 0u);
+
+    bool found_oriented_root = false;
+    for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {
+        if (scene->static_area_model_info[model_index].object != creature_handle
+            || scene->static_model_attachment_binding_indices[model_index]
+                != viewer::kInvalidSceneModelAttachmentBindingIndex) {
+            continue;
+        }
+        const auto* instance = scene->static_model_instance(model_index);
+        ASSERT_NE(instance, nullptr);
+        const glm::vec3 rendered_forward = glm::normalize(
+            glm::vec3{instance->root_transform * glm::vec4{0.0f, 1.0f, 0.0f, 0.0f}});
+        EXPECT_NEAR(rendered_forward.x, 1.0f, 1.0e-5f);
+        EXPECT_NEAR(rendered_forward.y, 0.0f, 1.0e-5f);
+        found_oriented_root = true;
+    }
+    EXPECT_TRUE(found_oriented_root);
+
+    const std::array walking_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+        .owner = creature_handle,
+        .locomotion = viewer::AreaCreatureLocomotion::walking_forward,
+    }};
+    const auto walking_stats = session->update_area_creature_locomotion_animations(walking_inputs);
+    EXPECT_EQ(walking_stats.rejected_input_count, 0u);
+    EXPECT_GT(walking_stats.matched_model_count, 0u);
+    EXPECT_GT(walking_stats.changed_model_count, 0u);
+
+    bool found_walk_clip = false;
+    for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {
+        if (scene->static_area_model_info[model_index].object != creature_handle) continue;
+        const auto& model = scene->static_models[model_index];
+        const auto* instance = scene->static_model_instance(model_index);
+        if (!model || !instance) continue;
+        if (!instance->animation.enabled) continue;
+        ASSERT_LT(instance->animation.clip, model->animations.size());
+        found_walk_clip |= model->animations[instance->animation.clip].name == "walk";
+    }
+    EXPECT_TRUE(found_walk_clip);
+
+    const auto repeated_walking_stats = session->update_area_creature_locomotion_animations(walking_inputs);
+    EXPECT_EQ(repeated_walking_stats.changed_model_count, 0u);
+
+    const std::array strafing_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+        .owner = creature_handle,
+        .locomotion = viewer::AreaCreatureLocomotion::strafing_right,
+    }};
+    const auto strafing_stats = session->update_area_creature_locomotion_animations(strafing_inputs);
+    EXPECT_GT(strafing_stats.changed_model_count, 0u);
+    bool found_strafe_clip = false;
+    for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {
+        if (scene->static_area_model_info[model_index].object != creature_handle) continue;
+        const auto& model = scene->static_models[model_index];
+        const auto* instance = scene->static_model_instance(model_index);
+        if (!model || !instance || !instance->animation.enabled) continue;
+        ASSERT_LT(instance->animation.clip, model->animations.size());
+        const auto& name = model->animations[instance->animation.clip].name;
+        found_strafe_clip |= name == "cwalkr" || name == "ccwalkr";
+    }
+    EXPECT_TRUE(found_strafe_clip);
+
+    const std::array idle_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+        .owner = creature_handle,
+        .locomotion = viewer::AreaCreatureLocomotion::idle,
+    }};
+    const auto idle_stats = session->update_area_creature_locomotion_animations(idle_inputs);
+    EXPECT_GT(idle_stats.changed_model_count, 0u);
+    bool found_idle_clip = false;
+    for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {
+        if (scene->static_area_model_info[model_index].object != creature_handle) continue;
+        const auto& model = scene->static_models[model_index];
+        const auto* instance = scene->static_model_instance(model_index);
+        if (!model || !instance || !instance->animation.enabled) continue;
+        ASSERT_LT(instance->animation.clip, model->animations.size());
+        const auto& name = model->animations[instance->animation.clip].name;
+        found_idle_clip |= name == "cpause1" || name == "pause1";
+    }
+    EXPECT_TRUE(found_idle_clip);
+
+    nw::kernel::objects().destroy(creature_handle);
+    ASSERT_FALSE(nw::kernel::objects().valid(creature_handle));
+
+    const auto removal = session->remove_area_transient_visuals(transient_objects);
+    ASSERT_TRUE(removal.ok()) << removal.diagnostic;
+    EXPECT_EQ(removal.object_count, 1u);
+    EXPECT_EQ(removal.model_count, append.model_count);
+    EXPECT_EQ(scene->active_object, editor_selection);
+    EXPECT_EQ(scene->static_models.size(), baseline_model_count);
+    EXPECT_EQ(scene->area_render_scene->kinds().size(), baseline_record_count);
 }

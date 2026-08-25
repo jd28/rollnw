@@ -20,6 +20,7 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/AreaTransforms.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
@@ -115,6 +116,83 @@ PreviewScene::~PreviewScene()
     root_object = nw::ObjectHandle{};
 }
 
+void PreviewScene::invalidate_runtime_update_indices() noexcept
+{
+    runtime_update_indices_dirty = true;
+}
+
+void PreviewScene::rebuild_runtime_update_indices()
+{
+    area_object_model_indices.clear();
+    area_object_model_indices.reserve(static_models.size());
+    for (size_t model_index = 0; model_index < static_models.size(); ++model_index) {
+        if (model_index > std::numeric_limits<uint32_t>::max()
+            || model_index >= static_area_model_info.size()
+            || model_index >= static_model_attachment_binding_indices.size()
+            || static_model_attachment_binding_indices[model_index] != kInvalidSceneModelAttachmentBindingIndex) {
+            continue;
+        }
+        const auto object = static_area_model_info[model_index].object;
+        if (object.type == nw::ObjectType::invalid) {
+            continue;
+        }
+        area_object_model_indices.push_back({
+            .object = object,
+            .model_index = static_cast<uint32_t>(model_index),
+        });
+    }
+    std::sort(area_object_model_indices.begin(), area_object_model_indices.end(),
+        [](const AreaObjectModelIndexEntry& lhs, const AreaObjectModelIndexEntry& rhs) {
+            if (lhs.object != rhs.object) return lhs.object < rhs.object;
+            return lhs.model_index < rhs.model_index;
+        });
+
+    attachment_owner_offsets.assign(static_models.size() + 1, 0u);
+    for (const auto& binding : model_attachments) {
+        const auto* owner = model_instances.get(binding.owner_instance_handle);
+        if (owner && owner->render_model_index < static_models.size()) {
+            ++attachment_owner_offsets[owner->render_model_index + 1];
+        }
+    }
+    for (size_t i = 1; i < attachment_owner_offsets.size(); ++i) {
+        attachment_owner_offsets[i] += attachment_owner_offsets[i - 1];
+    }
+    attachment_owner_binding_indices.assign(attachment_owner_offsets.back(), 0u);
+    auto attachment_write = attachment_owner_offsets;
+    for (size_t binding_index = 0; binding_index < model_attachments.size(); ++binding_index) {
+        const auto* owner = model_instances.get(model_attachments[binding_index].owner_instance_handle);
+        if (!owner || owner->render_model_index >= static_models.size()
+            || binding_index > std::numeric_limits<uint32_t>::max()) {
+            continue;
+        }
+        attachment_owner_binding_indices[attachment_write[owner->render_model_index]++] = static_cast<uint32_t>(binding_index);
+    }
+
+    local_light_owner_offsets.assign(static_models.size() + 1, 0u);
+    for (const auto& light : local_lights) {
+        if (light.source == SceneLocalLightSource::authored_model
+            && light.model_index < static_models.size()
+            && light.model_source_node_index >= 0) {
+            ++local_light_owner_offsets[light.model_index + 1];
+        }
+    }
+    for (size_t i = 1; i < local_light_owner_offsets.size(); ++i) {
+        local_light_owner_offsets[i] += local_light_owner_offsets[i - 1];
+    }
+    local_light_owner_indices.assign(local_light_owner_offsets.back(), 0u);
+    auto light_write = local_light_owner_offsets;
+    for (size_t light_index = 0; light_index < local_lights.size(); ++light_index) {
+        const auto& light = local_lights[light_index];
+        if (light.source != SceneLocalLightSource::authored_model
+            || light.model_index >= static_models.size() || light.model_source_node_index < 0
+            || light_index > std::numeric_limits<uint32_t>::max()) {
+            continue;
+        }
+        local_light_owner_indices[light_write[light.model_index]++] = static_cast<uint32_t>(light_index);
+    }
+    runtime_update_indices_dirty = false;
+}
+
 namespace {
 
 using namespace std::string_view_literals;
@@ -156,8 +234,9 @@ nw::Location object_spatial_location(const nw::ObjectBase& object)
 glm::mat4 area_object_render_placement_transform(
     nw::ObjectType type, nw::Location location, glm::vec3 scale)
 {
-    if (type == nw::ObjectType::waypoint) {
-        // Waypoint marker geometry uses local +Y as forward; area headings use +X.
+    if (type == nw::ObjectType::creature || type == nw::ObjectType::waypoint) {
+        // Area headings use +X, while NWN creature and waypoint geometry face
+        // local +Y. Rotate the authored heading once at the render boundary.
         constexpr float k_epsilon = 1.0e-5f;
         if (std::abs(location.orientation.x) > k_epsilon
             || std::abs(location.orientation.y) > k_epsilon) {
@@ -898,9 +977,6 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
 
 void PreviewScene::update(int32_t dt_ms)
 {
-    sync_model_instance_runtime_state(*this);
-    refresh_scene_dynamic_local_light_render_data(*this);
-
     const float dt = std::max(0.0f, static_cast<float>(dt_ms) * 0.001f);
     for (auto& scene_particles : particles) {
         const bool owner_visible = scene_particle_owner_visible(*this, scene_particles);
@@ -1064,22 +1140,30 @@ static nw::render::ModelInstance make_common_render_model_instance(
     return result;
 }
 
+static bool sync_model_runtime_row(PreviewScene& scene, uint32_t model_index)
+{
+    if (model_index >= scene.static_models.size()) {
+        return false;
+    }
+    const auto& model = scene.static_models[model_index];
+    auto* instance = scene.static_model_instance(model_index);
+    if (!model || !instance) {
+        return false;
+    }
+    if (!instance->animation.enabled) {
+        nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
+    }
+    instance->current_bounds = transform_bounds(model->bounds, instance->root_transform);
+    instance->shadow = render_model_shadow_summary(*model, instance->current_bounds);
+    return true;
+}
+
 PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& scene)
 {
     PreviewSceneRuntimeSyncStats stats{};
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
-        const auto& model = scene.static_models[model_index];
-        auto* instance = scene.static_model_instance(model_index);
-        if (!model || !instance) {
-            continue;
-        }
-        ++stats.render_model_count;
-
-        if (!instance->animation.enabled) {
-            nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
-        }
-        instance->current_bounds = transform_bounds(model->bounds, instance->root_transform);
-        instance->shadow = render_model_shadow_summary(*model, instance->current_bounds);
+        stats.render_model_count += sync_model_runtime_row(
+            scene, static_cast<uint32_t>(model_index));
     }
 
     auto& attachment_inputs = scene.attachment_transform_inputs;
@@ -1138,6 +1222,101 @@ PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(PreviewScene& sce
     return stats;
 }
 
+PreviewSceneRuntimeSyncStats sync_model_instance_runtime_state(
+    PreviewScene& scene, std::span<const uint32_t> root_model_indices)
+{
+    PreviewSceneRuntimeSyncStats stats{};
+    if (root_model_indices.empty()) {
+        return stats;
+    }
+    if (scene.runtime_update_indices_dirty) {
+        scene.rebuild_runtime_update_indices();
+    }
+
+    auto& models = scene.runtime_sync_model_scratch;
+    models.clear();
+    models.reserve(root_model_indices.size());
+    for (const uint32_t model_index : root_model_indices) {
+        if (model_index >= scene.static_models.size()
+            || (model_index < scene.static_model_attachment_binding_indices.size()
+                && scene.static_model_attachment_binding_indices[model_index]
+                    != kInvalidSceneModelAttachmentBindingIndex)
+            || std::find(models.begin(), models.end(), model_index) != models.end()) {
+            continue;
+        }
+        models.push_back(model_index);
+    }
+
+    size_t frontier_begin = 0;
+    while (frontier_begin < models.size()) {
+        const size_t frontier_end = models.size();
+        for (size_t i = frontier_begin; i < frontier_end; ++i) {
+            stats.render_model_count += sync_model_runtime_row(scene, models[i]);
+        }
+
+        auto& inputs = scene.attachment_transform_inputs;
+        auto& outputs = scene.attachment_transform_outputs;
+        auto& bindings = scene.runtime_sync_binding_scratch;
+        inputs.clear();
+        bindings.clear();
+        for (size_t i = frontier_begin; i < frontier_end; ++i) {
+            const uint32_t owner_model_index = models[i];
+            if (owner_model_index + 1 >= scene.attachment_owner_offsets.size()) {
+                continue;
+            }
+            const size_t begin = scene.attachment_owner_offsets[owner_model_index];
+            const size_t end = scene.attachment_owner_offsets[owner_model_index + 1];
+            for (size_t offset = begin; offset < end; ++offset) {
+                const uint32_t binding_index = scene.attachment_owner_binding_indices[offset];
+                if (binding_index >= scene.model_attachments.size()) {
+                    continue;
+                }
+                const auto& binding = scene.model_attachments[binding_index];
+                auto* child_instance = scene.model_instances.get(binding.child_instance_handle);
+                const auto* owner_instance = scene.model_instances.get(binding.owner_instance_handle);
+                if (!child_instance || !owner_instance
+                    || child_instance->render_model_index >= scene.static_models.size()
+                    || std::find(models.begin(), models.end(), child_instance->render_model_index) != models.end()) {
+                    continue;
+                }
+                inputs.push_back(nw::render::ModelAttachmentRootTransformInput{
+                    .owner_instance = owner_instance,
+                    .owner_sockets = scene_model_sockets(
+                        scene, binding.owner_instance_handle, *owner_instance),
+                    .child_sockets = scene_model_sockets(
+                        scene, binding.child_instance_handle, *child_instance),
+                    .owner_socket_index = binding.owner_socket_index,
+                    .child_source_socket_index = binding.child_source_socket_index,
+                    .child_local_transform = binding.child_local_transform,
+                    .child_root_bind_translation = binding.child_root_bind_translation,
+                    .child_local_scale = binding.child_local_scale,
+                    .orientation = binding.orientation,
+                    .source_offset = binding.source_offset,
+                });
+                bindings.push_back(binding_index);
+            }
+        }
+
+        outputs.resize(inputs.size());
+        nw::render::build_model_attachment_root_transforms(inputs, outputs);
+        stats.render_model_attachment_binding_count += static_cast<uint32_t>(
+            std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max()));
+        for (size_t i = 0; i < outputs.size(); ++i) {
+            const auto& binding = scene.model_attachments[bindings[i]];
+            auto* child_instance = scene.model_instances.get(binding.child_instance_handle);
+            if (!child_instance || !outputs[i].valid) {
+                ++stats.render_model_attachment_root_failed_count;
+                continue;
+            }
+            child_instance->root_transform = outputs[i].root_transform;
+            models.push_back(child_instance->render_model_index);
+            ++stats.render_model_attachment_root_resolved_count;
+        }
+        frontier_begin = frontier_end;
+    }
+    return stats;
+}
+
 AreaObjectSpatialUpdateStats update_area_object_spatial_states(
     PreviewScene& scene, std::span<const nw::ObjectSpatialState> spatial_states)
 {
@@ -1161,18 +1340,6 @@ AreaObjectSpatialUpdateStats update_area_object_spatial_states(
             && row.scale.y > 0.0f
             && row.scale.z > 0.0f;
     };
-    stats.rejected_input_count = static_cast<uint32_t>(std::min<size_t>(
-        std::count_if(spatial_states.begin(), spatial_states.end(),
-            [&valid_spatial](const auto& row) { return !valid_spatial(row); }),
-        std::numeric_limits<uint32_t>::max()));
-    const auto find_spatial = [&spatial_states, &valid_spatial](
-                                  nw::ObjectHandle object) -> const nw::ObjectSpatialState* {
-        const auto it = std::find_if(
-            spatial_states.begin(), spatial_states.end(), [object, &valid_spatial](const auto& row) {
-                return row.owner == object && valid_spatial(row);
-            });
-        return it == spatial_states.end() ? nullptr : &*it;
-    };
     const auto placement_for = [](const nw::ObjectSpatialState& row) {
         nw::Location location;
         location.area = row.area;
@@ -1181,27 +1348,52 @@ AreaObjectSpatialUpdateStats update_area_object_spatial_states(
         return area_object_render_placement_transform(row.owner.type, location, row.scale);
     };
 
-    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
-        if (model_index >= scene.static_area_model_info.size()
-            || model_index >= scene.static_model_attachment_binding_indices.size()
-            || scene.static_model_attachment_binding_indices[model_index] != kInvalidSceneModelAttachmentBindingIndex) {
+    if (scene.runtime_update_indices_dirty) {
+        scene.rebuild_runtime_update_indices();
+    }
+    auto& accepted_owners = scene.spatial_update_owner_scratch;
+    auto& changed_models = scene.spatial_update_model_scratch;
+    accepted_owners.clear();
+    changed_models.clear();
+    accepted_owners.reserve(spatial_states.size());
+    changed_models.reserve(spatial_states.size());
+
+    for (const auto& spatial : spatial_states) {
+        if (!valid_spatial(spatial)) {
+            ++stats.rejected_input_count;
             continue;
         }
-        auto* instance = scene.static_model_instance(model_index);
-        const auto* spatial = find_spatial(scene.static_area_model_info[model_index].object);
-        if (!instance || !spatial) {
+        if (std::find(accepted_owners.begin(), accepted_owners.end(), spatial.owner)
+            != accepted_owners.end()) {
             continue;
         }
-        instance->root_transform = placement_for(*spatial);
-        ++stats.render_model_root_count;
+        accepted_owners.push_back(spatial.owner);
+
+        const AreaObjectModelIndexEntry key{.object = spatial.owner};
+        auto begin = std::lower_bound(scene.area_object_model_indices.begin(),
+            scene.area_object_model_indices.end(), key,
+            [](const AreaObjectModelIndexEntry& lhs, const AreaObjectModelIndexEntry& rhs) {
+                return lhs.object < rhs.object;
+            });
+        for (auto it = begin;
+            it != scene.area_object_model_indices.end() && it->object == spatial.owner;
+            ++it) {
+            auto* instance = scene.static_model_instance(it->model_index);
+            if (!instance) {
+                continue;
+            }
+            instance->root_transform = placement_for(spatial);
+            changed_models.push_back(it->model_index);
+            ++stats.render_model_root_count;
+        }
     }
 
-    if (stats.render_model_root_count != 0) {
-        sync_model_instance_runtime_state(scene);
-        refresh_scene_dynamic_local_light_render_data(scene);
-        if (scene.area_render_scene) {
-            scene.area_render_scene->refresh_light_indices(scene);
-        }
+    if (!changed_models.empty()) {
+        sync_model_instance_runtime_state(scene, changed_models);
+        // Model-bound lights already occupy AreaRenderScene's stable dynamic
+        // light list. Movement changes payload values, not index membership.
+        refresh_scene_dynamic_local_light_render_data(
+            scene, scene.runtime_sync_model_scratch);
     }
     return stats;
 }
@@ -1278,6 +1470,7 @@ void PreviewScene::add(std::shared_ptr<nw::render::RenderModel> model)
     }
     static_models.push_back(std::move(model));
     static_area_model_info.emplace_back();
+    invalidate_runtime_update_indices();
 }
 
 void PreviewScene::add_attached(std::unique_ptr<nw::render::RenderModel> model, uint32_t owner_model_index,
@@ -1371,6 +1564,7 @@ RenderModelAttachmentSetupStats PreviewScene::attach_render_models(
         uint32_t& binding_index = static_model_attachment_binding_indices[attachment.child_model_index];
         if (binding_index < model_attachments.size()) {
             model_attachments[binding_index] = binding;
+            invalidate_runtime_update_indices();
             ++stats.attached_count;
             continue;
         }
@@ -1380,6 +1574,7 @@ RenderModelAttachmentSetupStats PreviewScene::attach_render_models(
         }
         binding_index = static_cast<uint32_t>(model_attachments.size());
         model_attachments.push_back(binding);
+        invalidate_runtime_update_indices();
         ++stats.attached_count;
     }
     return stats;
@@ -3727,7 +3922,6 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     scene->area_height = loaded_area->height;
     scene->area_flags = loaded_area->flags;
     scene->area_weather = loaded_area->weather;
-    constexpr float k_tile_size = 10.0f;
     const float height_step = loaded_area->tileset->tile_height;
     float min_x = std::numeric_limits<float>::max();
     float max_x = std::numeric_limits<float>::lowest();
@@ -3776,17 +3970,21 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
                 continue;
             }
 
-            const float world_x = static_cast<float>(x) * k_tile_size + 5.0f;
-            const float world_y = static_cast<float>(y) * k_tile_size + 5.0f;
+            const float world_x = static_cast<float>(x) * 10.0f + 5.0f;
+            const float world_y = static_cast<float>(y) * 10.0f + 5.0f;
             const float world_z = static_cast<float>(tile.height) * height_step;
             min_x = std::min(min_x, world_x);
             max_x = std::max(max_x, world_x);
             min_y = std::min(min_y, world_y);
             max_y = std::max(max_y, world_y);
             max_tile_z = std::max(max_tile_z, world_z);
-            const float angle = glm::radians(90.0f * static_cast<float>(tile.orientation));
-            glm::mat4 placement = glm::translate(glm::mat4{1.0f}, glm::vec3{world_x, world_y, world_z});
-            placement *= glm::toMat4(glm::angleAxis(angle, glm::vec3{0.0f, 0.0f, 1.0f}));
+            glm::mat4 placement{1.0f};
+            if (!nw::build_area_tile_world_transform(
+                    height_step,
+                    nw::AreaTileTransformInput{x, y, tile.height, tile.orientation},
+                    placement)) {
+                continue;
+            }
 
             const auto light_slots = scene_tile_light_slots(tile);
             if (has_tile_light_slots(light_slots)) {
@@ -4326,6 +4524,7 @@ std::optional<SceneModelRemoval> remove_object_model_rows(
     }
 
     removal.removed_count = static_cast<uint32_t>(removal.handles.size());
+    scene.invalidate_runtime_update_indices();
     rebuild_scene_model_summaries(scene);
     return removal;
 }
@@ -4423,6 +4622,126 @@ AreaObjectPreviewAppendResult append_area_object_previews(
     result.object_count = static_cast<uint32_t>(objects.size());
     result.model_count = static_cast<uint32_t>(
         std::min<size_t>(appended_models, std::numeric_limits<uint32_t>::max()));
+    return result;
+}
+
+AreaTransientVisualResult append_area_transient_visuals(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> objects,
+    PreviewSceneLoadOptions options)
+{
+    AreaTransientVisualResult result;
+    if (objects.empty()) {
+        result.diagnostic = "Area transient visual batch is empty";
+        return result;
+    }
+    if (!scene.is_area || !scene.area_render_scene
+        || scene.root_object.type != nw::ObjectType::area
+        || objects.size() > std::numeric_limits<uint32_t>::max()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area transient visual input is invalid";
+        return result;
+    }
+
+    std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
+    std::sort(ordered.begin(), ordered.end());
+    if (std::adjacent_find(ordered.begin(), ordered.end()) != ordered.end()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area transient visual batch contains duplicate handles";
+        return result;
+    }
+
+    std::vector<std::unique_ptr<PreviewScene>> visuals;
+    visuals.reserve(objects.size());
+    for (size_t i = 0; i < objects.size(); ++i) {
+        const auto object = objects[i];
+        const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+        if ((object.type != nw::ObjectType::creature
+                && object.type != nw::ObjectType::placeable)
+            || !nw::kernel::objects().valid(object) || !spatial
+            || spatial->area != scene.root_object.id) {
+            result.status = AreaTransientVisualStatus::invalid_input;
+            result.diagnostic = "Area transient visual contains an invalid or wrong-area object";
+            return result;
+        }
+
+        const std::string origin = fmt::format("runtime transient {}", i);
+        std::unique_ptr<PreviewScene> visual;
+        if (object.type == nw::ObjectType::creature) {
+            if (auto* creature = nw::kernel::objects().get<nw::Creature>(object)) {
+                visual = load_area_creature_scene(resources, *creature, origin, options);
+            }
+        } else if (auto* placeable = nw::kernel::objects().get<nw::Placeable>(object)) {
+            visual = load_area_placeable_scene(resources, *placeable, origin, options);
+        }
+        if (!visual) {
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic = "Area transient visual construction failed";
+            return result;
+        }
+        if (object.type == nw::ObjectType::creature) {
+            prime_scene_hold_animation(*visual);
+        }
+        visuals.push_back(std::move(visual));
+    }
+
+    size_t appended_models = 0;
+    for (size_t i = 0; i < visuals.size(); ++i) {
+        appended_models += append_render_models(scene,
+            *visuals[i],
+            AreaRenderSourceInfo{
+                .kind = objects[i].type == nw::ObjectType::creature
+                    ? AreaRenderRecordKind::creature
+                    : AreaRenderRecordKind::placeable,
+                .object = objects[i],
+            });
+    }
+
+    scene.area_render_scene->rebuild(scene);
+    result.status = AreaTransientVisualStatus::success;
+    result.object_count = static_cast<uint32_t>(objects.size());
+    result.model_count = static_cast<uint32_t>(
+        std::min<size_t>(appended_models, std::numeric_limits<uint32_t>::max()));
+    return result;
+}
+
+AreaTransientVisualResult remove_area_transient_visuals(
+    PreviewScene& scene,
+    std::span<const nw::ObjectHandle> objects)
+{
+    AreaTransientVisualResult result;
+    if (objects.empty()) {
+        result.diagnostic = "Area transient visual removal batch is empty";
+        return result;
+    }
+    if (!scene.is_area || !scene.area_render_scene
+        || scene.root_object.type != nw::ObjectType::area
+        || objects.size() > std::numeric_limits<uint32_t>::max()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area transient visual removal input is invalid";
+        return result;
+    }
+
+    std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
+    std::sort(ordered.begin(), ordered.end());
+    if (std::adjacent_find(ordered.begin(), ordered.end()) != ordered.end()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area transient visual removal contains duplicate handles";
+        return result;
+    }
+
+    auto removal = remove_object_model_rows(scene, objects);
+    if (!removal) {
+        result.status = AreaTransientVisualStatus::failed;
+        result.diagnostic = "Area transient visual rows were not found";
+        return result;
+    }
+
+    scene.area_render_scene->rebuild(scene);
+    result.status = AreaTransientVisualStatus::success;
+    result.object_count = static_cast<uint32_t>(objects.size());
+    result.model_count = removal->removed_count;
     return result;
 }
 

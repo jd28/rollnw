@@ -277,6 +277,16 @@ void update_placeable_visual(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
     }
 }
 
+void update_door_visual(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
+{
+    nw::Vector<nw::smalls::Value> args;
+    args.push_back(nw::smalls::detail::make_value(&rt, obj->handle()));
+    auto result = rt.execute_script("nwn1.doors", "update_visual", args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "nwn1: failed to update door visual: {}", result.error_message);
+    }
+}
+
 void update_creature_visual_equipment(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
 {
     nw::Vector<nw::smalls::Value> args;
@@ -355,6 +365,10 @@ bool Profile::load_rules() const
         case nw::ObjectType::placeable: {
             NW_PROFILE_SCOPE_N("nwn1::update_placeable_visual");
             update_placeable_visual(rt, obj);
+        } break;
+        case nw::ObjectType::door: {
+            NW_PROFILE_SCOPE_N("nwn1::update_door_visual");
+            update_door_visual(rt, obj);
         } break;
         }
 

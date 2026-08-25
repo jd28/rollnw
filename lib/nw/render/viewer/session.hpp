@@ -2,6 +2,7 @@
 
 #include "camera.hpp"
 #include "forward_plus.hpp"
+#include "preview_model_animation.hpp"
 #include "preview_model_draws.hpp"
 #include "preview_render_resources.hpp"
 #include "preview_scene.hpp"
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -216,12 +218,20 @@ public:
     // transform is genuinely singular. Missing or non-finite focus data returns
     // false and leaves the camera unchanged.
     bool focus_area_object_selection() noexcept;
+    [[nodiscard]] std::optional<ViewerRay> viewport_ray(
+        float pixel_x, float pixel_y, ViewerViewport viewport);
     [[nodiscard]] std::optional<glm::vec3> area_surface_point(
         float pixel_x, float pixel_y, ViewerViewport viewport);
     [[nodiscard]] AreaObjectSpatialUpdateStats update_area_object_spatial_states(
         std::span<const nw::ObjectSpatialState> spatial_states);
+    [[nodiscard]] AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
+        std::span<const AreaCreatureLocomotionAnimationInput> inputs);
     [[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
         std::span<const nw::ObjectHandle> objects, float opacity);
+    [[nodiscard]] AreaTransientVisualResult append_area_transient_visuals(
+        std::span<const nw::ObjectHandle> objects);
+    [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
+        std::span<const nw::ObjectHandle> objects);
     bool clear_area_object_selection() noexcept;
     bool fit_to_scene(ViewerViewport viewport);
     bool set_area_gameplay_view(ViewerViewport viewport, float fov_degrees = 65.0f);
@@ -345,6 +355,7 @@ private:
     // Reused per-frame sampling scratch. Runtime animation state lives on
     // ModelInstance; this vector must not own clip, time, pose, or skin state.
     std::vector<nw::render::ModelInstanceAnimationSample> render_model_animation_samples_;
+    std::vector<uint32_t> animated_root_model_indices_;
     std::vector<nw::gfx::GpuTimerResult> completed_gpu_timer_results_;
     std::vector<uint8_t> area_visibility_mask_;
     AreaObjectSelection active_area_selection_{};

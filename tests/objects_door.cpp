@@ -202,6 +202,11 @@ TEST(Door, GffDeserialize)
     EXPECT_EQ(door_state_int(door, "appearance"), 0);
     EXPECT_EQ(door_state_int(door, "plot"), 0);
     EXPECT_EQ(door_state_int(door, "locked"), 0);
+
+    const auto* visual = nw::kernel::objects().components().find_visual(door->handle());
+    ASSERT_NE(visual, nullptr);
+    ASSERT_EQ(visual->models.size(), 1);
+    EXPECT_FALSE(visual->models[0].model.empty());
 }
 
 TEST(Door, GffRoundTrip)

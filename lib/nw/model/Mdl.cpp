@@ -376,6 +376,7 @@ Mdl::Mdl(ResourceData data)
         LOG_F(ERROR, "[model] no data received");
         return;
     }
+    model.name = data_.name.resref.string();
     if (data_.bytes[0] == 0) {
         try {
             BinaryParser p{std::span<uint8_t>(data_.bytes.data(), data_.bytes.size()), this};
@@ -386,7 +387,7 @@ Mdl::Mdl(ResourceData data)
         }
     } else {
         try {
-            TextParser p{data_.bytes.string_view(), this};
+            TextParser p{data_.bytes.string_view(), this, data_.name.type};
             loaded_ = p.parse();
         } catch (std::exception& e) {
             LOG_F(ERROR, "failed to parse model <unknown>: {}", e.what());

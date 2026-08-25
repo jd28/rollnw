@@ -434,6 +434,7 @@ struct ModelInstanceAnimationState {
     std::vector<std::vector<glm::mat4>> skin_matrices;
     uint32_t clip = 0;
     float time = 0.0f;
+    float playback_rate = 1.0f;
     bool looping = true;
     bool enabled = false;
 };

@@ -280,6 +280,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
     }
     node->parent = parent;
     node->inheritcolor = nodehead.inherit_color;
+    Vector<uint32_t> face_materials;
 
     size_t controller_data_offset = 0;
     if (!array_offset(nodehead.controller_data, sizeof(float), &controller_data_offset)) {
@@ -418,7 +419,8 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         return read_pointer_array(data.faces, s_ctx.faces);
     };
 
-    auto load_mesh_vertices = [&](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
+    auto load_mesh_vertices = [&](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data,
+                                  Vector<uint32_t>* out_face_materials = nullptr) {
         if (s_ctx.verts.size() != data.vertex_count) {
             LOG_F(ERROR, "invalid binary mdl: mesh vertex data missing");
             return false;
@@ -438,6 +440,10 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         if (!reserve_indices(mesh->indices, data.faces.length)) {
             return false;
         }
+        if (out_face_materials) {
+            out_face_materials->clear();
+            out_face_materials->reserve(data.faces.length);
+        }
         size_t dropped_faces = 0;
         for (size_t i = 0; i < data.faces.length; ++i) {
             if (!detail::binary_face_indices_valid(s_ctx.faces[i], mesh->vertices.size())) {
@@ -447,6 +453,9 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
             mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
+            if (out_face_materials) {
+                out_face_materials->push_back(static_cast<uint32_t>(s_ctx.faces[i].surface_id));
+            }
         }
         if (dropped_faces != 0) {
             LOG_F(WARNING, "invalid binary mdl: dropped {} mesh faces with invalid vertex indices", dropped_faces);
@@ -520,7 +529,11 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         if (!read_bytes(node_offset, &data, detail::MdlBinaryAABBNode::s_sizeof)) { return false; }
 
         auto n = static_cast<AABBNode*>(node.get());
-        if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
+        auto* face_material_output = geometry == &mdl_->model ? &face_materials : nullptr;
+        if (!load_mesh_data(n, data.header)
+            || !load_mesh_vertices(n, data.header, face_material_output)) {
+            return false;
+        }
     } else if (node->type == NodeType::skin) {
         detail::MdlBinarySkinNode data;
         if (!read_bytes(node_offset, &data, detail::MdlBinarySkinNode::s_sizeof)) { return false; }
@@ -589,6 +602,22 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent,
         if (!load_mesh_data(n, data.header)) { return false; }
     }
 
+    if (!face_materials.empty()) {
+        constexpr size_t maximum_range_value = std::numeric_limits<uint32_t>::max();
+        if (geometry->nodes.size() > maximum_range_value
+            || mdl_->model.face_materials.size() > std::numeric_limits<uint32_t>::max()
+            || face_materials.size() > maximum_range_value - mdl_->model.face_materials.size()) {
+            LOG_F(ERROR, "binary AABB face-material sidecar exceeds 32-bit range");
+            return false;
+        }
+        mdl_->model.face_material_ranges.push_back({
+            static_cast<uint32_t>(geometry->nodes.size()),
+            static_cast<uint32_t>(mdl_->model.face_materials.size()),
+            static_cast<uint32_t>(face_materials.size()),
+        });
+        mdl_->model.face_materials.insert(mdl_->model.face_materials.end(),
+            face_materials.begin(), face_materials.end());
+    }
     geometry->nodes.push_back(std::move(node));
     auto n = geometry->nodes.back().get();
     if (parent) {

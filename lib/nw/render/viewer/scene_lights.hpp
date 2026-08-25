@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
+#include <span>
 
 #include <glm/mat4x4.hpp>
 
@@ -41,5 +43,7 @@ size_t append_tile_render_model_lights(
     PreviewScene& scene, size_t model_index, const nw::AreaTile& tile, int tile_x, int tile_y);
 void refresh_scene_local_light_render_data(PreviewScene& scene);
 bool refresh_scene_dynamic_local_light_render_data(PreviewScene& scene);
+bool refresh_scene_dynamic_local_light_render_data(
+    PreviewScene& scene, std::span<const uint32_t> model_indices);
 
 } // namespace nw::render::viewer

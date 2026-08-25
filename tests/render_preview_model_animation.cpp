@@ -299,9 +299,11 @@ TEST(PreviewModelAnimation, SampleThenSyncMovesAttachmentToCurrentOwnerSocket)
     viewer::rebuild_render_model_animation_instances(scene, 0u, 0.5f);
     std::vector<nw::render::ModelInstanceAnimationSample> samples;
     const auto sample_stats = viewer::sample_render_model_animations(samples, scene);
-    const auto sync_stats = viewer::sync_model_instance_runtime_state(scene);
+    constexpr std::array<uint32_t, 1> changed_roots{0u};
+    const auto sync_stats = viewer::sync_model_instance_runtime_state(scene, changed_roots);
 
     EXPECT_EQ(sample_stats.sampled_count, 1u);
+    EXPECT_EQ(sync_stats.render_model_count, 2u);
     EXPECT_EQ(sync_stats.render_model_attachment_root_resolved_count, 1u);
     const auto* child = scene.static_model_instance(1u);
     ASSERT_NE(child, nullptr);
@@ -517,6 +519,7 @@ TEST(PreviewModelAnimation, SelectsRenderModelAnimationByName)
     auto* instance = scene.static_model_instance(0);
     ASSERT_NE(instance, nullptr);
     instance->animation = {};
+    instance->animation.playback_rate = -1.0f;
 
     EXPECT_FALSE(viewer::set_render_model_animation_clip_by_name(scene, "missing", 1.0f));
     EXPECT_TRUE(viewer::set_render_model_animation_clip_by_name(scene, "x", -1.0f));
@@ -525,6 +528,7 @@ TEST(PreviewModelAnimation, SelectsRenderModelAnimationByName)
     EXPECT_TRUE(instance->animation.backend);
     EXPECT_EQ(instance->animation.clip, 0u);
     EXPECT_FLOAT_EQ(instance->animation.time, 0.0f);
+    EXPECT_FLOAT_EQ(instance->animation.playback_rate, 1.0f);
 
     std::vector<nw::render::ModelInstanceAnimationSample> samples;
     const auto stats = viewer::sample_render_model_animations(samples, scene);
@@ -786,6 +790,81 @@ TEST(PreviewModelAnimation, SelectsFirstAvailableRenderModelAnimationName)
     EXPECT_FALSE(viewer::set_render_model_animation_clip_by_first_name(scene, no_matches, 1.0f));
     EXPECT_EQ(instance->animation.clip, 0u);
     EXPECT_FLOAT_EQ(instance->animation.time, 0.5f);
+}
+
+TEST(PreviewModelAnimation, CreatureTurnsSelectAuthoredOrReversedBodyClips)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto fallback_model = make_two_clip_render_model("turn_fallback");
+    fallback_model->animations[0].name = "cturnr";
+    fallback_model->animations[1].name = "chturnl";
+    auto authored_model = make_two_clip_render_model("authored_left_turn");
+    authored_model->animations[0].name = "cturnr";
+    authored_model->animations[1].name = "ccturnl";
+
+    constexpr nw::ObjectHandle fallback_owner{
+        .id = nw::ObjectID{1},
+        .type = nw::ObjectType::creature,
+        .version = 1,
+    };
+    constexpr nw::ObjectHandle authored_owner{
+        .id = nw::ObjectID{2},
+        .type = nw::ObjectType::creature,
+        .version = 1,
+    };
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(fallback_model));
+    scene.add(std::move(authored_model));
+    scene.static_area_model_info[0] = {
+        .kind = viewer::AreaRenderRecordKind::creature,
+        .object = fallback_owner,
+    };
+    scene.static_area_model_info[1] = {
+        .kind = viewer::AreaRenderRecordKind::creature,
+        .object = authored_owner,
+    };
+
+    const std::array left_inputs{
+        viewer::AreaCreatureLocomotionAnimationInput{
+            .owner = fallback_owner,
+            .locomotion = viewer::AreaCreatureLocomotion::turning_left,
+        },
+        viewer::AreaCreatureLocomotionAnimationInput{
+            .owner = authored_owner,
+            .locomotion = viewer::AreaCreatureLocomotion::turning_left,
+        },
+    };
+    const auto left_stats = viewer::update_area_creature_locomotion_animations(scene, left_inputs);
+    EXPECT_EQ(left_stats.changed_model_count, 2u);
+
+    auto* fallback_instance = scene.static_model_instance(0);
+    const auto* authored_instance = scene.static_model_instance(1);
+    ASSERT_NE(fallback_instance, nullptr);
+    ASSERT_NE(authored_instance, nullptr);
+    EXPECT_EQ(fallback_instance->animation.clip, 0u);
+    EXPECT_FLOAT_EQ(fallback_instance->animation.playback_rate, -1.0f);
+    EXPECT_FLOAT_EQ(fallback_instance->animation.time, 1.0f);
+    EXPECT_EQ(authored_instance->animation.clip, 1u);
+    EXPECT_FLOAT_EQ(authored_instance->animation.playback_rate, 1.0f);
+    EXPECT_FLOAT_EQ(authored_instance->animation.time, 0.0f);
+
+    viewer::advance_render_model_animation_times(scene, 0.25f);
+    EXPECT_FLOAT_EQ(fallback_instance->animation.time, 0.75f);
+
+    const std::array right_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+        .owner = fallback_owner,
+        .locomotion = viewer::AreaCreatureLocomotion::turning_right,
+    }};
+    const auto right_stats = viewer::update_area_creature_locomotion_animations(scene, right_inputs);
+    EXPECT_EQ(right_stats.changed_model_count, 1u);
+    EXPECT_EQ(fallback_instance->animation.clip, 0u);
+    EXPECT_FLOAT_EQ(fallback_instance->animation.playback_rate, 1.0f);
+    EXPECT_FLOAT_EQ(fallback_instance->animation.time, 0.0f);
+
+    const auto repeated_right_stats = viewer::update_area_creature_locomotion_animations(scene, right_inputs);
+    EXPECT_EQ(repeated_right_stats.changed_model_count, 0u);
 }
 
 TEST(PreviewModelAnimation, DefaultRenderModelAnimationFallsBackToFirstClip)

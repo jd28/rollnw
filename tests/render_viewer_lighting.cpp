@@ -249,6 +249,49 @@ TEST(RenderViewerLighting, AreaAuthoredLightingEnablesCascadeShadows)
     EXPECT_GT(shadow.strength, 0.0f);
 }
 
+TEST(RenderViewerLighting, CascadeShadowProjectionRejectsSubTexelCameraMotion)
+{
+    namespace viewer = nw::render::viewer;
+
+    const auto make_context = [](glm::vec3 offset) {
+        nw::render::RenderContext ctx{};
+        ctx.camera_position = glm::vec3{0.0f, -20.0f, 15.0f} + offset;
+        ctx.camera_target = offset;
+        ctx.camera_near_plane = 0.1f;
+        ctx.camera_far_plane = 200.0f;
+        ctx.view = glm::lookAt(
+            ctx.camera_position, ctx.camera_target, glm::vec3{0.0f, 0.0f, 1.0f});
+        ctx.projection = glm::perspective(
+            glm::radians(60.0f), 1.0f, ctx.camera_near_plane, ctx.camera_far_plane);
+        ctx.lighting_space = nw::render::LightingSpace::world_space;
+        ctx.lighting.key_direction = glm::normalize(glm::vec3{0.4f, 0.6f, -1.0f});
+        ctx.lighting.key_intensity = 1.0f;
+        return ctx;
+    };
+
+    const nw::render::Bounds bounds{
+        .min = {-50.0f, -50.0f, -10.0f},
+        .max = {50.0f, 50.0f, 20.0f},
+    };
+    const auto first = viewer::resolve_scene_shadow(
+        make_context({0.0f, 0.0f, 0.0f}), bounds);
+    const auto moved = viewer::resolve_scene_shadow(
+        make_context({0.001f, -0.001f, 0.0f}), bounds);
+    ASSERT_TRUE(first.enabled);
+    ASSERT_TRUE(moved.enabled);
+
+    constexpr float kMaxProjectionDrift = 2.0f
+        / static_cast<float>(viewer::kSceneShadowMapResolution)
+        / 64.0f;
+    const glm::vec4 world_point{4.0f, 5.0f, 1.0f, 1.0f};
+    for (uint32_t cascade = 0; cascade < first.cascade_count; ++cascade) {
+        const glm::vec4 first_shadow = first.world_to_shadow[cascade] * world_point;
+        const glm::vec4 moved_shadow = moved.world_to_shadow[cascade] * world_point;
+        EXPECT_NEAR(first_shadow.x, moved_shadow.x, kMaxProjectionDrift);
+        EXPECT_NEAR(first_shadow.y, moved_shadow.y, kMaxProjectionDrift);
+    }
+}
+
 TEST(RenderViewerLighting, NwnRenderModelsUseStudioLighting)
 {
     namespace viewer = nw::render::viewer;
@@ -309,8 +352,11 @@ TEST(RenderViewerLighting, DynamicLocalLightFollowsTrackedModelNode)
         .model_source_node_index = 0,
     });
     viewer::refresh_scene_local_light_render_data(scene);
+    scene.invalidate_runtime_update_indices();
 
-    const bool changed = viewer::refresh_scene_dynamic_local_light_render_data(scene);
+    constexpr std::array<uint32_t, 1> changed_models{0u};
+    const bool changed = viewer::refresh_scene_dynamic_local_light_render_data(
+        scene, changed_models);
 
     ASSERT_TRUE(changed);
     ASSERT_EQ(scene.render_local_lights.size(), 1u);
@@ -320,6 +366,101 @@ TEST(RenderViewerLighting, DynamicLocalLightFollowsTrackedModelNode)
     EXPECT_NEAR(scene.render_local_lights[0].position.x, scene.local_lights[0].position.x, 1.0e-5f);
     EXPECT_NEAR(scene.render_local_lights[0].position.y, scene.local_lights[0].position.y, 1.0e-5f);
     EXPECT_NEAR(scene.render_local_lights[0].position.z, scene.local_lights[0].position.z, 1.0e-5f);
+}
+
+TEST(RenderViewerLighting, IncrementalDynamicLocalLightRefreshMatchesFullRefresh)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    for (uint32_t model_index = 0; model_index < 2u; ++model_index) {
+        auto model = std::make_unique<nw::render::RenderModel>();
+        model->nodes.push_back(nw::render::Node{
+            .parent = -1,
+            .world_transform = glm::translate(
+                glm::mat4{1.0f}, glm::vec3{1.0f + static_cast<float>(model_index), 2.0f, 3.0f}),
+        });
+        scene.add(std::move(model));
+
+        scene.local_lights.push_back(viewer::SceneLocalLight{
+            .position = {0.0f, 0.0f, 0.0f},
+            .radius = 4.0f + static_cast<float>(model_index),
+            .color = {1.0f, 0.8f, 0.5f},
+            .intensity = 1.0f,
+            .base_radius = 4.0f + static_cast<float>(model_index),
+            .base_intensity = 1.0f,
+            .source = viewer::SceneLocalLightSource::authored_model,
+            .model_index = model_index,
+            .model_source_node_index = 0,
+        });
+    }
+    scene.local_lights.push_back(viewer::SceneLocalLight{
+        .position = {7.0f, 8.0f, 9.0f},
+        .radius = 6.0f,
+        .color = {0.25f, 0.5f, 0.75f},
+        .intensity = 0.5f,
+        .base_radius = 6.0f,
+        .base_intensity = 0.5f,
+        .source = viewer::SceneLocalLightSource::placeable_table,
+    });
+
+    viewer::sync_model_instance_runtime_state(scene);
+    viewer::refresh_scene_local_light_render_data(scene);
+    ASSERT_TRUE(viewer::refresh_scene_dynamic_local_light_render_data(scene));
+
+    auto* moved_instance = scene.static_model_instance(0);
+    ASSERT_NE(moved_instance, nullptr);
+    moved_instance->root_transform = glm::translate(
+        glm::mat4{1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
+    constexpr std::array<uint32_t, 1> changed_models{0u};
+    viewer::sync_model_instance_runtime_state(scene, changed_models);
+
+    const auto stale_local_lights = scene.local_lights;
+    const auto stale_render_lights = scene.render_local_lights;
+    ASSERT_TRUE(viewer::refresh_scene_dynamic_local_light_render_data(scene, changed_models));
+    const auto incremental_local_lights = scene.local_lights;
+    const auto incremental_render_lights = scene.render_local_lights;
+
+    scene.local_lights = stale_local_lights;
+    scene.render_local_lights = stale_render_lights;
+    ASSERT_TRUE(viewer::refresh_scene_dynamic_local_light_render_data(scene));
+
+    ASSERT_EQ(scene.local_lights.size(), incremental_local_lights.size());
+    for (size_t i = 0; i < scene.local_lights.size(); ++i) {
+        const auto& actual = scene.local_lights[i];
+        const auto& expected = incremental_local_lights[i];
+        EXPECT_EQ(actual.position, expected.position);
+        EXPECT_EQ(actual.radius, expected.radius);
+        EXPECT_EQ(actual.color, expected.color);
+        EXPECT_EQ(actual.intensity, expected.intensity);
+        EXPECT_EQ(actual.base_radius, expected.base_radius);
+        EXPECT_EQ(actual.base_intensity, expected.base_intensity);
+        EXPECT_EQ(actual.source, expected.source);
+        EXPECT_EQ(actual.model_index, expected.model_index);
+        EXPECT_EQ(actual.model_source_node_index, expected.model_source_node_index);
+        EXPECT_EQ(actual.tile_x, expected.tile_x);
+        EXPECT_EQ(actual.tile_y, expected.tile_y);
+        EXPECT_EQ(actual.tile_orientation, expected.tile_orientation);
+        EXPECT_EQ(actual.dynamic, expected.dynamic);
+        EXPECT_EQ(actual.affect_dynamic, expected.affect_dynamic);
+        EXPECT_EQ(actual.ambient_contribution, expected.ambient_contribution);
+        EXPECT_EQ(actual.casts_shadow, expected.casts_shadow);
+        EXPECT_EQ(actual.fading, expected.fading);
+    }
+
+    ASSERT_EQ(scene.render_local_lights.size(), incremental_render_lights.size());
+    for (size_t i = 0; i < scene.render_local_lights.size(); ++i) {
+        const auto& actual = scene.render_local_lights[i];
+        const auto& expected = incremental_render_lights[i];
+        EXPECT_EQ(actual.position, expected.position);
+        EXPECT_EQ(actual.radius, expected.radius);
+        EXPECT_EQ(actual.color, expected.color);
+        EXPECT_EQ(actual.intensity, expected.intensity);
+        EXPECT_EQ(actual.contribution, expected.contribution);
+        EXPECT_EQ(actual.vertical_scale, expected.vertical_scale);
+        EXPECT_EQ(actual.casts_shadow, expected.casts_shadow);
+        EXPECT_EQ(actual.shadow_slot, expected.shadow_slot);
+    }
 }
 
 TEST(RenderViewerLighting, DynamicLocalLightUsesCommonInstanceRoot)
@@ -590,19 +731,20 @@ TEST(RenderViewerLighting, FilteredAreaFrameKeepsModelBoundDynamicLights)
     EXPECT_EQ(frame.visible_light_indices()[0], 1u);
 }
 
-TEST(RenderViewerLighting, LocalShadowSelectionIsStableAcrossCameraMotion)
+TEST(RenderViewerLighting, LocalShadowSelectionIsStableAcrossCandidateOrder)
 {
-    nw::render::RenderContext ctx{};
     std::vector<nw::render::LocalLight> lights{
         nw::render::LocalLight{.position = {100.0f, 0.0f, 4.0f}, .radius = 80.0f, .intensity = 1.0f},
         nw::render::LocalLight{.position = {150.0f, 0.0f, 4.0f}, .radius = 80.0f, .intensity = 1.0f},
         nw::render::LocalLight{.position = {200.0f, 0.0f, 4.0f}, .radius = 80.0f, .intensity = 1.0f},
         nw::render::LocalLight{.position = {250.0f, 0.0f, 4.0f}, .radius = 80.0f, .intensity = 1.0f},
-        nw::render::LocalLight{.position = {400.0f, 0.0f, 4.0f}, .radius = 10.0f, .intensity = 1.0f},
+        nw::render::LocalLight{.position = {400.0f, 0.0f, 4.0f}, .radius = 80.0f, .intensity = 1.0f},
     };
 
-    ctx.camera_position = {0.0f, 0.0f, 4.0f};
-    auto shadows = nw::render::viewer::resolve_local_shadows(ctx, lights);
+    constexpr std::array<uint32_t, 5> forward_candidates{0u, 1u, 2u, 3u, 4u};
+    constexpr std::array<uint32_t, 5> reverse_candidates{4u, 3u, 2u, 1u, 0u};
+    auto shadows = nw::render::viewer::resolve_local_shadows(
+        lights, std::span<const uint32_t>{forward_candidates});
     ASSERT_EQ(shadows.count, nw::render::kLocalShadowCount);
     EXPECT_EQ(lights[0].shadow_slot, 0);
     EXPECT_EQ(lights[1].shadow_slot, 1);
@@ -610,8 +752,8 @@ TEST(RenderViewerLighting, LocalShadowSelectionIsStableAcrossCameraMotion)
     EXPECT_EQ(lights[3].shadow_slot, 3);
     EXPECT_EQ(lights[4].shadow_slot, -1);
 
-    ctx.camera_position = lights[4].position;
-    shadows = nw::render::viewer::resolve_local_shadows(ctx, lights);
+    shadows = nw::render::viewer::resolve_local_shadows(
+        lights, std::span<const uint32_t>{reverse_candidates});
     ASSERT_EQ(shadows.count, nw::render::kLocalShadowCount);
     EXPECT_EQ(lights[0].shadow_slot, 0);
     EXPECT_EQ(lights[1].shadow_slot, 1);

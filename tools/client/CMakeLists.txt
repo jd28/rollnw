@@ -7,6 +7,7 @@ add_library(rollnw_client_core STATIC
     forward_plus_debug.cpp
     object_document.cpp
     object_edits.cpp
+    preview_session.cpp
     project.cpp
     resource_document.cpp
     script_commands.cpp
@@ -20,7 +21,7 @@ target_include_directories(rollnw_client_core PUBLIC
     ${CMAKE_SOURCE_DIR}/lib
 )
 
-target_link_libraries(rollnw_client_core PUBLIC nw)
+target_link_libraries(rollnw_client_core PUBLIC nw nw-nav)
 
 if(UNIX)
     target_link_libraries(rollnw_client_core PUBLIC dl)

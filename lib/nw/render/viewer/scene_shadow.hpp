@@ -65,7 +65,6 @@ struct LocalShadowRenderStats {
 // (writing LocalLight::shadow_slot in `lights`), and compute its top-down ortho
 // world->shadow matrix. K is a cost cap (kLocalShadowCount), not an aesthetic one.
 [[nodiscard]] SceneLocalShadows resolve_local_shadows(
-    const RenderContext& ctx,
     std::span<LocalLight> lights,
     std::optional<std::span<const uint32_t>> candidate_light_indices = std::nullopt);
 

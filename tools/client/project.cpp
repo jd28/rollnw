@@ -179,6 +179,38 @@ bool write_manifest(const fs::path& project_dir, const nlohmann::json& manifest,
     return true;
 }
 
+std::optional<fs::path> valid_project_creature_path(
+    const fs::path& project_dir,
+    const fs::path& relative_path,
+    std::string& error)
+{
+    if (relative_path.empty() || relative_path.is_absolute()) {
+        error = "Preview test actor path must be project-relative";
+        return std::nullopt;
+    }
+
+    const fs::path normalized = relative_path.lexically_normal();
+    for (const auto& component : normalized) {
+        if (component == "..") {
+            error = "Preview test actor path escapes the project";
+            return std::nullopt;
+        }
+    }
+
+    const nw::Resource resource = nw::Resource::from_path(normalized, false);
+    if (!resource.valid() || resource.type != nw::ResourceType::utc) {
+        error = "Preview test actor must name a creature blueprint";
+        return std::nullopt;
+    }
+
+    std::error_code ec;
+    if (!fs::is_regular_file(project_dir / normalized, ec)) {
+        error = "Preview test actor does not exist: " + normalized.generic_string();
+        return std::nullopt;
+    }
+    return normalized;
+}
+
 std::string resource_extension(nw::ResourceType::type type)
 {
     if (const auto ext = nw::ResourceType::to_string(type); !ext.empty()) {
@@ -1380,6 +1412,79 @@ ProjectModuleSummary load_project_module_summary(const fs::path& project_dir)
         return load_json_module_summary(module_path);
     }
     return load_legacy_module_summary(module_path);
+}
+
+ProjectPreviewSettings load_project_preview_settings(const fs::path& project_dir)
+{
+    ProjectPreviewSettings result;
+    if (!is_project_directory(project_dir)) {
+        result.message = "Not a rollnw client project: " + project_dir.string();
+        return result;
+    }
+
+    const nlohmann::json manifest = load_manifest_json(project_dir);
+    const auto preview = manifest.find("preview");
+    if (preview == manifest.end()) {
+        result.ok = true;
+        result.message = "Project has no preview test actor";
+        return result;
+    }
+    if (!preview->is_object()) {
+        result.message = "Project preview settings must be an object";
+        return result;
+    }
+
+    const auto actor = preview->find("test_actor");
+    if (actor == preview->end()) {
+        result.ok = true;
+        result.message = "Project has no preview test actor";
+        return result;
+    }
+    if (!actor->is_string()) {
+        result.message = "Project preview test_actor must be a string";
+        return result;
+    }
+
+    std::string error;
+    auto path = valid_project_creature_path(
+        project_dir, fs::path{actor->get<std::string>()}, error);
+    if (!path) {
+        result.message = std::move(error);
+        return result;
+    }
+
+    result.ok = true;
+    result.test_actor = std::move(*path);
+    result.message = "Loaded project preview settings";
+    return result;
+}
+
+ProjectResult save_project_preview_test_actor(
+    const fs::path& project_dir,
+    const fs::path& relative_actor_path)
+{
+    if (!is_project_directory(project_dir)) {
+        return failure("Not a rollnw client project: " + project_dir.string());
+    }
+
+    std::string error;
+    auto path = valid_project_creature_path(
+        project_dir, relative_actor_path, error);
+    if (!path) {
+        return failure(std::move(error));
+    }
+
+    nlohmann::json manifest = load_manifest_json(project_dir);
+    const auto preview = manifest.find("preview");
+    if (preview != manifest.end() && !preview->is_object()) {
+        return failure("Project preview settings must be an object");
+    }
+    manifest["preview"]["test_actor"] = path->generic_string();
+    if (!write_manifest(project_dir, manifest, error)) {
+        return failure(std::move(error));
+    }
+
+    return success("Saved project preview test actor: " + path->generic_string());
 }
 
 ProjectResult initialize_project(const fs::path& project_dir, std::string module_name)

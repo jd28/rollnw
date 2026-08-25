@@ -5,6 +5,7 @@
 #include "forward_plus_debug.hpp"
 #include "object_document.hpp"
 #include "object_edits.hpp"
+#include "preview_session.hpp"
 #include "project.hpp"
 #include "renderer.hpp"
 #include "resource_document.hpp"
@@ -582,10 +583,38 @@ Rml::ElementDocument* load_viewer_fps_document(Rml::Context& context)
       line-height: 15px;
       text-align: right;
     }
+    #play_preview_viewport_overlay {
+      position: absolute;
+      display: none;
+      width: 320px;
+      height: 50px;
+      padding: 7px 12px 8px 12px;
+      border: 1px #9b835d;
+      border-radius: 3px;
+      background: #0d1217dd;
+      pointer-events: none;
+    }
+    .play_preview_viewport_title {
+      display: block;
+      width: 100%;
+      color: #eadcc3;
+      font-size: 17px;
+      font-weight: bold;
+      line-height: 21px;
+    }
+    .play_preview_viewport_help {
+      display: block;
+      width: 100%;
+      color: #aeb8c3;
+      font-size: 11px;
+      font-weight: normal;
+      line-height: 14px;
+    }
   </style>
 </head>
 <body>
   <div id="viewer_fps_overlay">-- FPS</div>
+  <div id="play_preview_viewport_overlay"></div>
 </body>
 </rml>
 )RML";
@@ -812,10 +841,38 @@ enum class OutputScrollAfterLayout : uint8_t {
     follow_tail,
 };
 
+struct PlayPreviewState {
+    nw::toolset::ToolsetPreviewSession session;
+    nw::toolset::PreviewFixedStepState fixed_step;
+    nw::toolset::PreviewInputSample pending_input;
+    std::array<nw::toolset::PreviewInputSample, 6> tick_inputs{};
+    std::array<nw::ObjectSpatialState, 1> spatial_rows{};
+    std::array<nw::toolset::PreviewActorLocomotion, 1> locomotion_rows{};
+    nw::Resource pending_actor{};
+    nw::ObjectHandle area{};
+    uint64_t module_generation = 0;
+    std::string tab_id;
+    SDL_Gamepad* gamepad = nullptr;
+    float mouse_look_x = 0.0f;
+    float mouse_look_y = 0.0f;
+    double mouse_sample_seconds = 0.0;
+    float wheel_zoom = 0.0f;
+    bool selecting_actor = false;
+    bool picker_was_showing_project_tree = false;
+    bool picker_was_showing_areas = false;
+    bool visuals_attached = false;
+
+    bool placement_pending() const noexcept
+    {
+        return pending_actor.valid();
+    }
+};
+
 struct AppState {
     nw::toolset::RmlSmallsBridge smalls;
     nw::toolset::ToolsetBackend backend;
     nw::toolset::ShellController shell;
+    PlayPreviewState play_preview;
     nw::toolset::WorkspaceState workspace;
     nw::toolset::DialogViewState dialog_view;
     nw::toolset::ObjectDetailsSnapshot object_details;
@@ -1363,10 +1420,16 @@ void apply_shell_layout(Rml::ElementDocument* doc, const AppState& state)
         return;
     }
 
+    const bool play_preview_active = state.play_preview.session.active()
+        || state.play_preview.placement_pending();
+    doc->SetClass("play_preview_active", play_preview_active);
+    doc->SetClass("play_preview_placement_pending",
+        state.play_preview.placement_pending());
     const auto& left = state.shell.docks.pane(nw::toolset::DockRegion::left);
     const auto& bottom = state.shell.docks.pane(nw::toolset::DockRegion::bottom);
     const int panel_bottom_px = bottom.visible ? bottom.size_px : 0;
-    const bool show_left_dock = left_dock_visible_for_active_tab(state);
+    const bool show_left_dock = !play_preview_active
+        && left_dock_visible_for_active_tab(state);
     if (auto* panel = doc->GetElementById("panel")) {
         panel->SetProperty("display", show_left_dock ? "flex" : "none");
         panel->SetProperty("width", std::to_string(left.size_px) + "px");
@@ -1374,7 +1437,7 @@ void apply_shell_layout(Rml::ElementDocument* doc, const AppState& state)
     }
     if (auto* workspace = doc->GetElementById("workspace_shell")) {
         workspace->SetProperty("left", std::to_string(show_left_dock ? left.size_px : 0) + "px");
-        workspace->SetProperty("bottom", std::to_string(panel_bottom_px) + "px");
+        workspace->SetProperty("bottom", std::to_string(play_preview_active ? 0 : panel_bottom_px) + "px");
     }
 }
 
@@ -3180,7 +3243,11 @@ void refresh_recent_list(Rml::ElementDocument* doc, AppState& state)
         project_title->SetClass("visible", state.shell.showing_project_tree);
         if (state.shell.showing_project_tree) {
             const auto project_dir = state.backend.current_project_dir();
-            const std::string title = project_dir.empty() ? std::string{"Project"} : nw::toolset::project_display_name(project_dir);
+            const std::string title = state.play_preview.selecting_actor
+                ? std::string{"Choose Preview Creature"}
+                : project_dir.empty()
+                ? std::string{"Project"}
+                : nw::toolset::project_display_name(project_dir);
             project_title->SetInnerRML(escape_html(title));
         }
     }
@@ -6747,6 +6814,242 @@ std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_r
     };
 }
 
+void reset_play_preview_input(PlayPreviewState& preview) noexcept
+{
+    preview.fixed_step = {};
+    preview.pending_input = {};
+    preview.mouse_look_x = 0.0f;
+    preview.mouse_look_y = 0.0f;
+    preview.mouse_sample_seconds = 0.0;
+    preview.wheel_zoom = 0.0f;
+}
+
+void restore_play_preview_picker_shell(Rml::ElementDocument* doc, AppState& state)
+{
+    if (!state.play_preview.selecting_actor) return;
+    state.play_preview.selecting_actor = false;
+    if (state.play_preview.picker_was_showing_project_tree) {
+        state.shell.set_showing_project_tree(true);
+    } else if (state.play_preview.picker_was_showing_areas) {
+        state.shell.set_showing_areas(true);
+    } else {
+        state.shell.set_showing_project_tree(false);
+    }
+    refresh_recent_list(doc, state);
+}
+
+void stop_play_preview(ClientRenderer& renderer,
+    Rml::ElementDocument* doc,
+    AppState& state)
+{
+    if (state.play_preview.visuals_attached) {
+        if (!renderer.end_toolset_preview_visuals()) {
+            append_output(state, "error", "Failed to remove play-preview visuals");
+        }
+    }
+    state.play_preview.visuals_attached = false;
+    nw::toolset::stop_toolset_preview(state.play_preview.session);
+    state.play_preview.pending_actor = {};
+    state.play_preview.area = nw::ObjectHandle{};
+    state.play_preview.module_generation = 0;
+    state.play_preview.tab_id.clear();
+    reset_play_preview_input(state.play_preview);
+    apply_shell_layout(doc, state);
+}
+
+void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state,
+    std::string_view reason)
+{
+    if (!reason.empty()) append_output(state, "warn", reason);
+    if (!state.play_preview.selecting_actor) {
+        state.play_preview.selecting_actor = true;
+        state.play_preview.picker_was_showing_project_tree
+            = state.shell.showing_project_tree;
+        state.play_preview.picker_was_showing_areas = state.shell.showing_areas;
+        state.shell.set_showing_project_tree(true);
+    }
+    refresh_recent_list(doc, state);
+    if (auto* search = find_el(doc, "recent_search")) search->Focus();
+}
+
+bool start_play_preview_from_ray(ClientRenderer& renderer,
+    Rml::ElementDocument* doc,
+    AppState& state,
+    const ClientViewportRay& ray)
+{
+    if (!state.play_preview.placement_pending()) return false;
+
+    const nw::toolset::PreviewSessionStartInput input{
+        .area = state.play_preview.area,
+        .actor = state.play_preview.pending_actor,
+        .spawn_ray = {
+            .origin = ray.origin,
+            .displacement = ray.displacement,
+        },
+        .camera = {},
+        .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
+    };
+    const auto started = nw::toolset::start_toolset_preview(
+        state.play_preview.session, input);
+    if (!started.ok()) {
+        append_output(state, "error", started.diagnostic);
+        return false;
+    }
+
+    const std::array actors{started.actor};
+    if (!renderer.begin_toolset_preview_visuals(
+            actors, state.play_preview.session.camera())) {
+        nw::toolset::stop_toolset_preview(state.play_preview.session);
+        append_output(state, "error", "Failed to attach play-preview actor visuals");
+        return false;
+    }
+
+    state.play_preview.pending_actor = {};
+    state.play_preview.visuals_attached = true;
+    reset_play_preview_input(state.play_preview);
+    apply_shell_layout(doc, state);
+    append_output(state, "info", started.stats.movement_disabled ? fmt::format("Play preview started with {} tile portals; this creature's authored movement rate is NOMOVE", started.stats.portal_edge_count) : fmt::format("Play preview started with {} tile portals", started.stats.portal_edge_count));
+    return true;
+}
+
+bool prepare_play_preview(ClientRenderer& renderer,
+    Rml::ElementDocument* doc,
+    AppState& state,
+    int frame_width,
+    int frame_height,
+    const std::filesystem::path& selected_actor = {})
+{
+    if (state.play_preview.session.active()
+        || state.play_preview.placement_pending()) {
+        return true;
+    }
+    const auto viewport = active_workspace_viewer_viewport_request(
+        doc, state, frame_width, frame_height);
+    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area) {
+        append_output(state, "warn", "F9 play preview requires an active area tab");
+        return false;
+    }
+
+    std::filesystem::path actor_path = selected_actor;
+    if (actor_path.empty()) {
+        const auto settings = nw::toolset::load_project_preview_settings(
+            viewport->project_dir);
+        if (!settings.ok || settings.test_actor.empty()) {
+            request_play_preview_actor(doc, state,
+                settings.message.empty()
+                    ? std::string_view{"Choose a Creature blueprint for play preview"}
+                    : std::string_view{settings.message});
+            return false;
+        }
+        actor_path = settings.test_actor;
+    }
+
+    const nw::Resource actor = nw::Resource::from_path(actor_path, false);
+    if (actor.type != nw::ResourceType::utc || !actor.valid()) {
+        request_play_preview_actor(doc, state,
+            "Play-preview test actor must be a Creature blueprint");
+        return false;
+    }
+    const nw::ObjectHandle area = renderer.area_viewer_object();
+    if (area.type != nw::ObjectType::area) {
+        append_output(state, "warn", "Area viewport is not ready for play preview");
+        return false;
+    }
+
+    state.play_preview.pending_actor = actor;
+    state.play_preview.area = area;
+    state.play_preview.module_generation = viewport->module_generation;
+    state.play_preview.tab_id = state.workspace.active_tab_id();
+    reset_play_preview_input(state.play_preview);
+    restore_play_preview_picker_shell(doc, state);
+    apply_shell_layout(doc, state);
+    append_output(state, "info", "Click a walkable area surface to start play preview");
+    return true;
+}
+
+float normalized_gamepad_axis(SDL_Gamepad* gamepad, SDL_GamepadAxis axis) noexcept
+{
+    if (!gamepad) return 0.0f;
+    const Sint16 value = SDL_GetGamepadAxis(gamepad, axis);
+    return value < 0
+        ? static_cast<float>(value) / 32768.0f
+        : static_cast<float>(value) / 32767.0f;
+}
+
+void open_play_preview_gamepad(PlayPreviewState& preview, SDL_JoystickID id)
+{
+    if (preview.gamepad || id == 0) return;
+    preview.gamepad = SDL_OpenGamepad(id);
+    if (!preview.gamepad) {
+        LOG_F(WARNING, "Play preview: failed to open gamepad: {}", SDL_GetError());
+    }
+}
+
+void close_play_preview_gamepad(PlayPreviewState& preview) noexcept
+{
+    if (!preview.gamepad) return;
+    SDL_CloseGamepad(preview.gamepad);
+    preview.gamepad = nullptr;
+}
+
+nw::toolset::PreviewInputSample sample_play_preview_input(
+    PlayPreviewState& preview, double frame_seconds)
+{
+    preview.mouse_sample_seconds += std::max(0.0, frame_seconds);
+    auto sample = preview.pending_input;
+    const bool* keys = SDL_GetKeyboardState(nullptr);
+    glm::vec2 keyboard{
+        static_cast<float>(keys[SDL_SCANCODE_E]) - static_cast<float>(keys[SDL_SCANCODE_Q]),
+        static_cast<float>(keys[SDL_SCANCODE_W]) - static_cast<float>(keys[SDL_SCANCODE_S]),
+    };
+    sample.turn_axis = static_cast<float>(keys[SDL_SCANCODE_D])
+        - static_cast<float>(keys[SDL_SCANCODE_A]);
+    glm::vec2 gamepad_move{};
+    glm::vec2 gamepad_look{};
+    const glm::vec2 keyboard_look{
+        static_cast<float>(keys[SDL_SCANCODE_RIGHT]) - static_cast<float>(keys[SDL_SCANCODE_LEFT]),
+        static_cast<float>(keys[SDL_SCANCODE_DOWN]) - static_cast<float>(keys[SDL_SCANCODE_UP]),
+    };
+    float gamepad_zoom = 0.0f;
+    if (preview.gamepad) {
+        gamepad_move = nw::toolset::preview_radial_deadzone({
+            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_LEFTX),
+            -normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_LEFTY),
+        });
+        gamepad_look = nw::toolset::preview_radial_deadzone({
+            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_RIGHTX),
+            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_RIGHTY),
+        });
+        gamepad_zoom = normalized_gamepad_axis(
+                           preview.gamepad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+            - normalized_gamepad_axis(
+                preview.gamepad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+        gamepad_zoom += static_cast<float>(SDL_GetGamepadButton(
+                            preview.gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))
+            - static_cast<float>(SDL_GetGamepadButton(
+                preview.gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER));
+    }
+
+    sample.move_axis = keyboard + gamepad_move;
+    sample.move_axis = glm::clamp(
+        sample.move_axis, glm::vec2{-1.0f}, glm::vec2{1.0f});
+    sample.look_axis = keyboard_look + gamepad_look;
+    constexpr float mouse_radians_per_pixel = 0.0035f;
+    constexpr float look_radians_per_second = 2.5f;
+    if (preview.mouse_sample_seconds > 0.0) {
+        const float mouse_scale = mouse_radians_per_pixel
+            / (look_radians_per_second
+                * static_cast<float>(preview.mouse_sample_seconds));
+        sample.look_axis += glm::vec2{
+            preview.mouse_look_x * mouse_scale,
+            preview.mouse_look_y * mouse_scale,
+        };
+    }
+    sample.zoom_axis = gamepad_zoom;
+    sample.zoom_delta = preview.wheel_zoom;
+    return sample;
+}
+
 void smooth_viewer_metric(float& latest_seconds, float& smoothed_seconds, float sample_seconds)
 {
     if (sample_seconds < 0.0f) {
@@ -7345,6 +7648,33 @@ void sync_viewer_fps_overlay(Rml::ElementDocument* fps_doc,
     overlay->SetProperty("height", std::to_string(verbose ? 144 : 54) + "px");
     overlay->SetProperty("left", std::to_string(left) + "px");
     overlay->SetProperty("top", std::to_string(top) + "px");
+}
+
+void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
+    const std::optional<WorkspaceViewerViewportRequest>& viewer_viewport,
+    const AppState& state)
+{
+    auto* overlay = find_el(fps_doc, "play_preview_viewport_overlay");
+    if (!overlay) return;
+
+    const bool visible = viewer_viewport && viewer_viewport->rect.valid()
+        && (state.play_preview.session.active()
+            || state.play_preview.placement_pending());
+    if (!visible) {
+        overlay->SetProperty("display", "none");
+        return;
+    }
+
+    constexpr int kOverlayMargin = 8;
+    const auto& rect = viewer_viewport->rect;
+    overlay->SetInnerRML(state.play_preview.placement_pending()
+            ? "<div class=\"play_preview_viewport_title\">Area Preview</div>"
+              "<div class=\"play_preview_viewport_help\">Click a walkable point to enter &bull; F9 or Escape to cancel</div>"
+            : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
+              "<div class=\"play_preview_viewport_help\">F9 or Escape to return</div>");
+    overlay->SetProperty("display", "block");
+    overlay->SetProperty("left", std::to_string(rect.x + kOverlayMargin) + "px");
+    overlay->SetProperty("top", std::to_string(rect.y + kOverlayMargin) + "px");
 }
 
 void toggle_command_palette(Rml::Context* context,
@@ -8256,7 +8586,7 @@ bool project_blueprint_drag_context_matches(const AppState& state)
     case ProjectBlueprintDragKind::item:
         if (drag.owner.type == nw::ObjectType::store) {
             return state.object_workbench_surface
-                    == ObjectWorkbenchSurface::store_inventory
+                == ObjectWorkbenchSurface::store_inventory
                 && state.object_details.object == drag.owner
                 && active_object_matches_tab(state);
         }
@@ -8442,8 +8772,7 @@ bool update_project_blueprint_drag(Rml::Context* context,
             return true;
         }
         auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-        const bool over_spawn_collection =
-            find_ancestor_with_id(hit, "encounter_spawn_collection") != nullptr;
+        const bool over_spawn_collection = find_ancestor_with_id(hit, "encounter_spawn_collection") != nullptr;
         const ProjectBlueprintDropTarget target{
             .kind = over_spawn_collection
                 ? ProjectBlueprintDropTargetKind::encounter_spawns
@@ -8464,8 +8793,7 @@ bool update_project_blueprint_drag(Rml::Context* context,
             return true;
         }
         auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-        const bool over_sound_collection =
-            find_ancestor_with_id(hit, "sound_resource_collection") != nullptr;
+        const bool over_sound_collection = find_ancestor_with_id(hit, "sound_resource_collection") != nullptr;
         const ProjectBlueprintDropTarget target{
             .kind = over_sound_collection
                 ? ProjectBlueprintDropTargetKind::sound_resources
@@ -9153,7 +9481,7 @@ int main(int argc, char* argv[])
     }
     SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "application");
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
@@ -9327,6 +9655,15 @@ int main(int argc, char* argv[])
     }
 
     AppState state;
+    {
+        int gamepad_count = 0;
+        if (SDL_JoystickID* gamepads = SDL_GetGamepads(&gamepad_count)) {
+            if (gamepad_count > 0) {
+                open_play_preview_gamepad(state.play_preview, gamepads[0]);
+            }
+            SDL_free(gamepads);
+        }
+    }
     ObjectVariableChangeListener object_variable_change_listener{state};
     context->AddEventListener(
         "change", &object_variable_change_listener, false);
@@ -9536,6 +9873,27 @@ int main(int argc, char* argv[])
                 running = false;
                 break;
             case SDL_EVENT_KEY_DOWN: {
+                if (state.play_preview.session.active()
+                    || state.play_preview.placement_pending()) {
+                    if (!event.key.repeat
+                        && (event.key.key == SDLK_F9 || event.key.key == SDLK_ESCAPE)) {
+                        stop_play_preview(renderer, doc, state);
+                    }
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && state.play_preview.selecting_actor) {
+                    restore_play_preview_picker_shell(doc, state);
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (!event.key.repeat && event.key.key == SDLK_F9) {
+                    (void)prepare_play_preview(
+                        renderer, doc, state, frame_width, frame_height);
+                    dispatched_to_rml = true;
+                    break;
+                }
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && state.project_blueprint_drag.active()) {
                     cancel_project_blueprint_drag(doc, state);
@@ -9982,6 +10340,34 @@ int main(int argc, char* argv[])
                 }
                 break;
             }
+            case SDL_EVENT_KEY_UP:
+                if (state.play_preview.session.active()) {
+                    dispatched_to_rml = true;
+                }
+                break;
+            case SDL_EVENT_GAMEPAD_ADDED:
+                open_play_preview_gamepad(
+                    state.play_preview, event.gdevice.which);
+                break;
+            case SDL_EVENT_GAMEPAD_REMOVED:
+                if (state.play_preview.gamepad
+                    && SDL_GetGamepadID(state.play_preview.gamepad)
+                        == event.gdevice.which) {
+                    close_play_preview_gamepad(state.play_preview);
+                    if (state.play_preview.session.active()) {
+                        append_output(state, "warn",
+                            "Play-preview controller disconnected");
+                    }
+                }
+                break;
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                if (state.play_preview.session.active()
+                    && (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST
+                        || event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK)) {
+                    state.play_preview.pending_input.flags
+                        |= nw::toolset::preview_input_cancel;
+                }
+                break;
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 blur_focused_object_variable_input(context,
                     to_context_point(window, event.button.x, event.button.y));
@@ -10028,6 +10414,47 @@ int main(int argc, char* argv[])
                         state.viewer_viewport_focused = true;
                         state.viewer_viewport_last_point = point;
                         clear_rml_focus(context);
+                        if ((state.play_preview.session.active()
+                                || state.play_preview.placement_pending())
+                            && viewer_viewport->kind == WorkspaceViewerViewportKind::area) {
+                            if (event.button.button == SDL_BUTTON_LEFT
+                                && state.play_preview.placement_pending()) {
+                                if (const auto ray = renderer.viewer_viewport_ray(
+                                        point.x, point.y, viewer_viewport->rect)) {
+                                    (void)start_play_preview_from_ray(
+                                        renderer, doc, state, *ray);
+                                }
+                            } else if (event.button.button == SDL_BUTTON_LEFT) {
+                                if (const auto ray = renderer.viewer_viewport_ray(
+                                        point.x, point.y, viewer_viewport->rect)) {
+                                    const std::array projection_inputs{
+                                        nw::nav::NavRayProjectionInput{
+                                            .origin = ray->origin,
+                                            .displacement = ray->displacement,
+                                        },
+                                    };
+                                    std::array<nw::nav::NavRayProjectionResult, 1> projected{};
+                                    nw::toolset::project_toolset_preview_rays(
+                                        state.play_preview.session,
+                                        projection_inputs,
+                                        projected);
+                                    if (projected[0].status == nw::nav::NavStatus::ok) {
+                                        state.play_preview.pending_input.click_target
+                                            = projected[0].position;
+                                        state.play_preview.pending_input.flags
+                                            |= nw::toolset::preview_input_click_target;
+                                    }
+                                }
+                            } else if (event.button.button == SDL_BUTTON_RIGHT
+                                || event.button.button == SDL_BUTTON_MIDDLE) {
+                                state.viewer_viewport_dragging = true;
+                                state.viewer_viewport_drag_mode
+                                    = ClientViewportDragMode::look;
+                                system_interface.SetMouseCursor("grabbing");
+                            }
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         const bool preview_orbit_drag = viewer_viewport->kind == WorkspaceViewerViewportKind::preview
                             && event.button.button == SDL_BUTTON_LEFT;
                         if (viewer_viewport->kind == WorkspaceViewerViewportKind::area
@@ -10114,6 +10541,7 @@ int main(int argc, char* argv[])
                                 const size_t index = static_cast<size_t>(
                                     std::max(state.pressed_recent_index, 0));
                                 if (state.shell.showing_project_tree
+                                    && !state.play_preview.selecting_actor
                                     && state.pressed_recent_index >= 0
                                     && index < state.project_rows.size()) {
                                     const auto& row = state.project_rows[index].node;
@@ -10194,7 +10622,14 @@ int main(int argc, char* argv[])
                     const float dy = point.y - state.viewer_viewport_last_point.y;
                     state.viewer_viewport_last_point = point;
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height)) {
-                        renderer.drag_viewer_viewport(state.viewer_viewport_drag_mode, dx, dy, viewer_viewport->rect);
+                        if (state.play_preview.session.active()) {
+                            state.play_preview.mouse_look_x += dx;
+                            state.play_preview.mouse_look_y += dy;
+                        } else {
+                            renderer.drag_viewer_viewport(
+                                state.viewer_viewport_drag_mode, dx, dy,
+                                viewer_viewport->rect);
+                        }
                         system_interface.SetMouseCursor("grabbing");
                     } else {
                         state.viewer_viewport_dragging = false;
@@ -10316,6 +10751,11 @@ int main(int argc, char* argv[])
                     }
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
                         viewer_viewport && point_within_viewport(viewer_viewport->rect, point)) {
+                        if (state.play_preview.session.active()) {
+                            state.play_preview.wheel_zoom += event.wheel.y;
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         const auto object = renderer.active_viewer_object();
                         const bool object_wheel = viewer_viewport->kind == WorkspaceViewerViewportKind::area
                             && editable_area_object(object)
@@ -11213,6 +11653,27 @@ int main(int argc, char* argv[])
                                                 }
                                                 state.selected_recent_index = -1;
                                                 refresh_recent_list(doc, state);
+                                            } else if (state.play_preview.selecting_actor) {
+                                                const auto resource = nw::Resource::from_path(
+                                                    row.relative_path, false);
+                                                if (resource.type != nw::ResourceType::utc) {
+                                                    append_output(state, "warn",
+                                                        "Choose a Creature blueprint for play preview");
+                                                } else {
+                                                    const auto saved
+                                                        = nw::toolset::save_project_preview_test_actor(
+                                                            state.backend.current_project_dir(),
+                                                            row.relative_path);
+                                                    append_output(state,
+                                                        saved.ok ? "info" : "error",
+                                                        saved.message);
+                                                    if (saved.ok) {
+                                                        (void)prepare_play_preview(renderer,
+                                                            doc, state, frame_width,
+                                                            frame_height,
+                                                            row.relative_path);
+                                                    }
+                                                }
                                             } else if (ensure_backend_ready(state)) {
                                                 const std::string relative_path = row.relative_path.generic_string();
                                                 const auto result = dispatch_command(state,
@@ -11613,6 +12074,58 @@ int main(int argc, char* argv[])
         }
         const Uint64 ui_end_counter = SDL_GetPerformanceCounter();
         const auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
+        if ((state.play_preview.session.active()
+                || state.play_preview.placement_pending())
+            && (!viewer_viewport
+                || viewer_viewport->kind != WorkspaceViewerViewportKind::area
+                || viewer_viewport->module_generation
+                    != state.play_preview.module_generation
+                || state.workspace.active_tab_id() != state.play_preview.tab_id)) {
+            stop_play_preview(renderer, doc, state);
+        }
+        if (state.play_preview.session.active()) {
+            const auto frame_sample = sample_play_preview_input(
+                state.play_preview, raw_frame_delta_seconds);
+            const auto fixed_stats = nw::toolset::build_preview_tick_samples(
+                state.play_preview.fixed_step,
+                raw_frame_delta_seconds,
+                frame_sample,
+                state.play_preview.tick_inputs);
+            if (fixed_stats.status != nw::toolset::PreviewStatus::ok) {
+                append_output(state, "error",
+                    "Play-preview input sampling failed");
+                stop_play_preview(renderer, doc, state);
+            } else if (fixed_stats.tick_count > 0) {
+                const auto tick_stats = nw::toolset::tick_toolset_preview(
+                    state.play_preview.session,
+                    std::span{state.play_preview.tick_inputs}.first(
+                        fixed_stats.tick_count),
+                    state.play_preview.spatial_rows,
+                    state.play_preview.locomotion_rows);
+                const bool tick_ok
+                    = tick_stats.status == nw::toolset::PreviewStatus::ok;
+                const bool visual_ok = tick_ok
+                    && renderer.update_toolset_preview_visuals(
+                        std::span{state.play_preview.spatial_rows}.first(
+                            tick_stats.output_count),
+                        std::span{state.play_preview.locomotion_rows}.first(
+                            tick_stats.output_count),
+                        state.play_preview.session.camera());
+                state.play_preview.pending_input.flags
+                    &= ~(nw::toolset::preview_input_click_target
+                        | nw::toolset::preview_input_cancel);
+                state.play_preview.mouse_look_x = 0.0f;
+                state.play_preview.mouse_look_y = 0.0f;
+                state.play_preview.mouse_sample_seconds = 0.0;
+                state.play_preview.wheel_zoom = 0.0f;
+                if (!tick_ok || !visual_ok) {
+                    append_output(state, "error",
+                        tick_ok ? "Failed to update play-preview visuals"
+                                : "Play-preview simulation failed");
+                    stop_play_preview(renderer, doc, state);
+                }
+            }
+        }
         const auto* viewer_tab = state.workspace.active_tab();
         const auto viewer_project_dir = state.backend.current_project_dir();
         const bool data_workbench_preview = !viewer_viewport
@@ -11758,6 +12271,7 @@ int main(int argc, char* argv[])
         update_viewer_internal_metrics(state, renderer.last_viewer_frame_stats());
         const Uint64 overlay_start_counter = view_end_counter;
         sync_viewer_fps_overlay(fps_doc, viewer_viewport, state);
+        sync_play_preview_viewport_overlay(fps_doc, viewer_viewport, state);
         {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerOverlay};
             fps_context->Update();
@@ -11794,6 +12308,8 @@ int main(int argc, char* argv[])
 
     cancel_project_blueprint_drag(doc, state);
     cancel_area_object_placement(renderer, state);
+    stop_play_preview(renderer, doc, state);
+    close_play_preview_gamepad(state.play_preview);
     if (state.appearance_body_preview_object.type != nw::ObjectType::invalid
         && nw::kernel::objects().valid(state.appearance_body_preview_object)) {
         (void)update_appearance_preview_rows(state.appearance_body_preview_object, true);

@@ -43,7 +43,7 @@ struct AreaRenderSourceInfo {
     bool static_candidate = false;
 };
 
-struct AreaObjectRay {
+struct ViewerRay {
     glm::vec3 origin{0.0f};
     glm::vec3 direction{0.0f};
 };
@@ -78,13 +78,13 @@ struct AreaSurfaceHit {
 // Ranges partition contiguous triangle rows by stable tile model. Rays are
 // normalized once per row; malformed columns or non-finite rays fail loudly.
 void trace_area_surfaces(
-    std::span<const AreaObjectRay> rays,
+    std::span<const ViewerRay> rays,
     std::span<const AreaSurfaceRange> ranges,
     std::span<const AreaSurfaceTriangle> triangles,
     std::span<AreaSurfaceHit> hits) noexcept;
 
 [[nodiscard]] AreaSurfaceHit trace_area_surface(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     std::span<const AreaSurfaceRange> ranges,
     std::span<const AreaSurfaceTriangle> triangles) noexcept;
 
@@ -148,7 +148,7 @@ struct AreaObjectBounds {
 // only a bound produce miss. The scene and record cache are borrowed for the
 // call.
 void select_area_objects(
-    std::span<const AreaObjectRay> rays,
+    std::span<const ViewerRay> rays,
     const AreaRenderScene& records,
     const PreviewScene& scene,
     std::span<AreaObjectSelection> selections,
@@ -157,7 +157,7 @@ void select_area_objects(
 // A pointer click is genuinely singular input. Keep it as a count-one wrapper
 // over the batch transform so selection policy has one implementation.
 [[nodiscard]] AreaObjectSelection select_area_object(
-    const AreaObjectRay& ray,
+    const ViewerRay& ray,
     const AreaRenderScene& records,
     const PreviewScene& scene,
     AreaObjectSelectionOptions options = {});
@@ -295,7 +295,7 @@ public:
     [[nodiscard]] std::span<const uint8_t> chunk_has_bounds() const noexcept { return chunk_has_bounds_; }
     [[nodiscard]] std::span<const AreaSurfaceRange> surface_ranges() const noexcept { return surface_ranges_; }
     [[nodiscard]] std::span<const AreaSurfaceTriangle> surface_triangles() const noexcept { return surface_triangles_; }
-    [[nodiscard]] AreaSurfaceHit trace_surface(const AreaObjectRay& ray) const noexcept
+    [[nodiscard]] AreaSurfaceHit trace_surface(const ViewerRay& ray) const noexcept
     {
         return trace_area_surface(ray, surface_ranges_, surface_triangles_);
     }

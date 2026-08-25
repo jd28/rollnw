@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <limits>
 #include <span>
 #include <string>
@@ -15,6 +16,8 @@
 namespace nw::render::viewer {
 
 namespace {
+
+using namespace std::string_view_literals;
 
 constexpr std::array<std::string_view, 8> kPreferredRenderModelHoldAnimations{{
     "cpause1",
@@ -39,6 +42,37 @@ uint32_t find_render_model_animation_clip(const nw::render::RenderModel& model, 
         }
     }
     return std::numeric_limits<uint32_t>::max();
+}
+
+uint32_t find_first_render_model_animation_clip(
+    const nw::render::RenderModel& model,
+    std::span<const std::string_view> clip_names) noexcept
+{
+    for (const auto clip_name : clip_names) {
+        const uint32_t clip = find_render_model_animation_clip(model, clip_name);
+        if (clip != std::numeric_limits<uint32_t>::max()) return clip;
+    }
+    return std::numeric_limits<uint32_t>::max();
+}
+
+struct LocomotionClipSelection {
+    uint32_t clip = std::numeric_limits<uint32_t>::max();
+    float playback_rate = 1.0f;
+};
+
+LocomotionClipSelection select_left_turn_clip(const nw::render::RenderModel& model) noexcept
+{
+    constexpr std::array left_names{"cturnl"sv, "ccturnl"sv};
+    if (const uint32_t clip = find_first_render_model_animation_clip(model, left_names);
+        clip != std::numeric_limits<uint32_t>::max()) {
+        return {.clip = clip};
+    }
+
+    constexpr std::array right_names{"cturnr"sv, "ccturnr"sv};
+    return {
+        .clip = find_first_render_model_animation_clip(model, right_names),
+        .playback_rate = -1.0f,
+    };
 }
 
 bool ensure_render_model_animation_backend(
@@ -144,6 +178,7 @@ void set_render_model_animation_clip(PreviewScene& scene, uint32_t clip_index, f
             instance && instance->scene_animation_enabled) {
             instance->animation.clip = clip_index;
             instance->animation.time = time;
+            instance->animation.playback_rate = 1.0f;
             instance->animation.looping = true;
             instance->animation.enabled = !model->skeletons.empty();
         }
@@ -176,6 +211,7 @@ bool set_render_model_animation_clip_by_name(PreviewScene& scene, std::string_vi
         }
         instance->animation.clip = clip_index;
         instance->animation.time = time;
+        instance->animation.playback_rate = 1.0f;
         instance->animation.looping = true;
         instance->animation.enabled = can_sample_model_animation;
         selected = true;
@@ -254,6 +290,7 @@ bool set_default_render_model_animation_clip(
         }
         instance->animation.clip = clip_index;
         instance->animation.time = time;
+        instance->animation.playback_rate = 1.0f;
         instance->animation.looping = true;
         instance->animation.enabled = can_sample_model_animation;
         selected = true;
@@ -289,6 +326,122 @@ bool prime_scene_hold_animation(PreviewScene& scene)
     return loaded_render_model_animation;
 }
 
+AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
+    PreviewScene& scene,
+    std::span<const AreaCreatureLocomotionAnimationInput> inputs)
+{
+    AreaCreatureLocomotionAnimationStats stats{
+        .input_count = static_cast<uint32_t>(
+            std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+    };
+    if (!scene.is_area || inputs.empty()) {
+        return stats;
+    }
+
+    const auto valid_input = [&inputs](size_t index) {
+        if (inputs[index].owner.type != nw::ObjectType::creature) {
+            return false;
+        }
+        for (size_t previous = 0; previous < index; ++previous) {
+            if (inputs[previous].owner == inputs[index].owner) {
+                return false;
+            }
+        }
+        return true;
+    };
+    for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {
+        stats.rejected_input_count += !valid_input(input_index);
+    }
+
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        if (model_index >= scene.static_area_model_info.size()
+            || scene.static_area_model_info[model_index].kind != AreaRenderRecordKind::creature) {
+            continue;
+        }
+
+        const auto owner = scene.static_area_model_info[model_index].object;
+        const AreaCreatureLocomotionAnimationInput* input = nullptr;
+        for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {
+            if (inputs[input_index].owner == owner && valid_input(input_index)) {
+                input = &inputs[input_index];
+                break;
+            }
+        }
+        if (!input) {
+            continue;
+        }
+        ++stats.matched_model_count;
+
+        const auto& model = scene.static_models[model_index];
+        auto* instance = scene.static_model_instance(model_index);
+        if (!model || !instance || !instance->scene_animation_enabled
+            || model->animations.empty() || model->skeletons.empty()) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+
+        LocomotionClipSelection selection;
+        switch (input->locomotion) {
+        case AreaCreatureLocomotion::walking_forward: {
+            constexpr std::array names{"walk"sv, "cwalkf"sv, "ccwalkf"sv, "cwalk"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        case AreaCreatureLocomotion::walking_backward: {
+            constexpr std::array names{"cwalkb"sv, "ccwalkb"sv, "walk"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        case AreaCreatureLocomotion::strafing_left: {
+            constexpr std::array names{"cwalkl"sv, "ccwalkl"sv, "walk"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        case AreaCreatureLocomotion::strafing_right: {
+            constexpr std::array names{"cwalkr"sv, "ccwalkr"sv, "walk"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        case AreaCreatureLocomotion::turning_left: {
+            selection = select_left_turn_clip(*model);
+            break;
+        }
+        case AreaCreatureLocomotion::turning_right: {
+            constexpr std::array names{"cturnr"sv, "ccturnr"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        case AreaCreatureLocomotion::idle: {
+            constexpr std::array names{"cpause1"sv, "pause1"sv};
+            selection.clip = find_first_render_model_animation_clip(*model, names);
+            break;
+        }
+        }
+        if (selection.clip == std::numeric_limits<uint32_t>::max()) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+        if (instance->animation.enabled
+            && instance->animation.clip == selection.clip
+            && instance->animation.playback_rate == selection.playback_rate) {
+            continue;
+        }
+        if (!ensure_render_model_animation_backend(*instance, *model, model_index)) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+        instance->animation.clip = selection.clip;
+        instance->animation.time = selection.playback_rate < 0.0f
+            ? model->animations[selection.clip].duration
+            : 0.0f;
+        instance->animation.playback_rate = selection.playback_rate;
+        instance->animation.looping = true;
+        instance->animation.enabled = true;
+        ++stats.changed_model_count;
+    }
+    return stats;
+}
+
 void advance_render_model_animation_times(PreviewScene& scene, float dt)
 {
     dt = std::max(0.0f, dt);
@@ -299,7 +452,18 @@ void advance_render_model_animation_times(PreviewScene& scene, float dt)
         }
         if (auto* instance = scene.static_model_instance(model_index);
             instance && instance->scene_animation_enabled) {
-            instance->animation.time += dt;
+            auto& animation = instance->animation;
+            if (!std::isfinite(animation.playback_rate)) {
+                animation.playback_rate = 1.0f;
+            }
+            animation.time += dt * animation.playback_rate;
+            if (animation.playback_rate < 0.0f && animation.looping
+                && animation.clip < model->animations.size()) {
+                const float duration = model->animations[animation.clip].duration;
+                if (duration > 0.0f && animation.time < 0.0f) {
+                    animation.time = std::fmod(animation.time, duration) + duration;
+                }
+            }
         }
     }
 }

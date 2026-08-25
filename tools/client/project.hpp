@@ -62,6 +62,12 @@ struct ProjectModuleSummary {
     std::string message;
 };
 
+struct ProjectPreviewSettings {
+    bool ok = false;
+    std::filesystem::path test_actor;
+    std::string message;
+};
+
 [[nodiscard]] bool is_project_directory(const std::filesystem::path& path);
 [[nodiscard]] std::string project_display_name(const std::filesystem::path& project_dir);
 [[nodiscard]] bool project_resource_is_area(const std::filesystem::path& relative_path);
@@ -71,6 +77,11 @@ struct ProjectModuleSummary {
     const std::filesystem::path& relative_path);
 [[nodiscard]] ProjectTreeResult load_project_tree(const std::filesystem::path& project_dir, std::string_view query = {});
 [[nodiscard]] ProjectModuleSummary load_project_module_summary(const std::filesystem::path& project_dir);
+[[nodiscard]] ProjectPreviewSettings load_project_preview_settings(
+    const std::filesystem::path& project_dir);
+[[nodiscard]] ProjectResult save_project_preview_test_actor(
+    const std::filesystem::path& project_dir,
+    const std::filesystem::path& relative_actor_path);
 [[nodiscard]] ProjectResult initialize_project(const std::filesystem::path& project_dir, std::string module_name = {});
 [[nodiscard]] ProjectResult import_module_project(const std::filesystem::path& module_path,
     const std::filesystem::path& project_dir,

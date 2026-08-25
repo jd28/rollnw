@@ -23,6 +23,11 @@ namespace nw::render::viewer {
 struct ViewerFrameStats;
 }
 
+namespace nw::toolset {
+enum class PreviewActorLocomotion : uint8_t;
+struct PreviewCameraState;
+}
+
 class ClientViewerViewport {
 public:
     explicit ClientViewerViewport(nw::gfx::Context* context);
@@ -56,11 +61,22 @@ public:
         ClientAreaSelectionTarget target);
     bool set_area_object_selection(nw::ObjectHandle object) noexcept;
     bool focus_area_object_selection() noexcept;
+    [[nodiscard]] std::optional<ClientViewportRay> viewport_ray(
+        float pixel_x, float pixel_y, ClientViewportRect viewport);
     [[nodiscard]] std::optional<glm::vec3> area_surface_point(
         float pixel_x, float pixel_y, ClientViewportRect viewport);
     bool preview_area_object_spatial(const nw::ObjectSpatialState& spatial);
     bool append_area_object_previews(
         std::span<const nw::ObjectHandle> objects, float opacity);
+    bool begin_toolset_preview_visuals(
+        std::span<const nw::ObjectHandle> objects,
+        const nw::toolset::PreviewCameraState& camera);
+    bool update_toolset_preview_visuals(
+        std::span<const nw::ObjectSpatialState> spatial_rows,
+        std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        const nw::toolset::PreviewCameraState& camera);
+    bool end_toolset_preview_visuals() noexcept;
+    [[nodiscard]] std::optional<glm::vec3> area_camera_focus() const noexcept;
     bool sync_area_object_spatial(nw::ObjectHandle object);
     bool rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object);
     bool rebuild_live_object(nw::ObjectHandle object);

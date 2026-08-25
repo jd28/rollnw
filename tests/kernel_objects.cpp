@@ -519,6 +519,35 @@ TEST(ObjectSystem, ObjectDestroyClearsAppliedEffects)
     EXPECT_EQ(nwk::effects().get(effect_handle), nullptr);
 }
 
+TEST(ObjectSystem, ObjectDestroyReleasesEquippedItems)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+
+    auto& objects = nwk::objects();
+    const size_t initial_object_count = objects.object_count();
+    const size_t initial_tag_count = objects.tag_count();
+    const auto initial_component_stats = objects.components().stats();
+
+    auto* creature = objects.load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(creature->instantiate());
+
+    size_t equipped_item_count = 0;
+    for (const auto& slot : creature->equipment.equips) {
+        equipped_item_count += nw::equip_item_ptr(slot) != nullptr;
+    }
+    ASSERT_GT(equipped_item_count, 0u);
+    EXPECT_EQ(objects.object_count(), initial_object_count + equipped_item_count + 1);
+
+    objects.destroy(creature->handle());
+
+    EXPECT_EQ(objects.object_count(), initial_object_count);
+    EXPECT_EQ(objects.tag_count(), initial_tag_count);
+    EXPECT_EQ(objects.components().stats(), initial_component_stats);
+}
+
 TEST(ObjectSystem, LoadPlayer)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

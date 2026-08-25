@@ -43,6 +43,7 @@ add_library(nw STATIC
 
     # Objects
     objects/Area.cpp
+    objects/AreaTransforms.cpp
     objects/Creature.cpp
     objects/Door.cpp
     objects/Encounter.cpp
@@ -244,3 +245,5 @@ endif()
 
 include(../../cmake/Sanitizers.cmake)
 enable_sanitizers(nw)
+
+add_subdirectory(nav)

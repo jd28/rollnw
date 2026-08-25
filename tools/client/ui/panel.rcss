@@ -330,6 +330,29 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   box-sizing: border-box;
 }
 #workspace_shell, #workspace_shell * { box-sizing: border-box; }
+.play_preview_active #panel,
+.play_preview_active #bottom_dock,
+.play_preview_active #workspace_tab_bar,
+.play_preview_active .workspace_area_toolbar,
+.play_preview_active .object_workbench {
+  display: none;
+}
+.play_preview_active #workspace_shell {
+  left: 0px;
+  bottom: 0px;
+}
+.play_preview_active .workspace_preview_body,
+.play_preview_active .workspace_area_surface {
+  width: 100%;
+  height: 100%;
+}
+.play_preview_active .workspace_viewer_viewport {
+  margin: 0px;
+  border: 0px transparent;
+}
+.play_preview_placement_pending .workspace_viewer_viewport {
+  cursor: cross;
+}
 #workspace_tab_bar {
   display: flex;
   flex-shrink: 0;

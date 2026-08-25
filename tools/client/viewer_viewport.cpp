@@ -1,5 +1,6 @@
 #include "viewer_viewport.hpp"
 
+#include "preview_session.hpp"
 #include "viewer_camera_state.hpp"
 
 #include <nw/gfx/gfx.hpp>
@@ -67,6 +68,17 @@ viewer::ViewerViewport to_viewer_viewport(ClientViewportRect viewport)
         viewport.width,
         viewport.height,
     };
+}
+
+void apply_preview_camera(
+    viewer::Camera& target,
+    const nw::toolset::PreviewCameraState& source)
+{
+    target.set_orbit_view(
+        source.focus,
+        source.distance,
+        glm::degrees(source.yaw) + 180.0f,
+        glm::degrees(-source.pitch));
 }
 
 } // namespace
@@ -173,6 +185,7 @@ struct ClientViewerViewport::Impl {
 
     void discard_scene()
     {
+        end_toolset_preview_visuals();
         store_loaded_camera();
         if (session) {
             session->clear();
@@ -482,6 +495,20 @@ struct ClientViewerViewport::Impl {
         return session && session->focus_area_object_selection();
     }
 
+    std::optional<ClientViewportRay> viewport_ray(
+        float pixel_x, float pixel_y, ClientViewportRect viewport)
+    {
+        if (!session || !viewport.valid()) return std::nullopt;
+        const auto ray = session->viewport_ray(
+            pixel_x, pixel_y, to_viewer_viewport(viewport));
+        return ray
+            ? std::optional<ClientViewportRay>{ClientViewportRay{
+                  .origin = ray->origin,
+                  .displacement = ray->direction,
+              }}
+            : std::nullopt;
+    }
+
     std::optional<glm::vec3> area_surface_point(
         float pixel_x, float pixel_y, ClientViewportRect viewport)
     {
@@ -506,6 +533,125 @@ struct ClientViewerViewport::Impl {
         std::span<const nw::ObjectHandle> objects, float opacity)
     {
         return session && session->append_area_object_previews(objects, opacity).ok();
+    }
+
+    bool begin_toolset_preview_visuals(
+        std::span<const nw::ObjectHandle> objects,
+        const nw::toolset::PreviewCameraState& camera)
+    {
+        if (!session || objects.empty() || !transient_preview_objects.empty()
+            || loaded_area_resref.empty()) {
+            return false;
+        }
+
+        const auto append = session->append_area_transient_visuals(objects);
+        if (!append.ok()) {
+            LOG_F(ERROR, "Client preview visuals: {}", append.diagnostic);
+            return false;
+        }
+
+        transient_saved_camera = session->camera();
+        transient_preview_objects.assign(objects.begin(), objects.end());
+        transient_animation_inputs.clear();
+        transient_animation_inputs.reserve(objects.size());
+        for (const auto object : objects) {
+            if (object.type == nw::ObjectType::creature) {
+                transient_animation_inputs.push_back({
+                    .owner = object,
+                    .locomotion = viewer::AreaCreatureLocomotion::idle,
+                });
+            }
+        }
+        (void)session->update_area_creature_locomotion_animations(
+            transient_animation_inputs);
+        apply_preview_camera(session->camera(), camera);
+        return true;
+    }
+
+    bool update_toolset_preview_visuals(
+        std::span<const nw::ObjectSpatialState> spatial_rows,
+        std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        const nw::toolset::PreviewCameraState& camera)
+    {
+        if (!session || transient_preview_objects.empty()
+            || spatial_rows.size() != transient_preview_objects.size()
+            || locomotion_rows.size() != transient_preview_objects.size()) {
+            return false;
+        }
+
+        const auto stats = session->update_area_object_spatial_states(spatial_rows);
+        if (stats.render_model_root_count == 0) {
+            return false;
+        }
+        for (size_t index = 0; index < transient_animation_inputs.size(); ++index) {
+            auto& input = transient_animation_inputs[index];
+            if (spatial_rows[index].owner != input.owner) {
+                return false;
+            }
+            switch (locomotion_rows[index]) {
+            case nw::toolset::PreviewActorLocomotion::walking_forward:
+                input.locomotion = viewer::AreaCreatureLocomotion::walking_forward;
+                break;
+            case nw::toolset::PreviewActorLocomotion::walking_backward:
+                input.locomotion = viewer::AreaCreatureLocomotion::walking_backward;
+                break;
+            case nw::toolset::PreviewActorLocomotion::strafing_left:
+                input.locomotion = viewer::AreaCreatureLocomotion::strafing_left;
+                break;
+            case nw::toolset::PreviewActorLocomotion::strafing_right:
+                input.locomotion = viewer::AreaCreatureLocomotion::strafing_right;
+                break;
+            case nw::toolset::PreviewActorLocomotion::turning_left:
+                input.locomotion = viewer::AreaCreatureLocomotion::turning_left;
+                break;
+            case nw::toolset::PreviewActorLocomotion::turning_right:
+                input.locomotion = viewer::AreaCreatureLocomotion::turning_right;
+                break;
+            case nw::toolset::PreviewActorLocomotion::idle:
+                input.locomotion = viewer::AreaCreatureLocomotion::idle;
+                break;
+            }
+        }
+        const auto animation_stats = session->update_area_creature_locomotion_animations(
+            transient_animation_inputs);
+        if (animation_stats.rejected_input_count != 0) {
+            return false;
+        }
+        apply_preview_camera(session->camera(), camera);
+        return true;
+    }
+
+    bool end_toolset_preview_visuals() noexcept
+    {
+        if (transient_preview_objects.empty()) {
+            transient_saved_camera.reset();
+            return true;
+        }
+
+        bool removed = false;
+        if (session) {
+            const auto result = session->remove_area_transient_visuals(
+                transient_preview_objects);
+            removed = result.ok();
+            if (!removed) {
+                LOG_F(ERROR, "Client preview visual teardown: {}", result.diagnostic);
+            }
+            if (transient_saved_camera) {
+                session->camera() = *transient_saved_camera;
+            }
+        }
+        transient_preview_objects.clear();
+        transient_animation_inputs.clear();
+        transient_saved_camera.reset();
+        return removed;
+    }
+
+    std::optional<glm::vec3> area_camera_focus() const noexcept
+    {
+        if (!session || loaded_area_resref.empty()) {
+            return std::nullopt;
+        }
+        return session->camera().get_target();
     }
 
     bool sync_area_object_spatial(nw::ObjectHandle object)
@@ -705,6 +851,9 @@ struct ClientViewerViewport::Impl {
     std::string failed_area_resref;
     std::optional<PreviewLoadFailure> failed_preview;
     ClientViewerCameraStates camera_states;
+    std::optional<viewer::Camera> transient_saved_camera;
+    std::vector<nw::ObjectHandle> transient_preview_objects;
+    std::vector<viewer::AreaCreatureLocomotionAnimationInput> transient_animation_inputs;
     ClientAreaViewerOptions area_options;
     uint64_t applied_area_time_generation = 0;
     uint64_t applied_area_reload_generation = 0;
@@ -787,6 +936,12 @@ bool ClientViewerViewport::focus_area_object_selection() noexcept
     return impl_ && impl_->focus_area_object_selection();
 }
 
+std::optional<ClientViewportRay> ClientViewerViewport::viewport_ray(
+    float pixel_x, float pixel_y, ClientViewportRect viewport)
+{
+    return impl_ ? impl_->viewport_ray(pixel_x, pixel_y, viewport) : std::nullopt;
+}
+
 std::optional<glm::vec3> ClientViewerViewport::area_surface_point(
     float pixel_x, float pixel_y, ClientViewportRect viewport)
 {
@@ -802,6 +957,32 @@ bool ClientViewerViewport::append_area_object_previews(
     std::span<const nw::ObjectHandle> objects, float opacity)
 {
     return impl_ && impl_->append_area_object_previews(objects, opacity);
+}
+
+bool ClientViewerViewport::begin_toolset_preview_visuals(
+    std::span<const nw::ObjectHandle> objects,
+    const nw::toolset::PreviewCameraState& camera)
+{
+    return impl_ && impl_->begin_toolset_preview_visuals(objects, camera);
+}
+
+bool ClientViewerViewport::update_toolset_preview_visuals(
+    std::span<const nw::ObjectSpatialState> spatial_rows,
+    std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    const nw::toolset::PreviewCameraState& camera)
+{
+    return impl_
+        && impl_->update_toolset_preview_visuals(spatial_rows, locomotion_rows, camera);
+}
+
+bool ClientViewerViewport::end_toolset_preview_visuals() noexcept
+{
+    return impl_ && impl_->end_toolset_preview_visuals();
+}
+
+std::optional<glm::vec3> ClientViewerViewport::area_camera_focus() const noexcept
+{
+    return impl_ ? impl_->area_camera_focus() : std::nullopt;
 }
 
 bool ClientViewerViewport::sync_area_object_spatial(nw::ObjectHandle object)

@@ -362,6 +362,8 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
         if (!resman().load_module(path)) {
             services().module_loading_ = false;
             services().module_loaded_ = false;
+            services().shutdown();
+            services().start();
             return nullptr;
         }
     }

@@ -1,0 +1,5 @@
+# Navigation character radius and crowd movement
+
+Play-preview agents use the authored `appearance.2da` `PERSPACE` value plus a 0.1 m preview safety margin as horizontal wall clearance. The margin keeps animated creature geometry from visibly intersecting tile geometry while point locomotion remains the v1 constraint model; manual visual testing must determine whether that policy is sufficient across creature sizes. The Detour backend stores clearances in a flat array parallel to agent polygon state and applies a bounded wall-query correction after point movement. Click routes apply the same clearance transform to the fixed funnel-corner batch before returning it; exact funnel vertices receive a one-quantum nudge toward the free side because Detour's wall normal is undefined at those vertices. The public path and motion batches remain backend-free.
+
+DetourCrowd and agent-to-agent avoidance remain deliberately absent. Add them only after representative multi-agent runtime behavior provides a measured requirement; do not replace the current flat batch input/output boundary.

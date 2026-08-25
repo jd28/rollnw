@@ -46,9 +46,10 @@ inline bool is_newline(StringView tk)
     return tk[0] == '\r' || tk[0] == '\n';
 }
 
-TextParser::TextParser(StringView buffer, Mdl* mdl)
+TextParser::TextParser(StringView buffer, Mdl* mdl, ResourceType::type resource_type)
     : tokens_(buffer, "#", false)
     , mdl_{mdl}
+    , resource_type_{resource_type}
 {
 }
 
@@ -270,7 +271,8 @@ bool parse_tokens(Tokenizer& tokens, StringView name, Vector<T>& out)
 }
 
 template <typename T, typename VertType>
-bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
+bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx,
+    Vector<uint32_t>* out_face_materials = nullptr)
 {
     if (geomctx.verts.empty()) {
         return true;
@@ -375,6 +377,15 @@ bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
 
     n->indices.clear();
     n->indices.reserve((geomctx.faces.size() - dropped_faces) * 3);
+    if (out_face_materials) {
+        out_face_materials->clear();
+        out_face_materials->reserve(geomctx.faces.size() - dropped_faces);
+        for (size_t i = 0; i < geomctx.faces.size(); ++i) {
+            if (valid_faces[i]) {
+                out_face_materials->push_back(geomctx.faces[i].material_idx);
+            }
+        }
+    }
     std::vector<uint32_t> output_source_indices;
     if (!has_texcoords) {
         n->vertices = std::move(source_vertices);
@@ -721,6 +732,9 @@ bool TextParser::parse_node(Geometry* geometry)
                         break;
                     }
                 }
+                if (!parent_set && accept_walkmesh_root(tk)) {
+                    parent_set = true;
+                }
                 if (!parent_set) {
                     LOG_F(ERROR, "Unable to find parent node: '{}'", tk);
                     return false;
@@ -1060,18 +1074,43 @@ bool TextParser::parse_node(Geometry* geometry)
     }
 
     // Cleanup geometry data
+    Vector<uint32_t> face_materials;
+    const bool preserve_face_materials = geometry == &mdl_->model
+        && (resource_type_ == ResourceType::wok
+            || resource_type_ == ResourceType::pwk
+            || resource_type_ == ResourceType::dwk
+            || node->type == NodeType::aabb);
+    auto* face_material_output = preserve_face_materials ? &face_materials : nullptr;
     if (node->type & NodeFlags::skin) {
         SkinNode* n = static_cast<SkinNode*>(node.get());
-        if (!cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx)) {
+        if (!cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx,
+                face_material_output)) {
             return false;
         }
     } else if (node->type & NodeFlags::mesh) {
         TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
-        if (!cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx)) {
+        if (!cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx,
+                face_material_output)) {
             return false;
         }
     }
 
+    if (!face_materials.empty()) {
+        constexpr size_t maximum_range_value = std::numeric_limits<uint32_t>::max();
+        if (geometry->nodes.size() > maximum_range_value
+            || mdl_->model.face_materials.size() > maximum_range_value
+            || face_materials.size() > maximum_range_value - mdl_->model.face_materials.size()) {
+            LOG_F(ERROR, "walkmesh face-material sidecar exceeds 32-bit range");
+            return false;
+        }
+        mdl_->model.face_material_ranges.push_back({
+            static_cast<uint32_t>(geometry->nodes.size()),
+            static_cast<uint32_t>(mdl_->model.face_materials.size()),
+            static_cast<uint32_t>(face_materials.size()),
+        });
+        mdl_->model.face_materials.insert(mdl_->model.face_materials.end(),
+            face_materials.begin(), face_materials.end());
+    }
     geometry->nodes.push_back(std::move(node));
 
     return tk == "endnode";
@@ -1091,6 +1130,47 @@ bool TextParser::parse_geometry()
         }
     }
     return tk == "endmodelgeom";
+}
+
+bool TextParser::accept_walkmesh_root(StringView name)
+{
+    if (resource_type_ == ResourceType::pwk || resource_type_ == ResourceType::dwk) {
+        // Bare PWK/DWK node streams do not declare their external root, and shipped files
+        // use more than one spelling for it. Any parent absent from the stream is external.
+        return true;
+    }
+    if (resource_type_ != ResourceType::wok) {
+        return false;
+    }
+    return icmp(name, walkmesh_root_);
+}
+
+bool TextParser::parse_walkmesh_geometry()
+{
+    const auto name = tokens_.next();
+    if (name.empty()) {
+        LOG_F(ERROR, "walkmesh geometry is missing a name, line: {}", tokens_.line());
+        return false;
+    }
+    mdl_->model.name = String{name};
+    walkmesh_root_ = name;
+
+    StringView tk;
+    for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+        if (is_newline(tk)) {
+            continue;
+        }
+        if (tk == "node") {
+            if (!parse_node(&mdl_->model)) { return false; }
+        } else if (tk == "endwalkmeshgeom") {
+            tokens_.next(); // The exporter emits a label, but the game data does not reliably match it.
+            return true;
+        } else {
+            LOG_F(ERROR, "unknown walkmesh token '{}', line: {}", tk, tokens_.line());
+            return false;
+        }
+    }
+    return false;
 }
 
 bool TextParser::parse_anim()
@@ -1211,6 +1291,11 @@ bool TextParser::parse()
             }
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;
+        } else if (resource_type_ == ResourceType::wok && tk == "beginwalkmeshgeom") {
+            if (!parse_walkmesh_geometry()) { return false; }
+        } else if ((resource_type_ == ResourceType::pwk || resource_type_ == ResourceType::dwk)
+            && tk == "node") {
+            if (!parse_node(&mdl_->model)) { return false; }
         } else {
             LOG_F(ERROR, "unknown token '{}', line: {}", tk, tokens_.line());
             return false;

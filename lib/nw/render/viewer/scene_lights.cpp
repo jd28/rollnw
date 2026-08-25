@@ -257,6 +257,7 @@ void append_scene_local_light(PreviewScene& scene, SceneLocalLight light)
     apply_scene_light_tuning(scene, light);
     scene.render_local_lights.push_back(render_local_light_from_scene_light(light));
     scene.local_lights.push_back(light);
+    scene.invalidate_runtime_update_indices();
     if (scene.is_area && viewer_tile_light_debug_shapes_enabled()) {
         LOG_F(INFO,
             "local_light source={} pos=[{:.2f},{:.2f},{:.2f}] radius={:.2f} intensity={:.2f} color=[{:.2f},{:.2f},{:.2f}] ambient={} shadow={}",
@@ -540,6 +541,35 @@ void refresh_scene_local_light_render_data(PreviewScene& scene)
     }
 }
 
+static bool refresh_scene_dynamic_light_row(PreviewScene& scene, size_t light_index)
+{
+    if (light_index >= scene.local_lights.size()) {
+        return false;
+    }
+    auto& light = scene.local_lights[light_index];
+    glm::vec3 position{0.0f};
+    if (!scene_light_model_node_position(scene, light, position)) {
+        return scene_light_tracks_model_node(light)
+            && disable_scene_render_light(scene, light_index);
+    }
+
+    const glm::vec3 delta = position - light.position;
+    const bool moved = glm::dot(delta, delta) > 1.0e-8f;
+    const bool disabled = light_index < scene.render_local_lights.size()
+        && (scene.render_local_lights[light_index].radius == 0.0f
+            || scene.render_local_lights[light_index].intensity == 0.0f);
+    if (!moved && !disabled) {
+        return false;
+    }
+    if (moved) {
+        light.position = position;
+    }
+    if (light_index < scene.render_local_lights.size()) {
+        scene.render_local_lights[light_index] = render_local_light_from_scene_light(light);
+    }
+    return true;
+}
+
 bool refresh_scene_dynamic_local_light_render_data(PreviewScene& scene)
 {
     bool changed = false;
@@ -547,32 +577,34 @@ bool refresh_scene_dynamic_local_light_render_data(PreviewScene& scene)
         refresh_scene_local_light_render_data(scene);
         changed = true;
     }
-
     for (size_t i = 0; i < scene.local_lights.size(); ++i) {
-        auto& light = scene.local_lights[i];
-        glm::vec3 position{0.0f};
-        if (!scene_light_model_node_position(scene, light, position)) {
-            if (scene_light_tracks_model_node(light) && disable_scene_render_light(scene, i)) {
-                changed = true;
-            }
-            continue;
-        }
+        changed = refresh_scene_dynamic_light_row(scene, i) || changed;
+    }
+    return changed;
+}
 
-        const glm::vec3 delta = position - light.position;
-        const bool moved = glm::dot(delta, delta) > 1.0e-8f;
-        const bool disabled = i < scene.render_local_lights.size()
-            && (scene.render_local_lights[i].radius == 0.0f || scene.render_local_lights[i].intensity == 0.0f);
-        if (!moved && !disabled) {
-            continue;
-        }
-
-        if (moved) {
-            light.position = position;
-        }
-        if (i < scene.render_local_lights.size()) {
-            scene.render_local_lights[i] = render_local_light_from_scene_light(light);
-        }
+bool refresh_scene_dynamic_local_light_render_data(
+    PreviewScene& scene, std::span<const uint32_t> model_indices)
+{
+    bool changed = false;
+    if (scene.render_local_lights.size() != scene.local_lights.size()) {
+        refresh_scene_local_light_render_data(scene);
         changed = true;
+    }
+    if (scene.runtime_update_indices_dirty) {
+        scene.rebuild_runtime_update_indices();
+    }
+    for (const uint32_t model_index : model_indices) {
+        if (model_index + 1 >= scene.local_light_owner_offsets.size()) {
+            continue;
+        }
+        const size_t begin = scene.local_light_owner_offsets[model_index];
+        const size_t end = scene.local_light_owner_offsets[model_index + 1];
+        for (size_t offset = begin; offset < end; ++offset) {
+            changed = refresh_scene_dynamic_light_row(
+                          scene, scene.local_light_owner_indices[offset])
+                || changed;
+        }
     }
     return changed;
 }

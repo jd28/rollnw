@@ -77,6 +77,9 @@ struct ObjectArray {
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
 
+    /// Number of live objects across every typed pool, including the module.
+    [[nodiscard]] size_t size() const noexcept;
+
 private:
     nw::MemoryResource* allocator_;
     Module* module_ = nullptr;
@@ -182,6 +185,10 @@ struct ObjectManager : public kernel::Service {
 
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
+
+    /// Cold lifecycle metrics used by diagnostics and leak/soak tests.
+    [[nodiscard]] size_t object_count() const noexcept { return objects_array_.size(); }
+    [[nodiscard]] size_t tag_count() const noexcept { return object_tag_map_.size(); }
 
     ObjectComponentSystem components_;
     ObjectArray objects_array_;
