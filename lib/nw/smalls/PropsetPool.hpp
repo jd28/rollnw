@@ -47,6 +47,12 @@ public:
     /// Slots per chunk — matches the object manager's ObjectArray chunk size.
     static constexpr uint32_t chunk_size = 2048;
 
+    PropsetPoolManager();
+    PropsetPoolManager(const PropsetPoolManager&) = delete;
+    PropsetPoolManager& operator=(const PropsetPoolManager&) = delete;
+    PropsetPoolManager(PropsetPoolManager&&) = delete;
+    PropsetPoolManager& operator=(PropsetPoolManager&&) = delete;
+
     bool is_propset_type(const Runtime& rt, TypeID type_id) const;
     Value find(Runtime& rt, TypeID propset_type, ObjectHandle obj);
     Value get_or_create(Runtime& rt, TypeID propset_type, ObjectHandle obj);
@@ -103,6 +109,10 @@ private:
     void unbind_heap_owner(HeapPtr ptr);
     void prune_invalid_owners(Runtime& rt);
 
+    // The thread-local lookup cache outlives Runtime instances. A monotonic
+    // identity is required because allocators may reconstruct this manager at
+    // the same address after a kernel restart.
+    uint64_t cache_generation_ = 0;
     absl::flat_hash_map<TypeID, Pool> pools_;
     absl::flat_hash_map<uint32_t, HeapOwner> heap_owners_;
     absl::flat_hash_map<uint8_t, std::vector<TypeID>> object_type_propsets_;

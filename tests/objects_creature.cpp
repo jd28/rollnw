@@ -1165,25 +1165,36 @@ TEST(Creature, Ability)
 
 TEST(Creature, Skills)
 {
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(mod);
+    // The second pass exercises the same TypeID/ObjectHandle cache keys after
+    // kernel services and their propset storage have been reconstructed.
+    for (int pass = 0; pass < 2; ++pass) {
+        {
+            auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+            ASSERT_TRUE(mod);
 
-    auto obj = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
-    EXPECT_TRUE(obj);
+            auto obj = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+            ASSERT_TRUE(obj);
 
-    EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline, nullptr, true), 40);
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_skill_focus_discipline));
-    EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 61);
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_skill_focus_discipline));
-    EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 71);
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline, nullptr, true), 40);
+            EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_skill_focus_discipline));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 61);
+            EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_skill_focus_discipline));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 71);
 
-    auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
-    EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
-    EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 76);
+            auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
+            EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 76);
 
-    auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
-    EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 78);
+            auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+            EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 78);
+        }
+
+        if (pass == 0) {
+            nw::kernel::services().shutdown();
+            nw::kernel::services().start();
+        }
+    }
 }
 
 TEST(Creature, Attack)

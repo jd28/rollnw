@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -65,8 +66,15 @@ struct RmlSmallsBenchmarkRuntime {
 
 RmlSmallsBenchmarkRuntime& benchmark_runtime()
 {
-    static RmlSmallsBenchmarkRuntime runtime;
-    return runtime;
+    static uint64_t generation = 0;
+    static std::unique_ptr<RmlSmallsBenchmarkRuntime> runtime;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation != current_generation || !runtime) {
+        runtime.reset();
+        runtime = std::make_unique<RmlSmallsBenchmarkRuntime>();
+        generation = current_generation;
+    }
+    return *runtime;
 }
 
 constexpr const char* kDispatchSupportModulePath = "bench.rml_dispatch_actions";
@@ -77,7 +85,15 @@ fn dispatch(event: Event) { }
 
 bool ensure_dispatch_support_module()
 {
-    static const bool loaded = [] {
+    static uint64_t generation = 0;
+    static bool loaded = false;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation == current_generation) {
+        return loaded;
+    }
+
+    generation = current_generation;
+    loaded = [] {
         auto& runtime = nw::kernel::runtime();
         auto* script = runtime.load_module_from_source(
             kDispatchSupportModulePath, kDispatchSupportModuleSource);
@@ -312,7 +328,15 @@ const std::string& reload_markup(int64_t shape)
 
 bool ensure_reload_support_module()
 {
-    static const bool loaded = [] {
+    static uint64_t generation = 0;
+    static bool loaded = false;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation == current_generation) {
+        return loaded;
+    }
+
+    generation = current_generation;
+    loaded = [] {
         auto& runtime = nw::kernel::runtime();
         auto* script = runtime.load_module_from_source(kReloadSupportModulePath, kReloadSupportModuleSource);
         return script && runtime.get_or_compile_module(script) != nullptr;

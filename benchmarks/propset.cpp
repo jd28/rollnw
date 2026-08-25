@@ -10,13 +10,22 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstdint>
+#include <memory>
+
 namespace nwk = nw::kernel;
 
 namespace {
 
 nw::smalls::Script* ensure_propset_bench_module()
 {
+    static uint64_t generation = 0;
     static nw::smalls::Script* script = nullptr;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation != current_generation) {
+        generation = current_generation;
+        script = nullptr;
+    }
     if (script) {
         return script;
     }
@@ -186,8 +195,14 @@ struct PropsetImportBenchState {
 
 PropsetImportBenchState* ensure_propset_import_state()
 {
-    static PropsetImportBenchState* state = nullptr;
-    if (state) { return state; }
+    static uint64_t generation = 0;
+    static std::unique_ptr<PropsetImportBenchState> state;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation != current_generation) {
+        generation = current_generation;
+        state.reset();
+    }
+    if (state) { return state.get(); }
 
     // Trigger compilation of propset types by loading a script that imports them.
     auto* script = nw::kernel::runtime().load_module_from_source(
@@ -199,8 +214,8 @@ PropsetImportBenchState* ensure_propset_import_state()
     nw::Gff probe(rd.copy());
     if (!probe.valid()) { return nullptr; }
 
-    state = new PropsetImportBenchState();
-    return state;
+    state = std::make_unique<PropsetImportBenchState>();
+    return state.get();
 }
 
 } // anonymous namespace

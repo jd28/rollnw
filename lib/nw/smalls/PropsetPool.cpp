@@ -8,6 +8,7 @@
 #include "../objects/ObjectManager.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstring>
 
@@ -39,7 +40,8 @@ struct alignas(64) PropsetCacheEntry {
 
 // 16-entry cache — comfortable for 3-4 creatures × 3-4 propsets each
 thread_local PropsetCacheEntry g_propset_cache[16] = {};
-thread_local const void* g_propset_cache_owner = nullptr;
+thread_local uint64_t g_propset_cache_generation = 0;
+std::atomic<uint64_t> g_next_propset_cache_generation{1};
 
 inline void propset_cache_clear_all()
 {
@@ -47,6 +49,14 @@ inline void propset_cache_clear_all()
         cache_entry.key = 0;
         cache_entry.version = 0;
         cache_entry.entry = nullptr;
+    }
+}
+
+inline void propset_cache_select_generation(uint64_t generation)
+{
+    if (ABSL_PREDICT_FALSE(g_propset_cache_generation != generation)) {
+        propset_cache_clear_all();
+        g_propset_cache_generation = generation;
     }
 }
 
@@ -239,6 +249,12 @@ void write_field_value(Runtime& rt, void* ptr, TypeID type_id, const Value& valu
 
 } // namespace
 
+PropsetPoolManager::PropsetPoolManager()
+    : cache_generation_{g_next_propset_cache_generation.fetch_add(1, std::memory_order_relaxed)}
+{
+    CHECK_F(cache_generation_ != 0, "Propset cache generation overflow");
+}
+
 // == Type Queries =============================================================
 
 bool PropsetPoolManager::is_propset_type(const Runtime& rt, TypeID type_id) const
@@ -257,10 +273,7 @@ Value PropsetPoolManager::find(Runtime& /*rt*/, TypeID propset_type, ObjectHandl
         return Value{};
     }
 
-    if (ABSL_PREDICT_FALSE(g_propset_cache_owner != this)) {
-        propset_cache_clear_all();
-        g_propset_cache_owner = this;
-    }
+    propset_cache_select_generation(cache_generation_);
 
     size_t cache_idx = propset_cache_index(propset_type, obj);
     const PropsetCacheEntry& cache_entry = g_propset_cache[cache_idx];
@@ -486,11 +499,8 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
     }
 
     // Protect against stale pointers when runtimes/pools are recreated between
-    // benchmark iterations in the same thread.
-    if (ABSL_PREDICT_FALSE(g_propset_cache_owner != this)) {
-        propset_cache_clear_all();
-        g_propset_cache_owner = this;
-    }
+    // benchmark iterations or kernel reloads in the same thread.
+    propset_cache_select_generation(cache_generation_);
 
     // Fast path: check thread-local cache first (~20-30ns vs ~150ns slow path)
     size_t cache_idx = propset_cache_index(propset_type, obj);

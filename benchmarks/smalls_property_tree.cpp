@@ -17,7 +17,15 @@ namespace {
 
 bool ensure_property_tree_modules()
 {
-    static const bool loaded = [] {
+    static uint64_t generation = 0;
+    static bool loaded = false;
+    const uint64_t current_generation = nw::kernel::services().generation();
+    if (generation == current_generation) {
+        return loaded;
+    }
+
+    generation = current_generation;
+    loaded = [] {
         auto& runtime = nw::kernel::runtime();
         constexpr std::array modules{
             std::string_view{"core.creature"},

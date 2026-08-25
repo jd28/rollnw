@@ -108,6 +108,7 @@ struct AttackDataOffsetCache {
 };
 
 struct ResolveAttackCache {
+    uint64_t service_generation = 0;
     String module;
     bool nwn1_initialized = false;
     bool known_missing = false;
@@ -138,9 +139,20 @@ struct AutoAttackState {
 };
 
 thread_local std::vector<AutoAttackState> auto_attack_states;
+thread_local uint64_t auto_attack_service_generation = 0;
+
+void sync_auto_attack_service_generation()
+{
+    const uint64_t generation = kernel::services().generation();
+    if (auto_attack_service_generation != generation) {
+        auto_attack_states.clear();
+        auto_attack_service_generation = generation;
+    }
+}
 
 AutoAttackState* find_auto_attack_state(ObjectHandle attacker)
 {
+    sync_auto_attack_service_generation();
     for (auto& state : auto_attack_states) {
         if (state.attacker == attacker) {
             return &state;
@@ -242,11 +254,20 @@ bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
     auto& rt = kernel::runtime();
     auto& cache = s_resolve_attack;
 
+    // Runtime-owned bytecode and type metadata do not survive a service
+    // restart. Allocators may reuse their addresses, so pointer comparison is
+    // not a valid lifetime check.
+    const uint64_t service_generation = kernel::services().generation();
+    if (cache.service_generation != service_generation) {
+        cache = {};
+    }
+
     // Invalidate cache when the configured policy module name changes.
     if (cache.module != module_sv) {
         cache = {};
         cache.module = String(module_sv);
     }
+    cache.service_generation = service_generation;
 
     // Always get the current BytecodeModule* to detect runtime restarts.
     auto* script = rt.get_module(module_sv);
