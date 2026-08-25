@@ -209,6 +209,24 @@ objects, Ctrl-click tile selection, a complete placed-object list, and camera
 focus on list selection. The validated Creature/Placeable structural slice
 supports placement, transforms, duplicate, delete, undo/redo, and native CAF
 save. Blueprint preview tabs use the same focused edit commands and save path.</p>
+<h2 id="play-preview">Play Preview</h2>
+<p>Press F9 in an active area tab to enter the transient play preview. The first
+use opens the project tree to choose a Creature blueprint; the project-relative
+choice is persisted in <code>rollnw.json</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"preview"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"test_actor"</span><span class="p">:</span><span class="w"> </span><span class="s2">"shared/blueprints/creatures/example.utc.json"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The actor is detached from authored area membership. Preview movement therefore
+does not dirty the project or create undo entries, and it does not run scripts,
+encounters, combat, persistence, or lifecycle events. F9 or Escape removes the
+actor and returns to the unchanged editor selection and camera.</p>
+<p>Move with WASD or the controller left stick, orbit with the right mouse button
+or controller right stick, and zoom with the wheel, triggers, or shoulder
+buttons. Left-clicking an area surface requests a path to that point.</p>
 <h2 id="appearance-ownership">Appearance Ownership</h2>
 <p>Appearance editing has one mutation path even though the UI catalogs join two
 data sources:</p>
