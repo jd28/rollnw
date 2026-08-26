@@ -206,6 +206,7 @@ struct ToolsetPreviewSession::Impl {
     // their batch paths for the many-agent systems that actually own arrays.
     nav::NavWorldState nav_world;
     Vector<glm::vec3> route_corners;
+    Vector<nav::NavDebugTriangle> navigation_debug_triangles;
     ObjectHandle area{};
     ObjectHandle actor{};
     uint32_t nav_agent = UINT32_MAX;
@@ -213,9 +214,14 @@ struct ToolsetPreviewSession::Impl {
     ObjectSpatialState spatial;
     PreviewCameraState camera;
     PreviewActorLocomotion locomotion = PreviewActorLocomotion::idle;
+    glm::vec3 debug_requested_target{0.0f};
     float walk_rate = 0.0f;
     float clearance = 0.0f;
+    nav::NavStatus debug_path_status = nav::NavStatus::rejected;
+    uint64_t debug_revision = 0;
     bool active = false;
+    bool navigation_debug_enabled = false;
+    bool debug_has_requested_target = false;
 
     ~Impl()
     {
@@ -238,6 +244,7 @@ struct ToolsetPreviewSession::Impl {
             kernel::objects().destroy(actor);
         }
         route_corners.clear();
+        navigation_debug_triangles.clear();
         area = ObjectHandle{};
         actor = ObjectHandle{};
         nav_agent = UINT32_MAX;
@@ -245,9 +252,14 @@ struct ToolsetPreviewSession::Impl {
         spatial = ObjectSpatialState{};
         camera = PreviewCameraState{};
         locomotion = PreviewActorLocomotion::idle;
+        debug_requested_target = {};
         walk_rate = 0.0f;
         clearance = 0.0f;
+        debug_path_status = nav::NavStatus::rejected;
+        debug_revision = 0;
         active = false;
+        navigation_debug_enabled = false;
+        debug_has_requested_target = false;
     }
 };
 
@@ -522,6 +534,56 @@ nav::NavBatchStats project_toolset_preview_rays(
     return nav::project_nav_rays(session.impl_->nav_world, inputs, results);
 }
 
+PreviewStatus set_toolset_preview_navigation_debug(
+    ToolsetPreviewSession& session, bool enabled)
+{
+    if (!session.impl_ || !session.impl_->active) {
+        return PreviewStatus::idle;
+    }
+
+    auto& state = *session.impl_;
+    if (state.navigation_debug_enabled == enabled) {
+        return PreviewStatus::ok;
+    }
+    if (!enabled) {
+        state.navigation_debug_triangles.clear();
+        state.navigation_debug_enabled = false;
+        ++state.debug_revision;
+        return PreviewStatus::ok;
+    }
+
+    const auto stats = nav::collect_nav_debug_triangles(
+        state.nav_world, state.navigation_debug_triangles);
+    if (stats.output_count == 0) {
+        state.navigation_debug_triangles.clear();
+        return PreviewStatus::navigation_failed;
+    }
+    state.navigation_debug_enabled = true;
+    ++state.debug_revision;
+    return PreviewStatus::ok;
+}
+
+PreviewNavigationDebugView toolset_preview_navigation_debug(
+    const ToolsetPreviewSession& session) noexcept
+{
+    if (!session.impl_ || !session.impl_->active
+        || !session.impl_->navigation_debug_enabled) {
+        return {};
+    }
+
+    const auto& state = *session.impl_;
+    return {
+        .triangles = state.navigation_debug_triangles,
+        .route_corners = state.route_corners,
+        .requested_target = state.debug_requested_target,
+        .active_route_corner = state.route_corner,
+        .path_status = state.debug_path_status,
+        .revision = state.debug_revision,
+        .enabled = true,
+        .has_requested_target = state.debug_has_requested_target,
+    };
+}
+
 PreviewTickStats tick_toolset_preview(
     ToolsetPreviewSession& session,
     std::span<const PreviewInputSample> samples,
@@ -548,6 +610,14 @@ PreviewTickStats tick_toolset_preview(
             continue;
         }
 
+        bool debug_route_changed = false;
+        const auto clear_route = [&state, &debug_route_changed]() {
+            debug_route_changed = debug_route_changed
+                || !state.route_corners.empty() || state.route_corner != 0;
+            state.route_corners.clear();
+            state.route_corner = 0;
+        };
+
         state.camera.yaw += sample.look_axis.x * look_radians_per_second
             * static_cast<float>(fixed_step_seconds);
         state.camera.pitch = std::clamp(
@@ -560,8 +630,7 @@ PreviewTickStats tick_toolset_preview(
             minimum_camera_distance, maximum_camera_distance);
 
         if ((sample.flags & preview_input_cancel) != 0) {
-            state.route_corners.clear();
-            state.route_corner = 0;
+            clear_route();
         }
         if ((sample.flags & preview_input_click_target) != 0) {
             ++stats.path_request_count;
@@ -570,6 +639,10 @@ PreviewTickStats tick_toolset_preview(
             };
             std::array<nav::NavPathResult, 1> path_result{};
             nav::find_nav_paths(state.nav_world, request, state.route_corners, path_result);
+            state.debug_requested_target = sample.click_target;
+            state.debug_path_status = path_result[0].status;
+            state.debug_has_requested_target = true;
+            debug_route_changed = true;
             if (path_result[0].status == nav::NavStatus::ok
                 || path_result[0].status == nav::NavStatus::clamped) {
                 state.route_corner = path_result[0].corner_offset;
@@ -583,8 +656,7 @@ PreviewTickStats tick_toolset_preview(
                     ++state.route_corner;
                 }
             } else {
-                state.route_corners.clear();
-                state.route_corner = 0;
+                clear_route();
                 ++stats.path_failure_count;
             }
         }
@@ -604,7 +676,7 @@ PreviewTickStats tick_toolset_preview(
         }
 
         glm::vec3 desired{0.0f};
-        const auto route_displacement = [&state]() {
+        const auto route_displacement = [&state, &debug_route_changed]() {
             while (state.route_corner < state.route_corners.size()) {
                 if (horizontal_distance_squared(state.spatial.position,
                         state.route_corners[state.route_corner])
@@ -612,6 +684,7 @@ PreviewTickStats tick_toolset_preview(
                     break;
                 }
                 ++state.route_corner;
+                debug_route_changed = true;
             }
             if (state.route_corner >= state.route_corners.size()) return glm::vec3{};
 
@@ -623,8 +696,7 @@ PreviewTickStats tick_toolset_preview(
                 * std::min(distance, state.walk_rate * static_cast<float>(fixed_step_seconds));
         };
         if (direct_input) {
-            state.route_corners.clear();
-            state.route_corner = 0;
+            clear_route();
         }
         if (direct_movement) {
             const glm::vec3 forward = horizontal_facing(state.spatial.orientation);
@@ -655,8 +727,7 @@ PreviewTickStats tick_toolset_preview(
                     && moved[0].status != nav::NavStatus::clamped) {
                     ++stats.blocked_count;
                     if (!direct_movement) {
-                        state.route_corners.clear();
-                        state.route_corner = 0;
+                        clear_route();
                         state.locomotion = PreviewActorLocomotion::idle;
                     }
                     break;
@@ -679,18 +750,22 @@ PreviewTickStats tick_toolset_preview(
                 if (!direct_movement
                     && state.route_corner + 1 < state.route_corners.size()) {
                     ++state.route_corner;
+                    debug_route_changed = true;
                     desired = route_displacement();
                     if (glm::dot(desired, desired) > movement_axis_epsilon) continue;
                 }
 
                 ++stats.blocked_count;
                 if (!direct_movement) {
-                    state.route_corners.clear();
-                    state.route_corner = 0;
+                    clear_route();
                     state.locomotion = PreviewActorLocomotion::idle;
                 }
                 break;
             }
+        }
+
+        if (state.navigation_debug_enabled && debug_route_changed) {
+            ++state.debug_revision;
         }
 
         auto& components = kernel::objects().components();

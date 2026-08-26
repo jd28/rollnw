@@ -82,6 +82,27 @@ struct NavBatchStats {
     size_t blocked_count = 0;
 };
 
+enum class NavDebugPolygonState : uint8_t {
+    walkable,
+    blocked,
+};
+
+/// Backend-neutral debug row for one triangulated navigation polygon. Output
+/// is world-space, Z-up, and valid until the caller replaces its own batch.
+struct NavDebugTriangle {
+    glm::vec3 a{0.0f};
+    glm::vec3 b{0.0f};
+    glm::vec3 c{0.0f};
+    NavDebugPolygonState state = NavDebugPolygonState::blocked;
+};
+
+/// Replaces triangles with the current navigation polygon batch. This cold
+/// debug transform walks Detour storage only when explicitly requested; no
+/// Detour type crosses the boundary. Invalid polygons are dropped and counted.
+NavBatchStats collect_nav_debug_triangles(
+    const NavWorldState& world,
+    Vector<NavDebugTriangle>& triangles);
+
 /// Finite world-space ray segment. A point on the segment is
 /// origin + displacement * fraction, where fraction is in [0, 1].
 struct NavRayProjectionInput {

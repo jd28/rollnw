@@ -899,6 +899,34 @@ bool ViewerSession::clear_area_object_selection() noexcept
     return true;
 }
 
+bool ViewerSession::set_transient_debug_geometry(
+    std::span<const DebugShapeVertex> vertices,
+    std::span<const uint32_t> indices)
+{
+    if (vertices.empty() != indices.empty()
+        || vertices.size() > std::numeric_limits<uint32_t>::max()
+        || indices.size() > std::numeric_limits<uint32_t>::max()
+        || std::any_of(indices.begin(), indices.end(), [vertex_count = vertices.size()](uint32_t index) {
+               return index >= vertex_count;
+           })) {
+        return false;
+    }
+    transient_debug_shape_vertices_.assign(vertices.begin(), vertices.end());
+    transient_debug_shape_indices_.assign(indices.begin(), indices.end());
+    ++transient_debug_shape_revision_;
+    return true;
+}
+
+void ViewerSession::clear_transient_debug_geometry() noexcept
+{
+    if (!transient_debug_shape_vertices_.empty()
+        || !transient_debug_shape_indices_.empty()) {
+        ++transient_debug_shape_revision_;
+    }
+    transient_debug_shape_vertices_.clear();
+    transient_debug_shape_indices_.clear();
+}
+
 void ViewerSession::clear()
 {
     if (scene_) {
@@ -910,6 +938,7 @@ void ViewerSession::clear()
     area_frame_.clear();
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
+    clear_transient_debug_geometry();
     clear_area_visibility_mask();
     scene_kind_ = ViewerSceneKind::none;
     loaded_source_.clear();
@@ -1395,6 +1424,12 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         const ScopedGpuTimer gpu_timer{command_list, kGpuTimerDebug};
         if (debug_renderer_) {
             debug_renderer_->render_debug_shapes(command_list, *scene_, render_context, debug_options);
+            debug_renderer_->render_transient_debug_shapes(
+                command_list,
+                transient_debug_shape_vertices_,
+                transient_debug_shape_indices_,
+                transient_debug_shape_revision_,
+                render_context);
             bool rendered_selection_bounds = false;
             const auto tile_selection_bounds = area_render_scene
                 ? area_tile_selection_bounds(active_area_selection_, *area_render_scene)
@@ -1587,6 +1622,7 @@ bool ViewerSession::set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKi
     area_frame_.clear();
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
+    clear_transient_debug_geometry();
     clear_area_visibility_mask();
     scene_kind_ = kind;
     loaded_source_ = std::move(source);

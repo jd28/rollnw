@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 #include <glm/glm.hpp>
 
@@ -21,6 +22,7 @@ struct Trigger;
 namespace nw::render::viewer {
 
 struct PreviewScene;
+struct DebugShapeVertex;
 enum class DebugShapeCategory : uint8_t;
 
 struct DebugShapeOptions {
@@ -40,6 +42,12 @@ public:
         float spacing, float major_interval, float minor_width, float major_width, float opacity, float z_offset);
     void render_debug_shapes(nw::gfx::CommandList* cmd, const PreviewScene& scene, const nw::render::RenderContext& ctx,
         DebugShapeOptions options = {});
+    void render_transient_debug_shapes(
+        nw::gfx::CommandList* cmd,
+        std::span<const DebugShapeVertex> vertices,
+        std::span<const uint32_t> indices,
+        uint64_t revision,
+        const nw::render::RenderContext& ctx);
     void render_selection_bounds(
         nw::gfx::CommandList* cmd,
         const nw::render::Bounds& bounds,
@@ -47,6 +55,18 @@ public:
         const glm::vec4& color);
 
 private:
+    void render_debug_shape_batch(
+        nw::gfx::CommandList* cmd,
+        std::span<const DebugShapeVertex> vertices,
+        std::span<const uint32_t> indices,
+        const nw::render::RenderContext& ctx,
+        nw::gfx::Handle<nw::gfx::Buffer>& vertex_buffer,
+        size_t& vertex_capacity,
+        nw::gfx::Handle<nw::gfx::Buffer>& index_buffer,
+        size_t& index_capacity,
+        uint64_t revision = 0,
+        uint64_t* uploaded_revision = nullptr);
+
     nw::gfx::Context* ctx_ = nullptr;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_shape_pipeline_;
@@ -54,12 +74,17 @@ private:
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_indices_;
+    nw::gfx::Handle<nw::gfx::Buffer> transient_debug_shape_vertices_;
+    nw::gfx::Handle<nw::gfx::Buffer> transient_debug_shape_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_indices_;
     size_t debug_grid_vertex_capacity_ = 0;
     size_t debug_grid_index_capacity_ = 0;
     size_t debug_shape_vertex_capacity_ = 0;
     size_t debug_shape_index_capacity_ = 0;
+    size_t transient_debug_shape_vertex_capacity_ = 0;
+    size_t transient_debug_shape_index_capacity_ = 0;
+    uint64_t uploaded_transient_debug_shape_revision_ = UINT64_MAX;
 };
 
 void append_debug_triangle(PreviewScene& scene, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,

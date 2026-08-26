@@ -7667,11 +7667,19 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
 
     constexpr int kOverlayMargin = 8;
     const auto& rect = viewer_viewport->rect;
-    overlay->SetInnerRML(state.play_preview.placement_pending()
+    const bool navigation_debug
+        = nw::toolset::toolset_preview_navigation_debug(
+            state.play_preview.session)
+              .enabled;
+    overlay->SetInnerRML(
+        state.play_preview.placement_pending()
             ? "<div class=\"play_preview_viewport_title\">Area Preview</div>"
               "<div class=\"play_preview_viewport_help\">Click a walkable point to enter &bull; F9 or Escape to cancel</div>"
+            : navigation_debug
+            ? "<div class=\"play_preview_viewport_title\">Area Preview</div>"
+              "<div class=\"play_preview_viewport_help\">Navigation debug on &bull; F8 to hide &bull; F9 or Escape to return</div>"
             : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-              "<div class=\"play_preview_viewport_help\">F9 or Escape to return</div>");
+              "<div class=\"play_preview_viewport_help\">F9 or Escape to return &bull; F8 navigation debug</div>");
     overlay->SetProperty("display", "block");
     overlay->SetProperty("left", std::to_string(rect.x + kOverlayMargin) + "px");
     overlay->SetProperty("top", std::to_string(rect.y + kOverlayMargin) + "px");
@@ -9878,6 +9886,28 @@ int main(int argc, char* argv[])
                     if (!event.key.repeat
                         && (event.key.key == SDLK_F9 || event.key.key == SDLK_ESCAPE)) {
                         stop_play_preview(renderer, doc, state);
+                    } else if (!event.key.repeat
+                        && event.key.key == SDLK_F8
+                        && state.play_preview.session.active()) {
+                        const bool enabled
+                            = !nw::toolset::toolset_preview_navigation_debug(
+                                state.play_preview.session)
+                                   .enabled;
+                        const auto status
+                            = nw::toolset::set_toolset_preview_navigation_debug(
+                                state.play_preview.session, enabled);
+                        const bool render_ok = status == nw::toolset::PreviewStatus::ok
+                            && renderer.update_toolset_preview_navigation_debug(
+                                nw::toolset::toolset_preview_navigation_debug(
+                                    state.play_preview.session));
+                        append_output(
+                            state,
+                            render_ok ? "info" : "error",
+                            render_ok
+                                ? (enabled
+                                          ? "Navigation debug enabled"
+                                          : "Navigation debug disabled")
+                                : "Failed to update navigation debug geometry");
                     }
                     dispatched_to_rml = true;
                     break;
@@ -12111,6 +12141,12 @@ int main(int argc, char* argv[])
                         std::span{state.play_preview.locomotion_rows}.first(
                             tick_stats.output_count),
                         state.play_preview.session.camera());
+                const auto navigation_debug
+                    = nw::toolset::toolset_preview_navigation_debug(
+                        state.play_preview.session);
+                const bool navigation_debug_ok = !navigation_debug.enabled
+                    || renderer.update_toolset_preview_navigation_debug(
+                        navigation_debug);
                 state.play_preview.pending_input.flags
                     &= ~(nw::toolset::preview_input_click_target
                         | nw::toolset::preview_input_cancel);
@@ -12118,10 +12154,11 @@ int main(int argc, char* argv[])
                 state.play_preview.mouse_look_y = 0.0f;
                 state.play_preview.mouse_sample_seconds = 0.0;
                 state.play_preview.wheel_zoom = 0.0f;
-                if (!tick_ok || !visual_ok) {
+                if (!tick_ok || !visual_ok || !navigation_debug_ok) {
                     append_output(state, "error",
-                        tick_ok ? "Failed to update play-preview visuals"
-                                : "Play-preview simulation failed");
+                        !tick_ok         ? "Play-preview simulation failed"
+                            : !visual_ok ? "Failed to update play-preview visuals"
+                                         : "Failed to update navigation debug geometry");
                     stop_play_preview(renderer, doc, state);
                 }
             }

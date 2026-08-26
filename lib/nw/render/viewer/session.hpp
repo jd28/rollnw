@@ -232,6 +232,12 @@ public:
         std::span<const nw::ObjectHandle> objects);
     [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
         std::span<const nw::ObjectHandle> objects);
+    /// Replaces the one viewport-owned transient debug batch. Invalid indices
+    /// reject the whole batch and leave the previous batch unchanged.
+    bool set_transient_debug_geometry(
+        std::span<const DebugShapeVertex> vertices,
+        std::span<const uint32_t> indices);
+    void clear_transient_debug_geometry() noexcept;
     bool clear_area_object_selection() noexcept;
     bool fit_to_scene(ViewerViewport viewport);
     bool set_area_gameplay_view(ViewerViewport viewport, float fov_degrees = 65.0f);
@@ -356,6 +362,9 @@ private:
     // ModelInstance; this vector must not own clip, time, pose, or skin state.
     std::vector<nw::render::ModelInstanceAnimationSample> render_model_animation_samples_;
     std::vector<uint32_t> animated_root_model_indices_;
+    std::vector<DebugShapeVertex> transient_debug_shape_vertices_;
+    std::vector<uint32_t> transient_debug_shape_indices_;
+    uint64_t transient_debug_shape_revision_ = 0;
     std::vector<nw::gfx::GpuTimerResult> completed_gpu_timer_results_;
     std::vector<uint8_t> area_visibility_mask_;
     AreaObjectSelection active_area_selection_{};

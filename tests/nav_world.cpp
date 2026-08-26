@@ -8,6 +8,7 @@
 #include <nw/objects/Area.hpp>
 
 #include <array>
+#include <ranges>
 
 namespace {
 
@@ -952,6 +953,40 @@ TEST(NavWorld, KeepsOverlappingClosedBlockersComposed)
     constexpr std::array open_second{nw::nav::NavBlockerStateInput{20, false}};
     EXPECT_EQ(nw::nav::set_nav_blockers_closed(world, open_second).output_count, 1u);
     EXPECT_EQ(move_across_seam().status, nw::nav::NavStatus::ok);
+}
+
+TEST(NavWorld, CollectsBackendNeutralDebugTrianglesAndBlockerState)
+{
+    auto geometry = make_two_tile_floor();
+    constexpr std::array<uint8_t, 2> walkable{0, 1};
+    nw::nav::NavWorldState world;
+    nw::nav::NavBuildStats build_stats;
+    ASSERT_EQ(nw::nav::build_nav_world(geometry, walkable, 2, 1, world, build_stats),
+        nw::nav::NavStatus::ok);
+
+    nw::Vector<nw::nav::NavDebugTriangle> triangles;
+    const auto initial = nw::nav::collect_nav_debug_triangles(world, triangles);
+    ASSERT_EQ(initial.input_count, 4u);
+    ASSERT_EQ(initial.output_count, 4u);
+    ASSERT_EQ(triangles.size(), 4u);
+    EXPECT_TRUE(std::ranges::all_of(triangles, [](const auto& triangle) {
+        return triangle.state == nw::nav::NavDebugPolygonState::walkable;
+    }));
+
+    constexpr std::array overlaps{
+        nw::nav::NavBlockerOverlapInput{10, 2},
+    };
+    ASSERT_EQ(nw::nav::configure_nav_blockers(world, overlaps).overlap_count, 1u);
+    const auto blocked = nw::nav::collect_nav_debug_triangles(world, triangles);
+    EXPECT_EQ(blocked.output_count, 4u);
+    EXPECT_EQ(std::ranges::count_if(triangles, [](const auto& triangle) {
+        return triangle.state == nw::nav::NavDebugPolygonState::blocked;
+    }),
+        1);
+
+    nw::nav::NavWorldState invalid;
+    EXPECT_EQ(nw::nav::collect_nav_debug_triangles(invalid, triangles).rejected_count, 1u);
+    EXPECT_TRUE(triangles.empty());
 }
 
 TEST(NavWorld, ProjectsRayToNearestWalkableSurface)

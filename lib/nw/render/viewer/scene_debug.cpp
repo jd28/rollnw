@@ -48,6 +48,8 @@ SceneDebugRenderer::~SceneDebugRenderer()
     if (selection_bounds_vertices_.valid()) nw::gfx::destroy_buffer(selection_bounds_vertices_);
     if (debug_shape_indices_.valid()) nw::gfx::destroy_buffer(debug_shape_indices_);
     if (debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(debug_shape_vertices_);
+    if (transient_debug_shape_indices_.valid()) nw::gfx::destroy_buffer(transient_debug_shape_indices_);
+    if (transient_debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(transient_debug_shape_vertices_);
     if (debug_grid_indices_.valid()) nw::gfx::destroy_buffer(debug_grid_indices_);
     if (debug_grid_vertices_.valid()) nw::gfx::destroy_buffer(debug_grid_vertices_);
     if (debug_shape_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_shape_pipeline_);
@@ -644,45 +646,100 @@ void SceneDebugRenderer::render_debug_shapes(
         index_count = filtered_indices.size();
     }
 
+    render_debug_shape_batch(
+        cmd,
+        scene.debug_shape_vertices,
+        {index_data, index_count},
+        ctx,
+        debug_shape_vertices_,
+        debug_shape_vertex_capacity_,
+        debug_shape_indices_,
+        debug_shape_index_capacity_);
+}
+
+void SceneDebugRenderer::render_transient_debug_shapes(
+    nw::gfx::CommandList* cmd,
+    std::span<const DebugShapeVertex> vertices,
+    std::span<const uint32_t> indices,
+    uint64_t revision,
+    const nw::render::RenderContext& ctx)
+{
+    render_debug_shape_batch(
+        cmd,
+        vertices,
+        indices,
+        ctx,
+        transient_debug_shape_vertices_,
+        transient_debug_shape_vertex_capacity_,
+        transient_debug_shape_indices_,
+        transient_debug_shape_index_capacity_,
+        revision,
+        &uploaded_transient_debug_shape_revision_);
+}
+
+void SceneDebugRenderer::render_debug_shape_batch(
+    nw::gfx::CommandList* cmd,
+    std::span<const DebugShapeVertex> vertices,
+    std::span<const uint32_t> indices,
+    const nw::render::RenderContext& ctx,
+    nw::gfx::Handle<nw::gfx::Buffer>& vertex_buffer,
+    size_t& vertex_capacity,
+    nw::gfx::Handle<nw::gfx::Buffer>& index_buffer,
+    size_t& index_capacity,
+    uint64_t revision,
+    uint64_t* uploaded_revision)
+{
+    if (!cmd || !debug_shape_pipeline_.valid()
+        || vertices.empty() || indices.empty()
+        || indices.size() > std::numeric_limits<uint32_t>::max()) {
+        return;
+    }
+
     nw::gfx::BufferDesc vb_desc{};
-    vb_desc.size = scene.debug_shape_vertices.size() * sizeof(DebugShapeVertex);
+    vb_desc.size = vertices.size() * sizeof(DebugShapeVertex);
     vb_desc.usage = nw::gfx::BufferUsage::Vertex;
     vb_desc.cpu_visible = true;
-    if (!debug_shape_vertices_.valid() || debug_shape_vertex_capacity_ < scene.debug_shape_vertices.size()) {
-        if (debug_shape_vertices_.valid()) {
-            nw::gfx::destroy_buffer(debug_shape_vertices_);
+    bool upload = !uploaded_revision || *uploaded_revision != revision;
+    if (!vertex_buffer.valid() || vertex_capacity < vertices.size()) {
+        if (vertex_buffer.valid()) {
+            nw::gfx::destroy_buffer(vertex_buffer);
         }
-        debug_shape_vertices_ = nw::gfx::create_buffer(ctx_, vb_desc);
-        debug_shape_vertex_capacity_ = scene.debug_shape_vertices.size();
+        vertex_buffer = nw::gfx::create_buffer(ctx_, vb_desc);
+        vertex_capacity = vertices.size();
+        upload = true;
     }
 
     nw::gfx::BufferDesc ib_desc{};
-    ib_desc.size = index_count * sizeof(uint32_t);
+    ib_desc.size = indices.size() * sizeof(uint32_t);
     ib_desc.usage = nw::gfx::BufferUsage::Index;
     ib_desc.cpu_visible = true;
-    if (!debug_shape_indices_.valid() || debug_shape_index_capacity_ < index_count) {
-        if (debug_shape_indices_.valid()) {
-            nw::gfx::destroy_buffer(debug_shape_indices_);
+    if (!index_buffer.valid() || index_capacity < indices.size()) {
+        if (index_buffer.valid()) {
+            nw::gfx::destroy_buffer(index_buffer);
         }
-        debug_shape_indices_ = nw::gfx::create_buffer(ctx_, ib_desc);
-        debug_shape_index_capacity_ = index_count;
+        index_buffer = nw::gfx::create_buffer(ctx_, ib_desc);
+        index_capacity = indices.size();
+        upload = true;
     }
 
-    if (!debug_shape_vertices_.valid() || !debug_shape_indices_.valid()) {
+    if (!vertex_buffer.valid() || !index_buffer.valid()) {
         return;
     }
 
-    auto* vp = nw::gfx::map_buffer(debug_shape_vertices_);
-    auto* ip = nw::gfx::map_buffer(debug_shape_indices_);
-    if (!vp || !ip) {
-        if (vp) nw::gfx::unmap_buffer(debug_shape_vertices_);
-        if (ip) nw::gfx::unmap_buffer(debug_shape_indices_);
-        return;
+    if (upload) {
+        auto* vp = nw::gfx::map_buffer(vertex_buffer);
+        auto* ip = nw::gfx::map_buffer(index_buffer);
+        if (!vp || !ip) {
+            if (vp) nw::gfx::unmap_buffer(vertex_buffer);
+            if (ip) nw::gfx::unmap_buffer(index_buffer);
+            return;
+        }
+        std::memcpy(vp, vertices.data(), vb_desc.size);
+        std::memcpy(ip, indices.data(), ib_desc.size);
+        nw::gfx::unmap_buffer(vertex_buffer);
+        nw::gfx::unmap_buffer(index_buffer);
+        if (uploaded_revision) *uploaded_revision = revision;
     }
-    std::memcpy(vp, scene.debug_shape_vertices.data(), vb_desc.size);
-    std::memcpy(ip, index_data, ib_desc.size);
-    nw::gfx::unmap_buffer(debug_shape_vertices_);
-    nw::gfx::unmap_buffer(debug_shape_indices_);
 
     DebugShapeConstants sc{};
     sc.view = ctx.view;
@@ -692,10 +749,10 @@ void SceneDebugRenderer::render_debug_shapes(
     if (uniforms.data) {
         std::memcpy(uniforms.data, &sc, sizeof(DebugShapeConstants));
         nw::gfx::cmd_bind_pipeline(cmd, debug_shape_pipeline_);
-        nw::gfx::cmd_bind_vertex_buffer(cmd, debug_shape_vertices_, sizeof(DebugShapeVertex));
-        nw::gfx::cmd_bind_index_buffer(cmd, debug_shape_indices_, sizeof(uint32_t));
+        nw::gfx::cmd_bind_vertex_buffer(cmd, vertex_buffer, sizeof(DebugShapeVertex));
+        nw::gfx::cmd_bind_index_buffer(cmd, index_buffer, sizeof(uint32_t));
         nw::gfx::cmd_bind_resources(cmd, debug_shape_pipeline_, uniforms);
-        nw::gfx::cmd_draw_indexed(cmd, static_cast<uint32_t>(index_count));
+        nw::gfx::cmd_draw_indexed(cmd, static_cast<uint32_t>(indices.size()));
     }
 }
 

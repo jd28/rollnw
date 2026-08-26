@@ -23,6 +23,7 @@ struct ViewerFrameStats;
 namespace nw::toolset {
 enum class PreviewActorLocomotion : uint8_t;
 struct PreviewCameraState;
+struct PreviewNavigationDebugView;
 }
 
 class ClientRendererNwgfx {
@@ -81,6 +82,8 @@ public:
         std::span<const nw::ObjectSpatialState> spatial_rows,
         std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
         const nw::toolset::PreviewCameraState& camera);
+    bool update_toolset_preview_navigation_debug(
+        const nw::toolset::PreviewNavigationDebugView& view);
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> viewer_area_camera_focus() const noexcept;
     bool sync_viewer_area_object_spatial(nw::ObjectHandle object);

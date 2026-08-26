@@ -766,6 +766,60 @@ NavStatus build_nav_world(
     return NavStatus::ok;
 }
 
+NavBatchStats collect_nav_debug_triangles(
+    const NavWorldState& world,
+    Vector<NavDebugTriangle>& triangles)
+{
+    NavBatchStats stats;
+    triangles.clear();
+    if (!world.impl || !world.impl->mesh) {
+        stats.rejected_count = 1;
+        return stats;
+    }
+
+    const auto& impl = *world.impl;
+    const dtNavMesh& mesh = *impl.mesh;
+    for (int tile_index = 0; tile_index < mesh.getMaxTiles(); ++tile_index) {
+        const dtMeshTile* tile = mesh.getTile(tile_index);
+        if (!tile || !tile->header || !tile->verts || !tile->polys) continue;
+
+        stats.input_count += static_cast<size_t>(tile->header->polyCount);
+        for (int polygon_index = 0;
+            polygon_index < tile->header->polyCount;
+            ++polygon_index) {
+            const dtPoly& polygon = tile->polys[polygon_index];
+            if (polygon.getType() == DT_POLYTYPE_OFFMESH_CONNECTION
+                || polygon.vertCount < 3) {
+                ++stats.rejected_count;
+                continue;
+            }
+
+            const glm::vec3 first = from_detour(
+                &tile->verts[static_cast<size_t>(polygon.verts[0]) * 3]);
+            if (!finite(first)) {
+                ++stats.rejected_count;
+                continue;
+            }
+            const auto state = polygon.flags == 0
+                ? NavDebugPolygonState::blocked
+                : NavDebugPolygonState::walkable;
+            for (unsigned int vertex = 1; vertex + 1 < polygon.vertCount; ++vertex) {
+                const glm::vec3 second = from_detour(
+                    &tile->verts[static_cast<size_t>(polygon.verts[vertex]) * 3]);
+                const glm::vec3 third = from_detour(
+                    &tile->verts[static_cast<size_t>(polygon.verts[vertex + 1]) * 3]);
+                if (!finite(second) || !finite(third)) {
+                    ++stats.rejected_count;
+                    continue;
+                }
+                triangles.push_back({first, second, third, state});
+                ++stats.output_count;
+            }
+        }
+    }
+    return stats;
+}
+
 NavBatchStats project_nav_rays(
     const NavWorldState& world,
     std::span<const NavRayProjectionInput> inputs,

@@ -117,6 +117,20 @@ struct PreviewTickStats {
     size_t output_count = 0;
 };
 
+/// Borrowed, backend-neutral rows for the active preview's navigation debug
+/// overlay. The spans remain valid until the preview session is advanced,
+/// stopped, or its debug state changes.
+struct PreviewNavigationDebugView {
+    std::span<const nav::NavDebugTriangle> triangles;
+    std::span<const glm::vec3> route_corners;
+    glm::vec3 requested_target{0.0f};
+    uint32_t active_route_corner = 0;
+    nav::NavStatus path_status = nav::NavStatus::rejected;
+    uint64_t revision = 0;
+    bool enabled = false;
+    bool has_requested_target = false;
+};
+
 enum class PreviewActorLocomotion : uint8_t {
     idle,
     walking_forward,
@@ -156,6 +170,10 @@ private:
         const ToolsetPreviewSession&,
         std::span<const nav::NavRayProjectionInput>,
         std::span<nav::NavRayProjectionResult>);
+    friend PreviewStatus set_toolset_preview_navigation_debug(
+        ToolsetPreviewSession&, bool);
+    friend PreviewNavigationDebugView toolset_preview_navigation_debug(
+        const ToolsetPreviewSession&) noexcept;
 };
 
 PreviewSessionStartResult start_toolset_preview(
@@ -170,6 +188,14 @@ nav::NavBatchStats project_toolset_preview_rays(
     const ToolsetPreviewSession& session,
     std::span<const nav::NavRayProjectionInput> inputs,
     std::span<nav::NavRayProjectionResult> results);
+
+/// Enables or disables the cold navigation debug snapshot. Enabling walks the
+/// current navigation mesh once; disabling releases the snapshot immediately.
+PreviewStatus set_toolset_preview_navigation_debug(
+    ToolsetPreviewSession& session, bool enabled);
+
+[[nodiscard]] PreviewNavigationDebugView toolset_preview_navigation_debug(
+    const ToolsetPreviewSession& session) noexcept;
 
 /// Advances every fixed sample in order, then writes the single v1 preview
 /// actor's spatial and locomotion rows. The samples form a time batch; the

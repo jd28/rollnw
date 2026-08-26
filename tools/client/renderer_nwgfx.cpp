@@ -316,6 +316,13 @@ bool ClientRendererNwgfx::update_toolset_preview_visuals(
             spatial_rows, locomotion_rows, camera);
 }
 
+bool ClientRendererNwgfx::update_toolset_preview_navigation_debug(
+    const nw::toolset::PreviewNavigationDebugView& view)
+{
+    return viewer_viewport_
+        && viewer_viewport_->update_toolset_preview_navigation_debug(view);
+}
+
 bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept
 {
     return viewer_viewport_ && viewer_viewport_->end_toolset_preview_visuals();

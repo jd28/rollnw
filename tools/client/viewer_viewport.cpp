@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
@@ -79,6 +80,50 @@ void apply_preview_camera(
         source.distance,
         glm::degrees(source.yaw) + 180.0f,
         glm::degrees(-source.pitch));
+}
+
+void append_transient_debug_triangle(
+    std::vector<viewer::DebugShapeVertex>& vertices,
+    std::vector<uint32_t>& indices,
+    const glm::vec3& a,
+    const glm::vec3& b,
+    const glm::vec3& c,
+    const glm::vec4& color)
+{
+    const auto base = static_cast<uint32_t>(vertices.size());
+    vertices.push_back({a, color});
+    vertices.push_back({b, color});
+    vertices.push_back({c, color});
+    indices.insert(indices.end(), {base, base + 1, base + 2});
+}
+
+void append_transient_debug_segment(
+    std::vector<viewer::DebugShapeVertex>& vertices,
+    std::vector<uint32_t>& indices,
+    const glm::vec3& a,
+    const glm::vec3& b,
+    const glm::vec4& color,
+    float width)
+{
+    const glm::vec2 delta{b.x - a.x, b.y - a.y};
+    const float length = glm::length(delta);
+    if (length <= 1.0e-5f) return;
+
+    const glm::vec2 side = glm::vec2{-delta.y, delta.x}
+        * (0.5f * width / length);
+    const auto base = static_cast<uint32_t>(vertices.size());
+    vertices.push_back({{a.x + side.x, a.y + side.y, a.z}, color});
+    vertices.push_back({{b.x + side.x, b.y + side.y, b.z}, color});
+    vertices.push_back({{b.x - side.x, b.y - side.y, b.z}, color});
+    vertices.push_back({{a.x - side.x, a.y - side.y, a.z}, color});
+    indices.insert(indices.end(), {
+                                      base,
+                                      base + 1,
+                                      base + 2,
+                                      base,
+                                      base + 2,
+                                      base + 3,
+                                  });
 }
 
 } // namespace
@@ -621,8 +666,116 @@ struct ClientViewerViewport::Impl {
         return true;
     }
 
+    bool update_toolset_preview_navigation_debug(
+        const nw::toolset::PreviewNavigationDebugView& view)
+    {
+        if (!session || transient_preview_objects.empty()) return false;
+        if (!view.enabled) {
+            session->clear_transient_debug_geometry();
+            transient_debug_vertices.clear();
+            transient_debug_indices.clear();
+            applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
+            return true;
+        }
+        if (applied_navigation_debug_revision == view.revision) return true;
+
+        constexpr size_t kMaximumDebugVertices
+            = static_cast<size_t>(std::numeric_limits<uint32_t>::max());
+        const size_t route_segment_count = view.route_corners.empty()
+            ? 0
+            : view.route_corners.size() - 1;
+        const size_t marker_segment_count = view.has_requested_target ? 2 : 0;
+        if (view.triangles.size() > kMaximumDebugVertices / 3
+            || route_segment_count > kMaximumDebugVertices / 4) {
+            return false;
+        }
+        const size_t triangle_vertex_count = view.triangles.size() * 3;
+        const size_t segment_count = route_segment_count + marker_segment_count;
+        if (segment_count > (kMaximumDebugVertices - triangle_vertex_count) / 4
+            || segment_count > (kMaximumDebugVertices - triangle_vertex_count) / 6) {
+            return false;
+        }
+        const size_t vertex_count = triangle_vertex_count + segment_count * 4;
+        const size_t index_count = triangle_vertex_count + segment_count * 6;
+
+        transient_debug_vertices.clear();
+        transient_debug_indices.clear();
+        transient_debug_vertices.reserve(vertex_count);
+        transient_debug_indices.reserve(index_count);
+
+        constexpr glm::vec3 kSurfaceOffset{0.0f, 0.0f, 0.035f};
+        constexpr glm::vec4 kWalkableEven{0.02f, 0.48f, 0.24f, 0.18f};
+        constexpr glm::vec4 kWalkableOdd{0.02f, 0.30f, 0.56f, 0.18f};
+        constexpr glm::vec4 kBlocked{0.68f, 0.04f, 0.03f, 0.32f};
+        for (size_t index = 0; index < view.triangles.size(); ++index) {
+            const auto& triangle = view.triangles[index];
+            const glm::vec4 color = triangle.state == nw::nav::NavDebugPolygonState::blocked
+                ? kBlocked
+                : (index % 2 == 0 ? kWalkableEven : kWalkableOdd);
+            append_transient_debug_triangle(
+                transient_debug_vertices,
+                transient_debug_indices,
+                triangle.a + kSurfaceOffset,
+                triangle.b + kSurfaceOffset,
+                triangle.c + kSurfaceOffset,
+                color);
+        }
+
+        constexpr glm::vec3 kRouteOffset{0.0f, 0.0f, 0.10f};
+        constexpr glm::vec4 kTraversedRoute{0.28f, 0.30f, 0.32f, 0.85f};
+        constexpr glm::vec4 kActiveRoute{0.02f, 0.88f, 1.0f, 0.95f};
+        for (size_t index = 0; index < route_segment_count; ++index) {
+            const glm::vec4 color = index + 1 < view.active_route_corner
+                ? kTraversedRoute
+                : kActiveRoute;
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                view.route_corners[index] + kRouteOffset,
+                view.route_corners[index + 1] + kRouteOffset,
+                color,
+                0.09f);
+        }
+
+        if (view.has_requested_target) {
+            constexpr float kTargetRadius = 0.28f;
+            const glm::vec4 color = view.path_status == nw::nav::NavStatus::ok
+                ? glm::vec4{0.08f, 0.95f, 0.20f, 0.95f}
+                : view.path_status == nw::nav::NavStatus::clamped
+                ? glm::vec4{1.0f, 0.58f, 0.02f, 0.95f}
+                : glm::vec4{1.0f, 0.08f, 0.05f, 0.95f};
+            const glm::vec3 target = view.requested_target
+                + glm::vec3{0.0f, 0.0f, 0.14f};
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                target - glm::vec3{kTargetRadius, 0.0f, 0.0f},
+                target + glm::vec3{kTargetRadius, 0.0f, 0.0f},
+                color,
+                0.08f);
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                target - glm::vec3{0.0f, kTargetRadius, 0.0f},
+                target + glm::vec3{0.0f, kTargetRadius, 0.0f},
+                color,
+                0.08f);
+        }
+
+        if (!session->set_transient_debug_geometry(
+                transient_debug_vertices, transient_debug_indices)) {
+            return false;
+        }
+        applied_navigation_debug_revision = view.revision;
+        return true;
+    }
+
     bool end_toolset_preview_visuals() noexcept
     {
+        if (session) session->clear_transient_debug_geometry();
+        transient_debug_vertices.clear();
+        transient_debug_indices.clear();
+        applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
         if (transient_preview_objects.empty()) {
             transient_saved_camera.reset();
             return true;
@@ -854,9 +1007,12 @@ struct ClientViewerViewport::Impl {
     std::optional<viewer::Camera> transient_saved_camera;
     std::vector<nw::ObjectHandle> transient_preview_objects;
     std::vector<viewer::AreaCreatureLocomotionAnimationInput> transient_animation_inputs;
+    std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
+    std::vector<uint32_t> transient_debug_indices;
     ClientAreaViewerOptions area_options;
     uint64_t applied_area_time_generation = 0;
     uint64_t applied_area_reload_generation = 0;
+    uint64_t applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
 };
 
 ClientViewerViewport::ClientViewerViewport(nw::gfx::Context* context)
@@ -973,6 +1129,12 @@ bool ClientViewerViewport::update_toolset_preview_visuals(
 {
     return impl_
         && impl_->update_toolset_preview_visuals(spatial_rows, locomotion_rows, camera);
+}
+
+bool ClientViewerViewport::update_toolset_preview_navigation_debug(
+    const nw::toolset::PreviewNavigationDebugView& view)
+{
+    return impl_ && impl_->update_toolset_preview_navigation_debug(view);
 }
 
 bool ClientViewerViewport::end_toolset_preview_visuals() noexcept

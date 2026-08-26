@@ -316,6 +316,19 @@ bool ClientRenderer::update_toolset_preview_visuals(
     return false;
 }
 
+bool ClientRenderer::update_toolset_preview_navigation_debug(
+    const nw::toolset::PreviewNavigationDebugView& view)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.update_toolset_preview_navigation_debug(view);
+    }
+#endif
+
+    (void)view;
+    return false;
+}
+
 bool ClientRenderer::end_toolset_preview_visuals() noexcept
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)

@@ -480,6 +480,53 @@ TEST(ClientPreview, RejectsTickOutputBeforeAdvancingSession)
     EXPECT_EQ(after->velocity, initial.velocity);
 }
 
+TEST(ClientPreview, NavigationDebugSnapshotTracksRouteAndToggleLifetime)
+{
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+
+    nw::toolset::ToolsetPreviewSession session;
+    const nw::toolset::PreviewSessionStartInput start{
+        .area = area->handle(),
+        .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+        .spawn_position = module->entry_position,
+        .camera = {.focus = module->entry_position},
+    };
+    const auto started = nw::toolset::start_toolset_preview(session, start);
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+    EXPECT_FALSE(nw::toolset::toolset_preview_navigation_debug(session).enabled);
+
+    ASSERT_EQ(nw::toolset::set_toolset_preview_navigation_debug(session, true),
+        nw::toolset::PreviewStatus::ok);
+    const auto enabled = nw::toolset::toolset_preview_navigation_debug(session);
+    ASSERT_TRUE(enabled.enabled);
+    ASSERT_FALSE(enabled.triangles.empty());
+    const uint64_t initial_revision = enabled.revision;
+
+    const std::array samples{nw::toolset::PreviewInputSample{
+        .click_target = module->entry_position + glm::vec3{1.0f, 0.0f, 0.0f},
+        .flags = nw::toolset::preview_input_click_target,
+    }};
+    std::array<nw::ObjectSpatialState, 1> spatial{};
+    std::array<nw::toolset::PreviewActorLocomotion, 1> locomotion{};
+    ASSERT_EQ(nw::toolset::tick_toolset_preview(
+                  session, samples, spatial, locomotion)
+                  .status,
+        nw::toolset::PreviewStatus::ok);
+    const auto routed = nw::toolset::toolset_preview_navigation_debug(session);
+    EXPECT_TRUE(routed.has_requested_target);
+    EXPECT_GT(routed.revision, initial_revision);
+
+    ASSERT_EQ(nw::toolset::set_toolset_preview_navigation_debug(session, false),
+        nw::toolset::PreviewStatus::ok);
+    EXPECT_FALSE(nw::toolset::toolset_preview_navigation_debug(session).enabled);
+    nw::toolset::stop_toolset_preview(session);
+    EXPECT_EQ(nw::toolset::set_toolset_preview_navigation_debug(session, true),
+        nw::toolset::PreviewStatus::idle);
+}
+
 TEST(ClientPreview, RepeatsLifecycleWithoutGrowingLiveState)
 {
     auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
