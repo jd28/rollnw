@@ -213,6 +213,11 @@ public:
         float pixel_y,
         ViewerViewport viewport,
         AreaObjectSelectionTarget target = AreaObjectSelectionTarget::object);
+    [[nodiscard]] AreaObjectCandidateSelection select_area_object_candidate(
+        float pixel_x,
+        float pixel_y,
+        ViewerViewport viewport,
+        std::span<const nw::ObjectHandle> candidates);
     bool set_area_object_selection(nw::ObjectHandle object) noexcept;
     // One viewport owns one active selection and one camera, so this event-level
     // transform is genuinely singular. Missing or non-finite focus data returns
@@ -226,6 +231,13 @@ public:
         std::span<const nw::ObjectSpatialState> spatial_states);
     [[nodiscard]] AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
         std::span<const AreaCreatureLocomotionAnimationInput> inputs);
+    [[nodiscard]] AreaDoorAnimationStats begin_area_door_animation_lease(
+        std::span<const AreaDoorAnimationInput> inputs,
+        AreaDoorAnimationLease& lease);
+    [[nodiscard]] AreaDoorAnimationStats update_area_door_animations(
+        std::span<const AreaDoorAnimationInput> inputs);
+    bool restore_area_door_animation_lease(
+        AreaDoorAnimationLease& lease) noexcept;
     [[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
         std::span<const nw::ObjectHandle> objects, float opacity);
     [[nodiscard]] AreaTransientVisualResult append_area_transient_visuals(

@@ -1,4 +1,5 @@
 #include <nw/nav/NavGeometry.hpp>
+#include <nw/nav/NavTileBuild.hpp>
 #include <nw/nav/NavWorld.hpp>
 
 #include "../tools/client/preview_session.hpp"
@@ -11,10 +12,23 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 namespace {
+
+double percentile_95(const std::vector<double>& samples)
+{
+    if (samples.empty()) return 0.0;
+    auto sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+    const size_t index = static_cast<size_t>(
+                             std::ceil(static_cast<double>(sorted.size()) * 0.95))
+        - 1;
+    return sorted[index];
+}
 
 nw::nav::NavGeometry make_tile_floor(uint32_t width, uint32_t height)
 {
@@ -58,49 +72,108 @@ nw::nav::NavGeometry make_tile_floor(uint32_t width, uint32_t height)
     return geometry;
 }
 
-bool build_floor_world(
-    uint32_t width,
-    uint32_t height,
-    const nw::nav::NavGeometry& geometry,
-    nw::nav::NavWorldState& world,
-    nw::nav::NavBuildStats& stats)
+nw::nav::NavAreaBuildSource make_recast_floor(
+    uint32_t width, uint32_t height)
 {
-    constexpr std::array<uint8_t, 2> walkable{0, 1};
-    return nw::nav::build_nav_world(geometry, walkable, width, height, world, stats)
+    auto geometry = make_tile_floor(width, height);
+    nw::nav::NavAreaBuildSource source;
+    source.surface_vertices = std::move(geometry.vertices);
+    source.surface_indices = std::move(geometry.indices);
+    source.surface_ids = std::move(geometry.surface);
+    source.surface_walkable = {0u, 1u, 0u};
+    source.width = width;
+    source.height = height;
+    return source;
+}
+
+void append_recast_wall(nw::nav::NavAreaBuildSource& source,
+    float x, float minimum_y, float maximum_y, uint32_t state)
+{
+    const uint32_t vertex
+        = static_cast<uint32_t>(source.obstacle_vertices.size());
+    source.obstacle_vertices.insert(source.obstacle_vertices.end(), {
+                                                                        {x, minimum_y, 0.0f},
+                                                                        {x, maximum_y, 0.0f},
+                                                                        {x, minimum_y, 2.0f},
+                                                                        {x, maximum_y, 2.0f},
+                                                                    });
+    source.obstacle_indices.insert(source.obstacle_indices.end(), {
+                                                                      vertex,
+                                                                      vertex + 1,
+                                                                      vertex + 2,
+                                                                      vertex + 2,
+                                                                      vertex + 1,
+                                                                      vertex + 3,
+                                                                  });
+    source.obstacle_surface_ids.insert(
+        source.obstacle_surface_ids.end(), 2, 2u);
+    source.obstacle_owner.insert(source.obstacle_owner.end(), 2, state);
+    source.obstacle_state_count
+        = std::max(source.obstacle_state_count, state + 1);
+}
+
+void reserve_route_outputs(size_t request_count,
+    nw::Vector<glm::vec3>& corners,
+    nw::nav::NavRouteArena& routes)
+{
+    corners.reserve(request_count * nw::nav::maximum_nav_path_corners);
+    routes.polygons.reserve(
+        request_count * nw::nav::maximum_nav_path_polygons);
+    routes.tile_keys.reserve(
+        request_count * nw::nav::maximum_nav_path_polygons);
+    routes.traversals.reserve(
+        request_count * nw::nav::maximum_nav_path_corners);
+}
+
+bool build_recast_world(const nw::nav::NavAreaBuildSource& source,
+    std::span<const uint8_t> active,
+    nw::nav::NavWorldState& world,
+    nw::nav::NavTiledWorldBuildStats& stats)
+{
+    nw::nav::NavTileBuildConfig config;
+    config.erosion_cells = 1;
+    return nw::nav::build_tiled_nav_world(source, active,
+               config, world, stats)
         == nw::nav::NavStatus::ok;
 }
 
-void BM_nav_cold_build(benchmark::State& state)
+void BM_recast_cold_build(benchmark::State& state)
 {
     const uint32_t edge = static_cast<uint32_t>(state.range(0));
-    const auto geometry = make_tile_floor(edge, edge);
-    nw::nav::NavBuildStats last_stats;
+    const auto source = make_recast_floor(edge, edge);
+    nw::nav::NavTiledWorldBuildStats last_stats;
     for (auto _ : state) {
         nw::nav::NavWorldState world;
-        nw::nav::NavBuildStats stats;
-        if (!build_floor_world(edge, edge, geometry, world, stats)) {
-            state.SkipWithError("failed to build synthetic NWN tile navigation world");
+        nw::nav::NavTiledWorldBuildStats stats;
+        if (!build_recast_world(source, {}, world, stats)) {
+            state.SkipWithError("failed to build synthetic Recast tiled world");
             break;
         }
         last_stats = stats;
         benchmark::DoNotOptimize(world.impl.get());
     }
-    state.counters["tiles"] = static_cast<double>(last_stats.tile_count);
-    state.counters["triangles"] = static_cast<double>(last_stats.polygon_count);
-    state.counters["payload_bytes"] = static_cast<double>(last_stats.payload_bytes);
-    state.SetItemsProcessed(
-        state.iterations() * static_cast<int64_t>(geometry.triangle_count()));
+    state.counters["tiles"]
+        = static_cast<double>(last_stats.built_tile_count);
+    state.counters["polygons"]
+        = static_cast<double>(last_stats.polygon_count);
+    state.counters["payload_bytes"]
+        = static_cast<double>(last_stats.payload_bytes);
+    state.counters["polygon_graph_bytes"]
+        = static_cast<double>(last_stats.polygon_graph_bytes);
+    state.counters["polygon_graph_build_us"]
+        = static_cast<double>(last_stats.polygon_graph_build_nanoseconds)
+        / 1.0e3;
 }
-BENCHMARK(BM_nav_cold_build)->Arg(1)->Arg(8)->Arg(32);
+BENCHMARK(BM_recast_cold_build)->Arg(1)->Arg(8)->Arg(32);
 
-void BM_nav_path_batch(benchmark::State& state)
+void run_recast_path_batch(benchmark::State& state,
+    nw::nav::NavAreaBuildSource source,
+    std::span<const uint8_t> active)
 {
-    constexpr uint32_t edge = 32;
-    const auto geometry = make_tile_floor(edge, edge);
     nw::nav::NavWorldState world;
-    nw::nav::NavBuildStats build_stats;
-    if (!build_floor_world(edge, edge, geometry, world, build_stats)) {
-        state.SkipWithError("failed to build path benchmark navigation world");
+    nw::nav::NavTiledWorldBuildStats build_stats;
+    if (!build_recast_world(source, active, world, build_stats)) {
+        state.SkipWithError("failed to build path benchmark Recast world");
         return;
     }
 
@@ -108,38 +181,158 @@ void BM_nav_path_batch(benchmark::State& state)
     nw::Vector<nw::nav::NavPathRequest> requests(batch_size);
     nw::Vector<nw::nav::NavPathResult> results(batch_size);
     nw::Vector<glm::vec3> corners;
-    corners.reserve(batch_size * 64);
+    nw::nav::NavRouteArena routes;
+    reserve_route_outputs(batch_size, corners, routes);
     for (size_t index = 0; index < batch_size; ++index) {
-        const float inset = 1.0f + static_cast<float>(index % 8) * 0.5f;
+        const float offset = static_cast<float>(index % 32) * 0.125f;
         requests[index] = {
-            {inset, inset, 0.0f},
-            {static_cast<float>(edge) * 10.0f - inset,
-                static_cast<float>(edge) * 10.0f - inset, 0.0f},
-            0.3f,
+            .start = {5.0f, 155.0f + offset, 0.0f},
+            .end = {315.0f, 155.0f + offset, 0.0f},
         };
     }
 
     for (auto _ : state) {
-        const auto stats = nw::nav::find_nav_paths(world, requests, corners, results);
+        const auto stats = nw::nav::find_nav_paths(
+            world, requests, corners, routes, results);
         if (stats.output_count != requests.size()) {
-            state.SkipWithError("path batch failed");
+            state.SkipWithError("Recast path batch failed");
             break;
         }
         benchmark::DoNotOptimize(corners.data());
+        benchmark::DoNotOptimize(routes.polygons.data());
     }
-    state.counters["tiles"] = static_cast<double>(build_stats.tile_count);
-    state.SetItemsProcessed(state.iterations() * static_cast<int64_t>(batch_size));
+    state.counters["polygons"]
+        = static_cast<double>(build_stats.polygon_count);
+    state.SetItemsProcessed(
+        state.iterations() * static_cast<int64_t>(batch_size));
 }
-BENCHMARK(BM_nav_path_batch)->Arg(1)->Arg(32)->Arg(128);
+
+void BM_recast_direct_path_batch(benchmark::State& state)
+{
+    run_recast_path_batch(state, make_recast_floor(32, 32), {});
+}
+BENCHMARK(BM_recast_direct_path_batch)
+    ->Arg(1)
+    ->Arg(32)
+    ->Arg(128)
+    ->ComputeStatistics("p95", percentile_95);
+
+void BM_recast_obstructed_path_batch(benchmark::State& state)
+{
+    auto source = make_recast_floor(32, 32);
+    append_recast_wall(source, 160.0f, -2.0f, 300.0f, 0);
+    constexpr std::array<uint8_t, 1> active{1u};
+    run_recast_path_batch(state, std::move(source), active);
+}
+BENCHMARK(BM_recast_obstructed_path_batch)
+    ->Arg(1)
+    ->Arg(32)
+    ->Arg(128)
+    ->ComputeStatistics("p95", percentile_95);
+
+void BM_recast_door_path_batch(benchmark::State& state)
+{
+    auto source = make_recast_floor(32, 32);
+    append_recast_wall(source, 160.0f, -2.0f, 322.0f, 0);
+    source.door_links = {
+        {
+            .start = {159.0f, 160.0f, 0.0f},
+            .end = {161.0f, 160.0f, 0.0f},
+            .radius = 0.125f,
+            .door_index = 0,
+            .active_obstacle_state = 0,
+            .side = 0,
+        },
+        {
+            .start = {161.0f, 160.0f, 0.0f},
+            .end = {159.0f, 160.0f, 0.0f},
+            .radius = 0.125f,
+            .door_index = 0,
+            .active_obstacle_state = 0,
+            .side = 1,
+        },
+    };
+    constexpr std::array<uint8_t, 1> active{1u};
+    run_recast_path_batch(state, std::move(source), active);
+}
+BENCHMARK(BM_recast_door_path_batch)
+    ->Arg(1)
+    ->Arg(32)
+    ->Arg(128)
+    ->ComputeStatistics("p95", percentile_95);
+
+void BM_recast_door_rebuild(benchmark::State& state)
+{
+    auto source = make_recast_floor(32, 32);
+    // Representative closed leaf and both directional traversal rows on a
+    // tile seam. Toggling the state rebuilds the leaf and changes graph
+    // topology exactly like one closed/open door transition.
+    append_recast_wall(source, 160.0f, 159.0f, 161.0f, 0);
+    source.door_links = {
+        {
+            .start = {159.0f, 160.0f, 0.0f},
+            .end = {161.0f, 160.0f, 0.0f},
+            .radius = 0.125f,
+            .door_index = 0,
+            .active_obstacle_state = 0,
+            .side = 0,
+        },
+        {
+            .start = {161.0f, 160.0f, 0.0f},
+            .end = {159.0f, 160.0f, 0.0f},
+            .radius = 0.125f,
+            .door_index = 0,
+            .active_obstacle_state = 0,
+            .side = 1,
+        },
+    };
+    constexpr std::array<uint8_t, 1> initially_active{1u};
+    nw::nav::NavWorldState world;
+    nw::nav::NavTiledWorldBuildStats build;
+    if (!build_recast_world(source, initially_active, world, build)) {
+        state.SkipWithError("failed to build door rebuild benchmark world");
+        return;
+    }
+    nw::Vector<uint32_t> rebuilt(
+        static_cast<size_t>(source.width) * source.height);
+    nw::nav::NavTileRebuildStats last_stats;
+    uint8_t active = 0;
+    for (auto _ : state) {
+        const std::array changes{nw::nav::NavObstacleStateChange{
+            .obstacle_state = 0,
+            .active = active,
+        }};
+        nw::nav::NavTileRebuildStats stats;
+        if (nw::nav::rebuild_nav_tiles(
+                world, source, changes, rebuilt, stats)
+            != nw::nav::NavStatus::ok) {
+            state.SkipWithError("door tile rebuild failed");
+            break;
+        }
+        last_stats = stats;
+        active ^= 1u;
+        benchmark::DoNotOptimize(rebuilt.data());
+    }
+    state.counters["affected_tiles"]
+        = static_cast<double>(last_stats.affected_tile_count);
+    state.counters["aggregate_tile_build_us"]
+        = static_cast<double>(last_stats.tile_build_nanoseconds) / 1.0e3;
+    state.counters["graph_build_us"]
+        = static_cast<double>(last_stats.polygon_graph_build_nanoseconds)
+        / 1.0e3;
+}
+BENCHMARK(BM_recast_door_rebuild)
+    ->ComputeStatistics("p95", percentile_95);
 
 void BM_nav_locomotion_batch(benchmark::State& state)
 {
     constexpr uint32_t edge = 32;
-    const auto geometry = make_tile_floor(edge, edge);
+    const auto source = make_recast_floor(edge, edge);
     nw::nav::NavWorldState world;
-    nw::nav::NavBuildStats build_stats;
-    if (!build_floor_world(edge, edge, geometry, world, build_stats)) {
-        state.SkipWithError("failed to build locomotion benchmark navigation world");
+    nw::nav::NavTiledWorldBuildStats build_stats;
+    if (!build_recast_world(source, {}, world, build_stats)) {
+        state.SkipWithError(
+            "failed to build locomotion benchmark Recast world");
         return;
     }
 
@@ -148,7 +341,6 @@ void BM_nav_locomotion_batch(benchmark::State& state)
     for (size_t index = 0; index < batch_size; ++index) {
         const float offset = static_cast<float>(index % 64) * 0.01f;
         registrations[index].position = {5.0f + offset, 5.0f + offset, 0.0f};
-        registrations[index].clearance = 0.3f;
     }
     nw::Vector<nw::nav::NavAgentRegistrationResult> registered(batch_size);
     if (nw::nav::register_nav_agents(world, registrations, registered).output_count
@@ -261,8 +453,10 @@ void BM_preview_cold_start(benchmark::State& state)
         nw::toolset::stop_toolset_preview(session);
     }
     state.counters["tiles"] = static_cast<double>(last_stats.tile_count);
-    state.counters["triangles"] = static_cast<double>(last_stats.navigation_triangle_count);
-    state.counters["blocker_triangles"] = static_cast<double>(last_stats.blocker_triangle_count);
+    state.counters["surface_triangles"]
+        = static_cast<double>(last_stats.authored_surface_triangle_count);
+    state.counters["obstacle_triangles"]
+        = static_cast<double>(last_stats.obstacle_triangle_count);
     state.counters["nav_payload_bytes"] = static_cast<double>(last_stats.navigation_payload_bytes);
 
     nw::kernel::unload_module();

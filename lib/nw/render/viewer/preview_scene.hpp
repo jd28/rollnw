@@ -317,6 +317,7 @@ struct PreviewScene {
     std::vector<uint32_t> spatial_update_model_scratch;
     std::vector<uint32_t> runtime_sync_model_scratch;
     std::vector<uint32_t> runtime_sync_binding_scratch;
+    std::vector<uint32_t> particle_rebuild_model_scratch;
     std::vector<nw::ObjectHandle> spatial_update_owner_scratch;
     bool runtime_update_indices_dirty = true;
     std::vector<SceneParticleSystem> particles;
@@ -354,6 +355,10 @@ struct PreviewScene {
 
     void rebuild_load_report(std::string_view source, std::string_view kind);
     void rebuild_particles(std::string_view animation_name = {});
+    // Replaces particle rows only for the borrowed dense model-index batch.
+    // Duplicate and out-of-range indices are ignored. Unselected model rows
+    // and standalone particle effects retain their live state.
+    void rebuild_model_particles(std::span<const uint32_t> model_indices);
     void update(int32_t dt_ms);
     void set_particle_target_point(
         nw::render::ModelInstanceHandle owner_handle, uint32_t owner_model_index, const glm::vec3& target_point);

@@ -10,6 +10,11 @@ namespace nw {
 
 struct Tile {
     String model;
+    // Raw SET routing hint. This is retained at the NWN adapter boundary for
+    // corpus audit and possible long-range routing; local navigation does not
+    // interpret it.
+    String path_node;
+    int32_t path_node_orientation = 0;
 };
 
 /// Abstraction of the SET tileset file.

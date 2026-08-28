@@ -107,6 +107,8 @@ int run_dump_command(std::string_view resref, const std::filesystem::path& outpu
     std::string_view module_path, std::string_view user_path);
 int run_stats_command(std::string_view resref, std::string_view module_path, std::string_view user_path);
 int run_area_lights_command(std::string_view area_resref, std::string_view module_path, std::string_view user_path);
+int run_nav_audit_command(std::string_view area_resref,
+    std::string_view module_path, std::string_view user_path);
 int run_texture_command(std::string_view resref, const std::filesystem::path& output_path,
     std::string_view module_path, std::string_view user_path);
 std::optional<VfxSequence> resolve_spell_sequence(std::string_view spell_id);

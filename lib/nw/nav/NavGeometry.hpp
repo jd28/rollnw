@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../config.hpp"
+#include "../objects/ObjectHandle.hpp"
 
 #include <glm/mat4x4.hpp>
 
+#include <array>
 #include <cstdint>
 #include <span>
 
@@ -29,6 +31,8 @@ enum class NavGeometryKind : uint8_t {
 enum class NavGeometryNodeSelection : uint8_t {
     all,
     door_closed,
+    door_open1,
+    door_open2,
 };
 
 /// Flat navigation geometry. Per-triangle arrays have indices.size() / 3 rows.
@@ -116,13 +120,54 @@ struct NavObjectGeometryStats {
     NavGeometryAppendStats append;
 };
 
+enum class NavDoorState : uint8_t {
+    closed = 0,
+    open1 = 1,
+    open2 = 2,
+};
+
+/// NWN-adapter row for one live door. Obstacle states are dense rows in the
+/// sibling active array. position/normal and closed_half_depth are authored
+/// world-space inputs used to derive projected link endpoints per radius class.
+struct NavDoorObstacleRow {
+    ObjectHandle door{};
+    glm::vec3 position{0.0f};
+    glm::vec3 normal{0.0f};
+    std::array<glm::vec3, 2> approach_positions{};
+    std::array<uint8_t, 2> approach_valid{};
+    float closed_half_depth = 0.0f;
+    uint32_t door_index = UINT32_MAX;
+    uint32_t closed_obstacle_state = UINT32_MAX;
+    uint32_t open1_obstacle_state = UINT32_MAX;
+    uint32_t open2_obstacle_state = UINT32_MAX;
+    NavDoorState state = NavDoorState::closed;
+};
+
+/// Cold NWN import snapshot. Geometry includes static PWKs and all three DWK
+/// state variants; active has one binary row per dense obstacle state. Shared
+/// Recast code consumes only the flattened geometry and active arrays.
+struct NavObjectObstacleSnapshot {
+    NavGeometry geometry;
+    Vector<uint8_t> active;
+    Vector<NavDoorObstacleRow> doors;
+
+    void clear();
+};
+
 /// Replaces output with placed placeable PWKs and closed-state door DWKs.
-/// Visual model selection comes from ObjectVisualState populated at object
-/// instantiation; this transform does not repeat appearance-table policy.
+/// Triangle owners are dense, snapshot-local obstacle-state rows; they are not
+/// object identifiers. Visual model selection comes from ObjectVisualState
+/// populated at object instantiation; this transform does not repeat
+/// appearance-table policy.
 NavObjectGeometryStats build_area_object_nav_geometry(
     const Area& area,
     const ResourceManager& resources,
     NavGeometry& output);
+
+NavObjectGeometryStats build_area_object_nav_obstacles(
+    const Area& area,
+    const ResourceManager& resources,
+    NavObjectObstacleSnapshot& output);
 
 struct NavSurfaceCatalogStats {
     size_t row_count = 0;

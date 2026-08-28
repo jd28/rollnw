@@ -43,6 +43,7 @@ enum class ObjectDetailsEditorKind : uint8_t {
     read_only,
     boolean,
     integer,
+    door_state,
 };
 
 struct ObjectDetailsRow {

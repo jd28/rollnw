@@ -339,6 +339,11 @@ struct ClientViewerViewport::Impl {
             return false;
         }
 
+        if (!end_toolset_preview_visuals()) {
+            LOG_F(WARNING,
+                "Client area render: preview visuals could not be fully restored before loading '{}'",
+                area_resref);
+        }
         store_loaded_camera();
         if (!session->load_area(area_resref)) {
             failed_area_resref = area_resref;
@@ -564,6 +569,28 @@ struct ClientViewerViewport::Impl {
             pixel_x, pixel_y, to_viewer_viewport(viewport));
     }
 
+    std::optional<ClientAreaDoorHit> area_door_hit(
+        float pixel_x,
+        float pixel_y,
+        ClientViewportRect viewport,
+        std::span<const nw::ObjectHandle> doors)
+    {
+        if (!session || !viewport.valid() || doors.empty()) {
+            return std::nullopt;
+        }
+        const auto hit = session->select_area_object_candidate(
+            pixel_x, pixel_y, to_viewer_viewport(viewport), doors);
+        if (hit.status != viewer::AreaObjectSelectionStatus::hit) {
+            return std::nullopt;
+        }
+        return ClientAreaDoorHit{
+            .door = hit.object,
+            .bounds_min = hit.bounds.min,
+            .bounds_max = hit.bounds.max,
+            .door_index = hit.candidate_index,
+        };
+    }
+
     bool preview_area_object_spatial(const nw::ObjectSpatialState& spatial)
     {
         if (!session) {
@@ -582,6 +609,7 @@ struct ClientViewerViewport::Impl {
 
     bool begin_toolset_preview_visuals(
         std::span<const nw::ObjectHandle> objects,
+        std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera)
     {
         if (!session || objects.empty() || !transient_preview_objects.empty()
@@ -589,8 +617,32 @@ struct ClientViewerViewport::Impl {
             return false;
         }
 
+        transient_door_animation_inputs.clear();
+        transient_door_animation_inputs.reserve(doors.size());
+        for (const auto& door : doors) {
+            transient_door_animation_inputs.push_back({
+                .owner = door.door,
+                .state = door.state == nw::toolset::PreviewDoorState::open1
+                    ? viewer::AreaDoorAnimationState::open1
+                    : door.state == nw::toolset::PreviewDoorState::open2
+                    ? viewer::AreaDoorAnimationState::open2
+                    : viewer::AreaDoorAnimationState::closed,
+                .phase = viewer::AreaDoorAnimationPhase::hold,
+                .side = door.side,
+            });
+        }
+        const auto door_stats = session->begin_area_door_animation_lease(
+            transient_door_animation_inputs, transient_door_animation_lease);
+        if (door_stats.rejected_input_count != 0) {
+            transient_door_animation_inputs.clear();
+            return false;
+        }
+
         const auto append = session->append_area_transient_visuals(objects);
         if (!append.ok()) {
+            (void)session->restore_area_door_animation_lease(
+                transient_door_animation_lease);
+            transient_door_animation_inputs.clear();
             LOG_F(ERROR, "Client preview visuals: {}", append.diagnostic);
             return false;
         }
@@ -616,6 +668,7 @@ struct ClientViewerViewport::Impl {
     bool update_toolset_preview_visuals(
         std::span<const nw::ObjectSpatialState> spatial_rows,
         std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera)
     {
         if (!session || transient_preview_objects.empty()
@@ -662,6 +715,26 @@ struct ClientViewerViewport::Impl {
         if (animation_stats.rejected_input_count != 0) {
             return false;
         }
+        if (doors.size() != transient_door_animation_inputs.size()) {
+            return false;
+        }
+        for (size_t index = 0; index < doors.size(); ++index) {
+            const auto& door = doors[index];
+            auto& input = transient_door_animation_inputs[index];
+            if (door.door != input.owner) return false;
+            input.state = door.state == nw::toolset::PreviewDoorState::open1
+                ? viewer::AreaDoorAnimationState::open1
+                : door.state == nw::toolset::PreviewDoorState::open2
+                ? viewer::AreaDoorAnimationState::open2
+                : viewer::AreaDoorAnimationState::closed;
+            input.phase = door.transition
+                ? viewer::AreaDoorAnimationPhase::transition
+                : viewer::AreaDoorAnimationPhase::hold;
+            input.side = door.side;
+        }
+        const auto door_stats = session->update_area_door_animations(
+            transient_door_animation_inputs);
+        if (door_stats.rejected_input_count != 0) return false;
         apply_preview_camera(session->camera(), camera);
         return true;
     }
@@ -704,14 +777,13 @@ struct ClientViewerViewport::Impl {
         transient_debug_indices.reserve(index_count);
 
         constexpr glm::vec3 kSurfaceOffset{0.0f, 0.0f, 0.035f};
-        constexpr glm::vec4 kWalkableEven{0.02f, 0.48f, 0.24f, 0.18f};
-        constexpr glm::vec4 kWalkableOdd{0.02f, 0.30f, 0.56f, 0.18f};
+        constexpr glm::vec4 kWalkable{0.02f, 0.48f, 0.24f, 0.18f};
         constexpr glm::vec4 kBlocked{0.68f, 0.04f, 0.03f, 0.32f};
         for (size_t index = 0; index < view.triangles.size(); ++index) {
             const auto& triangle = view.triangles[index];
             const glm::vec4 color = triangle.state == nw::nav::NavDebugPolygonState::blocked
                 ? kBlocked
-                : (index % 2 == 0 ? kWalkableEven : kWalkableOdd);
+                : kWalkable;
             append_transient_debug_triangle(
                 transient_debug_vertices,
                 transient_debug_indices,
@@ -776,9 +848,15 @@ struct ClientViewerViewport::Impl {
         transient_debug_vertices.clear();
         transient_debug_indices.clear();
         applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
+        bool doors_restored = true;
+        if (session && transient_door_animation_lease.active) {
+            doors_restored = session->restore_area_door_animation_lease(
+                transient_door_animation_lease);
+        }
+        transient_door_animation_inputs.clear();
         if (transient_preview_objects.empty()) {
             transient_saved_camera.reset();
-            return true;
+            return doors_restored;
         }
 
         bool removed = false;
@@ -796,7 +874,7 @@ struct ClientViewerViewport::Impl {
         transient_preview_objects.clear();
         transient_animation_inputs.clear();
         transient_saved_camera.reset();
-        return removed;
+        return removed && doors_restored;
     }
 
     std::optional<glm::vec3> area_camera_focus() const noexcept
@@ -916,6 +994,13 @@ struct ClientViewerViewport::Impl {
         return scene && scene->is_area ? scene->root_object : nw::ObjectHandle{};
     }
 
+    bool matches_area_resource(std::string_view area_resource) const
+    {
+        const auto* scene = session ? session->scene() : nullptr;
+        return scene && scene->is_area
+            && loaded_area_resref == area_resref_from_resource(area_resource);
+    }
+
     void set_area_lights_enabled(bool enabled) noexcept
     {
         area_options.lights_enabled = enabled;
@@ -1007,6 +1092,8 @@ struct ClientViewerViewport::Impl {
     std::optional<viewer::Camera> transient_saved_camera;
     std::vector<nw::ObjectHandle> transient_preview_objects;
     std::vector<viewer::AreaCreatureLocomotionAnimationInput> transient_animation_inputs;
+    std::vector<viewer::AreaDoorAnimationInput> transient_door_animation_inputs;
+    viewer::AreaDoorAnimationLease transient_door_animation_lease;
     std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
     std::vector<uint32_t> transient_debug_indices;
     ClientAreaViewerOptions area_options;
@@ -1104,6 +1191,17 @@ std::optional<glm::vec3> ClientViewerViewport::area_surface_point(
     return impl_ ? impl_->area_surface_point(pixel_x, pixel_y, viewport) : std::nullopt;
 }
 
+std::optional<ClientAreaDoorHit> ClientViewerViewport::area_door_hit(
+    float pixel_x,
+    float pixel_y,
+    ClientViewportRect viewport,
+    std::span<const nw::ObjectHandle> doors)
+{
+    return impl_
+        ? impl_->area_door_hit(pixel_x, pixel_y, viewport, doors)
+        : std::nullopt;
+}
+
 bool ClientViewerViewport::preview_area_object_spatial(const nw::ObjectSpatialState& spatial)
 {
     return impl_ && impl_->preview_area_object_spatial(spatial);
@@ -1117,18 +1215,21 @@ bool ClientViewerViewport::append_area_object_previews(
 
 bool ClientViewerViewport::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
-    return impl_ && impl_->begin_toolset_preview_visuals(objects, camera);
+    return impl_ && impl_->begin_toolset_preview_visuals(objects, doors, camera);
 }
 
 bool ClientViewerViewport::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
     return impl_
-        && impl_->update_toolset_preview_visuals(spatial_rows, locomotion_rows, camera);
+        && impl_->update_toolset_preview_visuals(
+            spatial_rows, locomotion_rows, doors, camera);
 }
 
 bool ClientViewerViewport::update_toolset_preview_navigation_debug(
@@ -1220,4 +1321,9 @@ nw::ObjectHandle ClientViewerViewport::active_object() const noexcept
 nw::ObjectHandle ClientViewerViewport::area_object() const noexcept
 {
     return impl_->area_object();
+}
+
+bool ClientViewerViewport::matches_area_resource(std::string_view area_resource) const
+{
+    return impl_ && impl_->matches_area_resource(area_resource);
 }

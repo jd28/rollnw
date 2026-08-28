@@ -2,6 +2,7 @@
 
 #include "../formats/StaticTwoDA.hpp"
 #include "../formats/Tileset.hpp"
+#include "../kernel/Kernel.hpp"
 #include "../model/Mdl.hpp"
 #include "../objects/Area.hpp"
 #include "../objects/AreaTransforms.hpp"
@@ -9,6 +10,7 @@
 #include "../objects/ObjectManager.hpp"
 #include "../objects/Placeable.hpp"
 #include "../resources/ResourceManager.hpp"
+#include "../smalls/runtime.hpp"
 #include "../util/string.hpp"
 
 #include <glm/common.hpp>
@@ -20,6 +22,7 @@
 #include <cmath>
 #include <compare>
 #include <limits>
+#include <optional>
 
 #include <absl/container/flat_hash_map.h>
 
@@ -46,7 +49,17 @@ bool mesh_selected(const model::TrimeshNode& mesh, NavGeometryNodeSelection sele
     if (selection == NavGeometryNodeSelection::all) return true;
     String name = mesh.name;
     string::tolower(&name);
-    return name.find("closed") != String::npos;
+    switch (selection) {
+    case NavGeometryNodeSelection::door_closed:
+        return name.find("closed") != String::npos;
+    case NavGeometryNodeSelection::door_open1:
+        return name.find("open1") != String::npos;
+    case NavGeometryNodeSelection::door_open2:
+        return name.find("open2") != String::npos;
+    case NavGeometryNodeSelection::all:
+        return true;
+    }
+    return false;
 }
 
 const ObjectVisualModel* root_visual_model(const ObjectBase& object)
@@ -59,6 +72,25 @@ const ObjectVisualModel* root_visual_model(const ObjectBase& object)
             && object_visual_model_visible_in_mode(model, ObjectVisualRenderMode::game);
     });
     return found != visual->models.end() ? &*found : nullptr;
+}
+
+std::optional<NavDoorState> door_state(ObjectHandle door)
+{
+    auto& runtime = kernel::runtime();
+    if (!runtime.load_module("nwn1.propsets")) return std::nullopt;
+    const auto type = runtime.type_id("nwn1.propsets.DoorState", false);
+    const auto* definition = runtime.get_struct_def(type);
+    const uint32_t field
+        = definition ? definition->field_index("open_state") : UINT32_MAX;
+    if (!definition || field == UINT32_MAX) return std::nullopt;
+    const auto propset = runtime.find_propset_ref(type, door);
+    const auto value
+        = runtime.read_struct_value_field(propset, definition, field);
+    if (value.type_id != runtime.int_type() || value.data.ival < 0
+        || value.data.ival > 2) {
+        return std::nullopt;
+    }
+    return static_cast<NavDoorState>(value.data.ival);
 }
 
 glm::mat4 node_local_transform(const model::Node& node)
@@ -178,6 +210,13 @@ void NavGeometry::clear()
     kind.clear();
     owner.clear();
     adjacency.clear();
+}
+
+void NavObjectObstacleSnapshot::clear()
+{
+    geometry.clear();
+    active.clear();
+    doors.clear();
 }
 
 bool NavGeometry::valid() const noexcept
@@ -477,7 +516,6 @@ NavObjectGeometryStats build_area_object_nav_geometry(
         AreaObjectTransformInput transform;
         NavGeometryKind kind = NavGeometryKind::placeable_pwk;
         NavGeometryNodeSelection node_selection = NavGeometryNodeSelection::all;
-        uint32_t owner = 0;
     };
 
     Vector<ObjectRow> object_rows;
@@ -508,7 +546,6 @@ NavObjectGeometryStats build_area_object_nav_geometry(
             .transform = {spatial->position, spatial->orientation, spatial->scale},
             .kind = kind,
             .node_selection = selection,
-            .owner = static_cast<uint32_t>(object->handle().id),
         });
     };
 
@@ -564,17 +601,208 @@ NavObjectGeometryStats build_area_object_nav_geometry(
             ++stats.rejected_object_count;
             continue;
         }
+        if (append_inputs.size() >= UINT32_MAX) {
+            ++stats.rejected_object_count;
+            continue;
+        }
         append_inputs.push_back({
             .model = &cached.model->model,
             .transform = transforms[i],
             .kind = object_rows[i].kind,
             .node_selection = object_rows[i].node_selection,
-            .owner = object_rows[i].owner,
+            .owner = static_cast<uint32_t>(append_inputs.size()),
         });
     }
 
     stats.unique_resource_count = cached_models.size();
     stats.append = append_nav_geometry_models(append_inputs, output);
+    return stats;
+}
+
+NavObjectGeometryStats build_area_object_nav_obstacles(
+    const Area& area,
+    const ResourceManager& resources,
+    NavObjectObstacleSnapshot& output)
+{
+    NavObjectGeometryStats stats;
+    output.clear();
+
+    struct ObjectRow {
+        ObjectBase* object = nullptr;
+        Resource resource;
+        AreaObjectTransformInput transform;
+        NavGeometryKind kind = NavGeometryKind::placeable_pwk;
+    };
+    Vector<ObjectRow> rows;
+    rows.reserve(area.placeables.size() + area.doors.size());
+    const auto append_object = [&](ObjectBase* object, NavGeometryKind kind,
+                                   ResourceType::type resource_type) {
+        if (!object || object->handle().id == object_invalid
+            || !object->instantiate()) {
+            ++stats.rejected_object_count;
+            return;
+        }
+        const auto* visual = root_visual_model(*object);
+        if (!visual) {
+            ++stats.missing_visual_count;
+            return;
+        }
+        const Resource resource{visual->model, resource_type};
+        if (!resources.contains(resource)) {
+            ++stats.missing_walkmesh_count;
+            return;
+        }
+        const auto* spatial
+            = kernel::objects().components().find_spatial(object->handle());
+        if (!spatial) {
+            ++stats.rejected_object_count;
+            return;
+        }
+        rows.push_back({
+            .object = object,
+            .resource = resource,
+            .transform = {
+                spatial->position, spatial->orientation, spatial->scale},
+            .kind = kind,
+        });
+    };
+
+    stats.placeable_count = area.placeables.size();
+    for (auto* placeable : area.placeables) {
+        append_object(
+            placeable, NavGeometryKind::placeable_pwk, ResourceType::pwk);
+    }
+    stats.door_count = area.doors.size();
+    for (auto* door : area.doors) {
+        append_object(door, NavGeometryKind::door_dwk, ResourceType::dwk);
+    }
+
+    Vector<AreaObjectTransformInput> transform_inputs;
+    transform_inputs.reserve(rows.size());
+    for (const auto& row : rows)
+        transform_inputs.push_back(row.transform);
+    Vector<glm::mat4> transforms(rows.size(), glm::mat4{1.0f});
+    const auto transform_stats
+        = build_area_object_world_transforms(transform_inputs, transforms);
+    stats.rejected_object_count += transform_stats.rejected_count;
+
+    struct CachedModel {
+        std::unique_ptr<model::Mdl> model;
+        bool valid = false;
+        bool empty = false;
+    };
+    Vector<CachedModel> cached_models;
+    absl::flat_hash_map<Resource, size_t> resource_indices;
+    resource_indices.reserve(rows.size());
+    Vector<NavGeometryModelInput> append_inputs;
+    append_inputs.reserve(area.placeables.size() + area.doors.size() * 3);
+
+    for (size_t row_index = 0; row_index < rows.size(); ++row_index) {
+        const auto [iterator, inserted] = resource_indices.try_emplace(
+            rows[row_index].resource, cached_models.size());
+        if (inserted) {
+            auto data = resources.demand(rows[row_index].resource);
+            if (data.bytes.size() == 0) {
+                cached_models.push_back({nullptr, false, true});
+            } else {
+                auto parsed = std::make_unique<model::Mdl>(std::move(data));
+                const bool valid = parsed->valid();
+                cached_models.push_back({std::move(parsed), valid, false});
+            }
+        }
+        const auto& cached = cached_models[iterator->second];
+        if (cached.empty) {
+            ++stats.empty_walkmesh_count;
+            continue;
+        }
+        if (!cached.valid || row_index >= transforms.size()) {
+            ++stats.rejected_object_count;
+            continue;
+        }
+
+        const auto append_state = [&](NavGeometryNodeSelection selection) {
+            if (output.active.size() >= UINT32_MAX) return false;
+            const uint32_t state = static_cast<uint32_t>(output.active.size());
+            output.active.push_back(0);
+            append_inputs.push_back({
+                .model = &cached.model->model,
+                .transform = transforms[row_index],
+                .kind = rows[row_index].kind,
+                .node_selection = selection,
+                .owner = state,
+            });
+            return true;
+        };
+
+        if (rows[row_index].kind == NavGeometryKind::placeable_pwk) {
+            if (!append_state(NavGeometryNodeSelection::all)) {
+                ++stats.rejected_object_count;
+                continue;
+            }
+            output.active.back() = 1;
+            continue;
+        }
+
+        const auto state = door_state(rows[row_index].object->handle());
+        glm::vec3 normal{
+            rows[row_index].transform.orientation.x,
+            rows[row_index].transform.orientation.y,
+            0.0f,
+        };
+        const float normal_length = glm::length(normal);
+        if (!state || !std::isfinite(normal_length)
+            || normal_length <= 1.0e-6f
+            || output.active.size() > UINT32_MAX - 3
+            || output.doors.size() >= (UINT32_MAX - 1u) / 2u) {
+            ++stats.rejected_object_count;
+            continue;
+        }
+        normal /= normal_length;
+        const uint32_t closed_state
+            = static_cast<uint32_t>(output.active.size());
+        if (!append_state(NavGeometryNodeSelection::door_closed)
+            || !append_state(NavGeometryNodeSelection::door_open1)
+            || !append_state(NavGeometryNodeSelection::door_open2)) {
+            ++stats.rejected_object_count;
+            return stats;
+        }
+        const uint32_t selected_state
+            = closed_state + static_cast<uint32_t>(*state);
+        output.active[selected_state] = 1;
+        output.doors.push_back({
+            .door = rows[row_index].object->handle(),
+            .position = rows[row_index].transform.position,
+            .normal = normal,
+            .door_index = static_cast<uint32_t>(output.doors.size()),
+            .closed_obstacle_state = closed_state,
+            .open1_obstacle_state = closed_state + 1,
+            .open2_obstacle_state = closed_state + 2,
+            .state = *state,
+        });
+    }
+
+    stats.unique_resource_count = cached_models.size();
+    stats.append = append_nav_geometry_models(append_inputs, output.geometry);
+    for (auto& door : output.doors) {
+        float half_depth = 0.0f;
+        for (size_t triangle = 0;
+            triangle < output.geometry.triangle_count(); ++triangle) {
+            if (output.geometry.owner[triangle]
+                != door.closed_obstacle_state) {
+                continue;
+            }
+            for (size_t corner = 0; corner < 3; ++corner) {
+                const uint32_t vertex
+                    = output.geometry.indices[triangle * 3 + corner];
+                if (vertex >= output.geometry.vertices.size()) continue;
+                half_depth = std::max(half_depth,
+                    std::abs(glm::dot(
+                        output.geometry.vertices[vertex] - door.position,
+                        door.normal)));
+            }
+        }
+        door.closed_half_depth = half_depth;
+    }
     return stats;
 }
 

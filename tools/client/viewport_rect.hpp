@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nw/render/render_context.hpp>
+#include <nw/objects/ObjectHandle.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -26,6 +27,13 @@ struct ClientViewportRect {
 struct ClientViewportRay {
     glm::vec3 origin{0.0f};
     glm::vec3 displacement{0.0f};
+};
+
+struct ClientAreaDoorHit {
+    nw::ObjectHandle door{};
+    glm::vec3 bounds_min{0.0f};
+    glm::vec3 bounds_max{0.0f};
+    uint32_t door_index = UINT32_MAX;
 };
 
 struct ClientGpuTimerScope {

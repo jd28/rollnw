@@ -137,6 +137,15 @@ struct AreaObjectBounds {
     AreaObjectBoundsStatus status = AreaObjectBoundsStatus::invalid_input;
 };
 
+struct AreaObjectCandidateSelection {
+    nw::render::Bounds bounds{};
+    nw::ObjectHandle object{};
+    glm::vec3 position{0.0f};
+    float distance = 0.0f;
+    uint32_t candidate_index = kInvalidAreaRenderRecordIndex;
+    AreaObjectSelectionStatus status = AreaObjectSelectionStatus::invalid_input;
+};
+
 // Click-driven batch selection against the indexed geometry owned by the
 // current preview scene. Each query targets either live objects or tiles.
 // Object queries include mesh-backed objects, triggers, and encounters. Tile
@@ -172,6 +181,27 @@ void select_area_objects(
     std::span<const uint8_t> flags,
     std::span<const AreaRenderRecordKind> kinds,
     std::span<const nw::ObjectHandle> objects) noexcept;
+
+// Traces each normalized pointer ray against the current rendered triangles
+// owned by the candidate objects. Record bounds are broad-phase rejection only;
+// crossing empty space inside a bound is a miss. candidates is a borrowed dense
+// snapshot-local array and candidate_index indexes it. Empty candidate batches
+// produce misses; invalid, stale, or duplicate handles reject the whole batch.
+// The transform does no allocation and does not mutate viewport selection.
+void select_area_object_candidates(
+    std::span<const ViewerRay> rays,
+    std::span<const nw::ObjectHandle> candidates,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    std::span<AreaObjectCandidateSelection> selections);
+
+// A pointer click is genuinely singular input. Keep it as a count-one wrapper
+// over the batch transform so candidate selection has one implementation.
+[[nodiscard]] AreaObjectCandidateSelection select_area_object_candidate(
+    const ViewerRay& ray,
+    std::span<const nw::ObjectHandle> candidates,
+    const AreaRenderScene& records,
+    const PreviewScene& scene);
 
 struct AreaRenderSceneStats {
     uint32_t record_count = 0;

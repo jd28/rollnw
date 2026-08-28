@@ -229,7 +229,8 @@ void build_details_snapshot(smalls::Runtime& runtime,
             return;
         }
         if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
-            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)) {
+            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)
+            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)) {
             propset_type = runtime.type_id(propset_name, false);
             const auto* definition = runtime.get_struct_def(propset_type);
             field_index = definition ? definition->field_index(field_name) : UINT32_MAX;
@@ -257,7 +258,11 @@ void build_details_snapshot(smalls::Runtime& runtime,
                 || edit_min > edit_max
                 || edit_value < edit_min || edit_value > edit_max
                 || (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
-                    && (element_index != -1 || edit_min != 0 || edit_max != 1))) {
+                    && (element_index != -1 || edit_min != 0 || edit_max != 1))
+                || (editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)
+                    && (active_object.type != ObjectType::door
+                        || element_index != -1 || edit_min != 0
+                        || edit_max != 2))) {
                 invalidate_details_snapshot(
                     active_object, presentation, " integer editor is invalid", output);
                 return;
@@ -427,7 +432,8 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_integer_edit(
 
     const auto& row = snapshot.rows[row_index];
     if (row.kind != ObjectDetailsRowKind::value
-        || row.editor != ObjectDetailsEditorKind::integer
+        || (row.editor != ObjectDetailsEditorKind::integer
+            && row.editor != ObjectDetailsEditorKind::door_state)
         || row.propset_type == smalls::invalid_type_id
         || row.field_index == UINT32_MAX) {
         diagnostic = "Object Details row is not an editable integer";

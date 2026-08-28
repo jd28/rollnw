@@ -287,6 +287,18 @@ std::optional<glm::vec3> ClientRendererNwgfx::viewer_area_surface_point(
         : std::nullopt;
 }
 
+std::optional<ClientAreaDoorHit> ClientRendererNwgfx::viewer_area_door_hit(
+    float pixel_x,
+    float pixel_y,
+    ClientViewportRect viewport,
+    std::span<const nw::ObjectHandle> doors)
+{
+    return viewer_viewport_
+        ? viewer_viewport_->area_door_hit(
+              pixel_x, pixel_y, viewport, doors)
+        : std::nullopt;
+}
+
 bool ClientRendererNwgfx::preview_viewer_area_object_spatial(const nw::ObjectSpatialState& spatial)
 {
     return viewer_viewport_ && viewer_viewport_->preview_area_object_spatial(spatial);
@@ -300,20 +312,23 @@ bool ClientRendererNwgfx::append_viewer_area_object_previews(
 
 bool ClientRendererNwgfx::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
     return viewer_viewport_
-        && viewer_viewport_->begin_toolset_preview_visuals(objects, camera);
+        && viewer_viewport_->begin_toolset_preview_visuals(
+            objects, doors, camera);
 }
 
 bool ClientRendererNwgfx::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
     return viewer_viewport_
         && viewer_viewport_->update_toolset_preview_visuals(
-            spatial_rows, locomotion_rows, camera);
+            spatial_rows, locomotion_rows, doors, camera);
 }
 
 bool ClientRendererNwgfx::update_toolset_preview_navigation_debug(
@@ -412,6 +427,13 @@ nw::ObjectHandle ClientRendererNwgfx::active_viewer_object() const noexcept
 nw::ObjectHandle ClientRendererNwgfx::area_viewer_object() const noexcept
 {
     return viewer_viewport_ ? viewer_viewport_->area_object() : nw::ObjectHandle{};
+}
+
+bool ClientRendererNwgfx::area_viewer_matches_resource(
+    std::string_view area_resource) const
+{
+    return viewer_viewport_
+        && viewer_viewport_->matches_area_resource(area_resource);
 }
 
 const ClientGpuFrameStats* ClientRendererNwgfx::last_gpu_frame_stats() const noexcept

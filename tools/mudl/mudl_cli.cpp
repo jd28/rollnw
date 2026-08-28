@@ -193,6 +193,7 @@ void print_usage()
               << "  mudl area-benchmark <area_resref> [--module <path>] [--frames <count>] [--warmup <count>] [--width <px>] [--height <px>] [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--camera-fov degrees] [--area-time seconds] [--visible-tile-radius <tiles>] [--visible-tile-cone <tiles>] [--visible-tile-cone-angle degrees] [--no-lights] [--no-shadows] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot <path>] [--debug] [--json <path>]\n"
               << "  mudl area-sweep <area_resref|area_list.txt> [--module <path>] [--frames <count>] [--warmup <count>] [--width <px>] [--height <px>] [--limit <count>] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--debug] [--validate] [--json <path>]\n"
               << "  mudl area-lights <area_resref> [--module <path>]\n"
+              << "  mudl nav-audit <area_resref> [--module <path>]\n"
               << "  mudl area --dump <module_path> [--output <dir>] [--skip-existing] [--limit <count>] [--debug]\n"
               << "  mudl area-screenshot <area_resref> <path> [--module <path>] [--debug]\n"
               << "  mudl creature <resref> [--module <path>] [--animation <name>] [--debug] [--validate]\n"
@@ -235,6 +236,7 @@ bool is_subcommand(std::string_view command)
         || command == "area-benchmark"
         || command == "area-sweep"
         || command == "area-lights"
+        || command == "nav-audit"
         || command == "area-screenshot"
         || command == "creature"
         || command == "item"
@@ -288,6 +290,8 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         } else if (out.command == "area-sweep") {
             arg_start = 3;
         } else if (out.command == "area-lights") {
+            arg_start = 3;
+        } else if (out.command == "nav-audit") {
             arg_start = 3;
         } else if (out.command == "area-screenshot") {
             arg_start = 4;
@@ -398,6 +402,12 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         out.benchmark_frames = 2;
         out.benchmark_warmup_frames = 0;
     } else if (out.command == "area-lights") {
+        if (argc < 3) {
+            print_usage();
+            return 1;
+        }
+        out.initial_model = argv[2];
+    } else if (out.command == "nav-audit") {
         if (argc < 3) {
             print_usage();
             return 1;

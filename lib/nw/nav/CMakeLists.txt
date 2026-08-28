@@ -1,6 +1,6 @@
 add_library(nw-nav STATIC
-    NavBlockers.cpp
     NavGeometry.cpp
+    NavTileBuild.cpp
     NavWorld.cpp
 )
 
@@ -9,7 +9,7 @@ target_include_directories(nw-nav PUBLIC
 )
 
 target_link_libraries(nw-nav PUBLIC nw)
-target_link_libraries(nw-nav PRIVATE RecastNavigation::Detour)
+target_link_libraries(nw-nav PRIVATE RecastNavigation::Detour RecastNavigation::Recast)
 
 include(../../../cmake/CompilerWarnings.cmake)
 set_project_warnings(nw-nav OWN_SOURCES)

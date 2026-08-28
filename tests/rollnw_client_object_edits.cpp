@@ -2094,6 +2094,103 @@ TEST(ClientObjectEdits, DetailsIntegerCommitPersistsAndRestoresUndoRedo)
     nwk::objects().destroy(door->handle());
 }
 
+TEST(ClientObjectEdits, DoorStateUsesNamedEditorAndUndoRestoresIdenticalSerialization)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* door = nwk::objects().make<nw::Door>();
+    ASSERT_NE(door, nullptr);
+    runtime.init_object_propsets(door->handle());
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, door->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto state_row = std::ranges::find_if(snapshot.rows, [&](const auto& row) {
+        return row.editor == nw::toolset::ObjectDetailsEditorKind::door_state
+            && snapshot.text_view(row.label) == "State";
+    });
+    ASSERT_NE(state_row, snapshot.rows.end());
+    ASSERT_GE(state_row->edit_value, 0);
+    ASSERT_LE(state_row->edit_value, 2);
+    EXPECT_EQ(state_row->edit_min, 0);
+    EXPECT_EQ(state_row->edit_max, 2);
+    constexpr std::array labels{
+        std::string_view{"Closed"},
+        std::string_view{"Open 1"},
+        std::string_view{"Open 2"},
+    };
+    EXPECT_EQ(snapshot.text_view(state_row->value),
+        labels[static_cast<size_t>(state_row->edit_value)]);
+
+    nlohmann::json before_json;
+    bool (*serialize_json)(const nw::Door*, nlohmann::json&,
+        nw::SerializationProfile)
+        = nw::serialize;
+    ASSERT_TRUE(serialize_json(
+        door, before_json, nw::SerializationProfile::blueprint));
+    const std::string before_bytes = before_json.dump();
+
+    const int32_t desired = (state_row->edit_value + 1) % 3;
+    std::string diagnostic;
+    const auto prepared = nw::toolset::prepare_object_details_integer_edit(
+        runtime,
+        door->handle(),
+        static_cast<uint32_t>(state_row - snapshot.rows.begin()),
+        state_row->edit_value,
+        desired,
+        diagnostic);
+    ASSERT_TRUE(prepared) << diagnostic;
+
+    nw::toolset::ObjectEditBatch batch;
+    batch.patches.push_back({
+        prepared->object,
+        prepared->propset_type,
+        prepared->field_index,
+        prepared->before,
+        prepared->after,
+    });
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab(
+        "area:test", "Test Area", nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_edits(
+        std::move(batch), prepared->label, context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+
+    nlohmann::json changed_json;
+    ASSERT_TRUE(serialize_json(
+        door, changed_json, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(changed_json["nwn1.propsets.DoorState"]["open_state"],
+        desired);
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    nlohmann::json restored_json;
+    ASSERT_TRUE(serialize_json(
+        door, restored_json, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(restored_json.dump(), before_bytes);
+
+    ASSERT_TRUE(workspace.redo(context).ok());
+    restored_json.clear();
+    ASSERT_TRUE(serialize_json(
+        door, restored_json, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(restored_json["nwn1.propsets.DoorState"]["open_state"],
+        desired);
+
+    nwk::objects().destroy(door->handle());
+}
+
 TEST(ClientObjectEdits, DetailsSavingThrowsPersistForEveryApplicableObject)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");

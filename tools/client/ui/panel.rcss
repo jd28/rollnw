@@ -2385,6 +2385,21 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   color: #596570;
   cursor: default;
 }
+
+.object_details_door_state {
+    min-width: 76px;
+    padding: 2px 8px;
+    border: 1px solid #596473;
+    border-radius: 3px;
+    background-color: #303844;
+    color: #e5e9ef;
+    text-align: center;
+}
+
+.object_details_door_state:hover {
+    background-color: #3b4654;
+    border-color: #768397;
+}
 .creature_spell_filters {
   display: flex;
   flex: 0 0 66px;

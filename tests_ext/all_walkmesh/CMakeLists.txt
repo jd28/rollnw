@@ -10,6 +10,10 @@ target_include_directories(rollnw_test_all_walkmesh PRIVATE
 
 target_link_libraries(rollnw_test_all_walkmesh PRIVATE
     nw
+    nw-nav
+    nw-render-nwn
+    nw-render-ozz
+    RecastNavigation::Detour
     Threads::Threads
     GTest::gtest)
 

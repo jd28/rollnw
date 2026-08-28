@@ -975,6 +975,60 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
     }
 }
 
+void PreviewScene::rebuild_model_particles(
+    std::span<const uint32_t> model_indices)
+{
+    if (model_indices.empty()) return;
+
+    const auto selected = [this, model_indices](uint32_t model_index) {
+        return model_index < static_models.size()
+            && std::find(model_indices.begin(), model_indices.end(), model_index)
+            != model_indices.end();
+    };
+    particles.erase(
+        std::remove_if(particles.begin(), particles.end(),
+            [&selected](const SceneParticleSystem& row) {
+                return selected(row.owner_model_index);
+            }),
+        particles.end());
+
+    size_t source_particle_count = 0;
+    for (size_t input_index = 0; input_index < model_indices.size(); ++input_index) {
+        const uint32_t model_index = model_indices[input_index];
+        const auto previous_end
+            = model_indices.begin() + static_cast<std::ptrdiff_t>(input_index);
+        if (model_index >= static_models.size()
+            || std::find(model_indices.begin(), previous_end, model_index)
+                != previous_end
+            || !static_models[model_index]) {
+            continue;
+        }
+        source_particle_count += static_models[model_index]->particle_systems.size();
+    }
+    particles.reserve(particles.size() + source_particle_count);
+
+    for (size_t input_index = 0; input_index < model_indices.size(); ++input_index) {
+        const uint32_t model_index = model_indices[input_index];
+        const auto previous_end
+            = model_indices.begin() + static_cast<std::ptrdiff_t>(input_index);
+        if (model_index >= static_models.size()
+            || std::find(model_indices.begin(), previous_end, model_index)
+                != previous_end
+            || model_index >= static_model_instance_handles.size()) {
+            continue;
+        }
+        const auto& model = static_models[model_index];
+        if (!model) continue;
+        append_render_model_particle_systems(
+            *this,
+            *model,
+            static_model_instance_handles[model_index],
+            model_index,
+            render_model_selected_particle_animation_name(
+                *model, static_model_instance(model_index)));
+    }
+}
+
 void PreviewScene::update(int32_t dt_ms)
 {
     const float dt = std::max(0.0f, static_cast<float>(dt_ms) * 0.001f);

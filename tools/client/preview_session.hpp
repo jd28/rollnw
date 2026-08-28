@@ -28,6 +28,7 @@ enum PreviewInputFlag : uint32_t {
     preview_input_none = 0,
     preview_input_click_target = 1u << 0,
     preview_input_cancel = 1u << 1,
+    preview_input_click_door = 1u << 2,
 };
 
 struct PreviewInputSample {
@@ -37,8 +38,24 @@ struct PreviewInputSample {
     float zoom_axis = 0.0f;
     float zoom_delta = 0.0f;
     glm::vec3 click_target{0.0f};
+    glm::vec3 door_bounds_min{0.0f};
+    glm::vec3 door_bounds_max{0.0f};
+    uint32_t door_index = UINT32_MAX;
     uint32_t flags = preview_input_none;
 };
+
+/// Pointer actions are singular SDL events. Each setter replaces any pending
+/// door/target action so the latest click is the only one observed by the next
+/// fixed tick. Invalid data drops the pending pointer action and returns false.
+void clear_preview_pointer_action(PreviewInputSample& sample) noexcept;
+[[nodiscard]] bool set_preview_click_target(
+    PreviewInputSample& sample,
+    const glm::vec3& target) noexcept;
+[[nodiscard]] bool set_preview_click_door(
+    PreviewInputSample& sample,
+    uint32_t door_index,
+    const glm::vec3& bounds_min,
+    const glm::vec3& bounds_max) noexcept;
 
 struct PreviewCameraState {
     glm::vec3 focus{0.0f};
@@ -87,10 +104,10 @@ struct PreviewSessionStartInput {
 
 struct PreviewSessionStartStats {
     size_t tile_count = 0;
-    size_t navigation_triangle_count = 0;
-    size_t blocker_triangle_count = 0;
-    size_t blocker_overlap_count = 0;
-    size_t portal_edge_count = 0;
+    size_t authored_surface_triangle_count = 0;
+    size_t obstacle_triangle_count = 0;
+    size_t rasterized_obstacle_triangle_count = 0;
+    size_t navigation_polygon_count = 0;
     size_t navigation_payload_bytes = 0;
     float walk_rate = 0.0f;
     float actor_clearance = 0.0f;
@@ -114,8 +131,35 @@ struct PreviewTickStats {
     size_t blocked_count = 0;
     size_t path_request_count = 0;
     size_t path_failure_count = 0;
+    size_t door_open_count = 0;
+    size_t door_close_count = 0;
+    size_t door_close_blocked_count = 0;
+    size_t rebuilt_tile_count = 0;
+    uint64_t door_rebuild_nanoseconds = 0;
     size_t output_count = 0;
 };
+
+/// Renderer-facing state for one live area door. Rows are dense by the
+/// snapshot-local door index used by navigation and remain valid until the
+/// next preview tick or session stop.
+enum class PreviewDoorState : uint8_t {
+    closed,
+    open1,
+    open2,
+};
+
+struct PreviewDoorVisualState {
+    ObjectHandle door{};
+    PreviewDoorState state = PreviewDoorState::closed;
+    uint8_t side = 0;
+    bool transition = false;
+};
+
+/// A pointer hit is a single UI event, so this query is intentionally
+/// singular. Out-of-range dense indices do not capture the click.
+[[nodiscard]] bool preview_door_requires_interaction(
+    std::span<const PreviewDoorVisualState> doors,
+    uint32_t door_index) noexcept;
 
 /// Borrowed, backend-neutral rows for the active preview's navigation debug
 /// overlay. The spans remain valid until the preview session is advanced,
@@ -174,6 +218,11 @@ private:
         ToolsetPreviewSession&, bool);
     friend PreviewNavigationDebugView toolset_preview_navigation_debug(
         const ToolsetPreviewSession&) noexcept;
+    friend std::span<const PreviewDoorVisualState>
+    toolset_preview_door_visual_states(
+        const ToolsetPreviewSession&) noexcept;
+    friend std::span<const ObjectHandle> toolset_preview_door_handles(
+        const ToolsetPreviewSession&) noexcept;
 };
 
 PreviewSessionStartResult start_toolset_preview(
@@ -195,6 +244,15 @@ PreviewStatus set_toolset_preview_navigation_debug(
     ToolsetPreviewSession& session, bool enabled);
 
 [[nodiscard]] PreviewNavigationDebugView toolset_preview_navigation_debug(
+    const ToolsetPreviewSession& session) noexcept;
+
+[[nodiscard]] std::span<const PreviewDoorVisualState>
+toolset_preview_door_visual_states(
+    const ToolsetPreviewSession& session) noexcept;
+
+/// Dense renderer hit-test candidates. The row index is the door index used by
+/// PreviewInputSample and navigation; rows remain valid until session stop.
+[[nodiscard]] std::span<const ObjectHandle> toolset_preview_door_handles(
     const ToolsetPreviewSession& session) noexcept;
 
 /// Advances every fixed sample in order, then writes the single v1 preview

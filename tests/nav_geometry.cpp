@@ -10,6 +10,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -71,6 +72,15 @@ node aabb nav_sample_open1
     10 0 0
     11 0 0
     10 1 0
+  faces 1
+    0 1 2  1  0 0 0  5
+endnode
+node aabb nav_sample_open2
+  parent NULL
+  verts 3
+    20 0 0
+    21 0 0
+    20 1 0
   faces 1
     0 1 2  1  0 0 0  5
 endnode
@@ -140,6 +150,37 @@ TEST(NavGeometry, SelectsClosedDoorWalkmeshState)
     EXPECT_EQ(geometry.owner[0], 17);
 }
 
+TEST(NavGeometry, SelectsOpenDoorWalkmeshStates)
+{
+    const auto parsed = parse_walkmesh(door_walkmesh, nw::ResourceType::dwk);
+    ASSERT_TRUE(parsed.valid());
+    const std::array inputs{
+        nw::nav::NavGeometryModelInput{
+            .model = &parsed.model,
+            .kind = nw::nav::NavGeometryKind::door_dwk,
+            .node_selection = nw::nav::NavGeometryNodeSelection::door_open1,
+            .owner = 1,
+        },
+        nw::nav::NavGeometryModelInput{
+            .model = &parsed.model,
+            .kind = nw::nav::NavGeometryKind::door_dwk,
+            .node_selection = nw::nav::NavGeometryNodeSelection::door_open2,
+            .owner = 2,
+        },
+    };
+    nw::nav::NavGeometry geometry;
+
+    const auto stats = nw::nav::append_nav_geometry_models(inputs, geometry);
+
+    EXPECT_EQ(stats.mesh_count, 2u);
+    EXPECT_EQ(stats.triangle_count, 2u);
+    ASSERT_EQ(geometry.owner.size(), 2u);
+    EXPECT_EQ(geometry.owner[0], 1u);
+    EXPECT_EQ(geometry.owner[1], 2u);
+    EXPECT_LT(geometry.vertices[geometry.indices[0]].x, 12.0f);
+    EXPECT_GT(geometry.vertices[geometry.indices[3]].x, 19.0f);
+}
+
 TEST(NavGeometry, BuildsPlacedObjectWalkmeshesFromVisualState)
 {
     auto* area = nw::kernel::objects().make<nw::Area>();
@@ -161,10 +202,10 @@ TEST(NavGeometry, BuildsPlacedObjectWalkmeshesFromVisualState)
                                                                 .model = nw::Resref{"tn_sdoor_18"},
                                                             }));
     auto* placeable_spatial = components.get_or_create_spatial(placeable->handle());
-    auto* door_spatial = components.get_or_create_spatial(door->handle());
     ASSERT_NE(placeable_spatial, nullptr);
-    ASSERT_NE(door_spatial, nullptr);
     placeable_spatial->position = {20.0f, 30.0f, 0.0f};
+    auto* door_spatial = components.get_or_create_spatial(door->handle());
+    ASSERT_NE(door_spatial, nullptr);
     door_spatial->position = {40.0f, 50.0f, 0.0f};
     area->placeables.push_back(placeable);
     area->doors.push_back(door);
@@ -187,6 +228,69 @@ TEST(NavGeometry, BuildsPlacedObjectWalkmeshesFromVisualState)
     EXPECT_NE(std::find(geometry.kind.begin(), geometry.kind.end(),
                   nw::nav::NavGeometryKind::door_dwk),
         geometry.kind.end());
+    ASSERT_FALSE(geometry.owner.empty());
+    EXPECT_EQ(*std::min_element(
+                  geometry.owner.begin(), geometry.owner.end()),
+        0u);
+    EXPECT_EQ(*std::max_element(
+                  geometry.owner.begin(), geometry.owner.end()),
+        1u);
+
+    nw::kernel::objects().destroy(placeable->handle());
+    nw::kernel::objects().destroy(door->handle());
+    nw::kernel::objects().destroy(area->handle());
+}
+
+TEST(NavGeometry, BuildsExclusiveDoorObstacleStateCatalog)
+{
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    auto* placeable = nw::kernel::objects().make<nw::Placeable>();
+    auto* door = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(placeable, nullptr);
+    ASSERT_NE(door, nullptr);
+    ASSERT_TRUE(placeable->instantiate());
+    ASSERT_TRUE(door->instantiate());
+    nw::kernel::runtime().init_object_propsets(door->handle());
+
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.clear_visual(placeable->handle(), 0));
+    ASSERT_TRUE(components.add_visual_model(placeable->handle(), {
+                                                                     .model = nw::Resref{"dag_tnocliff2a"},
+                                                                 }));
+    ASSERT_TRUE(components.clear_visual(door->handle(), 0));
+    ASSERT_TRUE(components.add_visual_model(door->handle(), {
+                                                                .model = nw::Resref{"tn_sdoor_18"},
+                                                            }));
+    auto* placeable_spatial
+        = components.get_or_create_spatial(placeable->handle());
+    ASSERT_NE(placeable_spatial, nullptr);
+    placeable_spatial->position = {20.0f, 30.0f, 0.0f};
+    auto* door_spatial = components.get_or_create_spatial(door->handle());
+    ASSERT_NE(door_spatial, nullptr);
+    door_spatial->position = {40.0f, 50.0f, 0.0f};
+    door_spatial->orientation = {1.0f, 0.0f, 0.0f};
+    area->placeables.push_back(placeable);
+    area->doors.push_back(door);
+
+    nw::nav::NavObjectObstacleSnapshot snapshot;
+    const auto stats = nw::nav::build_area_object_nav_obstacles(
+        *area, nw::kernel::resman(), snapshot);
+
+    EXPECT_EQ(stats.rejected_object_count, 0u);
+    ASSERT_TRUE(snapshot.geometry.valid());
+    ASSERT_EQ(snapshot.active.size(), 4u);
+    EXPECT_EQ(snapshot.active, (nw::Vector<uint8_t>{1u, 1u, 0u, 0u}));
+    ASSERT_EQ(snapshot.doors.size(), 1u);
+    const auto& row = snapshot.doors[0];
+    EXPECT_EQ(row.door, door->handle());
+    EXPECT_EQ(row.door_index, 0u);
+    EXPECT_EQ(row.closed_obstacle_state, 1u);
+    EXPECT_EQ(row.open1_obstacle_state, 2u);
+    EXPECT_EQ(row.open2_obstacle_state, 3u);
+    EXPECT_EQ(row.state, nw::nav::NavDoorState::closed);
+    EXPECT_EQ(row.normal, glm::vec3(1.0f, 0.0f, 0.0f));
+    EXPECT_GT(row.closed_half_depth, 0.0f);
 
     nw::kernel::objects().destroy(placeable->handle());
     nw::kernel::objects().destroy(door->handle());

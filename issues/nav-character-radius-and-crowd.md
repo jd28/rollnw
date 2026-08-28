@@ -1,5 +1,19 @@
-# Navigation character radius and crowd movement
+# Navigation radius classes and crowd movement
 
-Play-preview agents use the authored `appearance.2da` `PERSPACE` value plus a 0.1 m preview safety margin as horizontal wall clearance. The margin keeps animated creature geometry from visibly intersecting tile geometry while point locomotion remains the v1 constraint model; manual visual testing must determine whether that policy is sufficient across creature sizes. The Detour backend stores clearances in a flat array parallel to agent polygon state and applies a bounded wall-query correction after point movement. Click routes apply the same clearance transform to the fixed funnel-corner batch before returning it; exact funnel vertices receive a one-quantum nudge toward the free side because Detour's wall normal is undefined at those vertices. The public path and motion batches remain backend-free.
+Play preview resolves the selected creature's finite `appearance.2da`
+`PERSPACE`, adds the authored 0.1 m safety margin, and rounds upward to a count
+of 0.125 m Recast erosion cells. `NavWorldState` then represents exactly that
+already-eroded class. Tiled path, registration, and movement requests reject a
+nonzero per-request clearance; locomotion uses `moveAlongSurface` without
+runtime wall-distance correction.
 
-DetourCrowd and agent-to-agent avoidance remain deliberately absent. Add them only after representative multi-agent runtime behavior provides a measured requirement; do not replace the current flat batch input/output boundary.
+Equal erosion-cell counts are the same class. F9 builds only the selected
+actor's class. Additional game-mode classes remain lazy because the observed
+838 finite rows collapse to 23 classes at the selected cell size, while 14,262
+appearance rows have no finite `PERSPACE` and cannot be assigned a fabricated
+radius. That unresolved input policy is recorded separately.
+
+DetourCrowd and agent-to-agent avoidance remain deliberately absent. Add them
+only after representative multi-agent runtime behavior supplies an actor
+count, update rate, and measured collision requirement; retain the existing
+flat batch input/output boundary.

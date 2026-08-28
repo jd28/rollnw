@@ -85,6 +85,9 @@ Tileset* TilesetRegistry::load(StringView resref)
             LOG_F(ERROR, "[tilsets] failed to load tile {} in {}.set", i, resref);
             return nullptr;
         }
+        (void)set.get_to(key + "/pathnode", tileset.tiles[i].path_node);
+        (void)set.get_to(key + "/orientation",
+            tileset.tiles[i].path_node_orientation);
     }
 
     ++metrics_.tilesets_loaded;

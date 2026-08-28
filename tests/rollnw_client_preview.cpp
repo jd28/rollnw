@@ -44,6 +44,92 @@ TEST(ClientPreview, BuildsFixedSamplesWithEdgeInputOnlyOnce)
     EXPECT_LT(state.accumulator, 1.0e-9);
 }
 
+TEST(ClientPreview, BuildsDenseDoorClickEdgeOnlyOnce)
+{
+    nw::toolset::PreviewFixedStepState state;
+    const nw::toolset::PreviewInputSample frame{
+        .door_bounds_min = {4.0f, 5.0f, 0.0f},
+        .door_bounds_max = {6.0f, 6.0f, 3.0f},
+        .door_index = 3,
+        .flags = nw::toolset::preview_input_click_door,
+    };
+    std::array<nw::toolset::PreviewInputSample, 6> samples{};
+
+    const auto stats = nw::toolset::build_preview_tick_samples(
+        state, 0.05, frame, samples);
+
+    ASSERT_EQ(stats.status, nw::toolset::PreviewStatus::ok);
+    ASSERT_EQ(stats.tick_count, 3u);
+    EXPECT_EQ(samples[0].flags, nw::toolset::preview_input_click_door);
+    EXPECT_EQ(samples[0].door_index, 3u);
+    EXPECT_EQ(samples[0].door_bounds_min, frame.door_bounds_min);
+    EXPECT_EQ(samples[0].door_bounds_max, frame.door_bounds_max);
+    EXPECT_EQ(samples[1].flags, nw::toolset::preview_input_none);
+    EXPECT_EQ(samples[2].flags, nw::toolset::preview_input_none);
+}
+
+TEST(ClientPreview, OpenDoorHitFallsThroughToClickNavigation)
+{
+    const std::array doors{
+        nw::toolset::PreviewDoorVisualState{
+            .state = nw::toolset::PreviewDoorState::open1,
+        },
+        nw::toolset::PreviewDoorVisualState{
+            .state = nw::toolset::PreviewDoorState::closed,
+        },
+        nw::toolset::PreviewDoorVisualState{
+            .state = nw::toolset::PreviewDoorState::open2,
+        },
+    };
+
+    EXPECT_FALSE(nw::toolset::preview_door_requires_interaction(doors, 0));
+    EXPECT_TRUE(nw::toolset::preview_door_requires_interaction(doors, 1));
+    EXPECT_FALSE(nw::toolset::preview_door_requires_interaction(doors, 2));
+    EXPECT_FALSE(nw::toolset::preview_door_requires_interaction(doors, 3));
+}
+
+TEST(ClientPreview, LatestPointerActionReplacesPendingDoorOrTarget)
+{
+    nw::toolset::PreviewInputSample sample;
+    ASSERT_TRUE(nw::toolset::set_preview_click_door(
+        sample, 2, {1.0f, 2.0f, 0.0f}, {2.0f, 3.0f, 2.0f}));
+    EXPECT_EQ(sample.flags, nw::toolset::preview_input_click_door);
+    EXPECT_EQ(sample.door_index, 2u);
+
+    ASSERT_TRUE(nw::toolset::set_preview_click_target(
+        sample, {9.0f, 8.0f, 1.0f}));
+    EXPECT_EQ(sample.flags, nw::toolset::preview_input_click_target);
+    EXPECT_EQ(sample.click_target, glm::vec3(9.0f, 8.0f, 1.0f));
+    EXPECT_EQ(sample.door_index, UINT32_MAX);
+
+    ASSERT_TRUE(nw::toolset::set_preview_click_door(
+        sample, 4, {3.0f, 4.0f, 0.0f}, {4.0f, 5.0f, 2.0f}));
+    EXPECT_EQ(sample.flags, nw::toolset::preview_input_click_door);
+    EXPECT_EQ(sample.click_target, glm::vec3(0.0f));
+
+    EXPECT_FALSE(nw::toolset::set_preview_click_target(
+        sample, {std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f}));
+    EXPECT_EQ(sample.flags, nw::toolset::preview_input_none);
+}
+
+TEST(ClientPreview, RejectsReversedDoorClickBounds)
+{
+    nw::toolset::PreviewFixedStepState state{.accumulator = 0.005};
+    const nw::toolset::PreviewInputSample frame{
+        .door_bounds_min = {2.0f, 0.0f, 0.0f},
+        .door_bounds_max = {1.0f, 1.0f, 1.0f},
+        .door_index = 0,
+        .flags = nw::toolset::preview_input_click_door,
+    };
+    std::array<nw::toolset::PreviewInputSample, 6> samples{};
+
+    EXPECT_EQ(nw::toolset::build_preview_tick_samples(
+                  state, 0.05, frame, samples)
+                  .status,
+        nw::toolset::PreviewStatus::invalid_input);
+    EXPECT_DOUBLE_EQ(state.accumulator, 0.005);
+}
+
 TEST(ClientPreview, CapsCatchupAtSixAndKeepsOnlyFractionalTime)
 {
     nw::toolset::PreviewFixedStepState state;
@@ -210,6 +296,37 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
     EXPECT_EQ(results[1].status, nw::nav::NavStatus::off_mesh);
     EXPECT_NEAR(results[0].position.x, module->entry_position.x, 0.01f);
     EXPECT_NEAR(results[0].position.y, module->entry_position.y, 0.01f);
+}
+
+TEST(ClientPreview, RestartsAfterRejectedPlacementRay)
+{
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+
+    nw::toolset::ToolsetPreviewSession session;
+    nw::toolset::PreviewSessionStartInput start{
+        .area = area->handle(),
+        .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+        .spawn_ray = {
+            .origin = module->entry_position
+                + glm::vec3{1000.0f, 1000.0f, 10.0f},
+            .displacement = {0.0f, 0.0f, -20.0f},
+        },
+        .camera = {.focus = module->entry_position},
+        .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
+    };
+
+    const auto rejected = nw::toolset::start_toolset_preview(session, start);
+    EXPECT_FALSE(rejected.ok());
+    EXPECT_FALSE(session.active());
+
+    start.spawn_ray.origin = module->entry_position
+        + glm::vec3{0.0f, 0.0f, 10.0f};
+    const auto restarted = nw::toolset::start_toolset_preview(session, start);
+    ASSERT_TRUE(restarted.ok()) << restarted.diagnostic;
+    EXPECT_TRUE(session.active());
 }
 
 TEST(ClientPreview, ProducesIdenticalStateAcrossTickBatchBoundaries)
@@ -553,9 +670,9 @@ TEST(ClientPreview, RepeatsLifecycleWithoutGrowingLiveState)
     };
     const std::array samples{nw::toolset::PreviewInputSample{.move_axis = {0.0f, 1.0f}}};
     size_t navigation_payload_bytes = 0;
+    nw::toolset::ToolsetPreviewSession session;
 
     for (size_t cycle = 0; cycle < 100; ++cycle) {
-        nw::toolset::ToolsetPreviewSession session;
         const auto started = nw::toolset::start_toolset_preview(session, start);
         ASSERT_TRUE(started.ok()) << "cycle " << cycle << ": " << started.diagnostic;
         if (cycle == 0) {

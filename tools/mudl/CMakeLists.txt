@@ -39,6 +39,7 @@ add_executable(mudl
     imgui_runtime.cpp
     mudl_cli.cpp
     mudl_commands.cpp
+    nav_audit.cpp
     particle_tools.cpp
     progfx.cpp
     stock_spell_fx.cpp
@@ -66,6 +67,8 @@ target_link_libraries(mudl PRIVATE
     nw-render-nwn
     nw-render-ozz
     nw-render-viewer
+    nw-nav
+    RecastNavigation::Detour
 )
 
 if(UNIX)

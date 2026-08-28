@@ -771,6 +771,65 @@ TEST(RenderViewerAreaSelection, ReducesRepeatedObjectRecordsToOneBound)
         viewer::AreaObjectBoundsStatus::invalid_input);
 }
 
+TEST(RenderViewerAreaSelection, CandidateSelectionRejectsDoorBoundsWithoutGeometryHit)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    LiveObjects live;
+    const auto far_door = live.make<nw::Door>();
+    const auto near_door = live.make<nw::Door>();
+    viewer::PreviewScene scene;
+    auto near_model = make_selection_model(
+        gfx.context,
+        {{{1.5f, 0.7f, 0.7f}, {1.5f, 0.9f, 0.7f}, {1.5f, 0.7f, 0.9f}}},
+        {.min = {1.0f, 0.0f, 0.0f}, .max = {2.0f, 1.0f, 1.0f}});
+    auto far_model = make_selection_model(
+        gfx.context,
+        {{{3.0f, 0.0f, 0.0f}, {3.0f, 1.0f, 0.0f}, {3.0f, 0.0f, 1.0f}}},
+        {.min = {3.0f, 0.0f, 0.0f}, .max = {4.0f, 1.0f, 1.0f}});
+    ASSERT_TRUE(near_model);
+    ASSERT_TRUE(far_model);
+
+    scene.add(std::move(near_model));
+    scene.static_area_model_info.back().kind
+        = viewer::AreaRenderRecordKind::door;
+    scene.static_area_model_info.back().object = near_door;
+    scene.add(std::move(far_model));
+    scene.static_area_model_info.back().kind
+        = viewer::AreaRenderRecordKind::door;
+    scene.static_area_model_info.back().object = far_door;
+
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    const std::array candidates{far_door, near_door};
+
+    const auto selected = viewer::select_area_object_candidate(
+        {
+            .origin = {0.0f, 0.25f, 0.25f},
+            .direction = {1.0f, 0.0f, 0.0f},
+        },
+        candidates, records, scene);
+
+    ASSERT_EQ(selected.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(selected.object, far_door);
+    EXPECT_EQ(selected.candidate_index, 0u);
+    EXPECT_EQ(selected.bounds.min, glm::vec3(3.0f, 0.0f, 0.0f));
+    EXPECT_EQ(selected.bounds.max, glm::vec3(4.0f, 1.0f, 1.0f));
+    EXPECT_EQ(selected.position, glm::vec3(3.0f, 0.25f, 0.25f));
+    EXPECT_FLOAT_EQ(selected.distance, 3.0f);
+
+    const std::array duplicate_candidates{near_door, near_door};
+    EXPECT_EQ(viewer::select_area_object_candidate(
+                  {{0.0f, 0.25f, 0.25f}, {1.0f, 0.0f, 0.0f}},
+                  duplicate_candidates, records, scene)
+                  .status,
+        viewer::AreaObjectSelectionStatus::invalid_input);
+    destroy_selection_model_buffers(scene);
+}
+
 struct AreaSelectionCandidate {
     nw::ObjectHandle object;
     viewer::AreaRenderRecordKind kind = viewer::AreaRenderRecordKind::unknown;

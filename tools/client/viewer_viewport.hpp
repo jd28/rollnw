@@ -26,6 +26,7 @@ struct ViewerFrameStats;
 namespace nw::toolset {
 enum class PreviewActorLocomotion : uint8_t;
 struct PreviewCameraState;
+struct PreviewDoorVisualState;
 struct PreviewNavigationDebugView;
 }
 
@@ -66,15 +67,22 @@ public:
         float pixel_x, float pixel_y, ClientViewportRect viewport);
     [[nodiscard]] std::optional<glm::vec3> area_surface_point(
         float pixel_x, float pixel_y, ClientViewportRect viewport);
+    [[nodiscard]] std::optional<ClientAreaDoorHit> area_door_hit(
+        float pixel_x,
+        float pixel_y,
+        ClientViewportRect viewport,
+        std::span<const nw::ObjectHandle> doors);
     bool preview_area_object_spatial(const nw::ObjectSpatialState& spatial);
     bool append_area_object_previews(
         std::span<const nw::ObjectHandle> objects, float opacity);
     bool begin_toolset_preview_visuals(
         std::span<const nw::ObjectHandle> objects,
+        std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera);
     bool update_toolset_preview_visuals(
         std::span<const nw::ObjectSpatialState> spatial_rows,
         std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera);
     bool update_toolset_preview_navigation_debug(
         const nw::toolset::PreviewNavigationDebugView& view);
@@ -94,6 +102,7 @@ public:
     [[nodiscard]] const nw::render::viewer::ViewerFrameStats* last_frame_stats() const noexcept;
     [[nodiscard]] nw::ObjectHandle active_object() const noexcept;
     [[nodiscard]] nw::ObjectHandle area_object() const noexcept;
+    [[nodiscard]] bool matches_area_resource(std::string_view area_resource) const;
 
 private:
     struct Impl;

@@ -144,9 +144,28 @@ add_subdirectory(external/nowide EXCLUDE_FROM_ALL SYSTEM)
 add_subdirectory(external/stb EXCLUDE_FROM_ALL SYSTEM)
 rollnw_silence_target_warnings(stb_image)
 
-# Recast's Detour subdirectory depends on variables from its top-level build.
-# Define the one vendored library we consume directly and leave Recast, Crowd,
-# TileCache, and DebugUtils out of the build graph.
+# Recast's subdirectories depend on variables from its top-level build. Define
+# the vendored libraries we consume directly and leave Crowd, TileCache, and
+# DebugUtils out of the build graph.
+add_library(Recast STATIC
+  external/recastnavigation-1.6.0/Recast/Source/Recast.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastAlloc.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastArea.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastAssert.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastContour.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastFilter.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastLayers.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastMesh.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastMeshDetail.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastRasterization.cpp
+  external/recastnavigation-1.6.0/Recast/Source/RecastRegion.cpp
+)
+add_library(RecastNavigation::Recast ALIAS Recast)
+target_include_directories(Recast SYSTEM PUBLIC
+  external/recastnavigation-1.6.0/Recast/Include
+)
+rollnw_silence_target_warnings(Recast)
+
 add_library(Detour STATIC
   external/recastnavigation-1.6.0/Detour/Source/DetourAlloc.cpp
   external/recastnavigation-1.6.0/Detour/Source/DetourAssert.cpp

@@ -54,6 +54,7 @@ const creature_sheet_max_presentation_rows = 128;
 const details_editor_read_only = 0;
 const details_editor_boolean = 1;
 const details_editor_integer = 2;
+const details_editor_door_state = 3;
 
 fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
     return {
@@ -100,6 +101,27 @@ fn _integer_details_row(group: string, label: string,
         edit_value = value,
         edit_min = minimum,
         edit_max = maximum,
+    };
+}
+
+fn _door_state_details_value(value: int): string {
+    if (value == 0) { return "Closed"; }
+    if (value == 1) { return "Open 1"; }
+    return value == 2 ? "Open 2" : "Invalid";
+}
+
+fn _door_state_details_row(value: int): ObjectDetailsRow {
+    return {
+        group = "Basic",
+        label = "State",
+        value = _door_state_details_value(value),
+        editor = details_editor_door_state,
+        propset = "nwn1.propsets.DoorState",
+        field = "open_state",
+        element = -1,
+        edit_value = value,
+        edit_min = 0,
+        edit_max = 2,
     };
 }
 
@@ -327,6 +349,7 @@ fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
     var state = get_propset!(DoorState)(obj);
     _append_details_row(rows, "Basic", "Appearance", f"{state.appearance}");
     _append_details_row(rows, "Basic", "Faction", f"{state.faction}");
+    Array.push(rows, _door_state_details_row(state.open_state));
     _append_boolean_details_row(rows, "Basic", "Plot",
         "nwn1.propsets.DoorState", "plot", state.plot);
     _append_details_row(rows, "Basic", "Current Hit Points", f"{state.hp_current}");

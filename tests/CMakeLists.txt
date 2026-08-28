@@ -218,8 +218,8 @@ add_executable(rollnw_test
     model_parse.cpp
     model_particles.cpp
     model_walkmesh.cpp
-    nav_blockers.cpp
     nav_geometry.cpp
+    nav_tile_build.cpp
     nav_world.cpp
     ../tools/mudl/benchmark_report.cpp
     ../tools/mudl/mudl_cli.cpp
@@ -380,6 +380,7 @@ target_link_libraries(rollnw_test PRIVATE
     rollnw_client_core
     nw-nav
     nw
+    RecastNavigation::Detour
     Threads::Threads
     GTest::gtest)
 

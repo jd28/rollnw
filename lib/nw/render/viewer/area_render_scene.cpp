@@ -961,7 +961,8 @@ AreaObjectSelection select_area_object_geometry(
     const ViewerRay& ray,
     const AreaRenderScene& records,
     const PreviewScene& scene,
-    AreaObjectSelectionOptions options)
+    AreaObjectSelectionOptions options,
+    std::span<const nw::ObjectHandle> candidates = {})
 {
     if (options.target != AreaObjectSelectionTarget::object
         && options.target != AreaObjectSelectionTarget::tile) {
@@ -994,6 +995,11 @@ AreaObjectSelection select_area_object_geometry(
         const bool object_record = object_matches_record_kind(kinds[record_index], objects[record_index])
             && nw::kernel::objects().valid(objects[record_index]);
         if ((select_tiles && !tile_record) || (!select_tiles && !object_record)) {
+            continue;
+        }
+        if (!candidates.empty()
+            && std::find(candidates.begin(), candidates.end(), objects[record_index])
+                == candidates.end()) {
             continue;
         }
         const auto bounds_distance = ray_bounds_intersection(*normalized_ray, bounds[record_index]);
@@ -1034,6 +1040,9 @@ AreaObjectSelection select_area_object_geometry(
             const auto& range = scene.debug_shape_selection_ranges[range_index];
             if (!debug_selection_category_enabled(range, options)
                 || !nw::kernel::objects().valid(range.object)
+                || (!candidates.empty()
+                    && std::find(candidates.begin(), candidates.end(), range.object)
+                        == candidates.end())
                 || !finite_ordered_bounds(range.bounds)) {
                 continue;
             }
@@ -1252,6 +1261,89 @@ AreaObjectBounds collect_area_object_bounds(
     result.status = result.record_count == 0
         ? AreaObjectBoundsStatus::not_found
         : AreaObjectBoundsStatus::found;
+    return result;
+}
+
+void select_area_object_candidates(
+    std::span<const ViewerRay> rays,
+    std::span<const nw::ObjectHandle> candidates,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    std::span<AreaObjectCandidateSelection> selections)
+{
+    std::fill(selections.begin(), selections.end(), AreaObjectCandidateSelection{});
+    if (rays.size() != selections.size()
+        || candidates.size() > std::numeric_limits<uint32_t>::max()
+        || !valid_area_object_selection_records(records)) {
+        return;
+    }
+    for (size_t candidate = 0; candidate < candidates.size(); ++candidate) {
+        if (candidates[candidate].type == nw::ObjectType::invalid
+            || !nw::kernel::objects().valid(candidates[candidate])) {
+            return;
+        }
+        for (size_t previous = 0; previous < candidate; ++previous) {
+            if (candidates[previous] == candidates[candidate]) return;
+        }
+    }
+    if (candidates.empty()) {
+        for (auto& selection : selections) {
+            selection.status = AreaObjectSelectionStatus::miss;
+        }
+        return;
+    }
+
+    const auto bounds = records.bounds();
+    const auto flags = records.flags();
+    const auto kinds = records.kinds();
+    const auto objects = records.object_handles();
+    for (size_t ray_index = 0; ray_index < rays.size(); ++ray_index) {
+        const auto hit = select_area_object_geometry(
+            rays[ray_index], records, scene,
+            {
+                .target = AreaObjectSelectionTarget::object,
+                .triggers_enabled = false,
+                .encounters_enabled = false,
+            },
+            candidates);
+        auto& selection = selections[ray_index];
+        selection.status = hit.status;
+        if (hit.status != AreaObjectSelectionStatus::hit) continue;
+
+        const auto candidate = std::find(
+            candidates.begin(), candidates.end(), hit.object);
+        if (candidate == candidates.end()) {
+            selection = {};
+            continue;
+        }
+        const auto joined = collect_area_object_bounds(
+            hit.object, bounds, flags, kinds, objects);
+        if (joined.status != AreaObjectBoundsStatus::found) {
+            selection = {};
+            continue;
+        }
+        selection = {
+            .bounds = joined.bounds,
+            .object = hit.object,
+            .position = hit.position,
+            .distance = hit.distance,
+            .candidate_index = static_cast<uint32_t>(
+                std::distance(candidates.begin(), candidate)),
+            .status = AreaObjectSelectionStatus::hit,
+        };
+    }
+}
+
+AreaObjectCandidateSelection select_area_object_candidate(
+    const ViewerRay& ray,
+    std::span<const nw::ObjectHandle> candidates,
+    const AreaRenderScene& records,
+    const PreviewScene& scene)
+{
+    AreaObjectCandidateSelection result;
+    select_area_object_candidates(
+        std::span<const ViewerRay>{&ray, 1u}, candidates, records, scene,
+        std::span<AreaObjectCandidateSelection>{&result, 1u});
     return result;
 }
 

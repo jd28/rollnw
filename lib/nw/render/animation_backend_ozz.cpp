@@ -13,7 +13,7 @@
 #include <ozz/base/maths/simd_math.h>
 #include <ozz/base/maths/soa_transform.h>
 
-
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <memory>
@@ -142,6 +142,25 @@ public:
 
         ozz::animation::offline::RawAnimation raw;
         raw.duration = clip.duration;
+        if (clip.duration == 0.0f) {
+            const auto keys_are_static = [](const auto& keys) {
+                return std::all_of(keys.begin(), keys.end(), [](const auto& key) {
+                    return key.time == 0.0f;
+                });
+            };
+            for (const auto& track : clip.tracks) {
+                if (!keys_are_static(track.translations)
+                    || !keys_are_static(track.rotations)
+                    || !keys_are_static(track.scales)) {
+                    return false;
+                }
+            }
+
+            // Ozz requires a positive duration. All source keys are at time
+            // zero, so a normalized internal duration preserves the authored
+            // constant pose without changing the common clip's duration.
+            raw.duration = 1.0f;
+        }
         raw.tracks.resize(clip.tracks.size());
         for (size_t original_index = 0; original_index < clip.tracks.size(); ++original_index) {
             if (original_index >= original_to_runtime.size()) continue;

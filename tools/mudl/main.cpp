@@ -332,6 +332,9 @@ int main(int argc, char* argv[])
         return run_stats_command(args.initial_model, args.module_path, args.user_path);
     } else if (args.command == "area-lights") {
         return run_area_lights_command(args.initial_model, args.module_path, args.user_path);
+    } else if (args.command == "nav-audit") {
+        return run_nav_audit_command(
+            args.initial_model, args.module_path, args.user_path);
     } else if (args.command == "area" && !args.area_dump_module_path.empty()) {
         return run_area_dump_command(args.area_dump_module_path, args.area_dump_output_path,
             args.user_path, args.area_dump_skip_existing, args.area_dump_limit, args.show_debug_overlay);

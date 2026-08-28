@@ -724,6 +724,27 @@ AreaObjectSelection ViewerSession::select_area_object(
     return result;
 }
 
+AreaObjectCandidateSelection ViewerSession::select_area_object_candidate(
+    float pixel_x,
+    float pixel_y,
+    ViewerViewport viewport,
+    std::span<const nw::ObjectHandle> candidates)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area
+        || !scene_->area_render_scene) {
+        return {};
+    }
+
+    update_viewport(viewport);
+    const auto ray = viewer_ray_from_viewport(
+        camera_, pixel_x, pixel_y, viewport);
+    if (!ray) return {};
+
+    const auto& records = *scene_->area_render_scene;
+    return nw::render::viewer::select_area_object_candidate(
+        *ray, candidates, records, *scene_);
+}
+
 bool ViewerSession::set_area_object_selection(nw::ObjectHandle object) noexcept
 {
     if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
@@ -844,6 +865,47 @@ AreaCreatureLocomotionAnimationStats ViewerSession::update_area_creature_locomot
         };
     }
     return viewer::update_area_creature_locomotion_animations(*scene_, inputs);
+}
+
+AreaDoorAnimationStats ViewerSession::begin_area_door_animation_lease(
+    std::span<const AreaDoorAnimationInput> inputs,
+    AreaDoorAnimationLease& lease)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {
+            .input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+            .rejected_input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+        };
+    }
+    return viewer::begin_area_door_animation_lease(*scene_, inputs, lease);
+}
+
+AreaDoorAnimationStats ViewerSession::update_area_door_animations(
+    std::span<const AreaDoorAnimationInput> inputs)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {
+            .input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+            .rejected_input_count = static_cast<uint32_t>(
+                std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+        };
+    }
+    return viewer::update_area_door_animations(*scene_, inputs);
+}
+
+bool ViewerSession::restore_area_door_animation_lease(
+    AreaDoorAnimationLease& lease) noexcept
+{
+    if (!lease.active) return true;
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        lease.rows.clear();
+        lease.active = false;
+        return false;
+    }
+    return viewer::restore_area_door_animation_lease(*scene_, lease);
 }
 
 AreaObjectPreviewAppendResult ViewerSession::append_area_object_previews(

@@ -81,6 +81,46 @@ std::unique_ptr<nw::render::RenderModel> make_two_clip_render_model(std::string 
     return model;
 }
 
+nw::render::ParticleEffectDef make_named_particle_effect(std::string name)
+{
+    nw::render::ParticleEffectDef effect;
+    effect.name = std::move(name);
+    effect.materials.push_back(nw::render::ParticleMaterialDef{});
+
+    nw::render::ParticleEmitterDef emitter;
+    emitter.render.material = 0;
+    emitter.max_particles = 8;
+    emitter.emission.rate = 8.0f;
+    emitter.initial.lifetime = {1.0f, 1.0f};
+    emitter.initial.size_x = {1.0f, 1.0f};
+    emitter.initial.size_y = {1.0f, 1.0f};
+    effect.emitters.push_back(std::move(emitter));
+    return effect;
+}
+
+void add_animation_particle_effect(
+    nw::render::RenderModel& model,
+    std::string animation,
+    std::string effect_name)
+{
+    model.particle_systems.push_back(nw::render::ModelAssetParticleSystem{
+        .name = effect_name,
+        .animation_name = std::move(animation),
+        .effect = make_named_particle_effect(std::move(effect_name)),
+        .animation_length = 1.0f,
+    });
+}
+
+bool scene_has_particle_effect(
+    const nw::render::viewer::PreviewScene& scene,
+    std::string_view name)
+{
+    return std::any_of(scene.particles.begin(), scene.particles.end(),
+        [name](const auto& particles) {
+            return particles.import.effect.name == name;
+        });
+}
+
 std::unique_ptr<nw::render::RenderModel> make_render_model_with_invalid_clip(std::string name)
 {
     auto model = make_two_clip_render_model(std::move(name));
@@ -865,6 +905,284 @@ TEST(PreviewModelAnimation, CreatureTurnsSelectAuthoredOrReversedBodyClips)
 
     const auto repeated_right_stats = viewer::update_area_creature_locomotion_animations(scene, right_inputs);
     EXPECT_EQ(repeated_right_stats.changed_model_count, 0u);
+}
+
+TEST(PreviewModelAnimation, DoorAnimationLeaseUpdatesEveryJoinedRowAndRestoresState)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto first = make_two_clip_render_model("joined_door_first");
+    first->animations[0].name = "opening1";
+    first->animations[1].name = "opened1";
+    auto second = make_two_clip_render_model("joined_door_second");
+    second->animations[0].name = "opening1";
+    second->animations[1].name = "opened1";
+
+    constexpr nw::ObjectHandle door{
+        .id = nw::ObjectID{11},
+        .type = nw::ObjectType::door,
+        .version = 1,
+    };
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(first));
+    scene.add(std::move(second));
+    for (auto& info : scene.static_area_model_info) {
+        info = {
+            .kind = viewer::AreaRenderRecordKind::door,
+            .object = door,
+        };
+    }
+
+    std::array<uint32_t, 2> original_clip{};
+    std::array<float, 2> original_time{};
+    for (size_t index = 0; index < 2; ++index) {
+        auto* instance = scene.static_model_instance(index);
+        ASSERT_NE(instance, nullptr);
+        instance->animation.clip = static_cast<uint32_t>(index);
+        instance->animation.time = 0.25f + static_cast<float>(index);
+        instance->animation.playback_rate = -0.5f;
+        instance->animation.looping = true;
+        instance->animation.enabled = false;
+        instance->scene_animation_enabled = false;
+        instance->animation.pose.local.resize(1);
+        instance->animation.pose.local[0].translation
+            = glm::vec3{static_cast<float>(index + 1), 2.0f, 3.0f};
+        instance->attachment_node_transform_valid = {1u, 0u};
+        original_clip[index] = instance->animation.clip;
+        original_time[index] = instance->animation.time;
+    }
+
+    const std::array hold_inputs{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::open1,
+        .phase = viewer::AreaDoorAnimationPhase::hold,
+    }};
+    const std::array transition_inputs{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::open1,
+        .phase = viewer::AreaDoorAnimationPhase::transition,
+    }};
+
+    viewer::AreaDoorAnimationLease lease;
+    for (size_t cycle = 0; cycle < 100; ++cycle) {
+        const auto begin = viewer::begin_area_door_animation_lease(
+            scene, hold_inputs, lease);
+        ASSERT_EQ(begin.rejected_input_count, 0u);
+        ASSERT_EQ(begin.matched_model_count, 2u);
+        ASSERT_EQ(lease.rows.size(), 2u);
+        EXPECT_GE(lease.rows.capacity(), 2u);
+
+        const auto transition = viewer::update_area_door_animations(
+            scene, transition_inputs);
+        EXPECT_EQ(transition.changed_model_count, 2u);
+        for (size_t index = 0; index < 2; ++index) {
+            const auto* instance = scene.static_model_instance(index);
+            ASSERT_NE(instance, nullptr);
+            EXPECT_EQ(instance->animation.clip, 0u);
+            EXPECT_FLOAT_EQ(instance->animation.time, 0.0f);
+            EXPECT_FALSE(instance->animation.looping);
+        }
+
+        viewer::advance_render_model_animation_times(scene, 1.0f);
+        const auto held = viewer::update_area_door_animations(
+            scene, hold_inputs);
+        EXPECT_EQ(held.changed_model_count, 2u);
+        for (size_t index = 0; index < 2; ++index) {
+            const auto* instance = scene.static_model_instance(index);
+            ASSERT_NE(instance, nullptr);
+            EXPECT_EQ(instance->animation.clip, 1u);
+            EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
+        }
+
+        ASSERT_TRUE(viewer::restore_area_door_animation_lease(scene, lease));
+        EXPECT_FALSE(lease.active);
+        for (size_t index = 0; index < 2; ++index) {
+            const auto* instance = scene.static_model_instance(index);
+            ASSERT_NE(instance, nullptr);
+            EXPECT_EQ(instance->animation.clip, original_clip[index]);
+            EXPECT_FLOAT_EQ(instance->animation.time, original_time[index]);
+            EXPECT_FLOAT_EQ(instance->animation.playback_rate, -0.5f);
+            EXPECT_TRUE(instance->animation.looping);
+            EXPECT_FALSE(instance->animation.enabled);
+            EXPECT_FALSE(instance->scene_animation_enabled);
+            ASSERT_EQ(instance->animation.pose.local.size(), 1u);
+            EXPECT_EQ(instance->animation.pose.local[0].translation,
+                glm::vec3(static_cast<float>(index + 1), 2.0f, 3.0f));
+            EXPECT_EQ(instance->attachment_node_transform_valid,
+                (std::vector<uint8_t>{1u, 0u}));
+            EXPECT_FALSE(instance->animation.backend);
+        }
+    }
+}
+
+TEST(PreviewModelAnimation, DoorMissingHoldFreezesCompletedTransition)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto model = make_two_clip_render_model("door_without_hold");
+    model->animations[0].name = "opening1";
+    model->animations[1].name = "unrelated";
+    constexpr nw::ObjectHandle door{
+        .id = nw::ObjectID{12},
+        .type = nw::ObjectType::door,
+        .version = 1,
+    };
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(model));
+    scene.static_area_model_info[0] = {
+        .kind = viewer::AreaRenderRecordKind::door,
+        .object = door,
+    };
+
+    const std::array transition{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::open1,
+        .phase = viewer::AreaDoorAnimationPhase::transition,
+    }};
+    ASSERT_EQ(viewer::update_area_door_animations(scene, transition)
+                  .changed_model_count,
+        1u);
+    viewer::advance_render_model_animation_times(scene, 2.0f);
+
+    auto hold = transition;
+    hold[0].phase = viewer::AreaDoorAnimationPhase::hold;
+    const auto stats = viewer::update_area_door_animations(scene, hold);
+    EXPECT_EQ(stats.frozen_transition_count, 1u);
+    const auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    EXPECT_EQ(instance->animation.clip, 0u);
+    EXPECT_FLOAT_EQ(instance->animation.time, 1.0f);
+    EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
+    EXPECT_FALSE(instance->animation.looping);
+}
+
+TEST(PreviewModelAnimation, DoorAnimationSwitchesParticlePayloadAndRestoresState)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto door_model = make_two_clip_render_model("particle_door");
+    door_model->animations[0].name = "closed";
+    door_model->animations[1].name = "opening1";
+    auto opened = door_model->animations[1];
+    opened.name = "opened1";
+    door_model->animations.push_back(std::move(opened));
+    add_animation_particle_effect(*door_model, "closed", "closed_fx");
+    add_animation_particle_effect(*door_model, "opening1", "opening_fx");
+    add_animation_particle_effect(*door_model, "opened1", "opened_fx");
+
+    auto unrelated = make_static_socket_render_model(
+        "unrelated_particle_owner", glm::vec3{}, "root");
+    unrelated->particle_systems.push_back(nw::render::ModelAssetParticleSystem{
+        .name = "unrelated_fx",
+        .effect = make_named_particle_effect("unrelated_fx"),
+    });
+
+    constexpr nw::ObjectHandle door{
+        .id = nw::ObjectID{14},
+        .type = nw::ObjectType::door,
+        .version = 1,
+    };
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(door_model));
+    scene.add(std::move(unrelated));
+    scene.static_area_model_info[0] = {
+        .kind = viewer::AreaRenderRecordKind::door,
+        .object = door,
+    };
+    ASSERT_TRUE(scene_has_particle_effect(scene, "closed_fx"));
+    ASSERT_TRUE(scene_has_particle_effect(scene, "unrelated_fx"));
+    scene.particles[0].animation_time = 0.375f;
+
+    const std::array closed{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::closed,
+        .phase = viewer::AreaDoorAnimationPhase::hold,
+    }};
+    viewer::AreaDoorAnimationLease lease;
+    ASSERT_EQ(viewer::begin_area_door_animation_lease(scene, closed, lease)
+                  .rejected_input_count,
+        0u);
+    ASSERT_TRUE(lease.active);
+    EXPECT_TRUE(scene_has_particle_effect(scene, "closed_fx"));
+    EXPECT_TRUE(scene_has_particle_effect(scene, "unrelated_fx"));
+
+    const std::array opening{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::open1,
+        .phase = viewer::AreaDoorAnimationPhase::transition,
+    }};
+    ASSERT_EQ(viewer::update_area_door_animations(scene, opening)
+                  .changed_model_count,
+        1u);
+    EXPECT_FALSE(scene_has_particle_effect(scene, "closed_fx"));
+    EXPECT_TRUE(scene_has_particle_effect(scene, "opening_fx"));
+    EXPECT_TRUE(scene_has_particle_effect(scene, "unrelated_fx"));
+
+    viewer::advance_render_model_animation_times(scene, 2.0f);
+    auto opened_inputs = opening;
+    opened_inputs[0].phase = viewer::AreaDoorAnimationPhase::hold;
+    ASSERT_EQ(viewer::update_area_door_animations(scene, opened_inputs)
+                  .changed_model_count,
+        1u);
+    EXPECT_FALSE(scene_has_particle_effect(scene, "opening_fx"));
+    EXPECT_TRUE(scene_has_particle_effect(scene, "opened_fx"));
+    EXPECT_TRUE(scene_has_particle_effect(scene, "unrelated_fx"));
+
+    ASSERT_TRUE(viewer::restore_area_door_animation_lease(scene, lease));
+    ASSERT_FALSE(lease.active);
+    ASSERT_EQ(scene.particles.size(), 2u);
+    EXPECT_EQ(scene.particles[0].import.effect.name, "closed_fx");
+    EXPECT_FLOAT_EQ(scene.particles[0].animation_time, 0.375f);
+    EXPECT_EQ(scene.particles[1].import.effect.name, "unrelated_fx");
+}
+
+TEST(PreviewModelAnimation, DoorZeroDurationHoldSamplesAuthoredPose)
+{
+    namespace viewer = nw::render::viewer;
+
+    auto model = make_two_clip_render_model("zero_duration_door_hold");
+    model->animations[0].name = "opening1";
+    auto& hold = model->animations[1];
+    hold.name = "opened1";
+    hold.duration = 0.0f;
+    hold.tracks[0].translations = {
+        {.time = 0.0f, .value = glm::vec3{3.0f, 0.0f, 0.0f}},
+    };
+    constexpr nw::ObjectHandle door{
+        .id = nw::ObjectID{13},
+        .type = nw::ObjectType::door,
+        .version = 1,
+    };
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(model));
+    scene.static_area_model_info[0] = {
+        .kind = viewer::AreaRenderRecordKind::door,
+        .object = door,
+    };
+    auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    instance->animation.enabled = false;
+
+    const std::array input{viewer::AreaDoorAnimationInput{
+        .owner = door,
+        .state = viewer::AreaDoorAnimationState::open1,
+        .phase = viewer::AreaDoorAnimationPhase::hold,
+    }};
+    const auto update = viewer::update_area_door_animations(scene, input);
+    ASSERT_EQ(update.changed_model_count, 1u)
+        << "matched=" << update.matched_model_count
+        << " missing=" << update.missing_clip_count
+        << " rejected=" << update.rejected_input_count;
+
+    std::vector<nw::render::ModelInstanceAnimationSample> samples;
+    const auto stats = viewer::sample_render_model_animations(samples, scene);
+    EXPECT_EQ(stats.sampled_count, 1u);
+    ASSERT_EQ(instance->animation.pose.local.size(), 1u);
+    EXPECT_FLOAT_EQ(instance->animation.pose.local[0].translation.x, 3.0f);
 }
 
 TEST(PreviewModelAnimation, DefaultRenderModelAnimationFallsBackToFirstClip)

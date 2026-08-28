@@ -260,6 +260,26 @@ std::optional<glm::vec3> ClientRenderer::viewer_area_surface_point(
     return std::nullopt;
 }
 
+std::optional<ClientAreaDoorHit> ClientRenderer::viewer_area_door_hit(
+    float pixel_x,
+    float pixel_y,
+    ClientViewportRect viewport,
+    std::span<const nw::ObjectHandle> doors)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.viewer_area_door_hit(
+            pixel_x, pixel_y, viewport, doors);
+    }
+#endif
+
+    (void)pixel_x;
+    (void)pixel_y;
+    (void)viewport;
+    (void)doors;
+    return std::nullopt;
+}
+
 bool ClientRenderer::preview_viewer_area_object_spatial(const nw::ObjectSpatialState& spatial)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
@@ -286,15 +306,17 @@ bool ClientRenderer::append_viewer_area_object_previews(
 
 bool ClientRenderer::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
-        return nwgfx_.begin_toolset_preview_visuals(objects, camera);
+        return nwgfx_.begin_toolset_preview_visuals(objects, doors, camera);
     }
 #endif
 
     (void)objects;
+    (void)doors;
     (void)camera;
     return false;
 }
@@ -302,16 +324,19 @@ bool ClientRenderer::begin_toolset_preview_visuals(
 bool ClientRenderer::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
-        return nwgfx_.update_toolset_preview_visuals(spatial_rows, locomotion_rows, camera);
+        return nwgfx_.update_toolset_preview_visuals(
+            spatial_rows, locomotion_rows, doors, camera);
     }
 #endif
 
     (void)spatial_rows;
     (void)locomotion_rows;
+    (void)doors;
     (void)camera;
     return false;
 }
@@ -516,6 +541,17 @@ nw::ObjectHandle ClientRenderer::area_viewer_object() const noexcept
     }
 #endif
     return nw::ObjectHandle{};
+}
+
+bool ClientRenderer::area_viewer_matches_resource(
+    std::string_view area_resource) const
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.area_viewer_matches_resource(area_resource);
+    }
+#endif
+    return false;
 }
 
 const ClientGpuFrameStats* ClientRenderer::last_gpu_frame_stats() const noexcept

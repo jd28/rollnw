@@ -15,6 +15,13 @@
 
 namespace nw::render::viewer {
 
+AreaDoorAnimationLease::AreaDoorAnimationLease() = default;
+AreaDoorAnimationLease::~AreaDoorAnimationLease() = default;
+AreaDoorAnimationLease::AreaDoorAnimationLease(
+    AreaDoorAnimationLease&&) noexcept = default;
+AreaDoorAnimationLease& AreaDoorAnimationLease::operator=(
+    AreaDoorAnimationLease&&) noexcept = default;
+
 namespace {
 
 using namespace std::string_view_literals;
@@ -59,6 +66,83 @@ struct LocomotionClipSelection {
     uint32_t clip = std::numeric_limits<uint32_t>::max();
     float playback_rate = 1.0f;
 };
+
+struct DoorClipSelection {
+    std::string_view transition;
+    std::string_view hold;
+};
+
+bool ensure_render_model_animation_backend(
+    nw::render::ModelInstance& instance,
+    const nw::render::RenderModel& model,
+    size_t model_index);
+
+DoorClipSelection door_clip_selection(
+    const AreaDoorAnimationInput& input) noexcept
+{
+    switch (input.state) {
+    case AreaDoorAnimationState::closed:
+        return {
+            .transition = input.side == 0 ? "closing1"sv : "closing2"sv,
+            .hold = "closed"sv,
+        };
+    case AreaDoorAnimationState::open1:
+        return {.transition = "opening1"sv, .hold = "opened1"sv};
+    case AreaDoorAnimationState::open2:
+        return {.transition = "opening2"sv, .hold = "opened2"sv};
+    }
+    return {};
+}
+
+bool valid_door_animation_input(
+    std::span<const AreaDoorAnimationInput> inputs,
+    size_t index) noexcept
+{
+    if (inputs[index].owner.type != nw::ObjectType::door
+        || inputs[index].side > 1) {
+        return false;
+    }
+    for (size_t previous = 0; previous < index; ++previous) {
+        if (inputs[previous].owner == inputs[index].owner) return false;
+    }
+    return true;
+}
+
+const AreaDoorAnimationInput* find_door_animation_input(
+    std::span<const AreaDoorAnimationInput> inputs,
+    nw::ObjectHandle owner) noexcept
+{
+    for (size_t index = 0; index < inputs.size(); ++index) {
+        if (inputs[index].owner == owner
+            && valid_door_animation_input(inputs, index)) {
+            return &inputs[index];
+        }
+    }
+    return nullptr;
+}
+
+bool select_door_clip(nw::render::ModelInstance& instance,
+    const nw::render::RenderModel& model,
+    size_t model_index,
+    uint32_t clip,
+    float time,
+    float playback_rate,
+    bool looping)
+{
+    if (clip == std::numeric_limits<uint32_t>::max()
+        || clip >= model.animations.size()
+        || model.skeletons.empty()
+        || !ensure_render_model_animation_backend(instance, model, model_index)) {
+        return false;
+    }
+    instance.scene_animation_enabled = true;
+    instance.animation.clip = clip;
+    instance.animation.time = time;
+    instance.animation.playback_rate = playback_rate;
+    instance.animation.looping = looping;
+    instance.animation.enabled = true;
+    return true;
+}
 
 LocomotionClipSelection select_left_turn_clip(const nw::render::RenderModel& model) noexcept
 {
@@ -440,6 +524,267 @@ AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
         ++stats.changed_model_count;
     }
     return stats;
+}
+
+AreaDoorAnimationStats update_area_door_animations(
+    PreviewScene& scene,
+    std::span<const AreaDoorAnimationInput> inputs)
+{
+    AreaDoorAnimationStats stats{
+        .input_count = static_cast<uint32_t>(
+            std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+    };
+    if (!scene.is_area || inputs.empty()) return stats;
+
+    auto& changed_particle_models = scene.particle_rebuild_model_scratch;
+    changed_particle_models.clear();
+
+    for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {
+        stats.rejected_input_count
+            += !valid_door_animation_input(inputs, input_index);
+    }
+
+    // A door can own more than one joined model row. Read the model and
+    // instance for the current row inside the loop; no row-zero state is
+    // broadcast across a joined door.
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        if (model_index >= scene.static_area_model_info.size()) continue;
+        const auto& info = scene.static_area_model_info[model_index];
+        if (info.kind != AreaRenderRecordKind::door) continue;
+
+        const auto* input = find_door_animation_input(inputs, info.object);
+        if (!input) continue;
+        ++stats.matched_model_count;
+
+        if (model_index > std::numeric_limits<uint32_t>::max()) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+
+        const auto& model = scene.static_models[model_index];
+        auto* instance = scene.static_model_instance(model_index);
+        if (!model || !instance || model->animations.empty()
+            || model->skeletons.empty()) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+
+        const auto names = door_clip_selection(*input);
+        const uint32_t transition_clip
+            = find_render_model_animation_clip(*model, names.transition);
+        const uint32_t hold_clip
+            = find_render_model_animation_clip(*model, names.hold);
+
+        if (input->phase == AreaDoorAnimationPhase::transition) {
+            if (select_door_clip(*instance, *model, model_index,
+                    transition_clip, 0.0f, 1.0f, false)) {
+                changed_particle_models.push_back(
+                    static_cast<uint32_t>(model_index));
+                ++stats.changed_model_count;
+                continue;
+            }
+            if (select_door_clip(*instance, *model, model_index,
+                    hold_clip, 0.0f, 0.0f, false)) {
+                changed_particle_models.push_back(
+                    static_cast<uint32_t>(model_index));
+                ++stats.changed_model_count;
+            } else {
+                ++stats.missing_clip_count;
+            }
+            continue;
+        }
+
+        if (instance->animation.enabled
+            && instance->animation.clip == transition_clip
+            && transition_clip < model->animations.size()) {
+            const float duration = model->animations[transition_clip].duration;
+            if (std::isfinite(duration) && duration > 0.0f
+                && instance->animation.time < duration) {
+                continue;
+            }
+            if (hold_clip == std::numeric_limits<uint32_t>::max()) {
+                instance->animation.time = std::max(0.0f, duration);
+                instance->animation.playback_rate = 0.0f;
+                instance->animation.looping = false;
+                ++stats.frozen_transition_count;
+                continue;
+            }
+        }
+
+        if (instance->animation.enabled
+            && instance->animation.clip == hold_clip
+            && instance->animation.playback_rate == 0.0f) {
+            continue;
+        }
+        if (select_door_clip(*instance, *model, model_index,
+                hold_clip, 0.0f, 0.0f, false)) {
+            changed_particle_models.push_back(
+                static_cast<uint32_t>(model_index));
+            ++stats.changed_model_count;
+        } else {
+            ++stats.missing_clip_count;
+        }
+    }
+    scene.rebuild_model_particles(changed_particle_models);
+    changed_particle_models.clear();
+    return stats;
+}
+
+AreaDoorAnimationStats begin_area_door_animation_lease(
+    PreviewScene& scene,
+    std::span<const AreaDoorAnimationInput> inputs,
+    AreaDoorAnimationLease& lease)
+{
+    AreaDoorAnimationStats stats{
+        .input_count = static_cast<uint32_t>(
+            std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
+    };
+    if (lease.active || !scene.is_area) {
+        stats.rejected_input_count = stats.input_count;
+        return stats;
+    }
+    for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {
+        stats.rejected_input_count
+            += !valid_door_animation_input(inputs, input_index);
+    }
+    if (stats.rejected_input_count != 0) return stats;
+
+    lease.rows.clear();
+    lease.rows.reserve(scene.static_models.size());
+    lease.particle_model_indices.clear();
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        if (model_index >= scene.static_area_model_info.size()) continue;
+        const auto& info = scene.static_area_model_info[model_index];
+        if (info.kind != AreaRenderRecordKind::door
+            || !find_door_animation_input(inputs, info.object)) {
+            continue;
+        }
+        auto* instance = scene.static_model_instance(model_index);
+        if (!instance) continue;
+        if (model_index > std::numeric_limits<uint32_t>::max()) {
+            ++stats.missing_clip_count;
+            continue;
+        }
+        lease.particle_model_indices.push_back(
+            static_cast<uint32_t>(model_index));
+        const auto& animation = instance->animation;
+        lease.rows.push_back(AreaDoorAnimationRestoreRow{
+            .instance = scene.static_model_instance_handles[model_index],
+            .owner = info.object,
+            .pose = animation.pose,
+            .skin_matrices = animation.skin_matrices,
+            .attachment_node_world_transforms
+            = instance->attachment_node_world_transforms,
+            .attachment_node_transform_valid
+            = instance->attachment_node_transform_valid,
+            .clip = animation.clip,
+            .time = animation.time,
+            .playback_rate = animation.playback_rate,
+            .looping = animation.looping,
+            .enabled = animation.enabled,
+            .scene_animation_enabled = instance->scene_animation_enabled,
+            .had_backend = static_cast<bool>(animation.backend),
+        });
+    }
+
+    auto& changed_particle_models = scene.particle_rebuild_model_scratch;
+    changed_particle_models.reserve(lease.rows.size());
+
+    lease.particle_positions.clear();
+    lease.particles.clear();
+    lease.particle_positions.reserve(scene.particles.size());
+    lease.particles.reserve(scene.particles.size());
+    size_t write_index = 0;
+    for (size_t read_index = 0; read_index < scene.particles.size(); ++read_index) {
+        auto& particles = scene.particles[read_index];
+        if (std::find(lease.particle_model_indices.begin(),
+                lease.particle_model_indices.end(),
+                particles.owner_model_index)
+            != lease.particle_model_indices.end()) {
+            lease.particle_positions.push_back(read_index);
+            lease.particles.push_back(std::move(particles));
+            continue;
+        }
+        if (write_index != read_index) {
+            scene.particles[write_index] = std::move(particles);
+        }
+        ++write_index;
+    }
+    scene.particles.erase(
+        scene.particles.begin() + static_cast<std::ptrdiff_t>(write_index),
+        scene.particles.end());
+    scene.rebuild_model_particles(lease.particle_model_indices);
+
+    lease.active = true;
+    return update_area_door_animations(scene, inputs);
+}
+
+bool restore_area_door_animation_lease(
+    PreviewScene& scene,
+    AreaDoorAnimationLease& lease) noexcept
+{
+    if (!lease.active) return true;
+    bool restored_all = true;
+    for (auto& row : lease.rows) {
+        auto* instance = scene.model_instances.get(row.instance);
+        if (!instance) {
+            restored_all = false;
+            continue;
+        }
+        auto& animation = instance->animation;
+        std::swap(animation.pose, row.pose);
+        animation.skin_matrices.swap(row.skin_matrices);
+        instance->attachment_node_world_transforms.swap(
+            row.attachment_node_world_transforms);
+        instance->attachment_node_transform_valid.swap(
+            row.attachment_node_transform_valid);
+        animation.clip = row.clip;
+        animation.time = row.time;
+        animation.playback_rate = row.playback_rate;
+        animation.looping = row.looping;
+        animation.enabled = row.enabled;
+        instance->scene_animation_enabled = row.scene_animation_enabled;
+        if (!row.had_backend) animation.backend.reset();
+    }
+
+    scene.particles.erase(
+        std::remove_if(scene.particles.begin(), scene.particles.end(),
+            [&lease](const SceneParticleSystem& particles) {
+                return std::find(lease.particle_model_indices.begin(),
+                           lease.particle_model_indices.end(),
+                           particles.owner_model_index)
+                    != lease.particle_model_indices.end();
+            }),
+        scene.particles.end());
+    bool particle_rows_valid
+        = lease.particle_positions.size() == lease.particles.size()
+        && lease.particles.size()
+            <= scene.particles.capacity() - scene.particles.size();
+    size_t restored_particle_count = scene.particles.size();
+    for (const size_t position : lease.particle_positions) {
+        if (position > restored_particle_count) {
+            particle_rows_valid = false;
+            break;
+        }
+        ++restored_particle_count;
+    }
+    if (!particle_rows_valid) {
+        restored_all = false;
+    } else {
+        for (size_t index = 0; index < lease.particles.size(); ++index) {
+            const size_t position = lease.particle_positions[index];
+            scene.particles.insert(
+                scene.particles.begin()
+                    + static_cast<std::ptrdiff_t>(position),
+                std::move(lease.particles[index]));
+        }
+    }
+    lease.rows.clear();
+    lease.particle_model_indices.clear();
+    lease.particle_positions.clear();
+    lease.particles.clear();
+    lease.active = false;
+    return restored_all;
 }
 
 void advance_render_model_animation_times(PreviewScene& scene, float dt)
