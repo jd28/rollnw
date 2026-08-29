@@ -1,12 +1,16 @@
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
 #include <nw/formats/StaticTwoDA.hpp>
+#endif
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/nav/NavGeometry.hpp>
 #include <nw/nav/NavTileBuild.hpp>
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
 #include <nw/render/model_instance_animation.hpp>
 #include <nw/render/nwn/model_loader.hpp>
+#endif
 #include <nw/resources/ResourceManager.hpp>
 
 #include <DetourAlloc.h>
@@ -85,6 +89,7 @@ struct RecastMergeStats {
     int64_t elapsed_ns = 0;
 };
 
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
 struct DoorModelAnimationStats {
     uint64_t model_rows = 0;
     uint64_t unique_models = 0;
@@ -137,6 +142,7 @@ void append_door_models(
         models.emplace_back(model);
     }
 }
+#endif
 
 size_t walkmesh_kind(nw::ResourceType::type type)
 {
@@ -449,7 +455,9 @@ int main(int argc, char* argv[])
             ++recast_config_index;
         }
     }
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
     nw::Vector<nw::Resref> dwk_model_resrefs;
+#endif
     std::array<nw::Vector<uint64_t>, labels.size()> surface_counts;
     int64_t elapsed_ns = 0;
     nw::Vector<uint8_t> surface_walkable;
@@ -472,9 +480,11 @@ int main(int argc, char* argv[])
         ++current.resources;
         current.bytes += data.bytes.size();
         current.binary_resources += data.bytes.size() != 0 && data.bytes[0] == 0;
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
         if (kind == walkmesh_kind(nw::ResourceType::dwk)) {
             dwk_model_resrefs.push_back(resource.resref);
         }
+#endif
 
         const auto start = std::chrono::steady_clock::now();
         nw::model::Mdl mdl{std::move(data)};
@@ -858,6 +868,7 @@ int main(int argc, char* argv[])
             recast_merge.maximum_height_error_sample);
     }
 
+#if defined(ROLLNW_ALL_WALKMESH_RENDERER)
     DoorModelAnimationStats door_models;
     nw::Vector<nw::Resref> door_model_resrefs;
     append_door_models(nw::kernel::twodas().get("doortypes"),
@@ -939,6 +950,9 @@ int main(int argc, char* argv[])
         door_models.zero_duration_hold_clips,
         door_models.maximum_horizontal_extent,
         door_models.maximum_vertical_extent);
+#else
+    LOG_F(INFO, "door model animation audit skipped: renderer disabled");
+#endif
     LOG_F(INFO, "walkmesh parse time={}ns", elapsed_ns);
 
     uint64_t tileset_tiles = 0;

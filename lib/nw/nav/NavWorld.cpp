@@ -1,5 +1,6 @@
 #include "NavWorld.hpp"
 
+#include "../util/scope_exit.hpp"
 #include "NavTileBuild.hpp"
 
 #include <DetourAlloc.h>
@@ -1122,9 +1123,14 @@ NavStatus rebuild_nav_tiles(NavWorldState& world,
     // Tile payloads do not share mutable Recast or Detour state. Build up to
     // four rows concurrently, then mutate the live Detour mesh serially so a
     // failed row still leaves the installed snapshot untouched.
-    std::array<std::jthread, 3> workers;
+    std::array<std::thread, 3> workers;
+    const auto join_workers = create_scope_exit([&workers] {
+        for (auto& worker : workers) {
+            if (worker.joinable()) worker.join();
+        }
+    });
     for (size_t worker = 1; worker < worker_count; ++worker) {
-        workers[worker - 1] = std::jthread{build_tiles};
+        workers[worker - 1] = std::thread{build_tiles};
     }
     build_tiles();
     for (size_t worker = 1; worker < worker_count; ++worker) {
