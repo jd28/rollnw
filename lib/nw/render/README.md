@@ -195,6 +195,5 @@ tracked in [Render Asset Cache Residency Budget](../../../issues/render-asset-ca
 ## Open Issues
 
 - [NWN Modern PBR Material Calibration](../../../issues/nwn-modern-pbr-material-calibration.md)
-- [NWN Zero-Duration Animation Clips](../../../issues/nwn-zero-duration-animation-clips.md)
 - [Offline Model Compiler](../../../issues/offline-model-compiler.md)
 - [Render Asset Cache Residency Budget](../../../issues/render-asset-cache-residency-budget.md)

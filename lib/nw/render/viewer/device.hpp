@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace nw {
-class ResourceManager;
+struct ResourceManager;
 }
 
 namespace nw::render::viewer {

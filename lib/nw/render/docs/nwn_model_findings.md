@@ -140,10 +140,11 @@ failures and can make a parser omission look like an animation bug.
   already in the skin matrix table, and the primitive inverse-mesh transform
   cancels the bind transform exactly once. Applying the sampled mesh-node world
   as well double-transforms skins whose mesh node is not neutral.
-- Zero-duration clips are real source data. The Ozz backend currently rejects
-  them, so they are dropped and reported rather than assigned an invented
-  duration. The unresolved policy is tracked in
-  [NWN Zero-Duration Animation Clips](../../../../issues/nwn-zero-duration-animation-clips.md).
+- Zero-duration clips are real source data. When every translation, rotation,
+  and scale key is at time zero, the Ozz backend treats the clip as a static
+  pose: its internal encoding uses a unit duration and sampling remains fixed
+  at time zero. A zero-duration clip containing any nonzero key time is
+  malformed and is dropped without disabling valid sibling clips.
 
 ## Dangly Mesh Findings And Limits
 

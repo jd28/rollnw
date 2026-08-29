@@ -116,4 +116,3 @@ state.
 ## Related Issues
 
 - [Offline Model Compiler](../../../../issues/offline-model-compiler.md)
-- [NWN Zero-Duration Animation Clips](../../../../issues/nwn-zero-duration-animation-clips.md)
