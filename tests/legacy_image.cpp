@@ -95,3 +95,12 @@ TEST(Image, BMP)
     //     }
     // }
 }
+
+TEST(Image, ProgressiveJpegNegativeDcCoefficient)
+{
+    nw::Image jpeg{"test_data/renderer/CesiumMan/glTF/CesiumMan_img0.jpg"};
+    ASSERT_TRUE(jpeg.valid());
+    EXPECT_EQ(jpeg.width(), 1024u);
+    EXPECT_EQ(jpeg.height(), 1024u);
+    EXPECT_EQ(jpeg.channels(), 3u);
+}
