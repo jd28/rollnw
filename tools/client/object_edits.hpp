@@ -580,32 +580,12 @@ struct AreaObjectBlueprintLoadResult {
 [[nodiscard]] std::vector<int32_t> editable_creature_body_parts(
     smalls::Runtime& runtime, ObjectHandle object);
 
-struct CreatureBodyPartEditorRow {
-    uint32_t part = 0;
-    int32_t value = 0;
-    std::string label;
-    std::string display;
-};
-
-struct CreatureBodyPartOptionRow {
-    int32_t key = 0;
-    std::string label;
-    std::string detail;
-};
-
 struct CreatureColorEditorRow {
     uint32_t color = 0;
     int32_t value = 0;
     int32_t palette = 0;
     std::string label;
 };
-
-// Smalls owns row order, labels, values, and sparse option semantics. Empty
-// batches mean the current live appearance has no body-part editor.
-[[nodiscard]] std::vector<CreatureBodyPartEditorRow> creature_body_part_editor_rows(
-    smalls::Runtime& runtime, ObjectHandle object);
-[[nodiscard]] std::vector<CreatureBodyPartOptionRow> creature_body_part_option_rows(
-    smalls::Runtime& runtime, ObjectHandle object, uint32_t part);
 
 // Smalls supplies the fixed channel order, current values, labels, and palette
 // family. Empty batches mean the live appearance has no PLT color editor.

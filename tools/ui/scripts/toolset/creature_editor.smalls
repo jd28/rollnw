@@ -1,0 +1,276 @@
+import core.array as Array;
+import core.object as O;
+import nwn1.constants as Const;
+import nwn1.creature as CreaturePolicy;
+
+from core.commands.v1 import { command_execute };
+from core.rmlui import { Command, active_object, active_object_type };
+from core.ui import { ListConfig, ListItem, ListSelection };
+from core.ui.v1 import {
+    list_create,
+    list_on_activate,
+    list_on_refresh,
+    list_set_items,
+    list_set_selected,
+    list_set_title,
+    list_set_visible,
+};
+
+const body_parts_list = "creature.appearance.body_parts";
+const body_part_options_list = "creature.appearance.body_part_options";
+
+// Batch contract: refresh reads one published live Creature and replaces one
+// ordered body-part ListItem batch (part keys in [0, body_part_count)) plus,
+// while open, one sparse option batch (value keys in [0, 255]). The SmallS
+// runtime owns these source arrays until the next refresh; the native list
+// host owns copied rows until its next replacement. Invalid/stale objects
+// clear both batches, and mismatched selection keys are rejected unchanged.
+// This module is a true UI singleton: one document publishes one active object
+// and only one body-part option popup can be active on the UI thread.
+
+var _initialized = false;
+var _creature = O.invalid as Creature;
+var _body_part_rows: array!(CreaturePolicy.CreatureBodyPartEditorRow) = {};
+var _body_part_option_rows: array!(CreaturePolicy.CreatureBodyPartOptionRow) = {};
+var _selected_part = -1;
+var _options_open = false;
+
+fn _active_creature(): Creature {
+    if (active_object_type() != (Const.object_type_creature as int)) {
+        return O.invalid as Creature;
+    }
+    return active_object() as Creature;
+}
+
+fn _part_key(part: int): string {
+    return f"{part}";
+}
+
+fn _option_key(value: int): string {
+    return f"{value}";
+}
+
+fn _clear_options(): bool {
+    _body_part_option_rows = {};
+    _options_open = false;
+    return !_initialized || (list_set_items(body_part_options_list, {})
+        && list_set_visible(body_part_options_list, false));
+}
+
+fn _reset(): bool {
+    _creature = O.invalid as Creature;
+    _body_part_rows = {};
+    _selected_part = -1;
+    return !_initialized || (_clear_options()
+        && list_set_items(body_parts_list, {})
+        && list_set_visible(body_parts_list, false));
+}
+
+fn _find_part_row(part: int): int {
+    for (var index = 0; index < Array.len(_body_part_rows); index += 1) {
+        if (_body_part_rows[index].part == part) { return index; }
+    }
+    return -1;
+}
+
+fn _refresh_options(creature: Creature): bool {
+    var part_index = _find_part_row(_selected_part);
+    if ((creature as object) == O.invalid || part_index < 0) {
+        return _clear_options();
+    }
+
+    _body_part_option_rows = CreaturePolicy.get_body_part_option_rows(
+        creature, _selected_part);
+    if (Array.len(_body_part_option_rows) == 0) {
+        return _clear_options();
+    }
+
+    var items: array!(ListItem) = {};
+    Array.reserve(items, Array.len(_body_part_option_rows));
+    var selected_index = -1;
+    var selected_key = "";
+    var current = _body_part_rows[part_index].value;
+    for (var index = 0; index < Array.len(_body_part_option_rows); index += 1) {
+        var row = _body_part_option_rows[index];
+        Array.push(items, ListItem {
+            key = _option_key(row.key),
+            icon_source = "",
+            cell0 = row.label,
+            cell1 = row.detail,
+            cell2 = "",
+            cell3 = "",
+            cell_count = 2,
+            enabled_mask = 3,
+        });
+        if (row.key == current) {
+            selected_index = index;
+            selected_key = _option_key(row.key);
+        }
+    }
+
+    if (!list_set_items(body_part_options_list, items)
+        || !list_set_visible(body_part_options_list, _options_open)) {
+        return false;
+    }
+    return selected_index < 0 || list_set_selected(body_part_options_list, {
+        list_id = body_part_options_list,
+        key = selected_key,
+        index = selected_index,
+        cell = -1,
+    });
+}
+
+fn _refresh_body_parts(creature: Creature): bool {
+    if ((creature as object) == O.invalid) { return _reset(); }
+    _creature = creature;
+    _body_part_rows = CreaturePolicy.get_body_part_editor_rows(creature);
+    if (Array.len(_body_part_rows) == 0) { return _reset(); }
+
+    var items: array!(ListItem) = {};
+    Array.reserve(items, Array.len(_body_part_rows));
+    var selected_index = -1;
+    for (var index = 0; index < Array.len(_body_part_rows); index += 1) {
+        var row = _body_part_rows[index];
+        Array.push(items, ListItem {
+            key = _part_key(row.part),
+            icon_source = "",
+            cell0 = row.label,
+            cell1 = row.display,
+            cell2 = "",
+            cell3 = "",
+            cell_count = 2,
+            enabled_mask = 3,
+        });
+        if (row.part == _selected_part) { selected_index = index; }
+    }
+    if (!list_set_items(body_parts_list, items)
+        || !list_set_visible(body_parts_list, true)) {
+        return false;
+    }
+    if (selected_index >= 0
+        && !list_set_selected(body_parts_list, {
+            list_id = body_parts_list,
+            key = _part_key(_selected_part),
+            index = selected_index,
+            cell = -1,
+        })) {
+        return false;
+    }
+    if (selected_index < 0) {
+        _selected_part = -1;
+        return _clear_options();
+    }
+    return _refresh_options(creature);
+}
+
+fn _ensure_initialized(): bool {
+    if (_initialized) { return true; }
+    var body_config: ListConfig = {
+        row_height = 30,
+        overscan = 6,
+        columns = 1,
+    };
+    var option_config: ListConfig = {
+        row_height = 30,
+        overscan = 4,
+        columns = 1,
+    };
+    if (!list_create(body_parts_list, body_config)
+        || !list_create(body_part_options_list, option_config)
+        || !list_set_title(body_part_options_list, "Body Part Models")
+        || !list_set_visible(body_parts_list, false)
+        || !list_set_visible(body_part_options_list, false)
+        || !list_on_activate(
+            body_parts_list, "toolset.creature_editor.on_body_part_activate")
+        || !list_on_activate(body_part_options_list,
+            "toolset.creature_editor.on_body_part_option_activate")
+        || !list_on_refresh("toolset.creature_editor.refresh")) {
+        return false;
+    }
+    _initialized = true;
+    return true;
+}
+
+fn refresh(): bool {
+    if (!_ensure_initialized()) { return false; }
+    var creature = _active_creature();
+    if ((creature as object) != (_creature as object)) {
+        _selected_part = -1;
+        _options_open = false;
+    }
+    return _refresh_body_parts(creature);
+}
+
+fn body_parts_refresh(): array!(Command) {
+    refresh();
+    return {};
+}
+
+fn close_body_part_options(): array!(Command) {
+    _selected_part = -1;
+    _clear_options();
+    if (_initialized) {
+        list_set_selected(body_parts_list, {
+            list_id = body_parts_list,
+            key = "",
+            index = -1,
+            cell = -1,
+        });
+    }
+    return {};
+}
+
+fn on_body_part_activate(selection: ListSelection) {
+    var creature = _active_creature();
+    if ((creature as object) == O.invalid
+        || (creature as object) != (_creature as object)
+        || selection.index < 0
+        || selection.index >= Array.len(_body_part_rows)) {
+        _reset();
+        return;
+    }
+    var row = _body_part_rows[selection.index];
+    if (selection.list_id != body_parts_list
+        || selection.key != _part_key(row.part)) {
+        return;
+    }
+
+    if (_selected_part == row.part && _options_open) {
+        _options_open = false;
+        if (!list_set_visible(body_part_options_list, false)) {
+            _clear_options();
+        }
+        return;
+    }
+    _selected_part = row.part;
+    _options_open = true;
+    if (!_refresh_options(creature)) { _clear_options(); }
+}
+
+fn _command_succeeded(status: int): bool {
+    return status == 0 || status == 4;
+}
+
+fn on_body_part_option_activate(selection: ListSelection) {
+    var creature = _active_creature();
+    if ((creature as object) == O.invalid
+        || (creature as object) != (_creature as object)
+        || _find_part_row(_selected_part) < 0
+        || selection.index < 0
+        || selection.index >= Array.len(_body_part_option_rows)) {
+        _clear_options();
+        return;
+    }
+    var row = _body_part_option_rows[selection.index];
+    if (selection.list_id != body_part_options_list
+        || selection.key != _option_key(row.key)) {
+        return;
+    }
+
+    var result = command_execute("object.creature.set_body_part",
+        { f"{_selected_part}", f"{row.key}" });
+    if (_command_succeeded(result.status)) {
+        _options_open = false;
+        if (!_refresh_body_parts(creature)) { _clear_options(); }
+    }
+}

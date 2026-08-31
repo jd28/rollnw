@@ -6,6 +6,7 @@
 #include "smalls_rmlui.hpp"
 #include "smalls_ui_v1.hpp"
 #include "virtual_list.hpp"
+#include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
@@ -524,6 +525,152 @@ TEST(ClientRmlTemplates, PlaceableWorkbenchExpandsSmallsFirstAppearanceStructure
     Rml::RemoveContext("placeable-workbench-template-test");
 }
 
+TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    const std::string source = "<rml><head>"
+                               "<link type=\"text/css\" href=\"tools/client/ui/panel.rcss\"/>"
+                               "<link type=\"text/css\" href=\"tools/client/ui/creature_appearance.rcss\"/>"
+                               "<link type=\"text/template\" href=\""
+                               "tools/client/ui/creature_editor.rml\"/>"
+                               "<style>body { font-family: Inter; }"
+                               ".body_part_rows .managed_list_cell.cell_1 {"
+                               "font-family: Inter; font-weight: normal; }</style></head>"
+                               "<body><template src=\"creature-workbench\"></template></body></rml>";
+    auto* context = Rml::CreateContext(
+        "creature-workbench-template-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        source, "creature_workbench_template_test.rml");
+    ASSERT_NE(document, nullptr);
+
+    auto* rows = document->GetElementById("body_part_rows");
+    auto* editor = document->GetElementById("body_part_editor");
+    auto* popup = document->GetElementById("body_part_option_popup");
+    auto* option_rows = document->GetElementById("body_part_option_rows");
+    ASSERT_NE(rows, nullptr);
+    ASSERT_NE(editor, nullptr);
+    EXPECT_TRUE(editor->IsClassSet("smalls_refresh"));
+    ASSERT_NE(popup, nullptr);
+    ASSERT_NE(option_rows, nullptr);
+    EXPECT_TRUE(rows->IsClassSet("managed_list_rows"));
+    EXPECT_TRUE(rows->IsClassSet("managed_list_cycle"));
+    EXPECT_EQ(rows->GetAttribute<Rml::String>("data-list-id", ""),
+        "creature.appearance.body_parts");
+    EXPECT_EQ(rows->GetAttribute<Rml::String>("data-cycle-list-id", ""),
+        "creature.appearance.body_part_options");
+    EXPECT_EQ(rows->GetAttribute<Rml::String>(
+                  "data-focus-after-activate", ""),
+        "body_part_rows");
+    EXPECT_EQ(rows->GetAttribute<int>("data-focus-cell", 0), -1);
+    EXPECT_TRUE(popup->IsClassSet("managed_list_popup"));
+    EXPECT_TRUE(popup->IsClassSet("smalls_selector"));
+    EXPECT_EQ(popup->GetAttribute<Rml::String>(
+                  "data-anchor-list-id", ""),
+        "creature.appearance.body_parts");
+    EXPECT_EQ(option_rows->GetAttribute<Rml::String>("data-list-id", ""),
+        "creature.appearance.body_part_options");
+    EXPECT_EQ(option_rows->GetAttribute<Rml::String>(
+                  "data-focus-after-activate", ""),
+        "body_part_rows");
+    EXPECT_EQ(option_rows->GetAttribute<int>("data-focus-cell", 0), -1);
+    Rml::ElementList close_buttons;
+    popup->GetElementsByClassName(close_buttons, "smalls_selector_close");
+    EXPECT_EQ(close_buttons.size(), 1u);
+
+    auto* appearance_surface = document->GetElementById(
+        "creature_surface_appearance");
+    ASSERT_NE(appearance_surface, nullptr);
+    appearance_surface->SetClass("active", true);
+    editor->SetClass("active", true);
+    rows->SetInnerRML(
+        "<div class='managed_list_row selected'>"
+        "<span id='body-part-label' class='managed_list_cell cell_0'>Head</span>"
+        "<span id='body-part-model' class='managed_list_cell cell_1'>119</span>"
+        "</div>");
+    document->Show();
+    context->Update();
+
+    auto* label = document->GetElementById("body-part-label");
+    auto* model = document->GetElementById("body-part-model");
+    ASSERT_NE(label, nullptr);
+    ASSERT_NE(model, nullptr);
+    auto* label_text = rmlui_dynamic_cast<Rml::ElementText*>(
+        label->GetFirstChild());
+    auto* model_text = rmlui_dynamic_cast<Rml::ElementText*>(
+        model->GetFirstChild());
+    ASSERT_NE(label_text, nullptr);
+    ASSERT_NE(model_text, nullptr);
+    ASSERT_FALSE(label_text->GetLines().empty());
+    ASSERT_FALSE(model_text->GetLines().empty());
+    EXPECT_EQ(label_text->GetLines().front().text, "Head");
+    EXPECT_EQ(model_text->GetLines().front().text, "119");
+
+    const auto focus_target = nw::toolset::managed_list_focus_target(rows);
+    ASSERT_TRUE(focus_target);
+    EXPECT_EQ(focus_target->element_id, "body_part_rows");
+    EXPECT_EQ(focus_target->cell, -1);
+    ASSERT_TRUE(nw::toolset::focus_managed_list_target(
+        document, *focus_target));
+    EXPECT_EQ(context->GetFocusElement(), rows);
+    EXPECT_TRUE(rows->IsPseudoClassSet("focus"));
+
+    nw::toolset::VirtualListHost cycle_host;
+    ASSERT_TRUE(cycle_host.create(
+        "creature.appearance.body_part_options", {}));
+    ASSERT_TRUE(cycle_host.set_items(
+        "creature.appearance.body_part_options",
+        {
+            {.key = "0", .cells = {"0", "", "", ""}},
+            {.key = "1", .cells = {"1", "", "", ""}},
+            {.key = "2", .cells = {"2", "", "", ""}},
+        }));
+    ASSERT_TRUE(cycle_host.set_selected(
+        "creature.appearance.body_part_options",
+        {.list_id = "creature.appearance.body_part_options",
+            .key = "1",
+            .index = 1,
+            .cell = -1}));
+    ASSERT_TRUE(nw::toolset::cycle_managed_list_element(
+        rows, cycle_host, 1));
+    const auto cycled = cycle_host.get_selected(
+        "creature.appearance.body_part_options");
+    ASSERT_TRUE(cycled);
+    EXPECT_EQ(cycled->index, 2);
+
+    rows->Blur();
+    EXPECT_FALSE(rows->IsPseudoClassSet("focus"));
+
+    auto* secondary = document->GetElementById(
+        "creature_appearance_secondary_dynamic");
+    ASSERT_NE(secondary, nullptr);
+    secondary->SetInnerRML(
+        "<div class='creature_accessory_editor'>"
+        "<div id='accessories-title' class='creature_accessory_title'>Accessories</div>"
+        "<div id='wings-field' class='appearance_catalog_editor'>"
+        "<div class='appearance_field_label'>Wings</div>"
+        "<div class='appearance_field'><span>None</span></div>"
+        "</div></div>");
+    context->Update();
+    auto* accessories_title = document->GetElementById("accessories-title");
+    auto* wings_field = document->GetElementById("wings-field");
+    ASSERT_NE(accessories_title, nullptr);
+    ASSERT_NE(wings_field, nullptr);
+    EXPECT_GE(wings_field->GetAbsoluteTop(),
+        accessories_title->GetAbsoluteTop()
+            + accessories_title->GetOffsetHeight());
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("creature-workbench-template-test");
+}
+
 TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
@@ -767,6 +914,328 @@ TEST(ClientRmlManagedList, FixedColumnGridMaterializesOnlyVisibleLogicalRows)
     EXPECT_NE(final_markup.find("data-index=\"99\""), std::string::npos);
     EXPECT_NE(final_markup.find("managed_list_grid_item selected"),
         std::string::npos);
+}
+
+TEST(ClientRmlManagedList, LargeSingleColumnSourceMaterializesOnlyViewportAndOverscan)
+{
+    constexpr int item_count = 4096;
+    constexpr int row_height = 30;
+    constexpr int viewport_rows = 10;
+    constexpr int overscan = 4;
+
+    nw::toolset::VirtualListHost host;
+    ASSERT_TRUE(host.create("body-parts", {
+                                              .row_height = row_height,
+                                              .overscan = overscan,
+                                              .columns = 1,
+                                          }));
+    std::vector<nw::toolset::UiListItem> items;
+    items.reserve(item_count);
+    for (int index = 0; index < item_count; ++index) {
+        items.push_back({
+            .key = std::to_string(index),
+            .cells = {"Part " + std::to_string(index),
+                std::to_string(index), "", ""},
+            .cell_count = 2,
+            .enabled_mask = 3,
+        });
+    }
+    ASSERT_TRUE(host.set_items("body-parts", std::move(items)));
+
+    const auto window = host.window(
+        "body-parts", viewport_rows * row_height, item_count * row_height / 2);
+    ASSERT_TRUE(window);
+    const std::string markup = nw::toolset::render_managed_list_window(
+        "body-parts", *window, "No body parts.");
+
+    constexpr std::string_view row_class = "class=\"managed_list_row";
+    size_t materialized = 0;
+    for (size_t offset = 0;
+        (offset = markup.find(row_class, offset)) != std::string::npos;
+        offset += row_class.size()) {
+        ++materialized;
+    }
+    EXPECT_EQ(materialized, viewport_rows + 2 * overscan);
+    EXPECT_EQ(window->range.end - window->range.start,
+        viewport_rows + 2 * overscan);
+    EXPECT_LT(materialized, static_cast<size_t>(item_count));
+}
+
+TEST(ClientRmlManagedList, ActivationReturnsFocusAndCyclesDeclaredTarget)
+{
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext(
+        "managed-list-cycle-target-test", {440, 500});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml><body>
+  <div id="parts" class="managed_list_rows managed_list_cycle" tabindex="0"
+       data-list-id="parts" data-cycle-list-id="models"
+       data-focus-after-activate="parts" data-focus-cell="1">
+    <div class="managed_list_row selected" data-list-id="parts" data-index="0">
+      <span class="managed_list_cell" data-cell="0">Head</span>
+      <span id="model-field" class="managed_list_cell cell_1" data-cell="1">119</span>
+    </div>
+  </div>
+  <div id="models" class="managed_list_rows managed_list_cycle"
+       data-list-id="models" data-focus-after-activate="parts"
+       data-focus-cell="1">
+    <div class="managed_list_row" data-list-id="models" data-index="1">
+      <span id="model-hit" class="managed_list_cell" data-cell="0">1</span>
+    </div>
+  </div>
+</body></rml>
+)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    nw::toolset::VirtualListHost host;
+    ASSERT_TRUE(host.create("parts", {}));
+    ASSERT_TRUE(host.create("models", {}));
+    ASSERT_TRUE(host.set_items("parts", {{
+                                            .key = "head",
+                                            .cells = {"Head", "", "", ""},
+                                        }}));
+    ASSERT_TRUE(host.set_items("models", {
+                                             {.key = "0", .cells = {"0", "", "", ""}},
+                                             {.key = "1", .cells = {"1", "", "", ""}},
+                                             {.key = "2", .cells = {"2", "", "", ""}},
+                                         }));
+
+    auto* parts = document->GetElementById("parts");
+    auto* model_hit = document->GetElementById("model-hit");
+    ASSERT_NE(parts, nullptr);
+    ASSERT_NE(model_hit, nullptr);
+    const auto activation_focus = nw::toolset::managed_list_focus_target(
+        model_hit);
+    ASSERT_TRUE(activation_focus);
+    ASSERT_TRUE(nw::toolset::activate_managed_list_element(model_hit, host));
+    parts->SetInnerRML(
+        "<div class='managed_list_row selected' data-list-id='parts' data-index='0'>"
+        "<span class='managed_list_cell cell_0' data-cell='0'>Head</span>"
+        "<span id='model-field-after-activation' class='managed_list_cell cell_1' "
+        "data-cell='1'>1</span></div>");
+    context->Update();
+    ASSERT_TRUE(nw::toolset::focus_managed_list_target(
+        document, *activation_focus));
+    auto* model_field = document->GetElementById(
+        "model-field-after-activation");
+    ASSERT_NE(model_field, nullptr);
+    EXPECT_EQ(context->GetFocusElement(), model_field);
+    auto selected = host.get_selected("models");
+    ASSERT_TRUE(selected);
+    EXPECT_EQ(selected->index, 1);
+
+    ASSERT_TRUE(host.set_visible("models", false));
+    const auto cycle_focus = nw::toolset::managed_list_focus_target(
+        model_field);
+    ASSERT_TRUE(cycle_focus);
+    ASSERT_TRUE(nw::toolset::cycle_managed_list_element(
+        model_field, host, 1));
+    parts->SetInnerRML(
+        "<div class='managed_list_row selected' data-list-id='parts' data-index='0'>"
+        "<span class='managed_list_cell cell_0' data-cell='0'>Head</span>"
+        "<span id='model-field-after-cycle' class='managed_list_cell cell_1' "
+        "data-cell='1'>2</span></div>");
+    context->Update();
+    ASSERT_TRUE(nw::toolset::focus_managed_list_target(
+        document, *cycle_focus));
+    model_field = document->GetElementById("model-field-after-cycle");
+    ASSERT_NE(model_field, nullptr);
+    EXPECT_EQ(context->GetFocusElement(), model_field);
+
+    const auto mutation_focus = nw::toolset::managed_list_focus_target(
+        context->GetFocusElement());
+    ASSERT_TRUE(mutation_focus);
+    parts->SetInnerRML(
+        "<div class='managed_list_row selected' data-list-id='parts' data-index='0'>"
+        "<span class='managed_list_cell cell_0' data-cell='0'>Head</span>"
+        "<span id='model-field-after-mutation' class='managed_list_cell cell_1' "
+        "data-cell='1'>2</span></div>");
+    context->Update();
+    ASSERT_TRUE(nw::toolset::focus_managed_list_target(
+        document, *mutation_focus));
+    model_field = document->GetElementById("model-field-after-mutation");
+    ASSERT_NE(model_field, nullptr);
+    EXPECT_EQ(context->GetFocusElement(), model_field);
+    EXPECT_TRUE(model_field->IsPseudoClassSet("focus"));
+
+    ASSERT_TRUE(nw::toolset::cycle_managed_list_element(
+        model_field, host, -1));
+    selected = host.get_selected("models");
+    ASSERT_TRUE(selected);
+    EXPECT_EQ(selected->index, 1);
+    ASSERT_TRUE(nw::toolset::cycle_managed_list_element(
+        model_field, host, 1));
+
+    EXPECT_FALSE(nw::toolset::focus_managed_list_target(document,
+        {.element_id = "parts", .cell = 7}));
+    EXPECT_EQ(context->GetFocusElement(), model_field);
+    selected = host.get_selected("models");
+    ASSERT_TRUE(selected);
+    EXPECT_EQ(selected->index, 2);
+    const auto selected_part = host.get_selected("parts");
+    ASSERT_TRUE(selected_part);
+    EXPECT_EQ(selected_part->index, -1);
+
+    model_field->Blur();
+    EXPECT_FALSE(model_field->IsPseudoClassSet("focus"));
+    EXPECT_NE(context->GetFocusElement(), model_field);
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("managed-list-cycle-target-test");
+}
+
+TEST(ClientRmlManagedList, RevealsChangedSelectionWithoutTrappingUserScroll)
+{
+    constexpr int item_count = 256;
+    constexpr int selected_index = 119;
+    constexpr int row_height = 30;
+    constexpr int viewport_height = 300;
+
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    auto* context = Rml::CreateContext(
+        "managed-list-selection-scroll-test", {440, 500});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml>
+<head><style>
+body { font-family: Inter; }
+#rows { display: block; width: 112px; height: 300px; overflow-y: auto; }
+.managed_list_spacer { display: block; }
+.managed_list_row { display: block; width: 112px; height: 30px; }
+</style></head>
+<body><div id="rows" class="managed_list_rows"
+  data-list-id="options" data-scroll-selected="true"></div></body>
+</rml>
+)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    nw::toolset::VirtualListHost host;
+    ASSERT_TRUE(host.create("options", {
+                                           .row_height = row_height,
+                                           .overscan = 4,
+                                           .columns = 1,
+                                       }));
+    std::vector<nw::toolset::UiListItem> items;
+    items.reserve(item_count);
+    for (int index = 0; index < item_count; ++index) {
+        items.push_back({
+            .key = std::to_string(index),
+            .cells = {std::to_string(index), "", "", ""},
+            .cell_count = 1,
+            .enabled_mask = 1,
+        });
+    }
+    ASSERT_TRUE(host.set_items("options", std::move(items)));
+    ASSERT_TRUE(host.set_selected("options",
+        {.list_id = "options",
+            .key = std::to_string(selected_index),
+            .index = selected_index,
+            .cell = -1},
+        false));
+
+    nw::toolset::ManagedListRenderState render_state;
+    EXPECT_TRUE(nw::toolset::sync_managed_lists(
+        document, host, render_state, false));
+    context->Update();
+    auto* rows = document->GetElementById("rows");
+    ASSERT_NE(rows, nullptr);
+    EXPECT_TRUE(nw::toolset::sync_managed_lists(
+        document, host, render_state, false));
+    context->Update();
+    EXPECT_FLOAT_EQ(rows->GetScrollTop(),
+        selected_index * row_height + row_height - viewport_height);
+    EXPECT_NE(rows->GetInnerRML().find("data-index=\"119\""),
+        std::string::npos);
+
+    rows->SetScrollTop(0.0f);
+    context->Update();
+    EXPECT_TRUE(nw::toolset::sync_managed_lists(
+        document, host, render_state, false));
+    context->Update();
+    EXPECT_FLOAT_EQ(rows->GetScrollTop(), 0.0f);
+    EXPECT_NE(rows->GetInnerRML().find("data-index=\"0\""),
+        std::string::npos);
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("managed-list-selection-scroll-test");
+}
+
+TEST(ClientRmlManagedList, PopupPlacementUsesSelectedCellAndDeclaredBounds)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    auto* context = Rml::CreateContext(
+        "managed-list-popup-test", Rml::Vector2i{440, 500});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml>
+<head><style>
+body { display: block; width: 440px; height: 500px; font-family: Inter; }
+#bounds { display: block; position: relative; width: 440px; height: 500px; }
+#spacer { height: 100px; }
+.managed_list_row { position: absolute; left: 0px; top: 100px; width: 300px; height: 30px; }
+.cell_0 { position: absolute; left: 0px; top: 0px; width: 188px; height: 30px; }
+.cell_1 { position: absolute; left: 188px; top: 0px; width: 112px; height: 30px; }
+.managed_list_popup { position: absolute; display: block; }
+</style></head>
+<body>
+  <div id="bounds">
+    <div id="spacer"></div>
+    <div class="managed_list_row selected" data-list-id="parts">
+      <span class="managed_list_cell cell_0">Head</span>
+      <span class="managed_list_cell cell_1">119</span>
+    </div>
+    <div id="popup" class="managed_list_popup active"
+         data-anchor-list-id="parts" data-anchor-cell="1"
+         data-popup-bounds-id="bounds" data-popup-height="300"></div>
+  </div>
+</body>
+</rml>
+)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* popup = document->GetElementById("popup");
+    auto* bounds = document->GetElementById("bounds");
+    ASSERT_NE(popup, nullptr);
+    ASSERT_NE(bounds, nullptr);
+    EXPECT_TRUE(popup->IsClassSet("active"));
+    EXPECT_GT(bounds->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(bounds->GetOffsetHeight(), 0.0f);
+    Rml::ElementList cells;
+    document->GetElementsByClassName(cells, "cell_1");
+    ASSERT_EQ(cells.size(), 1u);
+    EXPECT_GT(cells.front()->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(cells.front()->GetOffsetHeight(), 0.0f);
+    EXPECT_TRUE(nw::toolset::position_managed_list_popups(document));
+    const std::string placement = popup->GetAttribute<Rml::String>(
+        "data-popup-placement", "");
+    EXPECT_FALSE(placement.empty());
+    EXPECT_NE(placement.rfind(":112:300"), std::string::npos);
+    EXPECT_FALSE(nw::toolset::position_managed_list_popups(document));
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("managed-list-popup-test");
 }
 
 TEST(ClientRmlSmallsLanguageBinding, DispatchesDirectCallsAndAppliesCommands)
@@ -1183,6 +1652,9 @@ from test.rml_runtime_actions import { select };
 TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
 {
     KernelServiceScope services;
+    auto loaded_module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(loaded_module);
     auto& runtime = nw::kernel::runtime();
     runtime.add_module_path("stdlib/core");
     runtime.add_module_path("stdlib/nwn1");
@@ -1209,7 +1681,297 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(load_and_compile("toolset.item_editor"));
     ASSERT_TRUE(load_and_compile("toolset.door_editor"));
     ASSERT_TRUE(load_and_compile("toolset.placeable_editor"));
+    ASSERT_TRUE(load_and_compile("toolset.creature_editor"));
     ASSERT_TRUE(load_and_compile("toolset.data_object_editor"));
+    nw::toolset::RmlSmallsBridge list_bridge;
+    ASSERT_TRUE(list_bridge.initialize());
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    nw::toolset::smalls_rmlui_host().publish_active_object(creature->handle());
+
+    const auto body_parts_refresh = runtime.execute_script(
+        "toolset.creature_editor", "body_parts_refresh", {});
+    ASSERT_TRUE(body_parts_refresh.ok());
+    const auto body_parts = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_parts", 570, 0);
+    ASSERT_TRUE(body_parts);
+    EXPECT_TRUE(body_parts->visible);
+    ASSERT_EQ(body_parts->items.size(), 19u);
+    EXPECT_EQ(body_parts->columns, 1);
+    for (const auto& item : body_parts->items) {
+        EXPECT_EQ(item.cell_count, 2);
+        EXPECT_FALSE(item.key.empty());
+        EXPECT_FALSE(item.cells[0].empty());
+        EXPECT_FALSE(item.cells[1].empty());
+    }
+
+    const auto find_body_part = [&](std::string_view label) {
+        return std::ranges::find(body_parts->items, label,
+            [](const nw::toolset::UiListItem& item) -> std::string_view {
+                return item.cells[0];
+            });
+    };
+    const auto head = find_body_part("Head");
+    const auto left_bicep = find_body_part("Bicep, Left");
+    ASSERT_NE(head, body_parts->items.end());
+    ASSERT_NE(left_bicep, body_parts->items.end());
+    const int head_index = static_cast<int>(head - body_parts->items.begin());
+    const int head_part = std::stoi(head->key);
+    const int left_bicep_index = static_cast<int>(
+        left_bicep - body_parts->items.begin());
+
+    const auto call_selection = [&](std::string_view function,
+                                    std::string_view list_id,
+                                    std::string_view key,
+                                    int index) {
+        const auto selection_type = runtime.type_id(
+            "core.ui.ListSelection", false);
+        EXPECT_NE(selection_type, nw::smalls::invalid_type_id);
+        nw::smalls::Runtime::ScopedRoots roots{runtime, 3};
+        const auto selection_ptr = runtime.alloc_struct(selection_type);
+        EXPECT_NE(selection_ptr.value, 0u);
+        auto selection = nw::smalls::Value::make_heap(
+            selection_ptr, selection_type);
+        roots.add(selection);
+        auto list_value = nw::smalls::Value::make_string(
+            runtime.alloc_string(list_id));
+        roots.add(list_value);
+        auto key_value = nw::smalls::Value::make_string(
+            runtime.alloc_string(key));
+        roots.add(key_value);
+        EXPECT_TRUE(runtime.write_struct_field(
+            selection_ptr, selection_type, "list_id", list_value));
+        EXPECT_TRUE(runtime.write_struct_field(
+            selection_ptr, selection_type, "key", key_value));
+        EXPECT_TRUE(runtime.write_struct_field(selection_ptr, selection_type,
+            "index", nw::smalls::Value::make_int(index)));
+        EXPECT_TRUE(runtime.write_struct_field(selection_ptr, selection_type,
+            "cell", nw::smalls::Value::make_int(-1)));
+        return runtime.execute_script(
+            "toolset.creature_editor", function, {selection});
+    };
+
+    const auto dispatch_managed_list_events = [&]() {
+        auto& host = nw::toolset::ui_v1_host();
+        bool dispatched = false;
+        bool succeeded = true;
+        host.drain_events([&](const nw::toolset::UiListEvent& event) {
+            const auto* callback = host.callback_ptr(
+                event.selection.list_id, event.type);
+            if (!callback) {
+                return;
+            }
+            const std::string qualified_function = *callback;
+            dispatched = true;
+            succeeded = succeeded
+                && list_bridge
+                       .call_ui_list_callback(qualified_function, event)
+                       .ok;
+        });
+        return dispatched && succeeded;
+    };
+    const auto activate_managed_list = [&](std::string_view list_id,
+                                           int index,
+                                           int cell = -1) {
+        auto& host = nw::toolset::ui_v1_host();
+        return host.push_activate(list_id, index, cell)
+            && dispatch_managed_list_events();
+    };
+    const auto cycle_managed_list = [&](std::string_view list_id, int delta) {
+        auto& host = nw::toolset::ui_v1_host();
+        return host.move_and_activate(list_id, delta, 300, 0)
+            && dispatch_managed_list_events();
+    };
+
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_parts", head_index));
+    auto body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_TRUE(body_part_options->visible);
+    ASSERT_FALSE(body_part_options->items.empty());
+    EXPECT_EQ(body_part_options->items.front().key, "0");
+    EXPECT_NE(std::ranges::find(body_part_options->items, "1",
+                  &nw::toolset::UiListItem::key),
+        body_part_options->items.end());
+    EXPECT_NE(std::ranges::find(body_part_options->items, "119",
+                  &nw::toolset::UiListItem::key),
+        body_part_options->items.end());
+    EXPECT_EQ(std::ranges::find(body_part_options->items, "255",
+                  &nw::toolset::UiListItem::key),
+        body_part_options->items.end());
+    EXPECT_LT(body_part_options->items.size(), 255u);
+    ASSERT_GE(body_part_options->selected_index, 0);
+    ASSERT_LT(static_cast<size_t>(body_part_options->selected_index),
+        body_part_options->items.size());
+    EXPECT_EQ(body_part_options->items[static_cast<size_t>(
+                                           body_part_options->selected_index)]
+                  .key,
+        "119");
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("creature-preview", "Creature",
+        nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandBus command_bus;
+    nw::toolset::script_command_host().bind(&command_bus, &workspace);
+    nw::toolset::CommandSpec set_body_part;
+    set_body_part.id = "object.creature.set_body_part";
+    set_body_part.scope = nw::toolset::CommandScope::workspace;
+    ASSERT_TRUE(command_bus.register_command(std::move(set_body_part),
+        [&](const nw::toolset::CommandInvocation& invocation,
+            nw::toolset::CommandContext& context) {
+            const int part = std::stoi(nw::toolset::command_arg_string(
+                invocation.args, 0));
+            const int desired = std::stoi(nw::toolset::command_arg_string(
+                invocation.args, 1));
+            const auto current = nw::toolset::editable_creature_body_parts(
+                runtime, creature->handle());
+            if (part < 0 || desired < 0 || desired > 255
+                || static_cast<size_t>(part) >= current.size()) {
+                return nw::toolset::CommandResult{
+                    .status = nw::toolset::CommandStatus::rejected};
+            }
+            nw::toolset::ObjectEditBatch batch;
+            batch.kind = nw::toolset::ObjectEditKind::creature_body_part;
+            batch.patches.push_back({creature->handle(), {},
+                static_cast<uint32_t>(part),
+                current[static_cast<size_t>(part)], desired});
+            return nw::toolset::commit_object_edits(
+                std::move(batch), "Set Creature body part", context);
+        }));
+
+    const auto body_parts_before = nw::toolset::editable_creature_body_parts(
+        runtime, creature->handle());
+    ASSERT_GT(body_parts_before.size(), static_cast<size_t>(head_part));
+    ASSERT_EQ(body_parts_before[static_cast<size_t>(head_part)], 119);
+    const auto one = std::ranges::find(body_part_options->items, "1",
+        &nw::toolset::UiListItem::key);
+    ASSERT_NE(one, body_part_options->items.end());
+    const int one_index = static_cast<int>(
+        one - body_part_options->items.begin());
+
+    ASSERT_TRUE(call_selection("on_body_part_option_activate",
+        "creature.appearance.body_part_options", "not-the-row-key",
+        one_index)
+            .ok());
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        119);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_part_options", one_index));
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        1);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->visible);
+    EXPECT_FALSE(body_part_options->items.empty());
+    ASSERT_GE(body_part_options->selected_index, 0);
+    EXPECT_EQ(body_part_options->items[static_cast<size_t>(
+                                           body_part_options->selected_index)]
+                  .key,
+        "1");
+
+    // A committed model keeps the selected part and its option batch active
+    // while the popup is hidden, so the focused body-part list can cycle it.
+    ASSERT_LT(one_index + 1,
+        static_cast<int>(body_part_options->items.size()));
+    const int next_value = std::stoi(
+        body_part_options->items[static_cast<size_t>(one_index + 1)].key);
+    ASSERT_TRUE(cycle_managed_list(
+        "creature.appearance.body_part_options", 1));
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        next_value);
+    EXPECT_EQ(workspace.undo_count(), 2u);
+
+    ASSERT_TRUE(cycle_managed_list(
+        "creature.appearance.body_part_options", -1));
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        1);
+    EXPECT_EQ(workspace.undo_count(), 3u);
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->visible);
+    EXPECT_FALSE(body_part_options->items.empty());
+    EXPECT_EQ(workspace.undo_count(), 3u);
+
+    nw::toolset::CommandContext undo_context;
+    undo_context.workspace = &workspace;
+    undo_context.active_tab_id = workspace.active_tab_id();
+    ASSERT_TRUE(workspace.undo(undo_context).ok());
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        next_value);
+    ASSERT_TRUE(workspace.redo(undo_context).ok());
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle())[static_cast<size_t>(head_part)],
+        1);
+
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_parts", left_bicep_index));
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->items.empty());
+    EXPECT_GE(body_part_options->selected_index, 0);
+    EXPECT_TRUE(body_part_options->visible);
+    EXPECT_NE(std::ranges::find(body_part_options->items, "255",
+                  &nw::toolset::UiListItem::key),
+        body_part_options->items.end());
+
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_parts", left_bicep_index));
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->visible);
+    EXPECT_FALSE(body_part_options->items.empty());
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_parts", left_bicep_index));
+
+    const auto close_body_part_options = runtime.execute_script(
+        "toolset.creature_editor", "close_body_part_options", {});
+    ASSERT_TRUE(close_body_part_options.ok());
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->visible);
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_parts", left_bicep_index));
+    body_part_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(body_part_options);
+    EXPECT_FALSE(body_part_options->items.empty());
+    EXPECT_GE(body_part_options->selected_index, 0);
+    EXPECT_TRUE(body_part_options->visible);
+
+    nw::kernel::objects().destroy(creature->handle());
+    const auto stale_refresh = runtime.execute_script(
+        "toolset.creature_editor", "refresh", {});
+    ASSERT_TRUE(stale_refresh.ok());
+    ASSERT_EQ(stale_refresh.value.type_id, runtime.bool_type());
+    EXPECT_TRUE(stale_refresh.value.data.bval);
+    const auto cleared_body_parts = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_parts", 570, 0);
+    const auto cleared_options = nw::toolset::ui_v1_host().window(
+        "creature.appearance.body_part_options", 300, 0);
+    ASSERT_TRUE(cleared_body_parts);
+    ASSERT_TRUE(cleared_options);
+    EXPECT_FALSE(cleared_body_parts->visible);
+    EXPECT_TRUE(cleared_body_parts->items.empty());
+    EXPECT_FALSE(cleared_options->visible);
+    EXPECT_TRUE(cleared_options->items.empty());
+    nw::toolset::smalls_rmlui_host().clear_active_object();
+    nw::toolset::script_command_host().bind(nullptr, nullptr);
 
     const auto verify_options = [&](std::string_view function, int32_t minimum_row) {
         const auto result = runtime.execute_script("nwn1.doors", function, {});
@@ -1407,9 +2169,8 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
         placeable_labels.push_back(ascii_lower_copy(item.cells[0]));
     }
     EXPECT_TRUE(std::ranges::is_sorted(placeable_labels));
-    const std::string placeable_list_markup =
-        nw::toolset::render_managed_list_window(
-            "placeable.appearance", *placeable_window, "No appearances.");
+    const std::string placeable_list_markup = nw::toolset::render_managed_list_window(
+        "placeable.appearance", *placeable_window, "No appearances.");
     EXPECT_NE(placeable_list_markup.find("managed_list_row"), std::string::npos);
     EXPECT_EQ(placeable_list_markup.find("managed_list_grid_row"),
         std::string::npos);
@@ -1466,8 +2227,8 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
                   .status,
         nw::toolset::ObjectEditStatus::success);
     ASSERT_TRUE(runtime.execute_script(
-        "toolset.data_object_editor", "encounter_spawns_refresh", {})
-                    .ok());
+                           "toolset.data_object_editor", "encounter_spawns_refresh", {})
+            .ok());
     const auto edited_encounter_window = nw::toolset::ui_v1_host().window(
         "data.encounter.spawns", 170, 0);
     ASSERT_TRUE(edited_encounter_window);
@@ -1503,8 +2264,8 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
                   .status,
         nw::toolset::ObjectEditStatus::success);
     ASSERT_TRUE(runtime.execute_script(
-        "toolset.data_object_editor", "sound_resources_refresh", {})
-                    .ok());
+                           "toolset.data_object_editor", "sound_resources_refresh", {})
+            .ok());
     const auto edited_sound_window = nw::toolset::ui_v1_host().window(
         "data.sound.resources", 170, 0);
     ASSERT_TRUE(edited_sound_window);

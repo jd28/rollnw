@@ -4818,6 +4818,30 @@ ObjectVisualRefreshResult refresh_object_visuals(
         return result;
     }
 
+    std::optional<glm::mat4> object_file_placement;
+    if (!scene.is_area) {
+        // Area replacements read authored spatial state. Object-file previews
+        // instead own a preview-local placement that a visual-only refresh
+        // must retain.
+        for (const auto handle : scene.static_model_instance_handles) {
+            const bool attachment_child = std::ranges::any_of(
+                scene.model_attachments,
+                [handle](const auto& binding) {
+                    return binding.child_instance_handle == handle;
+                });
+            const auto* instance = scene.model_instances.get(handle);
+            if (!attachment_child && instance) {
+                object_file_placement = instance->root_transform;
+                break;
+            }
+        }
+        if (!object_file_placement) {
+            result.status = ObjectVisualRefreshStatus::invalid_input;
+            result.diagnostic = "Object visual refresh could not read the object-file placement";
+            return result;
+        }
+    }
+
     std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
     std::sort(ordered.begin(), ordered.end());
     if (std::adjacent_find(ordered.begin(), ordered.end()) != ordered.end()) {
@@ -4846,6 +4870,9 @@ ObjectVisualRefreshResult refresh_object_visuals(
             result.status = ObjectVisualRefreshStatus::failed;
             result.diagnostic = "Object visual refresh model construction failed";
             return result;
+        }
+        if (object_file_placement) {
+            set_render_scene_root_placement(*replacement, *object_file_placement);
         }
         prime_scene_hold_animation(*replacement);
         replacements.push_back(std::move(replacement));

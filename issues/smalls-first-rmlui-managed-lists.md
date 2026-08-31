@@ -1,6 +1,7 @@
 # Smalls-First RmlUi Managed Lists
 
-Status: open.
+Status: body-part migration implemented and headlessly verified; interactive
+Release timing trace pending.
 
 ## Problem
 
@@ -32,7 +33,8 @@ and object transactions both occur on that thread.
 The observed body-part inputs are:
 
 - one live creature handle;
-- one ordered batch of 20 editor rows from Smalls;
+- one ordered batch of 19 editor rows from Smalls (the robe slot is not part of
+  this editor);
 - one sparse option batch containing integer keys and display text; and
 - fixed-height popup geometry showing at most ten rows plus bounded overscan.
 
@@ -50,10 +52,12 @@ Out-of-range row windows are clamped by the generic virtual-list primitive.
 Invalid mutation values are rejected by the named Smalls operation; the UI does
 not silently clamp object data.
 
-The common access pattern is a linear copy of the visible fixed-height row
-window. Filtering or option discovery occurs only when the source is
-invalidated or the combobox is opened. No per-frame full-source projection is
-required.
+The common access pattern is a linear projection and native copy of the 19-row
+source when the active creature refreshes, followed by a viewport-bounded DOM
+window. Sparse option discovery and projection occur only when the selector is
+opened or its source is invalidated. Per-frame synchronization reads only the
+native list revision and materialized rows; it does not call the Smalls policy
+per row.
 
 ## Decision
 
@@ -92,7 +96,9 @@ their measured duplication.
 Expected implementation cost is medium. The dominant work is defining row
 ownership/lifetime, exposing bounded list updates through the existing RmlUi
 language binding, and preserving the transaction/undo contract. Runtime memory
-is one owned source batch plus one viewport-sized RmlUi batch for the open view.
+is linear in the current source: one typed Smalls policy batch, one projected
+`ListItem` batch during replacement, one native copied source batch, and one
+viewport-sized RmlUi window.
 
 No performance result is claimed. Verification requires counters proving that
 DOM row count is bounded by viewport plus overscan and a Release trace or
@@ -191,3 +197,100 @@ contracts are preserved. The acceptance condition is that changing or
 reordering the static workbench layout requires only RML/RCSS changes; C++ may
 retain generic hosting, bounded-list synchronization, popup geometry, and
 transaction application, but no surface-specific markup or routing.
+
+## 2026-08-30 Body-Part Migration
+
+The body-part editor now follows the decided protocol:
+
+- `toolset.creature_editor` reads the one published live Creature, retains the
+  typed 19-row policy batch, and projects complete replacement batches with
+  decimal scalar keys into the existing managed-list host;
+- the static RML template owns the main list, option popup, close action, and
+  anchor/bounds declarations; RCSS owns their presentation;
+- generic native synchronization materializes fixed-height list windows and
+  positions active managed popups from the selected row or selected cell;
+- accepted sparse option keys call the existing
+  `object.creature.set_body_part` command, so the existing object-edit batch
+  remains the only mutation, dirty-state, preview, undo, and redo boundary;
+- missing/stale objects clear both lists, mismatched keys leave the live object
+  and undo history unchanged, and the command rejects parts outside the live
+  batch and values outside `[0, 255]`; and
+- the former C++ body-part row structs, field decoders, markup builder, popup
+  state, and pointer/keyboard/wheel event branches have been deleted.
+
+The batch boundary owns no runtime pointers. Smalls arrays live until the next
+refresh, the native host owns copied strings until replacement/reset, and RmlUi
+owns its DOM elements. The per-frame popup placement pass uses non-owning
+`Rml::Element` pointers because synchronous DOM traversal is the only RmlUi
+access protocol; those pointers do not escape the update.
+
+The simplification pass reused `VirtualListHost`, the existing combobox
+placement calculation, the named command, and the shared transaction history.
+It removed the redundant native presentation model and removed an unnecessary
+19-row rebuild from popup close. It did not add a widget registry, another
+virtualizer, a second mutation path, or an extension API for other editors.
+
+Headless evidence covers the real 19-row fixture; sparse head values including
+`0`, `1`, and `119`; a different part whose sparse source includes `255`;
+forged-key rejection; pointer-path activation; close/reopen; stale-object
+clearing; mutation; undo/redo; generic keyboard cycle/activation; popup
+placement; selected-value reveal without trapping later user scrolling; static
+RML ownership; and rendered text line boxes for both body-part cells. The
+declarative activation contract also verifies that selecting a model returns
+focus to the stable body-part list and that Up/Down routes to its retained,
+hidden option batch. A 4,096-row synthetic source with a 10-row viewport and
+overscan 4 emits exactly 18 DOM rows. The full configured test suite is the
+completion gate; all 9 configured CTest targets passed on 2026-08-30.
+
+An interactive follow-up exposed two production-path gaps that the direct
+policy test did not cover. The body-part refresh element had no stable RML ID,
+so the mutation-safe refresh traversal skipped it; the template now names that
+target and the structure test requires the ID. Entering Appearance also
+performs a visual-only creature rebuild. Object-file previews were incorrectly
+replacing their preview-local root transform with an area-creature placement;
+the refresh now retains the existing parent placement. Regression tests cover
+both a single-model creature and the dynamic human assembly, while area scenes
+continue to read their authored spatial state. The same follow-up found that
+RmlUi does not form text line boxes for raw text in the flex-styled body cells;
+those cells now use the established block text layout. Model activation retains
+the selected part and sparse option batch while hiding the popup, and flat RML
+attributes declare focus return and keyboard-cycle routing without restoring a
+body-part-specific native event branch.
+
+The first declarative focus pass targeted the stable list container before the
+activation callback and mouse-up completed. That did not preserve combobox
+focus because each commit replaces the selected row. The body-part declaration
+now targets the stable list container while CSS projects its focus state onto
+the selected Model cell. The managed-list boundary captures that value-only
+element request, completes callback refresh and mouse-up, then resolves the
+stable container. Keyboard cycling repeats the same post-refresh resolution.
+Creature mutation processing performs a second workspace refresh after that
+immediate callback, so it captures the same request before the refresh and
+resolves the final container afterward.
+No DOM pointer or additional focus state survives an update. Viewer camera keys
+also require the viewport's existing focus bit; a missing UI node can no longer
+silently transfer Up/Down from model cycling to camera pitch.
+The same focused managed-list path now consumes unmodified vertical wheel
+steps, matching the former combobox behavior without restoring its native
+creature branch. Keyboard and wheel cycling require RmlUi focus ownership and
+reject input while the viewport owns focus. The Model cell's gold styling now
+comes only from hover or focus on the stable list container; selected body-part
+state is still retained for option routing and popup anchoring but no longer
+impersonates keyboard focus after a viewport click.
+
+Base-appearance mutations originally bypassed that visual-only path and
+rebuilt the entire viewer object (or area), which reset the preview facing.
+Creature base-appearance changes now replace only that creature's visual rows,
+using the same camera- and root-placement-preserving path as body-part and
+color edits. Non-creature base appearances retain their existing full rebuild
+contract. The regression changes a live dynamic Human to a single-model Bodak
+from an off-axis camera and requires the scene identity, camera matrix, and
+root transform to remain unchanged while the model rows change. Appearance,
+Wings, and Tail fields also use a CSS border triangle instead of a font glyph,
+removing the missing-character squares seen with the bundled font.
+Accessory headings and catalog fields are explicit full-width block rows, so
+the Accessories and Wings labels cannot share the same inline line box.
+
+No latency or throughput result is claimed. A Release trace of open, scroll,
+and selection on the actual client remains unverified; collect it before using
+performance as evidence for or against migrating another managed view.

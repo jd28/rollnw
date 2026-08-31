@@ -1195,7 +1195,8 @@ TEST(ClientObjectEdits, EncounterSpawnRecordsUseCreatureBlueprintPropsets)
     EXPECT_EQ(rows->front().single_spawn, 0);
 
     const std::array invalid_batch{
-        creature->handle(), nw::ObjectHandle{},
+        creature->handle(),
+        nw::ObjectHandle{},
     };
     EXPECT_FALSE(nw::toolset::make_encounter_spawn_records(
         nwk::runtime(), invalid_batch));
@@ -1577,60 +1578,6 @@ TEST(ClientObjectEdits, AppearanceUndoRestoresBodyPartsInitializedBySmalls)
     ASSERT_TRUE(redone.ok()) << redone.message;
     EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nwn1::appearance_type_human);
     EXPECT_EQ(body_part_sum(), 16);
-}
-
-TEST(ClientObjectEdits, CreatureBodyPartOptionsFollowLiveSparseResources)
-{
-    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    ASSERT_TRUE(module);
-    auto* creature = nwk::objects().load_file<nw::Creature>(
-        "test_data/user/development/pl_agent_001.utc");
-    ASSERT_NE(creature, nullptr);
-
-    auto& runtime = nwk::runtime();
-    const auto editor_rows = nw::toolset::creature_body_part_editor_rows(
-        runtime, creature->handle());
-    ASSERT_EQ(editor_rows.size(), 19);
-    const auto find_editor_row = [&](std::string_view label) {
-        return std::ranges::find(editor_rows, label, &nw::toolset::CreatureBodyPartEditorRow::label);
-    };
-    const auto head_row = find_editor_row("Head");
-    const auto left_bicep_row = find_editor_row("Bicep, Left");
-    const auto robe_row = find_editor_row("Robe");
-    ASSERT_NE(head_row, editor_rows.end());
-    ASSERT_NE(left_bicep_row, editor_rows.end());
-    EXPECT_EQ(robe_row, editor_rows.end());
-
-    const auto head = nw::toolset::creature_body_part_option_rows(
-        runtime, creature->handle(), head_row->part);
-    ASSERT_FALSE(head.empty());
-    EXPECT_EQ(head.front().key, 0);
-    EXPECT_TRUE(std::ranges::is_sorted(head, {}, &nw::toolset::CreatureBodyPartOptionRow::key));
-    EXPECT_NE(std::ranges::find(head, 1, &nw::toolset::CreatureBodyPartOptionRow::key), head.end());
-    EXPECT_NE(std::ranges::find(head, 119, &nw::toolset::CreatureBodyPartOptionRow::key), head.end());
-    EXPECT_EQ(std::ranges::find(head, 255, &nw::toolset::CreatureBodyPartOptionRow::key), head.end());
-    EXPECT_LT(head.size(), 255);
-
-    const auto left_bicep = nw::toolset::creature_body_part_option_rows(
-        runtime, creature->handle(), left_bicep_row->part);
-    ASSERT_FALSE(left_bicep.empty());
-    EXPECT_TRUE(std::ranges::is_sorted(left_bicep, {}, &nw::toolset::CreatureBodyPartOptionRow::key));
-    EXPECT_NE(std::ranges::find(left_bicep, 255, &nw::toolset::CreatureBodyPartOptionRow::key), left_bicep.end());
-
-    constexpr uint32_t robe_part = 19;
-    const auto robe = nw::toolset::creature_body_part_option_rows(
-        runtime, creature->handle(), robe_part);
-    ASSERT_FALSE(robe.empty());
-    EXPECT_EQ(robe.front().detail, "Armor");
-    EXPECT_NE(std::ranges::find(robe, 20, &nw::toolset::CreatureBodyPartOptionRow::key), robe.end());
-    ASSERT_EQ(robe.back().key, 255);
-    EXPECT_EQ(robe.back().detail, "None");
-
-    EXPECT_TRUE(nw::toolset::creature_body_part_option_rows(
-        runtime, creature->handle(), 20)
-            .empty());
-
-    nwk::objects().destroy(creature->handle());
 }
 
 TEST(ClientObjectEdits, CreatureBodyPartBatchRebuildsVisualAndSharesUndoRedo)

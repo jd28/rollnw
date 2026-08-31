@@ -908,7 +908,6 @@ struct AppState {
         .kind = nw::toolset::AppearanceCatalogKind::tail};
     std::vector<uint32_t> appearance_matches;
     nw::toolset::VirtualListController appearance_list;
-    nw::toolset::VirtualComboBox body_part_combobox;
     std::unique_ptr<nw::toolset::RmlSmallsLanguageBinding> rml_smalls_binding;
     std::unique_ptr<nw::toolset::RmlSmallsDataModel> rml_smalls_data_model;
     std::string active_object_tab_id;
@@ -917,14 +916,11 @@ struct AppState {
     std::string appearance_query;
     nw::ObjectHandle appearance_object{};
     nw::ObjectHandle appearance_body_preview_object{};
-    nw::ObjectHandle body_part_option_object{};
     nw::ObjectHandle color_editor_object{};
-    int32_t body_part_option_part = -1;
     int32_t color_editor_channel = -1;
     int32_t creature_spell_level = -1;
     int32_t creature_inventory_page = 0;
     int32_t creature_inventory_selection = -1;
-    std::optional<nw::toolset::VirtualComboBoxPopupPlacement> body_part_popup_placement;
     std::optional<nw::toolset::VirtualComboBoxPopupPlacement> creature_spell_popup_placement;
     ObjectWorkbenchSurface object_workbench_surface = ObjectWorkbenchSurface::details;
     CreatureSpellFilterField creature_spell_filter_field = CreatureSpellFilterField::none;
@@ -2291,7 +2287,8 @@ bool handle_viewer_viewport_key(ClientRenderer& renderer,
     int frame_width,
     int frame_height)
 {
-    if (state.shell.command_palette_visible
+    if (!state.viewer_viewport_focused
+        || state.shell.command_palette_visible
         || focused_text_input(context)
         || state.module_dialog_open
         || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
@@ -2784,19 +2781,27 @@ void refresh_smalls_elements(Rml::ElementDocument* document, AppState& state)
     }
 }
 
-bool activate_managed_list(Rml::ElementDocument* document,
+struct ManagedListActivationResult {
+    std::optional<nw::toolset::ManagedListFocusTarget> focus_target;
+    bool activated = false;
+};
+
+ManagedListActivationResult activate_managed_list(Rml::ElementDocument* document,
     AppState& state,
     Rml::Element* hit)
 {
+    ManagedListActivationResult result;
+    result.focus_target = nw::toolset::managed_list_focus_target(hit);
     auto& host = nw::toolset::ui_v1_host();
     if (!nw::toolset::activate_managed_list_element(hit, host)) {
-        return false;
+        return result;
     }
     dispatch_managed_list_events(state);
     refresh_smalls_elements(document, state);
     nw::toolset::sync_managed_lists(
         document, host, state.managed_lists, true);
-    return true;
+    result.activated = true;
+    return result;
 }
 
 bool cycle_managed_list(Rml::ElementDocument* document,
@@ -2804,6 +2809,7 @@ bool cycle_managed_list(Rml::ElementDocument* document,
     Rml::Element* element,
     int delta)
 {
+    const auto focus_target = nw::toolset::managed_list_focus_target(element);
     auto& host = nw::toolset::ui_v1_host();
     if (!nw::toolset::cycle_managed_list_element(element, host, delta)) {
         return false;
@@ -2812,6 +2818,10 @@ bool cycle_managed_list(Rml::ElementDocument* document,
     refresh_smalls_elements(document, state);
     nw::toolset::sync_managed_lists(
         document, host, state.managed_lists, true);
+    if (focus_target) {
+        (void)nw::toolset::focus_managed_list_target(
+            document, *focus_target);
+    }
     return true;
 }
 
@@ -3903,7 +3913,6 @@ void clear_active_creature_feats(AppState& state);
 void clear_active_creature_spells(AppState& state);
 void clear_active_creature_inventory(AppState& state);
 void clear_active_appearances(AppState& state);
-void clear_body_part_options(AppState& state);
 void clear_color_editor(AppState& state);
 
 void clear_active_object_details(AppState& state)
@@ -4857,7 +4866,6 @@ void reset_appearance_catalogs_for_module(AppState& state)
     state.appearance_editor_scroll_top = 0.0f;
     state.appearance_selector_open = false;
     state.appearance_editor_field = AppearanceEditorField::appearance;
-    clear_body_part_options(state);
     clear_color_editor(state);
 }
 
@@ -4869,14 +4877,6 @@ void configure_appearance_list(AppState& state)
     state.appearance_list.set_row_height(kAppearanceRowHeightPx);
     state.appearance_list.set_overscan(kAppearanceOverscanRows);
     state.appearance_list_configured = true;
-}
-
-void clear_body_part_options(AppState& state)
-{
-    state.body_part_combobox.close();
-    state.body_part_option_object = nw::ObjectHandle{};
-    state.body_part_option_part = -1;
-    state.body_part_popup_placement.reset();
 }
 
 void clear_color_editor(AppState& state)
@@ -4951,7 +4951,6 @@ void rebuild_active_appearances(AppState& state, nw::ObjectHandle object)
 
 void clear_active_appearances(AppState& state)
 {
-    clear_body_part_options(state);
     clear_color_editor(state);
     state.appearance_query.clear();
     state.appearance_matches.clear();
@@ -4973,15 +4972,6 @@ bool active_appearances_match_tab(const AppState& state)
         && state.active_object_tab_id == active_tab->id
         && state.appearance_object == state.object_details.object
         && appearance_catalog_kind(state.appearance_object.type).has_value();
-}
-
-bool active_body_part_options_match_tab(const AppState& state)
-{
-    return active_appearances_match_tab(state)
-        && state.object_workbench_surface == ObjectWorkbenchSurface::appearance
-        && state.body_part_option_object == state.object_details.object
-        && state.body_part_option_part >= 0
-        && state.body_part_combobox.is_active();
 }
 
 bool active_color_editor_matches_tab(const AppState& state)
@@ -5018,48 +5008,6 @@ bool open_color_editor(AppState& state, nw::ObjectHandle object, uint32_t color)
 
     state.color_editor_object = object;
     state.color_editor_channel = static_cast<int32_t>(color);
-    return true;
-}
-
-bool sync_live_body_part_option(AppState& state)
-{
-    if (!active_body_part_options_match_tab(state)) {
-        return false;
-    }
-
-    const auto values = nw::toolset::editable_creature_body_parts(
-        nw::kernel::runtime(), state.body_part_option_object);
-    const auto part = static_cast<size_t>(state.body_part_option_part);
-    if (part >= values.size()
-        || !state.body_part_combobox.select_key(values[part])) {
-        clear_body_part_options(state);
-        return false;
-    }
-    return true;
-}
-
-bool open_body_part_options(
-    AppState& state, nw::ObjectHandle object, uint32_t part, int32_t current)
-{
-    auto rows = nw::toolset::creature_body_part_option_rows(
-        nw::kernel::runtime(), object, part);
-    std::vector<nw::toolset::VirtualComboBoxItem> options;
-    options.reserve(rows.size());
-    for (auto& row : rows) {
-        options.push_back({
-            .key = row.key,
-            .label = std::move(row.label),
-            .detail = std::move(row.detail),
-        });
-    }
-    if (!state.body_part_combobox.open(std::move(options), current)) {
-        clear_body_part_options(state);
-        return false;
-    }
-
-    state.body_part_option_object = object;
-    state.body_part_option_part = static_cast<int32_t>(part);
-    state.body_part_popup_placement.reset();
     return true;
 }
 
@@ -5170,56 +5118,6 @@ bool sync_appearance_window(Rml::ElementDocument* doc, AppState& state, bool for
     return !stable_markup || request_scroll;
 }
 
-bool sync_body_part_option_window(Rml::ElementDocument* doc, AppState& state, bool force)
-{
-    auto* list = find_el(doc, "body_part_option_rows");
-    if (!list || !active_body_part_options_match_tab(state)
-        || !state.body_part_combobox.popup_visible()) {
-        return false;
-    }
-
-    const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
-    auto update = state.body_part_combobox.update(
-        viewport_height, observed_scroll_top, force);
-    if (update.replace_markup) {
-        list->SetInnerRML(update.markup);
-    }
-    if (update.set_scroll) {
-        list->SetScrollTop(static_cast<float>(update.scroll_top));
-    }
-
-    bool positioned = false;
-    auto* field = find_el(doc, "active_body_part_field");
-    auto* workbench = find_el(doc, "object_workbench");
-    if (field && workbench) {
-        const nw::toolset::VirtualComboBoxRect anchor{
-            .x = static_cast<int>(std::lround(field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft())),
-            .y = static_cast<int>(std::lround(field->GetAbsoluteTop() - workbench->GetAbsoluteTop())),
-            .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
-            .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
-        };
-        const nw::toolset::VirtualComboBoxRect bounds{
-            .width = static_cast<int>(std::lround(workbench->GetClientWidth())),
-            .height = static_cast<int>(std::lround(workbench->GetClientHeight())),
-        };
-        const auto placement = state.body_part_combobox.place_popup(anchor, bounds);
-        if (placement.width > 0 && placement.height > 0
-            && (!state.body_part_popup_placement
-                || *state.body_part_popup_placement != placement)) {
-            list->SetProperty("left", std::to_string(placement.left) + "px");
-            list->SetProperty("top", std::to_string(placement.top) + "px");
-            list->SetProperty("width", std::to_string(placement.width) + "px");
-            list->SetProperty("height", std::to_string(placement.height) + "px");
-            state.body_part_popup_placement = placement;
-            positioned = true;
-        }
-    }
-    return update.replace_markup || update.set_scroll || positioned;
-}
-
 std::string appearance_editor_label(
     const AppState& state, AppearanceEditorField field, int32_t current)
 {
@@ -5297,7 +5195,8 @@ void append_appearance_catalog_field_markup(std::string& content_markup,
     content_markup += escape_html(current
             ? appearance_editor_label(state, field, *current)
             : appearance_editor_label(state, field));
-    content_markup += "</span><span class=\"appearance_field_arrow\">&#9662;</span></div>";
+    content_markup += "</span><span class=\"appearance_field_arrow\">"
+                      "<span class=\"appearance_field_arrow_indicator\"></span></span></div>";
     content_markup += "</div>";
 }
 
@@ -5336,43 +5235,6 @@ void append_creature_accessories_markup(
     append_appearance_catalog_field_markup(
         content_markup, state, AppearanceEditorField::tail, values[1]);
     content_markup += "</div>";
-}
-
-void append_creature_body_parts_markup(std::string& content_markup, const AppState& state)
-{
-    const auto rows = nw::toolset::creature_body_part_editor_rows(
-        nw::kernel::runtime(), state.object_details.object);
-    if (rows.empty()) {
-        return;
-    }
-
-    content_markup += "<div class=\"body_part_editor\"><div class=\"body_part_title\">Body Parts</div>";
-    content_markup += "<div class=\"body_part_header\"><span>Part</span><span>Model</span></div>";
-    content_markup += "<div class=\"body_part_rows\">";
-    for (const auto& row : rows) {
-        const bool active = state.body_part_combobox.is_active()
-            && state.body_part_option_object == state.object_details.object
-            && state.body_part_option_part == static_cast<int32_t>(row.part);
-        content_markup += "<div class=\"body_part_row";
-        if (active && state.body_part_combobox.popup_visible()) {
-            content_markup += " open";
-        }
-        content_markup += "\"><span class=\"body_part_label\">";
-        content_markup += escape_html(row.label);
-        content_markup += "</span><div class=\"body_part_value_cell\"><div";
-        if (active) {
-            content_markup += " id=\"active_body_part_field\" tabindex=\"0\"";
-        }
-        content_markup += " class=\"body_part_field\" data-part=\"";
-        content_markup += std::to_string(row.part);
-        content_markup += "\" data-current=\"";
-        content_markup += std::to_string(row.value);
-        content_markup += "\"><span class=\"body_part_field_value\">";
-        content_markup += escape_html(row.display);
-        content_markup += "</span><span class=\"body_part_field_arrow\">&#9662;</span></div>";
-        content_markup += "</div></div>";
-    }
-    content_markup += "</div></div>";
 }
 
 void append_creature_colors_markup(std::string& content_markup, const AppState& state)
@@ -5919,25 +5781,6 @@ void append_creature_classes_markup(std::string& markup, const AppState& state)
 void append_creature_workbench_overlay_markup(
     std::string& markup, const AppState& state)
 {
-    if (active_body_part_options_match_tab(state)
-        && state.body_part_combobox.popup_visible()) {
-        markup += "<div id=\"body_part_option_rows\" "
-                  "class=\"virtual_combobox_options body_part_option_rows\"";
-        if (state.body_part_popup_placement) {
-            const auto& placement = *state.body_part_popup_placement;
-            markup += " style=\"left:";
-            markup += std::to_string(placement.left);
-            markup += "px;top:";
-            markup += std::to_string(placement.top);
-            markup += "px;width:";
-            markup += std::to_string(placement.width);
-            markup += "px;height:";
-            markup += std::to_string(placement.height);
-            markup += "px\"";
-        }
-        markup += "><div class=\"property_tree_empty\">"
-                  "Loading model parts...</div></div>";
-    }
     if (active_creature_spell_filter_matches_tab(state)
         && state.creature_spell_combobox.popup_visible()) {
         markup += "<div id=\"creature_spell_filter_options\" "
@@ -6021,21 +5864,41 @@ void hydrate_creature_workbench(Rml::ElementDocument* doc, const AppState& state
         }
         break;
     case ObjectWorkbenchSurface::appearance:
+        markup.clear();
         if (active_color_editor_matches_tab(state)) {
             append_creature_color_selector_markup(markup, state);
         } else if (state.appearance_selector_open) {
             append_appearance_selector_markup(markup, state);
         } else {
-            markup += "<div id=\"appearance_editor\" class=\"appearance_editor\">";
+            if (auto* main = find_el(doc, "creature_appearance_main")) {
+                main->SetClass("active", true);
+            }
+            if (auto* modal = find_el(doc, "creature_appearance_modal_dynamic")) {
+                modal->SetClass("active", false);
+                modal->SetInnerRML("");
+            }
+            std::string primary_markup;
             append_appearance_catalog_field_markup(
-                markup, state, AppearanceEditorField::appearance);
-            append_creature_body_parts_markup(markup, state);
-            append_creature_accessories_markup(markup, state);
-            append_creature_colors_markup(markup, state);
-            markup += "</div>";
+                primary_markup, state, AppearanceEditorField::appearance);
+            if (auto* primary = find_el(
+                    doc, "creature_appearance_primary_dynamic")) {
+                primary->SetInnerRML(primary_markup);
+            }
+            std::string secondary_markup;
+            append_creature_accessories_markup(secondary_markup, state);
+            append_creature_colors_markup(secondary_markup, state);
+            if (auto* secondary = find_el(
+                    doc, "creature_appearance_secondary_dynamic")) {
+                secondary->SetInnerRML(secondary_markup);
+            }
+            break;
         }
-        if (auto* target = find_el(doc, "creature_appearance_dynamic")) {
-            target->SetInnerRML(markup);
+        if (auto* main = find_el(doc, "creature_appearance_main")) {
+            main->SetClass("active", false);
+        }
+        if (auto* modal = find_el(doc, "creature_appearance_modal_dynamic")) {
+            modal->SetClass("active", true);
+            modal->SetInnerRML(markup);
         }
         break;
     case ObjectWorkbenchSurface::feats:
@@ -6059,7 +5922,7 @@ void hydrate_creature_workbench(Rml::ElementDocument* doc, const AppState& state
 
     markup.clear();
     append_creature_workbench_overlay_markup(markup, state);
-    if (auto* overlays = find_el(doc, "creature_workbench_overlays")) {
+    if (auto* overlays = find_el(doc, "creature_workbench_dynamic_overlays")) {
         overlays->SetInnerRML(markup);
     }
 }
@@ -6630,9 +6493,6 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
 {
     if (!doc) {
         return;
-    }
-    if (state.body_part_combobox.popup_visible()) {
-        state.body_part_combobox.invalidate_popup_render();
     }
     if (state.creature_spell_combobox.popup_visible()) {
         state.creature_spell_combobox.invalidate_popup_render();
@@ -8031,37 +7891,6 @@ bool commit_active_appearance_selection(AppState& state, int32_t value)
     }
     append_command_result(state, result);
     return result.ok();
-}
-
-bool commit_active_body_part_selection(AppState& state, int32_t value)
-{
-    if (!active_body_part_options_match_tab(state)) {
-        return false;
-    }
-
-    const std::string part = std::to_string(state.body_part_option_part);
-    const std::string selected = std::to_string(value);
-    const auto result = dispatch_command(state,
-        "object.creature.set_body_part",
-        {std::string_view{part}, std::string_view{selected}},
-        nw::toolset::CommandSource::widget);
-    append_command_result(state, result);
-    (void)sync_live_body_part_option(state);
-    return result.ok();
-}
-
-bool cycle_active_body_part_selection(AppState& state, int delta)
-{
-    const auto previous = state.body_part_combobox.selected_key();
-    (void)state.body_part_combobox.move_selection(delta);
-    const auto selected = state.body_part_combobox.selected_key();
-    if (!selected || selected == previous
-        || !commit_active_body_part_selection(state, *selected)) {
-        return false;
-    }
-
-    state.body_part_combobox.hide_popup();
-    return true;
 }
 
 bool commit_active_color_selection(AppState& state, int32_t value)
@@ -10123,14 +9952,6 @@ int main(int argc, char* argv[])
                 }
 
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && state.body_part_option_part >= 0) {
-                    clear_body_part_options(state);
-                    refresh_workspace_content(doc, state);
-                    dispatched_to_rml = true;
-                    break;
-                }
-
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && state.creature_spell_filter_field != CreatureSpellFilterField::none) {
                     clear_creature_spell_filter(state);
                     refresh_workspace_content(doc, state);
@@ -10223,55 +10044,19 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                const bool body_part_combobox_focused = !state.shell.command_palette_visible
-                    && state.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                    && !state.appearance_selector_open
-                    && active_body_part_options_match_tab(state)
-                    && focused_element_has_id(context, "active_body_part_field")
-                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (body_part_combobox_focused
-                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
-                    if (cycle_active_body_part_selection(state,
-                            event.key.key == SDLK_UP ? -1 : 1)) {
-                        refresh_workspace_content(doc, state);
-                    }
-                    sync_body_part_option_window(doc, state, true);
-                    if (auto* field = find_el(doc, "active_body_part_field")) {
-                        field->Focus();
-                    }
-                    dispatched_to_rml = true;
-                    break;
-                }
-                if (!event.key.repeat && body_part_combobox_focused
-                    && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)) {
-                    if (!state.body_part_combobox.popup_visible()) {
-                        (void)state.body_part_combobox.show_popup();
-                        refresh_workspace_content(doc, state);
-                        sync_body_part_option_window(doc, state, true);
-                    } else if (const auto selected = state.body_part_combobox.selected_key()) {
-                        if (commit_active_body_part_selection(state, *selected)) {
-                            state.body_part_combobox.hide_popup();
-                            refresh_workspace_content(doc, state);
-                        }
-                    }
-                    if (auto* field = find_el(doc, "active_body_part_field")) {
-                        field->Focus();
-                    }
-                    dispatched_to_rml = true;
-                    break;
-                }
-
                 auto* focused_managed_list = find_ancestor_with_class(
                     context->GetFocusElement(), "managed_list_cycle");
                 const bool managed_list_cycle_focused = !state.shell.command_palette_visible
+                    && !state.viewer_viewport_focused
                     && focused_managed_list
                     && !(event.key.mod
                         & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI
                             | SDL_KMOD_SHIFT));
                 if (managed_list_cycle_focused
-                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
-                    (void)cycle_managed_list(doc, state, focused_managed_list,
-                        event.key.key == SDLK_UP ? -1 : 1);
+                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)
+                    && cycle_managed_list(doc, state, focused_managed_list,
+                        event.key.key == SDLK_UP ? -1 : 1)) {
+                    state.viewer_viewport_focused = false;
                     dispatched_to_rml = true;
                     break;
                 }
@@ -10500,6 +10285,13 @@ int main(int argc, char* argv[])
                         viewer_viewport
                         && point_within_viewport(viewer_viewport->rect, point)
                         && !viewport_mouse_hit_blocked(doc, top_hit, point, state)) {
+                        (void)close_active_smalls_selector(doc);
+                        if (state.appearance_selector_open) {
+                            close_appearance_selector(state);
+                            rebuild_active_appearances(
+                                state, state.object_details.object);
+                            refresh_workspace_content(doc, state);
+                        }
                         state.viewer_viewport_focused = true;
                         state.viewer_viewport_last_point = point;
                         clear_rml_focus(context);
@@ -10886,22 +10678,21 @@ int main(int argc, char* argv[])
                 }
                 if (event.wheel.y != 0.0f) {
                     const SDL_Keymod modifiers = SDL_GetModState();
-                    const bool body_part_combobox_focused = !state.shell.command_palette_visible
+                    auto* focused_managed_list = find_ancestor_with_class(
+                        context->GetFocusElement(), "managed_list_cycle");
+                    const bool managed_list_cycle_focused
+                        = !state.shell.command_palette_visible
                         && !state.module_dialog_open
-                        && state.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                        && !state.appearance_selector_open
-                        && active_body_part_options_match_tab(state)
-                        && focused_element_has_id(context, "active_body_part_field")
-                        && !(modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT));
-                    if (body_part_combobox_focused) {
-                        if (cycle_active_body_part_selection(state,
-                                event.wheel.y > 0.0f ? -1 : 1)) {
-                            refresh_workspace_content(doc, state);
-                        }
-                        sync_body_part_option_window(doc, state, true);
-                        if (auto* field = find_el(doc, "active_body_part_field")) {
-                            field->Focus();
-                        }
+                        && !state.viewer_viewport_focused
+                        && focused_managed_list
+                        && !(modifiers
+                            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI
+                                | SDL_KMOD_SHIFT));
+                    if (managed_list_cycle_focused
+                        && cycle_managed_list(doc, state,
+                            focused_managed_list,
+                            event.wheel.y > 0.0f ? -1 : 1)) {
+                        state.viewer_viewport_focused = false;
                         dispatched_to_rml = true;
                         break;
                     }
@@ -11242,7 +11033,7 @@ int main(int argc, char* argv[])
                             if (color && *color >= 0
                                 && active_appearances_match_tab(state)) {
                                 release_workspace_mouse_up();
-                                clear_body_part_options(state);
+                                (void)close_active_smalls_selector(doc);
                                 close_appearance_selector(state);
                                 (void)open_color_editor(state,
                                     state.object_details.object,
@@ -11261,15 +11052,6 @@ int main(int argc, char* argv[])
                                 if (commit_creature_spell_filter(state, *value)) {
                                     refresh_workspace_content(doc, state);
                                     sync_creature_spell_window(doc, state, true);
-                                }
-                            } else if (value && active_body_part_options_match_tab(state)) {
-                                release_workspace_mouse_up();
-                                if (commit_active_body_part_selection(state, *value)) {
-                                    state.body_part_combobox.hide_popup();
-                                    refresh_workspace_content(doc, state);
-                                    if (auto* active_field = find_el(doc, "active_body_part_field")) {
-                                        active_field->Focus();
-                                    }
                                 }
                             }
                             handled = true;
@@ -11292,36 +11074,6 @@ int main(int argc, char* argv[])
                                 sync_creature_spell_filter_window(doc, state, true);
                                 if (auto* active_field = find_el(
                                         doc, "active_creature_spell_filter_field")) {
-                                    active_field->Focus();
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* field = find_ancestor_with_class(hit, "body_part_field")) {
-                            const std::string part_text = field->GetAttribute<Rml::String>("data-part", "");
-                            const std::string current_text = field->GetAttribute<Rml::String>("data-current", "");
-                            const auto part = parse_decimal_int32(part_text);
-                            const auto current = parse_decimal_int32(current_text);
-                            if (part && current && *part >= 0
-                                && active_appearances_match_tab(state)) {
-                                release_workspace_mouse_up();
-                                clear_color_editor(state);
-                                if (state.body_part_combobox.is_active()
-                                    && state.body_part_option_part == *part) {
-                                    if (state.body_part_combobox.popup_visible()) {
-                                        state.body_part_combobox.hide_popup();
-                                    } else {
-                                        (void)state.body_part_combobox.show_popup();
-                                    }
-                                } else {
-                                    close_appearance_selector(state);
-                                    (void)open_body_part_options(state,
-                                        state.object_details.object,
-                                        static_cast<uint32_t>(*part),
-                                        *current);
-                                }
-                                refresh_workspace_content(doc, state);
-                                sync_body_part_option_window(doc, state, true);
-                                if (auto* active_field = find_el(doc, "active_body_part_field")) {
                                     active_field->Focus();
                                 }
                             }
@@ -11478,7 +11230,6 @@ int main(int argc, char* argv[])
                         } else if (auto* surface_tab = find_ancestor_with_class(hit, "object_workbench_tab")) {
                             const std::string surface = surface_tab->GetAttribute<Rml::String>("data-surface", "");
                             release_workspace_mouse_up();
-                            clear_body_part_options(state);
                             clear_creature_spell_filter(state);
                             clear_color_editor(state);
                             (void)close_active_smalls_selector(doc);
@@ -11552,7 +11303,7 @@ int main(int argc, char* argv[])
                                 && (*selected_field == AppearanceEditorField::appearance
                                     || state.object_details.object.type == nw::ObjectType::creature)) {
                                 release_workspace_mouse_up();
-                                clear_body_part_options(state);
+                                (void)close_active_smalls_selector(doc);
                                 clear_color_editor(state);
                                 state.appearance_editor_field = *selected_field;
                                 state.appearance_selector_open = true;
@@ -11741,8 +11492,14 @@ int main(int argc, char* argv[])
                                 }
                             }
                             handled = true;
-                        } else if (activate_managed_list(doc, state, hit)) {
+                        } else if (const auto activation = activate_managed_list(
+                                       doc, state, hit);
+                            activation.activated) {
                             release_workspace_mouse_up();
+                            if (activation.focus_target) {
+                                (void)nw::toolset::focus_managed_list_target(
+                                    doc, *activation.focus_target);
+                            }
                             handled = true;
                         } else if (auto* area_card = find_ancestor_with_class(hit, "home_area_card")) {
                             const auto index = parse_decimal_int32(
@@ -11950,6 +11707,8 @@ int main(int argc, char* argv[])
 
         const auto mutation = nw::toolset::object_mutation_state();
         if (mutation.epoch != state.observed_object_mutation_epoch) {
+            const auto mutation_focus_target = nw::toolset::managed_list_focus_target(
+                context ? context->GetFocusElement() : nullptr);
             state.observed_object_mutation_epoch = mutation.epoch;
             refresh_workspace_tabs(doc, state);
             const bool area_structure_changed = mutation.area_structure_epoch != state.observed_area_structure_epoch;
@@ -12021,7 +11780,9 @@ int main(int argc, char* argv[])
                         append_output(state, "error", "Failed to refresh the creature Appearance preview");
                     }
                     bool refreshed = false;
-                    if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail) {
+                    if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
+                        || (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance
+                            && mutation.object.type == nw::ObjectType::creature)) {
                         refreshed = renderer.refresh_live_viewer_object_visual(mutation.object);
                     } else if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance) {
                         refreshed = area_tab
@@ -12054,17 +11815,10 @@ int main(int argc, char* argv[])
                     if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance
                         && appearance_catalog_kind(mutation.object.type)
                         && mutation.object.type != nw::ObjectType::placeable) {
-                        if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
-                            (void)sync_live_body_part_option(state);
-                            state.body_part_combobox.hide_popup();
-                        }
                         rebuild_active_appearances(state, mutation.object);
                         if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                             refresh_workspace_content(doc, state);
                             workbench_rebuilt = true;
-                            if (auto* field = find_el(doc, "active_body_part_field")) {
-                                field->Focus();
-                            }
                         }
                     }
                     if (smalls_appearance_mutation
@@ -12083,6 +11837,11 @@ int main(int argc, char* argv[])
                     nw::toolset::sync_managed_lists(doc,
                         nw::toolset::ui_v1_host(), state.managed_lists, true);
                 }
+            }
+            if (mutation_focus_target
+                && nw::toolset::focus_managed_list_target(
+                    doc, *mutation_focus_target)) {
+                state.viewer_viewport_focused = false;
             }
         }
         if (state.object_workbench_surface == ObjectWorkbenchSurface::feats) {
@@ -12240,9 +11999,6 @@ int main(int argc, char* argv[])
             context->Update();
         }
         if (sync_appearance_window(doc, state, false)) {
-            context->Update();
-        }
-        if (sync_body_part_option_window(doc, state, false)) {
             context->Update();
         }
         if (nw::toolset::sync_managed_lists(doc,

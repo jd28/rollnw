@@ -1323,6 +1323,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
     const auto* instance = scene->static_model_instance(0);
     ASSERT_NE(instance, nullptr);
     EXPECT_TRUE(instance->visible);
+    const glm::mat4 root_transform_before_refresh = instance->root_transform;
 
     const auto render_model_path_event = std::find_if(
         scene->load_report.events.begin(),
@@ -1365,6 +1366,12 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
     EXPECT_EQ(session->scene(), scene_before_refresh);
     EXPECT_LT(max_abs_matrix_delta(session->camera().get_view_matrix(), edited_view), 1.0e-5f);
     EXPECT_EQ(session->active_object(), active_object);
+    const auto* instance_after_refresh = session->scene()->static_model_instance(0);
+    ASSERT_NE(instance_after_refresh, nullptr);
+    EXPECT_LT(max_abs_matrix_delta(
+                  instance_after_refresh->root_transform,
+                  root_transform_before_refresh),
+        1.0e-5f);
     ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
     ASSERT_TRUE(session->rebuild_live_object(active_object));
     // Rebuilding refits from a freshly primed animated model. Its sampled
@@ -1577,6 +1584,17 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     if (!appearance || appearance->model_type != nw::AppearanceModelType::parts) {
         GTEST_SKIP() << "humanoid human appearance unavailable";
     }
+    auto* replacement_appearance = nw::kernel::rules().appearances.get(
+        nwn1::appearance_type_bodak);
+    if (!replacement_appearance
+        || replacement_appearance->model_type == nw::AppearanceModelType::parts
+        || replacement_appearance->model.empty()) {
+        GTEST_SKIP() << "single-model bodak appearance unavailable";
+    }
+    const std::array replacement_resources{
+        nw::Resource{replacement_appearance->model, nw::ResourceType::mdl},
+    };
+    ASSERT_TRUE(resource_payloads_available(replacement_resources));
 
     const std::filesystem::path creature_fixture{"test_data/user/development/nw_chicken.utc"};
     if (!std::filesystem::exists(creature_fixture)) {
@@ -1630,6 +1648,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     const auto* base_rig_instance = scene->static_model_instance(0);
     ASSERT_NE(base_rig, nullptr);
     ASSERT_NE(base_rig_instance, nullptr);
+    const glm::mat4 root_transform_before_refresh = base_rig_instance->root_transform;
     EXPECT_FALSE(base_rig_instance->visible);
     EXPECT_TRUE(base_rig_instance->scene_animation_enabled);
     EXPECT_TRUE(base_rig_instance->animation.enabled);
@@ -1708,6 +1727,33 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     const auto& stats = session->last_frame_stats();
     EXPECT_EQ(stats.model_count, scene->static_models.size());
     EXPECT_GT(stats.prepared_render_model_draw_count, 0u);
+
+    const auto active_object = session->active_object();
+    auto* active_creature = nw::kernel::objects().get<nw::Creature>(active_object);
+    ASSERT_NE(active_creature, nullptr);
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    session->camera().orbit(35.0f, -7.0f);
+    const glm::mat4 camera_before_refresh = session->camera().get_view_matrix();
+    const std::string model_name_before_refresh = scene->static_models.front()->name;
+    auto appearance_edit = nw::toolset::make_object_appearance_edit(
+        nw::kernel::runtime(), active_object, *nwn1::appearance_type_bodak);
+    ASSERT_TRUE(appearance_edit);
+    const auto appearance_result = nw::toolset::apply_object_appearance_edit(
+        nw::kernel::runtime(), *appearance_edit, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(appearance_result.ok()) << appearance_result.diagnostic;
+    ASSERT_TRUE(session->refresh_live_object_visual(active_object));
+    EXPECT_EQ(session->scene(), scene);
+    EXPECT_LT(max_abs_matrix_delta(
+                  session->camera().get_view_matrix(), camera_before_refresh),
+        1.0e-5f);
+    ASSERT_FALSE(scene->static_models.empty());
+    EXPECT_NE(scene->static_models.front()->name, model_name_before_refresh);
+    const auto* root_after_refresh = scene->static_model_instance(0);
+    ASSERT_NE(root_after_refresh, nullptr);
+    EXPECT_LT(max_abs_matrix_delta(
+                  root_after_refresh->root_transform,
+                  root_transform_before_refresh),
+        1.0e-5f);
 }
 
 TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathKeepsSideSpecificThighAttachments)

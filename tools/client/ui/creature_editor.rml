@@ -87,7 +87,29 @@
       <div id="creature_classes_dynamic" class="creature_surface_dynamic"></div>
     </div>
     <div id="creature_surface_appearance" class="creature_workbench_surface">
-      <div id="creature_appearance_dynamic" class="creature_surface_dynamic"></div>
+      <div id="creature_appearance_main" class="creature_surface_dynamic creature_appearance_main">
+        <div id="appearance_editor" class="appearance_editor">
+          <div id="creature_appearance_primary_dynamic"></div>
+          <div id="body_part_editor"
+               class="body_part_editor managed_list_panel smalls_refresh"
+               data-list-id="creature.appearance.body_parts"
+               onrefresh="body_parts_refresh()">
+            <div class="body_part_title">Body Parts</div>
+            <div class="body_part_header"><span>Part</span><span>Model</span></div>
+            <div id="body_part_rows"
+                 class="body_part_rows managed_list_rows managed_list_cycle"
+                 tabindex="0"
+                 data-list-id="creature.appearance.body_parts"
+                 data-cycle-list-id="creature.appearance.body_part_options"
+                 data-focus-after-activate="body_part_rows"
+                 data-focus-cell="-1"
+                 data-empty-text="This appearance has no editable body parts."></div>
+          </div>
+          <div id="creature_appearance_secondary_dynamic"></div>
+        </div>
+      </div>
+      <div id="creature_appearance_modal_dynamic"
+           class="creature_surface_dynamic creature_appearance_modal"></div>
     </div>
 
     <div id="creature_surface_feats" class="creature_workbench_surface">
@@ -109,7 +131,27 @@
     <div id="creature_surface_inventory" class="creature_workbench_surface">
       <div id="creature_inventory_dynamic" class="creature_surface_dynamic"></div>
     </div>
-    <div id="creature_workbench_overlays"></div>
+    <div id="creature_workbench_overlays">
+      <div id="body_part_option_popup"
+           class="virtual_combobox_options body_part_option_popup managed_list_panel managed_list_popup smalls_selector"
+           data-list-id="creature.appearance.body_part_options"
+           data-anchor-list-id="creature.appearance.body_parts"
+           data-anchor-cell="1"
+           data-popup-bounds-id="object_workbench"
+           data-popup-height="300">
+        <button class="body_part_option_close smalls_selector_close" type="button"
+                onclick="close_body_part_options()"></button>
+        <div id="body_part_option_rows"
+             class="body_part_option_rows managed_list_rows managed_list_cycle"
+             tabindex="0"
+             data-list-id="creature.appearance.body_part_options"
+             data-focus-after-activate="body_part_rows"
+             data-focus-cell="-1"
+             data-scroll-selected="true"
+             data-empty-text="No model parts are available."></div>
+      </div>
+      <div id="creature_workbench_dynamic_overlays"></div>
+    </div>
   </div>
 </body>
 </template>

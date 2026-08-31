@@ -42,6 +42,10 @@ from toolset.placeable_editor import {
     placeable_appearance_refresh,
     previous_placeable_appearance,
 };
+from toolset.creature_editor import {
+    body_parts_refresh,
+    close_body_part_options,
+};
 from toolset.data_object_editor import {
     encounter_spawns_refresh,
     sound_resources_refresh,

@@ -1,5 +1,7 @@
 #include "rml_managed_list.hpp"
 
+#include "virtual_combobox.hpp"
+
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
 
@@ -184,6 +186,25 @@ std::string render_window(std::string_view list_id,
     return markup;
 }
 
+int scroll_top_for_selected(const UiListWindow& window,
+    int viewport_height,
+    int current_scroll_top)
+{
+    if (window.selected_index < 0 || window.columns <= 0) {
+        return current_scroll_top;
+    }
+
+    VirtualListController controller;
+    controller.set_row_height(window.row_height);
+    controller.set_total_rows(static_cast<int>(
+        (window.items.size() + static_cast<size_t>(window.columns) - 1)
+        / static_cast<size_t>(window.columns)));
+    controller.set_viewport_height(viewport_height);
+    controller.set_scroll_top(current_scroll_top);
+    return controller.scroll_top_for_index(
+        window.selected_index / window.columns);
+}
+
 void update_list_metadata(Rml::ElementDocument* document,
     std::string_view list_id,
     const UiListWindow& window)
@@ -214,6 +235,107 @@ void update_list_metadata(Rml::ElementDocument* document,
 }
 
 } // namespace
+
+bool position_managed_list_popups(Rml::ElementDocument* document)
+{
+    // RmlUi owns the document tree and exposes synchronous traversal only as
+    // non-owning Element pointers. An index table would duplicate that tree
+    // and still require pointer lookup, so this pass keeps the pointers only
+    // for the duration of one document update.
+    if (!document) {
+        return false;
+    }
+
+    Rml::ElementList popups;
+    document->GetElementsByClassName(popups, "managed_list_popup");
+    if (popups.empty()) {
+        return false;
+    }
+
+    Rml::ElementList rows;
+    document->GetElementsByClassName(rows, "managed_list_row");
+    bool changed = false;
+    for (auto* popup : popups) {
+        if (!popup->IsClassSet("active")) {
+            continue;
+        }
+
+        const std::string anchor_list_id = popup->GetAttribute<Rml::String>(
+            "data-anchor-list-id", "");
+        const std::string bounds_id = popup->GetAttribute<Rml::String>(
+            "data-popup-bounds-id", "");
+        const auto popup_height = parse_int(popup->GetAttribute<Rml::String>(
+            "data-popup-height", ""));
+        const auto anchor_cell = parse_int(popup->GetAttribute<Rml::String>(
+            "data-anchor-cell", "-1"));
+        if (anchor_list_id.empty() || bounds_id.empty() || !popup_height
+            || *popup_height <= 0 || !anchor_cell || *anchor_cell < -1) {
+            continue;
+        }
+
+        Rml::Element* anchor = nullptr;
+        for (auto* row : rows) {
+            if (row->IsClassSet("selected")
+                && row->GetAttribute<Rml::String>("data-list-id", "")
+                    == anchor_list_id) {
+                anchor = row;
+                break;
+            }
+        }
+        if (!anchor) {
+            continue;
+        }
+        if (*anchor_cell >= 0) {
+            Rml::ElementList cells;
+            const std::string cell_class = "cell_" + std::to_string(*anchor_cell);
+            anchor->GetElementsByClassName(cells, cell_class);
+            if (cells.empty()) {
+                continue;
+            }
+            anchor = cells.front();
+        }
+
+        auto* bounds = document->GetElementById(bounds_id);
+        if (!bounds) {
+            continue;
+        }
+        const VirtualComboBoxRect anchor_rect{
+            .x = static_cast<int>(std::lround(
+                anchor->GetAbsoluteLeft() - bounds->GetAbsoluteLeft())),
+            .y = static_cast<int>(std::lround(
+                anchor->GetAbsoluteTop() - bounds->GetAbsoluteTop())),
+            .width = static_cast<int>(std::lround(anchor->GetOffsetWidth())),
+            .height = static_cast<int>(std::lround(anchor->GetOffsetHeight())),
+        };
+        const VirtualComboBoxRect bounds_rect{
+            .width = static_cast<int>(std::lround(std::max(
+                bounds->GetClientWidth(), bounds->GetOffsetWidth()))),
+            .height = static_cast<int>(std::lround(std::max(
+                bounds->GetClientHeight(), bounds->GetOffsetHeight()))),
+        };
+        const auto placement = place_virtual_combobox_popup(
+            anchor_rect, bounds_rect, *popup_height);
+        if (placement.width <= 0 || placement.height <= 0) {
+            continue;
+        }
+
+        const std::string signature = std::to_string(placement.left) + ":"
+            + std::to_string(placement.top) + ":"
+            + std::to_string(placement.width) + ":"
+            + std::to_string(placement.height);
+        if (popup->GetAttribute<Rml::String>("data-popup-placement", "")
+            == signature) {
+            continue;
+        }
+        popup->SetProperty("left", std::to_string(placement.left) + "px");
+        popup->SetProperty("top", std::to_string(placement.top) + "px");
+        popup->SetProperty("width", std::to_string(placement.width) + "px");
+        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        popup->SetAttribute("data-popup-placement", signature);
+        changed = true;
+    }
+    return changed;
+}
 
 std::string render_managed_list_window(std::string_view list_id,
     const UiListWindow& window,
@@ -248,14 +370,40 @@ bool sync_managed_lists(Rml::ElementDocument* document,
         const int viewport_height = std::max(1,
             static_cast<int>(std::lround(std::max(
                 element->GetClientHeight(), element->GetOffsetHeight()))));
-        const int scroll_top = std::max(0,
+        const int observed_scroll_top = std::max(0,
             static_cast<int>(std::lround(element->GetScrollTop())));
+        auto& record = render_state.lists[list_id];
+        int scroll_top = observed_scroll_top;
+        if (record.requested_scroll_top >= 0) {
+            if (record.requested_scroll_top == observed_scroll_top) {
+                record.requested_scroll_top = -1;
+            } else {
+                scroll_top = record.requested_scroll_top;
+            }
+        }
         auto window = host.window(list_id, viewport_height, scroll_top);
         if (!window) {
             continue;
         }
 
-        auto& record = render_state.lists[list_id];
+        const bool source_or_selection_changed = force || !record.rendered
+            || record.revision != window->revision;
+        if (source_or_selection_changed
+            && element->GetAttribute<Rml::String>(
+                   "data-scroll-selected", "false")
+                == "true") {
+            const int selected_scroll_top = scroll_top_for_selected(
+                *window, viewport_height, scroll_top);
+            if (selected_scroll_top != scroll_top) {
+                scroll_top = selected_scroll_top;
+                window = host.window(
+                    list_id, viewport_height, scroll_top);
+                if (!window) {
+                    continue;
+                }
+            }
+        }
+        const bool request_scroll = scroll_top != observed_scroll_top;
         const int row_count = static_cast<int>(window->items.size());
         const bool replace = force || !record.rendered
             || record.revision != window->revision
@@ -275,15 +423,25 @@ bool sync_managed_lists(Rml::ElementDocument* document,
             update_list_metadata(document, list_id, *window);
             changed = true;
         }
+        if (request_scroll) {
+            if (!replace) {
+                element->SetScrollTop(static_cast<float>(scroll_top));
+                record.requested_scroll_top = -1;
+            } else {
+                record.requested_scroll_top = scroll_top;
+            }
+            changed = true;
+        }
     }
-    return changed;
+    return position_managed_list_popups(document) || changed;
 }
 
 bool activate_managed_list_element(Rml::Element* element, VirtualListHost& host)
 {
+    auto* list = ancestor_with_class(element, "managed_list_rows");
     auto* cell = ancestor_with_class(element, "managed_list_cell");
     auto* row = ancestor_with_class(element, "managed_list_row");
-    if (!row) {
+    if (!list || !row) {
         return false;
     }
 
@@ -304,6 +462,63 @@ bool activate_managed_list_element(Rml::Element* element, VirtualListHost& host)
     return host.push_activate(list_id, *index, cell_index);
 }
 
+std::optional<ManagedListFocusTarget> managed_list_focus_target(
+    Rml::Element* element)
+{
+    auto* list = ancestor_with_class(element, "managed_list_rows");
+    if (!list) {
+        return std::nullopt;
+    }
+
+    const std::string element_id = list->GetAttribute<Rml::String>(
+        "data-focus-after-activate", "");
+    const auto cell = parse_int(list->GetAttribute<Rml::String>(
+        "data-focus-cell", "-1"));
+    if (element_id.empty() || !cell || *cell < -1) {
+        return std::nullopt;
+    }
+    return ManagedListFocusTarget{
+        .element_id = element_id,
+        .cell = *cell,
+    };
+}
+
+bool focus_managed_list_target(Rml::ElementDocument* document,
+    const ManagedListFocusTarget& target)
+{
+    if (!document || target.element_id.empty() || target.cell < -1) {
+        return false;
+    }
+
+    auto* focus = document->GetElementById(target.element_id);
+    if (!focus) {
+        return false;
+    }
+    if (target.cell >= 0) {
+        Rml::ElementList rows;
+        focus->GetElementsByClassName(rows, "managed_list_row");
+        const auto selected = std::ranges::find_if(rows,
+            [](const Rml::Element* row) {
+                return row->IsClassSet("selected");
+            });
+        if (selected == rows.end()) {
+            return false;
+        }
+
+        Rml::ElementList cells;
+        const std::string cell_class = "cell_" + std::to_string(target.cell);
+        (*selected)->GetElementsByClassName(cells, cell_class);
+        if (cells.empty()) {
+            return false;
+        }
+        focus = cells.front();
+    }
+
+    focus->SetAttribute("tabindex", "0");
+    focus->Focus();
+    return true;
+}
+
 bool cycle_managed_list_element(
     Rml::Element* element, VirtualListHost& host, int delta)
 {
@@ -311,8 +526,10 @@ bool cycle_managed_list_element(
     if (!list || delta == 0) {
         return false;
     }
-    const std::string list_id = list->GetAttribute<Rml::String>(
+    const std::string source_list_id = list->GetAttribute<Rml::String>(
         "data-list-id", "");
+    const std::string list_id = list->GetAttribute<Rml::String>(
+        "data-cycle-list-id", source_list_id);
     if (list_id.empty()) {
         return false;
     }
@@ -327,7 +544,9 @@ bool cycle_managed_list_element(
     if (!next_scroll) {
         return false;
     }
-    list->SetScrollTop(static_cast<float>(*next_scroll));
+    if (list_id == source_list_id) {
+        list->SetScrollTop(static_cast<float>(*next_scroll));
+    }
     return true;
 }
 

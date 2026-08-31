@@ -1289,58 +1289,6 @@ bool read_script_string_field(smalls::Runtime& runtime,
     return true;
 }
 
-std::vector<CreatureBodyPartEditorRow> copy_body_part_editor_rows(
-    smalls::Runtime& runtime, const smalls::ExecutionResult& result)
-{
-    auto* array = result.ok() ? runtime.get_array_typed(result.value.data.hptr) : nullptr;
-    if (!array) {
-        return {};
-    }
-
-    std::vector<CreatureBodyPartEditorRow> rows;
-    rows.reserve(array->size());
-    for (size_t index = 0; index < array->size(); ++index) {
-        smalls::Value value;
-        CreatureBodyPartEditorRow row;
-        int32_t part = -1;
-        if (!array->get_value(index, value, runtime)
-            || !read_script_int_field(runtime, value, "part", part)
-            || part < 0
-            || !read_script_int_field(runtime, value, "value", row.value)
-            || !read_script_string_field(runtime, value, "label", row.label)
-            || !read_script_string_field(runtime, value, "display", row.display)) {
-            return {};
-        }
-        row.part = static_cast<uint32_t>(part);
-        rows.push_back(std::move(row));
-    }
-    return rows;
-}
-
-std::vector<CreatureBodyPartOptionRow> copy_body_part_option_rows(
-    smalls::Runtime& runtime, const smalls::ExecutionResult& result)
-{
-    auto* array = result.ok() ? runtime.get_array_typed(result.value.data.hptr) : nullptr;
-    if (!array) {
-        return {};
-    }
-
-    std::vector<CreatureBodyPartOptionRow> rows;
-    rows.reserve(array->size());
-    for (size_t index = 0; index < array->size(); ++index) {
-        smalls::Value value;
-        CreatureBodyPartOptionRow row;
-        if (!array->get_value(index, value, runtime)
-            || !read_script_int_field(runtime, value, "key", row.key)
-            || !read_script_string_field(runtime, value, "label", row.label)
-            || !read_script_string_field(runtime, value, "detail", row.detail)) {
-            return {};
-        }
-        rows.push_back(std::move(row));
-    }
-    return rows;
-}
-
 std::vector<CreatureColorEditorRow> copy_color_editor_rows(
     smalls::Runtime& runtime, const smalls::ExecutionResult& result)
 {
@@ -1380,35 +1328,6 @@ std::vector<int32_t> read_creature_int_values(
     object_value.type_id = runtime.object_subtype_for_tag(object.type);
     const auto result = runtime.execute_script(module, function, {object_value});
     return copy_script_int_array(runtime, result);
-}
-
-std::vector<CreatureBodyPartEditorRow> read_creature_body_part_editor_rows(
-    smalls::Runtime& runtime, ObjectHandle object)
-{
-    if (object.type != ObjectType::creature || !valid_live_object(object)) {
-        return {};
-    }
-
-    smalls::Value object_value = smalls::Value::make_object(object);
-    object_value.type_id = runtime.object_subtype_for_tag(object.type);
-    const auto result = runtime.execute_script(
-        "nwn1.creature", "get_body_part_editor_rows", {object_value});
-    return copy_body_part_editor_rows(runtime, result);
-}
-
-std::vector<CreatureBodyPartOptionRow> read_creature_body_part_option_rows(
-    smalls::Runtime& runtime, ObjectHandle object, uint32_t part)
-{
-    if (object.type != ObjectType::creature || !valid_live_object(object)
-        || part > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-        return {};
-    }
-
-    smalls::Value object_value = smalls::Value::make_object(object);
-    object_value.type_id = runtime.object_subtype_for_tag(object.type);
-    const auto result = runtime.execute_script("nwn1.creature", "get_body_part_option_rows",
-        {object_value, smalls::Value::make_int(static_cast<int32_t>(part))});
-    return copy_body_part_option_rows(runtime, result);
 }
 
 std::vector<CreatureColorEditorRow> read_creature_color_editor_rows(
@@ -3779,8 +3698,7 @@ bool apply_store_item_placement(Store& store,
         }
     }
 
-    if (slot.page < 0 || !inventory->insert_item(slot.page, slot.row, slot.col,
-            layout->inventory_width, layout->inventory_height)) {
+    if (slot.page < 0 || !inventory->insert_item(slot.page, slot.row, slot.col, layout->inventory_width, layout->inventory_height)) {
         if (added_page) {
             (void)inventory->remove_empty_trailing_page();
         }
@@ -5359,18 +5277,6 @@ std::vector<int32_t> editable_creature_body_parts(
 {
     return read_creature_int_values(
         runtime, object, "nwn1.creature", "get_editable_body_parts");
-}
-
-std::vector<CreatureBodyPartEditorRow> creature_body_part_editor_rows(
-    smalls::Runtime& runtime, ObjectHandle object)
-{
-    return read_creature_body_part_editor_rows(runtime, object);
-}
-
-std::vector<CreatureBodyPartOptionRow> creature_body_part_option_rows(
-    smalls::Runtime& runtime, ObjectHandle object, uint32_t part)
-{
-    return read_creature_body_part_option_rows(runtime, object, part);
 }
 
 std::vector<int32_t> editable_creature_colors(

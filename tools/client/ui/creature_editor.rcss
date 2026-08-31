@@ -40,7 +40,22 @@
   min-height: 0px;
 }
 
+.creature_appearance_main, .creature_appearance_modal {
+  display: none;
+}
+.creature_appearance_main.active, .creature_appearance_modal.active {
+  display: flex;
+}
+
 #creature_workbench_overlays {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 0px;
+  height: 0px;
+}
+
+#creature_workbench_dynamic_overlays {
   position: absolute;
   left: 0px;
   top: 0px;
