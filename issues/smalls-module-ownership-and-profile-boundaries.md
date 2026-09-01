@@ -2,8 +2,8 @@
 
 Status: package and runtime ownership implemented; toolset presentation
 migration remains. Tier 2. The Item and appearance slices prove the runtime
-boundary; remaining work is the Smalls-first managed presentation path tracked
-by `issues/smalls-first-rmlui-managed-lists.md`.
+boundary, and the Creature body-part slice proves the managed-presentation
+path. Remaining work is Phase 3 and Phase 3B below.
 
 ## Goal
 
