@@ -1,3 +1,4 @@
+#include "appearance_catalog.hpp"
 #include "object_edits.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
@@ -5,6 +6,7 @@
 #include "script_commands.hpp"
 #include "smalls_rmlui.hpp"
 #include "smalls_ui_v1.hpp"
+#include "toolset_backend.hpp"
 #include "virtual_list.hpp"
 #include "workspace.hpp"
 
@@ -13,6 +15,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
@@ -27,6 +30,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <filesystem>
 #include <string>
@@ -105,15 +109,6 @@ bool diagnostic_contains(const nw::toolset::RmlSmallsLanguageBinding& binding, s
     return std::any_of(diagnostics.begin(), diagnostics.end(), [needle](const auto& diagnostic) {
         return diagnostic.message.find(needle) != std::string::npos;
     });
-}
-
-std::string ascii_lower_copy(std::string_view value)
-{
-    std::string result{value};
-    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
-    return result;
 }
 
 class RmlVirtualListAdapter final : public nw::toolset::VirtualListAdapter {
@@ -330,7 +325,7 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     Rml::RemoveContext("item-workbench-template-test");
 }
 
-TEST(ClientRmlTemplates, DoorWorkbenchExpandsSmallsFirstAppearanceStructure)
+TEST(ClientRmlTemplates, DoorWorkbenchExpandsNativeAppearanceStructure)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
     NullRenderInterface renderer;
@@ -369,7 +364,7 @@ TEST(ClientRmlTemplates, DoorWorkbenchExpandsSmallsFirstAppearanceStructure)
     ASSERT_NE(variables, nullptr);
     ASSERT_NE(appearance, nullptr);
     ASSERT_NE(appearance_dynamic, nullptr);
-    EXPECT_TRUE(appearance_dynamic->IsClassSet("smalls_refresh"));
+    EXPECT_FALSE(appearance_dynamic->IsClassSet("smalls_refresh"));
     EXPECT_NE(document->GetElementById("property_tree_rows"), nullptr);
     EXPECT_NE(document->GetElementById("object_variable_rows"), nullptr);
     EXPECT_NE(document->GetElementById("object_workbench_tabs"), nullptr);
@@ -429,7 +424,7 @@ TEST(ClientRmlTemplates, DoorWorkbenchExpandsSmallsFirstAppearanceStructure)
     Rml::RemoveContext("door-workbench-template-test");
 }
 
-TEST(ClientRmlTemplates, PlaceableWorkbenchExpandsSmallsFirstAppearanceStructure)
+TEST(ClientRmlTemplates, PlaceableWorkbenchExpandsNativeAppearanceStructure)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
     NullRenderInterface renderer;
@@ -470,7 +465,7 @@ TEST(ClientRmlTemplates, PlaceableWorkbenchExpandsSmallsFirstAppearanceStructure
     ASSERT_NE(appearance, nullptr);
     ASSERT_NE(inventory, nullptr);
     ASSERT_NE(appearance_dynamic, nullptr);
-    EXPECT_TRUE(appearance_dynamic->IsClassSet("smalls_refresh"));
+    EXPECT_FALSE(appearance_dynamic->IsClassSet("smalls_refresh"));
     EXPECT_NE(document->GetElementById("property_tree_rows"), nullptr);
     EXPECT_NE(document->GetElementById("object_variable_rows"), nullptr);
     EXPECT_NE(document->GetElementById("placeable_inventory_dynamic"), nullptr);
@@ -1679,12 +1674,15 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(load_and_compile("toolset.ui"));
     ASSERT_TRUE(load_and_compile("toolset.rmlui"));
     ASSERT_TRUE(load_and_compile("toolset.item_editor"));
-    ASSERT_TRUE(load_and_compile("toolset.door_editor"));
-    ASSERT_TRUE(load_and_compile("toolset.placeable_editor"));
     ASSERT_TRUE(load_and_compile("toolset.creature_editor"));
     ASSERT_TRUE(load_and_compile("toolset.data_object_editor"));
     nw::toolset::RmlSmallsBridge list_bridge;
-    ASSERT_TRUE(list_bridge.initialize());
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("creature-preview", "Creature",
+        nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::ToolsetBackend backend;
+    backend.bind(&list_bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.initialize());
 
     auto* creature = nw::kernel::objects().load_file<nw::Creature>(
         "test_data/user/development/pl_agent_001.utc");
@@ -1811,37 +1809,6 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
                   .key,
         "119");
 
-    nw::toolset::WorkspaceState workspace;
-    workspace.open_tab("creature-preview", "Creature",
-        nw::toolset::WorkspaceTabKind::preview);
-    nw::toolset::CommandBus command_bus;
-    nw::toolset::script_command_host().bind(&command_bus, &workspace);
-    nw::toolset::CommandSpec set_body_part;
-    set_body_part.id = "object.creature.set_body_part";
-    set_body_part.scope = nw::toolset::CommandScope::workspace;
-    ASSERT_TRUE(command_bus.register_command(std::move(set_body_part),
-        [&](const nw::toolset::CommandInvocation& invocation,
-            nw::toolset::CommandContext& context) {
-            const int part = std::stoi(nw::toolset::command_arg_string(
-                invocation.args, 0));
-            const int desired = std::stoi(nw::toolset::command_arg_string(
-                invocation.args, 1));
-            const auto current = nw::toolset::editable_creature_body_parts(
-                runtime, creature->handle());
-            if (part < 0 || desired < 0 || desired > 255
-                || static_cast<size_t>(part) >= current.size()) {
-                return nw::toolset::CommandResult{
-                    .status = nw::toolset::CommandStatus::rejected};
-            }
-            nw::toolset::ObjectEditBatch batch;
-            batch.kind = nw::toolset::ObjectEditKind::creature_body_part;
-            batch.patches.push_back({creature->handle(), {},
-                static_cast<uint32_t>(part),
-                current[static_cast<size_t>(part)], desired});
-            return nw::toolset::commit_object_edits(
-                std::move(batch), "Set Creature body part", context);
-        }));
-
     const auto body_parts_before = nw::toolset::editable_creature_body_parts(
         runtime, creature->handle());
     ASSERT_GT(body_parts_before.size(), static_cast<size_t>(head_part));
@@ -1954,6 +1921,30 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     EXPECT_GE(body_part_options->selected_index, 0);
     EXPECT_TRUE(body_part_options->visible);
 
+    auto* second_creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(second_creature, nullptr);
+    const auto first_parts_before_stale_event
+        = nw::toolset::editable_creature_body_parts(
+            runtime, creature->handle());
+    const auto second_parts_before_stale_event
+        = nw::toolset::editable_creature_body_parts(
+            runtime, second_creature->handle());
+    const size_t undo_count_before_stale_event = workspace.undo_count();
+    nw::toolset::smalls_rmlui_host().publish_active_object(
+        second_creature->handle());
+    ASSERT_TRUE(activate_managed_list(
+        "creature.appearance.body_part_options", 0));
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, creature->handle()),
+        first_parts_before_stale_event);
+    EXPECT_EQ(nw::toolset::editable_creature_body_parts(
+                  runtime, second_creature->handle()),
+        second_parts_before_stale_event);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_stale_event);
+    nw::toolset::smalls_rmlui_host().publish_active_object(creature->handle());
+    nw::kernel::objects().destroy(second_creature->handle());
+
     nw::kernel::objects().destroy(creature->handle());
     const auto stale_refresh = runtime.execute_script(
         "toolset.creature_editor", "refresh", {});
@@ -1971,35 +1962,80 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     EXPECT_FALSE(cleared_options->visible);
     EXPECT_TRUE(cleared_options->items.empty());
     nw::toolset::smalls_rmlui_host().clear_active_object();
-    nw::toolset::script_command_host().bind(nullptr, nullptr);
 
-    const auto verify_options = [&](std::string_view function, int32_t minimum_row) {
-        const auto result = runtime.execute_script("nwn1.doors", function, {});
-        ASSERT_TRUE(result.ok()) << function;
-        ASSERT_EQ(result.value.storage, nw::smalls::ValueStorage::heap);
-        const auto count = runtime.array_size(result.value.data.hptr);
-        ASSERT_GT(count, 0u) << function;
+    auto* first_item = nw::kernel::objects().load<nw::Item>(
+        "x2_it_mbelt001");
+    auto* second_item = nw::kernel::objects().load<nw::Item>(
+        "x2_it_mbelt001");
+    ASSERT_NE(first_item, nullptr);
+    ASSERT_NE(second_item, nullptr);
+    nw::toolset::smalls_rmlui_host().publish_active_object(
+        first_item->handle());
+    nw::toolset::CommandContext item_context;
+    item_context.workspace = &workspace;
+    item_context.active_tab_id = workspace.active_tab_id();
+    ASSERT_TRUE(backend.execute_command(
+                           "toolset.item.initialize", {}, item_context)
+            .ok());
 
-        for (uint32_t index = 0; index < count; ++index) {
-            nw::smalls::Value option;
-            ASSERT_TRUE(runtime.array_get(result.value.data.hptr, index, option));
-            ASSERT_EQ(option.storage, nw::smalls::ValueStorage::heap);
-            const auto row = runtime.read_struct_field(
-                option.data.hptr, option.type_id, "id");
-            ASSERT_EQ(row.type_id, runtime.int_type());
-            EXPECT_GE(row.data.ival, minimum_row);
-            const auto label = runtime.read_struct_field(
-                option.data.hptr, option.type_id, "label");
-            ASSERT_EQ(label.type_id, runtime.string_type());
-            EXPECT_FALSE(runtime.get_string_view(label.data.hptr).empty());
-            const auto model = runtime.read_struct_field(
-                option.data.hptr, option.type_id, "model");
-            ASSERT_EQ(model.type_id, runtime.string_type());
-            EXPECT_TRUE(nw::kernel::resman().contains(
-                {runtime.get_string_view(model.data.hptr), nw::ResourceType::mdl}));
-        }
-    };
-    verify_options("get_genericdoor_options", 0);
+    bool model_selector_open = false;
+    for (size_t part = 0;
+        part < nw::ObjectItemVisualState::model_part_count
+        && !model_selector_open;
+        ++part) {
+        const std::array<std::string, 2> args{
+            std::to_string(part), "0"};
+        const std::vector<std::string_view> views{args.begin(), args.end()};
+        model_selector_open = backend.execute_command(
+                                         "toolset.item.appearance.open_model", views, item_context)
+                                  .ok();
+    }
+    ASSERT_TRUE(model_selector_open);
+    const auto model_options = nw::toolset::ui_v1_host().window(
+        "item.appearance.models", 300, 0);
+    ASSERT_TRUE(model_options);
+    ASSERT_FALSE(model_options->items.empty());
+    const auto* first_visuals = nw::kernel::objects().components().find_item_visuals(first_item->handle());
+    const auto* second_visuals = nw::kernel::objects().components().find_item_visuals(second_item->handle());
+    ASSERT_NE(first_visuals, nullptr);
+    ASSERT_NE(second_visuals, nullptr);
+    const auto first_models_before_stale_event = first_visuals->model_parts;
+    const auto second_models_before_stale_event = second_visuals->model_parts;
+    const size_t item_undo_count_before_stale_event = workspace.undo_count();
+    nw::toolset::smalls_rmlui_host().publish_active_object(
+        second_item->handle());
+    const std::array<std::string, 4> stale_model_args{
+        "item.appearance.models", model_options->items.front().key, "0", "-1"};
+    const std::vector<std::string_view> stale_model_views{
+        stale_model_args.begin(), stale_model_args.end()};
+    const auto stale_model_result = backend.execute_command(
+        "toolset.item.appearance.model.activate", stale_model_views,
+        item_context);
+    EXPECT_EQ(stale_model_result.status,
+        nw::toolset::CommandStatus::rejected);
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts,
+        first_models_before_stale_event);
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(second_item->handle())->model_parts,
+        second_models_before_stale_event);
+    EXPECT_EQ(workspace.undo_count(), item_undo_count_before_stale_event);
+    nw::toolset::smalls_rmlui_host().clear_active_object();
+    nw::kernel::objects().destroy(first_item->handle());
+    nw::kernel::objects().destroy(second_item->handle());
+
+    nw::toolset::AppearanceCatalog door_catalog;
+    ASSERT_TRUE(nw::toolset::build_appearance_catalog(
+        nw::toolset::AppearanceCatalogKind::door, door_catalog));
+    ASSERT_EQ(door_catalog.status,
+        nw::toolset::AppearanceCatalogStatus::ready);
+    ASSERT_FALSE(door_catalog.rows.empty());
+    EXPECT_TRUE(std::ranges::is_sorted(door_catalog.rows, {},
+        &nw::toolset::AppearanceCatalogRow::sort_key));
+    for (const auto& row : door_catalog.rows) {
+        EXPECT_GE(row.id, 0);
+        EXPECT_FALSE(row.name.empty());
+        EXPECT_TRUE(nw::kernel::resman().contains(
+            {row.model, nw::ResourceType::mdl}));
+    }
 
     auto* door = nw::kernel::objects().load_file<nw::Door>(
         "test_data/user/development/door_ttr_002.utd");
@@ -2021,169 +2057,8 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     const std::string resolved_label{runtime.get_string_view(label.data.hptr)};
     ASSERT_FALSE(resolved_label.empty());
 
-    const auto appearance_refresh = runtime.execute_script(
-        "toolset.door_editor", "door_appearance_refresh", {});
-    ASSERT_TRUE(appearance_refresh.ok());
-    ASSERT_EQ(runtime.array_size(appearance_refresh.value.data.hptr), 1u);
-    nw::smalls::Value appearance_command;
-    ASSERT_TRUE(runtime.array_get(
-        appearance_refresh.value.data.hptr, 0u, appearance_command));
-    const auto appearance_markup = runtime.read_struct_field(
-        appearance_command.data.hptr, appearance_command.type_id, "value");
-    ASSERT_EQ(appearance_markup.type_id, runtime.string_type());
-    const auto appearance_markup_text = runtime.get_string_view(
-        appearance_markup.data.hptr);
-    EXPECT_NE(appearance_markup_text.find("door_appearance_label'>Name"),
-        std::string_view::npos);
-    EXPECT_EQ(appearance_markup_text.find("door_appearance_label'>Row"),
-        std::string_view::npos);
-    EXPECT_NE(appearance_markup_text.find(resolved_label), std::string_view::npos);
-    EXPECT_NE(appearance_markup_text.find("door_appearance_previous"),
-        std::string_view::npos);
-    EXPECT_NE(appearance_markup_text.find("door_appearance_next"),
-        std::string_view::npos);
-
-    const auto open_selector = runtime.execute_script(
-        "toolset.door_editor", "open_door_appearance_selector", {});
-    ASSERT_TRUE(open_selector.ok());
-    ASSERT_GT(runtime.array_size(open_selector.value.data.hptr), 0u);
-    nw::smalls::Value selector_command;
-    ASSERT_TRUE(runtime.array_get(
-        open_selector.value.data.hptr, 0u, selector_command));
-    const auto selector_markup = runtime.read_struct_field(
-        selector_command.data.hptr, selector_command.type_id, "value");
-    ASSERT_EQ(selector_markup.type_id, runtime.string_type());
-    const auto selector_markup_text = runtime.get_string_view(
-        selector_markup.data.hptr);
-    EXPECT_NE(selector_markup_text.find("id='door_appearance_search'"),
-        std::string_view::npos);
-    EXPECT_NE(selector_markup_text.find(
-                  "onchange='filter_door_appearances(event)'"),
-        std::string_view::npos);
-    EXPECT_EQ(selector_markup_text.find("Door Types"), std::string_view::npos);
-    const auto genericdoors = nw::toolset::ui_v1_host().window(
-        "door.appearance.genericdoors", 300, 0);
-    ASSERT_TRUE(genericdoors);
-    EXPECT_TRUE(genericdoors->visible);
-    ASSERT_FALSE(genericdoors->items.empty());
-    EXPECT_EQ(genericdoors->columns, 1);
-    EXPECT_EQ(genericdoors->items.front().cell_count, 1);
-    ASSERT_FALSE(genericdoors->items.front().cells[0].empty());
-    std::vector<std::string> genericdoor_labels;
-    genericdoor_labels.reserve(genericdoors->items.size());
-    for (const auto& item : genericdoors->items) {
-        genericdoor_labels.push_back(ascii_lower_copy(item.cells[0]));
-    }
-    EXPECT_TRUE(std::ranges::is_sorted(genericdoor_labels));
-
-    const auto unfiltered_genericdoor_count = genericdoors->items.size();
-    const std::string first_genericdoor_label = genericdoors->items.front().cells[0];
-    const auto event_type = runtime.type_id("core.rmlui.Event", false);
-    ASSERT_NE(event_type, nw::smalls::invalid_type_id);
-    nw::smalls::Runtime::ScopedRoots roots{runtime, 3};
-    const auto event_ptr = runtime.alloc_struct(event_type);
-    ASSERT_NE(event_ptr.value, 0u);
-    const auto event = nw::smalls::Value::make_heap(event_ptr, event_type);
-    roots.add(event);
-    const std::string filter_text = " " + first_genericdoor_label + " ";
-    const auto query = nw::smalls::Value::make_string(
-        runtime.alloc_string(filter_text));
-    roots.add(query);
-    ASSERT_TRUE(runtime.write_struct_field(
-        event_ptr, event_type, "value", query));
-    const auto filter_genericdoors = runtime.execute_script(
-        "toolset.door_editor", "filter_door_appearances", {event});
-    ASSERT_TRUE(filter_genericdoors.ok());
-    const auto filtered_genericdoors = nw::toolset::ui_v1_host().window(
-        "door.appearance.genericdoors", 300, 0);
-    ASSERT_TRUE(filtered_genericdoors);
-    ASSERT_FALSE(filtered_genericdoors->items.empty());
-    EXPECT_LT(filtered_genericdoors->items.size(), unfiltered_genericdoor_count);
-    const auto expected_label = ascii_lower_copy(first_genericdoor_label);
-    for (const auto& item : filtered_genericdoors->items) {
-        EXPECT_EQ(ascii_lower_copy(item.cells[0]), expected_label);
-    }
-
-    const auto empty_query = nw::smalls::Value::make_string(
-        runtime.alloc_string(""));
-    roots.add(empty_query);
-    ASSERT_TRUE(runtime.write_struct_field(
-        event_ptr, event_type, "value", empty_query));
-    const auto clear_genericdoor_filter = runtime.execute_script(
-        "toolset.door_editor", "filter_door_appearances", {event});
-    ASSERT_TRUE(clear_genericdoor_filter.ok());
-
-    const auto restored_genericdoors = nw::toolset::ui_v1_host().window(
-        "door.appearance.genericdoors", 300, 0);
-    ASSERT_TRUE(restored_genericdoors);
-    const std::string genericdoor_markup = nw::toolset::render_managed_list_window(
-        "door.appearance.genericdoors", *restored_genericdoors, "No appearances.");
-    EXPECT_NE(genericdoor_markup.find("managed_list_row"), std::string::npos);
-    EXPECT_EQ(genericdoor_markup.find("managed_list_grid_row"), std::string::npos);
-
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::kernel::objects().destroy(door->handle());
-
-    auto* placeable = nw::kernel::objects().load_file<nw::Placeable>(
-        "test_data/user/development/arrowcorpse001.utp");
-    ASSERT_NE(placeable, nullptr);
-    nw::toolset::smalls_rmlui_host().publish_active_object(placeable->handle());
-
-    const auto placeable_refresh = runtime.execute_script(
-        "toolset.placeable_editor", "placeable_appearance_refresh", {});
-    ASSERT_TRUE(placeable_refresh.ok());
-    ASSERT_EQ(runtime.array_size(placeable_refresh.value.data.hptr), 1u);
-    nw::smalls::Value placeable_refresh_command;
-    ASSERT_TRUE(runtime.array_get(placeable_refresh.value.data.hptr, 0u,
-        placeable_refresh_command));
-    const auto placeable_markup = runtime.read_struct_field(
-        placeable_refresh_command.data.hptr,
-        placeable_refresh_command.type_id, "value");
-    ASSERT_EQ(placeable_markup.type_id, runtime.string_type());
-    const auto placeable_markup_text = runtime.get_string_view(
-        placeable_markup.data.hptr);
-    EXPECT_NE(placeable_markup_text.find("placeable_appearance_label'>Name"),
-        std::string_view::npos);
-    EXPECT_NE(placeable_markup_text.find("placeable_appearance_label'>Model"),
-        std::string_view::npos);
-    EXPECT_NE(placeable_markup_text.find("placeable_appearance_previous"),
-        std::string_view::npos);
-    EXPECT_NE(placeable_markup_text.find("placeable_appearance_next"),
-        std::string_view::npos);
-
-    const auto open_placeable_selector = runtime.execute_script(
-        "toolset.placeable_editor", "open_placeable_appearance_selector", {});
-    ASSERT_TRUE(open_placeable_selector.ok());
-    const auto placeable_window = nw::toolset::ui_v1_host().window(
-        "placeable.appearance", 300, 0);
-    ASSERT_TRUE(placeable_window);
-    EXPECT_TRUE(placeable_window->visible);
-    ASSERT_FALSE(placeable_window->items.empty());
-    EXPECT_EQ(placeable_window->columns, 1);
-    std::vector<std::string> placeable_labels;
-    placeable_labels.reserve(placeable_window->items.size());
-    for (const auto& item : placeable_window->items) {
-        ASSERT_EQ(item.cell_count, 2);
-        ASSERT_FALSE(item.cells[0].empty());
-        ASSERT_FALSE(item.cells[1].empty());
-        placeable_labels.push_back(ascii_lower_copy(item.cells[0]));
-    }
-    EXPECT_TRUE(std::ranges::is_sorted(placeable_labels));
-    const std::string placeable_list_markup = nw::toolset::render_managed_list_window(
-        "placeable.appearance", *placeable_window, "No appearances.");
-    EXPECT_NE(placeable_list_markup.find("managed_list_row"), std::string::npos);
-    EXPECT_EQ(placeable_list_markup.find("managed_list_grid_row"),
-        std::string::npos);
-
-    const auto refresh_open_placeable_selector = runtime.execute_script(
-        "toolset.placeable_editor", "placeable_appearance_refresh", {});
-    ASSERT_TRUE(refresh_open_placeable_selector.ok());
-    EXPECT_EQ(runtime.array_size(
-                  refresh_open_placeable_selector.value.data.hptr),
-        0u);
-
-    nw::toolset::smalls_rmlui_host().clear_active_object();
-    nw::kernel::objects().destroy(placeable->handle());
 
     const auto verify_data_list = [&](nw::ObjectHandle handle,
                                       std::string_view refresh_function,
@@ -2285,13 +2160,17 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     nw::kernel::objects().destroy(store->handle());
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
+    nw::toolset::script_command_host().bind(nullptr, nullptr);
 }
 
 TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObject)
 {
     KernelServiceScope services;
     nw::toolset::RmlSmallsBridge bridge;
-    ASSERT_TRUE(bridge.initialize());
+    nw::toolset::WorkspaceState workspace;
+    nw::toolset::ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.initialize());
 
     auto* first = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(first, nullptr);

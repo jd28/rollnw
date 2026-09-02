@@ -148,14 +148,14 @@ struct ObjectItemVisualState {
     static constexpr size_t model_color_count = 6;
     static constexpr size_t model_part_count = 19;
     static constexpr size_t part_color_count = model_part_count * model_color_count;
-    static constexpr uint8_t inherit_part_color = 255;
+    static constexpr uint8_t default_part_color = 255;
 
     ObjectHandle owner{};
     std::array<uint8_t, model_color_count> model_colors{};
     std::array<uint16_t, model_part_count> model_parts{};
     std::array<uint8_t, part_color_count> part_colors = [] {
         std::array<uint8_t, part_color_count> result{};
-        result.fill(inherit_part_color);
+        result.fill(default_part_color);
         return result;
     }();
 };

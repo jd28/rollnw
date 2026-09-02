@@ -293,6 +293,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_object(*this);
         register_core_area(*this);
         register_core_creature(*this);
+        register_core_door(*this);
         register_core_placeable(*this);
         register_core_module(*this);
         register_core_player(*this);

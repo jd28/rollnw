@@ -260,22 +260,6 @@ type BaseItemDefinition {
 };
 
 [[value_type]]
-type DoorTypeEntry {
-    [[index]]
-    id:    int;
-    name:  StrRef;
-    model: T.ResRef;
-};
-
-[[value_type]]
-type GenericDoorEntry {
-    [[index]]
-    id:    int;
-    name:  StrRef;
-    model: T.ResRef;
-};
-
-[[value_type]]
 type PlaceableRules {
     [[index]]
     id:             int;

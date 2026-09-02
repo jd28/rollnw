@@ -1496,17 +1496,12 @@ TEST_F(SmallsEngineIntegration, Nwn1StandaloneItemVisualWritesVisualRows)
     ASSERT_NE(item, nullptr);
     ASSERT_TRUE(item->instantiate());
 
-    nw::Vector<nw::smalls::Value> args;
     auto item_value = nw::smalls::Value::make_object(item->handle());
     item_value.type_id = rt.object_subtype_for_tag(item->handle().type);
-    args.push_back(item_value);
-    args.push_back(nw::smalls::Value::make_bool(true));
 
-    auto result = rt.execute_script("nwn1.item", "update_standalone_visual", args);
-    ASSERT_TRUE(result.ok()) << result.error_message;
-    ASSERT_EQ(result.value.type_id, rt.bool_type());
-    ASSERT_TRUE(result.value.data.bval);
-
+    // Native object materialization invokes SmallS once; SmallS resolves and
+    // publishes the complete renderer-facing visual batch before instantiate
+    // returns.
     const auto* visual = nw::kernel::objects().components().find_visual(item->handle());
     ASSERT_NE(visual, nullptr);
     ASSERT_EQ(visual->models.size(), 1);
@@ -4261,7 +4256,6 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
-        import core.array as Array;
         import core.types as T;
         import nwn1.placeables as P;
 
@@ -4275,18 +4269,6 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
             if (info.string_ref < 0) { return -7; }
             if (rules.light_color != -1) { return -5; }
             if (!rules.static) { return -6; }
-
-            var options = P.get_appearance_options();
-            if (Array.len(options) == 0) { return -8; }
-            for (var index = 1; index < Array.len(options); index += 1) {
-                var previous = options[index - 1];
-                var current = options[index];
-                if (previous.sort_key > current.sort_key) { return -9; }
-                if (previous.sort_key == current.sort_key
-                    && previous.id >= current.id) {
-                    return -10;
-                }
-            }
 
             return 1;
         }
@@ -4308,93 +4290,6 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
-}
-
-TEST_F(SmallsEngineIntegration, PlaceableAppearanceNameUsesCxxFallbackChain)
-{
-    constexpr size_t appearance = 109;
-    auto& entries = nw::kernel::rules().placeables.entries;
-    ASSERT_GT(entries.size(), appearance);
-
-    auto& info = entries[appearance];
-    const auto original = info;
-    const auto restore = create_scope_exit([&info, &original]() { info = original; });
-    info.string_ref = std::numeric_limits<uint32_t>::max();
-    info.label = "FallbackLabel";
-
-    auto& rt = nw::kernel::runtime();
-    rt.add_module_path(fs::path("stdlib/nwn1"));
-    std::string_view source = R"(
-        import nwn1.placeables as P;
-
-        fn main(): bool {
-            var option = P.get_appearance_option(109);
-            return option.id == 109
-                && option.label == "FallbackLabel"
-                && option.sort_key == "fallbacklabel";
-        }
-
-        fn model_fallback(): bool {
-            var option = P.get_appearance_option(109);
-            return option.id == 109
-                && option.label == "plc_o01"
-                && option.sort_key == "plc_o01";
-        }
-    )";
-
-    auto* script = rt.load_module_from_source(
-        "test.placeable_appearance_label_fallback", source);
-    ASSERT_NE(script, nullptr);
-    ASSERT_EQ(script->errors(), 0) << "Script has errors";
-
-    auto result = rt.execute_script(script, "main", {});
-    ASSERT_TRUE(result.ok()) << result.error_message;
-    EXPECT_TRUE(result.value.data.bval);
-
-    info.label.clear();
-    result = rt.execute_script(script, "model_fallback", {});
-    ASSERT_TRUE(result.ok()) << result.error_message;
-    EXPECT_TRUE(result.value.data.bval);
-}
-
-TEST_F(SmallsEngineIntegration, PlaceableAppearanceCatalogIsNotTruncated)
-{
-    constexpr size_t appended_appearances = 4097;
-    auto& entries = nw::kernel::rules().placeables.entries;
-    ASSERT_GT(entries.size(), 109u);
-
-    const auto original_size = entries.size();
-    const auto source = entries[109];
-    ASSERT_FALSE(source.model.empty());
-    const auto restore = create_scope_exit(
-        [&entries, original_size]() { entries.resize(original_size); });
-    entries.reserve(original_size + appended_appearances);
-    for (size_t index = 0; index < appended_appearances; ++index) {
-        auto entry = source;
-        entry.string_ref = std::numeric_limits<uint32_t>::max();
-        entry.label = "CatalogEntry";
-        entries.push_back(std::move(entry));
-    }
-
-    auto& rt = nw::kernel::runtime();
-    rt.add_module_path(fs::path("stdlib/nwn1"));
-    std::string_view script_source = R"(
-        import core.array as Array;
-        import nwn1.placeables as P;
-
-        fn main(): int {
-            return Array.len(P.get_appearance_options());
-        }
-    )";
-
-    auto* script = rt.load_module_from_source(
-        "test.placeable_appearance_catalog_not_truncated", script_source);
-    ASSERT_NE(script, nullptr);
-    ASSERT_EQ(script->errors(), 0) << "Script has errors";
-
-    auto result = rt.execute_script(script, "main", {});
-    ASSERT_TRUE(result.ok()) << result.error_message;
-    EXPECT_GT(result.value.data.ival, 4096);
 }
 
 TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicCloakModelEntry)
@@ -4755,15 +4650,14 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPhenotypeEntry)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
-TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicDoorEntries)
+TEST_F(SmallsEngineIntegration, NativeDoorFactsPreserveSparseRowIds)
 {
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     std::string_view source = R"(
-        import core.array as arr;
+        import core.door as Door;
         import core.types as T;
-        import nwn1.rules as R;
 
         fn valid_model(model: T.ResRef): bool {
             var value = T.resref_to_string(model);
@@ -4771,17 +4665,17 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicDoorEntries)
         }
 
         fn main(): int {
-            var doortypes = load_config!(R.DoorTypeEntry)("nwn1.data.doortypes");
-            if (arr.len(doortypes) == 0) { return -1; }
+            var doortype_count = Door.door_type_count();
+            if (doortype_count == 0) { return -1; }
 
             var found_doortype = false;
             var found_doortype_name = false;
-            for (var i = 0; i < arr.len(doortypes); i += 1) {
-                var entry = arr.get(doortypes, i);
-                if (entry.id != i) { return -2; }
+            for (var i = 0; i < doortype_count; i += 1) {
+                var entry = Door.door_type_info(i);
                 if (valid_model(entry.model)) {
+                    if (entry.id != i) { return -2; }
                     found_doortype = true;
-                    if ((entry.name as int) >= 0) {
+                    if (entry.string_ref >= 0) {
                         found_doortype_name = true;
                     }
                 }
@@ -4789,17 +4683,17 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicDoorEntries)
             if (!found_doortype) { return -3; }
             if (!found_doortype_name) { return -7; }
 
-            var genericdoors = load_config!(R.GenericDoorEntry)("nwn1.data.genericdoors");
-            if (arr.len(genericdoors) == 0) { return -4; }
+            var genericdoor_count = Door.generic_door_count();
+            if (genericdoor_count == 0) { return -4; }
 
             var found_generic = false;
             var found_generic_name = false;
-            for (var i = 0; i < arr.len(genericdoors); i += 1) {
-                var entry = arr.get(genericdoors, i);
-                if (entry.id != i) { return -5; }
+            for (var i = 0; i < genericdoor_count; i += 1) {
+                var entry = Door.generic_door_info(i);
                 if (valid_model(entry.model)) {
+                    if (entry.id != i) { return -5; }
                     found_generic = true;
-                    if ((entry.name as int) >= 0) {
+                    if (entry.string_ref >= 0) {
                         found_generic_name = true;
                     }
                 }

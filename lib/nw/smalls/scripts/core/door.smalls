@@ -1,0 +1,13 @@
+from core.types import { ResRef };
+
+[[native, value_type]]
+type DoorAppearanceInfo {
+    id:         int;
+    string_ref: int;
+    model:      ResRef;
+};
+
+[[native]] fn door_type_count(): int;
+[[native]] fn door_type_info(id: int): DoorAppearanceInfo;
+[[native]] fn generic_door_count(): int;
+[[native]] fn generic_door_info(id: int): DoorAppearanceInfo;

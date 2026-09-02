@@ -16,6 +16,7 @@ void register_core_item(Runtime& rt);
 void register_core_object(Runtime& rt);
 void register_core_area(Runtime& rt);
 void register_core_creature(Runtime& rt);
+void register_core_door(Runtime& rt);
 void register_core_placeable(Runtime& rt);
 void register_core_module(Runtime& rt);
 void register_core_player(Runtime& rt);

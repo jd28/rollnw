@@ -3,9 +3,12 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
+#include <nw/resources/ResourceManager.hpp>
+#include <nw/util/string.hpp>
+
+#include <absl/strings/ascii.h>
 
 #include <algorithm>
-#include <cctype>
 #include <limits>
 
 namespace nw::toolset {
@@ -17,20 +20,11 @@ bool accessory_catalog(AppearanceCatalogKind kind) noexcept
         || kind == AppearanceCatalogKind::tail;
 }
 
-std::string lower_ascii(std::string_view value)
-{
-    std::string result;
-    result.reserve(value.size());
-    for (const unsigned char ch : value) {
-        result.push_back(static_cast<char>(std::tolower(ch)));
-    }
-    return result;
-}
-
 bool invalid_model(std::string_view model)
 {
-    const std::string lowered = lower_ascii(model);
-    return lowered.empty() || lowered == "****" || lowered == "null" || lowered == "none";
+    return model.empty() || nw::string::icmp(model, "****")
+        || nw::string::icmp(model, "null")
+        || nw::string::icmp(model, "none");
 }
 
 std::string humanize_label(std::string_view label)
@@ -50,11 +44,11 @@ std::string make_search_text(const AppearanceCatalogRow& row)
     std::string result;
     const std::string id = std::to_string(row.id);
     result.reserve(row.name.size() + row.label.size() + row.model.size() + id.size() + 3);
-    result += lower_ascii(row.name);
+    result += absl::AsciiStrToLower(row.name);
     result.push_back('\n');
-    result += lower_ascii(row.label);
+    result += absl::AsciiStrToLower(row.label);
     result.push_back('\n');
-    result += lower_ascii(row.model);
+    result += absl::AsciiStrToLower(row.model);
     result.push_back('\n');
     result += id;
     return result;
@@ -75,7 +69,8 @@ bool valid_source_row(AppearanceCatalogKind kind,
     if (invalid_model(model)) {
         return false;
     }
-    return kind == AppearanceCatalogKind::placeable || model_type >= 0;
+    return kind == AppearanceCatalogKind::placeable
+        || kind == AppearanceCatalogKind::door || model_type >= 0;
 }
 
 void finish_catalog(AppearanceCatalog& catalog)
@@ -112,7 +107,7 @@ void append_catalog_row(AppearanceCatalog& catalog,
     if (row.name.empty()) {
         row.name = row.model;
     }
-    row.sort_key = lower_ascii(row.name);
+    row.sort_key = absl::AsciiStrToLower(row.name);
     row.search_text = make_search_text(row);
     catalog.rows.push_back(std::move(row));
 }
@@ -194,6 +189,27 @@ bool build_native_catalog(AppearanceCatalogKind kind, AppearanceCatalog& output)
                 entry.label,
                 entry.model.view());
         }
+    } else if (kind == AppearanceCatalogKind::door) {
+        result.source_row_count = rules.genericdoors.entries.size();
+        if (result.source_row_count
+            > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+            result.status = AppearanceCatalogStatus::unavailable;
+            result.diagnostic = "Native generic Door table exceeds the supported row count";
+            output = std::move(result);
+            return false;
+        }
+        result.rows.reserve(result.source_row_count);
+        for (size_t index = 0; index < rules.genericdoors.entries.size(); ++index) {
+            const auto& entry = rules.genericdoors.entries[index];
+            if (!entry.valid()
+                || !kernel::resman().contains(
+                    {entry.model, ResourceType::mdl})) {
+                continue;
+            }
+            append_catalog_row(result,
+                static_cast<int32_t>(index), -1, entry.editor_name(), {},
+                entry.model.view());
+        }
     } else if (kind == AppearanceCatalogKind::wing) {
         return build_accessory_catalog(kind, rules.wingmodels.entries, output);
     } else if (kind == AppearanceCatalogKind::tail) {
@@ -239,7 +255,8 @@ void filter_appearance_catalog(
         return;
     }
 
-    const std::string needle = lower_ascii(query);
+    const std::string needle = absl::AsciiStrToLower(
+        absl::StripAsciiWhitespace(query));
     output.reserve(catalog.rows.size());
     for (size_t index = 0; index < catalog.rows.size(); ++index) {
         if (needle.empty() || catalog.rows[index].search_text.find(needle) != std::string::npos) {

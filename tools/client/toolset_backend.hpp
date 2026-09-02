@@ -1,6 +1,8 @@
 #pragma once
 
 #include "command_bus.hpp"
+#include "creature_body_part_editor.hpp"
+#include "item_editor.hpp"
 #include "project.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "shell_controller.hpp"
@@ -79,6 +81,11 @@ public:
 
 private:
     void register_native_commands();
+    bool refresh_creature_body_part_editor();
+    bool refresh_item_editor();
+    bool ensure_data_object_editor_lists();
+    [[nodiscard]] bool creature_body_part_editor_is_current() const noexcept;
+    [[nodiscard]] bool item_editor_is_current() const noexcept;
 
     RmlSmallsBridge* bridge_ = nullptr;
     ShellController* shell_ = nullptr;
@@ -86,6 +93,9 @@ private:
     CommandBus command_bus_;
     TerminalDispatcher terminal_;
     DocumentSaveHandler document_save_handler_;
+    CreatureBodyPartEditor creature_body_part_editor_;
+    ItemEditor item_editor_;
+    uint64_t data_object_list_generation_ = 0;
     mutable std::vector<LoadedAreaEntry> loaded_areas_;
     std::filesystem::path current_project_dir_;
     ObjectHandle module_object_{};

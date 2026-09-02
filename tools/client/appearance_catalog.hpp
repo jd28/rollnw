@@ -11,6 +11,7 @@ namespace nw::toolset {
 enum class AppearanceCatalogKind : uint8_t {
     creature,
     placeable,
+    door,
     wing,
     tail,
 };

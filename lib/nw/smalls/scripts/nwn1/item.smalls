@@ -153,6 +153,14 @@ type ItemEditorPropertyOptionRow {
     label: string;
 };
 
+type ItemEditorSnapshot {
+    parts: array!(ItemEditorPartRow);
+    colors: array!(ItemEditorColorRow);
+    available_properties: array!(ItemEditorPropertyDefinitionRow);
+    applied_properties: array!(ItemEditorPropertyRow);
+    has_inventory: bool;
+};
+
 type ItemEditorGeneralRow {
     group: string;
     label: string;
@@ -1524,6 +1532,19 @@ fn get_applied_item_property_rows(item_obj: Item): array!(ItemEditorPropertyRow)
         Array.push(rows, row);
     }
     return rows;
+}
+
+// One editor refresh copies one complete profile-policy batch. The native
+// client owns interaction state and joins later selector batches only when a
+// selector opens.
+fn get_item_editor_snapshot(item_obj: Item): ItemEditorSnapshot {
+    return ItemEditorSnapshot {
+        parts = get_item_editor_parts(item_obj),
+        colors = get_item_editor_color_rows(item_obj),
+        available_properties = get_available_item_property_rows(item_obj),
+        applied_properties = get_applied_item_property_rows(item_obj),
+        has_inventory = item_editor_has_inventory(item_obj),
+    };
 }
 
 fn get_item_property_option_rows(

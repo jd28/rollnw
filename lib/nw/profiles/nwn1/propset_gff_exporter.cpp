@@ -30,6 +30,7 @@ namespace nwn1 {
 namespace {
 
 constexpr size_t creature_class_slot_count = 8;
+constexpr uint8_t item_part_color_inherit = 255;
 
 struct ItemPartGffField {
     size_t part = 0;
@@ -319,7 +320,7 @@ void PropsetGffExporter::export_item_visuals(const nw::Item* obj,
         for (size_t part = 0; part < visual_data->model_parts.size(); ++part) {
             for (size_t color = 0; color < visual_data->model_colors.size(); ++color) {
                 const uint8_t value = visual_data->part_colors[part * nw::ObjectItemVisualState::model_color_count + color];
-                if (value == nw::ObjectItemVisualState::inherit_part_color) { continue; }
+                if (value == item_part_color_inherit) { continue; }
                 out.add_field(fmt::format("APart_{}_Col_{}", part, color),
                     value);
             }

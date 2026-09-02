@@ -587,6 +587,18 @@ struct CreatureColorEditorRow {
     std::string label;
 };
 
+struct CreatureBodyPartEditorSnapshot {
+    int32_t assembly = -1;
+    std::vector<int32_t> values;
+};
+
+// One SmallS call copies the complete profile-owned object state needed by the
+// native editor. Resource facts are joined later through assembly and are not
+// copied through the VM.
+[[nodiscard]] std::optional<CreatureBodyPartEditorSnapshot>
+creature_body_part_editor_snapshot(
+    smalls::Runtime& runtime, ObjectHandle object);
+
 // Smalls supplies the fixed channel order, current values, labels, and palette
 // family. Empty batches mean the live appearance has no PLT color editor.
 [[nodiscard]] std::vector<int32_t> editable_creature_colors(

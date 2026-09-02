@@ -6,9 +6,11 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <algorithm>
 #include <filesystem>
+#include <limits>
 #include <string_view>
 #include <vector>
 
@@ -90,11 +92,63 @@ TEST(ClientAppearanceCatalog, BuildsAndFiltersNativePlaceableRows)
     EXPECT_EQ(corpse->model, "plc_o01");
 
     std::vector<uint32_t> matches;
-    nw::toolset::filter_appearance_catalog(catalog, "arrowcorpse", matches);
+    nw::toolset::filter_appearance_catalog(catalog, "  ARROWCORPSE\t", matches);
     ASSERT_FALSE(matches.empty());
     EXPECT_TRUE(std::any_of(matches.begin(), matches.end(), [&](uint32_t index) {
         return catalog.rows[index].id == 109;
     }));
+}
+
+TEST(ClientAppearanceCatalog, PlaceableNamesUseNativeFallbackChain)
+{
+    auto module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    constexpr size_t appearance = 109;
+    auto& info = nw::kernel::rules().placeables.entries[appearance];
+    const auto original = info;
+    const auto restore = create_scope_exit(
+        [&info, &original]() { info = original; });
+
+    info.string_ref = std::numeric_limits<uint32_t>::max();
+    info.label = "FallbackLabel";
+    nw::toolset::AppearanceCatalog catalog;
+    ASSERT_TRUE(nw::toolset::build_appearance_catalog(
+        nw::toolset::AppearanceCatalogKind::placeable, catalog));
+    const auto* row = nw::toolset::find_appearance_catalog_row(
+        catalog, static_cast<int32_t>(appearance));
+    ASSERT_NE(row, nullptr);
+    EXPECT_EQ(row->name, "FallbackLabel");
+
+    info.label.clear();
+    ASSERT_TRUE(nw::toolset::build_appearance_catalog(
+        nw::toolset::AppearanceCatalogKind::placeable, catalog));
+    row = nw::toolset::find_appearance_catalog_row(
+        catalog, static_cast<int32_t>(appearance));
+    ASSERT_NE(row, nullptr);
+    EXPECT_EQ(row->name, "plc_o01");
+}
+
+TEST(ClientAppearanceCatalog, PlaceableCatalogProcessesTheCompleteBatch)
+{
+    auto module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    constexpr size_t appended_appearances = 4097;
+    auto& entries = nw::kernel::rules().placeables.entries;
+    ASSERT_GT(entries.size(), 109u);
+    const size_t original_size = entries.size();
+    const auto source = entries[109];
+    const auto restore = create_scope_exit(
+        [&entries, original_size]() { entries.resize(original_size); });
+    entries.reserve(original_size + appended_appearances);
+    for (size_t index = 0; index < appended_appearances; ++index) {
+        entries.push_back(source);
+    }
+
+    nw::toolset::AppearanceCatalog catalog;
+    ASSERT_TRUE(nw::toolset::build_appearance_catalog(
+        nw::toolset::AppearanceCatalogKind::placeable, catalog));
+    EXPECT_EQ(catalog.source_row_count, original_size + appended_appearances);
+    EXPECT_GT(catalog.rows.size(), 4096u);
 }
 
 TEST(ClientAppearanceCatalog, BuildsSparseNativeWingAndTailRows)

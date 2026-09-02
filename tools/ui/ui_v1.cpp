@@ -43,6 +43,11 @@ void VirtualListHost::reset() noexcept
         : generation_ + 1;
 }
 
+bool VirtualListHost::contains(std::string_view list_id) const
+{
+    return lists_.contains(list_id);
+}
+
 bool VirtualListHost::create(std::string list_id, const UiListConfig& cfg)
 {
     if (list_id.empty() || cfg.row_height <= 0 || cfg.row_height > kMaxRowHeight

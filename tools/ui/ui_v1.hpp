@@ -89,6 +89,7 @@ class VirtualListHost {
 public:
     void reset() noexcept;
     [[nodiscard]] uint64_t generation() const noexcept { return generation_; }
+    [[nodiscard]] bool contains(std::string_view list_id) const;
 
     bool create(std::string list_id, const UiListConfig& cfg);
     bool destroy(std::string_view list_id);

@@ -1344,6 +1344,48 @@ std::vector<CreatureColorEditorRow> read_creature_color_editor_rows(
     return copy_color_editor_rows(runtime, result);
 }
 
+std::optional<CreatureBodyPartEditorSnapshot>
+read_creature_body_part_editor_snapshot(
+    smalls::Runtime& runtime, ObjectHandle object)
+{
+    if (object.type != ObjectType::creature || !valid_live_object(object)) {
+        return std::nullopt;
+    }
+
+    smalls::Value object_value = smalls::Value::make_object(object);
+    object_value.type_id = runtime.object_subtype_for_tag(object.type);
+    const auto result = runtime.execute_script(
+        "nwn1.creature", "get_body_part_editor_snapshot", {object_value});
+    if (!result.ok() || result.value.storage != smalls::ValueStorage::heap
+        || result.value.data.hptr.value == 0) {
+        return std::nullopt;
+    }
+
+    CreatureBodyPartEditorSnapshot snapshot;
+    if (!read_script_int_field(
+            runtime, result.value, "assembly", snapshot.assembly)) {
+        return std::nullopt;
+    }
+    const auto values = runtime.read_struct_field(
+        result.value.data.hptr, result.value.type_id, "values");
+    auto* array = values.storage == smalls::ValueStorage::heap
+        ? runtime.get_array_typed(values.data.hptr)
+        : nullptr;
+    if (!array) {
+        return std::nullopt;
+    }
+    snapshot.values.reserve(array->size());
+    for (size_t index = 0; index < array->size(); ++index) {
+        smalls::Value value;
+        if (!array->get_value(index, value, runtime)
+            || value.type_id != runtime.int_type()) {
+            return std::nullopt;
+        }
+        snapshot.values.push_back(value.data.ival);
+    }
+    return snapshot;
+}
+
 struct IndexedIntScriptArgs {
     smalls::Value indices;
     smalls::Value values;
@@ -5277,6 +5319,13 @@ std::vector<int32_t> editable_creature_body_parts(
 {
     return read_creature_int_values(
         runtime, object, "nwn1.creature", "get_editable_body_parts");
+}
+
+std::optional<CreatureBodyPartEditorSnapshot>
+creature_body_part_editor_snapshot(
+    smalls::Runtime& runtime, ObjectHandle object)
+{
+    return read_creature_body_part_editor_snapshot(runtime, object);
 }
 
 std::vector<int32_t> editable_creature_colors(

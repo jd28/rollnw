@@ -63,17 +63,9 @@ type CreatureResolvedModel {
     error:             string;
 };
 
-type CreatureBodyPartEditorRow {
-    part: int;
-    label: string;
-    value: int;
-    display: string;
-};
-
-type CreatureBodyPartOptionRow {
-    key: int;
-    label: string;
-    detail: string;
+type CreatureBodyPartEditorSnapshot {
+    assembly: int;
+    values: array!(int);
 };
 
 type CreatureColorEditorRow {
@@ -464,23 +456,6 @@ fn _empty_resref(): T.ResRef {
 
 fn _resref_empty(value: T.ResRef): bool {
     return T.resref_to_string(value) == "";
-}
-
-fn _body_part_value_display(value: int): string {
-    return f"{value}";
-}
-
-fn _body_part_option_detail(flags: int): string {
-    if (bit.and(flags, NativeCreature.body_part_option_flag_armor) != 0) {
-        return "Armor";
-    }
-    if (bit.and(flags, NativeCreature.body_part_option_flag_empty) != 0) {
-        return "None";
-    }
-    if (bit.and(flags, NativeCreature.body_part_option_flag_mirror) != 0) {
-        return "Mirror";
-    }
-    return "";
 }
 
 fn _body_part_armor_part(part: int): int {
@@ -1349,44 +1324,26 @@ fn set_accessory(creature: Creature, accessory: int, value: int): bool {
 }
 
 fn get_editable_body_parts(creature: Creature): array!(int) {
-    var model = resolve_creature_model(Cre.get_appearance(creature));
-    if (!model.valid || !model.humanoid) {
-        var empty: array!(int) = {};
-        return empty;
-    }
-    return Cre.get_body_parts(creature);
+    return get_body_part_editor_snapshot(creature).values;
 }
 
-fn get_body_part_editor_rows(creature: Creature): array!(CreatureBodyPartEditorRow) {
-    var rows: array!(CreatureBodyPartEditorRow) = {};
+// Native editor protocol: one immutable snapshot per refresh. Values are
+// indexed by the stable profile body-part ID. Resource labels, options, and
+// model associations remain in the native catalog identified by assembly.
+fn get_body_part_editor_snapshot(creature: Creature): CreatureBodyPartEditorSnapshot {
+    var snapshot: CreatureBodyPartEditorSnapshot = {
+        assembly = -1,
+        values = {},
+    };
     var model = resolve_creature_model(Cre.get_appearance(creature));
     if (!model.valid || !model.humanoid) {
-        return rows;
+        return snapshot;
     }
-
-    var assembly = _body_part_assembly(creature, model);
-    if (assembly < 0) {
-        return rows;
+    snapshot.assembly = _body_part_assembly(creature, model);
+    if (snapshot.assembly >= 0) {
+        snapshot.values = Cre.get_body_parts(creature);
     }
-
-    var count = NativeCreature.body_part_count(assembly);
-    arr.reserve(rows, count);
-    for (var index = 0; index < count; index += 1) {
-        var part = NativeCreature.body_part_id_at(assembly, index);
-        var flags = NativeCreature.body_part_flags(assembly, part);
-        if (bit.and(flags, NativeCreature.body_part_info_flag_editor_visible) == 0) {
-            continue;
-        }
-        var value = Cre.get_body_part(creature, part);
-        var row: CreatureBodyPartEditorRow = {
-            part = part,
-            label = NativeCreature.body_part_label(assembly, part),
-            value = value,
-            display = _body_part_value_display(value),
-        };
-        arr.push(rows, row);
-    }
-    return rows;
+    return snapshot;
 }
 
 fn get_body_part_options(creature: Creature, part: int): array!(int) {
@@ -1416,51 +1373,6 @@ fn get_body_part_options(creature: Creature, part: int): array!(int) {
         arr.push(options, current);
     }
     return options;
-}
-
-fn get_body_part_option_rows(creature: Creature, part: int): array!(CreatureBodyPartOptionRow) {
-    var rows: array!(CreatureBodyPartOptionRow) = {};
-    var model = resolve_creature_model(Cre.get_appearance(creature));
-    if (!model.valid || !model.humanoid) {
-        return rows;
-    }
-
-    var assembly = _body_part_assembly(creature, model);
-    var count = NativeCreature.body_part_option_count(assembly, part);
-    var current = Cre.get_body_part(creature, part);
-    var current_added = current < 0 || current > 255;
-    arr.reserve(rows, count + 1);
-    for (var index = 0; index < count; index += 1) {
-        var value = NativeCreature.body_part_option_id_at(assembly, part, index);
-        if (!current_added && current < value) {
-            var current_row: CreatureBodyPartOptionRow = {
-                key = current,
-                label = f"{current}",
-                detail = "Current",
-            };
-            arr.push(rows, current_row);
-            current_added = true;
-        }
-        var flags = NativeCreature.body_part_option_flags_at(assembly, part, index);
-        var row: CreatureBodyPartOptionRow = {
-            key = value,
-            label = f"{value}",
-            detail = _body_part_option_detail(flags),
-        };
-        arr.push(rows, row);
-        if (value == current) {
-            current_added = true;
-        }
-    }
-    if (!current_added) {
-        var current_row: CreatureBodyPartOptionRow = {
-            key = current,
-            label = f"{current}",
-            detail = "Current",
-        };
-        arr.push(rows, current_row);
-    }
-    return rows;
 }
 
 fn can_set_body_parts(creature: Creature, parts: array!(int), values: array!(int)): bool {

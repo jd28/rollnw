@@ -157,6 +157,37 @@ struct PlaceableAppearanceInfo {
 
 using PlaceableAppearanceArray = RuleTypeArray<PlaceableAppearance, PlaceableAppearanceInfo>;
 
+// -- Door Appearance --------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+DECLARE_RULE_TYPE(DoorType);
+DECLARE_RULE_TYPE(GenericDoor);
+
+struct DoorTypeInfo {
+    DoorTypeInfo() = default;
+    explicit DoorTypeInfo(const TwoDARowView& tda);
+
+    uint32_t string_ref = std::numeric_limits<uint32_t>::max();
+    Resref model;
+
+    String editor_name() const;
+    bool valid() const noexcept { return !model.empty(); }
+};
+
+struct GenericDoorInfo {
+    GenericDoorInfo() = default;
+    explicit GenericDoorInfo(const TwoDARowView& tda);
+
+    uint32_t string_ref = std::numeric_limits<uint32_t>::max();
+    Resref model;
+
+    String editor_name() const;
+    bool valid() const noexcept { return !model.empty(); }
+};
+
+using DoorTypeArray = RuleTypeArray<DoorType, DoorTypeInfo>;
+using GenericDoorArray = RuleTypeArray<GenericDoor, GenericDoorInfo>;
+
 // -- Armor Class -------------------------------------------------------------
 // ----------------------------------------------------------------------------
 

@@ -299,6 +299,7 @@ add_executable(rollnw_test
     smalls_modules.cpp
     smalls_virtual_machine.cpp
     smalls_config.cpp
+    smalls_architecture.cpp
     smalls_propset_parity.cpp
     smalls_vm_reentrant.cpp
 
@@ -391,6 +392,9 @@ if(TARGET RmlUi::RmlUi)
         rollnw_client_rml_smalls_data_model.cpp
         rollnw_client_rml_smalls_expression_binding.cpp
         rollnw_client_rml_smalls_language_binding.cpp
+        ../tools/client/creature_body_part_editor.cpp
+        ../tools/client/item_editor.cpp
+        ../tools/client/toolset_backend.cpp
         ../tools/ui/rml_smalls_data_model.cpp
         ../tools/ui/rml_smalls_expression_binding.cpp
         ../tools/ui/rml_smalls_language_binding.cpp

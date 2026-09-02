@@ -4,10 +4,12 @@
 #include "forward_plus_debug.hpp"
 #include "object_edits.hpp"
 #include "script_commands.hpp"
+#include "ui_v1.hpp"
 
 #include "smalls_creature_properties.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
@@ -103,6 +105,23 @@ std::optional<int32_t> parse_i32(std::string_view value)
         return std::nullopt;
     }
     return parsed;
+}
+
+std::optional<UiListSelection> parse_list_selection(
+    const CommandInvocation& invocation)
+{
+    const std::string list_id = command_arg_string(invocation.args, 0);
+    const std::string key = command_arg_string(invocation.args, 1);
+    const auto index = parse_i32(command_arg_string(invocation.args, 2));
+    if (list_id.empty() || key.empty() || !index) {
+        return std::nullopt;
+    }
+    return UiListSelection{
+        .list_id = list_id,
+        .key = key,
+        .index = *index,
+        .cell = -1,
+    };
 }
 
 std::optional<bool> parse_assignment(std::string_view value)
@@ -380,7 +399,80 @@ bool ToolsetBackend::initialize()
     if (!bridge_ || !bridge_->initialize()) {
         return false;
     }
+    return ensure_data_object_editor_lists();
+}
+
+bool ToolsetBackend::refresh_creature_body_part_editor()
+{
+    auto& host = ui_v1_host();
+    if (!bridge_) {
+        return creature_body_part_editor_.clear(host);
+    }
+    const ObjectHandle object = bridge_->active_object();
+    const auto snapshot = creature_body_part_editor_snapshot(
+        kernel::runtime(), object);
+    if (!snapshot || snapshot->assembly < 0) {
+        return creature_body_part_editor_.clear(host);
+    }
+    return creature_body_part_editor_.refresh(
+        CreatureBodyPartEditorInput{
+            .object = object,
+            .assembly = snapshot->assembly,
+            .values = snapshot->values,
+        },
+        kernel::rules().creature_body_parts,
+        host);
+}
+
+bool ToolsetBackend::refresh_item_editor()
+{
+    const ObjectHandle object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+    return item_editor_.refresh(
+        kernel::runtime(), object, ui_v1_host());
+}
+
+bool ToolsetBackend::ensure_data_object_editor_lists()
+{
+    auto& host = ui_v1_host();
+    if (data_object_list_generation_ == host.generation()) {
+        return true;
+    }
+
+    static constexpr std::array<std::string_view, 3> list_ids{
+        "data.encounter.spawns",
+        "data.sound.resources",
+        "data.store.inventory",
+    };
+    static constexpr UiListConfig config{
+        .row_height = 34,
+        .overscan = 6,
+        .columns = 1,
+    };
+    for (const auto list_id : list_ids) {
+        if (!host.contains(list_id)
+            && !host.create(std::string{list_id}, config)) {
+            return false;
+        }
+        if (!host.set_visible(list_id, true)) {
+            return false;
+        }
+    }
+
+    data_object_list_generation_ = host.generation();
     return true;
+}
+
+bool ToolsetBackend::creature_body_part_editor_is_current() const noexcept
+{
+    return bridge_
+        && creature_body_part_editor_.object().type == ObjectType::creature
+        && bridge_->active_object() == creature_body_part_editor_.object();
+}
+
+bool ToolsetBackend::item_editor_is_current() const noexcept
+{
+    return bridge_ && item_editor_.object().type == ObjectType::item
+        && bridge_->active_object() == item_editor_.object();
 }
 
 void ToolsetBackend::register_native_commands()
@@ -412,6 +504,388 @@ void ToolsetBackend::register_native_commands()
                     CommandOutputChannel::info);
             });
     };
+
+    const auto register_hidden_editor_command = [&register_or_log](
+                                                    std::string id,
+                                                    CommandBus::Handler handler) {
+        CommandSpec spec;
+        spec.id = std::move(id);
+        spec.title = spec.id;
+        spec.category = "editor";
+        spec.scope = CommandScope::global;
+        spec.flags = CommandFlags::hidden;
+        register_or_log(std::move(spec), std::move(handler));
+    };
+
+    register_hidden_editor_command(
+        "toolset.data_objects.initialize",
+        [this](const CommandInvocation&, CommandContext&) {
+            return command_result(
+                ensure_data_object_editor_lists()
+                    ? CommandStatus::success
+                    : CommandStatus::failed,
+                {}, CommandOutputChannel::none);
+        });
+    register_hidden_editor_command(
+        "toolset.creature.body_parts.refresh",
+        [this](const CommandInvocation&, CommandContext&) {
+            return command_result(
+                refresh_creature_body_part_editor()
+                    ? CommandStatus::success
+                    : CommandStatus::failed,
+                {}, CommandOutputChannel::none);
+        });
+    register_hidden_editor_command(
+        "toolset.creature.body_parts.close",
+        [this](const CommandInvocation&, CommandContext&) {
+            return command_result(
+                creature_body_part_editor_.close_options(ui_v1_host())
+                    ? CommandStatus::success
+                    : CommandStatus::failed,
+                {}, CommandOutputChannel::none);
+        });
+    register_hidden_editor_command(
+        "toolset.creature.body_parts.activate",
+        [this](const CommandInvocation& invocation, CommandContext&) {
+            if (!creature_body_part_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Creature body-part editor",
+                    CommandOutputChannel::warn);
+            }
+            auto selection = parse_list_selection(invocation);
+            if (!selection) {
+                return command_result(CommandStatus::rejected,
+                    "Invalid Creature body-part selection",
+                    CommandOutputChannel::warn);
+            }
+            const bool activated = creature_body_part_editor_.activate_part(
+                *selection, kernel::rules().creature_body_parts, ui_v1_host());
+            return command_result(
+                activated ? CommandStatus::success : CommandStatus::rejected,
+                activated ? std::string{}
+                          : "Stale Creature body-part selection",
+                activated ? CommandOutputChannel::none
+                          : CommandOutputChannel::warn);
+        });
+    register_hidden_editor_command(
+        "toolset.creature.body_parts.option.activate",
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            if (!creature_body_part_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Creature body-part editor",
+                    CommandOutputChannel::warn);
+            }
+            const auto selection = parse_list_selection(invocation);
+            const auto edit = selection
+                ? creature_body_part_editor_.activate_option(*selection)
+                : std::nullopt;
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Creature body-part option selection",
+                    CommandOutputChannel::warn);
+            }
+
+            const std::array<std::string, 2> storage{
+                std::to_string(edit->part), std::to_string(edit->value)};
+            const std::vector<std::string_view> args{storage[0], storage[1]};
+            auto result = execute_command(
+                "object.creature.set_body_part", args, context);
+            if (result.ok()
+                && (!creature_body_part_editor_.hide_options(ui_v1_host())
+                    || !refresh_creature_body_part_editor())) {
+                return command_result(CommandStatus::failed,
+                    "Creature body-part editor refresh failed",
+                    CommandOutputChannel::error);
+            }
+            return result;
+        });
+
+    const auto item_markup_result = [this](bool ok) {
+        return command_result(
+            ok ? CommandStatus::success : CommandStatus::failed,
+            ok ? item_editor_.appearance_markup()
+               : std::string{"Item editor operation failed"},
+            ok ? CommandOutputChannel::none : CommandOutputChannel::error);
+    };
+    const auto stale_item_editor_result = []() {
+        return command_result(CommandStatus::rejected,
+            "Stale Item editor", CommandOutputChannel::warn);
+    };
+    register_hidden_editor_command(
+        "toolset.item.initialize",
+        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
+            return item_markup_result(refresh_item_editor());
+        });
+    register_hidden_editor_command(
+        "toolset.item.refresh",
+        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
+            return item_markup_result(refresh_item_editor());
+        });
+    register_hidden_editor_command(
+        "toolset.item.details",
+        [this](const CommandInvocation&, CommandContext&) {
+            if (!refresh_item_editor()) {
+                return command_result(CommandStatus::failed,
+                    "Item editor refresh failed", CommandOutputChannel::error);
+            }
+            return command_result(CommandStatus::success,
+                item_editor_.has_inventory() ? "1" : "0",
+                CommandOutputChannel::none);
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.open_model",
+        [this, item_markup_result, stale_item_editor_result](
+            const CommandInvocation& invocation, CommandContext&) {
+            if (!item_editor_is_current()) {
+                return stale_item_editor_result();
+            }
+            const auto part = parse_i32(command_arg_string(invocation.args, 0));
+            const auto axis = parse_i32(command_arg_string(invocation.args, 1));
+            return item_markup_result(part && axis
+                && item_editor_.open_model(
+                    kernel::runtime(), *part, *axis, ui_v1_host()));
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.close",
+        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
+            return item_markup_result(
+                item_editor_.close_appearance(ui_v1_host()));
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.open_color",
+        [this, item_markup_result, stale_item_editor_result](
+            const CommandInvocation& invocation, CommandContext&) {
+            if (!item_editor_is_current()) {
+                return stale_item_editor_result();
+            }
+            const auto part = parse_i32(command_arg_string(invocation.args, 0));
+            const auto color = parse_i32(command_arg_string(invocation.args, 1));
+            return item_markup_result(part && color
+                && item_editor_.open_color(*part, *color, ui_v1_host()));
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.select_color",
+        [this, item_markup_result, stale_item_editor_result](
+            const CommandInvocation& invocation, CommandContext&) {
+            if (!item_editor_is_current()) {
+                return stale_item_editor_result();
+            }
+            const auto color = parse_i32(command_arg_string(invocation.args, 0));
+            return item_markup_result(
+                color && item_editor_.select_color(*color));
+        });
+
+    const auto apply_item_color = [this](int32_t value,
+                                      CommandContext& context) {
+        if (!item_editor_is_current()) {
+            return command_result(CommandStatus::rejected,
+                "Stale Item editor", CommandOutputChannel::warn);
+        }
+        const auto edit = item_editor_.color_edit(value);
+        if (!edit) {
+            return command_result(CommandStatus::rejected,
+                "Invalid Item color selection", CommandOutputChannel::warn);
+        }
+        const std::array<std::string, 3> storage{
+            std::to_string(edit->part), std::to_string(edit->color),
+            std::to_string(edit->value)};
+        const std::vector<std::string_view> args{
+            storage[0], storage[1], storage[2]};
+        auto result = execute_command("object.item.set_color", args, context);
+        if (result.ok()) {
+            if (!refresh_item_editor()) {
+                return command_result(CommandStatus::failed,
+                    "Item editor refresh failed", CommandOutputChannel::error);
+            }
+            result.message = item_editor_.appearance_markup();
+            result.output_channel = CommandOutputChannel::none;
+        }
+        return result;
+    };
+    register_hidden_editor_command(
+        "toolset.item.appearance.apply_color",
+        [apply_item_color](
+            const CommandInvocation& invocation, CommandContext& context) {
+            const auto value = parse_i32(command_arg_string(invocation.args, 0));
+            return value ? apply_item_color(*value, context)
+                         : command_result(CommandStatus::rejected,
+                               "Invalid Item color value",
+                               CommandOutputChannel::warn);
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.inherit_color",
+        [apply_item_color](const CommandInvocation&, CommandContext& context) {
+            return apply_item_color(255, context);
+        });
+    register_hidden_editor_command(
+        "toolset.item.appearance.model.activate",
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            if (!item_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item editor", CommandOutputChannel::warn);
+            }
+            const auto selection = parse_list_selection(invocation);
+            const auto edit = selection
+                ? item_editor_.activate_model(*selection)
+                : std::nullopt;
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item model selection", CommandOutputChannel::warn);
+            }
+            const std::array<std::string, 2> storage{
+                std::to_string(edit->part), std::to_string(edit->value)};
+            const std::vector<std::string_view> args{storage[0], storage[1]};
+            auto result = execute_command(
+                "object.item.set_model_part", args, context);
+            if (result.ok()) {
+                if (!item_editor_.close_appearance(ui_v1_host())
+                    || !refresh_item_editor()) {
+                    return command_result(CommandStatus::failed,
+                        "Item editor refresh failed",
+                        CommandOutputChannel::error);
+                }
+                result.message = item_editor_.appearance_markup();
+                result.output_channel = CommandOutputChannel::none;
+            }
+            return result;
+        });
+    register_hidden_editor_command(
+        "toolset.item.properties.add",
+        [this](const CommandInvocation&, CommandContext& context) {
+            if (!item_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item editor", CommandOutputChannel::warn);
+            }
+            const auto source = item_editor_.selected_available_property(
+                ui_v1_host());
+            if (!source) {
+                return command_result(CommandStatus::rejected,
+                    "No available Item property is selected",
+                    CommandOutputChannel::warn);
+            }
+            const int32_t inserted = static_cast<int32_t>(
+                item_editor_.applied_property_count());
+            const std::array<std::string, 6> storage{
+                std::to_string(source->prop_type),
+                std::to_string(source->subtype),
+                std::to_string(source->cost_table),
+                std::to_string(source->cost_value),
+                std::to_string(source->param_table),
+                std::to_string(source->param_value)};
+            const std::vector<std::string_view> args{storage.begin(), storage.end()};
+            auto result = execute_command(
+                "object.item.add_property", args, context);
+            if (result.ok()
+                && (!refresh_item_editor()
+                    || !item_editor_.select_applied(inserted, ui_v1_host()))) {
+                return command_result(CommandStatus::failed,
+                    "Item property editor refresh failed",
+                    CommandOutputChannel::error);
+            }
+            return result;
+        });
+    register_hidden_editor_command(
+        "toolset.item.properties.remove",
+        [this](const CommandInvocation&, CommandContext& context) {
+            if (!item_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item editor", CommandOutputChannel::warn);
+            }
+            const auto index = item_editor_.selected_applied_property(
+                ui_v1_host());
+            if (!index) {
+                return command_result(CommandStatus::rejected,
+                    "No applied Item property is selected",
+                    CommandOutputChannel::warn);
+            }
+            const std::string storage = std::to_string(*index);
+            auto result = execute_command(
+                "object.item.remove_property", {storage}, context);
+            if (result.ok()) {
+                if (!refresh_item_editor()) {
+                    return command_result(CommandStatus::failed,
+                        "Item property editor refresh failed",
+                        CommandOutputChannel::error);
+                }
+                const int32_t count = static_cast<int32_t>(
+                    item_editor_.applied_property_count());
+                const int32_t selected = count == 0
+                    ? -1
+                    : std::min(*index, count - 1);
+                if (!item_editor_.select_applied(selected, ui_v1_host())) {
+                    return command_result(CommandStatus::failed,
+                        "Item property selection refresh failed",
+                        CommandOutputChannel::error);
+                }
+            }
+            return result;
+        });
+    register_hidden_editor_command(
+        "toolset.item.properties.close",
+        [this](const CommandInvocation&, CommandContext&) {
+            return command_result(
+                item_editor_.close_property_options(ui_v1_host())
+                    ? CommandStatus::success
+                    : CommandStatus::failed,
+                {}, CommandOutputChannel::none);
+        });
+    register_hidden_editor_command(
+        "toolset.item.properties.applied.activate",
+        [this](const CommandInvocation& invocation, CommandContext&) {
+            if (!item_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item editor", CommandOutputChannel::warn);
+            }
+            auto selection = parse_list_selection(invocation);
+            if (!selection) {
+                return command_result(CommandStatus::rejected,
+                    "Invalid Item property selection",
+                    CommandOutputChannel::warn);
+            }
+            selection->cell = parse_i32(
+                command_arg_string(invocation.args, 3))
+                                  .value_or(-1);
+            const bool opened = item_editor_.open_property_options(
+                kernel::runtime(), *selection, ui_v1_host());
+            return command_result(
+                opened ? CommandStatus::success : CommandStatus::rejected,
+                opened ? std::string{} : "Stale Item property selection",
+                opened ? CommandOutputChannel::none
+                       : CommandOutputChannel::warn);
+        });
+    register_hidden_editor_command(
+        "toolset.item.properties.option.activate",
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            if (!item_editor_is_current()) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item editor", CommandOutputChannel::warn);
+            }
+            const auto selection = parse_list_selection(invocation);
+            const auto edit = selection
+                ? item_editor_.activate_property_option(*selection)
+                : std::nullopt;
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    "Stale Item property option selection",
+                    CommandOutputChannel::warn);
+            }
+            static constexpr std::array<std::string_view, 3> fields{
+                "subtype", "param", "cost"};
+            const std::array<std::string, 3> storage{
+                std::to_string(edit->index),
+                std::string{fields[static_cast<size_t>(edit->field)]},
+                std::to_string(edit->value)};
+            const std::vector<std::string_view> args{
+                storage[0], storage[1], storage[2]};
+            auto result = execute_command(
+                "object.item.set_property_value", args, context);
+            if (result.ok() && !refresh_item_editor()) {
+                return command_result(CommandStatus::failed,
+                    "Item property editor refresh failed",
+                    CommandOutputChannel::error);
+            }
+            return result;
+        });
 
     register_or_log(CommandSpec{
                         "command.undo",

@@ -56,6 +56,8 @@ struct Rules : public Service {
     CreatureBodyPartCatalog creature_body_parts;
     BaseItemArray baseitems;
     PlaceableAppearanceArray placeables;
+    DoorTypeArray doortypes;
+    GenericDoorArray genericdoors;
 
 private:
     QualifierMatcher qualifier_matcher_ = nullptr;

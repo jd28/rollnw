@@ -54,8 +54,7 @@
     </div>
 
     <div id="placeable_surface_appearance" class="placeable_workbench_surface">
-      <div id="placeable_appearance_dynamic" class="smalls_refresh"
-           onrefresh="placeable_appearance_refresh()">
+      <div id="placeable_appearance_dynamic">
         <div class="property_tree_empty">Waiting for a live Placeable.</div>
       </div>
     </div>

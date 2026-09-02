@@ -35,7 +35,9 @@ set(RMLUI_BACKENDS_DIR "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Backends")
 set(RMLUI_INCLUDE_DIR  "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Include")
 
 add_executable(rollnw-client
+    creature_body_part_editor.cpp
     dialog_view.cpp
+    item_editor.cpp
     viewer_viewport.cpp
     main.cpp
     renderer.cpp

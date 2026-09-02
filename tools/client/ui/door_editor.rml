@@ -53,8 +53,7 @@
     </div>
 
     <div id="door_surface_appearance" class="door_workbench_surface">
-      <div id="door_appearance_dynamic" class="smalls_refresh"
-           onrefresh="door_appearance_refresh()">
+      <div id="door_appearance_dynamic">
         <div class="property_tree_empty">Waiting for a live Door.</div>
       </div>
     </div>

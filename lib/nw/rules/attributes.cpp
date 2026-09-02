@@ -2,6 +2,7 @@
 
 #include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Strings.hpp"
+#include "../util/string.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -14,6 +15,8 @@ DEFINE_RULE_TYPE(Appearance);
 DEFINE_RULE_TYPE(WingModel);
 DEFINE_RULE_TYPE(TailModel);
 DEFINE_RULE_TYPE(PlaceableAppearance);
+DEFINE_RULE_TYPE(DoorType);
+DEFINE_RULE_TYPE(GenericDoor);
 DEFINE_RULE_TYPE(ArmorClass);
 DEFINE_RULE_TYPE(Phenotype);
 DEFINE_RULE_TYPE(Race);
@@ -88,6 +91,54 @@ String PlaceableAppearanceInfo::editor_name() const
     auto string = nw::kernel::strings().get(string_ref);
     if (!string.empty() && !string.starts_with("Bad Strref")) { return string; }
     return label;
+}
+
+namespace {
+
+Resref door_model_resref(StringView value)
+{
+    if (value.empty() || string::icmp(value, "****")
+        || string::icmp(value, "null") || string::icmp(value, "none")) {
+        return {};
+    }
+    return Resref{value};
+}
+
+String door_editor_name(uint32_t string_ref, Resref model)
+{
+    auto result = nw::kernel::strings().get(string_ref);
+    if (result.empty() || result.starts_with("Bad Strref")) {
+        result = model.view();
+    }
+    return result;
+}
+
+} // namespace
+
+DoorTypeInfo::DoorTypeInfo(const TwoDARowView& tda)
+{
+    tda.get_to("StringRefGame", string_ref);
+    String raw_model;
+    tda.get_to("Model", raw_model);
+    model = door_model_resref(raw_model);
+}
+
+String DoorTypeInfo::editor_name() const
+{
+    return door_editor_name(string_ref, model);
+}
+
+GenericDoorInfo::GenericDoorInfo(const TwoDARowView& tda)
+{
+    tda.get_to("Name", string_ref);
+    String raw_model;
+    tda.get_to("ModelName", raw_model);
+    model = door_model_resref(raw_model);
+}
+
+String GenericDoorInfo::editor_name() const
+{
+    return door_editor_name(string_ref, model);
 }
 
 // -- Race --------------------------------------------------------------------

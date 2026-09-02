@@ -112,6 +112,25 @@ void load_rule_rows(const nw::StaticTwoDA& source, nw::StringView source_name, A
     }
 }
 
+template <typename Array>
+bool load_optional_rule_rows(
+    const nw::StaticTwoDA& source, nw::StringView source_name, Array& output)
+{
+    output.clear();
+    if (!source.is_valid()) {
+        LOG_F(ERROR,
+            "rules: failed to load optional '{}.2da'; continuing with an empty domain",
+            source_name);
+        return false;
+    }
+
+    output.entries.reserve(source.rows());
+    for (size_t i = 0; i < source.rows(); ++i) {
+        output.entries.emplace_back(source.row(i));
+    }
+    return true;
+}
+
 void register_twoda_config_converters()
 {
     // Register 2da-based converters for smalls load_config! paths before any
@@ -286,14 +305,6 @@ void register_twoda_config_converters()
                                                                                                }},
                                                                    CM{"ArmorCheckPenalty", "armor_check_penalty"},
                                                                });
-    srt.register_twoda_converter("nwn1.data.doortypes", "doortypes", {
-                                                                         CM{"StringRefGame", "name", {}, {}, -1},
-                                                                         CM{"Model", "model"},
-                                                                     });
-    srt.register_twoda_converter("nwn1.data.genericdoors", "genericdoors", {
-                                                                               CM{"Name", "name", {}, {}, -1},
-                                                                               CM{"ModelName", "model"},
-                                                                           });
     srt.register_twoda_converter("nwn1.data.cloakmodels", "cloakmodel", {
                                                                             CM{"ICON", "icon", {}, {}, -1},
                                                                             CM{"MODEL", "model", {}, {}, -1},
@@ -448,6 +459,8 @@ bool Profile::load_rules() const
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA doortypes{nw::kernel::resman().demand({"doortypes"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA genericdoors{nw::kernel::resman().demand({"genericdoors"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA wingmodels{nw::kernel::resman().demand({"wingmodel"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA tailmodels{nw::kernel::resman().demand({"tailmodel"sv, nw::ResourceType::twoda})};
@@ -468,6 +481,8 @@ bool Profile::load_rules() const
             body_part_diagnostic));
     }
     load_rule_rows(placeables, "placeables", rules.placeables);
+    load_optional_rule_rows(doortypes, "doortypes", rules.doortypes);
+    load_optional_rule_rows(genericdoors, "genericdoors", rules.genericdoors);
     load_rule_rows(wingmodels, "wingmodel", rules.wingmodels);
     load_rule_rows(tailmodels, "tailmodel", rules.tailmodels);
     load_baseitem_definitions();

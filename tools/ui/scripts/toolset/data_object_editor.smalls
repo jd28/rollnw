@@ -1,4 +1,5 @@
 import core.array as Array;
+from core.commands.v1 import { command_execute };
 import core.item as ItemBase;
 import core.object as O;
 import core.types as T;
@@ -11,12 +12,10 @@ from core.rmlui import {
     active_object,
     active_object_type,
 };
-from core.ui import { ListConfig, ListItem };
+from core.ui import { ListItem };
 from core.ui.v1 import {
-    list_create,
     list_set_items,
     list_set_title,
-    list_set_visible,
 };
 
 const encounter_spawn_list = "data.encounter.spawns";
@@ -24,23 +23,13 @@ const sound_resource_list = "data.sound.resources";
 const store_inventory_list = "data.store.inventory";
 const max_collection_rows = 1024;
 
-var _initialized_lists: array!(string) = {};
-
-fn _ensure_list(list_id: string): bool {
-    for (var initialized in _initialized_lists) {
-        if (initialized == list_id) { return true; }
-    }
-
-    var config: ListConfig = { row_height = 34, overscan = 6, columns = 1 };
-    if (!list_create(list_id, config) || !list_set_visible(list_id, true)) {
-        return false;
-    }
-    Array.push(_initialized_lists, list_id);
-    return true;
+fn _ensure_lists(): bool {
+    var result = command_execute("toolset.data_objects.initialize", {});
+    return result.status == 0 || result.status == 4;
 }
 
 fn _set_empty(list_id: string, title: string): array!(Command) {
-    if (_ensure_list(list_id)) {
+    if (_ensure_lists()) {
         list_set_items(list_id, {});
         list_set_title(list_id, title);
     }
@@ -48,7 +37,7 @@ fn _set_empty(list_id: string, title: string): array!(Command) {
 }
 
 fn _set_rows(list_id: string, rows: array!(ListItem), count: int): array!(Command) {
-    if (!_ensure_list(list_id)) { return {}; }
+    if (!_ensure_lists()) { return {}; }
     var visible_count = Array.len(rows);
     var title = count > visible_count
         ? f"Showing first {visible_count} of {count} entries"

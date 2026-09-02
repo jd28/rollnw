@@ -1,9 +1,8 @@
-import core.array as Array;
+import core.door as NativeDoor;
 import core.string as String;
 import core.types as T;
 import core.visual as Visual;
 from nwn1.propsets import { DoorState };
-from nwn1.rules import { DoorTypeEntry, GenericDoorEntry };
 
 type DoorResolvedModel {
     model:    T.ResRef;
@@ -16,25 +15,6 @@ type DoorResolvedModel {
     generic:  bool;
     valid:    bool;
 };
-
-type DoorAppearanceOption {
-    id:    int;
-    label: string;
-    model: string;
-};
-
-var _loaded = false;
-var _doortypes: array!(DoorTypeEntry);
-var _genericdoors: array!(GenericDoorEntry);
-
-fn _ensure_loaded() {
-    if (_loaded) {
-        return;
-    }
-    _doortypes = load_config!(DoorTypeEntry)("nwn1.data.doortypes");
-    _genericdoors = load_config!(GenericDoorEntry)("nwn1.data.genericdoors");
-    _loaded = true;
-}
 
 fn _invalid_model(
     error: string,
@@ -96,18 +76,14 @@ fn _resolved_model(
 }
 
 fn count_doortypes(): int {
-    _ensure_loaded();
-    return Array.len(_doortypes);
+    return NativeDoor.door_type_count();
 }
 
 fn count_genericdoors(): int {
-    _ensure_loaded();
-    return Array.len(_genericdoors);
+    return NativeDoor.generic_door_count();
 }
 
 fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolvedModel {
-    _ensure_loaded();
-
     // Door appearance is a two-source protocol, not one global catalog.
     // appearance == 0 selects a portable GenericType from genericdoors.2da.
     // A nonzero appearance selects a tileset-specific doortypes.2da row that
@@ -124,9 +100,10 @@ fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolved
         if (row < 0) {
             return _invalid_model(f"{selector} {row} is invalid", table, column, selector, row, true);
         }
-        if (row >= Array.len(_genericdoors)) {
+        var count = NativeDoor.generic_door_count();
+        if (row >= count) {
             return _invalid_model(
-                f"{selector} {row} is outside {table}.2da ({Array.len(_genericdoors)} rows)",
+                f"{selector} {row} is outside {table}.2da ({count} rows)",
                 table,
                 column,
                 selector,
@@ -134,15 +111,15 @@ fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolved
                 true);
         }
 
-        var entry = Array.get(_genericdoors, row);
+        var entry = NativeDoor.generic_door_info(row);
         var model = T.resref_to_string(entry.model);
-        if (_model_name_is_null(model)) {
+        if (entry.id != row || _model_name_is_null(model)) {
             return _invalid_model(f"{selector} {row} has no {column} in {table}.2da", table, column, selector, row, true);
         }
 
         return _resolved_model(
             entry.model,
-            _localized_appearance_name(entry.name as int, model),
+            _localized_appearance_name(entry.string_ref, model),
             table,
             column,
             selector,
@@ -157,9 +134,10 @@ fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolved
     if (row < 0) {
         return _invalid_model(f"{selector} {row} is invalid", table, column, selector, row, false);
     }
-    if (row >= Array.len(_doortypes)) {
+    var count = NativeDoor.door_type_count();
+    if (row >= count) {
         return _invalid_model(
-            f"{selector} {row} is outside {table}.2da ({Array.len(_doortypes)} rows)",
+            f"{selector} {row} is outside {table}.2da ({count} rows)",
             table,
             column,
             selector,
@@ -167,15 +145,15 @@ fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolved
             false);
     }
 
-    var entry = Array.get(_doortypes, row);
+    var entry = NativeDoor.door_type_info(row);
     var model = T.resref_to_string(entry.model);
-    if (_model_name_is_null(model)) {
+    if (entry.id != row || _model_name_is_null(model)) {
         return _invalid_model(f"{selector} {row} has no {column} in {table}.2da", table, column, selector, row, false);
     }
 
     return _resolved_model(
         entry.model,
-        _localized_appearance_name(entry.name as int, model),
+        _localized_appearance_name(entry.string_ref, model),
         table,
         column,
         selector,
@@ -186,25 +164,6 @@ fn resolve_door_model_by_state(appearance: int, generic_type: int): DoorResolved
 fn resolve_door_model(door: Door): DoorResolvedModel {
     var state = get_propset!(DoorState)(door);
     return resolve_door_model_by_state(state.appearance, state.generic_type);
-}
-
-fn get_genericdoor_options(): array!(DoorAppearanceOption) {
-    _ensure_loaded();
-    var result: array!(DoorAppearanceOption) = {};
-    Array.reserve(result, Array.len(_genericdoors));
-
-    for (var row = 0; row < Array.len(_genericdoors); row += 1) {
-        var entry = Array.get(_genericdoors, row);
-        if (!T.resource_exists(entry.model, T.resource_type_mdl)) { continue; }
-        var model = T.resref_to_string(entry.model);
-        var option: DoorAppearanceOption = {
-            id = row,
-            label = _localized_appearance_name(entry.name as int, model),
-            model = model,
-        };
-        Array.push(result, option);
-    }
-    return result;
 }
 
 fn appearance_exists(appearance: int, generic_type: int): bool {

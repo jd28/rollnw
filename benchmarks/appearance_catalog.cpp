@@ -104,7 +104,7 @@ void BM_creature_body_part_popup(benchmark::State& state)
         import nwn1.creature_state as CreatureState;
 
         fn option_count(target: Creature): int {
-            return Array.len(CreatureRules.get_body_part_option_rows(
+            return Array.len(CreatureRules.get_body_part_options(
                 target, CreatureState.body_part_head));
         }
     )");

@@ -139,6 +139,7 @@ add_library(nw STATIC
     smalls/native/core_array.cpp
     smalls/native/core_area.cpp
     smalls/native/core_creature.cpp
+    smalls/native/core_door.cpp
     smalls/native/core_combat.cpp
     smalls/native/core_effects.cpp
     smalls/native/core_item.cpp

@@ -1,629 +1,144 @@
 import core.array as Array;
-import core.object as O;
-import core.string as String;
-import nwn1.constants as Const;
-import nwn1.item as ItemPolicy;
-from nwn1.item import { ItemEditorColorRow };
 
 from core.commands.v1 import { command_execute };
 from core.rmlui import {
     Command,
-    Event,
-    active_object,
-    active_object_type,
     command_focus,
     command_set_class,
     command_set_rml,
 };
-from core.ui import { ListConfig, ListItem, ListSelection, UiListBinding };
-from core.ui.v1 import {
-    list_create,
-    list_get_selected,
-    list_on_refresh,
-    list_set_items,
-    list_set_selected,
-    list_set_title,
-    list_set_visible,
-};
+from core.ui import { ListSelection, UiListBinding };
 
-const available_list = "item.properties.available";
-const applied_list = "item.properties.applied";
-const option_list = "item.properties.options";
-const model_list = "item.appearance.models";
-
-const appearance_main = 0;
-const appearance_model = 1;
-const appearance_color = 2;
-
-const palette_columns = 16;
-const palette_rows = 11;
-const palette_cell_size = 24;
-
-var _property_index = -1;
-var _property_field = -1;
-var _appearance_item = O.invalid as Item;
-var _appearance_mode = appearance_main;
-var _model_part = -1;
-var _model_axis = ItemPolicy.item_editor_model_axis_model;
-var _color_part = -1;
-var _color_channel = 0;
-fn _active_item(): Item {
-    if (active_object_type() != (Const.object_type_item as int)) {
-        return O.invalid as Item;
-    }
-    return active_object() as Item;
+fn _succeeded(status: int): bool {
+    return status == 0 || status == 4;
 }
 
-fn _empty_list_item(): ListItem {
+fn _selection_args(selection: ListSelection): array!(string) {
     return {
-        key = "",
-        icon_source = "",
-        cell0 = "",
-        cell1 = "",
-        cell2 = "",
-        cell3 = "",
-        cell_count = 1,
-        enabled_mask = 1,
+        selection.list_id,
+        selection.key,
+        f"{selection.index}",
+        f"{selection.cell}",
     };
 }
 
-fn _clear_property_options(): bool {
-    _property_index = -1;
-    _property_field = -1;
-    return list_set_items(option_list, {})
-        && list_set_visible(option_list, false);
-}
-
-fn _reset_appearance_selector(): bool {
-    _appearance_mode = appearance_main;
-    _model_part = -1;
-    _model_axis = ItemPolicy.item_editor_model_axis_model;
-    _color_part = -1;
-    _color_channel = 0;
-    return list_set_items(model_list, {})
-        && list_set_visible(model_list, false);
-}
-
-fn _available_items(item: Item): array!(ListItem) {
-    var source = ItemPolicy.get_available_item_property_rows(item);
-    var output: array!(ListItem) = {};
-    Array.reserve(output, Array.len(source));
-    for (var row in source) {
-        var item_row = _empty_list_item();
-        item_row.key = f"{row.prop_type}";
-        item_row.cell0 = row.label;
-        Array.push(output, item_row);
-    }
-    return output;
-}
-
-fn _applied_items(item: Item): array!(ListItem) {
-    var source = ItemPolicy.get_applied_item_property_rows(item);
-    var output: array!(ListItem) = {};
-    Array.reserve(output, Array.len(source));
-    for (var row in source) {
-        var enabled = 1;
-        if (row.has_subtype) { enabled += 2; }
-        if (row.has_param) { enabled += 4; }
-        if (row.has_cost) { enabled += 8; }
-        var item_row: ListItem = {
-            key = f"{row.index}",
-            icon_source = "",
-            cell0 = row.label,
-            cell1 = row.has_subtype ? row.subtype_label : "-",
-            cell2 = row.has_param ? row.param_label : "-",
-            cell3 = row.has_cost ? row.cost_label : "-",
-            cell_count = 4,
-            enabled_mask = enabled,
-        };
-        Array.push(output, item_row);
-    }
-    return output;
-}
-
-fn refresh(): bool {
-    var item = _active_item();
-    if ((item as object) == O.invalid) {
-        _appearance_item = O.invalid as Item;
-        _reset_appearance_selector();
-        return list_set_items(available_list, {})
-            && list_set_items(applied_list, {})
-            && _clear_property_options();
-    }
-    if ((item as object) != (_appearance_item as object)) {
-        _appearance_item = item;
-        _reset_appearance_selector();
-    }
-    var result = list_set_items(available_list, _available_items(item))
-        && list_set_items(applied_list, _applied_items(item))
-        && _clear_property_options();
-    if (_appearance_mode == appearance_model) {
-        result = _refresh_model_options(item, _model_part, _model_axis) && result;
-    }
-    return result;
-}
-
-fn initialize(): bool {
-    var config: ListConfig = { row_height = 34, overscan = 6, columns = 1 };
-    var model_config: ListConfig = { row_height = 34, overscan = 6, columns = 1 };
-    if (!list_create(available_list, config)
-        || !list_create(applied_list, config)
-        || !list_create(option_list, config)
-        || !list_create(model_list, model_config)
-        || !list_set_title(option_list, "Property Value")
-        || !list_set_visible(option_list, false)
-        || !list_set_visible(model_list, false)
-        || !list_on_refresh("toolset.item_editor.refresh")) {
-        return false;
-    }
-    return refresh();
-}
-
-fn _escape_rml(value: string): string {
-    var result = String.replace(value, "&", "&amp;");
-    result = String.replace(result, "<", "&lt;");
-    result = String.replace(result, ">", "&gt;");
-    return result;
-}
-
-fn details_refresh(): array!(Command) {
-    var item = _active_item();
-    return {
-        {
-            operation = command_set_class,
-            element_id = "item_tab_inventory",
-            value = "not_applicable",
-            state = !ItemPolicy.item_editor_has_inventory(item),
-        },
-    };
-}
-
-fn _palette_asset(palette: int): string {
-    if (palette == 0) { return "mvpal_cloth.png"; }
-    if (palette == 1) { return "mvpal_leather.png"; }
-    if (palette == 2) { return "mvpal_armor01.png"; }
-    return "";
-}
-
-fn _part_label(item: Item, part: int): string {
-    for (var row in ItemPolicy.get_item_editor_parts(item)) {
-        if (row.part == part) { return row.label; }
-    }
-    return "Item";
-}
-
-fn _color_row(item: Item, part: int, color: int): ItemEditorColorRow {
-    for (var row in ItemPolicy.get_item_color_editor_rows(item, part)) {
-        if (row.color == color) { return row; }
-    }
-    return ItemEditorColorRow {
-        part = -2,
-        color = -1,
-        label = "",
-        value = 0,
-        stored_value = 0,
-        palette = -1,
-        inherited = false,
-    };
-}
-
-fn _color_field_markup(row: ItemEditorColorRow): string {
-    var asset = _palette_asset(row.palette);
-    if (row.part < -1 || row.color < 0 || asset == ""
-        || row.value < 0 || row.value >= palette_columns * palette_rows) {
-        return "";
-    }
-    var classes = "item_color_field visible";
-    if (row.inherited) { classes = String.append(classes, " inherited"); }
-    return f"<button id='item_color_{row.part}_{row.color}' class='{classes}' type='button' onclick='open_color_selector({row.part}, {row.color})'><img src='{asset}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /></button>";
-}
-
-fn _main_appearance_markup(item: Item): string {
-    var parts = ItemPolicy.get_item_editor_parts(item);
-    if (Array.len(parts) <= 0) {
-        return "<div class='property_tree_empty'>This item has no editable visual parts.</div>";
-    }
-
-    var markup = "<div id='item_appearance_main' class='item_appearance_editor active'><div class='item_editor_section_title'>Models</div><div id='item_model_rows'>";
-    for (var part in parts) {
-        if (part.split_model_color) {
-            markup = String.append(markup,
-                f"<div class='item_model_row item_composite_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><div class='item_composite_model_fields'><div class='item_composite_model_field'><span class='item_composite_model_label'>Model</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_model})'><span class='item_model_value'>{part.value / 10}</span><span class='item_field_arrow'></span></button></div><div class='item_composite_model_field'><span class='item_composite_model_label'>Color</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_color}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_color})'><span class='item_model_value'>{part.value % 10}</span><span class='item_field_arrow'></span></button></div></div>");
-        } else {
-            var value = part.detail;
-            if (value == "") { value = f"{part.value}"; }
-            markup = String.append(markup,
-                f"<div class='item_model_row visible'><span class='item_model_label'>{_escape_rml(part.label)}</span><button id='item_model_{part.part}_{ItemPolicy.item_editor_model_axis_model}' class='item_model_field' type='button' onclick='open_model_selector({part.part}, {ItemPolicy.item_editor_model_axis_model})'><span class='item_model_value'>{_escape_rml(value)}</span><span class='item_field_arrow'></span></button>");
-        }
-        if (part.per_part_colors) {
-            markup = String.append(markup, "<div class='item_part_color_fields visible'>");
-            for (var color in ItemPolicy.get_item_color_editor_rows(item, part.part)) {
-                markup = String.append(markup, _color_field_markup(color));
-            }
-            markup = String.append(markup, "</div>");
-        }
-        markup = String.append(markup, "</div>");
-    }
-    markup = String.append(markup, "</div>");
-    if (!parts[0].per_part_colors) {
-        var global_colors = ItemPolicy.get_item_editor_color_rows(item);
-        if (Array.len(global_colors) > 0) {
-            markup = String.append(markup,
-                "<div id='item_global_color_section' class='visible'><div class='item_editor_section_title'>Colors</div><div class='item_global_color_fields'>");
-            for (var color in global_colors) {
-                markup = String.append(markup, _color_field_markup(color));
-            }
-            markup = String.append(markup, "</div></div>");
-        }
-    }
-    return String.append(markup, "</div>");
-}
-
-fn _model_items(item: Item, part: int, axis: int): array!(ListItem) {
-    var source = ItemPolicy.get_item_model_editor_options(item, part, axis);
-    var output: array!(ListItem) = {};
-    Array.reserve(output, Array.len(source));
-    for (var row in source) {
-        var label = row.label;
-        if (row.detail != "") {
-            label = String.append(label, String.append("  ", row.detail));
-        }
-        var item_row: ListItem = {
-            key = f"{row.value}",
-            icon_source = "",
-            cell0 = label,
-            cell1 = "",
-            cell2 = "",
-            cell3 = "",
-            cell_count = 1,
-            enabled_mask = 1,
-        };
-        Array.push(output, item_row);
-    }
-    return output;
-}
-
-fn _refresh_model_options(item: Item, part: int, axis: int): bool {
-    var parts = ItemPolicy.get_item_editor_parts(item);
-    for (var row in parts) {
-        if (row.part != part) { continue; }
-        if ((!row.split_model_color
-                && axis != ItemPolicy.item_editor_model_axis_model)
-            || (axis != ItemPolicy.item_editor_model_axis_model
-                && axis != ItemPolicy.item_editor_model_axis_color)) {
-            return false;
-        }
-        var options = _model_items(item, part, axis);
-        var title = row.label;
-        if (row.split_model_color) {
-            title = String.append(title,
-                axis == ItemPolicy.item_editor_model_axis_model
-                    ? " Model" : " Color");
-        }
-        if (!list_set_items(model_list, options)
-            || !list_set_title(model_list, title)
-            || !list_set_visible(model_list, true)) {
-            return false;
-        }
-        var source = ItemPolicy.get_item_model_editor_options(item, part, axis);
-        for (var index = 0; index < Array.len(options); index += 1) {
-            if (source[index].packed_value == row.value) {
-                return list_set_selected(model_list, {
-                    list_id = model_list,
-                    key = options[index].key,
-                    index = index,
-                    cell = -1,
-                });
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-fn _model_selector_markup(): string {
-    return "<div id='item_option_selector' class='item_selector smalls_selector active'><div class='item_selector_header'><button id='item_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title managed_list_title' data-list-id='item.appearance.models'></div></div><div id='item_option_rows' class='item_option_rows item_model_list managed_list_rows managed_list_cycle' tabindex='0' data-list-id='item.appearance.models' data-empty-text='No models are available.'></div></div>";
-}
-
-fn _color_selector_markup(item: Item): string {
-    var selected = _color_row(item, _color_part, _color_channel);
-    var asset = _palette_asset(selected.palette);
-    if (selected.part < -1 || asset == "") {
-        _appearance_mode = appearance_main;
-        return _main_appearance_markup(item);
-    }
-    var title = _color_part < 0 ? "Item Colors" : _part_label(item, _color_part);
-    var markup = f"<div id='item_color_selector' class='item_selector item_color_selector smalls_selector active'><div class='item_selector_header'><button id='item_color_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title'>{_escape_rml(title)}</div>";
-    if (_color_part >= 0) {
-        markup = String.append(markup,
-            "<button id='item_color_inherit' class='item_color_inherit visible' type='button' onclick='inherit_color()'>Inherit</button>");
-    }
-    markup = String.append(markup, "</div><div class='item_color_channels'>");
-    for (var row in ItemPolicy.get_item_color_editor_rows(item, _color_part)) {
-        var classes = "item_color_channel visible";
-        if (row.color == _color_channel) { classes = String.append(classes, " active"); }
-        markup = String.append(markup,
-            f"<button id='item_color_channel_{row.color}' class='{classes}' type='button' onclick='select_color_channel({row.color})'><img src='{_palette_asset(row.palette)}' rect='{(row.value % palette_columns) * 32} {(row.value / palette_columns) * 32} 32 32' /><span>{_escape_rml(row.label)}</span></button>");
-    }
-    markup = String.append(markup,
-        f"</div><div class='item_color_palette_body'><div class='item_color_palette'><img src='{asset}' /><div class='item_color_palette_hits'>");
-    for (var value = 0; value < palette_columns * palette_rows; value += 1) {
-        markup = String.append(markup,
-            f"<button id='item_palette_{value}' class='item_color_palette_cell' type='button' title='Color {value}' onclick='apply_color({value})'></button>");
-    }
-    markup = String.append(markup,
-        f"</div><div class='item_color_selection' style='left:{(selected.value % palette_columns) * palette_cell_size}px;top:{(selected.value / palette_columns) * palette_cell_size}px'></div></div></div></div>");
-    return markup;
-}
-
-fn _appearance_markup(item: Item): string {
-    if ((item as object) == O.invalid) {
-        return "<div class='property_tree_empty'>Waiting for a live Item.</div>";
-    }
-    if (_appearance_mode == appearance_model) { return _model_selector_markup(); }
-    if (_appearance_mode == appearance_color) { return _color_selector_markup(item); }
-    return _main_appearance_markup(item);
-}
-
-fn _appearance_commands(focus_id: string = ""): array!(Command) {
+fn _appearance(command: string, args: array!(string), focus_id: string = ""):
+    array!(Command) {
+    var result = command_execute(command, args);
+    if (!_succeeded(result.status)) { return {}; }
     var commands: array!(Command) = {{
         operation = command_set_rml,
         element_id = "item_appearance_dynamic",
-        value = _appearance_markup(_active_item()),
+        value = result.message,
         state = false,
     }};
     if (focus_id != "") {
-        var focus_command: Command = {
+        var focus: Command = {
             operation = command_focus,
             element_id = focus_id,
             value = "",
             state = true,
         };
-        Array.push(commands, focus_command);
+        Array.push(commands, focus);
     }
     return commands;
 }
 
+// Thin RML event adapters. Native code owns every copied row, selector,
+// selection, and popup lifetime; profile SmallS only supplies policy batches.
+fn initialize(): bool {
+    return _succeeded(command_execute("toolset.item.initialize", {}).status);
+}
+
+fn refresh(): bool {
+    return _succeeded(command_execute("toolset.item.refresh", {}).status);
+}
+
+fn details_refresh(): array!(Command) {
+    var result = command_execute("toolset.item.details", {});
+    if (!_succeeded(result.status)) { return {}; }
+    return {{
+        operation = command_set_class,
+        element_id = "item_tab_inventory",
+        value = "not_applicable",
+        state = result.message != "1",
+    }};
+}
+
 fn appearance_refresh(): array!(Command) {
-    var item = _active_item();
-    if ((item as object) != (_appearance_item as object)) {
-        _appearance_item = item;
-        _reset_appearance_selector();
-    }
-    if (_appearance_mode == appearance_model
-        && !_refresh_model_options(item, _model_part, _model_axis)) {
-        _reset_appearance_selector();
-    }
-    return _appearance_commands();
+    return _appearance("toolset.item.refresh", {});
 }
 
 fn open_model_selector(part: int, axis: int): array!(Command) {
-    var item = _active_item();
-    if ((item as object) == O.invalid
-        || !_refresh_model_options(item, part, axis)) {
-        return {};
-    }
-    _appearance_mode = appearance_model;
-    _model_part = part;
-    _model_axis = axis;
-    return _appearance_commands("item_option_rows");
+    return _appearance("toolset.item.appearance.open_model",
+        { f"{part}", f"{axis}" }, "item_option_rows");
 }
 
 fn close_appearance_selector(): array!(Command) {
-    _reset_appearance_selector();
-    return _appearance_commands();
+    return _appearance("toolset.item.appearance.close", {});
 }
 
 fn open_color_selector(part: int, color: int): array!(Command) {
-    var row = _color_row(_active_item(), part, color);
-    if (row.part < -1 || _palette_asset(row.palette) == "") { return {}; }
-    _appearance_mode = appearance_color;
-    _color_part = part;
-    _color_channel = color;
-    list_set_visible(model_list, false);
-    return _appearance_commands("item_color_selector_close");
+    return _appearance("toolset.item.appearance.open_color",
+        { f"{part}", f"{color}" }, "item_color_selector_close");
 }
 
 fn select_color_channel(color: int): array!(Command) {
-    if (_color_row(_active_item(), _color_part, color).part < -1) { return {}; }
-    _color_channel = color;
-    return _appearance_commands("item_color_selector_close");
-}
-
-fn _set_selected_color(value: int): bool {
-    var item = _active_item();
-    var row = _color_row(item, _color_part, _color_channel);
-    if ((item as object) == O.invalid || row.part < -1
-        || (value != 255 && (value < 0 || value >= palette_columns * palette_rows))
-        || (value == 255 && _color_part < 0)) {
-        return false;
-    }
-    var result = command_execute("object.item.set_color",
-        { f"{_color_part}", f"{_color_channel}", f"{value}" });
-    return _command_succeeded(result.status);
+    return _appearance("toolset.item.appearance.select_color",
+        { f"{color}" }, "item_color_selector_close");
 }
 
 fn apply_color(value: int): array!(Command) {
-    if (!_set_selected_color(value)) { return {}; }
-    return _appearance_commands("item_color_selector_close");
+    return _appearance("toolset.item.appearance.apply_color",
+        { f"{value}" }, "item_color_selector_close");
 }
 
 fn inherit_color(): array!(Command) {
-    if (!_set_selected_color(255)) { return {}; }
-    return _appearance_commands("item_color_selector_close");
+    return _appearance("toolset.item.appearance.inherit_color", {},
+        "item_color_selector_close");
 }
 
 fn on_model_activate(selection: ListSelection) {
-    var item = _active_item();
-    if ((item as object) == O.invalid || _appearance_mode != appearance_model) {
-        return;
-    }
-    var source = ItemPolicy.get_item_model_editor_options(
-        item, _model_part, _model_axis);
-    if (selection.index < 0 || selection.index >= Array.len(source)) { return; }
-    var option = source[selection.index];
-    if (!_selection_matches(selection, f"{option.value}", Array.len(source))) {
-        return;
-    }
-    var result = command_execute("object.item.set_model_part",
-        { f"{_model_part}", f"{option.packed_value}" });
-    if (_command_succeeded(result.status)) {
-        _appearance_mode = appearance_main;
-        _model_part = -1;
-        _model_axis = ItemPolicy.item_editor_model_axis_model;
-        list_set_visible(model_list, false);
-    }
-}
-
-fn _selection_matches(selection: ListSelection, key: string, count: int): bool {
-    return selection.index >= 0 && selection.index < count && selection.key == key;
-}
-
-fn _command_succeeded(status: int): bool {
-    return status == 0 || status == 4;
+    command_execute("toolset.item.appearance.model.activate",
+        _selection_args(selection));
 }
 
 fn add_selected_property() {
-    var item = _active_item();
-    if ((item as object) == O.invalid) { return; }
-    var selected = list_get_selected(available_list);
-    var available = ItemPolicy.get_available_item_property_rows(item);
-    if (selected.index < 0 || selected.index >= Array.len(available)) { return; }
-    var source = available[selected.index];
-    if (!_selection_matches(selected, f"{source.prop_type}", Array.len(available))) {
-        return;
-    }
-    var applied_count = Array.len(ItemPolicy.get_applied_item_property_rows(item));
-    var result = command_execute("object.item.add_property", {
-        f"{source.prop_type}",
-        f"{source.subtype}",
-        f"{source.cost_table}",
-        f"{source.cost_value}",
-        f"{source.param_table}",
-        f"{source.param_value}",
-    });
-    if (!_command_succeeded(result.status) || !refresh()) { return; }
-    list_set_selected(applied_list, {
-        list_id = applied_list,
-        key = f"{applied_count}",
-        index = applied_count,
-        cell = -1,
-    });
+    command_execute("toolset.item.properties.add", {});
 }
 
 fn remove_selected_property() {
-    var item = _active_item();
-    if ((item as object) == O.invalid) { return; }
-    var selected = list_get_selected(applied_list);
-    var applied = ItemPolicy.get_applied_item_property_rows(item);
-    if (selected.index < 0 || selected.index >= Array.len(applied)) { return; }
-    var source = applied[selected.index];
-    if (!_selection_matches(selected, f"{source.index}", Array.len(applied))) {
-        return;
-    }
-    var result = command_execute(
-        "object.item.remove_property", { f"{source.index}" });
-    if (!_command_succeeded(result.status) || !refresh()) { return; }
-    var next_count = Array.len(applied) - 1;
-    if (next_count <= 0) { return; }
-    var next_index = source.index;
-    if (next_index >= next_count) { next_index = next_count - 1; }
-    list_set_selected(applied_list, {
-        list_id = applied_list,
-        key = f"{next_index}",
-        index = next_index,
-        cell = -1,
-    });
+    command_execute("toolset.item.properties.remove", {});
 }
 
 fn close_property_options() {
-    _clear_property_options();
+    command_execute("toolset.item.properties.close", {});
 }
 
 fn on_applied_activate(selection: ListSelection) {
-    var item = _active_item();
-    var field = selection.cell - 1;
-    if ((item as object) == O.invalid || field < 0 || field > 2) { return; }
-    var applied = ItemPolicy.get_applied_item_property_rows(item);
-    if (selection.index < 0 || selection.index >= Array.len(applied)) { return; }
-    var source = applied[selection.index];
-    if (!_selection_matches(selection, f"{source.index}", Array.len(applied))
-        || (field == 0 && !source.has_subtype)
-        || (field == 1 && !source.has_param)
-        || (field == 2 && !source.has_cost)) {
-        return;
-    }
-
-    var source_options = ItemPolicy.get_item_property_option_rows(
-        item, source.index, field);
-    var options: array!(ListItem) = {};
-    var selected_value = source.cost_value;
-    if (field == 0) { selected_value = source.subtype; }
-    elif (field == 1) { selected_value = source.param_value; }
-    var selected_index = -1;
-    Array.reserve(options, Array.len(source_options));
-    for (var index = 0; index < Array.len(source_options); index += 1) {
-        var row = source_options[index];
-        var item_row = _empty_list_item();
-        item_row.key = f"{row.value}";
-        item_row.cell0 = row.label;
-        Array.push(options, item_row);
-        if (row.value == selected_value) { selected_index = index; }
-    }
-    if (!list_set_items(option_list, options)) { return; }
-    _property_index = source.index;
-    _property_field = field;
-    if (field == 0) {
-        list_set_title(option_list, "Subtype");
-    } elif (field == 1) {
-        list_set_title(option_list, "Parameter");
-    } else {
-        list_set_title(option_list, "Cost");
-    }
-    if (!list_set_visible(option_list, true) || selected_index < 0) { return; }
-    list_set_selected(option_list, {
-        list_id = option_list,
-        key = f"{selected_value}",
-        index = selected_index,
-        cell = -1,
-    });
+    command_execute("toolset.item.properties.applied.activate",
+        _selection_args(selection));
 }
 
 fn on_option_activate(selection: ListSelection) {
-    var item = _active_item();
-    if ((item as object) == O.invalid || _property_index < 0
-        || _property_field < 0 || _property_field > 2) {
-        return;
-    }
-    var source = ItemPolicy.get_item_property_option_rows(
-        item, _property_index, _property_field);
-    if (selection.index < 0 || selection.index >= Array.len(source)) { return; }
-    var option = source[selection.index];
-    if (!_selection_matches(selection, f"{option.value}", Array.len(source))) {
-        return;
-    }
-    var field = "cost";
-    if (_property_field == 0) { field = "subtype"; }
-    elif (_property_field == 1) { field = "param"; }
-    var result = command_execute("object.item.set_property_value",
-        { f"{_property_index}", field, f"{option.value}" });
-    if (_command_succeeded(result.status)) { refresh(); }
+    command_execute("toolset.item.properties.option.activate",
+        _selection_args(selection));
 }
 
 fn __toolset_ui_bindings(): array!(UiListBinding) {
     return {
         {
-            list_id = applied_list,
+            list_id = "item.properties.applied",
             event = "activate",
             fn_name = "on_applied_activate",
         },
         {
-            list_id = option_list,
+            list_id = "item.properties.options",
             event = "activate",
             fn_name = "on_option_activate",
         },
         {
-            list_id = model_list,
+            list_id = "item.appearance.models",
             event = "activate",
             fn_name = "on_model_activate",
         },

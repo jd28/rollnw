@@ -26,6 +26,8 @@ Rules::Rules(MemoryResource* scope)
     , creature_body_parts{allocator()}
     , baseitems{allocator()}
     , placeables{allocator()}
+    , doortypes{allocator()}
+    , genericdoors{allocator()}
 {
 }
 

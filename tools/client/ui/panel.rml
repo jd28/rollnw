@@ -26,22 +26,6 @@ from toolset.item_editor import {
     remove_selected_property,
     select_color_channel,
 };
-from toolset.door_editor import {
-    close_door_appearance_selector,
-    door_appearance_refresh,
-    filter_door_appearances,
-    next_door_appearance,
-    open_door_appearance_selector,
-    previous_door_appearance,
-};
-from toolset.placeable_editor import {
-    close_placeable_appearance_selector,
-    filter_placeable_appearances,
-    next_placeable_appearance,
-    open_placeable_appearance_selector,
-    placeable_appearance_refresh,
-    previous_placeable_appearance,
-};
 from toolset.creature_editor import {
     body_parts_refresh,
     close_body_part_options,

@@ -902,6 +902,8 @@ struct AppState {
     nw::toolset::AppearanceCatalog creature_appearance_catalog;
     nw::toolset::AppearanceCatalog placeable_appearance_catalog{
         .kind = nw::toolset::AppearanceCatalogKind::placeable};
+    nw::toolset::AppearanceCatalog door_appearance_catalog{
+        .kind = nw::toolset::AppearanceCatalogKind::door};
     nw::toolset::AppearanceCatalog wing_appearance_catalog{
         .kind = nw::toolset::AppearanceCatalogKind::wing};
     nw::toolset::AppearanceCatalog tail_appearance_catalog{
@@ -4766,6 +4768,9 @@ std::optional<nw::toolset::AppearanceCatalogKind> appearance_catalog_kind(nw::Ob
     if (type == nw::ObjectType::placeable) {
         return nw::toolset::AppearanceCatalogKind::placeable;
     }
+    if (type == nw::ObjectType::door) {
+        return nw::toolset::AppearanceCatalogKind::door;
+    }
     return std::nullopt;
 }
 
@@ -4777,6 +4782,8 @@ nw::toolset::AppearanceCatalog& appearance_catalog(
         return state.creature_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::placeable:
         return state.placeable_appearance_catalog;
+    case nw::toolset::AppearanceCatalogKind::door:
+        return state.door_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::wing:
         return state.wing_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::tail:
@@ -4793,6 +4800,8 @@ const nw::toolset::AppearanceCatalog& appearance_catalog(
         return state.creature_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::placeable:
         return state.placeable_appearance_catalog;
+    case nw::toolset::AppearanceCatalogKind::door:
+        return state.door_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::wing:
         return state.wing_appearance_catalog;
     case nw::toolset::AppearanceCatalogKind::tail:
@@ -4810,9 +4819,13 @@ nw::toolset::AppearanceCatalogKind appearance_catalog_kind(
     if (field == AppearanceEditorField::tail) {
         return nw::toolset::AppearanceCatalogKind::tail;
     }
-    return state.appearance_object.type == nw::ObjectType::placeable
-        ? nw::toolset::AppearanceCatalogKind::placeable
-        : nw::toolset::AppearanceCatalogKind::creature;
+    if (state.appearance_object.type == nw::ObjectType::placeable) {
+        return nw::toolset::AppearanceCatalogKind::placeable;
+    }
+    if (state.appearance_object.type == nw::ObjectType::door) {
+        return nw::toolset::AppearanceCatalogKind::door;
+    }
+    return nw::toolset::AppearanceCatalogKind::creature;
 }
 
 const nw::toolset::AppearanceCatalog& active_appearance_catalog(const AppState& state)
@@ -4825,6 +4838,13 @@ std::optional<int32_t> appearance_editor_value(
     const AppState& state, AppearanceEditorField field)
 {
     if (field == AppearanceEditorField::appearance) {
+        if (state.appearance_object.type == nw::ObjectType::door) {
+            const auto selectors = nw::toolset::door_appearance(
+                nw::kernel::runtime(), state.appearance_object);
+            return selectors && selectors->appearance == 0
+                ? std::optional<int32_t>{selectors->generic_type}
+                : std::nullopt;
+        }
         return nw::toolset::object_appearance(
             nw::kernel::runtime(), state.appearance_object);
     }
@@ -4852,6 +4872,9 @@ void reset_appearance_catalogs_for_module(AppState& state)
     };
     state.placeable_appearance_catalog = {
         .kind = nw::toolset::AppearanceCatalogKind::placeable,
+    };
+    state.door_appearance_catalog = {
+        .kind = nw::toolset::AppearanceCatalogKind::door,
     };
     state.wing_appearance_catalog = {
         .kind = nw::toolset::AppearanceCatalogKind::wing,
@@ -5220,6 +5243,121 @@ void append_appearance_selector_markup(std::string& content_markup, const AppSta
                       "<div class=\"property_tree_empty\">Loading options...</div></div></div>";
 }
 
+void append_placeable_appearance_markup(
+    std::string& content_markup, const AppState& state)
+{
+    const auto current = appearance_editor_value(
+        state, AppearanceEditorField::appearance);
+    const auto* row = current
+        ? nw::toolset::find_appearance_catalog_row(
+              state.placeable_appearance_catalog, *current)
+        : nullptr;
+
+    content_markup += "<div class=\"placeable_appearance_editor active\">";
+    if (!current) {
+        content_markup += "<div class=\"property_tree_empty error\">"
+                          "Placeable appearance is unavailable.</div>";
+    } else {
+        content_markup += "<div class=\"placeable_appearance_summary\">"
+                          "<div class=\"placeable_appearance_row\">"
+                          "<span class=\"placeable_appearance_label\">Name</span>"
+                          "<span class=\"placeable_appearance_value\">";
+        content_markup += escape_html(row
+                ? std::string_view{row->name}
+                : std::string_view{"Unavailable"});
+        content_markup += "</span></div><div class=\"placeable_appearance_row\">"
+                          "<span class=\"placeable_appearance_label\">Model</span>"
+                          "<span class=\"placeable_appearance_value\">";
+        if (row) {
+            content_markup += escape_html(row->model);
+        }
+        content_markup += "</span></div></div>";
+        if (!row) {
+            content_markup += "<div class=\"property_tree_empty error\">"
+                              "Appearance ";
+            content_markup += std::to_string(*current);
+            content_markup += " is unavailable.</div>";
+        }
+    }
+    content_markup += "<div class=\"placeable_appearance_actions\">"
+                      "<button id=\"placeable_appearance_previous\" "
+                      "class=\"placeable_appearance_cycle_button\" type=\"button\" "
+                      "title=\"Previous appearance\">&#x2039;</button>"
+                      "<button id=\"placeable_appearance_open\" "
+                      "class=\"placeable_appearance_open appearance_catalog_field\" "
+                      "data-field=\"appearance\" type=\"button\">Choose Appearance</button>"
+                      "<button id=\"placeable_appearance_next\" "
+                      "class=\"placeable_appearance_cycle_button\" type=\"button\" "
+                      "title=\"Next appearance\">&#x203a;</button></div></div>";
+}
+
+void append_door_appearance_markup(
+    std::string& content_markup, const AppState& state)
+{
+    const auto selectors = nw::toolset::door_appearance(
+        nw::kernel::runtime(), state.appearance_object);
+    const nw::DoorTypeInfo* door_type = nullptr;
+    const nw::GenericDoorInfo* generic_door = nullptr;
+    if (selectors) {
+        if (selectors->appearance == 0) {
+            generic_door = nw::kernel::rules().genericdoors.get(
+                nw::GenericDoor::make(selectors->generic_type));
+        } else {
+            door_type = nw::kernel::rules().doortypes.get(
+                nw::DoorType::make(selectors->appearance));
+        }
+    }
+    const bool generic = selectors && selectors->appearance == 0;
+    const auto model = generic && generic_door
+        ? generic_door->model
+        : door_type ? door_type->model
+                    : nw::Resref{};
+    const bool available = (generic
+                                   ? generic_door && generic_door->valid()
+                                   : door_type && door_type->valid())
+        && nw::kernel::resman().contains(
+            {model, nw::ResourceType::mdl});
+    const auto name = generic && generic_door
+        ? generic_door->editor_name()
+        : door_type ? door_type->editor_name()
+                    : nw::String{};
+
+    content_markup += "<div class=\"door_appearance_editor active\">";
+    if (!selectors) {
+        content_markup += "<div class=\"property_tree_empty error\">"
+                          "Door appearance is unavailable.</div>";
+    } else {
+        content_markup += "<div class=\"door_appearance_summary\">"
+                          "<div class=\"door_appearance_row\"><span "
+                          "class=\"door_appearance_label\">Source</span><span "
+                          "class=\"door_appearance_value\">";
+        content_markup += generic ? "Generic Door" : "Tileset Door";
+        content_markup += "</span></div><div class=\"door_appearance_row\"><span "
+                          "class=\"door_appearance_label\">Name</span><span "
+                          "class=\"door_appearance_value\">";
+        content_markup += escape_html(name);
+        content_markup += "</span></div><div class=\"door_appearance_row\"><span "
+                          "class=\"door_appearance_label\">Model</span><span "
+                          "class=\"door_appearance_value\">";
+        content_markup += escape_html(model.view());
+        content_markup += "</span></div></div>";
+        if (!available) {
+            content_markup += "<div class=\"property_tree_empty error\">"
+                              "Selected Door appearance is unavailable.</div>";
+        }
+    }
+    content_markup += "<div class=\"door_appearance_actions\">"
+                      "<button id=\"door_appearance_previous\" "
+                      "class=\"door_appearance_cycle_button\" type=\"button\" "
+                      "title=\"Previous appearance\">&#x2039;</button>"
+                      "<button id=\"door_appearance_open\" "
+                      "class=\"door_appearance_open appearance_catalog_field\" "
+                      "data-field=\"appearance\" type=\"button\">Choose Appearance</button>"
+                      "<button id=\"door_appearance_next\" "
+                      "class=\"door_appearance_cycle_button\" type=\"button\" "
+                      "title=\"Next appearance\">&#x203a;</button></div></div>";
+}
+
 void append_creature_accessories_markup(
     std::string& content_markup, const AppState& state)
 {
@@ -5416,6 +5554,18 @@ void hydrate_door_workbench(Rml::ElementDocument* doc, const AppState& state)
                 nw::toolset::live_object_display_name(state.object_details.object)));
         }
     }
+
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
+        std::string markup;
+        if (state.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state);
+        } else {
+            append_door_appearance_markup(markup, state);
+        }
+        if (auto* target = find_el(doc, "door_appearance_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+    }
 }
 
 void hydrate_placeable_workbench(Rml::ElementDocument* doc, const AppState& state)
@@ -5463,7 +5613,17 @@ void hydrate_placeable_workbench(Rml::ElementDocument* doc, const AppState& stat
         }
     }
 
-    if (state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
+        std::string markup;
+        if (state.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state);
+        } else {
+            append_placeable_appearance_markup(markup, state);
+        }
+        if (auto* target = find_el(doc, "placeable_appearance_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+    } else if (state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
         std::string markup;
         append_creature_inventory_markup(markup, state);
         if (auto* target = find_el(doc, "placeable_inventory_dynamic")) {
@@ -7877,10 +8037,17 @@ bool commit_active_appearance_selection(AppState& state, int32_t value)
     const std::string selected = std::to_string(value);
     nw::toolset::CommandResult result;
     if (state.appearance_editor_field == AppearanceEditorField::appearance) {
-        result = dispatch_command(state,
-            "object.set_appearance",
-            {std::string_view{selected}},
-            nw::toolset::CommandSource::widget);
+        if (state.appearance_object.type == nw::ObjectType::door) {
+            result = dispatch_command(state,
+                "object.door.set_appearance",
+                {std::string_view{"0"}, std::string_view{selected}},
+                nw::toolset::CommandSource::widget);
+        } else {
+            result = dispatch_command(state,
+                "object.set_appearance",
+                {std::string_view{selected}},
+                nw::toolset::CommandSource::widget);
+        }
     } else {
         const std::string_view accessory = appearance_editor_field_name(
             state.appearance_editor_field);
@@ -7891,6 +8058,36 @@ bool commit_active_appearance_selection(AppState& state, int32_t value)
     }
     append_command_result(state, result);
     return result.ok();
+}
+
+bool cycle_active_appearance(AppState& state, int direction)
+{
+    if (direction == 0 || !active_appearances_match_tab(state)
+        || (state.appearance_object.type != nw::ObjectType::placeable
+            && state.appearance_object.type != nw::ObjectType::door)) {
+        return false;
+    }
+
+    const auto& catalog = active_appearance_catalog(state);
+    if (catalog.status != nw::toolset::AppearanceCatalogStatus::ready
+        || catalog.rows.empty()) {
+        return false;
+    }
+    const auto current = appearance_editor_value(
+        state, AppearanceEditorField::appearance);
+    const auto& rows = catalog.rows;
+    auto selected = current
+        ? std::ranges::find(rows, *current,
+              &nw::toolset::AppearanceCatalogRow::id)
+        : rows.end();
+    size_t next = direction < 0 ? rows.size() - 1 : 0;
+    if (selected != rows.end()) {
+        const size_t index = static_cast<size_t>(selected - rows.begin());
+        next = direction < 0
+            ? (index == 0 ? rows.size() - 1 : index - 1)
+            : (index + 1 == rows.size() ? 0 : index + 1);
+    }
+    return commit_active_appearance_selection(state, rows[next].id);
 }
 
 bool commit_active_color_selection(AppState& state, int32_t value)
@@ -11256,9 +11453,7 @@ int main(int argc, char* argv[])
                                     || state.object_details.object.type == nw::ObjectType::item)) {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::appearance;
                                 if (appearance_catalog_kind(
-                                        state.object_details.object.type)
-                                    && state.object_details.object.type
-                                        != nw::ObjectType::placeable) {
+                                        state.object_details.object.type)) {
                                     rebuild_active_appearances(state, state.object_details.object);
                                 }
                             } else if (surface == "item-properties"
@@ -11295,6 +11490,42 @@ int main(int argc, char* argv[])
                             sync_appearance_window(doc, state, true);
                             nw::toolset::sync_managed_lists(doc,
                                 nw::toolset::ui_v1_host(), state.managed_lists, true);
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "placeable_appearance_previous")) {
+                            release_workspace_mouse_up();
+                            if (cycle_active_appearance(state, -1)) {
+                                rebuild_active_appearances(
+                                    state, state.object_details.object);
+                                refresh_workspace_content(doc, state);
+                            }
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "placeable_appearance_next")) {
+                            release_workspace_mouse_up();
+                            if (cycle_active_appearance(state, 1)) {
+                                rebuild_active_appearances(
+                                    state, state.object_details.object);
+                                refresh_workspace_content(doc, state);
+                            }
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "door_appearance_previous")) {
+                            release_workspace_mouse_up();
+                            if (cycle_active_appearance(state, -1)) {
+                                rebuild_active_appearances(
+                                    state, state.object_details.object);
+                                refresh_workspace_content(doc, state);
+                            }
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "door_appearance_next")) {
+                            release_workspace_mouse_up();
+                            if (cycle_active_appearance(state, 1)) {
+                                rebuild_active_appearances(
+                                    state, state.object_details.object);
+                                refresh_workspace_content(doc, state);
+                            }
                             handled = true;
                         } else if (auto* catalog_field = find_ancestor_with_class(hit, "appearance_catalog_field")) {
                             const auto selected_field = appearance_editor_field_from_name(
